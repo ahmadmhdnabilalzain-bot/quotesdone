@@ -47,6 +47,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replay } from '../lib/alarm_replay.mjs';
+import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { lit } from '../lib/db.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -198,6 +199,15 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_recruitment_funnel()',
     asOf: { supply_gap: 'opened_at', leads: 'created_at' },
   },
+  // 29 Sep 2026 (marketing, #1070). recruitment:no_source:<trade> when a trade planned for recruitment has no checked
+  // source. It plans from the gaps that existed at the instant (the copy's own delete drops plans for gaps not yet
+  // opened, rolled back); a healthy day has no planned trade without a checked source. Sources are not filtered:
+  // checked_at is when a source was last checked, not when it was recorded, and a source seen at the instant can only
+  // make it quieter (the ceiling in the header).
+  fn_marketing_gap_recruitment_plans: {
+    replay: 'pg_temp.qd_replay_fn_marketing_gap_recruitment_plans()',
+    asOf: { supply_gap: 'opened_at' },
+  },
   // 24 Sep 2026 (marketing, #905). reputation:no_public_review_link when a satisfied customer waits for an ask and no
   // review link is configured. Reviews that existed at the instant; the asks it writes are rolled back.
   fn_marketing_reputation: {
@@ -209,6 +219,7 @@ export const REGISTER = {
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
+  fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_settle reached on a seed message the inbox reader (resilience_ping inboxPlacement) looked at; the folder is the reader\'s reading, and no seed is sent on a healthy day before the morning batch' },
   fn_it_duty_settle: { relay: 'writes the failing items a duty reading hands it; the rule is the duty\'s' },
   fn_accountant_duty_settle: { relay: 'the accountant\'s twin of fn_it_duty_settle' },
   fn_accountant_duty_stage: { relay: 'records that an accountant duty stage raised; the error is the finding' },
@@ -231,8 +242,9 @@ const BASELINE = new Set(['fn_it_engineer_alert_tick', 'fn_it_dropbox_health_rec
 // ── STATIC ────────────────────────────────────────────────────────────────────────────────────────
 // name -> canonical body (the LAST file in MANIFEST order that defines it).
 export function canonicalBodies(repo = REPO) {
-  const manifest = readFileSync(join(repo, 'scripts', 'sql', 'MANIFEST.txt'), 'utf8')
-    .split(/\r?\n/).map((l) => l.trim()).filter((l) => l.endsWith('.sql') && !l.startsWith('#'));
+  // MANIFEST plus pending/ (29 Sep 2026): a new alarm waiting in pending/ must be registered by its own
+  // PR, not discovered on main after the bookkeeping commit appends it (#1070's was).
+  const manifest = manifestWithPending(repo);
   const out = new Map();
   for (const f of manifest) {
     const p = join(repo, f);

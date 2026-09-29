@@ -1,0 +1,7 @@
+A PROBE, so it is never applied at all. It is READ through node scripts/qsql.mjs and must print CHK<<PROBE OK ...>>. uae_price_benchmarks_come_only_from_real_quotes.sql is live (#1060), so it runs alone.
+
+Every party is ZZ DEMO and chosen at run time. The bidders are the four lowest-id leads that are is_demo, 'ZZ DEMO%' and demo_factory. They bid on the ZZ DEMO gypsum enquiries 8b287960 and d958e1ea, both checked with fn_inquiry_is_demo before any write. All of this happens inside a block that always raises, so nothing survives it. The first version hard-coded lead 134369, which has since left the demo pool, and fn_demo_and_real_never_pair refused it.
+
+Measured 29 Sep 2026 against production: PROBE OK median=45.00 p25=42.00 p75=48.00 n=5 suppliers=3 accepted=1 real_ranges=0. The lines read well_above, within and well_below, and the unpriced item reads no_benchmark_yet. Afterwards 0 ZZPROBE quote_items and 0 probe quotes remain.
+
+This note therefore stays for the life of the file. Seat: sales_engineer.

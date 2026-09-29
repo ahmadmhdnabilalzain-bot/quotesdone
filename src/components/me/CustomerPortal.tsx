@@ -110,6 +110,7 @@ import { motion, useReducedMotion } from 'motion/react';
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
 // LIVE database. supaEnv resolves it once and warns on fallback; see the note there.
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
+import SupportRatingPrompt from '@/components/portal/SupportRatingPrompt';
 import { signupEmailProblem } from '@/lib/signupEmail';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
@@ -342,6 +343,7 @@ export function CustomerPortal() {
           them is on screen at a time (login / profile gate / the shell), so the id is never doubled. */}
       {phase === 'login' && <>{strip}<main id="main"><Login onAuth={onAuth} lang={lang} /></main></>}
       {phase === 'app' && <Authed token={token} lang={lang} strip={strip} theme={theme} onSwapTheme={swapTheme} onSetLang={setLang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
+      {phase === 'app' && token ? <SupportRatingPrompt token={token} lang={lang} api="sales_engineer" /> : null}
     </>)}
   </div>);
 }
@@ -576,9 +578,18 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // my_inquiries answers { inquiries, locale, promo, guarantee_terms } — it has no `ok`, so the
   // list itself is what is tested. Storing anything else (a transport sentinel, an error body) puts
   // "post your first request" in front of a customer who has plenty (review of #853).
+  // The language the overview on screen was built in (see the [lang] effect below).
+  const langLoaded = useRef(lang);
   const loadInq = (first) => get(first, 'inq', 'customer_api', { action: 'my_inquiries' }).then((j) => {
     if (!j || !Array.isArray(j.inquiries)) { setErr(errText(j, lang, 'load_failed')); return; }
     setData(j); setErr('');
+    // THE SERVED LOCALE IS NOT A LANGUAGE SWITCH (28 Sep 2026, it_engineer). customer_portal builds
+    // the overview in customers.locale, the same value my_inquiries serves here, so adopting it must
+    // not refetch the overview. It did: on /ar for an English-registered customer the [lang] effect
+    // fired a second customer_portal:overview only after this answer landed — measured @846 ms
+    // +601 ms, a serial round trip on top of the first paint. A switch the customer makes still
+    // refetches: setLang saves customers.locale, and that lang differs from this one.
+    if (j.locale === 'ar' || j.locale === 'en') langLoaded.current = j.locale;
     if (j.locale && onServedLocale) onServedLocale(j.locale);
   }).catch(() => setErr(t(lang, 'load_failed')))
     .finally(() => setPosting(false));
@@ -687,7 +698,6 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // The overview's alert cards and headline are written by the server in `lang`, so a language
   // switch must ask for them again (audit 21 Sep 2026, item 23: the cards stayed in the old language
   // until a full reload). Skipped on the first render — the boot effect above already loads them.
-  const langLoaded = useRef(lang);
   useEffect(() => { if (langLoaded.current !== lang) { langLoaded.current = lang; loadOv(); } }, [lang]);
   useEffect(() => {
     const visible = () => typeof document === 'undefined' || document.visibilityState === 'visible';

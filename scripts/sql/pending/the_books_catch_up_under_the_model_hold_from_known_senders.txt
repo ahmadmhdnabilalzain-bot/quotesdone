@@ -1,0 +1,6 @@
+Committed, not applied. Seat: accountant. It seeds three known expense senders and adds the expense_sweep arm to
+fn_resilience_orphan_steps_due; resilience_ping (same PR) calls accountant {action:'expense_sweep'} with the
+accountant's own credential. What moves it: an independent review of #1010, then
+  node scripts/apply_sql.mjs scripts/sql/the_books_catch_up_under_the_model_hold_from_known_senders.sql --apply --ddl --seat accountant
+  node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production resilience_ping
+then delete this note and append the file to the END of MANIFEST.txt in the same commit.

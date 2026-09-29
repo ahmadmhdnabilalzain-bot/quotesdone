@@ -1,0 +1,99 @@
+{
+  "trade": "chemicals",
+  "layer": "uae-market",
+  "label_en": "Industrial & Construction Chemicals",
+  "label_ar": "الكيماويات الصناعية والإنشائية",
+  "entries": [
+    {
+      "id": "chemicals:uae-market-products",
+      "topic": "Industrial & Construction Chemicals: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Industrial and construction chemicals in the UAE: concrete admixtures (superplasticisers PCE-based to ASTM C494/EN 934-2, retarders for hot weather, accelerators, waterproofing admixtures, curing compounds), repair mortars, grouts (cementitious and epoxy), sealants, floor hardeners, bonding agents, and industrial chemicals: caustic soda (flakes and 48-50% lye), hydrochloric and sulphuric acid, sodium hypochlorite, solvents (xylene, toluene, acetone, IPA, MEK, white spirit), glycols (MEG, DEG, TEG), amines, water treatment chemicals (alum, PAC, antiscalants, biocides), oilfield chemicals, surfactants, resins and pigments. Hazardous chemicals are regulated: import permits and registration via MOCCAE and the emirate authorities; precursor and controlled chemicals need police/ministry permits; SDS in Arabic and English per GHS; storage needs Civil Defence approval.",
+      "body_ar": "الكيماويات الصناعية وكيماويات البناء في الإمارات: إضافات الخرسانة (الملدنات الفائقة PCE وفق ASTM C494/EN 934-2، ومؤخرات الشك للطقس الحار، والمسرعات، والإضافات العازلة للماء، ومركبات المعالجة)، ومونة الإصلاح، والجراوت (الإسمنتي والإيبوكسي)، والمانعات، ومقسيات الأرضيات، ومواد الربط، والكيماويات الصناعية: الصودا الكاوية (رقائق ومحلول 48-50%)، وحمض الهيدروكلوريك والكبريتيك، وهيبوكلوريت الصوديوم، والمذيبات (الزيلين والتولوين والأسيتون والكحول الأيزوبروبيلي وMEK والتربنتين)، والجلايكولات (MEG وDEG وTEG)، والأمينات، وكيماويات معالجة المياه (الشب وPAC ومانعات الترسب والمبيدات الحيوية)، وكيماويات حقول النفط، والمواد الخافضة للتوتر السطحي، والراتنجات والأصباغ. والكيماويات الخطرة منظمة: تصاريح استيراد وتسجيل عبر وزارة التغير المناخي والبيئة وجهات الإمارات؛ وتحتاج السلائف والكيماويات المراقبة تصاريح من الشرطة/الوزارة؛ وصحائف بيانات السلامة بالعربية والإنجليزية وفق GHS؛ ويحتاج التخزين اعتماد الدفاع المدني.",
+      "sources": [
+        "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
+        "https://www.sika.com",
+        "https://fertiglobe.com/about-us/our-business/",
+        "https://www.moccae.gov.ae",
+        "https://unece.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Fosroc is based in Dubai -> confirmed (search result) | Sika is a construction chemicals group -> confirmed | Borouge and Fertiglobe produce in Ruwais -> confirmed. Not checked: Current import-permit steps per chemical class and named distributors' UAE operations were not verified."
+    },
+    {
+      "id": "chemicals:uae-market-brands",
+      "topic": "Industrial & Construction Chemicals: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Construction-chemical brands, regional producers and distributors: Sika, Master Builders Solutions, Fosroc, Mapei, Henkel, Pidilite, Borouge, Fertiglobe, SABIC, Brenntag, Univar. Fosroc is based in Dubai, and Borouge and Fertiglobe produce at Ruwais. Industrial chemicals are traded through distributors and traders in Sharjah (Hamriyah), Jebel Ali and Abu Dhabi. Except for Fosroc, which distributors hold each line locally was not checked. Origins: GCC, Europe, India, China.",
+      "body_ar": "علامات كيماويات البناء والمنتجون الإقليميون والموزعون: Sika، Master Builders Solutions، Fosroc، Mapei، Henkel، Pidilite، Borouge، Fertiglobe، SABIC، Brenntag، Univar. ومقر Fosroc في دبي، وتنتج Borouge وFertiglobe في الرويس. وتُتداول الكيماويات الصناعية عبر موزعين وتجار في الشارقة (الحمرية) وجبل علي وأبوظبي، ولم يُتحقق من الموزع المحلي لكل خط عدا Fosroc. المنشأ: الخليج، أوروبا، الهند، الصين.",
+      "sources": [
+        "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
+        "https://www.sika.com",
+        "https://fertiglobe.com/about-us/our-business/",
+        "https://www.moccae.gov.ae",
+        "https://unece.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Fosroc is based in Dubai -> confirmed (search result) | Sika is a construction chemicals group -> confirmed | Borouge and Fertiglobe produce in Ruwais -> confirmed. Not checked: Current import-permit steps per chemical class and named distributors' UAE operations were not verified."
+    },
+    {
+      "id": "chemicals:uae-market-sizes",
+      "topic": "Industrial & Construction Chemicals: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Admixtures in 20-25 L pails, 200-210 L drums and 1,000 L IBCs, dosed per 100 kg cement; grouts and mortars in 25 kg bags; bulk chemicals per tonne in drums, IBCs, flexitanks or ISO tanks. Priced per litre, kg or tonne; hazardous delivery needs licensed transport. Quotes include TDS, SDS and CoA.",
+      "body_ar": "الإضافات في دلاء 20-25 لتراً، وبراميل 200-210 لترات، وحاويات 1,000 لتر، وتُجرّع لكل 100 كغ إسمنت؛ والجراوت والمونة في أكياس 25 كغ؛ والكيماويات السائبة بالطن في براميل أو حاويات أو خزانات مرنة أو خزانات ISO. والتسعير باللتر أو الكيلوغرام أو الطن؛ ويحتاج توصيل المواد الخطرة نقلاً مرخصاً. وتتضمن العروض نشرة البيانات الفنية وصحيفة السلامة وشهادة التحليل.",
+      "sources": [
+        "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
+        "https://www.sika.com",
+        "https://fertiglobe.com/about-us/our-business/",
+        "https://www.moccae.gov.ae",
+        "https://unece.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Fosroc is based in Dubai -> confirmed (search result) | Sika is a construction chemicals group -> confirmed | Borouge and Fertiglobe produce in Ruwais -> confirmed. Not checked: Current import-permit steps per chemical class and named distributors' UAE operations were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which concrete admixture helps pouring in UAE summer heat?",
+      "q_ar": "ما إضافة الخرسانة المناسبة للصب في حرارة صيف الإمارات؟",
+      "expected_entry_ids": [
+        "chemicals:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Fosroc is based in Dubai",
+        "url": "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
+        "result": "confirmed (search result)"
+      },
+      {
+        "claim": "Sika is a construction chemicals group",
+        "url": "https://www.sika.com",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Borouge and Fertiglobe produce in Ruwais",
+        "url": "https://fertiglobe.com/about-us/our-business/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Current import-permit steps per chemical class and named distributors' UAE operations were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

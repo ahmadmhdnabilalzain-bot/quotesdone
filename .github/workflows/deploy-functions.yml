@@ -85,13 +85,13 @@ jobs:
     name: deploy changed functions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # deploy_functions.mjs --changed diffs against a base commit, so the runner needs more
           # than the shallow single commit actions/checkout fetches by default.
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -101,7 +101,7 @@ jobs:
       # token, so a busy hour fails the deploy before it starts: PR #785 run 35627998129, "Failed to
       # resolve latest Supabase CLI release: rate limit exceeded". A pinned version downloads directly.
       # Raise it deliberately; scripts/checks/the_function_deploy_pins_its_supabase_cli.test.mjs refuses `latest`.
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.117.0
 

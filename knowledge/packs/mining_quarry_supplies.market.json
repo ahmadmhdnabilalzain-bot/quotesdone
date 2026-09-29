@@ -1,0 +1,88 @@
+{
+  "trade": "mining_quarry_supplies",
+  "layer": "uae-market",
+  "label_en": "Mining & quarry supplies",
+  "label_ar": "مستلزمات المحاجر والتعدين",
+  "entries": [
+    {
+      "id": "mining_quarry_supplies:uae-market-products",
+      "topic": "Mining & quarry supplies: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Mining and quarry supplies in the UAE (mainly gabbro, limestone and aggregate quarries in Fujairah and Ras Al Khaimah, plus sand and gypsum): crusher wear parts (manganese jaw plates, cone mantles and concaves, impact blow bars, VSI tips), screen media (woven wire, polyurethane and rubber panels), conveyor belts (EP fabric and steel cord, DIN 22102/ISO 14890) and idlers, drilling consumables (top hammer and DTH bits, rods, shanks, button bits), explosives and accessories (licensed and controlled by the authorities; only licensed blasting contractors), ground engaging tools (bucket teeth, cutting edges), dust suppression systems, weighbridges, and quarry equipment (crushers, screens, wheel loaders, dump trucks). Buyers specify crusher model and part number, manganese grade (14%, 18%, 22%), screen aperture and wire diameter, belt width/ply/cover grade.",
+      "body_ar": "مستلزمات المناجم والمحاجر في الإمارات (أساساً محاجر الغابرو والحجر الجيري والركام في الفجيرة ورأس الخيمة، إضافة إلى الرمل والجبس): قطع تآكل الكسارات (ألواح الفك المنغنيزية، ومخاريط وحلقات الكسارات المخروطية، وقضبان الصدم، وأطراف الكسارات العمودية)، ووسائط الغربلة (شبك منسوج وألواح بولي يوريثان ومطاط)، وسيور النقل (نسيج EP وأسلاك فولاذية وفق DIN 22102/ISO 14890) والبكرات، ومستهلكات الحفر (رؤوس المطرقة العلوية والغاطسة، والقضبان، والسيقان، والرؤوس الزرية)، والمتفجرات وملحقاتها (مرخصة وخاضعة لرقابة الجهات؛ للمقاولين المرخصين فقط)، وأدوات الحفر الأرضية (أسنان الدلو والحواف القاطعة)، وأنظمة إخماد الغبار، والموازين الجسرية، ومعدات المحاجر (الكسارات والغرابيل واللوادر والقلابات). يحدد المشتري طراز الكسارة ورقم القطعة ودرجة المنغنيز (14% و18% و22%) وفتحة الغربال وقطر السلك وعرض السير وطبقاته ودرجة غطائه.",
+      "sources": [
+        "https://www.metso.com",
+        "https://en.wikipedia.org/wiki/Khor_Khwair",
+        "https://www.iso.org",
+        "https://www.fnrc.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Metso supplies crusher wear parts and screening media -> confirmed | RAK quarries at Khor Khwair -> confirmed. Not checked: The FNRC website address, quarry count and current explosives licensing authority per emirate were not verified."
+    },
+    {
+      "id": "mining_quarry_supplies:uae-market-brands",
+      "topic": "Mining & quarry supplies: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Metso, Sandvik, Terex, Kleemann, McCloskey, Keestrack, Epiroc, Mitsubishi Materials, Robit, Fenner Dunlop, Continental, Bridgestone, ESCO, Hensley, plus Chinese and Indian wear-part foundries. Suppliers cluster near the Fujairah and Ras Al Khaimah quarries (Khor Khwair), and in Sharjah and Dubai. The brands' UAE dealers were not checked. Origins: Finland, Sweden, the UK, Germany, Ireland, China, India.",
+      "body_ar": "العلامات: Metso، Sandvik، Terex، Kleemann، McCloskey، Keestrack، Epiroc، Mitsubishi Materials، Robit، Fenner Dunlop، Continental، Bridgestone، ESCO، Hensley، إضافة إلى مسابك قطع تآكل صينية وهندية. ويتجمع الموردون قرب محاجر الفجيرة ورأس الخيمة (خور خوير) وفي الشارقة ودبي، ولم يُتحقق من وكلاء العلامات في الإمارات. المنشأ: فنلندا، السويد، المملكة المتحدة، ألمانيا، أيرلندا، الصين، الهند.",
+      "sources": [
+        "https://www.metso.com",
+        "https://en.wikipedia.org/wiki/Khor_Khwair",
+        "https://www.iso.org",
+        "https://www.fnrc.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Metso supplies crusher wear parts and screening media -> confirmed | RAK quarries at Khor Khwair -> confirmed. Not checked: The FNRC website address, quarry count and current explosives licensing authority per emirate were not verified."
+    },
+    {
+      "id": "mining_quarry_supplies:uae-market-sizes",
+      "topic": "Mining & quarry supplies: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Wear parts priced per piece or per kg (castings); screen media per panel or per m2; conveyor belts per metre by width (e.g. 800-1,400 mm) and rating (e.g. EP630/4); drill bits per piece by diameter (e.g. 76-115 mm). Quarries often run supply contracts with consignment stock. Quotes state origin, manganese content and wear-life guarantee where offered.",
+      "body_ar": "تُسعّر قطع التآكل بالقطعة أو بالكيلوغرام (المسبوكات)؛ ووسائط الغربلة باللوح أو بالمتر المربع؛ والسيور بالمتر حسب العرض (مثل 800-1,400 مم) والتصنيف (مثل EP630/4)؛ ورؤوس الحفر بالقطعة حسب القطر (مثل 76-115 مم). وكثيراً ما تعمل المحاجر بعقود توريد مع مخزون أمانة. وتذكر العروض المنشأ ونسبة المنغنيز وضمان عمر التآكل إن وُجد.",
+      "sources": [
+        "https://www.metso.com",
+        "https://en.wikipedia.org/wiki/Khor_Khwair",
+        "https://www.iso.org",
+        "https://www.fnrc.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Metso supplies crusher wear parts and screening media -> confirmed | RAK quarries at Khor Khwair -> confirmed. Not checked: The FNRC website address, quarry count and current explosives licensing authority per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which manganese grade should jaw crusher plates be for gabbro?",
+      "q_ar": "ما درجة المنغنيز المناسبة لألواح كسارة الفك للغابرو؟",
+      "expected_entry_ids": [
+        "mining_quarry_supplies:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Metso supplies crusher wear parts and screening media",
+        "url": "https://www.metso.com",
+        "result": "confirmed"
+      },
+      {
+        "claim": "RAK quarries at Khor Khwair",
+        "url": "https://en.wikipedia.org/wiki/Khor_Khwair",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The FNRC website address, quarry count and current explosives licensing authority per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

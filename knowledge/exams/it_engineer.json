@@ -1,0 +1,980 @@
+{
+  "seat": "it_engineer",
+  "standard": "scratchpad/seats_v3/JOB_DESCRIPTIONS.md section 6",
+  "items": [
+    {
+      "id": "it_engineer-exam-01",
+      "checklist": "IT-01",
+      "q_en": "Our site looks fine from inside but customers say it is down — how should we be watching it?",
+      "q_ar": "موقعنا يبدو سليماً من الداخل لكن العملاء يقولون إنه متوقف، كيف يجب أن نراقبه؟",
+      "expected_entry_ids": [
+        "it_engineer:synthetic-probes-uptime"
+      ],
+      "expected_facts": [
+        "black-box monitoring"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-02",
+      "checklist": "IT-01",
+      "q_en": "How often is the invited-supplier launch path probed?",
+      "q_ar": "كم مرة يُفحص مسار إطلاق المورد المدعو؟",
+      "expected_entry_ids": [
+        "it_engineer:duty-cadence-map"
+      ],
+      "expected_facts": [
+        "launchpath"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-03",
+      "checklist": "IT-02",
+      "q_en": "Page data must load in how many seconds, and which percentile do we judge it on?",
+      "q_ar": "خلال كم ثانية يجب أن تُحمّل بيانات الصفحة، وبأي مئين نحكم؟",
+      "expected_entry_ids": [
+        "it_engineer:latency-budget-duty"
+      ],
+      "expected_facts": [
+        "2.5 seconds",
+        "p95"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-04",
+      "checklist": "IT-02",
+      "q_en": "How many runs must a function have before a slow p95 becomes a finding?",
+      "q_ar": "كم تشغيلاً تحتاج الدالة قبل أن يصبح بطء المئين 95 ملاحظة؟",
+      "expected_entry_ids": [
+        "it_engineer:latency-budget-duty"
+      ],
+      "expected_facts": [
+        "at least 30 runs"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-05",
+      "checklist": "IT-02",
+      "q_en": "Which four signals should we watch on a user-facing service?",
+      "q_ar": "ما الإشارات الأربع التي نراقبها في خدمة تواجه المستخدم؟",
+      "expected_entry_ids": [
+        "it_engineer:four-golden-signals"
+      ],
+      "expected_facts": [
+        "Latency",
+        "Traffic",
+        "Errors"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-06",
+      "checklist": "IT-03",
+      "q_en": "Why does the detector step keep a one-tick floor?",
+      "q_ar": "لماذا تحتفظ خطوة الكاشف بحد أدنى نبضة واحدة؟",
+      "expected_entry_ids": [
+        "it_engineer:scheduler-silence-detection"
+      ],
+      "expected_facts": [
+        "false SCHEDULER DOWN page",
+        "17 Sep 2026"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-07",
+      "checklist": "IT-03",
+      "q_en": "After how long without a report does the nightly journey raise a heartbeat finding?",
+      "q_ar": "بعد كم ساعة دون تقرير ترفع الرحلة الليلية ملاحظة نبضة؟",
+      "expected_entry_ids": [
+        "it_engineer:scheduler-silence-detection"
+      ],
+      "expected_facts": [
+        "26 hours"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-08",
+      "checklist": "IT-03",
+      "q_en": "How often does the detector run?",
+      "q_ar": "كم مرة يعمل الكاشف؟",
+      "expected_entry_ids": [
+        "it_engineer:duty-cadence-map"
+      ],
+      "expected_facts": [
+        "Every 15 minutes"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-09",
+      "checklist": "IT-04",
+      "q_en": "How many OTP requests per number prefix in an hour counts as a burst?",
+      "q_ar": "كم طلب رمز تحقق لكل بادئة رقم في الساعة يُعد اندفاعاً؟",
+      "expected_entry_ids": [
+        "it_engineer:otp-usage-provider-watch"
+      ],
+      "expected_facts": [
+        "otp_burst_per_prefix_hour 5"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-10",
+      "checklist": "IT-04",
+      "q_en": "How long is an abusive OTP source blocked?",
+      "q_ar": "كم مدة حظر مصدر يسيء استخدام رموز التحقق؟",
+      "expected_entry_ids": [
+        "it_engineer:otp-usage-provider-watch"
+      ],
+      "expected_facts": [
+        "otp_block_hours 24"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-11",
+      "checklist": "IT-04",
+      "q_en": "At what share of a provider cap do we warn?",
+      "q_ar": "عند أي نسبة من سقف المزود نطلق التحذير؟",
+      "expected_entry_ids": [
+        "it_engineer:otp-usage-provider-watch"
+      ],
+      "expected_facts": [
+        "0.8 (80%)"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-12",
+      "checklist": "IT-04",
+      "q_en": "What is our monthly Resend email cap?",
+      "q_ar": "ما سقفنا الشهري لرسائل Resend؟",
+      "expected_entry_ids": [
+        "it_engineer:otp-usage-provider-watch"
+      ],
+      "expected_facts": [
+        "cap_resend_emails_month 50000"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-13",
+      "checklist": "IT-05",
+      "q_en": "Twilio shows failed for one message and undelivered for another — what is the difference?",
+      "q_ar": "Twilio يظهر failed لرسالة وundelivered لأخرى، ما الفرق؟",
+      "expected_entry_ids": [
+        "it_engineer:twilio-delivery-status"
+      ],
+      "expected_facts": [
+        "never left Twilio"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-14",
+      "checklist": "IT-05",
+      "q_en": "What WhatsApp failure rate raises a finding?",
+      "q_ar": "ما معدل فشل واتساب الذي يرفع ملاحظة؟",
+      "expected_entry_ids": [
+        "it_engineer:twilio-delivery-status"
+      ],
+      "expected_facts": [
+        "0.05 (5%)"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-15",
+      "checklist": "IT-05",
+      "q_en": "A WhatsApp message has had no final status for a day — what do we suspect?",
+      "q_ar": "رسالة واتساب بلا حالة نهائية منذ يوم، ماذا نشتبه؟",
+      "expected_entry_ids": [
+        "it_engineer:twilio-delivery-status"
+      ],
+      "expected_facts": [
+        "status callback may be broken"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-16",
+      "checklist": "IT-05",
+      "q_en": "How many unique recipients can a new WhatsApp portfolio message per day?",
+      "q_ar": "كم مستلماً فريداً يمكن لحساب واتساب جديد مراسلته يومياً؟",
+      "expected_entry_ids": [
+        "it_engineer:whatsapp-messaging-limits"
+      ],
+      "expected_facts": [
+        "250 unique recipients"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-17",
+      "checklist": "IT-06",
+      "q_en": "Which Vercel firewall layer is free on every plan?",
+      "q_ar": "أي طبقة من جدار حماية Vercel مجانية في كل الخطط؟",
+      "expected_entry_ids": [
+        "it_engineer:vercel-firewall-waf"
+      ],
+      "expected_facts": [
+        "automatic DDoS mitigation"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-18",
+      "checklist": "IT-06",
+      "q_en": "Which security events must always be logged?",
+      "q_ar": "ما الأحداث الأمنية التي يجب تسجيلها دائماً؟",
+      "expected_entry_ids": [
+        "it_engineer:security-logging"
+      ],
+      "expected_facts": [
+        "authentication successes and failures"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-19",
+      "checklist": "IT-06",
+      "q_en": "What is the biggest access-control risk in a two-sided marketplace?",
+      "q_ar": "ما أكبر خطر في التحكم بالوصول في سوق ذي طرفين؟",
+      "expected_entry_ids": [
+        "it_engineer:access-control-review"
+      ],
+      "expected_facts": [
+        "Supplier isolation"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-20",
+      "checklist": "IT-07",
+      "q_en": "What has to come with every fix before we close the finding?",
+      "q_ar": "ما الذي يجب أن يرافق كل إصلاح قبل إغلاق الملاحظة؟",
+      "expected_entry_ids": [
+        "it_engineer:fix-carries-regression-check"
+      ],
+      "expected_facts": [
+        "fails if the cause returns"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-21",
+      "checklist": "IT-07",
+      "q_en": "What if a playbook names a routine that does not exist?",
+      "q_ar": "ماذا لو ذكر دليل التشغيل إجراءً غير موجود؟",
+      "expected_entry_ids": [
+        "it_engineer:fix-carries-regression-check"
+      ],
+      "expected_facts": [
+        "raises an exception"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-22",
+      "checklist": "IT-07",
+      "q_en": "Why do we write postmortems without blame?",
+      "q_ar": "لماذا نكتب مراجعات ما بعد الحادثة دون لوم؟",
+      "expected_entry_ids": [
+        "it_engineer:blameless-postmortem"
+      ],
+      "expected_facts": [
+        "people hide mistakes"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-23",
+      "checklist": "IT-07",
+      "q_en": "What is the worst severity level and when does it apply?",
+      "q_ar": "ما أعلى درجة خطورة ومتى تنطبق؟",
+      "expected_entry_ids": [
+        "it_engineer:severity-ladder"
+      ],
+      "expected_facts": [
+        "SEV1"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-24",
+      "checklist": "IT-08",
+      "q_en": "A routine keeps politely refusing callers with 403 — should IT care?",
+      "q_ar": "إجراء يرفض المستدعين بأدب برمز 403 باستمرار، هل يهم قسم التقنية؟",
+      "expected_entry_ids": [
+        "it_engineer:refusals-visible-to-it"
+      ],
+      "expected_facts": [
+        "polite refusals are visible to IT"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-25",
+      "checklist": "IT-08",
+      "q_en": "When is a refusal intended rather than a fault?",
+      "q_ar": "متى يكون الرفض مقصوداً لا عطلاً؟",
+      "expected_entry_ids": [
+        "it_engineer:refusals-visible-to-it"
+      ],
+      "expected_facts": [
+        "it_refusal_policy"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-26",
+      "checklist": "IT-09",
+      "q_en": "Which Postgres view tells us the slowest and most expensive queries?",
+      "q_ar": "أي عرض في Postgres يخبرنا بأبطأ الاستعلامات وأكثرها كلفة؟",
+      "expected_entry_ids": [
+        "it_engineer:pg-stat-statements-triage"
+      ],
+      "expected_facts": [
+        "pg_stat_statements",
+        "mean_exec_time"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-27",
+      "checklist": "IT-09",
+      "q_en": "How much of max connections should the Supavisor pool get?",
+      "q_ar": "كم من الحد الأقصى للاتصالات يُعطى لمجمع Supavisor؟",
+      "expected_entry_ids": [
+        "it_engineer:connection-pool-exhaustion"
+      ],
+      "expected_facts": [
+        "around 80%"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-28",
+      "checklist": "IT-09",
+      "q_en": "How do we express saturation so someone can act on it?",
+      "q_ar": "كيف نعبّر عن التشبع بطريقة قابلة للتنفيذ؟",
+      "expected_entry_ids": [
+        "it_engineer:capacity-days-to-limit"
+      ],
+      "expected_facts": [
+        "in N days"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-29",
+      "checklist": "IT-10",
+      "q_en": "Where must backups be kept?",
+      "q_ar": "أين يجب حفظ النسخ الاحتياطية؟",
+      "expected_entry_ids": [
+        "it_engineer:backup-supabase-dropbox"
+      ],
+      "expected_facts": [
+        "both Supabase and Dropbox"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-30",
+      "checklist": "IT-10",
+      "q_en": "How old may the newest table export be before it is a problem?",
+      "q_ar": "ما أقصى عمر مقبول لأحدث تصدير للجداول؟",
+      "expected_entry_ids": [
+        "it_engineer:backup-supabase-dropbox"
+      ],
+      "expected_facts": [
+        "restore_export_max_age_days 2"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-31",
+      "checklist": "IT-10",
+      "q_en": "How long does Supabase keep daily backups on the Pro plan?",
+      "q_ar": "كم يحتفظ Supabase بالنسخ اليومية في خطة Pro؟",
+      "expected_entry_ids": [
+        "it_engineer:supabase-backups"
+      ],
+      "expected_facts": [
+        "7 days on the Pro plan"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-32",
+      "checklist": "IT-10",
+      "q_en": "With PITR what is the worst-case data loss?",
+      "q_ar": "مع الاستعادة لنقطة زمنية ما أسوأ فقد محتمل للبيانات؟",
+      "expected_entry_ids": [
+        "it_engineer:rpo-rto-targets"
+      ],
+      "expected_facts": [
+        "about two minutes"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-33",
+      "checklist": "IT-11",
+      "q_en": "What bounce rate is too high for our sender?",
+      "q_ar": "ما معدل الارتداد المرتفع أكثر من اللازم لمرسلنا؟",
+      "expected_entry_ids": [
+        "it_engineer:sender-health-duty"
+      ],
+      "expected_facts": [
+        "0.02 (2%)"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-34",
+      "checklist": "IT-11",
+      "q_en": "Spamhaus answered 127.255.255.254 — are we blocklisted?",
+      "q_ar": "ردت Spamhaus بالقيمة 127.255.255.254، هل نحن مدرجون؟",
+      "expected_entry_ids": [
+        "it_engineer:sender-health-duty"
+      ],
+      "expected_facts": [
+        "127.255.255.254",
+        "public resolvers"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-35",
+      "checklist": "IT-11",
+      "q_en": "Can a domain publish two SPF records?",
+      "q_ar": "هل يمكن لنطاق نشر سجلي SPF؟",
+      "expected_entry_ids": [
+        "it_engineer:spf"
+      ],
+      "expected_facts": [
+        "One record only"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-36",
+      "checklist": "IT-11",
+      "q_en": "When does a message pass DMARC?",
+      "q_ar": "متى تنجح الرسالة في اختبار DMARC؟",
+      "expected_entry_ids": [
+        "it_engineer:dmarc"
+      ],
+      "expected_facts": [
+        "authenticated domain aligns"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-37",
+      "checklist": "IT-11",
+      "q_en": "At what daily volume does Gmail require DMARC?",
+      "q_ar": "عند أي حجم يومي يشترط Gmail وجود DMARC؟",
+      "expected_entry_ids": [
+        "it_engineer:gmail-bulk-sender"
+      ],
+      "expected_facts": [
+        "5,000 or more messages a day"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-38",
+      "checklist": "IT-12",
+      "q_en": "When is a provider bill jump big enough to flag?",
+      "q_ar": "متى تكون قفزة فاتورة المزود كبيرة بما يكفي للتنبيه؟",
+      "expected_entry_ids": [
+        "it_engineer:data-quality-and-model-spend"
+      ],
+      "expected_facts": [
+        "spend_anomaly_multiple 2",
+        "spend_floor_aed 20"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-39",
+      "checklist": "IT-12",
+      "q_en": "What happens on Supabase when the spend cap is on and a quota is exceeded?",
+      "q_ar": "ماذا يحدث في Supabase عند تفعيل سقف الإنفاق وتجاوز الحصة؟",
+      "expected_entry_ids": [
+        "it_engineer:supabase-spend-cap"
+      ],
+      "expected_facts": [
+        "further usage of that item is disallowed"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-40",
+      "checklist": "IT-13",
+      "q_en": "When is a key rotation actually proved?",
+      "q_ar": "متى يُثبت تدوير المفتاح فعلاً؟",
+      "expected_entry_ids": [
+        "it_engineer:prove-rotation"
+      ],
+      "expected_facts": [
+        "the old one no longer works"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-41",
+      "checklist": "IT-13",
+      "q_en": "Why rotate secrets regularly?",
+      "q_ar": "لماذا ندوّر الأسرار بانتظام؟",
+      "expected_entry_ids": [
+        "it_engineer:secrets-lifecycle"
+      ],
+      "expected_facts": [
+        "works only briefly"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-42",
+      "checklist": "IT-14",
+      "q_en": "Which providers' status pages do we watch every hour?",
+      "q_ar": "صفحات حالة أي مزودين نراقبها كل ساعة؟",
+      "expected_entry_ids": [
+        "it_engineer:otp-usage-provider-watch"
+      ],
+      "expected_facts": [
+        "Stripe, Resend, Twilio, Vercel, Supabase and Dropbox"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-43",
+      "checklist": "IT-15",
+      "q_en": "How do we catch a change applied to production without review?",
+      "q_ar": "كيف نكتشف تغييراً طُبق على الإنتاج دون مراجعة؟",
+      "expected_entry_ids": [
+        "it_engineer:deploy-drift-guard"
+      ],
+      "expected_facts": [
+        "fn_it_change_watch"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-44",
+      "checklist": "IT-15",
+      "q_en": "How much drift did the first count find?",
+      "q_ar": "كم انحرافاً وجد أول عدّ؟",
+      "expected_entry_ids": [
+        "it_engineer:deploy-drift-guard"
+      ],
+      "expected_facts": [
+        "602 objects of drift"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-45",
+      "checklist": "IT-15",
+      "q_en": "A bad frontend deploy broke login — fastest mitigation?",
+      "q_ar": "نشر سيئ للواجهة عطّل الدخول، ما أسرع إجراء؟",
+      "expected_entry_ids": [
+        "it_engineer:vercel-instant-rollback"
+      ],
+      "expected_facts": [
+        "without a rebuild"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-46",
+      "checklist": "IT-16",
+      "q_en": "What time does the nightly journey run?",
+      "q_ar": "متى تعمل رحلة الاختبار الليلية؟",
+      "expected_entry_ids": [
+        "it_engineer:journey-and-smoke"
+      ],
+      "expected_facts": [
+        "02:00 Dubai"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-47",
+      "checklist": "IT-16",
+      "q_en": "What does the post-deploy smoke test do?",
+      "q_ar": "ماذا يفعل اختبار ما بعد النشر؟",
+      "expected_entry_ids": [
+        "it_engineer:journey-and-smoke"
+      ],
+      "expected_facts": [
+        "comparison PDF in en and ar"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-48",
+      "checklist": "IT-17",
+      "q_en": "How do we know test data leaked into real numbers?",
+      "q_ar": "كيف نعرف أن بيانات الاختبار تسربت إلى الأرقام الحقيقية؟",
+      "expected_entry_ids": [
+        "it_engineer:data-quality-and-model-spend"
+      ],
+      "expected_facts": [
+        "ZZ DEMO",
+        "example.invalid"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-49",
+      "checklist": "IT-18",
+      "q_en": "How is each seat's knowledge pass rate watched?",
+      "q_ar": "كيف يُراقب معدل نجاح معرفة كل مقعد؟",
+      "expected_entry_ids": [
+        "it_engineer:knowledge-pass-rate-monitor"
+      ],
+      "expected_facts": [
+        "pass rate"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-50",
+      "checklist": "IT-18",
+      "q_en": "Why does knowledge need a quarterly refresh?",
+      "q_ar": "لماذا تحتاج المعرفة إلى تحديث ربع سنوي؟",
+      "expected_entry_ids": [
+        "it_engineer:quarterly-knowledge-refresh"
+      ],
+      "expected_facts": [
+        "Knowledge ages"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-51",
+      "checklist": "IT-19",
+      "q_en": "What counts as a model-call loop?",
+      "q_ar": "ما الذي يُعد حلقة استدعاءات نموذج؟",
+      "expected_entry_ids": [
+        "it_engineer:data-quality-and-model-spend"
+      ],
+      "expected_facts": [
+        "5x its usual hour"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-52",
+      "checklist": "IT-19",
+      "q_en": "What is the founder's ceiling for idle internal model spend?",
+      "q_ar": "ما سقف المؤسس للإنفاق الداخلي الخامل على النماذج؟",
+      "expected_entry_ids": [
+        "it_engineer:data-quality-and-model-spend"
+      ],
+      "expected_facts": [
+        "USD 1-2 per day"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-53",
+      "checklist": "IT-20",
+      "q_en": "How many rows does the monthly table restore drill compare?",
+      "q_ar": "كم صفاً يقارن تمرين استعادة الجدول الشهري؟",
+      "expected_entry_ids": [
+        "it_engineer:backup-supabase-dropbox"
+      ],
+      "expected_facts": [
+        "50 rows"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-54",
+      "checklist": "IT-20",
+      "q_en": "Why must a backup be restored on a schedule?",
+      "q_ar": "لماذا يجب استعادة النسخة الاحتياطية وفق جدول؟",
+      "expected_entry_ids": [
+        "it_engineer:restore-drill"
+      ],
+      "expected_facts": [
+        "never been restored is an assumption"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-55",
+      "checklist": "IT-21",
+      "q_en": "Whose access do we review each month?",
+      "q_ar": "صلاحيات من نراجع كل شهر؟",
+      "expected_entry_ids": [
+        "it_engineer:monthly-quarterly-duties"
+      ],
+      "expected_facts": [
+        "GitHub, Vercel, Stripe and Dropbox"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-56",
+      "checklist": "IT-22",
+      "q_en": "Does the dependency scan merge patches by itself?",
+      "q_ar": "هل يدمج فحص الاعتماديات الترقيعات بنفسه؟",
+      "expected_entry_ids": [
+        "it_engineer:monthly-quarterly-duties"
+      ],
+      "expected_facts": [
+        "never auto-merged"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-57",
+      "checklist": "IT-22",
+      "q_en": "What is the first question when a vulnerability advisory arrives?",
+      "q_ar": "ما أول سؤال عند وصول تنبيه ثغرة؟",
+      "expected_entry_ids": [
+        "it_engineer:vuln-triage-rule"
+      ],
+      "expected_facts": [
+        "actually deployed"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-58",
+      "checklist": "IT-23",
+      "q_en": "When does our quotesdone.ae TLS certificate expire?",
+      "q_ar": "متى تنتهي شهادة TLS الخاصة بـ quotesdone.ae؟",
+      "expected_entry_ids": [
+        "it_engineer:monthly-quarterly-duties"
+      ],
+      "expected_facts": [
+        "2026-11-09"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-59",
+      "checklist": "IT-23",
+      "q_en": "When is the trade licence due for renewal?",
+      "q_ar": "متى يحين تجديد الرخصة التجارية؟",
+      "expected_entry_ids": [
+        "it_engineer:monthly-quarterly-duties"
+      ],
+      "expected_facts": [
+        "2027-06-24"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-60",
+      "checklist": "IT-24",
+      "q_en": "Besides restores, access and renewals, what else is on the monthly list?",
+      "q_ar": "إلى جانب الاستعادة والصلاحيات والتجديدات، ماذا يوجد أيضاً في القائمة الشهرية؟",
+      "expected_entry_ids": [
+        "it_engineer:monthly-quarterly-duties"
+      ],
+      "expected_facts": [
+        "a performance review"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-61",
+      "checklist": "IT-25",
+      "q_en": "What is the first step when the whole database is lost?",
+      "q_ar": "ما أول خطوة عند فقدان قاعدة البيانات كاملة؟",
+      "expected_entry_ids": [
+        "it_engineer:dr-runbook"
+      ],
+      "expected_facts": [
+        "Declare"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-62",
+      "checklist": "IT-26",
+      "q_en": "What should the quarterly review cover besides disaster recovery?",
+      "q_ar": "ماذا تغطي المراجعة الربع سنوية غير التعافي من الكوارث؟",
+      "expected_entry_ids": [
+        "it_engineer:monthly-quarterly-duties"
+      ],
+      "expected_facts": [
+        "capacity and cost review"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-63",
+      "checklist": "IT-27",
+      "q_en": "Which quarterly check looks at the code itself?",
+      "q_ar": "أي فحص ربع سنوي يتناول الكود نفسه؟",
+      "expected_entry_ids": [
+        "it_engineer:monthly-quarterly-duties"
+      ],
+      "expected_facts": [
+        "healthy and organised"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-64",
+      "checklist": "IT-28",
+      "q_en": "Can IT rotate a key or roll back without asking anyone?",
+      "q_ar": "هل يمكن لقسم التقنية تدوير مفتاح أو التراجع دون سؤال أحد؟",
+      "expected_entry_ids": [
+        "it_engineer:jd-mission-escalation"
+      ],
+      "expected_facts": [
+        "rollback, retry, failover or key rotation"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-65",
+      "checklist": "IT-29",
+      "q_en": "When should the founder get an email from IT?",
+      "q_ar": "متى يجب أن يصل المؤسس بريد من قسم التقنية؟",
+      "expected_entry_ids": [
+        "it_engineer:jd-mission-escalation"
+      ],
+      "expected_facts": [
+        "genuinely new bug"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-66",
+      "checklist": "IT-29",
+      "q_en": "Who hears about a business-impacting incident?",
+      "q_ar": "من يُبلّغ بحادثة تمس العمل؟",
+      "expected_entry_ids": [
+        "it_engineer:jd-mission-escalation"
+      ],
+      "expected_facts": [
+        "go to the CEO seat"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-67",
+      "checklist": "IT-30",
+      "q_en": "How many minutes of downtime does 99.9% allow in a 30-day month?",
+      "q_ar": "كم دقيقة توقف تسمح بها نسبة 99.9% في شهر من 30 يوماً؟",
+      "expected_entry_ids": [
+        "it_engineer:jd-kpi-targets"
+      ],
+      "expected_facts": [
+        "43.2 minutes"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-68",
+      "checklist": "IT-30",
+      "q_en": "How many findings were open longer than 24 hours on 28 Sep?",
+      "q_ar": "كم ملاحظة كانت مفتوحة لأكثر من 24 ساعة في 28 سبتمبر؟",
+      "expected_entry_ids": [
+        "it_engineer:jd-kpi-targets"
+      ],
+      "expected_facts": [
+        "30 of them"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-69",
+      "checklist": "IT-30",
+      "q_en": "How much error budget does a 99.5% objective over 28 days leave?",
+      "q_ar": "كم ميزانية أخطاء يترك هدف 99.5% خلال 28 يوماً؟",
+      "expected_entry_ids": [
+        "it_engineer:error-budget-policy"
+      ],
+      "expected_facts": [
+        "0.5% of eligible requests"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-70",
+      "checklist": "IT-31",
+      "q_en": "Which UAE law governs a personal data breach?",
+      "q_ar": "أي قانون إماراتي يحكم خرق البيانات الشخصية؟",
+      "expected_entry_ids": [
+        "it_engineer:pdpl-breach-notification"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 45 of 2021"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-71",
+      "checklist": "IT-PRO",
+      "q_en": "We are adding a new payment integration. What security design step is required first?",
+      "q_ar": "سنضيف تكامل دفع جديداً، ما خطوة التصميم الأمني المطلوبة أولاً؟",
+      "expected_entry_ids": [
+        "it_engineer:threat-modelling-stride"
+      ],
+      "expected_facts": [
+        "STRIDE table"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-72",
+      "checklist": "IT-PRO",
+      "q_en": "What must every alert link to?",
+      "q_ar": "بماذا يجب أن يرتبط كل تنبيه؟",
+      "expected_entry_ids": [
+        "it_engineer:oncall-and-runbook-standard"
+      ],
+      "expected_facts": [
+        "runbook",
+        "not paged"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-73",
+      "checklist": "IT-PRO",
+      "q_en": "How do we prove recovery works before a real outage?",
+      "q_ar": "كيف نثبت أن التعافي يعمل قبل انقطاع حقيقي؟",
+      "expected_entry_ids": [
+        "it_engineer:game-days-chaos-testing"
+      ],
+      "expected_facts": [
+        "one game day per quarter"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-74",
+      "checklist": "IT-PRO",
+      "q_en": "Is SMS good enough as MFA for the Stripe and GitHub admin accounts?",
+      "q_ar": "هل الرسائل النصية كافية كمصادقة متعددة لحسابات سترايب وGitHub الإدارية؟",
+      "expected_entry_ids": [
+        "it_engineer:mfa-and-least-privilege-admin"
+      ],
+      "expected_facts": [
+        "phishing-resistant MFA",
+        "SIM swap"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-75",
+      "checklist": "IT-PRO",
+      "q_en": "What baseline security controls should a small company implement first?",
+      "q_ar": "ما الضوابط الأمنية الأساسية التي تطبقها شركة صغيرة أولاً؟",
+      "expected_entry_ids": [
+        "it_engineer:cis-controls-v8-ig1"
+      ],
+      "expected_facts": [
+        "56 safeguards"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-76",
+      "checklist": "IT-PRO",
+      "q_en": "A buyer asks whether QuotesDone is SOC 2 certified. What do we answer?",
+      "q_ar": "يسأل مشترٍ هل كوتس دن حاصلة على SOC 2، بماذا نجيب؟",
+      "expected_entry_ids": [
+        "it_engineer:iso27001-and-soc2-overview"
+      ],
+      "expected_facts": [
+        "does not hold either",
+        "never claim a certification"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-77",
+      "checklist": "IT-PRO",
+      "q_en": "Which load test finds the maximum capacity?",
+      "q_ar": "أي اختبار حمل يكشف السعة القصوى؟",
+      "expected_entry_ids": [
+        "it_engineer:load-testing-method"
+      ],
+      "expected_facts": [
+        "breakpoint test"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-78",
+      "checklist": "IT-PRO",
+      "q_en": "How do we follow one inquiry through every service in the logs?",
+      "q_ar": "كيف نتتبع استفساراً واحداً عبر كل الخدمات في السجلات؟",
+      "expected_entry_ids": [
+        "it_engineer:opentelemetry-signals"
+      ],
+      "expected_facts": [
+        "trace",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-79",
+      "checklist": "IT-PRO",
+      "q_en": "What does the HSTS preload list require?",
+      "q_ar": "ماذا تشترط قائمة التحميل المسبق لـHSTS؟",
+      "expected_entry_ids": [
+        "it_engineer:tls-dns-domain-hardening"
+      ],
+      "expected_facts": [
+        "31536000",
+        "includeSubDomains"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-80",
+      "checklist": "IT-PRO",
+      "q_en": "How should a kill switch for bulk campaign sends behave?",
+      "q_ar": "كيف يجب أن يعمل مفتاح إيقاف إرسال الحملات الجماعية؟",
+      "expected_entry_ids": [
+        "it_engineer:feature-flags-kill-switches"
+      ],
+      "expected_facts": [
+        "without a deploy",
+        "fail safe"
+      ]
+    }
+  ]
+}
