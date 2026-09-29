@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T05:42:27.663Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T05:48:30.276Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -22402,6 +22402,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -22427,16 +22437,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -46503,6 +46503,47 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_knowledge_exam()
 AS $function$ select jsonb_build_object('asked', 0, 'retired', 'the model exam files no question (24 Sep 2026)') $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_chase()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f public.it_engineer_finding; o public.agent_actions; n_chased int := 0; n_opened int := 0; v_day int; v_id bigint;
+        v_seats jsonb := '{}'::jsonb;
+begin
+  for f in
+    select * from public.it_engineer_finding
+     where closed_at is null and started_at < now() - interval '24 hours'
+       and issue_key not like 'duty:handoff_sla:%'
+       and title not ilike '%ZZ DEMO%' and not coalesce((evidence->>'demo')::boolean, false)
+     order by started_at limit 40
+  loop
+    select * into o from public.agent_actions
+     where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
+       and detail->>'issue_key' = f.issue_key and not coalesce((detail->>'chase')::boolean, false)
+     order by id desc limit 1;
+    if not found then
+      perform public.fn_it_loop_open(f.issue_key);   -- no loop yet: open the ordinary one, owner resolved there
+      n_opened := n_opened + 1;
+      continue;
+    end if;
+    v_day := floor(extract(epoch from now() - f.started_at) / 86400)::int;
+    v_id := public.fn_seat_handoff('it_engineer', o.agent, 'it.finding', 'it_engineer_finding',
+      f.issue_key || '@' || floor(extract(epoch from f.started_at))::bigint || '@chase' || v_day,
+      jsonb_build_object(
+        'issue_key', f.issue_key, 'occurrence_started_at', f.started_at, 'duty', coalesce(o.detail->>'duty', 'fault'),
+        'subject', o.detail->>'subject', 'title', 'Open ' || v_day || ' day(s): ' || f.title, 'where_it_is', f.where_it_is,
+        'chase', true, 'age_hours', round(extract(epoch from now() - f.started_at) / 3600),
+        'original_handoff_id', o.id, 'finding_severity', public.fn_it_engineer_severity(f.blast, f.affected, f.started_at),
+        'escalated_report_id', o.detail->'escalated_report_id'));
+    n_chased := n_chased + 1;
+    v_seats := jsonb_set(v_seats, array[o.agent], to_jsonb(coalesce((v_seats->>o.agent)::int, 0) + 1));
+  end loop;
+  return jsonb_build_object('chased', n_chased, 'loops_opened', n_opened, 'by_seat', v_seats);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_close(p_issue_key text, p_note text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -60365,16 +60406,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -60545,6 +60576,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
