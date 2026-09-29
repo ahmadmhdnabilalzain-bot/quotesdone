@@ -28,7 +28,8 @@ export type Prospect = {
 };
 export type Composed = { message: string; note: string; lint: Finding[] };
 
-export const SITE = 'https://quotesdone.com';
+// UAE readers are served on quotesdone.ae (28 Sep 2026: every blog and outreach link points there).
+export const SITE = 'https://quotesdone.ae';
 export const NOTE_MAX = 300;   // LinkedIn's limit on a connection-request note
 
 // A title the researcher left on the name ("Eng. Ahmed") is not how a founder greets a peer.

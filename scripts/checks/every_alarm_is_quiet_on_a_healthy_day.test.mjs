@@ -47,7 +47,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replay } from '../lib/alarm_replay.mjs';
-import { manifestWithPending } from '../lib/pending_sql.mjs';
+import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 import { lit } from '../lib/db.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -214,7 +214,21 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
     asOf: { reviews: 'created_at' },
   },
+  // 29 Sep 2026 (it_engineer, #1064, founder_instruction 1009). high_stakes_open:<kind>:<subject> when the second-seat
+  // review of a high-stakes decision cannot be opened. Replayed as a ZZ DEMO refund decision by the CEO. The gate
+  // still resolves the author's model from the reasoning calls that existed at the instant (asOf ai_cost_log), but
+  // p_demo=true with a 'ZZ DEMO' question SKIPS fn_seat_deliberation_open's author-model check (AUTHOR_MODEL_UNPROVEN),
+  // so this replay does not exercise that arm; it exercises the kind, the pair, the seats and the open itself. A
+  // healthy day opens its review. Still pending, so the replay runs its pending file first (alarm_replay.mjs, `pending`),
+  // without retries. The negative control is the known-bad test below (an unknown kind fires high_stakes_open).
+  fn_high_stakes_gate: {
+    replay: `pg_temp.qd_replay_fn_high_stakes_gate('refund', 'ceo', 'zz_demo_quiet_day', 'zz_demo_quiet_day:refund',
+      'ZZ DEMO should this refund be approved as the CEO decided?', '{"ledger":"ZZ DEMO paid by card"}'::jsonb,
+      '{"decision":"ZZ DEMO approve in full"}'::jsonb, null, null, true)`,
+    asOf: { ai_cost_log: 'occurred_at' },
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
+  trg_high_stakes_review: { relay: 'records the disagreement a second seat recorded with a high-stakes decision that already went ahead; the verdict is the reviewer\'s (seat_deliberation_turn), and a healthy day has none' },
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
@@ -241,6 +255,20 @@ export const REGISTER = {
 };
 // Frozen. Adding a name here is how a gate gets softened; add a replay instead.
 const BASELINE = new Set(['fn_it_engineer_alert_tick', 'fn_it_dropbox_health_record', 'fn_delivery_feedback_canary_tick', 'trg_it_judge_routine_change']);
+
+// A routine whose defining file still waits in scripts/sql/pending/: { file: that file's SQL, def: its body there },
+// the last such file winning, as MANIFEST order will. null when no pending file defines it (the live one is replayed).
+export function pendingSource(name, repo = REPO) {
+  let out = null;
+  for (const [f, note] of pendingNotes(repo)) {
+    if (/^\s*A PROBE\b/.test(note) || !existsSync(join(repo, f))) continue;
+    const src = readFileSync(join(repo, f), 'utf8');
+    const heads = [...src.matchAll(/create\s+or\s+replace\s+function\s+public\.(\w+)\s*\(/gi)];
+    const i = heads.findIndex((m) => m[1].toLowerCase() === name.toLowerCase());
+    if (i >= 0) out = { file: src, def: src.slice(heads[i].index, heads[i + 1]?.index ?? src.length) };
+  }
+  return out;
+}
 
 // ── STATIC ────────────────────────────────────────────────────────────────────────────────────────
 // name -> canonical body (the LAST file in MANIFEST order that defines it).
@@ -312,8 +340,9 @@ test('production: every replayed alarm is quiet at every healthy instant', { ski
   const loud = [];
   const owed = new Set(KNOWN_LOUD.map((k) => `${k.alarm}@${k.at}@${k.key}`));
   for (const [name, entry] of Object.entries(REGISTER).filter(([, e]) => e.replay)) {
+    const pending = pendingSource(name);
     for (const { at } of INSTANTS) {
-      const out = await replay(sql, name, entry, at);
+      const out = await replay(sql, name, entry, at, '', pending);
       for (const f of out.fired) {
         const id = `${name}@${at}@${f.split(' -- ')[0]}`;
         if (owed.delete(id)) continue;
@@ -338,4 +367,18 @@ test('production: the known-bad fixture makes the replay fire, so quiet means so
   const out = await replay(sql, 'fn_it_detect', REGISTER.fn_it_detect, at, stage);
   assert.ok(out.fired.some((f) => f.startsWith('run_failure:zz_demo_quiet_day_fixture')),
     `the replay did not fire on three staged failures, so it cannot see anything: ${JSON.stringify(out)}`);
+});
+
+// The same for a PENDING alarm (29 Sep 2026, #1064): fn_high_stakes_gate replayed from its pending file with a kind
+// that is not high-stakes must fire high_stakes_open, or its quiet healthy days mean nothing (and neither does the
+// pending-replay path).
+test('production: the known-bad high-stakes kind makes the pending gate replay fire', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const pending = pendingSource('fn_high_stakes_gate');   // null once applied: the control then replays the live routine
+  const entry = REGISTER.fn_high_stakes_gate;
+  const bad = { ...entry, replay: entry.replay.replace("gate('refund',", "gate('zz_demo_not_a_kind',") };
+  assert.notEqual(bad.replay, entry.replay, 'the known-bad kind was not substituted into the replay');
+  const out = await replay(sql, 'fn_high_stakes_gate', bad, INSTANTS[0].at, '', pending);
+  assert.ok(out.fired.some((f) => f.startsWith('high_stakes_open:zz_demo_not_a_kind:')),
+    `the gate replay did not fire on an unknown kind, so it cannot see anything: ${JSON.stringify(out)}`);
 });

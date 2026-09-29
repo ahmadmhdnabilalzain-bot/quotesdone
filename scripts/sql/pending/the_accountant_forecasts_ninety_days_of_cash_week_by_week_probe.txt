@@ -1,0 +1,7 @@
+A PROBE, so it is never applied at all - it is READ through node scripts/qsql.mjs after
+the_accountant_forecasts_ninety_days_of_cash_week_by_week.sql has been applied, and it must print PROBE OK.
+
+It writes ZZ DEMO rows on the 'zz_demo' bank account and a ZZ DEMO weekly report inside a block that always
+raises, so nothing survives; plain apply_sql.mjs would print "nothing to do", a silent pass, not a result.
+
+This note therefore stays for the life of the file. Seat: accountant.

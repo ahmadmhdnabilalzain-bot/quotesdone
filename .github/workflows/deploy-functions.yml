@@ -205,12 +205,14 @@ jobs:
           fi
 
       # Gated on the BRANCH now that there is no staging to absorb a bad bundle first. A dispatch
-      # names its own target and is trusted; a push deploys only from main. Everything else has
-      # already been printed and typechecked above, which is the "test, pass" half.
+      # names its own functions but deploys ONLY when run on main (29 Sep 2026): a dispatch on any
+      # other branch would put unreviewed code on production, so it dry-runs like a branch push.
+      # A push deploys only from main. Everything else has already been printed and typechecked
+      # above, which is the "test, pass" half.
       - name: Deploy
         if: >-
           steps.gate.outputs.configured == 'true'
-          && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
+          && github.ref == 'refs/heads/main'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -240,11 +242,11 @@ jobs:
       # log without reading the step conditions.
       - name: Say whether production was updated
         run: |
-          deployable='${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}'
+          deployable='${{ github.ref == 'refs/heads/main' }}'
           if [ "$deployable" = "true" ] && [ "${{ steps.gate.outputs.configured }}" = "true" ]; then
             echo "deployed to production (${{ env.PRODUCTION_REF }})"
           elif [ "$deployable" = "true" ]; then
             echo "::warning title=Not deployed::this run was deployable but SUPABASE_ACCESS_TOKEN is not set, so production was NOT updated."
           else
-            echo "typechecked only — not main and not a dispatch (event ${{ github.event_name }}, ref ${{ github.ref }}). There is no staging to deploy to; production moves from main."
+            echo "typechecked only — not main (event ${{ github.event_name }}, ref ${{ github.ref }}). There is no staging to deploy to; production moves from main."
           fi
