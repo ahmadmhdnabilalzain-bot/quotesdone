@@ -1824,7 +1824,7 @@ declare r public.it_credential_rotation; o public.internal_credential; n public.
 begin
   v_overlap := make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int);
   v_cadence := coalesce((select every from public.it_duty_schedule where duty = 'rotation'), interval '1 day');
-  for r in select * from public.it_credential_rotation where status in ('overlap', 'held') order by id for update loop
+  for r in select * from public.it_credential_rotation where status in ('overlap', 'held') and provider is null order by id for update loop
     -- Locked, so a use of the old credential between this read and the retire cannot be missed.
     select * into o from public.internal_credential where id = r.old_id for update;
     select * into n from public.internal_credential where id = r.new_id;
@@ -6430,6 +6430,124 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_provider_rotation_baseline(p_provider text, p_ref text, p_created_at timestamp with time zone)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare k text[] := public.fn_it_provider_rotation_keys(p_provider); v_id bigint;
+begin
+  if k is null then raise exception 'no rotation is defined for provider %', p_provider; end if;
+  if coalesce(p_ref, '') = '' or p_created_at is null or p_created_at > now() then
+    raise exception 'a baseline needs the current key id and a creation date that is not in the future';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('it_provider_rotation:' || p_provider));
+  if exists (select 1 from public.it_credential_rotation where provider = p_provider) then return null; end if;
+  insert into public.it_credential_rotation (context, provider, old_ref, new_ref, secret_key, rotated_at, overlap_until, status, closed_at, note)
+  values (p_provider || '.api_key', p_provider, null, p_ref, array_to_string(k, ','), p_created_at, p_created_at, 'baseline', now(),
+          'baseline: the key in use before the estate rotated anything, created at the provider '
+            || to_char(p_created_at at time zone 'UTC', 'YYYY-MM-DD') || '; the rotation schedule counts from this date')
+  returning id into v_id;
+  return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_provider_rotation_claim(p_provider text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_last timestamptz; v_days int;
+begin
+  if public.fn_it_provider_rotation_keys(p_provider) is null then
+    return jsonb_build_object('due', false, 'reason', 'no rotation is defined for provider ' || coalesce(p_provider, 'null'));
+  end if;
+  perform pg_advisory_xact_lock(hashtext('it_provider_rotation:' || p_provider));
+  if not exists (select 1 from public.it_credential_rotation where provider = p_provider) then
+    return jsonb_build_object('due', false, 'baseline_needed', true,
+      'reason', 'no baseline yet: the current key''s creation date is recorded first, and the schedule counts from it');
+  end if;
+  if exists (select 1 from public.it_credential_rotation where provider = p_provider and status in ('overlap', 'held')) then
+    return jsonb_build_object('due', false, 'reason', 'a rotation of ' || p_provider || ' is still in its overlap');
+  end if;
+  v_days := coalesce(public.fn_it_threshold('credential_rotate_days'), 90)::int;
+  select max(rotated_at) into v_last from public.it_credential_rotation where provider = p_provider;
+  if v_last is not null and v_last > now() - make_interval(days => v_days) then
+    return jsonb_build_object('due', false, 'reason', 'rotated ' || to_char(v_last, 'YYYY-MM-DD') || ', next after ' || v_days || ' days');
+  end if;
+  -- A claim in the last 20 hours that recorded nothing is a failed attempt: the next day retries, not the next tick.
+  if exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'provider_rotation_claim'
+               and counts->>'provider' = p_provider and started_at > now() - interval '20 hours') then
+    return jsonb_build_object('due', false, 'reason', 'claimed within the last 20 hours');
+  end if;
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'provider_rotation_claim', 'provider', p_provider), null);
+  return jsonb_build_object('due', true);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_provider_rotation_keys(p_provider text)
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case p_provider when 'twilio' then array['twilio_api_key_sid', 'twilio_api_key_secret'] end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_provider_rotation_record(p_provider text, p_old_ref text, p_new_ref text, p_new_secret text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare k text[] := public.fn_it_provider_rotation_keys(p_provider); v_id bigint; v_overlap interval; v_cadence interval;
+begin
+  if k is null then raise exception 'no rotation is defined for provider %', p_provider; end if;
+  if coalesce(p_new_ref, '') = '' or coalesce(p_new_secret, '') = '' then raise exception 'a rotation needs the new key id and its secret'; end if;
+  -- Never under 24 hours, whatever the threshold says: the old key must outlive every cache of it by a day.
+  v_overlap := greatest(make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int), interval '24 hours');
+  v_cadence := coalesce((select every from public.it_duty_schedule where duty = 'rotation'), interval '1 day');
+  insert into public.app_secrets (key, value, updated_at) values (k[1], p_new_ref, now()), (k[2], p_new_secret, now())
+  on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at;
+  insert into public.it_credential_rotation (context, provider, old_ref, new_ref, secret_key, overlap_until, status, note)
+  values (p_provider || '.api_key', p_provider, p_old_ref, p_new_ref, array_to_string(k, ','), now() + v_overlap + 2 * v_cadence,
+          case when p_old_ref is null then 'retired' else 'overlap' end,
+          'rotated by the provider API; the new key authenticated before it was stored')
+  returning id into v_id;
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(),
+          jsonb_build_object('job', 'duty:rotation:provider', 'provider', p_provider, 'rotation_id', v_id, 'old_ref', p_old_ref, 'new_ref', p_new_ref), null);
+  return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_provider_rotation_retire_due(p_provider text)
+ RETURNS TABLE(id bigint, old_ref text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select r.id, r.old_ref from public.it_credential_rotation r
+   where r.provider = p_provider and r.status in ('overlap', 'held') and r.overlap_until <= now() and r.old_ref is not null
+   order by r.id;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_provider_rotation_retired(p_id bigint, p_note text)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  update public.it_credential_rotation set status = 'retired', closed_at = now(), note = left(p_note, 500)
+   where id = p_id and provider is not null and status in ('overlap', 'held');
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_provider_watch(p_r jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6608,6 +6726,12 @@ CREATE OR REPLACE FUNCTION public.fn_it_restore_table_due()
 AS $function$
 begin
   return ('restore_table' = any (public.fn_it_scheduled_due())
+          -- no passing drill yet this calendar month: run, and retry at most once every 20 hours until one passes
+          or (not exists (select 1 from public.it_restore_drill_result d
+                           where d.ok and coalesce((d.detail->>'restored')::int, 0) > 0
+                             and d.ran_at >= date_trunc('month', now()))
+              and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table'
+                               and started_at > now() - interval '20 hours'))
           or (exists (select 1 from public.it_engineer_finding where closed_at is null and issue_key like 'duty:restore\_table:%')
               and (not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table'
                                 and started_at > now() - interval '20 hours')

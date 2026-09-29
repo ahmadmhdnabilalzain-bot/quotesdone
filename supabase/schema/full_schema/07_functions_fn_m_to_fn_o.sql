@@ -4375,6 +4375,22 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_norm_trades_many(p_texts text[])
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- phrase -> the codes fn_norm_trades resolves it to; a phrase that resolves to nothing is left out.
+  -- ponytail: 400 phrases per call is the caller's cap (trade_resolve.ts EXACT_MAX_PHRASES).
+  select coalesce(jsonb_object_agg(x.t, to_jsonb(x.codes)), '{}'::jsonb)
+    from (select distinct u.t, public.fn_norm_trades(u.t) as codes
+            from unnest(coalesce(p_texts, '{}'::text[])) u(t)
+           where nullif(btrim(u.t), '') is not null) x
+   where x.codes is not null;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_normalize_founder_alert_level()
  RETURNS trigger
  LANGUAGE plpgsql

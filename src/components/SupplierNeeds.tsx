@@ -7,7 +7,7 @@
 // per page per locale spent most of the visitor rate limit during a build. SERVICE_CATEGORY is the
 // direct map; a failed call renders nothing.
 import { getTranslations } from 'next-intl/server';
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, SUPA_FN, fnUrl } from '@/lib/supaEnv';
 
 export const SERVICE_CATEGORY: Record<string, string> = {
   'false-ceiling': 'gypsum', 'pest-control': 'pest', movers: 'movers', flooring: 'flooring',
@@ -29,7 +29,7 @@ type Needs = {
 async function tradeNeeds(category: string, lang: 'en' | 'ar'): Promise<Needs | null> {
   if (!SUPA_FN.startsWith('http')) return null;
   try {
-    const r = await fetch(`${SUPA_FN}/public_site`, {
+    const r = await fetch(fnUrl('public_site'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: SUPA_ANON, Authorization: `Bearer ${SUPA_ANON}` },
       body: JSON.stringify({ action: 'trade_needs', category, lang }),

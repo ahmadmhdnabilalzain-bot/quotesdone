@@ -1,5 +1,5 @@
 // One POST to supabase/functions/project_api. Shapes and derivations live in ./model.
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -11,7 +11,7 @@ export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string };
  */
 export async function projectApi<T>(token: string, body: Record<string, unknown>): Promise<ApiResult<T>> {
   try {
-    const r = await fetch(`${SUPA_FN}/project_api`, {
+    const r = await fetch(fnUrl('project_api'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
       body: JSON.stringify(body),
