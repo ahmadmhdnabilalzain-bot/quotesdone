@@ -1149,6 +1149,10 @@
   "3fbfc9c44cae",
   "50d6d400e862"
  ],
+ "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
+  "c12bc8b93a2b",
+  "d4da55db16ad"
+ ],
  "scripts/sql/the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql": [
   "d4da55db16ad"
  ],
@@ -5148,6 +5152,7 @@
   "4cd3834955bb"
  ],
  "supabase/functions/site_assistant/index.ts": [
+  "0271a1f4c66d",
   "0e0329c97c49",
   "32f673f57030",
   "35a1a42cc34d",
@@ -5168,7 +5173,6 @@
   "c94d66d845db",
   "d13175d02298",
   "dbd6352d03bc",
-  "dbf6dbc61869",
   "f34fd00dad6c",
   "f40cee86aeb4"
  ],
@@ -5363,10 +5367,12 @@
  ],
  "supabase/functions/wa_inbound/index.ts": [
   "0c779ad88625",
+  "26aade657b40",
   "4061420fc991",
   "5cbb277245b5",
   "61e5bb9d6ede",
   "6c8d4e17edaa",
+  "a543b7484225",
   "c09183a62789",
   "e687fbf0ba76"
  ],

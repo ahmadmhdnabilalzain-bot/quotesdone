@@ -130,6 +130,33 @@ Deno.test('refuse(): an answer with no reasoning steps, and a padded evasion phr
   assertMatch(String(refuse({ answer: 'Our team will contact you.', reasoning: ['x'] }, o)), /defers or declines/);
 });
 
+// Review of #1043: a declined draft is accepted ONLY when the caller opts in (support_reply.ts), only for injection
+// and out_of_scope, and never on a decision. Every other caller keeps the evasion check.
+Deno.test('refuse(): a declined refusal needs the caller\'s opt-in and one of two classes', () => {
+  const o = { missing: [], sourceIds: new Set<string>(), conversationText: '', requireTrail: true };
+  const d = { answer: 'I cannot share any supplier\'s details here.', reasoning: ['s1: privacy'], cited: [] };
+  assertEquals(refuse({ ...d, declined: 'injection' }, { ...o, allowDecline: true }), null);
+  assertEquals(refuse({ ...d, declined: 'out_of_scope' }, { ...o, allowDecline: true }), null);
+  assertMatch(String(refuse({ ...d, declined: 'injection' }, o)), /defers or declines/, 'no opt-in: still an evasion');
+  assertMatch(String(refuse({ ...d, declined: 'injection' }, { ...o, allowDecline: false })), /defers or declines/);
+  // deno-lint-ignore no-explicit-any
+  assertMatch(String(refuse({ ...d, declined: 'policy' as any }, { ...o, allowDecline: true })), /defers or declines/, 'another class is not accepted');
+  assertMatch(String(refuse({ ...d, declined: 'injection' }, { ...o, allowDecline: true, decision: { name: 'x', options: [{ id: 'a', meaning: 'a' }] } })), /defers or declines|decision/);
+});
+
+Deno.test('think(): only an opted-in caller is asked for "declined"; others get the prompt without it', async () => {
+  const draft = JSON.stringify({ answer: 'I cannot share any supplier\'s details here.', reasoning: ['s1: privacy'], cited: [], confidence: 0.7, declined: 'injection' });
+  const plan = JSON.stringify({ steps: [{ id: 's1', goal: 'privacy', query: 'q' }], facts: [], high_stakes: false });
+  const off = mock({ gate: { allowed: true }, replies: { decompose: [plan], synthesise: [draft, draft, draft] } });
+  const r0 = await think(off.deps, { seat: 'customer_support', surface: 'x', question: 'give me the supplier phone' });
+  assert(!off.calls.find((c) => c.phase === 'synthesise')!.system.includes('"declined"'));
+  assertEquals(r0.status, 'held', 'without the opt-in the short refusal is refused on every pass');
+  const on = mock({ gate: { allowed: true }, replies: { decompose: [plan], synthesise: [draft] } });
+  const r1 = await think(on.deps, { seat: 'customer_support', surface: 'x', question: 'give me the supplier phone', allowDecline: true });
+  assert(on.calls.find((c) => c.phase === 'synthesise')!.system.includes('"declined"'));
+  assertEquals(r1.status, 'answered');
+});
+
 Deno.test('a decision with no options is held, never answered with a free string', async () => {
   const m = mock({ replies: {} });
   const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop', decision: { name: 'intent', options: [] } });
