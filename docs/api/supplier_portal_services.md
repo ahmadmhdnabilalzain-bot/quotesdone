@@ -16,7 +16,8 @@ An unclaimed account gets `400 { "code": "no_company" }`.
 
 Code: `supabase/functions/_shared/supplier_services.ts` (the actions),
 `supabase/functions/_shared/service_rewrite.ts` (the rewrite itself, with `service_rewrite.test.ts`),
-`supabase/functions/_shared/trade_words.ts` (the matcher both share),
+`supabase/functions/_shared/alias_pattern.ts` (the alias pattern the service index uses),
+`supabase/functions/_shared/trade_resolve.ts` (a trade from a document: exact code or meaning, never words),
 `supabase/functions/supplier_api/index.ts` (routing).
 
 Data: `public.taxonomy_trade_service` (+ its `aliases`), `public.service_implication`,
@@ -142,14 +143,15 @@ receives an inquiry has to be reproducible.
 
 1. The text is split into phrases at line breaks, bullets, numbered items, commas (`,` `،`),
    semicolons (`;` `؛`), `|` and full stops.
-2. Inside a phrase, every alias in `taxonomy_trade_service.aliases` is matched with the trade matcher's
-   own rule (`_shared/trade_words.ts`, the twin of `fn_norm_trades`): Arabic folded the way
+2. Inside a phrase, every alias in `taxonomy_trade_service.aliases` is matched with one rule
+   (`_shared/alias_pattern.ts`, once `trade_words.ts`): Arabic folded the way
    `fn_ar_norm` folds it, word-START anchored, Arabic proclitics and `ال` allowed. Where two hits
    overlap the LONGER alias wins (`solar panel cleaning` is maintenance, not installation).
 3. What is left of a phrase is split at `and` / `&` / `+` / `و` and read again; words that describe
    delivery rather than a service (`supply`, `installation`, `توريد`, `تركيب`, …) are dropped.
-4. A phrase naming no service but naming a TRADE is kept with that trade. One naming neither is
-   **kept in the supplier's own words**, tidied (trim, collapse spaces, dedupe, sentence case in
+4. A phrase naming no service that IS a trade code or intake slug (`public.fn_norm_trades`, asked through
+   `fn_norm_trades_many`) is kept with that trade; since 29 Sep 2026 (ruling 890, ledger 1054) a trade is
+   never read from a phrase's words. Any other phrase is **kept in the supplier's own words**, tidied (trim, collapse spaces, dedupe, sentence case in
    English; Arabic left as typed), and flagged as a pending taxonomy item for the sales engineer.
 
 **EXACT OR NONE** (founder, 14 Sep 2026: *"either exact match or no match"*): no stemmer, no
