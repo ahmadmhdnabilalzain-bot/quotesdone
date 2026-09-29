@@ -164,8 +164,11 @@ begin
    where b.account = 'mashreq'
      and b.source_ref in (select i2.source_ref from public.bank_statement_intake i2 where i2.account = 'mashreq' and i2.statement_month = v_m)
      and x.src is not null
+     -- fn_accountant_book_bank_charges skips a charge line with ANY journal (a voided one included); the credits
+     -- routine re-books a credit whose journal was voided. Each is counted exactly as its routine treats it.
      and not exists (select 1 from public.gl_journal g
-                      where g.source_ref = b.id::text and g.status in ('draft', 'posted') and g.source = x.src);
+                      where g.source_ref = b.id::text and g.source = x.src
+                        and (x.src = 'bank_charge' or g.status in ('draft', 'posted')));
   return jsonb_build_object('month', to_char(v_m, 'YYYY-MM'), 'booked', jsonb_array_length(v_unbooked) = 0,
     'statement', i.source_ref, 'received_at', i.received_at, 'unbooked_lines', v_unbooked,
     'reason', case when jsonb_array_length(v_unbooked) > 0

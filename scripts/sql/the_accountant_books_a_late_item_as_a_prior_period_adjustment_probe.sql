@@ -22,14 +22,15 @@
 --   4. the lock still refuses a posted journal INSERTED with a July date, and a July draft flipped to posted outside
 --      fn_gl_post; fn_gl_post books that draft in August instead; a reopen reason keeps the July date;
 --   5. August waits while a line of its statement is unbooked, and is due once all are booked; a fee refund left
---      as bank_charge (a credit no routine books) never holds it;
+--      as bank_charge (a credit no routine books) and a charge whose journal was voided (the charges routine skips
+--      it) never hold it;
 --   6. the August close pack lists the adjustments under prior_period_adjustments and as explained unusual items
 --      naming statement line and original date; the late fee is not an unbooked statement line; the PDF text says so;
 --   7. on the real books the close tick and the day-5 check run and read August 2026 as closed and not late.
 do $probe$
 declare
   v_jul date := date '2020-07-01'; v_aug date := date '2020-08-01';
-  l0 bigint; l1 bigint; l2 bigint; l3 bigint; l4 bigint; l5 bigint; jd bigint; jr bigint; j1 public.gl_journal;
+  l0 bigint; l1 bigint; l2 bigint; l3 bigint; l4 bigint; l5 bigint; l6 bigint; jv bigint; jd bigint; jr bigint; j1 public.gl_journal;
   v_s jsonb; v_c jsonb; v_k jsonb; v_f jsonb; v_doc jsonb; v_err text; v_fail text := ''; v_n int;
 begin
   -- 1. the close waits for July's statement
@@ -84,6 +85,15 @@ begin
   insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash, kind)
   values ('mashreq', 'zz_demo:late_item_probe:2020-08', '2020-08-21', 'ZZ DEMO Fee refund', 199, md5('zz_demo_late_item_probe_l5'), 'bank_charge')
   returning id into l5;
+  -- a charge whose journal was voided: fn_accountant_book_bank_charges skips a line with ANY journal, so it is booked
+  -- as far as the close is concerned and must never hold August (follow-up review of #1063)
+  insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash, kind)
+  values ('mashreq', 'zz_demo:late_item_probe:2020-08', '2020-08-22', 'ZZ DEMO charge voided', -50, md5('zz_demo_late_item_probe_l6'), 'bank_charge')
+  returning id into l6;
+  insert into public.gl_journal (entry_date, memo, source, source_ref, created_by) values ('2020-08-22', 'ZZ DEMO voided charge', 'bank_charge', l6::text, 'accountant')
+  returning id into jv;
+  insert into public.gl_journal_lines (journal_id, line_no, account_code, debit, credit) values (jv, 1, '6300', 50, 0), (jv, 2, '1000', 0, 50);
+  update public.gl_journal set status = 'void' where id = jv;
 
   begin
     v_c := public.fn_accountant_book_bank_charges();
@@ -107,8 +117,9 @@ begin
   -- 5a. August waits while its statement has unbooked lines
   v_s := public.fn_accountant_month_close_status(v_aug, date '2020-09-03');
   if v_s->>'status' <> 'waiting_for_statement' or jsonb_array_length(v_s#>'{statement,unbooked_lines}') <> 2
-     or exists (select 1 from jsonb_array_elements(v_s#>'{statement,unbooked_lines}') u where (u->>'line_id')::bigint = l5) then
-    v_fail := v_fail || ' 5a August with two unbooked lines (the fee refund not among them): ' || v_s::text || ';'; end if;
+     or exists (select 1 from jsonb_array_elements(v_s#>'{statement,unbooked_lines}') u where (u->>'line_id')::bigint in (l5, l6)) then
+    v_fail := v_fail || ' 5a August with two unbooked lines (neither the fee refund nor the voided charge among them): ' || v_s::text || ';'; end if;
+  if exists (select 1 from public.gl_journal where source_ref = l6::text and id <> jv) then v_fail := v_fail || ' 5d the voided charge was booked again;'; end if;
   if exists (select 1 from public.gl_journal where source_ref = l5::text) then v_fail := v_fail || ' 5c the fee refund was booked;'; end if;
 
   -- 4. the lock still refuses a direct back-dated posting
@@ -181,7 +192,7 @@ begin
   if (v_k->>'status') is null then v_fail := v_fail || ' 7b day-5 check: ' || coalesce(v_k::text, 'none') || ';'; end if;
 
   if v_fail = '' then
-    raise exception 'CHK<<PROBE OK: July waited for its statement then was due by 2020-08-12; late July fee (line %) posted % as a prior-period adjustment; poisoned charge and credit were findings and the rest booked, then healed and closed; lock refused the direct insert and the direct flip, fn_gl_post moved the draft to August, a reopen kept July; August waited on 2 unbooked lines (a fee refund left as a charge did not count) then was due by 2020-09-05; the August pack lists % adjustments and explains the late fee; real close tick: % / day-5: % (late %)>>',
+    raise exception 'CHK<<PROBE OK: July waited for its statement then was due by 2020-08-12; late July fee (line %) posted % as a prior-period adjustment; poisoned charge and credit were findings and the rest booked, then healed and closed; lock refused the direct insert and the direct flip, fn_gl_post moved the draft to August, a reopen kept July; August waited on 2 unbooked lines (a fee refund left as a charge and a voided charge did not count) then was due by 2020-09-05; the August pack lists % adjustments and explains the late fee; real close tick: % / day-5: % (late %)>>',
       l1, j1.entry_date, jsonb_array_length(v_f->'prior_period_adjustments'), coalesce(v_c->>'status', v_c->>'closed'), v_k->>'status', v_k->>'late';
   end if;
   raise exception 'CHK<<PROBE FAILED:%>>', v_fail;
