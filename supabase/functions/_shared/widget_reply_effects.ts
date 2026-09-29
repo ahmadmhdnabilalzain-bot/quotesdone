@@ -14,7 +14,16 @@
 //
 // Tested with stubs in widget_reply_effects.test.ts, which also asserts site_assistant's reasoned exit calls it.
 
-type Rpc = (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error?: unknown }>;
+/** assistant_logs.audience for a widget reply. A signed-in person is logged as their PARTY — customer:<uuid> or
+ *  supplier:<lead id>, the format fn_conversation_party reads to attach the reply to their support case (#1036) —
+ *  on every exit, the composed reply included. A stranger has no party: the side and how it was known, and
+ *  ':reasoned' when the reply was composed. */
+export function logParty(who: { audience: 'customer' | 'supplier'; id: string } | null, audience: string, source: string, reasoned = false): string {
+  if (who) return who.audience + ':' + who.id;
+  return audience + (source === 'none' ? '' : ':' + source) + (reasoned ? ':reasoned' : '');
+}
+
+type Rpc =(fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error?: unknown }>;
 
 export interface WidgetReplyEffectsInput {
   message: string;

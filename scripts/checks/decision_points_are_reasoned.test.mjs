@@ -248,7 +248,11 @@ begin
   perform public.fn_reason_held_delivered(v_id, '{"delivered":true,"via":"whatsapp_template"}'::jsonb);
   o := o || jsonb_build_object('delivered_row', (select status || ':' || (result->'delivery'->>'via') from public.reasoning_held_question where id = v_id));
   -- Held 49 hours: never expired; escalated once to its seat as a pending item, and still held for the replay.
-  update public.reasoning_held_question set status = 'held', created_at = now() - interval '49 hours' where id = v_id;
+  -- Its question loses the fixture marker first: since #936 fn_reason_held_due expires every ZZ DEMO row on sight (a
+  -- fixture is never replayed at cost), so a marked row measured that rule, not the 49-hour one (29 Sep 2026). The
+  -- row lives only inside this rolled-back transaction.
+  update public.reasoning_held_question set status = 'held', created_at = now() - interval '49 hours',
+         question = 'rolled-back probe: a question held 49 hours' where id = v_id;
   perform public.fn_reason_held_due(1);
   o := o || jsonb_build_object('old_status', (select status from public.reasoning_held_question where id = v_id),
     'escalated', (select count(*) from jsonb_array_elements(public.fn_reason_held_escalate(100)) x where (x->>'id')::bigint = v_id),
@@ -682,7 +686,9 @@ begin
    where not exists (select 1 from public.category_route_map m where m.category = s.w)
      and not exists (select 1 from public.catalog_supplier_categories x where x.slug = s.w) order by w limit 1;
   o := o || jsonb_build_object('word', v_word, 'word_before', public.fn_category_key_for_slug(v_word),
-    'word_asked', exists (select 1 from public.reasoning_held_question where dedupe_key = 'category_key:' || v_word));
+    'word_asked', exists (select 1 from public.reasoning_held_question where dedupe_key = 'category_key:' || v_word
+                                   -- 40 such rows were filed on 23 Sep, before the 24 Sep ruling, and #936 expired and kept them
+                                   and created_at >= timestamptz '2026-09-24 00:00+04'));
   o := o || jsonb_build_object('word_ask_files', public.fn_category_key_ask(v_word));
 
   o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
