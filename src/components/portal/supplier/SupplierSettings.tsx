@@ -21,6 +21,7 @@ import { firstRead } from './tabPrefetch';
 import { WhatsAppChoice } from '../WhatsAppChoice';
 import type { WaState } from '../whatsappChoiceText';
 import { Ltr } from '@/lib/Ltr';
+import SupplierAvailability, { type Availability } from './SupplierAvailability';
 
 type Lang = 'en' | 'ar';
 type Settings = {
@@ -99,6 +100,7 @@ function Fact({ k, children, tone }: { k: string; children: React.ReactNode; ton
 
 export default function SupplierSettings({ token, lang = 'en', onLang }: { token?: string | null; lang?: Lang; onLang?: (l: Lang) => void }) {
   const [s, setS] = useState<Settings | null>(null);
+  const [avail, setAvail] = useState<Availability | null>(null);
   const [locale, setLocale] = useState<Lang>('en');
   const [langTouched, setLangTouched] = useState(false);
   // The header's EN/عربي switch changes `lang` without a reload; the select follows it (finding 43).
@@ -135,6 +137,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
       if (j && j.ok) {
         const x: Settings = j.settings || {};
         setS(x);
+        setAvail(j.availability ?? null);
         // Audit 21 Sep 2026, finding 43: this showed the STORED locale ("English") while the URL had
         // put the interface in Arabic. The control names the language on screen; saving it stores it.
         setLocale(lang);
@@ -175,6 +178,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
 
   return (
     <div className="space-y-4 max-w-[560px]">
+      <SupplierAvailability token={token} initial={avail} />
       <section className="qd-panel p-5">
         <h3 className="text-xs uppercase tracking-wide text-muted-foreground mb-3">{t(lang, 'prefs')}</h3>
 

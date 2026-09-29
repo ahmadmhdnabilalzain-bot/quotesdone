@@ -15,12 +15,13 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FIX = 'scripts/sql/every_customer_is_asked_for_a_public_review_whatever_their_rating.sql';
 const PENDING = 'scripts/sql/pending/every_customer_is_asked_for_a_public_review_whatever_their_rating.txt';
-const MIRROR = read('supabase/schema/full_schema.sql');
+const MIRROR = readSchemaMirror();
 const SRC = existsSync(join(REPO, PENDING)) ? read(FIX) : MIRROR;
 const code = (s) => s.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 

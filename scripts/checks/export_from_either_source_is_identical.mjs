@@ -7,7 +7,8 @@
 //
 // It reports four things and does not average them:
 //
-//   1. SCHEMA       public.fn_schema_export() on production, against supabase/schema/full_schema.sql
+//   1. SCHEMA       public.fn_schema_export() on production, against the mirror in
+//                   supabase/schema/full_schema/ (eleven parts read as one, scripts/lib/schema_mirror.mjs)
 //   2. PORTABILITY  whether that export is project-agnostic. It is not today: fn_schema_export
 //                   writes its own project ref into the header, so production and staging can
 //                   never produce the same bytes even with identical schemas.
@@ -18,12 +19,13 @@
 //
 //   node scripts/checks/export_from_either_source_is_identical.mjs            # report
 //   node scripts/checks/export_from_either_source_is_identical.mjs --write    # refresh the dump
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 // The repository's SQL reader, with the one retry policy this endpoint has. It adds no dependency
 // (node:fs and fetch only), and the token probe below stays because db.mjs THROWS when there is no
 // token while this check must SKIP — a check with no credential has measured nothing, and saying so
 // is not the same as failing.
 import { sql } from '../lib/db.mjs';
+import { SCHEMA_MIRROR, readSchemaMirror, writeSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
@@ -31,7 +33,7 @@ const token = (process.env.SUPABASE_ACCESS_TOKEN
 if (!token) { console.log('SKIP: no SUPABASE_ACCESS_TOKEN'); process.exit(0); }
 
 const PROD = 'htdblwldjkcgjvmqkbeh';
-const FILE = 'supabase/schema/full_schema.sql';
+const FILE = SCHEMA_MIRROR;
 const WRITE = process.argv.includes('--write');
 
 // A TIMEOUT IS NOT DRIFT, AND THIS CHECK USED TO PRINT THEM THE SAME COLOUR.
@@ -126,7 +128,9 @@ const banner = () => [
   '',
 ].join('\n');
 
-const raw = existsSync(FILE) ? readFileSync(FILE, 'utf8') : '';
+// A mirror that cannot be read (a part missing or unlisted) compares as empty: drift, loudly.
+let raw = '';
+try { raw = readSchemaMirror(); } catch (err) { console.log(`  ${err.message}`); }
 const at = raw.indexOf(SENTINEL);
 const onDisk = at < 0 ? raw : raw.slice(at + SENTINEL.length + 1);
 
@@ -143,7 +147,7 @@ const differing = a.length === b.length
 
 console.log('SCHEMA EXPORT — database vs git');
 console.log(`  live export     : ${a.length} lines, ${live.length} chars`);
-console.log(`  ${FILE.padEnd(16)}: ${b.length} lines, ${onDisk.length} chars`);
+console.log(`  committed mirror: ${b.length} lines, ${onDisk.length} chars (${FILE}/)`);
 console.log(`  identical       : ${live === onDisk ? 'YES' : 'NO'}`);
 if (live !== onDisk) {
   console.log(`  differing lines : ${differing}`);
@@ -165,8 +169,9 @@ if (refs.length) {
 }
 
 if (WRITE) {
-  writeFileSync(FILE, banner() + live);
-  console.log(`\nwrote ${FILE} (${a.length} schema lines + banner)`);
+  const parts = writeSchemaMirror(banner() + live);
+  console.log(`\nwrote ${FILE}/ (${a.length} schema lines + banner) as ${parts.length} parts:`);
+  for (const p of parts) console.log(`  ${String(p.bytes).padStart(9)}  ${p.file}`);
 } else if (live !== onDisk) {
   process.exitCode = 1;
 }

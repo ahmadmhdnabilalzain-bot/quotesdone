@@ -12,50 +12,34 @@
 // for customer RFQs and BOQs only.
 //
 // WHAT THIS DOES. Each uploaded document goes through readDocument (the same gate and readers the
-// RFQ side uses, words only), its text is matched against taxonomy_trade exactly as the estate's
-// normaliser public.fn_norm_trades matches it, and what matched is stored as a PROPOSAL:
+// RFQ side uses, words only), and what its text names is stored as a PROPOSAL:
 //   supplier_capabilities.proposed_trades   the codes the documents name
-//   supplier_capabilities.source_docs.docs  per file: status, and per trade the matched phrases and
-//                                           the line they were found on (the evidence)
+//   supplier_capabilities.source_docs.docs  per file: status, how each path fared (exact, meaning), and per
+//                                           trade how it was named and the line it was found on (the evidence)
 // It never touches supplier_capabilities.trades or confirmed_at. The supplier sees the proposal in
 // "What your company can quote for", ticks or unticks it, and only the confirm writes trades.
 //
-// EXACT OR NONE. A trade is proposed only when one of its aliases (or its code) occurs in the text,
-// word-start anchored, the same rule fn_norm_trades applies to a customer's brief. There is no
-// nearest-trade guess, no similarity floor, no model. A scan or photo with no text layer is recorded
-// 'needs_ocr' — never as "no trades found", which would be a false zero.
-//
-// ARABIC (15 Sep 2026). taxonomy_trade.aliases were English only, so an Arabic-only document proposed
-// nothing. Every active code now carries Arabic aliases and the matcher (trade_words.ts, the twin of
-// fn_norm_trades) folds Arabic spelling and reads the definite article; READER is @2 from then on.
+// A TRADE IS NAMED BY AN EXACT CODE OR BY MEANING, NEVER BY THE DOCUMENT'S WORDS (29 Sep 2026, founder ledger
+// 1054, ruling 890). Until today a trade was proposed wherever one of its aliases occurred in the text
+// (trade_words.ts, the TS twin of the word matcher #893 removed from fn_norm_trades on 23 Sep), and a
+// catalogue's service-alias hits proposed their trades too. Now (trade_resolve.ts):
+//   exact code  a line or list item that IS a live code or intake slug, decided by public.fn_norm_trades;
+//   meaning     the lines' gte-small vectors against every service's stored vector, accepted only with the
+//               service's head word in the line (service_meaning.proposeByMeaning) — the service names its trade.
+// A scan or photo with no text layer is recorded 'needs_ocr' — never as "no trades found", which would be a
+// false zero — and a document whose meaning could not be read records why (meaning: embedding_unavailable,
+// budget_spent), so an empty proposal is never mistaken for a document that names nothing.
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
 import type { Extracted } from './doc_read/types.ts';
-import { tradesFromText, type TradeHit, type TradeTerm } from './trade_words.ts';
-import { readCatalogue } from './catalogue_read.ts';
-import type { ServiceTerm } from './service_rewrite.ts';
+import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
+import { embedLine } from './gte_embed.ts';
+import { liveTradeDeps, tradesOfText, type ExactState, type MeaningState, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
 
-export { tradesFromText, type TradeHit, type TradeTerm };
-
-// A CATALOGUE IS READ AS A CATALOGUE (21 Sep 2026, _shared/catalogue_read.ts). Its spec tables, address
-// block and marketing sentences are set aside before matching, and when the service vocabulary is
-// passed, every service its headings and product types name proposes that service's trade too — a
-// catalogue that lists "Printers" and "UPS" names office equipment and power backup even though no
-// trade alias says "printer". The words that proposed it are the evidence, as for any trade.
-function catalogueTrades(text: string, vocab: TradeTerm[], services: ServiceTerm[]): { trades: TradeHit[]; supply_only: boolean } {
-  const c = readCatalogue(text, services, vocab);
-  const hits = new Map(tradesFromText(c.matched_text, vocab).map((h) => [h.code, h]));
-  for (const it of c.rewrite.items) {
-    if (it.kind !== 'service') continue;
-    const h = hits.get(it.trade) || { code: it.trade, phrases: [], snippet: it.from.slice(0, 180) };
-    if (h.phrases.length < 5 && !h.phrases.includes(it.label_en.toLowerCase())) h.phrases.push(it.label_en.toLowerCase());
-    hits.set(it.trade, h);
-  }
-  return { trades: [...hits.values()].sort((a, b) => a.code.localeCompare(b.code)), supply_only: c.supply_only };
-}
+export type { TradeHit, TradeResolveDeps };
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export const READER = 'supplier_doc_trades@2';
+export const READER = 'supplier_doc_trades@3';
 const MAX_DOCS = 40;
 
 export type DocKind = 'licence' | 'profile' | 'catalogue';
@@ -68,6 +52,8 @@ export type DocEvidence = {
   status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable';
   reason?: string; format?: string; trades: TradeHit[]; read_at: string;
   source?: 'document_text' | 'photo_text'; supply_only?: boolean;
+  /** how each path fared on this document (reader @3 on) */
+  exact?: ExactState; meaning?: MeaningState;
 };
 export const PHOTO_TEXT_MAX = 60_000;
 
@@ -78,32 +64,46 @@ export function allText(e: Extracted, depth = 0): string {
   return [e.text, ...cells, ...kids].filter(Boolean).join('\n');
 }
 
+// A CATALOGUE IS READ AS A CATALOGUE (21 Sep 2026, _shared/catalogue_read.ts). Its spec tables and address
+// block are set aside first ("DVR Storage Upto 6TB" is a product property, "PREVIEW GENERAL TRADING LLC
+// (Warehouse)" is an address), and a company that only trades in goods is read as supply-only, so meaning does
+// not propose it installation work. What is left — headings, product types and its sentences — is what is read.
+function catalogueText(text: string): { text: string; supply_only: boolean } {
+  const L = catalogueLines(text);
+  return { text: [...L.headings, ...L.types, ...L.statements].join('\n'), supply_only: supplyOnlyOf([...L.headings, ...L.statements].join('\n')).supply_only };
+}
+
 /** One document -> what it says about trades, or the honest reason it could not be read. */
-export async function readDocForTrades(doc: DocIn, vocab: TradeTerm[], services?: ServiceTerm[]): Promise<DocEvidence> {
+export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Promise<DocEvidence> {
   const base = { path: doc.path, name: doc.name, kind: doc.kind, read_at: new Date().toISOString() };
   const photo = String(doc.photo_text ?? '').slice(0, PHOTO_TEXT_MAX);
-  const found = (text: string, source: 'document_text' | 'photo_text', format?: string): DocEvidence => {
-    if (doc.kind === 'catalogue' && services?.length) {
-      const c = catalogueTrades(text, vocab, services);
-      return { ...base, status: 'read', format, source, trades: c.trades, supply_only: c.supply_only };
-    }
-    return { ...base, status: 'read', format, source, trades: tradesFromText(text, vocab) };
+  const found = async (text: string, source: 'document_text' | 'photo_text', format?: string): Promise<DocEvidence> => {
+    const c = doc.kind === 'catalogue' ? catalogueText(text) : null;
+    const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only });
+    return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
   };
   const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true }) : null);
   const text = r && r.ok ? allText(r) : '';
   // The file's own text layer wins; the photo text is read only when the file has none of its own.
-  if (!text.trim() && photo.trim()) return found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
+  if (!text.trim() && photo.trim()) return await found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
   if (!r) return { ...base, status: 'unreadable', reason: 'the file could not be fetched from storage', trades: [] };
   if (!r.ok) return { ...base, status: 'unreadable', reason: `${r.error}: ${r.detail}`.slice(0, 200), trades: [] };
   if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
   if (!text.trim() && r.needs) return { ...base, status: 'needs_cad_conversion', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
-  return found(text, 'document_text', r.kind);
+  return await found(text, 'document_text', r.kind);
 }
+
+// Evidence a reader before @3 wrote: its trades came from the document's alias words. It is kept as a record
+// of the file, but it proposes nothing any more (measured 29 Sep 2026: 1 supplier_capabilities row carries such
+// evidence, source_docs.reader 'supplier_doc_trades@2'). The next upload of that file reads it by code and meaning.
+export const WORD_READ = 'read by alias words before 29 Sep 2026 (ruling 890); upload the file again to read it by exact code and meaning';
+const wordRead = (d: DocEvidence) => d.status === 'read' && d.exact === undefined && d.meaning === undefined && (d.trades || []).length > 0;
 
 /** A licence or profile replaces the previous one of its kind; catalogues accumulate. */
 export function mergeEvidence(prev: DocEvidence[], fresh: DocEvidence[]): DocEvidence[] {
   const replaced = (d: DocEvidence) => fresh.some((f) => f.path === d.path || (f.kind !== 'catalogue' && f.kind === d.kind));
-  return [...fresh, ...prev.filter((d) => !replaced(d))].slice(0, MAX_DOCS);
+  const kept = prev.filter((d) => !replaced(d)).map((d) => (wordRead(d) ? { ...d, trades: [], reason: WORD_READ } : d));
+  return [...fresh, ...kept].slice(0, MAX_DOCS);
 }
 
 export const proposedFrom = (docs: DocEvidence[]): string[] =>
@@ -112,17 +112,14 @@ export const proposedFrom = (docs: DocEvidence[]): string[] =>
 /**
  * Read the documents, merge the evidence into what this supplier already has, and store the proposal.
  * Never throws and never blocks an upload: a failure comes back as { error } for the caller to report.
+ * `deps` is for tests; an edge function passes nothing and gets the live routine, vectors and model.
  */
-export async function proposeTradesFromDocs(admin: Admin, supplierId: number, docs: DocIn[]):
+export async function proposeTradesFromDocs(admin: Admin, supplierId: number, docs: DocIn[], deps?: TradeResolveDeps):
   Promise<{ ok: true; proposed_trades: string[]; docs: DocEvidence[] } | { ok: false; error: string }> {
   try {
     if (!docs.length) return { ok: true, proposed_trades: [], docs: [] };
-    const { data: vocab, error: vErr } = await admin.from('taxonomy_trade').select('code,aliases').eq('active', true);
-    if (vErr) return { ok: false, error: `vocabulary: ${vErr.message}` };
-    // The service aliases too, but only when a catalogue is among the documents: they are what read it.
-    const services: ServiceTerm[] = docs.some((d) => d.kind === 'catalogue')
-      ? ((await admin.from('taxonomy_trade_service').select('trade_code,code,label_en,label_ar,aliases').eq('active', true)).data || [])
-      : [];
+    // One set of deps for every document of this call: the vectors are read once, and meaning's line budget is shared.
+    const d0 = deps ?? await liveTradeDeps(admin, embedLine);
     const fresh: DocEvidence[] = [];
     for (const d of docs) {
       let bytes = d.bytes;
@@ -130,7 +127,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
         const { data: blob } = await admin.storage.from('supplier-docs').download(d.path);
         if (blob) bytes = new Uint8Array(await blob.arrayBuffer());
       }
-      fresh.push(await readDocForTrades({ ...d, bytes }, vocab || [], services));
+      fresh.push(await readDocForTrades({ ...d, bytes }, d0));
     }
     const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};

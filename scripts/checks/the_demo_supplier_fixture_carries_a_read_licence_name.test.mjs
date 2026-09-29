@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -29,7 +30,7 @@ test('makeDemoSupplier writes licence_legal_name = the company its licence PDF n
 });
 
 test('the verifier still gates on a read licence name', () => {
-  const schema = read('supabase/schema/full_schema.sql');
+  const schema = readSchemaMirror();
   const at = schema.indexOf('FUNCTION public.fn_sales_engineer_verifies_supplier(');
   assert.ok(at > 0, 'fn_sales_engineer_verifies_supplier is not in the schema mirror');
   assert.match(schema.slice(at, at + 6000), /licence_legal_name/, 'the verifier no longer reads licence_legal_name; revisit this check');
