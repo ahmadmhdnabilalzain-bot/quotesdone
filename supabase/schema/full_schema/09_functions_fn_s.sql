@@ -3371,7 +3371,7 @@ AS $function$
 declare v_id bigint; v_demo boolean := coalesce(p_question like 'ZZ DEMO%', false);
 begin
   v_id := public.fn_seat_deliberation_open(p_kind, p_author, p_reviewer, p_question, p_evidence, p_proposal,
-            coalesce(nullif(p_result->>'model', ''), 'unknown'), 'agent_reasoning', p_subject_table, p_subject_id, v_demo);
+            coalesce(nullif(p_result->>'model', ''), 'unknown'), 'internal_judgement' /* 1056: think()'s decision class */, p_subject_table, p_subject_id, v_demo);
   return jsonb_build_object('deliberation_id', v_id, 'reviewer', p_reviewer);
 exception when others then
   -- Recorded for the CEO to see, never raised: the decision it reviews has already been applied or held.

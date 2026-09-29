@@ -5221,7 +5221,8 @@ begin
   -- THE AUTHOR'S MODEL: the one given, else the seat's latest reasoning call in 24 hours (what open() proves), else code.
   if v_model is null then
     select l.model_used, l.task_class into v_model, v_class from public.ai_cost_log l
-     where l.ok and l.task_class = 'agent_reasoning' and l.occurred_at > now() - interval '24 hours'
+     -- 1056: think() bills a seat's decision to internal_judgement
+     where l.ok and l.task_class = 'internal_judgement' and l.occurred_at > now() - interval '24 hours'
        and (l.agent_key = p_author_seat or l.seat = p_author_seat)
      order by l.occurred_at desc, l.id desc limit 1;
     v_model := coalesce(v_model, 'deterministic');

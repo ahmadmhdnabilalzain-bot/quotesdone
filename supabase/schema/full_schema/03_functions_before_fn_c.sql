@@ -9535,6 +9535,11 @@ declare
   v_conf    numeric;
   v_rtier   text;
   v_canon   text;
+  v_seat    text;
+  v_split   text;
+  v_route_base text;
+  v_base_pol model_policy%rowtype;
+  v_seat_fb text;
 begin
   if p_task_class is not null and length(btrim(p_task_class)) > 0 then
     v_class := p_task_class; v_src := 'caller-supplied task_class';
@@ -9582,11 +9587,58 @@ begin
     end if;
   end if;
 
-  select * into v_pol from model_policy where task_class = v_class and active;
+  -- THE SEAT'S OWN ROUTE (29 Sep 2026, sales_engineer; founder_instruction 1056).
+  -- think() and every other shared engine bill a step to a class chosen by WHAT the step is
+  -- (routine_employee_reasoning, customer_communication, ...). The founder's matrix routes by WHO asks:
+  -- the CEO and the sales engineer fall back to openai/gpt-6-luna, every other seat to
+  -- deepseek/deepseek-v4.1-flash, and the CEO's judgement runs on Opus. The seat is the caller's agent,
+  -- resolved as the agent_reasoning block above resolves it (an alias of a seat is that seat).
+  --   1. A policy row named '<seat>__<class>' is that seat's own route for <class>: its MODELS are taken, while
+  --      the CLASS stays <class> - ai_cost_log, the response cache, the confidence prior and every author proof
+  --      key on it, and ai_cost_log.seat already says who asked. The row travels as policy_class, which
+  --      fn_ai_route_review_for reads for a review's pair.
+  --   2. Otherwise the seat's PLAN B is its own for every class it calls: the fallback of its catch-all row in
+  --      model_policy_by_identity replaces the class's, unless the class has no fallback on purpose (only Gemini
+  --      hears) or is a review (its pair is chosen against its author's family).
+  -- A '<seat>__<class>' row - reached through the seat, or named by fn_task_class for the seat's own function -
+  -- never allows fewer tokens than <class>. A seat's own row is never served from the semantic cache: that cache is keyed
+  -- by class, not model, so a CEO judgement on Opus could otherwise be answered by another seat's Gemini answer.
+  if p_agent_key is not null then
+    v_seat := coalesce(v_canon, public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+    select mp.task_class into v_split from model_policy mp
+     where mp.task_class = v_seat || '__' || v_class and mp.active;
+    if v_split is not null then
+      v_src := v_src || ' | seat "' || v_seat || '" routes "' || v_class || '" on its own policy row ' || v_split;
+    end if;
+  end if;
+
+  select * into v_pol from model_policy where task_class = coalesce(v_split, v_class) and active;
   if not found then
     select * into v_pol from model_policy where task_class = 'general_drafting' and active;
     v_src := v_src || ' | no policy for "' || v_class || '", fell back to general_drafting';
     v_generic := true;
+  end if;
+
+  v_route_base := case when v_split is not null then v_class
+                       when position('__' in v_pol.task_class) > 0 then split_part(v_pol.task_class, '__', 2) end;
+  if v_route_base is not null then
+    select * into v_base_pol from model_policy where task_class = v_route_base and active;
+    if found then
+      v_pol.max_tokens    := greatest(coalesce(v_pol.max_tokens, 0), coalesce(v_base_pol.max_tokens, 0));
+      v_pol.cache_ttl_min := 0;
+    end if;
+  end if;
+
+  if v_split is null and not v_generic and v_seat is not null and v_pol.model_fallback is not null
+     and cardinality(coalesce(v_pol.reviews_class, '{}')) = 0 then
+    select i.fallback_model into v_seat_fb from model_policy_by_identity i
+     where i.scope = 'current_agent' and i.identity_key = v_seat
+       and exists (select 1 from org_role o where o.role_id = v_seat and o.status = 'active');  -- a live seat's row only
+    if v_seat_fb is not null and v_seat_fb not in (v_pol.model_primary, v_pol.model_fallback) then
+      v_src := v_src || ' | seat "' || v_seat || '" falls back to its own plan B ' || v_seat_fb
+                     || ' instead of ' || v_pol.model_fallback;
+      v_pol.model_fallback := v_seat_fb;
+    end if;
   end if;
 
   -- THE ROLE DEFAULT. model_policy_by_identity carries 120 rows — 96 target employees and 24
@@ -9674,9 +9726,11 @@ begin
   end if;
 
   if v_conf is not null then
-    if v_conf >= 0.95 and v_tier in ('large','xlarge') then
+    -- 1056: 'xlarge' is only the founder's named hard routes (the CEO's judgement, the comparison report, on
+    -- Opus); a confidence prior never moves them. 'large' keeps the 11 Aug doctrine.
+    if v_conf >= 0.95 and v_tier = 'large' then
       select model_id into v_model from model_registry
-       where active and approved and tier = 'medium' order by in_per_mtok_usd limit 1;
+       where active and approved and tier = 'medium' order by in_per_mtok_usd, model_id limit 1;  -- model_id: 1056 tie-break
       v_why := v_why || ' | confidence ' || v_conf
                || case when v_prior is null then ''
                        else ' (' || p_agent_key || ' own median over ' || (v_prior->>'n')
@@ -9719,7 +9773,7 @@ begin
   if not found then
     select * into v_reg from model_registry
      where active and approved and tier = (case v_tier when 'xlarge' then 'xlarge' else v_tier end)
-     order by in_per_mtok_usd limit 1;
+     order by in_per_mtok_usd, model_id limit 1;  -- model_id: 1056 tie-break
     v_why := v_why || ' | WARNING: policy model "' || v_model || '" is not in model_registry; substituted ' || coalesce(v_reg.model_id,'(none)');
     v_model := v_reg.model_id;
   end if;
@@ -9735,11 +9789,11 @@ begin
            and (not v_tls or coalesce(v_reg.supports_tools, false)) ) then
 
     select * into v_sub from model_registry
-     where active and approved
+     where active and approved and model_id not like '%:online'      -- 1056: never a web-grounded variant
        and (not v_vis or supports_vision) and (not v_aud or supports_audio) and (not v_tls or supports_tools)
      order by (fn_ai_route_tier_rank(tier) < v_want),                 -- at-or-above the tier first
               abs(fn_ai_route_tier_rank(tier) - v_want),              -- then closest to it
-              in_per_mtok_usd                                          -- then cheapest
+              in_per_mtok_usd, model_id                                -- then cheapest (model_id: 1056 tie-break)
      limit 1;
 
     if found then
@@ -9761,15 +9815,16 @@ begin
      and (not v_vis or supports_vision) and (not v_aud or supports_audio) and (not v_tls or supports_tools);
   if not found and (v_vis or v_aud or v_tls) then
     select * into v_fb from model_registry
-     where active and approved and model_id <> v_model
+     where active and approved and model_id <> v_model and model_id not like '%:online'   -- 1056
        and (not v_vis or supports_vision) and (not v_aud or supports_audio) and (not v_tls or supports_tools)
-     order by (fn_ai_route_tier_rank(tier) < v_want), abs(fn_ai_route_tier_rank(tier) - v_want), in_per_mtok_usd
+     order by (fn_ai_route_tier_rank(tier) < v_want), abs(fn_ai_route_tier_rank(tier) - v_want), in_per_mtok_usd, model_id
      limit 1;
   end if;
 
   return jsonb_build_object(
     'use_llm', true,
     'task_class', v_class,
+    'policy_class', v_pol.task_class,   -- 1056: the policy row the models came from (a seat's own, or the class's)
     'tier', v_tier,
     'model', v_model,
     'fallback', v_fb.model_id,
@@ -9844,11 +9899,17 @@ begin
   end if;
 
   for c in
-    with pol as (select model_primary, model_fallback from public.model_policy where task_class = v_base->>'task_class'),
+    -- 1056: the pair of the seat's own row for this review class when the seat has one ('<seat>__<class>'),
+    -- otherwise the class's own - never the general_drafting row a missing class falls back to
+    with pol as (select model_primary, model_fallback from public.model_policy
+                  where task_class = case when right(coalesce(v_base->>'policy_class', ''), length(v_base->>'task_class') + 2)
+                                                = '__' || (v_base->>'task_class')
+                                          then v_base->>'policy_class' else v_base->>'task_class' end),
     cand as (
+      -- 1056: the class's own pair first (primary, then its named fallback), then the pool as depth
       select pol.model_primary model_id, 0 ord from pol
-      union all select p.model_id, p.rank from public.review_pool p where p.active
-      union all select pol.model_fallback, 1000000 from pol
+      union all select pol.model_fallback, 1 from pol
+      union all select p.model_id, 10 + p.rank from public.review_pool p where p.active
       union all select 'google/gemini-3.8-flash', 2000000
       union all select 'z-ai/glm-5.3-flash', 2000001
       union all select 'qwen/qwen3.7-plus', 2000002)
