@@ -1,0 +1,7 @@
+Not loaded. Carried by #1063 from #1045 (founder instructions 889, 893, 894): knowledge/seats/accountant.json (10 new
+bilingual entries - IFRS for SMEs sections 3, 7, 10, 18, 21, 29, 32, 33, CT Art. 30, VAT Art. 64 - and an `area` on all
+142 entries) and knowledge/exams/accountant.json (57 -> 67 items) reach production only when these run AFTER #1063
+merges, one after the other, never before (an apply before merge deadlocked CI on 28 Sep):
+  node scripts/kb/load_verified_packs.mjs --apply
+Then run: node scripts/eval/seat_qualification_exam.mjs --mode live --seat accountant
+Delete this note in the commit that records the load. Seat: accountant.
