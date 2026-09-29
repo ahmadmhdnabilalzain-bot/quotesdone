@@ -32,6 +32,9 @@
 -- REVIEW, 29 Sep 2026: a nudge is ALWAYS ENGLISH (lang 'en', the /en/ portal, no Arabic copy; founder rule: suppliers
 --   are always English, ledger 993), and send_outbox carries 'supplier_invite_nudge' on the invitation lane
 --   (invite_lane.ts INVITE_LANE_TYPES), inside the lane's one daily cap, so a nudge never leaves from info@.
+-- RE-REVIEW, 29 Sep 2026: an Arabic-script company name is not written into the English greeting (#1070's guard,
+--   both nudges), and enqueue_supplier_invites (redefined at the foot) counts the day's nudges against
+--   invite_daily_cap, so the batch and the nudger spend ONE cap from both sides.
 -- ORGANIC ONLY (founder 866): email through the company's own outbox; no paid channel, no ad spend, no LLM.
 -- Prevented by: scripts/sql/an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14_probe.sql
 
@@ -121,7 +124,9 @@ begin
       'type', 'supplier_invite_nudge', 'requested_by', 'sales_engineer', 'channel', 'email',
       'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en', 'dedupe_key', r.dedupe_key,
       'subject', case when r.step = 3 then 'A last reminder: ' else '' end || 'your invitation to join QuotesDone as a supplier',
-      'body', coalesce('Dear ' || nullif(btrim(r.company_name), '') || ',', 'Dear Sir or Madam,') || E'\n\n'
+      -- #1070's greeting guard: an Arabic-script company name is not written into an English letter
+      'body', coalesce('Dear ' || nullif(btrim(case when r.company_name ~ '[؀-ۿ]' then '' else r.company_name end), '') || ',',
+                       'Dear Sir or Madam,') || E'\n\n'
           || 'A reminder of our invitation to register your company as a supplier on QuotesDone. It is free and takes a few minutes.'
           || E'\n\n' || v_link
           || case when r.step = 3 then E'\n\nThis is the last reminder we will send about it.' else '' end
@@ -195,7 +200,9 @@ begin
       'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en',
       'dedupe_key', 'first_quote_nudge:' || r.lead_id || ':' || (select nudges from public.supplier_onboarding where lead_id = r.lead_id),
       'subject', 'Customer requests are waiting for your quotation',
-      'body', 'Dear ' || coalesce(r.company_name, 'supplier') || ',' || chr(10) || chr(10)
+      -- #1070's greeting guard: an Arabic-script company name is not written into an English letter
+      'body', 'Dear ' || coalesce(nullif(btrim(case when r.company_name ~ '[؀-ۿ]' then '' else r.company_name end), ''), 'supplier')
+          || ',' || chr(10) || chr(10)
           || r.open_matches || ' customer request(s) matched to your trade are open and have no quotation from you yet. '
           || 'You can read them and quote in your supplier portal: https://quotesdone.com/en/portal' || chr(10) || chr(10)
           || 'QuotesDone')));
@@ -209,3 +216,163 @@ begin
 end $fn$;
 revoke execute on function public.fn_sales_engineer_supplier_onboarding() from public, anon, authenticated;
 grant execute on function public.fn_sales_engineer_supplier_onboarding() to service_role;
+
+
+-- THE INVITATION BATCH COUNTS THE DAY'S NUDGES AGAINST THE SAME CAP (review of #1007, 29 Sep 2026).
+-- enqueue_supplier_invites is the canonical body of
+-- the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql (MANIFEST 1823), byte for byte except the
+-- used-today count, which now includes supplier_invite_nudge. Before: the nudger counted invitations against
+-- invite_daily_cap, but the batch did not count nudges, so a day could queue cap invitations on top of its nudges.
+create or replace function public.enqueue_supplier_invites(p_cap integer default null::integer)
+returns integer
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare
+  v_today date := (now() at time zone 'UTC')::date;
+  v_planned int; v_used int; v_remaining int; v_count int;
+  v_inv_recent int; v_bounced_recent int; v_rate numeric; v_max_rate numeric; v_cap int;
+  v_pause boolean := false; v_why text; v_go boolean; v_pool int;
+  v_hol_name text; v_hol_action text; v_hol_end date;
+  v_cfg jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
+  v_win_start timestamptz; v_win_end timestamptz;
+  v_gate text;
+begin
+  select c.event_name, c.action, c.ends_on into v_hol_name, v_hol_action, v_hol_end
+    from public.company_calendar c
+   where c.kind = 'public_holiday'
+     and v_today between c.starts_on and coalesce(c.ends_on, c.starts_on)
+   order by c.starts_on limit 1;
+  if v_hol_name is not null then
+    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('supplier_invites', 'ok',
+            jsonb_build_object('queued', 0, 'calendar_paused', true, 'resumes_on', coalesce(v_hol_end, v_today) + 1),
+            'Invites held: company_calendar has "' || v_hol_name || '" covering today. Its recorded action: '
+            || coalesce(v_hol_action, '(none recorded)'), now(), now());
+    return 0;
+  end if;
+
+  -- THE UAE WEEKEND IS SATURDAY AND SUNDAY. A cold invitation queued then waits under Monday's pile.
+  -- Self-clearing like the holiday hold: nothing is switched off, Monday simply runs.
+  if extract(isodow from (now() at time zone 'Asia/Dubai')) in (6, 7) then
+    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'weekend_hold', true),
+            'Invites held: it is the UAE weekend in Dubai; the next weekday batch runs as normal.', now(), now());
+    return 0;
+  end if;
+
+  v_go  := (coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') = 'true')
+           and public.fn_supplier_outreach_golive();
+  v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
+  select count(*) into v_pool from leads l where public.fn_supplier_invite_eligible(l);
+  v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
+  insert into invite_schedule(day, planned, status, note)
+  values (v_today, greatest(v_planned, 0),
+          case when v_go then 'approved' else 'pending' end,
+          'batch of ' || greatest(v_planned, 0) || ' from a pool of ' || v_pool || ' eligible never-invited lead(s), cap ' || v_cap
+          || case when v_go then '; sending open'
+                  when not public.fn_supplier_outreach_golive() then '; HELD — real invitations wait for the founder''s go (app_secrets.supplier_outreach_golive is false)'
+                  else '; HELD — real invitations wait for the founder''s go (app_secrets.invite_enabled)' end)
+    on conflict (day) do update
+      set planned = excluded.planned, status = excluded.status, note = excluded.note;
+
+  if not v_go then
+    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('supplier_invites', 'ok',
+            jsonb_build_object('queued', 0, 'planned', greatest(v_planned, 0), 'pool', v_pool, 'cap', v_cap, 'held', true),
+            'Invites planned and HELD: ' || greatest(v_planned, 0) || ' of a pool of ' || v_pool
+            || ' would be queued at cap ' || v_cap || '; '
+            || case when not public.fn_supplier_outreach_golive() then 'supplier_outreach_golive' else 'invite_enabled' end
+            || ' is false, so nothing was written to the outbox.', now(), now());
+    return 0;
+  end if;
+  if v_planned <= 0 then return 0; end if;
+
+  -- PLACEMENT GATE (24 Sep 2026, it_engineer). Nothing is queued unless this morning's seed invitation landed
+  -- in the Inbox of both seed mailboxes under today's effective sender (fn_invite_placement_gate). Fail closed: a check
+  -- that is still running, failed, or never ran all hold the batch.
+  v_gate := public.fn_invite_placement_gate((now() at time zone 'Asia/Dubai')::date);
+  if v_gate <> 'pass' then
+    update invite_schedule set status = 'pending', note = coalesce(note,'') || '; held: inbox placement ' || v_gate where day = v_today;
+    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'placement_gate', v_gate, 'held', true),
+            'Invites held: the morning inbox placement check answered ' || v_gate || ', so nothing was written to the outbox.', now(), now());
+    return 0;
+  end if;
+
+  -- THE SENDING WINDOW (22 Sep 2026). Invitations leave between the later of now and the window's start
+  -- and the end of the Dubai working day, evenly spaced. Past the window nothing is queued: a cold
+  -- invitation at night lands under the morning's pile, and tomorrow's batch runs as normal.
+  v_win_start := greatest(now(), ((now() at time zone 'Asia/Dubai')::date
+                   + make_interval(hours => coalesce((v_cfg->>'window_start_hour')::int, 9))) at time zone 'Asia/Dubai');
+  v_win_end := ((now() at time zone 'Asia/Dubai')::date + make_interval(hours => coalesce((v_cfg->>'window_end_hour')::int, 17)))
+               at time zone 'Asia/Dubai';
+  if v_win_end < v_win_start + interval '30 minutes' then
+    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'outside_window', true),
+            'Invites held: the Dubai sending window closes at ' || to_char(v_win_end at time zone 'Asia/Dubai', 'HH24:MI')
+            || '; the next weekday batch runs as normal.', now(), now());
+    return 0;
+  end if;
+
+  v_max_rate := coalesce((select nullif(value,'')::numeric from app_secrets where key='invite_max_bounce_rate'), 0.08);
+  select count(*) into v_inv_recent from leads where invited_at > now() - interval '3 days';
+  select count(*) into v_bounced_recent from leads where invite_status='bounced' and invited_at > now() - interval '3 days';
+  v_rate := round(v_bounced_recent::numeric / greatest(v_inv_recent,1), 3);
+
+  if v_inv_recent >= 15 and v_rate > v_max_rate then
+    v_pause := true;
+    v_why := 'bounce rate '||(v_rate*100)||'% over 3 days ('||v_bounced_recent||'/'||v_inv_recent||') exceeds the '||(v_max_rate*100)||'% limit';
+  end if;
+  if not v_pause and v_bounced_recent >= greatest(5, ceil(v_inv_recent * v_max_rate)::int) then
+    v_pause := true;
+    v_why := v_bounced_recent||' hard bounces in 3 days against '||v_inv_recent||' sent. Regardless of rate, that is a list-quality problem';
+  end if;
+
+  if v_pause then
+    update app_secrets set value='false' where key='invite_enabled';
+    update invite_schedule set status = 'pending', note = coalesce(note,'') || '; auto-paused: ' || v_why where day = v_today;
+    if not exists (select 1 from founder_alerts where event='invite_paused_bounce' and created_at > now()-interval '24 hours') then
+      insert into founder_alerts(level,event,detail,channel)
+        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. Clean the list before resuming.','system');
+      insert into notifications(type,to_email,to_role,channel,subject,body,status)
+        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. Validate the list, then re-enable.','queued');
+    end if;
+    return 0;
+  end if;
+
+  -- test-path rows (fixture addresses) are not invitations and must not spend the day's cap:
+  -- measured in the rolled-back rehearsal, two test sends plus one real row cut a batch of 5 to 2.
+  -- ONE daily cap for invitations and their nudges (review of #1007, 29 Sep 2026): a nudge queued today spends it too,
+  -- as fn_sales_engineer_nudges_invited_suppliers already counts the invitations queued today against the same cap.
+  select count(*) into v_used from notifications where type in ('supplier_invite', 'supplier_invite_nudge') and (created_at at time zone 'UTC')::date = v_today
+     and not public.fn_is_demo_email(to_email);
+  v_remaining := greatest(0, v_planned - v_used);
+  if v_remaining <= 0 then return 0; end if;
+
+  with c as (
+    select c.*, row_number() over () as rn, count(*) over () as n
+      from public.fn_supplier_invite_candidates(v_remaining) c
+  ), ins as (
+    insert into notifications(type, to_email, to_role, lead_id, subject, body, lang, status, created_at, not_before)
+    select 'supplier_invite', c.to_email, 'supplier', c.lead_id, c.subject, c.body, c.lang, 'queued', now(),
+           v_win_start + (c.rn - 1) * ((v_win_end - v_win_start) / greatest(c.n, 1))
+      from c
+    on conflict (lower(btrim(to_email))) where type = 'supplier_invite' do nothing
+    returning lead_id
+  )
+  update leads set invite_status='queued', invited_at=now()
+  where invite_status is null and id in (select lead_id from ins);
+  get diagnostics v_count = row_count;
+  update invite_schedule set sent = sent + v_count where day = v_today;
+  insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+  values ('supplier_invites', 'ok',
+          jsonb_build_object('queued', v_count, 'planned', v_planned, 'pool', v_pool, 'cap', v_cap, 'held', false,
+                             'window_ends', v_win_end),
+          'Invites: ' || v_count || ' queued of ' || v_planned || ' planned (pool ' || v_pool || ', cap ' || v_cap
+          || '), spread until ' || to_char(v_win_end at time zone 'Asia/Dubai', 'HH24:MI') || ' Dubai.', now(), now());
+  return v_count;
+end;
+$fn$;
+revoke execute on function public.enqueue_supplier_invites(integer) from public, anon, authenticated;

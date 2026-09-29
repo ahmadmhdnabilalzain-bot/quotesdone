@@ -17,8 +17,9 @@ begin
   -- lead a has an Arabic locale on purpose: its nudge must still be English (review, 29 Sep 2026)
   insert into public.leads (company_name, email, invited_at, locale) values
     ('ZZ DEMO — nudge day 4',   'zz-demo-nudge-a@example.invalid', p_now - interval '4 days', 'ar')  returning id into a;
+  -- lead b carries Arabic script in its company name: #1070's greeting guard must keep it out of the English nudge
   insert into public.leads (company_name, email, invited_at) values
-    ('ZZ DEMO — nudge day 8',   'zz-demo-nudge-b@example.invalid', p_now - interval '8 days')  returning id into b;
+    ('ZZ DEMO — مورد تجريبي',   'zz-demo-nudge-b@example.invalid', p_now - interval '8 days')  returning id into b;
   insert into public.leads (company_name, email, invited_at) values
     ('ZZ DEMO — nudge day 15',  'zz-demo-nudge-c@example.invalid', p_now - interval '15 days') returning id into c;
   insert into public.leads (company_name, email, invited_at) values
@@ -72,6 +73,12 @@ begin
     fail := fail || 'a nudge is not English; '; end if;
   if not exists (select 1 from public.notifications where type = 'supplier_invite_nudge' and lead_id = a) then
     fail := fail || 'the Arabic-locale lead was not nudged (in English); '; end if;
+  if not exists (select 1 from public.notifications where type = 'supplier_invite_nudge' and lead_id = b and body like 'Dear Sir or Madam,%') then
+    fail := fail || 'the Arabic-named lead was not greeted "Dear Sir or Madam"; '; end if;
+  -- the invitation batch spends the same cap on the day's nudges (the applied definition, read back)
+  if pg_get_functiondef('public.enqueue_supplier_invites(integer)'::regprocedure)
+       !~ 'into v_used from notifications where type in \(''supplier_invite'', ''supplier_invite_nudge''\)' then
+    fail := fail || 'enqueue_supplier_invites does not count nudges against invite_daily_cap; '; end if;
   select count(*) into v_real_after from public.notifications where type = 'supplier_invite_nudge' and not public.fn_is_demo_email(to_email);
   if v_real_after <> v_real_before then fail := fail || 'a real address was queued; '; end if;
   -- real mode with the campaign closed is held and queues nothing
