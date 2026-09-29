@@ -1,0 +1,8 @@
+Committed, not applied (it_engineer, 29 Sep 2026, #1072): applied at merge by the release train, never before.
+Depends-on: #1128. Apply AFTER #1128's a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql
+(it creates ceo_decision_round, which this list exports) and AFTER every_seat_keeps_a_living_playbook.sql (seat_playbook).
+Expected: select count(*) from public.fn_table_export_list() = 162 rows declared (main's #1126 body 159 + #1128's 2 + this
+file's 1, seat_playbook), fewer only by the nine to_regclass-guarded marketing tables that do not exist yet.
+Redefines fn_table_export_list from every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql (#1126).
+If any of #1106 #1108 #1110 #1114 #1128 applies its own list first, rebase: take the newest body and re-add the single
+line marked '#1072'. Then delete this note and append the .sql to the END of MANIFEST.txt.

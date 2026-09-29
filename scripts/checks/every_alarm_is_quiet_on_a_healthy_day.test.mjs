@@ -246,6 +246,14 @@ export const REGISTER = {
   // 29 Sep 2026 (it_engineer, #1048). A truncated smoke run now upserts its FAIL steps itself instead of settling,
   // so it closes nothing on silence. The FAIL is the journey's verdict (scripts/e2e/journeys.mjs), not a rule here.
   fn_it_smoke_ingest: { relay: 'writes the failed steps a post-deploy smoke run reports; each FAIL is the journey\'s verdict, and a run with no failed step raises nothing' },
+  // 29 Sep 2026 (it_engineer, #1072). A trigger function (returns trigger), so it cannot be called as a replay. It
+  // decides nothing: it raises monitor:seat_playbook_rebuild_failed only when fn_seat_playbook_build itself raised
+  // on a recorded lesson or a decided knowledge finding. Quiet on a healthy day, measured 29 Sep 2026 in one
+  // rolled-back transaction on production with both pending files applied: fn_seat_playbook_build_all rebuilt all
+  // six seats without error, and a ZZ DEMO lesson inserted into seat_case_memory fired the trigger and raised 0
+  // findings; with fn_seat_playbook_build replaced by one that raises, the same insert raised 1. It reads no clock,
+  // so the HEALTHY instants change nothing for it.
+  trg_seat_playbook_learns: { relay: 'records that fn_seat_playbook_build raised while learning from a lesson; the error is the finding, and a healthy day rebuilds every seat without one' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },

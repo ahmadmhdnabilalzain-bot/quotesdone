@@ -434,7 +434,6 @@
  "seat_deliberation_turn": "backlog",
  "seat_duty": "backlog",
  "seat_exam_item": "no_writer",
- "seat_handoff_kind": "no_writer",
  "seat_judgement": "backlog",
  "seat_knowledge_eval_question": "no_writer",
  "seat_knowledge_exam": "backlog",
