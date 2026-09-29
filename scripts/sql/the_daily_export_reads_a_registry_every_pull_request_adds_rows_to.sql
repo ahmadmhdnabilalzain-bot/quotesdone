@@ -513,7 +513,7 @@ insert into public.table_export_registry (table_name, exported, category, reason
   ('finance_reports', false, 'no_writer', 'FROZEN: no routine, edge function or app code writes it (re-measured on every CI run), so its content cannot drift.', 'it_engineer'),
   ('finance_snapshots', false, 'measurement', 'A periodic snapshot, rollup or meter computed from other tables; the rows it was computed from are what matters.', 'it_engineer'),
   ('founder_habit', false, 'no_writer', 'FROZEN: no routine, edge function or app code writes it (re-measured on every CI run), so its content cannot drift.', 'it_engineer'),
-  ('function_owner', false, 'no_writer', 'FROZEN: no routine, edge function or app code writes it (re-measured on every CI run), so its content cannot drift.', 'it_engineer'),
+  ('function_owner', true, 'company', 'backlog decided 30 Sep 2026 (release operator, after #1136 gave it a writer), exported: which seat owns each edge function (78 rows)', 'it_engineer'),
   ('gl_account_funnel_stage', false, 'no_writer', 'FROZEN: no routine, edge function or app code writes it (re-measured on every CI run), so its content cannot drift.', 'it_engineer'),
   ('gl_accounts', false, 'no_writer', 'FROZEN: no routine, edge function or app code writes it (re-measured on every CI run), so its content cannot drift.', 'it_engineer'),
   ('gl_settings', false, 'no_writer', 'FROZEN: no routine, edge function or app code writes it (re-measured on every CI run), so its content cannot drift.', 'it_engineer'),

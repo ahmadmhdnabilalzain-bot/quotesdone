@@ -4668,9 +4668,10 @@ begin
   end if;
   select * into c from public.refunds
    where transaction_id = t.id and topup_of is null and refund_decision_id is not null
+     and status in ('approved', 'processing', 'succeeded')
      and lower(coalesce(requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')
    order by id desc limit 1;
-  if not found then return jsonb_build_object('ok', false, 'reason', 'no CEO-approved refund case on this payment to top up'); end if;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no approved refund on this payment to top up (a CEO decision still waiting on the second seat is not approved)'); end if;
   v_cap := round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint;
   select coalesce(sum(r.amount_fils), 0) into v_live
     from public.refunds r
@@ -7610,16 +7611,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -7645,6 +7636,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 

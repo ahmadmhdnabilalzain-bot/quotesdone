@@ -389,6 +389,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -559,16 +569,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -3884,6 +3884,41 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_refund_approval_is_the_one_decision()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_parent text;
+begin
+  -- a refund Stripe issued outside the platform is a fact to record, not a request to approve (as z05)
+  if lower(coalesce(new.requested_by, '')) in ('stripe_webhook', 'stripe_dashboard', 'stripe') then return new; end if;
+
+  if new.status = 'approved' and (tg_op = 'INSERT' or old.status is distinct from 'approved')
+     and coalesce(current_setting('qd.refund_decide', true), '') is distinct from new.id::text then
+    raise exception using errcode = 'check_violation',
+      message = 'REFUND_NOT_DECIDED: refund ' || coalesce(new.id::text, '(new)') || ' becomes approved only through fn_refund_decide',
+      hint = 'fn_refund_decide runs the second-seat check (instruction 1009) before a refund is approved. Write the CEO approval, then call it.';
+  end if;
+
+  if new.status in ('processing', 'succeeded')
+     and (tg_op = 'INSERT' or old.status not in ('approved', 'processing', 'succeeded', 'failed')) then
+    if new.topup_of is not null then
+      select status into v_parent from public.refunds where id = new.topup_of;
+      if v_parent in ('approved', 'processing', 'succeeded') then return new; end if;
+    end if;
+    raise exception using errcode = 'check_violation',
+      message = 'REFUND_NOT_DECIDED: refund ' || coalesce(new.id::text, '(new)') || ' may not reach ' || new.status
+             || ' from ' || case when tg_op = 'INSERT' then 'nothing' else old.status end || '; money moves only after fn_refund_decide approved it',
+      hint = case when new.topup_of is not null
+                  then 'A top-up moves only after the refund it tops up (#' || new.topup_of || ') was approved; that one is ' || coalesce(v_parent, 'missing') || '.'
+                  else 'Approve it through fn_refund_decide first (it runs the second-seat check), then pay it.' end;
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_refund_attach_receipt(p_refund_id bigint, p_receipt_url text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3916,6 +3951,23 @@ begin
    where id = p_refund_id and stripe_receipt_url is null;
   get diagnostics v_ok = row_count;
   return jsonb_build_object('ok', v_ok, 'refund_id', p_refund_id);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_refund_case_authorisation_is_the_one_decision()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.state = 'ceo_authorized' and (tg_op = 'INSERT' or old.state is distinct from 'ceo_authorized')
+     and coalesce(current_setting('qd.refund_case_decide', true), '') is distinct from new.refund_id::text then
+    raise exception using errcode = 'check_violation',
+      message = 'REFUND_NOT_DECIDED: refund case ' || new.refund_id || ' is authorised only by fn_ceo_decide_refund, after the second seat',
+      hint = 'fn_ceo_decide_refund runs the second-seat check (instruction 1009) on the case before it authorises it.';
+  end if;
+  return new;
 end $function$
 
 
@@ -3966,6 +4018,12 @@ begin
       return jsonb_build_object('ok', false, 'error', 'no_ceo_approval',
         'hint', 'A refund is approved only by a CEO approval that passed the process checklist (fn_ceo_refund_review, or ceo_agent decide). This routine records that decision; it cannot make one.');
     end if;
+    -- The window: a00 refuses 'approved' before refund_deadline. Answered here instead of raised, so a CEO review
+    -- run early keeps its approval; the accountant asks this routine again before it pays.
+    if exists (select 1 from public.transactions t where t.id = r.transaction_id and now() < t.refund_deadline) then
+      return jsonb_build_object('ok', false, 'error', 'window_not_open',
+        'decision_after', (select t.refund_deadline from public.transactions t where t.id = r.transaction_id));
+    end if;
     -- A REFUND IS HIGH STAKES (29 Sep 2026, instruction 1009): a second seat on another family must agree first. While
     -- the model hold is on the refund proceeds and the review is owed; a later disagreement opens a finding.
     v_gate := public.fn_high_stakes_gate('refund', 'ceo', 'refunds', p_refund_id::text,
@@ -3976,6 +4034,8 @@ begin
     if not coalesce((v_gate->>'proceed')::boolean, false) then
       return jsonb_build_object('ok', false, 'error', 'awaiting_second_seat', 'clearance', v_gate);
     end if;
+    -- the mark z04 (refunds) and a00 (refund_case) read: this refund was approved here, after the second seat
+    perform set_config('qd.refund_decide', p_refund_id::text, true);
     update public.refunds set status = 'approved', decided_by = v_app.decided_by, decided_at = now(),
            decision_note = coalesce(p_note, v_app.rationale), refund_decision_id = v_app.decision_id
      where id = p_refund_id;
@@ -3988,7 +4048,8 @@ begin
     update public.transactions set refund_status = v_new, refund_resolved_at = now(), refund_note = coalesce(p_note, refund_note)
      where id = r.transaction_id;
   end if;
-  return jsonb_build_object('ok', true, 'refund_id', p_refund_id, 'status', v_new, 'decided_by', coalesce(v_app.decided_by, p_decided_by));
+  return jsonb_build_object('ok', true, 'refund_id', p_refund_id, 'status', v_new, 'decided_by', coalesce(v_app.decided_by, p_decided_by),
+                            'second_seat', v_gate);
 end $function$
 
 
@@ -4599,7 +4660,7 @@ CREATE OR REPLACE FUNCTION public.fn_refund_settle(p_stripe_refund_id text, p_st
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r public.refunds; v_status text; v_amount bigint; v_src text; v_q bigint;
 begin
@@ -4621,7 +4682,7 @@ begin
   if not found then
     select * into r from public.refunds
      where stripe_refund_id is null and p_payment_intent is not null
-       and stripe_payment_intent = p_payment_intent and status in ('approved','processing','requested')
+       and stripe_payment_intent = p_payment_intent and status in ('approved','processing')
      order by created_at limit 1 for update;
 
     if found then
