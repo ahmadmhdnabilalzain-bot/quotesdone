@@ -1266,6 +1266,20 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_rescue_pool(p_trades text[], p_emirate text)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select count(*)::int
+    from public.leads l
+   where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))
+     and l.invite_trades && coalesce(p_trades, '{}'::text[])
+     and (p_emirate is null or p_emirate = 'UAE' or l.emirate = p_emirate)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_self_review()
  RETURNS jsonb
  LANGUAGE sql
@@ -1302,6 +1316,220 @@ begin
     'subject', m->>'subject', 'body', m->>'body', 'dedupe_key', v_key)));
   return jsonb_build_object('ok', true, 'lead_id', l.id, 'stage', p_stage, 'step', p_step, 'lang', m->>'lang', 'fixture', v_fixture,
                             'delivery', v_out->0);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_stalled_inquiry_notice(p_lang text, p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_ar boolean := coalesce(p_lang, '') like 'ar%';
+  v_lang text := case when coalesce(p_lang, '') like 'ar%' then 'ar' else 'en' end;
+  v_name text := nullif(btrim(coalesce(p->>'name', '')), '');
+  v_hours int := coalesce((p->>'hours')::numeric, 48)::int;
+  v_pool int := coalesce((p->>'pool')::int, 0);
+  v_unreachable boolean := coalesce(p->>'reason', '') = 'no_reachable_supplier';
+  v_site text; v_link text; v_trade text; v_trade_ar text; v_em text; v_em_ar text; v_where text; v_where_ar text;
+  v_subj text; v_body text;
+begin
+  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
+  v_link := coalesce(v_site, 'https://quotesdone.com') || '/' || v_lang || '/portal';
+  select t.label, coalesce(t.label_ar, t.label) into v_trade, v_trade_ar
+    from public.taxonomy_trade t
+   where t.code = (public.fn_taxonomy_trades_for(array[coalesce(p->>'category', '')]))[1];
+  v_trade := coalesce(v_trade, nullif(p->>'category', ''), 'your trade');
+  v_trade_ar := coalesce(v_trade_ar, nullif(p->>'category', ''), 'تخصصكم');
+  v_em := nullif(btrim(coalesce(p->>'emirate', '')), '');
+  v_em_ar := case lower(coalesce(v_em, '')) when 'dubai' then 'دبي' when 'abu dhabi' then 'أبوظبي' when 'sharjah' then 'الشارقة'
+               when 'ajman' then 'عجمان' when 'umm al quwain' then 'أم القيوين' when 'ras al khaimah' then 'رأس الخيمة'
+               when 'fujairah' then 'الفجيرة' else v_em end;
+  v_where := v_trade || coalesce(' in ' || v_em, '');
+  v_where_ar := v_trade_ar || coalesce(' في ' || v_em_ar, '');
+
+  if v_ar then
+    v_subj := 'مستجدات طلبكم — ' || v_where_ar;
+    v_body := coalesce('السادة/ ' || v_name || ' المحترمين،', 'عميلنا العزيز،') || E'\n\nتحية طيبة وبعد،\n\n'
+      || case when v_unreachable
+           then 'لم يصل طلبكم في مجال ' || v_where_ar || ' بعدُ إلى مورّد يستطيع تسعيره، إذ لا يتوفر حاليًا أيٌّ من الموردين المسجّلين في هذا المجال لتولّيه. '
+           else 'مضت ' || v_hours || ' ساعة على إرسال طلبكم في مجال ' || v_where_ar
+                || ' إلى الموردين المطابقين، ولم يصلنا أي عرض سعر حتى الآن. ' end
+      || case when v_pool > 0
+           then 'ولذلك قدّمنا مجال طلبكم ومنطقته على غيرهما في دعوة الموردين الجدد، فيكون الموردون الذين ندعوهم تاليًا ممن يستطيعون تسعير طلبكم. '
+           else 'وليس في قائمتنا حاليًا موردون آخرون في هذا المجال في ' || coalesce(v_em_ar, 'الإمارات')
+                || '، ولذلك نعمل على استقطاب موردين جدد له. ' end
+      || 'ويبقى طلبكم مفتوحًا، وسنُعلمكم فور وصول أول عرض سعر.'
+      || E'\n\nيمكنكم متابعة طلبكم عبر بوابتكم:\n\n' || v_link
+      || E'\n\nوتفضلوا بقبول فائق الاحترام والتقدير،';
+  else
+    v_subj := 'An update on your request — ' || v_where;
+    v_body := coalesce('Dear ' || v_name || ',', 'Dear Customer,') || E'\n\n'
+      || case when v_unreachable
+           then 'Your request for ' || v_where || ' has not yet reached a supplier who can quote it: none of the suppliers registered for it can take it on right now. '
+           else 'It has been ' || v_hours || ' hours since your request for ' || v_where
+                || ' was sent to the matching suppliers, and no quotation has arrived yet. ' end
+      || case when v_pool > 0
+           then 'We have therefore put your trade and area first in our supplier recruitment, so the next suppliers we invite are ones who can quote for your request. '
+           else 'We have no further suppliers for this trade in ' || coalesce(v_em, 'the UAE')
+                || ' on our list yet, so we are sourcing new ones for it. ' end
+      || 'Your request stays open, and we will let you know as soon as the first quotation arrives.'
+      || E'\n\nYou can follow your request in your portal:\n\n' || v_link;
+  end if;
+  return jsonb_build_object('lang', v_lang, 'subject', v_subj, 'body', v_body, 'link', v_link);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_stalled_inquiry_rescue(p_include_fixtures boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_hours numeric := public.fn_seat_clock_policy('stalled_inquiry_rescue_hours', 48);
+  r record; rw record; v_codes text[]; v_pool int; v_rank int; v_key text; v_to text; v_why text; v_dedupe text;
+  m jsonb; v jsonb; v_notice jsonb; v_enq jsonb;
+  v_flagged int := 0; v_acted int := 0; v_real int := 0; v_told int := 0; v_no_pool int := 0; v_closed int := 0;
+  v_refilled int := 0; v_quiet int := 0; v_not_told jsonb := '[]'::jsonb;
+begin
+  -- (a) a no-quote rescue ends when its request has a quote, or is no longer open (#1105's flag clears its own reason)
+  update public.stalled_inquiry_rescue x
+     set cleared_at = now(),
+         cleared_why = case when exists (select 1 from public.quotes q where q.inquiry_id = x.inquiry_id
+                                            and coalesce(q.status, '') not in ('withdrawn', 'cancelled', 'rejected'))
+                            then 'quoted' else 'request closed' end
+    from public.inquiries i
+   where x.cleared_at is null and x.reason = 'no_quote_48h' and i.id = x.inquiry_id
+     and (exists (select 1 from public.quotes q where q.inquiry_id = x.inquiry_id
+                   and coalesce(q.status, '') not in ('withdrawn', 'cancelled', 'rejected'))
+          or coalesce(i.status, '') in ('revealed', 'closed', 'cancelled', 'completed', 'expired', 'lost'));
+  get diagnostics v_closed = row_count;
+
+  -- (b) an open row that had nobody to invite is measured again: a lead may have been imported since
+  for rw in select * from public.stalled_inquiry_rescue
+             where cleared_at is null and acted_at is not null and uninvited_pool = 0 and cardinality(trades) > 0
+               and (p_include_fixtures or not fixture) loop
+    v_pool := public.fn_sales_engineer_rescue_pool(rw.trades, rw.emirate);
+    if v_pool > 0 then
+      update public.stalled_inquiry_rescue set uninvited_pool = v_pool, finding_key = null where inquiry_id = rw.inquiry_id;
+      v_refilled := v_refilled + 1;
+    end if;
+  end loop;
+
+  -- (c) the second way in: first matched v_hours ago or more (within 30 days), still open, no quote row at all, never
+  --     rescued for this before. An open row of the other reason is already in the rescue.
+  for r in
+    select i.id, fm.first_sent, public.fn_seat_clock_customer_is_fixture(c) as fixture
+      from public.inquiries i
+      join public.customers c on c.id = i.customer_id
+      join lateral (select min(mm.sent_at) as first_sent from public.inquiry_matches mm where mm.inquiry_id = i.id) fm on true
+     where fm.first_sent is not null
+       and now() >= fm.first_sent + make_interval(secs => (v_hours * 3600)::double precision)
+       and fm.first_sent > now() - interval '30 days'
+       and coalesce(i.status, '') not in ('revealed', 'closed', 'cancelled', 'completed', 'expired', 'lost')
+       and not exists (select 1 from public.quotes q where q.inquiry_id = i.id
+                        and coalesce(q.status, '') not in ('withdrawn', 'cancelled', 'rejected'))
+       and not exists (select 1 from public.stalled_inquiry_rescue x where x.inquiry_id = i.id
+                        and (x.cleared_at is null or x.reason = 'no_quote_48h'))
+       and (p_include_fixtures or not public.fn_seat_clock_customer_is_fixture(c))
+     order by fm.first_sent
+  loop
+    insert into public.stalled_inquiry_rescue (inquiry_id, reason, detail, fixture, flagged_at, flagged_by, matched_at, stalled_hours)
+    values (r.id, 'no_quote_48h', jsonb_build_object('first_sent', r.first_sent, 'hours', v_hours), r.fixture, now(),
+            'sales_engineer.stalled_inquiry_rescue', r.first_sent, v_hours)
+    on conflict (inquiry_id) do update
+       set reason = excluded.reason, detail = excluded.detail, fixture = excluded.fixture, flagged_at = excluded.flagged_at,
+           flagged_by = excluded.flagged_by, matched_at = excluded.matched_at, stalled_hours = excluded.stalled_hours,
+           cleared_at = null, cleared_why = null, acted_at = null, customer_notice = null, enqueue_result = null,
+           trades = null, uninvited_pool = null, plan_rank = null, finding_key = null;
+    v_flagged := v_flagged + 1;
+  end loop;
+
+  -- (d) every open row not yet acted on, whichever way it came in: recruit its trade and area, tell the customer once
+  for r in
+    select x.inquiry_id as id, x.reason, x.fixture, i.category, i.trades, i.emirate, i.lang, c.email as cemail, c.full_name as cname
+      from public.stalled_inquiry_rescue x
+      join public.inquiries i on i.id = x.inquiry_id
+      join public.customers c on c.id = i.customer_id
+     where x.cleared_at is null and x.acted_at is null and (p_include_fixtures or not x.fixture)
+     order by x.flagged_at
+  loop
+    v_codes := coalesce(public.fn_taxonomy_trades_for(case when coalesce(cardinality(r.trades), 0) > 0 then r.trades
+                                                           else array[coalesce(r.category, '')] end), '{}'::text[]);
+    v_pool := case when cardinality(v_codes) > 0 then public.fn_sales_engineer_rescue_pool(v_codes, r.emirate) else 0 end;
+    select min(p.rank) into v_rank from public.marketing_gap_recruitment_plan p
+     where p.trade = any(v_codes) and (p.emirate = 'UAE' or p.emirate = r.emirate);
+    v_key := case when v_pool = 0 then 'stalled_inquiry_rescue:no_uninvited_leads:'
+                  || coalesce(nullif(array_to_string(v_codes, '+'), ''), coalesce(nullif(r.category, ''), 'unknown'))
+                  || ':' || coalesce(r.emirate, 'UAE') end;
+    update public.stalled_inquiry_rescue
+       set trades = v_codes, emirate = r.emirate, uninvited_pool = v_pool, plan_rank = v_rank, finding_key = v_key, acted_at = now()
+     where inquiry_id = r.id;
+    v_acted := v_acted + 1;
+    if not r.fixture and v_pool > 0 then v_real := v_real + 1; end if;
+
+    -- the customer, once, in the language of the request; a fixture only ever to a fixture address
+    m := public.fn_sales_engineer_stalled_inquiry_notice(r.lang, jsonb_build_object('name', r.cname, 'category', r.category,
+           'emirate', r.emirate, 'hours', v_hours, 'pool', v_pool, 'reason', r.reason));
+    v_to := lower(btrim(coalesce(r.cemail, '')));
+    v_dedupe := 'stalled_inquiry_rescue:' || r.id || ':' || r.reason;
+    v_why := public.fn_seat_clock_refusal(r.fixture, v_to, 'inquiry_rescue_update');
+    if v_why is null and public.fn_seat_clock_asked(v_dedupe) then v_why := 'already told'; end if;
+    if v_why is null then
+      v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+        'type', 'inquiry_rescue_update', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', v_to,
+        'to_role', 'customer', 'inquiry_id', r.id, 'lang', m->>'lang', 'subject', m->>'subject', 'body', m->>'body',
+        'dedupe_key', v_dedupe)));
+      v_notice := jsonb_build_object('sent', coalesce(v->0->>'status', '') <> 'failed', 'lang', m->>'lang', 'delivery', v->0);
+    else
+      v_notice := jsonb_build_object('sent', false, 'lang', m->>'lang', 'reason', v_why);
+    end if;
+    if (v_notice->>'sent')::boolean then v_told := v_told + 1;
+    else v_not_told := v_not_told || jsonb_build_array(jsonb_build_object('inquiry_id', r.id, 'reason', coalesce(v_notice->>'reason', v_notice#>>'{delivery,error}')));
+    end if;
+    update public.stalled_inquiry_rescue set customer_notice = v_notice where inquiry_id = r.id;
+
+    -- nobody left to invite for this trade and area: marketing must find where they gather
+    if v_pool = 0 then
+      v_no_pool := v_no_pool + 1;
+      perform public.fn_it_engineer_finding_upsert(v_key,
+        left('A customer''s request is in the stalled-inquiry rescue and no uninvited supplier is left to invite for '
+             || coalesce(nullif(array_to_string(v_codes, ', '), ''), coalesce(r.category, 'its trade')) || ' in '
+             || coalesce(r.emirate, 'the UAE'), 300),
+        'public.stalled_inquiry_rescue / fn_sales_engineer_stalled_inquiry_rescue', 'customer_facing', 1,
+        jsonb_build_object('inquiry_id', r.id, 'reason', r.reason, 'trades', to_jsonb(v_codes), 'emirate', r.emirate,
+                           'owner_seat', 'marketing', 'duty', 'sales_engineer.stalled_inquiry_rescue', 'demo', r.fixture),
+        '{}'::text[], array['a directory, association, chamber or trade fair where suppliers of this trade in this area gather'],
+        'sales_engineer');
+    end if;
+  end loop;
+
+  -- (e) the queue is offered the rescued trades now, through the one door that holds every brake
+  if v_real > 0 then
+    begin
+      v_enq := jsonb_build_object('queued', public.enqueue_supplier_invites(), 'at', now());
+    exception when others then
+      v_enq := jsonb_build_object('error', left(sqlerrm, 300), 'at', now());
+    end;
+    update public.stalled_inquiry_rescue set enqueue_result = v_enq where acted_at = now() and not fixture and uninvited_pool > 0;
+  end if;
+
+  -- (f) a finding whose trade and area now has somebody to invite, or no open row, is closed
+  for rw in select f.issue_key from public.it_engineer_finding f
+             where f.closed_at is null and f.issue_key like 'stalled_inquiry_rescue:no_uninvited_leads:%'
+               and not exists (select 1 from public.stalled_inquiry_rescue y where y.cleared_at is null and y.finding_key = f.issue_key) loop
+    perform public.fn_it_engineer_finding_close(rw.issue_key, 'closed by fn_sales_engineer_stalled_inquiry_rescue: the trade and area have an uninvited lead again, or the rescue ended');
+    v_quiet := v_quiet + 1;
+  end loop;
+
+  return jsonb_build_object('ok', true, 'hours', v_hours, 'flagged_no_quote', v_flagged, 'acted', v_acted,
+    'acted_real_with_pool', v_real, 'customers_told', v_told, 'not_told', v_not_told, 'no_uninvited_leads', v_no_pool,
+    'closed', v_closed, 'refilled', v_refilled, 'findings_closed', v_quiet, 'enqueue', v_enq,
+    'open', (select count(*) from public.stalled_inquiry_rescue where cleared_at is null and (p_include_fixtures or not fixture)));
 end
 $function$
 
@@ -4914,10 +5142,12 @@ declare
   i public.inquiries; v_fixture boolean; v_quotes int; v_matched int; v_reach int; v_busy int; v_paused int;
   v_blocked int; v_back date; v_trades text[]; v_trade_busy int; v_trade_paused int; v_trade_back date;
   v_open boolean; v_detail jsonb; v_by text := coalesce(nullif(btrim(p_by), ''), 'sales_engineer');
+  v_prev_reason text; v_prev_cleared timestamptz; v_had boolean; v_written int;   -- 29 Sep 2026 (review of #1106)
 begin
   select * into i from public.inquiries where id = p_inquiry_id;
   if not found then return jsonb_build_object('ok', false, 'error', 'no such inquiry'); end if;
-  v_open := exists (select 1 from public.stalled_inquiry_rescue where inquiry_id = i.id and cleared_at is null);
+  -- 29 Sep 2026 (review of #1106): only this intake's own reason
+  v_open := exists (select 1 from public.stalled_inquiry_rescue where inquiry_id = i.id and cleared_at is null and reason = 'no_reachable_supplier');
 
   select count(*)::int into v_quotes from public.quotes q
    where q.inquiry_id = i.id
@@ -4928,7 +5158,7 @@ begin
     if v_open then
       update public.stalled_inquiry_rescue set cleared_at = now(),
              cleared_why = case when v_quotes > 0 then v_quotes || ' live quote(s)' else 'inquiry is ' || coalesce(i.status, 'null') end
-       where inquiry_id = i.id and cleared_at is null;
+       where inquiry_id = i.id and cleared_at is null and reason = 'no_reachable_supplier';   -- 29 Sep 2026: own reason only
     end if;
     return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', false, 'cleared', v_open,
                               'why', case when v_quotes > 0 then 'quoted' else 'not open' end);
@@ -4950,7 +5180,7 @@ begin
   if v_reach > 0 then
     if v_open then
       update public.stalled_inquiry_rescue set cleared_at = now(), cleared_why = v_reach || ' reachable supplier(s)'
-       where inquiry_id = i.id and cleared_at is null;
+       where inquiry_id = i.id and cleared_at is null and reason = 'no_reachable_supplier';   -- 29 Sep 2026: own reason only
     end if;
     return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', false, 'cleared', v_open, 'reachable', v_reach);
   end if;
@@ -4978,15 +5208,37 @@ begin
     'in_trade_busy', coalesce(v_trade_busy, 0), 'in_trade_paused', coalesce(v_trade_paused, 0), 'in_trade_earliest_back', v_trade_back,
     'matcher_unavailable', coalesce((i.routing->>'matcher_unavailable')::boolean, false), 'at', now());
 
+  -- 29 Sep 2026 (review of #1106 at 3d1bbb8): the WRITE is filtered too. An open row of the other reason (no_quote_48h)
+  -- is the rescue's, already acted on: it is not touched and not counted. A cleared row, of either reason, is reopened as
+  -- this reason with the rescue's own record reset, so the rescue acts on it afresh and the customer hears this reason.
+  select x.reason, x.cleared_at into v_prev_reason, v_prev_cleared from public.stalled_inquiry_rescue x where x.inquiry_id = i.id;
+  v_had := found;
   insert into public.stalled_inquiry_rescue (inquiry_id, reason, detail, fixture, flagged_at, flagged_by)
   values (i.id, 'no_reachable_supplier', v_detail, coalesce(v_fixture, false), now(), v_by)
   on conflict (inquiry_id) do update
-     set detail = excluded.detail, fixture = excluded.fixture,
+     set reason = excluded.reason, detail = excluded.detail, fixture = excluded.fixture,
          -- an open flag keeps the time it was first raised; a cleared one is raised again from now
          flagged_at = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.flagged_at else excluded.flagged_at end,
          flagged_by = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.flagged_by else excluded.flagged_by end,
-         cleared_at = null, cleared_why = null;
-  return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', true, 'new', not v_open, 'detail', v_detail);
+         -- reopened: the rescue's record starts over (an open own-reason row keeps what the rescue already did)
+         acted_at        = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.acted_at end,
+         customer_notice = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.customer_notice end,
+         enqueue_result  = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.enqueue_result end,
+         trades          = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.trades end,
+         uninvited_pool  = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.uninvited_pool end,
+         plan_rank       = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.plan_rank end,
+         finding_key     = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.finding_key end,
+         matched_at      = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.matched_at end,
+         stalled_hours   = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.stalled_hours end,
+         cleared_at = null, cleared_why = null
+   where stalled_inquiry_rescue.reason = 'no_reachable_supplier' or stalled_inquiry_rescue.cleared_at is not null;
+  get diagnostics v_written = row_count;
+  if v_written = 0 then
+    -- open under the other reason: already in the rescue; nothing written, nothing counted
+    return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', false, 'new', false, 'in_rescue_as', v_prev_reason);
+  end if;
+  return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', true,
+                            'new', not v_had or v_prev_cleared is not null, 'detail', v_detail);
 end
 $function$
 
@@ -6051,6 +6303,9 @@ begin
   touched_n as materialized (select distinct nkey from keyed where touched and nkey is not null),
   -- instr 1013: marketing's ranking of the trades below ten suppliers, with each trade's English variant
   plans as materialized (select p.trade, p.emirate, p.rank, p.invite_subject, p.invite_body from public.marketing_gap_recruitment_plan p),
+  -- 29 Sep 2026 (ledger 1018): the trades and areas of the open, real stalled-request rescues (public.stalled_inquiry_rescue).
+  -- A fixture rescue never moves the real queue.
+  rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),
   cand as (
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
            l.invite_trades, l.emirate, k.dkey, k.nkey,
@@ -6065,9 +6320,12 @@ begin
   ),
   prio as (
     select c.id, c.email, c.company_name, c.claim_token, c.email_domain, c.lang, c.dkey, c.nkey,
+      -- 29 Sep 2026 (ledger 1018): ahead of every tier below, a lead in the trade and area of a stalled request a customer waits on.
       -- 23 Sep 2026: a lead in a trade the sales engineer marked for recruitment (supply_gap 'recruit') goes first;
       -- 29 Sep 2026 (instr 1013): then a lead in any trade marketing planned, by the plan's rank.
-      case when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))
+      case when exists (select 1 from rescue x where x.trades && coalesce(c.invite_trades, '{}'::text[])
+                          and (x.emirate is null or x.emirate = 'UAE' or x.emirate = c.emirate)) then -1
+           when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))
                           and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0
            when pl.rank is not null then 1 else 2 end as target_rank,
       coalesce(pl.rank, 2147483647) as plan_rank, pl.invite_subject as plan_subject, pl.invite_body as plan_body,
