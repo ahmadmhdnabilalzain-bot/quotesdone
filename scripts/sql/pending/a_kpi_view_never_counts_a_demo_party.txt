@@ -1,2 +1,0 @@
-Committed, not applied. Seat: it_engineer. The session that wrote it was told not to apply before merge.
-After merge: node scripts/apply_sql.mjs scripts/sql/a_kpi_view_never_counts_a_demo_party.sql --apply --ddl, expect PROBE OK, regenerate the schema mirror, then delete this note and append the file to the END of MANIFEST.txt in one commit.

@@ -1,2 +1,0 @@
-Committed, not applied. Seat: it_engineer. The session that wrote it was told not to apply before merge.
-After merge: node scripts/apply_sql.mjs scripts/sql/nine_routines_nothing_calls_are_dropped.sql --apply --ddl, expect PROBE OK, then delete this note and append the file to the END of MANIFEST.txt in one commit.
