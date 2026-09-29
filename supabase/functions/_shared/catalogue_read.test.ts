@@ -6,7 +6,7 @@ import { createWorker } from 'npm:tesseract.js@7.0.0';
 import { readDocument } from './doc_read/index.ts';
 import { allText, readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { catalogueLines, readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
-import { flattenImplications, impliedServices, isInstallWork, rewriteServices, type ServiceTerm } from './service_rewrite.ts';
+import { exactService, flattenImplications, impliedServices, isInstallWork, phraseParts, rewriteServices, splitPhrases, type ServiceTerm } from './service_rewrite.ts';
 import { OFF_MESSAGE, PHOTO_VISION_FLAG, CATALOGUE_MODEL_FLAG, parseModelRead, readWithModel } from './catalogue_model.ts';
 import ALIASES from './service_aliases.json' with { type: 'json' };
 import IMPLICATIONS from './service_implications.json' with { type: 'json' };
@@ -39,20 +39,33 @@ const MUST = ['it_services.hardware_supply', 'office_equipment.printers_mfp', 'o
   'pos_retail.barcode_scanners', 'security_systems.cctv', 'power_generators.ups', 'av_it.audio_visual'];
 const NEVER = ['electrical.wiring_install', 'logistics_moving.storage', 'electrical.lighting',
   'it_services.network_install', 'it_services.structured_cabling', 'security_systems.intruder_alarm', 'av_it.data_cabling'];
+/** The keys a text names EXACTLY (a phrase or list part that IS a service). Since 29 Sep 2026 (ruling 890,
+ *  decision point 93) the rewrite may name nothing else: every key it returns must be in this set. */
+const exactKeysOf = (text: string) => new Set(splitPhrases(text, 80_000, 400).flatMap((p) => [p, ...phraseParts(p)])
+  .map((p) => exactService(p, SERVICES)).filter((s): s is ServiceTerm => !!s).map((s) => `${s.trade_code}.${s.code}`));
 
-Deno.test('the ZZ DEMO catalogue reads as a supply-only IT, office-equipment, POS, CCTV, UPS and projector supplier', async () => {
-  const c = readCatalogue(await fixtureText(), SERVICES);
+// Offline there is no model: the MUST list is what words AND meaning read together on the live model
+// (scripts/checks/a_catalogue_line_is_understood_by_meaning.test.mjs). Here: what the rewrite names is only what
+// the catalogue writes exactly, none of the false hits, and every heading it names nothing for is kept for meaning.
+Deno.test('the ZZ DEMO catalogue reads as a supply-only supplier; only exact names are named, never a false hit', async () => {
+  const text = await fixtureText();
+  const c = readCatalogue(text, SERVICES);
   assertEquals(c.supply_only, true);
   assert(c.supply.supply_words.includes('wholesaler') && c.supply.supply_words.includes('stockist'), JSON.stringify(c.supply));
-  for (const k of MUST) assert(c.rewrite.service_keys.includes(k), `missing ${k}: ${c.rewrite.service_keys}`);
+  const exact = exactKeysOf(c.matched_text);
+  for (const k of c.rewrite.service_keys) assert(exact.has(k), `${k} was named by a word, not by its exact name`);
   for (const k of NEVER) assert(!c.rewrite.service_keys.includes(k), `false hit ${k}`);
+  assert(c.rewrite.service_keys.includes('office_equipment.photocopiers'), 'the heading "Photocopiers" is that service\'s own code');
+  assert(c.rewrite.own_words.includes('Printers') && c.rewrite.own_words.includes('Laptops'), 'a heading no name matched must be kept for meaning: ' + JSON.stringify(c.rewrite.own_words));
+  assert(MUST.length > 0);
   // Implications: CCTV -> intruder alarms exists in the map, and for a supply-only company it comes back struck out.
   const map = flattenImplications(IMPLICATIONS as { from: string; to: string[]; en: string; ar: string }[]);
-  const sources = [...c.rewrite.service_keys, ...c.rewrite.service_keys.map((k) => k.split('.')[0])];
-  const imp = impliedServices(sources, map, c.rewrite.service_keys, [], true);
+  const stated = ['security_systems.cctv'];
+  const sources = [...stated, 'security_systems'];
+  const imp = impliedServices(sources, map, stated, [], true);
   assert(imp.some((i) => i.key === 'security_systems.intruder_alarm'), 'the CCTV -> intruder alarm row is what this proves against');
   assert(imp.every((i) => i.removed), 'a supply-only company is implied nothing');
-  assert(impliedServices(sources, map, c.rewrite.service_keys, [], false).some((i) => i.key === 'security_systems.intruder_alarm' && !i.removed),
+  assert(impliedServices(sources, map, stated, [], false).some((i) => i.key === 'security_systems.intruder_alarm' && !i.removed),
     'an installer still gets the implication');
 });
 
@@ -78,20 +91,20 @@ Deno.test('context, not a blocklist: a spec row, an address and a sentence name 
   assertEquals(L.headings, ['PRINTERS', 'LED lighting supply']);
   assertEquals(L.types, ['UPS with Built-in AVR', 'UPS with Built-in AVR']);
   assertEquals(L.statements.length, 1);
-  // The same words stated as a heading still name the service: the rule is the line's role, not the word.
+  // The heading is kept, whole, for meaning to read (since 29 Sep 2026 no alias word names it here): the rule is
+  // the line's role, not the word.
   const rw = rewriteServices(L.headings.join('\n'), SERVICES);
-  assert(rw.service_keys.includes('electrical.lighting'), 'LED lighting as a product line is still lighting');
+  assertEquals(rw.service_keys, []);
+  assert(rw.own_words.includes('LED lighting supply'), 'the product line was dropped instead of kept for meaning');
 });
 
-Deno.test('UPS and POS are whole words: "upset" and "position" name nothing', () => {
+Deno.test('a name is the whole text, never a word inside it: "UPS" is UPS, "upset" and "ups units" are not', () => {
   const keys = (t: string) => rewriteServices(t, SERVICES).service_keys;
-  assert(keys('UPS').includes('power_generators.ups'));
-  assert(keys('ups units and batteries').includes('power_generators.ups'));
-  assert(!keys('upset customers').includes('power_generators.ups'));
-  assert(!keys('upstairs rooms').includes('power_generators.ups'));
-  assert(keys('POS').includes('pos_retail.pos_terminals'));
-  assert(!keys('position of the gate').includes('pos_retail.pos_terminals'));
-  assert(!keys('post office').includes('pos_retail.pos_terminals'));
+  assertEquals(keys('UPS'), ['power_generators.ups']);
+  assertEquals(keys('POS'), ['pos_retail.pos_terminals']);   // the whole text IS a curated alias (a name lookup)
+  for (const t of ['ups units and batteries', 'upset customers', 'upstairs rooms', 'POS machines for the shop', 'position of the gate', 'post office']) {
+    assertEquals(keys(t), [], `"${t}" named a service by a word`);
+  }
 });
 
 Deno.test('supply only needs a trading word and no installation word, in English and Arabic', () => {
@@ -127,8 +140,10 @@ Deno.test('TEXT IN A PHOTO: the ZZ DEMO UPS label, read by tesseract.js, names U
   assertEquals(ev.source, 'photo_text');
   assertEquals(ev.status, 'read');
   assert(seen.some((l) => /UPS/.test(l)), 'the label text did not reach meaning: ' + JSON.stringify(seen));
-  // The Services tab (service alias index, decision point 93) still names UPS from the same text.
-  assert(readCatalogue(text, SERVICES).rewrite.service_keys.includes('power_generators.ups'));
+  // The Services tab names from the same text only what it writes exactly (decision point 93, 29 Sep 2026).
+  const c = readCatalogue(text, SERVICES);
+  const exact = exactKeysOf(c.matched_text);
+  for (const k of c.rewrite.service_keys) assert(exact.has(k), `${k} was named by a word, not by its exact name`);
 });
 
 // A stub admin for the decision_policy read: `flags` is what the table holds.

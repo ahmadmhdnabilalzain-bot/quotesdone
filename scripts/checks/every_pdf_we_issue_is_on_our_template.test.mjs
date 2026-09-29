@@ -37,6 +37,9 @@ test('the check catches each shape, and a comment describing it does not trip it
     'const p = doc.addPage([10, 10]);',
     "page.drawText('x', { x: 1, y: 1 });",
     'const f = await doc.embedFont(StandardFonts.Helvetica);',
+    'const D = PDFDocument, X = 1;\nawait D.load(b);',
+    'let n = 0, D = PDFDocument;',
+    'const [p] = await doc.copyPages(src, [0]);',
   ]) assert.equal(findingsFor(red, shape).length, 1, shape);
   // What the editor really does is not flagged: load, read the pages, save.
   assert.equal(findingsFor(red, "const doc = await PDFDocument.load(bytes, { updateMetadata: false }); const pl = doc.getPages(); const out = await doc.save({ useObjectStreams: false });").length, 0);

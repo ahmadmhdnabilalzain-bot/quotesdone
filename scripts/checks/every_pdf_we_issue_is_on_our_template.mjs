@@ -70,9 +70,9 @@ const EDITS_CUSTOMER_PDF = new Set(['supabase/functions/_shared/pdf_vector_redac
 const EDITOR_AUTHORS = [
   /\bPDFDocument\s*\[\s*['"`]create['"`]\s*\]/,
   /\bPDFDocument\s+as\s+\w+/,
-  /(?:const|let|var)\s+\w+\s*=\s*PDFDocument\b\s*[;\n)]/,
+  /=\s*PDFDocument\b(?!\s*[.[])/,   // any alias, one of many declarators too (const D = PDFDocument, X = 1); a type annotation is not one
   /\{[^}]*\bcreate\b[^}]*\}\s*=\s*PDFDocument\b/,
-  /\.\s*(?:addPage|insertPage|drawText|drawImage|drawRectangle|drawLine|drawSvgPath|embedFont|embedStandardFont|embedJpg|embedPng|embedPdf|embedPage)\s*\(/,
+  /\.\s*(?:addPage|insertPage|copyPages|drawText|drawImage|drawRectangle|drawLine|drawSvgPath|embedFont|embedStandardFont|embedJpg|embedPng|embedPdf|embedPage)\s*\(/,
 ];
 
 /** Findings for one file. `rel` uses forward slashes. */

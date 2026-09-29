@@ -143,6 +143,72 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inquiry_add_missing_specs(p_inquiry uuid, p_customer uuid, p_answers jsonb, p_source text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  i public.inquiries; v_missing jsonb; v_add jsonb := '{}'::jsonb; v_lines text := ''; e record; v_val text; v_ask text;
+  v_note bigint; v_after public.inquiries; v_told int := 0; l record; v_res jsonb;
+begin
+  if p_source not in ('customer_portal', 'email_reply') then raise exception 'missing specs come from customer_portal or email_reply, not %', p_source; end if;
+  if p_source = 'customer_portal' and p_customer is null then raise exception 'a portal answer names its customer'; end if;
+  select * into i from public.inquiries where id = p_inquiry for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'inquiry_not_found'); end if;
+  if p_customer is not null and i.customer_id is distinct from p_customer then return jsonb_build_object('ok', false, 'error', 'not_your_inquiry'); end if;
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed') then return jsonb_build_object('ok', false, 'error', 'inquiry_closed'); end if;
+  if jsonb_typeof(p_answers) is distinct from 'object' then return jsonb_build_object('ok', false, 'error', 'answers_required'); end if;
+
+  -- Only what is missing NOW, keyed as the check reads it; anything else is not this door's to write.
+  v_missing := public.fn_inquiry_missing_specs(i.id, 'en')->'missing';
+  for e in select a.key, a.value from jsonb_each_text(p_answers) a loop
+    v_val := left(btrim(coalesce(e.value, '')), 300);
+    select m->>'ask' into v_ask from jsonb_array_elements(v_missing) m where m->>'key' = lower(btrim(e.key));
+    if v_ask is null or not public._rfq_answered(v_val) then continue; end if;
+    v_add := v_add || jsonb_build_object(lower(btrim(e.key)), v_val);
+    v_lines := v_lines || case when v_lines = '' then '' else chr(10) end || v_ask || ' ' || v_val;
+  end loop;
+  if v_add = '{}'::jsonb then return jsonb_build_object('ok', false, 'error', 'nothing_to_add', 'missing', v_missing); end if;
+
+  -- The row's own trigger (trg_rfq_complete) re-runs the hold check on this write. Budget and emirate are the
+  -- request's own columns; every other answer is a spec under its key.
+  update public.inquiries
+     set spec = case when jsonb_typeof(spec) = 'object' then spec else '{}'::jsonb end || (v_add - 'budget' - 'emirate'),
+         budget = coalesce(v_add->>'budget', budget),
+         emirate = coalesce(v_add->>'emirate', emirate)
+   where id = i.id returning * into v_after;
+
+  insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
+  values (i.id, null, 'note',
+          case when p_source = 'email_reply' then 'The customer replied with the details this trade needs:' else 'The customer added the details this trade needs:' end
+          || chr(10) || v_lines, now(), 'missing_specs')
+  returning id into v_note;
+
+  -- Every supplier already invited is told, through customer_support's door (suppliers are written in English).
+  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email
+             from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
+            where x.inquiry_id = i.id and not coalesce(le.banned, false)
+              and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
+    v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
+      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
+      'subject', 'The customer added detail to a request you were invited to quote',
+      'body', 'The customer added this to the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+              || ' you were invited to quote:' || chr(10) || chr(10) || v_lines || chr(10) || chr(10)
+              || 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.',
+      'dedupe_key', 'missing_specs:' || v_note || ':' || l.id)));
+    v_told := v_told + 1;
+  end loop;
+
+  v_missing := public.fn_inquiry_missing_specs(i.id, null);
+  return jsonb_build_object('ok', true, 'added', (select jsonb_agg(k) from jsonb_object_keys(v_add) k),
+    'ready', coalesce(v_after.rfq_ready, false), 'still_missing', v_missing->'missing',
+    'reached_suppliers', (v_missing->>'reached_suppliers')::boolean, 'suppliers_told', v_told, 'note_id', v_note);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inquiry_is_demo(p_inquiry uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -169,6 +235,54 @@ AS $function$
   select case when i.lang = 'ar' then 'ar' when i.lang = 'en' then 'en' end
     from public.inquiries i where i.id = p_inquiry
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_inquiry_missing_specs(p_inquiry uuid, p_lang text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.inquiries; v_ar boolean; v_chk jsonb; v_fields jsonb; v_missing jsonb := '[]'::jsonb; m jsonb; f jsonb;
+begin
+  select * into i from public.inquiries where id = p_inquiry;
+  if not found then return jsonb_build_object('held', false, 'reason', 'no such request'); end if;
+  v_ar := coalesce(case when p_lang in ('en', 'ar') then p_lang end, public.fn_inquiry_locale(i.id),
+                   (select c.locale from public.customers c where c.id = i.customer_id)) = 'ar';
+  -- A combined (split) request's specs belong to its per-trade parts, each checked and completed on its own; the
+  -- parent carries none (the concierge re-review of #1112 judges a parent by its children the same way).
+  if exists (select 1 from public.inquiries c where c.parent_inquiry_id = i.id) then
+    return jsonb_build_object('held', false, 'lang', case when v_ar then 'ar' else 'en' end, 'missing', '[]'::jsonb,
+                              'reason', 'a combined request: each trade is completed on its own part');
+  end if;
+  v_chk := public.fn_rfq_required_check(i);
+  select cs.fields into v_fields from public.category_specs cs where lower(cs.category) = lower(coalesce(i.category, '')) limit 1;
+  for m in select value from jsonb_array_elements(coalesce(v_chk->'missing', '[]'::jsonb)) loop
+    f := null;
+    select value into f from jsonb_array_elements(coalesce(v_fields, '[]'::jsonb)) where lower(value->>'key') = m->>'key' limit 1;
+    v_missing := v_missing || jsonb_build_array(jsonb_build_object(
+      'key', m->>'key',
+      'ask', coalesce(nullif(f->>case when v_ar then 'question_plain_ar' else 'question_plain_en' end, ''), nullif(m->>'question', ''), m->>'key'),
+      'type', coalesce(f->>'type', m->>'type', 'text'),
+      'options', coalesce(f->'options', '[]'::jsonb)));
+  end loop;
+  -- The general score also holds a request below its bar (fn_rfq_score: generic_ready). Of its parts, the two a
+  -- customer can state in a field are asked too, so completing the page can release the request.
+  if not coalesce((public.fn_rfq_score(i)->>'generic_ready')::boolean, true) then
+    if i.budget is null then
+      v_missing := v_missing || jsonb_build_array(jsonb_build_object('key', 'budget', 'type', 'text', 'options', '[]'::jsonb,
+        'ask', case when v_ar then 'الميزانية المرصودة للعمل (يكفي نطاق تقريبي).' else 'Your budget for the work (a range is fine).' end));
+    end if;
+    if coalesce(i.emirate, '') = '' then
+      v_missing := v_missing || jsonb_build_array(jsonb_build_object('key', 'emirate', 'type', 'text', 'options', '[]'::jsonb,
+        'ask', case when v_ar then 'في أي إمارة ومنطقة سيُنفَّذ العمل؟' else 'Which emirate and area is the work in?' end));
+    end if;
+  end if;
+  return jsonb_build_object(
+    'held', coalesce(i.status, '') not in ('cancelled', 'closed', 'completed') and jsonb_array_length(v_missing) > 0,
+    'lang', case when v_ar then 'ar' else 'en' end, 'ready', coalesce(i.rfq_ready, false), 'missing', v_missing,
+    'reached_suppliers', exists (select 1 from public.inquiry_matches x where x.inquiry_id = i.id));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_intake_slug_for_catalog(p_catalog_slug text)
