@@ -31,7 +31,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { observe } from '../_shared/observe.ts';
-import { certFields, certLang, certificate, supplierEvidence, type Lang } from './certificate.ts';
+import { certFields, certLang, certificate, noAcceptanceRunStatus, supplierEvidence, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -144,7 +144,7 @@ Deno.serve(observe('compliance_archive', async (req) => {
       const acceptedIso = (kind === 'supplier' ? rec.accepted_terms_at : rec.tos_accepted_at) || '';
       if (!acceptedIso) {
         await admin.from('agent_runs').insert({
-          agent: 'compliance_archive', status: 'error',
+          agent: 'compliance_archive', status: noAcceptanceRunStatus(keyEmail),
           started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
           counts: { stage: 'sign', kind, no_acceptance: 1 },
           note: ('compliance_archive refused to issue a Terms-acceptance certificate for ' + (keyEmail || rec.id)
