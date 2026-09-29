@@ -47,8 +47,14 @@
 --           flags. Released = 'submitted', the request marked 'quoted' as acceptLive does, and the customer told once, in the
 --           request's language, that a quotation arrived - and, after a wait, that the check's points are shown beside it
 --           in the comparison. A quote with a live exact-specs hold (quote_spec_hold) is left to that desk.
---   6. quote_quality_hold joins the daily table export (fn_table_export_list, from marketing_plans_recruitment_for_every_
---      trade_below_ten_suppliers.sql, MANIFEST 1834, with only that row added). No *_path column: no backup registry row.
+--      REVIEW OF #1108 (29 Sep 2026): a wait never publishes content the door did not accept. The gate runs only when
+--      supplier_api's acceptLive sets 'submitted' - after the exact-specs gate, the review's rules 1-7 and the accept rule
+--      passed - and records that version (accepted_md5, fn_quote_quality_content_md5: every stated column and line). The
+--      duty sends fixes and releases ONLY while the current content is that version; changed content waits for the door.
+--      A later submission the door refuses supersedes the hold in supplier_api (superseded_at): never released, and the
+--      next accepted version opens a fresh hold with a fresh 24 h.
+--   6. quote_quality_hold joins the daily table export: fn_table_export_list is #1106's body (MANIFEST 1834's plus
+--      inquiry_rescue) with only this row added. DEPENDS-ON #1106. No *_path column: no backup registry row.
 --
 -- WITH THIS FILE, IN THE SAME PR: supplier_api (acceptLive reads the status back: a quote the gate held is answered as
 -- held, with the fixes, and the customer is NOT told of a quote they cannot see); quote_compare (the open holds are
@@ -203,12 +209,35 @@ create table if not exists public.quote_quality_hold (
   released_at    timestamptz,
   release_reason text check (release_reason is null or release_reason in ('corrected', 'waited_24h')),
   corrected_at   timestamptz,
+  -- the version the door accepted: the gate only runs when supplier_api's acceptLive sets 'submitted', i.e. after the
+  -- exact-specs gate, the review's rules 1-7 and the accept rule passed THIS content (review of #1108, 29 Sep 2026)
+  accepted_md5   text not null,
+  -- a later submission the door did not accept (supplier_api): this hold is over and is never released
+  superseded_at  timestamptz,
   customer_notice jsonb,
   updated_at     timestamptz not null default now(),
-  check ((released_at is null) = (release_reason is null))
+  check ((released_at is null) = (release_reason is null)),
+  check (released_at is null or superseded_at is null)
 );
 create index if not exists quote_quality_hold_by_inquiry on public.quote_quality_hold (inquiry_id);
-create index if not exists quote_quality_hold_open on public.quote_quality_hold (release_due) where released_at is null;
+create index if not exists quote_quality_hold_open on public.quote_quality_hold (release_due) where released_at is null and superseded_at is null;
+
+-- The fingerprint of a quote's content: every column a supplier states and every line. The hold remembers the one the
+-- door accepted; the duty releases only that exact content after the wait (section 7).
+create or replace function public.fn_quote_quality_content_md5(p_quote public.quotes)
+returns text
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select md5(jsonb_build_array(p_quote.quote_amount, p_quote.price_ex_vat, p_quote.vat_treatment, p_quote.vat_amount,
+               p_quote.validity, p_quote.lead_time, p_quote.warranty, p_quote.payment_terms, p_quote.scope, p_quote.conditions,
+               p_quote.exclusions, p_quote.notes, p_quote.terms_spec, p_quote.option_no, p_quote.original_file_path)::text
+             || coalesce((select jsonb_agg(to_jsonb(qi) - 'id' - 'created_at' - 'updated_at' order by qi.line_no, qi.description)::text
+                            from public.quote_items qi where qi.quote_id = p_quote.id::text), '[]'))
+$fn$;
+revoke execute on function public.fn_quote_quality_content_md5(public.quotes) from public, anon, authenticated;
 alter table public.quote_quality_hold enable row level security;
 drop policy if exists quote_quality_hold_service_role_only on public.quote_quality_hold;
 create policy quote_quality_hold_service_role_only on public.quote_quality_hold
@@ -225,7 +254,7 @@ security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  v_flags jsonb; h public.quote_quality_hold; v_live boolean;
+  v_flags jsonb; h public.quote_quality_hold; v_live boolean; v_open boolean;
   v_hours numeric := public.fn_seat_clock_policy('quote_quality_hold_hours', 24);
 begin
   -- a quote that is not (or not yet) in front of the customer is not checked here
@@ -234,6 +263,7 @@ begin
   v_live := tg_op = 'INSERT' or coalesce(old.status, 'draft') in ('draft', 'withdrawn', 'rejected', 'expired', 'cancelled', 'held');
   v_flags := public.fn_quote_quality_flags(new);
   select * into h from public.quote_quality_hold where quote_id = new.id;
+  v_open := found and h.released_at is null and h.superseded_at is null;
 
   if not v_live or h.released_at is not null then
     -- already out, or already waited its hours once: never pulled back; the flags beside it are kept current
@@ -248,7 +278,7 @@ begin
   end if;
 
   if jsonb_array_length(v_flags) = 0 then
-    if found then
+    if v_open then
       update public.quote_quality_hold
          set flags = v_flags, released_at = now(), release_reason = 'corrected', corrected_at = now(), updated_at = now()
        where quote_id = new.id;
@@ -256,13 +286,19 @@ begin
     return new;
   end if;
 
-  -- flagged: it stays a draft, which every customer surface already hides, and the hold opens (its clock is never reset)
+  -- flagged: it stays a draft, which every customer surface already hides, and the hold opens. An open hold keeps its
+  -- clock (a resubmission never resets it) and takes the newly accepted version; a superseded one starts over.
   new.status := 'draft';
-  insert into public.quote_quality_hold (quote_id, inquiry_id, supplier_id, fixture, flags, fixes_en, held_at, release_due)
+  insert into public.quote_quality_hold (quote_id, inquiry_id, supplier_id, fixture, flags, fixes_en, accepted_md5, held_at, release_due)
   values (new.id, new.inquiry_id, new.supplier_id, public.fn_inquiry_is_demo(new.inquiry_id), v_flags,
-          public.fn_quote_quality_fixes_en(v_flags), now(), now() + make_interval(secs => (v_hours * 3600)::double precision))
+          public.fn_quote_quality_fixes_en(v_flags), public.fn_quote_quality_content_md5(new),
+          now(), now() + make_interval(secs => (v_hours * 3600)::double precision))
   on conflict (quote_id) do update
-    set flags = excluded.flags, fixes_en = excluded.fixes_en, updated_at = now();
+    set flags = excluded.flags, fixes_en = excluded.fixes_en, accepted_md5 = excluded.accepted_md5, updated_at = now(),
+        held_at = case when quote_quality_hold.superseded_at is null then quote_quality_hold.held_at else excluded.held_at end,
+        release_due = case when quote_quality_hold.superseded_at is null then quote_quality_hold.release_due else excluded.release_due end,
+        fixes_sent_md5 = case when quote_quality_hold.superseded_at is null then quote_quality_hold.fixes_sent_md5 end,
+        superseded_at = null;
   return new;
 end
 $fn$;
@@ -351,7 +387,7 @@ declare
   v_hours numeric := public.fn_seat_clock_policy('quote_quality_hold_hours', 24);
   h record; q public.quotes; v_flags jsonb; m jsonb; v jsonb; v_to text; v_why text; v_key text; v_md5 text; v_notice jsonb;
   v_sent int := 0; v_corrected int := 0; v_waited int := 0; v_left_to_spec int := 0; v_told int := 0;
-  v_not_sent jsonb := '[]'::jsonb;
+  v_not_sent jsonb := '[]'::jsonb; v_not_the_accepted int := 0;
 begin
   for h in
     select x.*, i.category, i.emirate, i.lang as inq_lang, i.status as inq_status, public.fn_job_no(x.inquiry_id) as job_no,
@@ -360,10 +396,18 @@ begin
       join public.inquiries i on i.id = x.inquiry_id
       left join public.customers c on c.id = i.customer_id
       left join public.leads l on l.id = x.supplier_id
-     where x.released_at is null and (p_include_fixtures or not x.fixture)
+     where x.released_at is null and x.superseded_at is null and (p_include_fixtures or not x.fixture)
      order by x.held_at
   loop
     select * into q from public.quotes where id = h.quote_id;
+    -- ONLY THE VERSION THE DOOR ACCEPTED (review of #1108, 29 Sep 2026). The gate runs only when acceptLive sets
+    -- 'submitted', so accepted_md5 is content that passed the exact-specs gate, the review's rules 1-7 and the accept rule.
+    -- Content that has changed since was written by a submission the door has not (yet) accepted: nothing is sent and
+    -- nothing is released - a wait never publishes it. supplier_api supersedes the hold when it rejects a submission.
+    if public.fn_quote_quality_content_md5(q) is distinct from h.accepted_md5 then
+      v_not_the_accepted := v_not_the_accepted + 1;
+      continue;
+    end if;
     v_flags := public.fn_quote_quality_flags(q);
 
     -- (a) the fixes, once per distinct set, while the quote is still flagged
@@ -434,8 +478,8 @@ begin
 
   return jsonb_build_object('ok', true, 'hold_hours', v_hours, 'fixes_sent', v_sent, 'fixes_not_sent', v_not_sent,
     'released_corrected', v_corrected, 'released_after_wait', v_waited, 'left_to_the_spec_desk', v_left_to_spec,
-    'customers_told', v_told,
-    'open', (select count(*) from public.quote_quality_hold where released_at is null and (p_include_fixtures or not fixture)));
+    'customers_told', v_told, 'content_not_the_accepted_version', v_not_the_accepted,
+    'open', (select count(*) from public.quote_quality_hold where released_at is null and superseded_at is null and (p_include_fixtures or not fixture)));
 end
 $fn$;
 revoke execute on function public.fn_sales_engineer_quote_quality_tick(boolean) from public, anon, authenticated;
@@ -448,9 +492,11 @@ insert into public.seat_duty (duty, what, every, enabled, routine, owner_file, o
 on conflict (duty) do nothing;
 
 -- ── 8. the daily export ────────────────────────────────────────────────────────────────────────────────────────
--- Redefined from its canonical body (marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql, the last
--- definer in MANIFEST.txt on 29 Sep 2026) with only ('quote_quality_hold','quote') added. If another definition is
--- applied first (the stalled-request PR of the same round adds inquiry_rescue), rebase this one onto it.
+-- DEPENDS-ON #1106 (review of #1108, 29 Sep 2026): rebased onto #1106's fn_table_export_list (its canonical base is
+-- marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql, MANIFEST 1834, plus ('inquiry_rescue','inquiry')), with
+-- only ('quote_quality_hold','quote') added here. So #1106's a_stalled_request_puts_its_trade_and_area_first_in_recruitment_
+-- and_tells_the_customer.sql must be applied FIRST: it creates inquiry_rescue, which this list then names. If another
+-- definition is applied between them, rebase onto it and keep both rows.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
 language sql stable set search_path to 'public', 'pg_temp' as $fn$
@@ -463,7 +509,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('supplier_capability_confirmation','supplier'), ('supplier_collaboration','supplier'), ('supplier_collaboration_event','supplier'),
     ('supplier_negotiation_policy','supplier'), ('supplier_screening_hit','supplier'), ('supplier_lead_intake','supplier'),
     ('doc_reviews','supplier'), ('licence_renewal_ask','supplier'), ('outreach','supplier'), ('company_registration','company'),
-    ('inquiries','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
+    ('inquiries','inquiry'), ('inquiry_rescue','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
     ('inquiry_cancellations','inquiry'), ('inquiry_supplier_brief','inquiry'), ('inquiry_state_audit','inquiry'),
     ('inquiry_gate','inquiry'), ('inquiry_answer','inquiry'), ('inquiry_answer_document','inquiry'), ('inquiry_answer_scope','inquiry'),
     ('inquiry_workstream','inquiry'), ('inquiry_workstream_group','inquiry'), ('inquiry_workstream_requirement','inquiry'),

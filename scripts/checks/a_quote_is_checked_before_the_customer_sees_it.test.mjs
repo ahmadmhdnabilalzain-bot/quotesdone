@@ -67,9 +67,27 @@ test('supplier_api does not tell the customer of a held quote, and the compariso
     assert.equal(text.split(`${k}:`).length - 1, 2, `${k} is not written in English and Arabic`);
 });
 
+// REVIEW OF #1108 (29 Sep 2026): a wait must never publish content the door did not accept.
+test('the wait releases only the version the door accepted; a refused submission supersedes the hold', () => {
+  const t = body('fn_sales_engineer_quote_quality_tick');
+  const guard = t.indexOf('if public.fn_quote_quality_content_md5(q) is distinct from h.accepted_md5 then');
+  assert.ok(guard > 0 && guard < t.indexOf("update public.quotes set status = 'submitted'"), 'the duty can release content other than the accepted version');
+  assert.match(t, /x\.superseded_at is null/, 'the duty reads superseded holds');
+  assert.match(body('fn_quote_quality_gate'), /accepted_md5 = excluded\.accepted_md5/, 'the gate does not record the accepted version');
+  const api = read('supabase/functions/supplier_api/index.ts');
+  assert.match(api, /if \(g\.held\) \{ await supersedeQualityHold\(qid\);/, 'a spec-held resubmission does not supersede the quality hold');
+  assert.match(api, /update\(\{ status: 'draft' \}\)\.eq\('id', qid\); \} catch \(_e\) \{ \/\* the result below already says it was not accepted \*\/ \}\n\s*await supersedeQualityHold\(qid\);/,
+    'a review-held resubmission does not supersede the quality hold');
+  const al = api.slice(api.indexOf('async function acceptLive('));
+  assert.match(al.slice(0, al.indexOf('\n}\n')), /update\(\{ status: 'draft' \}\)\.eq\('id', qid\); \} catch \(_e\) \{ \/\* \*\/ \}\n\s*await supersedeQualityHold\(qid\);/,
+    'a resubmission the accept rule refuses does not supersede the quality hold');
+});
+
 test('the duty has a clock, the table is exported daily, and the file is pending XOR in MANIFEST', () => {
   assert.match(src, /\('sales_engineer\.quote_quality_hold',[\s\S]*?'15 minutes', true, 'fn_sales_engineer_quote_quality_tick'/);
   assert.match(body('fn_table_export_list'), /\('quote_quality_hold','quote'\)/, 'quote_quality_hold is not in the daily export');
+  // Depends-on #1106: its export list is the base, so its inquiry_rescue row must survive this redefinition
+  assert.match(body('fn_table_export_list'), /\('inquiry_rescue','inquiry'\)/, 'this redefinition drops #1106\'s inquiry_rescue from the daily export');
   const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim());
   assert.ok(pending !== manifest.includes(FILE), 'exactly one of a pending note and a MANIFEST line');
 });

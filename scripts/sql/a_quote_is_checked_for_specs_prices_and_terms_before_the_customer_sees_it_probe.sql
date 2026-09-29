@@ -105,6 +105,35 @@ begin
   if (select status from public.quotes where id = q2) <> 'submitted' or h.release_reason is distinct from 'corrected' then
     f := f || 'the corrected Q2 was not released as corrected; '; end if;
 
+  -- REVIEW OF #1108: a wait never publishes content the door did not accept. Q5 is held; the supplier then sends a new
+  -- version the door refuses (supplier_api leaves a draft: here, the lines change and the status does not), and its 24 h pass.
+  insert into public.quotes (inquiry_id, supplier_id, quote_amount, status, lead_time, vat_treatment)
+    values (t1, s[5], 3000, 'draft', '10 days', 'exclusive') returning id into q;
+  insert into public.quote_items (quote_id, line_no, description, qty, unit, unit_price, amount)
+    values (q::text, 1, 'ZZ DEMO emulsion paint two coats', 50, 'm2', 60, 3000);
+  update public.quotes set status = 'submitted' where id = q;
+  update public.quote_items set unit_price = 90, amount = 4500 where quote_id = q::text;
+  update public.quote_quality_hold set release_due = now() - interval '1 minute' where quote_id = q;
+  r := public.fn_sales_engineer_quote_quality_tick(true);
+  o := o || jsonb_build_object('tick_changed_content', r - 'fixes_not_sent');
+  if (select status from public.quotes where id = q) <> 'draft' or (select released_at from public.quote_quality_hold where quote_id = q) is not null
+     or coalesce((r->>'content_not_the_accepted_version')::int, 0) < 1 then
+    f := f || 'a wait published content the door had not accepted; '; end if;
+  -- ... supplier_api supersedes the hold of a refused submission: it is never released, and it is not counted as open
+  update public.quote_quality_hold set superseded_at = now() where quote_id = q and released_at is null and superseded_at is null;
+  r := public.fn_sales_engineer_quote_quality_tick(true);
+  if (select status from public.quotes where id = q) <> 'draft' or (select released_at from public.quote_quality_hold where quote_id = q) is not null then
+    f := f || 'a superseded hold was released; '; end if;
+  -- ... and a later ACCEPTED version (still flagged) opens a fresh hold on that version, with a fresh 24 h
+  update public.quote_items set unit_price = 61, amount = 3050 where quote_id = q::text;
+  update public.quotes set status = 'submitted' where id = q;
+  select * into h from public.quote_quality_hold where quote_id = q;
+  if (select status from public.quotes where id = q) <> 'draft' or h.superseded_at is not null or h.release_due < now() + interval '23 hours'
+     or h.accepted_md5 is distinct from public.fn_quote_quality_content_md5((select x from public.quotes x where x.id = q)) then
+    f := f || 'an accepted version after a superseded hold did not open a fresh hold on that version; '; end if;
+  delete from public.quote_quality_hold where quote_id = q;   -- out of the way of the waited release below
+  update public.quotes set status = 'withdrawn' where id = q;
+
   -- waited: Q1's 24 h are over -> released with its flags, the request marked quoted, the customer told in Arabic
   update public.quote_quality_hold set release_due = now() - interval '1 minute' where quote_id = q1;
   r := public.fn_sales_engineer_quote_quality_tick(true);

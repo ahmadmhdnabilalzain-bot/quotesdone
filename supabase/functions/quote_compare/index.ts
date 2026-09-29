@@ -106,11 +106,11 @@ Deno.serve(observe('quote_compare', async (req) => {
     // deno-lint-ignore no-explicit-any
     const qualityFlags: Record<string, any[]> = {};
     try {
-      const { data: hs, error } = await admin.from('quote_quality_hold').select('quote_id,flags,held_at,release_due,released_at,release_reason,corrected_at').eq('inquiry_id', inquiry_id);
+      const { data: hs, error } = await admin.from('quote_quality_hold').select('quote_id,flags,held_at,release_due,released_at,release_reason,corrected_at,superseded_at').eq('inquiry_id', inquiry_id);
       if (!error) for (const h of (hs || [])) {
         const hrs = Math.round((new Date(h.release_due).getTime() - new Date(h.held_at).getTime()) / 3600000);
         if (Number.isFinite(hrs) && hrs > 0) qualityHours = hrs;
-        if (!h.released_at) qualityHeld++;
+        if (!h.released_at && !h.superseded_at) qualityHeld++;   // a superseded hold is not open (supplier_api, review of #1108)
         else if (h.release_reason === 'waited_24h' && !h.corrected_at && Array.isArray(h.flags) && h.flags.length) qualityFlags[String(h.quote_id)] = h.flags;
       }
     } catch (_e) { /* no quality block */ }
