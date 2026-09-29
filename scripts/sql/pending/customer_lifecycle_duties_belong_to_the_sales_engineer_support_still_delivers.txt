@@ -1,4 +1,0 @@
-Apply at merge, not before: node scripts/apply_sql.mjs scripts/sql/customer_lifecycle_duties_belong_to_the_sales_engineer_support_still_delivers.sql --apply
-It must print PROBE OK. Owner-only move (4 seat_duty keys + function_owner customer_followup) from customer_support to sales_engineer; no routine body changes.
-After the apply, scripts/checks/customer_support_and_accountant_duties_act.test.mjs reads the new keys (already edited in this PR).
-Seat: ceo (ledger 1063).
