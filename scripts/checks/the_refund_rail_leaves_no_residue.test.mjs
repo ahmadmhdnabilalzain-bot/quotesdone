@@ -55,12 +55,16 @@ test('the non-response charge is raised by the rail; the old trigger function st
   assert.equal(row.attached, true);
 });
 
-test('fn_gl_post refuses unless the journal is a draft, and its file is the last in the apply order', () => {
-  const f = 'scripts/sql/only_a_draft_journal_can_be_posted.sql';
-  assert.match(read(f), /if st is distinct from 'draft' then\s+raise exception/);
-  const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/).filter((l) => l.endsWith('.sql'));
+test('fn_gl_post refuses unless the journal is a draft, in whichever file is the last in the apply order', () => {
+  // 29 Sep 2026: #1063 (the_accountant_books_a_late_item_as_a_prior_period_adjustment.sql) redefined fn_gl_post
+  // with the prior-period move and kept the refusal. The rule is the refusal in the CANONICAL body, not a file name.
+  const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim()).filter((l) => l.endsWith('.sql'));
   const defining = manifest.filter((p) => existsSync(join(root, p)) && /function\s+public\.fn_gl_post\s*\(/i.test(read(p)));
-  assert.deepEqual(defining.at(-1), f);
+  assert.ok(defining.length, 'no file in MANIFEST defines fn_gl_post');
+  const src = read(defining.at(-1));
+  const body = src.slice(src.search(/function\s+public\.fn_gl_post\s*\(/i));
+  assert.match(body, /if\s+[\w.]+\s+is\s+distinct\s+from\s+'draft'\s+then\s+raise\s+exception/i,
+    `${defining.at(-1)} (the canonical fn_gl_post) must refuse any journal that is not a draft`);
 });
 
 test('the reveal receipt makes no invoice number of its own', () => {

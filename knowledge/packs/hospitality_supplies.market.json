@@ -1,0 +1,99 @@
+{
+  "trade": "hospitality_supplies",
+  "layer": "uae-market",
+  "label_en": "Hospitality supplies",
+  "label_ar": "مستلزمات فندقية",
+  "entries": [
+    {
+      "id": "hospitality_supplies:uae-market-products",
+      "topic": "Hospitality supplies: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Hospitality supplies sold in the UAE include operating supplies and equipment (OS&E) for hotels and restaurants: chinaware (porcelain, bone china, stoneware), glassware (tempered soda-lime, lead-free crystal), cutlery (18/10 or 18/0 stainless steel), buffet display and chafing dishes, kitchen smallwares, bar equipment, guest room amenities (shampoo, soap, dental kits, slippers), bed and bath linen (percale and sateen, 200-400 thread count, 450-650 GSM towels), bathrobes, minibars, hairdryers, kettles, safes, trolleys, housekeeping carts, signage, and uniforms. Buyers specify brand standards of the hotel operator, durability (chip-resistant rim, dishwasher-safe, rated for commercial dishwashers), linen fibre blend (cotton, polycotton), fire-retardant and food-contact compliance, logo customisation, and packaging. Amenities are cosmetics and need Dubai Municipality product registration if sold/placed in Dubai; eco requirements increasingly favour refillable dispensers over miniatures.",
+      "body_ar": "تشمل مستلزمات الضيافة المباعة في الإمارات مستلزمات ومعدات التشغيل للفنادق والمطاعم: الأواني الخزفية (بورسلين، عظم صيني، حجري)، والأواني الزجاجية (زجاج صودا مقسّى، كريستال خالٍ من الرصاص)، وأدوات المائدة (فولاذ مقاوم للصدأ 18/10 أو 18/0)، وأدوات عرض البوفيه وأواني التسخين، وأدوات المطبخ الصغيرة، ومعدات البار، ومستلزمات غرف النزلاء (شامبو، صابون، أطقم أسنان، شباشب)، وبياضات الأسرّة والحمامات (بيركال وساتان، كثافة خيوط 200-400، مناشف 450-650 غرام/م2)، وأرواب الحمام، والثلاجات الصغيرة، ومجففات الشعر، والغلايات، والخزائن الآمنة، والعربات، وعربات التدبير المنزلي، واللافتات، والأزياء الموحدة. يحدد المشترون معايير العلامة لدى مشغل الفندق، والمتانة (حواف مقاومة للتشقق، آمنة لغسالات الأطباق التجارية)، ومزيج ألياف البياضات (قطن، قطن مخلوط)، والامتثال لمقاومة الحريق وملامسة الغذاء، وتخصيص الشعار، والتغليف. ومستلزمات النزلاء تُعد مستحضرات تجميل وتحتاج إلى تسجيل المنتج لدى بلدية دبي إذا بيعت أو وُضعت في دبي؛ وتفضل المتطلبات البيئية بشكل متزايد الموزعات القابلة لإعادة التعبئة بدلاً من العبوات الصغيرة.",
+      "sources": [
+        "https://corporate.rakceramics.com/rak-porcelain/",
+        "https://arcedior.com/blog/hotel-ose-procurement-dubai",
+        "https://infinityhs.ae/",
+        "https://www.rakporcelain.com",
+        "https://www.dm.gov.ae",
+        "https://www.steelite.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: RAK Porcelain makes hotel porcelain in Ras Al Khaimah (part of RAK Ceramics) -> confirmed | Guest amenities (shampoo, soap) are cosmetic products needing registration before supply -> confirmed | Infinity Hotel Supplies and Impruve LLC supply hotel OS&E and amenities in the UAE -> confirmed. Not checked: Current UAE distributors of the named international brands and hotel operator brand standards were not verified."
+    },
+    {
+      "id": "hospitality_supplies:uae-market-brands",
+      "topic": "Hospitality supplies: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE maker and OS&E suppliers, plus international tableware brands: RAK Porcelain, Infinity Hotel Supplies, Impruve LLC, Villeroy & Boch, Steelite, Churchill, Libbey, Arc (Arcoroc, Chef & Sommelier), Pasabahce, WMF, Cambro. The international brands' UAE distributors were not checked. Linen comes from Turkey, Pakistan, India and China.",
+      "body_ar": "المصنع الإماراتي وموردو مستلزمات التشغيل المؤكدون، إضافة إلى علامات أدوات المائدة الدولية: RAK Porcelain، Infinity Hotel Supplies، Impruve LLC، Villeroy & Boch، Steelite، Churchill، Libbey، Arc (Arcoroc, Chef & Sommelier)، Pasabahce، WMF، Cambro. ولم يُتحقق من موزعي العلامات الدولية في الإمارات. وتأتي البياضات من تركيا وباكستان والهند والصين.",
+      "sources": [
+        "https://corporate.rakceramics.com/rak-porcelain/",
+        "https://arcedior.com/blog/hotel-ose-procurement-dubai",
+        "https://infinityhs.ae/",
+        "https://www.rakporcelain.com",
+        "https://www.dm.gov.ae",
+        "https://www.steelite.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: RAK Porcelain makes hotel porcelain in Ras Al Khaimah (part of RAK Ceramics) -> confirmed | Guest amenities (shampoo, soap) are cosmetic products needing registration before supply -> confirmed | Infinity Hotel Supplies and Impruve LLC supply hotel OS&E and amenities in the UAE -> confirmed. Not checked: Current UAE distributors of the named international brands and hotel operator brand standards were not verified."
+    },
+    {
+      "id": "hospitality_supplies:uae-market-sizes",
+      "topic": "Hospitality supplies: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Chinaware and glassware are priced per piece but sold in carton multiples (typically 6, 12, 24 or 36 pieces); cutlery per dozen; linen per piece by size (e.g. king sheet 275 x 300 cm, bath towel 70 x 140 cm); amenities per piece with MOQs often 5,000-10,000 per item for custom logo. Hotel OS&E packages are quoted per room or as a lump sum against the operator's OS&E list. Par levels (e.g. 3-5 par for linen) determine quantities.",
+      "body_ar": "تُسعّر الأواني الخزفية والزجاجية لكل قطعة لكنها تُباع بمضاعفات الكرتونة (عادةً 6 أو 12 أو 24 أو 36 قطعة)؛ وأدوات المائدة لكل دزينة؛ والبياضات لكل قطعة حسب المقاس (مثل ملاءة كينغ 275 × 300 سم، ومنشفة حمام 70 × 140 سم)؛ ومستلزمات النزلاء لكل قطعة بحد أدنى غالباً 5000-10000 لكل بند عند طباعة الشعار. وتُسعّر باقات مستلزمات التشغيل للفنادق لكل غرفة أو كمبلغ مقطوع وفق قائمة المشغل. وتحدد المستويات المعيارية (مثل 3-5 أطقم للبياضات) الكميات.",
+      "sources": [
+        "https://corporate.rakceramics.com/rak-porcelain/",
+        "https://arcedior.com/blog/hotel-ose-procurement-dubai",
+        "https://infinityhs.ae/",
+        "https://www.rakporcelain.com",
+        "https://www.dm.gov.ae",
+        "https://www.steelite.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: RAK Porcelain makes hotel porcelain in Ras Al Khaimah (part of RAK Ceramics) -> confirmed | Guest amenities (shampoo, soap) are cosmetic products needing registration before supply -> confirmed | Infinity Hotel Supplies and Impruve LLC supply hotel OS&E and amenities in the UAE -> confirmed. Not checked: Current UAE distributors of the named international brands and hotel operator brand standards were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What par level of bed linen should we order for a 200-room hotel?",
+      "q_ar": "ما المستوى المعياري لبياضات الأسرّة الذي يجب طلبه لفندق من 200 غرفة؟",
+      "expected_entry_ids": [
+        "hospitality_supplies:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "RAK Porcelain makes hotel porcelain in Ras Al Khaimah (part of RAK Ceramics)",
+        "url": "https://corporate.rakceramics.com/rak-porcelain/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Guest amenities (shampoo, soap) are cosmetic products needing registration before supply",
+        "url": "https://arcedior.com/blog/hotel-ose-procurement-dubai",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Infinity Hotel Supplies and Impruve LLC supply hotel OS&E and amenities in the UAE",
+        "url": "https://infinityhs.ae/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Current UAE distributors of the named international brands and hotel operator brand standards were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

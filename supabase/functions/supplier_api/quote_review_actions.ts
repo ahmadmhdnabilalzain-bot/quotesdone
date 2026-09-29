@@ -16,6 +16,7 @@
 // upload gate, so this module holds no client and no credential of its own.
 import { jobNo, type BoqRow, type Lang, type SafeInquiry } from './quote_review.ts';
 import * as flow from './quote_review_flow.ts';
+import { SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
 // 'Qty basis' in the BOQ CSV (21 Sep 2026): the file a supplier prices from says which quantities are our
 // estimate to confirm, in the same words as the inquiry PDF. Before it, qty_status was dropped from the CSV.
 import { qtyBasis } from '../_shared/quote_documents.ts';
@@ -63,7 +64,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
   readTerms?: Parameters<typeof flow.readQuotationFile>[4]; readWorking?: flow.ReviewDeps['readWorking'] }): Promise<{ status: number; json: unknown }> {
   const { sup, email, self, body, repo } = o;
   const action = String(body.action);
-  const lang: Lang = body.lang === 'ar' || (body.lang !== 'en' && String(sup.locale || '').startsWith('ar')) ? 'ar' : 'en';
+  const lang: Lang = SUPPLIER_LOCALE;   // suppliers are always written in English (founder, 28 Sep 2026)
   const inbox = async (inquiryId?: string) => (await self({ action: 'inbox', ...(inquiryId ? { inquiry_id: inquiryId } : {}) })).json || {};
   const one = async (id: unknown) => {
     if (!/^[0-9a-f-]{36}$/i.test(String(id || ''))) return null;

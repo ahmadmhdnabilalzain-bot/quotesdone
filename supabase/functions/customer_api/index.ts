@@ -1134,6 +1134,10 @@ Deno.serve(observe('customer_api', async (req) => {
     }
 
     if (action === 'create_inquiry') {
+      // THE INQUIRY'S LANGUAGE (founder, 28 Sep 2026): every message to the customer about this request
+      // uses the language they chose when they created it - the page language the composer sends.
+      // Stored on inquiries.lang; public.fn_inquiry_locale reads it. Suppliers are always written in English.
+      const inquiryLang = documentLocale(body.lang, cust.locale);
       // THE FOUNDER'S ACCOUNT RULE (14 Sep 2026): a request is made only by a signed-up customer with
       // a name, an 18+ date of birth, an OTP-verified mobile OR email, and the Terms checkbox. The
       // definition lives in _shared/account_rule.ts so kyc and this gate cannot drift. A reachable
@@ -1340,11 +1344,11 @@ Deno.serve(observe('customer_api', async (req) => {
         const parentIdRef = { id: '' };
         const res = await splitInquiry(distinctTrades, {
           insertParent: async () => {
-            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, category: 'combined', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'split', budget, scope_type: 'multi', trades: distinctTrades, brief_source: briefSource, ...drawCols, ...briefCols }).select('id').maybeSingle();
+            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'combined', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'split', budget, scope_type: 'multi', trades: distinctTrades, brief_source: briefSource, ...drawCols, ...briefCols }).select('id').maybeSingle();
             return error || !data ? null : String(data.id);
           },
           insertChild: async (tr) => {
-            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, parent_inquiry_id: parentIdRef.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary(tr), keywords: childKw(tr), status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
+            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, parent_inquiry_id: parentIdRef.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary(tr), keywords: childKw(tr), status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
             return error || !data ? null : String(data.id);
           },
           deleteInquiries: async (ids) => {
@@ -1381,7 +1385,7 @@ Deno.serve(observe('customer_api', async (req) => {
 
       if (wantTurnkey) {
         const tkKeywords = Array.from(new Set([...keywords, 'fitout', 'fit out', 'fit-out', 'turnkey', 'interior', 'renovation', 'decoration', ...distinctTrades])).slice(0, 40);
-        const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
+        const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
         if (e1) return J(...inquiryNotSaved(e1));
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
@@ -1390,7 +1394,7 @@ Deno.serve(observe('customer_api', async (req) => {
         return J(postedSingle(String(inq!.id), 'turnkey', matches));
       }
 
-      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
+      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) return J(...inquiryNotSaved(e1));
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
