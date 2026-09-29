@@ -38,6 +38,8 @@ import { supplierLabel } from '../_shared/quote_documents.ts';
 import { langOf, notYet, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
 import { portalPassage, quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
+import { supportReply } from '../_shared/support_reply.ts';
+import { modelHeld } from '../_shared/llm_hold.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -378,9 +380,14 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // the question shares a word with it or names a field (exclusions, warranty, …). The
       // supplier is named only where a transactions row proves the reveal was paid; before that it
       // is the same "Supplier A" letter the compare table prints.
+      // 781 (28 Sep 2026, customer_support): while a model can answer, the portal reply is COMPOSED (supportReply,
+      // below); the own-quote line becomes one of its facts instead of the reply. The stored road is the fallback.
+      const reasoningOpen = !(await modelHeld(admin));
+      let ownQuote: string | null = null;
       if (caller.kind === 'customer') {
         const qa = await answerFromOwnQuotes(caller.customerId, message, lang);
-        if (qa) {
+        if (qa && reasoningOpen) ownQuote = qa.reply;
+        else if (qa) {
           try {
             await admin.from('assistant_logs').insert({ message, reply: qa.reply, seat: 'sales_engineer', answered: true,
               audience: 'customer:' + caller.customerId, path: 'portal', gap_task_id: null });
@@ -417,6 +424,21 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // shared word decided it until 23 Sep 2026. Held (the model hold), none is chosen: the gap is recorded and
       // the honest sentence goes out with its task number; nothing is guessed.
       const all = (r.records || []) as Array<Record<string, unknown>>;
+      if (reasoningOpen) {
+        const sr = await supportReply(defaultDeps(admin, 'sales_engineer'), {
+          channel: 'portal', message, lang, seat: 'sales_engineer', audience: 'customer',
+          passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || ''), citation: String(x.corpus || '') + ':' + String(x.record_id || '') })),
+          facts: ownQuote ? 'THEIR OWN QUOTE (scoped in SQL to this customer):\n' + ownQuote : undefined,
+        }, () => Promise.resolve(null));
+        if (sr.path === 'reasoned' && sr.reply) {
+          try {
+            await admin.from('assistant_logs').insert({ message, reply: sr.reply, seat: 'sales_engineer', answered: true,
+              audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal:reasoned', gap_task_id: (r.task_id as number | undefined) ?? null });  // the gap fn_sales_assist filed stays linked (review of #1043)
+          } catch { /* the customer already has the answer */ }
+          await run('assist', 'ok', { answered: true, basis: 'reasoned', routed_seat: sr.seat, precedent: recallTrace(memory) });
+          return J({ ok: true, seat: 'sales_engineer', answered: true, reply: sr.reply, routed_seat: sr.seat, basis: 'composed by reasoning over the retrieved records' });
+        }
+      }
       const pick = r.answered === true && all.length
         ? (await portalPassage(defaultDeps(admin, 'sales_engineer'), { message, passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || '') })) })).value
         : null;

@@ -1481,6 +1481,30 @@ Deno.serve(observe('accountant', async (req) => {
         } else rendered.push({ month: dd.month, error: perr || cu.error?.message });
       }
 
+      // THE FOUNDER'S CLOSE PACK (instruction 1009, upgrade 8): one short PDF per built pack, then
+      // fn_accountant_founder_close_pack_attach sends it through fn_notify_founder. A render failure is
+      // recorded on the pack and retried next tick; the day-5 miss is reported by the SQL duty.
+      const { data: packs } = await admin.from('accountant_founder_close_pack').select('month').is('rendered_at', null).order('month').limit(2);
+      for (const p of (packs || []) as { month: string }[]) {
+        const { data: doc, error: docErr } = await admin.rpc('fn_accountant_founder_close_pack_document', { p_month: p.month });
+        if (docErr || !doc) { rendered.push({ close_pack: p.month, error: docErr?.message || 'no document' }); continue; }
+        const dd = doc as Record<string, any>;
+        let pdfPath: string | null = null; let perr = '';
+        if (cred) {
+          try {
+            const r = await fetch(SUPA_URL + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ __secret: cred, title: dd.title, blocks: dd.blocks, bucket: 'finance-reports',
+                                     folder: 'accountant/close-pack/' + dd.month, name: dd.name,
+                                     options: { letterhead: true, strict_glyphs: true } }), signal: AbortSignal.timeout(55000) });
+            const j = await r.json().catch(() => null);
+            if (r.ok && j?.ok && j?.path) pdfPath = String(j.path); else perr = 'pdf_native ' + r.status;
+          } catch (e) { perr = String((e as Error)?.message || e); }
+        } else perr = 'cred_fn_accountant unreadable';
+        const { data: sent, error: aErr } = await admin.rpc('fn_accountant_founder_close_pack_attach',
+          { p_month: p.month, p_bucket: 'finance-reports', p_pdf_path: pdfPath, p_error: perr || null });
+        rendered.push({ close_pack: dd.month, pdf: pdfPath, sent, error: aErr?.message || perr || undefined });
+      }
+
       // FILE THE YEAR-END PACK WHEN IT FALLS DUE (duty 4 of the five further duties, 14 Sep 2026): seven CSVs
       // from the books into the private backups bucket; the attach queues them for Dropbox, and the
       // it_engineer's backup loop verifies each one arrived.
