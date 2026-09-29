@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T16:54:28.685Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T17:31:43.141Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -11169,7 +11169,7 @@ ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_range CHECK (((rating >
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_reason_required CHECK (((comment IS NULL) OR (length(btrim(comment)) >= 10)));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_kind_check CHECK ((kind = ANY (ARRAY['question'::text, 'note'::text])));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_shape_ck CHECK ((((kind = 'question'::text) AND (supplier_id IS NOT NULL) AND (question IS NOT NULL)) OR ((kind = 'note'::text) AND (supplier_id IS NULL) AND (answer IS NOT NULL) AND (answered_at IS NOT NULL))));
-ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_source_check CHECK ((source = ANY (ARRAY['portal'::text, 'rfq_flag'::text, 'rfq_note'::text])));
+ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_source_check CHECK ((source = ANY (ARRAY['portal'::text, 'rfq_flag'::text, 'rfq_note'::text, 'missing_specs'::text])));
 ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'knowledge_added'::text, 'not_a_gap'::text])));
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_entry_type_check CHECK ((entry_type = ANY (ARRAY['individual'::text, 'entity'::text])));
