@@ -1,0 +1,6 @@
+NOT APPLIED. Written 28 Sep 2026 by it_engineer; the session was read-only against htdblwldjkcgjvmqkbeh.
+Apply with: node scripts/apply_sql.mjs scripts/sql/the_sender_health_duty_reads_dmarc_reports_and_judges_its_rates_by_one_rule.sql --apply --ddl
+Its last statement is a verdict row and must print PROBE OK. Then append its MANIFEST line, and deploy
+the edge function that imports supabase/functions/_shared/it_scheduled_readings.ts so the reading
+carries sender.dmarc_reports. Until that deploy the SQL is safe: an absent dmarc_reports raises nothing.
+Remove this note when applied, listed and deployed. Seat: it_engineer.
