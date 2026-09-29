@@ -31,6 +31,6 @@ Deno.test('an invented figure, a machine phrase or a missing Arabic paragraph is
 
 Deno.test('the LinkedIn post links the article in each language', () => {
   const p = articlePost({ slug: 'x-y', title_en: 'T', excerpt_en: 'E', title_ar: 'عنوان', excerpt_ar: 'مقدمة' });
-  assert(p.text_en.endsWith('https://quotesdone.com/blog/x-y'));
-  assert(p.text_ar.endsWith('https://quotesdone.com/ar/blog/x-y'));
+  assert(p.text_en.endsWith('https://quotesdone.ae/blog/x-y'));
+  assert(p.text_ar.endsWith('https://quotesdone.ae/ar/blog/x-y'));
 });
