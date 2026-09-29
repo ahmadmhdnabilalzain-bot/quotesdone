@@ -673,6 +673,27 @@
   "d84aaba829c6",
   "f6fe48838815"
  ],
+ "scripts/sql/customer_support_asks_whether_the_customer_hired_and_nudges_a_quiet_one_by_their_trades.sql": [
+  "0f4005cfb029",
+  "0f73aac5d3bd",
+  "2c9f735353c5",
+  "2f25fc4d7818",
+  "3eba6f270440",
+  "4040a8441b66",
+  "4c763c891b0c",
+  "52f6a96438e6",
+  "56eb8e93b842",
+  "644c62167598",
+  "859798d5f8bb",
+  "adc4e0189db3",
+  "af85846136f2",
+  "c27eaf720df5",
+  "cb243c291839",
+  "cb76a6eb29d7",
+  "cfd5112b4b9d",
+  "ecd50e16b6b7",
+  "ef4bc2969d40"
+ ],
  "scripts/sql/customer_support_guides_a_first_request_step_by_step_and_asks_a_held_one_for_its_specs.sql": [
   "05b86d760168",
   "16b4a1fbd821",
@@ -5103,6 +5124,14 @@
   "9dc139a1b7f7",
   "c596436143c5",
   "fedcc04615f6"
+ ],
+ "supabase/functions/customer_followup/page.ts": [
+  "02d6a120dd10",
+  "0e69ee21f135",
+  "8222c78dd0c6",
+  "9e2f10c91a82",
+  "a38f3071c47f",
+  "cee47e464ec8"
  ],
  "supabase/functions/customer_portal/index.ts": [
   "27bf0de70c90",

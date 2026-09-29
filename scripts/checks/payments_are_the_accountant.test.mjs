@@ -197,7 +197,15 @@ test('production: the live conversations and the triggers that start them', { sk
 
 test('production: the whole refund ladder on ZZ DEMO fixtures, rolled back', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const batch = [sqlText, read(join(REPO, 'scripts', 'checks', 'refund_ladder_fixtures.sql'))].join('\n;\n');
+  // The CEO's refund decisions are rounds in public.ceo_decision_round (founder_instruction 1059). While that file
+  // waits for its apply it is replayed first, so the ladder is proved against the code that will run, not the code
+  // it replaces; once it is in MANIFEST it is production's own and nothing is added. It goes AFTER the canonical
+  // replay, which reads MANIFEST only and would otherwise put the older bodies back over it.
+  const LEDGER = 'scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql';
+  const ledgerPending = existsSync(join(REPO, LEDGER))
+    && !read(join(REPO, 'scripts', 'sql', 'MANIFEST.txt')).split(/\r?\n/).map((l) => l.trim()).includes(LEDGER);
+  const batch = [sqlText, ...(ledgerPending ? [read(join(REPO, LEDGER))] : []),
+    read(join(REPO, 'scripts', 'checks', 'refund_ladder_fixtures.sql'))].join('\n;\n');
   let message = '';
   try { await sql(batch); message = 'the fixture batch returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
