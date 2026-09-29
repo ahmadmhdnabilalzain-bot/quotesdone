@@ -49,9 +49,40 @@ export function isDependabotMinorPatch(pr) {
   return !!m && m[1] === m[3] && (m[1] !== '0' || m[2] === m[4]);
 }
 
-export function checksGreen(rollup = []) {
+// THE CHECKS A MERGE NEEDS, BY NAME (29 Sep 2026). "Every check present is green" merged #998 and #992
+// minutes after the train updated their branches: the new head carried only Vercel's statuses, because
+// GitHub Actions had not yet created its check runs, so nothing present was red. A check that has not
+// started is not a pass. Each of these must be present and green (a skipped kernel gate on a PR without
+// the label counts, as it is SKIPPED, not absent).
+export const REQUIRED_CHECKS = [
+  'classification, pricing and refund checks',
+  'the database is running what this repository says',
+  'typecheck the app',
+  'typecheck the edge functions',
+  'lint migrations for locking operations',
+  'the kernel and handler gate, against production',
+];
+export function checksGreen(rollup = [], required = REQUIRED_CHECKS) {
+  const names = new Set(rollup.map((c) => c.name || c.context));
   return rollup.length > 0
+    && required.every((n) => names.has(n))
     && rollup.every((c) => GREEN.has(String(c.conclusion || c.state || 'PENDING').toUpperCase()));
+}
+
+// A check still running: no conclusion yet (a check run), or a status still PENDING (Vercel and friends).
+export function checksRunning(rollup = []) {
+  return rollup.some((c) => /^(PENDING|EXPECTED|QUEUED|IN_PROGRESS|WAITING)$/i.test(String(c.conclusion || c.state || 'PENDING')));
+}
+
+// THE ONE STALE PR TO REFRESH (29 Sep 2026). A reviewed PR's production checks compare its branch with the
+// live database, so every merge to main turns the others red until they are updated. When nothing can be
+// released, the oldest reviewed PR whose only blocker is its checks - finished, not green, and its branch
+// behind main - is updated, and the tick ends; a later tick releases it once green. One PR at a time, never
+// a sweep: sixty updates at once jammed Actions for hours on 28 Sep.
+export function staleCandidate(prs, { depState = () => 'MERGED', isBehind = () => false } = {}) {
+  // every other gate must already pass: judged as if its checks were green
+  return prs.find((pr) => !checksGreen(pr.statusCheckRollup) && !checksRunning(pr.statusCheckRollup)
+    && refusal({ ...pr, statusCheckRollup: REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })) }, { depState }) === null && isBehind(pr)) || null;
 }
 
 // ponytail: one fixed Dubai window (UTC+4, no DST), weekdays and weekends alike; move it to a
@@ -196,7 +227,17 @@ export async function main(argv = process.argv.slice(2)) {
     log(`#${pr.number} ${why ? 'skip: ' + why : 'ELIGIBLE'}  - ${pr.title.slice(0, 90)}`);
     if (!why && !chosen) { chosen = pr; entries = e; }
   }
-  if (!chosen) { log('nothing to release'); return 0; }
+  if (!chosen) {
+    const isBehind = (pr) => {
+      run('git', ['fetch', '-q', 'origin', 'main', `pull/${pr.number}/head`]);
+      return run('git', ['merge-base', '--is-ancestor', 'origin/main', pr.headRefOid]).code !== 0;
+    };
+    const stale = staleCandidate(prs, { depState, isBehind });
+    if (!stale) { log('nothing to release'); return 0; }
+    log(`nothing to release; #${stale.number} is behind main with finished, failing checks: ${DRY ? 'DRY RUN would update' : 'updating'} its branch`);
+    if (!DRY) { const r = run('gh', ['pr', 'update-branch', String(stale.number)]); log(r.out.trim()); }
+    return 0;
+  }
 
   const applies = applyOrder(entries.filter((x) => !isProbeNote(x.note) && x.text));
   const probes = entries.filter((x) => isProbeNote(x.note) && x.text);
@@ -254,6 +295,12 @@ export async function main(argv = process.argv.slice(2)) {
       git(['push', '-q', 'origin', 'HEAD:main']);
     }
     log('bookkeeping pushed to main');
+  }
+  // A merge made with GITHUB_TOKEN starts no push workflow, so main's own CI never ran on a train merge
+  // (29 Sep 2026: #961, #993, #1060, #998, #992). The train dispatches it; workflow_dispatch works with the token.
+  for (const wf of ['checks.yml', 'project-parity.yml']) {
+    const r = run('gh', ['workflow', 'run', wf, '--ref', 'main']);
+    log(`dispatched ${wf} on main -> exit ${r.code}`);
   }
   return failed ? 1 : 0;
 }

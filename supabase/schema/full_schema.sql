@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T02:53:33.039Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T03:46:44.639Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (670) =====
+-- ===== TABLES (672) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4202,6 +4202,25 @@ CREATE TABLE IF NOT EXISTS public.it_playbook (
   typical_cause text
 );
 
+CREATE TABLE IF NOT EXISTS public.it_postmaster_reading (
+  domain text NOT NULL,
+  read_on date NOT NULL,
+  basis text NOT NULL,
+  stats_day date,
+  spam_ratio numeric,
+  spam_lower numeric,
+  spam_upper numeric,
+  reputation text,
+  spf_ratio numeric,
+  dkim_ratio numeric,
+  dmarc_ratio numeric,
+  reason text,
+  verdict jsonb DEFAULT '{}'::jsonb NOT NULL,
+  line text NOT NULL,
+  paused_at timestamp with time zone,
+  read_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.it_query_stat_snapshot (
   queryid bigint NOT NULL,
   calls bigint NOT NULL,
@@ -4236,6 +4255,20 @@ CREATE TABLE IF NOT EXISTS public.it_security_baseline (
   recorded_at timestamp with time zone DEFAULT now() NOT NULL,
   reason text NOT NULL,
   accepted_by text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_sender_health_daily (
+  day date NOT NULL,
+  sent_7d integer NOT NULL,
+  hard_bounces_7d integer NOT NULL,
+  complaints_7d integer NOT NULL,
+  bounce_rate numeric,
+  complaint_rate numeric,
+  whatsapp_quality text,
+  blocklisted integer DEFAULT 0 NOT NULL,
+  dmarc jsonb,
+  breaches text[] DEFAULT '{}'::text[] NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_spend_daily (
@@ -9568,11 +9601,13 @@ ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_integration_external_cause ADD CONSTRAINT it_integration_external_cause_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_pkey PRIMARY KEY (consumer);
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_pkey PRIMARY KEY (failure_class);
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_pkey PRIMARY KEY (domain, read_on);
 ALTER TABLE public.it_query_stat_snapshot ADD CONSTRAINT it_query_stat_snapshot_pkey PRIMARY KEY (queryid);
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
 ALTER TABLE public.it_restore_drill_result ADD CONSTRAINT it_restore_drill_result_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_pkey PRIMARY KEY (table_name);
 ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_pkey PRIMARY KEY (object, kind);
+ALTER TABLE public.it_sender_health_daily ADD CONSTRAINT it_sender_health_daily_pkey PRIMARY KEY (day);
 ALTER TABLE public.it_spend_daily ADD CONSTRAINT it_spend_daily_pkey PRIMARY KEY (day, source);
 ALTER TABLE public.it_table_size_daily ADD CONSTRAINT it_table_size_daily_pkey PRIMARY KEY (day, relid);
 ALTER TABLE public.it_threshold ADD CONSTRAINT it_threshold_pkey PRIMARY KEY (key);
@@ -10351,6 +10386,15 @@ ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_failure_class_check CH
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_issue_prefix_check CHECK ((btrim(issue_prefix) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_regression_check_check CHECK ((btrim(regression_check) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_remedy_routine_check CHECK ((remedy_routine ~ '^fn_[a-z0-9_]+$'::text));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_basis_check CHECK ((basis = ANY (ARRAY['measured'::text, 'no_data'::text, 'unavailable'::text])));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_dkim_ratio_check CHECK (((dkim_ratio >= (0)::numeric) AND (dkim_ratio <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_dmarc_ratio_check CHECK (((dmarc_ratio >= (0)::numeric) AND (dmarc_ratio <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_no_numbers_without_data CHECK (((basis = 'measured'::text) OR ((spam_ratio IS NULL) AND (reputation IS NULL) AND (spf_ratio IS NULL) AND (dkim_ratio IS NULL) AND (dmarc_ratio IS NULL))));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_reputation_check CHECK ((reputation = ANY (ARRAY['HIGH'::text, 'MEDIUM'::text, 'LOW'::text, 'BAD'::text])));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_spam_lower_check CHECK (((spam_lower >= (0)::numeric) AND (spam_lower <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_spam_ratio_check CHECK (((spam_ratio >= (0)::numeric) AND (spam_ratio <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_spam_upper_check CHECK (((spam_upper >= (0)::numeric) AND (spam_upper <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_spf_ratio_check CHECK (((spf_ratio >= (0)::numeric) AND (spf_ratio <= (1)::numeric)));
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_key_column_check CHECK ((key_column ~ '^[a-z_][a-z0-9_]*$'::text));
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_note_check CHECK ((btrim(note) <> ''::text));
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_table_name_check CHECK ((table_name ~ '^[a-z_][a-z0-9_]*$'::text));
@@ -43709,7 +43753,14 @@ begin
     'integrations_waiting_on_external', coalesce((select jsonb_agg(jsonb_build_object('integration', integration, 'party', external_party,
                            'ticket', ticket_ref, 'opened_on', opened_on, 'last_reply_at', last_reply_at,
                            'reply_needs_founder', reply_needs_founder, 'last_checked_at', last_checked_at) order by integration)
-                           from public.it_integration_external_cause where closed_at is null), '[]'::jsonb))
+                           from public.it_integration_external_cause where closed_at is null), '[]'::jsonb),
+    -- The newest Gmail Postmaster reading (duty 'postmaster'); null until the first read. Its numbers are Postmaster's
+    -- day (stats_day), 1-2 days behind read_on; a number Postmaster did not publish is null, never 0.
+    'gmail_postmaster', (select jsonb_build_object('domain', p.domain, 'read_on', p.read_on, 'basis', p.basis, 'stats_day', p.stats_day,
+                           'spam_ratio', p.spam_ratio, 'spam_lower', p.spam_lower, 'spam_upper', p.spam_upper, 'reputation', p.reputation,
+                           'spf_ratio', p.spf_ratio, 'dkim_ratio', p.dkim_ratio, 'dmarc_ratio', p.dmarc_ratio, 'reason', p.reason,
+                           'paused_at', p.paused_at, 'line', p.line)
+                           from public.it_postmaster_reading p order by p.read_on desc, p.read_at desc limit 1))
   into v_ev;
 
   v_rep := public.fn_support_report_to_ceo('it_daily:' || v_day, 'routine',
@@ -43718,7 +43769,8 @@ begin
       || (v_ev->>'repeats_folded_today') || ' repeat(s) folded, '
       || jsonb_array_length(v_ev->'integrations_fixed_today') || ' integration(s) fixed without anyone, '
       || jsonb_array_length(v_ev->'integrations_failing') || ' integration(s) down ('
-      || jsonb_array_length(v_ev->'integrations_waiting_on_external') || ' waiting on a provider''s ticket)',
+      || jsonb_array_length(v_ev->'integrations_waiting_on_external') || ' waiting on a provider''s ticket). '
+      || coalesce(v_ev->'gmail_postmaster'->>'line', 'Gmail Postmaster: not read yet (duty postmaster has not run)'),
     v_ev, '[]'::jsonb,
     'Acknowledge the day''s IT position. Nothing else is requested; anything that needs a decision reaches you as its own report.',
     p_review_in => interval '3 hours', p_source_agent => 'it_engineer');
@@ -46095,6 +46147,185 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_backup_objectives()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_rpo numeric := coalesce(public.fn_it_threshold('backup_rpo_hours'), 26);
+  v_rto numeric := coalesce(public.fn_it_threshold('backup_rto_hours'), 4);
+  v_every int := coalesce(public.fn_it_threshold('restore_drill_every_days'), 7)::int;
+  v_newest timestamptz; v_age_h numeric; v_gap_h numeric;
+  v_pass public.it_restore_drill_result; v_last public.it_restore_drill_result; v_pick timestamptz; v_rto_s numeric;
+  v_items jsonb := '[]'::jsonb;
+begin
+  -- RPO: hours since the newest finished export, and the widest gap between finished exports in 7 days
+  select max(finished_at) into v_newest from public.table_export_run where status = 'done';
+  v_age_h := round((extract(epoch from now() - v_newest) / 3600)::numeric, 1);
+  select round(max(extract(epoch from g) / 3600)::numeric, 1) into v_gap_h from (
+    select finished_at - lag(finished_at) over (order by finished_at) g
+      from public.table_export_run where status = 'done' and finished_at > now() - interval '7 days') x;
+  if v_newest is null or v_age_h > v_rpo or coalesce(v_gap_h, 0) > v_rpo then
+    v_items := v_items || jsonb_build_object('item', 'rpo', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', case when v_newest is null then 'No finished table export exists, so the ' || v_rpo || ' h RPO cannot be met'
+               else 'Achieved RPO ' || greatest(v_age_h, coalesce(v_gap_h, 0)) || ' h is over the ' || v_rpo || ' h target' end,
+      'evidence', jsonb_build_object('newest_export_finished_at', v_newest, 'hours_since', v_age_h,
+                                     'widest_gap_7d_hours', v_gap_h, 'target_hours', v_rpo));
+  end if;
+
+  -- RTO: the last drill that restored rows and passed, timed from its pick to its record
+  select * into v_last from public.it_restore_drill_result order by id desc limit 1;
+  select * into v_pass from public.it_restore_drill_result
+   where ok and coalesce((detail->>'restored')::int, 0) > 0 order by id desc limit 1;
+  if v_pass.id is not null then
+    select max(started_at) into v_pick from public.agent_runs
+     where agent = 'it_engineer' and counts->>'job' = 'restore_table_pick' and started_at <= v_pass.ran_at;
+    v_rto_s := round(extract(epoch from v_pass.ran_at - v_pick)::numeric, 1);
+  end if;
+  if v_pass.id is null or v_pass.ran_at < now() - make_interval(days => v_every + 2) then
+    v_items := v_items || jsonb_build_object('item', 'rto_unproven', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'No restore drill has restored rows and passed in the last ' || (v_every + 2) || ' days'
+               || coalesce(' (last pass ' || to_char(v_pass.ran_at at time zone 'Asia/Dubai', 'DD Mon') || ')', ' (none ever)')
+               || ', so the ' || v_rto || ' h RTO is unproven',
+      'evidence', jsonb_build_object('last_pass_id', v_pass.id, 'last_pass_at', v_pass.ran_at,
+                                     'last_drill_id', v_last.id, 'last_drill_at', v_last.ran_at, 'last_drill_ok', v_last.ok));
+  elsif v_rto_s is not null and v_rto_s > v_rto * 3600 then
+    v_items := v_items || jsonb_build_object('item', 'rto', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'The restore drill took ' || v_rto_s || ' s, over the ' || v_rto || ' h RTO',
+      'evidence', jsonb_build_object('drill_id', v_pass.id, 'seconds', v_rto_s, 'target_hours', v_rto));
+  end if;
+  if v_last.id is null or v_last.ran_at < now() - make_interval(days => v_every + 2) then
+    v_items := v_items || jsonb_build_object('item', 'drill_stale', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'The weekly restore drill has not run for ' || coalesce(extract(day from now() - v_last.ran_at)::int || ' days', 'ever'),
+      'evidence', jsonb_build_object('last_drill_at', v_last.ran_at, 'every_days', v_every,
+                                     'look_at', 'resilience_ping restore_table step; fn_it_restore_table_due'));
+  end if;
+
+  return jsonb_build_object('rpo', jsonb_build_object('target_hours', v_rpo, 'hours_since_export', v_age_h, 'widest_gap_7d_hours', v_gap_h),
+                            'rto', jsonb_build_object('target_hours', v_rto, 'last_pass_id', v_pass.id, 'sample_restore_seconds', v_rto_s),
+                            'drill', jsonb_build_object('last_id', v_last.id, 'last_at', v_last.ran_at, 'every_days', v_every),
+                            'settled', public.fn_it_duty_settle('backup_objectives', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_capacity_review()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_warn numeric := coalesce(public.fn_it_threshold('cap_warn_ratio'), 0.8);
+  v_db bigint := pg_database_size(current_database());
+  v_db_cap numeric := public.fn_it_threshold('db_disk_limit_bytes');
+  v_st bigint; v_st_cap numeric := public.fn_it_threshold('cap_supabase_storage_bytes');
+  v_items jsonb := '[]'::jsonb;
+begin
+  select coalesce(sum((metadata->>'size')::bigint), 0) into v_st from storage.objects;
+  if v_db_cap is null or v_db > v_db_cap * v_warn then
+    v_items := v_items || jsonb_build_object('item', 'database', 'owner_seat', 'it_engineer', 'subject', 'capacity',
+      'config', v_db_cap is null,
+      'title', case when v_db_cap is null then 'No database size cap is recorded (it_threshold db_disk_limit_bytes)'
+               else 'The database is ' || round(v_db / 1e9, 2) || ' GB, ' || round(100.0 * v_db / v_db_cap) || '% of its cap' end,
+      'evidence', jsonb_build_object('bytes', v_db, 'cap_bytes', v_db_cap, 'warn_ratio', v_warn));
+  end if;
+  if v_st_cap is null or v_st > v_st_cap * v_warn then
+    v_items := v_items || jsonb_build_object('item', 'storage', 'owner_seat', 'it_engineer', 'subject', 'capacity',
+      'config', v_st_cap is null,
+      'title', case when v_st_cap is null then 'No storage cap is recorded (it_threshold cap_supabase_storage_bytes)'
+               else 'Storage holds ' || round(v_st / 1e9, 2) || ' GB, ' || round(100.0 * v_st / v_st_cap) || '% of its cap' end,
+      'evidence', jsonb_build_object('bytes', v_st, 'cap_bytes', v_st_cap, 'warn_ratio', v_warn));
+  end if;
+  return jsonb_build_object('db_bytes', v_db, 'db_cap', v_db_cap, 'storage_bytes', v_st, 'storage_cap', v_st_cap,
+                            'settled', public.fn_it_duty_settle('capacity_review', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_code_health()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_unpinned text[]; v_nopolicy text[]; v_failing text[]; v_items jsonb := '[]'::jsonb;
+begin
+  select coalesce(array_agg(p.oid::regprocedure::text order by 1), '{}') into v_unpinned
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search\_path=%');
+  select coalesce(array_agg(c.relname::text order by 1), '{}') into v_nopolicy
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+     and not exists (select 1 from pg_policy pol where pol.polrelid = c.oid);
+  select coalesce(array_agg(duty order by duty), '{}') into v_failing
+    from public.seat_duty where enabled and failures >= 3;
+  if cardinality(v_unpinned) > 0 then
+    v_items := v_items || jsonb_build_object('item', 'search_path', 'owner_seat', 'it_engineer', 'subject', 'code_health',
+      'title', cardinality(v_unpinned) || ' SECURITY DEFINER routine(s) in public have no pinned search_path',
+      'evidence', jsonb_build_object('routines', to_jsonb(v_unpinned)));
+  end if;
+  if cardinality(v_nopolicy) > 0 then
+    v_items := v_items || jsonb_build_object('item', 'rls_no_policy', 'owner_seat', 'it_engineer', 'subject', 'code_health',
+      'title', cardinality(v_nopolicy) || ' public table(s) have RLS on and no policy',
+      'evidence', jsonb_build_object('tables', to_jsonb(v_nopolicy)));
+  end if;
+  if cardinality(v_failing) > 0 then
+    v_items := v_items || jsonb_build_object('item', 'failing_duties', 'owner_seat', 'it_engineer', 'subject', 'code_health',
+      'title', cardinality(v_failing) || ' seat duty(ies) have failed 3 or more times in a row',
+      'evidence', jsonb_build_object('duties', to_jsonb(v_failing)));
+  end if;
+  return jsonb_build_object('unpinned', cardinality(v_unpinned), 'rls_no_policy', cardinality(v_nopolicy),
+                            'failing_duties', cardinality(v_failing), 'settled', public.fn_it_duty_settle('code_health', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_credential_rotation_age()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_days int := coalesce(public.fn_it_threshold('credential_rotate_days'), 90)::int;
+  v_grace int := 7; c record; v_items jsonb := '[]'::jsonb; n_over int := 0; n_unrec int := 0;
+begin
+  for c in
+    select ic.id, ic.context, coalesce(ic.rotated_at, ic.created_at) since
+      from public.internal_credential ic
+     where ic.active and ic.retired_at is null
+       and coalesce(ic.rotated_at, ic.created_at) < now() - make_interval(days => v_days + v_grace)
+       and not exists (select 1 from public.it_credential_rotation r where r.context = ic.context and r.status in ('overlap', 'held'))
+  loop
+    n_over := n_over + 1;
+    v_items := v_items || jsonb_build_object('item', 'overdue:' || c.context, 'owner_seat', 'it_engineer', 'subject', 'credentials',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'Credential ' || c.context || ' is ' || extract(day from now() - c.since)::int || ' days since rotation; the limit is '
+               || v_days || ' (+' || v_grace || ' grace) and the rotation duty has not rotated it',
+      'evidence', jsonb_build_object('credential_id', c.id, 'since', c.since, 'rotate_days', v_days,
+                                     'look_at', 'it_duty_schedule rotation; fn_it_credential_rotate; app_secrets cred_ key for this context'));
+  end loop;
+  for c in
+    select ic.id, ic.context, ic.rotated_at from public.internal_credential ic
+     where ic.rotated_at is not null and ic.active and ic.retired_at is null
+       and not exists (select 1 from public.it_credential_rotation r where r.new_id = ic.id)
+  loop
+    n_unrec := n_unrec + 1;
+    v_items := v_items || jsonb_build_object('item', 'unrecorded:' || c.context, 'owner_seat', 'it_engineer', 'subject', 'credentials',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'Credential ' || c.context || ' shows a rotation on ' || to_char(c.rotated_at, 'YYYY-MM-DD') || ' with no it_credential_rotation record',
+      'evidence', jsonb_build_object('credential_id', c.id, 'rotated_at', c.rotated_at));
+  end loop;
+  return jsonb_build_object('rotate_days', v_days, 'grace_days', v_grace, 'overdue', n_over, 'unrecorded', n_unrec,
+                            'settled', public.fn_it_duty_settle('credential_rotation_age', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_data_quality()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -46140,6 +46371,32 @@ begin
   end loop;
 
   return jsonb_build_object('counts', v_counts, 'settled', public.fn_it_duty_settle('data_quality', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_dr_review()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_last public.it_restore_drill_result; v_items jsonb := '[]'::jsonb;
+begin
+  select * into v_last from public.it_restore_drill_result
+   where subject like 'full\_database into %' and ok order by id desc limit 1;
+  if v_last.id is null or v_last.ran_at < now() - interval '92 days' then
+    v_items := v_items || jsonb_build_object('item', 'full_restore', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'No full-database restore has compared equal in the last 92 days'
+               || coalesce(' (last ' || to_char(v_last.ran_at, 'YYYY-MM-DD') || ')', ' (never)'),
+      'evidence', jsonb_build_object('last_id', v_last.id, 'runbook', 'docs/it/BACKUP_RPO_RTO.md',
+                                     'compare', 'select public.fn_it_full_restore_compare(''<scratch schema>'') on the branch'));
+  end if;
+  if (select count(*) from public.it_threshold where key in ('backup_rpo_hours', 'backup_rto_hours', 'restore_drill_every_days')) <> 3 then
+    v_items := v_items || jsonb_build_object('item', 'targets', 'owner_seat', 'it_engineer', 'subject', 'table_backup', 'config', true,
+      'title', 'The RPO/RTO/drill targets are missing from it_threshold');
+  end if;
+  return jsonb_build_object('last_full_restore', v_last.ran_at, 'settled', public.fn_it_duty_settle('dr_review', v_items));
 end $function$
 
 
@@ -46993,6 +47250,47 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_full_restore_compare(p_schema text, p_only text[] DEFAULT NULL::text[])
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare t text; v_live bigint; v_rest bigint; c_live text; c_rest text; v_rows jsonb := '[]'::jsonb;
+        n_bad int := 0; n_missing int := 0; v_start timestamptz := clock_timestamp(); v_ok boolean; v_out jsonb;
+begin
+  if p_schema is null or p_schema in ('public', 'auth', 'storage', 'extensions', 'vault', 'cron', 'realtime')
+     or p_schema like 'pg\_%' or not exists (select 1 from pg_namespace where nspname = p_schema) then
+    raise exception 'fn_it_full_restore_compare: % is not a scratch schema holding a restore', coalesce(p_schema, 'null');
+  end if;
+  for t in select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname = 'public' and c.relkind = 'r' and (p_only is null or c.relname = any (p_only)) order by 1 loop
+    if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                    where n.nspname = p_schema and c.relname = t and c.relkind = 'r') then
+      n_missing := n_missing + 1;
+      v_rows := v_rows || jsonb_build_object('table', t, 'missing', true);
+      continue;
+    end if;
+    execute format('select count(*), md5(coalesce(string_agg(h, '''' order by h), '''')) from (select md5(x::text) h from public.%I x) s', t)
+      into v_live, c_live;
+    execute format('select count(*), md5(coalesce(string_agg(h, '''' order by h), '''')) from (select md5(x::text) h from %I.%I x) s', p_schema, t)
+      into v_rest, c_rest;
+    if v_live <> v_rest or c_live <> c_rest then
+      n_bad := n_bad + 1;
+      v_rows := v_rows || jsonb_build_object('table', t, 'live_rows', v_live, 'restored_rows', v_rest, 'checksum_equal', c_live = c_rest);
+    end if;
+  end loop;
+  v_ok := n_bad = 0 and n_missing = 0;
+  v_out := jsonb_build_object('schema', p_schema, 'mismatched', n_bad, 'missing', n_missing, 'differences', v_rows,
+                              'compare_seconds', round(extract(epoch from clock_timestamp() - v_start)::numeric, 1));
+  -- A partial comparison (p_only, used by the probe) is not a full restore and is never recorded as one.
+  if p_only is null then
+    insert into public.it_restore_drill_result (subject, ok, detail) values ('full_database into ' || p_schema, v_ok, v_out);
+  end if;
+  return v_out;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_handoff_sla_items(p_include_demo boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE sql
@@ -47125,6 +47423,15 @@ begin
   if jsonb_typeof(p_items) is distinct from 'array' or jsonb_typeof(coalesce(p_fixed, '[]'::jsonb)) is distinct from 'array' then
     raise exception 'fn_it_integration_settle(duty, items[], fixed[]): items and fixed must be arrays';
   end if;
+  -- EVERY PROBE LEAVES A ROW (28 Sep 2026): one per integration measured this beat, passing or failing.
+  insert into public.edge_health_probe (fn_key, last_beat_at, silent_minutes, verdict, note)
+  select p_duty || ':' || (e->>'item'),
+         case when coalesce((e->>'recovered')::boolean, false) then now() end,
+         case when coalesce((e->>'recovered')::boolean, false) then 0 end,
+         case when coalesce((e->>'recovered')::boolean, false) then 'ALIVE' else 'FAILING' end,
+         case when coalesce((e->>'recovered')::boolean, false) then null else left(e->>'title', 500) end
+    from jsonb_array_elements(p_items) e
+   where not coalesce((e->>'carried')::boolean, false) and coalesce(e->>'item', '') <> '';
   -- A carried item holds an OPEN finding; one whose finding is closed is dropped, never reopened.
   -- A RECOVERED item is a successful re-probe, not a failure: it is kept out of the settle and remembered.
   for x in select e from jsonb_array_elements(p_items) e loop
@@ -47766,6 +48073,84 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_postmaster_record(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_dom   text := coalesce(nullif(btrim(p_r->>'domain'), ''), 'quotesdone.com');
+  v_basis text := p_r->>'basis';
+  v_on    date := (now() at time zone 'Asia/Dubai')::date;
+  v_stats date := nullif(p_r->>'stats_day', '')::date;
+  v_items jsonb := '[]'::jsonb;
+  v_pause jsonb := null;
+  v_res   jsonb;
+  f record;
+begin
+  if v_basis is null or v_basis not in ('measured', 'no_data', 'unavailable') or coalesce(btrim(p_r->>'line'), '') = '' then
+    raise exception 'fn_it_postmaster_record: a reading needs basis measured|no_data|unavailable and a line (%)', left(p_r::text, 200);
+  end if;
+
+  insert into public.it_postmaster_reading as t (domain, read_on, basis, stats_day, spam_ratio, spam_lower, spam_upper, reputation,
+                                                spf_ratio, dkim_ratio, dmarc_ratio, reason, verdict, line)
+  values (v_dom, v_on, v_basis, v_stats, (p_r->>'spam_ratio')::numeric, (p_r->>'spam_lower')::numeric, (p_r->>'spam_upper')::numeric,
+          p_r->>'reputation', (p_r->>'spf')::numeric, (p_r->>'dkim')::numeric, (p_r->>'dmarc')::numeric,
+          p_r->>'reason', coalesce(p_r->'verdict', '{}'::jsonb), p_r->>'line')
+  on conflict (domain, read_on) do update
+     set basis = excluded.basis, stats_day = excluded.stats_day, spam_ratio = excluded.spam_ratio, spam_lower = excluded.spam_lower,
+         spam_upper = excluded.spam_upper, reputation = excluded.reputation, spf_ratio = excluded.spf_ratio,
+         dkim_ratio = excluded.dkim_ratio, dmarc_ratio = excluded.dmarc_ratio, reason = excluded.reason,
+         verdict = excluded.verdict, line = excluded.line, read_at = now(),
+         -- paused_at belongs to the stats day that paused; a rerun that returns a different day does not inherit it.
+         paused_at = case when t.stats_day is not distinct from excluded.stats_day then t.paused_at end;
+
+  if v_basis = 'measured' and coalesce((p_r->'verdict'->>'finding')::boolean, false) then
+    v_items := v_items || jsonb_build_object('item', 'deliverability:' || v_dom, 'owner_seat', 'it_engineer', 'subject', v_dom,
+      'blast', 'customer_facing',
+      'title', 'Gmail Postmaster ' || v_dom || ' ' || v_stats || ': '
+               || coalesce((select string_agg(x, '; ') from jsonb_array_elements_text(p_r->'verdict'->'reasons') x), 'over threshold'),
+      'evidence', p_r - 'line');
+  elsif v_basis <> 'measured' then
+    -- Postmaster silent or unreadable: an open deliverability finding is held as it stands, not closed.
+    for f in select issue_key, title from public.it_engineer_finding
+              where closed_at is null and issue_key = 'duty:postmaster:deliverability:' || v_dom loop
+      v_items := v_items || jsonb_build_object('item', 'deliverability:' || v_dom, 'title', f.title, 'carried', true,
+                                               'owner_seat', 'it_engineer', 'subject', v_dom);
+    end loop;
+  end if;
+  if v_basis = 'unavailable' then
+    v_items := v_items || jsonb_build_object('item', 'unreadable:' || v_dom, 'config', true, 'owner_seat', 'it_engineer',
+      'blast', 'monitor', 'subject', v_dom,
+      'title', 'Gmail Postmaster could not be read for ' || v_dom || ': ' || coalesce(p_r->>'reason', '?'), 'evidence', p_r - 'line');
+  end if;
+
+  -- The pause: only a RUNNING campaign (invite_enabled = 'true'; stopping a stopped one would only write an error
+  -- run and rewrite the #943 finding), and once per Postmaster day -- a stats day that already paused the
+  -- invitations never pauses them again, so a hand resume is not overridden by the same stale day. A NEW
+  -- Postmaster day still over the line pauses again, deliberately: a trailing LOW/BAD reputation repeats on every
+  -- day it lasts, and each day must keep the campaign stopped even over a manual resume. The finding above is
+  -- filed either way; paused_at is set only when a pause actually happened.
+  if v_basis = 'measured' and coalesce((p_r->'verdict'->>'pause')::boolean, false) and v_stats is not null
+     and coalesce((select value from public.app_secrets where key = 'invite_enabled'), 'false') = 'true'
+     and not exists (select 1 from public.it_postmaster_reading
+                      where domain = v_dom and stats_day = v_stats and paused_at is not null) then
+    v_pause := public.fn_invite_campaign_pause('it_engineer_postmaster',
+      coalesce((select string_agg(x, '; ') from jsonb_array_elements_text(p_r->'verdict'->'reasons') x), 'Gmail Postmaster over threshold')
+        || ' (Postmaster day ' || v_stats || ')',
+      jsonb_build_object('source', 'gmail_postmaster', 'domain', v_dom, 'stats_day', v_stats, 'spam_ratio', p_r->'spam_ratio',
+                         'spam_lower', p_r->'spam_lower', 'spam_upper', p_r->'spam_upper', 'reputation', p_r->'reputation'),
+      jsonb_build_object('stats_day', v_stats, 'spam_ratio', p_r->'spam_ratio', 'reputation', p_r->'reputation'));
+    update public.it_postmaster_reading set paused_at = now() where domain = v_dom and read_on = v_on;
+  end if;
+
+  v_res := public.fn_it_duty_settle('postmaster', v_items) || jsonb_build_object('basis', v_basis, 'paused', v_pause is not null);
+  perform public.fn_it_duty_ran('postmaster', v_res);
+  return v_res;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_provider_watch(p_r jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -48370,6 +48755,63 @@ AS $function$
      and (not c.relrowsecurity or not exists (select 1 from pg_policy pl where pl.polrelid = c.oid))
      -- Only what a browser role can actually read: an RLS-less table nobody is granted is not exposed.
      and (has_table_privilege('anon', c.oid, 'select') or has_table_privilege('authenticated', c.oid, 'select'))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_sender_health_record(p_sender jsonb)
+ RETURNS it_sender_health_daily
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_sent int; v_bounce int; v_compl int; v_listed int; v_wa text; r public.it_sender_health_daily;
+begin
+  select count(*) into v_sent from public.notifications
+   where channel = 'email' and status = 'sent' and sent_at > now() - interval '7 days';
+  select count(*) filter (where reason like 'hard_bounce%'), count(*) filter (where reason = 'spam_complaint')
+    into v_bounce, v_compl from public.email_suppressions
+   where source = 'resend_webhook' and created_at > now() - interval '7 days';
+  select count(*) into v_listed from jsonb_array_elements(coalesce(p_sender->'blocklists', '[]'::jsonb)) b
+   where b->>'basis' = 'measured' and coalesce((b->>'listed')::boolean, false);
+  v_wa := case when p_sender->'whatsapp'->>'basis' = 'measured' then p_sender->'whatsapp'->>'quality' end;
+
+  insert into public.it_sender_health_daily as t
+    (day, sent_7d, hard_bounces_7d, complaints_7d, bounce_rate, complaint_rate, whatsapp_quality, blocklisted, dmarc, breaches)
+  values (current_date, v_sent, v_bounce, v_compl,
+          round(v_bounce::numeric / nullif(v_sent, 0), 5), round(v_compl::numeric / nullif(v_sent, 0), 5),
+          v_wa, v_listed,
+          jsonb_build_object('published', (select jsonb_object_agg(key, value->'dmarc') from jsonb_each(coalesce(p_sender->'dns', '{}'::jsonb))),
+                             'aggregate', jsonb_build_object('basis', 'unavailable',
+                               'reason', 'the rua mailbox is not a store this estate reads')),
+          public.fn_it_sender_health_verdict(v_sent, v_bounce, v_compl, v_wa, v_listed))
+  on conflict (day) do update set
+    sent_7d = excluded.sent_7d, hard_bounces_7d = excluded.hard_bounces_7d, complaints_7d = excluded.complaints_7d,
+    bounce_rate = excluded.bounce_rate, complaint_rate = excluded.complaint_rate,
+    whatsapp_quality = excluded.whatsapp_quality, blocklisted = excluded.blocklisted,
+    dmarc = excluded.dmarc, breaches = excluded.breaches, recorded_at = now()
+  returning * into r;
+  return r;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_sender_health_verdict(p_sent numeric, p_hard_bounces numeric, p_complaints numeric, p_whatsapp_quality text, p_blocklisted integer)
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select array_remove(array[
+    case when p_sent >= coalesce(public.fn_it_threshold('sender_min_sends_7d'), 20)
+          and p_complaints / nullif(p_sent, 0) > coalesce(public.fn_it_threshold('sender_complaint_rate_max'), 0.003)
+         then 'complaint_rate' end,
+    case when p_sent >= coalesce(public.fn_it_threshold('sender_min_sends_7d'), 20)
+          and p_hard_bounces / nullif(p_sent, 0) > coalesce(public.fn_it_threshold('sender_bounce_rate_max'), 0.02)
+         then 'bounce_rate' end,
+    case when upper(coalesce(p_whatsapp_quality, 'UNKNOWN')) not in ('HIGH', 'GREEN', 'UNKNOWN')
+         then 'whatsapp_quality' end,
+    case when coalesce(p_blocklisted, 0) > 0 then 'blocklisted' end
+  ], null)
 $function$
 
 
@@ -59644,6 +60086,135 @@ CREATE OR REPLACE FUNCTION public.fn_policy_int_array(p_key text)
 AS $function$
   select coalesce(array_agg(e::int order by e::int), '{}')
     from public.decision_policy d, jsonb_array_elements_text(d.value) e where d.key = p_key and jsonb_typeof(d.value) = 'array';
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_benchmark_flags_for_inquiry(p_inquiry_id uuid, p_include_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with b as (select * from public.fn_price_benchmarks(p_include_demo, p_inquiry_id)),
+  lines as (
+    select q.id as quote_id, qi.line_no, qi.description, lower(i.category) as trade,
+           public.fn_price_benchmark_key(qi.description, qi.specification) as item_key,
+           public.fn_price_benchmark_unit(qi.unit) as unit,
+           coalesce(qi.unit_price, qi.amount / nullif(qi.qty, 0)) as price
+      from public.quotes q
+      join public.inquiries i on i.id = q.inquiry_id
+      join public.quote_items qi on qi.quote_id = q.id::text
+     where q.inquiry_id = p_inquiry_id and coalesce(q.status, 'submitted') <> 'draft')
+  select coalesce(jsonb_agg(jsonb_build_object('quote_id', l.quote_id, 'line_no', l.line_no, 'description', l.description, 'unit', l.unit)
+           || public.fn_price_benchmark_judge(round(l.price, 2), b.median, b.p25, b.p75, b.quote_count, b.supplier_count, l.unit)
+           || case when b.median is null then '{}'::jsonb else jsonb_build_object('benchmark',
+                jsonb_build_object('median', b.median, 'p25', b.p25, 'p75', b.p75, 'iqr', b.iqr, 'count', b.quote_count, 'last_seen', b.last_seen)) end
+           order by l.quote_id, l.line_no), '[]'::jsonb)
+    from lines l
+    left join b on b.trade = l.trade and b.item_key = l.item_key and b.unit = l.unit
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_benchmark_judge(p_price numeric, p_median numeric, p_p25 numeric, p_p75 numeric, p_count integer, p_suppliers integer, p_unit text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_iqr numeric; v_hi numeric; v_lo numeric; v_range text;
+begin
+  if p_median is null then
+    return jsonb_build_object('status', 'no_benchmark_yet', 'reason', 'No benchmark yet: fewer than 5 quotes from 3 or more suppliers have priced this item.');
+  end if;
+  if p_price is null or p_price <= 0 then
+    return jsonb_build_object('status', 'unpriced', 'reason', 'This line states no unit price, so it cannot be compared with the market range.');
+  end if;
+  v_iqr := greatest(p_p75 - p_p25, 0.10 * p_median);
+  v_hi := p_p75 + 1.5 * v_iqr;  v_lo := greatest(p_p25 - 1.5 * v_iqr, 0);
+  v_range := 'AED ' || to_char(p_p25, 'FM999,999,990.00') || ' to ' || to_char(p_p75, 'FM999,999,990.00')
+          || ' per ' || p_unit || ' (middle half of ' || p_count || ' quotes from ' || p_suppliers
+          || ' suppliers; median AED ' || to_char(p_median, 'FM999,999,990.00') || ')';
+  if p_price > v_hi then
+    return jsonb_build_object('status', 'well_above', 'pct_vs_median', round(100 * (p_price / p_median - 1)),
+      'reason', 'Well above the UAE market range: AED ' || to_char(p_price, 'FM999,999,990.00') || ' is '
+        || round(100 * (p_price / p_median - 1)) || '% over the median. Usual range ' || v_range
+        || '. Ask the supplier what justifies it (brand, grade, scope or delivery).');
+  elsif p_price < v_lo then
+    return jsonb_build_object('status', 'well_below', 'pct_vs_median', round(100 * (p_price / p_median - 1)),
+      'reason', 'Well below the UAE market range: AED ' || to_char(p_price, 'FM999,999,990.00') || ' is '
+        || round(100 * (1 - p_price / p_median)) || '% under the median. Usual range ' || v_range
+        || '. Check the specification, quantity and what is excluded before relying on it.');
+  end if;
+  return jsonb_build_object('status', 'within', 'pct_vs_median', round(100 * (p_price / p_median - 1)),
+    'reason', 'Within the UAE market range. Usual range ' || v_range || '.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_benchmark_key(p_description text, p_specification text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select nullif(btrim(regexp_replace(lower(coalesce(p_description, '') || ' ' || coalesce(p_specification, '')),
+                                     '[^a-z0-9؀-ۿ.]+', ' ', 'g')), '')
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_benchmark_observations(p_include_demo boolean DEFAULT false, p_exclude_inquiry uuid DEFAULT NULL::uuid)
+ RETURNS TABLE(trade text, item_key text, unit text, unit_price numeric, quote_id uuid, supplier_id bigint, accepted boolean, seen_at timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select lower(i.category), public.fn_price_benchmark_key(qi.description, qi.specification),
+         public.fn_price_benchmark_unit(qi.unit),
+         avg(coalesce(qi.unit_price, qi.amount / nullif(qi.qty, 0))),
+         q.id, q.supplier_id, bool_or(q.status in ('accepted', 'won', 'revealed')), max(coalesce(qi.created_at, q.created_at))
+    from public.quote_items qi
+    join public.quotes q on q.id::text = qi.quote_id
+    join public.inquiries i on i.id = q.inquiry_id
+    left join public.leads l on l.id = q.supplier_id
+   where coalesce(q.status, 'submitted') not in ('draft', 'withdrawn', 'cancelled')
+     and q.supplier_id is not null
+     and i.category is not null
+     and coalesce(qi.unit_price, qi.amount / nullif(qi.qty, 0)) > 0
+     and public.fn_price_benchmark_key(qi.description, qi.specification) is not null
+     and (p_exclude_inquiry is null or q.inquiry_id <> p_exclude_inquiry)
+     and (p_include_demo or not (public.fn_inquiry_is_demo(q.inquiry_id)
+                                 or coalesce(l.is_demo, false)
+                                 or coalesce(l.company_name, '') ilike 'ZZ DEMO%'))
+   group by 1, 2, 3, q.id, q.supplier_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_benchmark_unit(p_unit text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(nullif(btrim(regexp_replace(lower(coalesce(p_unit, '')), '[^a-z0-9]+', '', 'g')), ''), 'each')
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_benchmarks(p_include_demo boolean DEFAULT false, p_exclude_inquiry uuid DEFAULT NULL::uuid)
+ RETURNS TABLE(trade text, item_key text, unit text, median numeric, p25 numeric, p75 numeric, iqr numeric, quote_count integer, supplier_count integer, accepted_count integer, last_seen timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select o.trade, o.item_key, o.unit,
+         round((percentile_cont(0.5)  within group (order by o.unit_price))::numeric, 2),
+         round((percentile_cont(0.25) within group (order by o.unit_price))::numeric, 2),
+         round((percentile_cont(0.75) within group (order by o.unit_price))::numeric, 2),
+         round((percentile_cont(0.75) within group (order by o.unit_price)
+              - percentile_cont(0.25) within group (order by o.unit_price))::numeric, 2),
+         count(distinct o.quote_id)::int, count(distinct o.supplier_id)::int,
+         count(distinct o.quote_id) filter (where o.accepted)::int, max(o.seen_at)
+    from public.fn_price_benchmark_observations(p_include_demo, p_exclude_inquiry) o
+   group by 1, 2, 3
+  having count(distinct o.quote_id) >= 5 and count(distinct o.supplier_id) >= 3
 $function$
 
 
@@ -85313,11 +85884,13 @@ ALTER TABLE public.it_incident ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_integration_external_cause ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_model_consumer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_playbook ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_postmaster_reading ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_query_stat_snapshot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_restore_drill_result ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_restore_drill_table ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_security_baseline ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_sender_health_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_spend_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_table_size_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_threshold ENABLE ROW LEVEL SECURITY;
@@ -85762,11 +86335,13 @@ CREATE POLICY it_incident_service_role_only ON public.it_incident AS PERMISSIVE 
 CREATE POLICY it_integration_external_cause_service_role_only ON public.it_integration_external_cause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_model_consumer_service_role_only ON public.it_model_consumer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_playbook_service_role_only ON public.it_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_postmaster_reading_service_role_only ON public.it_postmaster_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_query_stat_snapshot_service_role_only ON public.it_query_stat_snapshot AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_restore_drill_result_service_role_only ON public.it_restore_drill_result AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_restore_drill_table_service_role_only ON public.it_restore_drill_table AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_security_baseline_service_role_only ON public.it_security_baseline AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_sender_health_daily_service_role_only ON public.it_sender_health_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_spend_daily_service_role_only ON public.it_spend_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_table_size_daily_service_role_only ON public.it_table_size_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_threshold_service_role_only ON public.it_threshold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

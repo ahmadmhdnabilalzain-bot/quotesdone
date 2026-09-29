@@ -38,7 +38,7 @@ permissions:
   # "Resource not accessible by integration" and the train releases nothing (29 Sep 2026).
   checks: read
   statuses: read
-  actions: read
+  actions: write   # dispatches checks.yml and project-parity.yml on main after each merge
 
 jobs:
   release:
