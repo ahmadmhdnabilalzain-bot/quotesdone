@@ -1,7 +1,8 @@
 -- PROBE (pure: no DDL, always raises, so nothing survives). Run AFTER
 -- the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql (#1051, which defines the
--- invitation link and candidates) and the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them.sql,
--- or in ONE transaction with both (the raise rolls all back). It must say PROBE OK. marketing, 28 Sep 2026.
+-- invitation link and candidates), an_open_supply_gap_becomes_a_recruitment_brief_marketing_reads_and_closes_at_target.sql
+-- (#996, whose duty body this PR extends) and the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them.sql,
+-- or in ONE transaction with all three (the raise rolls all back). It must say PROBE OK. marketing, 28 Sep 2026.
 --
 -- Fixtures: three ZZ DEMO leads (is_demo by name) with @example.invalid addresses and trade 'zz_demo_trade', marked
 -- invited with NO outbox row. The probe writes no notifications row at all, and asserts the outbox count is unchanged.
@@ -74,6 +75,8 @@ begin
   if v_imp < 1 or not exists (select 1 from public.ceo_improvement where source_kind = 'funnel_stage_drop' and seat = 'marketing') then
     v_fail := v_fail || ' not_filed';
   end if;
+  -- #996's duty (one pool_empty finding per trade group) with this PR's diagnosis added, not the older body
+  if not (v_duty ? 'empty_pool_findings' and v_duty ? 'diagnosis') then v_fail := v_fail || ' duty_not_996_plus_diagnosis=' || v_duty::text; end if;
   v_duty := public.fn_marketing_recruitment_funnel();   -- a second run the same day files nothing new
   if (select count(*) from public.ceo_improvement where source_kind = 'funnel_stage_drop') <> v_imp then v_fail := v_fail || ' filed_twice'; end if;
 

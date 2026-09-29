@@ -32,8 +32,12 @@
 --      the largest drop and a rule-based cause and fix. When a channel has >= N invited (app_secrets
 --      recruitment_diagnosis_min_invites, default 20) and 0 registered, it is filed to the CEO as a ceo_improvement
 --      ('funnel_stage_drop', one per channel, cause and month), which assigns it to marketing.
---   4. fn_marketing_recruitment_funnel (copied from marketing_recruits_where_supply_is_short_and_keeps_the_companys_
---      reputation.sql): its result carries the diagnosis, and it files it.
+--   4. fn_marketing_recruitment_funnel: its result carries the diagnosis, and it files it. Depends-on: #996
+--      (re-review, 29 Sep 2026). The body is #996's
+--      an_open_supply_gap_becomes_a_recruitment_brief_marketing_reads_and_closes_at_target.sql byte for byte (one
+--      pool_empty finding per trade group, the null-extended-row pool fix, 'agent_facing'), with only its return
+--      value extended by 'diagnosis'. The first version copied the older body from MANIFEST 1727, so whichever of
+--      #996 and #1012 applied second would have undone the other. Apply #996 first, then this file.
 --   5. ceo_improvement_source_kind_check gains 'funnel_stage_drop' (list copied from
 --      the_ceo_turns_the_binding_constraint_into_an_improvement_every_week.sql).
 --
@@ -192,17 +196,19 @@ alter table public.ceo_improvement add constraint ceo_improvement_source_kind_ch
                          'funnel_stage_drop'));
 
 -- ── 5. the daily duty carries and files the diagnosis ────────────────────────────────────────────────────
-
+-- #996's body (one pool_empty finding per trade group), byte for byte except the 'diagnosis' key in the result.
 create or replace function public.fn_marketing_recruitment_funnel()
 returns jsonb
 language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare v_day date := (now() at time zone 'Asia/Dubai')::date; v_rows int; gp record; v_empty int := 0;
+declare v_day date := (now() at time zone 'Asia/Dubai')::date; v_rows int; gp record; v_empty int := 0; v_keys text[] := '{}';
 begin
   insert into public.supplier_recruitment_funnel as f (trade, emirate, day, pool, invited, clicked, registered, approved, quoting)
   select g.trade, g.emirate, v_day,
-         count(*) filter (where l.invite_status is null and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)),
+         -- l.id is not null: a gap with NO matching lead is a null-extended row whose invite_status is
+         -- null, which counted as a pool of 1 and so never fired pool_empty (found by this PR's probe).
+         count(*) filter (where l.id is not null and l.invite_status is null and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)),
          count(*) filter (where l.invited_at is not null),
          count(*) filter (where l.invite_clicked_at is not null),
          count(*) filter (where l.registration_submitted_at is not null or coalesce(l.claimed, false)),
@@ -217,30 +223,33 @@ begin
     registered = excluded.registered, approved = excluded.approved, quoting = excluded.quoting;
   get diagnostics v_rows = row_count;
 
-  -- An empty pool is the lead source, not the invitation: marketing's finding, one per gap, closed when it refills.
-  for gp in select f.trade, f.emirate, f.pool from public.supplier_recruitment_funnel f
-            join public.supply_gap s on s.trade = f.trade and s.emirate = f.emirate and s.status = 'recruit'
-           where f.day = v_day loop
-    if gp.pool = 0 then
-      v_empty := v_empty + 1;
-      perform public.fn_it_engineer_finding_upsert('recruitment:pool_empty:' || gp.trade || ':' || gp.emirate,
-        'No uninvited lead is left to recruit for ' || gp.trade || ' (' || gp.emirate || ')',
-        'public.supplier_recruitment_funnel', 'monitor', 1,
-        jsonb_build_object('trade', gp.trade, 'emirate', gp.emirate, 'owner_seat', 'marketing'), '{}'::text[],
-        array['which source can supply leads for this trade while lead scraping is paused'], 'marketing');
-    else
-      update public.it_engineer_finding set closed_at = now(), close_note = 'the pool has leads again'
-       where issue_key = 'recruitment:pool_empty:' || gp.trade || ':' || gp.emirate and closed_at is null;
-    end if;
+  -- An empty pool is the lead source, not the invitation: marketing's finding, one per trade group.
+  for gp in select coalesce(tt.group_code, 'ungrouped') as grp, count(*)::int as n,
+                   jsonb_agg(jsonb_build_object('trade', f.trade, 'emirate', f.emirate) order by f.trade, f.emirate) as gaps
+              from public.supplier_recruitment_funnel f
+              join public.supply_gap s on s.trade = f.trade and s.emirate = f.emirate and s.status = 'recruit'
+              left join public.taxonomy_trade tt on tt.code = f.trade
+             where f.day = v_day and f.pool = 0
+             group by 1 loop
+    v_empty := v_empty + gp.n;
+    v_keys := v_keys || ('recruitment:pool_empty:' || gp.grp);
+    perform public.fn_it_engineer_finding_upsert('recruitment:pool_empty:' || gp.grp,
+      'No uninvited lead is left for ' || gp.n || ' recruiting gap(s) in trade group ' || gp.grp,
+      'public.supplier_recruitment_funnel', 'agent_facing', gp.n,
+      jsonb_build_object('trade_group', gp.grp, 'gap_count', gp.n, 'gaps', gp.gaps, 'owner_seat', 'marketing'), '{}'::text[],
+      array['which source can supply leads for these trades while lead scraping is paused'], 'marketing');
   end loop;
-  update public.it_engineer_finding fi set closed_at = now(), close_note = 'the gap is no longer being recruited for'
-   where fi.issue_key like 'recruitment:pool_empty:%' and fi.closed_at is null
-     and not exists (select 1 from public.supply_gap s where s.status = 'recruit' and 'recruitment:pool_empty:' || s.trade || ':' || s.emirate = fi.issue_key);
+  update public.it_engineer_finding fi
+     set closed_at = now(),
+         close_note = case when fi.issue_key ~ '^recruitment:pool_empty:[^:]+:'
+                           then 'superseded: empty pools are now one finding per trade group'
+                           else 'no recruiting gap in this trade group has an empty pool' end
+   where fi.issue_key like 'recruitment:pool_empty:%' and fi.closed_at is null and not (fi.issue_key = any(v_keys));
 
-  return jsonb_build_object('gaps_recruiting', v_rows, 'empty_pools', v_empty,
+  return jsonb_build_object('gaps_recruiting', v_rows, 'empty_pools', v_empty, 'empty_pool_findings', cardinality(v_keys),
     'totals', (select jsonb_build_object('pool', sum(pool), 'invited', sum(invited), 'registered', sum(registered), 'approved', sum(approved), 'quoting', sum(quoting))
                  from public.supplier_recruitment_funnel where day = v_day),
-    -- which stage lost them, filed to the CEO when a channel has N invited and 0 registered (this file)
+    -- which stage lost them, filed to the CEO when a channel has N invited and 0 registered (#1012)
     'diagnosis', public.fn_marketing_funnel_diagnosis(false, true));
 end $fn$;
 revoke execute on function public.fn_marketing_recruitment_funnel() from public, anon, authenticated;

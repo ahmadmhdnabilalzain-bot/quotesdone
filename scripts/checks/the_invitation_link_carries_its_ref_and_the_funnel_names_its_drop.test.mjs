@@ -45,6 +45,28 @@ test('sent is counted from the outbox, never from the invited status', () => {
   assert.match(d, /fn_ceo_improvement_open\('funnel_stage_drop'/);
 });
 
+// RE-REVIEW (29 Sep 2026): #996 and this PR both redefined fn_marketing_recruitment_funnel from MANIFEST 1727, so the
+// second apply would have undone the first. This PR's duty is #996's body plus the 'diagnosis' key, nothing else.
+const DUTY_996 = 'scripts/sql/an_open_supply_gap_becomes_a_recruitment_brief_marketing_reads_and_closes_at_target.sql';
+test('the duty keeps #996\'s one pool_empty finding per trade group', () => {
+  const duty = body('fn_marketing_recruitment_funnel');
+  assert.match(duty, /left join public\.taxonomy_trade tt on tt\.code = f\.trade/);
+  assert.match(duty, /perform public\.fn_it_engineer_finding_upsert\('recruitment:pool_empty:' \|\| gp\.grp,/);
+  assert.match(duty, /count\(\*\) filter \(where l\.id is not null and l\.invite_status is null/);
+  assert.doesNotMatch(duty, /'recruitment:pool_empty:' \|\| gp\.trade \|\| ':' \|\| gp\.emirate/, 'the per-gap finding of MANIFEST 1727 is back');
+});
+
+test('when #996\'s file is in the tree, this duty is its body with only the diagnosis added', () => {
+  let src;
+  try { src = code(readFileSync(join(REPO, DUTY_996), 'utf8')); } catch { return; }   // #996 not merged yet: the markers above hold
+  const grab = (s) => { const i = s.indexOf('create or replace function public.fn_marketing_recruitment_funnel('); return s.slice(i, s.indexOf('$fn$;', i)).split('\n').map((l) => l.trimEnd()); };
+  const theirs = grab(src), mine = grab(SQL);
+  assert.deepEqual(theirs.filter((l) => !mine.includes(l)).map((l) => l.trim()),
+    ['from public.supplier_recruitment_funnel where day = v_day));'], 'this duty drifted from #996\'s body');
+  assert.deepEqual(mine.filter((l) => !theirs.includes(l)).map((l) => l.trim()),
+    ['from public.supplier_recruitment_funnel where day = v_day),', "'diagnosis', public.fn_marketing_funnel_diagnosis(false, true));"]);
+});
+
 test('the daily duty carries and files the diagnosis', () => {
   assert.match(body('fn_marketing_recruitment_funnel'), /'diagnosis', public\.fn_marketing_funnel_diagnosis\(false, true\)/);
   assert.match(SQL, /'funnel_stage_drop'\)\);/);
