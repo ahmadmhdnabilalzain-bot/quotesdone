@@ -44,6 +44,8 @@ import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { supportReply } from '../_shared/support_reply.ts';
+import { modelHeld } from '../_shared/llm_hold.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -1079,7 +1081,11 @@ async function handleInbound(req: Request): Promise<Response> {
 
     const routeAction = String(route?.action || '');
     const detReply = String(route?.deterministic_reply || '');
-    if (route && detReply && routeAction === 'send_deterministic') {
+    // 781 (28 Sep 2026, customer_support): while a model can answer, no stored sentence is sent — the
+    // deterministic answer, the welcome and the FAQ below are the fallback for the hold or a gateway outage,
+    // and the reply is composed by supportReply further down (the fact pack still grounds it).
+    const reasoningOpen = !(await modelHeld(admin));
+    if (!reasoningOpen && route && detReply && routeAction === 'send_deterministic') {
       const replyR = toContact(detReply.slice(0, 1200));
       const enabledR = (await sec('wa_autoreply_enabled')) === 'true';
       let sentR = false; let sendErrR: string | undefined;
@@ -1135,11 +1141,11 @@ async function handleInbound(req: Request): Promise<Response> {
     // A FIRST CONTACT NO HANDLER CLAIMED gets the welcome (review of #841): placed after the document
     // intake, the founder channel, the supplier price change and fn_wa_route above, so none of them is
     // shadowed, and it declines when either side wrote in the last 24 hours.
-    if (await welcomeFirstContact(menuDeps, menuIn)) {
+    if (!reasoningOpen && await welcomeFirstContact(menuDeps, menuIn)) {
       await logRun('ok', { audience, route: 'menu_welcome', first_contact: 1, cost_aed: 0 }, 'first contact welcomed with the menu');
       return TW(200);
     }
-    if (await answerFromFaq(menuDeps, menuIn)) {
+    if (!reasoningOpen && await answerFromFaq(menuDeps, menuIn)) {
       await logRun('ok', { audience, route: 'faq_answer', cost_aed: 0 }, 'answered from the approved FAQ at no cost');
       return TW(200);
     }
@@ -1213,7 +1219,17 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     // The founder never reaches this point: audience==='founder' returned above, routed through
     // the deterministic road. Only the public audiences get the marketing script.
     const sys = publicSys;
-    const out = await llm(sys, (await (async () => { const { data: prev } = await admin.from('wa_messages').select('inbound,reply').eq('wa_from', From).order('created_at', { ascending: false }).limit(3); const h = (prev || []).reverse().map((m: any) => `Them: ${m.inbound}\nUs: ${m.reply}`).join('\n'); return h ? ('Earlier in this chat:\n' + h + '\n\n') : ''; })()) + 'Latest message from ' + (Profile || 'a contact') + ':\n' + Body.slice(0, 1500), Body, 'wa:' + From);
+    // THE COMPOSED REPLY (781). The FAQ context is the narrowed topic; the company block, the fact pack and the
+    // sender's own record are the facts. The old gateway call below runs only if no model could compose it.
+    const sr = reasoningOpen ? await supportReply(defaultDeps(admin, 'wa_inbound'), {
+      channel: 'whatsapp', message: Body.slice(0, 1500), lang: /[؀-ۿ]/.test(Body) ? 'ar' : 'en',
+      audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor',
+      passages: ctx ? [{ content: ctx }] : [], facts: [audienceBlock, companyBlock, brainPack, ownRecord].filter(Boolean).join('\n\n'),
+      dedupeKey: 'wa_reply:' + (MessageSid || From), subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From },
+    }, () => Promise.resolve(null)) : null;
+    const out = sr?.path === 'reasoned'
+      ? { reply: sr.reply, lang: /[؀-ۿ]/.test(sr.reply) ? 'ar' : 'en', audience: 'unknown', escalate: sr.seat === 'ceo' }
+      : await llm(sys, (await (async () => { const { data: prev } = await admin.from('wa_messages').select('inbound,reply').eq('wa_from', From).order('created_at', { ascending: false }).limit(3); const h = (prev || []).reverse().map((m: any) => `Them: ${m.inbound}\nUs: ${m.reply}`).join('\n'); return h ? ('Earlier in this chat:\n' + h + '\n\n') : ''; })()) + 'Latest message from ' + (Profile || 'a contact') + ':\n' + Body.slice(0, 1500), Body, 'wa:' + From);
     const llmFailed = !out;
     let reply = out?.reply ? String(out.reply).slice(0, 1200) : '';
     // A COMPLAINT THAT REACHES THE MODEL STILL REACHES HIM. fn_wa_route decides whether a message

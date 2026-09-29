@@ -1,0 +1,77 @@
+{
+  "trade": "railway_equipment",
+  "entries": [
+    {
+      "id": "railway_equipment:spec-checklist",
+      "topic": "Railway equipment - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For railway equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) component or system and part number; (2) track gauge and rail profile; (3) applicable standard (EN, IEC, UIC); (4) operator or project and interface requirements; (5) quantity and unit of measure; (6) material certificates and traceability; (7) RAMS or safety case documentation; (8) type approval by the operator or authority; (9) spares and training; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the railway_equipment trade.",
+      "body_ar": "لكي تُقارن عروض معدات السكك الحديدية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المكوّن أو النظام ورقم القطعة؛ (2) عرض السكة ومقطع القضيب؛ (3) المعيار المطبق (EN أو IEC أو UIC)؛ (4) المشغل أو المشروع ومتطلبات التوافق؛ (5) الكمية ووحدة القياس؛ (6) شهادات المواد وإمكانية التتبع؛ (7) وثائق الاعتمادية والسلامة (RAMS)؛ (8) اعتماد النوع من المشغل أو الجهة المختصة؛ (9) قطع الغيار والتدريب؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة railway_equipment فقط.",
+      "required_specs": [
+        "component or system and part number",
+        "track gauge and rail profile",
+        "applicable standard (EN, IEC, UIC)",
+        "operator or project and interface requirements",
+        "quantity and unit of measure",
+        "material certificates and traceability",
+        "RAMS or safety case documentation",
+        "type approval by the operator or authority",
+        "spares and training",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "railway_equipment:uae-standards-and-approvals",
+      "topic": "Railway equipment - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Mainline rail in the UAE is operated by Etihad Rail; urban rail in Dubai (Metro and Tram) is owned by the Roads and Transport Authority (RTA). Railway equipment is normally specified to EN/IEC railway standards and approved by the operator. What the cited sources do not establish: The sources read do not describe a UAE railway type-approval process; the buyer must state the operator's approval requirement.",
+      "body_ar": "يشغّل قطار الاتحاد السكك الحديدية الرئيسية في الإمارات؛ وتملك هيئة الطرق والمواصلات في دبي السكك الحضرية (المترو والترام). وتُحدَّد معدات السكك الحديدية عادةً وفق معايير EN و IEC الخاصة بالسكك وتعتمدها الجهة المشغلة. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تصف إجراء اعتماد النوع للسكك الحديدية في الإمارات؛ على المشتري أن يحدد متطلب الاعتماد لدى المشغل.",
+      "source_note": "The sources read do not describe a UAE railway type-approval process; the buyer must state the operator's approval requirement.",
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for railway equipment?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـمعدات السكك الحديدية؟",
+      "expected_entry_ids": [
+        "railway_equipment:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to railway equipment?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على معدات السكك الحديدية؟",
+      "expected_entry_ids": [
+        "railway_equipment:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "railway_equipment:spec-checklist",
+      "railway_equipment:uae-standards-and-approvals"
+    ],
+    "added": [
+      "railway_equipment:spec-checklist",
+      "railway_equipment:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

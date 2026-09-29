@@ -11,6 +11,7 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
+import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
@@ -257,6 +258,8 @@ Deno.serve(observe('send_outbox', async (req) => {
       // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
       // neither. A licence/document request is transactional and still goes; everything else waits.
       if (holdForNoUnsubscribe(supplierSide, docReq, unsub)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: no unsubscribe link could be built (unsubscribe_signing_key unreadable); supplier mail never goes without one' }).eq('id', n.id); held++; continue; }
+      // NEVER AN ARABIC INVITATION (24 Sep 2026, marketing, ledger 993): held with its reason, not sent.
+      if (holdArabicInvitation(n.type, n.lang)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: the supplier invitation is English only (ledger 993); this row was queued in Arabic' }).eq('id', n.id); held++; continue; }
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
       // agent"), so its mail is signed by that seat, not with the founder's name.
@@ -264,12 +267,18 @@ Deno.serve(observe('send_outbox', async (req) => {
       // THE FRAME SPEAKS THE RECIPIENT'S LANGUAGE TOO (founder, 14 Sep 2026). notifications.lang is
       // the registered language; an Arabic body inside an English signature and footer is exactly the
       // mixed message the rule forbids.
-      const arMail = !internal && n.lang === 'ar';
+      // A SUPPLIER'S FRAME IS ENGLISH (founder, 28 Sep 2026): whatever a row's lang says, a supplier-bound
+      // mail never carries the Arabic signature, footer or right-to-left frame.
+      const arMail = !internal && !supplierSide && n.lang === 'ar';
       // 22 Sep 2026 (documents-language audit, DL-07): the signature block prints NAME then TITLE, and
       // the sales-engineer seat printed "مهندس المبيعات" in both lines — the Arabic reader saw the same
       // words twice where the English reader saw a person and a desk. The name is the seat, the title
       // is the desk it sits at, in both languages.
-      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '', preheader: String(n.type || '').startsWith('supplier_invite') && !arMail ? invitePreheader : '' });
+      // THE INVITATION ENDS WITH ONE QUESTION (24 Sep 2026, marketing): an English supplier invitation whose
+      // stored body does not end with a question gets invitation_copy.ts's, after the link and before the footer.
+      const inviteEn = String(n.type || '').startsWith('supplier_invite') && !arMail;
+      const mailBody = inviteEn ? withReplyQuestion(n.body || '') : (n.body || '');
+      const htmlBody0 = tmpl({ body: mailBody, logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '', preheader: inviteEn ? invitePreheader : '' });
       const htmlBody = ownDomain(arMail ? arabicFrame(htmlBody0) : htmlBody0, Deno.env.get('SUPABASE_URL') || '', assetBase);
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
@@ -289,7 +298,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         const mail: Record<string, unknown> = resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
           // the reply-to address.
-          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });
+          text: plainTextPart({ body: mailBody, unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
         // IDEMPOTENCY-KEY AND A DEADLINE (22 Sep 2026, it_engineer, CONN-03). Resend deduplicates on
         // this header for 24 hours, so the one case a claim cannot prevent — the POST left, the answer
