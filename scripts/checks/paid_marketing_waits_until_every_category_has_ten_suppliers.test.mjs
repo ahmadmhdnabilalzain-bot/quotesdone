@@ -8,6 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { manifestHas, manifestIndex } from '../lib/pending_sql.mjs';
 
 const SQL = 'scripts/sql';
 const manifest = readFileSync(`${SQL}/MANIFEST.txt`, 'utf8').split(/\r?\n/).map(s => s.trim()).filter(s => s.endsWith('.sql'));
@@ -18,7 +19,7 @@ function canonical(name) {
   const files = defining(name);
   const pending = files.filter(f => existsSync(`${SQL}/pending/${f.replace(/\.sql$/, '.txt')}`));
   if (pending.length) return pending.at(-1);
-  return files.filter(f => manifest.includes(f)).sort((a, b) => manifest.lastIndexOf(a) - manifest.lastIndexOf(b)).at(-1);
+  return files.filter((f) => manifestHas(f)).sort((a, b) => manifestIndex(a) - manifestIndex(b)).at(-1);
 }
 
 function body(file, name) {
