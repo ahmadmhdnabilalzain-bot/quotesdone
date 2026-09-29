@@ -259,14 +259,20 @@ export async function main(argv = process.argv.slice(2)) {
     const behind = isBehind(stale);
     log(`nothing to release; #${stale.number} ${behind ? 'is behind main' : 'has required checks that never ran'}: ${DRY ? 'DRY RUN would ' : ''}${behind ? 'update its branch and ' : ''}start its CI`);
     if (!DRY) {
-      const r = behind ? run('gh', ['pr', 'update-branch', String(stale.number)]) : { code: 0, out: 'up to date with main' };
-      log(r.out.trim());
-      // A push made with GITHUB_TOKEN starts no pull_request workflow (29 Sep 2026: twelve PRs the train
-      // updated sat with no CI at all, only Vercel's statuses). Dispatch the two CI workflows on the PR's
-      // branch; their check runs attach to the new head, so the required checks appear and are judged.
-      if (!r.code) for (const wf of ['checks.yml', 'project-parity.yml']) {
-        const d = run('gh', ['workflow', 'run', wf, '--ref', stale.headRefName]);
-        log(`dispatched ${wf} on ${stale.headRefName} -> exit ${d.code}`);
+      if (behind) {
+        const r = run('gh', ['pr', 'update-branch', String(stale.number)]);
+        log(r.out.trim());
+      } else {
+        // A push made with GITHUB_TOKEN (this train's update-branch) leaves the PR's workflow runs in
+        // 'action_required', waiting for approval (29 Sep 2026: twelve PRs sat with only Vercel's statuses).
+        // Approve the waiting runs on this head; they then run as pull_request runs and attach to the PR.
+        let runs = [];
+        try { runs = JSON.parse(run('gh', ['run', 'list', '--branch', stale.headRefName, '--limit', '20',
+          '--json', 'databaseId,conclusion,headSha']).out || '[]'); } catch { log('could not list runs'); }
+        for (const w of runs.filter((x) => x.conclusion === 'action_required' && x.headSha === stale.headRefOid)) {
+          const d = run('gh', ['api', '-X', 'POST', `repos/{owner}/{repo}/actions/runs/${w.databaseId}/approve`]);
+          log(`approved run ${w.databaseId} on #${stale.number} -> exit ${d.code}`);
+        }
       }
     }
     return 0;
