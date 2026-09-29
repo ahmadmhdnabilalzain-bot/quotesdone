@@ -19,8 +19,15 @@ test('kyc accept_terms answers before the certificate is rendered', () => {
   assert.ok(render > 0, 'accept_terms no longer issues the certificate at all');
   const certify = acc.indexOf('const certify = (async () => {');
   assert.ok(certify > 0 && certify < render, 'the compliance_archive render is not inside the background block');
-  assert.match(acc, /rt\.waitUntil\(certify\)/, 'the render is awaited on the request path');
+  assert.match(acc, /if \(kind === 'customer' && typeof rt\?\.waitUntil === 'function'\) \{ rt\.waitUntil\(certify\); return J\(/,
+    'a customer waits on the render');
+  // SupplierPortal re-saves right after this call and supplier_api refuses reg_terms until the PDF exists.
+  assert.match(acc, /return J\(\{ ok: true, signed_url: await certify \}\);/, 'a supplier is answered before the certificate exists');
   assert.ok(!/await timedFetch\(`\$\{FN\}\/compliance_archive`/.test(acc.slice(0, certify)), 'a render is awaited before the answer');
+  assert.match(acc, /meta\.fixture = isDemoEmail\(email\);/, 'a reserved test identity is not marked on its run row');
+  const sql = read('scripts/sql/every_duty_runner_honours_one_pause_switch.sql');
+  const slo = sql.slice(sql.indexOf('create or replace function public.fn_it_engineer_latency_slo()'));
+  assert.match(slo.slice(0, slo.indexOf('group by fn')), /and not \(r\.counts \? 'fixture'\)\)/, 'the SLO counts fixture runs');
 });
 
 test('supplier_portal marks the probe from a verified credential only', () => {

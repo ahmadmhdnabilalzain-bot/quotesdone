@@ -89,6 +89,78 @@ begin
   return jsonb_build_object('ran', v_out, 'problems', jsonb_array_length(v_health));
 end $function$;
 
+-- 3. fn_it_engineer_latency_slo leaves server-marked fixture runs out (finding duty:latency_slo:kyc:error_budget).
+--    Body otherwise unchanged from a_slow_function_breaches_its_budget_however_few_runs_it_had.sql. CREATE OR REPLACE keeps the ACL.
+create or replace function public.fn_it_engineer_latency_slo()
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare x record; j jsonb; v_owner text; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb;
+        v_site numeric; v_site_n int;
+begin
+  for x in
+    with r as (
+      select substring(r.agent from 4) fn, r.started_at, (r.counts->>'ms')::numeric ms,
+             (r.counts->>'budget_ms')::int budget,
+             r.status, (coalesce((r.counts->>'http')::int, 0) >= 500 or r.status = 'error') srv_err
+        from public.agent_runs r
+       where r.agent like 'fn:%' and r.started_at > now() - interval '30 days'
+         and r.counts ? 'budget_ms'
+         and coalesce(r.counts->>'http', '') <> '204' and coalesce(r.counts->>'method', '') <> 'OPTIONS'
+         and coalesce(r.counts->>'region', '') not like 'us-%'
+         -- OUR OWN HARNESS IS NOT A USER (29 Sep 2026): a run the SERVER marked fixture (a reserved test identity,
+         -- _shared/demo_identity.ts; our launch-path probe) spends no error budget - the key refusal_rate already skips.
+         and not (r.counts ? 'fixture'))
+    select fn, max(budget) budget,
+           count(*) filter (where d1 and status = 'ok') n,
+           percentile_cont(0.95) within group (order by ms) filter (where d1 and status = 'ok') p95,
+           count(*) filter (where d1) runs_24h,
+           count(*) filter (where d1 and (srv_err or ms > budget)) bad_24h,
+           count(*) runs_30d,
+           count(*) filter (where srv_err or ms > budget) bad_30d,
+           count(*) filter (where srv_err) err_30d,
+           percentile_cont(0.95) within group (order by ms) p95_30d
+      from (select r.*, r.started_at > now() - interval '24 hours' d1 from r) z
+     group by fn
+  loop
+    j := public.fn_it_slo_judge(x.runs_24h::int, x.p95::numeric, x.budget::int, x.bad_24h::int, x.runs_30d::int, x.bad_30d::int);
+    v_owner := coalesce((select o.owner from public.function_owner o where o.function_slug = x.fn), 'it_engineer');
+    v_out := v_out || jsonb_build_object('fn', x.fn, 'runs', x.n, 'p95_ms', round(x.p95), 'budget_ms', x.budget,
+      'runs_30d', x.runs_30d, 'availability_30d', j->'availability',
+      'error_rate_30d', case when x.runs_30d > 0 then round(x.err_30d::numeric / x.runs_30d, 4) end,
+      'p95_30d_ms', round(x.p95_30d), 'error_budget_spent', j->'budget_spent', 'burn_rate_24h', j->'burn_rate_24h');
+    if (j->>'p95_breach')::boolean then
+      v_items := v_items || jsonb_build_object('item', x.fn, 'subject', x.fn, 'blast', 'customer_facing', 'affected', x.n,
+        'owner_seat', v_owner,
+        'title', x.fn || ' answered in ' || round(x.p95) || ' ms at p95 over the last 24 h (' || x.n || ' runs'
+                 || case when (j->>'small_sample')::boolean then ', a small sample' else '' end
+                 || '); the budget is ' || x.budget || ' ms',
+        'evidence', jsonb_build_object('p95_ms', round(x.p95), 'runs', x.n, 'budget_ms', x.budget, 'window', '24 hours'));
+    end if;
+    if (j->>'budget_breach')::boolean then
+      v_items := v_items || jsonb_build_object('item', x.fn || ':error_budget', 'subject', x.fn, 'blast', 'customer_facing',
+        'affected', x.bad_24h, 'owner_seat', v_owner,
+        'title', x.fn || ' is burning its error budget at ' || (j->>'burn_rate_24h') || 'x over 24 h; 30-day availability '
+                 || round((j->>'availability')::numeric * 100, 2) || ' % against a 99.9 % objective',
+        'evidence', j || jsonb_build_object('runs_24h', x.runs_24h, 'bad_24h', x.bad_24h, 'runs_30d', x.runs_30d,
+                                            'bad_30d', x.bad_30d, 'server_errors_30d', x.err_30d));
+    end if;
+  end loop;
+
+  select percentile_cont(0.95) within group (order by site_ms), count(site_ms) into v_site, v_site_n
+    from public.it_watch_tick where ran_at > now() - interval '24 hours' and site_ms is not null;
+  if v_site_n >= 30 and v_site > 2500 then
+    v_items := v_items || jsonb_build_object('item', 'site_home', 'subject', 'website', 'blast', 'customer_facing', 'owner_seat', 'it_engineer',
+      'title', 'The website home page answered in ' || round(v_site) || ' ms at p95 over the last 24 h; the budget is 2500 ms',
+      'evidence', jsonb_build_object('p95_ms', round(v_site), 'samples', v_site_n));
+  end if;
+
+  return jsonb_build_object('functions', v_out, 'site_p95_ms', round(v_site), 'site_samples', v_site_n,
+                            'settled', public.fn_it_duty_settle('latency_slo', v_items));
+end $fn$;
+grant execute on function public.fn_it_engineer_latency_slo() to service_role;
+
 update public.internal_credential
    set scope = array_append(scope, 'supplier_portal')
  where context = 'fn.resilience_ping' and not ('supplier_portal' = any(scope));
