@@ -492,15 +492,16 @@
   "51fafd239b66",
   "65bc30b75d95",
   "758afa3fc916",
-  "97b2643435c6",
+  "7affa4ca66a6",
   "aa1597b6e501",
   "acb14c24213d",
   "b3988efa6f34",
   "b9a73df3c9f5",
   "d0fcea2d7d46",
+  "d345c9a3397d",
   "d5e8cb4363a1",
+  "df5bbb5efec4",
   "eb9024a4bba6",
-  "f1f039b8a7d3",
   "fa24f24c3dfe"
  ],
  "scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_the_invitation_queue.sql": [

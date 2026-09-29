@@ -227,13 +227,14 @@ export const REGISTER = {
       '{"decision":"ZZ DEMO approve in full"}'::jsonb, null, null, true)`,
     asOf: { ai_cost_log: 'occurred_at' },
   },
-  // 29 Sep 2026 (sales_engineer, #1106, ledger 1018 item 1). Raises inquiry_rescue:no_uninvited_leads:<trades>:<emirate>
-  // when a real request has had no quote for 48 h after matching and no uninvited lead is left for its trade and area.
+  // 29 Sep 2026 (sales_engineer, #1106, ledger 1018 item 1). Raises stalled_inquiry_rescue:no_uninvited_leads:<trades>:<emirate>
+  // when a real request is in the stalled-inquiry rescue (no quote 48 h after matching, or nobody reachable - #1105's
+  // intake) and no uninvited lead is left for its trade and area.
   // It reads the requests, matches and quotes that existed at the instant; a healthy day has no stalled real request with
   // an empty pool, so it is quiet. p_include_fixtures false: a ZZ DEMO request never raises it. The rescue rows, the
   // customer's update and the enqueue_supplier_invites call it makes are inside the rolled-back replay; while pending,
   // the replay runs its pending file first. Measured 29 Sep 2026: quiet at all five instants, and with a stalled request
-  // in a trade with no uninvited lead staged at 2026-09-14T06:00Z it fires inquiry_rescue:no_uninvited_leads:...:Ajman.
+  // in a trade with no uninvited lead staged at 2026-09-14T06:00Z it fires the no_uninvited_leads finding for Ajman.
   fn_sales_engineer_stalled_inquiry_rescue: {
     replay: 'pg_temp.qd_replay_fn_sales_engineer_stalled_inquiry_rescue(false)',
     asOf: { inquiries: 'created_at', inquiry_matches: 'sent_at', quotes: 'created_at' },

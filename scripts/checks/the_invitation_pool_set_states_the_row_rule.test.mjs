@@ -88,7 +88,7 @@ test('a pending fn_supplier_invite_candidates is the latest applied body with on
     assert.deepEqual(gone, ["case when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))"],
       `${f} is not ${canonFile} with only the recruit tier's first line re-worded`);
     assert.deepEqual(added, [
-      'rescue as materialized (select x.trades, x.emirate from public.inquiry_rescue x where x.closed_at is null and not x.fixture),',
+      'rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),',
       "case when exists (select 1 from rescue x where x.trades && coalesce(c.invite_trades, '{}'::text[])",
       "and (x.emirate is null or x.emirate = 'UAE' or x.emirate = c.emirate)) then -1",
       "when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))",

@@ -20,6 +20,10 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const NAME = 'a_stalled_request_puts_its_trade_and_area_first_in_recruitment_and_tells_the_customer';
 const FILE = `scripts/sql/${NAME}.sql`;
 const PROBE = `scripts/sql/${NAME}_probe.sql`;
+// DEPENDS-ON #1105: its file creates public.stalled_inquiry_rescue and fn_stalled_inquiry_flag; while pending it runs first.
+const COMPANION = 'scripts/sql/a_busy_or_paused_supplier_is_skipped_and_an_unreachable_inquiry_goes_to_the_rescue.sql';
+const companionPending = existsSync(join(REPO, 'scripts/sql/pending', COMPANION.split('/').pop().replace(/\.sql$/, '.txt')));
+const companionSrc = companionPending ? readFileSync(join(REPO, COMPANION), 'utf8') : '';
 const QUEUE = 'scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_the_invitation_queue.sql';
 const queueSrc = readFileSync(join(REPO, QUEUE), 'utf8');
 const queuePending = existsSync(join(REPO, 'scripts/sql/pending', QUEUE.split('/').pop().replace(/\.sql$/, '.txt')));
@@ -31,7 +35,7 @@ const body = (fn) => bodyIn(src, FILE, fn);
 
 test('the rescued trade and area are the first tier of the invitation queue, and only a real rescue counts', () => {
   const c = bodyIn(queueSrc, QUEUE, 'fn_supplier_invite_candidates');
-  assert.match(c, /rescue as materialized \(select x\.trades, x\.emirate from public\.inquiry_rescue x where x\.closed_at is null and not x\.fixture\)/,
+  assert.match(c, /rescue as materialized \(select x\.trades, x\.emirate from public\.stalled_inquiry_rescue x where x\.cleared_at is null and not x\.fixture and cardinality\(x\.trades\) > 0\)/,
     'the queue does not read the open, real rescues');
   const tiers = c.slice(c.indexOf('case when exists (select 1 from rescue x'));
   assert.ok(tiers.indexOf('then -1') > 0 && tiers.indexOf('then -1') < tiers.indexOf("g.status = 'recruit'"), 'the rescue tier is not ahead of the recruit tier');
@@ -54,7 +58,21 @@ test('the customer is told in both languages, in the formal register', () => {
 
 test('the duty has a clock, the table is exported daily, and the file is pending XOR in MANIFEST', () => {
   assert.match(src, /\('sales_engineer\.stalled_inquiry_rescue',[\s\S]*?'30 minutes', true, 'fn_sales_engineer_stalled_inquiry_rescue'/);
-  assert.match(body('fn_table_export_list'), /\('inquiry_rescue','inquiry'\)/, 'inquiry_rescue is not in the daily export');
+  assert.match(body('fn_table_export_list'), /\('stalled_inquiry_rescue','inquiry'\)/, 'stalled_inquiry_rescue is not in the daily export');
+});
+
+// ONE SUBJECT, ONE HOME (review of #1106, 29 Sep 2026): #1105's public.stalled_inquiry_rescue is the rescue's only table,
+// one routine acts on it, and #1105's intake clears only its own reason.
+test('one rescue table, extended not duplicated; #1105\'s intake clears only its own reason', () => {
+  assert.doesNotMatch(src, /create\s+table[^;]*\binquiry_rescue\b/i, 'a second rescue table is created');
+  assert.match(src, /alter table public\.stalled_inquiry_rescue\s+add column if not exists trades/, 'the rescue does not extend #1105\'s table');
+  assert.match(src, /check \(reason in \('no_reachable_supplier', 'no_quote_48h'\)\)/, 'the no-quote reason is not admitted');
+  const flag = body('fn_stalled_inquiry_flag');
+  const clears = [...flag.matchAll(/update public\.stalled_inquiry_rescue set cleared_at = now\(\)[\s\S]*?;/g)].map((m) => m[0]);
+  assert.equal(clears.length, 2, 'fn_stalled_inquiry_flag no longer has its two clears');
+  for (const u of clears) assert.match(u, /reason = 'no_reachable_supplier'/, 'fn_stalled_inquiry_flag clears a rescue it did not flag');
+  const r = body('fn_sales_engineer_stalled_inquiry_rescue');
+  assert.match(r, /where x\.cleared_at is null and x\.acted_at is null/, 'the rescue does not act on every open row, whichever way it came in');
   const manifest = readFileSync(join(REPO, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim());
   assert.ok(pending !== manifest.includes(FILE), 'exactly one of a pending note and a MANIFEST line');
   assert.ok(queuePending !== manifest.includes(QUEUE), `${QUEUE}: exactly one of a pending note and a MANIFEST line`);
@@ -65,7 +83,8 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 
 test('production, aborted: a stalled ZZ DEMO request is rescued, told, ranked first and closed', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const block = (pending ? src + '\n' : '') + (queuePending ? queueSrc + '\n' : '') + readFileSync(join(REPO, PROBE), 'utf8');
+  const block = (companionPending ? companionSrc + '\n' : '') + (pending ? src + '\n' : '') + (queuePending ? queueSrc + '\n' : '')
+    + readFileSync(join(REPO, PROBE), 'utf8');
   let msg = '';
   try { await sql(block, { retry: false }); msg = 'the probe committed instead of rolling back'; } catch (e) { msg = String(e.message); }
   const m = msg.match(/CHK<<([\s\S]*?)>>/);

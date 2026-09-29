@@ -2,8 +2,8 @@
 -- Seat: sales_engineer. Founder ledger 1018, round 3, item 1 (29 Sep 2026): "queue uninvited leads first, using marketing's gap
 -- ranking ... Keep all the existing invite brakes, caps and the founder's go switch."
 --
--- The companion of a_stalled_request_puts_its_trade_and_area_first_in_recruitment_and_tells_the_customer.sql (which creates
--- public.inquiry_rescue and the duty that opens and closes rescues; it sorts before this file, so it applies first).
+-- The companion of a_stalled_request_puts_its_trade_and_area_first_in_recruitment_and_tells_the_customer.sql (which extends
+-- #1105's public.stalled_inquiry_rescue and owns the rescue; it sorts before this file, so it applies first).
 --
 -- fn_supplier_invite_candidates is main's canonical body (the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_
 -- its_timeout.sql, MANIFEST 1844), copied verbatim with ONE change, dated 29 Sep 2026 in the body: the rescue CTE, and a lead
@@ -70,9 +70,9 @@ begin
   touched_n as materialized (select distinct nkey from keyed where touched and nkey is not null),
   -- instr 1013: marketing's ranking of the trades below ten suppliers, with each trade's English variant
   plans as materialized (select p.trade, p.emirate, p.rank, p.invite_subject, p.invite_body from public.marketing_gap_recruitment_plan p),
-  -- 29 Sep 2026 (ledger 1018): the trades and areas of the open, real stalled-request rescues (public.inquiry_rescue).
+  -- 29 Sep 2026 (ledger 1018): the trades and areas of the open, real stalled-request rescues (public.stalled_inquiry_rescue).
   -- A fixture rescue never moves the real queue.
-  rescue as materialized (select x.trades, x.emirate from public.inquiry_rescue x where x.closed_at is null and not x.fixture),
+  rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),
   cand as (
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
            l.invite_trades, l.emirate, k.dkey, k.nkey,
