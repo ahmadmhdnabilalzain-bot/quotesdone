@@ -233,7 +233,14 @@ Deno.serve(observe('quote_compare', async (req) => {
     // Every live quote with its place (see rosterOf). Recomputed on every answer, cached or not,
     // so it always reflects the quotes as they are now; it is never part of the model's input.
     // deno-lint-ignore no-explicit-any
-    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
+    // UAE PRICE BENCHMARKS (founder instruction 1009, upgrade 4). Plain code in the database
+    // (scripts/sql/uae_price_benchmarks_come_only_from_real_quotes.sql): each priced line is judged against
+    // the median / IQR of real quotes on OTHER enquiries (>= 5 quotes, >= 3 suppliers, demo excluded), and
+    // says why when it is well above or below. Until real data exists every line reads no_benchmark_yet.
+    // Not applied yet -> the rpc errors and the comparison simply carries no benchmark block.
+    let priceBenchmarks: any[] | null = null;
+    try { const { data, error } = await admin.rpc('fn_price_benchmark_flags_for_inquiry', { p_inquiry_id: inquiry_id }); if (!error && Array.isArray(data)) priceBenchmarks = data; } catch (_e) { priceBenchmarks = null; }
+    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.price_benchmarks = priceBenchmarks; a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
     const qhash = await sha256hex(JSON.stringify(labelled));
     // THE SPEC SWEEP NEEDS NO MODEL (22 Sep 2026). sales_engineer's spec_offer_sweep reads only
     // technical_detail, which is computed above by code. It used to run the full model comparison

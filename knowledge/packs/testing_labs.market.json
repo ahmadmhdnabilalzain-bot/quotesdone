@@ -1,0 +1,104 @@
+{
+  "trade": "testing_labs",
+  "layer": "uae-market",
+  "label_en": "Geotechnical & materials testing labs",
+  "label_ar": "مختبرات فحص التربة والمواد",
+  "entries": [
+    {
+      "id": "testing_labs:uae-market-products",
+      "topic": "Geotechnical & materials testing labs: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Testing laboratory services in the UAE include construction materials testing (concrete cubes/cylinders compressive strength to BS EN 12390, aggregates, cement, steel rebar tensile testing, soil testing and CBR, asphalt, blocks, tiles, waterproofing), geotechnical investigation (boreholes, SPT, plate load tests), water testing (drinking water to UAE.S/GSO standards, swimming pools, cooling towers for Legionella), food testing (microbiology, chemical contaminants, shelf life, nutritional labelling, halal DNA tests), environmental testing (air, noise, wastewater, soil contamination), product testing for conformity (electrical safety to IEC, toys, textiles, cosmetics), petroleum and lubricants testing (ASTM/IP methods), fire testing of materials (reaction to fire, fire resistance, facade cladding tests for Civil Defence), and medical/clinical laboratory testing (separate DHA/DOH-licensed labs). Buyers require ISO/IEC 17025 accreditation for the specific test from EIAC or ILAC-MRA bodies, and for projects often Dubai Central Laboratory or municipality-approved labs; Civil Defence approves specific labs for fire testing.",
+      "body_ar": "تشمل خدمات مختبرات الاختبار في الإمارات اختبار مواد البناء (مقاومة ضغط مكعبات/أسطوانات الخرسانة وفق BS EN 12390، والركام، والإسمنت، واختبار الشد لحديد التسليح، واختبار التربة ونسبة تحمل كاليفورنيا، والأسفلت، والطوب، والبلاط، والعزل المائي)، والتحريات الجيوتقنية (الآبار الاستكشافية، واختبار الاختراق القياسي، واختبارات تحميل اللوح)، واختبار المياه (مياه الشرب وفق المواصفات الإماراتية/الخليجية، وبرك السباحة، وأبراج التبريد للكشف عن الليجيونيلا)، واختبار الأغذية (الأحياء الدقيقة، والملوثات الكيميائية، ومدة الصلاحية، والملصقات الغذائية، واختبارات الحمض النووي للحلال)، والاختبارات البيئية (الهواء، والضوضاء، ومياه الصرف، وتلوث التربة)، واختبار المنتجات للمطابقة (السلامة الكهربائية وفق IEC، والألعاب، والمنسوجات، ومستحضرات التجميل)، واختبار البترول وزيوت التشحيم (طرق ASTM/IP)، واختبارات الحريق للمواد (التفاعل مع الحريق، ومقاومة الحريق، واختبارات كسوة الواجهات للدفاع المدني)، والاختبارات المخبرية الطبية/السريرية (مختبرات منفصلة مرخصة من هيئة الصحة بدبي/دائرة الصحة). يشترط المشترون اعتماد ISO/IEC 17025 للاختبار المحدد من مركز الإمارات الدولي للاعتماد أو جهات اتفاقية الاعتراف المتبادل ILAC، وللمشاريع غالباً مختبر دبي المركزي أو مختبرات معتمدة من البلدية؛ ويعتمد الدفاع المدني مختبرات محددة لاختبارات الحريق.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.sgs.com/en-ae",
+        "https://urslabs.com/approvals-accreditations/",
+        "https://www.tbwic.com",
+        "https://www.dm.gov.ae",
+        "https://ilac.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits testing laboratories -> confirmed | SGS operates testing in the UAE -> confirmed | URS Testing Laboratory (Jebel Ali) is EIAC accredited -> confirmed | Thomas Bell-Wright fire testing site -> removed: domain did not resolve. Not checked: Which labs currently hold Civil Defence approval for facade fire tests and the current name/status of the Abu Dhabi quality council labs were not verified."
+    },
+    {
+      "id": "testing_labs:uae-market-brands",
+      "topic": "Geotechnical & materials testing labs: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE labs and international testing groups: SGS, URS Testing Laboratory, Dubai Central Laboratory, Intertek, Element, Eurofins. Intertek, Element and Eurofins UAE labs were not checked on opened pages; ask for the ISO/IEC 17025 scope covering your test.",
+      "body_ar": "المختبرات المؤكدة في الإمارات ومجموعات الاختبار الدولية: SGS، URS Testing Laboratory، Dubai Central Laboratory، Intertek، Element، Eurofins. ولم يُتحقق من مختبرات إنترتك وإليمنت ويوروفينز في الإمارات عبر صفحات مفتوحة؛ ويجب طلب نطاق ISO/IEC 17025 الذي يغطي الاختبار المطلوب.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.sgs.com/en-ae",
+        "https://urslabs.com/approvals-accreditations/",
+        "https://www.tbwic.com",
+        "https://www.dm.gov.ae",
+        "https://ilac.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits testing laboratories -> confirmed | SGS operates testing in the UAE -> confirmed | URS Testing Laboratory (Jebel Ali) is EIAC accredited -> confirmed | Thomas Bell-Wright fire testing site -> removed: domain did not resolve. Not checked: Which labs currently hold Civil Defence approval for facade fire tests and the current name/status of the Abu Dhabi quality council labs were not verified."
+    },
+    {
+      "id": "testing_labs:uae-market-sizes",
+      "topic": "Geotechnical & materials testing labs: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per test/sample per parameter (e.g. per set of 3 concrete cubes, per rebar tensile test, per water sample with a parameter suite), per borehole metre for geotechnical work, per day for on-site technicians, and per project for fire testing programmes (full-scale facade tests are major projects). Annual rate contracts with contractors are common. Turnaround: concrete at 7/28 days by standard, others 3-10 days; urgent at surcharge.",
+      "body_ar": "تُسعّر لكل اختبار/عينة لكل مؤشر (مثل لكل مجموعة من 3 مكعبات خرسانة، ولكل اختبار شد لحديد التسليح، ولكل عينة مياه بمجموعة مؤشرات)، ولكل متر من البئر الاستكشافية للأعمال الجيوتقنية، ويومياً للفنيين في الموقع، ولكل مشروع لبرامج اختبارات الحريق (اختبارات الواجهات بالحجم الكامل مشاريع كبيرة). والعقود السنوية بأسعار ثابتة مع المقاولين شائعة. ومدة التنفيذ: الخرسانة عند 7/28 يوماً حسب المعيار، والأخرى 3-10 أيام؛ والعاجل برسوم إضافية.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.sgs.com/en-ae",
+        "https://urslabs.com/approvals-accreditations/",
+        "https://www.tbwic.com",
+        "https://www.dm.gov.ae",
+        "https://ilac.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits testing laboratories -> confirmed | SGS operates testing in the UAE -> confirmed | URS Testing Laboratory (Jebel Ali) is EIAC accredited -> confirmed | Thomas Bell-Wright fire testing site -> removed: domain did not resolve. Not checked: Which labs currently hold Civil Defence approval for facade fire tests and the current name/status of the Abu Dhabi quality council labs were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Does the lab testing our concrete cubes need to be approved by Dubai Municipality?",
+      "q_ar": "هل يجب أن يكون المختبر الذي يختبر مكعبات الخرسانة معتمداً من بلدية دبي؟",
+      "expected_entry_ids": [
+        "testing_labs:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EIAC accredits testing laboratories",
+        "url": "https://eiac.gov.ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "SGS operates testing in the UAE",
+        "url": "https://www.sgs.com/en-ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "URS Testing Laboratory (Jebel Ali) is EIAC accredited",
+        "url": "https://urslabs.com/approvals-accreditations/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Thomas Bell-Wright fire testing site",
+        "url": "https://www.tbwic.com",
+        "result": "removed: domain did not resolve"
+      }
+    ],
+    "unverified": "Which labs currently hold Civil Defence approval for facade fire tests and the current name/status of the Abu Dhabi quality council labs were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
