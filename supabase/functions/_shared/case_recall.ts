@@ -93,7 +93,10 @@ async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Pro
     const { data, error } = await admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {
       p_seat: o.seat, p_embedding: typeof vec === 'string' ? vec : '[' + vec.join(',') + ']',
       p_trade: o.trade ?? null, p_k: o.k ?? 5, p_case_kind: o.caseKind ?? null,
-      p_other_seats: o.otherSeats ?? true,
+      // A SEAT RECALLS ITS OWN CASES unless it asks for more (28 Sep 2026, learning-loop audit C14). The
+      // default was every seat's cases, so a customer-facing think() could put an accountant's or the CEO's
+      // internal case into a customer reply's prompt. The CEO oversees every seat and keeps the wide view.
+      p_other_seats: o.otherSeats ?? o.seat === 'ceo',
       p_exclude_source_table: o.exclude?.table ?? null, p_exclude_source_id: o.exclude?.id ?? null,
     });
     if (error) return { ...base, available: false, reason: 'recall_failed: ' + error.message };
@@ -102,6 +105,20 @@ async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Pro
   } catch (e) {
     return { ...base, available: false, reason: 'recall_failed: ' + String((e as Error)?.message || e) };
   }
+}
+
+/**
+ * A DETERMINISTIC path closes the judgement its recall opened (28 Sep 2026). think() closes its own; before
+ * this, every other path left its judgement at 'recalled' forever (9 of 9 on production). `followed` is the
+ * recalled cases the decision actually used ([] = decided without a precedent); fn_judgement_decided refuses
+ * a case that was not recalled. Recording never fails the decision.
+ */
+export async function decideJudgement(admin: Rpc, m: CaseMemory, decision: string, followed: number[]): Promise<void> {
+  if (m.judgement_id == null) return;
+  try {
+    await admin.rpc('fn_judgement_decided', { p_id: m.judgement_id, p_status: 'answered', p_decision: decision.slice(0, 2000),
+      p_confidence: null, p_model: 'deterministic', p_followed: followed });
+  } catch (_e) { /* recording never fails the decision */ }
 }
 
 /** The block a model path puts in its system prompt. Empty when there is nothing to remember. */

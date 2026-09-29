@@ -31,6 +31,7 @@ import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/
 // One door decides whether a supplier may be revealed, and one predicate decides whether a quote is
 // complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
 import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.ts';
+import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../_shared/drawing_format.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -831,6 +832,7 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'analyze_boq') {
       const name = String(body.file_name || 'boq').slice(0, 180);
       const mime = String(body.mime || '');
+      { const refused = drawingFormatRefusal(name, mime); if (refused) return J(refused, 415); }
       const b64 = String(body.file_b64 || '');
       if (!b64) return J({ ok: false, error: 'empty_upload' }, 400);
       // 5 MB of bytes is about 6.7 MB of base64: refused here before anything is decoded or forwarded.
@@ -848,12 +850,13 @@ Deno.serve(observe('customer_api', async (req) => {
     }
 
     // EVERY DOCUMENT (14 Sep 2026; founder: "the sales agent need to be extremely capable of reading
-    // all types of document"). Word, PowerPoint, ODF, RTF, text, email (.eml/.msg), DXF, IFC, GAEB,
+    // all types of document"). Word, PowerPoint, ODF, RTF, text, email (.eml/.msg), DXF, GAEB,
     // zip and PDF are read by drawing_boq mode 'document' with no model; a photo arrives with the
     // customer's browser OCR as ocr_text. The same 20 MB ceiling as doc_read; stored only if accepted.
     if (action === 'analyze_document') {
       const name = String(body.file_name || 'document').slice(0, 180);
       const mime = String(body.mime || '');
+      { const refused = drawingFormatRefusal(name, mime); if (refused) return J(refused, 415); }
       const b64 = String(body.file_b64 || '');
       if (!b64) return J({ ok: false, error: 'empty_upload' }, 400);
       if (b64.length > 27 * 1024 * 1024) return J({ ok: false, error: 'file_too_large', code: 'file_too_large', message: 'That file is too large. Please upload a smaller version.', message_ar: 'هذا الملف كبير جدًا. يُرجى رفع نسخة أصغر.' }, 413);
@@ -871,6 +874,7 @@ Deno.serve(observe('customer_api', async (req) => {
         const job = p ? await queueCadRead({ customerId: cust.id, email, path: p, name, mime, b64Len: b64.length, why: cadWhy }) : null;
         if (job) return J({ ok: true, boq: null, kind: 'dxf', needs: 'cad_conversion', drawing_file_path: p, drawing_file_name: name, drawing_redacted_paths: [], stored: true, note: 'cad_queued', cad_job_id: job });
       }
+      if (jd?.error === DRAWING_FORMAT_ERROR) return J(drawingFormatRefused(), 415);
       if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
       // A DXF's take-off carries the file's own names (layers, blocks, title block): cad_identity takes them
@@ -891,6 +895,8 @@ Deno.serve(observe('customer_api', async (req) => {
       let images: any[] = Array.isArray(body.images) ? body.images.slice(0, MAX_DRAWING_PAGES) : [];
       const name = String(body.drawing_file_name || 'drawing').slice(0, 180);
       const mime = String(body.mime || 'application/octet-stream');
+      // Founder ruling 28 Sep 2026: a drawing is PDF or CAD (DWG/DXF) only (_shared/drawing_format.ts).
+      { const refused = drawingFormatRefusal(name, mime); if (refused) return J(refused, 415); }
       const hint = String(body.hint || '').slice(0, 400);
       const path = body.original_b64 ? await storeOriginal(cust.id, email, name, mime, String(body.original_b64)) : null;
       const secret = await getSecret('cred_fn_customer_api');
@@ -1103,6 +1109,10 @@ Deno.serve(observe('customer_api', async (req) => {
     }
 
     if (action === 'create_inquiry') {
+      // THE INQUIRY'S LANGUAGE (founder, 28 Sep 2026): every message to the customer about this request
+      // uses the language they chose when they created it - the page language the composer sends.
+      // Stored on inquiries.lang; public.fn_inquiry_locale reads it. Suppliers are always written in English.
+      const inquiryLang = documentLocale(body.lang, cust.locale);
       // THE FOUNDER'S ACCOUNT RULE (14 Sep 2026): a request is made only by a signed-up customer with
       // a name, an 18+ date of birth, an OTP-verified mobile OR email, and the Terms checkbox. The
       // definition lives in _shared/account_rule.ts so kyc and this gate cannot drift. A reachable
@@ -1309,11 +1319,11 @@ Deno.serve(observe('customer_api', async (req) => {
         const parentIdRef = { id: '' };
         const res = await splitInquiry(distinctTrades, {
           insertParent: async () => {
-            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, category: 'combined', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'split', budget, scope_type: 'multi', trades: distinctTrades, brief_source: briefSource, ...drawCols, ...briefCols }).select('id').maybeSingle();
+            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'combined', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'split', budget, scope_type: 'multi', trades: distinctTrades, brief_source: briefSource, ...drawCols, ...briefCols }).select('id').maybeSingle();
             return error || !data ? null : String(data.id);
           },
           insertChild: async (tr) => {
-            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, parent_inquiry_id: parentIdRef.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary(tr), keywords: childKw(tr), status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
+            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, parent_inquiry_id: parentIdRef.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary(tr), keywords: childKw(tr), status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
             return error || !data ? null : String(data.id);
           },
           deleteInquiries: async (ids) => {
@@ -1350,7 +1360,7 @@ Deno.serve(observe('customer_api', async (req) => {
 
       if (wantTurnkey) {
         const tkKeywords = Array.from(new Set([...keywords, 'fitout', 'fit out', 'fit-out', 'turnkey', 'interior', 'renovation', 'decoration', ...distinctTrades])).slice(0, 40);
-        const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
+        const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
         if (e1) return J(...inquiryNotSaved(e1));
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
@@ -1359,7 +1369,7 @@ Deno.serve(observe('customer_api', async (req) => {
         return J(postedSingle(String(inq!.id), 'turnkey', matches));
       }
 
-      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
+      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) return J(...inquiryNotSaved(e1));
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';

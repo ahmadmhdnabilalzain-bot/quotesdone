@@ -1,0 +1,742 @@
+{
+  "seat": "marketing",
+  "standard": "founder_instruction 889, 893, 894: professional knowledge for the seat's own work",
+  "items": [
+    {
+      "id": "marketing-exam-01",
+      "checklist": "MKT-PRO",
+      "q_en": "Should the site redirect Arabic-speaking visitors automatically to the Arabic pages?",
+      "q_ar": "هل يعيد الموقع توجيه الزوار الناطقين بالعربية تلقائياً إلى الصفحات العربية؟",
+      "expected_entry_ids": [
+        "marketing:hreflang-bilingual-seo"
+      ],
+      "expected_facts": [
+        "Do not redirect visitors automatically"
+      ]
+    },
+    {
+      "id": "marketing-exam-02",
+      "checklist": "MKT-PRO",
+      "q_en": "What must hreflang annotations between English and Arabic pages look like?",
+      "q_ar": "كيف يجب أن تكون وسوم hreflang بين الصفحات الإنجليزية والعربية؟",
+      "expected_entry_ids": [
+        "marketing:hreflang-bilingual-seo"
+      ],
+      "expected_facts": [
+        "reciprocal",
+        "x-default"
+      ]
+    },
+    {
+      "id": "marketing-exam-03",
+      "checklist": "MKT-PRO",
+      "q_en": "What are the Core Web Vitals thresholds?",
+      "q_ar": "ما حدود مؤشرات أداء الويب الأساسية؟",
+      "expected_entry_ids": [
+        "marketing:core-web-vitals"
+      ],
+      "expected_facts": [
+        "2.5 seconds",
+        "200 milliseconds",
+        "0.1"
+      ]
+    },
+    {
+      "id": "marketing-exam-04",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we pay a construction blog for a link to our site?",
+      "q_ar": "هل يمكن أن ندفع لمدونة بناء مقابل رابط لموقعنا؟",
+      "expected_entry_ids": [
+        "marketing:digital-pr-link-earning"
+      ],
+      "expected_facts": [
+        "rel=\"sponsored\"",
+        "never pay for a followed link"
+      ]
+    },
+    {
+      "id": "marketing-exam-05",
+      "checklist": "MKT-PRO",
+      "q_en": "How do we get our explainer videos to show in Google search?",
+      "q_ar": "كيف نجعل فيديوهاتنا التعريفية تظهر في بحث جوجل؟",
+      "expected_entry_ids": [
+        "marketing:video-seo"
+      ],
+      "expected_facts": [
+        "VideoObject"
+      ]
+    },
+    {
+      "id": "marketing-exam-06",
+      "checklist": "MKT-PRO",
+      "q_en": "Our reel got views but nobody clicked. Which numbers should we read?",
+      "q_ar": "حقق مقطعنا مشاهدات لكن لم ينقر أحد، أي أرقام نقرأ؟",
+      "expected_entry_ids": [
+        "marketing:short-form-video-metrics"
+      ],
+      "expected_facts": [
+        "hook rate",
+        "link clicks"
+      ]
+    },
+    {
+      "id": "marketing-exam-07",
+      "checklist": "MKT-PRO",
+      "q_en": "How do we know whether our Meta ads actually caused the sign-ups?",
+      "q_ar": "كيف نعرف أن إعلانات ميتا سببت التسجيلات فعلاً؟",
+      "expected_entry_ids": [
+        "marketing:incrementality-lift-and-mmm"
+      ],
+      "expected_facts": [
+        "holdout",
+        "upper bound"
+      ]
+    },
+    {
+      "id": "marketing-exam-08",
+      "checklist": "MKT-PRO",
+      "q_en": "What does Gmail require from our bulk marketing emails?",
+      "q_ar": "ماذا تشترط جيميل على رسائلنا التسويقية الجماعية؟",
+      "expected_entry_ids": [
+        "marketing:lifecycle-onboarding-emails"
+      ],
+      "expected_facts": [
+        "one-click unsubscribe",
+        "0.3%"
+      ]
+    },
+    {
+      "id": "marketing-exam-09",
+      "checklist": "MKT-PRO",
+      "q_en": "How fast should we respond to a supplier who started sign-up?",
+      "q_ar": "بأي سرعة نرد على مورد بدأ التسجيل؟",
+      "expected_entry_ids": [
+        "marketing:lead-scoring-and-speed-to-lead"
+      ],
+      "expected_facts": [
+        "within an hour",
+        "minutes, not days"
+      ]
+    },
+    {
+      "id": "marketing-exam-10",
+      "checklist": "MKT-PRO",
+      "q_en": "How do we measure share of voice against competitors?",
+      "q_ar": "كيف نقيس حصة الصوت مقابل المنافسين؟",
+      "expected_entry_ids": [
+        "marketing:share-of-voice-brand-tracking"
+      ],
+      "expected_facts": [
+        "excess share of voice",
+        "same competitor set"
+      ]
+    },
+    {
+      "id": "marketing-exam-11",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we launch a free first month for suppliers in Dubai right away?",
+      "q_ar": "هل نطلق شهراً أول مجانياً للموردين في دبي فوراً؟",
+      "expected_entry_ids": [
+        "marketing:det-promotion-permits"
+      ],
+      "expected_facts": [
+        "Department of Economy and Tourism",
+        "permit check"
+      ]
+    },
+    {
+      "id": "marketing-exam-12",
+      "checklist": "MKT-PRO",
+      "q_en": "What content belongs at the bottom of the funnel?",
+      "q_ar": "ما المحتوى الذي ينتمي إلى أسفل القمع؟",
+      "expected_entry_ids": [
+        "marketing:messaging-house-and-funnel-content"
+      ],
+      "expected_facts": [
+        "pricing pages"
+      ]
+    },
+    {
+      "id": "marketing-exam-13",
+      "checklist": "MKT-PRO",
+      "q_en": "What is the difference between GEO and classic SEO for our marketplace?",
+      "q_ar": "ما الفرق بين تحسين الظهور في محركات الإجابة التوليدية وتحسين محركات البحث التقليدي لمنصتنا؟",
+      "expected_entry_ids": [
+        "marketing:geo-definition"
+      ],
+      "expected_facts": [
+        "ranked list of ten links",
+        "generative answer engines"
+      ]
+    },
+    {
+      "id": "marketing-exam-14",
+      "checklist": "MKT-PRO",
+      "q_en": "Which crawler must we allow so our pages can appear in ChatGPT search?",
+      "q_ar": "أي زاحف يجب أن نسمح به لكي تظهر صفحاتنا في بحث ChatGPT؟",
+      "expected_entry_ids": [
+        "marketing:geo-engine-retrieval-map"
+      ],
+      "expected_facts": [
+        "OAI-SearchBot",
+        "GPTBot is the separate training crawler"
+      ]
+    },
+    {
+      "id": "marketing-exam-15",
+      "checklist": "MKT-PRO",
+      "q_en": "How long should the direct answer under each question heading be?",
+      "q_ar": "ما الطول المناسب للإجابة المباشرة تحت كل عنوان سؤال؟",
+      "expected_entry_ids": [
+        "marketing:geo-answer-first-content"
+      ],
+      "expected_facts": [
+        "40-70 word direct answer"
+      ]
+    },
+    {
+      "id": "marketing-exam-16",
+      "checklist": "MKT-PRO",
+      "q_en": "Is an llms.txt file required, and what is its only mandatory element?",
+      "q_ar": "هل ملف llms.txt إلزامي، وما عنصره الإلزامي الوحيد؟",
+      "expected_entry_ids": [
+        "marketing:geo-llms-txt"
+      ],
+      "expected_facts": [
+        "The only mandatory element is an H1"
+      ]
+    },
+    {
+      "id": "marketing-exam-17",
+      "checklist": "MKT-PRO",
+      "q_en": "How do we measure whether answer engines mention QuotesDone?",
+      "q_ar": "كيف نقيس ما إذا كانت محركات الإجابة تذكر QuotesDone؟",
+      "expected_entry_ids": [
+        "marketing:geo-measurement"
+      ],
+      "expected_facts": [
+        "prompt panel",
+        "three runs per prompt"
+      ]
+    },
+    {
+      "id": "marketing-exam-18",
+      "checklist": "MKT-PRO",
+      "q_en": "Can the Arabic page canonicalise to the English version?",
+      "q_ar": "هل يجوز أن تشير الصفحة العربية بالرابط القانوني إلى النسخة الإنجليزية؟",
+      "expected_entry_ids": [
+        "marketing:geo-arabic"
+      ],
+      "expected_facts": [
+        "never let the Arabic page canonicalise to English"
+      ]
+    },
+    {
+      "id": "marketing-exam-19",
+      "checklist": "MKT-PRO",
+      "q_en": "What must every public page pass before we invest in content?",
+      "q_ar": "ما الذي يجب أن تجتازه كل صفحة عامة قبل أن نستثمر في المحتوى؟",
+      "expected_entry_ids": [
+        "marketing:seo-technical-baseline"
+      ],
+      "expected_facts": [
+        "self-referencing canonical",
+        "no redirect chains"
+      ]
+    },
+    {
+      "id": "marketing-exam-20",
+      "checklist": "MKT-PRO",
+      "q_en": "Should buyer and supplier keyword research be done together?",
+      "q_ar": "هل يجرى بحث الكلمات المفتاحية للمشترين والموردين معاً؟",
+      "expected_entry_ids": [
+        "marketing:seo-keyword-research"
+      ],
+      "expected_facts": [
+        "Research separately for each side"
+      ]
+    },
+    {
+      "id": "marketing-exam-21",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we generate a page for every trade in every emirate?",
+      "q_ar": "هل يمكننا إنشاء صفحة لكل تخصص في كل إمارة؟",
+      "expected_entry_ids": [
+        "marketing:seo-programmatic-trade-city"
+      ],
+      "expected_facts": [
+        "scaled content abuse"
+      ]
+    },
+    {
+      "id": "marketing-exam-22",
+      "checklist": "MKT-PRO",
+      "q_en": "Which element of E-E-A-T matters most for our pages?",
+      "q_ar": "أي عنصر من عناصر الخبرة والتخصص والموثوقية والثقة هو الأهم لصفحاتنا؟",
+      "expected_entry_ids": [
+        "marketing:seo-eeat"
+      ],
+      "expected_facts": [
+        "Trust the most important"
+      ]
+    },
+    {
+      "id": "marketing-exam-23",
+      "checklist": "MKT-PRO",
+      "q_en": "Does a small creator with few followers need a permit to post paid content about us?",
+      "q_ar": "هل يحتاج صانع محتوى صغير بعدد متابعين قليل إلى تصريح لنشر محتوى مدفوع عنا؟",
+      "expected_entry_ids": [
+        "marketing:uae-media-council-advertiser-permit"
+      ],
+      "expected_facts": [
+        "no follower-count threshold",
+        "1 February 2026"
+      ]
+    },
+    {
+      "id": "marketing-exam-24",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we use the email from an RFQ to send marketing newsletters?",
+      "q_ar": "هل يجوز استخدام البريد الإلكتروني الوارد في طلب عرض سعر لإرسال نشرات تسويقية؟",
+      "expected_entry_ids": [
+        "marketing:pdpl-marketing"
+      ],
+      "expected_facts": [
+        "not automatically marketing consent"
+      ]
+    },
+    {
+      "id": "marketing-exam-25",
+      "checklist": "MKT-PRO",
+      "q_en": "What must we collect from a creator before any collaboration?",
+      "q_ar": "ما الذي يجب أن نحصل عليه من صانع المحتوى قبل أي تعاون؟",
+      "expected_entry_ids": [
+        "marketing:influencer-creator-rules"
+      ],
+      "expected_facts": [
+        "Advertiser Permit number"
+      ]
+    },
+    {
+      "id": "marketing-exam-26",
+      "checklist": "MKT-PRO",
+      "q_en": "During which hours may we make marketing calls to suppliers?",
+      "q_ar": "في أي ساعات يجوز لنا إجراء المكالمات التسويقية للموردين؟",
+      "expected_entry_ids": [
+        "marketing:telemarketing-rules-56-2024"
+      ],
+      "expected_facts": [
+        "between 9 am and 6 pm",
+        "Do Not Call Register"
+      ]
+    },
+    {
+      "id": "marketing-exam-27",
+      "checklist": "MKT-PRO",
+      "q_en": "Can our ads compare QuotesDone with a competitor platform?",
+      "q_ar": "هل يجوز أن تقارن إعلاناتنا بين QuotesDone ومنصة منافسة؟",
+      "expected_entry_ids": [
+        "marketing:comparative-advertising-rules"
+      ],
+      "expected_facts": [
+        "truthful and does not mislead"
+      ]
+    },
+    {
+      "id": "marketing-exam-28",
+      "checklist": "MKT-PRO",
+      "q_en": "What company size fits our supplier ideal customer profile?",
+      "q_ar": "ما حجم الشركة الذي يناسب ملف المورد المثالي لدينا؟",
+      "expected_entry_ids": [
+        "marketing:icp-suppliers"
+      ],
+      "expected_facts": [
+        "2-200 staff"
+      ]
+    },
+    {
+      "id": "marketing-exam-29",
+      "checklist": "MKT-PRO",
+      "q_en": "Which side of the marketplace should marketing prioritise in 2026?",
+      "q_ar": "أي جانب من السوق يجب أن يعطيه التسويق الأولوية في عام 2026؟",
+      "expected_entry_ids": [
+        "marketing:marketplace-cold-start"
+      ],
+      "expected_facts": [
+        "constrained side",
+        "one confirmed supplier gates every RFQ"
+      ]
+    },
+    {
+      "id": "marketing-exam-30",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we pay cash for every referred supplier sign-up?",
+      "q_ar": "هل يجوز أن ندفع مبلغاً نقدياً عن كل مورد مسجل عبر الإحالة؟",
+      "expected_entry_ids": [
+        "marketing:referral-programme"
+      ],
+      "expected_facts": [
+        "never cash per signup"
+      ]
+    },
+    {
+      "id": "marketing-exam-31",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we publish a savings percentage in a customer case study?",
+      "q_ar": "هل يجوز نشر نسبة توفير في دراسة حالة لعميل؟",
+      "expected_entry_ids": [
+        "marketing:case-studies-standard"
+      ],
+      "expected_facts": [
+        "no savings percentage"
+      ]
+    },
+    {
+      "id": "marketing-exam-32",
+      "checklist": "MKT-PRO",
+      "q_en": "Which framework do we use to define our positioning?",
+      "q_ar": "ما الإطار الذي نستخدمه لتحديد تموضع العلامة؟",
+      "expected_entry_ids": [
+        "marketing:positioning"
+      ],
+      "expected_facts": [
+        "April Dunford"
+      ]
+    },
+    {
+      "id": "marketing-exam-33",
+      "checklist": "MKT-PRO",
+      "q_en": "Should our Arabic website copy be written in Emirati dialect?",
+      "q_ar": "هل تكتب نصوص موقعنا العربية باللهجة الإماراتية؟",
+      "expected_entry_ids": [
+        "marketing:arabic-dialect-vs-msa"
+      ],
+      "expected_facts": [
+        "Modern Standard Arabic",
+        "not translated from English"
+      ]
+    },
+    {
+      "id": "marketing-exam-34",
+      "checklist": "MKT-PRO",
+      "q_en": "How should our brand voice sound in copy?",
+      "q_ar": "كيف يجب أن يبدو صوت علامتنا في النصوص؟",
+      "expected_entry_ids": [
+        "marketing:brand-voice-guidelines"
+      ],
+      "expected_facts": [
+        "knowledgeable procurement colleague"
+      ]
+    },
+    {
+      "id": "marketing-exam-35",
+      "checklist": "MKT-PRO",
+      "q_en": "When is Ramadan 2027 expected to begin in the UAE?",
+      "q_ar": "متى يتوقع أن يبدأ شهر رمضان 2027 في الإمارات؟",
+      "expected_entry_ids": [
+        "marketing:ramadan-uae-calendar"
+      ],
+      "expected_facts": [
+        "8 February"
+      ]
+    },
+    {
+      "id": "marketing-exam-36",
+      "checklist": "MKT-PRO",
+      "q_en": "Which post format should we use for buyer education on LinkedIn?",
+      "q_ar": "ما صيغة المنشور التي نستخدمها لتثقيف المشترين على لينكدإن؟",
+      "expected_entry_ids": [
+        "marketing:platform-linkedin"
+      ],
+      "expected_facts": [
+        "document/carousel posts"
+      ]
+    },
+    {
+      "id": "marketing-exam-37",
+      "checklist": "MKT-PRO",
+      "q_en": "Do hashtags increase reach on our social posts?",
+      "q_ar": "هل تزيد الوسوم من انتشار منشوراتنا على وسائل التواصل؟",
+      "expected_entry_ids": [
+        "marketing:hashtag-strategy"
+      ],
+      "expected_facts": [
+        "not a reach engine"
+      ]
+    },
+    {
+      "id": "marketing-exam-38",
+      "checklist": "MKT-PRO",
+      "q_en": "What happens to a post that fails one item of the quality checklist?",
+      "q_ar": "ماذا يحدث لمنشور لا يجتاز بنداً واحداً من قائمة الجودة؟",
+      "expected_entry_ids": [
+        "marketing:post-quality-checklist"
+      ],
+      "expected_facts": [
+        "passes all items or is held"
+      ]
+    },
+    {
+      "id": "marketing-exam-39",
+      "checklist": "MKT-PRO",
+      "q_en": "When should the National Day greeting be posted?",
+      "q_ar": "متى تنشر التهنئة باليوم الوطني؟",
+      "expected_entry_ids": [
+        "marketing:national-day-campaign-norms"
+      ],
+      "expected_facts": [
+        "no posting on the public-holiday days"
+      ]
+    },
+    {
+      "id": "marketing-exam-40",
+      "checklist": "MKT-PRO",
+      "q_en": "What video length fits a problem-agitate-solve explainer?",
+      "q_ar": "ما مدة الفيديو المناسبة لشرح يعرض المشكلة ويضخمها ثم يقدم الحل؟",
+      "expected_entry_ids": [
+        "marketing:video-types"
+      ],
+      "expected_facts": [
+        "(30-60 s)"
+      ]
+    },
+    {
+      "id": "marketing-exam-41",
+      "checklist": "MKT-PRO",
+      "q_en": "Why does the hook matter so much in short video?",
+      "q_ar": "لماذا تعد الافتتاحية مهمة جداً في الفيديو القصير؟",
+      "expected_entry_ids": [
+        "marketing:hooks"
+      ],
+      "expected_facts": [
+        "watch-through",
+        "the hook decides distribution"
+      ]
+    },
+    {
+      "id": "marketing-exam-42",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we offer a discount to buyers who leave a Google review?",
+      "q_ar": "هل يجوز تقديم خصم للمشترين الذين يكتبون مراجعة على جوجل؟",
+      "expected_entry_ids": [
+        "marketing:review-solicitation-rules"
+      ],
+      "expected_facts": [
+        "review gating",
+        "fake-engagement policy"
+      ]
+    },
+    {
+      "id": "marketing-exam-43",
+      "checklist": "MKT-PRO",
+      "q_en": "How quickly must we reply to a Google review?",
+      "q_ar": "بأي سرعة يجب أن نرد على مراجعة في جوجل؟",
+      "expected_entry_ids": [
+        "marketing:responding-to-reviews-and-complaints"
+      ],
+      "expected_facts": [
+        "within one working day"
+      ]
+    },
+    {
+      "id": "marketing-exam-44",
+      "checklist": "MKT-PRO",
+      "q_en": "How should UTM parameters be formatted for our campaigns?",
+      "q_ar": "كيف يجب تنسيق معاملات UTM لحملاتنا؟",
+      "expected_entry_ids": [
+        "marketing:utm-standard"
+      ],
+      "expected_facts": [
+        "all lowercase",
+        "no personal data"
+      ]
+    },
+    {
+      "id": "marketing-exam-45",
+      "checklist": "MKT-PRO",
+      "q_en": "One post did twice as well as another; do we change strategy?",
+      "q_ar": "حقق منشور ضعف أداء منشور آخر، فهل نغير الاستراتيجية؟",
+      "expected_entry_ids": [
+        "marketing:small-sample-decision-rule"
+      ],
+      "expected_facts": [
+        "Never declare a winner"
+      ]
+    },
+    {
+      "id": "marketing-exam-46",
+      "checklist": "MKT-PRO",
+      "q_en": "Can a promotional offer be sent as a WhatsApp utility template?",
+      "q_ar": "هل يجوز إرسال عرض ترويجي كقالب خدمي على واتساب؟",
+      "expected_entry_ids": [
+        "marketing:whatsapp-template-categories"
+      ],
+      "expected_facts": [
+        "must be non-promotional"
+      ]
+    },
+    {
+      "id": "marketing-exam-47",
+      "checklist": "MKT-PRO",
+      "q_en": "What does a sender of 5,000 emails a day to Gmail need beyond SPF?",
+      "q_ar": "ما الذي يحتاجه مرسل 5,000 رسالة يومياً إلى جيميل إضافة إلى SPF؟",
+      "expected_entry_ids": [
+        "marketing:email-authentication-bulk-sender-rules"
+      ],
+      "expected_facts": [
+        "BOTH SPF and DKIM",
+        "DMARC"
+      ]
+    },
+    {
+      "id": "marketing-exam-48",
+      "checklist": "MKT-PRO",
+      "q_en": "Will a product launch alone earn press coverage?",
+      "q_ar": "هل يكفي إطلاق منتج وحده للحصول على تغطية صحفية؟",
+      "expected_entry_ids": [
+        "marketing:pr-press"
+      ],
+      "expected_facts": [
+        "Product launches alone rarely earn coverage"
+      ]
+    },
+    {
+      "id": "marketing-exam-49",
+      "checklist": "MKT-PRO",
+      "q_en": "When and where is Big 5 Global in 2026?",
+      "q_ar": "متى وأين يقام معرض Big 5 Global في عام 2026؟",
+      "expected_entry_ids": [
+        "marketing:events-uae-trade-shows"
+      ],
+      "expected_facts": [
+        "23-26 November 2026",
+        "Dubai World Trade Centre"
+      ]
+    },
+    {
+      "id": "marketing-exam-50",
+      "checklist": "MKT-PRO",
+      "q_en": "Which edits restart the Meta learning phase?",
+      "q_ar": "ما التعديلات التي تعيد مرحلة التعلم في ميتا؟",
+      "expected_entry_ids": [
+        "marketing:meta-learning-phase"
+      ],
+      "expected_facts": [
+        "50 optimisation events",
+        "Significant edits"
+      ]
+    },
+    {
+      "id": "marketing-exam-51",
+      "checklist": "MKT-PRO",
+      "q_en": "Does a negative keyword block its plural and misspellings automatically?",
+      "q_ar": "هل تحجب الكلمة المفتاحية السلبية صيغة الجمع والأخطاء الإملائية تلقائياً؟",
+      "expected_entry_ids": [
+        "marketing:google-ads-negative-keywords"
+      ],
+      "expected_facts": [
+        "do NOT match close variants"
+      ]
+    },
+    {
+      "id": "marketing-exam-52",
+      "checklist": "MKT-PRO",
+      "q_en": "When should we rotate the creative in a retargeting ad set?",
+      "q_ar": "متى يجب تبديل التصميم الإعلاني في مجموعة إعلانات إعادة الاستهداف؟",
+      "expected_entry_ids": [
+        "marketing:frequency-creative-fatigue"
+      ],
+      "expected_facts": [
+        "CTR falls by roughly a third",
+        "3-5 live creatives"
+      ]
+    },
+    {
+      "id": "marketing-exam-53",
+      "checklist": "MKT-PRO",
+      "q_en": "How long does LinkedIn keep Lead Gen Form data?",
+      "q_ar": "كم يحتفظ لينكدإن ببيانات نماذج جمع العملاء المحتملين؟",
+      "expected_entry_ids": [
+        "marketing:linkedin-lead-gen-forms"
+      ],
+      "expected_facts": [
+        "after 90 days",
+        "three custom questions"
+      ]
+    },
+    {
+      "id": "marketing-exam-54",
+      "checklist": "MKT-PRO",
+      "q_en": "How is engagement rate by reach calculated?",
+      "q_ar": "كيف يحسب معدل التفاعل بالنسبة إلى الوصول؟",
+      "expected_entry_ids": [
+        "marketing:marketing-glossary"
+      ],
+      "expected_facts": [
+        "interactions ÷ reach"
+      ]
+    },
+    {
+      "id": "marketing-exam-55",
+      "checklist": "MKT-PRO",
+      "q_en": "Where does marketing send a lead that came from a social post?",
+      "q_ar": "إلى أين يرسل التسويق عميلاً محتملاً جاء من منشور على وسائل التواصل؟",
+      "expected_entry_ids": [
+        "marketing:handoffs-and-governance"
+      ],
+      "expected_facts": [
+        "sales_engineer via social.lead"
+      ]
+    },
+    {
+      "id": "marketing-exam-56",
+      "checklist": "MKT-PRO",
+      "q_en": "Can our copy say buyers see only three quotes?",
+      "q_ar": "هل يجوز أن تذكر نصوصنا أن المشترين يرون ثلاثة عروض فقط؟",
+      "expected_entry_ids": [
+        "marketing:company-hard-rules-in-copy"
+      ],
+      "expected_facts": [
+        "Never write \"only three shown\"",
+        "Suppliers pay no commission"
+      ]
+    },
+    {
+      "id": "marketing-exam-57",
+      "checklist": "MKT-PRO",
+      "q_en": "What happens if a revealed supplier does not respond?",
+      "q_ar": "ماذا يحدث إذا لم يرد المورد الذي كشفت هويته؟",
+      "expected_entry_ids": [
+        "marketing:company-pricing-message"
+      ],
+      "expected_facts": [
+        "within 5 working days",
+        "refunded automatically"
+      ]
+    },
+    {
+      "id": "marketing-exam-58",
+      "checklist": "MKT-PRO",
+      "q_en": "I have a campaign idea. What is the first thing to establish?",
+      "q_ar": "لدي فكرة حملة، ما أول ما يجب تحديده؟",
+      "expected_entry_ids": [
+        "marketing:reasoning-campaign-idea"
+      ],
+      "expected_facts": [
+        "which company KPI moves"
+      ]
+    },
+    {
+      "id": "marketing-exam-59",
+      "checklist": "MKT-PRO",
+      "q_en": "When should we not recommend paid spend on a channel?",
+      "q_ar": "متى لا نوصي بالإنفاق المدفوع على قناة ما؟",
+      "expected_entry_ids": [
+        "marketing:reasoning-paid-spend"
+      ],
+      "expected_facts": [
+        "cost per reveal exceeds the fee"
+      ]
+    }
+  ]
+}

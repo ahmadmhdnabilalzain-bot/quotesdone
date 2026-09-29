@@ -37,3 +37,19 @@ export function supaClient(storageKey: string): AuthOnly {
   }
   return c;
 }
+
+// The one PostgREST read a portal makes itself, as the signed-in user: NewRequest's trade spec guide
+// (fn_customer_spec_guide, granted to authenticated only). supabase-js did it with .rpc().maybeSingle();
+// the auth-only client has no data client, so this is that call by hand: the session's access token,
+// the anon apikey, and the first row or null. A non-2xx rejects, as supabase-js's error did.
+export async function supaRpcMaybeOne(storageKey: string, fn: string, args: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+  const { data } = await supaClient(storageKey).auth.getSession();
+  const r = await fetch(new URL('rest/v1/rpc/' + fn, SUPA_URL.replace(/\/?$/, '/')).href, {
+    method: 'POST',
+    headers: { apikey: SUPA_ANON, Authorization: `Bearer ${data.session?.access_token ?? SUPA_ANON}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  });
+  if (!r.ok) throw new Error(`[qd] rpc ${fn} answered ${r.status}`);
+  const j = await r.json();
+  return Array.isArray(j) ? (j[0] ?? null) : j;
+}

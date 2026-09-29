@@ -23,13 +23,15 @@
 //   * pdf.js came from cdnjs at runtime -> pdfRaster.ts, bundled.
 //   * The homepage draft handoff -> initialText is sent as the first message, once.
 import { useEffect, useRef, useState } from 'react';
-import * as m from 'motion/react-m';
+import * as M from 'motion/react-m';
 import { AnimatePresence, useReducedMotion } from 'motion/react';
 import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren, UserRound, ChevronLeft, ChevronRight, Eraser, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { mergeAttachment } from '@/lib/requestAttachments';
+import { supaRpcMaybeOne } from '@/lib/supaClient';
+import { specGuideText } from '@/lib/specGuide';
 import { boqNote, confidenceWord } from '@/lib/boqNotes';
 import { t, tf, errText, emirateName } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
@@ -66,8 +68,11 @@ import { blobToWavB64 } from '@/lib/wavEncode';
 // 14 Sep 2026 ("the sales agent need to be extremely capable of reading all types of document"): every
 // document drawing_boq's 'document' mode reads goes to analyze_document; PDFs, photos and DWG keep the
 // drawing path (redacted pages for suppliers).
-const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|ifc|xml|x8[1-6]|zip|dxf|rvt|rfa|dgn)$/i;
-const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type' };
+const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|xml|x8[1-6]|zip|dxf)$/i;
+// Founder ruling 28 Sep 2026: a drawing is PDF or CAD (DWG/DXF) only. The server refuses the rest the same way
+// (supabase/functions/_shared/drawing_format.ts); refused here first so nothing is uploaded.
+const REFUSED_DRAWING_RE = /\.(rvt|rfa|rte|rft|ifc|ifczip|ifcxml|dgn|dgnlib|dwf|dwfx|skp|3dm|nwd|nwc|nwf|step|stp|pln)$/i;
+const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type', drawing_format_not_accepted: 'nr_drawing_format' };
 
 // A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
 const qText = (q) => (q == null ? '' : typeof q === 'string' ? q : String(q.text || q.question || q.label || q.key || ''));
@@ -99,6 +104,18 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [posted, setPosted] = useState(null); // set when create_inquiry answered ok and reached no supplier
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // The trade's published "how to specify" guide (scripts/sql/customer_spec_guide.sql); none -> nothing shown.
+  const guideTrade = (brief && brief.category) || meta.category || '';
+  const [guide, setGuide] = useState(null);
+  useEffect(() => {
+    let live = true;
+    setGuide(null);
+    if (!guideTrade) return;
+    supaRpcMaybeOne('qd-cust-auth', 'fn_customer_spec_guide', { p_trade: guideTrade })
+      .then((data) => { if (live) setGuide(data ? { ...data, status: 'published' } : null); }, () => {});
+    return () => { live = false; };
+  }, [guideTrade]);
+  const guideText = specGuideText(guide, lang);
   const [rec, setRec] = useState(false); const [voxBusy, setVoxBusy] = useState(false); const recRef = useRef(null);
   const fileRef = useRef(null); const boqRef = useRef(null); const endRef = useRef(null); const inputRef = useRef(null); const sentDraft = useRef(false);
   const modelHeld = llmAvailable === false;
@@ -242,6 +259,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   };
   const onFile = async (file, source = 'drawing') => {
     if (!file) return; setMsg('');
+    if (REFUSED_DRAWING_RE.test(file.name)) return refuseDrawing();
     push({ role: 'user', text: '', chip: file.name });
     if (tooBig(file)) return;
     setAnalyzing(true); setEditor(false);
@@ -313,6 +331,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // drawing_boq and create_inquiry stores it on the RFQ suppliers read.
   const onBoq = async (file) => {
     if (!file) return;
+    if (REFUSED_DRAWING_RE.test(file.name)) return refuseDrawing();
     if (!DOC_RE.test(file.name)) return onFile(file, 'boq');
     setMsg(''); push({ role: 'user', text: '', chip: file.name });
     const reset = () => { try { if (boqRef.current) boqRef.current.value = ''; if (fileRef.current) fileRef.current.value = ''; } catch (_e) {} };
@@ -324,8 +343,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       const rows = (res && res.ok && res.boq && res.boq.boq) || [];
       if (!res || !res.ok) push({ role: 'assistant', text: t(lang, BOQ_ERR[res && res.error] || 'nr_boq_err_generic') });
       else if (res.note === 'cad_queued' && res.cad_job_id) { adopt(res, file.name, 'drawing'); push({ role: 'assistant', text: t(lang, 'nr_cad_queued') }); pollCad(res, file.name, 'drawing'); }
-      // A Revit model or a DGN (22 Sep 2026): read for what is certain, with the reader's own ask for an
-      // export (IFC / DWG / DXF / PDF), shown in the customer's language through boqNotes.
+      // A read that says what it needs (a photo's OCR, a DWG past the edge ceiling): the reader's own
+      // notes, shown in the customer's language through boqNotes.
       else if (!rows.length && res.needs && res.boq && Array.isArray(res.boq.missing_info) && res.boq.missing_info.length) {
         adopt(res, file.name, 'drawing');
         push({ role: 'assistant', text: res.boq.missing_info.map((s) => boqNote(s, lang)).join(' ') });
@@ -339,7 +358,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_generic') }); }
     setAnalyzing(false); reset();
   };
-  const onAny = (f) => (f && DOC_RE.test(f.name) ? onBoq(f) : onFile(f));
+  const onAny = (f) => (f && REFUSED_DRAWING_RE.test(f.name) ? refuseDrawing() : f && DOC_RE.test(f.name) ? onBoq(f) : onFile(f));
+  const refuseDrawing = () => { push({ role: 'assistant', text: t(lang, 'nr_drawing_format') }); try { if (fileRef.current) fileRef.current.value = ''; if (boqRef.current) boqRef.current.value = ''; } catch (_e) {} };
   const applyBoxes = async (boxes) => {
     if (!pages) return false;
     const res = await analyze(pages, boxes).catch(() => null);
@@ -404,7 +424,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
     const firstUser = messages.find((m) => m.role === 'user' && m.text);
     const summary = (brief && brief.summary) || (firstUser ? firstUser.text.slice(0, 180) : category);
-    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, requirement_edits: edits }, token).catch(() => null);
+    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, requirement_edits: edits, lang }, token).catch(() => null);
     setBusy(false);
     // THE HONEST AFTER-POST (14 Sep 2026). A request no registered supplier covers is still posted and
     // flagged to the team (customer_api flagCoverageGap), but the composer used to close with nothing
@@ -456,10 +476,16 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <Button variant="link" className="h-auto px-0" onClick={onCancel}>{t(lang, 'nr_cancel')}</Button>
       </div>
       {meta.readiness != null && <ReadinessBar pct={meta.readiness} lang={lang} reduce={reduce} />}
+      {guideText ? (
+        <details className="mx-4 mt-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[12.5px]" data-testid="spec-guide">
+          <summary className="cursor-pointer font-semibold text-foreground">{t(lang, 'nr_spec_guide')}</summary>
+          <div className="mt-1.5 whitespace-pre-line text-muted-foreground">{guideText}</div>
+        </details>
+      ) : null}
 
       <div className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3" aria-live="polite">
         {messages.map((m, i) => (
-          <m.div key={i} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.22 }}>
+          <M.div key={i} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.22 }}>
             {m.chip !== undefined
               ? <div className="flex justify-end"><div className="flex items-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/15 px-3 py-2 text-[13px] text-foreground"><Paperclip className="h-3.5 w-3.5" aria-hidden /><bdi>{m.chip}</bdi></div></div>
               : <div className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -475,7 +501,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 ))}
               </div>
             )}
-          </m.div>
+          </M.div>
         ))}
         {meta.override && meta.override.kept && meta.override.model ? (
           <div className="flex justify-start"><button type="button" onClick={() => answerChip(tf(lang, 'nr_override', { kept: meta.override.kept, model: meta.override.model }).split(' — ')[0])}
@@ -505,7 +531,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         )}
         <AnimatePresence>
           {ready && brief && (
-            <m.div initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+            <M.div initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
               className="rounded-2xl border border-primary/35 bg-primary/[0.06] p-4 shadow-[0_18px_50px_-30px_rgba(20,184,166,.55)]">
               <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" aria-hidden /><div className="text-[13.5px] font-bold text-foreground">{brief.category ? categoryLabel(brief.category, lang) : t(lang, 'rc_request')}{brief.emirate ? ' — ' + emirateName(brief.emirate, lang) : ''}</div></div>
               {brief.summary ? <div className="mt-1 text-[13px] text-muted-foreground">{brief.summary}</div> : null}
@@ -543,7 +569,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
               {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, drawing.boq && Array.isArray(drawing.boq.boq) && drawing.boq.boq.length ? 'nr_drawing_held_boq' : 'nr_drawing_held', { name: drawing.held_name || drawing.drawing_file_name || '' })}</div> : null}
               <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
-            </m.div>
+            </M.div>
           )}
         </AnimatePresence>
         <div ref={endRef} />
@@ -571,7 +597,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <div className="flex items-end gap-2">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
-          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.rvt,.rfa,.dgn,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach')} aria-label={t(lang, 'nr_attach')} className="grid h-10 w-10 place-items-center rounded-xl text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}><Paperclip className="h-5 w-5" aria-hidden /></button>
           {/* Founder, 14 Sep 2026: "boq can be anything: a photo, pdf, png, jpg, excel". Photos and PDFs take the
               drawing path (onFile, source 'boq'). HEIC is deliberately NOT listed: storage and the redactor cannot
@@ -647,7 +673,7 @@ function ReadinessBar({ pct, lang, reduce }) {
     <div className="border-b border-border px-5 py-2">
       <div className="flex items-center justify-between"><span className="font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'nr_readiness')}</span><span className="tabular font-mono text-label text-foreground">{pct}%</span></div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary/70" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t(lang, 'nr_readiness')}>
-        <m.div className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
+        <M.div className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
       </div>
     </div>
   );
@@ -659,12 +685,12 @@ function QuestionChips({ questions, next, left, lang, onPick, reduce }) {
       <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{left > 0 ? tf(lang, 'nr_left', { n: left }) : t(lang, 'nr_chips_hint')}</div>
       <div className="flex flex-wrap gap-1.5">
         {questions.slice(0, 8).map((q, i) => (
-          <m.button key={q + i} type="button" onClick={() => onPick(q)}
+          <M.button key={q + i} type="button" onClick={() => onPick(q)}
             initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.2, delay: reduce ? 0 : 0.05 * i }}
             className={cn('rounded-full border px-3 py-1.5 text-start text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               q === next ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>
             {q}
-          </m.button>
+          </M.button>
         ))}
       </div>
     </div>
@@ -730,7 +756,7 @@ function RedactionEditor({ lang, images, onApply, onSkip, reduce }) {
   const live = drag ? { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) } : null;
   const pct = (v) => (v * 100) + '%';
   return (
-    <m.div initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-primary/35 bg-card/70 p-3.5">
+    <M.div initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-primary/35 bg-card/70 p-3.5">
       <h3 className="text-[13.5px] font-bold text-foreground">{t(lang, 'rd_title')}</h3>
       <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">{t(lang, 'rd_body')}</p>
       <div className="mt-2.5 flex items-center justify-between gap-2 text-[12px] text-muted-foreground" dir="ltr">
@@ -750,6 +776,6 @@ function RedactionEditor({ lang, images, onApply, onSkip, reduce }) {
         <Button size="sm" variant="outline" disabled={busy || !boxes[page].length} onClick={() => setBoxes((all) => all.map((l, i) => (i === page ? [] : l)))}><Eraser className="me-1 h-3.5 w-3.5" aria-hidden />{t(lang, 'rd_clear')}</Button>
         <Button size="sm" variant="link" className="h-auto px-0" disabled={busy} onClick={onSkip}>{t(lang, 'rd_skip')}</Button>
       </div>
-    </m.div>
+    </M.div>
   );
 }

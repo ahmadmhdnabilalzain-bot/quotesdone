@@ -1,0 +1,80 @@
+{
+  "trade": "protective_packaging",
+  "layer": "uae-market",
+  "label_en": "Protective packaging",
+  "label_ar": "مواد التغليف الواقية",
+  "entries": [
+    {
+      "id": "protective_packaging:uae-market-products",
+      "topic": "Protective packaging: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Protective packaging in the UAE: bubble wrap (small/large bubble, rolls and bags, anti-static pink), air pillows and inflatable void fill, EPE foam sheets, rolls and profiles (edge/corner protectors), PE foam and PU foam inserts, EPS moulded packaging (for appliances and electronics) and EPS boxes, honeycomb paper and paper void fill, corner boards (edge protectors of laminated paperboard), stretch and shrink hoods, anti-static and ESD packaging (shielding bags), VCI bags for metal parts, desiccants (silica gel, clay, container desiccants), and cushioned mailers. E-commerce growth in the UAE drives mailers and void-fill demand. Buyers specify density (e.g. EPS 15-25 kg/m3), thickness, dimensions, cushioning performance and recyclability.",
+      "body_ar": "التغليف الواقي في الإمارات: غلاف الفقاعات (فقاعات صغيرة/كبيرة، لفائف وأكياس، والوردي المضاد للكهرباء الساكنة)، والوسائد الهوائية والحشو القابل للنفخ، وألواح ولفائف ومقاطع فوم EPE (واقيات الحواف والزوايا)، وحشوات فوم PE وPU، والتغليف المقولب من EPS (للأجهزة والإلكترونيات) وصناديق EPS، والورق الخلوي وحشو الورق، والزوايا الكرتونية (واقيات الحواف من الكرتون المصفح)، والأغطية المطاطية والانكماشية، والتغليف المضاد للكهرباء الساكنة (الأكياس الحاجبة)، وأكياس VCI للقطع المعدنية، ومجففات الرطوبة (السيليكا جل والطين ومجففات الحاويات)، والأغلفة المبطنة للشحن. ويدفع نمو التجارة الإلكترونية في الإمارات الطلب على الأغلفة ومواد الحشو. يحدد المشتري الكثافة (مثل EPS بين 15 و25 كغ/م3) والسماكة والأبعاد وأداء التوسيد وقابلية إعادة التدوير.",
+      "sources": [
+        "https://www.storopack.com",
+        "https://www.sealedair.com",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Storopack protective packaging -> confirmed (maker site; UAE agent not checked). Not checked: Local foam and EPS producers' names were not verified."
+    },
+    {
+      "id": "protective_packaging:uae-market-brands",
+      "topic": "Protective packaging: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Sealed Air, Storopack, Pregis, Ranpak, Clariant, Cortec. Their UAE agents were not checked. Many local producers of EPE foam, bubble wrap and EPS mouldings in Sharjah, Ajman, UAQ, RAK and Jebel Ali were not checked by name. Origins: UAE, GCC, Europe, China.",
+      "body_ar": "العلامات: Sealed Air، Storopack، Pregis، Ranpak، Clariant، Cortec، ولم يُتحقق من وكلائها في الإمارات. ولم يُتحقق بالاسم من المنتجين المحليين الكثيرين لفوم EPE وغلاف الفقاعات وقولبة EPS في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي. المنشأ: الإمارات، الخليج، أوروبا، الصين.",
+      "sources": [
+        "https://www.storopack.com",
+        "https://www.sealedair.com",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Storopack protective packaging -> confirmed (maker site; UAE agent not checked). Not checked: Local foam and EPS producers' names were not verified."
+    },
+    {
+      "id": "protective_packaging:uae-market-sizes",
+      "topic": "Protective packaging: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Bubble wrap per roll (e.g. 1 m or 1.5 m x 50-100 m); EPE per roll or sheet by thickness (1-10 mm rolls, 10-50 mm sheets); EPS moulded parts per piece with mould cost; corner boards per piece by leg size and length; desiccants per pack by gram size (e.g. 1 kg container desiccant). Priced per roll/piece with volume breaks.",
+      "body_ar": "غلاف الفقاعات باللفة (مثل 1 م أو 1.5 م × 50-100 م)؛ وEPE باللفة أو اللوح حسب السماكة (لفائف 1-10 مم وألواح 10-50 مم)؛ وقطع EPS المقولبة بالقطعة مع تكلفة القالب؛ والزوايا الكرتونية بالقطعة حسب مقاس الضلع والطول؛ والمجففات بالعبوة حسب الوزن (مثل مجفف حاويات 1 كغ). والتسعير باللفة/القطعة مع شرائح الكمية.",
+      "sources": [
+        "https://www.storopack.com",
+        "https://www.sealedair.com",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Storopack protective packaging -> confirmed (maker site; UAE agent not checked). Not checked: Local foam and EPS producers' names were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What protects electronics from static during shipping?",
+      "q_ar": "ما الذي يحمي الإلكترونيات من الكهرباء الساكنة أثناء الشحن؟",
+      "expected_entry_ids": [
+        "protective_packaging:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Storopack protective packaging",
+        "url": "https://www.storopack.com",
+        "result": "confirmed (maker site; UAE agent not checked)"
+      }
+    ],
+    "unverified": "Local foam and EPS producers' names were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

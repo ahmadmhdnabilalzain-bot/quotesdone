@@ -97,6 +97,14 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // (scripts/sql/the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql, instruction 763)
   { type: 'support.case_open', from: 'customer_support', to: 'customer_support' },
   { type: 'support.human_requested', from: 'customer_support', to: 'customer_support' },
+  // a support cause recurring past the weekly threshold goes to the seat that owns it; customer_support measures
+  // the weekly volume afterwards and closes it when it falls
+  // (scripts/sql/customer_support_finds_the_root_cause_each_week_and_measures_the_fix.sql, instruction 1009)
+  { type: 'support.root_cause', from: 'customer_support', to: 'sales_engineer' },
+  { type: 'support.root_cause', from: 'customer_support', to: 'accountant' },
+  { type: 'support.root_cause', from: 'customer_support', to: 'it_engineer' },
+  { type: 'support.root_cause', from: 'customer_support', to: 'marketing' },
+  { type: 'support.root_cause', from: 'customer_support', to: 'ceo' },
   // three working days after verification the sales engineer hands support one reminder of what a supplier's
   // portfolio is missing; support re-checks and sends it, the sales engineer re-verifies delivery and closes
   // (scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql, instruction 858)
@@ -138,6 +146,9 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'delivery.request', from: 'marketing', to: 'customer_support' },
   { type: 'delivery.result', from: 'customer_support', to: 'marketing' },
   { type: 'it.finding', from: 'it_engineer', to: 'marketing' },
+  // a seed invitation landed in junk or elsewhere: the batch still sends, marketing fixes the cause (ledger 1001;
+  // scripts/sql/the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql)
+  { type: 'deliverability.inbox_placement', from: 'it_engineer', to: 'marketing' },
   // a public comment the seat must not answer in public, and a lead from a comment; marketing re-checks and
   // closes each once the receiving seat has answered (scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql)
   { type: 'social.escalation', from: 'marketing', to: 'customer_support' },

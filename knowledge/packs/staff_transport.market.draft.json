@@ -1,0 +1,67 @@
+{
+  "trade": "staff_transport",
+  "layer": "uae-market",
+  "label_en": "Staff transport & bus rental",
+  "label_ar": "نقل الموظفين وتأجير الحافلات",
+  "entries": [
+    {
+      "id": "staff_transport:uae-market-products",
+      "topic": "Staff transport & bus rental: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Staff transport services in the UAE include employee shuttle buses (daily home-to-work routes), labour transport for construction and industrial workers (from labour camps to sites), school transport, chauffeur-driven cars and limousines for executives, airport transfers, event and conference shuttles, contracted buses with drivers on monthly hire, and fleet-based ride solutions. Vehicle types: 14-seater and 22/26-seater minibuses (Toyota Hiace, Coaster), 35-seater and 50/66-seater coaches, air-conditioned buses (mandatory for passenger comfort in UAE heat), and luxury vans. Buyers specify route, shift timings, number of passengers, AC, vehicle age limits (often under 5-10 years), GPS tracking, CCTV, driver licensing and uniforms, and safety compliance. UAE rules: passenger transport companies need an RTA (Dubai) or ITC (Abu Dhabi) passenger transport activity permit; buses must pass annual inspection, have speed limiters and meet capacity limits; worker buses must have enclosed, air-conditioned compartments and follow MOHRE/municipality rules; school buses follow the RTA/ITC and Ministry of Education school transport regulations.",
+      "body_ar": "تشمل خدمات نقل الموظفين في الإمارات حافلات نقل الموظفين (مسارات يومية من المنزل إلى العمل)، ونقل عمال الإنشاءات والصناعة (من مساكن العمال إلى المواقع)، والنقل المدرسي، والسيارات والليموزين مع سائق للتنفيذيين، والنقل من وإلى المطار، والحافلات المكوكية للفعاليات والمؤتمرات، والحافلات المتعاقد عليها مع سائقين بالإيجار الشهري، وحلول التنقل القائمة على الأساطيل. أنواع المركبات: حافلات صغيرة بسعة 14 راكباً و22/26 راكباً (تويوتا هايس، وكوستر)، وحافلات بسعة 35 و50/66 راكباً، وحافلات مكيفة (ضرورية لراحة الركاب في حرارة الإمارات)، وشاحنات صغيرة فاخرة. يحدد المشترون المسار، وأوقات المناوبات، وعدد الركاب، والتكييف، وحدود عمر المركبة (غالباً أقل من 5-10 سنوات)، والتتبع بنظام تحديد المواقع، وكاميرات المراقبة، وترخيص السائقين وزيهم، والامتثال لمتطلبات السلامة. القواعد الإماراتية: تحتاج شركات نقل الركاب إلى تصريح نشاط نقل الركاب من هيئة الطرق والمواصلات (دبي) أو مركز النقل المتكامل (أبوظبي)؛ ويجب أن تجتاز الحافلات الفحص السنوي، وأن تُزود بمحددات السرعة وتلتزم بحدود السعة؛ ويجب أن تحتوي حافلات العمال على مقصورات مغلقة ومكيفة وأن تتبع قواعد وزارة الموارد البشرية والبلدية؛ وتتبع الحافلات المدرسية لوائح النقل المدرسي لدى هيئة الطرق/مركز النقل المتكامل ووزارة التربية والتعليم.",
+      "sources": [
+        "https://www.rta.ae",
+        "https://itc.gov.ae",
+        "https://www.et.gov.ae"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-28",
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Several operator names are generalised; the ET URL and current worker-bus rules were not verified."
+    },
+    {
+      "id": "staff_transport:uae-market-brands",
+      "topic": "Staff transport & bus rental: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Providers include Emirates Transport (federal, large school and staff transport operator), RTA-licensed operators such as Al Ghazal Transport, Transguard (transport), many licensed bus rental companies in Al Quoz, Al Qusais, Jebel Ali, Sharjah and Musaffah. Vehicle makes: Toyota (Hiace, Coaster), Ashok Leyland (built in RAK), Tata, King Long, Yutong, Higer, Mercedes-Benz, Volvo, MAN.",
+      "body_ar": "يشمل مقدمو الخدمة الإمارات للنقل (اتحادية، مشغل كبير للنقل المدرسي ونقل الموظفين)، والمشغلين المرخصين من هيئة الطرق والمواصلات مثل الغزال للنقل، وترانسجارد (النقل)، والعديد من شركات تأجير الحافلات المرخصة في القوز والقصيص وجبل علي والشارقة ومصفح. وماركات المركبات: تويوتا (هايس، وكوستر)، وأشوك ليلاند (مصنعة في رأس الخيمة)، وتاتا، وكينغ لونغ، ويوتونغ، وهايغر، ومرسيدس بنز، وفولفو، ومان.",
+      "sources": [
+        "https://www.rta.ae",
+        "https://itc.gov.ae",
+        "https://www.et.gov.ae"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-28",
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Several operator names are generalised; the ET URL and current worker-bus rules were not verified."
+    },
+    {
+      "id": "staff_transport:uae-market-sizes",
+      "topic": "Staff transport & bus rental: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per bus per month with driver and fuel (typically for a fixed number of trips/hours per day, e.g. 2 trips, 10-12 hours), per trip for ad-hoc transfers, per hour (with 4-5 hour minimums) for events and chauffeur services, or per passenger per month for shared shuttles. Overtime hours, extra trips and Salik tolls are charged extra. Contract terms usually 1-3 years; new-vehicle contracts longer.",
+      "body_ar": "تُسعّر لكل حافلة شهرياً مع السائق والوقود (عادةً لعدد ثابت من الرحلات/الساعات يومياً، مثل رحلتين، و10-12 ساعة)، أو لكل رحلة للتنقلات الطارئة، أو بالساعة (بحد أدنى 4-5 ساعات) للفعاليات وخدمات السائق، أو لكل راكب شهرياً للحافلات المشتركة. وتُحتسب ساعات العمل الإضافي والرحلات الإضافية ورسوم سالك بشكل إضافي. ومدة العقود عادةً سنة إلى 3 سنوات؛ وأطول لعقود المركبات الجديدة.",
+      "sources": [
+        "https://www.rta.ae",
+        "https://itc.gov.ae",
+        "https://www.et.gov.ae"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-28",
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Several operator names are generalised; the ET URL and current worker-bus rules were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Is a staff bus priced per month or per trip, and are fuel and driver included?",
+      "q_ar": "هل تُسعّر حافلة الموظفين شهرياً أم لكل رحلة، وهل الوقود والسائق مشمولان؟",
+      "expected_entry_ids": [
+        "staff_transport:uae-market-sizes"
+      ]
+    }
+  ],
+  "not_verified": {
+    "on": "2026-09-28",
+    "reason": "no lookup record yet; never loaded (draft)",
+    "unverified": "Several operator names are generalised; the ET URL and current worker-bus rules were not verified."
+  }
+}

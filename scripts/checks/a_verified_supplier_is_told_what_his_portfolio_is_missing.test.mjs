@@ -71,9 +71,11 @@ test('the message is written in English and in formal Arabic', () => {
 
 // THE LOGIC, NOT THE FILES (review of #869). While the live matcher still reaches a supplier who ticked
 // nothing in a trade (fn_match_capability's silent_in arm, removed by #868), telling him "requests in this
-// trade do not reach you" is false, so that gap must not be raised. And a word an active alias already
-// names is not "unmatched": he is told which service it is. The first version of the gap reader failed both.
-test('live: no trade gap while the matcher still reaches silent suppliers; an aliased word names its service', { skip: SKIP }, async () => {
+// trade do not reach you" is false, so that gap must not be raised. And a word the reasoning has read as a service
+// is not "unmatched": he is told which service it is. The first version of the gap reader failed both.
+// Since #888 (B5, "no word matching anywhere") a word names a service only through a REASONED
+// supplier_own_word_reading row, never through an alias: until it is read, it stays his own word (29 Sep 2026).
+test('live: no trade gap while the matcher still reaches silent suppliers; a reasoned word names its service', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const r = await sql(`
     create temp table if not exists zz_gap_logic (v text) on commit drop;
@@ -88,7 +90,11 @@ test('live: no trade gap while the matcher still reaches silent suppliers; an al
         g := public.fn_supplier_portfolio_gaps(v_id);
         if v_silent and g @> '[{"code":"trade_without_service"}]' then f := f || 'a trade gap was raised while the live matcher still reaches silent suppliers; '; end if;
         if not v_silent and not g @> '[{"code":"trade_without_service"}]' then f := f || 'no trade gap once the matcher reads ticks; '; end if;
-        if not coalesce(g::text like '%painting.interior%', false) then f := f || 'the aliased word «الدهانات» was not told its service (painting.interior): ' || coalesce(g::text, 'null') || '; '; end if;
+        if coalesce(g::text like '%painting.interior%', false) then f := f || 'an unread word was given a service by its spelling: ' || g::text || '; '; end if;
+        insert into public.supplier_own_word_reading (supplier_id, word, service_key, status, reasoned_at)
+          values (v_id, 'الدهانات', 'painting.interior', 'reasoned', now());
+        g := public.fn_supplier_portfolio_gaps(v_id);
+        if not coalesce(g::text like '%painting.interior%', false) then f := f || 'the reasoned word «الدهانات» was not told its service (painting.interior): ' || coalesce(g::text, 'null') || '; '; end if;
         raise exception 'zz_done';
       exception when others then if sqlerrm <> 'zz_done' then f := f || 'raised: ' || sqlerrm; end if;
       end;

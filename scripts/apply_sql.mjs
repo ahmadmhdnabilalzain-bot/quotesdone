@@ -39,6 +39,12 @@ if (!file) {
   process.exit(2);
 }
 
+// Unreviewed code never reaches production (scripts/lib/release_guard.mjs). Before any read or write.
+if (APPLY) {
+  const { releaseRefusal } = await import('./lib/release_guard.mjs');
+  const why = releaseRefusal([file]);
+  if (why) { console.error('REFUSED: ' + why + '. Merge it, or wait for its PR to go green.'); process.exit(2); }
+}
 const sql = readFileSync(file, 'utf8');
 // Refused before anything is read from or written to the database (review of #661, scripts/lib/sql_text.mjs).
 {
@@ -308,7 +314,11 @@ for (const row of Array.isArray(applied) ? applied : []) {
 // management API returns only the last result set), or somebody deleted it and left the marker in a
 // comment. All three are the same thing from here: unverified. Anchored on the file's own text, so
 // a file with no probe at all is not accused of losing one.
-const promisesAVerdict = sql.includes(PROBE_OK) || sql.includes(PROBE_FAILED);
+// Only CODE promises a verdict: a marker inside an SQL comment is prose. 29 Sep 2026, #1036's file said
+// "must print PROBE OK" in a comment about its separate probe file, and a live, correct apply was
+// reported as failed. Same stripping as a_probe_that_cannot_report_is_not_a_probe.test.mjs.
+const sqlCode = sql.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+const promisesAVerdict = sqlCode.includes(PROBE_OK) || sqlCode.includes(PROBE_FAILED);
 if (promisesAVerdict && probeVerdicts === 0) {
   probeFailures++;
   console.error(`PROBE   ${PROBE_FAILED}: ${file} contains a verdict marker and the apply returned no `

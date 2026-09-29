@@ -107,13 +107,14 @@ import { QuoteBadges } from '@/components/QuoteBadges';
 import { WhatsAppChoice } from '@/components/portal/WhatsAppChoice';
 import { waSignupSettled, waNeedsPrompt, waText } from '@/components/portal/whatsappChoiceText';
 import { useConfirm } from './ConfirmDialog';
-import * as m from 'motion/react-m';
+import * as M from 'motion/react-m';
 import { useReducedMotion } from 'motion/react';
 
 // The customer portal is the page a paying customer uses. Its Supabase target was an inline
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
 // LIVE database. supaEnv resolves it once and warns on fallback; see the note there.
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
+import SupportRatingPrompt from '@/components/portal/SupportRatingPrompt';
 import { signupEmailProblem } from '@/lib/signupEmail';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
@@ -346,6 +347,7 @@ function CustomerPortalView() {
           them is on screen at a time (login / profile gate / the shell), so the id is never doubled. */}
       {phase === 'login' && <>{strip}<main id="main"><Login onAuth={onAuth} lang={lang} /></main></>}
       {phase === 'app' && <Authed token={token} lang={lang} strip={strip} theme={theme} onSwapTheme={swapTheme} onSetLang={setLang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
+      {phase === 'app' && token ? <SupportRatingPrompt token={token} lang={lang} api="sales_engineer" /> : null}
     </>)}
   </div>);
 }
@@ -580,9 +582,18 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // my_inquiries answers { inquiries, locale, promo, guarantee_terms } — it has no `ok`, so the
   // list itself is what is tested. Storing anything else (a transport sentinel, an error body) puts
   // "post your first request" in front of a customer who has plenty (review of #853).
+  // The language the overview on screen was built in (see the [lang] effect below).
+  const langLoaded = useRef(lang);
   const loadInq = (first) => get(first, 'inq', 'customer_api', { action: 'my_inquiries' }).then((j) => {
     if (!j || !Array.isArray(j.inquiries)) { setErr(errText(j, lang, 'load_failed')); return; }
     setData(j); setErr('');
+    // THE SERVED LOCALE IS NOT A LANGUAGE SWITCH (28 Sep 2026, it_engineer). customer_portal builds
+    // the overview in customers.locale, the same value my_inquiries serves here, so adopting it must
+    // not refetch the overview. It did: on /ar for an English-registered customer the [lang] effect
+    // fired a second customer_portal:overview only after this answer landed — measured @846 ms
+    // +601 ms, a serial round trip on top of the first paint. A switch the customer makes still
+    // refetches: setLang saves customers.locale, and that lang differs from this one.
+    if (j.locale === 'ar' || j.locale === 'en') langLoaded.current = j.locale;
     if (j.locale && onServedLocale) onServedLocale(j.locale);
   }).catch(() => setErr(t(lang, 'load_failed')))
     .finally(() => setPosting(false));
@@ -691,7 +702,6 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // The overview's alert cards and headline are written by the server in `lang`, so a language
   // switch must ask for them again (audit 21 Sep 2026, item 23: the cards stayed in the old language
   // until a full reload). Skipped on the first render — the boot effect above already loads them.
-  const langLoaded = useRef(lang);
   useEffect(() => { if (langLoaded.current !== lang) { langLoaded.current = lang; loadOv(); } }, [lang]);
   useEffect(() => {
     const visible = () => typeof document === 'undefined' || document.visibilityState === 'visible';
@@ -1396,7 +1406,7 @@ function Comparison({ inqId, token, lang }) {
   const arr = (x) => Array.isArray(x) ? x : [];
   if (busy) return (<div className="qd-panel p-3.5" aria-busy="true"><div className={cn(S.sub, 'text-primary')}>{t(lang, 'cmp_preparing')}</div><div className="mt-2 flex flex-col gap-1.5" aria-hidden><span className="redact redact-bar" style={{ width: '72%' }} /><span className="redact redact-bar" style={{ width: '48%' }} /><span className="redact redact-bar" style={{ width: '60%' }} /></div></div>);
   if (!a) return note ? (<div className="rounded-lg border border-border bg-secondary/20 p-3" title={code || undefined}><div className={S.sub}>{note}</div></div>) : null;
-  return (<m.div initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3 }} className="qd-panel p-3.5">
+  return (<M.div initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3 }} className="qd-panel p-3.5">
     <div className="mb-1 flex flex-wrap items-center gap-2">
       <div className={cn(S.sub, 'font-bold text-primary')}>{t(lang, degraded ? 'cmp_title_rules' : 'cmp_title') + (a.trade ? ' · ' + a.trade : '')}</div>
       {degraded ? <span className="rounded-full border border-warn/40 bg-warn/10 px-2 py-0.5 text-[10.5px] font-semibold text-warn-fg">{t(lang, 'cmp_badge_rules')}</span> : null}
@@ -1426,7 +1436,7 @@ function Comparison({ inqId, token, lang }) {
     {/* §10 EXPORT: customer_api compare_pdf, ownership-checked; the document goes to the meeting. */}
     <ExportComparison inqId={inqId} token={token} lang={lang} />
     <div className={cn(S.sub, 'mt-2 text-muted-foreground/70 text-[11px]')}>{t(lang, 'cmp_guidance')}</div>
-  </m.div>);
+  </M.div>);
 }
 // The download owns a failure the report must survive: a PDF that cannot be built must not blank
 // the analysis the customer is reading.
@@ -1593,8 +1603,8 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
 function RevealMoment({ play, children }) {
   if (!play) return children;
   return (<div className="relative">
-    <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</m.div>
-    <m.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 !block h-5" style={{ transformOrigin: 'right center' }}
+    <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</M.div>
+    <M.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 !block h-5" style={{ transformOrigin: 'right center' }}
       initial={{ scaleX: 1, opacity: 1 }} animate={{ scaleX: 0, opacity: 0 }} transition={{ duration: 0.75, delay: 0.1, ease: [0.7, 0, 0.3, 1] }} />
   </div>);
 }
@@ -1701,19 +1711,19 @@ function ReceiptNote({ receipt, inqs, lang, onClose }) {
   const all = inqs.flatMap((i) => [i, ...(i.children || [])]);
   const q = receipt.quoteId ? all.flatMap((i) => i.quotes || []).find((x) => x.id === receipt.quoteId) : null;
   const paid = receipt.kind === 'paid';
-  return (<m.div role="status" initial={reduce ? false : { opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduce ? 0 : 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+  return (<M.div role="status" initial={reduce ? false : { opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduce ? 0 : 0.35, ease: [0.2, 0.8, 0.2, 1] }}
     className="qd-panel mb-5 flex items-start gap-3 p-4">
-    <m.span initial={reduce ? false : { scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18, delay: reduce ? 0 : 0.12 }}
+    <M.span initial={reduce ? false : { scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18, delay: reduce ? 0 : 0.12 }}
       className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-full', paid ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground')}>
       {paid ? <Check className="h-4 w-4" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
-    </m.span>
+    </M.span>
     <div className="min-w-0 flex-1">
       {paid
         ? <><div className="font-head text-[15px] font-bold text-foreground">{t(lang, 'rcpt_title')}</div><p className="mt-0.5 text-[13px] text-muted-foreground">{q ? tf(lang, 'rcpt_body', { fee: aed(q.total_charged ?? q.reveal_fee) }) : t(lang, 'payment_confirmed')}</p></>
         : <p className="text-[13px] text-foreground">{t(lang, 'rcpt_cancelled')}</p>}
     </div>
     <button type="button" onClick={onClose} aria-label={t(lang, 'close')} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" aria-hidden /></button>
-  </m.div>);
+  </M.div>);
 }
 // The §22 module list, in the order a customer meets them. The Messages/Thread pair that used to
 // live in this file is gone: CommunicationCenter serves the same four messages_api actions and adds
