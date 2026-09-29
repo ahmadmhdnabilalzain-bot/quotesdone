@@ -1,0 +1,76 @@
+{
+  "trade": "removals_relocation",
+  "entries": [
+    {
+      "id": "removals_relocation:spec-checklist",
+      "topic": "Removals and relocation - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For removals and relocation quotes to be compared like-for-like, every quoted line (services) must state: (1) origin and destination addresses; (2) inventory list or volume in m3; (3) packing materials and packing scope; (4) dismantling and reassembly; (5) moving date and working hours; (6) building permits and access (lift, parking); (7) transit insurance and liability limit; (8) storage if required; (9) customs clearance for international moves; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the removals_relocation trade.",
+      "body_ar": "لكي تُقارن عروض النقل والانتقال على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) عنوانا المنشأ والوجهة؛ (2) قائمة المحتويات أو الحجم بالمتر المكعب؛ (3) مواد التغليف ونطاق التغليف؛ (4) الفك وإعادة التركيب؛ (5) تاريخ النقل وساعات العمل؛ (6) تصاريح المبنى والوصول (المصعد والمواقف)؛ (7) تأمين النقل وحد المسؤولية؛ (8) التخزين إن لزم؛ (9) التخليص الجمركي للنقل الدولي؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة removals_relocation فقط.",
+      "required_specs": [
+        "origin and destination addresses",
+        "inventory list or volume in m3",
+        "packing materials and packing scope",
+        "dismantling and reassembly",
+        "moving date and working hours",
+        "building permits and access (lift, parking)",
+        "transit insurance and liability limit",
+        "storage if required",
+        "customs clearance for international moves",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "removals_relocation:uae-standards-and-approvals",
+      "topic": "Removals and relocation - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Goods transport vehicles operate under emirate transport authority rules (RTA in Dubai); international moves go through UAE customs of the relevant emirate. Building move permits are issued by the building owner or community management. What the cited sources do not establish: The sources read do not set liability limits; the insured value and liability must be stated in the quote.",
+      "body_ar": "تعمل مركبات نقل البضائع وفق قواعد جهة النقل في الإمارة (هيئة الطرق والمواصلات في دبي)؛ ويمر النقل الدولي عبر جمارك الإمارة المعنية. ويصدر تصاريح النقل في المباني مالك المبنى أو إدارة المجمع. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد حدود المسؤولية؛ يجب ذكر القيمة المؤمنة وحد المسؤولية في العرض.",
+      "source_note": "The sources read do not set liability limits; the insured value and liability must be stated in the quote.",
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for removals and relocation?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالنقل والانتقال؟",
+      "expected_entry_ids": [
+        "removals_relocation:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to removals and relocation?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على النقل والانتقال؟",
+      "expected_entry_ids": [
+        "removals_relocation:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "removals_relocation:spec-checklist",
+      "removals_relocation:uae-standards-and-approvals"
+    ],
+    "added": [
+      "removals_relocation:spec-checklist",
+      "removals_relocation:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

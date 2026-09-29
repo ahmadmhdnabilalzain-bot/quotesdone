@@ -97,6 +97,14 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // (scripts/sql/the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql, instruction 763)
   { type: 'support.case_open', from: 'customer_support', to: 'customer_support' },
   { type: 'support.human_requested', from: 'customer_support', to: 'customer_support' },
+  // a support cause recurring past the weekly threshold goes to the seat that owns it; customer_support measures
+  // the weekly volume afterwards and closes it when it falls
+  // (scripts/sql/customer_support_finds_the_root_cause_each_week_and_measures_the_fix.sql, instruction 1009)
+  { type: 'support.root_cause', from: 'customer_support', to: 'sales_engineer' },
+  { type: 'support.root_cause', from: 'customer_support', to: 'accountant' },
+  { type: 'support.root_cause', from: 'customer_support', to: 'it_engineer' },
+  { type: 'support.root_cause', from: 'customer_support', to: 'marketing' },
+  { type: 'support.root_cause', from: 'customer_support', to: 'ceo' },
   // three working days after verification the sales engineer hands support one reminder of what a supplier's
   // portfolio is missing; support re-checks and sends it, the sales engineer re-verifies delivery and closes
   // (scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql, instruction 858)

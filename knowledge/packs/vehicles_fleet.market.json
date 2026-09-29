@@ -1,0 +1,93 @@
+{
+  "trade": "vehicles_fleet",
+  "layer": "uae-market",
+  "label_en": "Vehicles & fleet sales",
+  "label_ar": "سيارات ومبيعات أساطيل",
+  "entries": [
+    {
+      "id": "vehicles_fleet:uae-market-products",
+      "topic": "Vehicles & fleet sales: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Fleet vehicles sold in the UAE include sedans and hatchbacks for sales staff (Toyota Corolla/Yaris, Nissan Sunny, Hyundai Accent/Elantra, Kia), SUVs (Toyota Land Cruiser, Prado, Fortuner, Nissan Patrol, Mitsubishi Pajero/Montero), pickups (Toyota Hilux, Nissan Navara, Mitsubishi L200, Isuzu D-Max, single/double cab, 4x2/4x4), vans (Toyota Hiace, Nissan Urvan, Hyundai H-1/Staria), buses (Toyota Coaster, Ashok Leyland Falcon, King Long), light trucks (Isuzu N-series, Mitsubishi Fuso Canter, Hino 300), medium/heavy trucks (Isuzu F-series, Hino 500/700, Mercedes Actros, Volvo FH/FM, Scania, MAN, Renault Trucks), tippers, tankers, refrigerated bodies, and EVs (Tesla, BYD, MG, Hyundai, Kia). Buyers specify GCC specification (with heavy-duty cooling and AC for high ambient temperatures, and warranty valid in GCC), fuel type, payload/GVW, body type, and fleet discounts. UAE rules: vehicles must meet GSO/UAE vehicle standards (GCC-spec certification via MoIAT), be registered with RTA/ITC/police, and heavy vehicles need speed limiters and tachographs where applicable; Euro emission levels per current UAE fuel standards.",
+      "body_ar": "تشمل مركبات الأساطيل المباعة في الإمارات سيارات السيدان والهاتشباك لموظفي المبيعات (تويوتا كورولا/يارس، ونيسان صني، وهيونداي أكسنت/إلنترا، وكيا)، وسيارات الدفع الرباعي (تويوتا لاندكروزر، وبرادو، وفورتشنر، ونيسان باترول، وميتسوبيشي باجيرو/مونتيرو)، والبيك أب (تويوتا هايلوكس، ونيسان نافارا، وميتسوبيشي L200، وإيسوزو D-Max، بغمارة مفردة/مزدوجة، دفع ثنائي/رباعي)، والشاحنات الصغيرة (تويوتا هايس، ونيسان أورفان، وهيونداي H-1/ستاريا)، والحافلات (تويوتا كوستر، وأشوك ليلاند فالكون، وكينغ لونغ)، والشاحنات الخفيفة (إيسوزو سلسلة N، وميتسوبيشي فوسو كانتر، وهينو 300)، والشاحنات المتوسطة/الثقيلة (إيسوزو سلسلة F، وهينو 500/700، ومرسيدس أكتروس، وفولفو FH/FM، وسكانيا، ومان، ورينو للشاحنات)، والقلابات، والصهاريج، والصناديق المبردة، والمركبات الكهربائية (تسلا، وBYD، وMG، وهيونداي، وكيا). يحدد المشترون المواصفات الخليجية (مع تبريد وتكييف قويين لدرجات الحرارة المرتفعة، وضمان ساري في دول الخليج)، ونوع الوقود، والحمولة/الوزن الإجمالي، ونوع الهيكل، وخصومات الأساطيل. القواعد الإماراتية: يجب أن تستوفي المركبات المواصفات الخليجية/الإماراتية للمركبات (شهادة المواصفات الخليجية عبر وزارة الصناعة والتكنولوجيا المتقدمة)، وأن تُسجل لدى هيئة الطرق/مركز النقل المتكامل/الشرطة، وتحتاج المركبات الثقيلة إلى محددات السرعة وأجهزة تسجيل السرعة حيث ينطبق ذلك؛ ومستويات الانبعاثات الأوروبية وفق معايير الوقود الحالية في الإمارات.",
+      "sources": [
+        "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "https://moiat.gov.ae",
+        "https://www.rta.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner -> confirmed | Vehicles must meet GCC/UAE specifications (MoIAT conformity) -> confirmed_domain_only | Other franchise dealer assignments -> removed: generic wording kept. Not checked: Franchise assignments change often (Mitsubishi Dubai, Mazda, MG, Isuzu, Chinese brands); entries marked 'type' are uncertain and all dealer appointments must be confirmed before quoting."
+    },
+    {
+      "id": "vehicles_fleet:uae-market-brands",
+      "topic": "Vehicles & fleet sales: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed dealer and common fleet makes: Al-Futtaim (Toyota), Nissan, Mitsubishi, Hyundai, Kia, Isuzu, Hino, Mercedes-Benz, BYD. Other makes' current UAE dealers were not checked; confirm on the manufacturer's UAE website before quoting.",
+      "body_ar": "الوكيل المؤكد وماركات الأساطيل الشائعة: Al-Futtaim (Toyota)، Nissan، Mitsubishi، Hyundai، Kia، Isuzu، Hino، Mercedes-Benz، BYD. ولم يُتحقق من الوكلاء الحاليين للماركات الأخرى في الإمارات؛ ويجب التأكد عبر موقع الشركة المصنعة في الإمارات قبل التسعير.",
+      "sources": [
+        "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "https://moiat.gov.ae",
+        "https://www.rta.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner -> confirmed | Vehicles must meet GCC/UAE specifications (MoIAT conformity) -> confirmed_domain_only | Other franchise dealer assignments -> removed: generic wording kept. Not checked: Franchise assignments change often (Mitsubishi Dubai, Mazda, MG, Isuzu, Chinese brands); entries marked 'type' are uncertain and all dealer appointments must be confirmed before quoting."
+    },
+    {
+      "id": "vehicles_fleet:uae-market-sizes",
+      "topic": "Vehicles & fleet sales: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per vehicle (ex-showroom), with fleet discounts by volume and trim; registration, insurance, window tint (within legal limits), branding and accessories (roof racks, canopies, tow bars) quoted separately; bodies (boxes, tippers, reefers) quoted by body builders per unit. Delivery lead times vary from stock to several months for trucks/special bodies. Warranty typically 3-5 years/100,000-200,000 km for passenger vehicles; service packages optional.",
+      "body_ar": "تُسعّر لكل مركبة (من صالة العرض)، مع خصومات للأساطيل حسب الحجم والفئة؛ ويُسعّر التسجيل والتأمين وتظليل النوافذ (ضمن الحدود القانونية) والعلامة التجارية والإكسسوارات (حوامل السقف، والمظلات، ووصلات القطر) بشكل منفصل؛ ويُسعّر مصنعو الهياكل الهياكل (الصناديق، والقلابات، والمبردة) لكل وحدة. وتختلف مدة التسليم من المتوفر في المخزون إلى عدة أشهر للشاحنات/الهياكل الخاصة. والضمان عادةً 3-5 سنوات/100,000-200,000 كم لسيارات الركاب؛ وباقات الخدمة اختيارية.",
+      "sources": [
+        "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "https://moiat.gov.ae",
+        "https://www.rta.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner -> confirmed | Vehicles must meet GCC/UAE specifications (MoIAT conformity) -> confirmed_domain_only | Other franchise dealer assignments -> removed: generic wording kept. Not checked: Franchise assignments change often (Mitsubishi Dubai, Mazda, MG, Isuzu, Chinese brands); entries marked 'type' are uncertain and all dealer appointments must be confirmed before quoting."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Why should a fleet buyer insist on GCC-spec vehicles in the UAE?",
+      "q_ar": "لماذا يجب أن يصر مشتري الأسطول على مركبات بالمواصفات الخليجية في الإمارات؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Al-Futtaim is Toyota's UAE partner",
+        "url": "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Vehicles must meet GCC/UAE specifications (MoIAT conformity)",
+        "url": "https://moiat.gov.ae",
+        "result": "confirmed_domain_only"
+      },
+      {
+        "claim": "Other franchise dealer assignments",
+        "url": "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "result": "removed: generic wording kept"
+      }
+    ],
+    "unverified": "Franchise assignments change often (Mitsubishi Dubai, Mazda, MG, Isuzu, Chinese brands); entries marked 'type' are uncertain and all dealer appointments must be confirmed before quoting.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

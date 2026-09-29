@@ -1,0 +1,77 @@
+{
+  "trade": "recycling_scrap",
+  "entries": [
+    {
+      "id": "recycling_scrap:spec-checklist",
+      "topic": "Recycling and scrap - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For recycling and scrap quotes to be compared like-for-like, every quoted line (services) must state: (1) material type and grade (ferrous, non-ferrous, paper, plastic, e-waste); (2) estimated quantity in tonnes; (3) collection location and frequency; (4) price basis (per tonne, index-linked); (5) weighing method and weighbridge ticket; (6) containers or bins provided; (7) recycler licence from the environment authority; (8) certificate of recycling or destruction; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the recycling_scrap trade.",
+      "body_ar": "لكي تُقارن عروض إعادة التدوير والخردة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المادة ودرجتها (حديدية، أو غير حديدية، أو ورق، أو بلاستيك، أو نفايات إلكترونية)؛ (2) الكمية التقديرية بالأطنان؛ (3) موقع الجمع وتكراره؛ (4) أساس السعر (لكل طن، أو مرتبط بمؤشر)؛ (5) طريقة الوزن وتذكرة الميزان؛ (6) الحاويات المقدمة؛ (7) ترخيص معيد التدوير من جهة البيئة؛ (8) شهادة إعادة التدوير أو الإتلاف؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة recycling_scrap فقط.",
+      "required_specs": [
+        "material type and grade (ferrous, non-ferrous, paper, plastic, e-waste)",
+        "estimated quantity in tonnes",
+        "collection location and frequency",
+        "price basis (per tonne, index-linked)",
+        "weighing method and weighbridge ticket",
+        "containers or bins provided",
+        "recycler licence from the environment authority",
+        "certificate of recycling or destruction",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.moccae.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "recycling_scrap:uae-standards-and-approvals",
+      "topic": "Recycling and scrap - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Waste and recycling activities are licensed by the emirate authority (Dubai Municipality in Dubai; Tadweer in Abu Dhabi) under Federal Law No. 12 of 2018 on integrated waste management; hazardous waste such as e-waste needs specific handling. What the cited sources do not establish: The Dubai Municipality page read confirms its waste-management remit but not the licence categories; state the material and ask for the recycler licence.",
+      "body_ar": "ترخص جهة الإمارة أنشطة النفايات وإعادة التدوير (بلدية دبي في دبي، ومركز إدارة النفايات تدوير في أبوظبي) وفق القانون الاتحادي رقم 12 لسنة 2018 بشأن الإدارة المتكاملة للنفايات؛ وتحتاج النفايات الخطرة مثل النفايات الإلكترونية إلى تعامل خاص. ما لا تثبته المصادر المذكورة: صفحة بلدية دبي المقروءة تؤكد اختصاصها بإدارة النفايات لكنها لا تذكر فئات الترخيص؛ حدد المادة واطلب ترخيص معيد التدوير.",
+      "source_note": "The Dubai Municipality page read confirms its waste-management remit but not the licence categories; state the material and ask for the recycler licence.",
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.moccae.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for recycling and scrap?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـإعادة التدوير والخردة؟",
+      "expected_entry_ids": [
+        "recycling_scrap:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to recycling and scrap?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على إعادة التدوير والخردة؟",
+      "expected_entry_ids": [
+        "recycling_scrap:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "recycling_scrap:spec-checklist",
+      "recycling_scrap:uae-standards-and-approvals"
+    ],
+    "added": [
+      "recycling_scrap:spec-checklist",
+      "recycling_scrap:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

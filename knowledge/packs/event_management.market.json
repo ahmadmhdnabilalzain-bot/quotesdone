@@ -1,0 +1,107 @@
+{
+  "trade": "event_management",
+  "layer": "uae-market",
+  "label_en": "Event management",
+  "label_ar": "تنظيم الفعاليات",
+  "entries": [
+    {
+      "id": "event_management:uae-market-products",
+      "topic": "Event management: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Event management services in the UAE include corporate conferences and summits, product launches, gala dinners and award ceremonies, exhibitions participation management, MICE and incentive travel, team-building, government and national celebrations (UAE National Day, Flag Day, Ramadan iftars and suhoors), weddings and private events, festivals and concerts, sports events, hybrid and virtual events, and brand activations. Deliverables include concept and creative design, venue sourcing, production (stage, AV, lighting), logistics, registration and badging, guest management, speakers and entertainment, F&B coordination, VIP protocol, health and safety plans, and post-event reports. Buyers ask about permits: in Dubai events require DET event permits (and Dubai Police, Civil Defence, Dubai Municipality and RTA approvals where applicable); in Abu Dhabi every event, including closed corporate events in hotels, needs a DCT licence through the Events Licensing System; events with ticketing need approved ticketing platforms; licensed event companies must hold a trade licence with event management activity. Crowd safety and heat-stress plans are expected for outdoor events.",
+      "body_ar": "تشمل خدمات إدارة الفعاليات في الإمارات المؤتمرات والقمم المؤسسية، وإطلاق المنتجات، وحفلات العشاء الرسمية وحفلات توزيع الجوائز، وإدارة المشاركة في المعارض، والاجتماعات والحوافز والمؤتمرات والمعارض ورحلات الحوافز، وبناء الفرق، والاحتفالات الحكومية والوطنية (اليوم الوطني الإماراتي، ويوم العلم، وإفطارات وسحور رمضان)، والأعراس والفعاليات الخاصة، والمهرجانات والحفلات الموسيقية، والفعاليات الرياضية، والفعاليات الهجينة والافتراضية، والتفعيلات الترويجية للعلامات. وتشمل المخرجات المفهوم والتصميم الإبداعي، واختيار المكان، والإنتاج (المسرح، والصوتيات والمرئيات، والإضاءة)، والخدمات اللوجستية، والتسجيل والشارات، وإدارة الضيوف، والمتحدثين والترفيه، وتنسيق الطعام والشراب، وبروتوكول كبار الشخصيات، وخطط الصحة والسلامة، وتقارير ما بعد الفعالية. يسأل المشترون عن التصاريح: في دبي تتطلب الفعاليات تصاريح دائرة الاقتصاد والسياحة (وموافقات شرطة دبي والدفاع المدني وبلدية دبي وهيئة الطرق والمواصلات عند الحاجة)؛ وفي أبوظبي تحتاج كل فعالية، بما في ذلك فعاليات الشركات المغلقة في الفنادق، إلى ترخيص من دائرة الثقافة والسياحة عبر نظام ترخيص الفعاليات؛ وتحتاج الفعاليات ذات التذاكر إلى منصات تذاكر معتمدة؛ ويجب أن تحمل شركات الفعاليات المرخصة رخصة تجارية بنشاط إدارة الفعاليات. ويُتوقع وجود خطط لسلامة الحشود والإجهاد الحراري للفعاليات الخارجية.",
+      "sources": [
+        "https://www.dubaidet.gov.ae/en/our-services/for-consumers-and-students/apply-for-an-event-permit",
+        "https://dct.gov.ae/en/e.services/events.licensing.system.aspx",
+        "https://jackmorton.com/offices/dubai/",
+        "https://www.bayzat.com/blog/event-management-companies-dubai/",
+        "https://www.dubaidet.gov.ae",
+        "https://dct.gov.ae",
+        "https://www.dwtc.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai events need a DET ePermit; ticketed events must use DET-integrated ticketing -> confirmed | Every event in Abu Dhabi, including closed corporate events in hotels, must be licensed through the DCT Events Licensing System -> confirmed | Jack Morton has a Dubai office; Arabian Adventures is the Emirates Group DMC; MCI serves MICE in the UAE -> confirmed | Flash Entertainment, Momentum, Ignite, Done Events -> removed: not confirmed. Not checked: Agency names are examples only; current operation and the exact agencies retained in Dubai were not verified. Management fee percentages are market norms, not verified."
+    },
+    {
+      "id": "event_management:uae-market-brands",
+      "topic": "Event management: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed agencies and DMC, plus the main venues: Jack Morton, Arabian Adventures, MCI, Dubai World Trade Centre, ADNEC, Expo City Dubai, Coca-Cola Arena, Etihad Arena. Many boutique agencies operate in Dubai Media City, Al Quoz and Abu Dhabi; they were not checked.",
+      "body_ar": "الوكالات وشركة إدارة الوجهات المؤكدة، إضافة إلى الأماكن الرئيسية: Jack Morton، Arabian Adventures، MCI، Dubai World Trade Centre، ADNEC، Expo City Dubai، Coca-Cola Arena، Etihad Arena. وتعمل وكالات متخصصة كثيرة في مدينة دبي للإعلام والقوز وأبوظبي، ولم يُتحقق منها.",
+      "sources": [
+        "https://www.dubaidet.gov.ae/en/our-services/for-consumers-and-students/apply-for-an-event-permit",
+        "https://dct.gov.ae/en/e.services/events.licensing.system.aspx",
+        "https://jackmorton.com/offices/dubai/",
+        "https://www.bayzat.com/blog/event-management-companies-dubai/",
+        "https://www.dubaidet.gov.ae",
+        "https://dct.gov.ae",
+        "https://www.dwtc.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai events need a DET ePermit; ticketed events must use DET-integrated ticketing -> confirmed | Every event in Abu Dhabi, including closed corporate events in hotels, must be licensed through the DCT Events Licensing System -> confirmed | Jack Morton has a Dubai office; Arabian Adventures is the Emirates Group DMC; MCI serves MICE in the UAE -> confirmed | Flash Entertainment, Momentum, Ignite, Done Events -> removed: not confirmed. Not checked: Agency names are examples only; current operation and the exact agencies retained in Dubai were not verified. Management fee percentages are market norms, not verified."
+    },
+    {
+      "id": "event_management:uae-market-sizes",
+      "topic": "Event management: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Event management is priced as a management fee (fixed or a percentage of total event budget, commonly 10-20%) plus itemised production and third-party costs, or as a turnkey lump sum per event. Costs are often expressed per guest/per head for gala and conference packages (venue + F&B + AV). Payment terms typically 50% on confirmation, balance before or after the event. Permit fees are passed through at cost.",
+      "body_ar": "تُسعّر إدارة الفعاليات كرسوم إدارة (ثابتة أو نسبة من الميزانية الإجمالية للفعالية، عادةً 10-20%) إضافة إلى تكاليف الإنتاج والأطراف الثالثة المفصلة، أو كمبلغ مقطوع شامل لكل فعالية. وغالباً ما تُحسب التكاليف لكل ضيف/فرد لباقات الحفلات والمؤتمرات (المكان + الطعام والشراب + الصوتيات والمرئيات). وشروط الدفع عادةً 50% عند التأكيد، والباقي قبل الفعالية أو بعدها. وتُمرر رسوم التصاريح بالتكلفة.",
+      "sources": [
+        "https://www.dubaidet.gov.ae/en/our-services/for-consumers-and-students/apply-for-an-event-permit",
+        "https://dct.gov.ae/en/e.services/events.licensing.system.aspx",
+        "https://jackmorton.com/offices/dubai/",
+        "https://www.bayzat.com/blog/event-management-companies-dubai/",
+        "https://www.dubaidet.gov.ae",
+        "https://dct.gov.ae",
+        "https://www.dwtc.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai events need a DET ePermit; ticketed events must use DET-integrated ticketing -> confirmed | Every event in Abu Dhabi, including closed corporate events in hotels, must be licensed through the DCT Events Licensing System -> confirmed | Jack Morton has a Dubai office; Arabian Adventures is the Emirates Group DMC; MCI serves MICE in the UAE -> confirmed | Flash Entertainment, Momentum, Ignite, Done Events -> removed: not confirmed. Not checked: Agency names are examples only; current operation and the exact agencies retained in Dubai were not verified. Management fee percentages are market norms, not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What permits does a corporate outdoor event in Dubai need?",
+      "q_ar": "ما التصاريح التي تحتاجها فعالية خارجية لشركة في دبي؟",
+      "expected_entry_ids": [
+        "event_management:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Dubai events need a DET ePermit; ticketed events must use DET-integrated ticketing",
+        "url": "https://www.dubaidet.gov.ae/en/our-services/for-consumers-and-students/apply-for-an-event-permit",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Every event in Abu Dhabi, including closed corporate events in hotels, must be licensed through the DCT Events Licensing System",
+        "url": "https://dct.gov.ae/en/e.services/events.licensing.system.aspx",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Jack Morton has a Dubai office; Arabian Adventures is the Emirates Group DMC; MCI serves MICE in the UAE",
+        "url": "https://jackmorton.com/offices/dubai/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Flash Entertainment, Momentum, Ignite, Done Events",
+        "url": "https://www.bayzat.com/blog/event-management-companies-dubai/",
+        "result": "removed: not confirmed"
+      }
+    ],
+    "unverified": "Agency names are examples only; current operation and the exact agencies retained in Dubai were not verified. Management fee percentages are market norms, not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

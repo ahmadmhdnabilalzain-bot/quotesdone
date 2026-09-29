@@ -1,0 +1,99 @@
+{
+  "trade": "pos_retail",
+  "layer": "uae-market",
+  "label_en": "Point-of-sale & retail technology",
+  "label_ar": "أنظمة نقاط البيع وتقنيات التجزئة",
+  "entries": [
+    {
+      "id": "pos_retail:uae-market-products",
+      "topic": "Point-of-sale & retail technology: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "POS and retail technology sold in the UAE includes POS terminals (all-in-one touch POS, Android POS, tablets on stands), POS software for retail, restaurants (with KDS kitchen display, table management, delivery aggregator integration with Talabat, Deliveroo, Careem, Noon Food), salons and pharmacies, card payment terminals (EMV chip, NFC contactless, Apple Pay/Google Pay/Samsung Pay, softPOS on phones) from licensed acquirers, receipt printers (80 mm thermal), barcode scanners (1D/2D), cash drawers, customer displays, weighing scales with label printing, label printers, self-checkout kiosks, electronic shelf labels, handheld inventory terminals, RFID, loss prevention (EAS gates and tags), and people counters. Buyers ask about VAT-compliant invoicing (Arabic/English tax invoices with TRN), UAE e-invoicing integration (mandatory from 1 January 2027 for businesses with revenue of AED 50 million or more and from 1 July 2027 for others), inventory and multi-branch features, integration with accounting (Zoho, QuickBooks, Tally), payment acquirer rates, hardware warranty and support hours, and cloud versus on-premise. Payment terminals must be provided by CBUAE-licensed acquirers/PSPs and meet PCI DSS/PCI PTS requirements.",
+      "body_ar": "تشمل تقنيات نقاط البيع والتجزئة المباعة في الإمارات أجهزة نقاط البيع (أجهزة لمس متكاملة، وأجهزة أندرويد، وأجهزة لوحية على حوامل)، وبرمجيات نقاط البيع لمتاجر التجزئة والمطاعم (مع شاشات عرض المطبخ، وإدارة الطاولات، والتكامل مع منصات التوصيل طلبات وديليفرو وكريم ونون فود) والصالونات والصيدليات، وأجهزة الدفع بالبطاقات (رقاقة EMV، والدفع اللاتلامسي NFC، وأبل باي/جوجل باي/سامسونج باي، ونقاط البيع البرمجية على الهواتف) من جهات تحصيل مرخصة، وطابعات الإيصالات (حرارية 80 مم)، وماسحات الباركود (أحادية/ثنائية الأبعاد)، وأدراج النقود، وشاشات العملاء، وموازين الوزن مع طباعة الملصقات، وطابعات الملصقات، وأكشاك الدفع الذاتي، وملصقات الرفوف الإلكترونية، وأجهزة الجرد المحمولة، وتقنية RFID، ومنع الفقد (بوابات وعلامات EAS)، وعدادات الزوار. يسأل المشترون عن الفواتير المتوافقة مع ضريبة القيمة المضافة (فواتير ضريبية بالعربية/الإنجليزية مع رقم التسجيل الضريبي)، والتكامل مع الفوترة الإلكترونية في الإمارات (إلزامية من 1 يناير 2027 للأعمال التي تبلغ إيراداتها 50 مليون درهم فأكثر، ومن 1 يوليو 2027 للبقية)، وميزات المخزون وتعدد الفروع، والتكامل مع برامج المحاسبة (زوهو، وكويك بوكس، وتالي)، ونسب رسوم جهات التحصيل، وضمان الأجهزة وساعات الدعم، والسحابي مقابل المحلي. ويجب أن تُقدم أجهزة الدفع من جهات تحصيل/مقدمي خدمات دفع مرخصين من المصرف المركزي وأن تستوفي متطلبات PCI DSS/PCI PTS.",
+      "sources": [
+        "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+        "https://www.network.ae/en",
+        "https://www.foodics.com/",
+        "https://www.centralbank.ae",
+        "https://tax.gov.ae",
+        "https://www.pcisecuritystandards.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: E-invoicing mandatory from 1 Jan 2027 (>= AED 50m) and 1 Jul 2027 (others) -> corrected | Network International offers merchant acquiring, POS and SoftPOS -> confirmed | Foodics serves the UAE (local support number) -> confirmed. Not checked: Which POS vendors have local UAE presence (some named are foreign platforms), the e-invoicing go-live date, and acquirer names after mergers were not verified."
+    },
+    {
+      "id": "pos_retail:uae-market-brands",
+      "topic": "Point-of-sale & retail technology: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE acquirer and POS software, plus common POS and hardware brands: Network International, Foodics, Oracle Micros, LS Retail, Odoo, Sunmi, PAX, Verifone, Ingenico, Epson, Zebra. The other brands' UAE resellers were not checked. Payment terminals must come from CBUAE-licensed acquirers.",
+      "body_ar": "جهة التحصيل وبرنامج نقاط البيع المؤكدان في الإمارات، إضافة إلى علامات نقاط البيع والأجهزة الشائعة: Network International، Foodics، Oracle Micros، LS Retail، Odoo، Sunmi، PAX، Verifone، Ingenico، Epson، Zebra. ولم يُتحقق من موزعي العلامات الأخرى في الإمارات. ويجب أن تأتي أجهزة الدفع من جهات تحصيل مرخصة من المصرف المركزي.",
+      "sources": [
+        "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+        "https://www.network.ae/en",
+        "https://www.foodics.com/",
+        "https://www.centralbank.ae",
+        "https://tax.gov.ae",
+        "https://www.pcisecuritystandards.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: E-invoicing mandatory from 1 Jan 2027 (>= AED 50m) and 1 Jul 2027 (others) -> corrected | Network International offers merchant acquiring, POS and SoftPOS -> confirmed | Foodics serves the UAE (local support number) -> confirmed. Not checked: Which POS vendors have local UAE presence (some named are foreign platforms), the e-invoicing go-live date, and acquirer names after mergers were not verified."
+    },
+    {
+      "id": "pos_retail:uae-market-sizes",
+      "topic": "Point-of-sale & retail technology: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "POS software is priced per terminal/license per month or year (SaaS), with add-on modules (inventory, loyalty, KDS) per month; hardware per unit or bundle (terminal + printer + drawer + scanner); payment processing as a percentage merchant discount rate per transaction (varies by card type and volume) plus terminal rental per month; installation and training per site. Enterprise systems priced per store per year plus implementation.",
+      "body_ar": "تُسعّر برمجيات نقاط البيع لكل جهاز/ترخيص شهرياً أو سنوياً (برمجيات كخدمة)، مع وحدات إضافية (المخزون، والولاء، وشاشات المطبخ) شهرياً؛ والأجهزة لكل وحدة أو باقة (جهاز + طابعة + درج + ماسح)؛ ومعالجة المدفوعات كنسبة خصم للتاجر لكل معاملة (تختلف حسب نوع البطاقة والحجم) إضافة إلى إيجار الجهاز شهرياً؛ والتركيب والتدريب لكل موقع. وتُسعّر أنظمة المؤسسات لكل متجر سنوياً إضافة إلى التنفيذ.",
+      "sources": [
+        "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+        "https://www.network.ae/en",
+        "https://www.foodics.com/",
+        "https://www.centralbank.ae",
+        "https://tax.gov.ae",
+        "https://www.pcisecuritystandards.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: E-invoicing mandatory from 1 Jan 2027 (>= AED 50m) and 1 Jul 2027 (others) -> corrected | Network International offers merchant acquiring, POS and SoftPOS -> confirmed | Foodics serves the UAE (local support number) -> confirmed. Not checked: Which POS vendors have local UAE presence (some named are foreign platforms), the e-invoicing go-live date, and acquirer names after mergers were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Does our restaurant POS need to print VAT-compliant tax invoices in Arabic?",
+      "q_ar": "هل يجب أن يطبع نظام نقاط البيع في مطعمنا فواتير ضريبية متوافقة مع ضريبة القيمة المضافة باللغة العربية؟",
+      "expected_entry_ids": [
+        "pos_retail:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "E-invoicing mandatory from 1 Jan 2027 (>= AED 50m) and 1 Jul 2027 (others)",
+        "url": "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+        "result": "corrected"
+      },
+      {
+        "claim": "Network International offers merchant acquiring, POS and SoftPOS",
+        "url": "https://www.network.ae/en",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Foodics serves the UAE (local support number)",
+        "url": "https://www.foodics.com/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Which POS vendors have local UAE presence (some named are foreign platforms), the e-invoicing go-live date, and acquirer names after mergers were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

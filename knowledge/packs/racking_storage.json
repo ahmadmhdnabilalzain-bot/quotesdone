@@ -1,0 +1,78 @@
+{
+  "trade": "racking_storage",
+  "entries": [
+    {
+      "id": "racking_storage:spec-checklist",
+      "topic": "Racking and storage systems - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For racking and storage systems quotes to be compared like-for-like, every quoted line (goods) must state: (1) racking type (selective, drive-in, cantilever, mezzanine, shelving); (2) load per level and per bay in kg; (3) upright height, beam length and depth; (4) number of bays and levels; (5) pallet size and forklift type; (6) design standard (EN 15512, EN 15635); (7) finish and steel grade; (8) floor slab and anchoring; (9) installation and load signs; (10) sprinkler and fire code clearances; (11) delivery terms and location; (12) lead time; (13) warranty period and terms; (14) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the racking_storage trade.",
+      "body_ar": "لكي تُقارن عروض أنظمة الأرفف والتخزين على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الأرفف (انتقائية، أو دخول الرافعة، أو كابولية، أو ميزانين، أو رفوف)؛ (2) الحمل لكل مستوى ولكل خلية بالكيلوغرام؛ (3) ارتفاع القائم وطول العارضة والعمق؛ (4) عدد الخلايا والمستويات؛ (5) مقاس المنصة ونوع الرافعة الشوكية؛ (6) معيار التصميم (EN 15512 أو EN 15635)؛ (7) التشطيب ودرجة الفولاذ؛ (8) أرضية البلاطة والتثبيت؛ (9) التركيب ولوحات الحمل؛ (10) مسافات الرشاشات ومتطلبات كود الحريق؛ (11) شروط التسليم وموقعه؛ (12) مدة التوريد؛ (13) مدة الضمان وشروطه؛ (14) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة racking_storage فقط.",
+      "required_specs": [
+        "racking type (selective, drive-in, cantilever, mezzanine, shelving)",
+        "load per level and per bay in kg",
+        "upright height, beam length and depth",
+        "number of bays and levels",
+        "pallet size and forklift type",
+        "design standard (EN 15512, EN 15635)",
+        "finish and steel grade",
+        "floor slab and anchoring",
+        "installation and load signs",
+        "sprinkler and fire code clearances",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "racking_storage:uae-standards-and-approvals",
+      "topic": "Racking and storage systems - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Warehouse racking height and storage arrangement affect fire protection under the UAE Fire and Life Safety Code of Practice (Civil Defence); racking design is commonly specified to EN 15512 with inspection per EN 15635. What the cited sources do not establish: The sources read do not make EN 15512 mandatory in the UAE; state the design standard and load explicitly.",
+      "body_ar": "يؤثر ارتفاع أرفف المستودعات وترتيب التخزين في متطلبات الحماية من الحريق وفق كود الإمارات للحماية من الحريق وسلامة الأرواح (الدفاع المدني)؛ ويُحدَّد تصميم الأرفف عادةً وفق EN 15512 مع الفحص وفق EN 15635. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تجعل EN 15512 إلزامياً في الإمارات؛ حدد معيار التصميم والحمل صراحةً.",
+      "source_note": "The sources read do not make EN 15512 mandatory in the UAE; state the design standard and load explicitly.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for racking and storage systems?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـأنظمة الأرفف والتخزين؟",
+      "expected_entry_ids": [
+        "racking_storage:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to racking and storage systems?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على أنظمة الأرفف والتخزين؟",
+      "expected_entry_ids": [
+        "racking_storage:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "racking_storage:spec-checklist",
+      "racking_storage:uae-standards-and-approvals"
+    ],
+    "added": [
+      "racking_storage:spec-checklist",
+      "racking_storage:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
