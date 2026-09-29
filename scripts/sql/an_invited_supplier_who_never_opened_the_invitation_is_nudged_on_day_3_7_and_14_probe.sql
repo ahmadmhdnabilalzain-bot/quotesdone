@@ -1,5 +1,6 @@
 -- PROBE (pure, no DDL, aborted transaction) for an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14.sql.
--- Run AFTER the definitions in the same transaction; it always ends in raise exception 'CHK<<json>>', so every row it
+-- Run AFTER #1051's the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql (fn_supplier_invite_link)
+-- and the definitions, all in the same transaction; it always ends in raise exception 'CHK<<json>>', so every row it
 -- writes rolls back. Subjects: seven ZZ DEMO leads at @example.invalid, created here. Fixture mode of the nudger can only
 -- see leads carrying BOTH marks, and every nudge row this probe produced is asserted to be at @example.invalid.
 do $$
@@ -121,6 +122,17 @@ begin
               and (lang is distinct from 'en' or body !~ '/en/portal[?]t=' or body ~ '/ar/'
                    or coalesce(subject, '') || coalesce(body, '') ~ '[؀-ۿ]')) then
     fail := fail || 'a nudge is not English; '; end if;
+  -- the link is the invitation's own (fn_supplier_invite_link, #1051): /en/portal with the token and the lead's ref
+  if exists (select 1 from public.notifications n where n.type = 'supplier_invite_nudge' and n.lead_id = any(ids)
+              and n.body !~ ('/en/portal[?]t=[0-9a-f-]{36}&utm_source=invite&utm_medium=email&utm_campaign=supplier_invite&utm_content=lead-'
+                              || n.lead_id || '(\s|$)')) then
+    fail := fail || 'a nudge link is not fn_supplier_invite_link''s /en/ link with its ref; '; end if;
+  -- no Arabic path left in either nudge's applied definition (read back): no /ar/ link, no 'ar' language
+  if exists (select 1 from (values ('public.fn_sales_engineer_nudges_invited_suppliers(timestamptz,integer,boolean)'::regprocedure),
+                                   ('public.fn_supplier_invite_nudges_due(timestamptz,boolean)'::regprocedure),
+                                   ('public.fn_sales_engineer_supplier_onboarding()'::regprocedure)) f(p)
+              where position('/ar/' in pg_get_functiondef(f.p)) > 0 or pg_get_functiondef(f.p) ~ '''ar''|v_ar') then
+    fail := fail || 'a nudge definition still has an Arabic branch or /ar/ link; '; end if;
   if not exists (select 1 from public.notifications where type = 'supplier_invite_nudge' and lead_id = a) then
     fail := fail || 'the Arabic-locale lead was not nudged (in English); '; end if;
   if not exists (select 1 from public.notifications where type = 'supplier_invite_nudge' and lead_id = b and body like 'Dear Sir or Madam,%') then

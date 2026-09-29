@@ -37,6 +37,8 @@
 -- RE-REVIEW, 29 Sep 2026: an Arabic-script company name is not written into the English greeting (#1070's guard,
 --   both nudges), and enqueue_supplier_invites (redefined at the foot) counts the day's nudges against
 --   invite_daily_cap, so the batch and the nudger spend ONE cap from both sides.
+-- DEPENDS-ON #1051: the nudge link is fn_supplier_invite_link (the /en/ link with the invitation ref), defined in
+--   the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql. Apply #1051 first.
 -- ORGANIC ONLY (founder 866): email through the company's own outbox; no paid channel, no ad spend, no LLM.
 -- Prevented by: scripts/sql/an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14_probe.sql
 
@@ -128,9 +130,13 @@ begin
              join public.leads l on l.id = d.lead_id loop
     v_due := v_due + 1;
     continue when v_queued >= v_left;
-    -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English): one copy, the /en/ portal.
-    v_link := coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com')
-              || '/en/portal' || case when r.claim_token is not null then '?t=' || r.claim_token::text else '' end;
+    -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English): one copy, and the link is
+    -- the invitation's own: fn_supplier_invite_link (#1051) - /en/portal with the claim token and the invitation ref.
+    -- A lead with no claim token (the function then answers null) gets the plain English portal.
+    v_link := coalesce(public.fn_supplier_invite_link(
+                         (select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), r.claim_token, r.lead_id),
+                       coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com')
+                       || '/en/portal');
     v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'supplier_invite_nudge', 'requested_by', 'sales_engineer', 'channel', 'email',
       'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en', 'dedupe_key', r.dedupe_key,
@@ -157,15 +163,16 @@ grant execute on function public.fn_sales_engineer_nudges_invited_suppliers(time
 
 -- The duty that measured "171 invited, 0 nudged" now acts on the 'invited' stage. Base: #1065's
 -- suppliers_are_always_written_in_english_and_customers_in_their_inquirys_language.sql (MANIFEST 1833, the current
--- canonical; it already writes the first-quote nudge in English), byte for byte except the call, its report line
--- ('invite_nudges'), and #1070's greeting guard on the English first-quote greeting.
+-- canonical), byte for byte except: the nudger call and its report line ('invite_nudges'); the first-quote nudge's
+-- Arabic branch (dead behind v_ar := false in #1065) removed, so the letter is English only; its portal link is
+-- /en/portal; and #1070's greeting guard on the English greeting.
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supplier_onboarding()
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; v_nudged int := 0; v_to text; v_ar boolean; v_stages jsonb; v_inv jsonb;
+declare r record; v_nudged int := 0; v_to text; v_stages jsonb; v_inv jsonb;
 begin
   -- THE STAGE, from what the rows say happened (never from a status someone typed).
   with m as (
@@ -215,24 +222,20 @@ begin
      limit 50
   loop
     continue when r.to_email is null;
-    v_ar := false;   -- suppliers are always written in English (founder, 28 Sep 2026)
+    -- ENGLISH ONLY (#1007, review of 29 Sep 2026): #1065's body kept an Arabic branch behind a flag fixed to English; it is
+    -- removed, not switched off. A matched supplier is registered, so the link is the English portal (no claim token).
     perform public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'supplier_first_quote_nudge', 'requested_by', 'sales_engineer', 'channel', 'email',
-      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', case when v_ar then 'ar' else 'en' end,
+      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en',
       'dedupe_key', 'first_quote_nudge:' || r.lead_id || ':' || (select nudges from public.supplier_onboarding where lead_id = r.lead_id),
-      'subject', case when v_ar then 'طلبات عملاء بانتظار عروض أسعاركم في QuotesDone'
-                      else 'Customer requests are waiting for your quotation' end,
-      'body', case when v_ar then
-          'السادة/ ' || coalesce(r.company_name, 'المورّد') || ' المحترمين،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
-          || 'لديكم ' || r.open_matches || ' من طلبات العملاء المطابقة لتخصصكم لم تُقدَّم لها عروض أسعار حتى الآن. '
-          || 'يمكنكم الاطلاع عليها وتقديم عروضكم من بوابة المورّدين: https://quotesdone.com/ar/portal' || chr(10) || chr(10)
-          || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
-        else
-          -- #1070's greeting guard (#1007): an Arabic-script company name is not written into an English letter
-          'Dear ' || coalesce(nullif(btrim(case when r.company_name ~ '[؀-ۿ]' then '' else r.company_name end), ''), 'supplier') || ',' || chr(10) || chr(10)
+      'subject', 'Customer requests are waiting for your quotation',
+      -- #1070's greeting guard (#1007): an Arabic-script company name is not written into an English letter
+      'body', 'Dear ' || coalesce(nullif(btrim(case when r.company_name ~ '[؀-ۿ]' then '' else r.company_name end), ''), 'supplier') || ',' || chr(10) || chr(10)
           || r.open_matches || ' customer request(s) matched to your trade are open and have no quotation from you yet. '
-          || 'You can read them and quote in your supplier portal: https://quotesdone.com/portal' || chr(10) || chr(10)
-          || 'QuotesDone' end)));
+          || 'You can read them and quote in your supplier portal: '
+          || coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com')
+          || '/en/portal' || chr(10) || chr(10)
+          || 'QuotesDone')));
     update public.supplier_onboarding set nudges = nudges + 1, last_nudge_at = now() where lead_id = r.lead_id;
     v_nudged := v_nudged + 1;
   end loop;
