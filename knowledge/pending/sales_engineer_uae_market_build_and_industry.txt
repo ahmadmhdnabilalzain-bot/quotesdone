@@ -1,0 +1,12 @@
+Not loaded. The UAE market layer for the build and industry trades (construction_building, mep_building_systems,
+energy_environment, industrial_manufacturing, materials_packaging), founder ledger 899, 900, 903.
+
+- 97 trades are verified: knowledge/packs/<trade>.market.json, 291 entries, English and Arabic. They reach production
+  only when `node scripts/kb/load_verified_packs.mjs --apply` runs after merge. Each file's verified.checks records
+  191 checks made on 28 Sep 2026 against the page opened or search result. Every file also states what was not checked.
+- 6 trades are drafts and are never loaded, because listPackFiles ignores *.draft.json and no check confirmed a
+  claim: cnc_machining, industrial_filters, industrial_machinery, welding_equipment, packaging_tapes_strapping,
+  home_automation. Verify them, then rename them to .market.json.
+
+After the load, run `node scripts/eval/knowledge_pack_eval.mjs` and confirm every .market pack is at or above FLOOR.
+Delete this note in the commit that records the load.

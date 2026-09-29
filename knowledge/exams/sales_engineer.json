@@ -1,0 +1,889 @@
+{
+  "seat": "sales_engineer",
+  "standard": "knowledge/seats/sales_engineer.json#sales_engineer:senior-sales-engineer-standard (founder instruction 1005, 28 Sep 2026)",
+  "checklist": {
+    "SE-01": "Reads drawings and specifications",
+    "SE-02": "Quantity take-off per trade under a named method of measurement",
+    "SE-03": "UAE and GCC authorities, standards and approvals",
+    "SE-04": "Per-trade, per-line spec checklists; exact specs or held",
+    "SE-05": "Pricing and bills of quantities",
+    "SE-06": "Supplier evaluation",
+    "SE-07": "Alternatives when no exact spec exists",
+    "SE-08": "Negotiation",
+    "SE-09": "Enterprise accounts",
+    "SE-10": "Founder hard rules (exact trade, exact spec, UAE law)"
+  },
+  "items": [
+    {
+      "id": "sales_engineer-exam-01",
+      "checklist": "SE-01",
+      "q_en": "What do I read first on a drawing before taking quantities?",
+      "q_ar": "ماذا أقرأ أولاً في المخطط قبل حصر الكميات؟",
+      "expected_entry_ids": [
+        "sales_engineer:reading-drawings"
+      ],
+      "expected_facts": [
+        "title block",
+        "revision"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-02",
+      "checklist": "SE-01",
+      "q_en": "The drawing says do not scale. The dimension is missing. What do I do?",
+      "q_ar": "المخطط يقول لا تقس بالمسطرة والبُعد مفقود. ماذا أفعل؟",
+      "expected_entry_ids": [
+        "sales_engineer:reading-drawings"
+      ],
+      "expected_facts": [
+        "never scale a dimension - ask"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-03",
+      "checklist": "SE-01",
+      "q_en": "Which drawing file formats can a customer upload?",
+      "q_ar": "ما صيغ ملفات المخططات التي يمكن للعميل رفعها؟",
+      "expected_entry_ids": [
+        "sales_engineer:reading-drawings"
+      ],
+      "expected_facts": [
+        "PDF or CAD (DWG/DXF) only"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-04",
+      "checklist": "SE-01",
+      "q_en": "The architectural and MEP drawings disagree. Which one do I price?",
+      "q_ar": "المخططات المعمارية والكهروميكانيكية متعارضة. أيهما أسعّر؟",
+      "expected_entry_ids": [
+        "sales_engineer:drawing-discipline-conflicts",
+        "sales_engineer:reading-drawings"
+      ],
+      "expected_facts": [
+        "written clarification rather than choosing one"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-05",
+      "checklist": "SE-01",
+      "q_en": "What is the difference between a prescriptive and a performance specification?",
+      "q_ar": "ما الفرق بين المواصفة الوصفية والمواصفة الأدائية؟",
+      "expected_entry_ids": [
+        "sales_engineer:reading-specifications"
+      ],
+      "expected_facts": [
+        "performance-based",
+        "leaving the product to the supplier"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-06",
+      "checklist": "SE-01",
+      "q_en": "The specification and the drawings conflict. Which prevails?",
+      "q_ar": "المواصفة والمخططات متعارضة. أيهما يسود؟",
+      "expected_entry_ids": [
+        "sales_engineer:spec-versus-drawing-precedence",
+        "sales_engineer:reading-specifications"
+      ],
+      "expected_facts": [
+        "order of precedence decides",
+        "never pick the cheaper reading"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-07",
+      "checklist": "SE-01",
+      "q_en": "How are specifications usually organised?",
+      "q_ar": "كيف تُنظَّم المواصفات عادة؟",
+      "expected_entry_ids": [
+        "sales_engineer:reading-specifications"
+      ],
+      "expected_facts": [
+        "MasterFormat",
+        "NBS"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-08",
+      "checklist": "SE-02",
+      "q_en": "Which methods of measurement are common in the UAE?",
+      "q_ar": "ما طرق القياس الشائعة في الإمارات؟",
+      "expected_entry_ids": [
+        "sales_engineer:methods-of-measurement"
+      ],
+      "expected_facts": [
+        "POMI",
+        "NRM2",
+        "CESMM4"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-09",
+      "checklist": "SE-02",
+      "q_en": "When did the second edition of NRM2 take effect?",
+      "q_ar": "متى سرت الطبعة الثانية من NRM2؟",
+      "expected_entry_ids": [
+        "sales_engineer:nrm2-edition",
+        "sales_engineer:methods-of-measurement"
+      ],
+      "expected_facts": [
+        "effective 1 December 2021"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-10",
+      "checklist": "SE-02",
+      "q_en": "Should waste be added to the measured quantity?",
+      "q_ar": "هل يُضاف الهدر إلى الكمية المقيسة؟",
+      "expected_entry_ids": [
+        "sales_engineer:waste-in-rate-not-quantity",
+        "sales_engineer:methods-of-measurement"
+      ],
+      "expected_facts": [
+        "allowed for in the rate, not added to the quantity"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-11",
+      "checklist": "SE-02",
+      "q_en": "Which measurement method is used for civil and infrastructure works?",
+      "q_ar": "ما طريقة القياس المستخدمة للأعمال المدنية والبنية التحتية؟",
+      "expected_entry_ids": [
+        "sales_engineer:methods-of-measurement"
+      ],
+      "expected_facts": [
+        "CESMM4"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-12",
+      "checklist": "SE-02",
+      "q_en": "In what unit is reinforcement steel measured?",
+      "q_ar": "بأي وحدة يُقاس حديد التسليح؟",
+      "expected_entry_ids": [
+        "sales_engineer:concrete-rebar-formwork-units",
+        "sales_engineer:takeoff-civil-structure"
+      ],
+      "expected_facts": [
+        "reinforcement in tonnes"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-13",
+      "checklist": "SE-02",
+      "q_en": "How is formwork measured?",
+      "q_ar": "كيف تُقاس الشدات؟",
+      "expected_entry_ids": [
+        "sales_engineer:concrete-rebar-formwork-units",
+        "sales_engineer:takeoff-civil-structure"
+      ],
+      "expected_facts": [
+        "formwork in m2 of contact area"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-14",
+      "checklist": "SE-02",
+      "q_en": "A supplier priced concrete per truck. Is that comparable?",
+      "q_ar": "سعّر مورد الخرسانة بالشاحنة. هل هذا قابل للمقارنة؟",
+      "expected_entry_ids": [
+        "sales_engineer:concrete-rebar-formwork-units",
+        "sales_engineer:takeoff-civil-structure"
+      ],
+      "expected_facts": [
+        "concrete priced per truck rather than per m3"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-15",
+      "checklist": "SE-02",
+      "q_en": "How is blockwork measured?",
+      "q_ar": "كيف يُقاس البلوك؟",
+      "expected_entry_ids": [
+        "sales_engineer:takeoff-civil-structure"
+      ],
+      "expected_facts": [
+        "blockwork in m2 by block thickness"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-16",
+      "checklist": "SE-02",
+      "q_en": "How is paint measured in a take-off?",
+      "q_ar": "كيف يُقاس الدهان في حصر الكميات؟",
+      "expected_entry_ids": [
+        "sales_engineer:takeoff-finishes"
+      ],
+      "expected_facts": [
+        "paint in m2 of surface stating the full system"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-17",
+      "checklist": "SE-02",
+      "q_en": "A tiling supplier added 10% to my quantity. Is that right?",
+      "q_ar": "أضاف مورد البلاط 10% إلى كميتي. هل هذا صحيح؟",
+      "expected_entry_ids": [
+        "sales_engineer:takeoff-finishes"
+      ],
+      "expected_facts": [
+        "changed the quantity, not the rate"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-18",
+      "checklist": "SE-02",
+      "q_en": "How are cables measured?",
+      "q_ar": "كيف تُقاس الكابلات؟",
+      "expected_entry_ids": [
+        "sales_engineer:takeoff-mep"
+      ],
+      "expected_facts": [
+        "cables in linear metres by size"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-19",
+      "checklist": "SE-02",
+      "q_en": "A supplier quoted complete MEP as one lump sum. What do I do?",
+      "q_ar": "سعّر مورد الأعمال الكهروميكانيكية كاملة بمبلغ مقطوع واحد. ماذا أفعل؟",
+      "expected_entry_ids": [
+        "sales_engineer:takeoff-mep"
+      ],
+      "expected_facts": [
+        "cannot be levelled",
+        "breakdown by system"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-20",
+      "checklist": "SE-02",
+      "q_en": "How are air-conditioning units described in a take-off?",
+      "q_ar": "كيف توصف وحدات التكييف في حصر الكميات؟",
+      "expected_entry_ids": [
+        "sales_engineer:ac-unit-description",
+        "sales_engineer:takeoff-mep"
+      ],
+      "expected_facts": [
+        "cooling capacity in kW or TR"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-21",
+      "checklist": "SE-03",
+      "q_en": "Who issues ECAS certificates for regulated products?",
+      "q_ar": "من يصدر شهادات ECAS للمنتجات المنظمة؟",
+      "expected_entry_ids": [
+        "sales_engineer:ecas-issuer-moiat",
+        "sales_engineer:uae-authorities-map"
+      ],
+      "expected_facts": [
+        "MoIAT",
+        "absorbed ESMA in 2020"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-22",
+      "checklist": "SE-03",
+      "q_en": "Which code does Dubai Civil Defence apply to fire systems?",
+      "q_ar": "ما الكود الذي يطبقه الدفاع المدني بدبي على أنظمة الحريق؟",
+      "expected_entry_ids": [
+        "sales_engineer:civil-defence-fls-code",
+        "sales_engineer:uae-authorities-map"
+      ],
+      "expected_facts": [
+        "UAE Fire and Life Safety Code of Practice (2018 edition)"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-23",
+      "checklist": "SE-03",
+      "q_en": "Who approves building work in Jebel Ali?",
+      "q_ar": "من يعتمد أعمال البناء في جبل علي؟",
+      "expected_entry_ids": [
+        "sales_engineer:trakhees-jebel-ali",
+        "sales_engineer:uae-authorities-map"
+      ],
+      "expected_facts": [
+        "Trakhees"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-24",
+      "checklist": "SE-03",
+      "q_en": "Who approves a solar connection in Dubai?",
+      "q_ar": "من يعتمد توصيل الطاقة الشمسية في دبي؟",
+      "expected_entry_ids": [
+        "sales_engineer:dewa-shams-dubai",
+        "sales_engineer:uae-authorities-map"
+      ],
+      "expected_facts": [
+        "Shams Dubai"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-25",
+      "checklist": "SE-03",
+      "q_en": "Where are building materials tested in Dubai?",
+      "q_ar": "أين تُفحص مواد البناء في دبي؟",
+      "expected_entry_ids": [
+        "sales_engineer:dubai-central-laboratory",
+        "sales_engineer:uae-authorities-map"
+      ],
+      "expected_facts": [
+        "Dubai Central Laboratory"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-26",
+      "checklist": "SE-03",
+      "q_en": "Which authority governs this plot? The customer did not say.",
+      "q_ar": "أي جهة تحكم قطعة الأرض هذه؟ لم يذكر العميل.",
+      "expected_entry_ids": [
+        "sales_engineer:ask-location-before-authority",
+        "sales_engineer:uae-authorities-map"
+      ],
+      "expected_facts": [
+        "ask the location and the free zone"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-27",
+      "checklist": "SE-03",
+      "q_en": "What levels does Al Sa'fat certify?",
+      "q_ar": "ما المستويات التي يمنحها نظام السعفات؟",
+      "expected_entry_ids": [
+        "sales_engineer:al-safat-levels",
+        "sales_engineer:green-building-rules"
+      ],
+      "expected_facts": [
+        "Bronze, Silver, Gold and Platinum"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-28",
+      "checklist": "SE-03",
+      "q_en": "What Al Sa'fat level must a new building in Dubai reach?",
+      "q_ar": "ما مستوى السعفات الذي يجب أن يبلغه مبنى جديد في دبي؟",
+      "expected_entry_ids": [
+        "sales_engineer:al-safat-levels",
+        "sales_engineer:green-building-rules"
+      ],
+      "expected_facts": [
+        "at least the Silver level"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-29",
+      "checklist": "SE-03",
+      "q_en": "What is the minimum Estidama rating for a new building in Abu Dhabi?",
+      "q_ar": "ما الحد الأدنى لتقييم استدامة لمبنى جديد في أبوظبي؟",
+      "expected_entry_ids": [
+        "sales_engineer:estidama-pearl-minimum",
+        "sales_engineer:green-building-rules"
+      ],
+      "expected_facts": [
+        "1 Pearl is the minimum for new buildings"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-30",
+      "checklist": "SE-03",
+      "q_en": "Is EQM the same as ECAS?",
+      "q_ar": "هل علامة الجودة EQM هي نفسها شهادة ECAS؟",
+      "expected_entry_ids": [
+        "sales_engineer:product-conformity-ecas"
+      ],
+      "expected_facts": [
+        "EQM (Emirates Quality Mark) is voluntary"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-31",
+      "checklist": "SE-04",
+      "q_en": "A quote line is missing a spec the trade requires. Can it be released?",
+      "q_ar": "بند في العرض ينقصه مواصفة تتطلبها الحرفة. هل يُطلق؟",
+      "expected_entry_ids": [
+        "sales_engineer:exact-specs-or-held"
+      ],
+      "expected_facts": [
+        "otherwise it is held"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-32",
+      "checklist": "SE-04",
+      "q_en": "Where does the list of required specs for a trade come from?",
+      "q_ar": "من أين تأتي قائمة المواصفات المطلوبة للحرفة؟",
+      "expected_entry_ids": [
+        "sales_engineer:exact-specs-or-held"
+      ],
+      "expected_facts": [
+        "trade_spec_checklist"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-33",
+      "checklist": "SE-04",
+      "q_en": "How many trades have a spec checklist after the September build?",
+      "q_ar": "كم حرفة لها قائمة مواصفات بعد بناء سبتمبر؟",
+      "expected_entry_ids": [
+        "sales_engineer:exact-specs-or-held"
+      ],
+      "expected_facts": [
+        "213 trades"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-34",
+      "checklist": "SE-04",
+      "q_en": "Can I fill a missing spec with the standard grade?",
+      "q_ar": "هل يمكنني ملء مواصفة ناقصة بالدرجة القياسية؟",
+      "expected_entry_ids": [
+        "sales_engineer:exact-specs-or-held"
+      ],
+      "expected_facts": [
+        "never fills a missing spec with a guess"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-35",
+      "checklist": "SE-04",
+      "q_en": "Do services have specs too?",
+      "q_ar": "هل للخدمات مواصفات أيضاً؟",
+      "expected_entry_ids": [
+        "sales_engineer:services-have-specs",
+        "sales_engineer:exact-specs-or-held"
+      ],
+      "expected_facts": [
+        "The rule applies to services too"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-36",
+      "checklist": "SE-04",
+      "q_en": "What submittals should a quote for a specified product carry?",
+      "q_ar": "ما المستندات التي يجب أن يحملها عرض لمنتج محدد؟",
+      "expected_entry_ids": [
+        "sales_engineer:technical-submittals"
+      ],
+      "expected_facts": [
+        "manufacturer's datasheet",
+        "country of origin"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-37",
+      "checklist": "SE-04",
+      "q_en": "The certificate names a product family, not the model offered. Is that enough?",
+      "q_ar": "الشهادة تسمي عائلة المنتج لا الطراز المعروض. هل يكفي؟",
+      "expected_entry_ids": [
+        "sales_engineer:certificate-must-cover-model",
+        "sales_engineer:technical-submittals"
+      ],
+      "expected_facts": [
+        "not only a family name"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-38",
+      "checklist": "SE-04",
+      "q_en": "What must an inquiry state before matching?",
+      "q_ar": "ماذا يجب أن يذكر الاستفسار قبل المطابقة؟",
+      "expected_entry_ids": [
+        "sales_engineer:rfq-completeness-checklist"
+      ],
+      "expected_facts": [
+        "quantities with units"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-39",
+      "checklist": "SE-05",
+      "q_en": "What goes in the preliminaries of a BOQ?",
+      "q_ar": "ماذا يتضمن قسم الأعمال التمهيدية في جدول الكميات؟",
+      "expected_entry_ids": [
+        "sales_engineer:boq-structure"
+      ],
+      "expected_facts": [
+        "preliminaries (site set-up, supervision"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-40",
+      "checklist": "SE-05",
+      "q_en": "What is a prime cost sum?",
+      "q_ar": "ما هو مبلغ التكلفة الأولية؟",
+      "expected_entry_ids": [
+        "sales_engineer:prime-cost-and-provisional-sums",
+        "sales_engineer:boq-structure"
+      ],
+      "expected_facts": [
+        "prime cost (PC) sums"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-41",
+      "checklist": "SE-05",
+      "q_en": "Can a supplier change the quantities in our BOQ?",
+      "q_ar": "هل يمكن للمورد تغيير الكميات في جدول كمياتنا؟",
+      "expected_entry_ids": [
+        "sales_engineer:boq-structure"
+      ],
+      "expected_facts": [
+        "A supplier fills rates, not quantities"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-42",
+      "checklist": "SE-05",
+      "q_en": "How is a unit rate built up?",
+      "q_ar": "كيف يُبنى سعر الوحدة؟",
+      "expected_entry_ids": [
+        "sales_engineer:unit-rate-build-up"
+      ],
+      "expected_facts": [
+        "materials (quantity per unit plus waste"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-43",
+      "checklist": "SE-05",
+      "q_en": "Rate times quantity does not equal the amount on a quote line. What do I do?",
+      "q_ar": "السعر × الكمية لا يساوي المبلغ في بند العرض. ماذا أفعل؟",
+      "expected_entry_ids": [
+        "sales_engineer:arithmetic-error-rule",
+        "sales_engineer:unit-rate-build-up"
+      ],
+      "expected_facts": [
+        "never correct it silently"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-44",
+      "checklist": "SE-05",
+      "q_en": "What share of UAE construction cost is materials?",
+      "q_ar": "ما حصة المواد من تكلفة البناء في الإمارات؟",
+      "expected_entry_ids": [
+        "sales_engineer:cost-structure-of-a-quote"
+      ],
+      "expected_facts": [
+        "around 60%"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-45",
+      "checklist": "SE-05",
+      "q_en": "How do I compare quotes that look different?",
+      "q_ar": "كيف أقارن عروضاً تبدو مختلفة؟",
+      "expected_entry_ids": [
+        "sales_engineer:quote-levelling-method"
+      ],
+      "expected_facts": [
+        "plug"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-46",
+      "checklist": "SE-05",
+      "q_en": "Should I show prices with or without VAT?",
+      "q_ar": "هل أعرض الأسعار مع ضريبة القيمة المضافة أم دونها؟",
+      "expected_entry_ids": [
+        "sales_engineer:vat-on-quotes"
+      ],
+      "expected_facts": [
+        "VAT-exclusive"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-47",
+      "checklist": "SE-06",
+      "q_en": "How do I mark each quote line in a technical evaluation?",
+      "q_ar": "كيف أصنف كل بند في التقييم الفني؟",
+      "expected_entry_ids": [
+        "sales_engineer:compliant-before-cheapest",
+        "sales_engineer:technical-compliance-matrix"
+      ],
+      "expected_facts": [
+        "compliant",
+        "deviation",
+        "not stated"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-48",
+      "checklist": "SE-06",
+      "q_en": "Can a cheaper non-compliant quote be ranked first?",
+      "q_ar": "هل يمكن ترتيب عرض أرخص غير مطابق أولاً؟",
+      "expected_entry_ids": [
+        "sales_engineer:compliant-before-cheapest",
+        "sales_engineer:technical-compliance-matrix"
+      ],
+      "expected_facts": [
+        "never ranked above a compliant one"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-49",
+      "checklist": "SE-06",
+      "q_en": "One quote is 25% below the others. Do we recommend it?",
+      "q_ar": "عرض أقل من الآخرين بنسبة 25%. هل نوصي به؟",
+      "expected_entry_ids": [
+        "sales_engineer:low-outlier-quote"
+      ],
+      "expected_facts": [
+        "do not recommend it and do not hide it"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-50",
+      "checklist": "SE-06",
+      "q_en": "What does a weighted evaluation do?",
+      "q_ar": "ماذا يفعل التقييم المرجّح؟",
+      "expected_entry_ids": [
+        "sales_engineer:weighted-evaluation"
+      ],
+      "expected_facts": [
+        "multiplies each score by a weight"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-51",
+      "checklist": "SE-06",
+      "q_en": "Which six items must be verified before a supplier is matched?",
+      "q_ar": "ما البنود الستة التي يجب التحقق منها قبل مطابقة المورد؟",
+      "expected_entry_ids": [
+        "sales_engineer:mandatory-six-verification"
+      ],
+      "expected_facts": [
+        "trade licence",
+        "signed platform terms"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-52",
+      "checklist": "SE-07",
+      "q_en": "No supplier can meet the exact spec. Can the seat accept the alternative for the customer?",
+      "q_ar": "لا مورد يستوفي المواصفة بالضبط. هل يقبل المقعد البديل عن العميل؟",
+      "expected_entry_ids": [
+        "sales_engineer:no-exact-spec-offer-loop"
+      ],
+      "expected_facts": [
+        "never accepted on the customer's behalf"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-53",
+      "checklist": "SE-07",
+      "q_en": "The customer did not answer about the alternative. Is that a yes?",
+      "q_ar": "لم يرد العميل بشأن البديل. هل هذه موافقة؟",
+      "expected_entry_ids": [
+        "sales_engineer:no-exact-spec-offer-loop"
+      ],
+      "expected_facts": [
+        "Silence is not yes"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-54",
+      "checklist": "SE-07",
+      "q_en": "The customer said no to the alternative. What happens to the supplier?",
+      "q_ar": "رفض العميل البديل. ماذا يحدث للمورد؟",
+      "expected_entry_ids": [
+        "sales_engineer:no-exact-spec-offer-loop"
+      ],
+      "expected_facts": [
+        "polite apology"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-55",
+      "checklist": "SE-07",
+      "q_en": "The alternative lacks Civil Defence approval. Do we offer it?",
+      "q_ar": "البديل يفتقد موافقة الدفاع المدني. هل نعرضه؟",
+      "expected_entry_ids": [
+        "sales_engineer:alternative-needs-uae-approval",
+        "sales_engineer:no-exact-spec-offer-loop"
+      ],
+      "expected_facts": [
+        "is not offered at all"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-56",
+      "checklist": "SE-07",
+      "q_en": "How is an alternate shown next to the base quote?",
+      "q_ar": "كيف يُعرض البديل بجانب العرض الأساسي؟",
+      "expected_entry_ids": [
+        "sales_engineer:alternates-and-options"
+      ],
+      "expected_facts": [
+        "never folded into the base ranking"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-57",
+      "checklist": "SE-08",
+      "q_en": "Can I tell a supplier that a competitor is cheaper and by how much?",
+      "q_ar": "هل أخبر مورداً أن منافساً أرخص وبكم؟",
+      "expected_entry_ids": [
+        "sales_engineer:no-competitor-price-disclosure",
+        "sales_engineer:negotiation-sequence"
+      ],
+      "expected_facts": [
+        "Never disclose one supplier's price"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-58",
+      "checklist": "SE-08",
+      "q_en": "What comes before bargaining on price?",
+      "q_ar": "ماذا يأتي قبل المساومة على السعر؟",
+      "expected_entry_ids": [
+        "sales_engineer:negotiation-sequence"
+      ],
+      "expected_facts": [
+        "Clarify before bargaining"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-59",
+      "checklist": "SE-08",
+      "q_en": "What is the customer's real BATNA?",
+      "q_ar": "ما هو البديل الأفضل الحقيقي للعميل؟",
+      "expected_entry_ids": [
+        "sales_engineer:batna-in-procurement"
+      ],
+      "expected_facts": [
+        "next-best levelled quote"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-60",
+      "checklist": "SE-08",
+      "q_en": "Besides price, what can we negotiate?",
+      "q_ar": "غير السعر، على ماذا يمكن أن نتفاوض؟",
+      "expected_entry_ids": [
+        "sales_engineer:negotiable-levers"
+      ],
+      "expected_facts": [
+        "payment terms",
+        "retention"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-61",
+      "checklist": "SE-08",
+      "q_en": "How much retention is typical and when is it released?",
+      "q_ar": "كم نسبة المحتجزات المعتادة ومتى تُفرج؟",
+      "expected_entry_ids": [
+        "sales_engineer:retention"
+      ],
+      "expected_facts": [
+        "10% withheld",
+        "defects notification period"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-62",
+      "checklist": "SE-09",
+      "q_en": "What goes in an enterprise account plan?",
+      "q_ar": "ماذا تتضمن خطة الحساب المؤسسي؟",
+      "expected_entry_ids": [
+        "sales_engineer:enterprise-account-plan"
+      ],
+      "expected_facts": [
+        "stakeholder map",
+        "spend by trade and emirate"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-63",
+      "checklist": "SE-09",
+      "q_en": "How often is an enterprise account reviewed?",
+      "q_ar": "كم مرة يُراجع الحساب المؤسسي؟",
+      "expected_entry_ids": [
+        "sales_engineer:enterprise-account-plan"
+      ],
+      "expected_facts": [
+        "reviewed each quarter"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-64",
+      "checklist": "SE-09",
+      "q_en": "Does a rate contract guarantee volume?",
+      "q_ar": "هل يضمن عقد الأسعار حجماً معيناً؟",
+      "expected_entry_ids": [
+        "sales_engineer:framework-and-rate-agreements"
+      ],
+      "expected_facts": [
+        "usually no guaranteed volume"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-65",
+      "checklist": "SE-09",
+      "q_en": "What escalation clause is acceptable in a framework?",
+      "q_ar": "ما بند تعديل الأسعار المقبول في اتفاقية إطارية؟",
+      "expected_entry_ids": [
+        "sales_engineer:framework-and-rate-agreements"
+      ],
+      "expected_facts": [
+        "tied to a named index",
+        "with a cap"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-66",
+      "checklist": "SE-10",
+      "q_en": "Can a swimming pool request go to plumbing suppliers?",
+      "q_ar": "هل يمكن إرسال طلب مسبح إلى موردي السباكة؟",
+      "expected_entry_ids": [
+        "sales_engineer:no-nearest-trade",
+        "sales_engineer:exact-trade-match"
+      ],
+      "expected_facts": [
+        "There is no nearest mapping"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-67",
+      "checklist": "SE-10",
+      "q_en": "No trade in the taxonomy fits the request. What now?",
+      "q_ar": "لا توجد حرفة في التصنيف تناسب الطلب. ماذا الآن؟",
+      "expected_entry_ids": [
+        "sales_engineer:exact-trade-match"
+      ],
+      "expected_facts": [
+        "a trade is added before anything is matched to it"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-68",
+      "checklist": "SE-10",
+      "q_en": "What are the hard rules over the sales engineer's work?",
+      "q_ar": "ما القواعد الثابتة على عمل مهندس المبيعات؟",
+      "expected_entry_ids": [
+        "sales_engineer:senior-sales-engineer-standard"
+      ],
+      "expected_facts": [
+        "exact trade match or none",
+        "exact specs or the quote is held"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-69",
+      "checklist": "SE-10",
+      "q_en": "Is decennial liability still in the new Civil Code?",
+      "q_ar": "هل ما زالت المسؤولية العشرية في قانون المعاملات المدنية الجديد؟",
+      "expected_entry_ids": [
+        "sales_engineer:decennial-liability"
+      ],
+      "expected_facts": [
+        "Articles 821-824"
+      ]
+    }
+  ]
+}
