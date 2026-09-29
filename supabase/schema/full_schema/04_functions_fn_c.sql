@@ -6002,7 +6002,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_report(p_week_start date DEFAULT
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_ws date; v_we date; v_key text; v_fig jsonb; v_con jsonb; v_id bigint; v_body text; v_subj text;
@@ -6051,6 +6051,8 @@ begin
     format('  Open IT findings %s. Alerts sent to you this week %s.', h->>'it_findings_open', h->>'it_alerts_week') || E'\n' ||
     format('  Reports waiting on the CEO %s. Your instructions still open %s.',
            h->>'reports_awaiting_ceo', h->>'founder_instructions_open') || E'\n\n' ||
+    'GAME DAY (the IT engineer breaks the company on purpose once a month and times the recovery)' || E'\n' ||
+    public.fn_it_game_day_weekly_line() || E'\n\n' ||
     'Every figure above is measured from the ledger and the live tables at the moment of writing. ' ||
     'A zero here means nothing happened, not that nothing was counted.';
 

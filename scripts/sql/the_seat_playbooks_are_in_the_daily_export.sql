@@ -8,6 +8,8 @@
 -- #1128 was built on MANIFEST 1879 and lacks #1126's seven model_routing rows) + ONE row of this file, marked
 -- '#1072' below: 162 rows. If the chain (#1106 #1108 #1110 #1114 #1128) moves first, rebase = take the newest
 -- body and re-add that single marked line. CREATE OR REPLACE keeps the ACL; the revoke is repeated as the source does.
+-- 29 Sep 2026 (release): rebuilt on #1074's body (+ customer_followup) and #1062's it_game_day_run and it_duty_schedule,
+-- which #1062 wrote without exporting (it_duty_schedule was no_writer until #1062's game day updated it).
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
 language sql stable set search_path to 'public', 'pg_temp' as $fn$
@@ -16,6 +18,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
   from (values
     ('seat_playbook','knowledge'),
     ('customer_followup','customer'),
+    ('it_game_day_run','company'), ('it_duty_schedule','company'),
     ('ceo_decision_round','decision'),
     ('founder_mail_policy','decision'), ('marketing_article_round','marketing'), ('marketing_blog_topic','marketing'),
     ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
