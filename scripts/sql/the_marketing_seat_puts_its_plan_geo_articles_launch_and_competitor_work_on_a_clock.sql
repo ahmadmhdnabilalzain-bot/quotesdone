@@ -111,6 +111,8 @@ begin
    where slug = p_slug and status = 'draft' returning id into v_id;
   return jsonb_build_object('ok', v_id is not null, 'slug', p_slug, 'error', case when v_id is null then 'not_a_draft' end);
 end $fn$;
+-- (text,text) is its only overload (pg_proc, 29 Sep 2026); CREATE OR REPLACE keeps the closed ACL, and this says so in the file.
+revoke execute on function public.fn_marketing_article_approve(text, text) from public, anon, authenticated;
 
 -- The cadence, now: his approval only, a UAE working day only, at most marketing_articles_per_week a Dubai week and one a day.
 create or replace function public.fn_marketing_article_release_due()
@@ -403,7 +405,10 @@ update public.blog_posts set body_html = replace(replace(body_html, 'https://www
  where body_html like '%quotesdone.com%';
 
 -- ── 9b. the new table is in the daily export (every_marketing_table_is_in_the_daily_export) ─────────
--- The definition from the_calendar_resend_decisions_are_in_the_daily_export.sql with marketing_plan_doc added.
+-- Rebuilt from main's CURRENT canonical body (marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql,
+-- #1070, the last definer in MANIFEST.txt on 29 Sep 2026) with ONLY marketing_plan_doc added. An earlier draft of
+-- this file started from the_calendar_resend_decisions_are_in_the_daily_export.sql and would have dropped #1070's
+-- marketing_recruitment_source and marketing_gap_recruitment_plan from the daily export; the verdict below checks both.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
 language sql stable set search_path to 'public', 'pg_temp' as $fn$
@@ -454,6 +459,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
+    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
@@ -588,6 +594,12 @@ revoke execute on function public.fn_marketing_geo_check_duty() from public, ano
 -- ── 10. verdict (no probe rows: every duty above reads, and the mail it could send is gated by date or state) ──
 select case
   when 'marketing_plan_doc' <> all (select table_name from public.fn_table_export_list()) then 'PROBE FAILED: marketing_plan_doc is not exported'
+  when exists (select 1 from (values ('marketing_recruitment_source'), ('marketing_gap_recruitment_plan')) k(t)
+                where k.t <> all (select table_name from public.fn_table_export_list()))
+    then 'PROBE FAILED: #1070''s recruitment tables fell out of the daily export'
+  when has_function_privilege('anon', 'public.fn_marketing_article_approve(text,text)', 'execute')
+    or has_function_privilege('authenticated', 'public.fn_marketing_article_approve(text,text)', 'execute')
+    then 'PROBE FAILED: fn_marketing_article_approve is callable by a client role'
   when (select count(*) from public.seat_duty where owner_seat = 'marketing') < 8 then 'PROBE FAILED: marketing seat duties not registered'
   when exists (select 1 from public.blog_posts where body_html like '%quotesdone.com%') then 'PROBE FAILED: a blog page still links to quotesdone.com'
   when (select blog_total from public.marketing_kpis) <> (select count(*) from public.marketing_article where status <> 'withdrawn' and not is_demo)
