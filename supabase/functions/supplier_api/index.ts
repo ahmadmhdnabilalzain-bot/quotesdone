@@ -970,14 +970,15 @@ const handle = async (req: Request): Promise<Response> => {
       // The certificate is rendered by compliance_archive after the trigger above posts to it. Give it a
       // few seconds so a supplier who accepts and submits in one go is verified on the signed copy; if it
       // is slower, z20_leads_mandatory_item_landed_reverifies verifies them the moment it lands.
+      // THE SUPPLIER NO LONGER WAITS FOR THE RENDER (E2E stage 1, D8, 30 Sep 2026: terms + Save took 4.7-6.0 s, of
+      // which up to 4.5 s was this loop polling for the PDF). The acceptance itself is already written above
+      // (accepted_terms_at, version, IP, text hash) and is what makes the terms recorded; the certificate is
+      // attached when it lands, and z20_leads_mandatory_item_landed_reverifies (fires on signed_terms_path)
+      // verifies the supplier at that moment. One read, no sleep.
       let certificatePending = false;
       if (accepting) {
-        certificatePending = true;
-        for (let i = 0; i < 6 && certificatePending; i++) {
-          await new Promise((r) => setTimeout(r, 750));
-          const { data: s } = await admin.from('leads').select('signed_terms_at').eq('id', sup.id).maybeSingle();
-          certificatePending = !(s?.signed_terms_at && String(s.signed_terms_at) >= String(upd.accepted_terms_at));
-        }
+        const { data: s } = await admin.from('leads').select('signed_terms_at').eq('id', sup.id).maybeSingle();
+        certificatePending = !(s?.signed_terms_at && String(s.signed_terms_at) >= String(upd.accepted_terms_at));
       }
       // THE SALES ENGINEER VERIFIES (15 Sep 2026). The approval used to be decided here, from the licence
       // alone; public.fn_sales_engineer_verifies_supplier now decides from the six plus the licence expiry,
