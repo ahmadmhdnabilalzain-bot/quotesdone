@@ -14,7 +14,7 @@ declare
   v_w1 jsonb; v_w2 jsonb; v_again jsonb; v_del jsonb; v_bad jsonb; v_blocks jsonb;
   v_risk bigint; v_imp_risk bigint; v_imp_status text; v_opened int; v_no_meta int; v_handoffs int;
   v_esc int; v_esc_tasks int; v_reopened int; v_kind text; v_natt int; v_to text; v_wa int;
-  v_runway_imp int; v_runway_info boolean; v_left int; v_mail_before text; v_mail_after text; v_id2 bigint;
+  v_runway_imp int; v_one_each int; v_missed_keys int; v_runway_info boolean; v_left int; v_mail_before text; v_mail_after text; v_id2 bigint;
 begin
   set local statement_timeout = '60s';
   select value into v_mail_before from public.app_secrets where key = 'admin_emails';
@@ -29,6 +29,11 @@ begin
            count(*) filter (where seat <> 'ceo' and handoff_id is not null)
       into v_opened, v_no_meta, v_handoffs
       from public.ceo_improvement where source_kind = 'weekly_review' and id in (select unnest(opened) from public.ceo_weekly_review where week = date '2026-01-05');
+    -- every missed target, opened now or carried from an earlier week, has exactly ONE open improvement
+    select count(*), count(*) filter (where (select count(*) from public.ceo_improvement i where i.source_kind = 'weekly_review'
+                                               and i.status in ('open', 'assigned') and i.seat = x->>'seat' and i.evidence->>'target' = x->>'key') = 1)
+      into v_missed_keys, v_one_each
+      from public.ceo_weekly_review w, jsonb_array_elements(w.targets) x where w.week = date '2026-01-05' and not (x->>'met')::boolean;
     select id into v_imp_risk from public.ceo_improvement
      where source_kind = 'weekly_review' and seat = 'marketing' and evidence->>'target' = 'risks' and status in ('open', 'assigned');
 
@@ -70,7 +75,11 @@ begin
   select value into v_mail_after from public.app_secrets where key = 'admin_emails';
 
   if not coalesce((v_w1->>'ok')::boolean, false) or (v_w1->>'missed')::int < 1 then raise exception 'week 1 did not run or missed nothing: %', v_w1; end if;
-  if v_opened <> (v_w1->>'missed')::int then raise exception 'week 1 missed % targets but opened % improvements', v_w1->>'missed', v_opened; end if;
+  -- missed = opened + carried: a target whose improvement is already open (a real week before this one) is carried, not re-opened
+  if v_w1->>'carried' is null or v_opened + (v_w1->>'carried')::int <> (v_w1->>'missed')::int then
+    raise exception 'week 1 missed % targets but opened % and carried % improvements', v_w1->>'missed', v_opened, coalesce(v_w1->>'carried', 'none (not reported)');
+  end if;
+  if v_one_each <> v_missed_keys then raise exception 'only % of % missed targets have exactly one open improvement', v_one_each, v_missed_keys; end if;
   if v_no_meta <> 0 then raise exception '% improvement(s) opened without an owner, a due date or a closing check', v_no_meta; end if;
   if v_handoffs < 1 then raise exception 'no improvement was handed to its seat'; end if;
   if v_runway_imp <> 0 or not coalesce(v_runway_info, false) then
@@ -95,8 +104,8 @@ begin
   if v_left <> 0 or v_mail_after is distinct from v_mail_before then raise exception 'the rollback left % row(s), or admin_emails changed', v_left; end if;
 
   perform set_config('qd.probe_verdict',
-    format('PROBE OK week1 missed=%s opened=%s (owner, due, check on all; %s handed off); week2 closed=%s escalated=%s (each with a CEO task, due +7) duplicates=0; runway information only, no improvement; rerun=no-op; page shows ESCALATED; failed render retained; delivered kind=%s attachments=%s to the ZZ address, no WhatsApp; left_behind=0',
-           v_w1->>'missed', v_opened, v_handoffs, v_w2->>'closed', v_w2->>'escalated', v_kind, v_natt), true);
+    format('PROBE OK week1 missed=%s opened=%s carried=%s, one open improvement each (owner, due, check on all; %s handed off); week2 closed=%s escalated=%s (each with a CEO task, due +7) duplicates=0; runway information only, no improvement; rerun=no-op; page shows ESCALATED; failed render retained; delivered kind=%s attachments=%s to the ZZ address, no WhatsApp; left_behind=0',
+           v_w1->>'missed', v_opened, v_w1->>'carried', v_handoffs, v_w2->>'closed', v_w2->>'escalated', v_kind, v_natt), true);
 exception when others then
   perform set_config('qd.probe_verdict', 'PROBE FAILED ' || sqlerrm, true);
 end $$;
