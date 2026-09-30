@@ -21,7 +21,7 @@
 //     the CEO when someone asks for a person. assistant_logs now records which seat answered.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, pickFaq, type FaqRow, type QuestionType } from '../_shared/chat_answers.ts';
-import { observe } from '../_shared/observe.ts';
+import { annotate, observe } from '../_shared/observe.ts';
 import { capabilityStatement } from '../_shared/size_question.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { widgetMeaning } from '../_shared/reasoned_channels.ts';
@@ -33,6 +33,7 @@ import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { supportReply, type Channel } from '../_shared/support_reply.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
+import { embedLine } from '../_shared/gte_embed.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -64,7 +65,15 @@ const RL_IP_HOUR_DEFAULT = 10;
 const RL_ACCT_HOUR_DEFAULT = 60;
 const RL_GLOBAL_DAY_DEFAULT = 1500;
 const RL_REPLY = 'I can only take a few questions at a time from each visitor, and you have reached that for now. Please try again a little later, or reach a person directly:\n+971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST)\nmanagement@quotesdone.com\nأستقبل عددًا محدودًا من الأسئلة من كل زائر، وقد بلغتَ هذا الحد مؤقتًا. يُرجى المحاولة بعد قليل، أو التواصل معنا مباشرة:\n+971 50 931 9355 (اتصال أو واتساب، من الاثنين إلى الجمعة، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)\nmanagement@quotesdone.com';
-async function secNum(k: string, dflt: number): Promise<number> { const n = Number(await sec(k)); return Number.isFinite(n) && n > 0 ? Math.floor(n) : dflt; }
+// Every limit in ONE read (D5, 30 Sep 2026): five per-key reads were five sequential round trips before any answer.
+async function secNums<K extends string>(dflt: Record<K, number>): Promise<Record<K, number>> {
+  const out = { ...dflt };
+  try {
+    const { data } = await admin.from('app_secrets').select('key,value').in('key', Object.keys(dflt));
+    for (const r of (data || []) as { key: K; value: unknown }[]) { const n = Number(r.value); if (Number.isFinite(n) && n > 0) out[r.key] = Math.floor(n); }
+  } catch (_e) { /* the defaults stand */ }
+  return out;
+}
 async function rl(key: string, limit: number, seconds: number): Promise<boolean> {
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
   catch (_e) { return true; } // limiter unavailable must not take the public assistant offline
@@ -128,7 +137,17 @@ async function identify(req: Request): Promise<{ email: string; audience: 'custo
   } catch (_e) { return null; }
 }
 
+// WHERE THE TIME GOES (E2E stage 1, D5, 30 Sep 2026: 7-14 s for ready-made answers). Every phase is stamped and
+// the stamps ride on the observe row (counts.ms), so the next slow reply names its own slow step.
+type Timer = Record<string, number>;
 Deno.serve(observe('site_assistant', async (req) => {
+  const T: Timer = {}; const t0 = Date.now();
+  const res = await handle(req, T);
+  T.total = Date.now() - t0;
+  return annotate(res, { ms: T });
+}));
+async function handle(req: Request, T: Timer): Promise<Response> {
+  const s0 = Date.now(); const lap = (k: string) => { T[k] = Date.now() - s0; };
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const b = await req.json().catch(()=>({} as any));
@@ -151,8 +170,9 @@ Deno.serve(observe('site_assistant', async (req) => {
     // account rather than a forgeable header, and the ceiling is set where a real conversation
     // never reaches it. The GLOBAL daily cap still applies to them - it is the one that caps spend.
     const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
-    const ipLimit = await secNum('site_assistant_ip_hour', RL_IP_HOUR_DEFAULT);
-    const dayLimit = await secNum('site_assistant_global_day', RL_GLOBAL_DAY_DEFAULT);
+    const lim = await secNums({ site_assistant_ip_hour: RL_IP_HOUR_DEFAULT, site_assistant_global_day: RL_GLOBAL_DAY_DEFAULT,
+      site_assistant_acct_hour: RL_ACCT_HOUR_DEFAULT, site_assistant_conv_hour: 40, site_assistant_ip_hard_hour: 80 });
+    const ipLimit = lim.site_assistant_ip_hour, dayLimit = lim.site_assistant_global_day;
     // THE VISITOR CAP IS KEYED ON CONVERSATION DEPTH (14 Sep 2026). A flat 10 messages/hour per IP
     // refused 12 of 41 widget messages (29%) — a real visitor asking a fourth or fifth follow-up hit
     // it. Anonymous callers that send the widget's conversation id now spend from three buckets:
@@ -169,24 +189,24 @@ Deno.serve(observe('site_assistant', async (req) => {
     // same bucket rather than re-imposing the old flat per-IP cap on a conversation.
     const rlKey = who ? 'site_assistant_acct:' + who.email
       : hasConv ? 'site_assistant_conv:' + ip + ':' + conv : 'site_assistant_ip:' + ip;
-    const rlLimit = who ? await secNum('site_assistant_acct_hour', RL_ACCT_HOUR_DEFAULT)
-      : hasConv ? await secNum('site_assistant_conv_hour', 40) : ipLimit;
+    const rlLimit = who ? lim.site_assistant_acct_hour : hasConv ? lim.site_assistant_conv_hour : ipLimit;
+    // THE LIMITER RUNS BESIDE THE READS (D5, 30 Sep 2026). The reads below write nothing, so they start while the
+    // buckets are spent; the refusal is still returned before anything is written, answered or filed.
+    const pRate = (async () => {
     let ipOk: boolean;
     if (hasConv) {
-      const hardOk = await rl('site_assistant_ip_hard:' + ip, await secNum('site_assistant_ip_hard_hour', 80), 3600);
-      const startOk = !hardOk ? false : (firstTurn ? await rl('site_assistant_ipconv:' + ip, ipLimit, 3600) : true);
-      ipOk = hardOk && startOk && await rl(rlKey, rlLimit, 3600);
+      // The hard per-IP ceiling is spent first, as before; the two buckets behind it are spent together (one round trip).
+      const hardOk = await rl('site_assistant_ip_hard:' + ip, lim.site_assistant_ip_hard_hour, 3600);
+      const [startOk, convOk] = !hardOk ? [false, false]
+        : await Promise.all([firstTurn ? rl('site_assistant_ipconv:' + ip, ipLimit, 3600) : Promise.resolve(true), rl(rlKey, rlLimit, 3600)]);
+      ipOk = hardOk && startOk && convOk;
     } else {
       ipOk = await rl(rlKey, rlLimit, 3600);
     }
     const globalOk = ipOk ? await rl('site_assistant_global_day', dayLimit, 86400) : true;
-    if (!ipOk || !globalOk) {
-      await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'global_day' },
-        !ipOk
-          ? ('site_assistant refused a caller that asked for more than ' + ipLimit + ' messages in an hour from one address. No OpenRouter call was made and no credit was spent. A real visitor never reaches this; sustained hits mean someone is scripting the public endpoint. Tune app_secrets.site_assistant_ip_hour if genuine visitors are being turned away.')
-          : ('site_assistant hit the GLOBAL daily ceiling of ' + dayLimit + ' visitor messages. Further messages are refused today to cap OpenRouter spend. This ceiling exists because the per-IP cap trusts a forgeable X-Forwarded-For header - if real traffic has genuinely grown, raise app_secrets.site_assistant_global_day, do not remove the ceiling.'));
-      return J({ reply: RL_REPLY, rate_limited: true });
-    }
+    lap('ratelimit');
+    return { ipOk, globalOk };
+    })();
     const history = Array.isArray(b.history) ? b.history.slice(-6).map((h:any)=>({ role: h.role==='assistant'?'assistant':'user', content: String(h.content||'').slice(0,600) })) : [];
 
     // A VERIFIED SESSION OUTRANKS BOTH HEURISTICS. Guessing the audience from the URL and the
@@ -203,23 +223,24 @@ Deno.serve(observe('site_assistant', async (req) => {
     // an individual quote and never a supplier name. Nothing in the prompt can widen that, which is
     // the reason the rule lives in SQL and not in the paragraph below.
     let live: Record<string, unknown> | null = null;
-    if (who) {
+    const reads: Promise<unknown>[] = [];   // D5: the independent reads below run together, not one after another
+    reads.push((async () => { if (who) {
       try {
         const { data } = await admin.rpc('fn_wa_context', { p_audience: who.audience, p_phone: who.email });
         if (data && (data as any).known === true) live = data as Record<string, unknown>;
       } catch (_e) { live = null; }
-    }
+    } })());
     // THE CASE TIMELINE (14 Sep 2026). The widget is customer_support, the only seat that speaks on
     // the channels, so it reads what every seat has already done with this person before it answers
     // a known contact: fn_contact_timeline, deterministic, scoped in SQL to the verified email.
     let timelineBlock = '';
-    if (who) {
+    reads.push((async () => { if (who) {
       try {
         const { data: tl } = await admin.rpc('fn_contact_timeline', { p_contact: who.email, p_limit: 30 });
         const ev = (tl as any)?.events;
         if (Array.isArray(ev) && ev.length) timelineBlock = `\n\nTHEIR CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never tell them something is pending that it shows as done:\n${JSON.stringify(ev)}`;
       } catch (_e) { timelineBlock = ''; }
-    }
+    } })());
 
     // THE COMPANY BLOCK — the customer_support seat's half of the founder's 9 Sep 2026 ruling: "the
     // company knowledge is literally connected to every seat automatically. Any seat that we made,
@@ -239,14 +260,14 @@ Deno.serve(observe('site_assistant', async (req) => {
     // corrected by correcting the company; a figure read from the table is corrected the moment the
     // table is.
     let companyBlock = '';
-    try {
+    reads.push((async () => { try {
       const { data: cc } = await admin.rpc('fn_company_context', { p_max_chars: 6000, p_audience: 'public' });
       companyBlock = String((cc as Record<string, unknown> | null)?.block || '');
     } catch (_e) {
       // The FACTS constants below still answer. A thinner grounding beats no answer, and this is the
       // public widget: it must never go down because one read failed.
       companyBlock = '';
-    }
+    } })());
 
     // WHICH SEAT OWNS THIS CALLER — asked, not assumed. fn_seat_for_surface is the single place the
     // founder's rule lives: not signed in -> customer_support (this widget IS that seat), signed in
@@ -254,10 +275,10 @@ Deno.serve(observe('site_assistant', async (req) => {
     // here means the RPC itself was unreachable and the log will say so instead of quietly
     // recording the wrong owner.
     let seatForSurface: string | null = null;
-    try {
+    reads.push((async () => { try {
       const { data: s } = await admin.rpc('fn_seat_for_surface', { p_signed_in: !!who, p_surface: 'website_widget' });
       seatForSurface = typeof s === 'string' ? s : null;
-    } catch (_e) { seatForSurface = null; }
+    } catch (_e) { seatForSurface = null; } })());
 
     // THE SUPPORT PACK, WHICH THIS AGENT WAS NEVER GIVEN. Until 8 Sep 2026 the widget answered from
     // company_faq and the FACTS strings above and nothing else, while public.support_knowledge — 407
@@ -272,7 +293,7 @@ Deno.serve(observe('site_assistant', async (req) => {
     // responsible for not leaking, which is not a control.
     let packCtx = '';
     let packRows: Array<{ content: string; citation: string; rank: number }> = [];
-    try {
+    reads.push((async () => { try {
       const { data: pack } = await admin.rpc('fn_support_corpus_search', {
         p_query: message, p_public: true, p_limit: 6,
       });
@@ -282,8 +303,19 @@ Deno.serve(observe('site_assistant', async (req) => {
       // A retrieval failure must not take the widget down: the FAQ route and the gateway still answer, and a
       // thinner answer beats no answer. It is deliberately not logged as an error the founder sees.
       packCtx = '';
+    } })());
+    let faqs: FaqRow[] | null = null;
+    reads.push((async () => { faqs = (await admin.from('company_faq').select('id,question,answer,tags,language').eq('public', true).eq('status','approved')).data as FaqRow[] | null; })());
+    const pHeld = modelHeld(admin);
+    const { ipOk, globalOk } = await pRate;
+    if (!ipOk || !globalOk) {
+      await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'global_day' },
+        !ipOk
+          ? ('site_assistant refused a caller that asked for more than ' + ipLimit + ' messages in an hour from one address. No OpenRouter call was made and no credit was spent. A real visitor never reaches this; sustained hits mean someone is scripting the public endpoint. Tune app_secrets.site_assistant_ip_hour if genuine visitors are being turned away.')
+          : ('site_assistant hit the GLOBAL daily ceiling of ' + dayLimit + ' visitor messages. Further messages are refused today to cap OpenRouter spend. This ceiling exists because the per-IP cap trusts a forgeable X-Forwarded-For header - if real traffic has genuinely grown, raise app_secrets.site_assistant_global_day, do not remove the ceiling.'));
+      return J({ reply: RL_REPLY, rate_limited: true });
     }
-    const { data: faqs } = await admin.from('company_faq').select('id,question,answer,tags,language').eq('public', true).eq('status','approved');
+    await Promise.all(reads); lap('reads');
 
     // ── THE QUESTION THAT WAS ASKED IS ANSWERED FIRST (21 Sep 2026, seat customer_support) ──────
     // Measured in the public audit, 0/3: "how many quotes will I get" -> a supplier-quoting FAQ,
@@ -336,8 +368,9 @@ Deno.serve(observe('site_assistant', async (req) => {
     // recorded knowledge gap (fn_support_knowledge_gap) answers.
     // 781 (28 Sep 2026): while a model can answer, NO stored answer is chosen here — the reply is composed below
     // (supportReply). This canned road runs only under the hold or with the gateway down.
-    const reasoningOpen = !(await modelHeld(admin));
+    const reasoningOpen = !(await pHeld);
     const wm = reasoningOpen ? { question: null as string | null, side: null } : await widgetMeaning(defaultDeps(admin, 'site_assistant'), { message, conversation: blob, passages: packRows, askSide });
+    lap('meaning');
     const asked = wm.question;
     if (wm.side) { audience = wm.side; source = 'text'; }
     if (asked === 'size') {
@@ -383,7 +416,10 @@ Deno.serve(observe('site_assistant', async (req) => {
     // instead of a substituted trade, and a question about no published trade gets no band at all.
     let priceCtx = '';
     let priceBands: any = null;
-    try {
+    // UNDER THE HOLD A VISITOR'S PRICE QUESTION CANNOT BE REASONED (D5, 30 Sep 2026): priceGuidanceFor embeds, reads
+    // every trade and then asks think(), which holds, so it always ended {reason:'held'} after 1.2-1.4 s (measured).
+    // An anonymous visitor is never answered later, so nothing is lost by not asking. A signed-in party still asks.
+    if (reasoningOpen || who) try {
       // Which trade (if any) the visitor asks the price of is REASONED (think(), reasoned_suppliers.ts;
       // founder_instruction 886-903). Held: no price block, and the visitor is answered from the FAQ and corpus.
       const pg: any = await priceGuidanceFor(defaultDeps(admin, 'site_assistant'), message, 6, audience === 'unknown' ? 'visitor' : audience, who ? 'acct:' + who.email : 'ip:' + ip);
@@ -403,6 +439,7 @@ Deno.serve(observe('site_assistant', async (req) => {
       priceCtx = '';
     }
 
+    lap('price');
     const ctx = [packCtx, priceCtx].filter(Boolean).join('\n\n');
 
     // ── THE REPLY IS COMPOSED BY REASONING (founder instruction 781, 28 Sep 2026, customer_support) ──
@@ -440,7 +477,12 @@ Deno.serve(observe('site_assistant', async (req) => {
     // case: the block tells the model to stay consistent with a finalised resolution, not to cite it.
     // A PUBLIC surface reads support's own cases only (otherSeats:false): an anonymous visitor's
     // prompt is never seeded with refunds, CEO decisions, expenses or IT findings, masked or not.
-    const memory = await recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false });
+    // UNDER THE HOLD NO MODEL READS THIS PROMPT (D5, 30 Sep 2026): the gateway can only answer from the FAQ (level0),
+    // so the recall (an embedding and four reads) is not run for a prompt nobody reads.
+    const memory = reasoningOpen
+      ? await recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false })
+      : { cases: [] as unknown[] } as unknown as Awaited<ReturnType<typeof recallCases>>;
+    lap('recall');
     const memoryBlock = memory.cases.length
       ? precedentBlock(memory) + '\nFOR THIS REPLY: stay consistent with how a FINALISED past case was resolved, or answer differently only where this case plainly differs. Never mention another customer, a case number or this block to the person you are answering.'
       : '';
@@ -502,6 +544,16 @@ Deno.serve(observe('site_assistant', async (req) => {
       //    wa_inbound and anything else that grows a door all ask the same routine rather than
       //    each carrying their own copy of a sentence the founder said once.
       const seat = seatForSurface;
+      // UNDER THE HOLD THE GATEWAY CAN ONLY ANSWER FROM THE FAQ (D5, 30 Sep 2026). The same level-0 lookup it runs
+      // (gte-small in this worker, then fn_faq_answer with the gateway's thresholds) is done here, without the hop,
+      // the auth and rate reads, and the routing to circuit_open that followed every miss (0.7-2 s measured).
+      if (!reasoningOpen && !live && !priceCtx) {
+        const v = message.length > 2 ? await embedLine(message) : null;
+        const { data: faq } = await admin.rpc('fn_faq_answer', { p_text: message, p_min_rank: 0.15, p_embedding: v ? '[' + v.join(',') + ']' : null, p_min_similarity: 0.86 });
+        if ((faq as any)?.answered === true) reply = String((faq as any).answer || '').trim();
+        else errText = 'model_hold';
+        // a miss falls to the canned road below, exactly as a gateway circuit_open did
+      } else {
       const r = await fetch(GATEWAY, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: key, fn: 'site_assistant', agent: seat, ...(who ? { subject: { email: who.email } } : {}), task_class: live ? 'customer_portal_assistant' : 'visitor_chat', sys, input: [...history, { role:'user', content: message }], max: live ? 600 : 320, temperature: 0.3, cache_ttl_min: 0, try_faq: !live && !priceCtx, faq_text: message, rate_key: rlKey, rate_limit: rlLimit, rate_window_s: 3600 }) });
       const jd = await r.json();
       reply = typeof jd?.content === 'string' ? jd.content.trim() : '';
@@ -521,6 +573,7 @@ Deno.serve(observe('site_assistant', async (req) => {
       usage = { prompt_tokens: jd?.prompt_tokens ?? null, completion_tokens: jd?.output_tokens ?? null,
                 prompt_tokens_details: { cached_tokens: jd?.cached_input_tokens ?? null } };
       if (!reply) errText = String(jd?.outcome || jd?.error || 'no content').slice(0,300);
+      }
     } catch(e){ reply=''; errText = String((e as Error)?.message || e).slice(0,300); }
 
     await logLlm({ fn: 'site_assistant', purpose: 'visitor_chat', model_wanted: MODELS[0], model_used: usedModel,
@@ -540,6 +593,7 @@ Deno.serve(observe('site_assistant', async (req) => {
     // The support pack is 407 records written for this agent and it needs no model to be read. If
     // retrieval found something confident, say it, and say where it came from. A cited, deterministic
     // answer is worth more than a phone number, and it costs nothing while the hold is on.
+    lap('gateway');
     let answered = !!reply;
 
     // ── THE PRICE ANSWER IS COMPOSED HERE, NOT BY A MODEL (10 Sep 2026) ─────────────────────────
@@ -670,4 +724,4 @@ Deno.serve(observe('site_assistant', async (req) => {
     // wonder whether it can see them - which is the thing that made it feel like a stranger.
     return J({ reply, scope: live ? audience : 'public' });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+}
