@@ -140,11 +140,8 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 
 test('production, aborted: switching the lane on restarts the same ramp at the base cap', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  // The replay must not commit: drop the file's own transaction lines and its verdict select.
-  const replay = pending(FILE)
-    ? read(FILE).replace(/^\s*(begin|commit);\s*$/gim, '').replace(/-- ── VERDICT[\s\S]*$/, '')
-    : '';
-  assert.doesNotMatch(code(replay), /^\s*commit\b/im, 'the replay would commit');
+  // The file without its verdict select; replaySql drops any transaction line it carries and refuses the rest.
+  const replay = pending(FILE) ? read(FILE).replace(/-- ── VERDICT[\s\S]*$/, '') : '';
   let o;
   try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
   catch (e) {
