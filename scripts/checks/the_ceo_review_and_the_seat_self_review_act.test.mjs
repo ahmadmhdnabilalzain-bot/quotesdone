@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -60,7 +61,7 @@ for (const f of ['the_ceo_weekly_review_acts_on_every_missed_target', 'every_sea
   const skip = !hasToken ? 'no Supabase management token' : !applied(f) ? `${f}.sql is not applied yet (pending)` : false;
   test(`${f}: the rolled-back rehearsal answers PROBE OK`, { skip }, async () => {
     const { sql } = await import('../lib/db.mjs');
-    const r = await sql(R(`scripts/sql/${f}_probe.sql`), { retry: false });
+    const r = await replaySql(R(`scripts/sql/${f}_probe.sql`), { retry: false, rows: true });
     const verdict = Array.isArray(r) && r[0] ? String(r[0].verdict) : JSON.stringify(r).slice(0, 500);
     assert.match(verdict, /^PROBE OK/, verdict);
   });

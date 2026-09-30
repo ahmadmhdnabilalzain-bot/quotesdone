@@ -24,6 +24,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -145,7 +146,7 @@ test('production, aborted: switching the lane on restarts the same ramp at the b
     : '';
   assert.doesNotMatch(code(replay), /^\s*commit\b/im, 'the replay would commit');
   let o;
-  try { await sql(replay + '\n' + PROBE, { retry: false }); }
+  try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));

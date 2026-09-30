@@ -22,6 +22,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { readPacks, rowsOf, upsertSql, vecLit, SEATS, SEAT_TABLE, TABLES } from '../kb/verified_packs.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -89,7 +90,7 @@ o := jsonb_build_object('bits', b, 'anon', (select bool_or(has_function_privileg
   'rls', (select relrowsecurity from pg_class where oid = 'public.marketing_knowledge'::regclass));
 raise exception 'CHK<<%>>', o::text; end $qdchk$;`;
   let out;
-  try { await sql(pending + Object.entries(byTable).map(([t, rs]) => upsertSql(t, rs)).join('\n') + block, { retry: false }); }
+  try { await replaySql(pending + Object.entries(byTable).map(([t, rs]) => upsertSql(t, rs)).join('\n') + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));

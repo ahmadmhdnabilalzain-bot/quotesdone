@@ -15,6 +15,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/every_integration_probe_leaves_a_row_in_edge_health_probe.sql';
@@ -72,7 +73,7 @@ end $p$;`;
 test('production: one ALIVE and one FAILING row, none for the carried item, and the failure is still a finding', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let message = '';
-  try { await sql(SRC + '\n' + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; }
+  try { await replaySql(SRC + '\n' + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; }
   catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 1500));

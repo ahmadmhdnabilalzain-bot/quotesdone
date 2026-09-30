@@ -29,6 +29,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -191,7 +192,7 @@ test('production, one aborted transaction: no review class can route to any of i
   const body = (noReplay ? '' : (s.base_applied ? '' : read(BASE) + '\n') + (s.applied ? '' : read(FILE) + '\n') + (s.follow_applied ? '' : read(FOLLOW) + '\n')
     + (s.matrix_applied ? '' : read(MATRIX) + '\n')) + probe(required);
   let out;
-  try { await sql(body, { retry: false }); } catch (e) {
+  try { await replaySql(body, { retry: false }); } catch (e) {
     const mm = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!mm) throw e;
     out = JSON.parse(mm[1].replace(/\\"/g, '"'));
@@ -249,7 +250,7 @@ test('production, one aborted transaction: #880 review follow-ups hold', { skip:
   const [s] = await sql(`select to_regprocedure('public.fn_ai_route_review_for(text,text,text,text,text,text[])') is not null follow_applied,
     ${MATRIX_APPLIED}`, { readOnly: true });
   let out;
-  try { await sql((s.follow_applied ? '' : read(FOLLOW) + '\n') + (s.matrix_applied ? '' : read(MATRIX) + '\n') + FOLLOW_PROBE, { retry: false }); } catch (e) {
+  try { await replaySql((s.follow_applied ? '' : read(FOLLOW) + '\n') + (s.matrix_applied ? '' : read(MATRIX) + '\n') + FOLLOW_PROBE, { retry: false }); } catch (e) {
     const mm = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!mm) throw e;
     out = JSON.parse(mm[1].replace(/\\"/g, '"'));

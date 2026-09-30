@@ -7,7 +7,6 @@
 -- HOW IT STAYS HARMLESS: every write is inside an inner block that ends in a raised exception, so nothing commits.
 -- It cannot reach the founder even if it did: app_secrets.admin_emails is pointed at zz.demo.founder@example.invalid
 -- first; its weeks are January 2026 (no real review exists for them); its one risk is a ZZ DEMO row.
-begin;
 
 do $$
 declare
@@ -103,4 +102,3 @@ end $$;
 
 select coalesce(current_setting('qd.probe_verdict', true), 'PROBE FAILED (the block set no verdict)') as verdict;
 
-commit;
