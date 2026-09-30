@@ -14,7 +14,10 @@
 //       a v14 signer -> 12% simple; a v12 signer -> 9%; a supplier with no version -> 9%;
 //       two billing periods 30 days apart: interest = principal x rate x days / 365 in both, never interest on interest;
 //       a supplier who pays half on day 100 after the due date: interest and total equal supplier_charge.ts computeCharge()
-//       to the fils (before the fix the database charged interest on the paid half for the remaining 265 days).
+//       to the fils (before the fix the database charged interest on the paid half for the remaining 265 days);
+//       that part payment goes through fn_accountant_record_supplier_payment (a second call with the same reference is
+//       refused, and a half payment does not mark the due paid); a Stripe settlement (the webhook's own write, delivered
+//       twice) leaves exactly one full-payment row and the charge shows nothing outstanding.
 //
 //   node --test scripts/checks/nonresponse_interest_is_the_agreed_rate_or_nine_percent_simple.test.mjs
 import { test } from 'node:test';
@@ -29,7 +32,8 @@ import { computeCharge, addDays, DUE_AFTER_NOTICE_DAYS } from '../../supabase/fu
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/nonresponse_interest_is_the_agreed_rate_or_nine_percent.sql';
-const pending = () => existsSync(join(REPO, 'scripts/sql/pending', FILE.split('/').pop().replace(/\.sql$/, '.txt')));
+const FILE2 = 'scripts/sql/every_nonresponse_due_settlement_is_a_payment_row.sql';
+const pending = (f = FILE) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 const code = (s) => s.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
 
 test('static: every branch carries its literal, the documents name only signed rates, accrual never compounds', () => {
@@ -50,12 +54,16 @@ test('static: every branch carries its literal, the documents name only signed r
   assert.ok(at > 0 && /set interest_amount = \(v->>'interest_aed'\)::numeric/.test(accrue.slice(0, 4000)), 'fn_supplier_dues_accrue_interest no longer overwrites interest from the fresh charge');
   assert.doesNotMatch(accrue.slice(0, 4000), /interest_amount\s*=\s*(coalesce\()?\s*interest_amount\s*\+/, 'accrual adds interest to interest');
   const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim());
-  assert.ok(pending() !== manifest.includes(FILE), 'exactly one of a pending note and a MANIFEST line');
+  for (const f of [FILE, FILE2]) assert.ok(pending(f) !== manifest.includes(f), f + ': exactly one of a pending note and a MANIFEST line');
+  const s2 = code(read(FILE2));
+  assert.match(s2, /after insert or update of paid_at on public\.supplier_dues/, 'no trigger records a settlement as a payment row');
+  assert.match(s2, /revoke execute on function public\.fn_accountant_record_supplier_payment\(bigint, numeric, date, text\) from public, anon, authenticated;/, 'the routine is not revoked');
+  assert.match(s2, /unique \(due_id, reference\)/, 'a reference can be recorded twice');
 });
 
 export const PROBE = `
 do $$
-declare v14 bigint; v12 bigint; v0 bigint; vp bigint; dp bigint; t14 uuid; t12 uuid; t0 uuid; tp uuid; pre jsonb; d date := (now() at time zone 'Asia/Dubai')::date; out jsonb := '{}';
+declare v14 bigint; v12 bigint; v0 bigint; vp bigint; dp bigint; t14 uuid; t12 uuid; t0 uuid; tp uuid; pre jsonb; rec jsonb; rec2 jsonb; vs bigint; ds bigint; ts_ uuid; st jsonb; pr jsonb; sp jsonb; d date := (now() at time zone 'Asia/Dubai')::date; out jsonb := '{}';
 begin
   update public.pricing_config set supplier_nonresponse_interest_apr = 0.5;
   update public.decision_policy set value = to_jsonb(0.5) where key in ('supplier_charge_max_lawful_apr', 'supplier_nonresponse_interest_apr_from_v14');
@@ -71,35 +79,60 @@ begin
     values (v12, now() - interval '20 days', 300, 300, 300, 'refunded', now() - interval '10 days') returning id into t12;
   insert into public.transactions (supplier_id, revealed_at, total_charged, reveal_fee, refund_amount_aed, refund_status, refund_confirmed_at)
     values (v0, now() - interval '20 days', 300, 300, 300, 'refunded', now() - interval '10 days') returning id into t0;
-  -- a supplier with no agreed rate who pays HALF the principal 100 days after the due date
+  -- BANK PART PAYMENT: a supplier with no agreed rate, notified 400 days ago (so the due date is in the past), pays HALF
+  -- the principal 100 days after the due date, recorded through the accountant's routine; read 365 days after the due.
   insert into public.leads (company_name, email) values
     ('ZZ DEMO interest probe part payer (QuotesDone fixture, not a real company)', 'zz-demo-interest-part@example.invalid') returning id into vp;
   insert into public.transactions (supplier_id, revealed_at, total_charged, reveal_fee, refund_amount_aed, refund_status, refund_confirmed_at)
-    values (vp, now() - interval '20 days', 300, 300, 300, 'refunded', now() - interval '10 days') returning id into tp;
+    values (vp, now() - interval '420 days', 300, 300, 300, 'refunded', now() - interval '410 days') returning id into tp;
   insert into public.supplier_dues (transaction_id, supplier_id, amount_due, admin_fee, status) values (tp, vp, 300, 250, 'open') returning id into dp;
-  pre := public.fn_accountant_nonresponse_charge(tp, d + 372);
-  if to_regclass('public.supplier_due_payments') is not null then
-    execute 'insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference) values ($1, $2, $3, $4)'
-      using dp, (pre->>'due_date')::date + 100, 275, 'ZZ DEMO probe';
-  end if;
-  out := jsonb_build_object('part', jsonb_build_array(public.fn_accountant_nonresponse_charge(tp, d + 372)));
+  -- the delivered notice the charge dates from, as a bare row: its triggers (handoff notes, outbox) are held for this
+  -- one insert, so the aborted probe can never reach a delivery path or a real person
+  set local session_replication_role = replica;
+  insert into public.agent_actions (agent, kind, status, target_id, decided_at, evidence, detail)
+    values ('customer_support', 'handoff', 'done', 'delivery.request:nonresponse_charge:' || dp, now() - interval '400 days', '{"delivered": true}',
+            '{"summary": {"known": "ZZ DEMO probe fixture", "tried": [], "needed": "nothing, aborted probe", "evidence": "ZZ DEMO"}}');
+  set local session_replication_role = origin;
+  pre := public.fn_accountant_nonresponse_charge(tp, null);
+  rec := public.fn_accountant_record_supplier_payment(dp, 275, (pre->>'due_date')::date + 100, 'ZZ-DEMO-BANK-TRANSFER-1');
+  rec2 := public.fn_accountant_record_supplier_payment(dp, 275, (pre->>'due_date')::date + 100, 'ZZ-DEMO-BANK-TRANSFER-1');
+  out := jsonb_build_object('part', jsonb_build_array(public.fn_accountant_nonresponse_charge(tp, (pre->>'due_date')::date + 365)),
+    'part_rec', jsonb_build_object('ok', rec->'ok', 'dup_ok', rec2->'ok', 'rows', (select count(*) from public.supplier_due_payments where due_id = dp),
+      'paid_at_set', (select paid_at is not null from public.supplier_dues where id = dp)));
+  -- the rest then settles through Stripe: only the unrecorded remainder (550 - 275) becomes a row, never the whole 550
+  update public.supplier_dues set status = 'paid', paid_at = now(), payment_ref = 'pi_ZZDEMO_rest' where id = dp and paid_at is null;
+  out := jsonb_set(out, '{part_rec,sum_after_settle}', to_jsonb((select sum(amount_aed) from public.supplier_due_payments where due_id = dp)));
+  -- STRIPE FULL PAYMENT: the webhook's own write (status paid, paid_at, payment_ref), delivered twice
+  insert into public.leads (company_name, email) values
+    ('ZZ DEMO interest probe stripe payer (QuotesDone fixture, not a real company)', 'zz-demo-interest-stripe@example.invalid') returning id into vs;
+  insert into public.transactions (supplier_id, revealed_at, total_charged, reveal_fee, refund_amount_aed, refund_status, refund_confirmed_at)
+    values (vs, now() - interval '20 days', 300, 300, 300, 'refunded', now() - interval '10 days') returning id into ts_;
+  insert into public.supplier_dues (transaction_id, supplier_id, amount_due, admin_fee, interest_amount, status) values (ts_, vs, 300, 250, 0, 'open') returning id into ds;
+  update public.supplier_dues set status = 'paid', paid_at = now(), payment_ref = 'pi_ZZDEMO_probe' where id = ds and paid_at is null;
+  update public.supplier_dues set status = 'paid', paid_at = now(), payment_ref = 'pi_ZZDEMO_probe' where id = ds and paid_at is null;
+  st := public.fn_accountant_nonresponse_charge(ts_, null);
+  out := out || jsonb_build_object('stripe', jsonb_build_object('rows', (select count(*) from public.supplier_due_payments where due_id = ds),
+    'amount', (select sum(amount_aed) from public.supplier_due_payments where due_id = ds),
+    'unpaid', st->'unpaid_principal_aed', 'total', st->'total_aed'));
   out := out || jsonb_build_object(
     'v14', jsonb_build_array(public.fn_accountant_nonresponse_charge(t14, d + 372) - 'basis' - 'refund_source', public.fn_accountant_nonresponse_charge(t14, d + 402) - 'basis' - 'refund_source'),
     'v12', jsonb_build_array(public.fn_accountant_nonresponse_charge(t12, d + 372) - 'basis' - 'refund_source', public.fn_accountant_nonresponse_charge(t12, d + 402) - 'basis' - 'refund_source'),
     'none', jsonb_build_array(public.fn_accountant_nonresponse_charge(t0, d + 372) - 'basis' - 'refund_source', public.fn_accountant_nonresponse_charge(t0, d + 402) - 'basis' - 'refund_source'));
+  pr := out->'part_rec'; sp := out->'stripe';
   -- only the figures the verdict reads, so the error text is never truncated before the closing marker
   select jsonb_object_agg(k, (select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('ok', e->'ok', 'v', e->'signed_version', 'apr', e->'interest_apr',
            'days', e->'interest_days', 'int', e->'interest_aed', 'refunded', e->'refunded_aed',
            'principal', (e->>'refunded_aed')::numeric + (e->>'processor_fee_aed')::numeric + (e->>'admin_fee_aed')::numeric, 'fee', e->'admin_fee_aed',
            'reason', e->'reason', 'due', case when k = 'part' then e->'due_date' end, 'as_of', case when k = 'part' then e->'as_of' end,
            'paid', e->'paid_aed', 'total', case when k = 'part' then e->'total_aed' end))) from jsonb_array_elements(v) e))
-    into out from jsonb_each(out) as x(k, v);
+    into out from jsonb_each(out) as x(k, v) where jsonb_typeof(v) = 'array';
+  out := out || jsonb_build_object('part_rec', pr, 'stripe', sp);
   raise exception 'CHK<<%>>', out::text;
 end $$;`;
 
-export async function runProbe(replay) {
+export async function runProbe(replay, replay2 = replay) {
   const { sql } = await import('../lib/db.mjs');
-  try { await sql((replay ? read(FILE) + '\n' : '') + PROBE, { retry: false }); } catch (e) {
+  try { await sql((replay ? read(FILE) + '\n' : '') + (replay2 ? read(FILE2) + '\n' : '') + PROBE, { retry: false }); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw new Error('the probe failed before it could report: ' + String(e.message).slice(0, 800));
     return JSON.parse(m[1].replace(/\\"/g, '"'));
@@ -124,6 +157,12 @@ export function verdict(o) {
   if (c.ok !== true) return [...bad, 'part: ' + JSON.stringify(c)];
   const ts = computeCharge({ refunded_reveal_fee: Number(c.refunded), refunded_processing_fee: 0, notice_date: addDays(c.due, -DUE_AFTER_NOTICE_DAYS),
     as_of: c.as_of, payments: [{ date: addDays(c.due, 100), amount: 275 }], admin_fee_aed: Number(c.fee), rate_pa: 0.09 });
+  const r = o.part_rec, sp = o.stripe;
+  if (r.ok !== true || r.dup_ok !== false || r.rows !== 1) bad.push('part: the routine recorded ' + JSON.stringify(r) + ' (want ok, the duplicate refused, 1 row)');
+  if (r.paid_at_set !== false) bad.push('part: a half payment marked the due paid');
+  if (Number(r.sum_after_settle) !== 550) bad.push('part: after a Stripe settlement of the rest the due records ' + r.sum_after_settle + ', want 550 (no double count)');
+  if (sp.rows !== 1 || Number(sp.amount) !== 550) bad.push('stripe: the settled due has ' + sp.rows + ' payment row(s) of ' + sp.amount + ', want 1 of 550');
+  if (Number(sp.unpaid) !== 0 || Number(sp.total) !== 0) bad.push('stripe: the charge still shows ' + sp.unpaid + ' principal / ' + sp.total + ' outstanding');
   if (Number(c.paid) !== 275) bad.push(`part: the payment of 275 is not read (paid ${c.paid})`);
   if (Number(c.int) !== ts.interest) bad.push(`part: interest ${c.int} is not the documents' ${ts.interest}`);
   if (Number(c.total) !== ts.total_due) bad.push(`part: total ${c.total} is not the documents' ${ts.total_due}`);
@@ -134,6 +173,6 @@ export function verdict(o) {
 const hasToken = !process.env.PROBE_IMPORTED && (!!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token')));
 
 test('production, aborted: agreed rate or 9%, simple across two periods, policy rows at 50%', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const o = await runProbe(pending());
+  const o = await runProbe(pending(FILE), pending(FILE2));
   assert.deepEqual(verdict(o), [], JSON.stringify(o));
 });
