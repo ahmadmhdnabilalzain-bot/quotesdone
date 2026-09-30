@@ -9863,9 +9863,9 @@ declare
   v_by_cat jsonb;
   v_spread numeric; v_bench numeric;
 begin
-  select coalesce((p.policy ->> 'min_sample')::int, 4) into v_min_sample
-    from supplier_negotiation_policy p where p.scope = 'default';
-  v_min_sample := coalesce(v_min_sample, 4);
+  -- 30 Sep 2026 (sales_engineer): the minimum sample is this routine's own rule. It used to be read from
+  -- the removed negotiation feature's policy table (ruling 527), whose one row held 4.
+  v_min_sample := 4;
 
   select count(*) into v_rows
     from quotes q join inquiries i on i.id = q.inquiry_id

@@ -1,3 +1,0 @@
-Applied at merge by the release train (apply at merge, never before). Until then
-scripts/checks/a_project_is_split_only_when_the_customer_chose_it.test.mjs replays this file first inside one aborted
-transaction. Seat: sales_engineer.
