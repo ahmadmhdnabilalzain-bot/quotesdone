@@ -11,7 +11,8 @@
 --   marketing_article (titles, excerpts, meta descriptions, bodies, en+ar)  - the CEO-reviewed market articles
 --   marketing_post (title, text_en, text_ar)                               - the month's social posts
 --   marketing_post_variant (title, caption, body, first_comment, alt_text) - each platform's copy
---   social_message, direction 'out' (body)                                 - comment and DM replies
+--   social_message, direction 'out', author 'seat' (body)                  - the seat's comment and DM replies
+--     (a reply a PERSON already sent from the Meta inbox is recorded as it was sent: the record is kept whole)
 --   social_reply_library (reply_en, reply_ar)                              - the standard replies
 --   social_posts (content)                                                 - the legacy post queue
 -- There is no newsletter table and no stored GEO answer text on production (marketing_geo_check holds what an
@@ -23,7 +24,8 @@
 -- names on 30 Sep 2026. Measured against every blog post, article, post and variant on file: 0 hits. The bare
 -- names without the company form were measured too and are unusable: leads holds names such as "Landscaping",
 -- "Specialist" and "The Home", which matched 31 existing texts - a rule that refuses the word "landscaping" is not
--- this ruling. ponytail: a name written without its company form ("Acme" for "Acme Trading LLC") is not caught;
+-- this ruling. A name made only of company forms and generic words ("General Trading LLC") is not a name either.
+-- ponytail: a name written without its company form ("Acme" for "Acme Trading LLC") is not caught;
 -- catching it needs a curated distinctive-name list per supplier, which does not exist yet.
 --
 -- prevented by: scripts/checks/no_marketing_or_ai_visibility_text_names_a_supplier.test.mjs
@@ -36,7 +38,7 @@ security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
   -- A NAME LOOKUP, not a scan. The text and every name are cut into the same words (letters, digits, '.', '&', '-';
-  -- trailing full stops dropped, so "LLC." at a sentence end is "llc"), the text's runs of 2 to 8 words are formed,
+  -- trailing full stops dropped, so "LLC." at a sentence end is "llc"), the text's runs of 1 to 12 words are formed,
   -- and a name is named when one run EQUALS it - a hash join. A substring scan of every name over every text (tried
   -- first) timed out on 30 Sep 2026: 20k names x a 10 KB article is 200 MB of scanning per write.
   with w as (
@@ -45,7 +47,7 @@ as $fn$
      where regexp_replace(tok, '\.+$', '') <> ''),
   g as (
     select distinct array_to_string(w.a[i:i + n - 1], ' ') run
-      from w, generate_series(1, coalesce(cardinality(w.a), 0)) i, generate_series(2, 8) n
+      from w, generate_series(1, coalesce(cardinality(w.a), 0)) i, generate_series(1, 12) n
      where i + n - 1 <= cardinality(w.a)),
   names as (
     select l.company_name,
@@ -55,7 +57,11 @@ as $fn$
       from public.leads l
      where length(l.company_name) >= 10
        and l.company_name ~* '\m(llc|l\.l\.c|fze|fzco|fzc|fz-llc|est|establishment|trading|contracting|contractors|co|company|group|ltd|limited|industries|factory|enterprises)\M')
-  select names.company_name from names join g on g.run = names.norm limit 1
+  -- a name made only of company forms and generic words ("General Trading LLC", "Building Materials Trading") names
+  -- nobody: without this, "a general trading licence" in an article would be refused (code review of #1164)
+  select names.company_name from names join g on g.run = names.norm
+   where regexp_replace(names.norm, '\m(llc|l\.l\.c|fze|fzco|fzc|fz-llc|est|establishment|trading|contracting|contractors|co|company|group|ltd|limited|industries|factory|enterprises|general|building|materials|technical|services|service|maintenance|works|and|the|of|for|uae|dubai|abu|dhabi|sharjah|ajman|international|global|middle|east)\M', '', 'g') ~ '[[:alpha:]]{3,}'
+   limit 1
 $fn$;
 revoke execute on function public.fn_supplier_named_in(text) from public, anon, authenticated;
 grant execute on function public.fn_supplier_named_in(text) to service_role;
@@ -69,8 +75,8 @@ as $fn$
 declare v_text text; v_name text;
 begin
   if tg_table_name = 'social_message' then   -- nested: new.direction exists only on social_message
-    if new.direction is distinct from 'out' then
-      return new;   -- what a person wrote to us is theirs; only our replies are published text
+    if new.direction is distinct from 'out' or new.author is distinct from 'seat' then
+      return new;   -- what a person wrote, to us or from our inbox, is recorded as written; the seat's replies are guarded
     end if;
   end if;
   -- one IF per table: PL/pgSQL plans each statement when it runs, so a column another table lacks is never read
@@ -106,7 +112,7 @@ drop trigger if exists a06_names_no_supplier on public.marketing_post_variant;
 create trigger a06_names_no_supplier before insert or update of title, caption, body, first_comment, alt_text on public.marketing_post_variant
   for each row execute function public.trg_published_text_names_no_supplier();
 drop trigger if exists a06_names_no_supplier on public.social_message;
-create trigger a06_names_no_supplier before insert or update of body, direction on public.social_message
+create trigger a06_names_no_supplier before insert or update of body, direction, author on public.social_message
   for each row execute function public.trg_published_text_names_no_supplier();
 drop trigger if exists a06_names_no_supplier on public.social_reply_library;
 create trigger a06_names_no_supplier before insert or update of reply_en, reply_ar on public.social_reply_library
