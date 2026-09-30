@@ -694,3 +694,14 @@ kb_norm :: dropped by nine_routines_nothing_calls_are_dropped.sql (applied after
 qd_norm_customer_ver :: dropped by nine_routines_nothing_calls_are_dropped.sql (applied after merge): a trigger function attached to no trigger, measured 28 Sep 2026 :: nothing; the proof is in that file
 qd_notify_refund_request :: dropped by nine_routines_nothing_calls_are_dropped.sql (applied after merge): a trigger function attached to no trigger, measured 28 Sep 2026 :: nothing; the proof is in that file
 fn_exam_revert :: dropped by nine_routines_nothing_calls_are_dropped.sql (applied after merge): named only by retired checks, measured 28 Sep 2026 :: nothing; the proof is in that file
+# 30 Sep 2026 - the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (founder_instruction
+# 1068). RENAMED, not deleted: each routine lives on under the name given, same object, same ACL, body in that file.
+fn_glm_judgement_enqueue :: renamed to fn_routine_judgement_enqueue by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+fn_glm_judgement_due :: renamed to fn_routine_judgement_due by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+fn_glm_judgement_resolve :: renamed to fn_routine_judgement_resolve by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+fn_glm_judgement_defer :: renamed to fn_routine_judgement_defer by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+fn_glm_quote_spec_supersede :: renamed to fn_routine_quote_spec_supersede by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+fn_glm_taxonomy_trades :: renamed to fn_taxonomy_trades_active by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+fn_glm_sender_known :: renamed to fn_mail_sender_known by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+trg_glm_repeat_request_enqueue :: renamed to trg_routine_repeat_request_enqueue by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+trg_glm_trade_words_enqueue :: renamed to trg_routine_trade_words_enqueue by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file

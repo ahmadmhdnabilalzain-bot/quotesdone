@@ -38,7 +38,12 @@ export function readRegistry(repo = REPO) {
   for (const f of manifestWithPending(repo)) {
     const p = join(repo, f);
     if (!existsSync(p)) continue;
-    for (const row of registryRowsIn(readFileSync(p, 'utf8'))) reg.set(row.table, { ...row, file: f });
+    const sql = readFileSync(p, 'utf8');
+    // A table renamed or dropped takes its row with it: `delete from public.table_export_registry where table_name =
+    // '<t>'` (30 Sep 2026, the judgement queue's rename). ponytail: a file's deletes are replayed before its inserts,
+    // which is right for delete-old-insert-new; a file that inserts and then deletes the same table would need order.
+    for (const m of stripComments(sql).matchAll(/delete\s+from\s+public\.table_export_registry\s+where\s+table_name\s*=\s*'([a-z0-9_]+)'/gi)) reg.delete(m[1]);
+    for (const row of registryRowsIn(sql)) reg.set(row.table, { ...row, file: f });
   }
   return reg;
 }
