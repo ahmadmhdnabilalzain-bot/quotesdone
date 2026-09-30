@@ -16,7 +16,7 @@ Deno.test('a caller effort is honoured, an invalid one falls back to medium', ()
 });
 
 Deno.test('non-Claude routes keep temperature and their own max_tokens, no reasoning field', () => {
-  const p = shapeRequest({ model: 'z-ai/glm-5.3-flash', maxTokens: 700, temperature: 0.3 });
+  const p = shapeRequest({ model: 'google/gemini-3.8-flash', maxTokens: 700, temperature: 0.3 });
   assertEquals(p, { max_tokens: 700, temperature: 0.3 });
 });
 

@@ -11220,7 +11220,7 @@ begin
     end if;
     v_kind := coalesce(v_kind, 'unknown');
     if new.triaged_at is not null and old.triaged_at is null
-       and coalesce(new.ai_category, '') not in ('spam', 'no_auto_reply', 'glm_queued') then
+       and coalesce(new.ai_category, '') not in ('spam', 'no_auto_reply', 'routine_queued') then
       v_first := substring(coalesce(new.body, '') from '^\s*([^\r\n]*)');
       perform public.fn_support_touch('email', 'in', v_kind, v_id, v_from, null,
                                       coalesce(new.subject, '') || E'\n' || coalesce(new.body, ''), v_first, null);
