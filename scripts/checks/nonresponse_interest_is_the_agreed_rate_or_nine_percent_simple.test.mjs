@@ -59,11 +59,15 @@ test('static: every branch carries its literal, the documents name only signed r
   assert.match(s2, /after insert or update of paid_at on public\.supplier_dues/, 'no trigger records a settlement as a payment row');
   assert.match(s2, /revoke execute on function public\.fn_accountant_record_supplier_payment\(bigint, numeric, date, text\) from public, anon, authenticated;/, 'the routine is not revoked');
   assert.match(s2, /unique \(due_id, reference\)/, 'a reference can be recorded twice');
+  assert.match(s2, /total_claim = v_owed,/, 'the portal figure (total_claim) does not reflect recorded payments');
+  const pay = read('supabase/functions/supplier_pay/index.ts');
+  assert.match(pay, /admin\.rpc\('fn_supplier_dues_outstanding'/, 'supplier_pay does not bill the live outstanding figure');
+  assert.doesNotMatch(pay, /Number\(d\.amount_due \|\| 0\) \+ Number\(d\.admin_fee \|\| 0\)/, 'supplier_pay sums the stored columns again');
 });
 
 export const PROBE = `
 do $$
-declare v14 bigint; v12 bigint; v0 bigint; vp bigint; dp bigint; t14 uuid; t12 uuid; t0 uuid; tp uuid; pre jsonb; rec jsonb; rec2 jsonb; vs bigint; ds bigint; ts_ uuid; st jsonb; pr jsonb; sp jsonb; d date := (now() at time zone 'Asia/Dubai')::date; out jsonb := '{}';
+declare v14 bigint; v12 bigint; v0 bigint; vp bigint; dp bigint; t14 uuid; t12 uuid; t0 uuid; tp uuid; pre jsonb; rec jsonb; rec2 jsonb; vs bigint; ds bigint; ts_ uuid; st jsonb; pr jsonb; sp jsonb; chk jsonb; d date := (now() at time zone 'Asia/Dubai')::date; out jsonb := '{}';
 begin
   update public.pricing_config set supplier_nonresponse_interest_apr = 0.5;
   update public.decision_policy set value = to_jsonb(0.5) where key in ('supplier_charge_max_lawful_apr', 'supplier_nonresponse_interest_apr_from_v14');
@@ -99,9 +103,17 @@ begin
   out := jsonb_build_object('part', jsonb_build_array(public.fn_accountant_nonresponse_charge(tp, (pre->>'due_date')::date + 365)),
     'part_rec', jsonb_build_object('ok', rec->'ok', 'dup_ok', rec2->'ok', 'rows', (select count(*) from public.supplier_due_payments where due_id = dp),
       'paid_at_set', (select paid_at is not null from public.supplier_dues where id = dp)));
-  -- the rest then settles through Stripe: only the unrecorded remainder (550 - 275) becomes a row, never the whole 550
+  -- CHECKOUT: supplier_pay bills fn_supplier_dues_outstanding today; the portal's stored total_claim after the accrual
+  chk := public.fn_supplier_dues_outstanding(array[dp], null) -> dp::text;
+  perform public.fn_supplier_dues_accrue_interest(null);
+  out := jsonb_set(out, '{part_rec,checkout}', jsonb_build_object('owed', chk->'owed_aed', 'today', d,
+           'total_claim', (select total_claim from public.supplier_dues where id = dp)));
+  -- the rest then settles through Stripe: the settlement row is the remainder billed, never the whole stored figure
   update public.supplier_dues set status = 'paid', paid_at = now(), payment_ref = 'pi_ZZDEMO_rest' where id = dp and paid_at is null;
-  out := jsonb_set(out, '{part_rec,sum_after_settle}', to_jsonb((select sum(amount_aed) from public.supplier_due_payments where due_id = dp)));
+  out := jsonb_set(out, '{part_rec,settle}', jsonb_build_object(
+           'rest_row', (select amount_aed from public.supplier_due_payments where due_id = dp and reference = 'pi_ZZDEMO_rest'),
+           'rows', (select count(*) from public.supplier_due_payments where due_id = dp),
+           'after', public.fn_accountant_nonresponse_charge(tp, null) -> 'total_aed'));
   -- STRIPE FULL PAYMENT: the webhook's own write (status paid, paid_at, payment_ref), delivered twice
   insert into public.leads (company_name, email) values
     ('ZZ DEMO interest probe stripe payer (QuotesDone fixture, not a real company)', 'zz-demo-interest-stripe@example.invalid') returning id into vs;
@@ -160,7 +172,13 @@ export function verdict(o) {
   const r = o.part_rec, sp = o.stripe;
   if (r.ok !== true || r.dup_ok !== false || r.rows !== 1) bad.push('part: the routine recorded ' + JSON.stringify(r) + ' (want ok, the duplicate refused, 1 row)');
   if (r.paid_at_set !== false) bad.push('part: a half payment marked the due paid');
-  if (Number(r.sum_after_settle) !== 550) bad.push('part: after a Stripe settlement of the rest the due records ' + r.sum_after_settle + ', want 550 (no double count)');
+  // checkout: the exact remainder today, as the documents compute it
+  const today = computeCharge({ refunded_reveal_fee: Number(c.refunded), refunded_processing_fee: 0, notice_date: addDays(c.due, -DUE_AFTER_NOTICE_DAYS),
+    as_of: r.checkout.today, payments: [{ date: addDays(c.due, 100), amount: 275 }], admin_fee_aed: Number(c.fee), rate_pa: 0.09 });
+  if (Number(r.checkout.owed) !== today.total_due) bad.push(`checkout: bills ${r.checkout.owed}, the documents say ${today.total_due} is still owed`);
+  if (Number(r.checkout.total_claim) !== today.total_due) bad.push(`portal: total_claim ${r.checkout.total_claim} is not the ${today.total_due} still owed`);
+  if (Number(r.settle.rest_row) !== today.total_due || r.settle.rows !== 2) bad.push('settle: ' + JSON.stringify(r.settle) + `, want one more row of ${today.total_due}`);
+  if (Number(r.settle.after) !== 0) bad.push('settle: the charge still shows ' + r.settle.after + ' outstanding');
   if (sp.rows !== 1 || Number(sp.amount) !== 550) bad.push('stripe: the settled due has ' + sp.rows + ' payment row(s) of ' + sp.amount + ', want 1 of 550');
   if (Number(sp.unpaid) !== 0 || Number(sp.total) !== 0) bad.push('stripe: the charge still shows ' + sp.unpaid + ' principal / ' + sp.total + ' outstanding');
   if (Number(c.paid) !== 275) bad.push(`part: the payment of 275 is not read (paid ${c.paid})`);
