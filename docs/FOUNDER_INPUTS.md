@@ -170,7 +170,7 @@ be safe if its functions deploy before its SQL is applied, and none needs the Su
 merged — those only switch features on.
 
 Order:
-1. **#968** (it_engineer, GLM 5.3 Flash price) first — every other branch carries its two commits
+1. **#968** (it_engineer, the price of the model ruled in by 841, retired by 1068) first — every other branch carries its two commits
    byte-identically, so they merge cleanly after it.
 2. **#961** (Postmaster) before **#966** (daily inbox check): both define `fn_invite_campaign_pause` and
    `fn_invite_same_day_brake` byte-identically (a check in #966 asserts it).
