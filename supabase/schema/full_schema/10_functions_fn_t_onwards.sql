@@ -8248,6 +8248,33 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_inquiry_split_needs_the_customers_choice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_scope text;
+begin
+  if tg_op = 'UPDATE' and new.parent_inquiry_id is null and old.scope_type = 'multi'
+     and new.scope_type is distinct from 'multi'
+     and exists (select 1 from public.inquiries c where c.parent_inquiry_id = new.id) then
+    raise exception 'inquiry %: its per-trade parts exist, so the customer''s choice to split cannot be rewritten (ruling 1021)', new.id
+      using errcode = 'P0001';
+  end if;
+  if new.parent_inquiry_id is not null
+     and (tg_op = 'INSERT' or new.parent_inquiry_id is distinct from old.parent_inquiry_id) then
+    select p.scope_type into v_scope from public.inquiries p where p.id = new.parent_inquiry_id;
+    if v_scope is distinct from 'multi' then
+      raise exception 'inquiry %: a request is split into trade packages only when the customer chose it; the parent''s recorded choice is %, not multi (ruling 1021: the default is one contractor)',
+        new.parent_inquiry_id, coalesce(v_scope, 'none') using errcode = 'P0001';
+    end if;
+  end if;
+  return new;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_invite_cap_allocation()
  RETURNS trigger
  LANGUAGE plpgsql

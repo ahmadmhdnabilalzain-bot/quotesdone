@@ -44,8 +44,10 @@ export function endsWithOneQuestion(body: string): boolean {
  * lang 'ar' before fn_supplier_invite_candidates was made English-only carries only the Arabic text and no
  * question; the English copy cannot be rebuilt from the row (no claim token, no company), so it waits instead.
  */
-export function holdArabicInvitation(type: unknown, lang: unknown): boolean {
-  return String(type || '').startsWith('supplier_invite') && String(lang || '').toLowerCase() === 'ar';
+// SINCE 28 SEP 2026 EVERY SUPPLIER-BOUND ROW IS ENGLISH (founder; E2E stage 1 D3, 30 Sep): a supplier-side row
+// queued with lang 'ar' is held the same way, whatever its type, so no Arabic path can reach a supplier.
+export function holdArabicInvitation(type: unknown, lang: unknown, supplierSide = false): boolean {
+  return (supplierSide || String(type || '').startsWith('supplier_invite')) && String(lang || '').toLowerCase() === 'ar';
 }
 
 /**
