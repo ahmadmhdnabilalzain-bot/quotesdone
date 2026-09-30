@@ -53,6 +53,15 @@ update public.ceo_plan_action
    and not exists (select 1 from public.ceo_plan_action a where a.seat = 'sales_engineer' and a.action like 'Business customer accounts through consented channels only%');
 delete from public.ceo_plan_action where seat = 'sales_engineer' and action ilike 'Enterprise procurement accounts%';
 
+-- These three were registered no_writer (frozen). This file writes them, so they are exported from now on: the
+-- founder's plan and the CEO's mandate are business records worth the daily backup.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('ceo_year_plan', true, 'ceo', 'The founder''s year-one plan, month by month (ledger 971, relabelled by ledger 1091).', 'ceo'),
+  ('ceo_mandate', true, 'ceo', 'What the founder asks of the CEO: targets, cost ceilings, hard rules, decision rights, reporting.', 'ceo'),
+  ('ceo_plan_action', true, 'ceo', 'Each seat''s planned actions by month, the source of the CEO''s directives.', 'ceo')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 -- Verdict: the totals are the founder's (ledger 971 numbers) and nothing in the plan names the removed grouping.
 select case when t.ok and n.names = 0 then 'PROBE OK' else 'PROBE FAILED: ' || t.got || ' names=' || n.names end as verdict
   from (select (count(*), sum(requests), sum(quotes), sum(reveals), sum(fee_aed), sum(business_accounts), sum(cost_ceiling_aed))
