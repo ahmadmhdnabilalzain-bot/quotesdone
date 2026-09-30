@@ -100,7 +100,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [brief, setBrief] = useState(null);
   const [ready, setReady] = useState(false);
   const [meta, setMeta] = useState({}); // what the last intake turn said about itself
-  const [combineMode, setCombineMode] = useState('multi');
+  // Ruling 1021 (founder): a project is never split without asking the customer first, and the default is ONE
+  // contractor. So the preselected answer is 'turnkey'; 'multi' (one request per trade) only when the customer picks it.
+  const [combineMode, setCombineMode] = useState('turnkey');
   const [edits, setEdits] = useState({}); // requirement key -> label the customer tapped on the summary card
   const [posted, setPosted] = useState(null); // set when create_inquiry answered ok and reached no supplier
   const [busy, setBusy] = useState(false);
@@ -568,7 +570,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 <fieldset className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
                   <legend className="px-1 text-[12.5px] font-semibold text-primary">{tf(lang, 'nr_multi_h', { list: trades.join(ar ? '، ' : ', ') })}</legend>
                   <div className="mb-2 text-[12.5px] text-muted-foreground">{t(lang, 'nr_multi_q')}</div>
-                  {[['multi', 'nr_multi_sep_h', 'nr_multi_sep_b'], ['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b']].map(([v, h, b]) => (
+                  {[['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b'], ['multi', 'nr_multi_sep_h', 'nr_multi_sep_b']].map(([v, h, b]) => (
                     <label key={v} className="flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-secondary/50">
                       <input type="radio" name="combine" className="mt-1" checked={combineMode === v} onChange={() => setCombineMode(v)} />
                       <span className="text-[12.5px] text-muted-foreground"><span className="font-semibold text-foreground">{t(lang, h)}</span> — {t(lang, b)}</span>
