@@ -1,6 +1,7 @@
-// glm_judgements — four judgements moved from code to GLM 5.3 Flash, queued while the model is off.
+// routine_judgements — four judgements moved from code to the routine model class, queued while the model is off.
 // Seat: it_engineer (the queue) for the sales_engineer and customer_support call sites. 24 Sep 2026.
-// The SQL half (queue, effects): scripts/sql/four_judgements_move_to_glm_and_wait_in_a_queue_while_the_model_is_off.sql.
+// The SQL half (queue, effects): scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql
+// (the queue was built 24 Sep 2026 and renamed on 30 Sep, founder_instruction 1068).
 //
 //   quote_spec_match      a ≠ cell of the technical comparison (line_specs/compare.ts decided it is not an exact
 //                         match by code) -> is it a GENUINE mismatch (SS304 quoted for SS316) or does it meet the
@@ -12,8 +13,8 @@
 //                         confirm; several or none leave the proposal pending with the question to ask.
 //   unknown_sender_mail   mail from a sender who is no lead, customer or staff -> its category and a summary.
 //
-// EVERY JUDGEMENT RUNS ON think() WITH THE ROUTINE CLASS FORCED (glmOnly): the decompose and synthesis calls go to
-// model_policy routine_employee_reasoning. The names say GLM because that was its model on 24 Sep; since
+// EVERY JUDGEMENT RUNS ON think() WITH THE ROUTINE CLASS FORCED (routineClassOnly): the decompose and synthesis calls go to
+// model_policy routine_employee_reasoning. Since
 // founder_instruction 1056 (29 Sep 2026) it runs google/gemini-3.8-flash, and the seat picks the fallback - the
 // sales engineer's gpt-6-luna, customer_support's deepseek-v4.1-flash. There is no per-day limit (founder_instruction 987,
 // 24 Sep 2026: no caps on LLM spend). HELD — the model hold, a failed reading, an answer
@@ -25,7 +26,7 @@ import { heldFromGate } from './llm_hold.ts';
 export const KINDS = ['quote_spec_match', 'repeat_request', 'supplier_trade_words', 'unknown_sender_mail'] as const;
 export type Kind = typeof KINDS[number];
 /** The class every non-verify step of these judgements is billed to. Verify is never asked for (stakes normal). */
-export const GLM_CLASS = 'routine_employee_reasoning';
+export const ROUTINE_CLASS = 'routine_employee_reasoning';
 /** At most this many ≠ cells in one judgement, so one think() stays inside its 900-token answer. */
 export const MAX_CELLS = 12;
 export const MAIL_CATEGORIES = ['supplier_document', 'supplier_question', 'customer_question', 'complaint', 'billing', 'partnership', 'spam', 'other'] as const;
@@ -36,9 +37,9 @@ export type Outcome =
   | { status: 'done'; result: Record<string, unknown>; model: string | null }
   | { status: 'held'; reason: string; counts: boolean };   // counts = a failed reading (toward the three tries)
 
-/** The same deps with every model step on the GLM class. Verify keeps its class (it must be another family). */
-export function glmOnly(deps: ThinkDeps): ThinkDeps {
-  return { ...deps, llm: (phase, system, input, o) => deps.llm(phase, system, input, { ...o, taskClass: phase === 'verify' ? o.taskClass : GLM_CLASS }) };
+/** The same deps with every model step on the routine class. Verify keeps its class (it must be another family). */
+export function routineClassOnly(deps: ThinkDeps): ThinkDeps {
+  return { ...deps, llm: (phase, system, input, o) => deps.llm(phase, system, input, { ...o, taskClass: phase === 'verify' ? o.taskClass : ROUTINE_CLASS }) };
 }
 
 const held = (reason: string, counts: boolean): Outcome => ({ status: 'held', reason, counts });
@@ -69,7 +70,7 @@ async function specMatch(deps: ThinkDeps, input: Record<string, unknown>): Promi
   if (!cells.length) return { status: 'done', result: { quote_id: input.quote_id, cells: [] }, model: null };
   const listing = cells.map((c, i) => `c${i}: line ${c.line_no}, ${c.attr} - requested "${c.requested}", quoted "${c.quoted}"`).join('\n');
   const r = await think(deps, {
-    seat: 'sales_engineer', surface: 'glm.quote_spec_match', queueWhenHeld: false, research: false,
+    seat: 'sales_engineer', surface: 'routine_judgement.quote_spec_match', queueWhenHeld: false, research: false,
     question: 'For each cell, does the quoted value meet the customer\'s requested specification? Write one line per cell: '
       + '"c<n>: meets" when the quoted value is the same or a grade the customer would accept, or "c<n>: mismatch - <the difference in a few words>" '
       + '(e.g. "c0: mismatch - SS304 quoted, SS316 requested, lower corrosion grade").\n' + listing,
@@ -93,7 +94,7 @@ async function specMatch(deps: ThinkDeps, input: Record<string, unknown>): Promi
 
 async function sameRequest(deps: ThinkDeps, input: Record<string, unknown>): Promise<Outcome> {
   const r = await think(deps, {
-    seat: 'sales_engineer', surface: 'glm.repeat_request', queueWhenHeld: false, research: false,
+    seat: 'sales_engineer', surface: 'routine_judgement.repeat_request', queueWhenHeld: false, research: false,
     question: 'Is the later request the same job as the earlier one from the same customer?',
     context: { audience: 'internal', conversation: [
       { role: 'customer', text: 'EARLIER: ' + String(input.earlier ?? '') },
@@ -113,7 +114,7 @@ async function tradeWords(deps: ThinkDeps, input: Record<string, unknown>, taxon
   const known = new Set(taxonomy.map((t) => t.code));
   const words = String(input.words ?? '');
   const r = await think(deps, {
-    seat: 'sales_engineer', surface: 'glm.supplier_trade_words', queueWhenHeld: false, research: false,
+    seat: 'sales_engineer', surface: 'routine_judgement.supplier_trade_words', queueWhenHeld: false, research: false,
     question: 'Which of our trades do these words of the supplier name? Exact trade or none - never the nearest. '
       + 'Choose the one trade\'s code; "several" when the words name more than one listed trade, then write a line "codes: <code>, <code>"; '
       + '"none" when they name no listed trade. For several or none also write a line "ask: <the one question to put to the supplier>".',
@@ -136,7 +137,7 @@ async function tradeWords(deps: ThinkDeps, input: Record<string, unknown>, taxon
 
 async function mailKind(deps: ThinkDeps, input: Record<string, unknown>): Promise<Outcome> {
   const r = await think(deps, {
-    seat: 'customer_support', surface: 'glm.unknown_sender_mail', queueWhenHeld: false, research: false,
+    seat: 'customer_support', surface: 'routine_judgement.unknown_sender_mail', queueWhenHeld: false, research: false,
     question: 'What kind of email is this, from a sender we do not know? Choose its category; the answer is one factual sentence on what the sender wants.',
     context: { audience: 'internal', conversation: [{ role: 'visitor', text: `From: ${input.from ?? ''}\nSubject: ${input.subject ?? ''}\n\n${String(input.body ?? '').slice(0, 4000)}` }] },
     decision: { name: 'unknown_sender_mail', options: MAIL_CATEGORIES.map((c) => ({ id: c, meaning: c.replace(/_/g, ' ') })) },
@@ -148,13 +149,13 @@ async function mailKind(deps: ThinkDeps, input: Record<string, unknown>): Promis
 }
 
 // ── one row ───────────────────────────────────────────────────────────────────────────────────────
-/** Judge one queued row: the model hold first (waiting is not a failure), then GLM. Never throws. */
+/** Judge one queued row: the model hold first (waiting is not a failure), then the routine class. Never throws. */
 export async function judge(deps: ThinkDeps, row: Row, taxonomy: () => Promise<{ code: string; label: string }[]>): Promise<Outcome> {
   try {
     // The hold is asked first: while the model is off the row waits and no try is counted.
     let gate = null; try { gate = await deps.gate(); } catch (_e) { gate = null; }
     if (heldFromGate(gate)) return held('model_hold', false);
-    const d = glmOnly(deps);
+    const d = routineClassOnly(deps);
     switch (row.kind) {
       case 'quote_spec_match': return await specMatch(d, row.input);
       case 'repeat_request': return await sameRequest(d, row.input);
@@ -168,24 +169,24 @@ export async function judge(deps: ThinkDeps, row: Row, taxonomy: () => Promise<{
 /** Take up to `limit` due rows (optionally only `ids`), judge each, and record the answer or defer the row. */
 export async function drain(deps: ThinkDeps, limit = 5, ids: number[] | null = null): Promise<{ done: number; held: number; failed_reading: number }> {
   const out = { done: 0, held: 0, failed_reading: 0 };
-  const due = await deps.rpc('fn_glm_judgement_due', { p_limit: limit, p_ids: ids });
+  const due = await deps.rpc('fn_routine_judgement_due', { p_limit: limit, p_ids: ids });
   if (due.error || !Array.isArray(due.data)) return out;
   let tax: { code: string; label: string }[] | null = null;
   const taxonomy = async () => {
     if (tax) return tax;
-    const r = await deps.rpc('fn_glm_taxonomy_trades', {});
+    const r = await deps.rpc('fn_taxonomy_trades_active', {});
     tax = Array.isArray(r.data) ? r.data as { code: string; label: string }[] : [];
     return tax;
   };
   for (const row of due.data as Row[]) {
     const o = await judge(deps, row, taxonomy);
-    if (o.status === 'done') { await deps.rpc('fn_glm_judgement_resolve', { p_id: row.id, p_result: o.result, p_model: o.model }); out.done++; }
-    else { await deps.rpc('fn_glm_judgement_defer', { p_id: row.id, p_error: o.reason, p_counts: o.counts }); if (o.counts) out.failed_reading++; else out.held++; }
+    if (o.status === 'done') { await deps.rpc('fn_routine_judgement_resolve', { p_id: row.id, p_result: o.result, p_model: o.model }); out.done++; }
+    else { await deps.rpc('fn_routine_judgement_defer', { p_id: row.id, p_error: o.reason, p_counts: o.counts }); if (o.counts) out.failed_reading++; else out.held++; }
   }
   return out;
 }
 
-/** The ≠ cells of one quote from a technical comparison, chunked into judgement inputs (code decides ≠; GLM judges). */
+/** The ≠ cells of one quote from a technical comparison, chunked into judgement inputs (code decides ≠; the routine class judges). */
 // deno-lint-ignore no-explicit-any
 export function differingCells(technical: any, quoteId: string): SpecCell[] {
   const cells: SpecCell[] = [];
