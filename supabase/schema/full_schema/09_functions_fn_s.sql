@@ -7123,6 +7123,45 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_name_norm(p_name text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when length(coalesce(p_name, '')) < 10 then null
+    when p_name !~* '\m(llc|l\.l\.c|fze|fzco|fzc|fz-llc|est|establishment|trading|contracting|contractors|co|company|group|ltd|limited|industries|factory|enterprises)\M' then null
+    else (select case
+                   when regexp_replace(x.n, '\m(llc|l\.l\.c|fze|fzco|fzc|fz-llc|est|establishment|trading|contracting|contractors|co|company|group|ltd|limited|industries|factory|enterprises|general|building|materials|technical|services|service|maintenance|works|and|the|of|for|uae|dubai|abu|dhabi|sharjah|ajman|international|global|middle|east)\M', '', 'g') ~ '[[:alpha:]]{3,}'
+                   then x.n end
+            from (select string_agg(regexp_replace(tok, '\.+$', ''), ' ' order by ord) n
+                    from regexp_split_to_table(lower(p_name), '[^[:alnum:].&-]+') with ordinality s(tok, ord)
+                   where regexp_replace(tok, '\.+$', '') <> '') x)
+  end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_named_in(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with w as (
+    select array_agg(regexp_replace(tok, '\.+$', '') order by ord) a
+      from regexp_split_to_table(lower(coalesce(p_text, '')), '[^[:alnum:].&-]+') with ordinality s(tok, ord)
+     where regexp_replace(tok, '\.+$', '') <> ''),
+  g as (
+    select distinct array_to_string(w.a[i:i + n - 1], ' ') run
+      from w, generate_series(1, coalesce(cardinality(w.a), 0)) i, generate_series(1, 12) n
+     where i + n - 1 <= cardinality(w.a))
+  select l.company_name
+    from g join public.supplier_public_name p on p.norm = g.run join public.leads l on l.id = p.lead_id
+   limit 1
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_notice(p_lead bigint, p_type text, p_subject_en text, p_body_en text, p_subject_ar text, p_body_ar text, p_inquiry uuid DEFAULT NULL::uuid, p_quote uuid DEFAULT NULL::uuid)
  RETURNS integer
  LANGUAGE plpgsql
