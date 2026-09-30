@@ -1,3 +1,0 @@
-Applied at merge (apply-at-merge rule, 28 Sep 2026). Dry run passed on production 30 Sep 2026. The file makes
-fn_supplier_invite_test_send English-only and removes app_secrets invite_subject_ar / invite_body_ar (E2E stage 1 D3).
-On apply: delete this note, append the file to the END of MANIFEST.txt, regenerate the schema mirror.

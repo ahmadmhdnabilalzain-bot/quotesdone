@@ -6793,12 +6793,12 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_invite_test_send(p_lang text DEFAU
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_lang text := case when lower(coalesce(p_lang, 'en')) = 'ar' then 'ar' else 'en' end;
+declare v_lang text := 'en';   -- suppliers are always written in English (founder, 28 Sep 2026); p_lang is ignored
   v_site text; v_subj text; v_body text; v_to text; v_id bigint; v_status text; v_err text;
 begin
   select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from app_secrets where key = 'public_site_url';
-  select value into v_subj from app_secrets where key = case when v_lang = 'ar' then 'invite_subject_ar' else 'invite_subject' end;
-  select value into v_body from app_secrets where key = case when v_lang = 'ar' then 'invite_body_ar' else 'invite_body' end;
+  select value into v_subj from app_secrets where key = 'invite_subject';
+  select value into v_body from app_secrets where key = 'invite_body';
   v_to := 'zz-demo-supplier-invite-' || v_lang || '-' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSUS') || '@example.invalid';
   if not public.fn_is_demo_email(v_to) then raise exception 'test address % is not a fixture address', v_to; end if;
   insert into notifications(type, to_email, to_role, subject, body, lang, status)
