@@ -2265,27 +2265,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_enterprise_account_report(p_account_id bigint)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select jsonb_build_object(
-    'account_id', p_account_id,
-    'members', (select count(*) from public.enterprise_account_member where account_id = p_account_id),
-    'requests', count(distinct i.id),
-    'requests_90d', count(distinct i.id) filter (where i.created_at >= now() - interval '90 days'),
-    'quotes', count(distinct q.id),
-    'revealed', count(distinct i.id) filter (where i.hired_supplier_id is not null or i.status = 'revealed'),
-    'quoted_value_aed', coalesce(sum(q.customer_price), 0))
-  from public.enterprise_account_member m
-  join public.inquiries i on i.customer_id = m.customer_id
-  left join public.quotes q on q.inquiry_id = i.id
-  where m.account_id = p_account_id
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_entity_activity(p_entity text, p_id text)
  RETURNS jsonb
  LANGUAGE plpgsql

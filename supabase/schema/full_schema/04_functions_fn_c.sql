@@ -11373,6 +11373,13 @@ begin
         'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
       n_fixed := n_fixed + 1; continue;
     end if;
+    -- FOUNDER RULING 1090 (30 Sep 2026): a credential only he can renew is never a digest line.
+    if public.fn_it_credential_founder_required(f.issue_key, f.title, f.evidence) then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
+        'why', 'founder ruling 1090: a credential only the founder can renew is recorded by the IT engineer, never sent to him',
+        'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_int := n_int + 1; continue;
+    end if;
     -- His ruling that something is NOT his wins over any pattern that would ask him.
     select c.why, c.to_founder into v_why, v_his from public.it_founder_decision_class c where f.issue_key like c.issue_key_like
      order by c.to_founder, length(c.issue_key_like) desc limit 1;
