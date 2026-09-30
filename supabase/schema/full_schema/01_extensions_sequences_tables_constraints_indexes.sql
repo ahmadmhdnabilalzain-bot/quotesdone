@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-30T10:37:53.343Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-30T12:05:26.468Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -212,7 +212,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (695) =====
+-- ===== TABLES (693) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3069,24 +3069,6 @@ CREATE TABLE IF NOT EXISTS public.employee_workflow (
   agent_key text NOT NULL,
   workflow_key text NOT NULL,
   role_in_workflow text DEFAULT 'participant'::text NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS public.enterprise_account (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  name text NOT NULL,
-  owner_seat text DEFAULT 'sales_engineer'::text NOT NULL,
-  plan text,
-  plan_reviewed_at timestamp with time zone,
-  totals jsonb DEFAULT '{}'::jsonb NOT NULL,
-  totals_at timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS public.enterprise_account_member (
-  account_id bigint NOT NULL,
-  customer_id uuid NOT NULL,
-  role text DEFAULT 'buyer'::text NOT NULL,
-  added_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.entity_comments (
@@ -9848,8 +9830,6 @@ ALTER TABLE public.employee_knowledge_standard ADD CONSTRAINT employee_knowledge
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_pkey PRIMARY KEY (id);
 ALTER TABLE public.employee_kpi_history ADD CONSTRAINT employee_kpi_history_pkey PRIMARY KEY (id);
 ALTER TABLE public.employee_workflow ADD CONSTRAINT employee_workflow_pkey PRIMARY KEY (agent_key, workflow_key);
-ALTER TABLE public.enterprise_account ADD CONSTRAINT enterprise_account_pkey PRIMARY KEY (id);
-ALTER TABLE public.enterprise_account_member ADD CONSTRAINT enterprise_account_member_pkey PRIMARY KEY (account_id, customer_id);
 ALTER TABLE public.entity_comments ADD CONSTRAINT entity_comments_pkey PRIMARY KEY (id);
 ALTER TABLE public.error_events ADD CONSTRAINT error_events_pkey PRIMARY KEY (id);
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_pkey PRIMARY KEY (id);
@@ -10361,7 +10341,6 @@ ALTER TABLE public.email_block_pattern ADD CONSTRAINT email_block_pattern_patter
 ALTER TABLE public.email_verifications ADD CONSTRAINT email_verifications_token_key UNIQUE (token);
 ALTER TABLE public.employee_knowledge_standard ADD CONSTRAINT employee_knowledge_standard_layer_key UNIQUE (layer);
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_agent_key_kpi_key UNIQUE (agent_key, kpi);
-ALTER TABLE public.enterprise_account_member ADD CONSTRAINT enterprise_account_member_customer_id_key UNIQUE (customer_id);
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_event_id_os_key_key UNIQUE (event_id, os_key);
 ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_agent_key_key UNIQUE (event_id, agent_key);
 ALTER TABLE public.expense_vendor_billing_mailbox ADD CONSTRAINT expense_vendor_billing_mailbox_vendor_mailbox_key UNIQUE (vendor, mailbox);
@@ -10672,7 +10651,6 @@ ALTER TABLE public.duty_pause ADD CONSTRAINT duty_pause_reason_check CHECK ((len
 ALTER TABLE public.email_platform_domain ADD CONSTRAINT email_platform_domain_domain_check CHECK (((domain = lower(btrim(domain))) AND (domain ~~ '%.%'::text)));
 ALTER TABLE public.email_platform_domain ADD CONSTRAINT email_platform_domain_kind_check CHECK ((kind = ANY (ARRAY['directory'::text, 'marketplace'::text, 'job_board'::text, 'publisher'::text, 'hosting'::text, 'site_builder'::text, 'template_vendor'::text, 'web_agency'::text, 'placeholder'::text, 'disposable'::text, 'typo'::text])));
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_class_check CHECK (((kpi_class IS NULL) OR (kpi_class = ANY (ARRAY['activity'::text, 'leading_indicator'::text, 'quality_metric'::text, 'conversion'::text, 'revenue'::text, 'cost'::text, 'risk'::text]))));
-ALTER TABLE public.enterprise_account_member ADD CONSTRAINT enterprise_account_member_role_check CHECK ((role = ANY (ARRAY['admin'::text, 'buyer'::text, 'viewer'::text])));
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_change_class_check CHECK ((change_class = ANY (ARRAY['knowledge'::text, 'process'::text, 'code'::text, 'policy'::text, 'model_routing'::text, 'org'::text, 'prompting'::text])));
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'accepted'::text, 'rejected'::text, 'implemented'::text])));
@@ -11494,9 +11472,6 @@ ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_goal_fkey FOR
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_objective_fkey FOREIGN KEY (serves_objective) REFERENCES os_objective(id);
 ALTER TABLE public.employee_kpi_history ADD CONSTRAINT employee_kpi_history_kpi_id_fkey FOREIGN KEY (kpi_id) REFERENCES employee_kpi(id) ON DELETE CASCADE;
 ALTER TABLE public.employee_workflow ADD CONSTRAINT employee_workflow_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key) ON DELETE CASCADE;
-ALTER TABLE public.enterprise_account ADD CONSTRAINT enterprise_account_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_agents(agent_key);
-ALTER TABLE public.enterprise_account_member ADD CONSTRAINT enterprise_account_member_account_id_fkey FOREIGN KEY (account_id) REFERENCES enterprise_account(id) ON DELETE CASCADE;
-ALTER TABLE public.enterprise_account_member ADD CONSTRAINT enterprise_account_member_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_event_id_fkey FOREIGN KEY (event_id) REFERENCES company_event(id) ON DELETE CASCADE;
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_fkey FOREIGN KEY (event_id) REFERENCES company_event(id) ON DELETE CASCADE;

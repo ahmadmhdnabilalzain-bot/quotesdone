@@ -544,8 +544,6 @@ ALTER TABLE public.employee_knowledge_standard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employee_kpi ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employee_kpi_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employee_workflow ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.enterprise_account ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.enterprise_account_member ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.entity_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.error_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_assessment ENABLE ROW LEVEL SECURITY;
@@ -1086,8 +1084,6 @@ CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SE
 CREATE POLICY duty_pause_service_role_only ON public.duty_pause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.edge_health_probe AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY email_platform_domain_service_role_only ON public.email_platform_domain AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
-CREATE POLICY enterprise_account_service_role_only ON public.enterprise_account AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
-CREATE POLICY enterprise_account_member_service_role_only ON public.enterprise_account_member AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY error_events_service_role_only ON public.error_events AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY expense_sender_reading_service_role_only ON public.expense_sender_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.expenses AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
