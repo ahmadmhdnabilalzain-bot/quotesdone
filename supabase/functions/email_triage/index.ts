@@ -6,7 +6,7 @@
 // unless the customer explicitly asks for one. So, per mail:
 //   1. noAutoReply (_shared/customer_mail.ts) - the founder's own mail, no-reply / verification senders,
 //      calendar replies, bounces and machine-written mail are marked and never answered;
-//   2. classification exactly as before (the GLM queue for an unknown sender, the settled-spam rule, the
+//   2. classification exactly as before (the routine-judgement queue for an unknown sender, the settled-spam rule, the
 //      draft model for a known one). THE DRAFT (ai_draft_reply) IS STILL NEVER SENT: it is written by the
 //      internal model, and it stays on the row for the Inbox;
 //   3. the ANSWER is customer_support's own: needsAPerson, then think() over the company knowledge (a
@@ -19,7 +19,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 import { observe } from '../_shared/observe.ts';
-import { drain as drainGlm } from '../_shared/glm_judgements.ts';
+import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { CORROBORATION_FLOOR, defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
 import { composeMailReply, noAutoReply } from '../_shared/customer_mail.ts';
@@ -84,13 +84,13 @@ Deno.serve(observe('email_triage', async (req) => {
     const __auth = await requireInternal(admin, body?.__secret, 'email_triage');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     const { data: run } = await admin.from('agent_runs').insert({ agent: 'email_triage' }).select('id').maybeSingle();
-    const counts = { triaged: 0, drafted: 0, spam: 0, unknown_sender_to_glm: 0, not_answered: 0, answered: 0, answer_failed: 0 } as Record<string, number>;
-    const glmIds: number[] = [];
+    const counts = { triaged: 0, drafted: 0, spam: 0, unknown_sender_to_judgement: 0, not_answered: 0, answered: 0, answer_failed: 0 } as Record<string, number>;
+    const judgementIds: number[] = [];
     const deps = defaultDeps(admin, 'email_triage');
     const founder = [...String((await sec('admin_emails')) || '').split(','), String((await sec('founder_email')) || '')].map((s) => s.trim()).filter(Boolean);
     // resend_inbound names the message it just stored, so its reply does not wait for the 15-minute tick.
     let sel = admin.from('inbound_messages').select('id,from_email,to_email,subject,body,owner_role,raw')
-      .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).is('owner_role', null).or('ai_category.is.null,ai_category.neq.glm_queued');
+      .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).is('owner_role', null).or('ai_category.is.null,ai_category.neq.routine_queued');
     if (Number(body?.message_id) > 0) sel = sel.eq('id', Number(body.message_id));
     const { data: msgs } = await sel.order('created_at', { ascending: true }).limit(20);
     const reply1 = async (m: Mail) => {
@@ -104,16 +104,16 @@ Deno.serve(observe('email_triage', async (req) => {
         await admin.from('inbound_messages').update({ ai_category: 'no_auto_reply', ai_summary: 'Not answered automatically: ' + skip + ' (customer_mail.ts noAutoReply).', triaged_at: new Date().toISOString() }).eq('id', m.id);
         counts.not_answered++; continue;
       }
-      // AN UNKNOWN SENDER IS JUDGED ON GLM (24 Sep 2026, founder's approval; _shared/glm_judgements.ts). A sender who is
-      // no lead, customer or staff address (fn_glm_sender_known, exact address) is queued for GLM 5.3 Flash (no
+      // AN UNKNOWN SENDER IS JUDGED ON THE ROUTINE CLASS (24 Sep 2026, founder's approval; _shared/routine_judgements.ts). A sender who is
+      // no lead, customer or staff address (fn_mail_sender_known, exact address) is queued for the routine class, google/gemini-3.8-flash since 1056 (no
       // per-day limit, founder_instruction 987); known senders keep the path below unchanged. A row already queued is not queued again.
-      const { data: relation, error: relErr } = await admin.rpc('fn_glm_sender_known', { p_email: String(m.from_email || '') });
+      const { data: relation, error: relErr } = await admin.rpc('fn_mail_sender_known', { p_email: String(m.from_email || '') });
       if (!relErr && !relation) {
-        const { data: gid } = await admin.rpc('fn_glm_judgement_enqueue', { p_kind: 'unknown_sender_mail', p_subject_key: String(m.id),
+        const { data: gid } = await admin.rpc('fn_routine_judgement_enqueue', { p_kind: 'unknown_sender_mail', p_subject_key: String(m.id),
           p_input: { message_id: m.id, from: m.from_email, subject: m.subject, body: String(m.body || '').slice(0, 4000) } });
         // Marked, so a held backlog never crowds known senders out of this run's 20; the judgement overwrites it.
-        if (gid) { glmIds.push(Number(gid)); counts.unknown_sender_to_glm++; await admin.from('inbound_messages').update({ ai_category: 'glm_queued' }).eq('id', m.id).is('triaged_at', null); }
-        // An unknown sender is usually a new customer: answered now, whatever GLM later files as its category.
+        if (gid) { judgementIds.push(Number(gid)); counts.unknown_sender_to_judgement++; await admin.from('inbound_messages').update({ ai_category: 'routine_queued' }).eq('id', m.id).is('triaged_at', null); }
+        // An unknown sender is usually a new customer: answered now, whatever the judgement later files as its category.
         await reply1(m);
         continue;
       }
@@ -153,8 +153,8 @@ Deno.serve(observe('email_triage', async (req) => {
       } catch (_e) { /* the 2-minute poll still sends it */ }
     }
     // Judge the unknown senders now; any held (the model hold) stay queued for resilience_ping. Never a word list.
-    const glm = glmIds.length ? await drainGlm(deps, glmIds.length, glmIds) : null;
-    if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: counts.answer_failed ? 'error' : 'ok', counts: { ...counts, glm } }).eq('id', run.id);
+    const judgements = judgementIds.length ? await drainJudgements(deps, judgementIds.length, judgementIds) : null;
+    if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: counts.answer_failed ? 'error' : 'ok', counts: { ...counts, judgements } }).eq('id', run.id);
     return J({ ok: true, counts });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

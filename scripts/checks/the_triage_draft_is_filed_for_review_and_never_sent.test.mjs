@@ -10,7 +10,7 @@
 // QuotesDone Team'", and the Arabic fixture in the_triage_answer_fits_its_route.test.mjs is exactly
 // that. By the audience rule it should be on Qwen.
 //
-// It is on z-ai/glm-5.3-flash, the cheap internal model, for ONE reason: the draft is never sent by
+// It is on google/gemini-3.8-flash (plan A of the founder's matrix, 1056), the cheap internal model, for ONE reason: the draft is never sent by
 // the machine. index.ts:1 says so, and the function files it into agent_actions as a pending
 // inbound_review for a person to read, edit and send. THE HUMAN GATE IS THE WHOLE JUSTIFICATION.
 //
@@ -41,7 +41,7 @@ test('email_triage keeps the draft for the Inbox and never sends it', () => {
 
   assert.match(src, /agent_actions[\s\S]{0,400}?status:\s*'pending'/,
     `${SRC} no longer files the draft into agent_actions with status 'pending'. A person reviewing and `
-    + 'sending it is the entire reason this class is routed to z-ai/glm-5.3-flash instead of '
+    + 'sending it is the entire reason this class is routed to the cheap internal model (google/gemini-3.8-flash) instead of '
     + 'the customer-facing model (openai/gpt-5.6-sol since founder_instruction 854). Either restore the review step, or move '
     + `the class to a customer-facing row in ${POLICY_SQL} and update its rationale.`);
 

@@ -1261,6 +1261,17 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_taxonomy_trades_active()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object('code', code, 'label', label) order by sort, code), '[]'::jsonb)
+    from public.taxonomy_trade where active;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_taxonomy_trades_for(p_slugs text[])
  RETURNS text[]
  LANGUAGE sql
@@ -7906,47 +7917,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.trg_glm_repeat_request_enqueue()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare p record;
-begin
-  if NEW.customer_id is null or btrim(coalesce(NEW.summary, '')) = ''
-     or coalesce((NEW.plausibility->>'possible_duplicate')::boolean, false) then return NEW; end if;
-  select i.id, i.summary into p from public.inquiries i
-   where i.customer_id = NEW.customer_id and i.id <> NEW.id
-     and i.created_at > now() - interval '30 minutes'
-     and coalesce(i.category, '') = coalesce(NEW.category, '')
-     and btrim(coalesce(i.summary, '')) <> ''
-   order by i.created_at desc limit 1;
-  if p.id is not null then
-    perform public.fn_glm_judgement_enqueue('repeat_request', NEW.id::text,
-      jsonb_build_object('inquiry_id', NEW.id, 'earlier_id', p.id, 'earlier', left(p.summary, 2000), 'later', left(NEW.summary, 2000),
-                         'category', NEW.category));
-  end if;
-  return NEW;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.trg_glm_trade_words_enqueue()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-begin
-  if NEW.status = 'pending' then
-    perform public.fn_glm_judgement_enqueue('supplier_trade_words', NEW.id::text,
-      jsonb_build_object('proposal_id', NEW.id, 'supplier_id', NEW.supplier_id,
-                         'words', coalesce(NEW.label_en, '') || case when NEW.label_ar is not null then ' / ' || NEW.label_ar else '' end));
-  end if;
-  return NEW;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.trg_goal_cascade()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -9094,6 +9064,47 @@ declare c jsonb;
 begin
   c := public.fn_rfq_score(NEW);
   NEW.completeness := c; NEW.rfq_ready := (c->>'ready')::boolean;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_routine_repeat_request_enqueue()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p record;
+begin
+  if NEW.customer_id is null or btrim(coalesce(NEW.summary, '')) = ''
+     or coalesce((NEW.plausibility->>'possible_duplicate')::boolean, false) then return NEW; end if;
+  select i.id, i.summary into p from public.inquiries i
+   where i.customer_id = NEW.customer_id and i.id <> NEW.id
+     and i.created_at > now() - interval '30 minutes'
+     and coalesce(i.category, '') = coalesce(NEW.category, '')
+     and btrim(coalesce(i.summary, '')) <> ''
+   order by i.created_at desc limit 1;
+  if p.id is not null then
+    perform public.fn_routine_judgement_enqueue('repeat_request', NEW.id::text,
+      jsonb_build_object('inquiry_id', NEW.id, 'earlier_id', p.id, 'earlier', left(p.summary, 2000), 'later', left(NEW.summary, 2000),
+                         'category', NEW.category));
+  end if;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_routine_trade_words_enqueue()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if NEW.status = 'pending' then
+    perform public.fn_routine_judgement_enqueue('supplier_trade_words', NEW.id::text,
+      jsonb_build_object('proposal_id', NEW.id, 'supplier_id', NEW.supplier_id,
+                         'words', coalesce(NEW.label_en, '') || case when NEW.label_ar is not null then ' / ' || NEW.label_ar else '' end));
+  end if;
   return NEW;
 end $function$
 

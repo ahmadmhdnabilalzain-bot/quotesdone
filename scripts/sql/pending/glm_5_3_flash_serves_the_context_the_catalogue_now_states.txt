@@ -1,1 +1,0 @@
-Apply at merge: node scripts/apply_sql.mjs scripts/sql/glm_5_3_flash_serves_the_context_the_catalogue_now_states.sql --apply. Registry context_len for z-ai/glm-5.3-flash to the catalogue's 1048576 and the measured cache read; prints PROBE OK. Seat: it_engineer.

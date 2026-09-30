@@ -7612,6 +7612,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -7637,16 +7647,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -10149,9 +10149,12 @@ begin
       select pol.model_primary model_id, 0 ord from pol
       union all select pol.model_fallback, 1 from pol
       union all select p.model_id, 10 + p.rank from public.review_pool p where p.active
+      -- 1068 (30 Sep 2026): the last-resort families are the matrix's live ones, cheapest first and Opus last.
       union all select 'google/gemini-3.8-flash', 2000000
-      union all select 'z-ai/glm-5.3-flash', 2000001
-      union all select 'qwen/qwen3.7-plus', 2000002)
+      union all select 'deepseek/deepseek-v4.1-flash', 2000001
+      union all select 'qwen/qwen3.7-plus', 2000002
+      union all select 'openai/gpt-6-luna', 2000003
+      union all select 'anthropic/claude-opus-5.5', 2000004)
     select d.model_id, d.ord, lower(btrim(r.provider)) provider, coalesce(r.active and r.approved, false) reg_ok,
            (not v_vis or coalesce(r.supports_vision, false)) and (not v_aud or coalesce(r.supports_audio, false))
              and (not v_tls or coalesce(r.supports_tools, false)) caps_ok,
