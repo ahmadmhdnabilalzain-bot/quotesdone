@@ -46,6 +46,10 @@ drop policy if exists supplier_due_payments_service_role_only on public.supplier
 create policy supplier_due_payments_service_role_only on public.supplier_due_payments
   as permissive for all to public using (false) with check (false);
 revoke all on public.supplier_due_payments from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('supplier_due_payments', true, 'payment', 'each payment a supplier makes against a non-response due; the charge reduces the principal from its date', 'accountant')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 create or replace function public.fn_accountant_nonresponse_charge(p_transaction_id uuid, p_as_of date DEFAULT NULL::date)
  RETURNS jsonb
