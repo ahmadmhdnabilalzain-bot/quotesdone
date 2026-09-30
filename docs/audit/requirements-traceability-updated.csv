@@ -84,4 +84,4 @@ CUSTOMER,Customer memory,Remember procurement preferences,P2,Partial,absent,abse
 CUSTOMER,Mobile,Customer mobile experience,P4,Frontend unverified,partial,"partial - responsive + PWA; UNVERIFIED, no screenshots captured",No frontend export
 CUSTOMER,Predictive intelligence,Predict future needs,P4,Missing,absent,absent,No customer-facing forecasting
 CUSTOMER,Arabic experience,Full Arabic customer journey and reports,P1,Backend partial; frontend unverified,blocked,BLOCKED - portal uses its own inline dictionary and its own dir state; /ar/me renders English,locale/lang and Arabic comparison support
-CUSTOMER,Enterprise accounts,"Multiple users, roles and approval rules",P3,Missing,absent,absent - customers is single-user,customers is a single-user profile
+CUSTOMER,Enterprise accounts,"Multiple users, roles and approval rules",P3,Withdrawn,absent,withdrawn - founder ruling 30 Sep 2026: customer and supplier accounts only,customers is a single-user profile

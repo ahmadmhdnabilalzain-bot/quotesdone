@@ -1,3 +1,20 @@
+CREATE OR REPLACE FUNCTION public.fn_mail_sender_known(p_email text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e text := lower(btrim(coalesce(p_email, '')));
+begin
+  if e = '' then return null; end if;
+  if exists (select 1 from public.app_secrets s, unnest(string_to_array(lower(s.value), ',')) a
+              where s.key in ('admin_emails', 'expense_forwarders', 'founder_email') and btrim(a) = e) then return 'staff'; end if;
+  if exists (select 1 from public.customers where lower(email) = e) then return 'customer'; end if;
+  if exists (select 1 from public.leads where lower(email) = e) then return 'supplier'; end if;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_ad_spend_record(p_account text, p_business_id text, p_rows jsonb, p_is_demo boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql

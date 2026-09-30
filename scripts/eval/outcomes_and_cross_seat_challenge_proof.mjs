@@ -34,7 +34,7 @@ const PENDING = ['a_decision_names_the_recalled_case_it_followed',
 const replayed = PENDING.filter((n) => existsSync(join(REPO, 'scripts/sql/pending', n + '.txt')));
 const replay = replayed.map((n) => readFileSync(join(REPO, 'scripts/sql', n + '.sql'), 'utf8')).join('\n');
 
-const AUTHOR = 'z-ai/glm-5.3-flash';     // the author's family
+const AUTHOR = 'google/gemini-3.8-flash';   // the author's family: the sales engineer's plan A (founder_instruction 1056)
 const REVIEWER = 'openai/gpt-5.6-sol';    // the stubbed reviewer, another family
 const turn = (verdict, steel, extra = {}) => `'${JSON.stringify({ verdict, steelman_against: steel, recommendation: 'ZZ DEMO', ...extra }).replace(/'/g, "''")}'::jsonb`;
 
