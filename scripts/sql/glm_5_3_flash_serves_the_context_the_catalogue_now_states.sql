@@ -28,6 +28,12 @@ update public.model_rate set
  where model = 'z-ai/glm-5.3-flash'
    and usd_per_m_prompt = 0.15 and usd_per_m_output = 0.50;
 
+-- This file writes model_rate, so "no_writer" is no longer true of it: it is exported with the routing tables.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('model_rate', true, 'model_routing', 'the USD and AED price per Mtok fn_llm_log prices every call from, re-read from the catalogue', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 with c as (
   select
     (select count(*) from public.model_registry where model_id = 'z-ai/glm-5.3-flash' and context_len = 1048576
