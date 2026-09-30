@@ -513,11 +513,12 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
         else await logRun('ok', { action, kind, terms_recorded: true, signed_pdf: true }, '');
         return signed_url;
       })();
-      // A SUPPLIER WAITS, A CUSTOMER DOES NOT (review of this change). SupplierPortal's registration re-saves right
-      // after this call and supplier_api refuses reg_terms until the signed PDF exists, so the supplier answer still
-      // waits for the render. Nothing on the customer side reads the certificate on the way.
+      // NEITHER PARTY WAITS (E2E stage 1, D8, 30 Sep 2026). SupplierPortal calls this AFTER save_profile has
+      // recorded the acceptance and only checks `ok`; supplier_api no longer polls for the PDF, and
+      // z20_leads_mandatory_item_landed_reverifies verifies the supplier when signed_terms_path lands. So a
+      // supplier, like a customer, is answered once the acceptance is recorded; a failed render is logged 'error'.
       const rt = (globalThis as any).EdgeRuntime;
-      if (kind === 'customer' && typeof rt?.waitUntil === 'function') { rt.waitUntil(certify); return J({ ok: true, signed_url: null, certificate: 'issuing' }); }
+      if (typeof rt?.waitUntil === 'function') { rt.waitUntil(certify); return J({ ok: true, signed_url: null, certificate: 'issuing' }); }
       return J({ ok: true, signed_url: await certify });
     }
 

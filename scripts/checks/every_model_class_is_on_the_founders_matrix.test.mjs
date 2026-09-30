@@ -54,7 +54,16 @@ async function run(query) {
   }
 }
 
-const replay = () => pendingPolicyFiles().map((n) => readFileSync(join(SQL, n), 'utf8')).join('\n;\n');
+// THE REPLAY MUST NOT COMMIT (30 Sep 2026). A pending file that carries its own transaction lines was replayed
+// verbatim, so its COMMIT ran before the probe's raise and the "aborted" run applied it to production before merge
+// (the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql). The file's own
+// transaction lines are dropped, as the_invitations_leave_on_their_own_subdomain.test.mjs already does.
+const replay = () => {
+  const text = pendingPolicyFiles().map((n) => readFileSync(join(SQL, n), 'utf8')
+    .replace(/^\s*(begin|commit|rollback)\s*;\s*$/gim, '')).join('\n;\n');
+  assert.doesNotMatch(text.replace(/--.*$/gm, ''), /^\s*(commit|rollback)\s*;/im, 'the replay would commit');
+  return text;
+};
 const probe = () => readFileSync(join(SQL, PROBE), 'utf8');
 
 test('a management token is present where the matrix must be verified',

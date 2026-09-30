@@ -1007,30 +1007,6 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_duty_supply_gap()
 AS $function$ select public.fn_sales_engineer_supply_gap(10) $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_sales_engineer_enterprise_pipeline()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_n int := 0; v_stale jsonb;
-begin
-  -- 28 Sep 2026: this statement had no WHERE, so the safe-update guard refused it on every run since 24 Sep.
-  -- Scope: only an account whose totals were never computed or no longer match its report is rewritten;
-  -- an unchanged account keeps its row. `accounts` still counts every account.
-  update public.enterprise_account a
-     set totals = r.report, totals_at = now()
-    from (select e.id, public.fn_enterprise_account_report(e.id) as report from public.enterprise_account e) r
-   where r.id = a.id
-     and (a.totals_at is null or a.totals is distinct from r.report);
-  select count(*) into v_n from public.enterprise_account;
-  select coalesce(jsonb_agg(jsonb_build_object('account_id', id, 'name', name) order by id), '[]') into v_stale
-    from public.enterprise_account
-   where plan is null or plan_reviewed_at is null or plan_reviewed_at < now() - interval '90 days';
-  return jsonb_build_object('accounts', v_n, 'plan_due', v_stale);
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_ladder_step(p_transaction_id uuid, p_step text, p_refund_id bigint DEFAULT NULL::bigint, p_remediation_id bigint DEFAULT NULL::bigint)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -11220,7 +11196,7 @@ begin
     end if;
     v_kind := coalesce(v_kind, 'unknown');
     if new.triaged_at is not null and old.triaged_at is null
-       and coalesce(new.ai_category, '') not in ('spam', 'no_auto_reply', 'glm_queued') then
+       and coalesce(new.ai_category, '') not in ('spam', 'no_auto_reply', 'routine_queued') then
       v_first := substring(coalesce(new.body, '') from '^\s*([^\r\n]*)');
       perform public.fn_support_touch('email', 'in', v_kind, v_id, v_from, null,
                                       coalesce(new.subject, '') || E'\n' || coalesce(new.body, ''), v_first, null);

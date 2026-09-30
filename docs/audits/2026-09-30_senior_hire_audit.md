@@ -97,7 +97,7 @@ Notes on the move:
 - Runs supplier onboarding and quality.
 - Takes inquiries in; handles drawings and specs, matching, and quote QC.
 - Produces the comparison report and runs reveals and their outcomes.
-- Handles disputes and enterprise accounts.
+- Handles disputes. (Enterprise accounts were removed on 30 Sep 2026 by founder ruling: customer and supplier accounts only.)
 - Rescues stalled inquiries and fills supply gaps.
 
 **Cadence and KPIs:**
@@ -106,7 +106,7 @@ Notes on the move:
 
 **Code (production):**
 - 17 duties after the move; 12 of the original 13 ran in the last 7 days.
-- `enterprise_pipeline` failed on 24 Sep. Its routine was fixed on 28 Sep, and a call on 29 Sep returned `{"accounts":0,"plan_due":[]}`. It is weekly, so it recovers on its next tick (1 Oct).
+- The weekly `enterprise_pipeline` duty was removed on 30 Sep 2026 with enterprise accounts (`scripts/sql/there_are_no_enterprise_accounts_only_customer_and_supplier_accounts.sql`).
 
 | # | Gap | Type | Evidence | Proposed fix |
 |---|---|---|---|---|
