@@ -46,6 +46,11 @@ drop policy if exists it_credential_class_service_role_only on public.it_credent
 create policy it_credential_class_service_role_only on public.it_credential_class
   as permissive for all to public using (false) with check (false);
 revoke all on public.it_credential_class from anon, authenticated;
+-- The daily export carries it: credential NAMES and their class, never a value.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('it_credential_class', true, 'company', 'which third-party credential the company rotates by API and which only the founder can renew (names only; founder ruling 1090)', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 insert into public.it_credential_class (credential, rotation, integrations, expiry_item, why) values
   ('twilio_api_key_secret', 'company_api', '{twilio,twilio_verify,twilio_whatsapp_sender}', 'key:twilio_api_key_secret',
