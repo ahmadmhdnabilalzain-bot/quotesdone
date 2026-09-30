@@ -1,0 +1,1 @@
+Apply at merge: node scripts/apply_sql.mjs scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_now_charges.sql --apply. Registry price for deepseek/deepseek-v4.1-flash to the catalogue's 0.0198/0.396; prints PROBE OK. Seat: it_engineer.

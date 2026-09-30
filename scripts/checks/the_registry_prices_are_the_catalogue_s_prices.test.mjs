@@ -40,8 +40,10 @@ const OWNING_SQLS = [
   // left this list, and this file's delete statement takes it out of the claim. A model no route can name can never
   // block CI again; every ACTIVE model is still compared strictly.
   'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql',
+  // 30 Sep 2026 ~10:10Z: the catalogue re-priced deepseek/deepseek-v4.1-flash to 0.0198 / 0.396; this file wins.
+  'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_now_charges.sql',
 ];
-const RETIRING_SQL = OWNING_SQLS[OWNING_SQLS.length - 1];
+const RETIRING_SQL = 'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql';
 const OWNING_SQL = OWNING_SQLS.join(' + ');
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
 
