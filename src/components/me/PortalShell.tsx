@@ -153,7 +153,9 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
       role="complementary"
       aria-label={t('asst_title')}
       className={cn(
-        'fixed inset-y-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
+        // THE MOBILE TAB BAR STAYS TAPPABLE (E2E stage 1, D7, 30 Sep 2026): below md the panel stops above the
+        // 56px tab bar instead of covering it (inset-y-0 put it over the menu; 18 nav taps timed out at 375px).
+        'fixed top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] md:bottom-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
         // max-w, not w: a fixed 420px panel is 45px wider than a 375px viewport and cannot shrink.
         'end-0 sm:w-full sm:max-w-[420px] sm:border-s',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom-4 sm:motion-safe:slide-in-from-right-4 motion-safe:duration-300',
