@@ -7,8 +7,8 @@
 //   (b) from v14 only: the processor fee QuotesDone paid on the refunded reveal and could not recover,
 //   (c) an administrative fee — the amount in the version the supplier had accepted when the customer revealed
 //       it (see termsAt below), and
-//   (d) simple interest on the unpaid total at the clause 31 rate — 12% per annum from v14, 9% before, "or the maximum
-//       permitted by UAE law if lower" — from the due date (7 days after QuotesDone's notice) until paid.
+//   (d) simple interest on the unpaid total at the clause 31 rate, charged at the 0.09 lawful ceiling for every version (v14 writes 12% "or the maximum
+//       permitted by UAE law if lower", and 9% is that maximum) — from the due date (7 days after QuotesDone's notice) until paid.
 // Every document in supplier_charge_documents.ts takes its figures from here, so the invoice, the
 // reminders, the final demand and the court claim can never disagree by a fils.
 //
@@ -32,7 +32,11 @@ export const ADMIN_FEE_AED_FROM_V13 = 500;
 // agreed). Earlier versions keep 9% and no processor-fee head. termsAt() is the one rule; fn_accountant_nonresponse_charge
 // applies it in SQL. Reasoning: docs/legal/NONRESPONSE_MAX_V14.md.
 export const INTEREST_RATE_PA = 0.09;
-export const INTEREST_RATE_PA_FROM_V14 = 0.12;
+export const INTEREST_RATE_PA_FROM_V14 = 0.12; // the rate the v14 TEXT writes; never the rate charged (below)
+// THE CEILING (30 Sep 2026, accountant; founder ruling: a 0.09 annual rate, simple, the maximum lawful). v14 writes "12% ... or the
+// maximum permitted by UAE law if lower", and 9% is that maximum, so no version is ever charged more than 9%.
+// fn_accountant_nonresponse_charge applies the same cap (scripts/sql/no_supplier_is_charged_interest_above_nine_percent_a_year.sql).
+export const MAX_LAWFUL_RATE_PA = 0.09;
 export type Terms = { version: number; admin_fee: number; rate_pa: number; processor_fee_owed: boolean };
 /** The clause 33 terms of the version the supplier had accepted WHEN the customer revealed it; unknown dates = the lowest. */
 export function termsAt(acceptedVersion?: string | null, acceptedAt?: string | null, revealedAt?: string | null): Terms {
@@ -42,7 +46,7 @@ export function termsAt(acceptedVersion?: string | null, acceptedAt?: string | n
   return {
     version: eff,
     admin_fee: eff >= 13 ? ADMIN_FEE_AED_FROM_V13 : ADMIN_FEE_AED,
-    rate_pa: eff >= 14 ? INTEREST_RATE_PA_FROM_V14 : INTEREST_RATE_PA,
+    rate_pa: Math.min(eff >= 14 ? INTEREST_RATE_PA_FROM_V14 : INTEREST_RATE_PA, MAX_LAWFUL_RATE_PA),
     processor_fee_owed: eff >= 14,
   };
 }
@@ -94,8 +98,9 @@ export function computeCharge(i: ChargeInput): Charge {
   const charge = reveal + proc;
   const fee = i.admin_fee_aed ?? ADMIN_FEE_AED;
   if (fee !== ADMIN_FEE_AED && fee !== ADMIN_FEE_AED_FROM_V13) throw new Error('an administrative fee no signed version names: ' + fee);
-  const rate = i.rate_pa ?? INTEREST_RATE_PA;
-  if (rate !== INTEREST_RATE_PA && rate !== INTEREST_RATE_PA_FROM_V14) throw new Error('an interest rate no signed version names: ' + rate);
+  const asked = i.rate_pa ?? INTEREST_RATE_PA;
+  if (asked !== INTEREST_RATE_PA && asked !== INTEREST_RATE_PA_FROM_V14) throw new Error('an interest rate no signed version names: ' + asked);
+  const rate = Math.min(asked, MAX_LAWFUL_RATE_PA);
   const unrec = fils(i.unrecovered_processor_fee ?? 0);
   if (unrec < 0) throw new Error('a processor fee cannot be negative');
   const principal = charge + unrec + fils(fee);

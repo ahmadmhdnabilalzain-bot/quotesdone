@@ -1,0 +1,3 @@
+Applied at merge by the release train (apply at merge, never before). Until then
+scripts/checks/no_supplier_is_charged_interest_above_nine_percent.test.mjs replays this file first inside one
+aborted transaction. Seat: accountant.
