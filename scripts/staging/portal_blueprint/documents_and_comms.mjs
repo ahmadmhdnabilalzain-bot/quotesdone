@@ -307,8 +307,8 @@ export default async function ({ req }) {
   // and the negotiation_assistant edge function are deleted. Its five requirements
   // (neg-market-average, neg-recommended-action, neg-suggested-message, neg-triggered-on-quote,
   // neg-customer-ui) retired WITH their subject. They are not scored as missing, because building
-  // them again would contradict the ruling. fn_negotiation_guidance and supplier_negotiation_policy
-  // still exist in the database; no surface calls them.
+  // them again would contradict the ruling. fn_negotiation_guidance was dropped 21 Sep 2026 and
+  // supplier_negotiation_policy 30 Sep 2026 (scripts/sql/the_negotiation_policy_leaves_the_database.sql).
 
   // The endpoints the customer portal calls, measured at the call site. Used by §18's profile leg.
   const portalCalls = [...portal().matchAll(/call\('([a-z_]+)'/g)].map(m => m[1]);
