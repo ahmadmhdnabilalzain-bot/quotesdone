@@ -30,14 +30,14 @@ const code = (p) => read(p).split('\n').map((l) => l.replace(/--.*$/, '')).join(
 // The founder's targets and the stated rules (the file header says the same in words).
 function plan() {
   const verified = [125, 200, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525];
-  const ent = [0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5];   // customers launch in January 2027 (index 3)
+  const accts = [0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5];   // repeat business customer accounts (ledger 1091); // customers launch in January 2027 (index 3)
   const base = 10000 + 5000 + 799 + 799 + 1200 + 800, oneOff = [7000, 5000];
   let cum = 0;
   return verified.map((v, i) => {
-    const sme = i >= 3 ? Math.round(0.2 * v) : 0, requests = sme + 6 * ent[i], reveals = Math.round(0.15 * sme) + 3 * ent[i];
-    const fee = Math.round(0.15 * sme) * 390 + 3 * ent[i] * 1500; cum += fee;
+    const sme = i >= 3 ? Math.round(0.2 * v) : 0, requests = sme + 6 * accts[i], reveals = Math.round(0.15 * sme) + 3 * accts[i];
+    const fee = Math.round(0.15 * sme) * 390 + 3 * accts[i] * 1500; cum += fee;
     return [new Date(Date.UTC(2026, 9 + i, 1)).toISOString().slice(0, 10), v, v - (i ? verified[i - 1] : 0), requests,
-      Math.round(requests * 1.8), reveals, fee, cum, ent[i], base + (oneOff[i] ?? 0)];
+      Math.round(requests * 1.8), reveals, fee, cum, accts[i], base + (oneOff[i] ?? 0)];
   });
 }
 
