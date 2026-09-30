@@ -14,6 +14,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const ping = readFileSync('supabase/functions/resilience_ping/index.ts', 'utf8');
 const claim = readFileSync('supabase/functions/claim_lookup/index.ts', 'utf8');
@@ -68,11 +69,17 @@ test('a reminder never reaches a fixture, sanctioned, screened, bounced or suppr
     'the due list no longer filters through fn_supplier_outreach_reachable');
 });
 
-test('the reminder speaks formal Gulf Arabic and English, with the link', () => {
-  const c = body('fn_supplier_registration_reminder_compose');
-  for (const phrase of ['السادة/ ', 'المحترمين،', 'تحية طيبة وبعد', 'وتفضلوا بقبول فائق الاحترام والتقدير', 'Dear ', 'v_link']) {
-    assert.ok(c.includes(phrase), `the reminder lost "${phrase}"`);
-  }
+// SUPPLIERS ALWAYS GET ENGLISH (founder, 28 Sep 2026; E2E stage 1 D3, 30 Sep). This asserted the reminder's
+// Arabic register, read from this file's 21 Sep body. It now reads the LIVE composer from the schema mirror and
+// asserts it is English with the link, and that its language switch is a constant false.
+test('the reminder is written in English, with the link, and never chooses Arabic', () => {
+  const mirror = readSchemaMirror();
+  const at = mirror.indexOf('FUNCTION public.fn_supplier_registration_reminder_compose(');
+  assert.ok(at > 0, 'the reminder composer is not in the schema mirror');
+  const c = mirror.slice(at, mirror.indexOf('$function$', mirror.indexOf('$function$', at) + 10));
+  for (const phrase of ['Dear ', 'v_link']) assert.ok(c.includes(phrase), `the reminder lost "${phrase}"`);
+  assert.match(c, /v_ar boolean := false;/, 'the reminder decides a language again; a supplier is always written in English');
+  assert.doesNotMatch(c, /v_ar\s*:=\s*(?!false)/, 'the reminder sets v_ar from something other than false');
 });
 
 test('the 24-hour clock raises to the CEO seat, never to the founder', () => {
