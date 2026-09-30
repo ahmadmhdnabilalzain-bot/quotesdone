@@ -7,7 +7,7 @@
 -- THE FOUNDER'S WORDS (24 Sep 2026): "imagine I hired a real CEO tomorrow. What would I ask him for? Build him
 -- accordingly." The targets he set the same day: 50 suppliers within two weeks from his own network, 200 by 30 Nov
 -- 2026, 300 by 31 Dec 2026, about 500 by Jul/Aug 2027 and at least 3,000 by year 5; a AED 1,000 yearly supplier
--- subscription from supplier #1,001; the 3 % reveal fee; costs under about
+-- subscription from supplier #1,001; the 3 % reveal fee, with enterprise procurement accounts; costs under about
 -- AED 250,000 a year (his fee AED 10,000 a month, ads at most AED 5,000 a month, the Claude and OpenAI subscriptions
 -- AED 799 a month each). The AED 1M target stays withdrawn. The CEO is given targets and ceilings, nothing else.
 --
@@ -25,12 +25,11 @@
 --   CUSTOMERS LAUNCH IN JANUARY 2027 (founder, 24 Sep 2026): Oct - Dec 2026 is supplier registration only, with zero
 --       requests, quotes, reveals and fees and no customer-facing campaign;
 --   paying suppliers and subscription revenue 0 all year: the subscription starts at supplier #1,001, not reached;
---   business customer accounts (a customer account that posts about 6 requests and awards 3 jobs a month) 1 in Jan,
---       then one more every two months, 5 by Sep (founder ledger 1091, 30 Sep 2026: this volume sits on customer accounts);
---   requests posted (from Jan) = 20 % of the verified suppliers (a month) + 6 per business customer account;
+--   enterprise accounts 1 in Jan, then one more every two months, 5 by Sep;
+--   requests posted (from Jan) = 20 % of the verified suppliers (a month) + 6 per enterprise account;
 --   quotes = 1.8 a request (a planning average: at least three quotes on 60 % of requests; any number of suppliers may quote);
---   reveals = 15 % of the other requests + 3 awards per business customer account;
---   reveal fees = AED 390 a reveal (3 % of AED 13,000) + AED 1,500 a business-account award (3 % of AED 50,000);
+--   reveals = 15 % of the non-enterprise requests + 3 awards per enterprise account;
+--   reveal fees = AED 390 a reveal (3 % of AED 13,000) + AED 1,500 an enterprise award (3 % of AED 50,000);
 --   cost ceiling = AED 18,598 a month (fee 10,000; ads 5,000; Claude 799; OpenAI 799; other software 1,200; model
 --       usage 800) + LLC AED 7,000 in Oct and trademark AED 5,000 in Nov = AED 235,176 for the year (< 250,000).
 --   Year: 915 requests, 1,647 quotes, 191 reveals, AED 157,740 of reveal fees; revenue passes the cost ceiling in
@@ -38,7 +37,7 @@
 --   registrations submitted = verified added / 0.75; invitations delivered = (registrations - the founder's 50 in Oct) / 0.041.
 --
 -- OWNERSHIP (founder, 24 Sep 2026): sales_engineer owns suppliers AND customers (inquiries, drawings, matching, quotes,
--- the comparison, reveals, customer accounts); customer_support is the communication seat (homepage chat, email, WhatsApp,
+-- the comparison, reveals, enterprise); customer_support is the communication seat (homepage chat, email, WhatsApp,
 -- delivering every seat's messages) and owns no reveal; marketing owns social, SEO/GEO, trends, the recruitment funnel,
 -- reputation and analytics; it_engineer owns platform service levels; the CEO owns the whole and the direction. Rates are assumptions until real transactions exist; the experiments of #913 measure them.
 --
@@ -174,7 +173,7 @@ insert into public.ceo_mandate (clause_key, kind, statement, value, unit, source
   ('suppliers_500_by_2027_08_31', 'target', 'About 500 verified suppliers by July/August 2027.', 500, 'verified suppliers', 'founder, 24 Sep 2026'),
   ('suppliers_3000_by_year_5', 'target', 'At least 3,000 verified suppliers by year 5; a minimum, and higher is the aim.', 3000, 'verified suppliers', 'founder, 24 Sep 2026'),
   ('subscription_from_supplier_1001', 'target', 'Supplier subscriptions are a main revenue line: AED 1,000 a year for every supplier from #1,001.', 1000, 'AED a year', 'founder, 24 Sep 2026'),
-  ('reveal_fees_from_customer_accounts', 'target', 'Reveal fees at 3 %, from the customer accounts that post their requests through QuotesDone, repeat business accounts included.', 3, '%', 'founder, 24 Sep 2026'),
+  ('reveal_fees_and_enterprise', 'target', 'Reveal fees at 3 %, including enterprise accounts that run their procurement through QuotesDone.', 3, '%', 'founder, 24 Sep 2026'),
   ('year_costs_under_250k', 'cost_ceiling', 'All costs together stay under about AED 250,000 a year.', 250000, 'AED a year', 'founder, 24 Sep 2026'),
   ('founder_fee', 'cost_ceiling', 'The founder''s management fee is the only human cost.', 10000, 'AED a month', 'founder, 24 Sep 2026'),
   ('ads_ceiling', 'cost_ceiling', 'Paid advertising at most AED 5,000 a month.', 5000, 'AED a month', 'founder, 24 Sep 2026'),
@@ -208,7 +207,7 @@ create table if not exists public.ceo_year_plan (
   reveals          integer not null check (reveals >= 0),
   fee_aed          numeric not null check (fee_aed >= 0),
   fee_cum_aed      numeric not null check (fee_cum_aed >= 0),
-  business_accounts integer not null check (business_accounts >= 0),  -- repeat business customer accounts (founder ledger 1091)
+  enterprise       integer not null check (enterprise >= 0),
   cost_ceiling_aed numeric not null check (cost_ceiling_aed > 0),
   basis            text not null
 );
@@ -217,7 +216,7 @@ drop policy if exists ceo_year_plan_service_role_only on public.ceo_year_plan;
 create policy ceo_year_plan_service_role_only on public.ceo_year_plan as permissive for all to public using (false) with check (false);
 revoke all on public.ceo_year_plan from anon, authenticated;
 
-insert into public.ceo_year_plan (month, verified, verified_added, requests, quotes, reveals, fee_aed, fee_cum_aed, business_accounts, cost_ceiling_aed, basis)
+insert into public.ceo_year_plan (month, verified, verified_added, requests, quotes, reveals, fee_aed, fee_cum_aed, enterprise, cost_ceiling_aed, basis)
 select m::date, v, va, r, q, rv, f, fc, e, c, 'founder targets 24 Sep 2026; rules in the header of scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targets.sql'
   from (values
 ('2026-10-01', 125, 125, 0, 0, 0, 0, 0, 0, 25598),
@@ -234,14 +233,14 @@ select m::date, v, va, r, q, rv, f, fc, e, c, 'founder targets 24 Sep 2026; rule
     ('2027-09-01', 525, 25, 135, 243, 31, 28740, 157740, 5, 18598)) x(m, v, va, r, q, rv, f, fc, e, c)
 on conflict (month) do update set verified = excluded.verified, verified_added = excluded.verified_added, requests = excluded.requests,
   quotes = excluded.quotes, reveals = excluded.reveals, fee_aed = excluded.fee_aed, fee_cum_aed = excluded.fee_cum_aed,
-  business_accounts = excluded.business_accounts, cost_ceiling_aed = excluded.cost_ceiling_aed, basis = excluded.basis;
+  enterprise = excluded.enterprise, cost_ceiling_aed = excluded.cost_ceiling_aed, basis = excluded.basis;
 
 insert into public.target_contract (contract_key, version, status, objective, business_reason, priority, accountable_owner,
   metric_definition, metric_unit, metric_population, authoritative_source, measure_sql, baseline_value, baseline_state, baseline_at,
   baseline_note, desired_value, desired_basis, deadline, timezone, measurement_cadence, guardrails, assumptions, confidence_note,
   escalation_threshold, success_definition, evidence_required, created_by, activated_at)
 select 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30', 1, 'active',
-  'The founder''s year-one targets: 50 verified suppliers by 8 Oct 2026, 200 by 30 Nov, 300 by 31 Dec, about 500 by 31 Aug 2027, with reveal fees, customer accounts and costs held to the monthly path per seat.',
+  'The founder''s year-one targets: 50 verified suppliers by 8 Oct 2026, 200 by 30 Nov, 300 by 31 Dec, about 500 by 31 Aug 2027, with reveal fees, enterprise accounts and costs held to the monthly path per seat.',
   'Set by the founder on 24 Sep 2026. They replace the withdrawn AED 1M target, the 1,000-supplier target and the AED 244,801 base case.',
   1, 'ceo',
   'Verified suppliers since 1 Jan 2026, demo rows excluded: fn_ambition_measure(''registrations_verified_cumulative'').',
@@ -286,7 +285,7 @@ insert into public.target_path (contract_id, month, metric_key, owner_seat, kind
 select c.id, p.month, x.metric, x.seat, x.kind,
        case x.metric when 'registrations_verified_cumulative' then p.verified when 'inquiries_posted' then p.requests
                      when 'quotes_received' then p.quotes when 'reveals_paid' then p.reveals when 'fee_aed' then p.fee_aed
-                     when 'fee_aed_cumulative' then p.fee_cum_aed when 'b2b_active_accounts' then p.business_accounts
+                     when 'fee_aed_cumulative' then p.fee_cum_aed when 'b2b_active_accounts' then p.enterprise
                      when 'costs_aed' then p.cost_ceiling_aed
                      when 'registrations_submitted' then ceil(p.verified_added / 0.75)
                      when 'invitations_delivered' then ceil((ceil(p.verified_added / 0.75) - case when p.month = date '2026-10-01' then 50 else 0 end) / 0.041)
@@ -353,7 +352,7 @@ insert into public.ceo_plan_action (seat, from_month, to_month, action) values
   ('sales_engineer', '2026-12-01', '2026-12-01', 'Prove the customer journey end to end in the sandbox (request, drawings, matching, quotes, comparison, reveal) before the January launch.'),
   ('sales_engineer', '2027-01-01', '2027-09-01', 'Own every customer request: specs and drawings complete, matched to the exact trade, at least three quotes on every request (any number of suppliers may quote), the comparison report, and the reveal.'),
   ('sales_engineer', '2027-01-01', '2027-09-01', 'Recruit 25 verified suppliers a month, weighted to the trades where requests went unquoted.'),
-  ('sales_engineer', '2027-01-01', '2027-09-01', 'Business customer accounts through consented channels only: one new repeat business account every two months, each posting about six requests and awarding three jobs a month.'),
+  ('sales_engineer', '2027-01-01', '2027-09-01', 'Enterprise procurement accounts through consented channels only: one new account every two months.'),
   ('customer_support', '2026-10-01', '2027-09-01', 'Deliver the daily supplier-campaign email and the PDF of the suppliers contacted the next day; keep bounces under 5 %.'),
   ('customer_support', '2026-10-01', '2027-09-01', 'Answer the homepage chat, email and WhatsApp, and deliver every seat''s messages, on time and in the customer''s language.'),
   ('marketing', '2026-10-01', '2026-12-01', 'Supplier recruitment only: the recruitment funnel, social posts and SEO/GEO pages aimed at suppliers; no customer-facing campaign before January.'),
