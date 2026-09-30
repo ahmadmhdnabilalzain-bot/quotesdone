@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T23:43:17.504Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-30T10:37:53.343Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3528,21 +3528,6 @@ CREATE TABLE IF NOT EXISTS public.gl_settings (
   num_value numeric,
   txt_value text,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS public.glm_judgement (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  kind text NOT NULL,
-  subject_key text NOT NULL,
-  input jsonb NOT NULL,
-  status text DEFAULT 'queued'::text NOT NULL,
-  result jsonb,
-  model text,
-  attempts integer DEFAULT 0 NOT NULL,
-  last_error text,
-  leased_until timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now() NOT NULL,
-  decided_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.goal_period (
@@ -7643,6 +7628,21 @@ CREATE TABLE IF NOT EXISTS public.routine_change_log (
   statement_head text
 );
 
+CREATE TABLE IF NOT EXISTS public.routine_judgement (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  kind text NOT NULL,
+  subject_key text NOT NULL,
+  input jsonb NOT NULL,
+  status text DEFAULT 'queued'::text NOT NULL,
+  result jsonb,
+  model text,
+  attempts integer DEFAULT 0 NOT NULL,
+  last_error text,
+  leased_until timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  decided_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.sales_decision_log (
   id bigint DEFAULT nextval('sales_decision_log_id_seq'::regclass) NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -9888,7 +9888,6 @@ ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_pkey PRIMARY KEY (id);
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_pkey PRIMARY KEY (id);
 ALTER TABLE public.gl_prior_period_adjustment ADD CONSTRAINT gl_prior_period_adjustment_pkey PRIMARY KEY (journal_id);
 ALTER TABLE public.gl_settings ADD CONSTRAINT gl_settings_pkey PRIMARY KEY (key);
-ALTER TABLE public.glm_judgement ADD CONSTRAINT glm_judgement_pkey PRIMARY KEY (id);
 ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_pkey PRIMARY KEY (id);
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_pkey PRIMARY KEY (id);
 ALTER TABLE public.governance_sensitive ADD CONSTRAINT governance_sensitive_pkey PRIMARY KEY (subject, key);
@@ -10184,6 +10183,7 @@ ALTER TABLE public.risk_register ADD CONSTRAINT risk_register_pkey PRIMARY KEY (
 ALTER TABLE public.rl_hits ADD CONSTRAINT rl_hits_pkey PRIMARY KEY (_pk);
 ALTER TABLE public.roles ADD CONSTRAINT roles_pkey PRIMARY KEY (name);
 ALTER TABLE public.routine_change_log ADD CONSTRAINT routine_change_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_pkey PRIMARY KEY (id);
 ALTER TABLE public.sales_decision_log ADD CONSTRAINT sales_decision_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_pkey PRIMARY KEY (id);
@@ -10366,7 +10366,6 @@ ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_event_id_os_
 ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_agent_key_key UNIQUE (event_id, agent_key);
 ALTER TABLE public.expense_vendor_billing_mailbox ADD CONSTRAINT expense_vendor_billing_mailbox_vendor_mailbox_key UNIQUE (vendor, mailbox);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_entry_no_key UNIQUE (entry_no);
-ALTER TABLE public.glm_judgement ADD CONSTRAINT glm_judgement_kind_subject_key_key UNIQUE (kind, subject_key);
 ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_goal_key_horizon_period_label_key UNIQUE (goal_key, horizon, period_label);
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_domain_policy_key UNIQUE (domain, policy);
 ALTER TABLE public.handoff_contract ADD CONSTRAINT handoff_contract_action_id_key UNIQUE (action_id);
@@ -10432,6 +10431,7 @@ ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_authority_code_name_ke
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_resource_key UNIQUE (resource);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_key UNIQUE (transaction_id);
 ALTER TABLE public.rfq_archives ADD CONSTRAINT rfq_archives_rfq_id_key UNIQUE (rfq_id);
+ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_kind_subject_key_key UNIQUE (kind, subject_key);
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_question_norm_key UNIQUE (question_norm);
 ALTER TABLE public.seat_case_memory ADD CONSTRAINT seat_case_memory_source_uq UNIQUE (source_table, source_id);
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_seat_pack_lang_question_key UNIQUE (seat, pack, lang, question);
@@ -10705,9 +10705,6 @@ ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check 
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_line_one_side CHECK (((debit = (0)::numeric) <> (credit = (0)::numeric)));
 ALTER TABLE public.gl_prior_period_adjustment ADD CONSTRAINT gl_prior_period_adjustment_check CHECK ((posted_on > original_date));
 ALTER TABLE public.gl_prior_period_adjustment ADD CONSTRAINT gl_prior_period_adjustment_closed_month_check CHECK ((closed_month = (date_trunc('month'::text, (closed_month)::timestamp with time zone))::date));
-ALTER TABLE public.glm_judgement ADD CONSTRAINT glm_judgement_kind_check CHECK ((kind = ANY (ARRAY['quote_spec_match'::text, 'repeat_request'::text, 'supplier_trade_words'::text, 'unknown_sender_mail'::text])));
-ALTER TABLE public.glm_judgement ADD CONSTRAINT glm_judgement_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'done'::text, 'failed'::text, 'superseded'::text])));
-ALTER TABLE public.glm_judgement ADD CONSTRAINT glm_judgement_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_domain_check CHECK ((domain = ANY (ARRAY['ethics'::text, 'privacy'::text, 'audit'::text, 'retention'::text, 'approval'::text, 'security'::text, 'compliance'::text])));
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_enforcement_check CHECK ((enforcement = ANY (ARRAY['code'::text, 'database'::text, 'process'::text, 'declared'::text])));
 ALTER TABLE public.governance_sensitive ADD CONSTRAINT governance_sensitive_key_check CHECK ((btrim(key) <> ''::text));
@@ -11205,6 +11202,9 @@ ALTER TABLE public.reviews ADD CONSTRAINT reviews_reason_required CHECK (((comme
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_kind_check CHECK ((kind = ANY (ARRAY['question'::text, 'note'::text])));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_shape_ck CHECK ((((kind = 'question'::text) AND (supplier_id IS NOT NULL) AND (question IS NOT NULL)) OR ((kind = 'note'::text) AND (supplier_id IS NULL) AND (answer IS NOT NULL) AND (answered_at IS NOT NULL))));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_source_check CHECK ((source = ANY (ARRAY['portal'::text, 'rfq_flag'::text, 'rfq_note'::text, 'missing_specs'::text])));
+ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_kind_check CHECK ((kind = ANY (ARRAY['quote_spec_match'::text, 'repeat_request'::text, 'supplier_trade_words'::text, 'unknown_sender_mail'::text])));
+ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'done'::text, 'failed'::text, 'superseded'::text])));
+ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
 ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'knowledge_added'::text, 'not_a_gap'::text])));
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_entry_type_check CHECK ((entry_type = ANY (ARRAY['individual'::text, 'entity'::text])));
@@ -11881,7 +11881,6 @@ CREATE INDEX founder_instruction_open_idx ON public.founder_instruction USING bt
 CREATE INDEX founder_mail_policy_history_kind_valid_from ON public.founder_mail_policy_history USING btree (kind, valid_from DESC);
 CREATE UNIQUE INDEX gl_journal_one_live_entry_per_bank_or_fee_line ON public.gl_journal USING btree (source, source_ref) WHERE ((source = ANY (ARRAY['owner_capital'::text, 'bank_interest'::text, 'bank_charge'::text, 'stripe_fee_bt'::text, 'stripe_fee_bt_test'::text])) AND (source_ref IS NOT NULL) AND (status = ANY (ARRAY['draft'::text, 'posted'::text])));
 CREATE INDEX gl_prior_period_adjustment_posted_on ON public.gl_prior_period_adjustment USING btree (posted_on);
-CREATE INDEX glm_judgement_due_idx ON public.glm_judgement USING btree (id) WHERE (status = 'queued'::text);
 CREATE INDEX graph_edges_dst ON public.graph_edges USING btree (dst_kind, dst_ref, rel);
 CREATE INDEX graph_edges_rel ON public.graph_edges USING btree (rel);
 CREATE UNIQUE INDEX handoff_contract_live_idem_idx ON public.handoff_contract USING btree (idempotency_key) WHERE (status = ANY (ARRAY['open'::text, 'accepted'::text, 'returned'::text]));
@@ -12199,6 +12198,7 @@ CREATE INDEX rfq_clarification_inquiry_idx ON public.rfq_clarification USING btr
 CREATE INDEX rfq_clarification_supplier_idx ON public.rfq_clarification USING btree (supplier_id, asked_at) WHERE (supplier_id IS NOT NULL);
 CREATE INDEX rl_hits_k_at ON public.rl_hits USING btree (k, at);
 CREATE INDEX routine_change_log_object_at ON public.routine_change_log USING btree (object_identity, at DESC);
+CREATE INDEX routine_judgement_due_idx ON public.routine_judgement USING btree (id) WHERE (status = 'queued'::text);
 CREATE INDEX sales_decision_log_action_idx ON public.sales_decision_log USING btree (action, created_at DESC);
 CREATE INDEX sales_decision_log_created_idx ON public.sales_decision_log USING btree (created_at DESC);
 CREATE INDEX sales_knowledge_emb_hnsw ON public.sales_knowledge USING hnsw (embedding_gte vector_cosine_ops);
