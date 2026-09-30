@@ -9,7 +9,7 @@
 // one. The scan is scripts/lib/sql_text.mjs's, the same one the replay uses.
 //
 // APPLIED HISTORY IS NOT EDITED. The files that already carried a wrapper when this check was written are listed
-// in no_sql_file_carries_its_own_transaction.applied.txt; that list may only shrink. A listed file that no longer
+// in scripts/sql/TRANSACTION_LINES_APPLIED.txt (beside MANIFEST.txt, with the history it records); that list may only shrink. A listed file that no longer
 // carries one, or that is not on disk, is a finding too, so the list stays true. A pending file is never listed:
 // it is fixed before it is applied.
 import test from 'node:test';
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { maskSql } from '../lib/sql_text.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
-const BASELINE = 'scripts/checks/no_sql_file_carries_its_own_transaction.applied.txt';
+const BASELINE = 'scripts/sql/TRANSACTION_LINES_APPLIED.txt';
 const CONTROL = /^(begin|start\s+transaction|commit|end|rollback|abort)\b/;
 
 /** The top-level transaction statements in a SQL text, lower-cased. */
