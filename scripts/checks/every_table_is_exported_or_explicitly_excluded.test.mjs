@@ -38,11 +38,16 @@ const FROZEN_CEILING = { no_writer: 244 };
 const stripComments = (sql) => sql.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 export const createdIn = (sql) => [...stripComments(sql).matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?public\."?([a-z0-9_]+)"?\s*\(/gi)].map((m) => m[1].toLowerCase());
 
+// A pending file's DROP TABLE takes the table out, as its CREATE TABLE puts one in: the mirror still holds a table until
+// the release applies the drop and regenerates it (30 Sep 2026, supplier_negotiation_policy).
+export const droppedIn = (sql) => [...stripComments(sql).matchAll(/drop\s+table\s+(?:if\s+exists\s+)?public\."?([a-z0-9_]+)"?\s*;/gi)].map((m) => m[1].toLowerCase());
+
 const PENDING = manifestWithPending(REPO).filter((f) => !manifestHas(f)).map((f) => read(f));
 const TABLES = new Set([
   ...[...SCHEMA.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?public\."?([a-z0-9_]+)"? \(/g)].map((m) => m[1]),
   ...PENDING.flatMap(createdIn),
 ]);
+for (const t of PENDING.flatMap(droppedIn)) TABLES.delete(t);
 const REG = readRegistry(REPO);
 
 // The one rule, pure so the self-test runs it on a fake table.
@@ -112,6 +117,7 @@ test('#1105\'s supplier_availability and stalled_inquiry_rescue are exported', (
 test('self-test: a pending create table that nobody registered is caught, and a registered one is not', () => {
   const fake = '-- a comment mentioning create table public.zz_commented_out (\ncreate table if not exists public.zz_probe_t (\n  id bigint primary key\n);';
   assert.deepEqual(createdIn(fake), ['zz_probe_t']);
+  assert.deepEqual(droppedIn('-- drop table public.zz_commented;\ndrop table if exists public.zz_gone;'), ['zz_gone']);
   const tables = new Set([...TABLES, ...createdIn(fake)]);
   assert.deepEqual(unaccounted(tables, REG), ['zz_probe_t']);
   const rows = registryRowsIn("-- insert into public.table_export_registry values ('zz_commented', true, 'x', 'a commented row', 'me') on conflict\n"
