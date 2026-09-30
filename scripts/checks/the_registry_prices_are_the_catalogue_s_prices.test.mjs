@@ -40,6 +40,8 @@ const OWNING_SQLS = [
   'scripts/sql/glm_5_3_flash_is_back_at_the_price_it_was_ruled_at.sql',
   // deepseek/deepseek-v4.1-flash, every other seat's fallback (founder_instruction 1056, 29 Sep 2026).
   'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql',
+  // ...and by 30 Sep 2026 the catalogue served its context as 1,048,576; this file restates it and wins.
+  'scripts/sql/glm_5_3_flash_serves_the_context_the_catalogue_now_states.sql',
 ];
 const OWNING_SQL = OWNING_SQLS.join(' + ');
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
@@ -85,7 +87,7 @@ const claimed = () => {
   // claim again and the check compares a price the registry no longer holds.
   assert.ok(out.has('deepseek/deepseek-v4.1-flash'),
     'deepseek/deepseek-v4.1-flash was not parsed out of its registering file, so its price is not being checked');
-  assert.equal(out.get('z-ai/glm-5.3-flash')?.from, 'scripts/sql/glm_5_3_flash_is_back_at_the_price_it_was_ruled_at.sql',
+  assert.equal(out.get('z-ai/glm-5.3-flash')?.from, 'scripts/sql/glm_5_3_flash_serves_the_context_the_catalogue_now_states.sql',
     'z-ai/glm-5.3-flash was not taken from its re-pricing file, so the check is comparing a superseded price');
   assert.ok(out.size >= 10,
     `only ${out.size} models parsed out of ${OWNING_SQL} — the statements were reshaped and this `
