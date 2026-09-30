@@ -19,6 +19,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL = join(REPO, 'scripts', 'sql');
@@ -40,18 +41,15 @@ function pendingPolicyFiles() {
     .sort();
 }
 
+// Through scripts/lib/safe_replay.mjs (30 Sep 2026): a pending file's own COMMIT once ran before this probe's raise
+// and applied the file to production. The helper strips a file's transaction lines, refuses what cannot be rolled
+// back, always ends in a raise, and checks afterwards that nothing it creates changed.
 async function run(query) {
-  for (let attempt = 0; ; attempt++) {
-    const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-      method: 'POST', headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-    const text = await res.text();
-    if ((res.status === 429 || res.status >= 500) && attempt < 6) { await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt)); continue; }
-    const m = text.match(/CHK<<(.*?)>>/s);
-    assert.ok(m, `the probe returned no verdict (HTTP ${res.status}): ${text.slice(0, 500)}`);
-    return m[1];
-  }
+  let text = '';
+  try { await replaySql(query, { ref: REF, label: 'the model-matrix replay' }); } catch (e) { if (e.throttled) throw e; text = String(e.body ?? e.message); }
+  const m = text.match(/CHK<<(.*?)>>/s);
+  assert.ok(m, `the probe returned no verdict: ${text.slice(0, 500)}`);
+  return m[1];
 }
 
 // THE REPLAY MUST NOT COMMIT (30 Sep 2026). A pending file that carries its own transaction lines was replayed
