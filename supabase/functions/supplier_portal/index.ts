@@ -19,7 +19,7 @@ import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
 // instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
-import { readExpiry, type ExpiryRead } from '../_shared/document_expiry.ts';
+import { licenceNameFromModel, readExpiry, readLicenceName, type ExpiryRead } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
@@ -508,6 +508,15 @@ Deno.serve(observe('supplier_portal', async (req) => {
         // unconfirmed. Nothing is ever invented.
         let docRead: ExpiryRead | null = null;
         if (kind.expCol && stored) { try { docRead = await readExpiry(stored.bytes, stored.mime); } catch (_e) { docRead = null; } }
+        // THE LICENCE NAME, READ BY THE SAME CODE AS supplier_api / resend_inbound / wa_inbound (E2E stage 1, D1,
+        // 30 Sep 2026). This tab read only the expiry, so a licence uploaded here left licence_legal_name NULL and
+        // fn_sales_engineer_verifies_supplier held the supplier as licence_name_unread until the (held) model read it.
+        // A new licence replaces the old name even when nothing is read: a stale name must never match a new document.
+        if (kindStr === 'license' && stored) {
+          let codeName: string | null = null;
+          try { codeName = await readLicenceName(stored.bytes, stored.mime); } catch (_e) { codeName = null; }
+          upd.licence_legal_name = codeName;
+        }
         if (kindStr === 'license' && docRead) {
           upd.license_expiry = docRead.expiry; licExpiryFromDoc = true; upd.doc_extracted_at = new Date().toISOString();
           read.license = { kind: 'license', expiry: docRead.expiry, source: 'text', needs_confirm: false, typed: null };
@@ -542,6 +551,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
               if (d.license_number) upd.trade_license_no = d.license_number;
               if (d.license_authority) upd.license_authority = d.license_authority;
               if (d.city) upd.license_city = d.city;
+              if (!upd.licence_legal_name) { const n = licenceNameFromModel(d); if (n) upd.licence_legal_name = n; }
               upd.doc_extracted_at = new Date().toISOString();
             }
           } catch (_e) { /* fall back to the typed value below */ }
