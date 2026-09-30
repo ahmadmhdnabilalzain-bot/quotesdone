@@ -1,4 +1,0 @@
-Applied at merge by the release train (apply at merge, never before). Until then
-scripts/checks/the_ceo_strategy_memo_runs_on_the_seat_clock.test.mjs replays this file first inside one aborted
-transaction. It must be applied before 2 Oct 2026 06:00 Dubai only if pg_cron is to be retired before then; if it is
-applied later, pg_cron's own job writes September's memo and this duty finds it already written. Seat: it_engineer.
