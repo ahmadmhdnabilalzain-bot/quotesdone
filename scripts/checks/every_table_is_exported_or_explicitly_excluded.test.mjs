@@ -38,11 +38,16 @@ const FROZEN_CEILING = { no_writer: 244 };
 const stripComments = (sql) => sql.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 export const createdIn = (sql) => [...stripComments(sql).matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?public\."?([a-z0-9_]+)"?\s*\(/gi)].map((m) => m[1].toLowerCase());
 
+// A pending `drop table public.x` removes x the same way: the mirror still has it until the release train applies the
+// file, and that same file deletes its registry row (30 Sep 2026, enterprise accounts).
+export const droppedIn = (sql) => [...stripComments(sql).matchAll(/drop\s+table\s+(?:if\s+exists\s+)?public\."?([a-z0-9_]+)"?/gi)].map((m) => m[1].toLowerCase());
+
 const PENDING = manifestWithPending(REPO).filter((f) => !manifestHas(f)).map((f) => read(f));
+const DROPPED_PENDING = new Set(PENDING.flatMap(droppedIn));
 const TABLES = new Set([
   ...[...SCHEMA.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?public\."?([a-z0-9_]+)"? \(/g)].map((m) => m[1]),
   ...PENDING.flatMap(createdIn),
-]);
+].filter((t) => !DROPPED_PENDING.has(t)));
 const REG = readRegistry(REPO);
 
 // The one rule, pure so the self-test runs it on a fake table.

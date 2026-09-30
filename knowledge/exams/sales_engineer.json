@@ -10,7 +10,7 @@
     "SE-06": "Supplier evaluation",
     "SE-07": "Alternatives when no exact spec exists",
     "SE-08": "Negotiation",
-    "SE-09": "Enterprise accounts",
+    "SE-09": "Framework and rate agreements",
     "SE-10": "Founder hard rules (exact trade, exact spec, UAE law)"
   },
   "items": [
@@ -783,31 +783,6 @@
       "expected_facts": [
         "10% withheld",
         "defects notification period"
-      ]
-    },
-    {
-      "id": "sales_engineer-exam-62",
-      "checklist": "SE-09",
-      "q_en": "What goes in an enterprise account plan?",
-      "q_ar": "ماذا تتضمن خطة الحساب المؤسسي؟",
-      "expected_entry_ids": [
-        "sales_engineer:enterprise-account-plan"
-      ],
-      "expected_facts": [
-        "stakeholder map",
-        "spend by trade and emirate"
-      ]
-    },
-    {
-      "id": "sales_engineer-exam-63",
-      "checklist": "SE-09",
-      "q_en": "How often is an enterprise account reviewed?",
-      "q_ar": "كم مرة يُراجع الحساب المؤسسي؟",
-      "expected_entry_ids": [
-        "sales_engineer:enterprise-account-plan"
-      ],
-      "expected_facts": [
-        "reviewed each quarter"
       ]
     },
     {
