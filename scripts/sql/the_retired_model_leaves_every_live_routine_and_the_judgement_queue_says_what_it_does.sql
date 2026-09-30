@@ -58,31 +58,41 @@
 
 begin;
 
--- ── the queue ───────────────────────────────────────────────────────────────────────────────────────────
-alter table public.glm_judgement rename to routine_judgement;
-alter sequence public.glm_judgement_id_seq rename to routine_judgement_id_seq;
-alter table public.routine_judgement rename constraint glm_judgement_pkey to routine_judgement_pkey;
-alter table public.routine_judgement rename constraint glm_judgement_kind_subject_key_key to routine_judgement_kind_subject_key_key;
-alter table public.routine_judgement rename constraint glm_judgement_kind_check to routine_judgement_kind_check;
-alter table public.routine_judgement rename constraint glm_judgement_subject_key_check to routine_judgement_subject_key_check;
-alter table public.routine_judgement rename constraint glm_judgement_status_check to routine_judgement_status_check;
-alter index public.glm_judgement_due_idx rename to routine_judgement_due_idx;
-alter policy glm_judgement_service_role_only on public.routine_judgement rename to routine_judgement_service_role_only;
+-- ── the queue and the routines: rename (keeps the rows and the ACL), then each body under its new name ──────
+-- RE-RUNNABLE: production took this file on 30 Sep 2026 before merge (header), so the release's bookkeeping apply
+-- finds everything already renamed. The renames run only while the old table still exists; every statement after
+-- this block is idempotent (create or replace, and updates/deletes whose WHERE no longer matches).
+do $rename$
+begin
+  if to_regclass('public.glm_judgement') is null then return; end if;
+  alter table public.glm_judgement rename to routine_judgement;
+  alter sequence public.glm_judgement_id_seq rename to routine_judgement_id_seq;
+  alter table public.routine_judgement rename constraint glm_judgement_pkey to routine_judgement_pkey;
+  alter table public.routine_judgement rename constraint glm_judgement_kind_subject_key_key to routine_judgement_kind_subject_key_key;
+  alter table public.routine_judgement rename constraint glm_judgement_kind_check to routine_judgement_kind_check;
+  alter table public.routine_judgement rename constraint glm_judgement_subject_key_check to routine_judgement_subject_key_check;
+  alter table public.routine_judgement rename constraint glm_judgement_status_check to routine_judgement_status_check;
+  alter index public.glm_judgement_due_idx rename to routine_judgement_due_idx;
+  alter policy glm_judgement_service_role_only on public.routine_judgement rename to routine_judgement_service_role_only;
+  alter function public.fn_glm_judgement_enqueue(text, text, jsonb) rename to fn_routine_judgement_enqueue;
+  alter function public.fn_glm_judgement_due(integer, bigint[]) rename to fn_routine_judgement_due;
+  alter function public.fn_glm_judgement_resolve(bigint, jsonb, text) rename to fn_routine_judgement_resolve;
+  alter function public.fn_glm_judgement_defer(bigint, text, boolean) rename to fn_routine_judgement_defer;
+  alter function public.fn_glm_quote_spec_supersede(text, text[]) rename to fn_routine_quote_spec_supersede;
+  alter function public.fn_glm_taxonomy_trades() rename to fn_taxonomy_trades_active;
+  alter function public.fn_glm_sender_known(text) rename to fn_mail_sender_known;
+  alter function public.trg_glm_repeat_request_enqueue() rename to trg_routine_repeat_request_enqueue;
+  alter function public.trg_glm_trade_words_enqueue() rename to trg_routine_trade_words_enqueue;
+  alter trigger z20_glm_repeat_request_enqueue on public.inquiries rename to z20_routine_repeat_request_enqueue;
+  alter trigger z20_glm_trade_words_enqueue on public.taxonomy_trade_proposal rename to z20_routine_trade_words_enqueue;
+end $rename$;
 
-update public.table_export_registry set table_name = 'routine_judgement' where table_name = 'glm_judgement';
-
--- ── the routines: rename (keeps the ACL), then the body under the new name ───────────────────────────────
-alter function public.fn_glm_judgement_enqueue(text, text, jsonb) rename to fn_routine_judgement_enqueue;
-alter function public.fn_glm_judgement_due(integer, bigint[]) rename to fn_routine_judgement_due;
-alter function public.fn_glm_judgement_resolve(bigint, jsonb, text) rename to fn_routine_judgement_resolve;
-alter function public.fn_glm_judgement_defer(bigint, text, boolean) rename to fn_routine_judgement_defer;
-alter function public.fn_glm_quote_spec_supersede(text, text[]) rename to fn_routine_quote_spec_supersede;
-alter function public.fn_glm_taxonomy_trades() rename to fn_taxonomy_trades_active;
-alter function public.fn_glm_sender_known(text) rename to fn_mail_sender_known;
-alter function public.trg_glm_repeat_request_enqueue() rename to trg_routine_repeat_request_enqueue;
-alter function public.trg_glm_trade_words_enqueue() rename to trg_routine_trade_words_enqueue;
-alter trigger z20_glm_repeat_request_enqueue on public.inquiries rename to z20_routine_repeat_request_enqueue;
-alter trigger z20_glm_trade_words_enqueue on public.taxonomy_trade_proposal rename to z20_routine_trade_words_enqueue;
+-- The export registry row follows the table (production ran an equivalent UPDATE of table_name; this is the shape
+-- scripts/lib/table_export_registry.mjs replays).
+delete from public.table_export_registry where table_name = 'glm_judgement';
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('routine_judgement', true, 'decision', 'backlog decided 29 Sep 2026, exported: model judgements and their results (2 rows)', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason, added_by = excluded.added_by;
 
 create or replace function public.fn_routine_judgement_enqueue(p_kind text, p_subject_key text, p_input jsonb)
 returns bigint
