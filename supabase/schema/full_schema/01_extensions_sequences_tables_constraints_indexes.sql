@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-30T12:07:13.096Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-30T12:11:27.006Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -212,7 +212,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (694) =====
+-- ===== TABLES (695) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -8559,6 +8559,15 @@ CREATE TABLE IF NOT EXISTS public.supplier_document_cache (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_due_payments (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  due_id bigint NOT NULL,
+  paid_on date NOT NULL,
+  amount_aed numeric(12,2) NOT NULL,
+  reference text,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.supplier_dues (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   transaction_id uuid,
@@ -10239,6 +10248,7 @@ ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_pkey PRIMARY
 ALTER TABLE public.supplier_collaboration ADD CONSTRAINT supplier_collaboration_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.supplier_collaboration_event ADD CONSTRAINT supplier_collaboration_event_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_document_cache ADD CONSTRAINT supplier_document_cache_pkey PRIMARY KEY (kind, subject_id, supplier_id, lang);
+ALTER TABLE public.supplier_due_payments ADD CONSTRAINT supplier_due_payments_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_dues ADD CONSTRAINT supplier_dues_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_kpi_snapshots ADD CONSTRAINT supplier_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_lead_intake ADD CONSTRAINT supplier_lead_intake_pkey PRIMARY KEY (inbound_id);
@@ -11287,6 +11297,7 @@ ALTER TABLE public.supplier_collaboration_event ADD CONSTRAINT supplier_collabor
 ALTER TABLE public.supplier_collaboration_event ADD CONSTRAINT supplier_collaboration_event_kind_check CHECK ((kind = ANY (ARRAY['ignored_hold'::text, 'cooperated'::text, 'warning_sent'::text, 'matching_hold'::text, 'hold_lifted'::text])));
 ALTER TABLE public.supplier_document_cache ADD CONSTRAINT supplier_document_cache_kind_check CHECK ((kind = ANY (ARRAY['inquiry'::text, 'quotation'::text])));
 ALTER TABLE public.supplier_document_cache ADD CONSTRAINT supplier_document_cache_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.supplier_due_payments ADD CONSTRAINT supplier_due_payments_amount_aed_check CHECK ((amount_aed > (0)::numeric));
 ALTER TABLE public.supplier_lead_intake ADD CONSTRAINT supplier_lead_intake_intent_check CHECK ((intent = ANY (ARRAY['register'::text, 'question'::text, 'document'::text, 'decline'::text, 'bounce'::text, 'other'::text])));
 ALTER TABLE public.supplier_onboarding ADD CONSTRAINT supplier_onboarding_stage_check CHECK ((stage = ANY (ARRAY['invited'::text, 'clicked'::text, 'registering'::text, 'action_required'::text, 'approved'::text, 'matched'::text, 'quoting'::text, 'closed'::text])));
 ALTER TABLE public.supplier_own_word_reading ADD CONSTRAINT supplier_own_word_reading_check CHECK (((status = 'reasoned'::text) OR (service_key IS NULL)));
@@ -11692,6 +11703,7 @@ ALTER TABLE public.supplier_capability_reading ADD CONSTRAINT supplier_capabilit
 ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.supplier_collaboration ADD CONSTRAINT supplier_collaboration_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_collaboration_event ADD CONSTRAINT supplier_collaboration_event_founder_instruction_id_fkey FOREIGN KEY (founder_instruction_id) REFERENCES founder_instruction(id);
+ALTER TABLE public.supplier_due_payments ADD CONSTRAINT supplier_due_payments_due_id_fkey FOREIGN KEY (due_id) REFERENCES supplier_dues(id);
 ALTER TABLE public.supplier_lead_intake ADD CONSTRAINT supplier_lead_intake_inbound_id_fkey FOREIGN KEY (inbound_id) REFERENCES inbound_messages(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_lead_intake ADD CONSTRAINT supplier_lead_intake_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE SET NULL;
 ALTER TABLE public.supplier_negotiation_policy ADD CONSTRAINT supplier_negotiation_policy_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
@@ -12226,6 +12238,7 @@ CREATE INDEX subcategory_agent_map_agent_idx ON public.subcategory_agent_map USI
 CREATE UNIQUE INDEX supplier_beneficial_owner_once ON public.supplier_beneficial_owner USING btree (lead_id, lower(btrim(full_name)));
 CREATE INDEX supplier_collaboration_event_by_lead ON public.supplier_collaboration_event USING btree (lead_id, created_at);
 CREATE INDEX supplier_document_cache_supplier_time_idx ON public.supplier_document_cache USING btree (supplier_id, created_at);
+CREATE INDEX supplier_due_payments_due_id_idx ON public.supplier_due_payments USING btree (due_id, paid_on);
 CREATE UNIQUE INDEX supplier_dues_stripe_session_key ON public.supplier_dues USING btree (stripe_session_id) WHERE (stripe_session_id IS NOT NULL);
 CREATE UNIQUE INDEX supplier_kpi_snap_day ON public.supplier_kpi_snapshots USING btree (snapshot_date);
 CREATE UNIQUE INDEX supplier_negotiation_policy_supplier_key ON public.supplier_negotiation_policy USING btree (supplier_id) WHERE (supplier_id IS NOT NULL);

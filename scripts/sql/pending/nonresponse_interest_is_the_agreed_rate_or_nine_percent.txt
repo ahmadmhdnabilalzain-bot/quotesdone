@@ -1,3 +1,0 @@
-Applied at merge by the release train (apply at merge, never before). Until then
-scripts/checks/nonresponse_interest_is_the_agreed_rate_or_nine_percent_simple.test.mjs replays this file first inside one
-aborted transaction. Seat: accountant.

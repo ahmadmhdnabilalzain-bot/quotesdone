@@ -3459,6 +3459,7 @@ declare
   v_refunded numeric; v_approved numeric; v_base numeric; v_settled timestamptz; v_src text;
   v_cap numeric; v_apr numeric; v_due_days int; v_due date; v_as_of date; v_days int; v_int numeric;
   v_ver text; v_acc timestamptz; v_fee numeric; v_fee_basis text; v_signed int; v_proc numeric := 0; v_apr_basis text; v_due_id bigint; v_notice timestamptz; v_due_basis text;
+  v_out numeric; v_from date; v_acc_int numeric; v_on_pr numeric; v_overpay numeric := 0; v_paid numeric := 0; v_pay record;
 begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no such transaction'); end if;
@@ -3495,7 +3496,7 @@ begin
 
   select * into c from public.pricing_config order by id limit 1;
   v_cap      := (select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_charge_max_lawful_apr');
-  v_apr      := least(c.supplier_nonresponse_interest_apr, coalesce(v_cap, c.supplier_nonresponse_interest_apr));
+  -- 30 SEP 2026: v_apr is set once, by the version branch below (the agreed rate, or 9% where none was agreed).
   v_due_days := coalesce((select (d.value #>> '{}')::int from public.decision_policy d where d.key = 'supplier_charge_due_days'), 7);
   -- 24 SEP 2026 (accountant): CLAUSE 33 SAYS THE CHARGE IS PAYABLE "within seven (7) days of QuotesDone's notice".
   -- This used to count from the refund settling, which could put a supplier in default before it was ever told:
@@ -3546,12 +3547,39 @@ begin
   -- Everyone else keeps the 9% and no processor-fee head (never retroactive). docs/legal/NONRESPONSE_MAX_V14.md.
   if v_signed >= 14 then
     v_proc      := round(coalesce(t.stripe_fee_fils, 0) / 100.0, 2);
-    v_apr       := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_nonresponse_interest_apr_from_v14'), v_apr);
+    -- 30 SEP 2026 (accountant): the AGREED rate is what v14 writes, 12%. The policy row may lower it, never raise it.
+    v_apr       := least(coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_nonresponse_interest_apr_from_v14'), 0.12), 0.12);
     v_apr_basis := 'the agreed rate of Supplier Agreement ' || v_ver || ' clauses 31 and 33(d)';
+  elsif v_signed >= 9 then
+    -- 30 SEP 2026 (accountant): Supplier Agreement v9 to v13 clause 31 AGREE nine percent (9%) per annum. Literal.
+    v_apr       := 0.09;
+    v_apr_basis := 'Supplier Agreement ' || v_ver || ' clause 31 as signed before this reveal: the agreed 9% a year, simple';
   else
-    v_apr_basis := 'the lower of pricing_config''s APR and the lawful maximum, clause 31 as signed before this reveal';
+    -- 30 SEP 2026 (accountant; founder ruling ledger 1086, Federal Decree-Law 50/2022): NO AGREED RATE (v8 or earlier,
+    -- no version, or accepted after the reveal). The rate is the policy rate, HARD-capped at 9% by a literal so no
+    -- pricing_config value and no decision_policy row can raise it.
+    v_apr       := least(coalesce(c.supplier_nonresponse_interest_apr, 0.09), coalesce(v_cap, 0.09), 0.09);
+    v_apr_basis := 'no interest rate agreed in the version signed before this reveal: the policy rate, never above 9% a year (Federal Decree-Law 50/2022)';
   end if;
-  v_int      := round((v_base + v_proc + v_fee) * v_apr * v_days / 365.0, 2);
+  -- 30 SEP 2026 (accountant): A PAYMENT REDUCES THE PRINCIPAL FROM ITS OWN DATE. Before this, interest ran on the whole
+  -- principal to the as-of date even after a part payment. Now the same day-by-day ledger as supplier_charge.ts
+  -- computeCharge(): interest on each period's outstanding principal, from the due date (or the later payment date)
+  -- to the next payment or the as-of date; a payment beyond the principal settles accrued interest. Simple: the
+  -- accrued interest is never added to the principal. Payments: public.supplier_due_payments.
+  v_out := v_base + v_proc + v_fee; v_from := v_due; v_acc_int := 0;
+  if v_due_id is not null then
+    for v_pay in select p.paid_on, p.amount_aed from public.supplier_due_payments p
+                  where p.due_id = v_due_id and p.paid_on <= v_as_of and p.amount_aed > 0 order by p.paid_on, p.id loop
+      if greatest(v_due, v_pay.paid_on) > v_from then
+        v_acc_int := v_acc_int + v_out * v_apr * (greatest(v_due, v_pay.paid_on) - v_from) / 365.0;
+        v_from    := greatest(v_due, v_pay.paid_on);
+      end if;
+      v_on_pr   := least(v_out, v_pay.amount_aed);
+      v_out     := v_out - v_on_pr; v_overpay := v_overpay + v_pay.amount_aed - v_on_pr; v_paid := v_paid + v_pay.amount_aed;
+    end loop;
+  end if;
+  if v_as_of > v_from then v_acc_int := v_acc_int + v_out * v_apr * (v_as_of - v_from) / 365.0; end if;
+  v_int      := greatest(0, round(v_acc_int, 2) - v_overpay);
 
   return jsonb_build_object(
     'ok', true, 'transaction_id', t.id, 'supplier_id', t.supplier_id,
@@ -3559,10 +3587,11 @@ begin
     'admin_fee_aed', v_fee, 'admin_fee_basis', v_fee_basis,
     'interest_apr', v_apr, 'interest_apr_basis', v_apr_basis, 'interest_apr_configured', c.supplier_nonresponse_interest_apr, 'interest_apr_lawful_max', v_cap,
     'due_date', v_due, 'due_basis', v_due_basis, 'as_of', v_as_of, 'interest_days', v_days, 'interest_aed', v_int,
-    'total_aed', round(v_base + v_proc + v_fee + v_int, 2),
+    'paid_aed', v_paid, 'unpaid_principal_aed', v_out,
+    'total_aed', round(v_out + v_int, 2),
     'basis', 'base = the amount refunded to the customer, read from the refund record and capped at the amount the CEO approved; '
           || '+ from v14, the processor fee QuotesDone could not recover (transactions.stripe_fee_fils); + the administration fee of the agreement version the supplier had signed at the reveal; '
-          || '+ simple interest on (base + processor fee + admin fee) at that version''s rate (v14: the agreed 12%; earlier: the lower of pricing_config''s APR and the lawful maximum), from the due date (' || v_due_days || ' days after the notice was delivered, clause 33) to the as-of date. Nothing is typed.');
+          || '+ simple interest on (base + processor fee + admin fee) at that version''s rate (v14: the agreed 12%; v9 to v13: the agreed 9%; no agreed rate: the policy rate, never above 9% a year; always simple, never compounded), from the due date (' || v_due_days || ' days after the notice was delivered, clause 33) to the as-of date, each payment (supplier_due_payments) reducing the principal from its own date. Nothing is typed.');
 end $function$
 
 

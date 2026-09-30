@@ -944,6 +944,7 @@ ALTER TABLE public.supplier_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_collaboration ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_collaboration_event ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_document_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_due_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_dues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_lead_intake ENABLE ROW LEVEL SECURITY;
@@ -1251,6 +1252,7 @@ CREATE POLICY supplier_capability_reading_service_role_only ON public.supplier_c
 CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collaboration AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_document_cache_service_role_only ON public.supplier_document_cache AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_due_payments_service_role_only ON public.supplier_due_payments AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_onboarding_service_role_only ON public.supplier_onboarding AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_own_word_reading_service_role_only ON public.supplier_own_word_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_performance_service_role_only ON public.supplier_performance AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
