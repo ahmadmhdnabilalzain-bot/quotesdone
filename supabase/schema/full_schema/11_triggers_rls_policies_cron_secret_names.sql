@@ -1456,7 +1456,6 @@ select cron.schedule('ceo-strategy-memo-monthly','0 2 2 * *',$CRON$select public
 --   inbound_webhook_secret
 --   internal_credential_hmac_key
 --   invite_body
---   invite_body_ar
 --   invite_daily_cap
 --   invite_enabled
 --   invite_lane_enabled
@@ -1465,7 +1464,6 @@ select cron.schedule('ceo-strategy-memo-monthly','0 2 2 * *',$CRON$select public
 --   invite_max_bounce_rate
 --   invite_preheader
 --   invite_subject
---   invite_subject_ar
 --   invite_target_per_category
 --   invite_target_per_trade
 --   invite_warmup
