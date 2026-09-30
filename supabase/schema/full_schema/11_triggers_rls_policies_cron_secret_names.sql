@@ -627,6 +627,7 @@ ALTER TABLE public.it_change_acceptance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_change_revision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_change_source ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_cost_watch_week ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_credential_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_credential_rotation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_duty_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_finding ENABLE ROW LEVEL SECURITY;
@@ -1102,6 +1103,7 @@ CREATE POLICY it_change_acceptance_service_role_only ON public.it_change_accepta
 CREATE POLICY it_change_revision_service_role_only ON public.it_change_revision AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_change_source_service_role_only ON public.it_change_source AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_cost_watch_week_service_role_only ON public.it_cost_watch_week AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_credential_class_service_role_only ON public.it_credential_class AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_credential_rotation_service_role_only ON public.it_credential_rotation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_duty_schedule_service_role_only ON public.it_duty_schedule AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-30T12:05:26.468Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-30T12:07:13.096Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -212,7 +212,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (693) =====
+-- ===== TABLES (694) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4119,6 +4119,15 @@ CREATE TABLE IF NOT EXISTS public.it_cost_watch_week (
   cause text,
   detail jsonb DEFAULT '{}'::jsonb NOT NULL,
   measured_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_credential_class (
+  credential text NOT NULL,
+  rotation text NOT NULL,
+  integrations text[] DEFAULT '{}'::text[] NOT NULL,
+  expiry_item text,
+  why text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_credential_rotation (
@@ -9913,6 +9922,7 @@ ALTER TABLE public.it_change_acceptance ADD CONSTRAINT it_change_acceptance_pkey
 ALTER TABLE public.it_change_revision ADD CONSTRAINT it_change_revision_pkey PRIMARY KEY (rev);
 ALTER TABLE public.it_change_source ADD CONSTRAINT it_change_source_pkey PRIMARY KEY (match_on, pattern);
 ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_pkey PRIMARY KEY (week_ending, provider);
+ALTER TABLE public.it_credential_class ADD CONSTRAINT it_credential_class_pkey PRIMARY KEY (credential);
 ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_pkey PRIMARY KEY (duty);
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_pkey PRIMARY KEY (issue_key);
@@ -10732,6 +10742,7 @@ ALTER TABLE public.it_change_source ADD CONSTRAINT it_change_source_pattern_chec
 ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_basis_check CHECK ((basis = ANY (ARRAY['usage_api'::text, 'ai_cost_log'::text, 'journals'::text, 'unavailable'::text])));
 ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_period_days_check CHECK ((period_days > 0));
 ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_provider_check CHECK ((provider = ANY (ARRAY['supabase'::text, 'vercel'::text, 'resend'::text, 'twilio'::text, 'openrouter'::text])));
+ALTER TABLE public.it_credential_class ADD CONSTRAINT it_credential_class_rotation_check CHECK ((rotation = ANY (ARRAY['company_api'::text, 'founder_required'::text])));
 ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_kind_ck CHECK ((((provider IS NULL) AND (old_id IS NOT NULL) AND (new_id IS NOT NULL)) OR ((provider IS NOT NULL) AND (new_ref IS NOT NULL))));
 ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_status_check CHECK ((status = ANY (ARRAY['overlap'::text, 'retired'::text, 'held'::text, 'baseline'::text])));
 ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_every_check CHECK ((every > '00:00:00'::interval));
