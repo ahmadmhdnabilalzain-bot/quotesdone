@@ -5660,6 +5660,29 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_strategy_memo_now(p_today date DEFAULT NULL::date, p_first_month date DEFAULT '2026-09-01'::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := coalesce(p_today, (now() at time zone 'Asia/Dubai')::date);
+  v_month date := date_trunc('month', v_today - interval '1 month')::date;
+begin
+  if extract(day from v_today) < 2 then
+    return jsonb_build_object('due', false, 'reason', 'the memo is written from the 2nd (Dubai) for the month that ended', 'today', v_today);
+  end if;
+  -- the first month the memo exists for: pg_cron would first have fired on 2 Oct 2026, for September. A parameter only
+  -- so the check can drive the write path in an aborted transaction before October; the duty never passes it.
+  if v_month < date_trunc('month', p_first_month)::date then
+    return jsonb_build_object('due', false, 'reason', 'the first memo is for September 2026', 'month', to_char(v_month, 'YYYY-MM'));
+  end if;
+  return jsonb_build_object('due', true) || public.fn_ceo_strategy_memo(v_month, false);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_supplier_target(p_at timestamp with time zone DEFAULT now(), p_demo boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
