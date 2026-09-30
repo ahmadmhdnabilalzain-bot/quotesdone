@@ -286,7 +286,10 @@ for (const [f, why] of PENDING) {
       ? git('log', '-1', '--diff-filter=A', '--format=%H%x09%cI%x09%s', ref, '--', note).split('\t') : [];
     if (boundary && !hash) continue;   // not on main yet: this branch adds it
     if (!boundary || boundary.has(hash)) {
-      GAPS.push(`PENDING AGE UNMEASURABLE  ${f} — no full git history to date its note (fetch-depth: 0, or git fetch --unshallow)`);
+      // The parity job checks out full history and sets QD_REQUIRE_GIT_HISTORY=1, so there this is a finding.
+      // Elsewhere (the shallow static checks job, a local shallow clone) it is said out loud, not counted.
+      const line = `PENDING AGE UNMEASURABLE  ${f} — no full git history to date its note (fetch-depth: 0, or git fetch --unshallow)`;
+      if (process.env.QD_REQUIRE_GIT_HISTORY === '1') GAPS.push(line); else console.log(`   ${line}  (not counted here)`);
       continue;
     }
     if ((Date.now() - Date.parse(when)) / 36e5 <= 24) continue;
