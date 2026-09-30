@@ -1966,6 +1966,37 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_ideas(p_today date, p_month date, p_include_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ideas jsonb; v_learned jsonb; v_shifted jsonb;
+begin
+  v_learned := public.fn_marketing_learning(date_trunc('month', p_today)::date, p_include_demo);
+  -- topics that brought registrations, best per post first; only enabled ideas can be planned; at most 6 of 12
+  with won as (select r->>'value' as topic, (r->>'per_post')::numeric as pp, (r->>'registrations')::int as n
+                 from jsonb_array_elements(coalesce(v_learned->'dimensions'->'topic', '[]'::jsonb)) r
+                where (r->>'registrations')::int > 0),
+       ranked as (select i.id, i.idea_key, row_number() over (order by w.pp desc nulls last, w.n desc, i.id) as won_rank
+                    from public.marketing_video_idea i join won w on w.topic in (i.idea_key, lower(i.title)) where i.enabled)
+  select coalesce(jsonb_agg(idea_key order by won_rank), '[]'::jsonb) into v_shifted from ranked where won_rank <= 6;
+
+  with days as (select d, row_number() over (order by d) n from public.fn_marketing_video_days(p_month, 12) d),
+       picks as (select i.*, row_number() over (order by coalesce(array_position(array(select jsonb_array_elements_text(v_shifted)), i.idea_key), 1000),
+                                                         i.last_planned_month nulls first, i.id) n
+                   from public.marketing_video_idea i where i.enabled)
+  select jsonb_agg(jsonb_build_object('n', d.n, 'date', d.d, 'idea_key', p.idea_key, 'title', p.title, 'hook', p.hook,
+                                      'film_plan', p.film_plan, 'cta', p.cta, 'audience', p.audience,
+                                      'why', case when v_shifted ? p.idea_key then 'brought registrations' else 'rotation' end) order by d.n)
+    into v_ideas
+    from days d join picks p on p.n = d.n;
+  if v_ideas is null then raise exception 'marketing_month_plan: no enabled ideas or no working days in %', p_month; end if;
+  return jsonb_build_object('by', 'code', 'ideas', v_ideas, 'learned', v_learned, 'shifted_to', v_shifted);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_reply(p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2014,39 +2045,63 @@ AS $function$
 declare
   v_today date := coalesce(p_today, (now() at time zone 'Asia/Dubai')::date);
   v_month date := (date_trunc('month', v_today) + interval '1 month')::date;
-  v_token text := encode(extensions.gen_random_bytes(16), 'hex'); v_ideas jsonb; v_body text; v_nid bigint; v_mname text;
-  v_learned jsonb; v_shifted jsonb;
+  v_key text; p public.marketing_month_plan; n jsonb; v_built jsonb; v_ideas jsonb; v_token text; v_body text; v_nid bigint; v_mname text;
 begin
   if v_month < date '2026-11-01' then return jsonb_build_object('sent', false, 'reason', 'the monthly loop starts with November 2026'); end if;
-  if exists (select 1 from public.marketing_month_plan where month = v_month
-              and (plan_sent_at is not null or status not in ('draft', 'with_ceo'))) then
-    return jsonb_build_object('sent', false, 'reason', 'already planned', 'month', v_month);
+  v_key := 'marketing_month_plan:' || v_month;
+  select * into p from public.marketing_month_plan where month = v_month;
+  -- the argued plan owns a month once marketing has put it to the CEO; a sent or decided month is done
+  if p.plan_sent_at is not null or p.status in ('with_ceo', 'agreed', 'brief_requested', 'sent_to_founder', 'accepted', 'rejected') then
+    return jsonb_build_object('sent', false, 'reason', 'already planned', 'month', v_month, 'status', p.status);
   end if;
   v_mname := to_char(v_month, 'FMMonth YYYY');
-  v_learned := public.fn_marketing_learning(date_trunc('month', v_today)::date, p_include_demo);
+  n := public.fn_ceo_decision_next(v_key);
 
-  -- topics that brought registrations, best per post first; only enabled ideas can be planned; at most 6 of 12
-  with won as (select r->>'value' as topic, (r->>'per_post')::numeric as pp, (r->>'registrations')::int as n
-                 from jsonb_array_elements(coalesce(v_learned->'dimensions'->'topic', '[]'::jsonb)) r
-                where (r->>'registrations')::int > 0),
-       ranked as (select i.id, i.idea_key, row_number() over (order by w.pp desc nulls last, w.n desc, i.id) as won_rank
-                    from public.marketing_video_idea i join won w on w.topic in (i.idea_key, lower(i.title)) where i.enabled)
-  select coalesce(jsonb_agg(idea_key order by won_rank), '[]'::jsonb) into v_shifted from ranked where won_rank <= 6;
+  if p.status = 'ceo_reviewing' then
+    if n->>'last_decision' = 'withdrawn' then
+      update public.marketing_month_plan set status = 'rejected', updated_at = now(),
+             verdict = coalesce(verdict, '{}'::jsonb) || jsonb_build_object('ceo', jsonb_build_object('decision', 'withdrawn'))
+       where month = v_month;
+      return jsonb_build_object('sent', false, 'month', v_month, 'reason', 'the CEO withdrew the plan after four rejections');
+    end if;
+    if n->>'last_decision' = 'replaced' and (n->>'round')::int = 1 and p.ceo_held_id is not null
+       and exists (select 1 from public.reasoning_held_question h where h.id = p.ceo_held_id
+                    and (h.subject->>'generation')::int < (n->>'generation')::int) then
+      -- replaced: a fresh draft, a fresh count
+      v_built := public.fn_marketing_month_plan_ideas(v_today, v_month, p_include_demo);
+      update public.marketing_month_plan set plan = v_built, content_brief = jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_built->'ideas')), 'ideas', v_built->'ideas'),
+             updated_at = now() where month = v_month;
+      update public.marketing_video_idea set last_planned_month = v_month
+       where idea_key in (select e->>'idea_key' from jsonb_array_elements(v_built->'ideas') e);
+    end if;
+    return jsonb_build_object('sent', false, 'month', v_month, 'with_ceo', true, 'filed', public.fn_marketing_month_plan_to_ceo(v_month));
+  end if;
 
-  with days as (select d, row_number() over (order by d) n from public.fn_marketing_video_days(v_month, 12) d),
-       picks as (select i.*, row_number() over (order by coalesce(array_position(array(select jsonb_array_elements_text(v_shifted)), i.idea_key), 1000),
-                                                         i.last_planned_month nulls first, i.id) n
-                   from public.marketing_video_idea i where i.enabled)
-  select jsonb_agg(jsonb_build_object('n', d.n, 'date', d.d, 'idea_key', p.idea_key, 'title', p.title, 'hook', p.hook,
-                                      'film_plan', p.film_plan, 'cta', p.cta, 'audience', p.audience,
-                                      'why', case when v_shifted ? p.idea_key then 'brought registrations' else 'rotation' end) order by d.n)
-    into v_ideas
-    from days d join picks p on p.n = d.n;
-  if v_ideas is null then raise exception 'marketing_month_plan: no enabled ideas or no working days in %', v_month; end if;
+  if p.status is distinct from 'ceo_approved' then
+    -- first draft (no row, or the argued path's evaluation draft with no plan put to the CEO yet): to the CEO, not the founder
+    v_built := public.fn_marketing_month_plan_ideas(v_today, v_month, p_include_demo);
+    insert into public.marketing_month_plan as t (month, status, verdict, plan, content_brief)
+    values (v_month, 'ceo_reviewing',
+            jsonb_build_object('by', 'code', 'rule', 'founder 24 Sep 2026: the monthly idea plan is routine work, coded; 28 Sep (1009): it leans on what brought registrations; 29 Sep: the CEO reviews it first (1059)'),
+            v_built, jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_built->'ideas')), 'ideas', v_built->'ideas'))
+    on conflict (month) do update set status = excluded.status, verdict = coalesce(t.verdict, excluded.verdict), plan = excluded.plan,
+           content_brief = excluded.content_brief, updated_at = now();
+    update public.marketing_video_idea set last_planned_month = v_month
+     where idea_key in (select e->>'idea_key' from jsonb_array_elements(v_built->'ideas') e);
+    return jsonb_build_object('sent', false, 'month', v_month, 'with_ceo', true, 'ideas', jsonb_array_length(v_built->'ideas'),
+                              'filed', public.fn_marketing_month_plan_to_ceo(v_month));
+  end if;
 
+  -- ceo_approved: the founder gets the plan the CEO approved, once
+  v_ideas := p.plan->'ideas';
+  v_token := encode(extensions.gen_random_bytes(16), 'hex');
   v_body := 'Here is the video plan for ' || v_mname || ': ' || jsonb_array_length(v_ideas)
          || ' short videos on UAE working days (Monday, Wednesday, Thursday first; no weekends or public holidays).' || E'\n\n'
-         || public.fn_marketing_learning_text(v_learned, v_shifted) || E'\n\n'
+         || 'The CEO reviewed it and approved it' || coalesce(' in round ' || (p.verdict->'ceo'->>'round'), '') || ': '
+         || coalesce(p.verdict->'ceo'->>'reasons', '') || E'\n\n'
+         || coalesce((select string_agg(format('Round %s, the CEO asked: %s' || E'\n' || 'Marketing changed: %s', x->>'round', x->>'ceo_reasons', coalesce(x->>'revision', x->>'answers')), E'\n\n')
+                        from jsonb_array_elements(coalesce(p.plan->'revisions', '[]'::jsonb)) x) || E'\n\n', '')
+         || public.fn_marketing_learning_text(p.plan->'learned', coalesce(p.plan->'shifted_to', '[]'::jsonb)) || E'\n\n'
          || (select string_agg(format(E'%s. %s — %s%s\n   Hook: %s\n   Film: %s\n   Call to action: %s',
                                       e->>'n', to_char((e->>'date')::date, 'Dy DD Mon'), e->>'title',
                                       case when e->>'why' = 'brought registrations' then ' (brought registrations)' else '' end,
@@ -2058,18 +2113,51 @@ begin
          || 'replying "approve" to that calendar schedules and publishes it.';
   v_nid := public.fn_marketing_mail_founder('marketing_month_plan', 'Video plan for ' || v_mname || ' [plan ' || v_token || ']',
                                             v_body, null, 'plan+' || v_token || '@mail.quotesdone.com');
-  insert into public.marketing_month_plan as t (month, status, verdict, plan, content_brief, plan_token, plan_notification_id, plan_sent_at)
-  values (v_month, 'sent_to_founder', jsonb_build_object('by', 'code', 'rule', 'founder 24 Sep 2026: the monthly idea plan is routine work, coded; 28 Sep (1009): it leans on what brought registrations'),
-          jsonb_build_object('by', 'code', 'ideas', v_ideas, 'learned', v_learned, 'shifted_to', v_shifted),
-          jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_ideas)), 'ideas', v_ideas),
-          v_token, v_nid, now())
-  on conflict (month) do update set status = excluded.status, verdict = coalesce(t.verdict, excluded.verdict), plan = excluded.plan,
-         content_brief = excluded.content_brief, plan_token = excluded.plan_token, plan_notification_id = excluded.plan_notification_id,
-         plan_sent_at = excluded.plan_sent_at, updated_at = now();
-  update public.marketing_video_idea set last_planned_month = v_month
-   where idea_key in (select e->>'idea_key' from jsonb_array_elements(v_ideas) e);
+  update public.marketing_month_plan set status = 'sent_to_founder', plan_token = v_token, plan_notification_id = v_nid,
+         plan_sent_at = now(), updated_at = now()
+   where month = v_month;
   return jsonb_build_object('sent', true, 'month', v_month, 'ideas', jsonb_array_length(v_ideas), 'notification_id', v_nid,
-                            'has_data', v_learned->'has_data', 'shifted_to', v_shifted);
+                            'ceo_round', p.verdict->'ceo'->'round', 'has_data', p.plan->'learned'->'has_data', 'shifted_to', p.plan->'shifted_to');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_to_ceo(p_month date, p_resubmitted boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p public.marketing_month_plan; n jsonb; v_key text := 'marketing_month_plan:' || p_month; v_held bigint;
+begin
+  select * into p from public.marketing_month_plan where month = p_month;
+  if p.month is null or p.status <> 'ceo_reviewing' or p.plan is null then
+    return jsonb_build_object('filed', false, 'why', 'the plan is not with the CEO', 'status', p.status);
+  end if;
+  n := public.fn_ceo_decision_next(v_key);
+  if not (n->>'open')::boolean then
+    return jsonb_build_object('filed', false, 'why', 'the CEO closed the item: ' || (n->>'last_decision'));
+  end if;
+  if not p_resubmitted and exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.status = 'pending'
+                                     and a.detail->>'type' = 'ceo.revise' and a.detail->>'item_key' = v_key
+                                     and not coalesce(a.evidence, '{}'::jsonb) ? 'resubmitted_at') then
+    return jsonb_build_object('filed', false, 'why', 'marketing owes the CEO a revision');
+  end if;
+  v_held := public.fn_seat_duty_reason('ceo', 'ceo.marketing_month_plan',
+    'Marketing''s video plan for ' || to_char(p_month, 'FMMonth YYYY') || ': ' || jsonb_array_length(p.plan->'ideas')
+      || ' short organic videos on UAE working days, chosen by code from what brought supplier registrations. '
+      || 'As the chief executive, review it before it goes to the founder. Approve it, or reject it and say exactly what '
+      || 'marketing must change. Either way give your reasons: they go to marketing and, on approval, to the founder.',
+    '[{"id":"approve","meaning":"the plan goes to the founder for his one approval of the month"},{"id":"reject","meaning":"the plan goes back to marketing with your reasons, to revise and resubmit"}]'::jsonb,
+    jsonb_build_object('month', p_month, 'ideas', p.plan->'ideas', 'shifted_to', p.plan->'shifted_to',
+                       'learned', p.plan->'learned', 'revisions', coalesce(p.plan->'revisions', '[]'::jsonb),
+                       'round', n->'round', 'generation', n->'generation',
+                       'earlier_rounds', (select coalesce(jsonb_agg(jsonb_build_object('round', r.round, 'decision', r.decision,
+                                                                                         'reasons', left(r.reasons, 800)) order by r.round), '[]'::jsonb)
+                                            from public.ceo_decision_round r where r.item_key = v_key and r.generation = (n->>'generation')::int)),
+    jsonb_build_object('month', p_month, 'generation', n->'generation', 'round', n->'round'),
+    v_key || ':g' || (n->>'generation') || ':r' || (n->>'round'));
+  update public.marketing_month_plan set ceo_held_id = v_held, updated_at = now() where month = p_month;
+  return jsonb_build_object('filed', true, 'held_id', v_held, 'generation', n->'generation', 'round', n->'round');
 end $function$
 
 

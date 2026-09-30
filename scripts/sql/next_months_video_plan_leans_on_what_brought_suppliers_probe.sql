@@ -15,6 +15,11 @@ begin
   if v_lead is null then raise exception 'CHK<<PROBE FAILED: no ZZ DEMO supplier to attribute>>'; end if;
 
   -- 1. no data: the mix is kept and the email says so
+  -- since 29 Sep 2026 the plan goes to the CEO first (the_ceo_reviews_the_months_video_plan_before_the_founder_sees_it.sql):
+  -- the first tick files it, the CEO approves with reasons, the next tick mails the founder
+  perform public.fn_marketing_month_plan_tick('2030-04-10', true);
+  perform public.fn_reason_apply_ceo__marketing_month_plan((select ceo_held_id from public.marketing_month_plan where month = '2030-05-01'),
+    jsonb_build_object('decision', jsonb_build_object('choice', 'approve'), 'answer', 'Approved: the ideas follow what brought registrations and the filing load fits the founder''s month, so it goes to him as drafted.'));
   v_t := public.fn_marketing_month_plan_tick('2030-04-10', true);
   select plan, (select body from public.notifications where id = mp.plan_notification_id) into v_plan, v_body
     from public.marketing_month_plan mp where month = '2030-05-01';
@@ -43,6 +48,9 @@ begin
   if (public.fn_marketing_learning('2030-06-01')->>'has_data')::boolean then v_bad := v_bad || ' demo_counted_as_real'; end if;
 
   -- 4. the plan shifts to it: first idea, marked, and the email shows the evidence; dates stay working days
+  perform public.fn_marketing_month_plan_tick('2030-06-20', true);
+  perform public.fn_reason_apply_ceo__marketing_month_plan((select ceo_held_id from public.marketing_month_plan where month = '2030-07-01'),
+    jsonb_build_object('decision', jsonb_build_object('choice', 'approve'), 'answer', 'Approved: the ideas follow what brought registrations and the filing load fits the founder''s month, so it goes to him as drafted.'));
   v_t := public.fn_marketing_month_plan_tick('2030-06-20', true);
   select plan, (select body from public.notifications where id = mp.plan_notification_id) into v_plan, v_body
     from public.marketing_month_plan mp where month = '2030-07-01';

@@ -3394,7 +3394,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_marketing_plan_watch(p_at timestamp wit
 AS $function$
 declare cal jsonb := public.fn_marketing_plan_calendar(p_at); v_month date; v_deadline date; v_today date;
   p public.marketing_month_plan; v_late boolean; v_stalled boolean := false; v_id bigint; r record; n_closed int := 0;
-  v_covered boolean;
+  v_covered boolean; v_reached timestamptz; v_hold boolean; v_gate jsonb;
 begin
   v_month := (cal->>'plan_month')::date; v_deadline := (cal->>'deadline')::date; v_today := (cal->>'today')::date;
   select * into p from public.marketing_month_plan where month = v_month;
@@ -3426,23 +3426,40 @@ begin
     end if;
   end loop;
 
-  -- the CEO's own side: a plan waiting on the CEO for more than 2 days with no CEO turn since it was sent
-  if p.status = 'with_ceo' and p.plan_sent_at < p_at - interval '2 days'
-     and not exists (select 1 from public.marketing_plan_review_turn t where t.month = p.month and t.seat = 'ceo'
-                       and t.created_at >= p.plan_sent_at) then
-    v_stalled := true;
+  -- THE CEO'S OWN SIDE: a plan waiting on the CEO for more than 2 days with no CEO answer since it reached the CEO.
+  -- WHEN it reached the CEO is read per path (plan_sent_at is set only when the founder is mailed, so it is never the
+  -- time a plan reached the CEO - the old comparison was NULL on the argued path and this never fired):
+  --   argued path 'with_ceo'       marketing's latest turn; answered by a CEO turn after it
+  --   coded path 'ceo_reviewing'   the CEO's current held question; answered when it leaves 'held'
+  if p.status = 'with_ceo' then
+    v_reached := (select max(t.created_at) from public.marketing_plan_review_turn t where t.month = p.month and t.seat = 'marketing');
+    v_stalled := v_reached < p_at - interval '2 days'
+      and not exists (select 1 from public.marketing_plan_review_turn t where t.month = p.month and t.seat = 'ceo' and t.created_at >= v_reached);
+  elsif p.status = 'ceo_reviewing' then
+    select h.created_at into v_reached from public.reasoning_held_question h where h.id = p.ceo_held_id and h.status = 'held';
+    v_stalled := v_reached < p_at - interval '2 days';
+  end if;
+  v_stalled := coalesce(v_stalled, false);
+  if v_stalled then
+    v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
+    v_hold := coalesce(v_gate->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state');
     perform public.fn_it_engineer_finding_upsert('ceo:marketing_plan_review_stalled:' || v_month,
-      'The CEO has not reviewed the marketing plan for ' || to_char(v_month, 'FMMonth YYYY') || ' sent ' || to_char(p.plan_sent_at at time zone 'Asia/Dubai', 'DD Mon'),
-      'public.marketing_month_plan / seat_deliberation ' || coalesce(p.deliberation_id::text, 'none'), 'agent_facing', 1,
-      jsonb_build_object('month', v_month, 'deliberation_id', p.deliberation_id, 'owner_seat', 'ceo'),
-      '{}'::text[], array['where the review machine stopped advancing the CEO''s turn'], 'ceo');
+      'The CEO has not reviewed the marketing plan for ' || to_char(v_month, 'FMMonth YYYY') || ' sent ' || to_char(v_reached at time zone 'Asia/Dubai', 'DD Mon')
+        || case when v_hold then ' (the model hold is on: the review is reasoned when it lifts)' else '' end,
+      'public.marketing_month_plan (' || p.status || ') / ' || case when p.status = 'with_ceo' then 'seat_deliberation ' || coalesce(p.deliberation_id::text, 'none')
+                                                                 else 'reasoning_held_question ' || coalesce(p.ceo_held_id::text, 'none') end,
+      'agent_facing', 1,
+      jsonb_build_object('month', v_month, 'status', p.status, 'reached_ceo_at', v_reached, 'deliberation_id', p.deliberation_id,
+                         'held_id', p.ceo_held_id, 'model_hold', v_hold, 'owner_seat', 'ceo'),
+      '{}'::text[], array[case when v_hold then 'nothing: the wait is the founder''s model hold' else 'where the review machine stopped advancing the CEO''s turn' end], 'ceo');
   end if;
   update public.it_engineer_finding set closed_at = now(), close_note = 'the CEO''s turn on the marketing plan is recorded, or the plan left the CEO'
    where issue_key like 'ceo:marketing\_plan\_review\_stalled:%' and closed_at is null
      and not (v_stalled and issue_key = 'ceo:marketing_plan_review_stalled:' || v_month);
 
   return jsonb_build_object('plan_month', v_month, 'deadline', v_deadline, 'status', coalesce(p.status, 'none'),
-    'late', v_late, 'covered_by_approved_calendar', v_covered, 'improvement', v_id, 'review_stalled', v_stalled, 'closed', n_closed);
+    'late', v_late, 'covered_by_approved_calendar', v_covered, 'improvement', v_id, 'review_stalled', v_stalled,
+    'reached_ceo_at', v_reached, 'model_hold', v_hold, 'closed', n_closed);
 end $function$
 
 
@@ -5046,6 +5063,19 @@ begin
     v := jsonb_build_object('experiment_id', public.fn_ceo_experiment_propose(e.proposed_by, e.key,
            coalesce(nullif(btrim(v_f->>'hypothesis'), ''), e.hypothesis), e.metric_key, e.metric_definition, e.baseline, e.baseline_note,
            v_target, e.direction, coalesce(nullif(btrim(v_f->>'approach'), ''), e.approach), e.starts_on, v_days));
+  elsif a.detail->>'path' = 'marketing_month_plan' then
+    -- the revision rides on the plan (the founder sees it with the ideas) and goes to the CEO as the next round
+    update public.marketing_month_plan
+       set plan = jsonb_set(plan, '{revisions}', coalesce(plan->'revisions', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+                    'round', a.detail->'round', 'ceo_reasons', left(a.detail->>'reasons', 3000),
+                    'revision', left(coalesce(v_f->>'revision', p_result->>'answer'), 6000), 'answers', left(v_f->>'answers', 3000),
+                    'choice', v_choice, 'model', v_model))),
+           updated_at = now()
+     where month = (a.detail->'version'->>'month')::date and status = 'ceo_reviewing';
+    if not found then   -- the plan left the CEO (withdrawn, replaced by a new draft, sent): nothing to resubmit
+      return jsonb_build_object('applied', true, 'already', 'the plan is no longer with the CEO');
+    end if;
+    v := public.fn_marketing_month_plan_to_ceo((a.detail->'version'->>'month')::date, true);
   else
     raise exception 'no revision route for a % item (%)', coalesce(a.detail->>'path', '?'), a.detail->>'item_key';
   end if;

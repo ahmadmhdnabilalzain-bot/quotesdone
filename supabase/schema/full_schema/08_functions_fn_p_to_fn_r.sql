@@ -1902,6 +1902,39 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__management_review(p_id bi
 AS $function$ select public.fn_ceo_review_applies(p_id, p_result) $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__marketing_month_plan(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; p public.marketing_month_plan; v_choice text; v_month date; v_cyc jsonb; v_reasons text;
+begin
+  v_choice := public.fn_ambition_choice(p_id, p_result);
+  select * into r from public.reasoning_held_question where id = p_id;
+  v_month := (r.subject->>'month')::date;
+  select * into p from public.marketing_month_plan where month = v_month for update;
+  if p.month is null or p.status <> 'ceo_reviewing' or p.ceo_held_id is distinct from p_id then
+    return jsonb_build_object('applied', true, 'already', 'the plan moved on (' || coalesce(p.status, 'gone') || ')');
+  end if;
+  v_reasons := btrim(coalesce(p_result->>'answer', ''));
+  -- fn_ceo_decide refuses a decision without reasons (REASONLESS_DECISION): the row stays held and is reasoned again.
+  v_cyc := public.fn_ceo_decide('marketing_month_plan', 'marketing_month_plan:' || v_month, 'marketing',
+             case when v_choice = 'approve' then 'approved' else 'rejected' end, v_reasons,
+             jsonb_build_object('month', v_month, 'ideas', p.plan->'ideas', 'revisions', coalesce(p.plan->'revisions', '[]'::jsonb)),
+             'reasoning_held_question', p_id::text);
+  -- 'approved' whether recorded now or already on the ledger (a replayed answer); a closed item keeps its own state
+  if v_choice = 'approve' and coalesce(v_cyc->>'decision', '') = 'approved' then
+    update public.marketing_month_plan
+       set status = 'ceo_approved', updated_at = now(),
+           verdict = coalesce(verdict, '{}'::jsonb) || jsonb_build_object('ceo', jsonb_build_object('decision', 'approved',
+             'reasons', left(v_reasons, 4000), 'round', v_cyc->'round', 'generation', v_cyc->'generation', 'model', p_result->>'model'))
+     where month = v_month;
+  end if;
+  return jsonb_build_object('applied', true, 'month', v_month, 'choice', v_choice, 'cycle', v_cyc);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__pricing_monitor(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE sql

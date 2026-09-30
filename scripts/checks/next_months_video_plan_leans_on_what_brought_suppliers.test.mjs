@@ -26,11 +26,15 @@ const winner = (name) => {
 };
 
 test('the monthly plan learns, shifts and shows its evidence', () => {
-  const tick = winner('fn_marketing_month_plan_tick');
+  // Since 29 Sep 2026 the tick builds the plan through fn_marketing_month_plan_ideas (split out unchanged so a
+  // CEO-replaced month re-drafts the same way) and mails the founder the stored learning once the CEO approved.
+  const ideas = winner('fn_marketing_month_plan_ideas');
+  const tick = ideas + winner('fn_marketing_month_plan_tick');
+  assert.match(winner('fn_marketing_month_plan_tick'), /fn_marketing_month_plan_ideas\(/, 'the tick no longer builds the plan from the learning');
+  assert.match(winner('fn_marketing_month_plan_tick'), /fn_marketing_learning_text\(p\.plan->'learned'/, 'the email no longer carries the evidence');
   assert.match(tick, /fn_marketing_learning\(/, 'the plan no longer reads what brought registrations');
   assert.match(tick, /array_position\(array\(select jsonb_array_elements_text\(v_shifted\)\)/, 'shifted ideas are no longer ordered first');
   assert.match(tick, /won_rank <= 6/, 'the shift is no longer capped at half the month');
-  assert.match(tick, /fn_marketing_learning_text\(v_learned, v_shifted\)/, 'the email no longer carries the evidence');
   assert.match(tick, /'learned', v_learned/, 'the learning is no longer kept with the plan');
   assert.match(tick, /fn_marketing_video_days\(/, 'dates no longer come from the working-day calendar');
 });

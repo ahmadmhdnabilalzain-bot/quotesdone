@@ -238,7 +238,9 @@ begin
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
   o := o || jsonb_build_object('over_ceiling_turn', (select status || ':' || left(why, 27) from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'),
-    'budget_ok', public.fn_seat_deliberation_budget('marketing', 'ceo')->'ok', 'no_ceil', public.fn_seat_deliberation_budget('accountant', 'ceo')->'ok', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
+    'budget_ok', public.fn_seat_deliberation_budget('marketing', 'ceo')->'ok', 'no_ceil', public.fn_seat_deliberation_budget('accountant', 'ceo')->'ok',
+    'no_ceil_dept', coalesce(public.fn_seat_deliberation_budget('accountant', 'ceo')->>'dept', 'none'),
+    'no_ceil_why', public.fn_seat_deliberation_budget('accountant', 'ceo')->>'why', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
   -- A DEMO NEVER REACHES call_model, even with the hold lifted (inside this rolled-back transaction only)
   delete from public.ai_cost_log where task_class = 'seat_deliberation_blind' and agent_key = 'ceo' and cost_aed = 60;
   update public.llm_route_health set open_until = null;
@@ -300,7 +302,13 @@ test('production, in one aborted transaction: independence, blind first, steelma
     assert.equal(out[k], 'MALFORMED_REVIEW', k);
   assert.doesNotMatch(String(out.over_ceiling_turn), /pair_ceiling/, 'spend no longer holds a review (founder_instruction 987)');
   assert.equal(out.budget_ok, true);
-  assert.equal(out.no_ceil, false, 'a pair with no ceiling row is held');
+  // A pair with no ceiling row (accountant -> ceo has none on production) is NOT held: founder_instruction 987 (24 Sep
+  // 2026, #936) removed every spend cap, and fn_seat_deliberation_budget has answered ok for every pair since. This line
+  // asserted the pre-987 rule ("held") and failed from then on; it now asserts the rule in force, and still fails if a
+  // cap comes back (ok false), if the missing row is invented (a dept appears), or if the answer stops naming 987.
+  assert.equal(out.no_ceil, true, 'a pair with no ceiling row is held for spend again (founder_instruction 987: no caps)');
+  assert.equal(out.no_ceil_dept, 'none', 'accountant -> ceo gained a ceiling row; pick a pair that has none');
+  assert.match(String(out.no_ceil_why), /no limit \(founder_instruction 987\)/);
   assert.equal(out.budget_dept, 'marketing');
 
   assert.equal(out.approval_without_steelman, 'MALFORMED_REVIEW');
