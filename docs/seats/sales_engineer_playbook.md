@@ -5,7 +5,6 @@
 ## Standing duties (what I do without being asked)
 
 - **sales_engineer.disputes** (every 00:30:00): post-reveal disputes: once support has collected both sides' evidence (or the date passed), reason the finding for the CEO, and flag an overdue CEO decision - `fn_sales_engineer_disputes_tick`
-- **sales_engineer.enterprise_pipeline** (every 7 days): Consolidated totals for every enterprise account; an account whose plan is missing or older than 90 days is listed. - `fn_sales_engineer_enterprise_pipeline`
 - **sales_engineer.licence_expiry_watch** (every 1 day): Renewal asks at 30/14/7 days; no expired approved supplier stays matchable (paused and told); IT re-measures the invariant. - `fn_sales_engineer_licence_expiry_watch`
 - **sales_engineer.supplier_onboarding** (every 1 day): Every supplier's stage from invitation to first quote; a matched supplier who has not quoted in 3 days is told (twice at most). - `fn_sales_engineer_supplier_onboarding`
 - **sales_engineer.supplier_performance** (every 1 day): One measured 0..1 score per supplier (reliability, rating, disputes), read by fn_match_capability. - `fn_sales_engineer_supplier_performance`

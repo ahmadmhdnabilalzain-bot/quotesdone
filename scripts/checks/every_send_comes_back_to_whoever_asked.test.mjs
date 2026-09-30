@@ -98,7 +98,10 @@ const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 't
   'the_founder_hears_from_it_once_a_day.sql',
   // 22 Sep 2026: redefines the watch (a WhatsApp waits for Twilio's delivery report); its one marking
   // routine is the watch's own email retry, carried over unchanged. Asserted below.
-  'every_whatsapp_says_whether_it_arrived.sql']);
+  'every_whatsapp_says_whether_it_arrived.sql',
+  // 30 Sep 2026 (founder ruling 1090): redefines the digest with one added step (a founder-required credential
+  // closes internal, never a line); its marking and the closing of every told request are carried over unchanged.
+  'a_credential_only_the_founder_can_renew_is_never_rotated_or_reminded.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;

@@ -8467,6 +8467,25 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_leads_keep_the_public_name()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_norm text := public.fn_supplier_name_norm(new.company_name);
+begin
+  if v_norm is null then
+    delete from public.supplier_public_name where lead_id = new.id;
+  else
+    insert into public.supplier_public_name (lead_id, norm) values (new.id, v_norm)
+    on conflict (lead_id) do update set norm = excluded.norm;
+  end if;
+  return null;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_learn_customer_preference()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -8756,6 +8775,39 @@ begin
   end if;
   return null;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_published_text_names_no_supplier()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_text text; v_name text;
+begin
+  if tg_table_name = 'social_message' then   -- nested: new.direction exists only on social_message
+    if new.direction is distinct from 'out' or new.author is distinct from 'seat' then
+      return new;   -- what a person wrote, to us or from our inbox, is recorded as written; the seat's replies are guarded
+    end if;
+  end if;
+  -- one IF per table: PL/pgSQL plans each statement when it runs, so a column another table lacks is never read
+  if    tg_table_name = 'blog_posts'             then v_text := concat_ws(' ', new.title, new.excerpt, new.meta_desc, new.body_html);
+  elsif tg_table_name = 'marketing_article'      then v_text := concat_ws(' ', new.title_en, new.title_ar, new.excerpt_en, new.excerpt_ar,
+                                                                           new.meta_desc_en, new.meta_desc_ar, new.body_html_en, new.body_html_ar);
+  elsif tg_table_name = 'marketing_post'         then v_text := concat_ws(' ', new.title, new.text_en, new.text_ar);
+  elsif tg_table_name = 'marketing_post_variant' then v_text := concat_ws(' ', new.title, new.caption, new.body, new.first_comment, new.alt_text);
+  elsif tg_table_name = 'social_message'         then v_text := new.body;
+  elsif tg_table_name = 'social_reply_library'   then v_text := concat_ws(' ', new.reply_en, new.reply_ar);
+  elsif tg_table_name = 'social_posts'           then v_text := new.content::text;
+  end if;
+  v_name := public.fn_supplier_named_in(v_text);
+  if v_name is not null then
+    raise exception '%: this text names the supplier "%"; marketing and AI-visibility content never names a supplier (ruling 1020)',
+      tg_table_name, v_name using errcode = 'P0001';
+  end if;
+  return new;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_quote_committed_hash()
