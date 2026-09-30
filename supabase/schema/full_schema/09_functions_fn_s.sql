@@ -1007,30 +1007,6 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_duty_supply_gap()
 AS $function$ select public.fn_sales_engineer_supply_gap(10) $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_sales_engineer_enterprise_pipeline()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_n int := 0; v_stale jsonb;
-begin
-  -- 28 Sep 2026: this statement had no WHERE, so the safe-update guard refused it on every run since 24 Sep.
-  -- Scope: only an account whose totals were never computed or no longer match its report is rewritten;
-  -- an unchanged account keeps its row. `accounts` still counts every account.
-  update public.enterprise_account a
-     set totals = r.report, totals_at = now()
-    from (select e.id, public.fn_enterprise_account_report(e.id) as report from public.enterprise_account e) r
-   where r.id = a.id
-     and (a.totals_at is null or a.totals is distinct from r.report);
-  select count(*) into v_n from public.enterprise_account;
-  select coalesce(jsonb_agg(jsonb_build_object('account_id', id, 'name', name) order by id), '[]') into v_stale
-    from public.enterprise_account
-   where plan is null or plan_reviewed_at is null or plan_reviewed_at < now() - interval '90 days';
-  return jsonb_build_object('accounts', v_n, 'plan_due', v_stale);
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_ladder_step(p_transaction_id uuid, p_step text, p_refund_id bigint DEFAULT NULL::bigint, p_remediation_id bigint DEFAULT NULL::bigint)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -6817,12 +6793,12 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_invite_test_send(p_lang text DEFAU
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_lang text := case when lower(coalesce(p_lang, 'en')) = 'ar' then 'ar' else 'en' end;
+declare v_lang text := 'en';   -- suppliers are always written in English (founder, 28 Sep 2026); p_lang is ignored
   v_site text; v_subj text; v_body text; v_to text; v_id bigint; v_status text; v_err text;
 begin
   select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from app_secrets where key = 'public_site_url';
-  select value into v_subj from app_secrets where key = case when v_lang = 'ar' then 'invite_subject_ar' else 'invite_subject' end;
-  select value into v_body from app_secrets where key = case when v_lang = 'ar' then 'invite_body_ar' else 'invite_body' end;
+  select value into v_subj from app_secrets where key = 'invite_subject';
+  select value into v_body from app_secrets where key = 'invite_body';
   v_to := 'zz-demo-supplier-invite-' || v_lang || '-' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSUS') || '@example.invalid';
   if not public.fn_is_demo_email(v_to) then raise exception 'test address % is not a fixture address', v_to; end if;
   insert into notifications(type, to_email, to_role, subject, body, lang, status)
@@ -7144,6 +7120,45 @@ AS $function$
     'most_requested',   (select topcat_obj from figures),
     'avg_market_price', (select money_obj  from figures)
   );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_name_norm(p_name text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when length(coalesce(p_name, '')) < 10 then null
+    when p_name !~* '\m(llc|l\.l\.c|fze|fzco|fzc|fz-llc|est|establishment|trading|contracting|contractors|co|company|group|ltd|limited|industries|factory|enterprises)\M' then null
+    else (select case
+                   when regexp_replace(x.n, '\m(llc|l\.l\.c|fze|fzco|fzc|fz-llc|est|establishment|trading|contracting|contractors|co|company|group|ltd|limited|industries|factory|enterprises|general|building|materials|technical|services|service|maintenance|works|and|the|of|for|uae|dubai|abu|dhabi|sharjah|ajman|international|global|middle|east)\M', '', 'g') ~ '[[:alpha:]]{3,}'
+                   then x.n end
+            from (select string_agg(regexp_replace(tok, '\.+$', ''), ' ' order by ord) n
+                    from regexp_split_to_table(lower(p_name), '[^[:alnum:].&-]+') with ordinality s(tok, ord)
+                   where regexp_replace(tok, '\.+$', '') <> '') x)
+  end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_named_in(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with w as (
+    select array_agg(regexp_replace(tok, '\.+$', '') order by ord) a
+      from regexp_split_to_table(lower(coalesce(p_text, '')), '[^[:alnum:].&-]+') with ordinality s(tok, ord)
+     where regexp_replace(tok, '\.+$', '') <> ''),
+  g as (
+    select distinct array_to_string(w.a[i:i + n - 1], ' ') run
+      from w, generate_series(1, coalesce(cardinality(w.a), 0)) i, generate_series(1, 12) n
+     where i + n - 1 <= cardinality(w.a))
+  select l.company_name
+    from g join public.supplier_public_name p on p.norm = g.run join public.leads l on l.id = p.lead_id
+   limit 1
 $function$
 
 

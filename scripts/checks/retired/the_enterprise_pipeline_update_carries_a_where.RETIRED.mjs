@@ -1,3 +1,10 @@
+// RETIRED 30 September 2026 — its subject was deleted.
+//
+// Subject: fn_sales_engineer_enterprise_pipeline, dropped with enterprise accounts by
+// scripts/sql/there_are_no_enterprise_accounts_only_customer_and_supplier_accounts.sql (founder ruling 30 Sep 2026:
+// "No enterprise accounts. We have customer accounts and supplier accounts, that's it."). The guard that replaces it
+// is scripts/checks/enterprise_accounts_never_return.test.mjs.
+//
 // THE ENTERPRISE PIPELINE'S UPDATE CARRIES A WHERE.
 //
 // 24-28 Sep 2026: sales_engineer.enterprise_pipeline (fn_sales_engineer_enterprise_pipeline) failed on every

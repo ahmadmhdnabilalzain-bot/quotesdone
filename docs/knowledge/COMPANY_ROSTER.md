@@ -177,7 +177,7 @@ archetype column sometimes lists two or three.
 
 `bizdev` — packaged as `business_development` · 3 active
 
-> Partnerships, enterprise accounts, government relations, new markets and strategic alliances. Grow the company through relationships rather than transactions.
+> Partnerships, government relations, new markets and strategic alliances. Grow the company through relationships rather than transactions.
 
 | agent | role | archetype | manager | runs | tasks | readiness |
 |---|---|---|---|---|---|---|
