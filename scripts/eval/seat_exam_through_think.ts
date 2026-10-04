@@ -2,7 +2,7 @@
 // each question goes through think() itself, so the planner first reads the question's trade and kind and retrieval is
 // asked for that area (knowledge_lookup_goes_to_the_trade_first.sql). Seat: sales_engineer, 28 Sep 2026.
 //
-// WHAT IT SPENDS. Only the planner (decompose: the GLM internal class) runs. The run is stopped at the synthesis
+// WHAT IT SPENDS. Only the planner (decompose: the routine internal class) runs. The run is stopped at the synthesis
 // phase, before any answer, verify or research call, so each item costs one decompose call and the free embedder.
 // Under the model hold think() answers 'held' and this reports HELD per item: there is no live score until the lift.
 //

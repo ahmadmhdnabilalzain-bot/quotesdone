@@ -153,7 +153,9 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
       role="complementary"
       aria-label={t('asst_title')}
       className={cn(
-        'fixed inset-y-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
+        // THE MOBILE TAB BAR STAYS TAPPABLE (E2E stage 1, D7, 30 Sep 2026): below md the panel stops above the
+        // 56px tab bar instead of covering it (inset-y-0 put it over the menu; 18 nav taps timed out at 375px).
+        'fixed top-0 bottom-[var(--qd-tabbar-h,0px)] md:bottom-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
         // max-w, not w: a fixed 420px panel is 45px wider than a 375px viewport and cannot shrink.
         'end-0 sm:w-full sm:max-w-[420px] sm:border-s',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom-4 sm:motion-safe:slide-in-from-right-4 motion-safe:duration-300',
@@ -323,6 +325,19 @@ export function PortalShell({
   // control they were on (WCAG 2.4.3). One place, because all three close down several paths:
   // Escape, the backdrop, and the choice itself.
   const moreBtn = useRef(null);
+  // THE TAB BAR PUBLISHES ITS REAL HEIGHT (E2E stage 1 D7 follow-up, 30 Sep 2026): it measured 69px on production
+  // at 375px, not the 56 the panel assumed, so the panel covered its top 13px. offsetHeight includes the
+  // safe-area padding, and is 0 when the bar is hidden (md and up), where panels sit on the bottom edge.
+  // A callback ref, not an effect: the bar mounts after the shell's first render (measured: an effect on [] saw null).
+  const tabBarObs = useRef<ResizeObserver | null>(null);
+  const tabBar = useRef((el: HTMLElement | null) => {
+    tabBarObs.current?.disconnect(); tabBarObs.current = null;
+    const root = document.documentElement.style;
+    if (!el) { root.removeProperty('--qd-tabbar-h'); return; }
+    const set = () => root.setProperty('--qd-tabbar-h', el.offsetHeight + 'px');
+    // border-box: the safe-area inset is PADDING, which a content-box observer never reports (measured: 57px kept after +34px).
+    set(); tabBarObs.current = new ResizeObserver(set); tabBarObs.current.observe(el, { box: 'border-box' });
+  }).current;   // one stable callback, so React does not detach and re-attach it on every render
   const bellBtn = useRef(null);
   const wasOpen = useRef({ more: false, bell: false, asst: false });
   useEffect(() => {
@@ -532,7 +547,7 @@ export function PortalShell({
       {/* Its own name, not the sidebar's. Only one of the two is in the accessibility tree at a
           time (the other is display:none), but two landmarks that answer to "Portal navigation"
           is one CSS regression away from being a real defect (a11y review, 18 Sep 2026). */}
-      <nav aria-label={t('nav_main_bar')}
+      <nav ref={tabBar} aria-label={t('nav_main_bar')}
         className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-e2 md:hidden">
         {mobileItems.map((item) => {
           const Icon = item.icon;
@@ -572,7 +587,7 @@ export function PortalShell({
           {/* THE SHEET GIVES FULL NAMES, one per row: a two-column grid cut "What you may need
               next" at 375px. */}
           <nav id="qd-nav-more" aria-label={t('nav_more_title')}
-            className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
+            className="fixed inset-x-0 bottom-[var(--qd-tabbar-h,0px)] z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
             {overflowGroups.map((g) => (
               <div key={g.caption} role="group" aria-labelledby={'qd-more-' + g.caption} className="mb-3">
                 <div id={'qd-more-' + g.caption} className="px-1 pb-1 text-[12.5px] font-semibold text-muted-foreground">{t(g.caption)}</div>

@@ -390,6 +390,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -560,16 +570,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -1465,7 +1465,7 @@ AS $function$
     'unread', coalesce(sum(jsonb_array_length(g.input->'cells')) filter (where g.status = 'failed'), 0),
     'mismatches', coalesce(jsonb_agg(v) filter (where g.status = 'done' and (v->>'mismatch')::boolean), '[]'::jsonb),
     'meets', count(v) filter (where g.status = 'done' and not (v->>'mismatch')::boolean))
-  from public.glm_judgement g
+  from public.routine_judgement g
   left join lateral jsonb_array_elements(coalesce(g.result->'cells', '[]'::jsonb)) v on true
   where g.kind = 'quote_spec_match' and g.input->>'quote_id' = p_quote_id;
 $function$
@@ -6333,6 +6333,159 @@ AS $function$
         and exists (select 1 from public.org_agents a2
                      where a2.department = d.dept_key and a2.active) limit 1));
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_routine_judgement_defer(p_id bigint, p_error text, p_counts boolean)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare g public.routine_judgement;
+begin
+  update public.routine_judgement
+     set leased_until = null, last_error = left(p_error, 500),
+         attempts = attempts + case when p_counts then 1 else 0 end,
+         status = case when p_counts and attempts + 1 >= 3 then 'failed' else status end,
+         decided_at = case when p_counts and attempts + 1 >= 3 then now() else decided_at end
+   where id = p_id and status = 'queued'
+  returning * into g;
+  if g.id is null or g.status <> 'failed' then return; end if;
+  -- THE TERMINAL STATE HANDS EACH KIND BACK TO ITS OWNER: three failed readings never leave anything waiting on a
+  -- judgement that will not come.
+  if g.kind = 'unknown_sender_mail' then
+    -- The mail leaves the 'routine_queued' mark (which email_triage skips) and goes to a person's review, unread.
+    update public.inbound_messages set ai_category = 'other', ai_summary = 'Not read: the routine model could not judge this mail after 3 tries.', triaged_at = now()
+     where id = (g.input->>'message_id')::bigint and triaged_at is null;
+    -- 28 Sep 2026: not when customer_support already answered it (the founder: no person unless asked for).
+    if not exists (select 1 from public.inbound_messages where id = (g.input->>'message_id')::bigint and replied_at is not null) then
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, target_table, target_id, detail)
+    values ('email', 'inbound_review', 'pending', 'low',
+            left('Inbox (unknown sender, unread): ' || coalesce(g.input->>'subject', '(no subject)'), 70),
+            'The routine model could not read this mail from an unknown sender after 3 tries. Read it and reply from the Inbox.',
+            'inbound_messages', g.input->>'message_id',
+            jsonb_build_object('from', g.input->>'from', 'routine_judgement_id', g.id, 'last_error', g.last_error));
+    end if;
+  elsif g.kind = 'supplier_trade_words' then
+    -- The proposal stays pending for the sales engineer, saying why it was not offered.
+    update public.taxonomy_trade_proposal set note = coalesce(note || ' ', '') || '[The routine model could not map these words after 3 tries; decide by hand.]'
+     where id = (g.input->>'proposal_id')::bigint and status = 'pending';
+  end if;
+  -- repeat_request: the inquiry simply stays unflagged (a flag only marks review).
+  -- quote_spec_match: fn_quote_spec_mismatches reports the cells as 'unread', never as meeting the request.
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_routine_judgement_due(p_limit integer DEFAULT 5, p_ids bigint[] DEFAULT NULL::bigint[])
+ RETURNS SETOF routine_judgement
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return query
+  update public.routine_judgement g set leased_until = now() + interval '5 minutes'
+   where g.id in (select q.id from public.routine_judgement q
+                   where q.status = 'queued' and (q.leased_until is null or q.leased_until < now())
+                     and (p_ids is null or q.id = any(p_ids))
+                   order by q.id limit greatest(1, least(coalesce(p_limit, 5), 50))
+                   for update skip locked)
+  returning g.*;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_routine_judgement_enqueue(p_kind text, p_subject_key text, p_input jsonb)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint;
+begin
+  insert into public.routine_judgement (kind, subject_key, input) values (p_kind, p_subject_key, p_input)
+  on conflict (kind, subject_key) do nothing returning id into v_id;
+  if v_id is null then select id into v_id from public.routine_judgement where kind = p_kind and subject_key = p_subject_key; end if;
+  return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_routine_judgement_resolve(p_id bigint, p_result jsonb, p_model text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare g public.routine_judgement; v_effect text := 'recorded'; v_codes text[]; v_n integer;
+begin
+  update public.routine_judgement set status = 'done', result = p_result, model = p_model, decided_at = now(), leased_until = null
+   where id = p_id and status = 'queued' returning * into g;
+  if g.id is null then return jsonb_build_object('ok', false, 'reason', 'not_queued'); end if;
+
+  if g.kind = 'repeat_request' and p_result->>'verdict' = 'same' then
+    update public.inquiries
+       set plausibility = coalesce(plausibility, '{}'::jsonb) || jsonb_build_object('possible_duplicate', true,
+             'duplicate_of', g.input->>'earlier_id', 'duplicate_by', 'routine_judgement', 'routine_judgement_id', g.id)
+     where id::text = g.input->>'inquiry_id'
+       and not coalesce((plausibility->>'possible_duplicate')::boolean, false);
+    v_effect := 'inquiry_flagged';
+
+  elsif g.kind = 'supplier_trade_words' then
+    -- Exact codes only: a code the taxonomy does not hold is never written (the caller already refused it; this
+    -- is the second door).
+    select array_agg(c) into v_codes from jsonb_array_elements_text(coalesce(p_result->'codes', '[]'::jsonb)) c
+     where exists (select 1 from public.taxonomy_trade t where t.code = c and t.active);
+    v_n := coalesce(array_length(v_codes, 1), 0);
+    if v_n = 1 then
+      update public.taxonomy_trade_proposal
+         set status = 'map_offered', mapped_to = v_codes[1], decided_at = now(), decided_by = 'sales_engineer:routine_judgement',
+             note = 'Offered to the supplier to confirm: ' || v_codes[1] || '. ' || coalesce(p_result->>'why', '')
+       where id = (g.input->>'proposal_id')::bigint and status = 'pending';
+      v_effect := 'map_offered';
+    else
+      update public.taxonomy_trade_proposal
+         set note = case when v_n > 1
+                      then 'Names several exact trades (' || array_to_string(v_codes, ', ') || '). Ask the supplier: '
+                      else 'Names no exact taxonomy trade. Ask the supplier: ' end
+                    || coalesce(nullif(p_result->>'ask', ''), 'which of our trades is this work?')
+       where id = (g.input->>'proposal_id')::bigint and status = 'pending';
+      v_effect := case when v_n > 1 then 'ask_several' else 'ask_none' end;
+    end if;
+
+  elsif g.kind = 'unknown_sender_mail' then
+    update public.inbound_messages
+       set ai_category = left(coalesce(p_result->>'category', 'other'), 40), ai_summary = left(p_result->>'summary', 500),
+           triaged_at = now()
+     where id = (g.input->>'message_id')::bigint and triaged_at is null;
+    -- The same review item email_triage files for a drafted mail, so customer_support sees it; spam files nothing.
+    -- 28 Sep 2026: nor a mail customer_support already answered (the founder: no person unless asked for).
+    if coalesce(p_result->>'category', 'other') <> 'spam'
+       and not exists (select 1 from public.inbound_messages where id = (g.input->>'message_id')::bigint and replied_at is not null) then
+      insert into public.agent_actions (agent, kind, status, risk, title, recommendation, target_table, target_id, detail)
+      values ('email', 'inbound_review', 'pending', 'low',
+              left('Inbox (unknown sender): ' || coalesce(g.input->>'subject', '(no subject)'), 70) || ' - ' || coalesce(p_result->>'category', 'other'),
+              'Unknown sender, read by the routine model. Review and reply from the Inbox.', 'inbound_messages', g.input->>'message_id',
+              jsonb_build_object('from', g.input->>'from', 'category', p_result->>'category', 'summary', p_result->>'summary', 'routine_judgement_id', g.id));
+    end if;
+    v_effect := 'mail_triaged';
+  end if;
+  return jsonb_build_object('ok', true, 'effect', v_effect);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_routine_quote_spec_supersede(p_quote_id text, p_keep text[])
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n integer;
+begin
+  update public.routine_judgement set status = 'superseded', leased_until = null, decided_at = now()
+   where kind = 'quote_spec_match' and input->>'quote_id' = p_quote_id
+     and status in ('queued', 'done', 'failed') and not (subject_key = any(coalesce(p_keep, '{}'::text[])));
+  get diagnostics n = row_count;
+  return n;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_routing_tier_model(p_agent_key text)

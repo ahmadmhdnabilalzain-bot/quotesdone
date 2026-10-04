@@ -68,6 +68,9 @@ Deno.test('a supplier invitation queued in Arabic is held, never sent; nothing e
   assertEquals(holdArabicInvitation('supplier_invite_seed', 'AR'), true);
   assertEquals(holdArabicInvitation('supplier_invite', 'en'), false);
   assertEquals(holdArabicInvitation('supplier_invite', null), false);
-  assertEquals(holdArabicInvitation('supplier_rfq_widened_invite', 'ar'), false, 'other supplier mail keeps its language');
-  assertEquals(holdArabicInvitation('supplier_approved', 'ar'), false);
+  assertEquals(holdArabicInvitation('supplier_rfq_widened_invite', 'ar'), false, 'without supplierSide, only invitations are judged');
+  // 28 Sep 2026 (founder): every supplier-bound row is English, so any supplier-side row in Arabic is held.
+  assertEquals(holdArabicInvitation('supplier_approved', 'ar', true), true);
+  assertEquals(holdArabicInvitation('supplier_approved', 'en', true), false);
+  assertEquals(holdArabicInvitation('customer_quote_ready', 'ar', false), false, 'a customer keeps their language');
 });

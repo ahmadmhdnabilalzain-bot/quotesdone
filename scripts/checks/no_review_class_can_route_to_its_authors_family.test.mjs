@@ -235,7 +235,7 @@ begin
   -- 5 fourth last-resort family, and 7 capabilities. DeepSeek (in the pool since founder_instruction 1056) is tripped
   -- with the two last resorts, so what is exercised is still the fourth last-resort family.
   update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '1 hour'
-   where model_id in ('google/gemini-3.8-flash', 'z-ai/glm-5.3-flash', 'deepseek/deepseek-v4.1-flash');
+   where model_id in ('google/gemini-3.8-flash', 'openai/gpt-6-luna', 'deepseek/deepseek-v4.1-flash');
   o := o || jsonb_build_object(
     'text_review_qwen', public.fn_ai_route_review('ceo_judgement', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5')->>'model',
     'vision_review', coalesce(public.fn_ai_route_review_for('identity_redaction_verify', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5',

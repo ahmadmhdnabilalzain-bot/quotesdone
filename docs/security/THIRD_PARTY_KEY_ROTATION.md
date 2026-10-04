@@ -4,6 +4,13 @@ Owner: it_engineer (watches the ages and verifies each key after a rotation). Th
 the founder's: it happens in each provider's dashboard, and no seat enters a key into a dashboard.
 This file holds no values.
 
+**Founder ruling 1090 (30 Sep 2026).** Only credentials the company rotates through a provider API are
+rotated (today: the Twilio API key, `fn_it_provider_rotation_*`). Every credential that needs the founder
+(Meta, an OAuth sign-in, a console-only key) is classed `founder_required` in `public.it_credential_class`
+and is **ignored**: no rotation attempt, no reminder, no renewal handoff, no digest line, no email or
+WhatsApp to him. The IT engineer still records its state and any real outage as its own finding.
+Guarded by `scripts/checks/a_credential_only_the_founder_can_renew_is_never_rotated_or_reminded.test.mjs`.
+
 ## Internal and third-party keys
 
 **Internal credentials rotate themselves.** These are the `internal_credential` rows whose secrets live

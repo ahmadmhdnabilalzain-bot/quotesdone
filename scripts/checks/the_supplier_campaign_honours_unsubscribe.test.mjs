@@ -43,17 +43,13 @@ test('a hard bounce reaches the lead whatever the case of its stored email', () 
     'resend_webhook marks the bounced lead by an exact-case match again, so capitalised lead emails are never marked bounced');
 });
 
-// THE ARABIC INVITATION IS CORRESPONDENCE, NOT A TRANSLATION (founder instruction 586, 21 Sep 2026:
-// "it feels like a pure translation only. it should feel much more professional").
-test('the Arabic invitation keeps the formal register, its link and no stray English', () => {
-  const sql = readFileSync('scripts/sql/the_supplier_invitation_goes_once_in_the_suppliers_language_and_never_to_a_demo_or_sanctioned_lead.sql', 'utf8');
-  const m = sql.match(/'invite_body_ar', \$ar\$([\s\S]*?)\$ar\$/);
-  assert.ok(m, 'the Arabic invitation body is missing from the campaign file');
-  const body = m[1];
-  for (const phrase of ['السادة/ {{company}} المحترمين', 'تحية طيبة وبعد', 'وتفضلوا بقبول فائق الاحترام والتقدير', '{{link}}']) {
-    assert.ok(body.includes(phrase), `the Arabic invitation lost "${phrase}"`);
-  }
-  const latin = (body.replace(/\{\{[a-z]+\}\}/g, '').match(/[A-Za-z]{2,}/g) || []).filter((w) => w !== 'QuotesDone');
-  assert.deepEqual(latin, [], 'English words inside the Arabic invitation');
-  assert.match(outbox, /arMail \? sigNameAr : sigName/, 'Arabic mail is signed with a Latin-script name again');
+// THERE IS NO ARABIC INVITATION (founder, 28 Sep 2026: suppliers always get English; E2E stage 1 D3, 30 Sep).
+// This asserted the 21 Sep Arabic invitation's register. It now asserts no Arabic copy can reach a supplier:
+// the stored Arabic copy is removed, the test send is English, and send_outbox holds a supplier row in Arabic.
+test('no Arabic invitation copy is stored or chosen, and send_outbox holds any supplier row in Arabic', () => {
+  const sql = readFileSync('scripts/sql/no_arabic_copy_path_reaches_a_supplier.sql', 'utf8');
+  assert.match(sql, /delete from public\.app_secrets where key in \('invite_subject_ar', 'invite_body_ar'\);/, 'the Arabic invitation copy is kept');
+  assert.match(sql, /declare v_lang text := 'en';/, 'the test send can choose a language again');
+  assert.match(outbox, /holdArabicInvitation\(n\.type, n\.lang, supplierSide\)/, 'send_outbox no longer holds supplier rows queued in Arabic');
+  assert.match(outbox, /const arMail = !internal && !supplierSide && n\.lang === 'ar';/, 'a supplier mail can be framed in Arabic again');
 });
