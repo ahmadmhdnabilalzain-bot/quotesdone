@@ -115,6 +115,13 @@ try {
     await M.locator('input[type=file]').nth(1).setInputFiles(prof); await upBtn().click(); await settle(); await p.waitForTimeout(2500);
     const docs = (await read(`select license_doc_path is not null lic, license_expiry, company_profile_doc_path is not null prof from public.leads where id=${lead.id}`))[0];
     step(m, 'licence + company profile uploaded; licence expiry read', docs?.lic && docs?.prof && String(docs?.license_expiry || '').startsWith('2028'), JSON.stringify(docs));
+    // D1 (E2E stage 1, 30 Sep 2026): the Documents tab reads the NAME the licence prints, by code, and that name
+    // matches the company, so verification can pass on the name-match path (not licence_name_unread / a mismatch).
+    const nm = (await read(`select licence_legal_name, company_name,
+        public.fn_company_name_norm(licence_legal_name) = public.fn_company_name_norm(company_name) as matches,
+        public.fn_supplier_licence_name_mismatch(l) as mismatch
+      from public.leads l where id=${lead.id}`))[0];
+    step(m, 'the Documents tab read the licence name and it matches the company', !!nm?.licence_legal_name && nm?.matches === true && nm?.mismatch === false, JSON.stringify(nm));
     await shot(p, m, 'documents_uploaded');
     for (const d of await read(`select license_doc_path p from public.leads where id=${lead.id} union all select company_profile_doc_path from public.leads where id=${lead.id}`)) if (d.p) run.ids.storage.push('supplier-docs/' + d.p);
 
@@ -141,8 +148,16 @@ try {
     const t2 = Date.now();
     await M.getByRole('button', { name: AR(lang) ? /^حفظ/ : /^Save changes$/ }).click();
     await M.getByRole('button', { name: /Saving|جارٍ الحفظ/ }).waitFor({ state: 'detached', timeout: 90000 }).catch(() => {});
-    const reg = (await read(`select approval_status, signed_terms_path, signatory_name from public.leads where id=${lead.id}`))[0];
-    step(m, 'terms + Save → approved with a signed certificate', reg?.approval_status === 'approved' && !!reg?.signed_terms_path, `${JSON.stringify(reg)} in ${Date.now() - t2} ms`);
+    // Since #1151 (30 Sep 2026) Save answers before the certificate renders, and approval lands when the PDF does.
+    // Poll up to 60 s, and report both times.
+    const t3 = Date.now(); let reg;
+    for (;;) {
+      reg = (await read(`select approval_status, signed_terms_path, signatory_name, approval_decided_by, licence_gate_reason from public.leads where id=${lead.id}`))[0];
+      if ((reg?.approval_status === 'approved' && reg?.signed_terms_path) || Date.now() - t3 > 60000) break;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    step(m, 'terms + Save → approved with a signed certificate, by the deterministic check with no licence hold', reg?.approval_status === 'approved' && !!reg?.signed_terms_path && !reg?.licence_gate_reason,
+      `${JSON.stringify(reg)}; Save answered in ${t3 - t2} ms, approved ${Date.now() - t3} ms after`);
     await shot(p, m, 'after_submit');
     if (reg?.signed_terms_path) run.ids.storage.push('signed-terms/' + reg.signed_terms_path);
 

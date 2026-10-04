@@ -1928,6 +1928,35 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_credential_founder_required(p_issue_key text, p_title text DEFAULT NULL::text, p_evidence jsonb DEFAULT '{}'::jsonb)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s text := regexp_replace(coalesce(p_issue_key, ''), '^duty:', ''); v_x text;
+begin
+  if s ~ '^renewal:' then
+    v_x := regexp_replace(regexp_replace(s, '^renewal:', ''), ':date_unknown$', '');
+    return exists (select 1 from public.it_credential_class where rotation = 'founder_required' and expiry_item = v_x);
+  elsif s ~ '^credential:' then
+    v_x := regexp_replace(s, '^credential:', '');
+    return exists (select 1 from public.it_credential_class where rotation = 'founder_required' and v_x = any (integrations));
+  elsif s ~ '^integration(_social)?:' then
+    v_x := split_part(regexp_replace(s, '^integration(_social)?:', ''), ':', 1);
+    if not exists (select 1 from public.it_credential_class where rotation = 'founder_required' and v_x = any (integrations)) then
+      return false;
+    end if;
+    -- Only a credential failure is a renewal. An outage on the same integration keeps its path.
+    return coalesce(p_evidence->>'reconnect_link', '') <> ''
+        -- What broke only: the title's "Tried:" and "Needs:" tail is registry prose and would match any row.
+        or concat_ws(' ', split_part(coalesce(p_title, ''), '. Tried:', 1), p_evidence->>'what_broke')
+           ~* '(HTTP 40[13]|"code":\s*(20003|70004|190)\M|\(#190\)|invalid_grant|unauthorized_client|OAuthException|refused the company''s (API )?key|invalid.{0,20}(api key|token|credential)|expired.{0,20}token|token.{0,20}expired|not connected)';
+  end if;
+  return false;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_credential_reverify()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6216,6 +6245,16 @@ begin
   for f in select * from public.it_engineer_finding
             where closed_at is null and issue_key like 'duty:' || p_duty || ':%' and seen_count >= 2
               and coalesce(evidence->>'notify', 'true') <> 'false' loop
+    -- FOUNDER RULING 1090 (30 Sep 2026): a credential only the founder can renew (Meta, an OAuth sign-in, a
+    -- console-only key) is never his reminder. The finding stays open and the IT engineer's, marked so the OS
+    -- shows why nobody was told; a failure that is not a credential refusal still takes the path below.
+    if public.fn_it_credential_founder_required(f.issue_key, f.title, f.evidence) then
+      update public.it_engineer_finding
+         set evidence = evidence || jsonb_build_object('founder_required_credential', true, 'founder_told', false,
+                                                       'why_silent', 'founder ruling 1090: recorded, never rotated or reminded')
+       where issue_key = f.issue_key and closed_at is null;
+      continue;
+    end if;
     select * into c from public.it_integration_external_cause
      where closed_at is null and 'duty:' || p_duty || ':' || integration = f.issue_key;
     if found then
@@ -7108,6 +7147,23 @@ begin
     e := null;
     select * into e from public.it_expiry where item = h.detail->>'item';
     v_key := 'renewal:' || (h.detail->>'item') || '@' || (h.detail->>'expires_on');
+    -- FOUNDER RULING 1090: a reminder already out about a credential only the founder can renew is withdrawn.
+    if public.fn_it_credential_founder_required('duty:renewal:' || (h.detail->>'item')) then
+      perform set_config('qd.handoff_closer', 'it_engineer', true);
+      perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+        'verified_by', 'it_engineer', 'verified_at', now(),
+        'verdict', 'withdrawn: founder ruling 1090 - a credential only the founder can renew is never rotated or reminded'));
+      perform set_config('qd.handoff_closer', '', true);
+      begin
+        update public.support_ceo_report
+           set status = 'completed', completed_at = now(),
+               completion_note = 'Withdrawn by founder ruling 1090: ' || (h.detail->>'item') || ' is a founder-required credential (handoff ' || h.id || ').'
+         where idempotency_key = v_key and status in ('sent', 'accepted');
+      exception when others then null;
+      end;
+      n_closed := n_closed + 1;
+      continue;
+    end if;
     if e.item is null or e.expires_on is distinct from (h.detail->>'expires_on')::date then
       perform set_config('qd.handoff_closer', 'it_engineer', true);
       perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
@@ -7151,6 +7207,21 @@ begin
   -- 3. WARN: every item inside a stage gets its handoff; the ledger records what is due.
   -- A never_expires item is settled, not overdue: there is no renewal to arrange and no date to chase.
   for e in select * from public.it_expiry where kind <> 'tls' and not never_expires order by item loop
+    -- FOUNDER RULING 1090: a credential only the founder can renew gets no handoff, no report, no reminder.
+    -- Inside a warning stage, past its date or undated, it is one silent IT engineer finding, so the OS shows it.
+    if public.fn_it_credential_founder_required('duty:renewal:' || e.item) then
+      v_days := e.expires_on - current_date;
+      select min(w) into v_stage from unnest(e.warn_days) w where v_days <= w;
+      if e.expires_on is null or v_stage is not null then
+        v_items := v_items || jsonb_build_object('item', e.item || case when e.expires_on is null then ':date_unknown' else '' end,
+          'owner_seat', 'it_engineer', 'subject', e.item, 'blast', 'internal', 'affected', 0,
+          'title', e.item || ' (founder-required credential) ' || case when e.expires_on is null then 'has no known date'
+                   when v_days < 0 then 'passed its date ' || e.expires_on else 'is dated ' || e.expires_on || ' (' || v_days || ' days)' end
+                   || ': recorded only, never rotated or reminded (founder ruling 1090)',
+          'evidence', jsonb_build_object('founder_required_credential', true, 'founder_told', false, 'expires_on', e.expires_on));
+      end if;
+      continue;
+    end if;
     if e.expires_on is null then
       v_items := v_items || jsonb_build_object('item', e.item || ':date_unknown', 'owner_seat', 'accountant', 'subject', e.item,
         'title', 'The renewal date of ' || e.item || ' is not known (' || e.source || ')',
