@@ -33,14 +33,19 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const OWNING_SQLS = [
   'scripts/sql/the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql',
   'scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_class.sql',
-  // The provider re-priced glm-5.3-flash on 24 Sep 2026 (0.15/0.50 -> 0.045/0.60). The correction is
-  // a new file, not an edit to the applied one, so it is read LAST and its value wins.
-  'scripts/sql/glm_5_3_flash_costs_what_the_catalogue_now_charges.sql',
-  // ...and by 28 Sep 2026 it served 0.15/0.50 again; this later file puts it back and wins.
-  'scripts/sql/glm_5_3_flash_is_back_at_the_price_it_was_ruled_at.sql',
   // deepseek/deepseek-v4.1-flash, every other seat's fallback (founder_instruction 1056, 29 Sep 2026).
   'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql',
+  // A RETIRED MODEL IS NOT A CLAIM (founder_instruction 1068, 30 Sep 2026). The model the first file registered
+  // for 841 was retired and deleted from model_registry; its three re-pricing files only ever priced it, so they
+  // left this list, and this file's delete statement takes it out of the claim. A model no route can name can never
+  // block CI again; every ACTIVE model is still compared strictly.
+  'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql',
+  // 30 Sep 2026 ~10:10Z: the catalogue re-priced deepseek/deepseek-v4.1-flash to 0.0198 / 0.396; this file wins.
+  'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_now_charges.sql',
+  // 4 Oct 2026 ~20:20Z: re-priced again to 0.003 / 2.4; this file wins.
+  'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_charges_on_4_october.sql',
 ];
+const RETIRING_SQL = 'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql';
 const OWNING_SQL = OWNING_SQLS.join(' + ');
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
 
@@ -52,8 +57,9 @@ const claimed = () => {
   // FILE BY FILE, IN OWNING_SQLS ORDER, AND WITHIN A FILE IN STATEMENT ORDER — the order the rows were
   // written in production. A later statement about a model supersedes an earlier one. Concatenating the
   // files and running the update pattern before the insert pattern (the first shape of this check) let
-  // the 23 Sep INSERT of glm-5.3-flash overwrite the 24 Sep UPDATE that corrected it, so the check
-  // would have compared the stale price for ever.
+  // a 23 Sep INSERT overwrite the 24 Sep UPDATE that corrected it, so the check would have compared the
+  // stale price for ever.
+  const retired = new Map();   // model -> the file that retired it
   for (const f of OWNING_SQLS) {
     const sql = readFileSync(join(REPO, f), 'utf8');
     const found = [];
@@ -73,7 +79,18 @@ const claimed = () => {
       found.push({ at: m.index, id: m[1], v: { ctx: Number(m[4]), in: Number(m[2]), out: Number(m[3]), from: f } });
     }
 
-    for (const { id, v } of found.sort((a, b) => a.at - b.at)) out.set(id, v);
+    // A retirement: `delete from public.model_registry where model_id = '<id>';`, or the row switched off
+    // (`update public.model_registry set active = false ... where model_id = '<id>';`). No route can name it.
+    for (const m of sql.matchAll(/delete from public\.model_registry where model_id = '([^']+)';/g)) {
+      found.push({ at: m.index, id: m[1], v: null });
+    }
+    for (const m of sql.matchAll(/update public\.model_registry set active = false\b[^;]*?where model_id = '([^']+)';/g)) {
+      found.push({ at: m.index, id: m[1], v: null });
+    }
+
+    for (const { id, v } of found.sort((a, b) => a.at - b.at)) {
+      if (v) { out.set(id, v); retired.delete(id); } else { out.delete(id); retired.set(id, f); }
+    }
   }
 
   // Every file must contribute what it registers. The size floor alone cannot see a later file's row
@@ -85,8 +102,9 @@ const claimed = () => {
   // claim again and the check compares a price the registry no longer holds.
   assert.ok(out.has('deepseek/deepseek-v4.1-flash'),
     'deepseek/deepseek-v4.1-flash was not parsed out of its registering file, so its price is not being checked');
-  assert.equal(out.get('z-ai/glm-5.3-flash')?.from, 'scripts/sql/glm_5_3_flash_is_back_at_the_price_it_was_ruled_at.sql',
-    'z-ai/glm-5.3-flash was not taken from its re-pricing file, so the check is comparing a superseded price');
+  // The retirement must parse too, or the retired model's stale claim comes back and blocks CI again.
+  assert.ok([...retired.values()].includes(RETIRING_SQL),
+    `no retirement was parsed out of ${RETIRING_SQL}, so a retired model is being compared as if a route could name it`);
   assert.ok(out.size >= 10,
     `only ${out.size} models parsed out of ${OWNING_SQL} — the statements were reshaped and this `
     + 'check stopped reading them, which would make it pass by finding nothing');
@@ -138,7 +156,8 @@ test('every price and context length the registry file claims is the one the cat
     + 'call from, and the AED 1,600/month budget arithmetic derived from them (gpt_sol_takes_every_qwen_'
     + 'class_and_one_gemini_takes_every_gemini_class.sql section 6) are all now wrong, and a price that '
     + 'reorders a tier moves every cheapest-in-tier route. Correct them in a NEW file '
-    + 'appended to OWNING_SQLS (glm_5_3_flash_costs_what_the_catalogue_now_charges.sql is the pattern):'
+    + 'appended to OWNING_SQLS (an `update public.model_registry set context_len = ..., in_per_mtok_usd = ..., '
+    + 'out_per_mtok_usd = ...` statement is the pattern; a model no longer routed is retired instead):'
     + `\n  ${wrong.join('\n  ')}`);
 });
 
@@ -152,12 +171,10 @@ test('the capabilities the registry file claims are the ones the catalogue adver
     return;
   }
   const expect = {
-    // The two plan-A models: openai/gpt-5.6-sol (founder_instruction 854, replacing qwen3.8-max) and
-    // z-ai/glm-5.3-flash. If either stops being vision-capable, every extraction and drawing class
-    // silently gets substituted for something nobody chose; and their audio:false is the measured
-    // fact that keeps speech_transcription on gemini.
+    // openai/gpt-5.6-sol (founder_instruction 854, replacing qwen3.8-max). If it stops being vision-capable,
+    // every extraction and drawing class silently gets substituted for something nobody chose; and its
+    // audio:false is the measured fact that keeps speech_transcription on gemini.
     'openai/gpt-5.6-sol': { image: true, audio: false },
-    'z-ai/glm-5.3-flash': { image: true, audio: false },
     'anthropic/claude-opus-5.5': { image: true, audio: false },
     'anthropic/claude-sonnet-5': { image: true, audio: false },
     // The ONLY model any policy routes audio to since founder_instruction 854 retired

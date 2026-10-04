@@ -1261,6 +1261,17 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_taxonomy_trades_active()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object('code', code, 'label', label) order by sort, code), '[]'::jsonb)
+    from public.taxonomy_trade where active;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_taxonomy_trades_for(p_slugs text[])
  RETURNS text[]
  LANGUAGE sql
@@ -7906,47 +7917,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.trg_glm_repeat_request_enqueue()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare p record;
-begin
-  if NEW.customer_id is null or btrim(coalesce(NEW.summary, '')) = ''
-     or coalesce((NEW.plausibility->>'possible_duplicate')::boolean, false) then return NEW; end if;
-  select i.id, i.summary into p from public.inquiries i
-   where i.customer_id = NEW.customer_id and i.id <> NEW.id
-     and i.created_at > now() - interval '30 minutes'
-     and coalesce(i.category, '') = coalesce(NEW.category, '')
-     and btrim(coalesce(i.summary, '')) <> ''
-   order by i.created_at desc limit 1;
-  if p.id is not null then
-    perform public.fn_glm_judgement_enqueue('repeat_request', NEW.id::text,
-      jsonb_build_object('inquiry_id', NEW.id, 'earlier_id', p.id, 'earlier', left(p.summary, 2000), 'later', left(NEW.summary, 2000),
-                         'category', NEW.category));
-  end if;
-  return NEW;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.trg_glm_trade_words_enqueue()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-begin
-  if NEW.status = 'pending' then
-    perform public.fn_glm_judgement_enqueue('supplier_trade_words', NEW.id::text,
-      jsonb_build_object('proposal_id', NEW.id, 'supplier_id', NEW.supplier_id,
-                         'words', coalesce(NEW.label_en, '') || case when NEW.label_ar is not null then ' / ' || NEW.label_ar else '' end));
-  end if;
-  return NEW;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.trg_goal_cascade()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -8278,6 +8248,33 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_inquiry_split_needs_the_customers_choice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_scope text;
+begin
+  if tg_op = 'UPDATE' and new.parent_inquiry_id is null and old.scope_type = 'multi'
+     and new.scope_type is distinct from 'multi'
+     and exists (select 1 from public.inquiries c where c.parent_inquiry_id = new.id) then
+    raise exception 'inquiry %: its per-trade parts exist, so the customer''s choice to split cannot be rewritten (ruling 1021)', new.id
+      using errcode = 'P0001';
+  end if;
+  if new.parent_inquiry_id is not null
+     and (tg_op = 'INSERT' or new.parent_inquiry_id is distinct from old.parent_inquiry_id) then
+    select p.scope_type into v_scope from public.inquiries p where p.id = new.parent_inquiry_id;
+    if v_scope is distinct from 'multi' then
+      raise exception 'inquiry %: a request is split into trade packages only when the customer chose it; the parent''s recorded choice is %, not multi (ruling 1021: the default is one contractor)',
+        new.parent_inquiry_id, coalesce(v_scope, 'none') using errcode = 'P0001';
+    end if;
+  end if;
+  return new;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_invite_cap_allocation()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -8495,6 +8492,25 @@ begin
   end;
   return null;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_leads_keep_the_public_name()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_norm text := public.fn_supplier_name_norm(new.company_name);
+begin
+  if v_norm is null then
+    delete from public.supplier_public_name where lead_id = new.id;
+  else
+    insert into public.supplier_public_name (lead_id, norm) values (new.id, v_norm)
+    on conflict (lead_id) do update set norm = excluded.norm;
+  end if;
+  return null;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_learn_customer_preference()
@@ -8786,6 +8802,39 @@ begin
   end if;
   return null;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_published_text_names_no_supplier()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_text text; v_name text;
+begin
+  if tg_table_name = 'social_message' then   -- nested: new.direction exists only on social_message
+    if new.direction is distinct from 'out' or new.author is distinct from 'seat' then
+      return new;   -- what a person wrote, to us or from our inbox, is recorded as written; the seat's replies are guarded
+    end if;
+  end if;
+  -- one IF per table: PL/pgSQL plans each statement when it runs, so a column another table lacks is never read
+  if    tg_table_name = 'blog_posts'             then v_text := concat_ws(' ', new.title, new.excerpt, new.meta_desc, new.body_html);
+  elsif tg_table_name = 'marketing_article'      then v_text := concat_ws(' ', new.title_en, new.title_ar, new.excerpt_en, new.excerpt_ar,
+                                                                           new.meta_desc_en, new.meta_desc_ar, new.body_html_en, new.body_html_ar);
+  elsif tg_table_name = 'marketing_post'         then v_text := concat_ws(' ', new.title, new.text_en, new.text_ar);
+  elsif tg_table_name = 'marketing_post_variant' then v_text := concat_ws(' ', new.title, new.caption, new.body, new.first_comment, new.alt_text);
+  elsif tg_table_name = 'social_message'         then v_text := new.body;
+  elsif tg_table_name = 'social_reply_library'   then v_text := concat_ws(' ', new.reply_en, new.reply_ar);
+  elsif tg_table_name = 'social_posts'           then v_text := new.content::text;
+  end if;
+  v_name := public.fn_supplier_named_in(v_text);
+  if v_name is not null then
+    raise exception '%: this text names the supplier "%"; marketing and AI-visibility content never names a supplier (ruling 1020)',
+      tg_table_name, v_name using errcode = 'P0001';
+  end if;
+  return new;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_quote_committed_hash()
@@ -9094,6 +9143,47 @@ declare c jsonb;
 begin
   c := public.fn_rfq_score(NEW);
   NEW.completeness := c; NEW.rfq_ready := (c->>'ready')::boolean;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_routine_repeat_request_enqueue()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p record;
+begin
+  if NEW.customer_id is null or btrim(coalesce(NEW.summary, '')) = ''
+     or coalesce((NEW.plausibility->>'possible_duplicate')::boolean, false) then return NEW; end if;
+  select i.id, i.summary into p from public.inquiries i
+   where i.customer_id = NEW.customer_id and i.id <> NEW.id
+     and i.created_at > now() - interval '30 minutes'
+     and coalesce(i.category, '') = coalesce(NEW.category, '')
+     and btrim(coalesce(i.summary, '')) <> ''
+   order by i.created_at desc limit 1;
+  if p.id is not null then
+    perform public.fn_routine_judgement_enqueue('repeat_request', NEW.id::text,
+      jsonb_build_object('inquiry_id', NEW.id, 'earlier_id', p.id, 'earlier', left(p.summary, 2000), 'later', left(NEW.summary, 2000),
+                         'category', NEW.category));
+  end if;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_routine_trade_words_enqueue()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if NEW.status = 'pending' then
+    perform public.fn_routine_judgement_enqueue('supplier_trade_words', NEW.id::text,
+      jsonb_build_object('proposal_id', NEW.id, 'supplier_id', NEW.supplier_id,
+                         'words', coalesce(NEW.label_en, '') || case when NEW.label_ar is not null then ' / ' || NEW.label_ar else '' end));
+  end if;
   return NEW;
 end $function$
 

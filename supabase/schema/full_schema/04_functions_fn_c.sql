@@ -5660,6 +5660,29 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_strategy_memo_now(p_today date DEFAULT NULL::date, p_first_month date DEFAULT '2026-09-01'::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := coalesce(p_today, (now() at time zone 'Asia/Dubai')::date);
+  v_month date := date_trunc('month', v_today - interval '1 month')::date;
+begin
+  if extract(day from v_today) < 2 then
+    return jsonb_build_object('due', false, 'reason', 'the memo is written from the 2nd (Dubai) for the month that ended', 'today', v_today);
+  end if;
+  -- the first month the memo exists for: pg_cron would first have fired on 2 Oct 2026, for September. A parameter only
+  -- so the check can drive the write path in an aborted transaction before October; the duty never passes it.
+  if v_month < date_trunc('month', p_first_month)::date then
+    return jsonb_build_object('due', false, 'reason', 'the first memo is for September 2026', 'month', to_char(v_month, 'YYYY-MM'));
+  end if;
+  return jsonb_build_object('due', true) || public.fn_ceo_strategy_memo(v_month, false);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_supplier_target(p_at timestamp with time zone DEFAULT now(), p_demo boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9863,9 +9886,9 @@ declare
   v_by_cat jsonb;
   v_spread numeric; v_bench numeric;
 begin
-  select coalesce((p.policy ->> 'min_sample')::int, 4) into v_min_sample
-    from supplier_negotiation_policy p where p.scope = 'default';
-  v_min_sample := coalesce(v_min_sample, 4);
+  -- 30 Sep 2026 (sales_engineer): the minimum sample is this routine's own rule. It used to be read from
+  -- the removed negotiation feature's policy table (ruling 527), whose one row held 4.
+  v_min_sample := 4;
 
   select count(*) into v_rows
     from quotes q join inquiries i on i.id = q.inquiry_id
@@ -11372,6 +11395,13 @@ begin
         'why', 'closed before the digest: ' || coalesce(f.close_note, 'no finding row'),
         'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
       n_fixed := n_fixed + 1; continue;
+    end if;
+    -- FOUNDER RULING 1090 (30 Sep 2026): a credential only he can renew is never a digest line.
+    if public.fn_it_credential_founder_required(f.issue_key, f.title, f.evidence) then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
+        'why', 'founder ruling 1090: a credential only the founder can renew is recorded by the IT engineer, never sent to him',
+        'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_int := n_int + 1; continue;
     end if;
     -- His ruling that something is NOT his wins over any pattern that would ask him.
     select c.why, c.to_founder into v_why, v_his from public.it_founder_decision_class c where f.issue_key like c.issue_key_like

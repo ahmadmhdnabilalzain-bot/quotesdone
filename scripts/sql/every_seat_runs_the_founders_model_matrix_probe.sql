@@ -338,7 +338,8 @@ begin
   if (select string_agg(model_id, ',' order by rank) from public.review_pool where active) is distinct from c_luna || ',' || c_opus || ',' || c_deep then
     bad := bad || to_jsonb('review pool is ' || coalesce((select string_agg(model_id, ',' order by rank) from public.review_pool where active), 'empty'));
   end if;
-  if not exists (select 1 from public.model_registry where model_id = c_deep and in_per_mtok_usd = 0.30 and out_per_mtok_usd = 1.20
+  -- (30 Sep 2026) no price literal here: the catalogue moves prices (deepseek 0.30/1.20 -> 0.0198/0.396); the_registry_prices_are_the_catalogue_s_prices owns price. This asserts the model is registered and able.
+  if not exists (select 1 from public.model_registry where model_id = c_deep
                    and context_len = 1048576 and supports_vision and not supports_audio and provider = 'deepseek') then
     bad := bad || to_jsonb('deepseek is not registered as the catalogue serves it'::text);
   end if;

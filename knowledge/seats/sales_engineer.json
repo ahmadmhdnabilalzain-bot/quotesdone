@@ -887,8 +887,8 @@
       "id": "sales_engineer:senior-sales-engineer-standard",
       "topic": "The standard: what a senior UAE sales engineer / quantity surveyor knows",
       "kind": "standard",
-      "body_en": "The QuotesDone sales engineer is held to the standard of a senior UAE sales engineer and quantity surveyor in nine domains: (1) reading drawings and specifications; (2) quantity take-off per trade under a named method of measurement; (3) UAE and GCC authorities and standards (Dubai Municipality, Dubai Civil Defence, DEWA, MoIAT for ECAS and EQM, Trakhees, Abu Dhabi DMT, ADCD and the distribution companies, SEWA); (4) a per-line spec checklist for every trade in the taxonomy; (5) pricing and bills of quantities; (6) supplier evaluation; (7) alternatives when no exact spec exists; (8) negotiation; (9) enterprise accounts. The hard rules that sit over all nine: exact trade match or none; exact specs or the quote is held; no word matching (meaning is reasoned, never keyword-scored); UAE, GCC and international law and standards only. The seat is qualified by a graded exam of at least 57 items in knowledge/exams/sales_engineer.json. This standard is QuotesDone's own job definition; no single external source defines the role.",
-      "body_ar": "يُقاس مهندس المبيعات في كوتس دن بمعيار مهندس مبيعات ومسّاح كميات أول في الإمارات عبر تسعة مجالات: (١) قراءة المخططات والمواصفات؛ (٢) حصر الكميات لكل حرفة وفق طريقة قياس مسمّاة؛ (٣) الجهات والمعايير في الإمارات والخليج (بلدية دبي، الدفاع المدني بدبي، هيئة كهرباء ومياه دبي، وزارة الصناعة والتكنولوجيا المتقدمة لنظامي ECAS وEQM، تراخيص، دائرة البلديات والنقل في أبوظبي والدفاع المدني وشركات التوزيع، هيئة كهرباء ومياه الشارقة)؛ (٤) قائمة مواصفات لكل بند لكل حرفة في التصنيف؛ (٥) التسعير وجداول الكميات؛ (٦) تقييم الموردين؛ (٧) البدائل حين لا توجد مواصفة مطابقة؛ (٨) التفاوض؛ (٩) حسابات الشركات الكبرى. القواعد الثابتة فوقها جميعاً: مطابقة الحرفة تماماً أو لا مطابقة؛ مواصفات دقيقة أو يُعلَّق العرض؛ لا مطابقة بالكلمات؛ قانون ومعايير الإمارات والخليج والمعايير الدولية فقط. يُؤهَّل المقعد باختبار مصحَّح من 57 سؤالاً على الأقل. هذا المعيار تعريف كوتس دن للوظيفة؛ ولا يحدد أي مصدر خارجي واحد هذا الدور.",
+      "body_en": "The QuotesDone sales engineer is held to the standard of a senior UAE sales engineer and quantity surveyor in nine domains: (1) reading drawings and specifications; (2) quantity take-off per trade under a named method of measurement; (3) UAE and GCC authorities and standards (Dubai Municipality, Dubai Civil Defence, DEWA, MoIAT for ECAS and EQM, Trakhees, Abu Dhabi DMT, ADCD and the distribution companies, SEWA); (4) a per-line spec checklist for every trade in the taxonomy; (5) pricing and bills of quantities; (6) supplier evaluation; (7) alternatives when no exact spec exists; (8) negotiation; (9) framework and rate agreements. The hard rules that sit over all nine: exact trade match or none; exact specs or the quote is held; no word matching (meaning is reasoned, never keyword-scored); UAE, GCC and international law and standards only. The seat is qualified by a graded exam of at least 57 items in knowledge/exams/sales_engineer.json. This standard is QuotesDone's own job definition; no single external source defines the role.",
+      "body_ar": "يُقاس مهندس المبيعات في كوتس دن بمعيار مهندس مبيعات ومسّاح كميات أول في الإمارات عبر تسعة مجالات: (١) قراءة المخططات والمواصفات؛ (٢) حصر الكميات لكل حرفة وفق طريقة قياس مسمّاة؛ (٣) الجهات والمعايير في الإمارات والخليج (بلدية دبي، الدفاع المدني بدبي، هيئة كهرباء ومياه دبي، وزارة الصناعة والتكنولوجيا المتقدمة لنظامي ECAS وEQM، تراخيص، دائرة البلديات والنقل في أبوظبي والدفاع المدني وشركات التوزيع، هيئة كهرباء ومياه الشارقة)؛ (٤) قائمة مواصفات لكل بند لكل حرفة في التصنيف؛ (٥) التسعير وجداول الكميات؛ (٦) تقييم الموردين؛ (٧) البدائل حين لا توجد مواصفة مطابقة؛ (٨) التفاوض؛ (٩) الاتفاقيات الإطارية وعقود الأسعار. القواعد الثابتة فوقها جميعاً: مطابقة الحرفة تماماً أو لا مطابقة؛ مواصفات دقيقة أو يُعلَّق العرض؛ لا مطابقة بالكلمات؛ قانون ومعايير الإمارات والخليج والمعايير الدولية فقط. يُؤهَّل المقعد باختبار مصحَّح من 57 سؤالاً على الأقل. هذا المعيار تعريف كوتس دن للوظيفة؛ ولا يحدد أي مصدر خارجي واحد هذا الدور.",
       "sources": [
         "https://www.rics.org/profession-standards/rics-standards-and-guidance/sector-standards/construction-standards/nrm",
         "https://www.dcd.gov.ae/portal/en/preventive-safety/rules-regulations/uae-fire-and-life-safety-code-of-practice.jsp",
@@ -1124,24 +1124,11 @@
       "source_note": "The Program on Negotiation supports the BATNA and value-trading principles; the confidentiality and no-pressure rules are QuotesDone conduct rules."
     },
     {
-      "id": "sales_engineer:enterprise-account-plan",
-      "topic": "Enterprise accounts: the account plan",
-      "kind": "playbook",
-      "body_en": "An enterprise customer (a contractor, developer, facilities manager or large corporate buying across many trades) gets an account plan, reviewed each quarter. It holds: the stakeholder map (procurement, the technical approver, finance who pays, and the end user on site) with who decides what; spend by trade and emirate, from the platform's own inquiry history; the approved vendor or pre-qualification requirements the customer applies (licences, insurances, approvals, HSE records) so only suppliers who can be accepted are matched; standard commercial terms (payment terms, retention, validity) so quotes arrive comparable; service levels (response time, complete-quote rate); and a list of open items and risks. The quarterly review shows what was requested, quoted, awarded and why lost, and agrees the next quarter's actions. The sources do not provide a UAE-specific enterprise method; this is general key-account practice applied to procurement.",
-      "body_ar": "يحصل العميل المؤسسي (مقاول أو مطوّر أو مدير مرافق أو شركة كبيرة تشتري عبر حرف كثيرة) على خطة حساب تُراجع كل ربع سنة. تتضمن: خريطة أصحاب المصلحة (المشتريات، والمعتمِد الفني، والمالية التي تدفع، والمستخدم النهائي في الموقع) ومن يقرر ماذا؛ الإنفاق حسب الحرفة والإمارة من سجل استفسارات المنصة نفسها؛ متطلبات قائمة الموردين المعتمدين أو التأهيل المسبق لدى العميل (التراخيص، التأمينات، الاعتمادات، سجلات الصحة والسلامة) حتى لا يُطابَق إلا الموردون المقبولون؛ الشروط التجارية القياسية (شروط الدفع، المحتجزات، مدة السريان) لتصل العروض قابلة للمقارنة؛ مستويات الخدمة (زمن الاستجابة، نسبة العروض المكتملة)؛ وقائمة البنود المفتوحة والمخاطر. وتعرض المراجعة الربعية ما طُلب وما سُعّر وما رُسي وأسباب الخسارة، وتتفق على إجراءات الربع التالي. ولا تقدّم المصادر طريقة إماراتية خاصة؛ فهذه ممارسة عامة لإدارة الحسابات الرئيسية مطبّقة على المشتريات.",
-      "sources": [
-        "https://www.iso.org/standard/74296.html"
-      ],
-      "confidence": "medium",
-      "as_of": "2026-09-28",
-      "source_note": "ISO 20400 gives procurement guidance; it does not describe account plans. The plan is general key-account practice."
-    },
-    {
       "id": "sales_engineer:framework-and-rate-agreements",
       "topic": "Framework agreements and rate contracts",
       "kind": "concept",
-      "body_en": "Enterprise buyers often agree a framework (rate contract) instead of quoting every order: fixed unit rates for a list of items or services, a term (commonly one year), call-off orders placed as needed, and usually no guaranteed volume. What a senior sales engineer checks in one: the item list with exact specs per line, so each call-off is like for like; the pricing basis and any escalation clause (tied to a named index or a supplier notice, with a cap); delivery or response times per call-off; minimum order values; how new items are priced; payment terms; and termination. For QuotesDone, a framework between a customer and a supplier must still respect the platform's reveal rule and exact-spec rule: each call-off is a request with its own quote lines. The sources do not establish standard UAE framework terms; they are negotiated case by case.",
-      "body_ar": "كثيراً ما يتفق المشترون المؤسسيون على اتفاقية إطارية (عقد أسعار) بدلاً من تسعير كل طلب: أسعار وحدات ثابتة لقائمة بنود أو خدمات، ومدة (غالباً سنة واحدة)، وأوامر استدعاء تُصدر حسب الحاجة، وعادةً دون حجم مضمون. ما يفحصه مهندس المبيعات الأول فيها: قائمة البنود بمواصفات دقيقة لكل بند ليكون كل استدعاء متماثل الأساس؛ أساس التسعير وأي بند لتعديل الأسعار (مرتبط بمؤشر مسمّى أو بإشعار من المورد، مع سقف)؛ مدد التسليم أو الاستجابة لكل استدعاء؛ الحد الأدنى لقيمة الطلب؛ طريقة تسعير البنود الجديدة؛ شروط الدفع؛ والإنهاء. وفي كوتس دن يجب أن تحترم الاتفاقية الإطارية بين عميل ومورد قاعدة الكشف في المنصة وقاعدة المواصفات الدقيقة: فكل استدعاء طلب له بنود عرضه الخاصة. ولا تثبت المصادر شروطاً إطارية قياسية في الإمارات؛ فهي تُتفاوض حالةً بحالة.",
+      "body_en": "Large customers often agree a framework (rate contract) instead of quoting every order: fixed unit rates for a list of items or services, a term (commonly one year), call-off orders placed as needed, and usually no guaranteed volume. What a senior sales engineer checks in one: the item list with exact specs per line, so each call-off is like for like; the pricing basis and any escalation clause (tied to a named index or a supplier notice, with a cap); delivery or response times per call-off; minimum order values; how new items are priced; payment terms; and termination. For QuotesDone, a framework between a customer and a supplier must still respect the platform's reveal rule and exact-spec rule: each call-off is a request with its own quote lines. The sources do not establish standard UAE framework terms; they are negotiated case by case.",
+      "body_ar": "كثيراً ما يتفق العملاء الكبار على اتفاقية إطارية (عقد أسعار) بدلاً من تسعير كل طلب: أسعار وحدات ثابتة لقائمة بنود أو خدمات، ومدة (غالباً سنة واحدة)، وأوامر استدعاء تُصدر حسب الحاجة، وعادةً دون حجم مضمون. ما يفحصه مهندس المبيعات الأول فيها: قائمة البنود بمواصفات دقيقة لكل بند ليكون كل استدعاء متماثل الأساس؛ أساس التسعير وأي بند لتعديل الأسعار (مرتبط بمؤشر مسمّى أو بإشعار من المورد، مع سقف)؛ مدد التسليم أو الاستجابة لكل استدعاء؛ الحد الأدنى لقيمة الطلب؛ طريقة تسعير البنود الجديدة؛ شروط الدفع؛ والإنهاء. وفي كوتس دن يجب أن تحترم الاتفاقية الإطارية بين عميل ومورد قاعدة الكشف في المنصة وقاعدة المواصفات الدقيقة: فكل استدعاء طلب له بنود عرضه الخاصة. ولا تثبت المصادر شروطاً إطارية قياسية في الإمارات؛ فهي تُتفاوض حالةً بحالة.",
       "sources": [
         "https://fidic.org",
         "https://www.iso.org/standard/74296.html"
@@ -1689,8 +1676,7 @@
       "q_en": "A big contractor wants a yearly rate contract. What must it contain?",
       "q_ar": "مقاول كبير يريد عقد أسعار سنوي. ماذا يجب أن يتضمن؟",
       "expected_entry_ids": [
-        "sales_engineer:framework-and-rate-agreements",
-        "sales_engineer:enterprise-account-plan"
+        "sales_engineer:framework-and-rate-agreements"
       ]
     }
   ],
@@ -1736,7 +1722,6 @@
       "sales_engineer:technical-submittals",
       "sales_engineer:technical-compliance-matrix",
       "sales_engineer:negotiation-sequence",
-      "sales_engineer:enterprise-account-plan",
       "sales_engineer:framework-and-rate-agreements",
       "sales_engineer:drawing-discipline-conflicts",
       "sales_engineer:spec-versus-drawing-precedence",

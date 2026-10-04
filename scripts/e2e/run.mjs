@@ -170,7 +170,7 @@ const secs = Math.round((Date.now() - t0) / 1000);
 const md = [
   `# QuotesDone e2e run ${stamp}`, '',
   `Site ${SITE} · project ${REF} · run tag \`${run.tag}\` · ${secs}s · journeys ${only.join(',')}${KEEP ? ' · KEPT' : ''}`, '',
-  `**${count('PASS')} passed · ${count('FAIL')} failed · ${count('SKIP')} skipped**`, '',
+  `**${count('PASS')} passed · ${count('FAIL')} failed · ${count('HELD')} held by the model hold · ${count('SKIP')} skipped**`, '',
   '| # | journey | step | result | detail | ms |', '|---|---|---|---|---|---|',
   ...steps.map((s, i) => `| ${i + 1} | ${s.journey} | ${s.name.replace(/\|/g, '/')} | ${s.status} | ${s.detail.replace(/\|/g, '/').replace(/\n/g, ' ').slice(0, 300)} | ${s.ms ?? ''} |`),
   '', '## Console errors', '', ...(ctx.consoleErrors.length ? [...new Set(ctx.consoleErrors)].slice(0, 80).map((e) => `- ${e.replace(/\n/g, ' ')}`) : ['none']),
@@ -193,7 +193,7 @@ const result = {
   version: 1, ok: count('FAIL') === 0 && !fatal && COMPLETE, complete: COMPLETE, truncated: state.truncated,
   harness_signed_out: harnessDead,
   tag: run.tag, site: SITE, project: REF, started: stamp, seconds: secs,
-  journeys: only, kept: KEEP, pass: count('PASS'), fail: count('FAIL'), skip: count('SKIP'),
+  journeys: only, kept: KEEP, pass: count('PASS'), fail: count('FAIL'), held: count('HELD'), skip: count('SKIP'),
   report: join(DIR, 'report.md'), purge: KEEP ? `node scripts/e2e/run.mjs --purge-tag ${run.tag}` : null,
   steps: steps.map((s) => ({ journey: s.journey, name: s.name, status: s.status, detail: s.detail, ms: s.ms ?? null })),
 };
@@ -201,7 +201,7 @@ writeFileSync(join(DIR, 'result.json'), JSON.stringify(result, null, 1));
 if (argv.includes('--json')) console.log(JSON.stringify({ ...result, steps: undefined, result: join(DIR, 'result.json') }));
 // Read by scripts/e2e/report_to_it_engineer.mjs, which hands this run to the IT engineer.
 writeFileSync(join(DIR, 'run.json'), JSON.stringify({ tag: run.tag, kept: KEEP, leftovers: closed?.leftovers ?? null, complete: COMPLETE, harness_signed_out: harnessDead }));
-console.log(`\nE2E ${count('PASS')} passed, ${count('FAIL')} failed, ${count('SKIP')} skipped - report ${join(DIR, 'report.md')}`);
+console.log(`\nE2E ${count('PASS')} passed, ${count('FAIL')} failed, ${count('HELD')} held, ${count('SKIP')} skipped - report ${join(DIR, 'report.md')}`);
 // The same verdict result.ok carries, so the two cannot drift apart: a truncated run is not a pass,
 // whoever is reading. (The nightly workflow runs this step with continue-on-error, because a failed
 // STEP is the finding and the report below it must still run — so this exit code is for a human.)

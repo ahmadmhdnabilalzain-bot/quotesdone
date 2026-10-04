@@ -117,7 +117,7 @@ test('a closing question with an abbreviation is one sentence, and is not given 
 });
 
 test('an invitation queued in Arabic is held before it is rendered, never sent', () => {
-  const hold = outbox.indexOf('if (holdArabicInvitation(n.type, n.lang))');
+  const hold = outbox.indexOf('if (holdArabicInvitation(n.type, n.lang, supplierSide))');
   assert.ok(hold > 0, 'send_outbox no longer holds a supplier invitation queued in Arabic');
   assert.ok(hold < outbox.indexOf('const htmlBody0 = tmpl('), 'the Arabic hold must run before the mail is rendered');
   assert.match(outbox.slice(hold, hold + 400), /status: 'held'/);

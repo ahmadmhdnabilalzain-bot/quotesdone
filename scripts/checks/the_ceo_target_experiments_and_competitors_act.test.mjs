@@ -72,7 +72,7 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
   perform set_config('app.qd_stub_founder_notify', 'on', true);
   insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values
     ('probe', 'ceo', 'ceo', 'agent_reasoning', 'openai/gpt-5.6-sol', true),
-    ('probe', 'marketing', 'marketing', 'agent_reasoning', 'z-ai/glm-5.3-flash', true);
+    ('probe', 'marketing', 'marketing', 'agent_reasoning', 'google/gemini-3.8-flash', true);
 
   -- the seeded unknowns
   o := o || jsonb_build_object('seeded', (select jsonb_agg(jsonb_build_object('key', x.key, 'seat', q.seat, 'stakes', q.request->>'stakes') order by x.key)
@@ -110,13 +110,13 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
   o := o || jsonb_build_object('first', v->>'status', 'first_options', (select jsonb_agg(x->>'id') from public.competitor_scan z join public.reasoning_held_question q on q.id = z.held_id,
             jsonb_array_elements(q.request->'decision'->'options') x where z.id = s));
   perform public.fn_reason_held_resolve((select held_id from public.competitor_scan where id = s),
-    '{"status":"answered","answer":"ZZ DEMO","model":"z-ai/glm-5.3-flash","decision":{"choice":"profiled","fields":{"pricing":{"value":"AED 100 a lead"}}}}');
+    '{"status":"answered","answer":"ZZ DEMO","model":"google/gemini-3.8-flash","decision":{"choice":"profiled","fields":{"pricing":{"value":"AED 100 a lead"}}}}');
   insert into public.competitor_scan (competitor_id, page_kind, url) values (c, 'pricing', 'https://zz.example.invalid') returning id into s;
   o := o || jsonb_build_object('same', public.fn_competitor_scan_ingest(s, 200, '<html><script>var t=2</script><p>ZZ DEMO: AED 100 a lead</p></html>')->>'status');
   insert into public.competitor_scan (competitor_id, page_kind, url) values (c, 'pricing', 'https://zz.example.invalid') returning id into s;
   o := o || jsonb_build_object('diff', public.fn_competitor_scan_ingest(s, 200, '<p>ZZ DEMO: free for suppliers now</p>')->>'status');
   perform public.fn_reason_held_resolve((select held_id from public.competitor_scan where id = s),
-    '{"status":"answered","answer":"ZZ DEMO","model":"z-ai/glm-5.3-flash","decision":{"choice":"changed","fields":{"what_changed":{"value":"ZZ DEMO dropped the lead fee"}}}}');
+    '{"status":"answered","answer":"ZZ DEMO","model":"google/gemini-3.8-flash","decision":{"choice":"changed","fields":{"what_changed":{"value":"ZZ DEMO dropped the lead fee"}}}}');
   o := o || jsonb_build_object('change_task', (select t.title from public.competitor_scan z join public.ceo_task t on t.task_id = z.task_id where z.id = s));
 
   -- the target contract in force, and a day on the path in November with nothing measured
@@ -131,7 +131,7 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
     'root_cause_to', (select jsonb_agg(distinct agent order by agent) from public.agent_actions where id > n and kind = 'handoff' and detail->>'type' = 'ceo.root_cause' and status = 'pending'));
   select id, (detail->>'task_id')::bigint into hid, t from public.agent_actions where id > n and kind = 'handoff' and detail->>'type' = 'ceo.root_cause' and agent = 'marketing';
   select id into h from public.reasoning_held_question where dedupe_key = 'root_cause:marketing:' || t;
-  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO","model":"z-ai/glm-5.3-flash","decision":{"choice":"demand_short","fields":{"root_cause":{"value":"ZZ DEMO no buyers yet"},"corrective_action":{"value":"ZZ DEMO SEO"}}}}');
+  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO","model":"google/gemini-3.8-flash","decision":{"choice":"demand_short","fields":{"root_cause":{"value":"ZZ DEMO no buyers yet"},"corrective_action":{"value":"ZZ DEMO SEO"}}}}');
   o := o || jsonb_build_object('answered', (select jsonb_build_object('task', state, 'has_cause', evidence like '%ZZ DEMO no buyers yet%') from public.ceo_task where task_id = t),
     'handoff_after', (select status from public.agent_actions where id = hid),
     'miss_case', (select seat from public.seat_case_memory where source_table = 'ceo_task' and source_id = t::text));
