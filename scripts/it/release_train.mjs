@@ -128,6 +128,9 @@ export function inCampaignHours(now = new Date(), window = process.env.RELEASE_C
 
 export const offHoursOnly = (sqlText = '') => /apply-window:\s*off-hours/i.test(sqlText);
 export const isProbeNote = (note = '') => /^\s*A PROBE\b/.test(note);
+// A *_probe.sql file is a probe whatever its note says (4 Oct 2026, #1149): its note was empty, the train APPLIED the
+// probe before the definitions it tests, the probe failed and the merge was left unapplied.
+export const isProbe = (x) => isProbeNote(x.note) || /_probe.sql$/.test(x.sql || "");
 
 // entries: [{ sql: 'scripts/sql/x.sql', note }].
 // 1. A note may carry a line `apply-order: N`. When any note does, entries sort by N (none = last),
@@ -360,8 +363,8 @@ export async function main(argv = process.argv.slice(2)) {
     return 0;
   }
 
-  const applies = applyOrder(entries.filter((x) => !isProbeNote(x.note) && x.text));
-  const probes = entries.filter((x) => isProbeNote(x.note) && x.text);
+  const applies = applyOrder(entries.filter((x) => !isProbe(x) && x.text));
+  const probes = entries.filter((x) => isProbe(x) && x.text);
   log(`release #${chosen.number}: apply [${applies.map((x) => x.sql).join(', ')}] probe [${probes.map((x) => x.sql).join(', ')}]`);
   if (DRY) { log(`DRY RUN would merge #${chosen.number} (squash), apply, probe, append MANIFEST, regenerate the mirror, deploy changed functions`); return 0; }
 
