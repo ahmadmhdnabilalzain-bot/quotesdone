@@ -192,7 +192,7 @@ export const ROLE_SETS = {
 // that customers.full_name was 'Journey Test Customer' for journey rows and NULL for smoke rows,
 // so no single predicate could find them all.
 //
-//   auth.users / customers / inquiry_intake / email_verifications -> email `qd-<tag>-...@example.com`
+//   auth.users / customers / inquiry_intake / email_verifications -> email `qd-<tag>-...@example.invalid` (@example.com before 30 Sep 2026; teardown matches both)
 //   leads                                                          -> tags @> {qd_demo, qd_run:<tag>}
 //   inquiries                                                      -> provenance->>'qd_run'
 //   quotes / supplier_capabilities / documents / storage objects    -> reached through their parents
@@ -211,7 +211,7 @@ export function newRun(opts = {}) {
   };
 }
 
-export const runEmail = (run, kind) => `qd-${run.tag}-${kind}${run.seq++}@example.com`;
+export const runEmail = (run, kind) => `qd-${run.tag}-${kind}${run.seq++}@example.invalid`;
 // The reserved fixture mobile block, +971 50 000 00xx. 00-89 only: 90-99 are held for checks that need
 // a number NO run can hold at the same time (a_phone_cannot_select_an_account uses 98 and 97). A UAE
 // mobile (+9715) is one of the mandatory six, and fn_is_demo_phone marks the row demo on its own.
@@ -954,7 +954,7 @@ export async function makeBulkCorpus(run, opts = {}) {
         trade, variant: v, profile,
         // run.seq, not specs.length: leads carries a unique index on lower(email), and a second
         // makeBulkCorpus call in the same run would restart the numbering and collide on corp0.
-        email: `qd-${run.tag}-corp${run.seq++}@example.com`,
+        email: `qd-${run.tag}-corp${run.seq++}@example.invalid`,
         companyName: `QD Demo ${t.name} ${String(v + 1).padStart(2, '0')} ${run.tag.slice(0, 4)}`,
         emirate: profile.coverage_emirates[0] || 'Dubai',
       });
@@ -1267,7 +1267,6 @@ export async function teardown(run) {
     ['doc_reviews', `delete from public.doc_reviews where lead_id in ${LEAD}`],
     ['inbound_messages', `delete from public.inbound_messages where lead_id in ${LEAD}`],
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${LEAD}`],
-    ['supplier_negotiation_policy', `delete from public.supplier_negotiation_policy where supplier_id in ${LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
     ['leads', `delete from public.leads where id in ${LEAD}`],
@@ -1349,7 +1348,6 @@ export async function purge(opts = {}) {
     ['doc_reviews', `delete from public.doc_reviews where lead_id in ${P_LEAD}`],
     ['inbound_messages', `delete from public.inbound_messages where lead_id in ${P_LEAD}`],
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${P_LEAD}`],
-    ['supplier_negotiation_policy', `delete from public.supplier_negotiation_policy where supplier_id in ${P_LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${P_LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${P_LEAD} or supplier_id not in (select id from public.leads)`],
     ['leads', `delete from public.leads where id in ${P_LEAD}`],
@@ -1425,7 +1423,7 @@ export async function purge(opts = {}) {
   log(`\n${dry ? 'PURGE (dry run) would remove AT LEAST' : 'PURGED'}:`);
   for (const [k, v] of Object.entries(counts)) log(`  ${String(v).padStart(6)}  ${k}`);
   for (const [k, v] of Object.entries(objs)) if (v) log(`  ${String(v).padStart(6)}  storage/${k}`);
-  if (users) log(`  ${String(users).padStart(6)}  auth users (qd-%@example.com)`);
+  if (users) log(`  ${String(users).padStart(6)}  auth users (qd-%@example.*)`);
   log(`  brand bucket preserved at ${brandAfter} object(s)`);
   return { counts, objects: objs, authUsers: users, dry };
 }

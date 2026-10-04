@@ -25,6 +25,7 @@ import { call, read, write } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE } from './browser.mjs';
 import { makeInquiry, keys, BASE } from '../lib/demo_factory.mjs';
 import { pdfFacts, isArabic, languageOf, sameDocument, moneyVerdict } from './pdf_facts.mjs';
+import { modelHold } from './journeys.mjs';   // runtime use only, so the import cycle is safe
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_PDF = join(HERE, '..', '..', 'supabase', 'functions', 'supplier_api', 'fixtures', 'ZZDEMO_quotation_D958E1EA.pdf');
@@ -47,10 +48,18 @@ export { pdfFacts, isArabic, languageOf };
 const pdfVerdict = (f, lang) => f.ok && f.creator === OUR_TEMPLATE && languageOf(f) === lang;
 const pdfDetail = (f, lang) => (f.ok ? `creator="${f.creator}" pages=${f.pages} arabic=${Math.round(f.arabicShare * 100)}% (want ${lang})` : f.why);
 
+// AN ARABIC CUSTOMER DOCUMENT HELD UNDER THE MODEL HOLD IS HELD, NOT FAILED (E2E stage 1 D4, 30 Sep 2026): the same
+// rule journeys.mjs applies to the comparison — exactly HTTP 202 arabic_held, AND only while modelHold() says held.
+async function heldArabic(lang, res) {
+  return lang === 'ar' && res.status === 202 && res.json?.code === 'arabic_held' ? await modelHold() : null;
+}
 async function assertPdf(ctx, J, name, lang, res) {
   const url = res.json?.url || res.json?.pdf_url || res.json?.file_url;
   const f = await pdfFacts(url).catch((e) => ({ ok: false, why: String(e.message).slice(0, 120) }));
-  ctx.rep.step(J, name, pdfVerdict(f, lang) ? 'PASS' : 'FAIL', `HTTP ${res.status} ${pdfDetail(f, lang)}${f.ok ? '' : ' ' + String(res.text || '').slice(0, 120)}`);
+  const held = f.ok ? null : await heldArabic(lang, res);
+  if (held) f.held = held;
+  ctx.rep.step(J, name, pdfVerdict(f, lang) ? 'PASS' : held ? 'HELD' : 'FAIL',
+    `HTTP ${res.status} ${pdfDetail(f, lang)}${f.ok ? '' : ' ' + String(res.text || '').slice(0, 120)}${held ? ' — model hold on (' + held + '); re-proven when it lifts' : ''}`);
   return f;
 }
 
@@ -81,13 +90,13 @@ async function customerAudit(ctx) {
     const d = sameDocument(pdfs.en, pdfs.ar);
     const langs = pdfs.en?.ok && pdfs.ar?.ok ? `en=${languageOf(pdfs.en)} ar=${languageOf(pdfs.ar)}` : 'one of the two did not open';
     rep.step(C, 'the Arabic quotation is not the English file',
-      d.comparable && d.same === false && pdfs.ar.ok && languageOf(pdfs.ar) === 'ar' && languageOf(pdfs.en) === 'en' ? 'PASS' : 'FAIL', `${d.why}; ${langs}`);
+      d.comparable && d.same === false && pdfs.ar.ok && languageOf(pdfs.ar) === 'ar' && languageOf(pdfs.en) === 'en' ? 'PASS' : pdfs.ar?.held ? 'HELD' : 'FAIL', `${d.why}; ${langs}`);
     // AND IT IS THE SAME QUOTATION (22 Sep 2026). Two different files in two languages is only half
     // the property the customer cares about: the Arabic version must quote the same money, line for
     // line, as the English one. Measured on production pair QD-8B287960-A - both renders read
     // 95.00 / 17,100.00 / 42.00 / 8,820.00 / 25,920.00 / 25,920.00 (pdf_facts.mjs amounts()).
     const m = moneyVerdict(pdfs.en, pdfs.ar);
-    rep.step(C, 'the Arabic quotation states the same money as the English one', m.status, m.why);
+    rep.step(C, 'the Arabic quotation states the same money as the English one', pdfs.ar?.held && m.status !== 'PASS' ? 'HELD' : m.status, m.why);
   } else rep.step(C, 'quotation PDF in both languages', 'SKIP', 'no live quote (journey b)');
   // 2. THE COMPARISON IN BOTH LANGUAGES (journey c proves %PDF-; this proves the template and the language).
   if (ctx.inquiryId) {
@@ -321,8 +330,10 @@ async function supplierAudit(ctx) {
     const r = await call('supplier_api', sup.jwt, { action: 'inquiry_pdf', inquiry_id: job1, lang }, 120000);
     const f = await pdfFacts(r.json?.url).catch((e) => ({ ok: false, why: e.message }));
     const leaked = f.ok ? identity.filter((x) => x && f.text.includes(x)) : [];
-    rep.step(B, `inquiry PDF (${lang}) is ours, in ${lang}, and carries no customer contact`, pdfVerdict(f, lang) && !leaked.length ? 'PASS' : 'FAIL',
-      `HTTP ${r.status} ${pdfDetail(f, lang)}${leaked.length ? ' LEAKED ' + leaked.join(', ') : ''}`);
+    // SUPPLIERS ALWAYS GET ENGLISH (founder, 28 Sep 2026; E2E stage 1 D4): even a request for 'ar' must come back
+    // as the English document, so both requests expect English.
+    rep.step(B, `inquiry PDF (asked ${lang}) is ours, in English, and carries no customer contact`, pdfVerdict(f, 'en') && !leaked.length ? 'PASS' : 'FAIL',
+      `HTTP ${r.status} ${pdfDetail(f, 'en')}${leaked.length ? ' LEAKED ' + leaked.join(', ') : ''}`);
   }
   const docs = await call('supplier_api', sup.jwt, { action: 'inquiry_documents', inquiry_id: job1 });
   const docBlob = JSON.stringify(docs.json || {});

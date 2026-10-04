@@ -705,3 +705,10 @@ fn_glm_taxonomy_trades :: renamed to fn_taxonomy_trades_active by the_retired_mo
 fn_glm_sender_known :: renamed to fn_mail_sender_known by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
 trg_glm_repeat_request_enqueue :: renamed to trg_routine_repeat_request_enqueue by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
 trg_glm_trade_words_enqueue :: renamed to trg_routine_trade_words_enqueue by the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql (applied after merge) :: nothing; the proof is in that file
+# TABLE, not a routine (recorded here as the ledger reconciliation of 30 Sep 2026 asked):
+# supplier_negotiation_policy :: dropped by the_negotiation_policy_leaves_the_database.sql (applied at merge): founder ruling 527 removed negotiation; 1 configuration row (scope default, spec3 27 Aug, bands incl. escalate_to_human against ruling 17), read only by fn_customer_savings for min_sample 4, which now holds 4 itself :: the row's content stays in git (spec3_three_rows_a_capability_was_waiting_on.sql)
+# 30 Sep 2026 - there_are_no_enterprise_accounts_only_customer_and_supplier_accounts.sql (founder ruling 30 Sep 2026:
+# "No enterprise accounts. We have customer accounts and supplier accounts, that's it."). Tables enterprise_account and
+# enterprise_account_member (0 rows each) and seat_duty sales_engineer.enterprise_pipeline go in the same file.
+fn_sales_engineer_enterprise_pipeline :: dropped by there_are_no_enterprise_accounts_only_customer_and_supplier_accounts.sql (applied after merge): the weekly enterprise_pipeline duty, retired with enterprise accounts :: nothing; the proof is in that file
+fn_enterprise_account_report :: dropped by there_are_no_enterprise_accounts_only_customer_and_supplier_accounts.sql (applied after merge): the consolidated enterprise report, called only by fn_sales_engineer_enterprise_pipeline :: nothing; the proof is in that file

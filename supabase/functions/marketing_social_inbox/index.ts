@@ -241,6 +241,9 @@ async function handle(ev: InboundEvent): Promise<string> {
     conversation_id: conv.id, platform: ev.platform, channel: ev.channel, direction: 'out', author: 'seat',
     in_reply_to: inId, body: text, reply_kind: d.kind, reply_key: d.key, send_status: 'pending', occurred_at: new Date().toISOString(),
   }).select('id').single();
+  // A reply that names a supplier is refused by the database (ruling 1020, a06_names_no_supplier): nothing is sent, and
+  // the inbound message is closed with that outcome instead of being retried into the same refusal.
+  if (oErr && /ruling 1020/.test(oErr.message)) return await outcome('reply_names_a_supplier');
   if (oErr || !out) throw new Error('reply row: ' + (oErr?.message || 'no row'));
 
   if (d.kind === 'handoff') {

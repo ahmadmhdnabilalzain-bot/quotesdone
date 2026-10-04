@@ -534,14 +534,12 @@ export default async function ({ req, one, ui }) {
        ||coalesce((select max(created_at)::date::text from public.documents),'never')
        ||'; expiry scan last ok '||${LAST_OK('fn_doc_expiry_scan|doc_expiry')}`);
 
+  // s26-negotiate-limits RETIRED 30 Sep 2026 (sales_engineer), with its subject: the founder removed negotiation
+  // (ruling 527) and public.supplier_negotiation_policy was dropped (scripts/sql/the_negotiation_policy_leaves_the_database.sql).
+  // It stays in the spec's 152 and reads false with the reason, rather than querying a table that is gone.
   await req(S, 's26-negotiate-limits', 'The AI negotiates within defined limits',
-    `select coalesce((select count(*) from public.supplier_negotiation_policy) > 0
-       and ${ALL_READS('supplier_negotiation_policy')} > 1
-       and (select count(*) from public.employee_authority where threshold_aed is not null) > 0, false)`,
-    `select (select count(*) from public.supplier_negotiation_policy)||' negotiation policy row(s) with '
-       ||${ALL_READS('supplier_negotiation_policy')}||' routine(s)/view(s) naming the table and '
-       ||${UI_READS(C, 'supplier_negotiation_policy')}||' reachable; the spend limit source holds '
-       ||(select count(*) from public.employee_authority where threshold_aed is not null)||' threshold(s)'`);
+    `select false`,
+    `select 'retired: negotiation was removed by the founder (ruling 527); the policy table was dropped 30 Sep 2026'`);
 
   // "Recommend which suppliers to onboard." invite_schedule.planned is the excuse flag this brief
   // warns about — a number a person can raise without an invitation existing — so the check scores
