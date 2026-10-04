@@ -1296,7 +1296,7 @@ CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO
 CREATE POLICY writer_seat_service_role_only ON public.writer_seat AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 
 -- ===== CRON JOBS =====
-select cron.schedule('ceo-strategy-memo-monthly','0 2 2 * *',$CRON$select public.fn_ceo_strategy_memo()$CRON$);
+
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
