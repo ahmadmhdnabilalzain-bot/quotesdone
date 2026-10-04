@@ -93,6 +93,9 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
     const { data: mapped } = await admin.rpc('fn_intake_slug_for_catalog', { p_catalog_slug: liveSlug });
     if (mapped) category = String(mapped);
   }
+  // DEMAND SIGNAL (backlog T4, sales_engineer): a recognised trade is a visitor searching for it. Recorded as
+  // trade + emirate only (no text), read by fn_demand_forecast_tick. Never blocks the answer.
+  if (category) await admin.rpc('fn_demand_search_record', { p_category: category, p_emirate: emirate }).then(() => {}, () => {});
   if (!category) {
     return {
       ok: true, recognised: false, emirate,
