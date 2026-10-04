@@ -6,7 +6,7 @@
 // Translating needs the model, which is on hold, so the rule is kept in code: Arabic script is refused with a
 // bilingual reason, and the customer writes it in English. Contact stripping runs first, so a refusal never
 // echoes a number back.
-const ARABIC = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+const ARABIC = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]/; // U+FEFF (a pasted BOM) is not Arabic
 
 export const hasArabic = (s: unknown): boolean => ARABIC.test(String(s ?? ''));
 
