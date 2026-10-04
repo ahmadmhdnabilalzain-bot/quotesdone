@@ -99,7 +99,7 @@ export function ServiceDoc({ slug, locale, children }: { slug: string; locale: s
           }
         />
         {/* styles: globals.css §9 (.mk). The article column is held to a reading measure. */}
-        <div className="mk pb-8 [&_.wrap]:max-w-[900px]" dangerouslySetInnerHTML={{ __html: hero.rest }} />
+        <div className="mk pb-8 [&_.wrap]:max-w-[900px]!" dangerouslySetInnerHTML={{ __html: hero.rest }} />
         {children}
       </main>
       <SiteFooter />
