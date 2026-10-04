@@ -1644,6 +1644,13 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   // photo so no request carries more than one 5 MB image. The server re-checks everything
   // (customer_api/review_photos.ts); the checks here only spare the customer a wasted upload.
   const [photoUrls, setPhotoUrls] = useState<string[]>([]); const [phErr, setPhErr] = useState(''); const [phDone, setPhDone] = useState('');
+  // A rated review may already carry photos from an earlier visit: show them and count them.
+  useEffect(() => {
+    if (!rated || !q || !q.id) return;
+    let live = true;
+    call('customer_api', { action: 'review_photos', quote_id: q.id }, token).then((j) => { if (live && j && j.ok) setPhotoUrls(j.photo_urls || []); }).catch(() => {});
+    return () => { live = false; };
+  }, [rated, q && q.id, token]);
   const addPhotos = (files: FileList | null) => act.run('photos', async () => {
     setPhErr(''); setPhDone('');
     const list = Array.from(files || []);

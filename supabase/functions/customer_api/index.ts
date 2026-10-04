@@ -64,6 +64,7 @@ const EDIT_WINDOW_MS = 60 * 60e3;
 // comparison report referenced a label that did not exist in their list.
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
 async function signedFile(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('quote-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
+async function signedReviewPhotos(paths: string[]): Promise<string[]> { const urls = await Promise.all(paths.map(async (p) => { try { const { data } = await admin.storage.from('review-photos').createSignedUrl(p, 3600); return data?.signedUrl || null; } catch { return null; } })); return urls.filter((u): u is string => !!u); }
 async function signedDrawing(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDoc(bucket: string | null | undefined, path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from(bucket || 'agent-docs').createSignedUrl(path, 7 * 24 * 3600); return data?.signedUrl || null; } catch { return null; } }
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -1958,10 +1959,20 @@ Deno.serve(observe('customer_api', async (req) => {
         added.push(path);
       }
       const all = existing.concat(added);
-      const { error } = await admin.from('reviews').update({ photo_paths: all }).eq('id', rv.id);
-      if (error) { await admin.storage.from('review-photos').remove(added); console.error('add_review_photos update', error.message); return J({ error: 'Could not save your photos. Please try again in a moment.', code: 'photo_save_failed' }, 500); }
-      const urls = await Promise.all(all.map(async (pth) => { try { const { data } = await admin.storage.from('review-photos').createSignedUrl(pth, 3600); return data?.signedUrl || null; } catch { return null; } }));
-      return J({ ok: true, photo_count: all.length, photo_urls: urls.filter(Boolean) });
+      // Written only if the row still holds what we read (two tabs, a double submit): otherwise the
+      // later write would drop the earlier one's paths and both would pass the cap. Paths are
+      // <uuid>/<uuid>.<ext>, so the array literal needs no quoting. The database check (max 5) is the
+      // last line either way.
+      const { data: upd, error } = await admin.from('reviews').update({ photo_paths: all }).eq('id', rv.id).filter('photo_paths', 'eq', '{' + existing.join(',') + '}').select('id');
+      if (error || !upd || upd.length !== 1) { await admin.storage.from('review-photos').remove(added); console.error('add_review_photos update', error?.message || 'row changed'); return J({ error: 'Could not save your photos. Please try again in a moment.', code: 'photo_save_failed' }, error ? 500 : 409); }
+      return J({ ok: true, photo_count: all.length, photo_urls: await signedReviewPhotos(all) });
+    }
+    // Read-only: the photos already on the customer's own review, so the picker shows them after a reload.
+    if (action === 'review_photos') {
+      const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', String(body.quote_id || '')).eq('customer_id', cust.id).maybeSingle();
+      if (!tx) return J({ error: 'Not found', code: 'not_found' }, 404);
+      const { data: rv } = await admin.from('reviews').select('photo_paths').eq('transaction_id', tx.id).maybeSingle();
+      return J({ ok: true, photo_urls: await signedReviewPhotos((rv?.photo_paths as string[]) || []) });
     }
 
     if (action === 'complete_inquiry') {
