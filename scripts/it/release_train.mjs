@@ -130,7 +130,7 @@ export const offHoursOnly = (sqlText = '') => /apply-window:\s*off-hours/i.test(
 export const isProbeNote = (note = '') => /^\s*A PROBE\b/.test(note);
 // A *_probe.sql file is a probe whatever its note says (4 Oct 2026, #1149): its note was empty, the train APPLIED the
 // probe before the definitions it tests, the probe failed and the merge was left unapplied.
-export const isProbe = (x) => isProbeNote(x.note) || /_probe.sql$/.test(x.sql || "");
+export const isProbe = (x) => isProbeNote(x.note) || /_probe\.sql$/.test(x.sql || '');
 
 // entries: [{ sql: 'scripts/sql/x.sql', note }].
 // 1. A note may carry a line `apply-order: N`. When any note does, entries sort by N (none = last),
