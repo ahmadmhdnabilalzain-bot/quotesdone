@@ -40,6 +40,19 @@ test('a reveal lights Revealed with its own time and is not a hire', () => {
   assert.equal(tr.stages.find((s) => s.key === 'revealed').at, '2026-10-03T10:00:00Z');
 });
 
+test('a single quote that is revealed and hired is not stalled at Compare (#761 with one quote)', () => {
+  const rev = trackerOf({ status: 'quoted' }, [{ revealed: true }], 'en');
+  assert.equal(rev.stages.find((s) => s.key === 'revealed').done, true);
+  const hired = trackerOf({ status: 'completed', hired_supplier_id: 'x' }, [{ revealed: true }], 'en');
+  assert.equal(keyOf(hired), 'complete');
+});
+
+test('a request with quotes is never shown as held for specs', () => {
+  const tr = trackerOf({ status: 'quoted', rfq_ready: false }, [{}], 'en');
+  assert.equal(tr.held, false);
+  assert.equal(keyOf(tr), 'compare');
+});
+
 test('hire then review completes the tracker', () => {
   const hired = trackerOf({ status: 'completed', hired_supplier_id: 'x', pipeline_stage: 'won', stage_changed_at: '2026-10-04T00:00:00Z' }, [{ revealed: true }, {}], 'en');
   assert.equal(keyOf(hired), 'complete');

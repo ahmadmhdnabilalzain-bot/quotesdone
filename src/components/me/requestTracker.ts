@@ -66,26 +66,21 @@ export function trackerOf(inq: TrackerInquiry | null | undefined, quotes: Tracke
   const status = String(i.status || '');
   const ps = String(i.pipeline_stage || '');
   const closed = CLOSED.includes(ps) || CLOSED.includes(status);
-  const held = i.rfq_ready === false && !closed && status !== 'completed';
   const n = qs.length;
   const matched = Number(i.matched_suppliers) || 0;
   const revealedQs = qs.filter((q) => q && q.revealed);
   const isRevealed = revealedQs.length > 0 || ps === 'revealed' || ps === 'won';
   const isDone = status === 'completed' || !!i.hired_supplier_id || ps === 'won';
   const reviewed = isDone && qs.some((q) => q && q.rated);
+  // Held only while nothing downstream has happened: a request that already has quotes was sent.
+  const held = i.rfq_ready === false && !closed && n === 0 && !isRevealed && !isDone;
 
-  const reached: Record<StageKey, boolean> = {
-    posted: true,
-    specs: !held,
-    sent: !held && status !== 'draft',
-    quotes: n >= 1,
-    compare: n >= 2,
-    revealed: isRevealed,
-    done: isDone,
-  };
-  // A stage counts only when every stage before it does, so a later fact never paints over a gap.
-  let current = KEYS.length; // all reached
-  for (let k = 0; k < KEYS.length; k++) if (!reached[KEYS[k]]) { current = k; break; }
+  // Each stage's OWN fact. A later fact implies every earlier stage (a single quote that was revealed
+  // and hired skipped "Compare", it did not stall there), so the current stage is the one after the
+  // furthest fact — a reveal is lit from the reveal itself (#761), never held back by an earlier gap.
+  const fact: boolean[] = [true, !held, !held && status !== 'draft', n >= 1, n >= 2, isRevealed, isDone];
+  let current = 0;
+  for (let k = 0; k < KEYS.length; k++) if (fact[k]) current = k + 1;
 
   const revealAt = revealedQs.map((q) => q.revealed_at).filter(Boolean).sort()[0] || null;
   const psStage: StageKey | null = ps === 'revealed' ? 'revealed' : ps === 'won' ? 'done' : null;
