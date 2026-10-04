@@ -1929,3 +1929,4 @@ scripts/sql/no_arabic_copy_path_reaches_a_supplier.sql
 scripts/sql/a_project_is_split_only_when_the_customer_chose_it.sql
 scripts/sql/the_negotiation_policy_leaves_the_database.sql
 scripts/sql/the_ceo_strategy_memo_runs_on_the_seat_clock.sql
+scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_charges_on_4_october.sql
