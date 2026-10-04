@@ -7,6 +7,7 @@ import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
+import { ENGLISH_ONLY, hasArabic } from '../_shared/supplier_english.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
@@ -1487,6 +1488,8 @@ Deno.serve(observe('customer_api', async (req) => {
       const hits: string[] = [];
       const clean = String(scrubIdentity(raw, cust.full_name, hits) || '').trim();
       if (clean.replace(/\[removed\]/g, '').trim().length < 2) return J({ error: 'text_required' }, 400);
+      // Every matched supplier reads this note, and suppliers read English only (_shared/supplier_english.ts).
+      if (hasArabic(clean)) return J(ENGLISH_ONLY, 422);
       const nowIso = new Date().toISOString();
       const { data: ins, error: nerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
       if (nerr || !ins) return J({ error: 'save_failed' }, 500);
