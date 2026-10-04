@@ -15,6 +15,7 @@ import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 // The supplier's alias on this job is the same one its own quotation prints (audit 21 Sep 2026, finding 29).
 import { jobAlias } from '../_shared/quote_labels.ts';
+import { ENGLISH_ONLY, hasArabic } from '../_shared/supplier_english.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
@@ -157,6 +158,8 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     const { data: me } = await admin.from('customers').select('full_name').eq('id', cust.id).maybeSingle();
     const text = stripContact(b.text, [me?.full_name]);
     if (text.replace(/\[removed\]/g, '').trim().length < 1) return R(400, { error: 'text_required' });
+    // Every matched supplier reads this answer, and suppliers read English only (_shared/supplier_english.ts).
+    if (hasArabic(text)) return R(422, ENGLISH_ONLY);
     const { error } = await admin.from('rfq_clarification').update({ answer: text, answered_at: new Date().toISOString() }).eq('id', id).is('answered_at', null);
     if (error) return R(500, { error: 'save_failed' });
     const notified = await notifyMatched(String(row.inquiry_id), inq, 'clarification_answered',
