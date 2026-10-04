@@ -64,6 +64,11 @@ drop policy if exists demand_forecast_service_role_only on public.demand_forecas
 create policy demand_forecast_service_role_only on public.demand_forecast as permissive for all to public using (false) with check (false);
 revoke all on public.demand_forecast from anon, authenticated;
 
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('demand_search', true, 'company', 'brief-box searches the router recognised: trade and emirate only, no text (backlog T4)', 'sales_engineer'),
+  ('demand_forecast', true, 'decision', 'the sales engineer''s daily 30/90-day demand estimate per trade and emirate (backlog T4)', 'sales_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason, added_by = excluded.added_by;
+
 -- The brief box's recorder, called by public_site with the service role after the router recognised a trade.
 create or replace function public.fn_demand_search_record(p_category text, p_emirate text)
 returns void
