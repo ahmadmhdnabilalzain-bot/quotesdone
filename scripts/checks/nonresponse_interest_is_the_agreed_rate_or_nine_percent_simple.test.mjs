@@ -72,7 +72,7 @@ test('static: every branch carries its literal, the documents name only signed r
 
 export const PROBE = `
 do $$
-declare v14 bigint; v12 bigint; v0 bigint; vp bigint; dp bigint; t14 uuid; t12 uuid; t0 uuid; tp uuid; pre jsonb; rec jsonb; rec2 jsonb; vs bigint; ds bigint; ts_ uuid; st jsonb; pr jsonb; sp jsonb; chk jsonb; vr bigint; dr bigint; tr uuid; dn bigint; dv bigint; r_prev numeric; r_today numeric; ov jsonb; rv jsonb; g jsonb; d date := (now() at time zone 'Asia/Dubai')::date; out jsonb := '{}';
+declare v14 bigint; v12 bigint; v0 bigint; vp bigint; dp bigint; t14 uuid; t12 uuid; t0 uuid; tp uuid; pre jsonb; rec jsonb; rec2 jsonb; vs bigint; ds bigint; ts_ uuid; st jsonb; pr jsonb; sp jsonb; chk jsonb; vr bigint; dr bigint; tr uuid; dn bigint; dv bigint; dz bigint; dq bigint; r_prev numeric; r_today numeric; ov jsonb; rv jsonb; g jsonb; d date := (now() at time zone 'Asia/Dubai')::date; out jsonb := '{}';
 begin
   update public.pricing_config set supplier_nonresponse_interest_apr = 0.5;
   update public.decision_policy set value = to_jsonb(0.5) where key in ('supplier_charge_max_lawful_apr', 'supplier_nonresponse_interest_apr_from_v14');
@@ -167,6 +167,17 @@ begin
   update public.supplier_dues set status = 'paid', paid_at = now(), payment_ref = 'pi_ZZDEMO_nocheckout' where id = dn;
   g := g || jsonb_build_object('nockout_rows', (select count(*) from public.supplier_due_payments where due_id = dn),
          'nockout_finding', (select count(*) from public.it_engineer_finding where issue_key = 'acct:stripe_settlement_without_checkout_amount:' || dn));
+  -- a due with no transaction, paid in full by bank, is settled (review of #1173: it stayed owed forever)
+  insert into public.supplier_dues (transaction_id, supplier_id, amount_due, admin_fee, status) values (null, vr, 300, 250, 'open') returning id into dz;
+  rv := public.fn_accountant_record_supplier_payment(dz, 550, d, 'ZZ-DEMO-BANK-FULL');
+  g := g || jsonb_build_object('notx', jsonb_build_object('s', rv->'settled', 'p', (select paid_at is not null from public.supplier_dues where id = dz)));
+  -- a stale checkout paid after a bank part payment: recorded as Stripe took it, and an overpayment finding
+  insert into public.supplier_dues (transaction_id, supplier_id, amount_due, admin_fee, status) values (null, vr, 300, 250, 'open') returning id into dq;
+  insert into public.supplier_due_checkouts (session_id, due_id, amount_aed) values ('cs_ZZDEMO_stale', dq, 550);
+  perform public.fn_accountant_record_supplier_payment(dq, 100, d, 'ZZ-DEMO-BANK-PART');
+  update public.supplier_dues set status = 'paid', paid_at = now(), payment_ref = 'pi_ZZDEMO_stale', stripe_session_id = 'cs_ZZDEMO_stale' where id = dq;
+  g := g || jsonb_build_object('stale', jsonb_build_object('r', (select amount_aed from public.supplier_due_payments where due_id = dq and reference = 'pi_ZZDEMO_stale'),
+         'f', (select count(*) from public.it_engineer_finding where issue_key = 'acct:stripe_overpayment:' || dq || ':pi_ZZDEMO_stale')));
   -- GAP 1: a reversed due refuses a bank payment
   insert into public.supplier_dues (transaction_id, supplier_id, amount_due, admin_fee, status) values (null, vr, 300, 250, 'reversed') returning id into dv;
   rv := public.fn_accountant_record_supplier_payment(dv, 10, d, 'ZZ-DEMO-BANK-REVERSED');
@@ -245,6 +256,8 @@ export function verdict(o) {
   if (Number(rl.yesterday) === Number(rl.today)) bad.push('gap 3: the rollover case does not change the figure across the day ' + JSON.stringify(rl));
   if (rl.rows !== 1 || Number(rl.row) !== Number(rl.yesterday)) bad.push('gap 3: the settlement row is not what the checkout charged ' + JSON.stringify(rl));
   if (g.nockout_rows !== 0 || g.nockout_finding !== 1) bad.push('gap 3: a Stripe settlement with no stored amount was recomputed ' + JSON.stringify(g));
+  if (g.notx.s !== true || g.notx.p !== true) bad.push('a no-transaction due paid in full by bank is not settled ' + JSON.stringify(g.notx));
+  if (Number(g.stale.r) !== 550 || g.stale.f !== 1) bad.push('a stale checkout overpayment was not recorded as charged with a finding ' + JSON.stringify(g.stale));
   if (Number(c.paid) !== 275) bad.push(`part: the payment of 275 is not read (paid ${c.paid})`);
   if (Number(c.int) !== ts.interest) bad.push(`part: interest ${c.int} is not the documents' ${ts.interest}`);
   if (Number(c.total) !== ts.total_due) bad.push(`part: total ${c.total} is not the documents' ${ts.total_due}`);

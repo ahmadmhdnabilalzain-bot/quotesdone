@@ -102,12 +102,14 @@ create or replace function public.fn_supplier_due_record_settlement(p_due_id big
  security definer
  set search_path to 'public', 'pg_temp'
 as $function$
-declare d public.supplier_dues; v_rest numeric; v_id bigint; v_on date;
+declare d public.supplier_dues; v_rest numeric; v_id bigint; v_on date; v_owed numeric;
 begin
   select * into d from public.supplier_dues where id = p_due_id;
   if not found or d.paid_at is null or coalesce(d.status, '') in ('reversed', 'refunded', 'cancelled') then return null; end if;
   v_on := (d.paid_at at time zone 'Asia/Dubai')::date;
-  if nullif(btrim(d.stripe_session_id), '') is not null or d.payment_ref ~ '^(pi|cs)_' then
+  -- stripe_webhook's reference is always the payment intent or the session (pi_ / cs_); stripe_session_id alone is not
+  -- evidence (supplier_pay writes it when a checkout is OPENED, paid or not)
+  if d.payment_ref ~ '^(pi|cs)_' then
     -- a Stripe settlement records what the session charged for this due, stored at checkout; never a figure
     -- recomputed at paid_at (a day's interest apart when the checkout and the payment straddle midnight)
     select c.amount_aed into v_rest from public.supplier_due_checkouts c
@@ -120,6 +122,16 @@ begin
                            'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
         '{}'::text[], '{}'::text[], 'accountant');
       return null;
+    end if;
+    -- Stripe took it, so it is recorded as taken; a stale session paid after a bank part payment is an overpayment
+    v_owed := (public.fn_supplier_dues_outstanding(array[d.id], v_on) -> d.id::text ->> 'owed_aed')::numeric;
+    if v_rest > coalesce(v_owed, 0) then
+      perform public.fn_it_engineer_finding_upsert('acct:stripe_overpayment:' || d.id || ':' || d.payment_ref,
+        'Stripe charged AED ' || v_rest || ' on supplier due ' || d.id || ', above the AED ' || coalesce(v_owed, 0) || ' still owed; the excess is the supplier''s',
+        'public.fn_supplier_due_record_settlement', 'agent_facing', 1,
+        jsonb_build_object('due_id', d.id, 'charged_aed', v_rest, 'owed_aed', v_owed, 'stripe_session_id', d.stripe_session_id,
+                           'payment_ref', d.payment_ref, 'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+        '{}'::text[], '{}'::text[], 'accountant');
     end if;
   else
     -- any other writer of paid_at: what was still owed on the settlement date, before this settlement
@@ -199,12 +211,14 @@ begin
   if v_id is null then
     return jsonb_build_object('ok', false, 'reason', 'this reference is already recorded against this due, so the payment is not counted twice');
   end if;
-  v := public.fn_accountant_nonresponse_charge(d.transaction_id, null);
-  -- settled only when nothing is outstanding: no unpaid principal and no interest
-  if coalesce((v->>'ok')::boolean, false) and (v->>'total_aed')::numeric <= 0 then
+  v := case when d.transaction_id is not null then public.fn_accountant_nonresponse_charge(d.transaction_id, null) end;
+  -- settled only when nothing is outstanding on the same figure the cap reads (principal, interest, fees and any legacy
+  -- fine; a due with no transaction reads its stored columns less payments)
+  v_owed := (public.fn_supplier_dues_outstanding(array[d.id], v_today) -> d.id::text ->> 'owed_aed')::numeric;
+  if v_owed <= 0 then
     update public.supplier_dues set paid_at = now(), status = 'paid', payment_ref = btrim(p_reference) where id = p_due_id;
   end if;
-  return jsonb_build_object('ok', true, 'payment_id', v_id, 'due_id', p_due_id, 'settled', coalesce((v->>'total_aed')::numeric, 1) <= 0,
+  return jsonb_build_object('ok', true, 'payment_id', v_id, 'due_id', p_due_id, 'settled', v_owed <= 0, 'owed_aed', v_owed,
                             'paid_aed', v->'paid_aed', 'unpaid_principal_aed', v->'unpaid_principal_aed', 'interest_aed', v->'interest_aed', 'total_aed', v->'total_aed');
 end $function$;
 revoke execute on function public.fn_accountant_record_supplier_payment(bigint, numeric, date, text, text) from public, anon, authenticated;
