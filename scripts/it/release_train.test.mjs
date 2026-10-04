@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { REQUIRED_CHECKS, dependsOn, isDependabotMinorPatch, checksGreen, inCampaignHours, refusal, applyOrder, driftFiles, isProbeNote }
+import { REQUIRED_CHECKS, dependsOn, isDependabotMinorPatch, checksGreen, inCampaignHours, refusal, mergeOrFlag, applyOrder, driftFiles, isProbeNote }
   from './release_train.mjs';
 
 const green = [...REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })), { name: 'a', conclusion: 'SUCCESS' }, { context: 'Vercel', state: 'SUCCESS' }];
@@ -198,4 +198,23 @@ test('no retry once the database accepted the file, and routinesIn reads unprefi
   const r = await applyWithRetry({ apply: () => seq.shift(), sqlText: 'create table t();', snapshot: () => 's', sleep: async () => {}, jitter: () => 1 });
   assert.equal(r.ok, false); assert.equal(r.attempts, 1);
   assert.deepEqual(routinesIn('create or replace function fn_x() returns int language sql as $$select 1$$;\ncreate or replace function public.fn_y() returns int language sql as $$select 1$$;'), ['fn_x', 'fn_y']);
+});
+
+test('#1141: a refused merge is flagged and labelled, and does not crash the run', () => {
+  const calls = [];
+  const ok = mergeOrFlag(pr(), {
+    merge: () => { const e = new Error('Command failed: gh pr merge'); e.stderr = 'GraphQL: refusing to allow a GitHub App to create or update workflow without workflows permission'; throw e; },
+    finding: (p, file, out) => calls.push(['finding', p.number, file, out]),
+    label: (p) => calls.push(['label', p.number]),
+  });
+  assert.equal(ok, false);
+  assert.equal(calls[0][2], 'merge');
+  assert.match(calls[0][3], /workflows permission/);
+  assert.deepEqual(calls[1], ['label', 9]);
+  assert.equal(mergeOrFlag(pr(), { merge: () => 'ok', finding: () => assert.fail(), label: () => assert.fail() }), true);
+});
+
+test('a PR touching .github/workflows/ needs a human merge', () => {
+  assert.match(refusal(pr({ files: [{ path: '.github/workflows/release-train.yml' }] })), /needs a human merge: workflow files/);
+  assert.equal(refusal(pr({ files: [{ path: 'scripts/it/x.mjs' }] })), null);
 });
