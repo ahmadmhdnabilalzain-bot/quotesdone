@@ -2,7 +2,7 @@
 //
 // The founder removed the enterprise account grouping (#1169) and ruled the year-one plan must not be lowered: its
 // volume sits on customer accounts. This fails when:
-//   * static: the year-plan files carry the word in code, or the plan rows no longer sum to the ledger's totals;
+//   * static: the plan rows no longer sum to the ledger's totals;
 //   * production (read): a target, the mandate, a seat action, the plan table or the active contract names it; the
 //     plan's totals differ from the LAST entry of LEDGER below; an entry names a ledger row that does not exist.
 //     A plan change is legal only by adding an entry here that names the founder_instruction row that ordered it;
@@ -22,7 +22,6 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const PLAN = 'scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targets.sql';
 const MINE = 'scripts/sql/the_year_one_plan_carries_the_business_account_volume_on_customer_accounts.sql';
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
-const WORD = /enterpr/i;
 
 // Each founder_instruction row that set or moved the plan, with the year totals it leaves.
 // requests, quotes, reveals, fee_aed, business-account months, cost ceilings, verified at September's end.
@@ -33,8 +32,8 @@ const LEDGER = [
 const current = LEDGER.at(-1).totals;
 
 test('static: the year-plan files name customer accounts, and the rows sum to the ledger', () => {
-  // the relabel file must spell the old name to rename it; the plan file must not carry it anywhere, comments included
-  assert.ok(!WORD.test(read(PLAN)), `${PLAN} names the removed account grouping`);
+  // The plan file is applied history (24 Sep, #924) and keeps its wording: an applied file is never edited. Whether
+  // anything LIVE still names the removed grouping is the production test below, which reads the database.
   const rows = [...read(PLAN).matchAll(/\('(20\d\d-\d\d-01)', (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+)\)/g)].map((m) => m.slice(2).map(Number));
   const sum = (i) => rows.reduce((a, r) => a + r[i], 0);
   assert.deepEqual({ months: rows.length, requests: sum(2), quotes: sum(3), reveals: sum(4), fee_aed: sum(5), accounts: sum(7), cost_ceiling_aed: sum(8), verified_sep: rows.at(-1)[0] },
