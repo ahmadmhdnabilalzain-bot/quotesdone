@@ -213,6 +213,8 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+  /* v4 preflight dropped the pointer cursor on buttons; v3 had it. */
+  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
   *,
   ::after,
   ::before,
@@ -3092,6 +3094,9 @@
     --chart-1:173 80% 40%; --chart-2:171 72% 67%; --chart-3:174 84% 28%; --chart-4:198 16% 57%; --chart-5:43 69% 64%;
   }
 }
+/* The rest of the portal block joins the site's CSS in the utilities layer. Left unlayered it beats
+   every layered rule, so `.osx *` would erase focus:/hover: border utilities inside the portal. */
+@layer utilities {
 .osx{
   --background:205 52% 8%; --foreground:165 31% 95%;
   --card:206 53% 13%; --card-foreground:165 31% 95%;
@@ -3156,4 +3161,5 @@
   .qd-magnet{transform:none}
   .qd-seal-loop::before{animation:none !important;transform:translateX(calc(var(--dir) * 104%))}
   .qd-seal-loop > *{animation:none !important;opacity:1}
+}
 }
