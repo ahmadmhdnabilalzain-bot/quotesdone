@@ -1,0 +1,1 @@
+Not applied (it_engineer, 4 Oct 2026): applies at merge by the release train. Routes measured in an aborted transaction: 800, 0 moved. Then delete this note and append the .sql to the END of MANIFEST.txt.
