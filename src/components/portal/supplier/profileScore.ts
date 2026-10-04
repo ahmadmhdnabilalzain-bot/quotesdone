@@ -14,7 +14,7 @@ export function profileScore(me: any, eligibility: any, today: string = new Date
   const licOnFile = filled(m.license_doc_path) || filled(m.trade_license_no);
   const items: ScoreItem[] = [
     { key: 'licence', label: 'Upload your trade licence', points: 20, done: licOnFile, tab: 'documents' },
-    { key: 'licence_current', label: 'Renew your trade licence (expired or no expiry date on file)', points: 15, done: licOnFile && filled(m.license_expiry) && String(m.license_expiry).slice(0, 10) >= today, tab: 'documents' },
+    { key: 'licence_current', label: 'Keep your trade licence in force (on file with an expiry date that has not passed)', points: 15, done: licOnFile && filled(m.license_expiry) && String(m.license_expiry).slice(0, 10) >= today, tab: 'documents' },
     { key: 'company_profile', label: 'Upload your company profile (PDF)', points: 15, done: filled(m.company_profile_doc_path), tab: 'documents' },
     { key: 'scope', label: 'Confirm the services you offer', points: 15, done: !!eligibility && !scopeOpen, tab: 'services' },
     { key: 'description', label: 'Write a company description of at least 80 characters', points: 10, done: String(m.description ?? '').trim().length >= 80, tab: 'profile' },
