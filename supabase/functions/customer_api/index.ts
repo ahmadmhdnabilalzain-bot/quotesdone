@@ -7,6 +7,7 @@ import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
+import { repeatPlan } from './repeat.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
@@ -828,7 +829,7 @@ Deno.serve(observe('customer_api', async (req) => {
     // condition ('No customer profile', 403) rather than inventing a new vocabulary for it.
     const { data: cust } = await admin.from('customers').select('*').eq('email', email).maybeSingle();
     if (!cust) return J({ error: 'No customer profile', hint: 'This signed-in identity has no customer account. Customer accounts are created when a buyer verifies their sign-in code, not by reading this endpoint.' }, 403);
-    const body = await req.json().catch(() => ({})); const action = String(body.action || '');
+    const body = await req.json().catch(() => ({})); let action = String(body.action || '');
     // BANNED CUSTOMER (27 Jul 2026). messages_api auto-bans a buyer who pushes contact details
     // off-platform (it writes customers.banned = true) but customer_api never read that column,
     // so the ban only ever closed the chat: the same person could still post RFQs, reveal
@@ -1153,6 +1154,19 @@ Deno.serve(observe('customer_api', async (req) => {
         p_category: body.category ? String(body.category).slice(0, 80) : null, p_lang: documentLocale(body.lang, cust.locale), p_inquiry: null });
       if (error) return J({ ok: false, error: 'concierge_unavailable' }, 503);
       return J({ ok: true, concierge: data });
+    }
+
+    // REPEAT A PAST REQUEST IN ONE CLICK (founder_instruction 1028; ./repeat.ts). It builds a ready intake from
+    // the customer's own earlier request and then falls through to create_inquiry, the one posting door.
+    if (action === 'repeat_inquiry') {
+      const { data: o } = await admin.from('inquiries').select('id,customer_id,parent_inquiry_id,category,emirate,raw_input,spec,summary,budget,scope_type,trades,floor,project_id,lang,created_at').eq('id', String(body.inquiry_id || '')).maybeSingle();
+      if (!o || o.customer_id !== cust.id) return J({ error: 'not_found' }, 404);
+      if (o.parent_inquiry_id) return J({ error: 'repeat_the_whole_request', message: 'This is one trade of a larger request. Repeat the whole request instead.' }, 409);
+      const plan = repeatPlan(o, new Date());
+      const { data: it, error: ie } = await admin.from('inquiry_intake').insert({ customer_id: cust.id, email, category: plan.category, status: 'ready', raw_input: plan.raw_input, brief: plan.brief, readiness: 100, missing: [], turns: [] }).select('id').single();
+      if (ie || !it) return J({ error: 'save_failed' }, 500);
+      Object.assign(body, plan.body, { intake_id: it.id });
+      action = 'create_inquiry';
     }
 
     if (action === 'create_inquiry') {
