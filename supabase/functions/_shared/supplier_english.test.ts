@@ -7,6 +7,7 @@ Deno.test('Arabic script anywhere is caught; English, numbers and symbols are no
   assert(hasArabic('ﻻ')); // presentation forms
   assertEquals(hasArabic('Ceiling height 3.2 m; white RAL 9010, 60x60 tiles - 120 m²'), false);
   assertEquals(hasArabic(null), false);
+  assertEquals(hasArabic(String.fromCharCode(0xfeff) + 'Yes, 3 m'), false); // a pasted byte-order mark is not Arabic
 });
 
 Deno.test('the refusal speaks both languages and names its code', () => {
