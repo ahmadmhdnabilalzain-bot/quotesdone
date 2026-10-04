@@ -29,7 +29,7 @@ function stubDb(o: { held?: boolean; gateError?: string } = {}) {
         const phase = turns.blind ? (turns.compare ? null : 'compare') : 'blind';
         if (!phase) return Promise.resolve({ data: { action: 'none' }, error: null });
         return Promise.resolve({ data: { action: 'call_model', phase, task_class: 'seat_deliberation_' + phase, model: 'openai/gpt-5.6-sol',
-          counterpart_model: 'z-ai/glm-5.3-flash', reviewer_seat: 'ceo', max_tokens: 600, payload: { evidence: {} }, system: 's' }, error: null });
+          counterpart_model: 'google/gemini-3.8-flash', reviewer_seat: 'ceo', max_tokens: 600, payload: { evidence: {} }, system: 's' }, error: null });
       }
       if (fn === 'fn_seat_deliberation_record') { turns[String(args.p_phase)] = args; return Promise.resolve({ data: 1, error: null }); }
       return Promise.resolve({ data: null, error: null });

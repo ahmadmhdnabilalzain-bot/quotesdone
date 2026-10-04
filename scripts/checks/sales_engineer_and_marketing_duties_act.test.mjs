@@ -120,8 +120,8 @@ do $$ declare o jsonb := '{}'; v jsonb; lid bigint; inq uuid; h bigint; n bigint
   exception when others then
     o := o || jsonb_build_object('bad_choice', left(sqlerrm, 40), 'still_deciding', (select status from public.supply_gap where trade = tr and emirate = em));
   end;
-  -- the author's model is proven the way think() proves it: its latest agent_reasoning call by the seat
-  insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values ('probe', 'sales_engineer', 'sales_engineer', 'agent_reasoning', 'openai/gpt-5.6-sol', true);
+  -- the author's model is proven the way think() proves it: its latest internal_judgement call by the seat (#1126, 1056)
+  insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values ('probe', 'sales_engineer', 'sales_engineer', 'internal_judgement', 'openai/gpt-5.6-sol', true);
   update public.reasoning_held_question set status = 'held' where id = h;
   perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: thin supply and a deep uninvited pool make this worth recruiting now.","model":"openai/gpt-5.6-sol","decision":{"choice":"recruit"}}');
   o := o || jsonb_build_object('reasoned', (select jsonb_build_object('status', status, 'by', decided_by, 'deliberation', (review->>'deliberation_id') is not null)

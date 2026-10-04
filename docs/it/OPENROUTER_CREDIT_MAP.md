@@ -19,8 +19,10 @@ the model hold was on throughout and was not touched.
 - **Prices:** from `model_rate` and `model_policy`.
   - `openai/gpt-5.6-sol`: USD 2 in / 10 out per million tokens. It serves every customer, supplier and Arabic class,
     `knowledge_validation` (the verify step) and seat deliberation.
-  - `z-ai/glm-5.3-flash`: USD 0.15 in / 0.50 out per million tokens. It serves `routine_employee_reasoning`: plan, research
-    and internal answers.
+  - `google/gemini-3.8-flash` (plan A of founder_instruction 1056): USD 0.75 in / 3.75 out per million tokens (model_registry,
+    30 Sep 2026). It serves `routine_employee_reasoning`: plan, research
+    and internal answers. Until 30 Sep 2026 this line named the model ruled in by 841 (USD 0.15 / 0.50), retired by
+    founder_instruction 1068; the internal unit costs and the table below were computed at that older price.
 - **Unit costs, assumed:** a planning or internal call is 1.5–4k tokens in and 0.4–0.5k out. A sol answer is 4k in
   and 0.5k out. A sol verify is 4k in and 0.2k out.
   - An internal `think()` costs about USD 0.0013.
@@ -33,12 +35,12 @@ At today's idle volume, measured over 24–28 Sep, with the fixes in this PR:
 
 | # | Class | Call site | Trigger and frequency | Tier | Calls/day | USD/day |
 |---|---|---|---|---|---|---|
-| 1 | Supply gap: "recruit or defer" a trade nobody is waiting on | SQL `fn_sales_engineer_supply_gap` → `fn_seat_duty_reason` (stakes high) → `replayHeld` | duty `sales_engineer.supply_gap`, daily, at most 10 trades a day | GLM plan and decide, sol verify, and a sol cross-family review on "recruit" | 10 reasonings, about 35 calls | **0.24** |
-| 2 | Postmortem of each incident | SQL `fn_it_engineer_postmortem` → `replayHeld` | duty `it_engineer.postmortem`, hourly: 10.5/day measured (one per incident id) | GLM (sol verify only when the plan marks it high stakes) | about 21–30 | 0.02–0.12 |
-| 3 | Knowledge refresh, exam and distil for 6 seats | SQL knowledge duties, `learning_loop.ts` → `replayHeld` | weekly per seat, about 1.5/day | GLM plus sol verify | about 5 | 0.02 |
-| 4 | Competitor page change | `fn_competitor_scan_ingest` → `replayHeld` | hourly scan; files only on a changed page (31 first reads on 24 Sep, since then 0/day) | GLM | 0–1 | ≤0.01 |
-| 5 | WhatsApp reply | `wa_inbound`: needs-a-person decision, menu meaning, `supportReply` (781) | per inbound message, 3.6/day | sol answer, GLM plan | about 11 reasonings | 0.16 |
-| 6 | E-mail reply | `email_triage`: GLM classify, needs-a-person decision, `think()` with high stakes | per inbound mail, 2.4/day | GLM, sol, sol verify | about 12 | 0.09 |
+| 1 | Supply gap: "recruit or defer" a trade nobody is waiting on | SQL `fn_sales_engineer_supply_gap` → `fn_seat_duty_reason` (stakes high) → `replayHeld` | duty `sales_engineer.supply_gap`, daily, at most 10 trades a day | Gemini plan and decide, sol verify, and a sol cross-family review on "recruit" | 10 reasonings, about 35 calls | **0.24** |
+| 2 | Postmortem of each incident | SQL `fn_it_engineer_postmortem` → `replayHeld` | duty `it_engineer.postmortem`, hourly: 10.5/day measured (one per incident id) | Gemini (sol verify only when the plan marks it high stakes) | about 21–30 | 0.02–0.12 |
+| 3 | Knowledge refresh, exam and distil for 6 seats | SQL knowledge duties, `learning_loop.ts` → `replayHeld` | weekly per seat, about 1.5/day | Gemini plus sol verify | about 5 | 0.02 |
+| 4 | Competitor page change | `fn_competitor_scan_ingest` → `replayHeld` | hourly scan; files only on a changed page (31 first reads on 24 Sep, since then 0/day) | Gemini | 0–1 | ≤0.01 |
+| 5 | WhatsApp reply | `wa_inbound`: needs-a-person decision, menu meaning, `supportReply` (781) | per inbound message, 3.6/day | sol answer, Gemini plan | about 11 reasonings | 0.16 |
+| 6 | E-mail reply | `email_triage`: Gemini classify, needs-a-person decision, `think()` with high stakes | per inbound mail, 2.4/day | Gemini, sol, sol verify | about 12 | 0.09 |
 | 7 | Website widget and portal chat | `site_assistant`, `sales_engineer` assist (`supportReply`, price guidance) | per visitor message, 0.3/day | sol | about 2 | 0.01 |
 | 8 | Direct gateway callers | `quote_compare`, `inquiry_intake`, `drawing_boq`, `drawing_redact`, extractors, `ceo_agent`, `marketing` | per real request | sol | **0 real** since 23 Sep (the 75/day "held" `quote_compare` rows stopped on 22 Sep; everything since is `FIXTURE`) | 0.00 |
 | 9 | Our own test traffic (nightly journey, post-deploy smokes) | `think()` callers and `llm.ts` callers (listed below) | every deploy and every night; 6.5/day fixture `line_specs.assess` rows measured | sol | 0 after this PR | **0.00** (was about 0.1–0.5) |
@@ -49,7 +51,7 @@ At today's idle volume, measured over 24–28 Sep, with the fixes in this PR:
 Rows 8 and 9 cover these `llm.ts` and direct callers: `ceo_agent`, `customer_portal`, `drawing_redact`, `email_triage`,
 `inquiry_intake`, `marketing/duties`, `resend_inbound`, `quote_compare`, `quote_extract`, `license_extract`,
 `doc_extract`, `supplier_api`, `supplier_portal` and `transcribe`. The `think()` users are in the `reasoned_*.ts`
-modules, `line_specs/*`, `learning_loop.ts`, `glm_judgements.ts` and the `marketing_*` modules. All of them are
+modules, `line_specs/*`, `learning_loop.ts`, `routine_judgements.ts` and the `marketing_*` modules. All of them are
 request-driven: at idle their only traffic is ours.
 
 ## Flags

@@ -19,10 +19,14 @@ test('kyc accept_terms answers before the certificate is rendered', () => {
   assert.ok(render > 0, 'accept_terms no longer issues the certificate at all');
   const certify = acc.indexOf('const certify = (async () => {');
   assert.ok(certify > 0 && certify < render, 'the compliance_archive render is not inside the background block');
-  assert.match(acc, /if \(kind === 'customer' && typeof rt\?\.waitUntil === 'function'\) \{ rt\.waitUntil\(certify\); return J\(/,
-    'a customer waits on the render');
-  // SupplierPortal re-saves right after this call and supplier_api refuses reg_terms until the PDF exists.
-  assert.match(acc, /return J\(\{ ok: true, signed_url: await certify \}\);/, 'a supplier is answered before the certificate exists');
+  // Since 30 Sep 2026 (E2E stage 1, D8) neither a customer nor a supplier waits: supplier_api no longer polls for
+  // the PDF, and z20_leads_mandatory_item_landed_reverifies verifies the supplier when signed_terms_path lands.
+  assert.match(acc, /if \(typeof rt\?\.waitUntil === 'function'\) \{ rt\.waitUntil\(certify\); return J\(/,
+    'an accepting party waits on the render');
+  const sa = read('supabase/functions/supplier_api/index.ts');
+  assert.ok(!/setTimeout\(r, 750\)/.test(sa), 'supplier_api polls for the certificate again');
+  // The acceptance is still RECORDED before any answer: supplier_api writes accepted_terms_at in the same update.
+  assert.match(sa, /const rec = await supplierTermsRecord\(secretVal, clientIp\(req\)/, 'save_profile no longer records the acceptance');
   assert.ok(!/await timedFetch\(`\$\{FN\}\/compliance_archive`/.test(acc.slice(0, certify)), 'a render is awaited before the answer');
   assert.match(acc, /meta\.fixture = isDemoEmail\(email\);/, 'a reserved test identity is not marked on its run row');
   const sql = read('scripts/sql/every_duty_runner_honours_one_pause_switch.sql');
