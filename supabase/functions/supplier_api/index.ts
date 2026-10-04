@@ -1431,13 +1431,21 @@ const handle = async (req: Request): Promise<Response> => {
       const cust: Record<string, any> = {};
       if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name,email,phone').in('id', custIds); for (const c of (cs || [])) cust[String(c.id)] = c; }
       const wd = async (from: string, n: number) => { try { const { data } = await admin.rpc('fn_add_working_days', { p_from: from, p_days: n }); return (data as string) || null; } catch (_e) { return null; } };
+      // The customer's post-job review (T2): stars, words and photos, on the supplier's own revealed
+      // jobs only. Photos come from the private review-photos bucket as 1-hour signed URLs.
+      const rvBy: Record<string, any> = {};
+      const txIds = (projs || []).map((p: any) => p.id);
+      if (txIds.length) { const { data: rvs } = await admin.from('reviews').select('transaction_id,rating,comment,photo_paths,created_at').in('transaction_id', txIds); for (const r of (rvs || [])) rvBy[String(r.transaction_id)] = r; }
+      const photoUrl = async (p: string) => { try { const { data } = await admin.storage.from('review-photos').createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
       const out: any[] = [];
       for (const p of (projs || []) as any[]) {
         const c = cust[String(p.customer_id)] || {};
         out.push({ id: p.id, inquiry_id: p.inquiry_id, category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, summary: p.inquiries?.summary || null,
           revealed_at: p.revealed_at, amount: p.quote_amount, acknowledged_at: p.supplier_ack_at || null, refund_status: p.refund_status || null,
           chase_at: await wd(p.revealed_at, 3), respond_by: p.refund_deadline || await wd(p.revealed_at, 5),
-          customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null } });
+          customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null },
+          review: rvBy[String(p.id)] ? { rating: rvBy[String(p.id)].rating, comment: rvBy[String(p.id)].comment || null, created_at: rvBy[String(p.id)].created_at,
+            photo_urls: (await Promise.all(((rvBy[String(p.id)].photo_paths || []) as string[]).map(photoUrl))).filter(Boolean) } : null });
       }
       return J({ ok: true, projects: out });
     }
