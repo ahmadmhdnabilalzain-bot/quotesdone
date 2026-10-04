@@ -1125,7 +1125,7 @@ const handle = async (req: Request): Promise<Response> => {
             for (const i of hired) {
               const c = (wq || []).filter((q) => String(q.inquiry_id) === String(i.id) && Number(q.supplier_id) === Number(i.hired_supplier_id) && sent(q));
               // The hired supplier's accepted option if marked, else its lowest-priced sent option.
-              chosenOf[String(i.id)] = c.find((q) => q.status === 'accepted') || c.sort((a, b) => Number(a.quote_amount) - Number(b.quote_amount))[0] || null;
+              chosenOf[String(i.id)] = c.find((q) => q.status === 'accepted') || c.sort((a, b) => (Number(a.quote_amount) || Infinity) - (Number(b.quote_amount) || Infinity))[0] || null;
             }
           }
           for (const id of lostIds) for (const q of qmap[id]) if (sent(q)) q.loss_feedback = lossFeedback(q, chosenOf[id] ?? null, reasonOf[id]);
