@@ -5,6 +5,7 @@ import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
+import { parseReviewPhotos } from './review_photos.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
 import { defaultDeps } from '../_shared/think.ts';
@@ -835,7 +836,7 @@ Deno.serve(observe('customer_api', async (req) => {
     // suppliers, request refunds and rate them from the main buyer surface. Every mutating
     // action is refused now. 'me' and 'my_inquiries' stay open on purpose so the person can
     // still see their own account state and existing requests rather than hitting a dead wall.
-    const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
+    const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'add_review_photos', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
     if (action === 'me') return J({ customer: cust });
@@ -1933,6 +1934,34 @@ Deno.serve(observe('customer_api', async (req) => {
       }
       await admin.rpc('recompute_supplier_rating', { p_supplier: q.supplier_id });
       return J({ ok: true });
+    }
+
+    // PHOTOS ON A POST-JOB REVIEW (T2). Only after the customer has rated (a review row exists for
+    // THEIR transaction on this quote), at most 5 per review, images only — the rule is
+    // ./review_photos.ts with its tests. Stored in the PRIVATE review-photos bucket under a random
+    // name (never the customer's file name), camera metadata cut, served back only as signed URLs.
+    // The supplier sees them in its Projects tab, which lists post-reveal jobs only.
+    if (action === 'add_review_photos') {
+      const qid = String(body.quote_id || '');
+      const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle();
+      if (!tx) return J({ error: 'You can only add photos to a supplier you have revealed and dealt with.', code: 'forbidden' }, 403);
+      const { data: rv } = await admin.from('reviews').select('id,photo_paths').eq('transaction_id', tx.id).maybeSingle();
+      if (!rv) return J({ error: 'Rate the supplier first, then add photos.', code: 'review_required' }, 400);
+      const existing: string[] = Array.isArray(rv.photo_paths) ? rv.photo_paths : [];
+      const parsed = parseReviewPhotos(body.photos, existing.length);
+      if (!parsed.ok) return J({ error: parsed.error, code: parsed.code }, 400);
+      const added: string[] = [];
+      for (const ph of parsed.photos) {
+        const path = tx.id + '/' + crypto.randomUUID() + '.' + ph.ext;
+        const up = await admin.storage.from('review-photos').upload(path, ph.bytes, { contentType: ph.mime, upsert: false });
+        if (up.error) { if (added.length) await admin.storage.from('review-photos').remove(added); console.error('add_review_photos upload', up.error.message); return J({ error: 'Could not save your photos. Please try again in a moment.', code: 'photo_save_failed' }, 500); }
+        added.push(path);
+      }
+      const all = existing.concat(added);
+      const { error } = await admin.from('reviews').update({ photo_paths: all }).eq('id', rv.id);
+      if (error) { await admin.storage.from('review-photos').remove(added); console.error('add_review_photos update', error.message); return J({ error: 'Could not save your photos. Please try again in a moment.', code: 'photo_save_failed' }, 500); }
+      const urls = await Promise.all(all.map(async (pth) => { try { const { data } = await admin.storage.from('review-photos').createSignedUrl(pth, 3600); return data?.signedUrl || null; } catch { return null; } }));
+      return J({ ok: true, photo_count: all.length, photo_urls: urls.filter(Boolean) });
     }
 
     if (action === 'complete_inquiry') {

@@ -1,0 +1,5 @@
+Committed, not applied: apply at merge only (memory "apply at merge, never before").
+It creates the private review-photos bucket and reviews.photo_paths that customer_api add_review_photos
+and supplier_api projects read. Until it is applied, add_review_photos answers photo_save_failed and
+projects returns no review photos. On apply: delete this note and append the .sql as the last line of
+scripts/sql/MANIFEST.txt in the same commit. Seat: sales_engineer.
