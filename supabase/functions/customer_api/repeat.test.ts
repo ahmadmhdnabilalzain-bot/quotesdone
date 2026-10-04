@@ -27,6 +27,12 @@ Deno.test('a future date is kept as the customer gave it', () => {
   assertEquals(p.body.requirement_edits, {});
 });
 
+Deno.test('a suspended customer cannot repeat: repeat_inquiry is on the list the suspension gate reads', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const list = src.match(/const MUTATING = \[([^\]]*)\]/)?.[1] || '';
+  assertEquals(list.includes("'repeat_inquiry'"), true);
+});
+
 Deno.test('the sourcing choice is the customer\'s own; nothing is split that was not', () => {
   assertEquals(repeatPlan({ ...base, scope_type: 'turnkey', trades: ['tiling', 'painting'] }).body.scope_type, 'turnkey');
   assertEquals(repeatPlan({ ...base, scope_type: 'multi', trades: ['tiling', 'painting'] }).body.scope_type, 'multi');
