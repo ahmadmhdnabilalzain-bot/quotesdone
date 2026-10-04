@@ -93,6 +93,7 @@ import { FileText, MessageSquareQuote, BellRing, KeyRound, Plus, X, Sparkles, Up
 // decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
 // executed — see quoteExpiry.test.mjs — rather than inline in this one.
 import { expiryOf } from './quoteExpiry';
+import { trackerOf } from './requestTracker';
 import { parseQuoteLink, resolveQuoteLink } from '@/lib/portalLink';
 // Website audit 14 Sep 2026: the intake composer, the pre-reveal Q&A, the Reveal Guarantee and the
 // in-page confirm each live in their own file under src/components/me; this file wires them in.
@@ -1173,7 +1174,6 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const vmap = (() => { const m = {}; if (!quotes.length) return m; const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0); const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0; for (const q of quotes) { const p = Number(q.price) || 0; const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55); const ratingScore = ratingScoreOf(q.rating); const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0)); m[q.id] = ratingScore == null ? Math.round((priceScore * 0.5 + compScore * 0.2) / 0.7) : Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); } return m; })();
   // "Best value" is a comparison; with one quote there is nothing it beat (audit 21 Sep 2026, item 27).
   const bestId = quotes.length >= 2 ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
-  const stepIdx = rfqStageIdx(inq, quotes);
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
@@ -1222,7 +1222,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
       <Button variant="link" className="px-0 h-auto text-danger" disabled={canceling} onClick={doCancel}>{canceling ? t(lang, 'rc_cancelling') : t(lang, 'rc_cancel')}</Button>
     </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
-    <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} revealed={anyRevealed} />
+    <RequestTracker inq={inq} quotes={quotes} lang={lang} />
     {/* No supplier could quote the exact spec (founder_instruction #321): the customer picks an
         alternative or says no. OUTSIDE the collapsible details on purpose — a question the customer
         has to open the card to find is a question that goes unanswered, and the reply window runs. */}
@@ -1957,50 +1957,32 @@ function AccountSettings({ token, lang, onChanged }) {
   </div>);
 }
 
-// THE REQUEST'S OWN JOURNEY. What stood here was five words separated by chevrons with 1.5px dots —
-// technically a stepper, visually a sentence. The stage a request is at is the single thing a
-// customer opening the portal wants to know, so it gets a rail: completed segments filled, the
-// current one pulsing, the rest quiet. `matched` is substituted into the third label when the
-// server knows the number, because "Matched to 8 suppliers" is a fact and "Matched" is a mood.
-//
-// Horizontal on a desktop, and the labels drop to a single current-stage line under 640px rather
-// than wrapping into three lines of chevrons on a phone.
-const JOURNEY = ['jr_described', 'jr_structured', 'jr_matched', 'jr_quotes', 'jr_compare', 'jr_reveal'];
-function Journey({ idx, lang, matched, revealed = false }) {
-  // rfqStageIdx returns 0..4 over five RFQ stages; the journey the founder asked for has six, with
-  // "structured" split out of "sent". Map rather than invent: a stage must never be claimed.
-  //
-  // REVEAL IS ITS OWN FACT (production journey, 17 Sep 2026). rfqStageIdx reaches 4 only when a
-  // supplier is HIRED — completed, hired_supplier_id or pipeline_stage 'won' — so a request whose
-  // customer had paid to reveal a supplier still showed 'jr_reveal' greyed out, telling them they
-  // had not done the thing they had just paid for. Revealing is not winning, so rfqStageIdx is left
-  // alone (its index 4 is labelled "Awarded" and must not be claimed for a reveal); the last node is
-  // lit from the reveal itself instead.
-  const step = revealed ? JOURNEY.length - 1 : [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
-  const label = (k, i) => (i === 2 && Number(matched) > 0)
-    ? (lang === 'ar' ? ('مطابَق مع ' + countPhrase('ar', matched, 'supplier', { oblique: true })) : ('Matched to ' + countPhrase('en', matched, 'supplier')))
-    : t(lang, k);
+// THE LIVE REQUEST TRACKER (T2, sales_engineer, 5 Oct 2026). Replaced the six-node Journey rail,
+// which was aria-hidden, had no timestamps, no held-for-specs stage and no next step. The stages are
+// computed in requestTracker.ts (executed by scripts/checks/the_request_tracker_reads_the_stage_from_the_servers_fields.test.mjs)
+// from my_inquiries fields only; the card refreshes with the portal's existing 60-second poll.
+// An ordered list, the current stage marked aria-current="step"; logical start/end so RTL mirrors.
+function RequestTracker({ inq, quotes, lang }) {
+  const tr = trackerOf(inq, quotes, lang);
+  const fmt = (d) => { try { return new Date(d).toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (_e) { return ''; } };
   return (
     <div className="mt-3">
-      {/* The kit Stepper laid flat: a node per stage (done filled, current lit, next hollow) joined
-          by a rail, so a request reads as a position on a track rather than a bar of pills. */}
-      <div className="flex items-center" aria-hidden>
-        {JOURNEY.map((k, i) => (
-          <div key={k} className={cn('flex min-w-0 items-center', i < JOURNEY.length - 1 && 'flex-1')}>
-            <span className={cn('grid h-2.5 w-2.5 shrink-0 place-items-center rounded-full border transition-colors duration-500',
-              i < step ? 'border-primary bg-primary' : i === step ? 'border-primary bg-primary/25 shadow-glow-teal motion-safe:animate-pulse' : 'border-border bg-card')} />
-            {i < JOURNEY.length - 1 ? <span className={cn('h-px flex-1 transition-colors duration-500', i < step ? 'bg-primary' : 'bg-border')} /> : null}
-          </div>
+      <ol className="flex flex-col gap-1.5 sm:flex-row sm:gap-0" aria-label={lang === 'ar' ? 'مراحل الطلب' : 'Request progress'}>
+        {tr.stages.map((st, i) => (
+          <li key={st.key} aria-current={st.current ? 'step' : undefined} className="flex min-w-0 items-start gap-2 sm:flex-1 sm:flex-col sm:gap-1">
+            <div className="flex items-center sm:w-full">
+              <span aria-hidden className={cn('h-2.5 w-2.5 shrink-0 rounded-full border transition-colors duration-500',
+                st.done ? 'border-primary bg-primary' : st.current ? (tr.held && st.key === 'specs' ? 'border-warn bg-warn/30' : 'border-primary bg-primary/25 shadow-glow-teal motion-safe:animate-pulse') : 'border-border bg-card')} />
+              {i < tr.stages.length - 1 ? <span aria-hidden className={cn('hidden h-px flex-1 sm:block', st.done ? 'bg-primary' : 'bg-border')} /> : null}
+            </div>
+            <div className="min-w-0 pe-1">
+              <div className={cn('text-[11px] leading-tight', st.done ? 'text-muted-foreground' : st.current ? 'font-semibold text-primary' : 'text-muted-foreground/60')}>{st.label}</div>
+              {st.at ? <time dateTime={st.at} className="block text-[10.5px] text-muted-foreground/80">{fmt(st.at)}</time> : null}
+            </div>
+          </li>
         ))}
-      </div>
-      <div className="mt-1.5 hidden items-center justify-between gap-2 sm:flex">
-        {JOURNEY.map((k, i) => (
-          <span key={k} className={cn('min-w-0 flex-1 truncate font-mono text-[10.5px]',
-            i < step ? 'text-muted-foreground' : i === step ? 'font-semibold text-primary' : 'text-muted-foreground/50',
-            i === 0 ? 'text-start' : i === JOURNEY.length - 1 ? 'text-end' : 'text-center')}>{label(k, i)}</span>
-        ))}
-      </div>
-      <div className="mt-1.5 text-[11.5px] font-semibold text-primary sm:hidden">{label(JOURNEY[step], step)}</div>
+      </ol>
+      <div className={cn(S.sub, 'mt-2', tr.held ? 'text-warn-fg' : '')} aria-live="polite">{tr.next}</div>
     </div>
   );
 }
