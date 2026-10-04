@@ -1385,6 +1385,28 @@ function QuoteCheck({ chk, lang }) {
     </Card>
   );
 }
+// VERIFIED BADGES (backlog T3): what customers see on this supplier's anonymised quotes, and what is
+// still needed to earn each. English only — suppliers read English (28 Sep 2026).
+function VerifiedBadges({ b }) {
+  const rows = [
+    { key: 'licence_verified', label: 'Licence verified' },
+    { key: 'documents_complete', label: 'Documents complete' },
+  ];
+  return <Card className="qd-panel p-5" dir="ltr" lang="en">
+    <div className={S.h2}>Your badges</div>
+    <div className={cn(S.sub, 'mt-1')}>Customers see these on your quotes. Your company name stays hidden until they reveal you.</div>
+    <ul className="mt-3 space-y-2">
+      {rows.map((r) => {
+        const on = !!b[r.key]; const need = (b.to_earn && b.to_earn[r.key]) || [];
+        return <li key={r.key} className="flex items-start gap-2">
+          <Badge variant={on ? 'ok' : 'outline'}>{on ? 'Earned' : 'Not yet'}</Badge>
+          <div><div className="text-[14px] font-semibold">{r.label}</div>
+            {!on && need.length > 0 && <ul className={cn(S.sub, 'list-disc ps-4')}>{need.map((n) => <li key={n}>{n}</li>)}</ul>}</div>
+        </li>;
+      })}
+    </ul>
+  </Card>;
+}
 function Documents({ token, lang, onSaved = null, onExpired = null }) {
   const [data, setData] = useState(null); const [busy, setBusy] = useState('');
   // On a failed read `data.documents` was undefined and every row vanished: a supplier whose licence
@@ -1475,6 +1497,7 @@ function Documents({ token, lang, onSaved = null, onExpired = null }) {
       </div>}
       {err && <div className={cn(S.err, 'mt-3')}>{err}</div>}
     </Card>
+    {data.badges && <VerifiedBadges b={data.badges} />}
     {DOC_GROUPS.map((g) => {
       const rows = g.keys.map((k) => docs.find((d) => d.key === k)).filter(Boolean);
       if (!rows.length) return null;

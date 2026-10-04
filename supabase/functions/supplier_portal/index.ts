@@ -23,6 +23,7 @@ import { licenceNameFromModel, readExpiry, readLicenceName, type ExpiryRead } fr
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
+import { verifiedBadges } from '../_shared/verified_badges.ts';
 import { COMPANY_ALREADY_REGISTERED, type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 // The model path (license_extract → ai_gateway) is OFF unless app_secrets.document_expiry_ai is
 // 'on'. OpenRouter is on hold; a closed door must not be knocked on for every upload.
@@ -87,7 +88,7 @@ const HOME_KEY: Record<string, string> = { license: 'trade_licence', profile: 'c
 // way fn_supplier_certifications, fn_supplier_document_impact and fn_supplier_twin now see it.
 async function listDocuments(supId: number) {
   // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
-  const cols = new Set<string>(['catalog_doc_paths']);
+  const cols = new Set<string>(['catalog_doc_paths', 'verified']);
   for (const k of Object.values(DOC_KINDS)) { cols.add(k.pathCol); if (k.nameCol) cols.add(k.nameCol); if (k.expCol) cols.add(k.expCol); }
   const [{ data: l }, { data: homeRows }, { data: vers }, expiries] = await Promise.all([
     admin.from('leads').select([...cols].join(',')).eq('id', supId).maybeSingle(),
@@ -147,7 +148,8 @@ async function listDocuments(supId: number) {
     d.versions = mine.length;
     d.last_version = mine[0] ? { event: mine[0].snapshot?.event, name: mine[0].snapshot?.name, at: mine[0].created_at } : null;
   }
-  return { ok:true, documents: docs, expiries: expiries.data || [],
+  // The two verified badges and what earns each (English only: suppliers read English).
+  return { ok:true, documents: docs, expiries: expiries.data || [], badges: verifiedBadges(row as Parameters<typeof verifiedBadges>[0]),
     summary: { total: docs.length, on_file: complete, missing: docs.length - complete,
       required_missing: required.filter((d) => d.status === 'missing').length,
       attention: docs.filter((d) => d.status === 'expired' || d.status === 'expiring').length } };
