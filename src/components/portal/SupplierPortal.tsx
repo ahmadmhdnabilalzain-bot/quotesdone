@@ -15,6 +15,7 @@ import SupplierDocumentImpact from './supplier/SupplierDocumentImpact';
 import SupplierEntryHero from './supplier/SupplierEntryHero';
 import SupplierCommandPalette from './supplier/SupplierCommandPalette';
 import GetMatched from './supplier/GetMatched';
+import ProfileScore from './supplier/ProfileScore';
 import Insights, { INSIGHT_PANELS } from './supplier/Insights';
 // Inquiries received and Quotations submitted (founder, 15 Sep 2026) — the conversation with the sales engineer.
 import { InquiriesTab } from './supplier/InquiriesTab';
@@ -1073,7 +1074,7 @@ function Dashboard({ token, lang, onExpired }) {
   useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (waNeedsPrompt(k)) setWaPrompt(k); }).catch(() => {}); }, [token]);
   // Which agreement version this supplier accepted, against the live one (supplier_api me).
   const [me, setMe] = useState(null);
-  useEffect(() => { call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe((j && j.supplier) || null); }).catch(() => {}); }, [token]);
+  useEffect(() => { call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe((j && j.supplier) || null); }).catch(() => {}); }, [token, ov?.supplier]); // read again after every save so the profile score is current
   // ONE call (supplier_portal `dashboard`): stats, alerts, eligibility, document impact and the bell's
   // counts. It was three, the second wave starting only after the first rendered. `first` takes the
   // request warmSupplier started with the token; every later load asks fresh.
@@ -1177,7 +1178,7 @@ function Dashboard({ token, lang, onExpired }) {
       <div>
       <span className="sr-only" role="status" aria-live="polite">{switching ? (ar ? "جارٍ التحميل" : "Loading") : ""}</span>
       {switchBars && <Card aria-busy className="qd-panel mb-3 p-5"><Skeleton className="w-1/3" /><Skeleton className="mt-3" /><Skeleton className="mt-2 w-2/3" /></Card>}
-      {shownTab === 'services' && <ServicesTab token={token} lang={lang} goTo={go} />}
+      {shownTab === 'services' && <><ProfileScore me={me} eligibility={ov.eligibility || null} go={go} /><ServicesTab token={token} lang={lang} goTo={go} /></>}
       {/* THE TAB THAT IS ON ITS WAY OUT MUST NOT EAT THE FOCUS THE NEXT ONE WAS SENT (18 Sep 2026).
           `focusRfq` is one token that BOTH tabs read and BOTH clear through onFocused. That was fine
           while the panels rendered on `tab`, because setFocusRfq(id) and setTab(...) commit together
