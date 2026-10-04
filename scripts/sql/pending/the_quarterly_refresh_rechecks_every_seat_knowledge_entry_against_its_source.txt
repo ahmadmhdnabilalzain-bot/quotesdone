@@ -1,0 +1,4 @@
+Committed, not applied: applied at merge only (apply-at-merge rule). Replayed with its probe in one aborted
+transaction on 5 Oct 2026 -> PROBE OK. Moves when its PR merges: apply with
+`node scripts/apply_sql.mjs scripts/sql/the_quarterly_refresh_rechecks_every_seat_knowledge_entry_against_its_source.sql --apply --ddl`,
+delete this note, append the file to the END of MANIFEST.txt, and run the probe alone. Seat: it_engineer.
