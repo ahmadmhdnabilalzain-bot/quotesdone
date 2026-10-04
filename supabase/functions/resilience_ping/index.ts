@@ -1233,6 +1233,22 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // blocklist reading, on this heartbeat, never pg_cron. This function deploys on merge while its SQL may still be
   // pending, so runPostmasterStep records a missing routine or table as "skipped: schema not applied".
   await step('postmaster', () => runPostmasterStep((fn, args) => admin.rpc(fn, args), () => takePostmasterReading(fetch, sec)));
+  // The model registry against the public OpenRouter catalogue, once a day (it_engineer, follow-up 28). Reading the
+  // catalogue is a public GET with no key, not inference. Postgres decides (fn_model_catalogue_sync): small drift on a
+  // non-matrix model is applied, anything else is held behind a finding until it has a reason. Only the fields the
+  // rule reads are sent, so the payload is a fraction of the catalogue.
+  await step('model_catalogue', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('model_catalogue')) return { due: false };
+    const res = await timedFetch('https://openrouter.ai/api/v1/models', {}, 20_000);
+    if (!res.ok) throw new Error('catalogue answered HTTP ' + res.status);
+    // deno-lint-ignore no-explicit-any
+    const data = ((await res.json())?.data ?? []) as any[];
+    const cat = data.map((m) => ({ id: m?.id, context_length: m?.context_length ?? null,
+      pricing: { prompt: m?.pricing?.prompt ?? null, completion: m?.pricing?.completion ?? null } }));
+    const r = (await rpc('fn_model_catalogue_sync', { p_catalogue: cat })) as Record<string, unknown>;
+    return { due: true, compared: r?.compared, auto_applied: r?.auto_applied, held: r?.held,
+             reasoned_applied: r?.reasoned_applied, absent: r?.absent };
+  });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;

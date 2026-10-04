@@ -1,113 +1,144 @@
-// THE REGISTRY PRICES ARE THE CATALOGUE'S PRICES (it_engineer, 23 Sep 2026).
+// THE REGISTRY PRICES ARE THE CATALOGUE'S PRICES (it_engineer, 23 Sep 2026; rewritten 5 Oct 2026, follow-up 28).
 //
-// Recurrence guard for scripts/sql/the_catalogue_names_every_model_the_seats_run_and_the_hold_covers
-// _all_of_them.sql, which was written because model_registry had drifted from the provider: it was
-// missing four models the seats were about to run, and carried context_len 200,000 for
-// anthropic/claude-sonnet-5 and anthropic/claude-opus-4.8 against the catalogue's 1,000,000 — 5x low
-// on the number any "will this prompt fit" decision reads, on the class that sends every quotation on
-// one request.
+// UNTIL 5 OCT 2026 this check re-read https://openrouter.ai/api/v1/models and failed whenever a price or a context
+// length the SQL files claimed differed from it. The provider moves prices without telling us, so it went red on
+// every move (glm 28 Sep, glm again, deepseek 30 Sep, deepseek again 5 Oct) and a person wrote one more correcting file
+// each time. A check that fails on somebody else's price list is a check about the provider, not about the estate.
 //
-// A price or a context length in that file is a CLAIM about a third party, and the third party can
-// change it without telling us. So this check re-reads the catalogue and compares. It is the only
-// check in this directory that touches the network, which shapes it:
+// WHAT IS ASSERTED NOW (scripts/sql/the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day.sql):
+//   1. THE SYNC IS FRESH: the it_engineer duty model_catalogue last succeeded less than 36 hours ago, and NOTHING is
+//      pending - no catalogue change is held open. A held change is one the rule refused to apply by itself (a model of
+//      the founder's matrix, or a jump over 20%); it stays red here until fn_model_catalogue_reason gives it a reason
+//      and the next sync applies it. So a provider move turns this red only when it needs a decision, and a stalled
+//      sync turns it red whatever the prices do.
+//   2. THE RULE: fn_model_catalogue_decide, replayed on synthetic ZZ DEMO rows (pure, writes nothing), still applies a
+//      drift of at most 20% on a non-matrix model, holds a bigger one, holds ANY change on a matrix model, holds a value
+//      it cannot measure drift from, flags a model the catalogue lacks, and prices a ':online' variant as its base.
+//   3. The matrix probe states no price (the catalogue moves prices; the registry is the one place they live).
+//   4. The capabilities the routing relies on are the ones the catalogue advertises (network; unchanged).
 //
-//   * A FETCH FAILURE IS NOT A FINDING. No network, a 5xx, a timeout or a shape change skips the
-//     comparison and says so. A check that goes red because openrouter.ai was briefly unreachable
-//     teaches people to ignore it, and a check people ignore is worse than no check.
-//   * A MISMATCH IS a finding, and fails. That is the whole point: it means the file's comments, the
-//     rationale text quoting those prices, and the AED 1,600 budget arithmetic derived from them are
-//     all stating a number that is no longer true.
+// 1 and 2 need SUPABASE_ACCESS_TOKEN. The tokenless checks job reports them skipped; the parity job runs this with
+// REGISTRY_SYNC_REQUIRE_LIVE=1, where a missing token fails. Before the file is applied (it is pending until merge) 2
+// replays the pending file inside an aborted transaction, and 1 says it is not applied yet instead of failing.
 //
-// It reads the expected values out of the SQL file itself, so there is one place to correct when a
-// price moves, and no second copy here to go stale on its own.
+//   node --test scripts/checks/the_registry_prices_are_the_catalogue_s_prices.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
-// Every file that registers a model and states its price. A later file that registers a model the
-// first one did not (openai/gpt-5.6-sol, founder_instruction 854) must be read too, or its prices go
-// unchecked while this check stays green.
-const OWNING_SQLS = [
-  'scripts/sql/the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql',
-  'scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_class.sql',
-  // deepseek/deepseek-v4.1-flash, every other seat's fallback (founder_instruction 1056, 29 Sep 2026).
-  'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql',
-  // A RETIRED MODEL IS NOT A CLAIM (founder_instruction 1068, 30 Sep 2026). The model the first file registered
-  // for 841 was retired and deleted from model_registry; its three re-pricing files only ever priced it, so they
-  // left this list, and this file's delete statement takes it out of the claim. A model no route can name can never
-  // block CI again; every ACTIVE model is still compared strictly.
-  'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql',
-  // 30 Sep 2026 ~10:10Z: the catalogue re-priced deepseek/deepseek-v4.1-flash to 0.0198 / 0.396; this file wins.
-  'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_now_charges.sql',
-];
-const RETIRING_SQL = 'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql';
-const OWNING_SQL = OWNING_SQLS.join(' + ');
+const REF = 'htdblwldjkcgjvmqkbeh';
+const SYNC_SQL = 'scripts/sql/the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day.sql';
+const PENDING_NOTE = 'scripts/sql/pending/the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day.txt';
+const MATRIX_PROBE = 'scripts/sql/every_seat_runs_the_founders_model_matrix_probe.sql';
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
+const FRESH_HOURS = 36;
 
-// The `update public.model_registry set context_len = <n>, in_per_mtok_usd = <a>,
-//  out_per_mtok_usd = <b>, ... where model_id = '<id>';` statements, plus the three inserted rows.
-const claimed = () => {
-  const out = new Map();
+function token() {
+  if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
+  const p = join(homedir(), '.supabase', 'access-token');
+  return existsSync(p) ? readFileSync(p, 'utf8').trim() : null;
+}
+const pending = () => existsSync(join(REPO, PENDING_NOTE));
 
-  // FILE BY FILE, IN OWNING_SQLS ORDER, AND WITHIN A FILE IN STATEMENT ORDER — the order the rows were
-  // written in production. A later statement about a model supersedes an earlier one. Concatenating the
-  // files and running the update pattern before the insert pattern (the first shape of this check) let
-  // a 23 Sep INSERT overwrite the 24 Sep UPDATE that corrected it, so the check would have compared the
-  // stale price for ever.
-  const retired = new Map();   // model -> the file that retired it
-  for (const f of OWNING_SQLS) {
-    const sql = readFileSync(join(REPO, f), 'utf8');
-    const found = [];
-
-    // `update public.model_registry set context_len = <n>, in_per_mtok_usd = <a>,
-    //  out_per_mtok_usd = <b>, ... where model_id = '<id>';`
-    for (const m of sql.matchAll(
-      /update public\.model_registry set context_len = (\d+), in_per_mtok_usd = ([\d.]+),\s*\n?\s*out_per_mtok_usd = ([\d.]+),[\s\S]{0,400}?where model_id = '([^']+)';/g,
-    )) {
-      found.push({ at: m.index, id: m[4], v: { ctx: Number(m[1]), in: Number(m[2]), out: Number(m[3]), from: f } });
-    }
-
-    // values ('<id>', '<provider>', '<tier>', <in>, <out>,\n <cr>, <cw>, <bool>, <bool>, <ctx>, ...
-    for (const m of sql.matchAll(
-      /\('([a-z0-9~./-]+)', '(?:anthropic|google|openai|qwen|z-ai|deepseek)', '(?:small|medium|large|xlarge)', ([\d.]+), ([\d.]+),\s*\n\s*(?:[\d.]+|null), (?:[\d.]+|null), (?:true|false), true, (\d+),/g,
-    )) {
-      found.push({ at: m.index, id: m[1], v: { ctx: Number(m[4]), in: Number(m[2]), out: Number(m[3]), from: f } });
-    }
-
-    // A retirement: `delete from public.model_registry where model_id = '<id>';`, or the row switched off
-    // (`update public.model_registry set active = false ... where model_id = '<id>';`). No route can name it.
-    for (const m of sql.matchAll(/delete from public\.model_registry where model_id = '([^']+)';/g)) {
-      found.push({ at: m.index, id: m[1], v: null });
-    }
-    for (const m of sql.matchAll(/update public\.model_registry set active = false\b[^;]*?where model_id = '([^']+)';/g)) {
-      found.push({ at: m.index, id: m[1], v: null });
-    }
-
-    for (const { id, v } of found.sort((a, b) => a.at - b.at)) {
-      if (v) { out.set(id, v); retired.delete(id); } else { out.delete(id); retired.set(id, f); }
-    }
+// Returns the CHK<<...>> text of an error, or the JSON rows.
+async function db(query) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }), signal: AbortSignal.timeout(120_000),
+    });
+    const text = await res.text();
+    if ((res.status === 429 || res.status >= 500) && attempt < 6) { await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt)); continue; }
+    const m = text.match(/CHK<<(.*?)>>/s);
+    if (m) return m[1].replace(/\\"/g, '"');
+    assert.ok(res.ok, `management API HTTP ${res.status}: ${text.slice(0, 400)}`);
+    return JSON.parse(text);
   }
+}
 
-  // Every file must contribute what it registers. The size floor alone cannot see a later file's row
-  // stop parsing: the first file clears 10 on its own, so a reshaped Sol row would vanish silently
-  // and this check would stay green (measured in the review of PR #867).
-  assert.ok(out.has('openai/gpt-5.6-sol'),
-    'openai/gpt-5.6-sol was not parsed out of its registering file, so its price is not being checked');
-  // The same for the re-price: if its statement stops parsing, the 23 Sep insert silently becomes the
-  // claim again and the check compares a price the registry no longer holds.
-  assert.ok(out.has('deepseek/deepseek-v4.1-flash'),
-    'deepseek/deepseek-v4.1-flash was not parsed out of its registering file, so its price is not being checked');
-  // The retirement must parse too, or the retired model's stale claim comes back and blocks CI again.
-  assert.ok([...retired.values()].includes(RETIRING_SQL),
-    `no retirement was parsed out of ${RETIRING_SQL}, so a retired model is being compared as if a route could name it`);
-  assert.ok(out.size >= 10,
-    `only ${out.size} models parsed out of ${OWNING_SQL} — the statements were reshaped and this `
-    + 'check stopped reading them, which would make it pass by finding nothing');
-  return out;
-};
+test('a management token is present where the sync must be verified',
+  { skip: process.env.REGISTRY_SYNC_REQUIRE_LIVE !== '1' && 'no REGISTRY_SYNC_REQUIRE_LIVE: the parity job verifies it' }, () => {
+  assert.ok(token(), 'SUPABASE_ACCESS_TOKEN is missing: the model catalogue sync was NOT verified');
+});
+
+test('the model catalogue sync succeeded in the last 36 hours and holds nothing open', { skip: !token() && 'no management token' }, async () => {
+  const [r] = await db(`select to_regclass('public.model_catalogue_change') is not null as built,
+      (select max(started_at) from public.agent_runs where agent = 'it_engineer' and status = 'ok'
+          and counts->>'job' = 'duty:model_catalogue') as last_ok,
+      (select extract(epoch from now() - max(started_at)) / 3600 from public.agent_runs where agent = 'it_engineer'
+          and status = 'ok' and counts->>'job' = 'duty:model_catalogue') as hours`);
+  if (!r.built) {
+    assert.ok(pending(), `public.model_catalogue_change does not exist and ${PENDING_NOTE} is gone: the sync file was never applied`);
+    console.log(`NOT YET APPLIED (pending until merge): ${SYNC_SQL}. Freshness is asserted from the first run after it.`);
+    return;
+  }
+  const open = await db(`select id, model_id, field, old_value, new_value, drift_pct, matrix, reason
+      from public.model_catalogue_change where closed_at is null order by id`);
+  assert.ok(r.last_ok && Number(r.hours) < FRESH_HOURS,
+    `the model catalogue sync last succeeded ${r.last_ok ? `${Number(r.hours).toFixed(1)} h ago (${r.last_ok})` : 'never'}; `
+    + `it must run at least every ${FRESH_HOURS} h (it_duty_schedule 'model_catalogue', resilience_ping itlater step `
+    + `model_catalogue). Look at the step's result in the last ticks, and at duty_pause for 'resilience_ping.model_catalogue'.`);
+  assert.deepEqual(open, [],
+    'the catalogue changed a price or context length the sync will not apply by itself (a model of the founder\'s matrix, '
+    + 'or a move over 20%). Each is an open finding duty:model_catalogue:change:<model>:<field>. Decide it: '
+    + 'select public.fn_model_catalogue_reason(<id>, \'<why the new value is accepted>\', \'<seat>\'); the next sync '
+    + `applies it. Open:\n  ${open.map((o) => `#${o.id} ${o.model_id} ${o.field} ${o.old_value} -> ${o.new_value}`
+      + ` (${o.drift_pct ?? '?'}%, matrix ${o.matrix})${o.reason ? ' reasoned, waiting for the next sync' : ''}`).join('\n  ')}`);
+});
+
+// The synthetic case table. One row per branch of the rule; expected decisions listed per model and field.
+const CASES = `select jsonb_agg(jsonb_build_object('m', model_id, 'f', field, 'd', decision) order by model_id, field) from
+  public.fn_model_catalogue_decide(
+    '[{"model_id":"zz-demo/ten-pct","in":1,"out":2,"ctx":1000},
+      {"model_id":"zz-demo/twenty-pct","in":1,"out":2,"ctx":1000},
+      {"model_id":"zz-demo/over-twenty","in":1,"out":2,"ctx":1000},
+      {"model_id":"zz-demo/matrix","in":1,"out":2,"ctx":1000},
+      {"model_id":"zz-demo/no-ctx","in":1,"out":2,"ctx":null},
+      {"model_id":"zz-demo/gone","in":1,"out":2,"ctx":1000},
+      {"model_id":"zz-demo/base:online","in":1,"out":2,"ctx":1000}]'::jsonb,
+    array['zz-demo/matrix'],
+    '[{"id":"zz-demo/ten-pct","context_length":1000,"pricing":{"prompt":"0.0000011","completion":"0.000002"}},
+      {"id":"zz-demo/twenty-pct","context_length":1200,"pricing":{"prompt":"0.000001","completion":"0.000002"}},
+      {"id":"zz-demo/over-twenty","context_length":1000,"pricing":{"prompt":"0.000001","completion":"0.00000243"}},
+      {"id":"zz-demo/matrix","context_length":1001,"pricing":{"prompt":"0.000001","completion":"0.000002"}},
+      {"id":"zz-demo/no-ctx","context_length":5000,"pricing":{"prompt":"0.000001","completion":"0.000002"}},
+      {"id":"zz-demo/base","context_length":1000,"pricing":{"prompt":"0.000001","completion":"0.000002"}}]'::jsonb)`;
+const WANT = [
+  { m: 'zz-demo/gone', f: null, d: 'absent' },
+  { m: 'zz-demo/matrix', f: 'ctx', d: 'held' },
+  { m: 'zz-demo/no-ctx', f: 'ctx', d: 'held' },
+  { m: 'zz-demo/over-twenty', f: 'out', d: 'held' },
+  { m: 'zz-demo/ten-pct', f: 'in', d: 'auto' },
+  { m: 'zz-demo/twenty-pct', f: 'ctx', d: 'auto' },
+];
+
+test('the sync rule: <=20% on a non-matrix model applies, anything else is held (synthetic ZZ DEMO rows)',
+  { skip: !token() && 'no management token' }, async () => {
+  const [{ built }] = await db(`select to_regprocedure('public.fn_model_catalogue_decide(jsonb,text[],jsonb)') is not null as built`);
+  let got;
+  if (built) {
+    const [row] = await db(CASES);
+    got = row.jsonb_agg;
+  } else {
+    assert.ok(pending(), `fn_model_catalogue_decide is not on production and ${PENDING_NOTE} is gone`);
+    // Pending: replay the file in a transaction that always ends in an exception, so nothing commits.
+    const sql = readFileSync(join(REPO, SYNC_SQL), 'utf8');
+    assert.doesNotMatch(sql.replace(/--.*$/gm, ''), /^\s*(begin|commit|rollback)\s*;/im, 'the sync file carries a transaction line; the replay would commit');
+    const v = await db(`begin;\n${sql}\n;\ndo $chk$ declare v jsonb; begin ${CASES} into v; raise exception 'CHK<<%>>', v; end $chk$;`);
+    got = JSON.parse(v);
+  }
+  assert.deepEqual(got, WANT, 'fn_model_catalogue_decide no longer decides as the rule says');
+});
+
+test('the matrix probe states no price', () => {
+  const probe = readFileSync(join(REPO, MATRIX_PROBE), 'utf8').replace(/--.*$/gm, '');
+  assert.doesNotMatch(probe, /(in|out)_per_mtok_usd\s*(=|<|>|<=|>=)\s*[\d.]/i,
+    `${MATRIX_PROBE} compares a price literal; prices are the catalogue's and the sync keeps the registry on them`);
+});
 
 const fetchCatalogue = async () => {
   try {
@@ -121,47 +152,9 @@ const fetchCatalogue = async () => {
   }
 };
 
-// USD per million tokens. OpenRouter prices per token as a decimal string.
-const perMtok = (v) => (v == null ? null : Number((Number(v) * 1e6).toFixed(4)));
-
-test('every price and context length the registry file claims is the one the catalogue serves', async () => {
-  const want = claimed();
-  const got = await fetchCatalogue();
-  if (got.skip) {
-    console.log(`SKIPPED (not a finding): ${got.skip}. ${want.size} claimed models were not compared.`);
-    return;
-  }
-
-  const wrong = [];
-  const absent = [];
-  for (const [id, c] of want) {
-    const m = got.models.get(id);
-    if (!m) { absent.push(id); continue; }
-    const live = { ctx: m.context_length, in: perMtok(m.pricing?.prompt), out: perMtok(m.pricing?.completion) };
-    for (const k of ['in', 'out', 'ctx']) {
-      if (live[k] !== c[k]) wrong.push(`${id} ${k}: file says ${c[k]}, catalogue serves ${live[k]}`);
-    }
-  }
-
-  // A model the catalogue no longer lists is a finding of its own: the seats are routed to it.
-  assert.deepEqual(absent, [],
-    `${OWNING_SQL} registers model(s) the catalogue no longer lists: ${absent.join(', ')}. `
-    + 'fn_ai_route will keep choosing them and every call will fail at the provider.');
-
-  assert.deepEqual(wrong, [],
-    'model_registry states a price or context length the provider does not. The file\'s comments, the '
-    + 'model_policy rationale text that quotes these prices, the model_rate row fn_llm_log prices every '
-    + 'call from, and the AED 1,600/month budget arithmetic derived from them (gpt_sol_takes_every_qwen_'
-    + 'class_and_one_gemini_takes_every_gemini_class.sql section 6) are all now wrong, and a price that '
-    + 'reorders a tier moves every cheapest-in-tier route. Correct them in a NEW file '
-    + 'appended to OWNING_SQLS (an `update public.model_registry set context_len = ..., in_per_mtok_usd = ..., '
-    + 'out_per_mtok_usd = ...` statement is the pattern; a model no longer routed is retired instead):'
-    + `\n  ${wrong.join('\n  ')}`);
-});
-
-// The three models this PR added are the ones the seats' judgement classes run on. If any of them
-// stops being vision-capable, or gemini-3.8-flash stops carrying audio, the capability branch in
-// fn_ai_route silently substitutes something else.
+// The models the seats' judgement classes run on. If any of them stops being vision-capable, or gemini-3.8-flash
+// stops carrying audio, the capability branch in fn_ai_route silently substitutes something else. A FETCH FAILURE IS
+// NOT A FINDING: it skips and says so.
 test('the capabilities the registry file claims are the ones the catalogue advertises', async () => {
   const got = await fetchCatalogue();
   if (got.skip) {
@@ -169,19 +162,13 @@ test('the capabilities the registry file claims are the ones the catalogue adver
     return;
   }
   const expect = {
-    // openai/gpt-5.6-sol (founder_instruction 854, replacing qwen3.8-max). If it stops being vision-capable,
-    // every extraction and drawing class silently gets substituted for something nobody chose; and its
-    // audio:false is the measured fact that keeps speech_transcription on gemini.
     'openai/gpt-5.6-sol': { image: true, audio: false },
     'anthropic/claude-opus-5.5': { image: true, audio: false },
     'anthropic/claude-sonnet-5': { image: true, audio: false },
-    // The ONLY model any policy routes audio to since founder_instruction 854 retired
-    // gemini-3.1-flash-lite and gemini-3.5-flash. speech_transcription has no second model that
-    // hears, so if this goes audio:false every voice note stops being transcribed.
+    // The ONLY model any policy routes audio to; if it goes audio:false every voice note stops being transcribed.
     'google/gemini-3.8-flash': { image: true, audio: true },
     'openai/gpt-6-luna': { image: true, audio: false },
-    // Every other seat's fallback (founder_instruction 1056). image:true is what lets a vision call fall back to it;
-    // audio:false is why speech_transcription and marketing_watch have no fallback at all.
+    // Every other seat's fallback (founder_instruction 1056).
     'deepseek/deepseek-v4.1-flash': { image: true, audio: false },
   };
   const wrong = [];
