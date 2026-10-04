@@ -1,0 +1,4 @@
+supplier_quote_templates_carry_structure_never_price.sql awaits merge. It is applied at merge
+(node scripts/apply_sql.mjs scripts/sql/supplier_quote_templates_carry_structure_never_price.sql --apply --ddl)
+and its MANIFEST line is added then, never before (apply at merge, 28 Sep 2026).
+Until then supplier_api's template_* actions answer templates_unavailable. Seat: sales_engineer.

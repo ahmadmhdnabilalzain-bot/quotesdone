@@ -78,6 +78,7 @@ const CONCLUDED = ['completed','closed','cancelled'];
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
 import { inboxBoq, inboxField, scrubIdentity } from './identity_scrub.ts';
+import { cleanTemplate } from './quote_template.ts';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 // EXACT SPECS FOR A TRADE WITH NO LINE READER (23 Sep 2026). The trade's knowledge pack says what a line
@@ -1454,6 +1455,31 @@ const handle = async (req: Request): Promise<Response> => {
       const { error } = await admin.from('transactions').update({ supplier_ack_at: now }).eq('id', txId).is('supplier_ack_at', null);
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true, acknowledged_at: now });
+    }
+    // T3 QUOTE TEMPLATES (sales_engineer, 5 Oct 2026): structure a supplier reuses, never a price
+    // (quote_template.ts refuses one; the table's CHECK refuses one again). Scoped to the caller's company.
+    if (action === 'template_list' || action === 'template_save' || action === 'template_delete') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const tbl = () => admin.from('supplier_quote_template');
+      const unavailable = (e: { code?: string; message?: string } | null) => e && (e.code === '42P01' || /supplier_quote_template/.test(String(e.message || '')) && /does not exist|schema cache/.test(String(e.message || '')));
+      if (action === 'template_save') {
+        const c = cleanTemplate(body.template);
+        if (!c.ok) return J({ error: c.message, code: c.code, message: c.message }, 400);
+        const { data, error } = await tbl().upsert({ supplier_id: sup.id, ...c.template, updated_at: new Date().toISOString() }, { onConflict: 'supplier_id,name' }).select('id').maybeSingle();
+        if (unavailable(error)) return J({ error: 'Templates are not available yet.', code: 'templates_unavailable' }, 503);
+        if (error) return J({ error: error.code === '23514' ? 'A template cannot carry a price.' : 'Could not save the template.', code: error.code === '23514' ? 'template_has_price' : 'template_save_failed' }, 400);
+        return J({ ok: true, id: data?.id });
+      }
+      if (action === 'template_delete') {
+        const id = Number(body.id); if (!Number.isInteger(id)) return J({ error: 'not found', code: 'not_found' }, 404);
+        const { error } = await tbl().delete().eq('id', id).eq('supplier_id', sup.id);
+        if (unavailable(error)) return J({ error: 'Templates are not available yet.', code: 'templates_unavailable' }, 503);
+        return error ? J({ error: 'Could not delete the template.', code: 'template_delete_failed' }, 500) : J({ ok: true });
+      }
+      const { data, error } = await tbl().select('id,name,line_headings,terms,warranty,validity,inclusions,exclusions,payment_terms,updated_at').eq('supplier_id', sup.id).order('name');
+      if (unavailable(error)) return J({ ok: true, templates: [], unavailable: true });
+      return error ? J({ error: 'Could not load templates.', code: 'template_list_failed' }, 500) : J({ ok: true, templates: data || [] });
     }
     if (action === 'extract_quote') {
       const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,accepted_terms_at').eq('claimed_by', email).maybeSingle();
