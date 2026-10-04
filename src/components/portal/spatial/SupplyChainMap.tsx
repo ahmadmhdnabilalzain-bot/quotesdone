@@ -50,7 +50,7 @@ export function SupplyChainMap({ orders, lang = 'en', onOpenRfq }: SupplyChainMa
   const legs = useMemo(() => chainLegs(orders || []), [orders]);
 
   return (
-    <Card className="p-4 md:p-5 bg-card/70 backdrop-blur border-border">
+    <Card className="p-4 md:p-5 bg-card/70 backdrop-blur-sm border-border">
       <div className="text-[15px] font-bold text-foreground">{tx(lang, 'chain_title')}</div>
       <div className="text-[13px] text-muted-foreground">{tx(lang, 'chain_sub')}</div>
 
@@ -91,7 +91,7 @@ export function SupplyChainMap({ orders, lang = 'en', onOpenRfq }: SupplyChainMa
                     />
                     <span
                       className={cn(
-                        'absolute -top-1 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-background shadow transition-[left] duration-700 ease-out',
+                        'absolute -top-1 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-background shadow-sm transition-[left] duration-700 ease-out',
                         STAGE_TONE[g.stage], moving && 'animate-pulse',
                       )}
                       style={{ left: `${Math.round(g.progress * 100)}%` }}

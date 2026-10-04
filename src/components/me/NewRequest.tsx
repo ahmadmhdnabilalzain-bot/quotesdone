@@ -510,7 +510,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
             {m === lastAssistant && Array.isArray(m.options) && m.options.length > 0 && !thinking && (
               <div className="mt-1.5 flex flex-wrap gap-1.5 ps-1" role="group" aria-label={m.next || t(lang, 'nr_chips_hint')}>
                 {m.options.map((o) => (
-                  <button key={o} type="button" onClick={() => sendText(o)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', o === m.suggested ? 'border-primary bg-primary/20 ring-1 ring-primary/40' : 'border-primary/45 bg-primary/10')}>{o}{o === m.suggested ? <span className="ms-1.5 text-[10.5px] font-normal uppercase tracking-wide opacity-80">{t(lang, 'nr_suggested')}</span> : null}</button>
+                  <button key={o} type="button" onClick={() => sendText(o)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', o === m.suggested ? 'border-primary bg-primary/20 ring-1 ring-primary/40' : 'border-primary/45 bg-primary/10')}>{o}{o === m.suggested ? <span className="ms-1.5 text-[10.5px] font-normal uppercase tracking-wide opacity-80">{t(lang, 'nr_suggested')}</span> : null}</button>
                 ))}
               </div>
             )}
@@ -545,7 +545,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <AnimatePresence>
           {ready && brief && (
             <M.div initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
-              className="rounded-2xl border border-primary/35 bg-primary/[0.06] p-4 shadow-[0_18px_50px_-30px_rgba(20,184,166,.55)]">
+              className="rounded-2xl border border-primary/35 bg-primary/6 p-4 shadow-[0_18px_50px_-30px_rgba(20,184,166,.55)]">
               <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" aria-hidden /><div className="text-[13.5px] font-bold text-foreground">{brief.category ? categoryLabel(brief.category, lang) : t(lang, 'rc_request')}{brief.emirate ? ' — ' + emirateName(brief.emirate, lang) : ''}</div></div>
               {brief.summary ? <div className="mt-1 text-[13px] text-muted-foreground">{brief.summary}</div> : null}
               <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-[12.5px] sm:grid-cols-2">
@@ -602,7 +602,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         {!drawing && (
           <button type="button" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}
             onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (!analyzing && !thinking) onAny(e.dataTransfer.files && e.dataTransfer.files[0]); }}
-            className="mb-2.5 flex h-10 w-full items-center gap-2.5 rounded-btn border border-dashed border-primary/35 bg-[repeating-linear-gradient(135deg,transparent_0_8px,hsl(var(--primary)/0.05)_8px_9px)] px-3 text-start transition-colors hover:border-primary/60 hover:bg-primary/[0.06] disabled:opacity-40">
+            className="mb-2.5 flex h-10 w-full items-center gap-2.5 rounded-btn border border-dashed border-primary/35 bg-[repeating-linear-gradient(135deg,transparent_0_8px,hsl(var(--primary)/0.05)_8px_9px)] px-3 text-start transition-colors hover:border-primary/60 hover:bg-primary/6 disabled:opacity-40">
             <Paperclip className="h-4 w-4 shrink-0 text-primary" aria-hidden />
             <span className="min-w-0 truncate font-mono text-label text-muted-foreground">{t(lang, 'nr_drop')}</span>
           </button>
@@ -621,7 +621,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
               why and points at the phone keyboard's own dictation instead of failing after the fact. */}
           {voice && (
             <button type="button" title={t(lang, rec ? 'nr_mic_stop' : 'nr_mic')} aria-label={t(lang, rec ? 'nr_mic_stop' : 'nr_mic')} aria-pressed={rec}
-              className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40', rec ? 'bg-danger/10 text-danger' : 'text-primary')}
+              className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-primary/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40', rec ? 'bg-danger/10 text-danger' : 'text-primary')}
               disabled={voxBusy} onClick={onMic}>
               {voxBusy ? <span className="redact redact-sq" style={{ width: 16, height: 16 }} aria-hidden /> : rec ? <Square className="h-5 w-5" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
             </button>
@@ -629,12 +629,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
           {voice === 'speech' && (
             <button type="button" disabled={rec} onClick={() => setDict((d) => (d === 'ar' ? 'en' : 'ar'))}
               title={tf(lang, 'nr_voice_dict', { l: DICT_NAME[lang === 'ar' ? 'ar' : 'en'][dict] })} aria-label={tf(lang, 'nr_voice_dict', { l: DICT_NAME[lang === 'ar' ? 'ar' : 'en'][dict] })}
-              className="grid h-10 w-9 shrink-0 place-items-center rounded-xl font-mono text-[12px] font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40">
+              className="grid h-10 w-9 shrink-0 place-items-center rounded-xl font-mono text-[12px] font-semibold text-primary hover:bg-primary/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40">
               <span lang={dict}>{dict === 'ar' ? 'ع' : 'EN'}</span>
             </button>
           )}
           <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
-          <textarea id="qd-intake-input" ref={inputRef} className="min-h-[48px] min-w-0 flex-1 resize-none rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
+          <textarea id="qd-intake-input" ref={inputRef} className="min-h-[48px] min-w-0 flex-1 resize-none rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-hidden transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
             placeholder={rec ? t(lang, 'nr_listening') : t(lang, 'nr_ph')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
           <Button size="lg" className="px-4" disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
         </div>
@@ -662,14 +662,14 @@ function RequirementsCard({ items, edits, onEdit, lang }) {
               <div className="flex flex-wrap items-baseline gap-x-1.5 text-[12.5px]">
                 <dt className="text-muted-foreground">{it.label}:</dt>
                 <dd className="text-foreground">{shown}</dd>
-                <button type="button" className="ms-auto text-[12px] font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                <button type="button" className="ms-auto text-[12px] font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                   aria-expanded={open === it.key} onClick={() => setOpen(open === it.key ? null : it.key)}>{t(lang, open === it.key ? 'nr_req_keep' : 'nr_req_change')}</button>
               </div>
               {open === it.key ? (
                 <div className="mt-1 flex flex-wrap gap-1.5" role="group" aria-label={it.question}>
                   {it.options.map((o) => (
                     <button key={o} type="button" onClick={() => { onEdit(it.key, o); setOpen(null); }}
-                      className={cn('rounded-full border px-2.5 py-1 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', shown === o ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>{o}</button>
+                      className={cn('rounded-full border px-2.5 py-1 text-[12px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', shown === o ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>{o}</button>
                   ))}
                 </div>
               ) : null}
@@ -686,7 +686,7 @@ function ReadinessBar({ pct, lang, reduce }) {
     <div className="border-b border-border px-5 py-2">
       <div className="flex items-center justify-between"><span className="font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'nr_readiness')}</span><span className="tabular font-mono text-label text-foreground">{pct}%</span></div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary/70" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t(lang, 'nr_readiness')}>
-        <M.div className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
+        <M.div className="h-full rounded-full bg-linear-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
       </div>
     </div>
   );
@@ -700,7 +700,7 @@ function QuestionChips({ questions, next, left, lang, onPick, reduce }) {
         {questions.slice(0, 8).map((q, i) => (
           <M.button key={q + i} type="button" onClick={() => onPick(q)}
             initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.2, delay: reduce ? 0 : 0.05 * i }}
-            className={cn('rounded-full border px-3 py-1.5 text-start text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            className={cn('rounded-full border px-3 py-1.5 text-start text-[12.5px] transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
               q === next ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>
             {q}
           </M.button>
@@ -781,7 +781,7 @@ function RedactionEditor({ lang, images, onApply, onSkip, reduce }) {
         role="img" aria-label={tf(lang, 'rd_canvas', { n: page + 1 })}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}>
         <img src={'data:' + images[page].mime + ';base64,' + images[page].data} alt="" draggable={false} className="block h-auto w-full" />
-        {boxes[page].map((b, i) => <span key={i} className="redact absolute !rounded-[1px] !bg-black/90" style={{ left: pct(b.x), top: pct(b.y), width: pct(b.w), height: pct(b.h) }} />)}
+        {boxes[page].map((b, i) => <span key={i} className="redact absolute rounded-[1px]! bg-black/90!" style={{ left: pct(b.x), top: pct(b.y), width: pct(b.w), height: pct(b.h) }} />)}
         {live ? <span className="absolute border-2 border-dashed border-primary bg-primary/20" style={{ left: pct(live.x), top: pct(live.y), width: pct(live.w), height: pct(live.h) }} /> : null}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-2">

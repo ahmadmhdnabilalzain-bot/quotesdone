@@ -108,7 +108,7 @@ function Bar({ label, value, lang }: { label: string; value: number | null | und
       <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
         {known && (
           <div
-            className="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-700"
+            className="h-full rounded-full bg-linear-to-r from-sky-400 to-emerald-400 transition-all duration-700"
             style={{ width: Math.max(2, Math.min(100, Number(value))) + '%' }}
           />
         )}
@@ -187,7 +187,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
       )}
 
       {/* §4 — the command-centre header: company, verified badge, stars, intelligence score. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="text-base font-medium truncate">{twin.company_name}</div>
@@ -210,7 +210,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
       </section>
 
       {/* §13 — SUPPLIER HEALTH. Five metrics, bars, null handled honestly. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'health')}</h3>
           <div className="text-sm tabular-nums">
@@ -225,7 +225,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
       </section>
 
       {/* §3 — THE DIGITAL TWIN. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <h3 className="text-xs uppercase tracking-wide opacity-60 mb-3">{t(lang, 'twin')}</h3>
         <Bar label={t(lang, 'strength')} value={twin.company_strength} lang={lang} />
         <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-3">
@@ -267,7 +267,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
       </section>
 
       {/* §6 — COMPANY INTELLIGENCE: the living profile, plus §16's per-document status. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <h3 className="text-xs uppercase tracking-wide opacity-60 mb-3">{t(lang, 'profile')}</h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
           <Stat label={t(lang, 'established')} value={twin.established_year ?? t(lang, 'unknown')} />

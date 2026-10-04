@@ -72,7 +72,7 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
         <div
           id={panelId}
           ref={panelRef}
-          className="fixed inset-x-0 bottom-0 top-[68px] z-40 overflow-y-auto border-t border-line bg-navy-deep/[0.97] motion-safe:animate-in motion-safe:fade-in-0"
+          className="fixed inset-x-0 bottom-0 top-[68px] z-40 overflow-y-auto border-t border-line bg-navy-deep/97 motion-safe:animate-in motion-safe:fade-in-0"
         >
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(60%_100%_at_50%_0%,rgba(20,184,166,.14),transparent_70%)]" />
           <nav aria-label={menuLabel} className="container-x relative flex min-h-full flex-col pb-10 pt-4">
@@ -89,7 +89,7 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
             {services && services.length ? (
               <div className="mt-8">
                 <span className="qd-kicker">{servicesLabel}</span>
-                <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+                <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-none">
                   {services.map((s) => (
                     <Link key={s.slug} href={`/services/${s.slug}`} onClick={close} className="shrink-0 whitespace-nowrap rounded-pill border border-line2 bg-surf/70 px-4 py-2 text-small text-paper shadow-key hover:border-teal">
                       {s.title}

@@ -110,7 +110,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
             )}
             <p className="mt-8 flex flex-wrap items-center gap-3 font-mono text-label text-faint">
               {p.author ? <span>{p.author}</span> : null}
-              {p.author && date ? <span aria-hidden className="h-3 w-px bg-[var(--line2)]" /> : null}
+              {p.author && date ? <span aria-hidden className="h-3 w-px bg-(--line2)" /> : null}
               {date ? <span>{date}</span> : null}
             </p>
           </div>
@@ -119,7 +119,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
         <div className="container-x grid gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-16">
           <article className="min-w-0 max-w-[720px]">
             {locale === 'ar' && !rtl && (
-              <p className="mb-10 rounded-panel border border-line2 bg-teal-light/[0.05] px-4 py-3 text-small text-muted">
+              <p className="mb-10 rounded-panel border border-line2 bg-teal-light/5 px-4 py-3 text-small text-muted">
                 {T.onlyEnglish}
               </p>
             )}
@@ -132,7 +132,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
               dangerouslySetInnerHTML={{ __html: body }}
             />
           </article>
-          {list.length > 2 ? <aside className="-order-1 min-w-0 lg:order-none"><ContentsRail title={T.contents} list={list} /></aside> : null}
+          {list.length > 2 ? <aside className="-order-1 min-w-0 lg:order-0"><ContentsRail title={T.contents} list={list} /></aside> : null}
         </div>
 
         <CtaPanel kicker={T.ready} title={T.ctaH} body={T.ctaP}>

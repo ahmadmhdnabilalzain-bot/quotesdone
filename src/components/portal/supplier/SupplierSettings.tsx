@@ -93,7 +93,7 @@ function Fact({ k, children, tone }: { k: string; children: React.ReactNode; ton
   return (
     <div className="flex justify-between gap-3 py-1.5 border-b border-border last:border-0">
       <span className="text-[12px] text-muted-foreground shrink-0">{k}</span>
-      <span className={'text-[12px] text-end break-words text-foreground ' + (tone || '')}>{children}</span>
+      <span className={'text-[12px] text-end wrap-break-word text-foreground ' + (tone || '')}>{children}</span>
     </div>
   );
 }
@@ -168,7 +168,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
     <div className="qd-panel p-5 text-[13px] text-muted-foreground" role="alert">
       {err}
       <button type="button" onClick={load}
-        className="ms-2 inline-flex min-h-11 min-w-11 items-center underline rounded outline-none focus-visible:ring-1 focus-visible:ring-ring">{t(lang, 'retry')}</button>
+        className="ms-2 inline-flex min-h-11 min-w-11 items-center underline rounded outline-hidden focus-visible:ring-1 focus-visible:ring-ring">{t(lang, 'retry')}</button>
     </div>
   );
   if (!s) return <div className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t(lang, 'loading')}</div>;
@@ -185,7 +185,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
         <div className="mb-3">
           <label className="block text-[13px] mb-1.5 text-foreground" htmlFor="qd-set-lang">{t(lang, 'language')}</label>
           <select id="qd-set-lang" value={locale} onChange={(e) => { setLocale(e.target.value === 'ar' ? 'ar' : 'en'); setLangTouched(true); }}
-            className="w-full rounded-md border border-input bg-card text-foreground px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            className="w-full rounded-md border border-input bg-card text-foreground px-3 py-2 text-sm outline-hidden focus-visible:ring-1 focus-visible:ring-ring">
             <option value="en">{t(lang, 'english')}</option>
             <option value="ar">{t(lang, 'arabic')}</option>
           </select>

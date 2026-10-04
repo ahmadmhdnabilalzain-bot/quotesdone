@@ -83,7 +83,7 @@ export function Clarifications({ inq, token, lang, call }) {
                     ) : !closed ? (
                       <div className="mt-2 flex items-end gap-2">
                         <label className="sr-only" htmlFor={'qd-ans-' + it.id}>{t(lang, 'cl_answer_ph')}</label>
-                        <textarea id={'qd-ans-' + it.id} rows={2} className="flex-1 resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        <textarea id={'qd-ans-' + it.id} rows={2} className="flex-1 resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                           placeholder={t(lang, 'cl_answer_ph')} value={answers[it.id] || ''} onChange={(e) => setAnswers((a) => ({ ...a, [it.id]: e.target.value }))} />
                         {/* The button was disabled while sending but said nothing — the one thing
                             the founder's 18 Sep instruction names. Ring + label, shared rules. */}
@@ -108,7 +108,7 @@ export function Clarifications({ inq, token, lang, call }) {
       {!closed && (
         <div className="mt-3">
           <label className="sr-only" htmlFor={'qd-note-' + inq.id}>{t(lang, 'cl_note_label')}</label>
-          <textarea id={'qd-note-' + inq.id} rows={2} className="w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          <textarea id={'qd-note-' + inq.id} rows={2} className="w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
             placeholder={t(lang, 'cl_note_ph')} value={note} onChange={(e) => setNote(e.target.value)} />
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <Button size="sm" disabled={busy === 'note' || !note.trim()} onClick={addNote}>{busy === 'note' ? t(lang, 'nr_sending') : t(lang, 'cl_note_send')}</Button>

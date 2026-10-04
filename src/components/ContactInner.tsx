@@ -70,7 +70,7 @@ export function ContactInner() {
           lead={hero.lead ? <span dangerouslySetInnerHTML={{ __html: hero.lead }} /> : undefined}
         />
         {/* the two cards (direct lines, the form) keep their ids; .mk styles them, the frame sets the grid */}
-        <div className="mk mk-contact py-6 md:py-10 [&_.step]:!p-7 [&_.steps]:!grid [&_.steps]:!gap-5 md:[&_.steps]:!grid-cols-[.8fr_1.2fr]" dangerouslySetInnerHTML={{ __html: hero.rest }} />
+        <div className="mk mk-contact py-6 md:py-10 [&_.step]:p-7! [&_.steps]:grid! [&_.steps]:gap-5! md:[&_.steps]:grid-cols-[.8fr_1.2fr]!" dangerouslySetInnerHTML={{ __html: hero.rest }} />
       </main>
       <div className="container-x pb-beat-s"><CompanyIdentity locale={locale} /></div>
     </>

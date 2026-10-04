@@ -272,8 +272,8 @@ function PdfLinks({ lang, fetchPdf, otherOnly = false }) {
   const prep = lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…';
   return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
     {/* otherOnly: the four-action row (DocActions) already offers the reader's own language. */}
-    {!otherOnly && <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(mine)}>{busy === mine ? prep : (mine === 'ar' ? 'تنزيل PDF' : 'Download PDF')}</button>}
-    <button type="button" lang={other} className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-2 text-[11.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(other)}>{busy === other ? prep : (other === 'ar' ? 'النسخة العربية' : 'English version')}</button>
+    {!otherOnly && <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(mine)}>{busy === mine ? prep : (mine === 'ar' ? 'تنزيل PDF' : 'Download PDF')}</button>}
+    <button type="button" lang={other} className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-2 text-[11.5px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(other)}>{busy === other ? prep : (other === 'ar' ? 'النسخة العربية' : 'English version')}</button>
     {msg ? <span role="alert" className="text-[12px] text-danger-fg">{msg}</span> : null}
   </span>);
 }
@@ -430,8 +430,8 @@ const S = {
   list: 'flex flex-col gap-3',
   section: 'qd-section',
   figure: 'qd-figure',
-  field: 'mt-3 flex min-h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y',
+  field: 'mt-3 flex min-h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring',
+  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring resize-y',
   chip: 'rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground cursor-pointer',
   chipOn: 'bg-primary/15 border-primary/60 text-primary',
   fileInput: 'text-sm text-muted-foreground file:me-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
@@ -686,7 +686,7 @@ export function SupplierPortal() {
       <header className="qd-topbar sticky top-0 z-10 flex items-center justify-between gap-2 px-4 sm:px-5 py-3 bg-card/70 backdrop-blur-xl border-b border-border">
         {/* whitespace-nowrap + the sub-label hidden below sm: at 375px "QuotesDone / SUPPLIER / PORTAL"
             wrapped to three lines beside the buttons (audit mobile screenshot). */}
-        <a className="group flex min-w-0 items-center gap-2.5 whitespace-nowrap text-[15px] font-extrabold text-foreground no-underline font-[family-name:var(--font-head)]" href={rtl ? '/ar' : '/'}>
+        <a className="group flex min-w-0 items-center gap-2.5 whitespace-nowrap text-[15px] font-extrabold text-foreground no-underline font-head" href={rtl ? '/ar' : '/'}>
           <BrandMark className="h-7 w-7 shrink-0 transition-transform duration-500 group-hover:rotate-[8deg]" />
           <span>QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
         </a>
@@ -819,7 +819,7 @@ function Login({ onAuth, lang, startMode }) {
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
       <div className="mb-5 flex flex-col items-center text-center">
         <span className="qd-brandbadge mb-4 grid h-12 w-12 place-items-center rounded-2xl"><BrandMark className="h-6 w-6" /></span>
-        <h1 className={cn(S.h1, 'qd-grad-text font-[family-name:var(--font-head)]')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</h1>
+        <h1 className={cn(S.h1, 'qd-grad-text font-head')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</h1>
         <div className={cn(S.sub, 'mx-auto mt-2')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
       </div>
       <div className={cn(S.tabsWrap, 'mb-4 flex w-full')}><button className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
@@ -1020,19 +1020,19 @@ function NotificationBell({ ov, lang, go }) {
   const when = (at) => { try { return new Date(at).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }); } catch (_e) { return ''; } };
   return (
     <details ref={ref} className="relative" onToggle={(e) => { if (e.currentTarget.open) markSeen(); }}>
-      <summary aria-label={label} title={label} className="relative inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary aria-label={label} title={label} className="relative inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Bell aria-hidden className="h-[18px] w-[18px]" />
-        {badge ? <span aria-hidden className="absolute -top-1 -end-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{badge}</span> : null}
+        {badge ? <span aria-hidden className="absolute -top-1 -inset-e-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{badge}</span> : null}
       </summary>
-      <div className="qd-panel absolute end-0 z-20 mt-2 w-[min(320px,calc(100vw-32px))] p-1.5">
+      <div className="qd-panel absolute inset-e-0 z-20 mt-2 w-[min(320px,calc(100vw-32px))] p-1.5">
         {items.length ? <ul>{items.map((it) => (
-          <li key={it.k}><button type="button" className="flex min-h-11 w-full items-center rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <li key={it.k}><button type="button" className="flex min-h-11 w-full items-center rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(it.tab); }}>{it.text}</button></li>))}</ul>
           : (fresh ? null : <div className="px-3 py-2.5 text-[13px] text-muted-foreground">{ar ? 'لا شيء جديد.' : 'Nothing new.'}</div>)}
         {notices.length ? <div className="mt-1 border-t border-border pt-1">
           <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{ar ? 'آخر الإشعارات' : 'Recent notices'}</div>
           <ul>{notices.map((x) => (
-            <li key={'n' + x.id}><button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <li key={'n' + x.id}><button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
               onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(x.tab); }}>
               <span className={x.id > seen ? 'font-semibold' : ''}>{srvText(lang, 'notice_' + x.type, {}, srvText(lang, 'notice_quote', {}, ''))}</span>
               <span className="shrink-0 text-[11px] text-muted-foreground">{when(x.at)}</span></button></li>))}</ul>
@@ -1048,13 +1048,13 @@ function AccountMenu({ tab, labels, lang, go }) {
   const ref = useDismissablePopover();
   return (
     <details ref={ref} className="relative">
-      <summary className={cn('inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+      <summary className={cn('inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-semibold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
         {ws(lang, 'account_menu')}{on ? <span className="font-normal"> · {labels[tab]}</span> : null}<span aria-hidden>▾</span>
       </summary>
-      <ul className="qd-panel absolute end-0 z-20 mt-2 w-48 p-1.5">
+      <ul className="qd-panel absolute inset-e-0 z-20 mt-2 w-48 p-1.5">
         {ACCOUNT_TABS.map((k) => (
           <li key={k}><button type="button" aria-current={tab === k ? 'page' : undefined}
-            className={cn('flex min-h-11 w-full items-center rounded-md px-3 text-start text-[13px] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k ? 'font-semibold text-primary' : 'text-foreground')}
+            className={cn('flex min-h-11 w-full items-center rounded-md px-3 text-start text-[13px] hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', tab === k ? 'font-semibold text-primary' : 'text-foreground')}
             onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(k); }}>{labels[k]}</button></li>
         ))}
       </ul>
@@ -1166,7 +1166,7 @@ function Dashboard({ token, lang, onExpired }) {
             It wraps now, and every control is at least 44px tall for a thumb. */}
         <nav aria-label={t(lang, 'main_nav')}>
           <div className={cn(S.tabsWrap, 'flex')}>
-            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
+            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
           </div>
         </nav>
       </div>
@@ -1291,7 +1291,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
       {vat === 'inclusive' ? <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'السعر غير شامل الضريبة (درهم)' : 'Price excluding VAT (AED)'}><Input className="tabular font-mono" inputMode="decimal" value={exVat} onChange={(e) => setExVat(e.target.value)} /></Lbl> : null}
     </div>
     <div className={S.sub}>{ar ? 'يقارن العميل ويدفع على السعر غير شامل الضريبة، ولا تُعرض عليه تفاصيل الضريبة ولا رقم تسجيلكم الضريبي.' : 'The customer compares and pays on the price excluding VAT; your VAT details and TRN are never shown to them.'}</div>
-    <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-[160px]" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
+    <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-beat-l" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
     <div className="border-t border-border pt-4">
       <div className={cn(grp, 'mb-1')}>{ar ? 'بنود العرض' : 'Line items'}</div>
       <div className={cn(S.sub, 'mb-2')}>{lang === 'ar' ? 'بنود العرض (الوصف والكمية والسعر)، وبها يصبح عرضكم جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
@@ -1708,7 +1708,7 @@ function Onboarding({ token, onDone, lang, onExpired = null }) {
   useEffect(() => { load(); }, []);
   if (me === undefined) return <div className={S.center}>{t(lang, 'loading')}</div>;
   return (<div className={S.wrap} style={{ maxWidth: 640 }}>
-    <h1 className={cn(S.h1, 'mb-1 font-[family-name:var(--font-head)]')}>{t(lang, 'setup_title')}</h1>
+    <h1 className={cn(S.h1, 'mb-1 font-head')}>{t(lang, 'setup_title')}</h1>
     <div className={cn(S.sub, 'mb-3.5')}>{me ? t(lang, 'setup_sub_profile') : t(lang, 'setup_sub_company')}</div>
     {!me ? <NewCompany token={token} onReady={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
   </div>);

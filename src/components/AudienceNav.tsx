@@ -49,8 +49,8 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 const linkBase = 'relative inline-flex h-9 items-center gap-1 rounded-btn px-3 text-small font-medium transition-colors duration-base';
-const linkIdle = 'text-muted hover:bg-teal-light/[0.05] hover:text-white';
-const linkOn = 'text-white after:absolute after:inset-x-3 after:-bottom-[15px] after:h-px after:bg-teal-light after:shadow-[0_0_10px_rgba(110,231,212,.9)]';
+const linkIdle = 'text-muted hover:bg-teal-light/5 hover:text-white';
+const linkOn = 'text-white after:absolute after:inset-x-3 after:bottom-[-15px] after:h-px after:bg-teal-light after:shadow-[0_0_10px_rgba(110,231,212,.9)]';
 
 export function AudienceNav({ labels, services }: { labels: AudienceLabels; services: NavService[] }) {
   const [audience, setAudience] = useState<Audience>('visitor');
@@ -113,7 +113,7 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
             aria-expanded={open}
             aria-controls={panelId}
             onClick={() => setOpen((v) => !v)}
-            className={`${linkBase} ${servicesOn ? linkOn : linkIdle} ${open ? 'bg-teal-light/[0.06] text-white' : ''}`}
+            className={`${linkBase} ${servicesOn ? linkOn : linkIdle} ${open ? 'bg-teal-light/6 text-white' : ''}`}
           >
             {labels.services}
             <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-base ${open ? 'rotate-180 text-teal-light' : ''}`} strokeWidth={1.75} aria-hidden />
@@ -124,13 +124,13 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
             className="fixed inset-x-0 top-[68px] z-50 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1"
           >
             <div className="container-x">
-              <div className="qd-panel qd-grain grid overflow-hidden !rounded-frame border-line2 !bg-navy/95 !shadow-e3 lg:grid-cols-[1fr_300px]">
+              <div className="qd-panel qd-grain grid overflow-hidden rounded-frame! border-line2 bg-navy/95! shadow-e3! lg:grid-cols-[1fr_300px]">
                 <div className="p-6">
                   <div className="flex items-baseline justify-between gap-6">
                     <span className="qd-kicker">{labels.guides}</span>
                     <Link href="/services#all-trades" className="group inline-flex items-center gap-1.5 text-small font-medium text-teal-light hover:text-white">
                       {labels.allTrades}
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden />
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 group-hover:rtl:-translate-x-0.5" aria-hidden />
                     </Link>
                   </div>
                   <ul className="mt-4 grid grid-cols-2 gap-1 xl:grid-cols-3">
@@ -138,7 +138,7 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
                       const Icon = ICONS[s.slug] ?? LayoutGrid;
                       return (
                         <li key={s.slug}>
-                          <Link href={`/services/${s.slug}`} className="qd-hoverlit group flex items-start gap-3 rounded-panel p-2.5 transition-colors hover:bg-teal-light/[0.05]">
+                          <Link href={`/services/${s.slug}`} className="qd-hoverlit group flex items-start gap-3 rounded-panel p-2.5 transition-colors hover:bg-teal-light/5">
                             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-btn border border-line2 bg-surf text-muted shadow-key transition-colors group-hover:border-teal/50 group-hover:text-teal-light">
                               <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden />
                             </span>
@@ -157,7 +157,7 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
                   <p className="text-small text-muted">{labels.servicesLead}</p>
                   <div className="qd-panel p-4">
                     <div className="flex items-center justify-between"><span className="redact h-3 w-24" /><span className="font-mono text-label text-faint">Q-0412</span></div>
-                    {[92, 70, 84].map((w) => <span key={w} className="mt-3 block h-[3px] rounded-full bg-[var(--line2)]" style={{ width: `${w}%` }} />)}
+                    {[92, 70, 84].map((w) => <span key={w} className="mt-3 block h-[3px] rounded-full bg-(--line2)" style={{ width: `${w}%` }} />)}
                     <div className="mt-4 flex items-end justify-between"><span className="redact h-3 w-16" /><span className="h-2 w-12 rounded-full bg-teal/60" /></div>
                   </div>
                   <Link href={cta.href} className="qd-hoverlit inline-flex h-10 items-center justify-center rounded-btn bg-teal text-small font-semibold text-on-teal shadow-e1 hover:shadow-glow-teal">{labels.getQuotes}</Link>

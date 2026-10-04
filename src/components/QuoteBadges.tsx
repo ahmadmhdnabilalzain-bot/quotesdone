@@ -31,7 +31,7 @@ export function QuoteBadges({ f, lang }: { f: BadgeFacts; lang?: 'en' | 'ar' }) 
   return (
     <ul className="flex flex-wrap gap-1.5">
       {out.map((b) => (
-        <li key={b} className="rounded-full border border-teal/30 bg-teal/[0.06] px-2.5 py-0.5 text-[12px] text-teal-light">{b}</li>
+        <li key={b} className="rounded-full border border-teal/30 bg-teal/6 px-2.5 py-0.5 text-[12px] text-teal-light">{b}</li>
       ))}
     </ul>
   );

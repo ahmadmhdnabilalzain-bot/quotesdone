@@ -109,7 +109,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
                 <Button size="lg" variant="secondary">How it works</Button>
               </div>
             </div>
-            <div className="relative aspect-[5/4] w-full">
+            <div className="relative aspect-5/4 w-full">
               <HeroScene locale={lang} />
             </div>
           </div>
@@ -154,7 +154,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
           <div className="grid gap-6">
             <div lang="en" dir="ltr" className="qd-panel p-6 md:p-8">
               <div className="flex items-center justify-between"><Kicker>Latin · Geist</Kicker><Spec k="weights" v="100–900 variable" /></div>
-              <div className="mt-8 flex flex-col divide-y divide-[var(--line)]">
+              <div className="mt-8 flex flex-col divide-y divide-(--line)">
                 {EN_SCALE.map(([name, cls, spec]) => (
                   <div key={name} className="grid gap-2 py-5 md:grid-cols-[140px_1fr] md:items-baseline">
                     <div className="flex flex-col"><span className="text-small text-white">{name}</span><Spec k="" v={spec} /></div>
@@ -167,7 +167,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
             </div>
             <div lang="ar" dir="rtl" className="qd-panel p-6 md:p-8">
               <div className="flex items-center justify-between"><Kicker>العربية · Readex Pro</Kicker><Spec k="" v="160–700" /></div>
-              <div className="mt-8 flex flex-col divide-y divide-[var(--line)]">
+              <div className="mt-8 flex flex-col divide-y divide-(--line)">
                 {AR_SCALE.map(([name, cls, spec]) => (
                   <div key={name} className="grid gap-2 py-5 md:grid-cols-[140px_1fr] md:items-baseline">
                     <div className="flex flex-col"><span className="text-small text-white">{name}</span><span dir="ltr" className="text-end"><Spec k="" v={spec} /></span></div>
@@ -204,7 +204,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
             <Card><CardHeader><Kicker>Sealed</Kicker><CardTitle>Supplier <Seal>Al Noor Flooring LLC</Seal></CardTitle><CardDescription>The identity is withheld. The bar is drawn, never text-hidden.</CardDescription></CardHeader></Card>
             <Card className="qd-gold-edge"><CardHeader><Kicker>Unsealed</Kicker><CardTitle>Supplier <Seal open className="qd-revealed">Al Noor Flooring LLC</Seal></CardTitle><CardDescription>Gold appears only here: a hairline sweeps the bar and it slides off toward inline-end, 320 ms expo-out.</CardDescription></CardHeader></Card>
             <Card><CardHeader><Kicker>Loop</Kicker><CardTitle>Supplier <Seal loop>Al Noor Flooring LLC</Seal></CardTitle><CardDescription>The demonstration loop. Under reduced motion it rests open.</CardDescription></CardHeader></Card>
-            <Card className="md:col-span-3"><CardHeader><Kicker>Skeleton = redaction</Kicker></CardHeader><CardContent className="flex flex-col gap-3"><Skeleton className="w-2/5" /><Skeleton className="w-4/5 !h-2" /><Skeleton className="w-3/5 !h-2" /><div className="flex gap-3"><Skeleton className="!h-9 !w-9" /><Skeleton className="!h-9 w-32" /></div></CardContent></Card>
+            <Card className="md:col-span-3"><CardHeader><Kicker>Skeleton = redaction</Kicker></CardHeader><CardContent className="flex flex-col gap-3"><Skeleton className="w-2/5" /><Skeleton className="w-4/5 h-2!" /><Skeleton className="w-3/5 h-2!" /><div className="flex gap-3"><Skeleton className="h-9! w-9!" /><Skeleton className="h-9! w-32" /></div></CardContent></Card>
           </div>
         </Section>
 
@@ -264,7 +264,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
                   <Popover><PopoverTrigger asChild><Button variant="outline">Popover</Button></PopoverTrigger><PopoverContent><Kicker>Why sealed</Kicker><p className="mt-3 text-small text-muted">Suppliers compete on the job, not on who is asking.</p></PopoverContent></Popover>
                   <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline">Dropdown</Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Quote Q-0412</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem>Compare</DropdownMenuItem><DropdownMenuItem>Ask a question</DropdownMenuItem><DropdownMenuItem>Reveal supplier</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
                   <Dialog><DialogTrigger asChild><Button variant="secondary">Dialog</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Reveal this supplier?</DialogTitle><DialogDescription>You pay 3% of the quote to open one identity. The other quotes stay sealed.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost">Keep sealed</Button><Button variant="reveal">Reveal · 3%</Button></DialogFooter></DialogContent></Dialog>
-                  <Sheet><SheetTrigger asChild><Button variant="secondary">Sheet</Button></SheetTrigger><SheetContent><SheetHeader><SheetTitle>Quote Q-0412</SheetTitle><SheetDescription>Levelled against two others.</SheetDescription></SheetHeader><Skeleton className="mt-4 w-3/5" /><Skeleton className="mt-3 w-4/5 !h-2" /></SheetContent></Sheet>
+                  <Sheet><SheetTrigger asChild><Button variant="secondary">Sheet</Button></SheetTrigger><SheetContent><SheetHeader><SheetTitle>Quote Q-0412</SheetTitle><SheetDescription>Levelled against two others.</SheetDescription></SheetHeader><Skeleton className="mt-4 w-3/5" /><Skeleton className="mt-3 w-4/5 h-2!" /></SheetContent></Sheet>
                 </div>
               </div>
               <Card>
@@ -295,7 +295,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
 
             <Bento>
               <BentoTile span={4} tall kicker="Levelling" title="Three quotes, one grid" visual={
-                <ProductFrame title="compare / Q-0412" sampleLabel={t.sample} status="Live" className="absolute inset-4 !rounded-panel">
+                <ProductFrame title="compare / Q-0412" sampleLabel={t.sample} status="Live" className="absolute inset-4 rounded-panel!">
                   <ComparisonShowcase suppliers={['A', 'B', 'C']} best={1} totals={['38,750', '36,900', '34,200']}
                     labels={{ item: 'Item', total: 'Total AED', missing: 'Missing', best: 'Best' }}
                     rows={[{ item: 'Gypsum partitions', values: ['9,400', '9,100', '8,800'] }, { item: 'Ceiling works', values: ['7,250', '6,900', '7,000'] }, { item: 'Paint & finishes', values: ['5,600', '5,400', '5,900'] }, { item: 'MEP first fix', values: ['16,500', '15,500', null] }]} />

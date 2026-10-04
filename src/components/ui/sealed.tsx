@@ -103,7 +103,7 @@ export function ProductFrame({ title, sampleLabel, status, children, className }
         <i /><i /><i />
         <span className="ms-2 truncate font-mono text-label text-muted">{title}</span>
         <span className="ms-auto flex items-center gap-2">
-          {status ? <span className="flex items-center gap-1.5 font-mono text-label text-teal-light"><span className="node-dot !h-1.5 !w-1.5" />{status}</span> : null}
+          {status ? <span className="flex items-center gap-1.5 font-mono text-label text-teal-light"><span className="node-dot h-1.5! w-1.5!" />{status}</span> : null}
           <span className="rounded-chip border border-line2 px-2 py-0.5 font-mono text-label text-faint">{sampleLabel}</span>
         </span>
       </div>
@@ -143,7 +143,7 @@ export function ComparisonShowcase({ suppliers, rows, totals, best, labels }: {
             </div>
           ))}
         </div>
-        <div className="qd-row border-t border-line2 bg-teal-light/[0.03]" style={{ gridTemplateColumns: cols }} role="row">
+        <div className="qd-row border-t border-line2 bg-teal-light/3" style={{ gridTemplateColumns: cols }} role="row">
           <span className="font-medium text-white" role="cell">{labels.total}</span>
           {totals.map((t, i) => (
             <span key={i} role="cell" className={cn('tabular font-mono text-[15px] font-semibold', i === best ? 'text-white' : 'text-muted')}>{t}</span>
@@ -181,9 +181,9 @@ export type Match = { name: string; score: number; facts: string; revealed?: boo
 /** Supplier match list: every identity sealed except the one the customer chose (gold). */
 export function MatchShowcase({ matches, labels }: { matches: Match[]; labels: { match: string } }) {
   return (
-    <ul className="qd-stagger reveal-stagger divide-y divide-[var(--line)]">
+    <ul className="qd-stagger reveal-stagger divide-y divide-(--line)">
       {matches.map((m, i) => (
-        <li key={i} className={cn('flex items-center gap-4 px-4 py-3.5', m.revealed && 'bg-gold/[0.05]')}>
+        <li key={i} className={cn('flex items-center gap-4 px-4 py-3.5', m.revealed && 'bg-gold/5')}>
           <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-panel border font-mono text-label', m.revealed ? 'border-gold/50 text-gold-light' : 'border-line2 text-muted')}>{String(i + 1).padStart(2, '0')}</span>
           <span className="min-w-0 flex-1">
             <span className="block text-copy font-medium">
@@ -237,7 +237,7 @@ export function Stepper({ steps, className }: { steps: Step[]; className?: strin
 
 export function FactBand({ facts, className }: { facts: { k: ReactNode; v: ReactNode }[]; className?: string }) {
   return (
-    <div className={cn('qd-panel grid grid-cols-2 divide-line md:grid-cols-4 md:divide-x rtl:md:divide-x-reverse', className)}>
+    <div className={cn('qd-panel grid grid-cols-2 divide-line md:grid-cols-4 md:divide-x md:rtl:divide-x-reverse', className)}>
       {facts.map((f, i) => (
         <div key={i} className="flex flex-col gap-1.5 px-6 py-5">
           <span className="font-mono text-label uppercase tracking-caps text-faint">{f.k}</span>

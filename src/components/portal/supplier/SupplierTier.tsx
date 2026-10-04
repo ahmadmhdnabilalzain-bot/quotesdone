@@ -116,7 +116,7 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
         <ol className="flex flex-col gap-1.5">
           {ladder.map((r) => (
             <li key={r.tier} className="flex items-baseline gap-2 text-[12.5px]">
-              <span className={'w-[4.5rem] shrink-0 font-medium ' + (STYLE[r.tier] || 'text-white')}>{tierName(lang, r.tier)}</span>
+              <span className={'w-18 shrink-0 font-medium ' + (STYLE[r.tier] || 'text-white')}>{tierName(lang, r.tier)}</span>
               <span className={r.tier === tier ? 'text-white' : 'text-muted-foreground'}>{(ar && r.needs_ar) || r.needs}</span>
               {r.tier === tier && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ok" />}
             </li>

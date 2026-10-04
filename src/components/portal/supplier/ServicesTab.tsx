@@ -70,7 +70,7 @@ type Rewrite = {
   model?: { state: string; message_en?: string; message_ar?: string };
 };
 
-const box = 'mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const box = 'mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring';
 const row = 'flex min-h-11 cursor-pointer items-start gap-2.5 rounded-md px-2 py-2.5 text-[13.5px] leading-snug text-foreground hover:bg-muted/40';
 const h3 = 'text-[14.5px] font-bold tracking-[-.012em] text-foreground';
 const sub = 'text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]';
@@ -383,7 +383,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           <textarea id={uid + '-raw'} dir="auto" rows={5} maxLength={2000} value={rawText}
                     onChange={(e) => { setRawText(e.target.value); setRwMsg(''); }}
                     aria-describedby={uid + '-describe-help'} placeholder={sc(lang, 'describe_ph')}
-                    className="w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button type="submit" className="min-h-11" disabled={rwBusy || rawText.trim().length < 2}>
               {rwBusy ? sc(lang, 'rewriting') : sc(lang, 'rewrite')}

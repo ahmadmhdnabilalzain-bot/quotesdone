@@ -50,7 +50,7 @@ export function MissingSpecs({ inq, token, lang, call, onChange }) {
               <input id={id} list={opts.length ? id + '-o' : undefined} value={vals[m.key] || ''} maxLength={300}
                 inputMode={m.type === 'number' ? 'decimal' : undefined}
                 onChange={(e) => setVals((a) => ({ ...a, [m.key]: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                className="mt-1 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-hidden focus-visible:ring-1 focus-visible:ring-ring" />
               {opts.length ? <datalist id={id + '-o'}>{opts.map((o) => <option key={o} value={o} />)}</datalist> : null}
             </div>
           );
