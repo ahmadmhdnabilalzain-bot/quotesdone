@@ -364,6 +364,7 @@
   },
   "badges": {
     "licence": "Licence verified",
+    "docs": "Documents complete",
     "response": "Responds to {p}% of reveals",
     "jobs": "{n} jobs completed on QuotesDone",
     "rating": "Rated {r}/5"
