@@ -17,6 +17,36 @@ alter table public.supplier_due_payments add constraint supplier_due_payments_re
 alter table public.supplier_due_payments drop constraint if exists supplier_due_payments_due_reference_key;
 alter table public.supplier_due_payments add constraint supplier_due_payments_due_reference_key unique (due_id, reference);
 
+-- WHO AND WHEN (2 Oct 2026, review of #1173). Every payment row says who entered it and when: 'service' for a
+-- settlement the trigger records, 'accountant' for a transfer the accountant records. Any other value is refused.
+alter table public.supplier_due_payments add column if not exists entered_by text not null default 'service';
+alter table public.supplier_due_payments add column if not exists created_at timestamptz not null default now();
+alter table public.supplier_due_payments drop constraint if exists supplier_due_payments_entered_by_check;
+alter table public.supplier_due_payments add constraint supplier_due_payments_entered_by_check check (entered_by in ('accountant', 'service'));
+
+-- WHAT STRIPE ACTUALLY CHARGED (2 Oct 2026, review of #1173). The settlement row recomputed the owed figure at
+-- paid_at; a checkout opened before midnight and paid after it was recorded at a day's more interest than Stripe took.
+-- supplier_pay now stores, per due, the exact amount it put on the session (the line items sum to the session's
+-- amount_total), and stripe_webhook writes the session id onto the due it settles; the settlement row reads this.
+create table if not exists public.supplier_due_checkouts (
+  session_id  text not null check (btrim(session_id) <> ''),
+  due_id      bigint not null references public.supplier_dues(id),
+  amount_aed  numeric(12,2) not null check (amount_aed > 0),
+  created_at  timestamptz not null default now(),
+  primary key (session_id, due_id)
+);
+comment on table public.supplier_due_checkouts is
+  'Per due, the amount supplier_pay put on each Stripe Checkout session; a Stripe settlement records exactly this. Seat: accountant.';
+alter table public.supplier_due_checkouts enable row level security;
+drop policy if exists supplier_due_checkouts_service_role_only on public.supplier_due_checkouts;
+create policy supplier_due_checkouts_service_role_only on public.supplier_due_checkouts
+  as permissive for all to public using (false) with check (false);
+revoke all on public.supplier_due_checkouts from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('supplier_due_checkouts', true, 'payment', 'per due, the amount each supplier_dues Stripe checkout charged; the settlement row records it', 'accountant')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 -- ===================================================================================================================
 -- EVERY SETTLEMENT IS A PAYMENT ROW (30 Sep 2026, accountant; review of #1167: nothing wrote supplier_due_payments).
 -- Measured: stripe_webhook is the one writer of supplier_dues.paid_at (its own comment and a grep of every function);
@@ -72,15 +102,32 @@ create or replace function public.fn_supplier_due_record_settlement(p_due_id big
  security definer
  set search_path to 'public', 'pg_temp'
 as $function$
-declare d public.supplier_dues; v_rest numeric; v_id bigint;
+declare d public.supplier_dues; v_rest numeric; v_id bigint; v_on date;
 begin
   select * into d from public.supplier_dues where id = p_due_id;
   if not found or d.paid_at is null or coalesce(d.status, '') in ('reversed', 'refunded', 'cancelled') then return null; end if;
-  -- what was still owed on the settlement date, before this settlement: the live figure supplier_pay billed
-  v_rest := (public.fn_supplier_dues_outstanding(array[d.id], (d.paid_at at time zone 'Asia/Dubai')::date) -> d.id::text ->> 'owed_aed')::numeric;
-  if v_rest <= 0 then return null; end if;
-  insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference)
-  values (d.id, (d.paid_at at time zone 'Asia/Dubai')::date, v_rest, coalesce(nullif(btrim(d.payment_ref), ''), 'supplier_dues.paid_at #' || d.id))
+  v_on := (d.paid_at at time zone 'Asia/Dubai')::date;
+  if nullif(btrim(d.stripe_session_id), '') is not null or d.payment_ref ~ '^(pi|cs)_' then
+    -- a Stripe settlement records what the session charged for this due, stored at checkout; never a figure
+    -- recomputed at paid_at (a day's interest apart when the checkout and the payment straddle midnight)
+    select c.amount_aed into v_rest from public.supplier_due_checkouts c
+     where c.session_id = d.stripe_session_id and c.due_id = d.id;
+    if v_rest is null then
+      perform public.fn_it_engineer_finding_upsert('acct:stripe_settlement_without_checkout_amount:' || d.id,
+        'A Stripe settlement of supplier due ' || d.id || ' has no stored checkout amount, so no payment row was recorded',
+        'public.fn_supplier_due_record_settlement', 'agent_facing', 1,
+        jsonb_build_object('due_id', d.id, 'stripe_session_id', d.stripe_session_id, 'payment_ref', d.payment_ref,
+                           'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+        '{}'::text[], '{}'::text[], 'accountant');
+      return null;
+    end if;
+  else
+    -- any other writer of paid_at: what was still owed on the settlement date, before this settlement
+    v_rest := (public.fn_supplier_dues_outstanding(array[d.id], v_on) -> d.id::text ->> 'owed_aed')::numeric;
+    if v_rest is null or v_rest <= 0 then return null; end if;
+  end if;
+  insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference, entered_by)
+  values (d.id, v_on, v_rest, coalesce(nullif(btrim(d.payment_ref), ''), 'supplier_dues.paid_at #' || d.id), 'service')
   on conflict (due_id, reference) do nothing returning id into v_id;
   return v_id;
 end $function$;
@@ -106,36 +153,61 @@ create trigger trg_supplier_due_paid_records_payment
   after insert or update of paid_at on public.supplier_dues
   for each row execute function public.fn_supplier_due_paid_records_payment();
 
-create or replace function public.fn_accountant_record_supplier_payment(p_due_id bigint, p_amount numeric, p_paid_on date, p_reference text)
+-- THE BANK-PAYMENT ROUTINE REFUSES WHAT IS NOT OWED (2 Oct 2026, review of #1173). It accepted any amount on any due:
+-- a typo of 5,500 for 550 drove the principal negative, and a payment could land on a due already paid or reversed.
+-- Now: never above what is still owed (unpaid principal + interest to paid_on + fees, and never above today's figure,
+-- so a back-dated entry cannot count a later payment twice); never on a due paid, settled, waived, reversed, refunded
+-- or cancelled. An overpayment attempt raises an accountant finding. Only the service role may call it: the
+-- accountant seat runs as the service role, and EXECUTE is revoked from public, anon and authenticated.
+drop function if exists public.fn_accountant_record_supplier_payment(bigint, numeric, date, text);
+create or replace function public.fn_accountant_record_supplier_payment(p_due_id bigint, p_amount numeric, p_paid_on date, p_reference text,
+                                                                        p_entered_by text default 'accountant')
  returns jsonb
  language plpgsql
  security definer
  set search_path to 'public', 'pg_temp'
 as $function$
-declare d public.supplier_dues; v_id bigint; v jsonb;
+declare d public.supplier_dues; v_id bigint; v jsonb; v_owed numeric; v_today date := (now() at time zone 'Asia/Dubai')::date;
 begin
+  if coalesce(p_entered_by, '') not in ('accountant', 'service') then
+    return jsonb_build_object('ok', false, 'reason', 'entered_by must be accountant or service');
+  end if;
   if p_amount is null or p_amount <= 0 then return jsonb_build_object('ok', false, 'reason', 'the amount must be above zero'); end if;
-  if p_paid_on is null or p_paid_on > (now() at time zone 'Asia/Dubai')::date then
+  if p_paid_on is null or p_paid_on > v_today then
     return jsonb_build_object('ok', false, 'reason', 'the payment date is missing or in the future');
   end if;
   if nullif(btrim(p_reference), '') is null then return jsonb_build_object('ok', false, 'reason', 'a bank or Stripe reference is required'); end if;
   select * into d from public.supplier_dues where id = p_due_id for update;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no such due'); end if;
-  insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference)
-  values (p_due_id, p_paid_on, round(p_amount, 2), btrim(p_reference))
+  if d.paid_at is not null or coalesce(d.status, '') in ('paid', 'settled', 'waived', 'reversed', 'refunded', 'cancelled', 'void') then
+    return jsonb_build_object('ok', false, 'reason', 'this due is ' || coalesce(nullif(d.status, ''), 'paid') || ', so nothing is owed on it');
+  end if;
+  v_owed := least((public.fn_supplier_dues_outstanding(array[d.id], p_paid_on) -> d.id::text ->> 'owed_aed')::numeric,
+                  (public.fn_supplier_dues_outstanding(array[d.id], v_today)   -> d.id::text ->> 'owed_aed')::numeric);
+  if v_owed is null or round(p_amount, 2) > v_owed then
+    perform public.fn_it_engineer_finding_upsert('acct:supplier_overpayment:' || d.id || ':' || btrim(p_reference),
+      'An attempt to record AED ' || round(p_amount, 2) || ' against supplier due ' || d.id || ' exceeds the AED ' || coalesce(v_owed, 0) || ' still owed',
+      'public.fn_accountant_record_supplier_payment', 'agent_facing', 1,
+      jsonb_build_object('due_id', d.id, 'amount_aed', round(p_amount, 2), 'owed_aed', v_owed, 'paid_on', p_paid_on,
+                         'reference', btrim(p_reference), 'entered_by', p_entered_by, 'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+      '{}'::text[], '{}'::text[], 'accountant');
+    return jsonb_build_object('ok', false, 'reason', 'the amount is above the AED ' || coalesce(v_owed, 0) || ' still owed on this due; nothing was recorded', 'owed_aed', v_owed);
+  end if;
+  insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference, entered_by)
+  values (p_due_id, p_paid_on, round(p_amount, 2), btrim(p_reference), p_entered_by)
   on conflict (due_id, reference) do nothing returning id into v_id;
   if v_id is null then
     return jsonb_build_object('ok', false, 'reason', 'this reference is already recorded against this due, so the payment is not counted twice');
   end if;
   v := public.fn_accountant_nonresponse_charge(d.transaction_id, null);
   -- settled only when nothing is outstanding: no unpaid principal and no interest
-  if d.paid_at is null and coalesce((v->>'ok')::boolean, false) and (v->>'total_aed')::numeric <= 0 then
+  if coalesce((v->>'ok')::boolean, false) and (v->>'total_aed')::numeric <= 0 then
     update public.supplier_dues set paid_at = now(), status = 'paid', payment_ref = btrim(p_reference) where id = p_due_id;
   end if;
-  return jsonb_build_object('ok', true, 'payment_id', v_id, 'due_id', p_due_id, 'settled', d.paid_at is null and coalesce((v->>'total_aed')::numeric, 1) <= 0,
+  return jsonb_build_object('ok', true, 'payment_id', v_id, 'due_id', p_due_id, 'settled', coalesce((v->>'total_aed')::numeric, 1) <= 0,
                             'paid_aed', v->'paid_aed', 'unpaid_principal_aed', v->'unpaid_principal_aed', 'interest_aed', v->'interest_aed', 'total_aed', v->'total_aed');
 end $function$;
-revoke execute on function public.fn_accountant_record_supplier_payment(bigint, numeric, date, text) from public, anon, authenticated;
+revoke execute on function public.fn_accountant_record_supplier_payment(bigint, numeric, date, text, text) from public, anon, authenticated;
 
 -- backfill: every due already paid, through the same routine (idempotent: it records only what is not yet recorded)
 select public.fn_supplier_due_record_settlement(d.id) from public.supplier_dues d where d.paid_at is not null order by d.id;

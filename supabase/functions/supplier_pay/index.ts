@@ -218,7 +218,14 @@ Deno.serve(observe('supplier_pay', async (req) => {
     const sj = await r.json();
     if (!r.ok) { await logRun('error', { supplier_id: lead.id, amount, http: r.status }, 'Stripe session create failed for a supplier trying to settle: ' + String(sj?.error?.message || '').slice(0, 200) + '. The supplier cannot pay right now and interest keeps accruing.'); return J({ error: 'stripe_error', code: 'payment_failed' }, 502); }
 
-    try { await admin.from('supplier_dues').update({ stripe_session_id: String(sj.id) }).in('id', ids); } catch (_e) { /* non-fatal */ }
+    // WHAT THIS SESSION CHARGES, PER DUE (2 Oct 2026, accountant; review of #1173). The settlement row records exactly
+    // this amount, never a figure recomputed when the payment lands (a checkout opened before midnight and paid after
+    // it would otherwise be recorded at a day's more interest than Stripe took). Fail closed: without the stored
+    // amounts the supplier is not sent to pay (the unused session simply expires).
+    const { error: cErr } = await admin.from('supplier_due_checkouts')
+      .insert(selected.map((d) => ({ session_id: String(sj.id), due_id: Number(d.id), amount_aed: owed(d, OUT) })));
+    if (cErr) { await logRun('error', { supplier_id: lead.id, amount, session: String(sj.id) }, 'supplier_pay could not store the per-due checkout amounts (' + String(cErr.message).slice(0, 140) + '). The supplier was not sent to pay.'); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
+    try { await admin.from('supplier_dues').update({ stripe_session_id: String(sj.id) }).in('id', ids); } catch (_e) { /* the webhook writes the paid session id too */ }
 
     await logRun('ok', { supplier_id: lead.id, amount, dues: ids.length, session: String(sj?.id || '') }, 'Supplier ' + (lead.company_name || lead.id) + ' started checkout for ' + amount + ' AED across ' + ids.length + ' outstanding charge(s). Nothing is marked paid until stripe_webhook confirms.');
     return J({ ok: true, url: sj.url, amount, currency: 'AED', dues: ids.length });
