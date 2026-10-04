@@ -43,6 +43,12 @@ test('it acts: forecast demand moves a below-target gap to recruit, and it is a 
 test('the brief box records the recognised trade, never the text, and the recorder is service-role only', () => {
   const site = read('supabase/functions/public_site/index.ts');
   assert.match(site, /rpc\('fn_demand_search_record', \{ p_category: category, p_emirate: emirate \}\)/);
+  assert.match(site, /if \(category && await rl\('demand_search_ip:' \+ ip, 5, 86400\)\)/, 'search recording is not rate-limited per IP');
+});
+
+test('searches alone never start recruitment (review of #1182: an anonymous visitor could)', () => {
+  assert.match(tick, /and f\.forecast_90d >= 1 /);
+  assert.doesNotMatch(tick, /searches_30d >= \d/);
   assert.doesNotMatch(src, /demand_search \([^)]*\btext\b[^)]*\)\s*select/);
   assert.match(src, /revoke execute on function public\.fn_demand_search_record\(text, text\) from public, anon, authenticated;/);
   assert.match(src, /revoke all on public\.demand_search from anon, authenticated;/);

@@ -19,8 +19,8 @@
 -- projected the same way in their own columns and never added to inquiries: no conversion rate is known
 -- yet, and inventing one would be a number nobody measured.
 --
--- IT ACTS: a trade and area whose projected 90-day demand is >= 1 inquiry, or that visitors searched for
--- 3+ times in 30 days, while its supply_gap row is below target and not already being recruited for, is
+-- IT ACTS: a trade and area whose projected 90-day demand is >= 1 inquiry (searches never act on their own:
+-- they are anonymous, and public_site records at most 5 per IP per day), while its supply_gap row is below target and not already being recruited for, is
 -- moved to 'recruit' (decided_by 'rule:forecast_demand') - the same path a waiting customer takes, so
 -- marketing.gap_recruitment_plans and the recruitment funnel start before the customer arrives.
 
@@ -138,7 +138,7 @@ begin
       from public.demand_forecast f
      where f.run_on = v_today and f.trade = g.trade and f.emirate = g.emirate
        and g.matchable < g.target and g.status in ('open', 'deciding', 'deferred')
-       and (f.forecast_90d >= 1 or f.searches_30d >= 3)
+       and f.forecast_90d >= 1   -- real inquiries only: searches are anonymous and never start recruitment
     returning g.trade, g.emirate
   )
   update public.demand_forecast f set acted = 'supply_gap -> recruit (rule:forecast_demand)'
