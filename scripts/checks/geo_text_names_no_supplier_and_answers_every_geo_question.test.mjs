@@ -34,6 +34,14 @@ test('static: served, structured, English, no forbidden words, fees as the site 
     assert.doesNotMatch(t, /[؀-ۿ]/, 'English only');
     assert.doesNotMatch(t, /licen[cs]e (no|number)|\b\d{6,}\b/i, 'no licence number');
   }
+  // the steps and timing are the site's own words, not a paraphrase that can drift from them
+  const norm = (s) => s.toLowerCase().replace(/[–—]/g, '-').replace(/’/g, "'");
+  const L = norm(llms);
+  const en = JSON.parse(read('messages/en.json'));
+  for (const s of en.howPage.steps) assert.ok(L.includes(norm(s.body)), 'step drifted from howPage: ' + s.title);
+  for (const t of en.howPage.time) assert.ok(L.includes(norm(t)), 'timing drifted from howPage: ' + t);
+  for (const v of ['Registration is free, permanently, for the first 1,000 suppliers to register. From the 1,001st registration an annual subscription of AED 1,000 applies.', 'You keep 100% of every job you win. The customer pays the 3% reveal fee.'])
+    assert.ok(read('messages/en.json').includes(v) && L.includes(norm(v)), 'supplier term drifted: ' + v);
   for (const fact of ['3% of the one quote', 'Posting and comparing are free', 'no commission', 'AED 1,000', 'except food & beverage', 'Dubai and Abu Dhabi'])
     assert.ok(llms.includes(fact), 'missing: ' + fact);
 });

@@ -6,12 +6,13 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
  * is now native:
  *   /blog/:slug   -> src/app/[locale]/blog/[slug]        (from src/content/blog.json)
  *   /robots.txt   -> src/app/robots.txt/route.ts
+ *   /llms.txt     -> src/app/llms.txt/route.ts (served since 5 Oct 2026, from src/content/geo.json)
  *   /ar/app       -> redirect to /ar/me
  * The old catch-all rewrite is gone; unmatched paths now return a normal 404
  * instead of proxying to a host that no longer exists.
  *
  * Still parked in the database and NOT served: /preview, /workspace,
- * /setup-stripe, /llms.txt. Nothing on the site links to them.
+ * /setup-stripe. Nothing on the site links to them.
  */
 
 // ── SECURITY HEADERS (website audit 14 Sep 2026) ──────────────────────────────────────────────────
