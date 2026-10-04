@@ -21,7 +21,7 @@
 -- The narrative ("what this means") is filed for the CEO's reasoning and HELD while the model hold is on.
 
 create table if not exists public.ceo_market_report (
-  month        date primary key,
+  month        date not null,
   audience     text not null default 'internal' check (audience = 'internal'),
   facts        jsonb not null,
   binding      jsonb,
@@ -32,7 +32,8 @@ create table if not exists public.ceo_market_report (
   held_id      bigint,
   notify       jsonb,
   include_demo boolean not null default false,
-  created_at   timestamptz not null default now()
+  created_at   timestamptz not null default now(),
+  primary key (month, include_demo)   -- a demo run never takes the real month's slot (review of #1192)
 );
 alter table public.ceo_market_report enable row level security;
 drop policy if exists ceo_market_report_service_role_only on public.ceo_market_report;
@@ -71,7 +72,7 @@ begin
   if v_m >= date_trunc('month', v_today)::date then
     raise exception 'month % has not ended; the market report is written for a month that is over', to_char(v_m, 'YYYY-MM');
   end if;
-  if exists (select 1 from public.ceo_market_report where month = v_m) then
+  if exists (select 1 from public.ceo_market_report where month = v_m and include_demo = p_include_demo) then
     return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'already', true);
   end if;
 
@@ -110,9 +111,10 @@ begin
                 order by forecast_90d desc, searches_30d desc limit 10) x$q$ into v_fc;
   end if;
 
-  -- CLOSE last months' findings whose gap is now closed
+  -- CLOSE last months' findings whose gap is now closed. A demo run acts on nothing real: no close, no open,
+  -- no handoff (review of #1192).
   for r in select i.id, i.evidence from public.ceo_improvement i
-            where i.source_kind = 'market_report' and i.status in ('open', 'assigned') loop
+            where not p_include_demo and i.source_kind = 'market_report' and i.status in ('open', 'assigned') loop
     if exists (select 1 from public.supply_gap g where g.trade = r.evidence->>'trade' and g.emirate = r.evidence->>'emirate' and g.matchable >= g.target) then
       perform public.fn_ceo_improvement_close(r.id, format('%s in %s reached its supplier target (market report %s).',
         r.evidence->>'trade', r.evidence->>'emirate', to_char(v_m, 'YYYY-MM')));
@@ -122,7 +124,7 @@ begin
 
   -- THE BINDING FINDING and the act on it
   v_bind := v_gaps->0;
-  if v_bind is not null then
+  if v_bind is not null and not p_include_demo then
     v_impr := public.fn_ceo_improvement_open('market_report', to_char(v_m, 'YYYY-MM'), 'sales_engineer',
       format('Market report %s: %s in %s has %s matchable suppliers against a target of %s while %s requests came in over 90 days. Recruit until it reaches the target.',
              to_char(v_m, 'Mon YYYY'), v_bind->>'trade', v_bind->>'emirate', v_bind->>'matchable', v_bind->>'target', v_bind->>'demand_90d'),
@@ -174,7 +176,7 @@ begin
     p_level => 'info', p_kind => 'ceo_market_report',
     p_dedupe_key => 'ceo_market_report:' || to_char(v_m, 'YYYY-MM') || case when p_include_demo then ':zz-demo' else '' end,
     p_owner_agent => 'ceo');
-  update public.ceo_market_report set notify = v_n where month = v_m;
+  update public.ceo_market_report set notify = v_n where month = v_m and include_demo = p_include_demo;
 
   return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'binding', v_bind, 'improvement_id', v_impr,
     'closed', v_closed, 'held_id', v_held, 'named', v_named is not null, 'notify', v_n);

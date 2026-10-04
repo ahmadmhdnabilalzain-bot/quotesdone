@@ -55,6 +55,13 @@ test('the #1164 guard runs on the body before it is stored or mailed, and a hit 
   assert.match(src, /p_detail => case when v_named is null then v_body/);
 });
 
+test('a demo run never takes the real month or touches a real improvement (review of #1192)', () => {
+  assert.match(src, /primary key \(month, include_demo\)/);
+  assert.match(src, /where month = v_m and include_demo = p_include_demo\) then/);
+  assert.match(src, /where not p_include_demo and i\.source_kind = 'market_report'/);
+  assert.match(src, /if v_bind is not null and not p_include_demo then/);
+});
+
 test('it acts and the founder is only notified', () => {
   assert.match(src, /fn_ceo_improvement_open\('market_report', to_char\(v_m, 'YYYY-MM'\), 'sales_engineer'/);
   assert.match(src, /perform public\.fn_ceo_improvement_close\(r\.id/);
