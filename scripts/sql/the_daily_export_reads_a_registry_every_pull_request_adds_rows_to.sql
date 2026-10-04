@@ -755,10 +755,20 @@ as $fn$
    order by r.table_name
 $fn$;
 
--- VERDICT (read by apply_sql.mjs): the list did not drop, every exported table exists, nothing is left in backlog.
+-- VERDICT (read by apply_sql.mjs): EXACTLY the 312 rows this file seeds are exported, every exported table exists,
+-- nothing is left in backlog. (4 Oct 2026, item 21: was a floor of 174, which a lost 138 rows would have passed.)
+-- MEASURED from this file: 312 exported = 174 tagged 'exported before the registry (the 174-row list ...)'
+-- + 137 tagged 'backlog decided 29 Sep 2026, exported:' + table_export_registry itself. Counted by those tags, not by
+-- fn_table_export_list(), so a later file's rows (present when CI replays this file after them) do not move it.
 select case
-  when (select count(*) from public.fn_table_export_list()) < 174
-    then 'PROBE FAILED: fn_table_export_list returns ' || (select count(*) from public.fn_table_export_list()) || ', fewer than the 174 before'
+  when (select count(*) from public.table_export_registry r
+         where r.exported and (r.table_name = 'table_export_registry'
+                               or r.reason like 'exported before the registry (the 174-row list of 29 Sep 2026)%'
+                               or r.reason like 'backlog decided 29 Sep 2026, exported:%')) <> 312
+    then 'PROBE FAILED: this file seeds 312 exported rows, the registry holds ' || (select count(*) from public.table_export_registry r
+         where r.exported and (r.table_name = 'table_export_registry'
+                               or r.reason like 'exported before the registry (the 174-row list of 29 Sep 2026)%'
+                               or r.reason like 'backlog decided 29 Sep 2026, exported:%'))
   when exists (select 1 from public.table_export_registry r where r.exported and to_regclass('public.' || r.table_name) is null)
     then 'PROBE FAILED: exported but missing: ' || (select string_agg(r.table_name, ', ') from public.table_export_registry r
                                                    where r.exported and to_regclass('public.' || r.table_name) is null)
