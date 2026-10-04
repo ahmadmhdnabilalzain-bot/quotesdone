@@ -78,6 +78,9 @@ revoke execute on function public.fn_contact_merge_audit_is_append_only() from p
 drop trigger if exists contact_merge_audit_append_only on public.contact_merge_audit;
 create trigger contact_merge_audit_append_only before update or delete on public.contact_merge_audit
   for each row execute function public.fn_contact_merge_audit_is_append_only();
+drop trigger if exists contact_merge_audit_no_truncate on public.contact_merge_audit;
+create trigger contact_merge_audit_no_truncate before truncate on public.contact_merge_audit
+  for each statement execute function public.fn_contact_merge_audit_is_append_only();
 
 -- The live members of one identity, recomputed (a report can be stale by the time a seat reviews it).
 create or replace function public.fn_contact_identity_members(p_key text)
@@ -85,8 +88,10 @@ returns table (kind text, id text, via text, is_demo boolean, phone_key text, ra
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   with m as (
     select 'lead'::text kind, l.id::text id, v.via,
-           (coalesce(l.is_demo, false) or l.company_name ilike 'ZZ DEMO%' or l.company_name ilike 'QD Demo%'
-             or l.email ilike '%@example.invalid' or l.claimed_by ilike '%@example.invalid') is_demo,
+           -- every operand coalesced: a NULL here would make bool_and skip a real row and auto-merge it
+           (coalesce(l.is_demo, false) or coalesce(l.company_name ilike 'ZZ DEMO%', false)
+             or coalesce(l.company_name ilike 'QD Demo%', false) or coalesce(l.email ilike '%@example.invalid', false)
+             or coalesce(l.claimed_by ilike '%@example.invalid', false)) is_demo,
            right(regexp_replace(coalesce(l.phone_e164, l.phone, ''), '\D', '', 'g'), 9) phone_key,
            -- winner: the claimed (registered) lead, then the verified one, then the oldest
            (case when coalesce(l.claimed, false) then '0' else '1' end) || (case when coalesce(l.verified, false) then '0' else '1' end)
@@ -96,7 +101,8 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
      where lower(btrim(v.addr)) = p_key and l.merged_into is null
     union all
     select 'customer', c.id::text, 'email',
-           (coalesce(c.is_demo, false) or c.full_name ilike 'ZZ DEMO%' or c.email ilike '%@example.invalid'),
+           (coalesce(c.is_demo, false) or coalesce(c.full_name ilike 'ZZ DEMO%', false)
+             or coalesce(c.email ilike '%@example.invalid', false)),
            right(regexp_replace(coalesce(c.phone, c.whatsapp_phone, ''), '\D', '', 'g'), 9),
            to_char(c.created_at, 'YYYYMMDDHH24MISSUS') || c.id::text
       from public.customers c
@@ -110,7 +116,7 @@ revoke execute on function public.fn_contact_identity_members(text) from public,
 create or replace function public.fn_contact_merge(p_group uuid, p_reviewed_by_seat text, p_reason text)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare g public.contact_duplicate_group; v_kind text; v_tbl regclass; v_winner text; v_loser text;
-        fk record; n int; v_rep jsonb; v_before jsonb; v_after jsonb; v_done jsonb := '[]'::jsonb;
+        fk record; n int; v_rep jsonb; v_before jsonb; v_after jsonb; v_done jsonb := '[]'::jsonb; v_live_demo boolean;
 begin
   if length(btrim(coalesce(p_reason, ''))) < 10 then
     raise exception 'fn_contact_merge: a reason of at least 10 characters is required';
@@ -121,13 +127,16 @@ begin
   select * into g from public.contact_duplicate_group where id = p_group for update;
   if not found then raise exception 'fn_contact_merge: no duplicate group %', p_group; end if;
   if g.status = 'merged' then raise exception 'fn_contact_merge: group % is already merged', p_group; end if;
-  if cardinality(g.kinds) <> 1 then
+  -- kinds and demo-ness are judged on the LIVE members, never on the stored report (it can be stale)
+  select count(distinct m.kind), min(m.kind), coalesce(bool_and(m.is_demo), false)
+    into n, v_kind, v_live_demo from public.fn_contact_identity_members(g.identity_key) m;
+  if cardinality(g.kinds) <> 1 or n > 1 then
     raise exception 'fn_contact_merge: group % spans a customer and a supplier - different accounts, never merged', p_group;
   end if;
-  if not g.all_demo and p_reviewed_by_seat = 'it_engineer' then
+  if not v_live_demo and p_reviewed_by_seat = 'it_engineer' then
     raise exception 'fn_contact_merge: a real group is reviewed by its owning seat, not by the detector';
   end if;
-  v_kind := g.kinds[1];
+  v_kind := coalesce(v_kind, g.kinds[1]);
   v_tbl := case v_kind when 'lead' then 'public.leads'::regclass else 'public.customers'::regclass end;
 
   select m.id into v_winner from public.fn_contact_identity_members(g.identity_key) m
@@ -180,6 +189,7 @@ revoke execute on function public.fn_contact_merge(uuid, text, text) from public
 create or replace function public.fn_it_engineer_contact_dedup()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare g record; v_items jsonb := '[]'::jsonb; n_groups int := 0; n_demo int := 0; n_handed int := 0;
+        v_merged boolean; v_err text;
 begin
   for g in
     with ids as (
@@ -189,7 +199,7 @@ begin
     ), keys as (select k from ids group by k having count(*) > 1)
     select k.k, array_agg(distinct m.kind order by m.kind) kinds,
            jsonb_agg(jsonb_build_object('kind', m.kind, 'id', m.id, 'via', m.via, 'is_demo', m.is_demo) order by m.kind, m.id) members,
-           count(*)::int n, bool_and(m.is_demo) all_demo,
+           count(*)::int n, coalesce(bool_and(m.is_demo), false) all_demo,
            -- confirmation only: two members of an EMAIL group share a phone
            (count(m.phone_key) filter (where length(m.phone_key) >= 7)
              > count(distinct m.phone_key) filter (where length(m.phone_key) >= 7)) phone_confirms
@@ -204,11 +214,17 @@ begin
           phone_confirms = excluded.phone_confirms, all_demo = excluded.all_demo
       where d.status <> 'merged';
 
+    v_merged := false; v_err := null;
     if g.all_demo and cardinality(g.kinds) = 1 then
-      perform public.fn_contact_merge(d.id, 'it_engineer', 'demo fixture auto-merge by it_engineer.contact_dedup')
-         from public.contact_duplicate_group d where d.run_on = current_date and d.identity_key = g.k and d.status <> 'merged';
-      n_demo := n_demo + 1;
-    else
+      -- one failing group must not lose every other group's report: it falls through to the hand-off
+      begin
+        perform public.fn_contact_merge(d.id, 'it_engineer', 'demo fixture auto-merge by it_engineer.contact_dedup')
+           from public.contact_duplicate_group d where d.run_on = current_date and d.identity_key = g.k and d.status <> 'merged';
+        v_merged := true; n_demo := n_demo + 1;
+      exception when others then v_err := sqlerrm;
+      end;
+    end if;
+    if not v_merged then
       update public.contact_duplicate_group set status = 'handed_to_seat', handed_to_seat = 'sales_engineer'
        where run_on = current_date and identity_key = g.k and status = 'reported';
       n_handed := n_handed + 1;
@@ -219,7 +235,7 @@ begin
                  || case when g.phone_confirms then ', phone confirms' else '' end
                  || ' - review and merge with fn_contact_merge, or leave',
         'evidence', jsonb_build_object('identity_md5', md5(g.k), 'members', g.members, 'kinds', g.kinds,
-                                       'cross_kind', cardinality(g.kinds) > 1));
+                                       'cross_kind', cardinality(g.kinds) > 1, 'auto_merge_error', v_err));
     end if;
   end loop;
 

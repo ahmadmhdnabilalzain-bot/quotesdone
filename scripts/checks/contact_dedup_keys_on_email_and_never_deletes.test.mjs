@@ -45,7 +45,11 @@ test('every FK is enumerated from the catalogue at merge time', () => {
 test('a merge needs a live seat and a reason; the detector never approves a real group; kinds never cross', () => {
   assert.match(merge, /length\(btrim\(coalesce\(p_reason, ''\)\)\) < 10/);
   assert.match(merge, /from public\.org_role where role_id = p_reviewed_by_seat and status = 'active'/);
-  assert.match(merge, /not g\.all_demo and p_reviewed_by_seat = 'it_engineer'/);
+  assert.match(merge, /not v_live_demo and p_reviewed_by_seat = 'it_engineer'/);
+  assert.doesNotMatch(merge, /g\.all_demo/, 'demo-ness must be judged on the live members, not the stored report');
+  assert.match(members, /coalesce\(l\.company_name ilike 'ZZ DEMO%', false\)/, 'a NULL operand lets bool_and auto-merge a real row');
+  assert.match(duty, /coalesce\(bool_and\(m\.is_demo\), false\) all_demo/);
+  assert.match(duty, /exception when others then v_err := sqlerrm/, 'one failing group must not abort the duty');
   assert.match(merge, /cardinality\(g\.kinds\) <> 1/);
 });
 
