@@ -545,6 +545,26 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_deliberation_subject_is_fixture(p_subject_table text, p_subject_id text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id text := split_part(coalesce(p_subject_id, ''), ':', 1); v_s jsonb;
+begin
+  if p_subject_table = 'inquiries' then
+    v_s := jsonb_build_object('inquiry_id', v_id);
+  elsif p_subject_table = 'refunds' and v_id ~ '^[0-9]+$' then
+    select jsonb_strip_nulls(jsonb_build_object('inquiry_id', r.inquiry_id, 'customer_id', r.customer_id, 'supplier_id', r.supplier_lead_id))
+      into v_s from public.refunds r where r.id = v_id::bigint;
+  elsif p_subject_table = 'quotes' then
+    v_s := jsonb_build_object('quote_id', v_id);
+  end if;
+  return v_s is not null and public.fn_reason_subject_is_fixture(v_s);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_delivery_feedback_canary_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5140,6 +5160,10 @@ CREATE OR REPLACE FUNCTION public.fn_high_stakes_gate(p_kind text, p_author_seat
 AS $function$
 declare v_model text := p_author_model; v_class text := p_author_task_class; v_id bigint; v_err text; v_held boolean; c jsonb; v_go boolean;
 begin
+  if public.fn_deliberation_subject_is_fixture(p_subject_table, p_subject_id) then
+    return jsonb_build_object('proceed', true, 'state', 'not_challenged', 'fixture', true, 'deliberation_id', null,
+      'reason', 'the subject is an identity of our own E2E harness: no second-seat review is opened, none is ever paid for');
+  end if;
   -- THE AUTHOR'S MODEL: the one given, else the seat's latest reasoning call in 24 hours (what open() proves), else code.
   if v_model is null then
     select l.model_used, l.task_class into v_model, v_class from public.ai_cost_log l
