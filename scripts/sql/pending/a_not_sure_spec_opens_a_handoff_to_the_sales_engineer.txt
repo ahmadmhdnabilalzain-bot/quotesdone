@@ -1,1 +1,0 @@
-Registers the spec.not_sure handoff kind (customer_support -> sales_engineer) that customer_api add_missing_specs opens when a customer answers "not sure" (PR #1186). Applied at merge; until then such handoffs are born failed. Moves when #1186 merges: apply, delete this note, append the file to MANIFEST.txt.
