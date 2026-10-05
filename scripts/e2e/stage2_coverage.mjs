@@ -88,7 +88,7 @@ export const TESTED = [
   ['notice', /^(new_quote|quote_accepted|reveal_receipt|invoice_ready|new_message|clarification_requested|spec_offer_offer|rfq_addendum|registration_received|quote_coaching|duty_activation_first_request|inbound_reply)$/, 'S15'],
   ['notice', /^(login_otp|magiclink)$/, 'S03'],
   ['notice', /^(new_inquiry|rfq_no_supplier)$/, 'S06'],
-  ['notice', /^(quote_received|job_awarded_other|spec_offer_accepted|clarification_answered|supplier_ack|supplier_registered|doc_received|supplier_doc_applied)$/, 'S15'],
+  ['notice', /^(quote_received|job_awarded_other|spec_offer_accepted|clarification_answered|supplier_ack|supplier_registered|supplier_approved|doc_received|supplier_doc_applied)$/, 'S15'],
   ['notice', /^(support_reply|contact_message)$/, 'S14'],
   ['notice', /^marketing_/, 'S17'],
   ['action', /^project_api\./, 'S04'],

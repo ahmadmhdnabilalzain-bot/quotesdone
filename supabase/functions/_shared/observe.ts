@@ -47,7 +47,9 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 // header, nothing is added to any request.
 const E2E_RUN = new AsyncLocalStorage<string | null>();
 export const e2eRunTag = (): string | null => E2E_RUN.getStore() ?? null;
-const OWN = Deno.env.get('SUPABASE_URL') || '';
+// try: a unit test importing this module without --allow-env must still load it.
+let OWN = '';
+try { OWN = Deno.env.get('SUPABASE_URL') || ''; } catch { /* no env permission: no forwarding */ }
 if (OWN && !(globalThis as { __qdE2eFetch?: boolean }).__qdE2eFetch) {
   (globalThis as { __qdE2eFetch?: boolean }).__qdE2eFetch = true;
   const base = globalThis.fetch.bind(globalThis);

@@ -1,5 +1,6 @@
 // scripts/e2e/stage2.mjs — STAGE 2 of the pre-launch sandbox end-to-end test: the whole funnel with the
-// model hold LIFTED, on ZZ DEMO identities only, with a hard spend cap and complete cleanup.
+// models ON FOR THIS RUN'S TAGGED CALLS ONLY (the founder's hold stays on for everything else), on ZZ DEMO
+// identities only, with a database-enforced spend cap and complete cleanup.
 // Assigned: it_engineer (tooling) for the sales_engineer and customer_support journeys. Ledger 1119.
 //
 // Stage 1 (30 Sep, model hold ON) is scripts/e2e/run.mjs journeys a-h; its report marked every step the
@@ -10,7 +11,7 @@
 // the model-route assertions, the Desktop export, the coverage inventory and the learning cleanup.
 //
 //   node scripts/e2e/stage2.mjs --dry-run                 preconditions, cleanup paths, coverage, spend estimate. NO model call.
-//   node scripts/e2e/stage2.mjs --run                     the real run (refuses while the founder hold is on)
+//   node scripts/e2e/stage2.mjs --run                     the real run. It needs a go from the ceo/founder, but it does NOT need the hold lifted
 //   node scripts/e2e/stage2.mjs --cleanup-only --tag <t>  remove a run's demo rows, objects, users and learning
 //   node scripts/e2e/stage2.mjs --verify-clean --tag <t>  prove 0 rows of run <t> remain in every registry table and in storage
 //   options: --cap-usd 15 (hard abort), --out <dir> (default: the founder's Desktop folder)
@@ -33,8 +34,11 @@ const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const MODE = ['--dry-run', '--run', '--cleanup-only', '--verify-clean'].find((m) => argv.includes(m));
 if (!MODE) { console.error('usage: --dry-run | --run | --cleanup-only --tag <t> | --verify-clean --tag <t>'); process.exit(2); }
-const CAP_USD = Number(val('--cap-usd') || 15);
-if (!Number.isFinite(CAP_USD) || CAP_USD <= 0) { console.error('REFUSED: --cap-usd must be a positive number'); process.exit(2); }
+// USD 4 per rehearsal window (review of #1230). The DATABASE enforces it: fn_kernel_paid_provider_gate
+// refuses every further call tagged with this run once ai_cost_log holds cap_usd of them. The script
+// checks it as well, between and after scenarios. rehearsal_window_cap_is_small allows at most USD 15.
+const CAP_USD = Number(val('--cap-usd') || 4);
+if (!Number.isFinite(CAP_USD) || CAP_USD <= 0 || CAP_USD > 15) { console.error('REFUSED: --cap-usd must be a positive number'); process.exit(2); }
 const AED_PER_USD = 3.6725;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
@@ -198,7 +202,9 @@ async function preconditions({ forRun }) {
   c('demo capture + both pairing guards installed', guards.length === 3, guards.join(', ') || 'none');
   const gate = (await read(`select public.fn_kernel_paid_provider_gate('anthropic/claude-opus-5.5') g`).catch((e) => [{ g: { error: e.message } }]))[0].g;
   const held = gate && gate.allowed === false;
-  c(forRun ? 'model hold LIFTED (the run needs the models)' : 'model hold state read (the dry run calls no model either way)', forRun ? !held : true, JSON.stringify(gate).slice(0, 200));
+  // The run does NOT lift the hold: its tagged calls pass only inside its own window (fn_kernel_paid_provider_gate
+  // block 0). The hold's state is read and reported; it is never changed by this script.
+  c(`model hold read (${held ? 'ON' : 'off'}); the harness never changes it`, true, JSON.stringify(gate).slice(0, 200));
   const sk = (await read(`select key, left(value, 8) p from public.app_secrets where key in ('stripe_secret_key_test','stripe_publishable_key_test','stripe_webhook_secret_test','unsubscribe_signing_key')`));
   const skTest = sk.find((r) => r.key === 'stripe_secret_key_test');
   c('Stripe TEST keys present and test-mode', sk.filter((r) => r.key.startsWith('stripe')).length === 3 && skTest?.p?.startsWith('sk_test_'), sk.map((r) => `${r.key}=${r.p}…`).join(' '));
@@ -213,8 +219,10 @@ async function preconditions({ forRun }) {
   c('the 10 supplier trades and the unmatched trade exist', [...SUPPLIER_TRADES, UNMATCHED_TRADE].every((t) => trades.includes(t)), [...SUPPLIER_TRADES, UNMATCHED_TRADE].join(','));
   const demoUnmatched = (await read(`select count(*)::int n from public.leads where is_demo and (coalesce(categories::text,'') ilike ${q('%' + UNMATCHED_TRADE + '%')} or coalesce(services::text,'') ilike '%elevator%')`).catch(() => [{ n: -1 }]))[0].n;
   c(`no standing demo supplier in ${UNMATCHED_TRADE} (else the hold scenario would match it)`, demoUnmatched === 0, `${demoUnmatched} demo leads`);
-  const col = (await read(`select count(*)::int n from information_schema.columns where table_schema='public' and table_name='ai_cost_log' and column_name='e2e_run_tag'`))[0].n;
-  c(forRun ? 'ai_cost_log.e2e_run_tag exists (a_sandbox_run_tags_its_own_model_cost.sql applied)' : 'ai_cost_log.e2e_run_tag state read (pending until merge)', forRun ? col === 1 : true, col ? 'present' : 'not yet applied: --run refuses until it is');
+  const col = (await read(`select (select count(*) from information_schema.columns where table_schema='public' and table_name='ai_cost_log' and column_name='e2e_run_tag')
+      * (select count(*) from information_schema.columns where table_schema='public' and table_name='rehearsal_window' and column_name='models_allowed')
+      * (select count(*) from pg_proc where proname='fn_e2e_run_tag_open') n`))[0].n;
+  c(forRun ? 'ai_cost_log.e2e_run_tag, rehearsal_window.models_allowed and the tagged gate exist (a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql applied)' : 'ai_cost_log.e2e_run_tag state read (pending until merge)', forRun ? col === 1 : true, col ? 'present' : 'not yet applied: --run refuses until it is');
   const smoke = (await read(`select count(*)::int n from public.rehearsal_window where ended_at is null`))[0].n;
   c('no other harness run is open (rehearsal windows)', smoke === 0, `${smoke} open`);
   return { checks, ok: checks.every((x) => x.ok), pr, gate };
@@ -231,6 +239,12 @@ async function costSince(from, to) {
 
 async function realRun(pre) {
   const run = await openRun({});
+  RUN_TAG = run.tag;
+  // THE WINDOW LETS THIS RUN'S TAGGED CALLS PAST THE FOUNDER'S HOLD, AND NOTHING ELSE. It expires in the
+  // database after two hours (CHECK rehearsal_window_at_most_two_hours) even if this process dies, and
+  // main() closes it in a finally block.
+  await write(`update public.rehearsal_window set models_allowed = true, cap_usd = ${Number(CAP_USD)}, expires_at = now() + interval '2 hours'
+               where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'stage2 window: models for this tag only');
   const tag = run.tag; RUN_TAG = tag; process.env.QD_E2E_RUN_TAG = tag;
   run.ids.transactions = new Set(); run.ids.refunds = new Set();
   const steps = [];
@@ -680,11 +694,21 @@ if (MODE === '--dry-run') {
 
 // --run
 if (!pre.ok) { console.error('\nREFUSED: a precondition failed (above). Nothing was created.'); process.exit(2); }
-const res = await realRun(pre);
-let clean = null;
-try { clean = await cleanupAll(res.tag, JSON.parse(readFileSync(res.manifestPath, 'utf8'))); }
-catch (e) { clean = { error: String(e.message), verify: { clean: false } }; }
-save(`cleanup_${res.tag}.json`, clean);
+let res = null, clean = null;
+try { res = await realRun(pre); }
+finally {
+  // ALWAYS: models off for the tag first, then the cleanup, even when a scenario threw.
+  if (RUN_TAG) {
+    await write(`update public.rehearsal_window set models_allowed = false where run_tag = ${q('qd_run:' + RUN_TAG)}`, 'stage2 window: models off').catch(() => {});
+    const mp = join(OUT, 'run_manifest.json');
+    try { clean = await cleanupAll(RUN_TAG, existsSync(mp) ? JSON.parse(readFileSync(mp, 'utf8')) : null); }
+    catch (e) { clean = { error: String(e.message), verify: { clean: false } }; }
+    save(`cleanup_${RUN_TAG}.json`, clean);
+  }
+}
+
+if (!res) { log(`
+STAGE 2 CRASHED before it finished · cleanup ${clean?.verify?.clean ? "verified clean" : "NOT CLEAN - run --cleanup-only --tag " + RUN_TAG}`); process.exit(1); }
 writeIndex({ scenarios: scen.map((s) => ({ ...s, ...(res.scenarioRows.find((r) => r.key === s.key) || {}) })), cov,
   spend: { estimate_usd: estUsd, measured_usd: res.spentUsd }, mode: res.aborted ? 'run (ABORTED: ' + res.aborted + ')' : 'run', tag: res.tag,
   steps: [...res.steps, { scenario: 'cleanup', name: '0 rows of this run remain in every registry table, storage and auth', ok: !!clean.verify?.clean, detail: JSON.stringify(clean.verify).slice(0, 400) }] });

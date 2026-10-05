@@ -10,8 +10,9 @@ import { classify, TESTED, JUSTIFIED } from '../e2e/stage2_coverage.mjs';
 const src = readFileSync(new URL('../e2e/stage2.mjs', import.meta.url), 'utf8');
 const dry = src.slice(src.indexOf("if (MODE === '--dry-run')"), src.indexOf('// --run'));
 
-test('the hard spend cap defaults to USD 15 and is checked before and after every scenario', () => {
-  assert.match(src, /Number\(val\('--cap-usd'\) \|\| 15\)/);
+test('the script cap defaults to USD 4, never above 15, and is checked before and after every scenario', () => {
+  assert.match(src, /Number\(val\('--cap-usd'\) \|\| 4\)/);
+  assert.match(src, /CAP_USD > 15\)/);
   assert.match(src, /spentUsd \+ est > CAP_USD/);
   assert.match(src, /spentUsd > CAP_USD\) \{ aborted = `HARD ABORT/);
 });
@@ -42,10 +43,38 @@ test('a duty probe can never commit: it raises after measuring', () => {
   assert.match(d, /the probe did not raise: it may have COMMITTED/);
 });
 
-test('the sandbox tag on a cost row is kept only for an open harness run', () => {
-  const sql = readFileSync(new URL('../sql/a_sandbox_run_tags_its_own_model_cost.sql', import.meta.url), 'utf8');
-  assert.match(sql, /w\.run_tag = 'qd_run:' \|\| v_tag and w\.ended_at is null/);
-  assert.match(sql, /revoke execute on function public\.fn_ai_cost_log_e2e_run_tag\(\) from public, anon, authenticated/);
+const sql = readFileSync(new URL('../sql/a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql', import.meta.url), 'utf8');
+const gate = sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION public.fn_kernel_paid_provider_gate'), sql.indexOf('end $function$;'));
+
+test('a sandbox tag counts only for an open, unexpired, model-enabled window', () => {
+  assert.match(sql, /w\.run_tag = 'qd_run:' \|\| p_tag and w\.ended_at is null and w\.models_allowed and w\.expires_at > now\(\)/);
+  assert.match(sql, /check \(expires_at <= started_at \+ interval '2 hours 1 minute'\)/);
+  assert.match(sql, /check \(cap_usd > 0 and cap_usd <= 15\)/);
+  assert.match(sql, /add column if not exists models_allowed boolean not null default false/);
+  for (const f of ['fn_e2e_run_tag_open(text)', 'fn_e2e_run_tag_current()', 'fn_ai_cost_log_e2e_run_tag()']) {
+    assert.ok(sql.includes(`revoke execute on function public.${f} from public, anon, authenticated`), f);
+  }
+});
+
+test('the gate: untagged traffic is untouched, tagged traffic is capped and passes only the hold', () => {
+  // block 0 runs only for a tag; untagged calls never reach the cap or the window
+  assert.match(gate, /if v_tag is not null then\s+if not coalesce\(public\.fn_e2e_run_tag_open\(v_tag\), false\)/);
+  assert.match(gate, /'rule', 'rehearsal_cap'/);
+  // the founder's hold still refuses everything that is not this run
+  assert.match(gate, /if v_held > 0 and not v_rehearsal then/);
+  // the no_paid_ai switch and a real (short) breaker still refuse a tagged call
+  assert.doesNotMatch(gate.slice(gate.indexOf('-- 1. the explicit switch'), gate.indexOf('-- 2.')), /v_rehearsal/);
+  assert.match(gate, /and not \(v_rehearsal and v_open > now\(\) \+ interval '365 days'\)/);
+  // the file proves all four answers and must print PROBE OK at apply
+  assert.match(sql, /PROBE OK: untagged=/);
+});
+
+test('the harness enables models for its own tag only, and always turns them off', () => {
+  assert.match(src, /set models_allowed = true, cap_usd = \$\{Number\(CAP_USD\)\}, expires_at = now\(\) \+ interval '2 hours'/);
+  assert.match(src, /finally \{\s+\/\/ ALWAYS: models off/);
+  assert.match(src, /set models_allowed = false where run_tag/);
+  // the script never touches the founder's hold
+  assert.doesNotMatch(src, /update public\.llm_route_health/);
 });
 
 test('the coverage classifier never calls an unknown feature tested', () => {

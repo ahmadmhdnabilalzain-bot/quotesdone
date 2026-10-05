@@ -11,11 +11,12 @@
 // non-demo. Then raise, so nothing commits: no notification row, no pg_net request (its queue is a
 // table in the same transaction) and no update survives. A delete is not seen by age(xmin); that limit
 // is stated in the report.
-// PASS = the routine ran without error AND it wrote no non-demo row. A duty that writes real rows
+// PASS = the routine ran without error AND it wrote no non-demo customer- or supplier-facing row (a notice to the company itself counts with the demo rows). A duty that writes real rows
 // (today it would act on the real leads pool) FAILS with the counts. That is the finding that a scope
 // guard on app.e2e_run_tag is still missing (public.fn_e2e_in_scope, see the SQL file below).
-import { write } from './fixtures.mjs';
-import { q } from '../lib/demo_factory.mjs';
+// NO STATIC IMPORT OF THE FIXTURES: fixtures.mjs reads the Supabase access token when it loads, and
+// the CI fence test imports this module (through stage2_coverage.mjs) on a runner that has none.
+const q = (v) => (v === null || v === undefined) ? 'null' : `'${String(v).replace(/'/g, "''")}'`;
 
 // Zero-argument routines resilience_ping calls (supabase/functions/resilience_ping/index.ts). The
 // *_record, *_attach_pdf and *_write routines take arguments and are reached only through their *_due pair.
@@ -37,7 +38,9 @@ const DEMO = {
   quotes: 'x.supplier_id in (select id from public.leads where is_demo)',
   transactions: '(x.supplier_id in (select id from public.leads where is_demo) or x.customer_id in (select id from public.customers where is_demo))',
   refunds: 'x.customer_id in (select id from public.customers where is_demo)',
-  notifications: `(x.to_email like '%@example.invalid' or x.to_email like 'qd-%@example.%' or x.lead_id in (select id from public.leads where is_demo)
+  // A notice to the company itself (the delivery canary, the founder, a seat) is not a customer or
+  // supplier row; measured 6 Oct: fn_delivery_feedback_canary_tick writes one to_role='system'.
+  notifications: `(coalesce(x.to_role, '') in ('system', 'founder', 'ceo', 'it_engineer', 'accountant', 'marketing', 'sales_engineer', 'customer_support') or x.to_email like '%@example.invalid' or x.to_email like 'qd-%@example.%' or x.lead_id in (select id from public.leads where is_demo)
                    or x.inquiry_id in (select i.id from public.inquiries i join public.customers c on c.id=i.customer_id where c.is_demo))`,
   quote_spec_hold: 'x.supplier_id in (select id from public.leads where is_demo)',
   supplier_dues: 'x.supplier_id in (select id from public.leads where is_demo)',
@@ -54,6 +57,7 @@ export async function probeDuty(d, tag) {
     v_c := jsonb_build_object(${counts});
     raise exception 'CHK<<%>>', jsonb_build_object('ms', round(extract(epoch from clock_timestamp() - v_t0) * 1000), 'counts', v_c, 'result', left(coalesce(v_res::text, 'null'), 300));
   end $probe$`;
+  const { write } = await import('./fixtures.mjs');
   try { await write(sql, `stage2 duty probe ${d.duty} (aborted)`); return { error: 'the probe did not raise: it may have COMMITTED' }; }
   catch (e) {
     // qd_guard cuts e.message at 300 characters; e.body is the whole API answer.

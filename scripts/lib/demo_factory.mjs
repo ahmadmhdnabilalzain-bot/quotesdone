@@ -114,7 +114,7 @@ export async function call(slug, jwt, body, timeoutMs = 90000) {
     const r = await fetch(`${BASE}/functions/v1/${slug}?forceFunctionRegion=ap-southeast-1`, {
       method: 'POST',
       // QD_E2E_RUN_TAG: the stage-2 harness's run tag, carried to every model call so its ai_cost_log
-      // rows are stamped (scripts/sql/a_sandbox_run_tags_its_own_model_cost.sql).
+      // rows are stamped (scripts/sql/a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql).
       headers: { apikey: ANON, Authorization: 'Bearer ' + (jwt || ANON), 'Content-Type': 'application/json',
         ...(process.env.QD_E2E_RUN_TAG ? { 'x-qd-e2e-run': process.env.QD_E2E_RUN_TAG } : {}) },
       body: JSON.stringify(body),
