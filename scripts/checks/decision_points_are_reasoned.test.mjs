@@ -23,6 +23,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -165,7 +166,7 @@ async function pendingReplay() {
 /** Runs a DO block that ends in raise exception 'CHK<<json>>' after the pending chain; returns the json. Nothing commits. */
 async function probe(block, prefix = '') {
   const { sql } = await import('../lib/db.mjs');
-  try { await sql(prefix + (await pendingReplay()) + block, { retry: false }); }
+  try { await replaySql(prefix + (await pendingReplay()) + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));
@@ -280,7 +281,7 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   const body = before + (await pendingReplay()) + PROBE;
   let out;
   try {
-    await sql(body, { retry: false });
+    await replaySql(body, { retry: false });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));

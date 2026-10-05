@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { canonicalReplay, definitions } from '../lib/canonical_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
@@ -207,7 +208,7 @@ test('production: the whole refund ladder on ZZ DEMO fixtures, rolled back', { s
   const batch = [sqlText, ...(ledgerPending ? [read(join(REPO, LEDGER))] : []),
     read(join(REPO, 'scripts', 'checks', 'refund_ladder_fixtures.sql'))].join('\n;\n');
   let message = '';
-  try { await sql(batch); message = 'the fixture batch returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  try { await replaySql(batch); message = 'the fixture batch returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));

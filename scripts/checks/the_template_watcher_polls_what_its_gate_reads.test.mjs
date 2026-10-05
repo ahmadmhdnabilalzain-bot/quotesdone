@@ -60,11 +60,11 @@ test('a paused or rejected approval is written to the register and raises a find
 // reads false.
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 test('a stale approved template opens the scheduler gate, a confirmed one does not', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   const def = gateSql.match(/create or replace function public\.fn_resilience_orphan_steps_due\(\)[\s\S]*?\n\$fn\$;/)[0];
   let got;
   try {
-    await sql(`${def}
+    await replaySql(`${def}
       do $p$ declare a boolean; b boolean; c boolean; v_sid text; begin
         if coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') <> 'true' then
           raise exception 'CHK<<{"skip":"wa_templates_ready is not true, the flag arm holds the gate open"}>>';
@@ -78,7 +78,7 @@ test('a stale approved template opens the scheduler gate, a confirmed one does n
         update public.messaging_template set status = 'rejected' where sid = v_sid;
         c := (public.fn_resilience_orphan_steps_due()->>'wa_templates')::boolean;
         raise exception 'CHK<<%>>', jsonb_build_object('all_fresh', a, 'approved_stale', b, 'rejected_stale', c);
-      end $p$;`);
+      end $p$;`, { label: 'the wa_templates gate probe' });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;

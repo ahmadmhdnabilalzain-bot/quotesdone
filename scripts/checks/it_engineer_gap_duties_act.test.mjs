@@ -17,6 +17,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -54,7 +55,7 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 async function probe(block) {
   const { sql } = await import('../lib/db.mjs');
   // A file's trailing verdict SELECT is harmless inside the DO-less batch; the probe block raises at the end.
-  try { await sql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
+  try { await replaySql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 1200));
