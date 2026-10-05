@@ -11431,6 +11431,15 @@ begin
         'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
       n_int := n_int + 1; continue;
     end if;
+    -- 5 OCT 2026 (notifications#84149): the watch marks a failing integration notify=false when no account the
+    -- founder holds can restore it (a keyless endpoint, or a registry opt-out). The 'duty:integration%' class
+    -- asked him anyway, so the keyless search scrape reached him as a DECISION. It stays the IT engineer's.
+    if f.issue_key like 'duty:integration:%' and f.evidence->>'notify' is distinct from 'true' then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
+        'why', 'the integration watch marked it notify=false: no account the founder holds can restore it; the IT engineer owns it',
+        'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_int := n_int + 1; continue;
+    end if;
     -- His ruling that something is NOT his wins over any pattern that would ask him.
     select c.why, c.to_founder into v_why, v_his from public.it_founder_decision_class c where f.issue_key like c.issue_key_like
      order by c.to_founder, length(c.issue_key_like) desc limit 1;

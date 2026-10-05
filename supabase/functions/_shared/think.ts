@@ -544,29 +544,21 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     },
     space: async () => { const { readSpace } = await import('./ml_embed_client.ts'); return await readSpace(admin); },
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
-    search: webSearch,
+    search: (q) => webSearch(admin, q),
     read: readPage,
   };
 }
 
-// The search engine: DuckDuckGo's HTML endpoint, no key, restricted to the authorities with site:.
-// Its result list is parsed as a FORMAT (anchor tags), and every URL still has to pass authoritative().
-export async function webSearch(query: string): Promise<{ url: string; title: string }[]> {
+// The search engine: Serper, through web_search.ts (cap, private-name guard, official UAE sources only).
+// Without a key, over the cap or on a failure it returns no hits and think() reasons from the knowledge base.
+export async function webSearch(admin: Admin, query: string): Promise<{ url: string; title: string }[]> {
+  const { serperSearch } = await import('./web_search.ts');
   const { timedFetch } = await import('./timed_fetch.ts');
-  const q = `${query} site:gov.ae OR site:u.ae OR site:dm.gov.ae OR site:dcd.gov.ae OR site:uaelegislation.gov.ae`;
-  const r = await timedFetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q), { headers: { 'User-Agent': 'QuotesDone-research/1.0 (+https://www.quotesdone.ae)' } }, 10_000);
-  if (!r.ok) return [];
-  return parseSearchResults(await r.text());
-}
-export function parseSearchResults(html: string): { url: string; title: string }[] {
-  const out: { url: string; title: string }[] = [];
-  for (const m of html.matchAll(/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
-    let url = m[1].replace(/&amp;/g, '&');
-    const redirect = url.match(/[?&]uddg=([^&]+)/);
-    if (redirect) url = decodeURIComponent(redirect[1]);
-    if (authoritative(url)) out.push({ url, title: m[2].replace(/<[^>]+>/g, '').trim() });
-  }
-  return out;
+  return await serperSearch(query, {
+    key: Deno.env.get('SERPER_API_KEY'),
+    fetch: (u, i) => timedFetch(u, i, 10_000),
+    rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
+  });
 }
 export async function readPage(url: string): Promise<string | null> {
   if (!authoritative(url)) return null;
