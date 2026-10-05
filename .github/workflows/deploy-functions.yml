@@ -126,6 +126,13 @@ jobs:
             case "$before" in
               ''|0000000000000000000000000000000000000000) before="${{ github.sha }}~1" ;;
             esac
+            # A rebase or force-push leaves github.event.before pointing at a head that no longer exists
+            # (#1183, #1173, #1158, 4-5 Oct 2026): the diff then fails. Fall back to where the branch left main.
+            if ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+              git fetch -q origin main || true
+              before=$(git merge-base origin/main HEAD 2>/dev/null || echo "${{ github.sha }}~1")
+              echo "event.before is gone (rebase or force-push); diffing from $before"
+            fi
             # ── THERE IS NO STAGING ANY MORE (15 Aug 2026) ───────────────────────────────────────
             # The founder deleted the staging branch: "from now on there is no staging branches. we
             # directly build, test, pass then production." `list_projects` now returns exactly one
