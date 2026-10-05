@@ -1483,7 +1483,10 @@ Deno.serve(observe('customer_api', async (req) => {
         ({ matches } = await matchAndNotify(iid, { category: String(inq.category || ''), emirate: inq.emirate ?? null, summary: String(inq.summary || ''),
           budget: inq.budget ?? null, extra: ' The customer completed the details this trade needs.' }));
       }
-      return J({ ...r, released: r.ready === true, matches, removed: hits.length, handoff });
+      // An answer in Arabic script was saved as written and its supplier copy is held for its English
+      // (fn_inquiry_add_missing_specs files it for the replay; _shared/supplier_english.ts finishEnglish sends it).
+      const held = r.held_for_english === true ? { notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en } : {};
+      return J({ ...r, ...held, released: r.ready === true, matches, removed: hits.length, handoff });
     }
 
     if (action === 'rfq_note') {

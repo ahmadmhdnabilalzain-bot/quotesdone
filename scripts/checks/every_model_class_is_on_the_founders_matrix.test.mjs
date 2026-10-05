@@ -19,6 +19,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL = join(REPO, 'scripts', 'sql');
@@ -40,30 +41,21 @@ function pendingPolicyFiles() {
     .sort();
 }
 
+// Through scripts/lib/safe_replay.mjs (30 Sep 2026): a pending file's own COMMIT once ran before this probe's raise
+// and applied the file to production. The helper strips a file's transaction lines, refuses what cannot be rolled
+// back, always ends in a raise, and checks afterwards that nothing it creates changed.
 async function run(query) {
-  for (let attempt = 0; ; attempt++) {
-    const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-      method: 'POST', headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-    const text = await res.text();
-    if ((res.status === 429 || res.status >= 500) && attempt < 6) { await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt)); continue; }
-    const m = text.match(/CHK<<(.*?)>>/s);
-    assert.ok(m, `the probe returned no verdict (HTTP ${res.status}): ${text.slice(0, 500)}`);
-    return m[1];
-  }
+  let text = '';
+  try { await replaySql(query, { ref: REF, label: 'the model-matrix replay' }); } catch (e) { if (e.throttled) throw e; text = String(e.body ?? e.message); }
+  const m = text.match(/CHK<<(.*?)>>/s);
+  assert.ok(m, `the probe returned no verdict: ${text.slice(0, 500)}`);
+  return m[1];
 }
 
-// THE REPLAY MUST NOT COMMIT (30 Sep 2026). A pending file that carries its own transaction lines was replayed
-// verbatim, so its COMMIT ran before the probe's raise and the "aborted" run applied it to production before merge
-// (the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql). The file's own
-// transaction lines are dropped, as the_invitations_leave_on_their_own_subdomain.test.mjs already does.
-const replay = () => {
-  const text = pendingPolicyFiles().map((n) => readFileSync(join(SQL, n), 'utf8')
-    .replace(/^\s*(begin|commit|rollback)\s*;\s*$/gim, '')).join('\n;\n');
-  assert.doesNotMatch(text.replace(/--.*$/gm, ''), /^\s*(commit|rollback)\s*;/im, 'the replay would commit');
-  return text;
-};
+// The pending files as they are: run() sends them through safe_replay, which drops their own transaction lines
+// (the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql carried a pair and was
+// applied by this check's older transport, 30 Sep 2026) and refuses ROLLBACK and the rest.
+const replay = () => pendingPolicyFiles().map((n) => readFileSync(join(SQL, n), 'utf8')).join('\n;\n');
 const probe = () => readFileSync(join(SQL, PROBE), 'utf8');
 
 test('a management token is present where the matrix must be verified',

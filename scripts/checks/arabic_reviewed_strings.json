@@ -560,6 +560,18 @@
  "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql": [
   "3cbc1543d65e"
  ],
+ "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english_probe.sql": [
+  "2c34b688d18c",
+  "6e8f5d8a80f0",
+  "a428e819f9a6",
+  "cf76d5fb9275"
+ ],
+ "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english.sql": [
+  "036eb5e90eaa",
+  "08c4029b971d",
+  "151a66b810e1",
+  "4574b505503a"
+ ],
  "scripts/sql/an_edit_is_owned_by_a_live_seat_and_answered_in_the_customers_language.sql": [
   "1d3bf1712d59",
   "4318956eb352"

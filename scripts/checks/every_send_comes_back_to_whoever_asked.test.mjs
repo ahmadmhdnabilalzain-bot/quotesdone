@@ -34,6 +34,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
@@ -371,7 +372,7 @@ end $probe$;`;
 test('production: every send comes back and the asking seat closes or acts (aborted transaction)', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let message = '';
-  try { await sql(PROBE); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  try { await replaySql(PROBE); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));
