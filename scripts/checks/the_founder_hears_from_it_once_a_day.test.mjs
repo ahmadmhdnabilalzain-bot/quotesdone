@@ -26,6 +26,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/the_founder_hears_from_it_once_a_day.sql';
@@ -145,7 +146,7 @@ test('production: one digest a day carries only decisions and day-old faults, an
   // Not applied yet: rehearse the file itself in the same rolled-back transaction.
   const pre = live ? '' : `begin;\n${readFileSync(join(REPO, FILE), 'utf8')}\n`;
   let message = '';
-  try { await sql(pre + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  try { await replaySql(pre + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 1500));
   const o = JSON.parse(chk[1].replace(/\\"/g, '"'));

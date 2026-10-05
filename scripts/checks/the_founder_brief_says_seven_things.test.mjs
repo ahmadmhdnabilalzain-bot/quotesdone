@@ -25,6 +25,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pendingNotes } from '../lib/pending_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL_FILE = 'scripts/sql/the_founder_brief_says_seven_things_in_plain_words.sql';
@@ -121,12 +122,7 @@ test('F. the 18 Sep 2026 fixture day (the founder demo accounts) reads zero, wit
     .map((n) => fnBody(n).replace('public.' + n, 'pg_temp.' + n)).join('\n');
   const query = temp + `\nselect f, pg_temp.fn_founder_brief_text(f) as body from (select pg_temp.fn_founder_brief_figures(
       timestamptz '2026-09-18 00:00+04', timestamptz '2026-09-18 20:00+04') f) z;`;
-  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
-  const rows = await r.json();
-  assert.ok(r.ok, `query failed: ${r.status} ${JSON.stringify(rows)}`);
+  const rows = await replaySql(query, { rows: true, label: 'routine bodies replayed in pg_temp' });
   const [{ f, body }] = rows;
   for (const k of ['invitations', 'suppliers_registered', 'inquiries', 'customers', 'comparisons', 'reveal_fees'])
     assert.equal(Number(f[k].count), 0, `${k} counted a demo row on the fixture day`);

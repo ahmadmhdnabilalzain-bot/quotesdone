@@ -108,7 +108,8 @@ export async function sql(query, {
       e.status = 429; e.throttled = true;
       throw e;
     }
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 2000)}`);
+    // e.body is the untruncated answer: safe_replay.mjs reads a rolled-back query's rows out of it.
+    if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}: ${text.slice(0, 2000)}`), { status: res.status, body: text });
     try { return JSON.parse(text); } catch { return text; }
   }
 }

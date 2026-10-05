@@ -18,12 +18,14 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const CEO = 'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql';
 const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql', CEO,
-  'scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql'];
+  'scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql',
+  'scripts/sql/the_ceo_management_review_request_fits_the_reasoning_limit.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 test('the reveal fee is out of the pricing review, and no price is written', () => {
@@ -55,7 +57,7 @@ const SKIP = hasToken ? false : 'no Supabase management token';
 
 async function probe(block) {
   const { sql } = await import('../lib/db.mjs');
-  try { await sql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
+  try { await replaySql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));

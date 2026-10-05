@@ -57,7 +57,7 @@ test('static: both routines closed and pinned, every published-text table guarde
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
 test('production, aborted: naming a supplier is refused on every surface, a trade word is not', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql: sql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   const replay = pending() ? read(FILE) + '\n' : '';
   const T = TABLES.map((t) => `'${t}'`).join(',');
   let o;
@@ -101,7 +101,7 @@ end $$;`, { retry: false });
 });
 
 test('production, aborted: one write to each of the 7 surfaces costs under 200 ms', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql: sql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   const replay = pending() ? read(FILE) + '\n' : '';
   let o;
   try {
@@ -144,7 +144,7 @@ end $$;
 });
 
 test('production, aborted: one write to each of the 7 surfaces costs under 200 ms', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql: sql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   const replay = pending() ? read(FILE) + '\n' : '';
   let o;
   try {

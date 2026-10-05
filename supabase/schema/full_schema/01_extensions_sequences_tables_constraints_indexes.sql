@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T13:12:53.139Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T17:39:24.453Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -805,7 +805,8 @@ CREATE TABLE IF NOT EXISTS public.ai_cost_log (
   seat_basis text,
   counterpart_model text,
   review_violation text,
-  reviewer_tier text
+  reviewer_tier text,
+  prompt_hash text
 );
 
 CREATE TABLE IF NOT EXISTS public.ai_model_register (
@@ -4305,7 +4306,8 @@ CREATE TABLE IF NOT EXISTS public.it_model_consumer (
   consumer text NOT NULL,
   owner_seat text NOT NULL,
   why_a_model text NOT NULL,
-  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+  expected_usd_day numeric
 );
 
 CREATE TABLE IF NOT EXISTS public.it_playbook (
@@ -7211,7 +7213,8 @@ CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
   notice_attempts integer DEFAULT 0 NOT NULL,
   notice_last_at timestamp with time zone,
   notice_delivered_at timestamp with time zone,
-  notice_detail jsonb
+  notice_detail jsonb,
+  qhash text
 );
 
 CREATE TABLE IF NOT EXISTS public.reasoning_knowledge_candidate (
@@ -11863,6 +11866,7 @@ CREATE INDEX agent_training_case_scope ON public.agent_training_case USING btree
 CREATE INDEX ai_cost_log_confidence_prior_idx ON public.ai_cost_log USING btree (agent_key, task_class, occurred_at DESC) WHERE (confidence IS NOT NULL);
 CREATE INDEX ai_cost_log_dubai_day_idx ON public.ai_cost_log USING btree ((((occurred_at AT TIME ZONE 'Asia/Dubai'::text))::date));
 CREATE UNIQUE INDEX ai_cost_log_generation_id_uidx ON public.ai_cost_log USING btree (generation_id) WHERE (generation_id IS NOT NULL);
+CREATE INDEX ai_cost_log_prompt_hash_idx ON public.ai_cost_log USING btree (prompt_hash, occurred_at) WHERE (prompt_hash IS NOT NULL);
 CREATE UNIQUE INDEX ai_trainer_snap_day ON public.ai_trainer_snapshots USING btree (snapshot_date);
 CREATE INDEX ai_usage_email_time_idx ON public.ai_usage USING btree (email, created_at);
 CREATE UNIQUE INDEX ap_bills_vendor_billno_uidx ON public.ap_bills USING btree (vendor_id, bill_no) WHERE ((bill_no IS NOT NULL) AND (status <> 'void'::text));
@@ -12238,6 +12242,7 @@ CREATE UNIQUE INDEX quotes_inquiry_supplier_option_key ON public.quotes USING bt
 CREATE INDEX quotes_original_file_path_idx ON public.quotes USING btree (original_file_path) WHERE (original_file_path IS NOT NULL);
 CREATE INDEX quotes_stale_idx ON public.quotes USING btree (inquiry_id) WHERE (stale_at IS NOT NULL);
 CREATE INDEX reasoning_held_question_due_idx ON public.reasoning_held_question USING btree (status, last_attempt_at NULLS FIRST, created_at) WHERE (status = 'held'::text);
+CREATE INDEX reasoning_held_question_qhash_idx ON public.reasoning_held_question USING btree (surface, qhash, status);
 CREATE UNIQUE INDEX red_episode_one_open_per_key ON public.red_episode USING btree (check_key) WHERE (resolved_at IS NULL);
 CREATE INDEX red_episode_open ON public.red_episode USING btree (resolved_at) WHERE (resolved_at IS NULL);
 CREATE UNIQUE INDEX refund_case_one_live_per_transaction ON public.refund_case USING btree (transaction_id) WHERE (state <> ALL (ARRAY['ineligible'::text, 'ceo_declined'::text, 'failed'::text, 'canceled'::text]));

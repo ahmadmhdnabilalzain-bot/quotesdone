@@ -50,8 +50,12 @@ test('the matrix probe asserts tier and max_tokens per route, as the change file
   const have = {};
   for (const m of change.matchAll(/\('([a-z_]+)',\s+'(small|medium|large|xlarge)',\s+'([^']+)',\s+(?:'([^']+)'|null)\)/g)) have[m[1]] = { tier: m[2], p: m[3], f: m[4] };
   assert.ok(Object.keys(have).length >= 8, 'could not read the change file\'s routes');
+  // Matrix v2 (#1217, 5 Oct 2026) merged the v1 routes 'se', 'other', 'ceo_review' and 'other_review' into 'main' and
+  // 'review' without changing a tier; the routes both files still name are compared, and there must be some.
+  const shared = Object.keys(have).filter((r) => want[r]);
+  assert.ok(shared.length >= 3, 'the probe and the change file share fewer than 3 routes: ' + shared.join(', '));
   for (const [route, h] of Object.entries(have)) {
-    assert.ok(want[route], route + ' has no tier in the probe');
+    if (!want[route]) continue;
     assert.equal(want[route].tier, h.tier, route + ': the probe\'s tier is not the change file\'s');
     const opus = [h.p, h.f].includes('anthropic/claude-opus-5.5');
     assert.ok(want[route].min >= (opus ? 4000 : 1), route + ': the max_tokens floor is below the change file\'s');

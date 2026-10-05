@@ -29,6 +29,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -38,7 +39,10 @@ const FOLLOW = 'scripts/sql/a_review_is_held_rather_than_skipped_and_its_authors
 // The founder's model matrix (founder_instruction 1056): every review class's pair, the pool, and the router trying a
 // class's own fallback before the pool. Replayed after FOLLOW when it is not applied yet.
 const MATRIX = 'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql';
-const MATRIX_APPLIED = `exists (select 1 from public.model_policy where task_class = 'internal_judgement') matrix_applied`;
+// Matrix v2 (5 Oct 2026): replayed while its pending note exists.
+const V2 = 'every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing';
+const V2_REPLAY = existsSync(join(REPO, 'scripts/sql/pending', `${V2}.txt`)) ? read(`scripts/sql/${V2}.sql`) + '\n' : '';
+const MATRIX_APPLIED =`exists (select 1 from public.model_policy where task_class = 'internal_judgement') matrix_applied`;
 
 // Every review-shaped class the audit of 23 Sep 2026 found. Adding one is allowed; dropping one fails.
 const REQUIRED = ['ceo_judgement', 'ceo_approval_decision', 'identity_redaction_verify', 'quote_comparison',
@@ -70,12 +74,11 @@ test('every review class is declared with the author classes it judges', () => {
   for (const c of REQUIRED) assert.ok(Array.isArray(d[c]) && d[c].length > 0, `${c} must declare reviews_class`);
   assert.deepEqual(d.identity_redaction_verify, ['document_extraction']);
   assert.deepEqual(d.quote_comparison, ['document_extraction']);
-  // The route the redaction verify takes today is the matrix's (founder_instruction 1056): the find is read on Gemini,
-  // so the verify runs on the sales engineer's plan-B family, gpt-6-luna, with Opus as the third family behind it.
-  const mx = read(MATRIX);
-  assert.match(mx, /\('identity_redaction_verify',\s+'sales_engineer', 'se_review',/, 'the redaction verify is a sales engineer review');
-  assert.match(mx, /\('se_review',\s+'small',\s+'openai\/gpt-6-luna',\s+'anthropic\/claude-opus-5\.5'\)/,
-    'a sales engineer review runs on luna with a third-family fallback (Opus)');
+  // The route the redaction verify takes is matrix v2's (5 Oct 2026): the find is read on luna, so the verify runs on
+  // Gemini with Opus as the third family behind it.
+  const v2 = read(`scripts/sql/${V2}.sql`);
+  assert.match(v2, /set model_primary = 'google\/gemini-3\.8-flash', model_fallback = 'anthropic\/claude-opus-5\.5',[\s\S]{0,900}'identity_redaction_verify'/,
+    'the redaction verify runs on Gemini with a third-family fallback (Opus)');
 });
 
 test('the gateway refuses a review class without its author, and writes the author where the backstop reads it', () => {
@@ -189,9 +192,9 @@ test('production, one aborted transaction: no review class can route to any of i
   const noReplay = process.env.XFAM_NO_REPLAY === '1';
   const required = Object.fromEntries(Object.entries(declared()));
   const body = (noReplay ? '' : (s.base_applied ? '' : read(BASE) + '\n') + (s.applied ? '' : read(FILE) + '\n') + (s.follow_applied ? '' : read(FOLLOW) + '\n')
-    + (s.matrix_applied ? '' : read(MATRIX) + '\n')) + probe(required);
+    + (s.matrix_applied ? '' : read(MATRIX) + '\n') + V2_REPLAY) + probe(required);
   let out;
-  try { await sql(body, { retry: false }); } catch (e) {
+  try { await replaySql(body, { retry: false }); } catch (e) {
     const mm = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!mm) throw e;
     out = JSON.parse(mm[1].replace(/\\"/g, '"'));
@@ -232,12 +235,12 @@ begin
   values ('zz_probe_cmp', 'quote_comparison', 'none', (v->>'why') || ' | counterpart_model=openai/gpt-5.6-sol,unknown', true);
   o := o || jsonb_build_object('unknown_item', (select x->>'owner_seat' from jsonb_array_elements(public.fn_it_review_independence_items()) x
                                                   where x->>'item' = 'review_author_unknown:zz_probe_cmp'));
-  -- 5 fourth last-resort family, and 7 capabilities. DeepSeek (in the pool since founder_instruction 1056) is tripped
-  -- with the two last resorts, so what is exercised is still the fourth last-resort family.
+  -- 5 no last-resort family left, and 7 capabilities. Matrix v2 (5 Oct 2026) retired the fourth last-resort family, so
+  -- with Gemini and luna tripped an author on Sol and Opus has no reviewer outside its families: the review is HELD.
   update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '1 hour'
-   where model_id in ('google/gemini-3.8-flash', 'openai/gpt-6-luna', 'deepseek/deepseek-v4.1-flash');
+   where model_id in ('google/gemini-3.8-flash', 'openai/gpt-6-luna');
   o := o || jsonb_build_object(
-    'text_review_qwen', public.fn_ai_route_review('ceo_judgement', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5')->>'model',
+    'text_review_held', coalesce(public.fn_ai_route_review('ceo_judgement', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5')->>'model', 'held'),
     'vision_review', coalesce(public.fn_ai_route_review_for('identity_redaction_verify', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5',
                                 null, null, null, array['vision'])->>'model', 'held'),
     'ceo_authors', public.fn_ceo_judgement_counterparts(-1));
@@ -249,7 +252,7 @@ test('production, one aborted transaction: #880 review follow-ups hold', { skip:
   const [s] = await sql(`select to_regprocedure('public.fn_ai_route_review_for(text,text,text,text,text,text[])') is not null follow_applied,
     ${MATRIX_APPLIED}`, { readOnly: true });
   let out;
-  try { await sql((s.follow_applied ? '' : read(FOLLOW) + '\n') + (s.matrix_applied ? '' : read(MATRIX) + '\n') + FOLLOW_PROBE, { retry: false }); } catch (e) {
+  try { await replaySql((s.follow_applied ? '' : read(FOLLOW) + '\n') + (s.matrix_applied ? '' : read(MATRIX) + '\n') + V2_REPLAY + FOLLOW_PROBE, { retry: false }); } catch (e) {
     const mm = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!mm) throw e;
     out = JSON.parse(mm[1].replace(/\\"/g, '"'));
@@ -262,7 +265,7 @@ test('production, one aborted transaction: #880 review follow-ups hold', { skip:
   assert.equal(out.unknown_flag, 'true');
   assert.equal(out.unknown_why, 'AUTHOR UNKNOWN:');
   assert.equal(out.unknown_item, 'it_engineer', 'an unknown author is an it_engineer data-defect finding');
-  assert.equal(out.text_review_qwen, 'qwen/qwen3.7-plus', 'qwen is the fourth last-resort family');
+  assert.equal(out.text_review_held, 'held', 'no retired model is a last-resort family: with every other family down the review is held');
   assert.equal(out.vision_review, 'held', 'a vision review never lands on a text-only reviewer');
   assert.equal(out.ceo_authors, 'deterministic', 'no plan => no authors');
 });

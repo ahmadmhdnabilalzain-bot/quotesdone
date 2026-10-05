@@ -1493,6 +1493,18 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_spec_handoff_waits(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('waiting', coalesce(a.detail ->> 'waiting_for',
+                                                'the sales engineer to help the customer settle the spec'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_stalled_inquiry_notice(p_lang text, p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2068,7 +2080,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supply_gap(p_reason_limit in
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_target int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
-  g record; v_filed int := 0; v_rule int; v_closed int; v_reopened int; v_settled int; v_month text := to_char(now(), 'YYYY-MM');
+  v_rule int; v_closed int; v_reopened int; v_settled int; v_nobody int; v_held_settled int;
   v_emirates text[] := array['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
 begin
   with sup as materialized (   -- every matchable supplier with his trades and the emirates he states (none stated = UAE-wide)
@@ -2122,10 +2134,6 @@ begin
    where (status = 'closed' and matchable < target) or (status = 'deferred' and decided_at < now() - interval '30 days');
   get diagnostics v_reopened = row_count;
 
-  -- A decision whose reasoning failed five times goes back to open, so it is filed again (fn_reason_hold reopens it).
-  update public.supply_gap sgp set status = 'open'
-   where sgp.status = 'deciding' and exists (select 1 from public.reasoning_held_question h where h.id = sgp.held_id and h.status in ('failed', 'expired'));
-
   -- A RULE WHOSE CUSTOMER IS GONE IS UNDONE: a gap recruited for because a customer was waiting, where no counted
   -- (non-demo) request remains, goes back to open and is decided again below like any gap nobody waits on.
   update public.supply_gap set status = 'open', decided_by = null, decided_at = null, held_id = null
@@ -2141,24 +2149,20 @@ begin
   update public.supply_gap set status = 'deferred', decided_by = 'rule:no_uninvited_leads', decided_at = now()
    where status = 'open' and uninvited_pool = 0;
 
-  -- NOBODY IS WAITING: recruit now or defer is a judgement, reasoned by the sales engineer (stakes high).
-  for g in
-    select s.*, tt.label from public.supply_gap s join public.taxonomy_trade tt on tt.code = s.trade
-     where s.status = 'open' order by s.uninvited_pool desc, s.matchable, s.trade limit greatest(0, least(coalesce(p_reason_limit, 10), 50))
-  loop
-    update public.supply_gap set status = 'deciding', held_id = public.fn_seat_duty_reason('sales_engineer', 'sales_engineer.supply_gap',
-      'Supplier supply for one trade is below the level at which we open requests to customers. Nobody is waiting on it '
-        || 'today. Decide whether marketing should spend recruitment effort on this trade and area now, or defer it for a month.',
-      '[{"id":"recruit","meaning":"recruit suppliers for this trade and area now"},{"id":"defer","meaning":"defer for a month; other gaps matter more"}]'::jsonb,
-      jsonb_build_object('trade', g.trade, 'trade_label', g.label, 'area', g.emirate, 'matchable_suppliers', g.matchable,
-                         'suppliers_needed_to_open', g.target, 'uninvited_leads_in_pool', g.uninvited_pool, 'requests_90d', g.demand_90d),
-      jsonb_build_object('trade', g.trade, 'emirate', g.emirate), 'supply_gap:' || g.trade || ':' || g.emirate || ':' || v_month)
-     where trade = g.trade and emirate = g.emirate;
-    v_filed := v_filed + 1;
-  end loop;
+  -- NOBODY IS WAITING: deferred by rule, at no cost (R8). A decision already held for the model is settled the same
+  -- way, and the question it waited on is expired with the reason.
+  update public.reasoning_held_question h
+     set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', 'fn_sales_engineer_supply_gap',
+           'why', 'decided by code: nobody is waiting on this trade and area (rule:nobody_waiting)')
+    from public.supply_gap s
+   where s.status = 'deciding' and s.short_open = 0 and s.demand_90d = 0 and h.id = s.held_id and h.status = 'held';
+  get diagnostics v_held_settled = row_count;
+  update public.supply_gap set status = 'deferred', decided_by = 'rule:nobody_waiting', decided_at = now(), held_id = null
+   where status in ('open', 'deciding') and short_open = 0 and demand_90d = 0;
+  get diagnostics v_nobody = row_count;
 
   return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule, 'customer_rule_undone', v_settled,
-    'filed_for_reasoning', v_filed,
+    'deferred_nobody_waiting', v_nobody, 'held_questions_settled', v_held_settled, 'filed_for_reasoning', 0,
     'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.supply_gap group by status) x));
 end $function$
 
@@ -3747,6 +3751,41 @@ AS $function$
   select coalesce(string_agg(x #>> '{}', ' '), '') from jsonb_path_query(coalesce(p, 'null'::jsonb), 'strict $.**') x
    where jsonb_typeof(x) = 'string'
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_withdraw(p_id bigint, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.seat_deliberation; v_gone boolean; v_fixture boolean; v_id text;
+begin
+  select * into d from public.seat_deliberation where id = p_id for update;
+  if not found then raise exception 'no seat_deliberation %', p_id; end if;
+  if d.status <> 'open' then return jsonb_build_object('ok', false, 'reason', 'deliberation ' || p_id || ' is ' || d.status); end if;
+  if coalesce(btrim(p_reason), '') = '' then raise exception 'a withdrawal states its reason'; end if;
+  v_id := split_part(coalesce(d.subject_id, ''), ':', 1);
+  v_fixture := public.fn_deliberation_subject_is_fixture(d.subject_table, d.subject_id);
+  v_gone := case d.subject_table
+              when 'inquiries' then not exists (select 1 from public.inquiries i where i.id::text = v_id)
+              when 'refunds'   then not exists (select 1 from public.refunds r where r.id::text = v_id)
+              when 'quotes'    then not exists (select 1 from public.quotes q where q.id::text = v_id)
+              else false end;
+  if not (v_fixture or v_gone) then
+    raise exception 'deliberation % is about a live, real subject (%:%): only a fixture or a vanished subject is withdrawn',
+      p_id, d.subject_table, d.subject_id;
+  end if;
+  update public.seat_deliberation set status = 'closed', closed_at = now(),
+         outcome = 'withdrawn before review: ' || left(p_reason, 400) where id = p_id;
+  if d.handoff_id is not null then
+    perform set_config('qd.handoff_closer', d.author_seat, true);
+    perform public.fn_seat_handoff_complete(d.handoff_id, jsonb_build_object('kind', 'deliberation.review', 'deliberation_id', p_id,
+      'ended', 'withdrawn', 'outcome', left(p_reason, 400), 'closed_by', d.author_seat,
+      'subject_fixture', v_fixture, 'subject_gone', v_gone));
+  end if;
+  return jsonb_build_object('ok', true, 'deliberation_id', p_id, 'subject_fixture', v_fixture, 'subject_gone', v_gone);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_seat_duties_tick(p_limit integer DEFAULT 8)

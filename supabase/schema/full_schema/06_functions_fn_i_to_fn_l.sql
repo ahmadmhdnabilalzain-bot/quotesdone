@@ -5528,6 +5528,11 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_model_spend()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare x record; v_items jsonb := '[]'::jsonb;
+  -- ponytail: USD 0.10 a day is it_engineer's default expectation for a consumer nobody has priced; set
+  -- it_model_consumer.expected_usd_day to replace it. USD 1.00 is the idle floor, below ruling 986's USD 1-2 ceiling.
+  c_default_usd constant numeric := 0.10; c_idle_floor_usd constant numeric := 1.00;
+  v_fx numeric := coalesce((select num_value from public.gl_settings where key = 'usd_to_aed'), 3.6725);
+  v_usd numeric; v_hold boolean; v_held int; v_claimed_1h int; v_claimed_3h int; v_retried int;
 begin
   -- a think() surface is listed by construction (it lives in reasoning_held_question); ai_cost_log fn:task_class must be registered
   for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, count(*) n, max(a.seat) seat from public.ai_cost_log a
@@ -5551,15 +5556,75 @@ begin
       'evidence', jsonb_build_object('last_hour', x.last_hour, 'mean_hour_7d', round(x.mean_hour, 2)));
   end loop;
 
-  for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, a.cache_hit_key key, count(*) n, max(c.owner_seat) owner_seat
+  -- REPEATS: the same prompt PAID for 5 or more times in an hour. prompt_hash is on every row (the cache key column was null
+  -- on all of them); a refusal (model 'none') and a cache hit are not purchases.
+  for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, a.prompt_hash key, count(*) n, max(c.owner_seat) owner_seat
              from public.ai_cost_log a left join public.it_model_consumer c on c.consumer = a.fn || ':' || coalesce(a.task_class, 'unclassified')
-            where a.occurred_at > now() - interval '1 hour' and not a.cached and a.cache_hit_key is not null
+            where a.occurred_at > now() - interval '1 hour' and not a.cached and a.prompt_hash is not null and a.model_used <> 'none'
             group by 1, 2 having count(*) >= 5 loop
-    v_items := v_items || jsonb_build_object('item', 'repeat:' || x.k || ':' || left(md5(x.key), 12), 'owner_seat', coalesce(x.owner_seat, 'ceo'),
+    v_items := v_items || jsonb_build_object('item', 'repeat:' || x.k || ':' || left(x.key, 12), 'owner_seat', coalesce(x.owner_seat, 'ceo'),
       'subject', x.k, 'blast', 'internal', 'affected', x.n,
-      'title', x.k || ' paid for the same uncached call ' || x.n || ' times in the last hour',
-      'evidence', jsonb_build_object('cache_hit_key', x.key, 'calls', x.n));
+      'title', x.k || ' paid for the same prompt ' || x.n || ' times in the last hour',
+      'evidence', jsonb_build_object('prompt_hash', x.key, 'calls', x.n));
   end loop;
+
+  -- CLASS SPEND: a consumer's last 24 hours in USD against twice what it is expected to cost a day.
+  for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k,
+                  sum(coalesce(a.cost_usd_reported, a.cost_aed / v_fx)) usd, count(*) n,
+                  max(c.owner_seat) owner_seat, max(c.expected_usd_day) expected
+             from public.ai_cost_log a left join public.it_model_consumer c on c.consumer = a.fn || ':' || coalesce(a.task_class, 'unclassified')
+            where a.occurred_at > now() - interval '24 hours' and a.fn is not null
+            group by 1
+           having sum(coalesce(a.cost_usd_reported, a.cost_aed / v_fx)) > 2 * coalesce(max(c.expected_usd_day), c_default_usd) loop
+    v_items := v_items || jsonb_build_object('item', 'class_spend:' || x.k, 'owner_seat', coalesce(x.owner_seat, 'ceo'), 'subject', x.k,
+      'blast', 'internal', 'affected', x.n,
+      'title', x.k || ' cost USD ' || round(x.usd, 2) || ' in 24 h against an expected USD ' || coalesce(x.expected, c_default_usd) || ' a day',
+      'evidence', jsonb_build_object('usd_24h', round(x.usd, 4), 'calls_24h', x.n, 'expected_usd_day', coalesce(x.expected, c_default_usd),
+                                     'expected_is_default', x.expected is null));
+  end loop;
+
+  -- THE IDLE FLOOR: the whole estate above USD 1 in 24 hours. The daily anomaly check has no history at the lift (its
+  -- p90 is 0, its AED 20 floor is ~USD 5.4), so this is what speaks in the first days.
+  select coalesce(sum(coalesce(a.cost_usd_reported, a.cost_aed / v_fx)), 0) into v_usd
+    from public.ai_cost_log a where a.occurred_at > now() - interval '24 hours';
+  if v_usd > c_idle_floor_usd then
+    v_items := v_items || jsonb_build_object('item', 'idle_floor', 'owner_seat', 'it_engineer', 'subject', 'estate', 'blast', 'internal',
+      'affected', 1, 'title', 'model spend was USD ' || round(v_usd, 2) || ' in the last 24 hours, above the USD ' || c_idle_floor_usd
+        || ' floor set under the USD 1-2 idle ceiling (ruling 986)',
+      'evidence', jsonb_build_object('usd_24h', round(v_usd, 4), 'floor_usd', c_idle_floor_usd,
+        'top', (select jsonb_agg(t) from (select a.fn || ':' || coalesce(a.task_class, 'unclassified') k,
+                  round(sum(coalesce(a.cost_usd_reported, a.cost_aed / v_fx)), 4) usd
+                  from public.ai_cost_log a where a.occurred_at > now() - interval '24 hours' group by 1 order by 2 desc limit 5) t)));
+  end if;
+
+  -- THE REPLAY BACKLOG: held questions drain once the hold lifts. Stalled = nothing claimed in 3 hours with the gate
+  -- open; slow = at the last hour's rate it takes more than 48 hours; retries = 5 or more rows already tried twice.
+  v_hold := coalesce(public.fn_kernel_paid_provider_gate('hold-probe/not-a-model') ->> 'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state');
+  select count(*) filter (where status = 'held'),
+         count(*) filter (where last_attempt_at > now() - interval '1 hour'),
+         count(*) filter (where last_attempt_at > now() - interval '3 hours'),
+         count(*) filter (where status = 'held' and attempts >= 2)
+    into v_held, v_claimed_1h, v_claimed_3h, v_retried
+    from public.reasoning_held_question where status = 'held' or last_attempt_at > now() - interval '3 hours';
+  if not v_hold and v_held > 0 and v_claimed_3h = 0 then
+    v_items := v_items || jsonb_build_object('item', 'replay_stalled', 'owner_seat', 'it_engineer', 'subject', 'reasoning_held_question',
+      'blast', 'internal', 'affected', v_held,
+      'title', v_held || ' held question(s) wait and none was claimed in 3 hours although the model gate is open',
+      'evidence', jsonb_build_object('held', v_held, 'claimed_3h', 0));
+  elsif not v_hold and v_claimed_1h > 0 and v_held > 48 * v_claimed_1h then
+    v_items := v_items || jsonb_build_object('item', 'replay_slow', 'owner_seat', 'it_engineer', 'subject', 'reasoning_held_question',
+      'blast', 'internal', 'affected', v_held,
+      'title', v_held || ' held question(s) drain at ' || v_claimed_1h || ' an hour: more than 48 hours to clear',
+      'evidence', jsonb_build_object('held', v_held, 'claimed_1h', v_claimed_1h, 'hours_to_clear', round(v_held::numeric / v_claimed_1h, 1)));
+  end if;
+  if v_retried >= 5 then
+    v_items := v_items || jsonb_build_object('item', 'replay_retries', 'owner_seat', 'it_engineer', 'subject', 'reasoning_held_question',
+      'blast', 'internal', 'affected', v_retried,
+      'title', v_retried || ' held question(s) have been tried twice or more: each try is a full multi-call think()',
+      'evidence', jsonb_build_object('retried', v_retried,
+        'by_surface', (select jsonb_object_agg(surface, n) from (select surface, count(*) n from public.reasoning_held_question
+                        where status = 'held' and attempts >= 2 group by 1) s)));
+  end if;
 
   return jsonb_build_object('settled', public.fn_it_duty_settle('model_spend', v_items));
 end $function$
@@ -5572,6 +5637,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_postmortem()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
+        n_known int := 0; n_waiting int := 0; v_cause text; v_hid bigint;
         v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
 begin
   select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
@@ -5601,24 +5667,46 @@ begin
     end if;
   end loop;
 
-  -- A class the playbook has never seen: its root cause is asked once, three incidents a run, oldest first. Asked from
-  -- the incident (not the pass that opened it) so an incident past one run's cap is asked on the next.
+  -- A class the playbook has never seen: its root cause is asked ONCE PER FAULT (the finding key, digits stripped),
+  -- three faults a run, oldest first. An incident of a fault whose cause is already known takes that cause with no
+  -- model; one whose fault already has a question in the last 7 days waits for that answer (the apply fills it).
   for h in
-    select i.id inc_id, a.detail, a.evidence from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
+    select i.id inc_id, a.detail, a.evidence, public.fn_it_postmortem_fault_key(a.detail) fk
+      from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
      where i.created_at >= v_since and i.playbook_class is null and coalesce(btrim(i.cause), '') = ''
        and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'postmortem:' || i.id)
-     order by i.id limit 3
+     order by i.id
   loop
+    select i2.cause into v_cause from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
+     where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_fault_key(a2.detail) = h.fk
+     order by i2.id desc limit 1;
+    if v_cause is not null then
+      update public.it_incident set cause = v_cause, recorded_by = 'it_engineer.postmortem (same fault as an earlier incident)',
+             updated_at = now() where id = h.inc_id;
+      n_known := n_known + 1;
+      continue;
+    end if;
+    if exists (select 1 from public.reasoning_held_question q
+                where q.surface = 'it_engineer.postmortem' and q.subject->>'fault_key' = h.fk
+                  and q.status in ('held', 'reasoned', 'applied') and q.created_at > now() - interval '7 days') then
+      n_waiting := n_waiting + 1;
+      continue;
+    end if;
+    exit when n_asked >= 3;
     select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
-    perform public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
+    v_hid := public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
       'Postmortem: what was the root cause of this fault, in two or three sentences? ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
       jsonb_build_object('seat', 'it_engineer', 'surface', 'it_engineer.postmortem', 'research', false, 'stakes', 'normal',
         'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
         'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
           'finding', to_jsonb(f) - 'evidence')),
-        'subject', jsonb_build_object('incident_id', h.inc_id), 'dedupeKey', 'postmortem:' || h.inc_id),
-      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id), 'seat_duty', 'postmortem:' || h.inc_id);
-    n_asked := n_asked + 1;
+        'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk), 'dedupeKey', 'postmortem:' || h.inc_id),
+      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk),
+      'seat_duty', 'postmortem:' || h.inc_id);
+    -- only a question actually filed spends the run's budget (a refused or recently failed one files nothing)
+    if exists (select 1 from public.reasoning_held_question q where q.id = v_hid and q.dedupe_key = 'postmortem:' || h.inc_id) then
+      n_asked := n_asked + 1;
+    end if;
   end loop;
 
   select count(*) into v_hist from public.agent_actions a
@@ -5635,7 +5723,8 @@ begin
       'evidence', jsonb_build_object('incident_ids', v_ids)));
   end if;
 
-  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked,
+  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_already_known', n_known,
+                            'waiting_on_its_fault', n_waiting,
                             'historical_without_postmortem', v_hist, 'settled', public.fn_it_duty_settle('postmortem', v_items));
 end $function$
 
@@ -7036,6 +7125,17 @@ begin
   perform public.fn_it_duty_ran('postmaster', v_res);
   return v_res;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_postmortem_fault_key(p_detail jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- null, never '', when the finding names nothing: an empty key would make every such incident "the same fault"
+  select nullif(regexp_replace(lower(btrim(coalesce(p_detail ->> 'issue_key', p_detail ->> 'title', ''))), '[0-9]+', '#', 'g'), '');
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_provider_rotation_baseline(p_provider text, p_ref text, p_created_at timestamp with time zone)
@@ -10014,7 +10114,7 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_llm_log(p_fn text, p_dept text, p_agent text, p_task_class text, p_model text, p_because text, p_tier text, p_prompt_tokens integer, p_output_tokens integer, p_cached boolean, p_cache_key text, p_latency_ms integer, p_ok boolean, p_confidence numeric DEFAULT NULL::numeric, p_cached_in integer DEFAULT 0, p_cache_write integer DEFAULT 0, p_generation_id text DEFAULT NULL::text, p_cost_usd_reported numeric DEFAULT NULL::numeric)
+CREATE OR REPLACE FUNCTION public.fn_llm_log(p_fn text, p_dept text, p_agent text, p_task_class text, p_model text, p_because text, p_tier text, p_prompt_tokens integer, p_output_tokens integer, p_cached boolean, p_cache_key text, p_latency_ms integer, p_ok boolean, p_confidence numeric DEFAULT NULL::numeric, p_cached_in integer DEFAULT 0, p_cache_write integer DEFAULT 0, p_generation_id text DEFAULT NULL::text, p_cost_usd_reported numeric DEFAULT NULL::numeric, p_prompt_hash text DEFAULT NULL::text)
  RETURNS numeric
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -10085,7 +10185,7 @@ begin
   insert into ai_cost_log (fn, dept_key, agent_key, task_class, model_used, model_selected_because,
     tier, prompt_tokens, output_tokens, cached, cache_hit_key, latency_ms, cost_aed,
     could_be_cheaper, cheaper_reason, ok, confidence, cached_in_tokens, cache_write_tokens,
-    generation_id, cost_usd_reported, seat, seat_basis)
+    generation_id, cost_usd_reported, seat, seat_basis, prompt_hash)
   values (p_fn, p_dept, p_agent, v_class, p_model, p_because, p_tier,
     coalesce(p_prompt_tokens,0), coalesce(p_output_tokens,0), coalesce(p_cached,false),
     p_cache_key, p_latency_ms, v_cost, v_cheaper, v_reason, coalesce(p_ok,true),
@@ -10094,7 +10194,8 @@ begin
          when p_confidence > 1  and p_confidence <= 100 then round(p_confidence / 100.0, 4)
          else null end,
     v_read, v_write,
-    nullif(btrim(coalesce(p_generation_id,'')),''), p_cost_usd_reported, v_seat, v_seat_basis)
+    nullif(btrim(coalesce(p_generation_id,'')),''), p_cost_usd_reported, v_seat, v_seat_basis,
+    nullif(btrim(coalesce(p_prompt_hash, '')), ''))
   -- The generation id is unique. A retried write of the SAME provider charge must not create a
   -- second row that the reconciliation would then count twice.
   on conflict (generation_id) where generation_id is not null do nothing;

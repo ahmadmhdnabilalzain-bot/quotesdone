@@ -74,3 +74,16 @@ Deno.test('a supplier invitation queued in Arabic is held, never sent; nothing e
   assertEquals(holdArabicInvitation('supplier_approved', 'en', true), false);
   assertEquals(holdArabicInvitation('customer_quote_ready', 'ar', false), false, 'a customer keeps their language');
 });
+
+// 5 Oct 2026: the LIVE invite_body offered "free ... until" a dated day, then a subscription from the next one
+// (founder ruling 6 Sep: no dates). The exact old bullet must fail; the ruled wording must pass.
+Deno.test('no date in the invitation copy: the old dated offer fails, the ruled offer passes', async () => {
+  const { invitationCopyLint } = await import('./invitation_copy.ts');
+  const link = 'https://quotesdone.com/en/portal?t=00000000-0000-0000-0000-000000000000';
+  const q = 'Which trades does your company cover?';
+  const lint = (offer: string) => invitationCopyLint({ lang: 'en', subject: 'x', preheader: '', link,
+    body: `Dear ZZ DEMO Supplier,\n\n${offer}\n\n${link}\n\n${q}` }).find((r) => r.rule.startsWith('no date'))!;
+  if (lint('- Registration is free for all suppliers until 31 July 2027. From 1 August 2027 an annual subscription of AED 1,000 applies.').ok) throw new Error('dated offer passed');
+  for (const d of ['until 2027', 'from August 2027', 'ends 31 July']) if (lint('Free ' + d + '.').ok) throw new Error('passed: ' + d);
+  if (!lint('- Registration is free permanently for the first 1,000 supplier registrations. From the 1,001st registration an annual subscription of AED 1,000 applies.').ok) throw new Error('ruled offer failed');
+});

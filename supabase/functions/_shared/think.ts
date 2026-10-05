@@ -294,8 +294,8 @@ Return {"findings":[]} if the pages do not answer it.`;
 // routine_employee_reasoning; a seat's own answer or decision is internal_judgement; a reply a customer, a
 // visitor or a supplier reads, and any Arabic reply, keeps its audience class. The model is chosen in the
 // database from the seat (sent as `agent`): fn_ai_route takes a seat's own '<seat>__<class>' row where one
-// exists (the CEO's judgement on Opus, while its planning runs on Gemini) and otherwise gives the seat its own
-// plan B (gpt-6-luna for the sales engineer and the CEO, DeepSeek for every other seat); the class logged stays
+// exists (the CEO's judgement on Opus, while its planning runs on luna) and otherwise gives the seat its own
+// plan B (google/gemini-3.8-flash for every seat since matrix v2, 5 Oct 2026); the class logged stays
 // the one named here (scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql). Verify stays
 // knowledge_validation: routed through counterpart_model to a reviewer of ANOTHER family than the author.
 // A FIXTURE QUESTION IS NEVER QUEUED (it_engineer, 24 Sep 2026). The gateway stubs a fixture call, but a question
@@ -589,23 +589,36 @@ export function htmlText(html: string): string {
 export type HeldRow = { id: number; seat: string; surface: string; request: ThinkRequest; subject: Record<string, unknown> | null };
 export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>): Promise<unknown> {
   const d = deps ?? defaultDeps(admin, 'resilience_ping');
-  if (heldFromGate(await d.gate().catch(() => null))) return { replayed: 0, reason: 'model_hold' };
+  // The sweep runs on every tick, hold or not (5 Oct 2026): until then it ran inside fn_reason_held_due, which this
+  // function never reached while the hold was on, so fixture and stale rows piled up for the day the hold lifts.
+  // A failed sweep never stops the replay: it is retried on the next tick, and fn_reason_held_due sweeps again.
+  const swept = await d.rpc('fn_reason_held_sweep', {}).then((r) => r?.data ?? r?.error?.message ?? null, (e) => String(e));
+  if (heldFromGate(await d.gate().catch(() => null))) return { replayed: 0, reason: 'model_hold', swept };
   const { data, error } = await d.rpc('fn_reason_held_due', { p_limit: limit });
-  if (error) return { replayed: 0, error: error.message };
+  if (error) return { replayed: 0, error: error.message, swept };
   const out: unknown[] = [];
+  const send = async (row: HeldRow, r: ThinkResult) => {
+    let delivery: unknown;
+    try { delivery = await deliver!(row, r); } catch (err) { delivery = { delivered: false, via: 'error', detail: String((err as Error)?.message || err).slice(0, 200) }; }
+    // recording the delivery never aborts the rest of the batch
+    await d.rpc('fn_reason_held_delivered', { p_id: row.id, p_delivery: delivery }).then(() => null, () => null);
+    return delivery;
+  };
   for (const row of (data ?? []) as HeldRow[]) {
     // One row's failure never abandons the batch: a throw is resolved as still held, and counted.
     let r: ThinkResult;
     try { r = await think(d, { ...row.request, queueWhenHeld: false }); }
     catch (err) { r = { status: 'held', answer: '', steps: [], context_used: {}, missing_context: [], sources: [], confidence: 0, reason: 'threw: ' + String((err as Error)?.message || err).slice(0, 200) }; }
     const { data: res, error: e } = await d.rpc('fn_reason_held_resolve', { p_id: row.id, p_result: r });
-    // The answer goes back on the channel it came from (_shared/reasoned_delivery.ts).
+    // The answer goes back on the channel it came from (_shared/reasoned_delivery.ts) - for this row and for every row
+    // that waited on the same question (fn_reason_held_resolve fans one paid answer out to all of them).
     let delivery: unknown = null;
+    const fanned = ((res as { fanned?: HeldRow[] } | null)?.fanned ?? []);
     if (!e && r.status === 'answered' && deliver) {
-      try { delivery = await deliver(row, r); } catch (err) { delivery = { delivered: false, via: 'error', detail: String((err as Error)?.message || err).slice(0, 200) }; }
-      await d.rpc('fn_reason_held_delivered', { p_id: row.id, p_delivery: delivery });
+      delivery = await send(row, r);
+      for (const f of fanned) await send(f, r);
     }
-    out.push({ id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, delivery, error: e?.message });
+    out.push({ id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, fanned: fanned.length, delivery, error: e?.message });
   }
-  return { replayed: out.length, rows: out };
+  return { replayed: out.length, rows: out, swept };
 }

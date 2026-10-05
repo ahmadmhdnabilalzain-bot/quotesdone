@@ -23,6 +23,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -165,7 +166,7 @@ async function pendingReplay() {
 /** Runs a DO block that ends in raise exception 'CHK<<json>>' after the pending chain; returns the json. Nothing commits. */
 async function probe(block, prefix = '') {
   const { sql } = await import('../lib/db.mjs');
-  try { await sql(prefix + (await pendingReplay()) + block, { retry: false }); }
+  try { await replaySql(prefix + (await pendingReplay()) + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));
@@ -280,7 +281,7 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   const body = before + (await pendingReplay()) + PROBE;
   let out;
   try {
-    await sql(body, { retry: false });
+    await replaySql(body, { retry: false });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));
@@ -994,7 +995,8 @@ begin
   insert into public.notifications (type, kind, to_role, subject, body, status, channel)
   values ('ai_quality_alert', 'uptime_alert', 'founder', 'CRITICAL failed down', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
   o := o || jsonb_build_object('type_routine', (select status || ':' || severity from public.notifications where id = v_n));
-  -- the lifecycle: a failed held question filed again is REOPENED (held, attempts 0, not escalated)
+  -- the lifecycle: a failed held question filed again STAYS FAILED (5 Oct 2026, LLM burn audit R3: reopening it reset
+  -- the 3-try limit; a_held_question_is_paid_for_once_and_test_traffic_never_waits_for_a_model.sql)
   v_id := public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
   update public.reasoning_held_question set status = 'failed', attempts = 5, escalated_at = now() where id = v_id;
   perform public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
@@ -1078,7 +1080,7 @@ end $p$;`);
   assert.equal(out.producer_status, 'queued', 'a real outage from the real producer is sent at once, not digested');
   assert.equal(out.type_outage, 'queued:critical', 'an outage type goes at once whatever its subject says');
   assert.equal(out.type_routine, 'digest:warn', 'a routine type folds whatever its subject says');
-  assert.equal(out.reopened, 'held:0:true:true:true', 'a failed question filed again is reopened (its 48-hour clock restarts), never left dead or expiring');
+  assert.equal(out.reopened, 'failed:5:false:true:true', 'a failed question filed again is reopened: the 3-try limit is bypassed (burn audit R3)');
   assert.equal(out.kept_code, 'ZZ DEMO IP65');
   assert.equal(out.prose_echo_rejected, true, 'title-case English echoed back is not stored as its Arabic');
   assert.equal(out.waiter_early, false);
