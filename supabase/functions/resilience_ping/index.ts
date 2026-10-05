@@ -3,10 +3,16 @@
 // HTTP-invoked edge function, it keeps working even if the Supabase pg_cron scheduler has stopped.
 // If the previous heartbeat is over 45 minutes old (fn_cron_liveness), it pages the founder through
 // fn_notify_founder (kind platform_down, one delivery a day) and drains the outbox so the page leaves now.
-// Public + secretless by design (returns only liveness, counts and the names of failing steps) so any
-// external monitor can wire it with just the URL.
+// AUTHENTICATED SINCE 6 OCT 2026 (pre-launch security pass, M2). It used to be public and secretless,
+// so ANY caller could run the whole sweep: the outbox and WhatsApp drains, execute_refunds, the
+// sanctions sweep and the steps that call a model, as often as it liked. Now an unauthenticated call
+// gets a liveness answer and nothing runs; the sweep runs only for the service key (the Vercel cron
+// route src/app/api/resilience-ping, and the GitHub daily cross-check, which reads the key through the
+// management API) or an internal credential in x-qd-internal (requireInternal). Unauthenticated calls
+// are rate limited per IP. See tickCaller() below.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { embedLine } from '../_shared/gte_embed.ts';
 import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
@@ -1597,8 +1603,49 @@ async function tickPlan(): Promise<{ run: string[]; deferred: string[]; starved:
   } catch (e) { return { run: DECLARED_ORDER, deferred: [], starved: [], error: String((e as Error)?.message || e) }; }
 }
 
-Deno.serve(observe('resilience_ping', async (req) => {
+// WHO MAY RUN THE SWEEP. The service key as a Bearer token (compared in constant time against this
+// function's own env), or an internal credential in x-qd-internal. Anything else is a liveness check.
+function sameSecret(a: string, b: string): boolean {
+  if (!a || !b || a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+async function tickCaller(req: Request): Promise<boolean> {
+  const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (sameSecret(bearer, SERVICE_KEY)) return true;
+  // The scheduler's copy of the key may be the other format of the same project's secret key (a legacy
+  // JWT here, an sb_secret_ key in Vercel, or the reverse). Ask the project itself: only a service key
+  // can read app_secrets, which grants nothing to anon or authenticated.
+  if (bearer.length >= 40) {
+    try {
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL')! + '/rest/v1/app_secrets?select=key&limit=0', { headers: { apikey: bearer, Authorization: 'Bearer ' + bearer } });
+      await r.body?.cancel();
+      if (r.ok) return true;
+    } catch (_e) { /* an unreachable check is not a pass */ }
+  }
+  const internal = req.headers.get('x-qd-internal');
+  if (!internal) return false;
+  return (await requireInternal(admin, internal, 'resilience_ping', 'resilience_ping header')).ok;
+}
+// Liveness for an anonymous monitor: one rate-limit row and a fixed answer. No step, no drain, no read.
+// The limiter failing refuses (429), the same fail-closed rule as login_otp.
+async function liveness(req: Request): Promise<Response> {
+  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+  let allowed = false;
+  try { const { data, error } = await admin.rpc('rl_check', { p_key: 'resilience_ping_anon:' + ip, p_limit: 60, p_seconds: 3600 }); allowed = !error && data !== false; } catch (_e) { allowed = false; }
+  if (!allowed) return J({ ok: false, error: 'rate_limited' }, 429);
+  return J({ ok: true, live: true, sweep: 'not_run', why: 'the sweep runs only for an authenticated scheduler' });
+}
+
+// The liveness answer is decided OUTSIDE observe() on purpose: observe writes an fn:resilience_ping run
+// row, and fn_cron_liveness and the scheduler-health readers take that row as proof a tick ran. An
+// outsider pinging the URL must never make a dead scheduler look alive.
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
+  return (await tickCaller(req)) ? sweep(req) : liveness(req);
+});
+const sweep = observe('resilience_ping', async (req: Request) => {
   try {
     const t0 = Date.now();
     // Fired now, awaited last: nothing below depends on the portal being warm, so the five pings
@@ -1673,4 +1720,4 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, failing: failed, heartbeat, tick, ...results, warm });
     return J({ ok: true, healthy: false, newest_run_age_min: ageMin, page, failing: failed, heartbeat, tick, ...results, warm });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
-}));
+});

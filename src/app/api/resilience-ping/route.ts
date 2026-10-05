@@ -12,7 +12,7 @@
 // failure is still seen by something outside both.
 //
 // The edge function does all the work — detect, then page the founder over HTTP. The route's only
-// secret is the optional service-role key for the uptime rows below.
+// secret is the service-role key: it authenticates the ping (required since 6 Oct 2026) and writes the uptime rows below.
 //
 // THE CALLER MUST OUTWAIT THE FUNCTION IT CALLS (17 Sep 2026, it_engineer). This route waited 30 s
 // for a function that declares DEADLINE_MS = 110_000 and runs its ticks in sequence, several with
@@ -84,14 +84,16 @@ export async function GET(req: Request) {
   try {
     const r = await fetch(PING, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // The sweep runs only for an authenticated scheduler since 6 Oct 2026 (resilience_ping header, M2);
+      // without the key the function answers liveness only, which is reported below as a failed tick.
+      headers: { 'Content-Type': 'application/json', ...(process.env.SUPABASE_SERVICE_ROLE_KEY ? { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` } : {}) },
       body: '{}',
       signal: AbortSignal.timeout(180_000),
     });
     const body = await r.json().catch(() => ({}));
     // A non-ok verdict is reported as a 502 so the platform's own failure log shows it, rather
     // than the route returning 200 over a dead watchdog.
-    const ok = r.ok && (body as { ok?: boolean })?.ok === true;
+    const ok = r.ok && (body as { ok?: boolean })?.ok === true && (body as { sweep?: string })?.sweep !== 'not_run';
     const u = await uptime;
     return Response.json({ ok, upstream_status: r.status, upstream: body, uptime: u.checks, uptime_recorded: u.recorded },
       { status: ok ? 200 : 502 });

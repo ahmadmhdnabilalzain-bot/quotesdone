@@ -13,7 +13,19 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 // deno-lint-ignore no-explicit-any
 async function authed(req: Request, body: any){ if (body?.__secret && (await requireInternal(admin, body.__secret, 'pdf_native')).ok) return true; const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } } = await admin.auth.getUser(jwt); const allow=(await sec('admin_emails')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
-async function fetchBytes(path: string){ try { const r = await fetch(`${ASSET}/${path}`); if(!r.ok) return null; return new Uint8Array(await r.arrayBuffer()); } catch { return null; } }
+// THE STAMP AND THE SIGNATURE ARE NOT PUBLIC (pre-launch security pass, 6 Oct 2026, M4). Both were in
+// the public brand bucket, so anyone could download them and forge a QuotesDone invoice or letter. They
+// now live in the PRIVATE bucket company-seal (no storage policy, so only the service role can read it)
+// and are read here, server side, at the moment a signed document is drawn. They never reach a browser
+// as images; they leave only inside the finished PDF. Fonts and the logo stay in the public brand bucket.
+const SEAL_BUCKET = 'company-seal';
+const SEAL_FILES = new Set(['qd_stamp.png', 'qd_signature.png']);
+async function fetchBytes(path: string){
+  try {
+    if (SEAL_FILES.has(path)) { const { data, error } = await admin.storage.from(SEAL_BUCKET).download(path); return error || !data ? null : new Uint8Array(await data.arrayBuffer()); }
+    const r = await fetch(`${ASSET}/${path}`); if(!r.ok) return null; return new Uint8Array(await r.arrayBuffer());
+  } catch { return null; }
+}
 
 Deno.serve(observe('pdf_native', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
