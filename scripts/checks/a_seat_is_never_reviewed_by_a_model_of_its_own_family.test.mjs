@@ -29,6 +29,9 @@ const FILE = 'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.
 // The founder's model matrix (founder_instruction 1056) moves the review classes and the pool. Replayed first when it is
 // not applied yet, like FILE, so the assertions below read the routes the matrix sets.
 const MATRIX = 'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql';
+// Matrix v2 (5 Oct 2026): replayed while its pending note exists, so the assertions read the routes it sets.
+const V2 = 'every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing';
+const V2_REPLAY = existsSync(join(REPO, 'scripts/sql/pending', `${V2}.txt`)) ? read(`scripts/sql/${V2}.sql`) + '\n' : '';
 
 test('the gateway routes a review away from its author and refuses one that names no author model', () => {
   const gw = read('supabase/functions/ai_gateway/index.ts');
@@ -224,7 +227,7 @@ begin
     'monitor_marketing', (select jsonb_build_object('reviews', x->'evidence'->'reviews', 'approvals', x->'evidence'->'approvals') from jsonb_array_elements(v) x where x->>'item' = 'rubber_stamp:ceo:marketing'));
 
   -- UNHEALTHY OTHER FAMILY: Opus's breaker tripped by a real failure class -> no fallback to Sol
-  update public.llm_route_health set opened_class = 'provider_error' where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna', 'qwen/qwen3.7-plus', 'deepseek/deepseek-v4.1-flash');  -- every family but the author's (third-family last resort, #880)
+  update public.llm_route_health set opened_class = 'provider_error' where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');  -- every family but the author's (third-family last resort, #880; the two retired models are inactive)
   v := public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo');
   o := o || jsonb_build_object('tripped_route', concat_ws(':', v->>'use_llm', v->>'no_independent_reviewer', coalesce(v->>'model', 'none')));
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO tripped', v_ev, v_pr, c_sol, null, null, null, true);
@@ -234,7 +237,7 @@ begin
 
   -- NO PAIR CEILING (24 Sep 2026, founder_instruction 987): marketing -> ceo has spent AED 60 this month (a rolled-back
   -- row, above the old AED 50 cap) and the review is still NOT held for spend
-  update public.llm_route_health set opened_class = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna', 'qwen/qwen3.7-plus', 'deepseek/deepseek-v4.1-flash');
+  update public.llm_route_health set opened_class = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');
   insert into public.ai_cost_log (fn, dept_key, agent_key, task_class, model_used, cost_aed, ok)
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
@@ -257,7 +260,7 @@ test('production, in one aborted transaction: independence, blind first, steelma
   const { sql } = await import('../lib/db.mjs');
   const [r] = await sql(`select to_regprocedure('public.fn_ai_route_review(text,text,text,text,text)') is not null applied,
     exists (select 1 from public.model_policy where task_class = 'internal_judgement') matrix_applied`, { readOnly: true });
-  const body = (r.applied ? '' : read(FILE) + '\n') + (r.matrix_applied ? '' : read(MATRIX) + '\n') + PROBE;
+  const body = (r.applied ? '' : read(FILE) + '\n') + (r.matrix_applied ? '' : read(MATRIX) + '\n') + V2_REPLAY + PROBE;
   let out;
   try {
     await replaySql(body, { retry: false });
@@ -272,9 +275,10 @@ test('production, in one aborted transaction: independence, blind first, steelma
 
   assert.equal(out.sol_rev, 'anthropic/claude-opus-5.5', 'an author on Sol is reviewed by Opus');
   // founder_instruction 1056: seat_deliberation is the CEO's review, Opus with gpt-6-luna as its own fallback. An Opus
-  // author is therefore reviewed by luna, and a Sol author's fallback skips luna (Sol's family) for DeepSeek.
+  // author is therefore reviewed by luna, and a Sol author's fallback skips luna (Sol's family) for the pool's first
+  // model, Gemini (matrix v2, 5 Oct 2026: DeepSeek left the pool and Gemini leads it).
   assert.equal(out.opus_rev, 'openai/gpt-6-luna', 'an author on Opus is reviewed by the class\'s own fallback, luna');
-  assert.equal(out.sol_author_fallback, 'deepseek/deepseek-v4.1-flash', 'no fallback may lie in the author\'s family (luna is Sol\'s)');
+  assert.equal(out.sol_author_fallback, 'google/gemini-3.8-flash', 'no fallback may lie in the author\'s family (luna is Sol\'s)');
 
   assert.equal(out.held_turn.status, 'held_not_run', 'under the hold the blind step records held, not run');
   assert.equal(out.held_turn.provider, 'anthropic');

@@ -9894,7 +9894,7 @@ declare
   v_split   text;
   v_route_base text;
   v_base_pol model_policy%rowtype;
-  v_seat_fb text;
+  v_seat_fb text; v_seat_p text;
 begin
   if p_task_class is not null and length(btrim(p_task_class)) > 0 then
     v_class := p_task_class; v_src := 'caller-supplied task_class';
@@ -9944,9 +9944,9 @@ begin
 
   -- THE SEAT'S OWN ROUTE (29 Sep 2026, sales_engineer; founder_instruction 1056).
   -- think() and every other shared engine bill a step to a class chosen by WHAT the step is
-  -- (routine_employee_reasoning, customer_communication, ...). The founder's matrix routes by WHO asks:
-  -- the CEO and the sales engineer fall back to openai/gpt-6-luna, every other seat to
-  -- deepseek/deepseek-v4.1-flash, and the CEO's judgement runs on Opus. The seat is the caller's agent,
+  -- (routine_employee_reasoning, customer_communication, ...). The founder's matrix routes by WHO asks. Matrix v2
+  -- (5 Oct 2026): every seat runs openai/gpt-6-luna with google/gemini-3.8-flash as its plan B, and the CEO's
+  -- hard work and the comparison report run on Opus with luna behind. The seat is the caller's agent,
   -- resolved as the agent_reasoning block above resolves it (an alias of a seat is that seat).
   --   1. A policy row named '<seat>__<class>' is that seat's own route for <class>: its MODELS are taken, while
   --      the CLASS stays <class> - ai_cost_log, the response cache, the confidence prior and every author proof
@@ -9954,7 +9954,8 @@ begin
   --      fn_ai_route_review_for reads for a review's pair.
   --   2. Otherwise the seat's PLAN B is its own for every class it calls: the fallback of its catch-all row in
   --      model_policy_by_identity replaces the class's, unless the class has no fallback on purpose (only Gemini
-  --      hears) or is a review (its pair is chosen against its author's family).
+  --      hears) or is a review (its pair is chosen against its author's family). Since matrix v2 only on a class
+  --      that runs on the seat's own primary: an Opus class keeps luna behind it.
   -- A '<seat>__<class>' row - reached through the seat, or named by fn_task_class for the seat's own function -
   -- never allows fewer tokens than <class>. A seat's own row is never served from the semantic cache: that cache is keyed
   -- by class, not model, so a CEO judgement on Opus could otherwise be answered by another seat's Gemini answer.
@@ -9986,10 +9987,11 @@ begin
 
   if v_split is null and not v_generic and v_seat is not null and v_pol.model_fallback is not null
      and cardinality(coalesce(v_pol.reviews_class, '{}')) = 0 then
-    select i.fallback_model into v_seat_fb from model_policy_by_identity i
+    select i.fallback_model, i.primary_model into v_seat_fb, v_seat_p from model_policy_by_identity i
      where i.scope = 'current_agent' and i.identity_key = v_seat
        and exists (select 1 from org_role o where o.role_id = v_seat and o.status = 'active');  -- a live seat's row only
-    if v_seat_fb is not null and v_seat_fb not in (v_pol.model_primary, v_pol.model_fallback) then
+    if v_seat_fb is not null and v_seat_fb not in (v_pol.model_primary, v_pol.model_fallback)
+       and v_pol.model_primary is not distinct from v_seat_p then  -- matrix v2: only on the seat's own routine model
       v_src := v_src || ' | seat "' || v_seat || '" falls back to its own plan B ' || v_seat_fb
                      || ' instead of ' || v_pol.model_fallback;
       v_pol.model_fallback := v_seat_fb;
@@ -10265,12 +10267,11 @@ begin
       select pol.model_primary model_id, 0 ord from pol
       union all select pol.model_fallback, 1 from pol
       union all select p.model_id, 10 + p.rank from public.review_pool p where p.active
-      -- 1068 (30 Sep 2026): the last-resort families are the matrix's live ones, cheapest first and Opus last.
+      -- 1068 (30 Sep 2026): the last-resort families are the matrix's live ones. 5 Oct 2026 (matrix v2): the two retired
+      -- models leave the list; Gemini first, then luna, Opus last.
       union all select 'google/gemini-3.8-flash', 2000000
-      union all select 'deepseek/deepseek-v4.1-flash', 2000001
-      union all select 'qwen/qwen3.7-plus', 2000002
-      union all select 'openai/gpt-6-luna', 2000003
-      union all select 'anthropic/claude-opus-5.5', 2000004)
+      union all select 'openai/gpt-6-luna', 2000001
+      union all select 'anthropic/claude-opus-5.5', 2000002)
     select d.model_id, d.ord, lower(btrim(r.provider)) provider, coalesce(r.active and r.approved, false) reg_ok,
            (not v_vis or coalesce(r.supports_vision, false)) and (not v_aud or coalesce(r.supports_audio, false))
              and (not v_tls or coalesce(r.supports_tools, false)) caps_ok,
