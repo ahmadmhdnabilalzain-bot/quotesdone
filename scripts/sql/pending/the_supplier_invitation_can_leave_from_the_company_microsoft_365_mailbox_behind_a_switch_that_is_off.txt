@@ -1,1 +1,0 @@
-Committed with the Microsoft 365 invitation lane (ledger 1115). Seeds invite_m365_enabled='false' and invite_m365_mailbox; applied by the release train at merge, then send_outbox is deployed in the same release.

@@ -1473,6 +1473,8 @@ CREATE POLICY writer_seat_service_role_only ON public.writer_seat AS PERMISSIVE 
 --   invite_lane_enabled
 --   invite_lane_from
 --   invite_lane_since
+--   invite_m365_enabled
+--   invite_m365_mailbox
 --   invite_max_bounce_rate
 --   invite_preheader
 --   invite_subject
