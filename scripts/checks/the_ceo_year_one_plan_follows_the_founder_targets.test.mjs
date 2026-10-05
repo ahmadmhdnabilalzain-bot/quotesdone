@@ -127,7 +127,10 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; begin
 
   -- the month: October closes, the report goes, November's directives are issued once
   v := public.fn_ceo_month_plan(timestamptz '2026-10-02 09:00+04');
-  o := o || jsonb_build_object('oct_issued', v->'issued');
+  -- October is issued once, by the routine: by its own 1 Oct run in production or by this call. Count the month, not
+  -- this call's return, or the check goes red every day after the real run (issued live 1 Oct 2026 08:45 Dubai).
+  o := o || jsonb_build_object('oct_issued', (select count(*) from public.ceo_seat_directive
+            where month = date '2026-10-01' and handoff_id is not null));
   v := public.fn_ceo_month_plan(timestamptz '2026-11-01 09:00+04');
   o := o || jsonb_build_object('nov', jsonb_build_object('closed', v->'closed', 'issued', v->'issued', 'reported', v->'reported' is not null and v->>'reported' <> 'null'),
     'nov_again', public.fn_ceo_month_plan(timestamptz '2026-11-02 09:00+04')->'issued',
@@ -140,7 +143,7 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; begin
   -- recurring misses become an improvement, once
   insert into public.target_daily_verdict (day, contract_id, metric_key, owner_seat, expected, actual, gap_pct, status)
   select current_date - g, c, 'inquiries_posted', 'marketing', 10, 0, -100, 'miss' from generate_series(1, 8) g
-  on conflict (day, contract_id, metric_key) do update set status = 'miss';
+  on conflict (day, contract_id, metric_key) do update set status = 'miss', owner_seat = excluded.owner_seat;   -- live days carry the real owner
   v := public.fn_ceo_improvement_sweep();
   o := o || jsonb_build_object('improvement', (select jsonb_build_object('seat', seat, 'status', status, 'handoff', (select status from public.agent_actions where id = i.handoff_id))
             from public.ceo_improvement i where source_kind = 'recurring_miss' and source_ref like 'inquiries_posted:%'),
