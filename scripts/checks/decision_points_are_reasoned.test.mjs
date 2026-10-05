@@ -476,7 +476,7 @@ begin
     begin
       select count(*) into n from public.refund_ceo_review where refund_id = v_ref;
       v := public.fn_ceo_refund_review(v_ref, 'probe');
-      o := o || jsonb_build_object('rf_review', v->>'outcome', 'rf_review_reason', v->>'reason', 'rf_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n);
+      o := o || jsonb_build_object('rf_review', v->>'outcome', 'rf_review_offp', coalesce(v->>'reason', '') ~ 'off the platform', 'rf_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n);
       raise exception 'zz_b6_rollback';
     exception when others then if sqlerrm <> 'zz_b6_rollback' then raise; end if;
     end;
@@ -528,7 +528,7 @@ begin
     update public.reasoning_held_question set status = 'held' where id = v_id;
     v := public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"engaged_off_platform"}}'::jsonb);
     o := o || jsonb_build_object('rf_row', (select status from public.reasoning_held_question where id = v_id),
-      'rf_apply_review', v->'effect'->'review'->>'outcome', 'rf_apply_reason', v->'effect'->'review'->>'reason');
+      'rf_apply_review', v->'effect'->'review'->>'outcome', 'rf_apply_offp', coalesce(v->'effect'->'review'->>'reason', '') ~ 'off the platform \(reasoned');
     update public.refunds set reason_note = 'The customer reported that the revealed supplier has not responded.' where id = v_ref;
     v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
     o := o || jsonb_build_object('rf_default_note_asks', exists (select 1 from jsonb_array_elements(v->'items') i where i->>'item' = 'off_platform_engagement_reasoned'));
@@ -596,7 +596,7 @@ end $p$;`);
     assert.equal(out.rf_offp_before, null, 'no exclusion is assumed before the note is read');
     if (out.rf_nonrem_other > 0) {
       assert.equal(out.rf_review, 'declined');
-      assert.doesNotMatch(String(out.rf_review_reason), /off the platform/);
+      assert.equal(out.rf_review_offp, false, 'the decline names no off-platform exclusion before the note is read');
     } else {
       assert.equal(out.rf_review, 'waiting_on_reasoning');
       assert.equal(out.rf_cycles, 0, 'a question still being reasoned spends no cycle and pages nobody');
@@ -615,7 +615,9 @@ end $p$;`);
     assert.equal(out.rf_reasoned_item_gone, true);
     assert.equal(out.rf_row, 'applied');
     assert.equal(out.rf_apply_review, 'declined', 'the replay re-runs the CEO review on the reasoned answer');
-    assert.match(String(out.rf_apply_reason), /off the platform \(reasoned/);
+    // reported as booleans, not the reason text: the management API cuts an error message near 2 KB, and the
+    // two reason sentences (each ~250 chars) pushed this probe's CHK past it on 6 Oct 2026, losing the closing marker
+    assert.equal(out.rf_apply_offp, true, 'the replayed decline names the reasoned off-platform exclusion');
     assert.equal(out.rf_default_note_asks, false, 'our own default note asks nothing');
   }
 
@@ -1136,8 +1138,14 @@ begin
   o := o || jsonb_build_object('q_due_after_held', public.fn_quote_aspects_due(v_q) is null);
   select jsonb_object_agg(c.aspect, jsonb_build_object('value', 'ZZ', 'evidence', 'ZZ DEMO words')) into v_fields
     from public.category_quote_specs c where c.spec_group = v_due->>'spec_group';
-  v_id := public.fn_reason_hold('sales_engineer', 'sql.trg_quote_quality', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
-            jsonb_build_object('quote_id', v_q, 'content_md5', v_due->>'content_md5'), 'model_hold', 'zz-b5-quote');
+  -- Every quote with a spec group is harness traffic today (measured 6 Oct 2026: 3 of 3), and since #1219 fn_reason_hold
+  -- files nothing for a fixture subject. That property is asserted; the replay is then proved on a row filed directly.
+  o := o || jsonb_build_object('q_fixture_filed', public.fn_reason_hold('sales_engineer', 'sql.trg_quote_quality', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb,
+            '{}'::jsonb, jsonb_build_object('quote_id', v_q, 'content_md5', v_due->>'content_md5'), 'model_hold', 'zz-b5-quote-fx') is not null,
+    'q_is_fixture', public.fn_reason_subject_is_fixture(jsonb_build_object('quote_id', v_q)));
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key)
+  values ('sales_engineer', 'sql.trg_quote_quality', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+          jsonb_build_object('quote_id', v_q, 'content_md5', v_due->>'content_md5'), 'model_hold', 'zz-b5-quote') returning id into v_id;
   o := o || jsonb_build_object('q_resolve', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ',
             'decision', jsonb_build_object('choice', null, 'fields', v_fields)))->>'status');
   select quality into v from public.quotes where id = v_q;
@@ -1168,8 +1176,13 @@ begin
   o := o || jsonb_build_object('gaps_before', (select jsonb_agg(x->>'code') from jsonb_array_elements(public.fn_supplier_portfolio_gaps(v_sup)) x),
     'gaps_due', public.fn_supplier_readings_due(v_sup)->'own_words');
   select s.trade_code || '.' || s.code into v_key from public.taxonomy_trade_service s where s.active and s.trade_code = v_trade order by s.sort, s.code limit 1;
-  v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_portfolio_gaps', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
-            jsonb_build_object('supplier_id', v_sup, 'word', 'ZZ DEMO own words'), 'model_hold', 'zz-b5-word');
+  -- the confirmed supplier may be a harness identity too (#1219 files nothing for it), so the row is filed directly
+  o := o || jsonb_build_object('w_is_fixture', public.fn_reason_subject_is_fixture(jsonb_build_object('supplier_id', v_sup)),
+    'w_fixture_filed', public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_portfolio_gaps', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('supplier_id', v_sup, 'word', 'ZZ DEMO own words'), 'model_hold', 'zz-b5-word-fx') is not null);
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key)
+  values ('sales_engineer', 'sql.fn_supplier_portfolio_gaps', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+          jsonb_build_object('supplier_id', v_sup, 'word', 'ZZ DEMO own words'), 'model_hold', 'zz-b5-word') returning id into v_id;
   perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_key)));
   v := public.fn_supplier_portfolio_gaps(v_sup);
   o := o || jsonb_build_object('gaps_after', (select jsonb_agg(x->>'code') from jsonb_array_elements(v) x),
@@ -1216,6 +1229,7 @@ end $p$;`);
   assert.ok(['not_read', 'reasoned'].includes(out.q_before), 'an unread quote is scored by structure, never held on a model (24 Sep 2026)');
   assert.ok(out.q_due_aspects >= 1);
   assert.equal(out.q_due_after_held, true, 'a queued reading is not re-asked on every write');
+  if (out.q_is_fixture) assert.equal(out.q_fixture_filed, false, 'a harness quote is never filed for a model (#1219)');
   assert.equal(out.q_resolve, 'applied');
   assert.equal(out.q_after, 'reasoned'); assert.equal(out.q_cat_pass_after, 'true'); assert.equal(out.q_missing_after, '0');
 
@@ -1228,6 +1242,7 @@ end $p$;`);
   assert.ok(out.gaps_due.includes('ZZ DEMO own words'));
   assert.ok(out.gaps_after.includes('own_word_is_a_service'), JSON.stringify(out.gaps_after));
   assert.equal(out.gaps_named, true);
+  if (out.w_is_fixture) assert.equal(out.w_fixture_filed, false, 'a harness supplier is never filed for a model (#1219)');
   assert.equal(out.bad_key, '22023');
 
   assert.equal(out.cat_by_name, null, 'a catalogue name in the words decides nothing');
