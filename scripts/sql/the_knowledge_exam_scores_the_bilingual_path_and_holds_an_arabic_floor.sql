@@ -55,7 +55,7 @@ as $fn$
 declare
   v_day date := (now() at time zone 'Asia/Dubai')::date; s record; q record; p public.seat_knowledge_recall;
   v_floor numeric; v_bad text; v_out jsonb := '[]'::jsonb; v_raised int := 0; v_scored int := 0; v_left int;
-  v_missing int; v_t timestamptz := clock_timestamp();
+  v_missing int; v_due int; v_t timestamptz := clock_timestamp();
 begin
   if not exists (select 1 from public.seat_knowledge_eval_question) then
     perform public.fn_it_engineer_finding_upsert('knowledge_recall:no_questions',
@@ -67,14 +67,20 @@ begin
   update public.it_engineer_finding set closed_at = now(), close_note = 'questions are loaded (knowledge_recall)'
    where issue_key = 'knowledge_recall:no_questions' and closed_at is null;
 
-  select count(*) into v_missing from public.seat_knowledge_eval_question where embedding_ml is null;
+  -- Nothing is scored while any question lacks its ml vector. Only a question already loaded at now() can be owed
+  -- one: a question loaded later did not exist at that instant (what a replay at a past instant reads), so it is
+  -- not missing anything then. Live, every question was loaded in the past, so this counts every missing question.
+  select count(*), count(*) filter (where loaded_at <= now()) into v_missing, v_due
+    from public.seat_knowledge_eval_question where embedding_ml is null;
   if v_missing > 0 then
-    perform public.fn_it_engineer_finding_upsert('knowledge_recall:no_ml_vectors',
-      v_missing || ' exam questions have no multilingual vector, so the bilingual path the seats read is not being examined',
-      'public.seat_knowledge_eval_question.embedding_ml', 'agent_facing', v_missing,
-      jsonb_build_object('owner_seat', 'it_engineer', 'missing', v_missing),
-      '{}'::text[], array['run node scripts/kb/load_knowledge_eval_questions.mjs --ml'], 'it_engineer');
-    return jsonb_build_object('day', v_day, 'missing_ml', v_missing, 'raised', 1);
+    if v_due > 0 then
+      perform public.fn_it_engineer_finding_upsert('knowledge_recall:no_ml_vectors',
+        v_due || ' exam questions have no multilingual vector, so the bilingual path the seats read is not being examined',
+        'public.seat_knowledge_eval_question.embedding_ml', 'agent_facing', v_due,
+        jsonb_build_object('owner_seat', 'it_engineer', 'missing', v_due),
+        '{}'::text[], array['run node scripts/kb/load_knowledge_eval_questions.mjs --ml'], 'it_engineer');
+    end if;
+    return jsonb_build_object('day', v_day, 'missing_ml', v_missing, 'raised', (v_due > 0)::int);
   end if;
   update public.it_engineer_finding set closed_at = now(), close_note = 'every question has its ml vector (knowledge_recall)'
    where issue_key = 'knowledge_recall:no_ml_vectors' and closed_at is null;
@@ -159,7 +165,11 @@ update public.seat_duty set
 -- Probe (nothing kept): the routine runs inside a block that is rolled back, and one fused call is short enough that a
 -- beat (it starts no call after 4 s) ends inside the tick's 8 s: the worst beat is 4 s plus one call, so a call must
 -- stay under 1.5 s. Measured 5 Oct 2026: 67 ms warm; 286 ms with the gte vector standing in for the ml one.
-create temporary table if not exists qd_probe_exam_ms (ms numeric) on commit drop;
+-- Dropped first: the healthy-day replay (scripts/lib/alarm_replay.mjs) runs this whole file, then the routine's slice
+-- of it, which reaches to the end of the file, in ONE transaction; the second probe found the first one's row and
+-- (select ms ...) returned two rows (5 Oct 2026: ERROR 21000 at every healthy instant).
+drop table if exists qd_probe_exam_ms;
+create temporary table qd_probe_exam_ms (ms numeric) on commit drop;
 do $$ declare t timestamptz := clock_timestamp(); v_ms numeric; begin
   begin
     perform public.fn_it_engineer_knowledge_recall_exam();
