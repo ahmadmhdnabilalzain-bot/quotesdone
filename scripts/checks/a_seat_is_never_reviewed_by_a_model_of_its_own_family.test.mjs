@@ -191,7 +191,7 @@ begin
   perform public.fn_seat_deliberation_record(v_id, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel));
   begin
     perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', upper(v_steel),
-              'agreements', 'the split', 'disagreements', 'none'));
+              'agreements', 'the split between search and social fits the lead volume we measured', 'disagreements', 'none'));
     e := 'ACCEPTED';
   exception when others then e := left(sqlerrm, 16); end;
   o := o || jsonb_build_object('compare_repeats_blind_steelman', e);
@@ -317,7 +317,11 @@ test('production, in one aborted transaction: independence, blind first, steelma
   assert.equal(out.budget_dept, 'marketing');
 
   assert.equal(out.approval_without_steelman, 'MALFORMED_REVIEW');
-  assert.equal(out.compare_without_agreements, 'MALFORMED_REVIEW');
+  // founder_instruction 1059 (a_rejection_never_ends_the_cycle_...sql) added a04_ceo_turn_carries_its_reasons, which
+  // fires before trg_seat_deliberation_turn_guard (name order): a CEO approval with no agreements is refused there as a
+  // reasonless decision before the turn guard sees it. Still refused; the refusal now names the 1059 rule. (The
+  // steelman-repeat case above carries a full agreements sentence so it still reaches the turn guard it tests.)
+  assert.equal(out.compare_without_agreements, 'REASONLESS_DECIS', 'a CEO comparison with no agreements is refused (founder_instruction 1059)');
   assert.equal(out.reviewed, 'reviewed');
   assert.equal(out.compare_provider, 'anthropic');
   assert.equal(out.close, 'approve');
