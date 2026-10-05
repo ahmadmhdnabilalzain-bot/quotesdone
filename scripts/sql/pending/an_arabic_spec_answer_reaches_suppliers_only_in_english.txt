@@ -1,1 +1,0 @@
-Committed, not applied: applied at merge (apply-at-merge rule), AFTER #1195's a_customers_arabic_is_kept_as_written_and_reaches_suppliers_in_english.sql (it writes rfq_clarification.answer_as_written / english_held_at), with the customer_api deploy. On apply this note is deleted and the file is appended to the end of MANIFEST.txt in the same commit. Seat: sales_engineer.
