@@ -1,0 +1,1 @@
+Not applied (it_engineer, 5 Oct 2026): applies at merge by the release train, BEFORE resilience_ping deploys (the train applies SQL first, then deploys). Measured in an aborted probe: 628 held -> 280 held. Then delete this note and append the .sql to the END of MANIFEST.txt.

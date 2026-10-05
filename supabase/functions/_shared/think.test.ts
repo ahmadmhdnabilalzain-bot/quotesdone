@@ -201,6 +201,29 @@ Deno.test('replayHeld reasons a held row once the hold lifts and hands the resul
   assert(!m.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a replay must not re-queue itself');
 });
 
+Deno.test('replayHeld sweeps every tick, and one paid answer is delivered to every row that waited on the same question', async () => {
+  const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'read it', needs_knowledge: false }], facts: [] })],
+    synthesise: [J({ answer: 'He is halting work in flight.', decision: { choice: 'stop' } })] } });
+  const base = m.deps.rpc;
+  const twin = { id: 43, seat: 'ceo', surface: 'ceo.command_intent', request: { seat: 'ceo' }, subject: { command_id: 8 } };
+  m.deps.rpc = (fn, args) => fn === 'fn_reason_held_resolve'
+    ? (m.rpcs.push([fn, args]), Promise.resolve({ data: { id: 42, status: 'applied', fanned: [twin] }, error: null }))
+    : base(fn, args);
+  const delivered: number[] = [];
+  const out = await replayHeld(null, 3, m.deps, (row) => { delivered.push(row.id); return Promise.resolve({ delivered: true }); }) as { replayed: number };
+  assertEquals(out.replayed, 1);
+  assertEquals(m.rpcs[0][0], 'fn_reason_held_sweep', 'the sweep runs first, before the gate can return');
+  assertEquals(delivered, [42, 43], 'the answer reaches the leader and the row that waited on it');
+  assertEquals(m.calls.filter((c) => c.phase === 'synthesise').length, 1, 'the model answered once');
+});
+
+Deno.test('under the hold replayHeld still sweeps and claims nothing', async () => {
+  const m = mock({ gate: { allowed: false, rule: 'founder_hold', held: 1, routes: 8 }, replies: {} });
+  const out = await replayHeld(null, 3, m.deps) as { replayed: number; reason: string };
+  assertEquals(out.reason, 'model_hold');
+  assertEquals(m.rpcs.map(([f]) => f), ['fn_reason_held_sweep']);
+});
+
 // ── THE LEARNING LOOP: every judgement is opened by its recall and closed with what it decided ──────
 Deno.test('a judgement is recorded WITH its recall record, then closed with the decision', async () => {
   const m = mock({ retrieve: KB, replies: {
