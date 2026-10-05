@@ -15,7 +15,7 @@ on:
 
 jobs:
   journey:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     # 17 Sep 2026: the wall was 30 minutes and NOTHING told the harness about it. Two consecutive
     # nights (35037401883, 35164572430) were cancelled mid-crawl, which skips the report step below,
     # so the heartbeat never reached fn_it_journey_ingest (duty:journey_heartbeat:no_run, open 3 days
