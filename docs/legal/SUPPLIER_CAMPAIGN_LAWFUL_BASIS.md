@@ -7,7 +7,9 @@ the controls below on production).
 ## What is sent, to whom
 
 - One invitation per business email address, ever (unique outbox index on the lower-cased address, and
-  `fn_supplier_invite_eligible` reads `notifications`, not a status column).
+  `fn_supplier_invite_eligible` reads `notifications`, not a status column), plus at most three reminders to an
+  unopened invitation on day 3, 7 and 14 (#1149), under the same switch, cap and opt-out. The privacy policy (1.6, s9)
+  states "one invitation and up to three reminders".
 - Recipients are **businesses**: `leads` rows built from published business listings (company name,
   trade, business email on the company's own domain, measured MX). Mailboxes read by people outside the
   business (careers, hr, legal, privacy, webmaster, ...) are excluded.
@@ -23,8 +25,10 @@ company: its published business email and name. The purpose is a single business
 enquiries. We rely on processing that is necessary for the legitimate business purpose of offering a
 commercial service to another business, limited to the minimum data, with an immediate and permanent
 opt-out. No personal data is sold or shared; nothing beyond the published listing is collected before
-the business chooses to register. A PDPL access or erasure request is handled through the existing
-`pdpl_request` / `pdpl_erase` functions.
+the business chooses to register. A PDPL access or erasure request is recorded in `pdpl_request` and
+answered with `fn_pdpl_export` / `fn_pdpl_erase` (or self-service `pdpl_export_me` / `pdpl_erase_me`). Until 6 Oct 2026
+this line named functions that had been dropped on 7 Sep; see
+scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql.
 
 **Cabinet Resolutions No. 56 and No. 57 of 2024 (telemarketing and its penalties).** The published
 summaries we read (Mondaq, June 2024) describe their scope as marketing phone calls, SMS and marketing
