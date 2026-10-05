@@ -38,3 +38,8 @@ drop policy if exists supplier_quote_template_service_role_only on public.suppli
 create policy supplier_quote_template_service_role_only on public.supplier_quote_template
   as permissive for all to public using (false) with check (false);
 revoke all on public.supplier_quote_template from anon, authenticated;
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('supplier_quote_template', true, 'company', 'suppliers'' saved quote templates: structure only, never a price (T3)', 'sales_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;

@@ -16,13 +16,16 @@ export function QuoteTemplateBar({ token, current, onApply }: { token: string; c
   const [off, setOff] = useState(false);
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
   const load = async () => { const j = await call('supplier_api', { action: 'template_list' }, token); if (j?.ok) { setList(j.templates || []); setOff(!!j.unavailable); } };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (off) return null;
   const save = async () => {
-    setMsg('');
+    setMsg(''); setBusy(true);
+    try {
     const j = await call('supplier_api', { action: 'template_save', template: { name, ...current() } }, token);
     if (j?.ok) { setMsg('Template saved (no prices are kept).'); setName(''); load(); } else setMsg(j?.message || j?.error || 'Could not save the template.');
+    } finally { setBusy(false); }
   };
   return (
     <div className="flex flex-wrap items-center gap-2 text-[13px]" dir="ltr" lang="en">
@@ -35,7 +38,7 @@ export function QuoteTemplateBar({ token, current, onApply }: { token: string; c
         </select>
       </label>
       <input aria-label="Template name" className="h-9 rounded-md border border-input bg-background px-2" placeholder="Save these terms as…" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
-      <Button size="sm" variant="outline" disabled={name.trim().length < 2} onClick={save}>Save template</Button>
+      <Button size="sm" variant="outline" disabled={busy || name.trim().length < 2} aria-busy={busy} onClick={save}>{busy ? 'Saving…' : 'Save template'}</Button>
       {msg ? <span role="status" className="text-muted-foreground">{msg}</span> : null}
     </div>
   );

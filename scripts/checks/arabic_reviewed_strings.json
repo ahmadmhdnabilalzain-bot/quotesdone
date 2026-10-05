@@ -1023,6 +1023,9 @@
   "6722f6506ada",
   "ccde2d166647"
  ],
+ "scripts/sql/supplier_quote_templates_carry_structure_never_price.sql": [
+  "21459813b1d2"
+ ],
  "scripts/sql/suppliers_are_always_written_in_english_and_customers_in_their_inquirys_language.sql": [
   "014c460148eb",
   "062526994b5f",
@@ -5487,6 +5490,9 @@
   "265323a0e5fd",
   "b05b260309e0",
   "ebcf51ab9588"
+ ],
+ "supabase/functions/supplier_api/quote_template.ts": [
+  "64f14e3ff3d4"
  ],
  "supabase/functions/supplier_portal/document_actions.ts": [
   "5b18a29fa4d7",
