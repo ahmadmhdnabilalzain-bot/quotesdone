@@ -1,6 +1,10 @@
 Not applied: the release train applies it at merge (no pre-merge applies, 28 Sep). Seat: it_engineer, with ceo.
+Revised 6 Oct after the release operator's review: the 14-day clock starts at a row's first claim (not at apply), and a
+person-facing question that expires opens a handoff to its seat (fn_reason_held_expire).
 Proved 6 Oct 2026 on production in one aborted transaction (this file + its _probe.sql concatenated, node scripts/qsql.mjs):
-CHK<<PROBE OK expired_by_file=113 stale_left=0 null_expiry=0 gate=founder_hold>> - 31 competitor_change + 37 postmortems
-older than 7 days + 30 superseded Q3 knowledge refreshes + 15 Arabic document questions of 23-28 Sep.
+CHK<<PROBE OK expired_by_file=113 handoffs=10 stale_left=0 late_lift=kept_then_14d person_facing=handoff gate=founder_hold>>
+(113 = 31 competitor_change + 37 postmortems > 7 days + 30 superseded Q3 refreshes + 15 Arabic document questions;
+the 10 customer-facing sales_engineer.document_arabic rows each open a handoff to sales_engineer).
+With the two review fixes removed the same probe FAILS (late lift expires the untried row; no handoff).
 Dry run (node scripts/apply_sql.mjs): guards passed.
 What moves it: the merge. Then delete this note and append the .sql to the END of scripts/sql/MANIFEST.txt.

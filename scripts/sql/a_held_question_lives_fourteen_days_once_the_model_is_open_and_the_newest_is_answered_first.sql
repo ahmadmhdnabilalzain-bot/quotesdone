@@ -14,16 +14,26 @@
 --
 -- WHAT THIS CHANGES (through the existing state machine; status 'expired' with its reason in result, no delete,
 -- no agent_runs row written)
---   1. reasoning_held_question.expires_at defaults to 14 days from filing, and fn_reason_hold sets it so (a visitor
---      chat keeps its hour). Rows already held get 14 days from now, so the current backlog has a clock too.
---   2. fn_reason_held_sweep expires a row past expires_at ONLY while a model may run. The 23 Sep reason a held
---      question "never expires" (a_held_question_never_expires_it_is_escalated_at_48_hours.sql: the hold lasts a while,
---      and an expiry would drop the very questions the hold is holding) still stands: under the founder's hold nothing
---      but a visitor chat expires. The 48-hour escalation to the owning seat is unchanged, so a question is seen by
---      its seat twelve days before it can expire.
---   3. fn_reason_held_due claims the NEWEST due question first (created_at desc); a row already tried still comes
+--   1. THE 14-DAY CLOCK STARTS AT THE FIRST ATTEMPT, NEVER AT FILING OR AT APPLY (review of #1235, 6 Oct): the
+--      release operator measured that a clock started at apply would expire all ~172 unanswered questions on the
+--      first sweep after a lift later than about 20 Oct. fn_reason_held_due sets expires_at = now() + 14 days when it
+--      claims a row for the first time (attempts 0 -> 1), and the sweep never ages out a row with attempts = 0. So a
+--      question waiting under the hold, however long the hold lasts, gets its full 14 days from the moment a model
+--      could first answer it. The column default (14 days from filing) only gives a row a value; it is reset at the
+--      first claim. Existing held rows are NOT given a clock here.
+--   2. fn_reason_held_sweep expires a row past expires_at only while a model may run AND only once it has been tried.
+--      The 23 Sep reason a held question "never expires" (a_held_question_never_expires_it_is_escalated_at_48_hours.sql)
+--      still stands: under the founder's hold nothing but a visitor chat expires. The 48-hour escalation is unchanged.
+--   3. A PERSON-FACING QUESTION NEVER EXPIRES SILENTLY (review of #1235): fn_reason_held_expire (NEW) expires rows
+--      with their reason and, for every row whose request.context.audience is not 'internal' (a customer or a
+--      supplier is waiting; a missing audience counts as person-facing), opens a pending handoff in the owning seat's
+--      queue (agent_actions kind 'held_question_expired', agent = the row's seat, target reasoning_held_question/<id>)
+--      saying the person still needs a reply through the deterministic path. Internal questions expire with their
+--      reason only. A visitor chat past its hour keeps its own rule (R5: the visitor has left; nobody to reply to).
+--   4. fn_reason_held_due claims the NEWEST due question first (created_at desc); a row already tried still comes
 --      before an untried one (last_attempt_at nulls first is unchanged), so a retry is never starved.
---   4. Expires, once, the four stale groups above by exact criteria. Nothing else is touched.
+--   5. Expires, once, the four stale groups above by exact criteria, through fn_reason_held_expire: the 10
+--      sales_engineer.document_arabic rows are customer-facing, so each opens a handoff to sales_engineer.
 --
 -- What this does NOT change: no spend ceiling (founder_instruction 987, still standing: "No caps on LLM spend"),
 -- the 3-attempt bound, the one-postmortem-per-fault rule, the fan-out of one answer to its duplicates.
@@ -34,8 +44,41 @@
 -- Prevented by: scripts/checks/a_held_question_is_answered_newest_first.test.mjs
 
 alter table public.reasoning_held_question alter column expires_at set default now() + interval '14 days';
-update public.reasoning_held_question set expires_at = now() + interval '14 days'
- where status = 'held' and expires_at is null;
+
+-- ── expiry: the reason always; a handoff to the seat whenever a person is waiting (NEW, 6 Oct) ──────────────────
+create or replace function public.fn_reason_held_expire(p_ids bigint[], p_by text, p_why text)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare n_exp int; n_handoff int;
+begin
+  with gone as (
+    update public.reasoning_held_question h
+       set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
+     where h.id = any(p_ids) and h.status = 'held'
+    returning h.id, h.seat, h.surface, h.question, h.subject, h.created_at,
+              coalesce(h.request -> 'context' ->> 'audience', '') audience
+  ), filed as (
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    select g.seat, 'held_question_expired', 'pending', 'low',
+           left('A ' || coalesce(nullif(g.audience, ''), 'person-facing') || ' question on ' || g.surface
+                || ' expired unanswered: reply through the deterministic path', 200),
+           jsonb_build_object('held_id', g.id, 'surface', g.surface, 'audience', g.audience,
+                              'question', left(g.question, 1000), 'subject', g.subject, 'held_since', g.created_at,
+                              'why_expired', p_why,
+                              'needed', 'the person who asked still gets a reply: send the deterministic answer for this '
+                                        || 'surface, or answer by hand; the model will not be asked this question again'),
+           'reasoning_held_question', g.id::text
+      from gone g
+     where g.audience <> 'internal'
+    returning id
+  )
+  select (select count(*) from gone), (select count(*) from filed) into n_exp, n_handoff;
+  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff);
+end $fn$;
+revoke execute on function public.fn_reason_held_expire(bigint[], text, text) from public, anon, authenticated;
+grant execute on function public.fn_reason_held_expire(bigint[], text, text) to service_role;
 
 -- ── filing: a fixture is never filed, a closed row never reopens, a recent failure is not asked again ─────────
 -- From governance_reads_keys_and_reasons_rather_than_spotting_words.sql (canonical); the reopen branch is gone.
@@ -122,14 +165,19 @@ begin
   -- that column was set are judged by the same hour from created_at.
   update public.reasoning_held_question
      set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', x,
-           'why', case when surface like 'site_assistant.%'
-                       then 'a visitor chat past its hour: the visitor has gone, a late answer reaches nobody'
-                       else 'held 14 days with the model open: its moment has passed (6 Oct)' end)
+           'why', 'a visitor chat past its hour: the visitor has gone, a late answer reaches nobody')
    where status = 'held'
-     -- 6 Oct: a visitor chat expires on its hour always; anything else only past expires_at AND with the model open
-     and (   (surface like 'site_assistant.%' and (expires_at < now() or created_at < now() - interval '1 hour'))
-          or (surface not like 'site_assistant.%' and expires_at < now() and not v_held));
+     and surface like 'site_assistant.%' and (expires_at < now() or created_at < now() - interval '1 hour');
   get diagnostics n_stale = row_count;
+
+  -- 6 Oct: anything else ages out only with the model open, only after its first attempt started its 14-day clock,
+  -- and through fn_reason_held_expire, so a customer or supplier still waiting is handed to the seat, never dropped.
+  if not v_held then
+    n_stale := n_stale + coalesce((public.fn_reason_held_expire(
+      array(select id from public.reasoning_held_question
+             where status = 'held' and surface not like 'site_assistant.%' and attempts > 0 and expires_at < now()),
+      x, 'held 14 days after its first attempt with the model open: its moment has passed') ->> 'expired')::int, 0);
+  end if;
 
   -- A FAILED QUESTION TAKES ITS WAITING DUPLICATES WITH IT (R3): the same hash is not tried three more times.
   update public.reasoning_held_question h
@@ -193,7 +241,10 @@ begin
      limit greatest(1, least(coalesce(p_limit, 3), 10))
      for update skip locked
   ), claimed as (
-    update public.reasoning_held_question h set attempts = h.attempts + 1, last_attempt_at = now()
+    -- 6 Oct: the first claim starts the 14-day clock (a question waits out the hold without ageing)
+    update public.reasoning_held_question h set attempts = h.attempts + 1, last_attempt_at = now(),
+           expires_at = case when h.attempts = 0 and h.surface not like 'site_assistant.%'
+                             then now() + interval '14 days' else h.expires_at end
       from due where h.id = due.id
     returning h.id, h.seat, h.surface, h.request, h.subject
   )
@@ -203,29 +254,29 @@ end $fn$;
 revoke execute on function public.fn_reason_held_due(integer) from public, anon, authenticated;
 grant execute on function public.fn_reason_held_due(integer) to service_role;
 
--- ── 4. the stale backlog of 23-28 Sep, expired once, by exact criteria ─────────────────────────────────────────
-update public.reasoning_held_question
-   set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', '6 Oct final check',
-         'why', 'a competitor change filed on 24 Sep: twelve days later it is no longer news worth paying to read')
- where status = 'held' and surface = 'marketing.competitor_change'
-   and created_at >= '2026-09-24 00:00+00' and created_at < '2026-09-25 00:00+00';
+-- ── 5. the stale backlog of 23-28 Sep, expired once, by exact criteria, through fn_reason_held_expire ─────────
+select public.fn_reason_held_expire(array(
+  select id from public.reasoning_held_question
+   where status = 'held' and surface = 'marketing.competitor_change'
+     and created_at >= '2026-09-24 00:00+00' and created_at < '2026-09-25 00:00+00'),
+  '6 Oct final check', 'a competitor change filed on 24 Sep: twelve days later it is no longer news worth paying to read');
 
-update public.reasoning_held_question
-   set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', '6 Oct final check',
-         'why', 'a postmortem question older than 7 days: the duty asks for it within 7 days of the incident')
- where status = 'held' and surface = 'it_engineer.postmortem' and created_at < now() - interval '7 days';
+select public.fn_reason_held_expire(array(
+  select id from public.reasoning_held_question
+   where status = 'held' and surface = 'it_engineer.postmortem' and created_at < now() - interval '7 days'),
+  '6 Oct final check', 'a postmortem question older than 7 days: the duty asks for it within 7 days of the incident');
 
-update public.reasoning_held_question h
-   set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', '6 Oct final check',
-         'why', 'superseded: a newer quarter''s refresh of the same item is held and asks the same question', 'superseded_by', n.id)
-  from public.reasoning_held_question n
- where h.status = 'held' and h.surface like '%.knowledge_refresh'
-   and n.status = 'held' and n.surface = h.surface and n.id <> h.id
-   and n.subject ->> 'item_key' = h.subject ->> 'item_key'
-   and n.subject ->> 'quarter' > h.subject ->> 'quarter';
+select public.fn_reason_held_expire(array(
+  select h.id from public.reasoning_held_question h
+   where h.status = 'held' and h.surface like '%.knowledge_refresh'
+     and exists (select 1 from public.reasoning_held_question n
+                  where n.status = 'held' and n.surface = h.surface and n.id <> h.id
+                    and n.subject ->> 'item_key' = h.subject ->> 'item_key'
+                    and n.subject ->> 'quarter' > h.subject ->> 'quarter')),
+  '6 Oct final check', 'superseded: a newer quarter''s refresh of the same item is held and asks the same question');
 
-update public.reasoning_held_question
-   set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', '6 Oct final check',
-         'why', 'an Arabic document question filed 23-28 Sep, expired before the model hold lifts')
- where status = 'held' and surface in ('sales_engineer.document_arabic', 'documents.boq_arabic')
-   and created_at >= '2026-09-23 00:00+00' and created_at < '2026-09-29 00:00+00';
+select public.fn_reason_held_expire(array(
+  select id from public.reasoning_held_question
+   where status = 'held' and surface in ('sales_engineer.document_arabic', 'documents.boq_arabic')
+     and created_at >= '2026-09-23 00:00+00' and created_at < '2026-09-29 00:00+00'),
+  '6 Oct final check', 'an Arabic document question filed 23-28 Sep, expired before the model hold lifts');

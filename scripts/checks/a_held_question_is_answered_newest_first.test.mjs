@@ -37,10 +37,22 @@ test('a filed question gets 14 days; a visitor chat keeps its hour', () => {
   assert.match(b, /site_assistant\.%' then now\(\) \+ interval '1 hour' else now\(\) \+ interval '14 days'/i);
 });
 
-test('under the founder hold nothing but a visitor chat expires by age', () => {
+test('under the founder hold nothing but a visitor chat expires by age, and an untried row never does', () => {
   const b = body('fn_reason_held_sweep');
   assert.match(b, /v_held boolean := [\s\S]*?'founder_hold'/i);
-  assert.match(b, /surface not like 'site_assistant\.%' and expires_at < now\(\) and not v_held/i);
+  assert.match(b, /if not v_held then[\s\S]*?fn_reason_held_expire\([\s\S]*?attempts > 0 and expires_at < now\(\)/i);
+});
+
+// Review of #1235 (6 Oct): a clock started at apply would expire ~172 untried questions on the first sweep after a
+// lift later than ~20 Oct. The clock starts when the scheduler first claims the row.
+test('the first claim starts the 14-day clock', () => {
+  assert.match(body('fn_reason_held_due'), /expires_at = case when h\.attempts = 0[\s\S]*?then now\(\) \+ interval '14 days'/i);
+});
+
+// Review of #1235: a customer or supplier waiting is handed to the seat, never dropped.
+test('a person-facing question opens a handoff to its seat when it expires', () => {
+  const b = body('fn_reason_held_expire');
+  assert.match(b, /insert into public\.agent_actions[\s\S]*?'held_question_expired'[\s\S]*?where g\.audience <> 'internal'/i);
 });
 
 test('the column default is 14 days', () => {
