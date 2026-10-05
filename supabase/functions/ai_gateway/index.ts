@@ -224,8 +224,27 @@ function inferCaps(msgs: Msg[], tools?: any[]): { caps: string[]; hasBinary: boo
   return { caps: Array.from(caps), hasBinary };
 }
 
+// THE CALLER IS ON EVERY RUN ROW, REFUSED OR NOT (it_engineer, 5 Oct 2026; LLM burn audit R6). 11,686 runs on
+// 28-29 Sep carried only http/method/path, so the burst had no name until the edge logs were read: one Node client on
+// a UAE address re-embedding ~6,200 knowledge rows through {action:'embed'}, free and never routed to a model. Each
+// run row now says which fn the caller CLAIMS to be, the action and the task class it asked for. Claimed, not proven:
+// these keys are for attribution only and decide nothing (observe.statusOf reads only the handler's own 'held').
+const claimedCaller = (b: Record<string, unknown>) => ({
+  claimed_fn: String(b?.fn ?? 'unknown').slice(0, 80),
+  claimed_action: String(b?.action ?? 'chat').slice(0, 20),
+  claimed_task_class: b?.task_class == null ? null : String(b.task_class).slice(0, 60),
+});
 Deno.serve(observe('ai_gateway', async (req) => {
+  const claimed = claimedCaller(await req.clone().json().catch(() => ({})));
+  return annotate(await handle(req), claimed);
+}));
+
+async function handle(req: Request): Promise<Response> {
   const t0 = Date.now();
+  // The prompt hash on every ai_cost_log row (fn + system + conversation; the FAQ path hashes its question). The
+  // model-spend duty's repeat rule keys on it: cache_hit_key was null on all 3,397 rows of 30 days (burn audit).
+  let promptHash: string | null = null;
+  const llmLog = (args: Record<string, unknown>) => rpcSafe('fn_llm_log', { ...args, p_prompt_hash: promptHash });
   try {
     const body = (await req.json().catch(() => ({}))) as Body;
       // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -269,12 +288,13 @@ Deno.serve(observe('ai_gateway', async (req) => {
     // Semantic matching included, because keyword search missed 2 of 5 realistic questions.
     if (body.try_faq) {
       const q = String(body.faq_text ?? (typeof body.input === 'string' ? body.input : '') ?? '');
+      promptHash = await sha256('faq ' + fnName + ' ' + q);
       const qEmb = q.length > 2 ? await embed(q) : null;
       const { data: faq } = await admin.rpc('fn_faq_answer', {
         p_text: q, p_min_rank: 0.15, p_embedding: qEmb, p_min_similarity: 0.86,
       });
       if (faq && faq.answered === true) {
-        await rpcSafe('fn_llm_log', {
+        await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: 'level0_' + String(faq.source), p_model: 'none',
           p_because: 'Answered with no model: ' + faq.source + ' (confidence ' + faq.confidence + ')',
@@ -311,6 +331,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
           ? [{ role: 'user', content: body.input }]
           : (Array.isArray(body.input) ? body.input as Msg[] : []));
 
+    promptHash = await sha256([fnName, sysStable, sys, JSON.stringify(convo)].join(' '));
     const { caps: inferred, hasBinary } = inferCaps(convo, body.tools);
     const caps = Array.isArray(body.require_caps) && body.require_caps.length
       ? Array.from(new Set([...body.require_caps, ...inferred]))
@@ -382,7 +403,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
 
     // ---- 4. REFUSALS: deterministic work, or no capable model (no budget halt: founder_instruction 987) ---
     if (route.use_llm === false) {
-      await rpcSafe('fn_llm_log', {
+      await llmLog({
         p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
         p_task_class: route.task_class ?? null, p_model: 'none', p_because: route.why,
         p_tier: route.tier ?? 'none', p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
@@ -438,7 +459,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
       });
       if (hit && hit.hit === true) {
-        await rpcSafe('fn_llm_log', {
+        await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: route.task_class ?? null, p_model: hit.model ?? model,
           p_because: hit.kind + ' cache hit (similarity ' + hit.similarity + ')',
@@ -494,7 +515,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
         if (v.stub) ownWork = v.why;
       }
       if (ownWork) {
-        await rpcSafe('fn_llm_log', {
+        await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: route.task_class ?? null, p_model: 'none',
           p_because: route.why + ' | FIXTURE: ' + ownWork + ' — answered with the no-cost stub, no provider call was made',
@@ -644,7 +665,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
       // refusal above is logged — model 'none', zero tokens, the rationale in words — so spend,
       // failure and confidence instruments see a policy answer, not a call, and the routing
       // rationale names the model it would have used and the rule that held it.
-      await rpcSafe('fn_llm_log', {
+      await llmLog({
         p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
         p_task_class: route.task_class ?? null, p_model: 'none',
         p_because: route.why + ' | HELD: routed to ' + model + ' by policy, no provider call was made — '
@@ -791,7 +812,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
             // and stops billing - that is the whole point of streaming for cost.
             clearTimeout(to);
             if (r.ok && r.body) {
-              await rpcSafe('fn_llm_log', {
+              await llmLog({
                 p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
                 p_task_class: route.task_class ?? null, p_model: m,
                 p_because: route.why + ' | streamed (token counts not available on the stream path)',
@@ -872,7 +893,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
       costUsd = data == null ? null : Number(data);
     } catch (_e) { /* pricing is reporting, not a gate */ }
 
-    await rpcSafe('fn_llm_log', {
+    await llmLog({
       p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
       p_task_class: route.task_class ?? null, p_model: used,
       p_because: route.why + (used !== model ? ' [fell back from ' + model + ']' : '')
@@ -946,4 +967,4 @@ Deno.serve(observe('ai_gateway', async (req) => {
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);
   }
-}));
+}
