@@ -160,6 +160,18 @@ export function applyOrder(entries) {
   return out;
 }
 
+// A REFUSED MERGE ENDS THE TICK, NOT THE TRAIN (30 Sep 2026). #1141's squash was refused by GitHub
+// ("without workflows permission"); gh threw, the run crashed, and every later tick picked #1141 again,
+// blocking the queue. A failed merge now opens a finding and labels the PR release-failed, so refusal()
+// skips it on the next tick.
+export function mergeOrFlag(pr, { merge, finding, label }) {
+  try { merge(); return true; } catch (e) {
+    finding(pr, 'merge', `${e.stderr || ''}${e.stdout || ''}${e.message || e}`);
+    label(pr);
+    return false;
+  }
+}
+
 // Returns null when the PR may be released now, otherwise why not.
 export function refusal(pr, { depState = () => 'MERGED', campaign = false, offHoursFiles = [] } = {}) {
   const labels = (pr.labels || []).map((l) => l.name);
@@ -167,6 +179,9 @@ export function refusal(pr, { depState = () => 'MERGED', campaign = false, offHo
   if (pr.baseRefName && pr.baseRefName !== 'main') return `base is ${pr.baseRefName}, not main`;
   if (labels.includes('hold')) return 'labelled hold';
   if (labels.includes('release-failed')) return 'labelled release-failed';
+  // #1141, 30 Sep 2026: the train's GitHub App token has no `workflows` permission, so GitHub refuses a
+  // squash that touches .github/workflows/. Skip it up front; a person merges it.
+  if ((pr.files || []).some((f) => f.path?.startsWith('.github/workflows/'))) return 'needs a human merge: workflow files';
   if (!labels.includes('review-approved') && !isDependabotMinorPatch(pr)) return 'no review-approved label';
   if (pr.mergeable !== 'MERGEABLE') return `mergeable is ${pr.mergeable}`;
   if (!checksGreen(pr.statusCheckRollup)) return 'checks not all green';
@@ -352,7 +367,12 @@ export async function main(argv = process.argv.slice(2)) {
 
   git(['fetch', '-q', 'origin', 'main']);
   const base = git(['rev-parse', 'origin/main']);
-  gh(['pr', 'merge', String(chosen.number), '--squash', '--match-head-commit', chosen.headRefOid]);
+  const merged = mergeOrFlag(chosen, {
+    merge: () => gh(['pr', 'merge', String(chosen.number), '--squash', '--match-head-commit', chosen.headRefOid]),
+    finding: openFinding,
+    label: (p) => run('gh', ['pr', 'edit', String(p.number), '--add-label', 'release-failed']),
+  });
+  if (!merged) { log(`merge of #${chosen.number} refused: labelled release-failed; the next tick moves on`); return 1; }
   git(['fetch', '-q', 'origin', 'main']);
   // Apply only onto the merge just made: main's tip must BE that merge commit, or another release is
   // in flight and this tick stops before writing anything to production.
