@@ -25,7 +25,7 @@ company: its published business email and name. The purpose is a single business
 enquiries. We rely on processing that is necessary for the legitimate business purpose of offering a
 commercial service to another business, limited to the minimum data, with an immediate and permanent
 opt-out. No personal data is sold or shared; nothing beyond the published listing is collected before
-the business chooses to register. A PDPL access or erasure request is recorded in `pdpl_request` and
+the business chooses to register. A PDPL access or erasure request is recorded in `pdpl_requests` and
 answered with `fn_pdpl_export` / `fn_pdpl_erase` (or self-service `pdpl_export_me` / `pdpl_erase_me`). Until 6 Oct 2026
 this line named functions that had been dropped on 7 Sep; see
 scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql.

@@ -10,8 +10,7 @@
 -- erasure "through the existing pdpl_request / pdpl_erase functions". A promise with no path behind it.
 --
 -- WHAT THIS BUILDS:
---   pdpl_request                      every request: who, what, when received, internal due date (30 days),
---                                     outcome. Never pruned (it is the evidence the request was answered).
+--   pdpl_requests (existing)      every request and its answer (kind export|delete, status, handled_at).
 --   fn_pdpl_export(email)             one JSON document with everything held under that email (and the
 --                                     phone numbers on its accounts): account rows, requests, transactions,
 --                                     refunds, portal chat, emails both ways, WhatsApp, opt-out record.
@@ -29,23 +28,11 @@
 --                                     session token: a real self-service path, no operator needed.
 --
 -- WHAT THIS DOES NOT DO: no portal button calls pdpl_export_me / pdpl_erase_me yet (the API exists);
--- requests by email to management@quotesdone.com are run by customer_support with fn_pdpl_export /
--- fn_pdpl_erase. It does not delete a registered customer's identity before the retention duty ends.
+-- requests by email to management@quotesdone.com are recorded in pdpl_requests and run by customer_support
+-- with fn_pdpl_export / fn_pdpl_erase. It does not delete a registered customer's identity before the retention duty ends.
 
-create table if not exists public.pdpl_request (
-  id           bigint generated always as identity primary key,
-  email        text not null,
-  kind         text not null check (kind in ('export', 'erase')),
-  channel      text not null default 'operator' check (channel in ('operator', 'self_service')),
-  received_at  timestamptz not null default now(),
-  due_at       timestamptz not null default now() + interval '30 days',
-  completed_at timestamptz,
-  outcome      jsonb);
-comment on table public.pdpl_request is
-  'Every PDPL access or erasure request and its answer. Never pruned. a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql';
-alter table public.pdpl_request enable row level security;
-revoke all on public.pdpl_request from anon, authenticated;
-create policy pdpl_request_service_only on public.pdpl_request for all to service_role using (true) with check (true);
+-- The request record already exists: public.pdpl_requests (id, kind export|delete, email, role, details, status,
+-- created_at, handled_at, handled_by), RLS on, 0 rows (measured 6 Oct 2026). It is reused, not duplicated.
 
 -- ── the phone tails on the accounts that carry this email (9 digits, as fn_conversation_party matches) ──
 create or replace function public.fn_pdpl_phone_tails(p_email text)
@@ -153,8 +140,8 @@ declare v_em text := lower(nullif(auth.jwt() ->> 'email', ''));
 begin
   if v_em is null then return jsonb_build_object('ok', false, 'error', 'sign in first'); end if;
   v_out := public.fn_pdpl_export(v_em);
-  insert into public.pdpl_request (email, kind, channel, completed_at, outcome)
-  values (v_em, 'export', 'self_service', now(), jsonb_build_object('delivered', 'in the response'));
+  insert into public.pdpl_requests (kind, email, role, details, status, handled_at, handled_by)
+  values ('export', v_em, 'self_service', 'delivered in the response', 'completed', now(), 'pdpl_export_me');
   return v_out;
 end $fn$;
 revoke execute on function public.pdpl_export_me() from public, anon;
@@ -168,8 +155,8 @@ declare v_em text := lower(nullif(auth.jwt() ->> 'email', ''));
 begin
   if v_em is null then return jsonb_build_object('ok', false, 'error', 'sign in first'); end if;
   v_out := public.fn_pdpl_erase(v_em, true);
-  insert into public.pdpl_request (email, kind, channel, completed_at, outcome)
-  values (v_em, 'erase', 'self_service', now(), v_out);
+  insert into public.pdpl_requests (kind, email, role, details, status, handled_at, handled_by)
+  values ('delete', v_em, 'self_service', v_out::text, 'completed', now(), 'pdpl_erase_me');
   return v_out;
 end $fn$;
 revoke execute on function public.pdpl_erase_me() from public, anon;
