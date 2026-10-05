@@ -24,7 +24,7 @@ type Env = (k: string) => string | undefined;
 export interface Probe { kind: string; method?: string; url?: string; auth?: string; ok?: number[]; expect?: { path: string; equals: string };
   every_minutes?: number; name?: string; secret?: string; function?: string; notify?: boolean }
 export interface Entry { what: string; owner_seat: string; blast: string; probe: Probe; action?: string; link?: string; self_fix?: string;
-  notify_founder?: boolean; notify_why?: string }
+  notify_founder?: boolean; notify_why?: string; secrets?: string[] }
 export const REGISTRY = registry as unknown as { integrations: Record<string, Entry> };
 
 export interface Outcome { integration: string; state: 'ok' | 'fixed' | 'failing' | 'not_measured'; what_broke?: string; tried: string[]; detail?: unknown }
@@ -167,6 +167,18 @@ export async function runEntry(f: Fetch, key: string, e: Entry, sec: Sec, env: E
   return { integration: key, state: 'failing', what_broke: second.broke, tried: ['retried after 3 s: still failing'] };
 }
 
+/**
+ * Whether a failing integration may reach the founder at all (5 Oct 2026, notifications#84149: the keyless
+ * DuckDuckGo scrape was sent to him as a DECISION "only its account holder can restore"). A keyless endpoint (an
+ * http probe with no auth and no registry secret) has no account holder, so it is always the IT engineer's.
+ * Account-backed connections (an auth on the probe, a secret, or a custom probe of a provider account) keep the
+ * registry's own opt-outs. Measured on the registry that day: this changes no entry except a keyless one.
+ */
+export function founderMayBeAsked(e: { secrets?: string[]; notify_founder?: boolean; probe: Probe }): boolean {
+  const keyless = !(e.secrets?.length) && e.probe.kind === 'http' && (e.probe.auth ?? 'none') === 'none';
+  return !keyless && e.notify_founder !== false && e.probe.notify !== false;
+}
+
 /** The settle items for every due entry. Entries not due this beat are CARRIED (held as they stand). */
 export async function integrationItems(f: Fetch, sec: Sec, env: Env, now = new Date(), wait = sleep, reg = REGISTRY) {
   const items: Record<string, unknown>[] = [];
@@ -187,7 +199,7 @@ export async function integrationItems(f: Fetch, sec: Sec, env: Env, now = new D
       items.push({ ...base,
         title: `${key} (${e.what}): ${o.what_broke}. Tried: ${o.tried.length ? o.tried.join('; ') : 'nothing the company can do itself'}. Needs: ${e.action || 'see the registry'}${e.link ? ' ' + e.link : ''}`,
         evidence: { integration: key, what_broke: o.what_broke, tried: o.tried, action: e.action ?? null, reconnect_url: e.link ?? null,
-                    notify: e.notify_founder !== false && e.probe.notify !== false, notify_why: e.notify_why ?? null, detail: o.detail ?? null } });
+                    notify: founderMayBeAsked(e), notify_why: e.notify_why ?? null, detail: o.detail ?? null } });
     }
   }));
   const fixed = outcomes.filter((o) => o.state === 'fixed').map((o) => ({ integration: o.integration, what_broke: o.what_broke, tried: o.tried }));

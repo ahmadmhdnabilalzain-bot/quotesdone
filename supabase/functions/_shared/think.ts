@@ -549,24 +549,12 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
   };
 }
 
-// The search engine: DuckDuckGo's HTML endpoint, no key, restricted to the authorities with site:.
-// Its result list is parsed as a FORMAT (anchor tags), and every URL still has to pass authoritative().
-export async function webSearch(query: string): Promise<{ url: string; title: string }[]> {
-  const { timedFetch } = await import('./timed_fetch.ts');
-  const q = `${query} site:gov.ae OR site:u.ae OR site:dm.gov.ae OR site:dcd.gov.ae OR site:uaelegislation.gov.ae`;
-  const r = await timedFetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q), { headers: { 'User-Agent': 'QuotesDone-research/1.0 (+https://www.quotesdone.ae)' } }, 10_000);
-  if (!r.ok) return [];
-  return parseSearchResults(await r.text());
-}
-export function parseSearchResults(html: string): { url: string; title: string }[] {
-  const out: { url: string; title: string }[] = [];
-  for (const m of html.matchAll(/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
-    let url = m[1].replace(/&amp;/g, '&');
-    const redirect = url.match(/[?&]uddg=([^&]+)/);
-    if (redirect) url = decodeURIComponent(redirect[1]);
-    if (authoritative(url)) out.push({ url, title: m[2].replace(/<[^>]+>/g, '').trim() });
-  }
-  return out;
+// The search engine. 5 Oct 2026 (notifications#84149): DuckDuckGo's keyless HTML endpoint answers every
+// datacenter call with a bot-check (HTTP 202, no results), so the scrape is gone, not retried. The company holds no
+// search-API key (app_secrets read the same day: no Brave/Tavily/Serper/Exa), so research degrades to no web hits
+// and think() reasons from the knowledge base alone. A keyed provider is wired here when one is held.
+export function webSearch(_query: string): Promise<{ url: string; title: string }[]> {
+  return Promise.resolve([]);
 }
 export async function readPage(url: string): Promise<string | null> {
   if (!authoritative(url)) return null;

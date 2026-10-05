@@ -1,7 +1,7 @@
 // think() with a mocked model, embedder and database. No network, no env, no paid call.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { GateAnswer } from './llm_hold.ts';
-import { authoritative, isFixtureRequest, parseSearchResults, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
+import { authoritative, isFixtureRequest, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
 
 type Call = { phase: Phase; system: string; input: string; o: Record<string, unknown> };
 function mock(o: {
@@ -186,8 +186,6 @@ Deno.test('only authority hosts over https are read', () => {
   assert(!authoritative('http://www.dm.gov.ae/x'));
   assert(!authoritative('https://dm.gov.ae.evil.com/x'));
   assert(!authoritative('https://169.254.169.254/latest'));
-  const html = '<a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.dm.gov.ae%2Fpools&amp;rut=1">DM <b>pools</b></a><a class="result__a" href="https://spam.com">x</a>';
-  assertEquals(parseSearchResults(html), [{ url: 'https://www.dm.gov.ae/pools', title: 'DM pools' }]);
 });
 
 Deno.test('replayHeld reasons a held row once the hold lifts and hands the result to the resolver', async () => {

@@ -234,11 +234,10 @@
       "action": "Nothing to reconnect: a CDN outage passes; check https://status.esm.sh if it persists", "link": "https://esm.sh/"
     },
     "web_search": {
-      "what": "the seats' web lookups while reasoning", "hosts": ["html.duckduckgo.com"], "secrets": [],
+      "what": "the seats' web lookups while reasoning (keyless; no search API key is held)", "hosts": [], "secrets": [],
       "owner_seat": "it_engineer", "blast": "agent_facing",
-      "probe": { "kind": "http", "method": "GET", "url": "https://html.duckduckgo.com/html/?q=quotesdone", "auth": "none", "ok": [200, 202], "every_minutes": 60, "notify": false },
-      "self_fix": "retried once after 3 s",
-      "action": "Nothing to reconnect; a reasoning step answers without the web while it is down", "link": "https://html.duckduckgo.com/"
+      "notify_founder": false, "notify_why": "keyless, no account: nothing he holds can restore it; the IT engineer owns it",
+      "probe": { "kind": "covered", "by": "nothing to probe: the DuckDuckGo scrape was removed on 5 Oct 2026 (bot-check HTTP 202 from every datacenter call); think() reasons from the knowledge base until a keyed search provider is held" }
     },
     "apify": {
       "what": "lead scraping (paused by the founder until about February 2027)", "hosts": [], "secrets": ["apify_token"],
