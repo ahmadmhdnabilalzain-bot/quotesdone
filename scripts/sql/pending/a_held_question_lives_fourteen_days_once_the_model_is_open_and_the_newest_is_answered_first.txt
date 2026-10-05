@@ -1,0 +1,6 @@
+Not applied: the release train applies it at merge (no pre-merge applies, 28 Sep). Seat: it_engineer, with ceo.
+Proved 6 Oct 2026 on production in one aborted transaction (this file + its _probe.sql concatenated, node scripts/qsql.mjs):
+CHK<<PROBE OK expired_by_file=113 stale_left=0 null_expiry=0 gate=founder_hold>> - 31 competitor_change + 37 postmortems
+older than 7 days + 30 superseded Q3 knowledge refreshes + 15 Arabic document questions of 23-28 Sep.
+Dry run (node scripts/apply_sql.mjs): guards passed.
+What moves it: the merge. Then delete this note and append the .sql to the END of scripts/sql/MANIFEST.txt.
