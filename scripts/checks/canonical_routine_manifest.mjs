@@ -256,6 +256,49 @@ for (const [f, why] of PENDING) {
   else console.log(`   PENDING (committed, deliberately not applied)  ${f}\n      ${why.replace(/\r?\n/g, '\n      ')}`);
 }
 
+// A PENDING NOTE IS NOT A PLACE TO LIVE (it_engineer, outcome audit 30 Sep 2026). #1007 merged 28 Sep with
+// its routines in a pending/ note and never got applied; this check read 0 drift for two days because a
+// pending file is excluded from the scan above. A non-probe note older than 24 h on the branch is now a
+// finding naming the file and the PR that added it. Age comes from git, so a shallow clone cannot measure
+// it - that is a finding too, never a silent pass (the parity job checks out with fetch-depth: 0).
+{
+  const { execFileSync } = await import('node:child_process');
+  const git = (...a) => execFileSync('git', a, { encoding: 'utf8' }).trim();
+  // A shallow clone shows every file as added by its boundary commit, dated at the tip: that would read
+  // as young and pass. A note whose adding commit IS a shallow boundary cannot be dated, and says so.
+  let boundary = null;
+  try {
+    const p = git('rev-parse', '--git-path', 'shallow');
+    boundary = new Set(existsSync(p) ? readFileSync(p, 'utf8').split(/\s+/).filter(Boolean) : []);
+  } catch { /* no git at all: every note below is unmeasurable */ }
+  // Age is measured ON MAIN: the date the note's adding commit reached origin/main (HEAD when there is no
+  // origin/main). A note only on this branch is an open PR's own "apply at merge" note, not a stale one.
+  // On a pull_request run a stale note on main is PRINTED, not counted: like production drift, a finding
+  // already on main must not red every unrelated PR (code review of this change). Push-to-main and the
+  // daily run fail on it, and that is where it belongs.
+  let ref = 'HEAD';
+  try { git('rev-parse', '--verify', '--quiet', 'origin/main'); ref = 'origin/main'; } catch { /* no remote ref */ }
+  const onPr = process.env.GITHUB_EVENT_NAME === 'pull_request';
+  const stale = [...PENDING].filter(([f, why]) => !f.endsWith('_probe.sql') && !/^\s*A PROBE\b/.test(why));
+  for (const [f] of stale) {
+    const note = `scripts/sql/pending/${f.slice('scripts/sql/'.length, -4)}.txt`;
+    const [hash, when, subject = ''] = boundary
+      ? git('log', '-1', '--diff-filter=A', '--format=%H%x09%cI%x09%s', ref, '--', note).split('\t') : [];
+    if (boundary && !hash) continue;   // not on main yet: this branch adds it
+    if (!boundary || boundary.has(hash)) {
+      // The parity job checks out full history and sets QD_REQUIRE_GIT_HISTORY=1, so there this is a finding.
+      // Elsewhere (the shallow static checks job, a local shallow clone) it is said out loud, not counted.
+      const line = `PENDING AGE UNMEASURABLE  ${f} — no full git history to date its note (fetch-depth: 0, or git fetch --unshallow)`;
+      if (process.env.QD_REQUIRE_GIT_HISTORY === '1') GAPS.push(line); else console.log(`   ${line}  (not counted here)`);
+      continue;
+    }
+    if ((Date.now() - Date.parse(when)) / 36e5 <= 24) continue;
+    const pr = (subject.match(/\(#(\d+)\)/) || [])[1];
+    const line = `PENDING OVER 24 H ON MAIN  ${f} — note reached main ${when} by ${pr ? `PR #${pr}` : `"${subject.slice(0, 80)}"`}; apply it with its MANIFEST line or delete it`;
+    if (onPr) console.log(`   ${line}  (reported, not counted, on a pull request)`); else GAPS.push(line);
+  }
+}
+
 for (const f of diskScripts) if (!manifestPos.has(f) && !PENDING.has(f)) GAPS.push(`ON DISK, NOT IN MANIFEST  ${f}`);
 for (const f of manifestPos.keys()) if (!diskScripts.has(f)) GAPS.push(`IN MANIFEST, NOT ON DISK  ${f}`);
 {
