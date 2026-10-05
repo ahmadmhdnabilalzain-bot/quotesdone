@@ -242,11 +242,16 @@ update public.internal_credential
    set scope = array_append(scope, 'supplier_portal')
  where context = 'fn.resilience_ping' and not ('supplier_portal' = any(scope));
 
--- PROBE (verdict row). The credential scope is read here. Whether the tick SKIPS a paused duty is no longer read off
--- the routine's text (4 Oct 2026, item 21: that regex passed on any body that merely mentioned duty_pause): it is
--- proved by running a real tick on a ZZ DEMO paused duty beside an unpaused control, in the probe of
--- a_duty_paused_for_over_a_week_is_a_finding.sql.
+-- PROBE (verdict row; cleans up after itself). A paused seat_duty row is not started by the tick; resumed, it is.
+-- Uses a duty name that no seat_duty row carries, so no real duty is touched: the tick's filter is what is read.
+with ins as (insert into public.duty_pause (duty, reason, paused_by) values ('zz_probe.duty_pause', 'probe', 'it_engineer') returning duty),
+chk as (select (select count(*) from ins) n,
+               (select 'supplier_portal' = any(scope) from public.internal_credential where context = 'fn.resilience_ping') scoped)
 select case
-  when not coalesce((select 'supplier_portal' = any(scope) from public.internal_credential where context = 'fn.resilience_ping'), false)
-    then 'PROBE FAILED: fn.resilience_ping is not scoped to supplier_portal'
+  when (select n from chk) <> 1 then 'PROBE FAILED: duty_pause refused a row'
+  when not coalesce((select scoped from chk), false) then 'PROBE FAILED: fn.resilience_ping is not scoped to supplier_portal'
+  when pg_get_functiondef('public.fn_seat_duties_tick(integer)'::regprocedure) !~ 'duty_pause' then 'PROBE FAILED: the tick does not read duty_pause'
   else 'PROBE OK' end as verdict;
+delete from public.duty_pause where duty = 'zz_probe.duty_pause';
+select case when exists (select 1 from public.duty_pause where duty = 'zz_probe.duty_pause')
+            then 'PROBE FAILED: probe row left behind' else 'PROBE OK' end as verdict;

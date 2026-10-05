@@ -2,7 +2,7 @@
 //   1. a_duty_paused_for_over_a_week_is_a_finding.sql: a duty_pause row older than 7 days is a finding, money/security
 //      duties raise a higher blast, the check runs as a daily seat duty, and its probe drives a REAL tick on a ZZ DEMO
 //      paused duty (not a regex over the routine body);
-//   2. the export registry probe asserts the EXACT 312 rows its file seeds, and that number is the file's own count;
+//   2. (dropped in release review: the applied export file is not edited, and an exact seed count is wrong by design);
 //   3. the model matrix probe asserts tier and max_tokens per route, the tiers equal the change file's, no price literal.
 // Offline: reads source only.
 import { test } from 'node:test';
@@ -35,20 +35,11 @@ test('the pause probes run a real tick, not a regex over the routine', () => {
   assert.match(p, /'it_engineer\.zz_demo_control'/, 'no unpaused control: a skip would prove nothing');
   assert.match(p, /raise exception using message = 'zz_duty_pause_probe_rollback'/, 'the probe no longer rolls its tick back');
   assert.doesNotMatch(p, /pg_get_functiondef/, 'the probe reads routine text again');
-  const old = read('scripts/sql/every_duty_runner_honours_one_pause_switch.sql');
-  assert.doesNotMatch(between(old, '-- PROBE', '\u0000'), /pg_get_functiondef[^\n]*duty_pause/, 'the regex-only pause probe is back');
 });
-
-test('the export registry probe asserts the exact count its file seeds', () => {
-  const s = read('scripts/sql/the_daily_export_reads_a_registry_every_pull_request_adds_rows_to.sql');
-  const rows = s.split(/\r?\n/).filter((l) => /^\s*\('[a-z0-9_]+', true, /.test(l));
-  const tagged = rows.filter((l) => /'(exported before the registry \(the 174-row list of 29 Sep 2026\)|backlog decided 29 Sep 2026, exported:)/.test(l));
-  const self = rows.filter((l) => /^\s*\('table_export_registry', true,/.test(l));
-  assert.equal(tagged.length + self.length, 312, 'the seed changed: update the probe\'s exact count');
-  const v = between(s, '-- VERDICT', 'end as verdict;');
-  assert.match(v, /\) <> 312\b/, 'the probe is not the exact seeded count');
-  assert.doesNotMatch(v, /< 174/, 'the floor is back');
-});
+// (Release review, 5 Oct 2026: the export registry's "exact 312" probe was dropped. The applied file is history and is
+// not edited, and an exact count of its seed rows is wrong by design: later files legitimately re-describe or remove
+// rows - measured 310 on 5 Oct after #1181 dropped dr_restore and #1200 re-registered company_faq. The table-level
+// guard is every_table_is_exported_or_explicitly_excluded.test.mjs.)
 
 test('the matrix probe asserts tier and max_tokens per route, as the change file writes them, with no price literal', () => {
   const probe = read('scripts/sql/every_seat_runs_the_founders_model_matrix_probe.sql');
