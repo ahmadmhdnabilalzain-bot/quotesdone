@@ -553,9 +553,10 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
 // Without a key, over the cap or on a failure it returns no hits and think() reasons from the knowledge base.
 export async function webSearch(admin: Admin, query: string): Promise<{ url: string; title: string }[]> {
   const { serperSearch } = await import('./web_search.ts');
+  const { timedFetch } = await import('./timed_fetch.ts');
   return await serperSearch(query, {
     key: Deno.env.get('SERPER_API_KEY'),
-    fetch: (u, i) => fetch(u, i),
+    fetch: (u, i) => timedFetch(u, i, 10_000),
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
   });
 }
