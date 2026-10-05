@@ -6559,28 +6559,120 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_due_paid_records_payment()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- any writer, insert or update: paid_at going from empty to set is a settlement
+  if new.paid_at is not null and (tg_op = 'INSERT' or old.paid_at is null) then
+    perform public.fn_supplier_due_record_settlement(new.id);
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_due_record_settlement(p_due_id bigint)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.supplier_dues; v_rest numeric; v_id bigint; v_on date; v_owed numeric;
+begin
+  select * into d from public.supplier_dues where id = p_due_id;
+  if not found or d.paid_at is null or coalesce(d.status, '') in ('reversed', 'refunded', 'cancelled') then return null; end if;
+  v_on := (d.paid_at at time zone 'Asia/Dubai')::date;
+  -- stripe_webhook's reference is always the payment intent or the session (pi_ / cs_); stripe_session_id alone is not
+  -- evidence (supplier_pay writes it when a checkout is OPENED, paid or not)
+  if d.payment_ref ~ '^(pi|cs)_' then
+    -- a Stripe settlement records what the session charged for this due, stored at checkout; never a figure
+    -- recomputed at paid_at (a day's interest apart when the checkout and the payment straddle midnight)
+    select c.amount_aed into v_rest from public.supplier_due_checkouts c
+     where c.session_id = d.stripe_session_id and c.due_id = d.id;
+    if v_rest is null then
+      perform public.fn_it_engineer_finding_upsert('acct:stripe_settlement_without_checkout_amount:' || d.id,
+        'A Stripe settlement of supplier due ' || d.id || ' has no stored checkout amount, so no payment row was recorded',
+        'public.fn_supplier_due_record_settlement', 'agent_facing', 1,
+        jsonb_build_object('due_id', d.id, 'stripe_session_id', d.stripe_session_id, 'payment_ref', d.payment_ref,
+                           'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+        '{}'::text[], '{}'::text[], 'accountant');
+      return null;
+    end if;
+    -- Stripe took it, so it is recorded as taken; a stale session paid after a bank part payment is an overpayment
+    v_owed := (public.fn_supplier_dues_outstanding(array[d.id], v_on) -> d.id::text ->> 'owed_aed')::numeric;
+    if v_rest > coalesce(v_owed, 0) then
+      perform public.fn_it_engineer_finding_upsert('acct:stripe_overpayment:' || d.id || ':' || d.payment_ref,
+        'Stripe charged AED ' || v_rest || ' on supplier due ' || d.id || ', above the AED ' || coalesce(v_owed, 0) || ' still owed; the excess is the supplier''s',
+        'public.fn_supplier_due_record_settlement', 'agent_facing', 1,
+        jsonb_build_object('due_id', d.id, 'charged_aed', v_rest, 'owed_aed', v_owed, 'stripe_session_id', d.stripe_session_id,
+                           'payment_ref', d.payment_ref, 'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+        '{}'::text[], '{}'::text[], 'accountant');
+    end if;
+  else
+    -- any other writer of paid_at: what was still owed on the settlement date, before this settlement
+    v_rest := (public.fn_supplier_dues_outstanding(array[d.id], v_on) -> d.id::text ->> 'owed_aed')::numeric;
+    if v_rest is null or v_rest <= 0 then return null; end if;
+  end if;
+  insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference, entered_by)
+  values (d.id, v_on, v_rest, coalesce(nullif(btrim(d.payment_ref), ''), 'supplier_dues.paid_at #' || d.id), 'service')
+  on conflict (due_id, reference) do nothing returning id into v_id;
+  return v_id;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_dues_accrue_interest(p_as_of date DEFAULT NULL::date)
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare x record; v jsonb; n int := 0;
+declare x record; v jsonb; n int := 0; v_owed numeric;
 begin
   for x in select id, transaction_id from public.supplier_dues
             where public.fn_supplier_due_is_owed(status, paid_at) and transaction_id is not null loop
     v := public.fn_accountant_nonresponse_charge(x.transaction_id, p_as_of);
     continue when not coalesce((v->>'ok')::boolean, false);
+    -- 30 SEP 2026 (accountant): what is still owed, after every recorded payment
+    v_owed := (public.fn_supplier_dues_outstanding(array[x.id], p_as_of) -> x.id::text ->> 'owed_aed')::numeric;
     update public.supplier_dues
-       set interest_amount = (v->>'interest_aed')::numeric, total_claim = amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric,
+       set interest_amount = (v->>'interest_aed')::numeric, total_claim = v_owed,
            due_date = (v->>'due_date')::date, due_date_30 = (v->>'due_date')::date + 23
      where id = x.id
        and (interest_amount is distinct from (v->>'interest_aed')::numeric
-            or total_claim is distinct from amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric
+            or total_claim is distinct from v_owed
             or due_date is distinct from (v->>'due_date')::date);
     if found then n := n + 1; end if;
   end loop;
   return n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_dues_outstanding(p_due_ids bigint[], p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.supplier_dues; v jsonb; out jsonb := '{}'; v_paid numeric;
+begin
+  for d in select * from public.supplier_dues where id = any(p_due_ids) loop
+    v_paid := coalesce((select sum(p.amount_aed) from public.supplier_due_payments p where p.due_id = d.id), 0);
+    v := case when d.transaction_id is not null then public.fn_accountant_nonresponse_charge(d.transaction_id, p_as_of) end;
+    if coalesce((v->>'ok')::boolean, false) then
+      out := out || jsonb_build_object(d.id::text, jsonb_build_object(
+        'owed_aed', round(greatest(0, (v->>'total_aed')::numeric + coalesce(d.fine_amount, 0)), 2),
+        'unpaid_principal_aed', (v->>'unpaid_principal_aed')::numeric, 'interest_aed', (v->>'interest_aed')::numeric,
+        'paid_aed', (v->>'paid_aed')::numeric, 'source', 'fn_accountant_nonresponse_charge'));
+    else
+      out := out || jsonb_build_object(d.id::text, jsonb_build_object(
+        'owed_aed', round(greatest(0, coalesce(d.amount_due, 0) + coalesce(d.admin_fee, 0) + coalesce(d.interest_amount, 0) + coalesce(d.fine_amount, 0) - v_paid), 2),
+        'unpaid_principal_aed', null, 'interest_aed', coalesce(d.interest_amount, 0), 'paid_aed', v_paid, 'source', 'stored columns less payments'));
+    end if;
+  end loop;
+  return out;
 end $function$
 
 
