@@ -86,8 +86,14 @@ begin
   -- Its own block: a classifier failure never undoes the business sync or stops the bookings below.
   begin
     v_class := public.fn_accountant_classify_bank_lines_by_reference();
+    perform public.fn_accountant_duty_settle('bank_reference_classify', '[]'::jsonb);
   exception when others then
+    -- never silent (release review): the failure is an accountant finding, and the bookings below still run
     v_class := null;
+    perform public.fn_accountant_duty_settle('bank_reference_classify', jsonb_build_array(jsonb_build_object(
+      'item', 'run', 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+      'title', 'Classifying bank lines by their reference code failed, so none was classified this run: ' || sqlerrm,
+      'blast', 'agent_facing', 'affected', 1)));
   end;
   v_bank := public.fn_accountant_book_bank_charges();
   -- The bank-credit rule runs in its own block (review of b06d251): whatever fails in it can never undo the
