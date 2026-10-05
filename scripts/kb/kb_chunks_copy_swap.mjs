@@ -14,6 +14,7 @@
 //   node scripts/kb/kb_chunks_copy_swap.mjs --stage=swap     # baseline, ONE transaction (lock_timeout 5s), read-back
 //   node scripts/kb/kb_chunks_copy_swap.mjs --stage=verify   # read-back only (re-runnable after the swap)
 //   node scripts/kb/kb_chunks_copy_swap.mjs --stage=all      # prepare..swap in order
+//   node scripts/kb/kb_chunks_copy_swap.mjs --stage=rollback # swap kb_chunks_old back in (refuses without it)
 //
 // Every stage is resumable and safe to stop: prepare is idempotent, copy skips pages already equal, index uses
 // "if not exists", catchup consumes the log by sequence, swap refuses unless catchup's comparison is clean. Before the
@@ -42,6 +43,32 @@ export function inRunWindow(now = new Date()) {
   const m = dubaiMinutes(now);
   return m >= 120 && m < 300 && !(m >= 170 && m < 190);
 }
+// A statement may start only if it can finish, at its full budget, before 02:50 or 05:00 (whichever comes next).
+export function fitsRunWindow(budgetMs, now = new Date()) {
+  const end = new Date(now.getTime() + budgetMs);
+  return inRunWindow(now) && inRunWindow(end) && (dubaiMinutes(now) < 170) === (dubaiMinutes(end) < 170);
+}
+// 23:00 Dubai (19:00 UTC; Dubai has no DST) that opened the current night.
+export function nightStart(now = new Date()) {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 19));
+  if (d > now) d.setUTCDate(d.getUTCDate() - 1);
+  return d;
+}
+// The trim is finished tonight: its 'live rows after the trim' row written since 23:00 Dubai, the plan empty, no
+// planned row present, no batch in the last 10 minutes. Returns the reason to refuse, or null.
+export function trimRefusal({ doneAt, planRows, plannedLeft, lastBatchAt }, now = new Date()) {
+  if (!doneAt || new Date(doneAt) < nightStart(now)) return `no 'live rows after the trim' ledger row since 23:00 Dubai tonight (last: ${doneAt || 'none'})`;
+  if (planRows) return `kb_trim_plan still has ${planRows} rows`;
+  if (plannedLeft) return `${plannedLeft} planned rows still present`;
+  if (lastBatchAt && now - new Date(lastBatchAt) < 10 * 60000) return `a trim batch ran at ${lastBatchAt}, under 10 minutes ago`;
+  return null;
+}
+// rollback needs kb_chunks_old, and refuses a second time (kb_chunks_new back means it already ran).
+export function rollbackRefusal({ oldExists, newExists }) {
+  if (!oldExists) return `${T}_old does not exist: nothing to roll back to`;
+  if (newExists) return `${T}_new exists: already rolled back, or never swapped`;
+  return null;
+}
 // An index definition of the table, rewritten for the copy: name + SUFFIX, on <table>_new, "if not exists".
 export function indexForCopy(def, t = T, s = S) {
   const m = new RegExp(`^CREATE (UNIQUE )?INDEX (\\S+) ON ${s}\\.${t} USING (.+)$`).exec(def);
@@ -52,8 +79,13 @@ export function indexForCopy(def, t = T, s = S) {
 const token = () => process.env.SUPABASE_ACCESS_TOKEN?.trim()
   || (existsSync(join(homedir(), '.supabase', 'access-token')) && readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8').trim())
   || (() => { throw new Error('no Supabase access token'); })();
+// Set once the preconditions pass for a real (non-rehearsal) stage: from then on EVERY statement checks its budget
+// against the window before it starts, and a refusal pauses the run (every stage resumes where it stopped).
+let windowed = false;
+const pause = (why) => { console.error(`PAUSED: ${why}. Nothing is half-done; re-run the same stage inside the window.`); process.exit(3); };
 // A write is never retried on a 5xx: a 524 can commit behind the error (21 Sep).
-async function sql(query, { retry5xx = false, attempt = 0 } = {}) {
+async function sql(query, { retry5xx = false, attempt = 0, budgetMs = 150000 } = {}) {
+  if (windowed && !fitsRunWindow(budgetMs)) pause(`a ${budgetMs / 1000} s statement cannot finish before 02:50 or 05:00 Dubai`);
   const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
     method: 'POST', headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }), signal: AbortSignal.timeout(150000),
@@ -61,13 +93,14 @@ async function sql(query, { retry5xx = false, attempt = 0 } = {}) {
   const text = await res.text();
   if ((res.status === 429 || (retry5xx && res.status >= 500)) && attempt < 5) {
     await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
-    return sql(query, { retry5xx, attempt: attempt + 1 });
+    return sql(query, { retry5xx, attempt: attempt + 1, budgetMs });
   }
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 400)}`);
   return text ? JSON.parse(text) : [];
 }
 const read = async (q) => (await sql(q, { retry5xx: true }))[0];
-const write = (q, timeout = '60s') => sql(`set statement_timeout = '${timeout}'; set lock_timeout = '5s'; ${q}`);
+const write = (q, timeout = '60s') => sql(`set statement_timeout = '${timeout}'; set lock_timeout = '5s'; ${q}`,
+  { budgetMs: (parseInt(timeout, 10) + 10) * 1000 });
 const fail = (why) => { console.error(`STOP: ${why}`); process.exit(1); };
 const log = (...a) => console.log(...a);
 
@@ -88,9 +121,12 @@ async function preconditions({ mutate }) {
   log('== preconditions');
   if (REH) { log(`   rehearsal on ${S}.${T}: preconditions skipped`); return; }
   const trim = await read(`select
-      (select count(*)::int from public.kb_purge_ledger where verdict = 'SIZE' and category = 'live rows after the trim') done,
+      (select max(created_at) from public.kb_purge_ledger where verdict = 'SIZE' and category = 'live rows after the trim') done_at,
+      (select count(*)::int from public.kb_trim_plan) plan_rows,
+      (select max(created_at) from public.kb_purge_ledger where batch_no is not null) last_batch_at,
       (select count(*)::int from public.kb_trim_hash h join public.kb_chunks k on k.id = h.id where h.clause is not null) planned_left`);
-  log(`   trim finished: ${trim.done ? 'yes' : 'NO'}; planned rows still present: ${trim.planned_left}`);
+  const trimWhy = trimRefusal({ doneAt: trim.done_at, planRows: trim.plan_rows, plannedLeft: trim.planned_left, lastBatchAt: trim.last_batch_at });
+  log(`   trim finished tonight: ${trimWhy ? `NO (${trimWhy})` : `yes (${trim.done_at})`}`);
   const exp = await read(`select r.stamp::text stamp, r.finished_at,
       (select count(*)::int from public.doc_backups b where b.dropbox_path like '%/' || r.stamp::text || '/kb_chunks/%') pages,
       (select count(*)::int from public.doc_backups b where b.dropbox_path like '%/' || r.stamp::text || '/kb_chunks/%'
@@ -102,7 +138,7 @@ async function preconditions({ mutate }) {
   const disk = await diskFree();
   log(`   disk free: ${disk ? (disk / 1024 ** 3).toFixed(1) + ' GB' : 'unknown'}`);
   if (!mutate) return;
-  if (!trim.done || trim.planned_left) fail('the night trim has not finished with 0 planned rows left');
+  if (trimWhy) fail(`the trim: ${trimWhy}`);
   if (!copyOk) fail(`no verified full export newer than the newest kb_chunks row`);
   if (!inRunWindow()) fail('outside 02:00-05:00 Asia/Dubai (or inside 02:50-03:10)');
   if (inCampaignHours()) fail('campaign hours');
@@ -232,7 +268,7 @@ async function catchup() {
   const p = await read(`select
     (select relacl::text from pg_class where oid = '${S}.${T}'::regclass) = (select relacl::text from pg_class where oid = '${S}.${T}_new'::regclass) acl,
     (select relrowsecurity from pg_class where oid = '${S}.${T}_new'::regclass) rls,
-    (select count(*)::int from pg_policies where tablename = '${T}') = (select count(*)::int from pg_policies where tablename = '${T}_new') pol,
+    (select count(*)::int from pg_policies where schemaname = '${S}' and tablename = '${T}') = (select count(*)::int from pg_policies where schemaname = '${S}' and tablename = '${T}_new') pol,
     (select count(*)::int from pg_index where indrelid = '${S}.${T}'::regclass) = (select count(*)::int from pg_index where indrelid = '${S}.${T}_new'::regclass and indisvalid) idx`);
   if (!p.acl || !p.rls || !p.pol || !p.idx) fail(`${T}_new not ready to swap: ${JSON.stringify(p)}`);
 }
@@ -321,7 +357,24 @@ async function swap() {
   const base = REH ? null : await snapshot();
   log('   before:', JSON.stringify(before));
   const t = Date.now();
-  await write(SWAP(c), '60s');
+  try {
+    await write(SWAP(c), '60s');
+  } catch (e) {
+    // An SQL error (HTTP 4xx) rolled the transaction back. A timeout, network error or 5xx may have committed
+    // behind the error: wait for the statement to leave the server, then read which names exist.
+    if (/^HTTP 4/.test(e.message)) throw e;
+    log(`   swap call failed (${e.message.slice(0, 120)}): reading whether it committed`);
+    windowed = false;
+    for (let i = 0; i < 12; i++) {
+      const r = await read(`select count(*)::int n from pg_stat_activity where pid <> pg_backend_pid()
+        and query like '%alter table ${S}.${T}_new rename to ${T};%'`);
+      if (!r.n) break;
+      await new Promise((x) => setTimeout(x, 10000));
+    }
+    if (!(await exists(`${S}.${T}_old`)) || await exists(`${S}.${T}_new`)) fail(`the swap did not commit (${e.message.slice(0, 120)}); ${T} unchanged, re-run --stage=swap`);
+    log('   the swap DID commit: reading back');
+  }
+  windowed = false;                        // committed: the read-back and its ledger row must finish whatever the clock
   const lockS = ((Date.now() - t) / 1000).toFixed(1);
   log(`   swapped: one transaction, ${lockS} s wall (lock + delta + renames, round trip included)`);
   await verify({ before, base, lockS });
@@ -342,7 +395,7 @@ async function verify({ before, base, lockS } = {}) {
   const par = await read(`select
     (select relacl::text from pg_class where oid = '${S}.${T}'::regclass) = (select relacl::text from pg_class where oid = '${S}.${T}_old'::regclass) acl,
     (select relrowsecurity from pg_class where oid = '${S}.${T}'::regclass) rls,
-    (select count(*)::int from pg_policies where tablename = '${T}') pol, (select count(*)::int from pg_policies where tablename = '${T}_old') pol_old,
+    (select count(*)::int from pg_policies where schemaname = '${S}' and tablename = '${T}') pol, (select count(*)::int from pg_policies where schemaname = '${S}' and tablename = '${T}_old') pol_old,
     (select count(*)::int from pg_trigger where tgrelid = '${S}.${T}'::regclass and not tgisinternal) trg,
     (select count(*)::int from pg_trigger where tgrelid = '${S}.${T}_old'::regclass and not tgisinternal) trg_old,
     (select count(*)::int from pg_publication_tables where tablename = '${T}') pub,
@@ -379,6 +432,60 @@ async function verify({ before, base, lockS } = {}) {
   log(`   read-back passed. ${T}_old stays until a day has passed: runbook step 8.`);
 }
 
+// The swap reversed: kb_chunks -> kb_chunks_new, kb_chunks_old -> kb_chunks, with the same dependent-object handling
+// and lock limits. Rows inserted since the swap are copied back (on conflict do nothing). kb_chunks_old already has
+// its own triggers; the copy keeps its re-created ones (it takes no writes once renamed back to _new).
+// ponytail: updates/deletes made since the swap are not carried back; a rollback follows a failed read-back within minutes.
+const ROLLBACK = (c) => `do $b$
+declare r record; v jsonb := '[]'; oseq text; nseq text;
+begin
+  perform set_config('lock_timeout', '5s', true);
+  lock table ${S}.${T}, ${S}.${T}_old in access exclusive mode;
+  insert into ${S}.${T}_old (${c}) overriding system value select ${c} from ${S}.${T} n
+    where not exists (select 1 from ${S}.${T}_old o where o.id = n.id) on conflict (id) do nothing;
+  for r in select distinct c.oid::regclass::text n, pg_get_viewdef(c.oid) d, array_to_string(c.reloptions, ', ') o
+           from pg_depend d join pg_rewrite rw on rw.oid = d.objid join pg_class c on c.oid = rw.ev_class
+           where d.refobjid = '${S}.${T}'::regclass and c.oid <> '${S}.${T}'::regclass loop
+    v := v || jsonb_build_object('n', r.n, 'd', r.d, 'o', r.o);
+  end loop;
+  for r in select pubname from pg_publication_tables where schemaname = '${S}' and tablename = '${T}' loop
+    execute format('alter publication %I drop table ${S}.${T}', r.pubname);
+    execute format('alter publication %I add table ${S}.${T}_old', r.pubname);
+  end loop;
+  nseq := pg_get_serial_sequence('${S}.${T}', 'id');
+  oseq := pg_get_serial_sequence('${S}.${T}_old', 'id');
+  execute format('select setval(%L, greatest((select last_value from %s), (select coalesce(max(id), 1) from ${S}.${T}_old)))', oseq, nseq);
+  for r in select c.relname from pg_index x join pg_class c on c.oid = x.indexrelid
+           where x.indrelid = '${S}.${T}'::regclass and not x.indisprimary loop
+    execute format('alter index ${S}.%I rename to %I', r.relname, r.relname || '${SUFFIX}');
+  end loop;
+  alter table ${S}.${T} rename constraint ${T}_pkey to ${T}_new_pkey;
+  execute format('alter sequence %s rename to ${T}_new_id_seq', nseq);
+  alter table ${S}.${T} rename to ${T}_new;
+  alter table ${S}.${T}_old rename to ${T};
+  alter table ${S}.${T} rename constraint ${T}_old_pkey to ${T}_pkey;
+  execute format('alter sequence %s rename to ${T}_id_seq', oseq);
+  for r in select c.relname from pg_index x join pg_class c on c.oid = x.indexrelid
+           where x.indrelid = '${S}.${T}'::regclass and right(c.relname, 4) = '_old' loop
+    execute format('alter index ${S}.%I rename to %I', r.relname, left(r.relname, length(r.relname) - 4));
+  end loop;
+  for r in select x->>'n' n, x->>'d' d, x->>'o' o from jsonb_array_elements(v) x loop
+    execute format('create or replace view %s %s as %s', r.n, case when r.o is null then '' else 'with (' || r.o || ')' end, r.d);
+  end loop;
+end $b$;`;
+
+async function rollback() {
+  log('== rollback');
+  const why = rollbackRefusal({ oldExists: await exists(`${S}.${T}_old`), newExists: await exists(`${S}.${T}_new`) });
+  if (why) fail(why);
+  await write(ROLLBACK(await columns()), '60s');
+  const r = await read(`select (select count(*)::int from ${S}.${T}) live,
+    (select count(*)::int from pg_publication_tables where schemaname = '${S}' and tablename = '${T}') pub,
+    (select count(*)::int from pg_depend d join pg_rewrite rw on rw.oid = d.objid where d.refobjid = '${S}.${T}_new'::regclass and rw.ev_class <> '${S}.${T}_new'::regclass) views_on_new`);
+  if ((!REH && r.pub < 1) || r.views_on_new) fail(`rollback read-back: ${JSON.stringify(r)}`);
+  log(`   rolled back: ${T} is the original table again (${r.live} rows); ${T}_new kept for a retry or the Abandon step`);
+}
+
 async function plan() {
   await preconditions({ mutate: false });
   log('== progress');
@@ -392,9 +499,12 @@ async function main() {
   const steps = { prepare, copy, index: indexes, catchup, swap, verify: () => verify() };
   if (!stage) return plan();
   if (stage === 'verify') return verify();
+  if (stage === 'rollback') return rollback();   // an emergency: lock limits, no window gate
   if (stage !== 'all' && !steps[stage]) fail(`unknown stage ${stage}`);
   for (const s of stage === 'all' ? ['prepare', 'copy', 'index', 'catchup', 'swap'] : [stage]) {
-    await preconditions({ mutate: true });   // before EVERY stage: a long run must not drift into 02:50 or past 05:00
+    windowed = false;
+    await preconditions({ mutate: true });   // before EVERY stage; then every statement checks its own budget
+    windowed = !REH;
     if (s !== 'prepare' && !(await exists(`${S}.${T}_new`))) fail('run --stage=prepare first');
     await steps[s]();
   }

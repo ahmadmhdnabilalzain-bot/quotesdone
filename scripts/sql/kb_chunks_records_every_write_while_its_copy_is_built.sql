@@ -42,6 +42,12 @@ end
 $fn$;
 revoke execute on function public.fn_kb_chunks_swap_log() from public, anon, authenticated;
 
+-- Not exported: a transient list of ids, emptied by the catch-up and the swap, dropped with kb_chunks_old.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('kb_chunks_swap_log', false, 'log', 'transient write log of the kb_chunks copy-and-swap: ids only, emptied by the swap, dropped with kb_chunks_old (runbook step 8)', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 select case when (select relrowsecurity from pg_class where oid = 'public.kb_chunks_swap_log'::regclass)
              and not has_function_privilege('anon', 'public.fn_kb_chunks_swap_log()', 'execute')
             then 'PROBE OK' else 'PROBE FAILED: kb_chunks_swap_log not closed' end as verdict;

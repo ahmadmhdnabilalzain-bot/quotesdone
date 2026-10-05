@@ -50,15 +50,23 @@ the table but never returns it to the disk; only a rewrite does. After the trim
 Needs `scripts/sql/kb_chunks_records_every_write_while_its_copy_is_built.sql` applied (the release train does it at
 merge): `public.kb_chunks_swap_log` and `public.fn_kb_chunks_swap_log()`.
 
-The driver checks preconditions 1-4 itself before every mutating stage (trim ledger row "live rows after the trim" and
-0 planned rows present; the newest verified full export newer than the newest row; 02:00-05:00 Dubai outside
+The driver checks preconditions 1-4 itself before every mutating stage (trim ledger row "live rows after the trim" written
+TONIGHT, after 23:00 Dubai, `kb_trim_plan` empty, 0 planned rows present and no trim batch in the last 10 minutes; the newest verified full export newer than the newest row; 02:00-05:00 Dubai outside
 02:50-03:10; `fn_kb_purge_load()` through the purge guard incl. 3 GB disk floor; no vacuum/reindex running; no smoke,
 E2E, journey, release-train or apply run in progress on GitHub). Any false: it prints `STOP: <why>` and exits 1.
+
+The window is also checked before EVERY statement of a stage, not only at its start: a statement whose full budget
+(its `statement_timeout` + 10 s, or 150 s for a read) cannot finish before 02:50 or 05:00 Dubai is not started. The
+driver prints `PAUSED: <why>` and exits 3; every stage resumes where it stopped, so re-run the same stage inside the
+window. Once the swap has committed, the read-back and its ledger row run regardless of the clock. If the swap call
+times out or loses the network, the driver waits for the statement to leave the server, reads whether `kb_chunks_old`
+exists, and then either reads back (and writes the ledger row) or reports that nothing was swapped.
 
 ```
 node scripts/kb/kb_chunks_copy_swap.mjs                    # plan only: preconditions + progress
 node scripts/kb/kb_chunks_copy_swap.mjs --stage=all        # prepare, copy, index, catchup, swap (+ read-back)
 node scripts/kb/kb_chunks_copy_swap.mjs --stage=verify     # read-back again, any time after the swap
+node scripts/kb/kb_chunks_copy_swap.mjs --stage=rollback   # swap kb_chunks_old back in (refuses without it)
 ```
 
 | stage | what | lock on the live `kb_chunks` |
@@ -82,11 +90,18 @@ ledger). Rehearsed 5 Oct on a 12,000-row copy (results in the PR).
 **Abandon before the swap:** `drop trigger zz_kb_chunks_swap_log on public.kb_chunks; drop table public.kb_chunks_new;
 truncate public.kb_chunks_swap_log;` - kb_chunks was never changed.
 
-**Rollback after the swap** (read-back failed; kb_chunks_old is intact but receives no writes after the swap), one
-transaction with `lock_timeout 5s`, then re-run `--stage=verify` reversed by hand: rename `kb_chunks` -> `kb_chunks_new`,
-`kb_chunks_old` -> `kb_chunks` (and their pkeys, sequences and `_old` indexes back), move the publication back,
-`create or replace` the two views again, and copy any row written since the swap with the restore path's
-`on conflict (id) do nothing` insert.
+**Rollback after the swap** (read-back failed; kb_chunks_old is intact but receives no writes after the swap):
+`node scripts/kb/kb_chunks_copy_swap.mjs --stage=rollback`. It refuses if `kb_chunks_old` does not exist (or if
+`kb_chunks_new` already does: it ran). ONE transaction, `lock_timeout 5s`, 60 s budget, the swap reversed with the same
+dependent-object handling: rows inserted since the swap copied into kb_chunks_old (`on conflict (id) do nothing`),
+publication moved back, identity sequence set past the copy, `kb_chunks` -> `kb_chunks_new` (indexes `_cs`, pkey and
+sequence `_new`), `kb_chunks_old` -> `kb_chunks` (indexes, pkey and sequence back to their names), the dependent views
+re-created on it; then a read-back (publication on kb_chunks, no view on kb_chunks_new). It is not gated on the window
+(an emergency) but follows the same lock limits. Updates or deletes made since the swap are NOT carried back; check
+them with the restore path if the rollback is late. Then `Abandon before the swap` removes kb_chunks_new.
+
+`kb_chunks_old` keeps its 4 statement-level export-change triggers after the swap. Harmless: it takes no writes, so
+they never fire; they go with the table at step 8.
 
 **Step 8, a day after a passing read-back (its own PR):** `drop table public.kb_chunks_old;` (its triggers, indexes and
 sequence go with it), then drop `public.fn_kb_chunks_swap_log()` and `public.kb_chunks_swap_log` by a manifest file
