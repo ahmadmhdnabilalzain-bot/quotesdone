@@ -65,6 +65,7 @@ on:
       - 'supabase/config.toml'
       - '.github/workflows/deploy-functions.yml'
       - 'scripts/deploy_functions.mjs'
+      - 'scripts/ci/resolve_diff_base.sh'
   workflow_dispatch:
     inputs:
       target:
@@ -110,8 +111,8 @@ jobs:
         with:
           deno-version: v2.x
 
-      # The base to diff against. github.event.before is all-zeros on a branch's first push, which
-      # would make the diff meaningless rather than empty, so that case falls back to the parent.
+      # The base to diff against: scripts/ci/resolve_diff_base.sh (ancestor-checked event.before,
+      # else merge-base with origin/main on a branch, else HEAD~1).
       - name: Work out what changed
         id: scope
         run: |
@@ -122,10 +123,14 @@ jobs:
             # A dispatch already names its own target, so it never promotes on top of it.
             echo "promote=false" >> "$GITHUB_OUTPUT"
           else
-            before='${{ github.event.before }}'
-            case "$before" in
-              ''|0000000000000000000000000000000000000000) before="${{ github.sha }}~1" ;;
-            esac
+            # A rebase or force-push leaves github.event.before outside history, and the diff then
+            # died with "Invalid symmetric difference expression" (#1158, #1173, #1179 ...). The
+            # resolver uses it only when it is a real ancestor; otherwise a branch diffs from its
+            # merge-base with main (a superset of the push, so nothing is skipped) and main from
+            # HEAD~1. It logs which base it chose.
+            is_main=false
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then is_main=true; fi
+            before=$(bash scripts/ci/resolve_diff_base.sh '${{ github.event.before }}' main "$is_main")
             # ── THERE IS NO STAGING ANY MORE (15 Aug 2026) ───────────────────────────────────────
             # The founder deleted the staging branch: "from now on there is no staging branches. we
             # directly build, test, pass then production." `list_projects` now returns exactly one

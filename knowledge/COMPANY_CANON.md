@@ -40,15 +40,15 @@ Before reveal, a quote card can show non-identifying trust signals: a licence-ve
 
 **How much does it cost to use QuotesDone as a buyer?**
 
-Posting RFQs and receiving anonymised quotes is free; you pay only when you choose to unlock a supplier. You then pay the 3% reveal fee on the quote value (no cap) plus the card processing fee, both shown in full before payment. QuotesDone is not VAT registered, so no VAT is charged on the reveal fee.
+Posting RFQs and receiving anonymised quotes is free; you pay only when you choose to unlock a supplier. You then pay the 3% reveal fee on the quote value (no cap), shown in full before payment: 3% of the selected quotation, nothing added for paying by card. QuotesDone is not VAT registered, so no VAT is charged on the reveal fee.
 
 **What is the reveal fee?**
 
-The reveal fee is what a buyer pays to unlock a chosen supplier's identity and contact. It is 3% of the quote value, with no discount and no cap. The card processing fee (Stripe's fee) is charged on top as a separate line, and no VAT is charged on the reveal fee.
+The reveal fee is what a buyer pays to unlock a chosen supplier's identity and contact. It is 3% of the quote value, with no discount and no cap. Nothing is added for paying by card: QuotesDone bears Stripe's fee itself (Cabinet Resolution 66/2023 Art. 5(3)). No VAT is charged on the reveal fee.
 
 **Do you take commission on the work I win?**
 
-No. QuotesDone takes no commission on won work. The only supplier-side charge is the non-response charge, and only if the supplier did not respond and the buyer was refunded: the exact amount refunded to the buyer (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date.
+No. QuotesDone takes no commission on won work. The only supplier-side charge is the non-response charge, and only if the supplier did not respond and the buyer was refunded: the exact amount refunded to the buyer (the 3% reveal fee), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date.
 
 ## Supplier Journey
 
@@ -96,7 +96,7 @@ Pre-reveal, a quote card can show a licence-verified badge, years trading, the e
 
 **How do I get a refund if the supplier doesn't answer?**
 
-If you paid to reveal a supplier, they have 5 working days from your payment to respond. QuotesDone chases them at 3 working days with you copied, and QuotesDone's CEO makes the final call at day 5. If they are still silent, everything you paid (the 3% reveal fee and the card processing fee) is refunded; banks take 7 to 14 working days to show it.
+If you paid to reveal a supplier, they have 5 working days from your payment to respond. QuotesDone chases them at 3 working days with you copied, and QuotesDone's CEO makes the final call at day 5. If they are still silent, everything you paid (the 3% reveal fee) is refunded; banks take 7 to 14 working days to show it.
 
 **What is the refund window?**
 
@@ -112,13 +112,13 @@ Every refund is decided by QuotesDone's CEO on the record; none is automatic. On
 
 **What is deducted from a refund?**
 
-Nothing. When a supplier does not respond, everything the buyer paid is refunded, including the card processing fee. Separately, QuotesDone recovers from the unresponsive supplier the exact amount refunded, an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date.
+Nothing. When a supplier does not respond, everything the buyer paid (the 3% reveal fee) is refunded. Separately, QuotesDone recovers from the unresponsive supplier the exact amount refunded, an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date.
 
 ## Supplier Charges
 
 **What happens to a supplier who doesn't respond after being revealed?**
 
-If the supplier did not respond and the buyer was refunded, QuotesDone recovers from that supplier the exact amount refunded to the buyer (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date (Supplier Agreement clause 33). This is the only supplier-side charge.
+If the supplier did not respond and the buyer was refunded, QuotesDone recovers from that supplier the exact amount refunded to the buyer (the 3% reveal fee), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date (Supplier Agreement clause 33). This is the only supplier-side charge.
 
 ## Supplier Fees
 

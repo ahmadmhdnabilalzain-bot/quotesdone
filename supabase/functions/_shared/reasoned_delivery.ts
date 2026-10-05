@@ -54,6 +54,9 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
   /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
    *  the approval request (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
   arabicFinishReady?(): Promise<Sent>;
+  /** A customer's Arabic answer or note, now reasoned into English: store it as the supplier copy and e-mail every
+   *  matched supplier (_shared/supplier_english.ts finishEnglish). Surface sales_engineer.supplier_english. */
+  supplierEnglish?(clarificationId: number, answer: string): Promise<Sent>;
   /** A public comment whose CLASS was held: run it through the comment policy with the reasoned class (marketing_social_comments.ts). */
   socialCommentClassified(subject: Record<string, unknown>, cls: string): Promise<Sent>;
   /** E-mail (email_triage, 28 Sep 2026): reply in the inbound message's own thread (fn_inbox_send). `person` also
@@ -138,6 +141,14 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     if (!io.arabicFinishReady) return { delivered: false, via: 'none', detail: 'stored; no renderer wired' };
     const s = await io.arabicFinishReady();
     return { delivered: s.ok, via: 'none', detail: s.ok ? 'every quotation whose Arabic is complete was rendered and asked for approval' : s.err };
+  }
+
+  // A customer's Arabic text held for its supplier copy: the English goes to every matched supplier now.
+  if (row.surface === 'sales_engineer.supplier_english') {
+    const id = Number(subject.clarification_id);
+    if (!io.supplierEnglish || !id) return { delivered: false, via: 'none', detail: 'no clarification id or no sender wired' };
+    const s = await io.supplierEnglish(id, r.answer);
+    return { delivered: s.ok, via: 'email', detail: s.err };
   }
 
   if (row.surface === 'marketing_social.comment_classify') {
@@ -320,6 +331,11 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       if (!(r.ok && j?.ok)) errs.push(quoteId + ': ' + String(j?.code ?? j?.error ?? r.status));
       }
       return errs.length ? { ok: false, err: errs.join('; ') } : { ok: true };
+    },
+    supplierEnglish: async (id, answer) => {
+      const { finishEnglish } = await import('./supplier_english.ts');
+      const r = await finishEnglish(admin, id, answer);
+      return r.ok ? { ok: true } : { ok: false, err: r.err };
     },
     socialHandoff: async (subject) => {
       const { timedFetch } = await import('./timed_fetch.ts');

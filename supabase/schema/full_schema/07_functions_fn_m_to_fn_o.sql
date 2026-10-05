@@ -1371,7 +1371,7 @@ begin
   v_cmp := nullif(btrim(p_touch->>'utm_campaign'), '');   if v_cmp !~ v_ok then v_cmp := null; end if;
   v_cnt := nullif(btrim(p_touch->>'utm_content'), '');    if v_cnt !~ v_ok then v_cnt := null; end if;
   v_path := nullif(btrim(p_touch->>'landing_path'), '');  if v_path !~ '^/\S{0,200}$' then v_path := null; end if;
-  -- THE INVITATION IS A TOUCH EVEN WHEN THE BROWSER KEPT NONE (28 Sep 2026, this file): private mode or a link
+  -- THE INVITATION IS A TOUCH EVEN WHEN THE BROWSER KEPT NONE (28 Sep 2026): private mode or a link
   -- opened before the ref existed leaves no tagged visit, but claim_lookup stamps invite_clicked_at when the
   -- lead's own claim link is opened. That is evidence of the invitation, not a status column.
   if v_src is null then
@@ -1379,7 +1379,9 @@ begin
       into v_src, v_med, v_cmp, v_cnt, v_path, v_at
       from public.leads l where l.id = p_lead_id and l.invite_clicked_at is not null;
     if v_src is null then
-      return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'no valid utm_source and no opened invitation');
+      -- refused, not accepted: nothing is recorded, and the caller can tell (outcome audit 30 Sep 2026)
+      return jsonb_build_object('ok', false, 'recorded', false, 'reason', 'no_utm',
+        'detail', 'no valid utm_source and no opened invitation');
     end if;
     p_touch := jsonb_build_object('first_seen_at', v_at);
   end if;
@@ -8104,7 +8106,7 @@ declare
   v_reqs bigint[]; v_outs jsonb; v_verdict text; v_waiting boolean; v_failed jsonb; v_undecided int;
   n_answered int := 0; n_q_closed_by_ceo int := 0; n_q_reported int := 0; n_q_wait int := 0;
   n_closed int := 0; n_recorded int := 0; n_reported int := 0; n_wait int := 0; v_err jsonb := '[]'::jsonb;
-  f record; v_type text; v_ok boolean; n_cleared int := 0;
+  f record; v_type text; v_ok boolean; n_cleared int := 0; n_generic int := 0; n_reopened int := 0;
 begin
   -- 1. THE SALES ENGINEER: did the accountant answer the question it was asked?
   for h in select * from public.agent_actions a
@@ -8276,6 +8278,52 @@ begin
     end;
   end loop;
 
+  -- 4. EVERY OTHER ORIGINATOR CLOSES WHAT WAS ANSWERED (4 Oct 2026). Sections 1 and 2 cover the two
+  -- money conversations; every other kind with originator_closes had no closer at all, so an answered
+  -- handoff stayed open until the SLA duty raised it. The originator reads the reply its handler wrote:
+  --   no 'waiting' and no error  -> the contract is met: closed, the reply is the verdict;
+  --   an error or ok=false       -> sent back with the reason and handled again (ruling 1059: a rejection
+  --                                 never ends the cycle); after 3 rounds the SLA duty raises it to the CEO;
+  --   'waiting', a future due_at, or a step held by the model hold -> the contract is not finished; left.
+  for h in select a.* from public.agent_actions a
+             join public.seat_handoff_kind sk on sk.type = a.detail->>'type' and sk.from_seat = a.detail->>'from'
+                                             and sk.to_seat = a.agent and sk.originator_closes
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ? 'replied_at'
+              and a.detail->>'type' not in ('it.finding', 'delivery.request')
+              and not (a.detail->>'type' = any (c_questions || c_notices))
+              and not (coalesce(a.evidence, '{}'::jsonb) ? 'waiting')
+              and coalesce(a.evidence#>>'{step,action}', '') <> 'held'
+              and coalesce((a.detail->>'due_at')::timestamptz, '-infinity') <= now()
+              and coalesce((a.detail->>'reopened')::int, 0) < 3
+            order by a.id limit greatest(coalesce(p_limit, 200), 1) loop
+    begin
+      if coalesce(h.evidence, '{}'::jsonb) ? 'error' or h.evidence->>'ok' = 'false' then
+        update public.agent_actions
+           set detail = (detail - 'replied_at') || jsonb_build_object('reopened', coalesce((detail->>'reopened')::int, 0) + 1,
+                 'reopen_reasons', coalesce(detail->'reopen_reasons', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+                   'at', now(), 'by', h.detail->>'from', 'why', 'the reply did not meet the contract: '
+                   || left(coalesce(h.evidence->>'error', h.evidence->>'reason', h.evidence::text), 300))))
+         where id = h.id;
+        -- Its own block: a handler that raises still counts as a round, so the 3-round limit holds.
+        begin
+          perform public.fn_seat_handoff_act(h.id);
+        exception when others then
+          v_err := v_err || jsonb_build_object('handoff', h.id, 'sent_back_error', left(sqlerrm, 300));
+        end;
+        n_reopened := n_reopened + 1;
+      else
+        perform set_config('qd.handoff_closer', h.detail->>'from', true);
+        perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+          'verified_by', h.detail->>'from', 'verified_at', now(),
+          'verdict', 'answered within the contract of ' || (h.detail->>'type') || '; closed by the originator'));
+        perform set_config('qd.handoff_closer', '', true);
+        n_generic := n_generic + 1;
+      end if;
+    exception when others then
+      v_err := v_err || jsonb_build_object('handoff', h.id, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+
   -- 3. A DEFECT THE CEO RAISED CLEARS WHEN THE SAME CONVERSATION WORKS AGAIN. The finding's key names
   -- the conversation; it closes when the latest one of that kind was answered (a question), written
   -- (a notice the sales engineer could not write) or delivered (a notice with no outcome). Closing it
@@ -8320,6 +8368,7 @@ begin
 
   return jsonb_build_object(
     'defects_cleared', n_cleared,
+    'every_originator', jsonb_build_object('closed', n_generic, 'sent_back', n_reopened),
     'sales_engineer', jsonb_build_object('answered', n_answered, 'closed_with_ceo_decision', n_q_closed_by_ceo,
                                          'reported', n_q_reported, 'waiting', n_q_wait),
     'accountant', jsonb_build_object('closed', n_closed, 'recorded', n_recorded, 'reported', n_reported, 'waiting', n_wait),

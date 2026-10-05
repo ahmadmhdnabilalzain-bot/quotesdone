@@ -712,3 +712,6 @@ trg_glm_trade_words_enqueue :: renamed to trg_routine_trade_words_enqueue by the
 # enterprise_account_member (0 rows each) and seat_duty sales_engineer.enterprise_pipeline go in the same file.
 fn_sales_engineer_enterprise_pipeline :: dropped by there_are_no_enterprise_accounts_only_customer_and_supplier_accounts.sql (applied after merge): the weekly enterprise_pipeline duty, retired with enterprise accounts :: nothing; the proof is in that file
 fn_enterprise_account_report :: dropped by there_are_no_enterprise_accounts_only_customer_and_supplier_accounts.sql (applied after merge): the consolidated enterprise report, called only by fn_sales_engineer_enterprise_pipeline :: nothing; the proof is in that file
+# TABLE, not a routine: dr_restore :: dropped by the_dr_restore_staging_table_leaves_the_database.sql (applied at merge): the
+# dr_drill staging table, 0 rows, no routine/view/cron/trigger/FK/edge reader (measured 4 Oct 2026); its only routine
+# fn_dr_restore_clear was already dropped 8 Sep 2026 (above) :: nothing; the proof is in that file

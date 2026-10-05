@@ -9,7 +9,9 @@ import { call } from './api';
 export type Lang = 'en' | 'ar';
 export type ReviewState = 'none' | 'open' | 'reviewing' | 'changes_requested' | 'awaiting_choice' | 'awaiting_upload' | 'ready_to_submit' | 'submitted' | 'closed';
 export type Issue = { code: string; kind: 'adjustment' | 'clarification'; line_no: number | null; boq_line: number | null; attr: string | null; en: string; ar: string };
-export type QuoteSummary = { id: string; option_no: number; status: string; quote_amount: number | null; on_hold: boolean };
+export type QuoteSummary = { id: string; option_no: number; status: string; quote_amount: number | null; on_hold: boolean;
+  /** Why this quote lost (concluded, not won): fixed English reasons, never a rival's identity or figure. */
+  loss_feedback?: { code: string; text: string }[] | null };
 
 export type InquiryListItem = {
   id: string; job_no: string; category: string | null; emirate: string | null; created_at: string; status: string;

@@ -168,6 +168,12 @@ export const REGISTER = {
   // 24 Sep 2026 (ceo, #933). The CEO's report sweep, the weekly constraint lever and the marketing month-plan chase.
   // Not filtered: each reads present state (open reports, the plan, the month plan), the ceiling fn_it_detect's
   // neighbours state above; a healthy day has no unanswered report, no stalled lever and no late plan.
+  // 5 Oct 2026 (it_engineer, #1188). A duty paused in public.duty_pause for over 7 days. Pauses that existed at the
+  // instant; a healthy day has no duty paused for a week.
+  fn_it_engineer_duty_pause_expiry: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_duty_pause_expiry()',
+    asOf: { duty_pause: 'paused_at' },
+  },
   fn_ceo_report_answer_sweep: { replay: 'pg_temp.qd_replay_fn_ceo_report_answer_sweep()', asOf: {} },
   fn_ceo_constraint_lever: { replay: 'pg_temp.qd_replay_fn_ceo_constraint_lever()', asOf: {} },
   fn_ceo_marketing_plan_watch: { replay: 'pg_temp.qd_replay_fn_ceo_marketing_plan_watch()', asOf: {} },
@@ -256,6 +262,9 @@ export const REGISTER = {
   fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_settle reached on a seed message the inbox reader (resilience_ping inboxPlacement) looked at; the folder is the reader\'s reading, and no seed is sent on a healthy day before the morning batch' },
   fn_it_duty_settle: { relay: 'writes the failing items a duty reading hands it; the rule is the duty\'s' },
   fn_accountant_duty_settle: { relay: 'the accountant\'s twin of fn_it_duty_settle' },
+  fn_accountant_record_supplier_payment: { relay: 'records the refusal of a bank payment above what is still owed on a supplier due; fires only when a caller attempts that overpayment, and a healthy day has none' },
+  fn_supplier_due_record_settlement: { relay: 'records a Stripe settlement (stripe_webhook\'s write to supplier_dues.paid_at) with no stored checkout amount, or above what was owed; fires only on that settlement, and a healthy day has none' },
+  fn_customer_support_sends_the_it_digest: { relay: 'raises nothing itself: the match is its file\'s rolled-back probe, which seeds one ZZ DEMO duty:access finding to prove a real founder decision still mails; on a healthy day the digest only reads findings' },
   fn_accountant_duty_stage: { relay: 'records that an accountant duty stage raised; the error is the finding' },
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
   fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
