@@ -521,6 +521,8 @@ export const emirateName = (e, lang) => (lang === 'ar' && EMIRATE_AR[e]) || e;
 // matched first, then the fixed English sentences those functions send; anything unrecognised falls
 // back to a localised generic line rather than to raw English or a snake_case code.
 const CODE_KEY = {
+  // login_otp verify answers role_conflict once the code proved the mailbox; role_guard no longer says so before (6 Oct 2026).
+  role_conflict: 'conflict_supplier',
   stripe_not_configured: 'err_stripe_nc', stripe_error: 'err_stripe', intake_required: 'nr_more_details', registration_incomplete: 'err_registration',
   account_incomplete: 'err_registration', dob_required: 'err_dob_required', dob_invalid: 'err_dob_invalid', under_18: 'err_under_18',
   unauthorized: 'session_expired', 'Not signed in': 'session_expired', text_required: 'err_text_required', inquiry_closed: 'err_closed',

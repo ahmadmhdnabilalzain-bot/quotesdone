@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // supplier_catalog_ingest — SPEC FILE #5 §7. A CATALOGUE IN, PRODUCT RECORDS OUT.
 //
 // §7 asks for a structured product store built from what the supplier already has: catalogues,
@@ -144,7 +145,7 @@ function rowsToProducts(rows: Record<string, unknown>[]) {
   return out;
 }
 
-Deno.serve(observe('supplier_catalog_ingest', async (req) => {
+Deno.serve(siteCors(observe('supplier_catalog_ingest', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
@@ -352,4 +353,4 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));

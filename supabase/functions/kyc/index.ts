@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // kyc — passwordless account completion: mobile (SMS) + email verification, REQUIRED DOB (18+) profile, terms->signed PDF.
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -139,13 +140,13 @@ function mkLog(t0: number) {
 }
 
 // The action goes onto the observe row, so the hourly p95 can be read per action and not only per function.
-Deno.serve(observe('kyc', async (req) => {
+Deno.serve(siteCors(observe('kyc', async (req) => {
   const meta: { action?: string; fixture?: boolean } = {};
   const res = await handle(req, meta);
   // A reserved test identity (@example.invalid, _shared/demo_identity.ts) is our harness, never a person: the row
   // says so, and fn_it_engineer_latency_slo leaves it out of the error budget (it_engineer, 29 Sep 2026).
   return meta.action ? annotate(res, { action: meta.action, ...(meta.fixture ? { caller: 'fixture', fixture: 1 } : {}) }) : res;
-}));
+})));
 
 async function handle(req: Request, meta: { action?: string; fixture?: boolean }): Promise<Response> {
   const logRun = mkLog(Date.now());

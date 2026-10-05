@@ -7,8 +7,8 @@
 // Links in emails, WhatsApp and PDFs stay on https://quotesdone.com on purpose: they are not tied
 // to a browser session, and the .com host sends UAE visitors to .ae itself.
 //
-// CORS: every edge function answers Access-Control-Allow-Origin '*' (measured 14 Sep 2026), so
-// no allow-list rejects the .ae site. If one is ever narrowed, build it from SITE_ORIGINS.
+// CORS: since 6 Oct 2026 the endpoints that return personal data answer only these origins (siteCors
+// below); everything else still answers '*'. The .ae origins are in the list, so .ae is never refused.
 
 export const CANONICAL_ORIGIN = 'https://quotesdone.com';
 
@@ -69,4 +69,34 @@ export function siteReturnBase(req: Request, returnUrl?: unknown): string {
   const origin = req.headers.get('origin') || '';
   if (SITE_ORIGINS.includes(origin)) return origin;
   return CANONICAL_ORIGIN;
+}
+
+// CORS FOR ENDPOINTS THAT RETURN PERSONAL DATA (pre-launch security pass, 6 Oct 2026, L6).
+// Measured: 44 edge functions answered Access-Control-Allow-Origin '*'. They take a Bearer token,
+// not a cookie, so '*' did not hand a session to another site, but it let any page that held a token
+// (an injected script, a phishing copy of the portal) read the answer cross-origin. A browser is only
+// allowed to read these answers from the four site origins and a localhost dev server; a request with
+// no Origin header (curl, a server, a webhook) is untouched because CORS never applies to it.
+// Vercel preview hosts are deliberately NOT allowed: a preview is not where a customer signs in.
+const DEV_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;
+export function corsOriginAllowed(origin: string | null): boolean {
+  return !!origin && (SITE_ORIGINS.includes(origin) || DEV_ORIGIN.test(origin));
+}
+/**
+ * Wraps a handler so its Access-Control-Allow-Origin names the caller's origin when that origin is a
+ * site origin, and is ABSENT otherwise (the browser then refuses to hand the body to the page). The
+ * handler keeps building its own CORS headers; this rewrites the one header after it answers, so a
+ * function cannot forget it on one branch.
+ */
+export function siteCors(handler: (req: Request) => Response | Promise<Response>): (req: Request) => Promise<Response> {
+  return async (req: Request) => {
+    const res = await handler(req);
+    const origin = req.headers.get('origin');
+    const headers = new Headers(res.headers);
+    if (corsOriginAllowed(origin)) headers.set('Access-Control-Allow-Origin', origin!);
+    else headers.delete('Access-Control-Allow-Origin');
+    const vary = headers.get('Vary');
+    if (!vary || !/\borigin\b/i.test(vary)) headers.set('Vary', vary ? vary + ', Origin' : 'Origin');
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+  };
 }

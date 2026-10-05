@@ -75,9 +75,11 @@ test('no sign-in code reaches a log, a row or the response', () => {
   assert.ok(!/channel: res\.channel/.test(answer), 'the response must not name the delivered channel');
 });
 
-test('the code generator is the CSPRNG and the stored token is compared in constant time', () => {
+test('the code generator is the CSPRNG and the code is checked in one locked statement', () => {
   assert.match(OTP, /function code6\(\)[^\n]*crypto\.getRandomValues/);
   assert.ok(!/Math\.random/.test(strip(OTP)), 'Math.random must not generate a credential');
-  assert.match(OTP, /eqConstantTime\(givenHash, row\.token_hash\)/);
-  assert.match(OTP, /diff \|= a\.charCodeAt\(i\) \^ b\.charCodeAt\(i\)/);
+  // 6 Oct 2026 (H1): the compare moved into public.fn_login_otp_email_verify, which counts, compares and
+  // spends under a row lock. The function hands it the HMAC and never reads the code row to compare itself.
+  assert.match(OTP, /rpc\("fn_login_otp_email_verify", \{ p_email: email, p_hash: await otpHash\(code\)/);
+  assert.ok(!/from\('email_verifications'\)\.select\('\*'\)/.test(OTP), 'the verify must not read the code row and compare it outside the locked routine');
 });
