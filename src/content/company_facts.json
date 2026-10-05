@@ -441,6 +441,16 @@
       "why": "Cabinet Resolution 66/2023 (executive regulation of Federal Law 15/2020 on Consumer Protection), Art. 5(3): the supplier shall 'Not add any further amounts on the value of commodity, if credit cards are used in the purchase of commodities and services.' Law 15/2020 Art. 1 defines the consumer as every natural or juristic person obtaining a good or service for its own or others' needs, so a business buyer is not safely outside it; the MoE, DED Dubai and ADDED have each said card surcharges are unlawful (fine up to AED 100,000). Decided 24 Sep 2026 (accountant) on the founder's instruction that the company be fully compliant and not suable. Guarded by supabase/functions/_shared/reveal_fee.test.ts.",
       "forbid": [
         {
+          "re": "The card processing fee is added on top, and both are shown in full before payment\\.",
+          "fix": "Nothing is added for paying by card, and the amount is shown in full before payment.",
+          "why": "a card surcharge on the buyer (Cabinet Res. 66/2023 Art. 5(3); ledger 1087)"
+        },
+        {
+          "re": "\\(reveal fee \\+ card processing fee\\)",
+          "fix": "(the reveal fee)",
+          "why": "no buyer has paid a card fee since 24 Sep 2026; what is refunded is the reveal fee (ledger 1087)"
+        },
+        {
           "re": ",? plus the card processing fee(?: charged on it)?,?",
           "fix": "",
           "why": "a card surcharge on the buyer (Cabinet Res. 66/2023 Art. 5(3))"
@@ -453,6 +463,30 @@
         {
           "re": "(?:you (?:also )?pay|pays?|plus|charged?) (?:the |a )?card processing (?:fee|line)",
           "why": "a card surcharge on the buyer; rewrite by hand to the one wording"
+        },
+        {
+          "re": "\\b(?:plus|and) (?:the |a )?card(?:[- ]processing)? (?:fee|charge)s?\\b",
+          "why": "adds a card fee to the reveal (Cabinet Res. 66/2023 Art. 5(3); founder ruling ledger 1087, 30 Sep 2026); rewrite by hand to: 3% of the selected quotation, nothing added for paying by card"
+        },
+        {
+          "re": "\\+ ?card(?:[- ]processing)? fee",
+          "why": "adds a card fee to the reveal (Cabinet Res. 66/2023 Art. 5(3); founder ruling ledger 1087, 30 Sep 2026); rewrite by hand to: 3% of the selected quotation, nothing added for paying by card"
+        },
+        {
+          "re": "\\bgrossed[- ]up\\b",
+          "why": "adds a card fee to the reveal (Cabinet Res. 66/2023 Art. 5(3); founder ruling ledger 1087, 30 Sep 2026); rewrite by hand to: 3% of the selected quotation, nothing added for paying by card"
+        },
+        {
+          "re": "\\bcard[- ]processing (?:fee|charge)s? (?:is|are) (?:added|charged|passed)",
+          "why": "adds a card fee to the reveal (Cabinet Res. 66/2023 Art. 5(3); founder ruling ledger 1087, 30 Sep 2026); rewrite by hand to: 3% of the selected quotation, nothing added for paying by card"
+        },
+        {
+          "re": "(?:^|[\\s،(])(?:مضاف[اًةً]* ?إلي(?:ها|ه)|\\+|زائد|وتُضاف|تُضاف|تضاف|تُحمَّل) ?رسوم (?:معالجة )?(?:البطاقة|Stripe)",
+          "why": "adds a card fee to the reveal (Cabinet Res. 66/2023 Art. 5(3); founder ruling ledger 1087, 30 Sep 2026); rewrite by hand to: 3% of the selected quotation, nothing added for paying by card"
+        },
+        {
+          "re": "رسوم (?:معالجة )?البطاقة المضافة",
+          "why": "adds a card fee to the reveal (Cabinet Res. 66/2023 Art. 5(3); founder ruling ledger 1087, 30 Sep 2026); rewrite by hand to: 3% of the selected quotation, nothing added for paying by card"
         }
       ]
     },
