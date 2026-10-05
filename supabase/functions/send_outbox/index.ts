@@ -15,7 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, graphSend, holdForM365, m365Body, m365Carries, m365CopyLint, m365Mime, m365Text, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries, m365CopyLint, m365Mime, m365Text, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -285,8 +285,8 @@ Deno.serve(observe('send_outbox', async (req) => {
                                      : 'held: the Microsoft 365 lane is on but ' + m365.why + '; never sent through Resend' }).eq('id', n.id);
           laneHeld++; continue;
         }
-        const mBody = m365Body(n.type, n.body || '');
-        const bad = m365CopyLint({ subject: n.subject || '', body: mBody }).filter((l) => !l.ok);
+        const mBody = m365Body(n.type, n.body || '', n.kind);
+        const bad = m365CopyLint({ subject: n.subject || '', body: mBody, seed: n.kind === M365_SEED_KIND }).filter((l) => !l.ok);
         if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
         const now = new Date(); const mid = messageIdFor(n.id, now);
         const mime = m365Mime({ from: 'QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply, subject: n.subject || 'QuotesDone', text: m365Text(mBody, unsub), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });

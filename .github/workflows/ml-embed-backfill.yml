@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   backfill:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v7

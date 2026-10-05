@@ -84,7 +84,7 @@ env:
 jobs:
   deploy:
     name: deploy changed functions
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
