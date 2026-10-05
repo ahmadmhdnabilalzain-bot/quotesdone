@@ -1,0 +1,5 @@
+Applied at merge by the release train (apply at merge, never before). Applying deletes nothing: it creates the plan
+table, the census and the batch routine. The deletes are run afterwards, 23:00-06:00 Dubai only, by
+node scripts/kb/trim_kb_chunks.mjs --run (load guard before every batch, 2,000 rows a batch). Staged on production in a
+rolled-back transaction on 5 Oct 2026: planned qd_kb_pack 90,488, duplicates 8,465, a 50-row batch deleted 50, 0 cited
+ids planned. Seat: it_engineer.
