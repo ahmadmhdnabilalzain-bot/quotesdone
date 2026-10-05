@@ -4766,6 +4766,40 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_knowledge_exam()
 AS $function$ select jsonb_build_object('asked', 0, 'retired', 'the model exam files no question (24 Sep 2026)') $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_pause_expiry()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p record; v_stakes text; v_out jsonb := '[]'::jsonb; v_closed int;
+begin
+  for p in select dp.* from public.duty_pause dp where dp.paused_at < now() - interval '7 days' order by dp.paused_at loop
+    v_stakes := public.fn_duty_pause_stakes(p.duty);
+    perform public.fn_it_engineer_finding_upsert(
+      'duty_pause_expired:' || p.duty,
+      'Duty ' || p.duty || ' (' || v_stakes || ') has been paused for ' || extract(day from now() - p.paused_at)::int
+        || ' days, since ' || to_char(p.paused_at at time zone 'Asia/Dubai', 'YYYY-MM-DD') || ' by ' || p.paused_by || ': ' || p.reason,
+      'public.duty_pause / ' || p.duty,
+      case when v_stakes in ('money', 'security') then 'security' else 'agent_facing' end,
+      1,
+      jsonb_build_object('duty', p.duty, 'stakes', v_stakes, 'paused_at', p.paused_at, 'paused_by', p.paused_by,
+                         'reason', p.reason, 'limit', '7 days'),
+      '{}'::text[],
+      array['whether the pause is still meant: resume = delete from public.duty_pause where duty = ''' || p.duty || ''''],
+      'it_engineer');
+    v_out := v_out || jsonb_build_object('duty', p.duty, 'stakes', v_stakes);
+  end loop;
+  update public.it_engineer_finding f
+     set closed_at = now(), close_note = 'the pause was lifted or renewed (fn_it_engineer_duty_pause_expiry)'
+   where f.issue_key like 'duty_pause_expired:%' and f.closed_at is null
+     and not exists (select 1 from public.duty_pause dp
+                      where 'duty_pause_expired:' || dp.duty = f.issue_key and dp.paused_at < now() - interval '7 days');
+  get diagnostics v_closed = row_count;
+  return jsonb_build_object('expired', v_out, 'closed', v_closed);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_chase()
  RETURNS jsonb
  LANGUAGE plpgsql
