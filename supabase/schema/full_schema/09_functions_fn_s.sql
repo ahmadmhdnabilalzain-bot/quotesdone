@@ -1088,6 +1088,96 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_licence_expiry_watch()
 AS $function$ select public.fn_it_engineer_licence_expiry_watch() $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_nudges_invited_suppliers(p_now timestamp with time zone DEFAULT now(), p_cap integer DEFAULT NULL::integer, p_include_fixtures boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_dxb timestamp := p_now at time zone 'Asia/Dubai';
+  v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
+  v_hol text; v_cap int; v_used int; v_left int; v_queued int := 0; v_due int := 0; r record; v_link text;
+  v_res jsonb; v_not_before timestamptz;
+  v_gate text; v_inv_recent int; v_bounced_recent int; v_max_rate numeric;
+begin
+  select c.event_name into v_hol from public.company_calendar c
+   where c.kind = 'public_holiday' and v_dxb::date between c.starts_on and coalesce(c.ends_on, c.starts_on) limit 1;
+  if v_hol is not null then return jsonb_build_object('held', 'holiday: ' || v_hol, 'queued', 0); end if;
+  if extract(isodow from v_dxb) in (6, 7) then return jsonb_build_object('held', 'UAE weekend', 'queued', 0); end if;
+  -- THE SENDING WINDOW (review of #1007, 29 Sep 2026). The duty that calls this runs at 00:01 UTC (04:01 Dubai),
+  -- before the window opens, so a start-hour HOLD would block every nudge. Instead a nudge queued before the
+  -- window leaves no earlier than window_start_hour (default 9) Dubai the same day: not_before, exactly as
+  -- enqueue_supplier_invites spreads its batch from the window's start. After window_end_hour it is held.
+  v_not_before := greatest(p_now, (v_dxb::date + make_interval(hours => coalesce((v_cfg->>'window_start_hour')::int, 9)))
+                                  at time zone 'Asia/Dubai');
+  if extract(hour from v_dxb) >= coalesce((v_cfg->>'window_end_hour')::int, 17) then
+    return jsonb_build_object('held', 'after the Dubai sending window', 'queued', 0); end if;
+  -- THE GO SWITCH governs every mode, the probe's fixture mode included (30 Sep 2026).
+  if not (coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
+          and public.fn_supplier_outreach_golive()) then
+    return jsonb_build_object('held', 'the supplier campaign is not open (invite_enabled / supplier_outreach_golive)', 'queued', 0,
+                              'due', (select count(*) from public.fn_supplier_invite_nudges_due(p_now, p_include_fixtures)));
+  end if;
+  -- THE BATCH'S BRAKES, for real mail (a fixture address never leaves: send_outbox suppresses @example.invalid).
+  if not p_include_fixtures then
+    v_gate := public.fn_invite_placement_gate(v_dxb::date, p_now);
+    if v_gate like 'fail:%' then
+      return jsonb_build_object('held', 'inbox placement ' || v_gate, 'queued', 0); end if;
+    -- enqueue_supplier_invites' 3-day bounce brake, read only (the batch owns the auto-pause)
+    select count(*), count(*) filter (where invite_status = 'bounced') into v_inv_recent, v_bounced_recent
+      from public.leads where invited_at > p_now - interval '3 days';
+    v_max_rate := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
+    if (v_inv_recent >= 15 and v_bounced_recent::numeric / greatest(v_inv_recent, 1) > v_max_rate)
+       or v_bounced_recent >= greatest(5, ceil(v_inv_recent * v_max_rate)::int) then
+      return jsonb_build_object('held', 'bounce brake: ' || v_bounced_recent || ' of ' || v_inv_recent || ' in 3 days', 'queued', 0); end if;
+  end if;
+
+  -- ONE daily cap for the domain: invitations and nudges queued this day, same class (real or fixture). The day is
+  -- the UTC date, exactly as enqueue_supplier_invites counts it (review of #1007): on a Dubai-date basis the two
+  -- would disagree between 00:00 and 04:00 Dubai and could each spend a full cap.
+  v_cap := coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10);
+  v_cap := least(v_cap, coalesce(p_cap, v_cap));
+  select count(*) into v_used from public.notifications n
+   where n.type in ('supplier_invite', 'supplier_invite_nudge')
+     and (n.created_at at time zone 'UTC')::date = (p_now at time zone 'UTC')::date
+     and public.fn_is_demo_email(n.to_email) = p_include_fixtures;
+  v_left := greatest(0, v_cap - v_used);
+
+  for r in select d.*, l.company_name, l.claim_token from public.fn_supplier_invite_nudges_due(p_now, p_include_fixtures) d
+             join public.leads l on l.id = d.lead_id loop
+    v_due := v_due + 1;
+    continue when v_queued >= v_left;
+    -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English): one copy, and the link is
+    -- the invitation's own: fn_supplier_invite_link (#1051) - /en/portal with the claim token and the invitation ref.
+    -- A lead with no claim token (the function then answers null) gets the plain English portal.
+    v_link := coalesce(public.fn_supplier_invite_link(
+                         (select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), r.claim_token, r.lead_id),
+                       coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com')
+                       || '/en/portal');
+    v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'supplier_invite_nudge', 'requested_by', 'sales_engineer', 'channel', 'email',
+      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en', 'dedupe_key', r.dedupe_key,
+      'subject', case when r.step = 3 then 'A last reminder: ' else '' end || 'your invitation to join QuotesDone as a supplier',
+      -- #1070's greeting guard: an Arabic-script company name is not written into an English letter
+      'body', coalesce('Dear ' || nullif(btrim(case when r.company_name ~ '[\u0600-\u06FF]' then '' else r.company_name end), '') || ',',
+                       'Dear Sir or Madam,') || E'\n\n'
+          || 'A reminder of our invitation to register your company as a supplier on QuotesDone. It is free and takes a few minutes.'
+          || E'\n\n' || v_link
+          || case when r.step = 3 then E'\n\nThis is the last reminder we will send about it.' else '' end
+          || E'\n\nIf you would rather not receive these e-mails, reply to this one and we will remove your address.')));
+    -- support's handler queues the row without a not_before (it takes only the words and the address), so the
+    -- requester sets the window start on the row it was just given back (by id, whatever the outbox's status:
+    -- a fixture address is 'suppressed' on insert, a real one 'queued')
+    update public.notifications set not_before = v_not_before
+     where id = (v_res->0->>'notification_id')::bigint and type = 'supplier_invite_nudge';
+    v_queued := v_queued + 1;
+  end loop;
+  return jsonb_build_object('held', null, 'due', v_due, 'queued', v_queued, 'cap', v_cap, 'used_before', v_used);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_quote_quality_tick(p_include_fixtures boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1713,7 +1803,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supplier_onboarding()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; v_nudged int := 0; v_to text; v_ar boolean; v_stages jsonb;
+declare r record; v_nudged int := 0; v_to text; v_stages jsonb; v_inv jsonb;
 begin
   -- THE STAGE, from what the rows say happened (never from a status someone typed).
   with m as (
@@ -1748,6 +1838,9 @@ begin
     first_match_at = excluded.first_match_at, first_quote_at = excluded.first_quote_at,
     open_matches   = excluded.open_matches, updated_at = now();
 
+  -- THE 'invited' STAGE (#1007): day 3 / 7 / 14 after the invitation the OUTBOX delivered (see the header).
+  v_inv := public.fn_sales_engineer_nudges_invited_suppliers();
+
   -- THE NUDGE. Before approval the invitation reminders and the 14-day window already act; from approval to the
   -- first quote nothing did. Matched, requests open for him, not quoted 3 days after the first match: told, at
   -- most twice, a week apart, in his language, through customer_support.
@@ -1760,30 +1853,27 @@ begin
      limit 50
   loop
     continue when r.to_email is null;
-    v_ar := false;   -- suppliers are always written in English (founder, 28 Sep 2026)
+    -- ENGLISH ONLY (#1007, review of 29 Sep 2026): #1065's body kept an Arabic branch behind a flag fixed to English; it is
+    -- removed, not switched off. A matched supplier is registered, so the link is the English portal (no claim token).
     perform public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'supplier_first_quote_nudge', 'requested_by', 'sales_engineer', 'channel', 'email',
-      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', case when v_ar then 'ar' else 'en' end,
+      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en',
       'dedupe_key', 'first_quote_nudge:' || r.lead_id || ':' || (select nudges from public.supplier_onboarding where lead_id = r.lead_id),
-      'subject', case when v_ar then 'طلبات عملاء بانتظار عروض أسعاركم في QuotesDone'
-                      else 'Customer requests are waiting for your quotation' end,
-      'body', case when v_ar then
-          'السادة/ ' || coalesce(r.company_name, 'المورّد') || ' المحترمين،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
-          || 'لديكم ' || r.open_matches || ' من طلبات العملاء المطابقة لتخصصكم لم تُقدَّم لها عروض أسعار حتى الآن. '
-          || 'يمكنكم الاطلاع عليها وتقديم عروضكم من بوابة المورّدين: https://quotesdone.com/ar/portal' || chr(10) || chr(10)
-          || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
-        else
-          'Dear ' || coalesce(r.company_name, 'supplier') || ',' || chr(10) || chr(10)
+      'subject', 'Customer requests are waiting for your quotation',
+      -- #1070's greeting guard (#1007): an Arabic-script company name is not written into an English letter
+      'body', 'Dear ' || coalesce(nullif(btrim(case when r.company_name ~ '[\u0600-\u06FF]' then '' else r.company_name end), ''), 'supplier') || ',' || chr(10) || chr(10)
           || r.open_matches || ' customer request(s) matched to your trade are open and have no quotation from you yet. '
-          || 'You can read them and quote in your supplier portal: https://quotesdone.com/portal' || chr(10) || chr(10)
-          || 'QuotesDone' end)));
+          || 'You can read them and quote in your supplier portal: '
+          || coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com')
+          || '/en/portal' || chr(10) || chr(10)
+          || 'QuotesDone')));
     update public.supplier_onboarding set nudges = nudges + 1, last_nudge_at = now() where lead_id = r.lead_id;
     v_nudged := v_nudged + 1;
   end loop;
 
   select coalesce(jsonb_object_agg(stage, n), '{}'::jsonb) into v_stages
     from (select stage, count(*) n from public.supplier_onboarding group by stage) x;
-  return jsonb_build_object('stages', v_stages, 'nudged', v_nudged);
+  return jsonb_build_object('stages', v_stages, 'nudged', v_nudged, 'invite_nudges', v_inv);
 end $function$
 
 
@@ -6784,6 +6874,47 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_invite_link(p_site text, p_token u
 AS $function$
   select coalesce(nullif(btrim(p_site), ''), 'https://quotesdone.com') || '/en/portal?t=' || p_token::text
          || '&utm_source=invite&utm_medium=email&utm_campaign=supplier_invite&utm_content=lead-' || p_lead_id::text
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_invite_nudges_due(p_now timestamp with time zone DEFAULT now(), p_include_fixtures boolean DEFAULT false)
+ RETURNS TABLE(lead_id bigint, step integer, to_email text, lang text, dedupe_key text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with inv as (   -- the invitation as the OUTBOX recorded it, one per lead
+    select n.lead_id, min(coalesce(n.sent_at, n.created_at)) as sent_at
+      from public.notifications n
+     where n.type = 'supplier_invite' and n.lead_id is not null
+       and (n.status = 'sent' or n.sent_at is not null)
+     group by n.lead_id
+  ), c as (
+    -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English, ledger 993). The column
+    -- stays so the signature does not change; send_outbox would hold an Arabic row of this type anyway.
+    select l.id, lower(btrim(l.email)) as to_email, 'en'::text as lang,
+           l as lead,
+           case when p_now >= i.sent_at + interval '14 days' then 3
+                when p_now >= i.sent_at + interval '7 days'  then 2
+                when p_now >= i.sent_at + interval '3 days'  then 1 end as step
+      from inv i join public.leads l on l.id = i.lead_id
+     where l.invite_clicked_at is null and not coalesce(l.claimed, false) and l.approval_status is null
+       and l.registration_submitted_at is null
+       and p_now < i.sent_at + interval '21 days'
+  )
+  select c.id, c.step, c.to_email, c.lang, 'supplier_invite_nudge:' || c.id || ':' || c.step
+    from c
+   where c.step is not null
+     and coalesce((c.lead).invite_status, '') not in ('bounced', 'complained', 'unsubscribed')
+     and not exists (select 1 from public.email_suppressions s where lower(s.email) = c.to_email)
+     and case when p_include_fixtures
+              -- the test path can only ever see a fixture: both marks, asserted, never assumed
+              then (c.lead).company_name like 'ZZ DEMO%' and c.to_email like '%@example.invalid'
+              else public.fn_supplier_outreach_reachable(c.lead, c.to_email) end
+     and not exists (select 1 from public.agent_actions a
+                      where a.kind = 'handoff' and a.agent = 'customer_support'
+                        and a.target_id = 'delivery.request:supplier_invite_nudge:' || c.id || ':' || c.step)
+   order by c.id
 $function$
 
 
