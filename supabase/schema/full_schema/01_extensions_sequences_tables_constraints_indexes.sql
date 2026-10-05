@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T13:12:53.139Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T14:36:04.774Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7211,7 +7211,8 @@ CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
   notice_attempts integer DEFAULT 0 NOT NULL,
   notice_last_at timestamp with time zone,
   notice_delivered_at timestamp with time zone,
-  notice_detail jsonb
+  notice_detail jsonb,
+  qhash text
 );
 
 CREATE TABLE IF NOT EXISTS public.reasoning_knowledge_candidate (
@@ -12238,6 +12239,7 @@ CREATE UNIQUE INDEX quotes_inquiry_supplier_option_key ON public.quotes USING bt
 CREATE INDEX quotes_original_file_path_idx ON public.quotes USING btree (original_file_path) WHERE (original_file_path IS NOT NULL);
 CREATE INDEX quotes_stale_idx ON public.quotes USING btree (inquiry_id) WHERE (stale_at IS NOT NULL);
 CREATE INDEX reasoning_held_question_due_idx ON public.reasoning_held_question USING btree (status, last_attempt_at NULLS FIRST, created_at) WHERE (status = 'held'::text);
+CREATE INDEX reasoning_held_question_qhash_idx ON public.reasoning_held_question USING btree (surface, qhash, status);
 CREATE UNIQUE INDEX red_episode_one_open_per_key ON public.red_episode USING btree (check_key) WHERE (resolved_at IS NULL);
 CREATE INDEX red_episode_open ON public.red_episode USING btree (resolved_at) WHERE (resolved_at IS NULL);
 CREATE UNIQUE INDEX refund_case_one_live_per_transaction ON public.refund_case USING btree (transaction_id) WHERE (state <> ALL (ARRAY['ineligible'::text, 'ceo_declined'::text, 'failed'::text, 'canceled'::text]));
