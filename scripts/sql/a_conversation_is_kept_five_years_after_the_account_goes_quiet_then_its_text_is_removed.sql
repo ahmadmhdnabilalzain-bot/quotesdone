@@ -73,6 +73,12 @@ revoke all on public.conversation_retention_pdf from anon, authenticated;
 create policy conversation_retention_pdf_service_only on public.conversation_retention_pdf
   for all to service_role using (true) with check (true);
 
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('conversation_retention_log', true, 'company', 'which message texts were removed under the 5-year retention rule, and when: the evidence the rule ran', 'it_engineer'),
+  ('conversation_retention_pdf', true, 'company', 'conversation PDFs owed deletion after their text was removed under the retention rule', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 -- ── A party under legal hold. Conservative: any row not clearly finished holds. ─────────────────────
 create or replace function public.fn_conversation_party_on_hold(p_kind text, p_id text)
 returns boolean
@@ -191,16 +197,9 @@ begin
 end $fn$;
 revoke execute on function public.fn_conversation_retention_purge(int) from public, anon, authenticated;
 
--- ── Daily, 03:20 Dubai (23:20 UTC), with its registry row in the same change. ─────────────────────
+-- ── Daily, 03:20 Dubai (23:20 UTC). ─────────────────────
 select cron.schedule('conversation_retention_daily', '20 23 * * *',
   $CRON$select public.fn_conversation_retention_purge(500);$CRON$);
-insert into public.cron_registry (jobname, human_name, category, purpose)
-values ('conversation_retention_daily', 'Remove conversation text 5 years after the account went quiet', 'compliance',
-        'Ledger 1126/1127: conversation text is kept while the account is active and 5 years after its last '
-        || 'activity, and at least 5 years from the end of the calendar year it was written (Cabinet Decision '
-        || '74/2023 Art. 3(1)(b)); then the text is replaced by a marker and logged. Never touches inquiry, '
-        || 'quote, drawing, payment or dispute records, and never a party under a legal hold.')
-on conflict (jobname) do update set human_name = excluded.human_name, category = excluded.category, purpose = excluded.purpose;
 
 -- PROBE: read-only. Today nothing may be eligible (the oldest message is 2026), and no message of a
 -- held or recently active party may appear even far in the future. Returns ONE verdict row.
