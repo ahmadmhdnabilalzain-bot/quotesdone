@@ -915,6 +915,7 @@ ALTER TABLE public.seat_knowledge_eval_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_exam ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_recall ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_recall_answer ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_knowledge_recall_floor ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_refresh ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_learning_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_lesson_cluster ENABLE ROW LEVEL SECURITY;
@@ -1243,6 +1244,7 @@ CREATE POLICY seat_knowledge_eval_question_service_role_only ON public.seat_know
 CREATE POLICY seat_knowledge_exam_service_role_only ON public.seat_knowledge_exam AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_recall_service_role_only ON public.seat_knowledge_recall AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_recall_answer_service_role_only ON public.seat_knowledge_recall_answer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_knowledge_recall_floor_service_role_only ON public.seat_knowledge_recall_floor AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_refresh_service_role_only ON public.seat_knowledge_refresh AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_learning_daily_service_role_only ON public.seat_learning_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_lesson_cluster_service_role_only ON public.seat_lesson_cluster AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
