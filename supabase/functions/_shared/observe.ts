@@ -39,7 +39,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 // The sandbox run tag (ledger 1119) lives in its own module: llm_hold.ts needs it too, and llm_hold.ts is
 // imported by node tests that cannot load this file's jsr: import.
-import { E2E_RUN } from './e2e_run.ts';
+import { E2E_RUN, resolveE2eRun } from './e2e_run.ts';
 export { e2eRunTag } from './e2e_run.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -53,6 +53,18 @@ function admin(): Admin | null {
     _admin = createClient(url, key);
     return _admin;
   } catch (_e) { return null; }
+}
+
+function envOr(k: string): string | null { try { return Deno.env.get(k) || null; } catch { return null; } }
+// app_secrets.cred_db_internal, read once per isolate for five minutes. Read only when a request
+// carries x-qd-e2e-run, so ordinary traffic never pays for it.
+let _secret: { at: number; v: string | null } | null = null;
+async function internalSecret(): Promise<string | null> {
+  if (_secret && Date.now() - _secret.at < 300_000) return _secret.v;
+  const a = admin(); if (!a) return null;
+  const { data } = await a.from('app_secrets').select('value').eq('key', 'cred_db_internal').maybeSingle();
+  _secret = { at: Date.now(), v: (data?.value as string) ?? null };
+  return _secret.v;
 }
 
 /** Run a promise after the response has been sent, without ever surfacing its failure. */
@@ -219,8 +231,9 @@ export function observe(
     const t0 = Date.now();
     let res: Response;
     try {
-      const h = req.headers.get('x-qd-e2e-run') || '';
-      res = await E2E_RUN.run(/^[a-z0-9]{4,16}$/.test(h) ? h : null, () => handler(req));
+      // A sandbox tag is honoured only with proof the caller is internal (_shared/e2e_run.ts).
+      const run = req.headers.has('x-qd-e2e-run') ? await resolveE2eRun(req.headers, envOr('SUPABASE_SERVICE_ROLE_KEY'), internalSecret) : null;
+      res = await E2E_RUN.run(run, () => handler(req));
     } catch (e) {
       const msg = String((e as Error)?.message || e);
       background(record(slug, 'error', { ...baseCounts(req, 500), threw: true },

@@ -116,7 +116,8 @@ export async function call(slug, jwt, body, timeoutMs = 90000) {
       // QD_E2E_RUN_TAG: the stage-2 harness's run tag, carried to every model call so its ai_cost_log
       // rows are stamped (scripts/sql/a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql).
       headers: { apikey: ANON, Authorization: 'Bearer ' + (jwt || ANON), 'Content-Type': 'application/json',
-        ...(process.env.QD_E2E_RUN_TAG ? { 'x-qd-e2e-run': process.env.QD_E2E_RUN_TAG } : {}) },
+        // and the proof that the tag comes from inside (_shared/e2e_run.ts): without it the tag is ignored
+        ...(process.env.QD_E2E_RUN_TAG ? { 'x-qd-e2e-run': process.env.QD_E2E_RUN_TAG, 'x-qd-e2e-secret': await internalCred() } : {}) },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -230,6 +231,17 @@ export const RUN_TAG_COL = (tag) => `'qd_run:${tag}'`;
  * This is the whole reason the module exists: the 15 orphaned auth users in staging came from a
  * mid-run throw in a script that had no finally.
  */
+/**
+ * Close a run's rehearsal window: the one routine every closer uses (withRun's finally, and
+ * run.mjs --purge-tag for a run whose process died before its finally ran).
+ * 6 Oct 2026: a check killed by a shell timeout left qd_run:1eb782ae open for hours. While a window is open,
+ * the failed-run watcher stays quiet and the stage-2 harness refuses to start.
+ */
+export async function closeRehearsalWindow(tag) {
+  if (!/^[a-z0-9]{4,16}$/.test(String(tag))) throw new Error(`bad run tag ${JSON.stringify(tag)}`);
+  return mgmtFixture(REF, `update public.rehearsal_window set ended_at = now() where run_tag = 'qd_run:${tag}' and ended_at is null`, 'rehearsal window');
+}
+
 export async function withRun(fn, opts = {}) {
   const run = newRun(opts);
   run.log(`demo run ${run.tag} on ${REF}`);
@@ -247,7 +259,7 @@ export async function withRun(fn, opts = {}) {
       const t = await teardown(run);
       run.log(`run ${run.tag} torn down: ${t.summary}`);
     }
-    try { await mgmtFixture(REF, `update public.rehearsal_window set ended_at = now() where run_tag = 'qd_run:${run.tag}' and ended_at is null`, 'rehearsal window'); }
+    try { await closeRehearsalWindow(run.tag); }
     catch (e) { run.log(`(rehearsal window not closed: ${String(e.message || e).slice(0, 120)})`); }
   }
 }

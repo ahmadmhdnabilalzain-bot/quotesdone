@@ -25,7 +25,7 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, randomBytes } from 'node:crypto';
 import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
-import { newRun, teardown, makeLicenceGatedSupplier, runIntake, quotePayload, TRADES, EMIRATES, q, keys } from '../lib/demo_factory.mjs';
+import { internalCred, newRun, teardown, makeLicenceGatedSupplier, runIntake, quotePayload, TRADES, EMIRATES, q, keys } from '../lib/demo_factory.mjs';
 import { demoPdf } from '../lib/demo_pdf.mjs';
 import { buildInventory, classify, summarise } from './stage2_coverage.mjs';
 import { liveDuties, probeDuty } from './stage2_duties.mjs';
@@ -171,7 +171,8 @@ async function cleanupLearning(tag, ids, window) {
 // A table that cannot be scanned is reported UNVERIFIED, never counted as clean.
 async function verifyClean(tag, ids = {}) {
   const tables = (await read(`select r.table_name t from public.table_export_registry r
-      join information_schema.tables i on i.table_schema='public' and i.table_name=r.table_name and i.table_type='BASE TABLE' order by 1`)).map((r) => r.t);
+      join information_schema.tables i on i.table_schema='public' and i.table_name=r.table_name and i.table_type='BASE TABLE'
+      where r.table_name <> 'rehearsal_window' order by 1`)).map((r) => r.t);  // the window row is the kept record that a rehearsal ran
   const cols = await read(`select table_name t, column_name c from information_schema.columns where table_schema='public'
       and column_name ~ '^(inquiry_id|quote_id|lead_id|supplier_id|supplier_lead_id|customer_id|transaction_id|refund_id)$'`);
   const idSet = [...(ids.inquiries || []), ...(ids.quotes || []), ...(ids.leads || []), ...(ids.customers || []), ...(ids.transactions || []), ...(ids.refunds || [])].map(String);
@@ -526,7 +527,7 @@ async function realRun(pre) {
         const url = `${BASE}/functions/v1/${slug}`;
         const data = url + Object.keys(params).sort().map((k) => k + params[k]).join('');
         const sig = createHmac('sha1', tw || '').update(data, 'utf8').digest('base64');
-        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Twilio-Signature': sig, 'x-qd-e2e-run': tag }, body: new URLSearchParams(params) });
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Twilio-Signature': sig, 'x-qd-e2e-run': tag, 'x-qd-e2e-secret': await internalCred() }, body: new URLSearchParams(params) });
         return { status: r.status, text: (await r.text()).slice(0, 200) };
       };
       const phone = fx.customers[2].phone;
@@ -545,7 +546,7 @@ async function realRun(pre) {
         const id = 'msg_zzdemo' + tag + randomBytes(3).toString('hex'), ts = String(Math.floor(Date.now() / 1000));
         const key = Buffer.from(String(secret || '').replace(/^whsec_/, ''), 'base64');
         const sig = 'v1,' + createHmac('sha256', key).update(`${id}.${ts}.${body}`).digest('base64');
-        const r = await fetch(`${BASE}/functions/v1/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': sig, 'x-qd-e2e-run': tag }, body });
+        const r = await fetch(`${BASE}/functions/v1/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': sig, 'x-qd-e2e-run': tag, 'x-qd-e2e-secret': await internalCred() }, body });
         return { status: r.status, text: (await r.text()).slice(0, 200), secret: !!secret };
       };
       const em = `ZZ DEMO ${tag} inbound email`;

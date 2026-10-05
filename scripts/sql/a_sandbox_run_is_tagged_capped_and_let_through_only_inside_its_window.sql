@@ -60,13 +60,19 @@ $fn$;
 revoke execute on function public.fn_e2e_run_tag_open(text) from public, anon, authenticated;
 
 -- The tag the current statement carries, or null. Never throws.
+-- THE HEADER COUNTS ONLY FOR A SERVICE-ROLE REQUEST (review of #1230). Eight hex characters are a name,
+-- not a credential, so a public (anon or signed-in) caller that sends x-qd-e2e-run straight to PostgREST
+-- gets null here, and with it the normal hold. Edge functions reach PostgREST with the service-role
+-- key, and only after _shared/e2e_run.ts has checked the request's own proof. app.e2e_run_tag can be
+-- set only by a session that already holds SQL access (the aborted duty probes).
 create or replace function public.fn_e2e_run_tag_current()
 returns text language plpgsql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 begin
   return coalesce(nullif(current_setting('app.e2e_run_tag', true), ''),
-                  nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-qd-e2e-run', ''));
+                  case when nullif(current_setting('request.jwt.claims', true), '')::json ->> 'role' = 'service_role'
+                       then nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-qd-e2e-run', '') end);
 exception when others then
   return null;
 end $fn$;
@@ -220,13 +226,23 @@ end $function$;
 -- PROBE (cleans up after itself, returns a verdict row; the file defines routines, so it never raises).
 -- Untagged: the answer is exactly what it was. Tagged with no window: denied. Tagged with an open
 -- window: past the hold. Over the cap: denied. Nothing is left behind.
-do $p$ declare a jsonb; b jsonb; c jsonb; d jsonb; v_bad text := ''; begin
+do $p$ declare a jsonb; b jsonb; c jsonb; d jsonb; e jsonb; g jsonb; v_bad text := ''; begin
   a := public.fn_kernel_paid_provider_gate('anthropic/claude-opus-5.5');
   perform set_config('app.e2e_run_tag', 'zzprobe0001', true);
   b := public.fn_kernel_paid_provider_gate('anthropic/claude-opus-5.5');
   insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, cap_usd)
     values ('qd_run:zzprobe0001', 'probe', 'gate probe', true, 4);
   c := public.fn_kernel_paid_provider_gate('anthropic/claude-opus-5.5');
+  -- the same open window, named only by a request HEADER: a public caller gets the hold, the service role does not
+  perform set_config('app.e2e_run_tag', '', true);
+  perform set_config('request.headers', '{"x-qd-e2e-run": "zzprobe0001"}', true);
+  perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  e := public.fn_kernel_paid_provider_gate('anthropic/claude-opus-5.5');
+  perform set_config('request.jwt.claims', '{"role": "service_role"}', true);
+  g := public.fn_kernel_paid_provider_gate('anthropic/claude-opus-5.5');
+  perform set_config('request.headers', '', true);
+  perform set_config('request.jwt.claims', '', true);
+  perform set_config('app.e2e_run_tag', 'zzprobe0001', true);
   update public.rehearsal_window set cap_usd = 0.000001 where run_tag = 'qd_run:zzprobe0001';
   insert into public.ai_cost_log (fn, task_class, model_used, prompt_tokens, output_tokens, cost_aed, ok, e2e_run_tag)
     values ('gate_probe', 'health_ping', 'openai/gpt-6-luna', 1, 1, 0.01, true, 'zzprobe0001');
@@ -237,8 +253,10 @@ do $p$ declare a jsonb; b jsonb; c jsonb; d jsonb; v_bad text := ''; begin
   if b->>'rule' <> 'rehearsal_window_closed' then v_bad := v_bad || ' no-window=' || (b->>'rule'); end if;
   if (c->>'allowed')::boolean is not true and (a->>'rule') = 'founder_hold' then v_bad := v_bad || ' open-window=' || (c->>'rule'); end if;
   if d->>'rule' <> 'rehearsal_cap' then v_bad := v_bad || ' over-cap=' || (d->>'rule'); end if;
+  if e->>'rule' = 'rehearsal_window' then v_bad := v_bad || ' public-header-was-let-through'; end if;
+  if g->>'rule' <> c->>'rule' then v_bad := v_bad || ' service-header=' || (g->>'rule'); end if;
   if a->>'rule' = 'rehearsal_window' then v_bad := v_bad || ' untagged-was-let-through'; end if;
   create temp table if not exists _gate_probe(verdict text) on commit drop;
-  insert into _gate_probe values (case when v_bad = '' then 'PROBE OK: untagged=' || (a->>'rule') || ' no-window=' || (b->>'rule') || ' open-window=' || (c->>'rule') || ' over-cap=' || (d->>'rule') else 'PROBE FAILED:' || v_bad end);
+  insert into _gate_probe values (case when v_bad = '' then 'PROBE OK: untagged=' || (a->>'rule') || ' no-window=' || (b->>'rule') || ' open-window=' || (c->>'rule') || ' over-cap=' || (d->>'rule') || ' public-header=' || (e->>'rule') || ' service-header=' || (g->>'rule') else 'PROBE FAILED:' || v_bad end);
 end $p$;
 select verdict from _gate_probe;

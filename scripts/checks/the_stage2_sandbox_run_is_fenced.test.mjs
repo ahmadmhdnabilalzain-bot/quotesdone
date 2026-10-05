@@ -69,6 +69,26 @@ test('the gate: untagged traffic is untouched, tagged traffic is capped and pass
   assert.match(sql, /PROBE OK: untagged=/);
 });
 
+test('the tag alone gets a public caller nothing: it needs the service role or the internal secret', async () => {
+  const { resolveE2eRun } = await import('../../supabase/functions/_shared/e2e_run.ts');
+  const SK = 'service-role-key-xyz', SECRET = 'internal-secret-abc';
+  const ask = (h) => resolveE2eRun(new Headers(h), SK, async () => SECRET);
+  assert.equal(await ask({ 'x-qd-e2e-run': 'ab12cd34' }), null, 'a bare tag is ignored');
+  assert.equal(await ask({ 'x-qd-e2e-run': 'ab12cd34', authorization: 'Bearer some-user-jwt' }), null, 'a signed-in user is not internal');
+  assert.equal(await ask({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': 'internal-secret-abd' }), null, 'a wrong secret is ignored');
+  assert.equal(await ask({ 'x-qd-e2e-run': 'AB;drop', 'x-qd-e2e-secret': SECRET }), null, 'a malformed tag is ignored');
+  assert.deepEqual(await ask({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': SECRET }), { tag: 'ab12cd34', secret: SECRET });
+  assert.deepEqual(await ask({ 'x-qd-e2e-run': 'ab12cd34', authorization: 'Bearer ' + SK }), { tag: 'ab12cd34', secret: null });
+  assert.equal(await resolveE2eRun(new Headers({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': 'x' }), null, async () => null), null, 'no secret configured: nothing passes');
+  // the database applies the same rule to a header that reaches PostgREST directly
+  assert.match(sql, /->> 'role' = 'service_role'\s+then nullif\(nullif\(current_setting\('request\.headers', true\)/);
+  assert.match(sql, /PROBE OK: .*public-header=/);
+  assert.match(sql, /public-header-was-let-through/);
+  // and observe() only sets the tag through the resolver
+  const obs = readFileSync(new URL('../../supabase/functions/_shared/observe.ts', import.meta.url), 'utf8');
+  assert.match(obs, /await resolveE2eRun\(req\.headers, envOr\('SUPABASE_SERVICE_ROLE_KEY'\), internalSecret\)/);
+});
+
 test('the harness enables models for its own tag only, and always turns them off', () => {
   assert.match(src, /set models_allowed = true, cap_usd = \$\{Number\(CAP_USD\)\}, expires_at = now\(\) \+ interval '2 hours'/);
   assert.match(src, /finally \{\s+\/\/ ALWAYS: models off/);
