@@ -53,6 +53,10 @@ drop policy if exists it_expected_table_growth_service_role_only on public.it_ex
 create policy it_expected_table_growth_service_role_only on public.it_expected_table_growth
   as permissive for all to public using (false) with check (false);
 revoke all on public.it_expected_table_growth from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('it_expected_table_growth', true, 'measurement', 'Growth the IT seat expects of a table (cause, writer, end date), so the growth watch closes it with its cause instead of paging.', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 insert into public.it_expected_table_growth (relid, cause, writer, until)
 values ('knowledge_vector_ml',
