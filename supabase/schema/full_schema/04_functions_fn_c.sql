@@ -11411,15 +11411,18 @@ begin
         'why', v_why, 'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
       n_int := n_int + 1; v_why := null; continue;
     end if;
-    if not found then v_why := null; end if;
-    if v_why is null and f.started_at > p_now - interval '24 hours' then
-      n_wait := n_wait + 1; continue;                          -- still young: judged again tomorrow
+    -- FOUNDER RULING 4 OCT 2026: the digest carries ONLY decisions only he can make. A fault, however
+    -- old, is the seats' to solve; it stays an open finding on the OS and is never emailed.
+    if not found then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
+        'why', 'founder ruling 4 Oct 2026: not a decision only the founder can make; the finding stays with the '
+               || replace(coalesce(f.evidence->>'owner_seat', 'it_engineer'), '_', ' ') || ' on the OS',
+        'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_int := n_int + 1; continue;
     end if;
-    v_items := v_items || jsonb_build_object('id', x.id, 'decision', v_why is not null, 'key', f.issue_key,
-      'family', case when regexp_replace(f.issue_key, ':[^:]*$', '') ~ ':' then regexp_replace(f.issue_key, ':[^:]*$', '') else f.issue_key end,
-      'title', regexp_replace(left(f.title, 140), '[.\s]+$', ''), 'since', f.started_at,
-      'owner', coalesce(f.evidence->>'owner_seat', 'it_engineer'), 'why', v_why);
-    if v_why is not null then n_dec := n_dec + 1; else n_flt := n_flt + 1; end if;
+    v_items := v_items || jsonb_build_object('id', x.id, 'key', f.issue_key,
+      'title', regexp_replace(left(f.title, 140), '[.\s]+$', ''), 'why', v_why);
+    n_dec := n_dec + 1;
   end loop;
 
   if jsonb_array_length(v_items) = 0 then
@@ -11432,28 +11435,14 @@ begin
                               'fixed', n_fixed, 'internal', n_int, 'waiting', n_wait, 'stubbed', v_stub);
   end if;
 
-  -- One sentence per decision; faults of one family raised together are one sentence with their count.
-  select string_agg(line, E'\n' order by decision desc, first_id)
-    into v_detail
-    from (select bool_or((i->>'decision')::boolean) decision, min((i->>'id')::bigint) first_id,
-                 case when bool_or((i->>'decision')::boolean) then
-                   '- DECISION: ' || min(i->>'title') || '. Only you can decide this: ' || min(i->>'why')
-                   || '. The CEO keeps it open until you answer (reference ' || min(i->>'key') || ').'
-                 else
-                   '- ' || case when count(*) > 1 then count(*) || ' problems of one kind, e.g. ' else '' end
-                   || min(i->>'title') || ', open since '
-                   || to_char(min((i->>'since')::timestamptz) at time zone 'Asia/Dubai', 'DD Mon') || '. Nothing inside the company fixed it; the '
-                   || replace(min(i->>'owner'), '_', ' ') || ' has it, the engineers are making the code or configuration change, and the IT engineer re-checks it every 15 minutes and closes it when it is gone (reference '
-                   || case when count(*) > 1 then min(i->>'family') || ':...' else min(i->>'key') end || ').'
-                 end line
-            from jsonb_array_elements(v_items) i
-           group by case when (i->>'decision')::boolean then i->>'key' else i->>'family' end) g;
-  v_event := 'IT today: ' || case when n_dec > 0 then n_dec || ' decision' || case when n_dec > 1 then 's' else '' end || ' for you' else '' end
-             || case when n_dec > 0 and n_flt > 0 then ', ' else '' end
-             || case when n_flt > 0 then n_flt || ' fault' || case when n_flt > 1 then 's' else '' end || ' open more than a day' else '' end;
-  v_detail := 'The one IT message of the day. It carries only what needs you: decisions only you can make, and faults '
-           || 'the company could not fix that have been open more than 24 hours. Everything else stays with the CEO and the seats.'
-           || E'\n\n' || v_detail;
+  -- One sentence per decision. No line claims work is under way: nothing here is a fault report.
+  select string_agg('- DECISION: ' || (i->>'title') || '. Only you can decide this: ' || (i->>'why')
+                    || '. The CEO keeps it open until you answer (reference ' || (i->>'key') || ').',
+                    E'\n' order by (i->>'id')::bigint)
+    into v_detail from jsonb_array_elements(v_items) i;
+  v_event := 'IT today: ' || n_dec || ' decision' || case when n_dec > 1 then 's' else '' end || ' for you';
+  v_detail := 'The one IT message of the day. It carries only decisions only you can make; every fault stays with '
+           || 'the seats on the OS.' || E'\n\n' || v_detail;
 
   if v_stub then
     v_res := jsonb_build_object('stubbed', true);               -- A TEST NEVER REACHES HIM
