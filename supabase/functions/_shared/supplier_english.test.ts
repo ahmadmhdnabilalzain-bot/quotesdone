@@ -1,5 +1,5 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { ENGLISH_ONLY, hasArabic } from './supplier_english.ts';
+import { englishAnswer, finishEnglish, HELD_NOTICE, hasArabic, holdForEnglish, supplierMail, toSuppliers } from './supplier_english.ts';
 
 Deno.test('Arabic script anywhere is caught; English, numbers and symbols are not', () => {
   assert(hasArabic('نعم، السقف 3 أمتار'));
@@ -10,7 +10,76 @@ Deno.test('Arabic script anywhere is caught; English, numbers and symbols are no
   assertEquals(hasArabic(String.fromCharCode(0xfeff) + 'Yes, 3 m'), false); // a pasted byte-order mark is not Arabic
 });
 
-Deno.test('the refusal speaks both languages and names its code', () => {
-  assertEquals(ENGLISH_ONLY.code, 'english_only');
-  assert(ENGLISH_ONLY.message.length > 20 && hasArabic(ENGLISH_ONLY.message_ar));
+Deno.test('the customer is told in Arabic that the message will be passed on; the English says the same', () => {
+  assert(hasArabic(HELD_NOTICE.ar));
+  assertEquals(hasArabic(HELD_NOTICE.en), false);
+});
+
+Deno.test('a reasoned answer is a supplier copy only when it is English', () => {
+  assertEquals(englishAnswer('Yes, the ceiling is 3 m high.'), 'Yes, the ceiling is 3 m high.');
+  assertEquals(englishAnswer('"Yes, 3 m."'), 'Yes, 3 m.');
+  assertEquals(englishAnswer('Yes, السقف 3 m'), null);
+  assertEquals(englishAnswer(''), null);
+  assertEquals(englishAnswer(undefined), null);
+});
+
+Deno.test('NO ARABIC REACHES A SUPPLIER: a supplier row carrying Arabic in its subject or body is dropped', () => {
+  const rows = [
+    { to_email: 'a@example.invalid', subject: 'Ok', body: 'The customer answered: "Yes, 3 m"' },
+    { to_email: 'b@example.invalid', subject: 'Ok', body: 'The customer answered: "نعم، 3 أمتار"' },
+    { to_email: 'c@example.invalid', subject: 'سؤال', body: 'x' },
+  ];
+  assertEquals(toSuppliers(rows).map((r) => r.to_email), ['a@example.invalid']);
+  // Even if a caller hands the mail builder Arabic, the row it builds never passes.
+  const m = supplierMail('question', { category: 'joinery', emirate: 'Dubai' }, 'Ceiling height?', 'نعم');
+  assertEquals(toSuppliers([m]).length, 0);
+});
+
+// A fake client: records rpc calls and the rfq_clarification update, answers the reads the module makes.
+function fakeAdmin(row: Record<string, unknown> | null) {
+  const rpcs: [string, any][] = []; const updates: Record<string, unknown>[] = [];
+  const q = (table: string) => {
+    const self: any = {
+      select: () => self, eq: () => self, not: () => self, in: () => self, is: () => self,
+      update: (v: Record<string, unknown>) => { updates.push(v); return self; },
+      maybeSingle: () => Promise.resolve({ data: table === 'rfq_clarification' ? row : table === 'inquiries' ? { category: 'joinery', emirate: 'Dubai' } : null, error: null }),
+      then: (res: (v: unknown) => unknown) => res(
+        table === 'inquiry_matches' ? { data: [{ supplier_id: 7 }, { supplier_id: 8 }], error: null }
+        : table === 'leads' ? { data: [{ id: 7, email: 'z7@example.invalid' }, { id: 8, claimed_by: 'z8@example.invalid', banned: true }], error: null }
+        : { data: [{ id: 1 }], error: null }),
+    };
+    return self;
+  };
+  return { rpcs, updates, admin: { from: q, rpc: (fn: string, a: any) => { rpcs.push([fn, a]); return Promise.resolve({ data: fn === 'fn_reason_hold' ? 5 : [{ notification_id: 1, handoff_id: 1 }], error: null }); } } };
+}
+
+Deno.test('the held English is filed in the sales_engineer queue, once per clarification', async () => {
+  const f = fakeAdmin(null);
+  await holdForEnglish(f.admin, 42, 'نعم، السقف 3 أمتار');
+  const [fn, a] = f.rpcs[0];
+  assertEquals([fn, a.p_seat, a.p_surface, a.p_dedupe_key, a.p_subject], ['fn_reason_hold', 'sales_engineer', 'sales_engineer.supplier_english', 'supplier_english:42', { clarification_id: 42 }]);
+});
+
+Deno.test('the replay never stores or sends an answer that is still Arabic', async () => {
+  const f = fakeAdmin({ id: 42, inquiry_id: 'zz', kind: 'question', question: 'Ceiling height?', english_held_at: '2026-10-05' });
+  const r = await finishEnglish(f.admin, 42, 'نعم، 3 أمتار');
+  assertEquals(r.ok, false);
+  assertEquals(f.updates.length, 0);
+  assertEquals(f.rpcs.length, 0);
+});
+
+Deno.test('the replay stores the English and e-mails every unbanned matched supplier in English', async () => {
+  const f = fakeAdmin({ id: 42, inquiry_id: 'zz', kind: 'question', question: 'Ceiling height?', english_held_at: '2026-10-05' });
+  const r = await finishEnglish(f.admin, 42, 'Yes, the ceiling is 3 m.');
+  assertEquals([r.ok, r.notified], [true, 1]);
+  assertEquals(f.updates[0], { answer: 'Yes, the ceiling is 3 m.', english_held_at: null });
+  const sent = f.rpcs.find(([fn]) => fn === 'fn_customer_support_takes_delivery')![1].p_rows;
+  assertEquals(sent.map((x: any) => x.to_email), ['z7@example.invalid']);
+  for (const x of sent) assertEquals(hasArabic(x.subject) || hasArabic(x.body), false);
+});
+
+Deno.test('a clarification already finished is never mailed twice', async () => {
+  const f = fakeAdmin({ id: 42, inquiry_id: 'zz', kind: 'note', question: null, english_held_at: null });
+  assertEquals(await finishEnglish(f.admin, 42, 'More detail.'), { ok: true, notified: 0 });
+  assertEquals(f.rpcs.length, 0);
 });

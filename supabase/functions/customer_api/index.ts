@@ -7,7 +7,7 @@ import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
-import { ENGLISH_ONLY, hasArabic } from '../_shared/supplier_english.ts';
+import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
@@ -1488,22 +1488,19 @@ Deno.serve(observe('customer_api', async (req) => {
       const hits: string[] = [];
       const clean = String(scrubIdentity(raw, cust.full_name, hits) || '').trim();
       if (clean.replace(/\[removed\]/g, '').trim().length < 2) return J({ error: 'text_required' }, 400);
-      // Every matched supplier reads this note, and suppliers read English only (_shared/supplier_english.ts).
-      if (hasArabic(clean)) return J(ENGLISH_ONLY, 422);
+      // Every matched supplier reads this note, and suppliers read English only (_shared/supplier_english.ts):
+      // Arabic is kept as written and the supplier copy is held until the model route writes its English.
       const nowIso = new Date().toISOString();
+      if (hasArabic(clean)) {
+        const { data: held, error: herr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: null,
+          answer_as_written: clean, english_held_at: nowIso, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
+        if (herr || !held) return J({ error: 'save_failed' }, 500);
+        try { await holdForEnglish(admin, Number(held.id), clean); } catch (_e) { return J({ error: 'save_failed' }, 500); }
+        return J({ ok: true, id: held.id, text: clean, notified: 0, removed: hits.length, held_for_english: true, notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en });
+      }
       const { data: ins, error: nerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
       if (nerr || !ins) return J({ error: 'save_failed' }, 500);
-      const { data: ms } = await admin.from('inquiry_matches').select('supplier_id').eq('inquiry_id', iid);
-      const sids = [...new Set((ms || []).map((m: { supplier_id: number }) => Number(m.supplier_id)).filter(Boolean))];
-      let notified = 0;
-      if (sids.length) {
-        const { data: ls } = await admin.from('leads').select('id,email,claimed_by,banned').in('id', sids);
-        const rows = (ls || []).filter((l: any) => l.banned !== true).map((l: any) => ({ id: l.id, to: String(l.claimed_by || l.email || '') })).filter((l) => /@/.test(l.to))
-          .map((l) => ({ type: 'rfq_addendum', to_email: l.to, to_role: 'supplier', lead_id: l.id, inquiry_id: iid, subject: 'The customer added detail to a request you were invited to quote',
-            body: 'The customer added this to the ' + (inq.category || '') + (inq.emirate ? ' job in ' + inq.emirate : ' job') + ' you were invited to quote:\n\n"' + clean + '"\n\nIt is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.' }));
-        await queueNotifications(rows);
-        notified = rows.length;
-      }
+      const notified = await mailMatched(admin, iid, supplierMail('note', inq, null, clean));
       return J({ ok: true, id: ins.id, text: clean, notified, removed: hits.length });
     }
 
