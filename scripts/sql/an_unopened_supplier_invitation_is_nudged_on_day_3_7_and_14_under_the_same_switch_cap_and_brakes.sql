@@ -1,46 +1,50 @@
--- AN INVITED SUPPLIER WHO NEVER OPENED THE INVITATION IS NUDGED ON DAY 3, 7 AND 14 (28 Sep 2026, sales_engineer).
+
+-- AN UNOPENED SUPPLIER INVITATION IS NUDGED ON DAY 3, 7 AND 14, UNDER THE SAME SWITCH, CAP AND BRAKES.
+-- Seat: sales_engineer. 30 Sep 2026. Supersedes #1007's never-applied
+-- an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14.sql (removed with its pending note).
 --
--- MEASURED 28 Sep 2026 on production (htdblwldjkcgjvmqkbeh), read-only:
---   * supplier_onboarding: 171 leads at stage 'invited', 0 nudged. leads.invited_at: 172.
---   * notifications of type 'supplier_invite': 0 ever (so 0 sent). The 171 are fixture/test writes to the column
---     (see memory a-status-column-is-not-a-delivery-record), not invitations.
+-- MEASURED 30 Sep 2026 00:26 UTC on production (htdblwldjkcgjvmqkbeh), read-only:
+--   * fn_supplier_invite_nudges_due and fn_sales_engineer_nudges_invited_suppliers do not exist.
+--   * enqueue_supplier_invites' live body is byte-identical to MANIFEST 1823
+--     (the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql), still the highest MANIFEST file
+--     that defines it. #1051 (MANIFEST 1844) and #1106 (MANIFEST 1888) changed fn_supplier_invite_eligible_ids,
+--     fn_supplier_invite_link and fn_supplier_invite_candidates, which the batch CALLS; none redefined the batch. This
+--     file redefines neither of those routines, so the pool read once as a set and the rescue tier stay as they are.
+--   * fn_sales_engineer_supplier_onboarding's live body is byte-identical to MANIFEST 1833, still its highest file.
+--   * notifications of type supplier_invite or supplier_invite_nudge: 0. invite_enabled and supplier_outreach_golive:
+--     false. So today 0 real nudges are due and 0 can be queued.
 --
--- ROOT CAUSE — 0 nudges by construction, not by chance:
---   1. fn_sales_engineer_supplier_onboarding nudges ONLY stage 'matched' (approved, matched, not quoted). Its comment
---      delegates the stages before approval to "the invitation reminders".
---   2. fn_supplier_registration_reminders_due selects only invite_clicked_at / claimed / action_required. A lead who
---      was invited and never opened the mail has stage NULL there and is filtered out.
---   So nothing, anywhere, followed up the 'invited' stage. (And had it read leads.invited_at it would have nudged
---   171 people who were never invited: the anchor must be the outbox.)
+-- ROOT CAUSE of "171 invited, 0 nudged": fn_sales_engineer_supplier_onboarding nudged only stage 'matched', and
+-- fn_supplier_registration_reminders_due only clicked / claimed / action_required leads. Nothing followed up a lead
+-- who was invited and never opened the mail. The anchor must be the OUTBOX (a delivered supplier_invite), never
+-- leads.invited_at, which carries fixture and test writes.
 --
--- WHAT THIS ADDS
---   fn_supplier_invite_nudges_due(p_now, p_include_fixtures): an invited, unregistered lead (not clicked, not claimed,
---     no approval status) whose supplier_invite NOTIFICATION was delivered (status 'sent' / sent_at, never the lead's
---     status column) is due step 1 from day 3, step 2 from day 7, step 3 from day 14, nothing after day 21 — at most 3.
---     Idempotent per lead and step: the delivery key 'supplier_invite_nudge:<lead>:<step>' is read back from
---     agent_actions (the delivery request itself), as the registration reminders do.
---     Suppression: never email_suppressions, never invite_status bounced/complained/unsubscribed; real leads also pass
---     fn_supplier_outreach_reachable (fixtures, bans, screening, closed, fn_email_sendable).
---   fn_sales_engineer_nudges_invited_suppliers(p_now, p_cap, p_include_fixtures): holds on a company_calendar public
---     holiday and the UAE weekend, and after the Dubai window end (invite_warmup.window_end_hour, default 17); a nudge
---     queued earlier (the duty runs at 04:01 Dubai) carries not_before = window_start_hour (default 9) Dubai that day,
---     as the batch does; the cap is counted on the UTC day as the batch counts it; real mail also needs
---     invite_enabled + supplier_outreach_golive (the founder's go). It SHARES the invitation's daily cap
---     (app_secrets.invite_daily_cap, moved only by fn_invite_ramp's bounce/complaint throttle): invitations and nudges
---     queued today count against one number. Queues through fn_customer_support_takes_delivery (notifications ->
---     send_outbox). Fixture mode touches ONLY ZZ DEMO leads at @example.invalid.
---   fn_sales_engineer_supplier_onboarding calls it and reports 'invite_nudges'.
+-- WHAT THIS ADDS (the nudge only; every other line of the two redefined routines is their canonical body)
+--   fn_supplier_invite_nudges_due: an invited lead whose supplier_invite was delivered, not clicked, not claimed, not
+--     registered, no approval status, is due step 1 from day 3, 2 from day 7, 3 from day 14, nothing from day 21.
+--     Once per lead and step (the delivery key is read back from agent_actions). Never a suppressed address, never
+--     invite_status bounced / complained / unsubscribed; real leads also pass fn_supplier_outreach_reachable.
+--   fn_sales_engineer_nudges_invited_suppliers: the founder's rules, in the order they refuse:
+--     1. no send on a company_calendar public holiday or the UAE weekend (as the batch);
+--     2. the campaign go switch: invite_enabled AND supplier_outreach_golive, in BOTH modes (the fixture mode used by
+--        the probe too, so the probe proves the switch rather than walking round it);
+--     3. the brakes the batch obeys: after the Dubai window end nothing is queued; before its start a nudge waits
+--        (not_before = window_start_hour Dubai); a measured inbox-placement failure today (fn_invite_placement_gate
+--        'fail:...'; 'wait' before the seed is read is not a failure) holds real nudges; the batch's 3-day bounce brake
+--        holds real nudges too (the batch owns the auto-pause flip; this only refuses to add to it);
+--     4. ONE daily cap: invitations and nudges queued on the UTC day count against app_secrets.invite_daily_cap
+--        (fn_invite_ramp's throttle), and send_outbox's invitation lane caps both types again at send time.
+--     Always ENGLISH (lang 'en', the /en/ link from fn_supplier_invite_link, no Arabic copy; an Arabic-script company
+--     name is not written into the greeting). Queued through fn_customer_support_takes_delivery.
+--   fn_sales_engineer_supplier_onboarding (base: MANIFEST 1833) calls it and reports 'invite_nudges'; its first-quote
+--     nudge loses the Arabic branch that #1065 had already switched off (suppliers are always English).
+--   enqueue_supplier_invites (base: MANIFEST 1823) - ONE line: its used-today count includes supplier_invite_nudge,
+--     so the batch and the nudger spend one cap from both sides.
 --
--- REVIEW, 29 Sep 2026: a nudge is ALWAYS ENGLISH (lang 'en', the /en/ portal, no Arabic copy; founder rule: suppliers
---   are always English, ledger 993), and send_outbox carries 'supplier_invite_nudge' on the invitation lane
---   (invite_lane.ts INVITE_LANE_TYPES), inside the lane's one daily cap, so a nudge never leaves from info@.
--- RE-REVIEW, 29 Sep 2026: an Arabic-script company name is not written into the English greeting (#1070's guard,
---   both nudges), and enqueue_supplier_invites (redefined at the foot) counts the day's nudges against
---   invite_daily_cap, so the batch and the nudger spend ONE cap from both sides.
--- DEPENDS-ON #1051: the nudge link is fn_supplier_invite_link (the /en/ link with the invitation ref), defined in
---   the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql. Apply #1051 first.
--- ORGANIC ONLY (founder 866): email through the company's own outbox; no paid channel, no ad spend, no LLM.
--- Prevented by: scripts/sql/an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14_probe.sql
+-- RELEASE: apply this file, THEN deploy send_outbox (invite_lane.ts carries supplier_invite_nudge as a lane type
+--   inside the lane's daily cap) in the same release. Until both are live no nudge is queued anyway: the switch is off.
+-- ORGANIC ONLY (founder 866): the company's own outbox; no paid channel, no LLM.
+-- Prevented by: scripts/sql/an_unopened_supplier_invitation_is_nudged_on_day_3_7_and_14_under_the_same_switch_cap_and_brakes_probe.sql
 
 create or replace function public.fn_supplier_invite_nudges_due(p_now timestamptz default now(), p_include_fixtures boolean default false)
 returns table (lead_id bigint, step integer, to_email text, lang text, dedupe_key text)
@@ -96,6 +100,7 @@ declare
   v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_hol text; v_cap int; v_used int; v_left int; v_queued int := 0; v_due int := 0; r record; v_link text;
   v_res jsonb; v_not_before timestamptz;
+  v_gate text; v_inv_recent int; v_bounced_recent int; v_max_rate numeric;
 begin
   select c.event_name into v_hol from public.company_calendar c
    where c.kind = 'public_holiday' and v_dxb::date between c.starts_on and coalesce(c.ends_on, c.starts_on) limit 1;
@@ -109,10 +114,24 @@ begin
                                   at time zone 'Asia/Dubai');
   if extract(hour from v_dxb) >= coalesce((v_cfg->>'window_end_hour')::int, 17) then
     return jsonb_build_object('held', 'after the Dubai sending window', 'queued', 0); end if;
-  if not p_include_fixtures and not (coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
-                                     and public.fn_supplier_outreach_golive()) then
+  -- THE GO SWITCH governs every mode, the probe's fixture mode included (30 Sep 2026).
+  if not (coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
+          and public.fn_supplier_outreach_golive()) then
     return jsonb_build_object('held', 'the supplier campaign is not open (invite_enabled / supplier_outreach_golive)', 'queued', 0,
-                              'due', (select count(*) from public.fn_supplier_invite_nudges_due(p_now, false)));
+                              'due', (select count(*) from public.fn_supplier_invite_nudges_due(p_now, p_include_fixtures)));
+  end if;
+  -- THE BATCH'S BRAKES, for real mail (a fixture address never leaves: send_outbox suppresses @example.invalid).
+  if not p_include_fixtures then
+    v_gate := public.fn_invite_placement_gate(v_dxb::date, p_now);
+    if v_gate like 'fail:%' then
+      return jsonb_build_object('held', 'inbox placement ' || v_gate, 'queued', 0); end if;
+    -- enqueue_supplier_invites' 3-day bounce brake, read only (the batch owns the auto-pause)
+    select count(*), count(*) filter (where invite_status = 'bounced') into v_inv_recent, v_bounced_recent
+      from public.leads where invited_at > p_now - interval '3 days';
+    v_max_rate := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
+    if (v_inv_recent >= 15 and v_bounced_recent::numeric / greatest(v_inv_recent, 1) > v_max_rate)
+       or v_bounced_recent >= greatest(5, ceil(v_inv_recent * v_max_rate)::int) then
+      return jsonb_build_object('held', 'bounce brake: ' || v_bounced_recent || ' of ' || v_inv_recent || ' in 3 days', 'queued', 0); end if;
   end if;
 
   -- ONE daily cap for the domain: invitations and nudges queued this day, same class (real or fixture). The day is
@@ -142,7 +161,7 @@ begin
       'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en', 'dedupe_key', r.dedupe_key,
       'subject', case when r.step = 3 then 'A last reminder: ' else '' end || 'your invitation to join QuotesDone as a supplier',
       -- #1070's greeting guard: an Arabic-script company name is not written into an English letter
-      'body', coalesce('Dear ' || nullif(btrim(case when r.company_name ~ '[؀-ۿ]' then '' else r.company_name end), '') || ',',
+      'body', coalesce('Dear ' || nullif(btrim(case when r.company_name ~ '[\u0600-\u06FF]' then '' else r.company_name end), '') || ',',
                        'Dear Sir or Madam,') || E'\n\n'
           || 'A reminder of our invitation to register your company as a supplier on QuotesDone. It is free and takes a few minutes.'
           || E'\n\n' || v_link
@@ -230,7 +249,7 @@ begin
       'dedupe_key', 'first_quote_nudge:' || r.lead_id || ':' || (select nudges from public.supplier_onboarding where lead_id = r.lead_id),
       'subject', 'Customer requests are waiting for your quotation',
       -- #1070's greeting guard (#1007): an Arabic-script company name is not written into an English letter
-      'body', 'Dear ' || coalesce(nullif(btrim(case when r.company_name ~ '[؀-ۿ]' then '' else r.company_name end), ''), 'supplier') || ',' || chr(10) || chr(10)
+      'body', 'Dear ' || coalesce(nullif(btrim(case when r.company_name ~ '[\u0600-\u06FF]' then '' else r.company_name end), ''), 'supplier') || ',' || chr(10) || chr(10)
           || r.open_matches || ' customer request(s) matched to your trade are open and have no quotation from you yet. '
           || 'You can read them and quote in your supplier portal: '
           || coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com')
