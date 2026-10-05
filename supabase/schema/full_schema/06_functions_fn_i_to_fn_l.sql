@@ -150,8 +150,8 @@ CREATE OR REPLACE FUNCTION public.fn_inquiry_add_missing_specs(p_inquiry uuid, p
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  i public.inquiries; v_missing jsonb; v_add jsonb := '{}'::jsonb; v_lines text := ''; e record; v_val text; v_ask text;
-  v_note bigint; v_after public.inquiries; v_told int := 0; l record; v_res jsonb;
+  i public.inquiries; v_missing jsonb; v_add jsonb := '{}'::jsonb; v_lines text := ''; v_held text := ''; e record; v_val text; v_ask text;
+  v_note bigint; v_held_note bigint; v_after public.inquiries; v_told int := 0; l record; v_res jsonb; v_head text; v_q text; v_kept jsonb := '[]'::jsonb;
 begin
   if p_source not in ('customer_portal', 'email_reply') then raise exception 'missing specs come from customer_portal or email_reply, not %', p_source; end if;
   if p_source = 'customer_portal' and p_customer is null then raise exception 'a portal answer names its customer'; end if;
@@ -167,45 +167,78 @@ begin
     v_val := left(btrim(coalesce(e.value, '')), 300);
     select m->>'ask' into v_ask from jsonb_array_elements(v_missing) m where m->>'key' = lower(btrim(e.key));
     if v_ask is null or not public._rfq_answered(v_val) then continue; end if;
+    -- Budget and emirate are columns every supplier copy reads raw (inquiries_supplier_safe.emirate, the invitation):
+    -- in Arabic script they are NOT written and stay missing, so the page asks them again; digits and English pass
+    -- (Arabic-Indic digits are written as the same Western digits first, so "٥٠٠٠" is 5000).
+    if lower(btrim(e.key)) in ('budget', 'emirate') then
+      v_val := translate(v_val, '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789');
+    end if;
+    if lower(btrim(e.key)) in ('budget', 'emirate') and v_val ~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]' then
+      v_kept := v_kept || jsonb_build_array(lower(btrim(e.key))); continue;
+    end if;
     v_add := v_add || jsonb_build_object(lower(btrim(e.key)), v_val);
-    v_lines := v_lines || case when v_lines = '' then '' else chr(10) end || v_ask || ' ' || v_val;
+    -- Suppliers read English only: an answer in Arabic script waits for its English on the held note.
+    if v_val ~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]' then
+      v_held := v_held || case when v_held = '' then '' else chr(10) end || v_ask || ' ' || v_val;
+    else
+      v_lines := v_lines || case when v_lines = '' then '' else chr(10) end || v_ask || ' ' || v_val;
+    end if;
   end loop;
-  if v_add = '{}'::jsonb then return jsonb_build_object('ok', false, 'error', 'nothing_to_add', 'missing', v_missing); end if;
+  if v_add = '{}'::jsonb then return jsonb_build_object('ok', false, 'error', 'nothing_to_add', 'missing', v_missing, 'kept_missing', v_kept); end if;
 
-  -- The row's own trigger (trg_rfq_complete) re-runs the hold check on this write. Budget and emirate are the
-  -- request's own columns; every other answer is a spec under its key.
+  -- The row's own trigger (trg_rfq_complete) re-runs the hold check on this write: every answer, Arabic included,
+  -- counts as answered. Budget and emirate are the request's own columns; every other answer is a spec under its key.
   update public.inquiries
      set spec = case when jsonb_typeof(spec) = 'object' then spec else '{}'::jsonb end || (v_add - 'budget' - 'emirate'),
          budget = coalesce(v_add->>'budget', budget),
          emirate = coalesce(v_add->>'emirate', emirate)
    where id = i.id returning * into v_after;
 
-  insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
-  values (i.id, null, 'note',
-          case when p_source = 'email_reply' then 'The customer replied with the details this trade needs:' else 'The customer added the details this trade needs:' end
-          || chr(10) || v_lines, now(), 'missing_specs')
-  returning id into v_note;
+  v_head := case when p_source = 'email_reply' then 'The customer replied with the details this trade needs:' else 'The customer added the details this trade needs:' end;
 
-  -- Every supplier already invited is told, through customer_support's door (suppliers are written in English).
-  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email
-             from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
-            where x.inquiry_id = i.id and not coalesce(le.banned, false)
-              and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
-    v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
-      'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
-      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
-      'subject', 'The customer added detail to a request you were invited to quote',
-      'body', 'The customer added this to the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
-              || ' you were invited to quote:' || chr(10) || chr(10) || v_lines || chr(10) || chr(10)
-              || 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.',
-      'dedupe_key', 'missing_specs:' || v_note || ':' || l.id)));
-    v_told := v_told + 1;
-  end loop;
+  if v_held <> '' then
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answer_as_written, english_held_at, answered_at, source)
+    values (i.id, null, 'note', null, v_head || chr(10) || v_held, now(), now(), 'missing_specs')
+    returning id into v_held_note;
+    -- The same request _shared/supplier_english.ts holdForEnglish files (englishQuestion), filed here so the note
+    -- and its English can never be separated.
+    v_q := 'Translate this message from a customer into clear, professional English for the suppliers quoting the job, '
+        || 'as a UAE sales engineer would write it. Keep every measurement, quantity, brand, model and grade code exactly as written. '
+        || 'Add nothing and leave nothing out. Put ONLY the English text in "answer".' || chr(10) || chr(10) || v_head || chr(10) || v_held;
+    perform public.fn_reason_hold('sales_engineer', 'sales_engineer.supplier_english', left(v_q, 8000),
+      jsonb_build_object('seat', 'sales_engineer', 'surface', 'sales_engineer.supplier_english', 'question', v_q,
+        'context', jsonb_build_object('audience', 'internal', 'language', 'en'), 'research', false,
+        'subject', jsonb_build_object('clarification_id', v_held_note), 'dedupeKey', 'supplier_english:' || v_held_note),
+      '{}'::jsonb, jsonb_build_object('clarification_id', v_held_note), 'filed_from_a_request_path', 'supplier_english:' || v_held_note);
+  end if;
+
+  if v_lines <> '' then
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
+    values (i.id, null, 'note', v_head || chr(10) || v_lines, now(), 'missing_specs')
+    returning id into v_note;
+
+    -- Every supplier already invited is told, through customer_support's door (suppliers are written in English).
+    for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email
+               from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
+              where x.inquiry_id = i.id and not coalesce(le.banned, false)
+                and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
+      v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+        'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
+        'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
+        'subject', 'The customer added detail to a request you were invited to quote',
+        'body', 'The customer added this to the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+                || ' you were invited to quote:' || chr(10) || chr(10) || v_lines || chr(10) || chr(10)
+                || 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.',
+        'dedupe_key', 'missing_specs:' || v_note || ':' || l.id)));
+      v_told := v_told + 1;
+    end loop;
+  end if;
 
   v_missing := public.fn_inquiry_missing_specs(i.id, null);
   return jsonb_build_object('ok', true, 'added', (select jsonb_agg(k) from jsonb_object_keys(v_add) k),
     'ready', coalesce(v_after.rfq_ready, false), 'still_missing', v_missing->'missing',
-    'reached_suppliers', (v_missing->>'reached_suppliers')::boolean, 'suppliers_told', v_told, 'note_id', v_note);
+    'reached_suppliers', (v_missing->>'reached_suppliers')::boolean, 'suppliers_told', v_told, 'note_id', v_note,
+    'held_for_english', v_held_note is not null, 'held_note_id', v_held_note, 'kept_missing', v_kept);
 end $function$
 
 
