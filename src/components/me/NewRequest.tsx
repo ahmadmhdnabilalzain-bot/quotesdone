@@ -107,6 +107,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [posted, setPosted] = useState(null); // set when create_inquiry answered ok and reached no supplier
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // A NEWER TERMS VERSION (6 Oct 2026, release review of #1240): create_inquiry answers 409 terms_reaccept; the
+  // current Terms are offered here, inline, and the same request is sent again with the acceptance. Never a wall.
+  const [reaccept, setReaccept] = useState(null); const [reacceptTick, setReacceptTick] = useState(false);
   // The trade's published "how to specify" guide (scripts/sql/customer_spec_guide.sql); none -> nothing shown.
   const guideTrade = (brief && brief.category) || meta.category || '';
   const [guide, setGuide] = useState(null);
@@ -431,16 +434,18 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   };
   const stopRec = () => { const r = recRef.current; try { if (r && r.sr) r.sr.stop(); else if (r && r.mr) r.mr.stop(); } catch (_e) {} setRec(false); };
 
-  const submit = async () => {
+  const submit = async (acceptTermsVersion = null) => {
     setBusy(true); setMsg('');
     const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
     const firstUser = messages.find((m) => m.role === 'user' && m.text);
     const summary = (brief && brief.summary) || (firstUser ? firstUser.text.slice(0, 180) : category);
-    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, requirement_edits: edits, lang }, token).catch(() => null);
+    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, requirement_edits: edits, lang, accept_terms_version: acceptTermsVersion || undefined }, token).catch(() => null);
     setBusy(false);
     // THE HONEST AFTER-POST (14 Sep 2026). A request no registered supplier covers is still posted and
     // flagged to the team (customer_api flagCoverageGap), but the composer used to close with nothing
     // said. The customer is now told, in their language, that quotes may take longer and why.
+    if (r && r.error === 'terms_reaccept') { setReaccept({ version: r.version }); setReacceptTick(false); return; }
+    if (r && r.ok) setReaccept(null);
     if (r && r.ok) {
       // One answer shape (customer_api, _shared/inquiry_posted.ts): matches is already summed over a
       // split's children, and inquiry_id is the request the customer made (the combined parent).
@@ -580,7 +585,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
               ) : null}
               {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-warn-fg">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
               {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, drawing.boq && Array.isArray(drawing.boq.boq) && drawing.boq.boq.length ? 'nr_drawing_held_boq' : 'nr_drawing_held', { name: drawing.held_name || drawing.drawing_file_name || '' })}</div> : null}
-              <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
+              <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={() => submit()}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
             </M.div>
           )}
@@ -590,6 +595,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
 
       <div className="shrink-0 border-t border-border bg-secondary/20 px-3 py-3 sm:px-4">
         {!drawing ? <div className="mb-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'nr_attach_privacy')}</div> : null}
+        {reaccept ? <div className="mb-2 rounded-md border border-warn-fg/40 p-3" role="alert">
+          <div className="text-[13px] font-semibold text-warn-fg">{t(lang, 'terms_reaccept_h')}</div>
+          <div className="mt-1 text-[12.5px] text-foreground">{tf(lang, 'terms_reaccept_b', { v: reaccept.version })}</div>
+          <label className="mt-2 flex items-center gap-2 text-[12.5px] text-muted-foreground"><input type="checkbox" checked={reacceptTick} onChange={(e) => setReacceptTick(e.target.checked)} /> <a href={lang === 'ar' ? '/ar/terms' : '/terms'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_read')}</a></label>
+          <Button size="sm" className="mt-2" disabled={!reacceptTick || busy} onClick={() => submit(reaccept.version)}>{t(lang, 'terms_accept_send')}</Button>
+        </div> : null}
         {msg && <div className="mb-1.5 text-[12.5px] text-danger-fg" role="alert">{msg}</div>}
         {rec && voice === 'speech' && (
           <div className="mb-1.5 flex items-center gap-2 text-[12.5px] font-semibold text-danger" role="status">

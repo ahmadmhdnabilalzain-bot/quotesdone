@@ -46,22 +46,16 @@ export type CustomerAccount = {
   email_verified?: boolean | null;
   phone_verified?: boolean | null;
   tos_accepted_at?: string | null;
-  tos_version?: string | null;
 };
 
 // The items still missing before this customer may create a request. Empty array = allowed.
-// A NEW TERMS VERSION IS ACCEPTED AGAIN (it_engineer, 6 Oct 2026; legal audit, founder ledger 1122). The rule
-// checked only that SOME version had been accepted, so a customer who accepted v4 could keep creating requests
-// under v9 without ever seeing it: a contract change applied silently. When the caller passes the current
-// version (app_secrets customer_terms_version, the one kyc accept_terms records), an older tos_version counts
-// as "terms_accepted" missing, and the portal shows the Terms step again.
-export function accountMissing(c: CustomerAccount | null | undefined, today: Date = new Date(), currentTermsVersion?: string | null): string[] {
+export function accountMissing(c: CustomerAccount | null | undefined, today: Date = new Date()): string[] {
   const x = c || {};
   const missing: string[] = [];
   if (String(x.full_name || '').trim().length < 2) missing.push('name');
   const p = dobProblem(x.date_of_birth, today);
   if (p) missing.push(p === 'under_18' ? 'age_18_or_over' : 'date_of_birth');
   if (!(x.email_verified === true || x.phone_verified === true)) missing.push('verified_email_or_mobile');
-  if (!x.tos_accepted_at || (currentTermsVersion && String(x.tos_version || '') !== currentTermsVersion)) missing.push('terms_accepted');
+  if (!x.tos_accepted_at) missing.push('terms_accepted');
   return missing;
 }
