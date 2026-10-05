@@ -42,6 +42,10 @@ alter table public.seat_knowledge_recall_floor enable row level security;
 drop policy if exists seat_knowledge_recall_floor_service_role_only on public.seat_knowledge_recall_floor;
 create policy seat_knowledge_recall_floor_service_role_only on public.seat_knowledge_recall_floor as permissive for all to public using (false) with check (false);
 revoke all on public.seat_knowledge_recall_floor from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('seat_knowledge_recall_floor', true, 'measurement', 'Each seat''s Arabic recall floor for the knowledge exam: a fall below it is a finding.', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 create or replace function public.fn_it_engineer_knowledge_recall_exam()
 returns jsonb
