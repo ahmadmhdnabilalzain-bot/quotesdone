@@ -1,0 +1,10 @@
+Applied at merge (ledger 1085 stage 2, phase 1). Seat: it_engineer.
+
+After the apply, at night: node scripts/kb/fill_knowledge_library.mjs --run (pages of at most 5,000 under the purge's
+load guard; kb_chunks first) until fn_knowledge_library_reconcile() says reconciled. Best after #1204's trim, which
+takes the 90,488 uncited qd_kb_pack rows the library never holds (the fill skips them either way).
+
+Nothing reads the library until app_secrets 'knowledge_library_read' = 'library', which phase 2 sets only after the
+read-only exam over the filled library shows no seat dropping more than 0.02 in EN or AR.
+
+What moves this note: the apply. Then delete it and append the file to the END of scripts/sql/MANIFEST.txt.
