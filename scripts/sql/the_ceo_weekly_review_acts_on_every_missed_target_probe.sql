@@ -7,7 +7,6 @@
 -- HOW IT STAYS HARMLESS: every write is inside an inner block that ends in a raised exception, so nothing commits.
 -- It cannot reach the founder even if it did: app_secrets.admin_emails is pointed at zz.demo.founder@example.invalid
 -- first; its weeks are January 2026 (no real review exists for them); its one risk is a ZZ DEMO row.
-begin;
 
 do $$
 declare
@@ -45,7 +44,10 @@ begin
     select status into v_imp_status from public.ceo_improvement where id = v_imp_risk;
     select count(*), count(*) filter (where jsonb_array_length(coalesce(evidence->'escalation_tasks', '[]'::jsonb)) = 1)
       into v_esc, v_esc_tasks
-      from public.ceo_improvement where source_kind = 'weekly_review' and escalations = 1 and due_on = (now() at time zone 'Asia/Dubai')::date + 7;
+      from public.ceo_improvement
+     -- only the improvements THIS probe's week 2 escalated: live reviews escalate real rows with the same due date
+     where id in (select unnest(escalated) from public.ceo_weekly_review where week = date '2026-01-12')
+       and source_kind = 'weekly_review' and escalations = 1 and due_on = (now() at time zone 'Asia/Dubai')::date + 7;
     select count(*) into v_reopened from public.ceo_improvement n
      where n.id in (select unnest(opened) from public.ceo_weekly_review where week = date '2026-01-12')
        and exists (select 1 from public.ceo_improvement e
@@ -112,4 +114,3 @@ end $$;
 
 select coalesce(current_setting('qd.probe_verdict', true), 'PROBE FAILED (the block set no verdict)') as verdict;
 
-rollback;
