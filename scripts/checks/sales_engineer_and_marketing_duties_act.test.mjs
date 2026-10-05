@@ -5,9 +5,8 @@
 //   * supplier_onboarding: the matched ZZ DEMO supplier is not at stage 'matched', is not nudged after 3 days, or is
 //     nudged twice in one week;
 //   * supplier_performance: nothing is scored, or fn_match_capability stops reading supplier_performance;
-//   * supply_gap: a waiting customer's trade is not recruited for by rule, a gap nobody waits on is not filed as a
-//     high-stakes reasoned decision of the sales engineer, a reasoned 'recruit' does not reach marketing through a
-//     cross-family review, or a choice outside the options is applied;
+//   * supply_gap: a waiting customer's trade is not recruited for by rule, or a gap nobody waits on is filed for the
+//     model instead of deferred by rule (rule:nobody_waiting, 5 Oct 2026);
 //   * recruitment_funnel: a recruiting gap has no funnel row, or its leads do not go first in the invitation queue;
 //   * reputation: a missing review link is not a finding, the ask does not go through customer_support once the link
 //     exists, or it goes twice.
@@ -112,21 +111,7 @@ do $$ declare o jsonb := '{}'; v jsonb; lid bigint; inq uuid; h bigint; n bigint
     'seeded_held', (select jsonb_build_object('status', q.status, 'surface', q.request->>'surface') from public.reasoning_held_question q
                      where q.id = (select held_id from public.supply_gap where trade = tr and emirate = 'UAE')),
     'no_pool', (select jsonb_build_object('status', status, 'by', decided_by, 'held', held_id is not null) from public.supply_gap where trade = em and emirate = 'UAE'));
-  select held_id, emirate into h, em from public.supply_gap where trade = tr and emirate = 'UAE';
-  o := o || jsonb_build_object('held', (select jsonb_build_object('seat', seat, 'stakes', request->>'stakes') from public.reasoning_held_question where id = h));
-  begin
-    perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"x","model":"openai/gpt-5.6-sol","decision":{"choice":"maybe"}}');
-    o := o || jsonb_build_object('bad_choice', 'applied');
-  exception when others then
-    o := o || jsonb_build_object('bad_choice', left(sqlerrm, 40), 'still_deciding', (select status from public.supply_gap where trade = tr and emirate = em));
-  end;
-  -- the author's model is proven the way think() proves it: its latest internal_judgement call by the seat (#1126, 1056)
-  insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values ('probe', 'sales_engineer', 'sales_engineer', 'internal_judgement', 'openai/gpt-5.6-sol', true);
-  update public.reasoning_held_question set status = 'held' where id = h;
-  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: thin supply and a deep uninvited pool make this worth recruiting now.","model":"openai/gpt-5.6-sol","decision":{"choice":"recruit"}}');
-  o := o || jsonb_build_object('reasoned', (select jsonb_build_object('status', status, 'by', decided_by, 'deliberation', (review->>'deliberation_id') is not null)
-                                             from public.supply_gap where trade = tr and emirate = em),
-    'reviewer', (select reviewer_seat from public.seat_deliberation where id = (select (review->>'deliberation_id')::bigint from public.supply_gap where trade = tr and emirate = em)));
+  o := o || jsonb_build_object('seeded_by', (select decided_by from public.supply_gap where trade = tr and emirate = 'UAE'));
 
   -- THE FUNNEL: a recruiting gap gets its row; its leads go first
   v := public.fn_marketing_recruitment_funnel();
@@ -157,15 +142,13 @@ end $$;`);
   assert.equal(o.nudges2, 1, 'the supplier was nudged twice in one week');
   assert.equal(o.scored, true, 'no supplier was scored');
   assert.ok(o.rule >= 1, 'a trade with demand was not recruited for by rule');
-  assert.equal(o.filed, 1, 'a gap nobody waits on was not filed for reasoning');
-  assert.deepEqual(o.seeded, { status: 'deciding', pool: 3, held: true }, 'the seeded gap with uninvited leads was not the one filed for reasoning');
-  assert.equal(o.seeded_held?.surface, 'sales_engineer.supply_gap', 'the filed gap holds no sales_engineer.supply_gap question');
+  // 5 Oct 2026 (LLM burn audit R8, a_held_question_is_paid_for_once_and_test_traffic_never_waits_for_a_model.sql): a gap
+  // nobody waits on is deferred by rule even with leads to recruit; nothing is filed for the model.
+  assert.equal(o.filed, 0, 'a gap nobody waits on was filed for reasoning');
+  assert.deepEqual(o.seeded, { status: 'deferred', pool: 3, held: false }, 'the seeded gap with uninvited leads was not deferred by rule');
+  assert.equal(o.seeded_by, 'rule:nobody_waiting');
+  assert.equal(o.seeded_held, null, 'the deferred gap holds a question for the model');
   assert.deepEqual(o.no_pool, { status: 'deferred', by: 'rule:no_uninvited_leads', held: false }, 'a gap with no uninvited lead was not deferred by rule');
-  assert.deepEqual(o.held, { seat: 'sales_engineer', stakes: 'high' });
-  assert.match(o.bad_choice, /^CHOICE_NOT_AN_OPTION/, 'a choice outside the options was applied');
-  assert.equal(o.still_deciding, 'deciding');
-  assert.deepEqual(o.reasoned, { status: 'recruit', by: 'reasoning', deliberation: true }, 'a reasoned recruit did not open a cross-family review');
-  assert.equal(o.reviewer, 'marketing', 'the review is not marketing\'s');
   assert.equal(o.funnel_rows, true, 'a recruiting gap has no funnel row');
   assert.equal(o.first_is_target, true, 'the first lead in the invitation queue is not in a recruiting trade');
   assert.equal(o.no_link_asked, 0, 'an ask went out with no link');
