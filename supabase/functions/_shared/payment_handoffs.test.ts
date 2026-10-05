@@ -37,6 +37,10 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
   for (const h of HANDOFF_TYPES.filter((x) => x.from === 'customer_support' && x.to !== 'customer_support')) {
     if (h.type === 'deliberation.review' && h.to === 'ceo') continue;
     if (h.type === 'support.root_cause' && ROOT_CAUSE_OWNERS.includes(h.to)) continue;
+    // — and a third (#1186, 5 Oct 2026): a customer's "not sure" on a held spec goes to the sales engineer, who owns
+    // specs, as spec.not_sure; it asks for his answer on that spec (handler fn_sales_engineer_spec_handoff_waits) and
+    // delivers nothing.
+    if (h.type === 'spec.not_sure' && h.to === 'sales_engineer') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {
