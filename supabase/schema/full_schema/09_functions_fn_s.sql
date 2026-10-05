@@ -2068,7 +2068,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supply_gap(p_reason_limit in
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_target int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
-  g record; v_filed int := 0; v_rule int; v_closed int; v_reopened int; v_month text := to_char(now(), 'YYYY-MM');
+  g record; v_filed int := 0; v_rule int; v_closed int; v_reopened int; v_settled int; v_month text := to_char(now(), 'YYYY-MM');
   v_emirates text[] := array['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
 begin
   with sup as materialized (   -- every matchable supplier with his trades and the emirates he states (none stated = UAE-wide)
@@ -2082,7 +2082,11 @@ begin
     select i.id, i.emirate, i.trades, i.created_at,
            (i.created_at > now() - interval '30 days' and i.status not in ('revealed', 'closed', 'cancelled', 'completed', 'expired', 'lost')
             and (select count(*) from public.quotes q where q.inquiry_id = i.id) < 3) as short
-      from public.inquiries i where i.created_at > now() - interval '90 days'
+      from public.inquiries i left join public.customers c on c.id = i.customer_id
+     where i.created_at > now() - interval '90 days'
+       -- DEMO IS NEVER DEMAND: a fixture customer's request never starts real recruitment (the predicate the
+       -- stalled-inquiry rescue already uses)
+       and not coalesce(public.fn_seat_clock_customer_is_fixture(c), false)
   ), pool as materialized (
     select t, l.emirate, count(*) as n from public.leads l, unnest(l.invite_trades) t
      where l.invite_status is null and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
@@ -2107,6 +2111,11 @@ begin
   on conflict (trade, emirate) do update set matchable = excluded.matchable, target = excluded.target,
     demand_90d = excluded.demand_90d, short_open = excluded.short_open, uninvited_pool = excluded.uninvited_pool, measured_at = now();
 
+  -- An area row that no counted request names any more (its only requests were demo) was not re-measured above:
+  -- it has no demand now, not the demand it had last run.
+  update public.supply_gap set demand_90d = 0, short_open = 0, measured_at = now()
+   where measured_at < now() and (demand_90d <> 0 or short_open <> 0);
+
   update public.supply_gap set status = 'closed', closed_at = now() where status <> 'closed' and matchable >= target;
   get diagnostics v_closed = row_count;
   update public.supply_gap set status = 'open', opened_at = now(), closed_at = null, decided_by = null, decided_at = null, held_id = null
@@ -2116,6 +2125,12 @@ begin
   -- A decision whose reasoning failed five times goes back to open, so it is filed again (fn_reason_hold reopens it).
   update public.supply_gap sgp set status = 'open'
    where sgp.status = 'deciding' and exists (select 1 from public.reasoning_held_question h where h.id = sgp.held_id and h.status in ('failed', 'expired'));
+
+  -- A RULE WHOSE CUSTOMER IS GONE IS UNDONE: a gap recruited for because a customer was waiting, where no counted
+  -- (non-demo) request remains, goes back to open and is decided again below like any gap nobody waits on.
+  update public.supply_gap set status = 'open', decided_by = null, decided_at = null, held_id = null
+   where status = 'recruit' and decided_by = 'rule:customer_waiting' and short_open = 0 and demand_90d = 0;
+  get diagnostics v_settled = row_count;
 
   -- A CUSTOMER IS ALREADY WAITING: recruited for at once, by rule. No judgement to make, so nothing waits on one.
   update public.supply_gap set status = 'recruit', decided_by = 'rule:customer_waiting', decided_at = now()
@@ -2142,7 +2157,7 @@ begin
     v_filed := v_filed + 1;
   end loop;
 
-  return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule,
+  return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule, 'customer_rule_undone', v_settled,
     'filed_for_reasoning', v_filed,
     'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.supply_gap group by status) x));
 end $function$
@@ -6559,28 +6574,120 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_due_paid_records_payment()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- any writer, insert or update: paid_at going from empty to set is a settlement
+  if new.paid_at is not null and (tg_op = 'INSERT' or old.paid_at is null) then
+    perform public.fn_supplier_due_record_settlement(new.id);
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_due_record_settlement(p_due_id bigint)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.supplier_dues; v_rest numeric; v_id bigint; v_on date; v_owed numeric;
+begin
+  select * into d from public.supplier_dues where id = p_due_id;
+  if not found or d.paid_at is null or coalesce(d.status, '') in ('reversed', 'refunded', 'cancelled') then return null; end if;
+  v_on := (d.paid_at at time zone 'Asia/Dubai')::date;
+  -- stripe_webhook's reference is always the payment intent or the session (pi_ / cs_); stripe_session_id alone is not
+  -- evidence (supplier_pay writes it when a checkout is OPENED, paid or not)
+  if d.payment_ref ~ '^(pi|cs)_' then
+    -- a Stripe settlement records what the session charged for this due, stored at checkout; never a figure
+    -- recomputed at paid_at (a day's interest apart when the checkout and the payment straddle midnight)
+    select c.amount_aed into v_rest from public.supplier_due_checkouts c
+     where c.session_id = d.stripe_session_id and c.due_id = d.id;
+    if v_rest is null then
+      perform public.fn_it_engineer_finding_upsert('acct:stripe_settlement_without_checkout_amount:' || d.id,
+        'A Stripe settlement of supplier due ' || d.id || ' has no stored checkout amount, so no payment row was recorded',
+        'public.fn_supplier_due_record_settlement', 'agent_facing', 1,
+        jsonb_build_object('due_id', d.id, 'stripe_session_id', d.stripe_session_id, 'payment_ref', d.payment_ref,
+                           'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+        '{}'::text[], '{}'::text[], 'accountant');
+      return null;
+    end if;
+    -- Stripe took it, so it is recorded as taken; a stale session paid after a bank part payment is an overpayment
+    v_owed := (public.fn_supplier_dues_outstanding(array[d.id], v_on) -> d.id::text ->> 'owed_aed')::numeric;
+    if v_rest > coalesce(v_owed, 0) then
+      perform public.fn_it_engineer_finding_upsert('acct:stripe_overpayment:' || d.id || ':' || d.payment_ref,
+        'Stripe charged AED ' || v_rest || ' on supplier due ' || d.id || ', above the AED ' || coalesce(v_owed, 0) || ' still owed; the excess is the supplier''s',
+        'public.fn_supplier_due_record_settlement', 'agent_facing', 1,
+        jsonb_build_object('due_id', d.id, 'charged_aed', v_rest, 'owed_aed', v_owed, 'stripe_session_id', d.stripe_session_id,
+                           'payment_ref', d.payment_ref, 'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+        '{}'::text[], '{}'::text[], 'accountant');
+    end if;
+  else
+    -- any other writer of paid_at: what was still owed on the settlement date, before this settlement
+    v_rest := (public.fn_supplier_dues_outstanding(array[d.id], v_on) -> d.id::text ->> 'owed_aed')::numeric;
+    if v_rest is null or v_rest <= 0 then return null; end if;
+  end if;
+  insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference, entered_by)
+  values (d.id, v_on, v_rest, coalesce(nullif(btrim(d.payment_ref), ''), 'supplier_dues.paid_at #' || d.id), 'service')
+  on conflict (due_id, reference) do nothing returning id into v_id;
+  return v_id;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_dues_accrue_interest(p_as_of date DEFAULT NULL::date)
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare x record; v jsonb; n int := 0;
+declare x record; v jsonb; n int := 0; v_owed numeric;
 begin
   for x in select id, transaction_id from public.supplier_dues
             where public.fn_supplier_due_is_owed(status, paid_at) and transaction_id is not null loop
     v := public.fn_accountant_nonresponse_charge(x.transaction_id, p_as_of);
     continue when not coalesce((v->>'ok')::boolean, false);
+    -- 30 SEP 2026 (accountant): what is still owed, after every recorded payment
+    v_owed := (public.fn_supplier_dues_outstanding(array[x.id], p_as_of) -> x.id::text ->> 'owed_aed')::numeric;
     update public.supplier_dues
-       set interest_amount = (v->>'interest_aed')::numeric, total_claim = amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric,
+       set interest_amount = (v->>'interest_aed')::numeric, total_claim = v_owed,
            due_date = (v->>'due_date')::date, due_date_30 = (v->>'due_date')::date + 23
      where id = x.id
        and (interest_amount is distinct from (v->>'interest_aed')::numeric
-            or total_claim is distinct from amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric
+            or total_claim is distinct from v_owed
             or due_date is distinct from (v->>'due_date')::date);
     if found then n := n + 1; end if;
   end loop;
   return n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_dues_outstanding(p_due_ids bigint[], p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.supplier_dues; v jsonb; out jsonb := '{}'; v_paid numeric;
+begin
+  for d in select * from public.supplier_dues where id = any(p_due_ids) loop
+    v_paid := coalesce((select sum(p.amount_aed) from public.supplier_due_payments p where p.due_id = d.id), 0);
+    v := case when d.transaction_id is not null then public.fn_accountant_nonresponse_charge(d.transaction_id, p_as_of) end;
+    if coalesce((v->>'ok')::boolean, false) then
+      out := out || jsonb_build_object(d.id::text, jsonb_build_object(
+        'owed_aed', round(greatest(0, (v->>'total_aed')::numeric + coalesce(d.fine_amount, 0)), 2),
+        'unpaid_principal_aed', (v->>'unpaid_principal_aed')::numeric, 'interest_aed', (v->>'interest_aed')::numeric,
+        'paid_aed', (v->>'paid_aed')::numeric, 'source', 'fn_accountant_nonresponse_charge'));
+    else
+      out := out || jsonb_build_object(d.id::text, jsonb_build_object(
+        'owed_aed', round(greatest(0, coalesce(d.amount_due, 0) + coalesce(d.admin_fee, 0) + coalesce(d.interest_amount, 0) + coalesce(d.fine_amount, 0) - v_paid), 2),
+        'unpaid_principal_aed', null, 'interest_aed', coalesce(d.interest_amount, 0), 'paid_aed', v_paid, 'source', 'stored columns less payments'));
+    end if;
+  end loop;
+  return out;
 end $function$
 
 

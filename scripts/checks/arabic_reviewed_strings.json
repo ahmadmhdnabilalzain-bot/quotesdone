@@ -5095,6 +5095,10 @@
   "fdd836af5b0c",
   "ff0d6c60d45e"
  ],
+ "supabase/functions/_shared/supplier_english.ts": [
+  "6a43e6a940cb",
+  "def44508420c"
+ ],
  "supabase/functions/_shared/supplier_registration.ts": [
   "14c50bb9700f",
   "38942ea42b21",

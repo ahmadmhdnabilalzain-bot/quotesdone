@@ -135,6 +135,38 @@ export function skipPatternFor(profile) {
   return `^(?:${profile.excluded.map((e) => esc(e.test)).join('|')})$`;
 }
 
+// THE COMMAND LINE HAS A CEILING, AND A SPAWN THAT CANNOT START IS A FAILURE (5 Oct 2026, it_engineer).
+// Every node test path used to go to ONE `node --test` call. On Windows, past ~32k characters, the
+// spawn answered "The command line is too long" and the run printed SUCCESS without executing a test.
+// Files now go in batches well under that limit, and the run fails on ANY spawn error or any batch
+// whose status is not 0 — a null status (killed, never started) is a failure, never a pass.
+//   prevented by: scripts/checks/run_fails_when_a_batch_cannot_start.test.mjs
+export const MAX_ARGS_CHARS = 6000;
+export function batches(files, max = MAX_ARGS_CHARS) {
+  const out = [];
+  let cur = [], len = 0;
+  for (const f of files) {
+    if (cur.length && len + f.length + 1 > max) { out.push(cur); cur = []; len = 0; }
+    cur.push(f); len += f.length + 1;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+/** Runs `cmd ...baseArgs ...batch` per batch. 0 only when every batch started AND exited 0; 127 = cmd not found. */
+export function runBatched(cmd, baseArgs, files, opts, spawn = spawnSync) {
+  let status = 0;
+  for (const b of batches(files)) {
+    const r = spawn(cmd, [...baseArgs, ...b], opts);
+    if (r.error) {
+      console.error(`\n${cmd} could not start a batch of ${b.length} file(s): ${r.error.code || r.error.message}`);
+      if (r.error.code === 'ENOENT') return 127;
+      status = status || 1;
+    } else if (r.status !== 0) status = status || (r.status ?? 1);
+  }
+  return status;
+}
+
 function main() {
   const { node, deno } = discover();
   const profileName = (process.argv.find((a) => a.startsWith('--profile=')) || '').split('=')[1];
@@ -187,12 +219,10 @@ function main() {
   // front of the API, not by hoping.
   // ponytail: --test-concurrency=1, revisit when a shared limiter exists.
   const skip = skipPatternFor(profile);
-  const nodeRes = spawnSync(process.execPath,
-    ['--test', '--test-concurrency=1',
-     ...(skip ? [`--test-skip-pattern=${skip}`] : []),
-     ...node.map((f) => path.join(REPO, f))],
+  let status = runBatched(process.execPath,
+    ['--test', '--test-concurrency=1', ...(skip ? [`--test-skip-pattern=${skip}`] : [])],
+    node.map((f) => path.join(REPO, f)),
     { stdio: 'inherit', cwd: REPO });
-  let status = nodeRes.status ?? 1;
 
   // THE CHECKS THAT ARE NOT `*.test.mjs`, 22 Sep 2026 (documents-language audit, DL-12).
   // language_follows_registration.mjs is a full gate — it walks production in one rolled-back
@@ -237,7 +267,7 @@ function main() {
     // replays the browser auditor's own quotation PDF and CSVs, committed under supplier_api/fixtures/.
     // CI refused with NotCapable "Requires read access to .../fixtures/ZZDEMO_quotation_D958E1EA.pdf"
     // while the same test passed locally. Only that folder is readable; the rest of the tree is not.
-    const denoRes = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto',
+    const denoStatus = runBatched('deno', ['test', '--no-lock', '--node-modules-dir=auto',
       '--allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_INBOUND_NO_SERVE',
       // Widened to READ the repository (21 Sep 2026, PR #780): the catalogue tests read synthetic
       // fixtures, the taxonomy seed in scripts/sql, and tesseract.js's wasm under node_modules/.deno.
@@ -252,9 +282,9 @@ function main() {
       // whole grant — no hostname resolves to it but itself, so no test can reach a real service, and
       // nothing outbound (Resend, Twilio, Stripe, Supabase) is reachable from this runner.
       '--allow-net=127.0.0.1',
-      `--allow-read=${REPO}`, ...deno],
+      `--allow-read=${REPO}`], deno,
       { stdio: 'inherit', cwd: REPO, shell: process.platform === 'win32' });
-    if (denoRes.error && denoRes.error.code === 'ENOENT') {
+    if (denoStatus === 127) {
       // NEVER SKIP. Passing silently when the runner is absent is the precise failure this file
       // was rewritten to remove: for a month the answer to "did the sanitiser tests pass?" was
       // "yes", and the true answer was "they never ran".
@@ -263,7 +293,7 @@ function main() {
       console.error('A suite that could not run must never be reported as a suite that passed.');
       process.exit(1);
     }
-    status = status || (denoRes.status ?? 1);
+    status = status || denoStatus;
   }
 
   process.exit(status);
