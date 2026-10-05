@@ -1,7 +1,7 @@
 // The copy-and-swap's pure parts: the run window and the index rewrite (scripts/kb/kb_chunks_copy_swap.mjs).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inRunWindow, indexForCopy, fitsRunWindow, trimRefusal, rollbackRefusal } from './kb_chunks_copy_swap.mjs';
+import { inRunWindow, indexForCopy, fitsRunWindow, trimRefusal, rollbackRefusal, prepareRefusal, MARK, swapRequest, rollbackRequest } from './kb_chunks_copy_swap.mjs';
 
 const dubai = (hhmm) => new Date(`2026-10-06T${hhmm}:00+04:00`);
 
@@ -49,4 +49,22 @@ test('rollback refuses without kb_chunks_old, and refuses to run twice', () => {
   assert.match(rollbackRefusal({ oldExists: false, newExists: false }), /kb_chunks_old does not exist/);
   assert.match(rollbackRefusal({ oldExists: true, newExists: true }), /already rolled back/);
   assert.equal(rollbackRefusal({ oldExists: true, newExists: false }), null);
+});
+
+test('the swap and rollback requests open with their marker (pg_stat_activity keeps only the first 1 kB)', () => {
+  for (const req of [swapRequest('id,content', 'r1'), rollbackRequest('id,content', 'r1')]) {
+    const at = req.indexOf(MARK('r1'));
+    assert.ok(at >= 0 && at + MARK('r1').length <= 200, `marker at ${at}`);
+    assert.ok(req.length > 1024, 'the body is longer than track_activity_query_size: the marker is what the wait can see');
+    assert.match(req.slice(0, 200), /set application_name = 'kb_chunks_swap:r1'/);
+  }
+  // both carry each trigger's enabled state over
+  assert.match(swapRequest('id', 'r1'), /tgenabled e[\s\S]*enable replica[\s\S]*enable always/);
+  assert.match(rollbackRequest('id', 'r1'), /k\.tgenabled e[\s\S]*enable replica/);
+});
+
+test('prepare refuses a kb_chunks_new whose write-log trigger is gone (an abandoned run)', () => {
+  assert.match(prepareRefusal({ newExists: true, triggerExists: false }), /Drop public\.kb_chunks_new/);
+  assert.equal(prepareRefusal({ newExists: true, triggerExists: true }), null);
+  assert.equal(prepareRefusal({ newExists: false, triggerExists: false }), null);
 });

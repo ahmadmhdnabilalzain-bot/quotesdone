@@ -3,7 +3,8 @@
 // and the SQL editor cancel a statement at ~2 min (the founder's attempt, 5 Oct: timed out, no change).
 // Instead: build kb_chunks_new from the live rows in pages, index it, catch up the writes, swap the names in one short
 // transaction. Every statement is its own management-API call, budgeted well under 2 min. Runbook:
-// docs/runbooks/kb_chunks_rewrite.md. Write log: scripts/sql/kb_chunks_records_every_write_while_its_copy_is_built.sql.
+// docs/runbooks/kb_chunks_rewrite.md. Write log: kb_chunks_records_every_write_while_its_copy_is_built.sql (applied by
+// the release train; this script never reads or sends a SQL file's text).
 //
 //   node scripts/kb/kb_chunks_copy_swap.mjs                  # plan: preconditions + inventory + progress, no writes
 //   node scripts/kb/kb_chunks_copy_swap.mjs --stage=prepare  # kb_chunks_new (no indexes but pkey), RLS, policies,
@@ -69,6 +70,19 @@ export function rollbackRefusal({ oldExists, newExists }) {
   if (newExists) return `${T}_new exists: already rolled back, or never swapped`;
   return null;
 }
+// prepare refuses an abandoned run: kb_chunks_new without the write-log trigger missed every write made meanwhile.
+export function prepareRefusal({ newExists, triggerExists }) {
+  if (newExists && !triggerExists) return `${T}_new exists but the write-log trigger on ${T} does not: writes since it was made are not in it. Drop ${S}.${T}_new (runbook "Abandon before the swap") and prepare again`;
+  return null;
+}
+// The swap and the rollback carry a marker at the very START of the request: pg_stat_activity.query is cut at
+// track_activity_query_size (1 kB on production), so after a timeout the wait matches the marker, never the body.
+export const MARK = (id) => `/* kb_chunks_swap:${id} */`;
+const marked = (id, body) => `${MARK(id)} set application_name = 'kb_chunks_swap:${id}'; set statement_timeout = '60s'; set lock_timeout = '5s'; ${body}`;
+// A trigger's enabled state (pg_trigger.tgenabled) re-applied to <rel>.<r.n>: O is the default ENABLE.
+const ENABLED_AS = (rel) => `execute format('alter table ${rel} %s trigger %I', case r.e when 'D' then 'disable'
+      when 'R' then 'enable replica' when 'A' then 'enable always' else 'enable' end, r.n);`;
+
 // An index definition of the table, rewritten for the copy: name + SUFFIX, on <table>_new, "if not exists".
 export function indexForCopy(def, t = T, s = S) {
   const m = new RegExp(`^CREATE (UNIQUE )?INDEX (\\S+) ON ${s}\\.${t} USING (.+)$`).exec(def);
@@ -161,8 +175,11 @@ async function preconditions({ mutate }) {
 async function prepare() {
   log('== prepare');
   if (!(await read(`select to_regprocedure('${S}.fn_kb_chunks_swap_log()') is not null x`)).x) {
-    fail(`${S}.fn_kb_chunks_swap_log() is not applied (scripts/sql/kb_chunks_records_every_write_while_its_copy_is_built.sql)`);
+    fail(`${S}.fn_kb_chunks_swap_log() is not applied (kb_chunks_records_every_write_while_its_copy_is_built.sql)`);
   }
+  const why = prepareRefusal({ newExists: await exists(`${S}.${T}_new`),
+    triggerExists: (await read(`select exists (select 1 from pg_trigger where tgrelid = '${S}.${T}'::regclass and tgname = 'zz_kb_chunks_swap_log') x`)).x });
+  if (why) fail(why);
   if (!(await exists(`${S}.${T}_new`))) {
     await write(`create table ${S}.${T}_new (like ${S}.${T} including defaults including generated
         including identity including constraints including storage including compression including comments);
@@ -315,8 +332,10 @@ begin
     v := v || jsonb_build_object('n', r.n, 'd', r.d, 'o', r.o);
   end loop;
   -- triggers re-created on the copy, under the same names
-  for r in select pg_get_triggerdef(oid) d from pg_trigger where tgrelid = '${S}.${T}'::regclass and not tgisinternal loop
+  -- (and each one's enabled state: pg_get_triggerdef does not carry DISABLE / ENABLE REPLICA / ALWAYS)
+  for r in select pg_get_triggerdef(oid) d, tgname n, tgenabled e from pg_trigger where tgrelid = '${S}.${T}'::regclass and not tgisinternal loop
     execute regexp_replace(r.d, ' ON ${S}\\.${T} (REFERENCING|FOR) ', ' ON ${S}.${T}_new \\1 ');
+    ${ENABLED_AS(`${S}.${T}_new`)}
   end loop;
   -- publications (supabase_realtime)
   for r in select pubname from pg_publication_tables where schemaname = '${S}' and tablename = '${T}' loop
@@ -357,27 +376,44 @@ async function swap() {
   const base = REH ? null : await snapshot();
   log('   before:', JSON.stringify(before));
   const t = Date.now();
-  try {
-    await write(SWAP(c), '60s');
-  } catch (e) {
-    // An SQL error (HTTP 4xx) rolled the transaction back. A timeout, network error or 5xx may have committed
-    // behind the error: wait for the statement to leave the server, then read which names exist.
-    if (/^HTTP 4/.test(e.message)) throw e;
-    log(`   swap call failed (${e.message.slice(0, 120)}): reading whether it committed`);
-    windowed = false;
-    for (let i = 0; i < 12; i++) {
-      const r = await read(`select count(*)::int n from pg_stat_activity where pid <> pg_backend_pid()
-        and query like '%alter table ${S}.${T}_new rename to ${T};%'`);
-      if (!r.n) break;
-      await new Promise((x) => setTimeout(x, 10000));
-    }
-    if (!(await exists(`${S}.${T}_old`)) || await exists(`${S}.${T}_new`)) fail(`the swap did not commit (${e.message.slice(0, 120)}); ${T} unchanged, re-run --stage=swap`);
-    log('   the swap DID commit: reading back');
+  const id = Date.now().toString(36);
+  if (!(await sendMarked(swapRequest(c, id), id, 'swap', true))) {
+    fail(`the swap did not commit; ${T} unchanged, re-run --stage=swap`);
   }
   windowed = false;                        // committed: the read-back and its ledger row must finish whatever the clock
   const lockS = ((Date.now() - t) / 1000).toFixed(1);
   log(`   swapped: one transaction, ${lockS} s wall (lock + delta + renames, round trip included)`);
   await verify({ before, base, lockS });
+}
+
+export const swapRequest = (c, id) => marked(id, SWAP(c));
+export const rollbackRequest = (c, id) => marked(id, ROLLBACK(c));
+
+// Sends a marked swap/rollback. Returns whether it committed: on success true; on an SQL error (HTTP 4xx, rolled
+// back) it throws; on a timeout, network error or 5xx (which may commit behind the error) it waits up to 2 min for
+// the marked statement to leave pg_stat_activity, then decides from which tables exist (swapped: _old and no _new;
+// rolled back: _new and no _old).
+async function sendMarked(text, id, what, swapped) {
+  try {
+    await sql(text, { budgetMs: 70000 });
+    return true;
+  } catch (e) {
+    if (/^HTTP 4/.test(e.message)) throw e;
+    log(`   ${what} call failed (${e.message.slice(0, 120)}): waiting for it to leave the server`);
+    windowed = false;
+    let gone = false;
+    for (let i = 0; i < 12 && !gone; i++) {
+      const r = await read(`select count(*)::int n from pg_stat_activity where pid <> pg_backend_pid() and state <> 'idle'
+        and (left(query, 200) like '${MARK(id)}%' or application_name = 'kb_chunks_swap:${id}')`);
+      gone = !r.n;
+      if (!gone) await new Promise((x) => setTimeout(x, 10000));
+    }
+    if (!gone) fail(`the ${what} (marker ${MARK(id)}) is still running after 2 min: do not re-run; read pg_stat_activity`);
+    const o = await exists(`${S}.${T}_old`); const n = await exists(`${S}.${T}_new`);
+    const done = swapped ? o && !n : n && !o;
+    log(`   the ${what} ${done ? 'DID' : 'did NOT'} commit (${T}_old ${o}, ${T}_new ${n})`);
+    return done;
+  }
 }
 
 async function verify({ before, base, lockS } = {}) {
@@ -434,8 +470,9 @@ async function verify({ before, base, lockS } = {}) {
 
 // The swap reversed: kb_chunks -> kb_chunks_new, kb_chunks_old -> kb_chunks, with the same dependent-object handling
 // and lock limits. Rows inserted since the swap are copied back (on conflict do nothing). kb_chunks_old already has
-// its own triggers; the copy keeps its re-created ones (it takes no writes once renamed back to _new).
-// ponytail: updates/deletes made since the swap are not carried back; a rollback follows a failed read-back within minutes.
+// its own triggers (their enabled state taken from kb_chunks); the copy KEEPS its re-created ones under kb_chunks_new.
+// ponytail: updates made since the swap are lost and rows DELETED since the swap come back (kb_chunks_old still has
+// them); a rollback follows a failed read-back within minutes. Runbook "Rollback after the swap".
 const ROLLBACK = (c) => `do $b$
 declare r record; v jsonb := '[]'; oseq text; nseq text;
 begin
@@ -443,6 +480,12 @@ begin
   lock table ${S}.${T}, ${S}.${T}_old in access exclusive mode;
   insert into ${S}.${T}_old (${c}) overriding system value select ${c} from ${S}.${T} n
     where not exists (select 1 from ${S}.${T}_old o where o.id = n.id) on conflict (id) do nothing;
+  -- triggers: kb_chunks_old kept its own; each takes the enabled state its namesake has on ${T} now
+  for r in select o.tgname n, k.tgenabled e from pg_trigger k join pg_trigger o on o.tgname = k.tgname
+             and o.tgrelid = '${S}.${T}_old'::regclass and not o.tgisinternal
+           where k.tgrelid = '${S}.${T}'::regclass and not k.tgisinternal loop
+    ${ENABLED_AS(`${S}.${T}_old`)}
+  end loop;
   for r in select distinct c.oid::regclass::text n, pg_get_viewdef(c.oid) d, array_to_string(c.reloptions, ', ') o
            from pg_depend d join pg_rewrite rw on rw.oid = d.objid join pg_class c on c.oid = rw.ev_class
            where d.refobjid = '${S}.${T}'::regclass and c.oid <> '${S}.${T}'::regclass loop
@@ -478,7 +521,10 @@ async function rollback() {
   log('== rollback');
   const why = rollbackRefusal({ oldExists: await exists(`${S}.${T}_old`), newExists: await exists(`${S}.${T}_new`) });
   if (why) fail(why);
-  await write(ROLLBACK(await columns()), '60s');
+  const id = Date.now().toString(36);
+  if (!(await sendMarked(rollbackRequest(await columns(), id), id, 'rollback', false))) {
+    fail(`the rollback did not commit; ${T} is still the copy, ${T}_old intact. Re-run --stage=rollback`);
+  }
   const r = await read(`select (select count(*)::int from ${S}.${T}) live,
     (select count(*)::int from pg_publication_tables where schemaname = '${S}' and tablename = '${T}') pub,
     (select count(*)::int from pg_depend d join pg_rewrite rw on rw.oid = d.objid where d.refobjid = '${S}.${T}_new'::regclass and rw.ev_class <> '${S}.${T}_new'::regclass) views_on_new`);

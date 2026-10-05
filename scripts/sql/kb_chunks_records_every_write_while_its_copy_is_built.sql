@@ -42,9 +42,13 @@ end
 $fn$;
 revoke execute on function public.fn_kb_chunks_swap_log() from public, anon, authenticated;
 
--- Not exported: a transient list of ids, emptied by the catch-up and the swap, dropped with kb_chunks_old.
+-- Not exported: a transient list of ids, emptied by the catch-up and the swap, dropped with kb_chunks_old; and the
+-- two transient tables the driver creates (kb_chunks_new) and leaves (kb_chunks_old). Runbook step 8 deletes all three
+-- rows when it drops them.
 insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
-  ('kb_chunks_swap_log', false, 'log', 'transient write log of the kb_chunks copy-and-swap: ids only, emptied by the swap, dropped with kb_chunks_old (runbook step 8)', 'it_engineer')
+  ('kb_chunks_swap_log', false, 'log', 'transient write log of the kb_chunks copy-and-swap: ids only, emptied by the swap, dropped with kb_chunks_old (runbook step 8)', 'it_engineer'),
+  ('kb_chunks_new', false, 'cache', 'transient copy-swap table: the copy being built (prepare..swap), a full rebuild of kb_chunks, never the record', 'it_engineer'),
+  ('kb_chunks_old', false, 'cache', 'transient copy-swap table: the pre-swap kb_chunks kept a day for rollback, dropped at runbook step 8', 'it_engineer')
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
   reason = excluded.reason, added_by = excluded.added_by;
 

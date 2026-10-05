@@ -88,7 +88,8 @@ Rehearsal: `--rehearse=zz_<name>` runs every stage against a scratch table (no p
 ledger). Rehearsed 5 Oct on a 12,000-row copy (results in the PR).
 
 **Abandon before the swap:** `drop trigger zz_kb_chunks_swap_log on public.kb_chunks; drop table public.kb_chunks_new;
-truncate public.kb_chunks_swap_log;` - kb_chunks was never changed.
+truncate public.kb_chunks_swap_log;` - kb_chunks was never changed. Prepare refuses to resume a kb_chunks_new whose
+write-log trigger is gone (its missed writes were never logged): drop kb_chunks_new first, then prepare again.
 
 **Rollback after the swap** (read-back failed; kb_chunks_old is intact but receives no writes after the swap):
 `node scripts/kb/kb_chunks_copy_swap.mjs --stage=rollback`. It refuses if `kb_chunks_old` does not exist (or if
@@ -96,16 +97,30 @@ truncate public.kb_chunks_swap_log;` - kb_chunks was never changed.
 dependent-object handling: rows inserted since the swap copied into kb_chunks_old (`on conflict (id) do nothing`),
 publication moved back, identity sequence set past the copy, `kb_chunks` -> `kb_chunks_new` (indexes `_cs`, pkey and
 sequence `_new`), `kb_chunks_old` -> `kb_chunks` (indexes, pkey and sequence back to their names), the dependent views
-re-created on it; then a read-back (publication on kb_chunks, no view on kb_chunks_new). It is not gated on the window
-(an emergency) but follows the same lock limits. Updates or deletes made since the swap are NOT carried back; check
-them with the restore path if the rollback is late. Then `Abandon before the swap` removes kb_chunks_new.
+re-created on it, each trigger of kb_chunks_old given the enabled state its namesake had on kb_chunks; then a read-back
+(publication on kb_chunks, no view on kb_chunks_new). It is not gated on the window (an emergency) but follows the same
+lock limits. If the call times out it waits for its marker to leave `pg_stat_activity`, then reads which tables exist.
+
+What a rollback does NOT undo, stated plainly:
+- **Rows deleted since the swap come back.** kb_chunks_old still has them; the rollback copies only rows it lacks.
+  Re-delete them by hand (compare ids with kb_chunks_new) if any deletes ran between the swap and the rollback.
+- **Updates made since the swap are lost** (kb_chunks_old keeps the pre-swap version); re-apply them from
+  kb_chunks_new before dropping it.
+- **The re-created triggers stay on kb_chunks_new.** They fire only if something writes kb_chunks_new; `Abandon
+  before the swap` drops them with the table.
+
+Then `Abandon before the swap` removes kb_chunks_new.
 
 `kb_chunks_old` keeps its 4 statement-level export-change triggers after the swap. Harmless: it takes no writes, so
 they never fire; they go with the table at step 8.
 
 **Step 8, a day after a passing read-back (its own PR):** `drop table public.kb_chunks_old;` (its triggers, indexes and
 sequence go with it), then drop `public.fn_kb_chunks_swap_log()` and `public.kb_chunks_swap_log` by a manifest file
-and `DROPPED.txt`, and record `pg_database_size` before/after in `kb_purge_ledger`. The disk returns at the drop, not
+and `DROPPED.txt`, and in the same file delete their export-registry rows:
+`delete from public.table_export_registry where table_name = 'kb_chunks_old';` (and the same for `kb_chunks_new` and
+`kb_chunks_swap_log`), removing both entries from `RUNTIME_TABLES` in
+`scripts/checks/every_table_is_exported_or_explicitly_excluded.test.mjs`. Record `pg_database_size` before/after in
+`kb_purge_ledger`. The disk returns at the drop, not
 at the swap.
 
 ## Lock estimate (VACUUM FULL, for reference)
