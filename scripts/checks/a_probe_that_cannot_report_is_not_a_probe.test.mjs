@@ -160,6 +160,18 @@ test('no NEW scripts/sql file reports a failed verdict through a message that pr
     + detail);
 });
 
+// A PROBE MUST NEVER BE ABLE TO COMMIT (it_engineer, outcome audit 30 Sep 2026). Six *_probe.sql files
+// ended their transaction with a bare transaction-end that persists, so a verdict that passed could have
+// kept whatever the block wrote outside its own rolled-back sub-block. A probe ends with ROLLBACK.
+// The keyword is assembled so this comment cannot match (apply-discipline §7).
+test('no *_probe.sql file contains a bare commit', () => {
+  const kw = ['com', 'mit'].join('');
+  const re = new RegExp(`(^|;)\\s*${kw}\\s*(;|$)`, 'im');
+  const bad = files.filter((f) => f.endsWith('_probe.sql'))
+    .filter((f) => re.test(stripComments(readFileSync(`${SQL_DIR}/${f}`, 'utf8'))));
+  assert.deepEqual(bad, [], `a probe must end in rollback, never ${kw}: ${bad.join(', ')}`);
+});
+
 test('the applier actually reads the result set it used to throw away', () => {
   // The convention is worth nothing if apply_sql.mjs stops looking. Anchored on the assignment and
   // on the exit, not on prose, so a comment cannot satisfy it.

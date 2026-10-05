@@ -42,6 +42,6 @@ begin
   if a_demo <> a0 or a_real - a_demo <> 1 or n1 <> n0 or n_cust_active <> 0 then
     raise exception 'CHK<<FAIL demo_delta=% real_delta=% notifications_delta=% customers_1000_active=%>>', a_demo - a0, a_real - a_demo, n1 - n0, n_cust_active;
   end if;
-  raise exception 'CHK<<sep_metrics=% oct_metrics=% nov_metrics=% prelaunch_not_yet_due=% withdrawn_in_forecast=0 customers_1000_active=% demo_delta=% real_delta=% notifications_delta=%>>',
+  raise exception 'CHK<<PROBE OK (real_delta=1 is the rolled-back real-shaped control row, not a real row) sep_metrics=% oct_metrics=% nov_metrics=% prelaunch_not_yet_due=% withdrawn_in_forecast=0 customers_1000_active=% demo_delta=% real_delta=% notifications_delta=%>>',
     n_sep, n_oct, n_nov, n_pre, n_cust_active, a_demo - a0, a_real - a_demo, n1 - n0;
 end $probe$;
