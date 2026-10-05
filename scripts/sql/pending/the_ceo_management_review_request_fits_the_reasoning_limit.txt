@@ -1,0 +1,5 @@
+PENDING: not applied to production. Apply at merge, then append its MANIFEST line and delete this note. Seat: ceo.
+
+ceo.management_review failed on 2026-10-01 00:00:53 UTC with reasoning_held_question_request_check: the facts embedded every seat_duty.last_result whole (56,219 characters over 84 duties). This file caps each result at 200 characters, with a second pass that drops them if the facts still pass 45,000.
+
+Measured 5 Oct 2026 against production, rolled back: the probe the_ceo_management_review_request_fits_the_reasoning_limit_probe.sql run alone prints PROBE FAIL (the same constraint violation); run after this file in one query it prints PROBE OK request=30808 chars, duties=84. After applying, run fn_ceo_management_review() once so the September review is written.
