@@ -1,0 +1,4 @@
+Applied at merge by the release train (apply at merge, never before). Right after the apply, run
+node scripts/kb/load_knowledge_eval_questions.mjs --ml to give every exam question its multilingual vector; until then the
+exam raises knowledge_recall:no_ml_vectors and scores nothing. The first full 'ml' day then sets each seat's Arabic floor.
+Seat: it_engineer.
