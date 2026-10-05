@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T05:47:50.353Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T09:05:45.946Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (697) =====
+-- ===== TABLES (698) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -7965,7 +7965,8 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_eval_question (
   question text NOT NULL,
   expected text[] NOT NULL,
   embedding vector(384) NOT NULL,
-  loaded_at timestamp with time zone DEFAULT now() NOT NULL
+  loaded_at timestamp with time zone DEFAULT now() NOT NULL,
+  embedding_ml vector(384)
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_exam (
@@ -7992,7 +7993,8 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall (
   questions integer NOT NULL,
   recall_en numeric,
   recall_ar numeric,
-  measured_at timestamp with time zone DEFAULT now() NOT NULL
+  measured_at timestamp with time zone DEFAULT now() NOT NULL,
+  path text DEFAULT 'gte'::text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall_answer (
@@ -8001,6 +8003,14 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall_answer (
   seat text NOT NULL,
   lang text NOT NULL,
   recall numeric NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall_floor (
+  seat text NOT NULL,
+  lang text NOT NULL,
+  floor numeric NOT NULL,
+  set_on date NOT NULL,
+  set_from numeric NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_refresh (
@@ -10228,6 +10238,7 @@ ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_ev
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_knowledge_recall ADD CONSTRAINT seat_knowledge_recall_pkey PRIMARY KEY (day, seat);
 ALTER TABLE public.seat_knowledge_recall_answer ADD CONSTRAINT seat_knowledge_recall_answer_pkey PRIMARY KEY (day, question_id);
+ALTER TABLE public.seat_knowledge_recall_floor ADD CONSTRAINT seat_knowledge_recall_floor_pkey PRIMARY KEY (seat, lang);
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_pkey PRIMARY KEY (seat, quarter);
 ALTER TABLE public.seat_learning_daily ADD CONSTRAINT seat_learning_daily_pkey PRIMARY KEY (seat, day);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_pkey PRIMARY KEY (cluster_key);
@@ -11272,6 +11283,8 @@ ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_ev
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_question_check CHECK ((btrim(question) <> ''::text));
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_question_check CHECK ((btrim(question) <> ''::text));
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_verdict_check CHECK ((verdict = ANY (ARRAY['correct'::text, 'partial'::text, 'wrong'::text, 'not_covered'::text])));
+ALTER TABLE public.seat_knowledge_recall_floor ADD CONSTRAINT seat_knowledge_recall_floor_floor_check CHECK (((floor >= (0)::numeric) AND (floor <= (1)::numeric)));
+ALTER TABLE public.seat_knowledge_recall_floor ADD CONSTRAINT seat_knowledge_recall_floor_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_quarter_check CHECK ((quarter = (date_trunc('quarter'::text, (quarter)::timestamp with time zone))::date));
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_case_ids_check CHECK ((cardinality(case_ids) >= 3));
 ALTER TABLE public.seat_playbook ADD CONSTRAINT seat_playbook_seat_check CHECK ((seat = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'marketing'::text])));
