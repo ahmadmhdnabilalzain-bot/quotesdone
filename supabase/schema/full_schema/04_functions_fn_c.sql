@@ -2759,12 +2759,12 @@ declare v_id bigint; v_task bigint; v_hid bigint;
 begin
   if p_kind in ('lesson', 'recurring_finding')
      and (select count(*) from public.ceo_improvement where seat = p_seat and status in ('open', 'assigned')) >= 20 then
-    return null;   -- capped: re-proposed by the next sweep once the seat has room; nothing is closed to make room
+    return null;   -- capped: the sweep closes before it proposes, so a slot freed this run is filled this run
   end if;
   insert into public.ceo_improvement (source_kind, source_ref, seat, proposal, evidence)
   values (p_kind, p_ref, p_seat, p_proposal, coalesce(p_evidence, '{}'::jsonb))
-  on conflict (source_kind, source_ref) do nothing returning id into v_id;
-  if v_id is null then return null; end if;   -- proposed already
+  on conflict do nothing returning id into v_id;   -- any unique key: the same ref, or one already open for the target
+  if v_id is null then return null; end if;
   v_task := public.fn_ceo_task_open(format('Improvement #%s for %s: %s', v_id, p_seat, left(p_proposal, 200)),
                                     format(E'%s\nSource: %s %s.\nEvidence: %s', p_proposal, p_kind, p_ref, coalesce(p_evidence, '{}'::jsonb)));
   if p_seat <> 'ceo' then
@@ -2783,15 +2783,60 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_improvement_sweep()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r record; n_new int := 0; n_done int := 0; c_id bigint; v bigint; v_ans timestamptz;
+  v_pass int := 0; v_before int;
 begin
   select id into c_id from public.target_contract where contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30' and status = 'active';
 
-  -- a metric behind its path on 7 or more of the last 14 days: the plan for it is not working
+  -- Close, then propose, and repeat until a pass changes nothing. Closing one improvement completes its handoff,
+  -- which can finalise the cases another lesson waits on, and frees a capped slot; a single close-then-propose
+  -- still left 11 closes and 11 proposals for the next run (measured 30 Sep 2026). The last pass is the proof.
+  -- ponytail: 10 passes bound the loop; a chain longer than that finishes on the next run.
+  loop
+  v_pass := v_pass + 1;
+  v_before := n_new + n_done;
+
+  -- 1. CLOSE FIRST. Tracked to done: the CEO is the originator, re-verifies, and is the one who closes.
+  for r in select i.*, coalesce(i.evidence->>'lesson',
+                                (select m.lessons[1] from public.seat_case_memory m where m.id = (i.evidence->>'case_memory_id')::bigint)) as lesson
+             from public.ceo_improvement i where i.status in ('open', 'assigned') loop
+    if r.source_kind in ('recurring_miss', 'month_miss')
+       and (select count(*) filter (where d.status in ('on_track', 'within_tolerance')) = 7 and count(*) = 7
+              from public.target_daily_verdict d where d.contract_id = c_id and d.metric_key = r.evidence->>'metric'
+               and d.day > current_date - 7 and d.day > r.created_at::date) then
+      perform public.fn_ceo_improvement_close(r.id, format('%s back on its path for 7 days running (%s).', r.evidence->>'metric', current_date));
+      n_done := n_done + 1;
+    elsif r.source_kind = 'recurring_finding'
+       and exists (select 1 from public.it_engineer_finding f where f.issue_key = r.source_ref and f.closed_at is not null) then
+      perform public.fn_ceo_improvement_close(r.id, format('Finding %s closed.', r.source_ref));
+      n_done := n_done + 1;
+    elsif r.source_kind = 'lesson' and r.lesson is not null then
+      -- answered = the seat replied on the handoff (or there was no handoff: the CEO's own lesson)
+      select coalesce((a.detail->>'replied_at')::timestamptz, a.decided_at) into v_ans
+        from public.agent_actions a where a.id = r.handoff_id;
+      if r.handoff_id is null then v_ans := r.created_at; end if;
+      if v_ans is not null
+         and not exists (select 1 from public.seat_case_memory m
+                          where m.seat = r.seat and m.case_kind = r.evidence->>'case_kind' and m.lessons[1] = r.lesson
+                            and (not coalesce(m.finalised, false) or m.opened_at > v_ans)) then
+        perform public.fn_ceo_improvement_close(r.id, format('Re-verified by the CEO: every %s case of %s carrying this lesson is finalised and none has opened since the answer (%s).',
+                                                             r.evidence->>'case_kind', r.seat, v_ans));
+        n_done := n_done + 1;
+      end if;
+    end if;
+  end loop;
+
+  -- 2. THEN PROPOSE. A metric behind its path on 7 or more of the last 14 days, not recovered (the last 7 days all
+  -- on path), and with no improvement already open for it: the plan for it is not working.
   for r in select d.metric_key, d.owner_seat, count(*) filter (where d.status = 'miss') as misses,
                   min(d.actual) filter (where d.status = 'miss') as low, max(d.expected) as expected
              from public.target_daily_verdict d
             where d.contract_id = c_id and d.day > current_date - 14
-            group by 1, 2 having count(*) filter (where d.status = 'miss') >= 7 loop
+            group by 1, 2
+           having count(*) filter (where d.status = 'miss') >= 7
+              and not (count(*) filter (where d.day > current_date - 7 and d.status in ('on_track', 'within_tolerance')) = 7
+                       and count(*) filter (where d.day > current_date - 7) = 7) loop
+    continue when exists (select 1 from public.ceo_improvement i where i.source_kind = 'recurring_miss'
+                             and i.status in ('open', 'assigned') and i.evidence->>'metric' = r.metric_key);
     v := public.fn_ceo_improvement_open('recurring_miss', r.metric_key || ':' || to_char(current_date, 'YYYY-MM'), r.owner_seat,
       format('%s has been behind its path on %s of the last 14 days. Change how the seat moves it, not the target: name the step that is not converting and fix that step.', r.metric_key, r.misses),
       jsonb_build_object('metric', r.metric_key, 'misses_14d', r.misses, 'lowest_actual', r.low, 'expected', r.expected));
@@ -2822,36 +2867,10 @@ begin
     end if;
   end loop;
 
-  -- tracked to done: the CEO is the originator, re-verifies, and is the one who closes
-  for r in select i.*, coalesce(i.evidence->>'lesson',
-                                (select m.lessons[1] from public.seat_case_memory m where m.id = (i.evidence->>'case_memory_id')::bigint)) as lesson
-             from public.ceo_improvement i where i.status in ('open', 'assigned') loop
-    if r.source_kind in ('recurring_miss', 'month_miss')
-       and (select count(*) filter (where d.status in ('on_track', 'within_tolerance')) = 7 and count(*) = 7
-              from public.target_daily_verdict d where d.contract_id = c_id and d.metric_key = r.evidence->>'metric'
-               and d.day > current_date - 7 and d.day > r.created_at::date) then
-      perform public.fn_ceo_improvement_close(r.id, format('%s back on its path for 7 days running (%s).', r.evidence->>'metric', current_date));
-      n_done := n_done + 1;
-    elsif r.source_kind = 'recurring_finding'
-       and exists (select 1 from public.it_engineer_finding f where f.issue_key = r.source_ref and f.closed_at is not null) then
-      perform public.fn_ceo_improvement_close(r.id, format('Finding %s closed.', r.source_ref));
-      n_done := n_done + 1;
-    elsif r.source_kind = 'lesson' and r.lesson is not null then
-      -- answered = the seat replied on the handoff (or there was no handoff: the CEO's own lesson)
-      select coalesce((a.detail->>'replied_at')::timestamptz, a.decided_at) into v_ans
-        from public.agent_actions a where a.id = r.handoff_id;
-      if r.handoff_id is null then v_ans := r.created_at; end if;
-      if v_ans is not null
-         and not exists (select 1 from public.seat_case_memory m
-                          where m.seat = r.seat and m.case_kind = r.evidence->>'case_kind' and m.lessons[1] = r.lesson
-                            and (not coalesce(m.finalised, false) or m.opened_at > v_ans)) then
-        perform public.fn_ceo_improvement_close(r.id, format('Re-verified by the CEO: every %s case of %s carrying this lesson is finalised and none has opened since the answer (%s).',
-                                                             r.evidence->>'case_kind', r.seat, v_ans));
-        n_done := n_done + 1;
-      end if;
-    end if;
+  exit when n_new + n_done = v_before or v_pass >= 10;
   end loop;
-  return jsonb_build_object('proposed', n_new, 'closed', n_done,
+
+  return jsonb_build_object('proposed', n_new, 'closed', n_done, 'passes', v_pass,
     'open', (select count(*) from public.ceo_improvement where status in ('open', 'assigned')));
 end $function$
 
@@ -6377,7 +6396,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_review(p_week date, p_at timesta
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_targets jsonb; t jsonb; i record; v_id bigint; v_task bigint;
-  v_open bigint[] := '{}'; v_esc bigint[] := '{}'; v_closed bigint[] := '{}'; v_row public.ceo_weekly_review;
+  v_open bigint[] := '{}'; v_esc bigint[] := '{}'; v_closed bigint[] := '{}'; v_carried bigint[] := '{}'; v_row public.ceo_weekly_review;
   v_today date := (p_at at time zone 'Asia/Dubai')::date;
 begin
   select * into v_row from public.ceo_weekly_review where week = p_week;
@@ -6410,10 +6429,11 @@ begin
     v_esc := v_esc || i.id;
   end loop;
 
-  -- 3. OPEN: one action per missed target that has none open
+  -- 3. OPEN: one action per missed target that has none open; one already open is CARRIED, and counted
   for t in select x from jsonb_array_elements(v_targets) x where not (x->>'met')::boolean loop
-    if exists (select 1 from public.ceo_improvement where source_kind = 'weekly_review' and status in ('open', 'assigned')
-                  and seat = t->>'seat' and evidence->>'target' = t->>'key') then continue; end if;
+    select id into v_id from public.ceo_improvement where source_kind = 'weekly_review' and status in ('open', 'assigned')
+       and seat = t->>'seat' and evidence->>'target' = t->>'key' limit 1;
+    if v_id is not null then v_carried := v_carried || v_id; continue; end if;
     v_id := public.fn_ceo_improvement_open('weekly_review', (t->>'key') || ':' || (t->>'seat') || ':' || p_week, t->>'seat',
       format('Weekly review %s, %s missed (%s; target %s). Action: %s Due %s. %s',
              to_char(p_week, 'DD Mon YYYY'), t->>'label', t->>'actual', t->>'target', t->>'action', to_char(p_week + 7, 'DD Mon YYYY'), t->>'close_check'),
@@ -6428,7 +6448,8 @@ begin
   values (p_week, v_targets, v_open, v_esc, v_closed) returning * into v_row;
   update public.ceo_weekly_review set pdf_blocks = public.fn_ceo_weekly_review_pdf_blocks(v_row.id) where id = v_row.id;
   return jsonb_build_object('ok', true, 'week', p_week, 'id', v_row.id, 'opened', cardinality(v_open),
-    'escalated', cardinality(v_esc), 'closed', cardinality(v_closed),
+    'escalated', cardinality(v_esc), 'closed', cardinality(v_closed), 'carried', cardinality(v_carried),
+    'carried_ids', to_jsonb(v_carried),
     'missed', (select count(*) from jsonb_array_elements(v_targets) x where not (x->>'met')::boolean));
 end $function$
 
