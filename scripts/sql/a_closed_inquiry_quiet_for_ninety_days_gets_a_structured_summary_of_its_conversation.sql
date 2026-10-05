@@ -53,6 +53,11 @@ revoke all on public.inquiry_conversation_summary from anon, authenticated;
 create policy inquiry_conversation_summary_service_only on public.inquiry_conversation_summary
   for all to service_role using (true) with check (true);
 
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('inquiry_conversation_summary', true, 'company', 'the structured summary of each closed, 90-day-quiet inquiry (ledger 1127), kept for the full retention window', 'sales_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 create or replace function public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
 returns jsonb
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -145,12 +150,6 @@ revoke execute on function public.fn_inquiry_conversation_summary_run(int) from 
 
 select cron.schedule('inquiry_conversation_summary_daily', '40 23 * * *',
   $CRON$select public.fn_inquiry_conversation_summary_run(50);$CRON$);
-insert into public.cron_registry (jobname, human_name, category, purpose)
-values ('inquiry_conversation_summary_daily', 'Summarise closed inquiries quiet for 90 days', 'sales',
-        'Ledger 1127 item 2 (sales_engineer): a closed inquiry with no activity for 90 days gets one structured summary '
-        || '(parties, inquiry, spec decisions, amounts, dates, commitments, disputes, outcome) built deterministically from '
-        || 'the database. The original messages are kept (Cabinet Decision 74/2023 Art. 3); the summary is an index.')
-on conflict (jobname) do update set human_name = excluded.human_name, category = excluded.category, purpose = excluded.purpose;
 
 -- PROBE: read-only. The builder on a ZZ DEMO inquiry carries every field the ruling names; nothing is due
 -- today that is not closed and 90 days quiet. Returns ONE verdict row.
