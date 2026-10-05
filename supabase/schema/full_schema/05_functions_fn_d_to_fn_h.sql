@@ -1273,6 +1273,29 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_duty_pause_stakes(p_duty text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when coalesce((select sd.owner_seat from public.seat_duty sd where sd.duty = p_duty), split_part(p_duty, '.', 1)) = 'accountant'
+      or p_duty = 'sales_engineer.disputes'
+      then 'money'
+    when p_duty = any (array[
+      'resilience_ping.rotate_by_api',          -- rotates a provider API key
+      'resilience_ping.renewal',                -- credential renewal reminders
+      'resilience_ping.restore_overdue',        -- the restore drill is overdue
+      'resilience_ping.restore_table',          -- the restore drill itself
+      'it_engineer.credential_rotation_age',
+      'it_engineer.backup_objectives',
+      'it_engineer.dr_review'])
+      then 'security'
+    else 'routine' end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ea_agenda(p_days integer DEFAULT 7)
  RETURNS jsonb
  LANGUAGE sql
