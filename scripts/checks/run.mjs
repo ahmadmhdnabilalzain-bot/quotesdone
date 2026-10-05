@@ -23,6 +23,26 @@
 //   npm test            - run everything
 //   node scripts/checks/run.mjs
 import { spawnSync } from 'node:child_process';
+
+// Split a file list so no single command line nears the Windows cmd limit (8,191 characters).
+export function batches(files, maxChars = 6000) {
+  const out = []; let cur = []; let len = 0;
+  for (const f of files) {
+    if (cur.length && len + f.length + 1 > maxChars) { out.push(cur); cur = []; len = 0; }
+    cur.push(f); len += f.length + 1;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+// A spawn that errored, or ended with no exit status, did not run: that is a failure, never a pass.
+export function ranStatus(r, what) {
+  if (r.error || r.status === null || r.status === undefined) {
+    console.error(`
+${what} did not run: ${r.error?.message || 'no exit status (signal ' + r.signal + ')'}`);
+    return 1;
+  }
+  return r.status;
+}
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -187,12 +207,16 @@ function main() {
   // front of the API, not by hoping.
   // ponytail: --test-concurrency=1, revisit when a shared limiter exists.
   const skip = skipPatternFor(profile);
-  const nodeRes = spawnSync(process.execPath,
-    ['--test', '--test-concurrency=1',
-     ...(skip ? [`--test-skip-pattern=${skip}`] : []),
-     ...node.map((f) => path.join(REPO, f))],
-    { stdio: 'inherit', cwd: REPO });
-  let status = nodeRes.status ?? 1;
+  // IN BATCHES, AND A RUNNER THAT DID NOT RUN IS A FAILURE (5 Oct 2026). On Windows one spawn with every file
+  // hit "The command line is too long" and the suite reported SUCCESS without running a test. Files go in
+  // batches well under the 8,191-character cmd limit, and any spawn error or missing status fails the run.
+  let status = 0;
+  for (const files of batches(node.map((f) => path.join(REPO, f)))) {
+    const r = spawnSync(process.execPath,
+      ['--test', '--test-concurrency=1', ...(skip ? [`--test-skip-pattern=${skip}`] : []), ...files],
+      { stdio: 'inherit', cwd: REPO });
+    status = status || ranStatus(r, 'node --test');
+  }
 
   // THE CHECKS THAT ARE NOT `*.test.mjs`, 22 Sep 2026 (documents-language audit, DL-12).
   // language_follows_registration.mjs is a full gate — it walks production in one rolled-back
@@ -237,6 +261,7 @@ function main() {
     // replays the browser auditor's own quotation PDF and CSVs, committed under supplier_api/fixtures/.
     // CI refused with NotCapable "Requires read access to .../fixtures/ZZDEMO_quotation_D958E1EA.pdf"
     // while the same test passed locally. Only that folder is readable; the rest of the tree is not.
+    for (const denoFiles of batches(deno)) {
     const denoRes = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto',
       '--allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_INBOUND_NO_SERVE',
       // Widened to READ the repository (21 Sep 2026, PR #780): the catalogue tests read synthetic
@@ -252,7 +277,7 @@ function main() {
       // whole grant — no hostname resolves to it but itself, so no test can reach a real service, and
       // nothing outbound (Resend, Twilio, Stripe, Supabase) is reachable from this runner.
       '--allow-net=127.0.0.1',
-      `--allow-read=${REPO}`, ...deno],
+      `--allow-read=${REPO}`, ...denoFiles],
       { stdio: 'inherit', cwd: REPO, shell: process.platform === 'win32' });
     if (denoRes.error && denoRes.error.code === 'ENOENT') {
       // NEVER SKIP. Passing silently when the runner is absent is the precise failure this file
@@ -263,7 +288,8 @@ function main() {
       console.error('A suite that could not run must never be reported as a suite that passed.');
       process.exit(1);
     }
-    status = status || (denoRes.status ?? 1);
+    status = status || ranStatus(denoRes, 'deno test');
+    }
   }
 
   process.exit(status);
