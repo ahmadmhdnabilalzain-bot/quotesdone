@@ -22,9 +22,12 @@ test('the delivery duty holds a digest item by the later of the handoff and its 
     `${file}: section 4 must time a held digest item from greatest(handoff created_at, open finding started_at)`);
 });
 
-test('the digest still judges an item young by its finding\'s started_at', () => {
+// 4 Oct 2026: the digest stopped carrying faults, and with them its 24-hour young rule; every item is now
+// decided at the first 19:00 tick. The duty's allowance above is therefore an upper bound and stays correct.
+// If a young rule comes back, re-align fn_it_duties section 4 with it.
+test('the digest holds no item past its next 19:00 tick', () => {
   const file = newest(/create\s+or\s+replace\s+function\s+public\.fn_customer_support_sends_the_it_digest\s*\(/i);
   assert.ok(file, 'no file defines fn_customer_support_sends_the_it_digest');
-  assert.match(readFileSync(file, 'utf8'), /f\.started_at > p_now - interval '24 hours'/,
-    `${file}: the digest's young rule changed; re-align fn_it_duties section 4 with it`);
+  assert.doesNotMatch(readFileSync(file, 'utf8'), /f\.started_at > p_now - interval/,
+    `${file}: the digest ages items again; re-align fn_it_duties section 4 with it`);
 });

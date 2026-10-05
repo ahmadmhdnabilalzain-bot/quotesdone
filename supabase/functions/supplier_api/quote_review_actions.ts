@@ -90,7 +90,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
         // pages" cannot be told from one that has three and lost one on the way out.
         drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
         drawing_pages_failed: Number(i.drawing_pages_failed || 0),
-        quotes: qs.map((q) => ({ id: q.id, option_no: q.option_no || 1, status: q.status, quote_amount: q.quote_amount, on_hold: !!q.spec_hold })),
+        quotes: qs.map((q) => ({ id: q.id, option_no: q.option_no || 1, status: q.status, quote_amount: q.quote_amount, on_hold: !!q.spec_hold, loss_feedback: Array.isArray(q.loss_feedback) ? q.loss_feedback : null })),
         review: stateOf(reviews, i.id),
       };
     });
