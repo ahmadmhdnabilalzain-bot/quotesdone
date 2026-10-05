@@ -78,6 +78,7 @@ const CONCLUDED = ['completed','closed','cancelled'];
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
 import { inboxBoq, inboxField, scrubIdentity } from './identity_scrub.ts';
+import { lossFeedback } from './loss_feedback.ts';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 // EXACT SPECS FOR A TRADE WITH NO LINE READER (23 Sep 2026). The trade's knowledge pack says what a line
@@ -1080,7 +1081,7 @@ const handle = async (req: Request): Promise<Response> => {
       // buyer's own name, all of which the retrieval-time scrub did catch.
       // scrubIdentity below is deliberately kept as a second, independent layer.
       const { data: inq } = await admin.from('inquiries_supplier_safe').select('id,category,emirate,summary,spec,created_at,budget,scope_type,brief_source,boq,boq_confidence,drawing_redacted_paths,status,outcome,hired_supplier_id').in('id', ids).order('created_at', { ascending: false }).limit(25);
-      const { data: myq } = await admin.from('quotes').select('id,inquiry_id,option_no,quote_amount,price_ex_vat,amount_as_stated,vat_treatment,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,source,original_file_name,submittable').eq('supplier_id', sup.id).in('inquiry_id', ids);
+      const { data: myq } = await admin.from('quotes').select('id,inquiry_id,option_no,quote_amount,price_ex_vat,amount_as_stated,vat_treatment,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_name,submittable').eq('supplier_id', sup.id).in('inquiry_id', ids);
       // A DRAFT COULD NOT BE REOPENED (14 Sep 2026). The portal only ever offered the quote form on an
       // RFQ with no quote, so a quote the accept rule held as a draft sat there with "Complete it"
       // leading back to a card with no form, and nothing said what was missing. The inbox now carries
@@ -1107,6 +1108,28 @@ const handle = async (req: Request): Promise<Response> => {
         let missing: string[] | null = null;
         if (x.status === 'draft') { try { const { data: sc } = await admin.rpc('fn_quote_structured_score', { p_quote: String(x.id) }); missing = Array.isArray((sc as any)?.missing) ? (sc as any).missing : null; } catch (_e) { /* the list is advice; the form still opens */ } }
         (qmap[String(x.inquiry_id)] ||= []).push({ ...x, items: itemsOf[String(x.id)] || [], missing, spec_hold: holdOf[String(x.id)] || null });
+      }
+      // WHY THIS QUOTE LOST (T3, 5 Oct 2026, sales_engineer). On a concluded job this supplier did not
+      // win, each of its sent quotes carries loss_feedback: fixed English reasons from ./loss_feedback.ts.
+      // The chosen quote is read here and compared there; none of its figures leave this function.
+      {
+        const sent = (q: any) => q.status !== 'draft' && q.status !== 'withdrawn';
+        const lostIds = (inq || []).filter((i) => CONCLUDED.includes(String(i.status)) && Number(i.hired_supplier_id) !== Number(sup.id) && (qmap[String(i.id)] || []).some(sent)).map((i) => String(i.id));
+        if (lostIds.length) {
+          const reasonOf: Record<string, string | null> = {};
+          { const { data: lr } = await admin.from('inquiries').select('id,lost_reason').in('id', lostIds); for (const x of (lr || [])) reasonOf[String(x.id)] = x.lost_reason ?? null; }
+          const hired = (inq || []).filter((i) => lostIds.includes(String(i.id)) && i.hired_supplier_id != null);
+          const chosenOf: Record<string, any> = {};
+          if (hired.length) {
+            const { data: wq } = await admin.from('quotes').select('inquiry_id,supplier_id,quote_amount,lead_time,exclusions,submittable,status').in('inquiry_id', hired.map((i) => i.id)).in('supplier_id', hired.map((i) => i.hired_supplier_id));
+            for (const i of hired) {
+              const c = (wq || []).filter((q) => String(q.inquiry_id) === String(i.id) && Number(q.supplier_id) === Number(i.hired_supplier_id) && sent(q));
+              // The hired supplier's accepted option if marked, else its lowest-priced sent option.
+              chosenOf[String(i.id)] = c.find((q) => q.status === 'accepted') || c.sort((a, b) => (Number(a.quote_amount) || Infinity) - (Number(b.quote_amount) || Infinity))[0] || null;
+            }
+          }
+          for (const id of lostIds) for (const q of qmap[id]) if (sent(q)) q.loss_feedback = lossFeedback(q, chosenOf[id] ?? null, reasonOf[id]);
+        }
       }
       // Reveal gate for the scrub below. customer_api treats the mere existence of a transactions
       // row as "revealed" (line ~430: every tx row for the customer goes into revealedQ with no
