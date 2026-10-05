@@ -38,3 +38,10 @@ export function collectAnswers(missing: MissingSpec[], picks: Record<string, str
   for (const m of missing) { const a = answerOf(m, picks[m.key], texts[m.key]); if (a !== null) out[m.key] = a; }
   return out;
 }
+
+/** The keys the customer answered "not sure": each opens a handoff to the sales engineer (customer_api add_missing_specs). */
+export const notSureKeys = (missing: MissingSpec[], picks: Record<string, string>) =>
+  missing.filter((m) => picks[m.key] === NOT_SURE).map((m) => m.key);
+
+/** What an option's button SHOWS: Arabic for an Arabic customer when a label exists. Display only, never the saved value. */
+export const optionLabel = (o: string, lang: string, ar: Record<string, string>) => (lang === 'ar' && ar[o]) || o;

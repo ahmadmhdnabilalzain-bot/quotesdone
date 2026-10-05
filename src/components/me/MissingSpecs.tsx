@@ -6,7 +6,8 @@
 // Each required spec the hold check finds missing (customer_api missing_specs) is one step, asked in the intake's
 // own plain words in the customer's language. A spec with options is multiple choice; "Something else" or a spec
 // without options takes typed words; "Not sure" is always offered and records nothing, so a guess never reaches
-// suppliers and the request stays held for the sales engineer to follow up. On the last step the real answers are
+// suppliers; the request stays held and a handoff to the sales engineer is opened for those specs (customer_api).
+// Answer buttons show Arabic labels to an Arabic customer (./specOptionsAr.ts); the saved value stays English. On the last step the real answers are
 // saved (customer_api add_missing_specs), which re-runs the hold check; when nothing is missing the request is
 // released and this panel disappears. Step rules: ./specSteps.ts (checked by specSteps.test.mjs).
 // scripts/sql/a_held_request_takes_its_missing_specs_from_the_customer_and_is_released_when_complete.sql
@@ -14,7 +15,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner, useDelayedFlag } from '@/components/ui/busy';
 import { t, errText } from './portalText';
-import { choicesFor, needsText, stepDone, collectAnswers, NOT_SURE, OTHER } from './specSteps';
+import { choicesFor, needsText, stepDone, collectAnswers, notSureKeys, optionLabel, NOT_SURE, OTHER } from './specSteps';
+import { SPEC_OPTION_AR } from './specOptionsAr';
 
 export function MissingSpecs({ inq, token, lang, call, onChange }) {
   const [held, setHeld] = useState(null);
@@ -33,16 +35,18 @@ export function MissingSpecs({ inq, token, lang, call, onChange }) {
   const last = i === missing.length - 1;
   const pick = picks[m.key]; const text = texts[m.key] || '';
   const done = stepDone(m, pick, text);
-  const label = (c) => c === NOT_SURE ? t(lang, 'ms_not_sure') : c === OTHER ? t(lang, 'ms_other') : c;
+  const label = (c) => c === NOT_SURE ? t(lang, 'ms_not_sure') : c === OTHER ? t(lang, 'ms_other') : optionLabel(c, lang, SPEC_OPTION_AR);
   const id = 'qd-ms-' + inq.id + '-' + m.key;
 
   const save = async () => {
     if (busy) return;
     const answers = collectAnswers(missing, picks, texts);
-    const unsure = missing.some((x) => picks[x.key] === NOT_SURE);
-    if (!Object.keys(answers).length) { setMsg(t(lang, 'ms_not_sure_note')); return; }
+    // "Not sure" is sent as keys only: it records no answer, and the server opens a handoff to the sales engineer.
+    const not_sure = notSureKeys(missing, picks);
+    const unsure = not_sure.length > 0;
+    if (!Object.keys(answers).length && !unsure) return;
     setBusy(true); setErr(''); setMsg('');
-    const j = await call('customer_api', { action: 'add_missing_specs', inquiry_id: inq.id, answers }, token).catch(() => null);
+    const j = await call('customer_api', { action: 'add_missing_specs', inquiry_id: inq.id, answers, not_sure }, token).catch(() => null);
     setBusy(false);
     if (j && j.ok) {
       setPicks({}); setTexts({});
