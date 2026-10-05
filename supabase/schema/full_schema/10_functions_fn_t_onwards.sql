@@ -7159,12 +7159,18 @@ CREATE OR REPLACE FUNCTION public.scrub_inquiry_contacts()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare changed boolean := false; v_name text;
+declare changed boolean := false; v_name text; v_spec jsonb;
 begin
   new.summary_masked      := public.mask_project_identity(public.mask_contacts(new.summary));
   new.raw_input_masked    := public.mask_project_identity(public.mask_contacts(new.raw_input));
   new.budget_masked       := public.mask_project_identity(public.mask_contacts(new.budget));
-  new.spec_masked         := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.spec));
+  v_spec                  := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.spec));
+  -- Suppliers read English only (ledger 993): a spec value in Arabic script never reaches the supplier copy. Its
+  -- English reaches them on the held note (fn_inquiry_add_missing_specs, surface sales_engineer.supplier_english).
+  new.spec_masked         := case when jsonb_typeof(v_spec) = 'object'
+                               then coalesce((select jsonb_object_agg(s.key, s.value) from jsonb_each(v_spec) s
+                                               where s.value::text !~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]'), '{}'::jsonb)
+                               else v_spec end;
   new.boq_masked          := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.boq));
   new.completeness_masked := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.completeness));
 
@@ -7179,10 +7185,11 @@ begin
     end if;
   end if;
 
+  -- The alert is about contacts and project identity; dropping an Arabic value is not a masking event.
   changed := (new.summary_masked is distinct from new.summary)
           or (new.raw_input_masked is distinct from new.raw_input)
           or (new.budget_masked is distinct from new.budget)
-          or (new.spec_masked is distinct from new.spec)
+          or (v_spec is distinct from new.spec)
           or (new.boq_masked is distinct from new.boq)
           or (new.completeness_masked is distinct from new.completeness);
   if changed then
