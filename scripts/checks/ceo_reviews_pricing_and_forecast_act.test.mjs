@@ -25,7 +25,8 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const CEO = 'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql';
 const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql', CEO,
   'scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql',
-  'scripts/sql/the_ceo_management_review_request_fits_the_reasoning_limit.sql'];
+  'scripts/sql/the_ceo_management_review_request_fits_the_reasoning_limit.sql',
+  'scripts/sql/the_ceo_review_proves_its_author_on_the_class_think_bills.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 test('the reveal fee is out of the pricing review, and no price is written', () => {
@@ -71,8 +72,8 @@ test('production, aborted: the forecast, the management review and the pricing m
 do $$ declare o jsonb := '{}'; v jsonb; h bigint; n bigint; begin
   perform set_config('app.qd_stub_founder_notify', 'on', true);
   delete from public.ceo_review where true;
-  -- the author model is proven the way think() proves it: the seat's latest agent_reasoning call
-  insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values ('probe', 'ceo', 'ceo', 'agent_reasoning', 'openai/gpt-5.6-sol', true);
+  -- the author model is proven the way think() proves it: the seat's latest internal_judgement call (1056)
+  insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values ('probe', 'ceo', 'ceo', 'internal_judgement', 'openai/gpt-5.6-sol', true);
 
   v := public.fn_ceo_target_forecast();
   o := o || jsonb_build_object('verdicts', jsonb_array_length(v->'verdicts'),
