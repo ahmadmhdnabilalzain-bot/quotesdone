@@ -44,6 +44,8 @@ const OWNING_SQLS = [
   'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_now_charges.sql',
   // 4 Oct 2026 ~20:20Z: re-priced again to 0.003 / 2.4; this file wins.
   'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_charges_on_4_october.sql',
+  // 5 Oct 2026 ~06:10Z: back to 0.3 / 1.2; this file wins.
+  'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_charges_on_5_october.sql',
 ];
 const RETIRING_SQL = 'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql';
 const OWNING_SQL = OWNING_SQLS.join(' + ');
