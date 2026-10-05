@@ -26,6 +26,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -120,7 +121,7 @@ test('a reworded case from another customer recalls the finalised one, masked; a
   const live = (await sql(`select to_regclass('public.seat_case_memory') is not null as ok`))[0].ok;
   const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
   const run = async (body) => {
-    try { await sql((live ? '' : read(SQL_FILE) + '\n') + body, { retry: false }); }
+    try { await replaySql((live ? '' : read(SQL_FILE) + '\n') + body, { retry: false }); }
     catch (e) {
       const m = String(e.message).match(/CHK<<(.*?)>>/s);
       if (!m) throw e;

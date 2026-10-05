@@ -24,6 +24,7 @@ import { writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readPacks, rowsOf, upsertSql, makeEmbedder, seatsOf, cosine, vecLit, lit, SEAT_TABLE } from '../kb/verified_packs.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 export const K_RETRIEVE = 6;   // what think() passes (supabase/functions/_shared/think.ts, fn_reason_retrieve p_k)
 export const TOP = 5;
@@ -99,7 +100,7 @@ if (mode === 'live') {
     for (const r of stage.values()) (byTable[r.table] ??= []).push(r);
     const inserts = Object.entries(byTable).map(([t, rs]) => upsertSql(t, rs)).join('\n');
     const block = `do $qdeval$ declare o jsonb := '[]'::jsonb; begin\n${mine.map((q) => `o := o || jsonb_build_array(${hitsExpr(q)});`).join('\n')}\nraise exception 'CHK<<%>>', o::text; end $qdeval$;`;
-    try { await sql(pending + inserts + block, { retry: false }); throw new Error('the probe committed instead of rolling back'); }
+    try { await replaySql(pending + inserts + block, { retry: false }); throw new Error('the probe committed instead of rolling back'); }
     catch (e) {
       const m = String(e.message).match(/CHK<<(.*?)>>/s);
       if (!m) throw new Error(`${p.key}: the probe failed before it could report: ${String(e.message).slice(0, 400)}`);

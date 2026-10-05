@@ -15,6 +15,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -48,7 +49,7 @@ test('production, aborted: a listed owner is a hit that reaches the CEO once; an
   const replay = DEPS.filter(pending).map(read).join('\n');
   let o;
   try {
-    await sql(replay + '\n' + String.raw`
+    await replaySql(replay + '\n' + String.raw`
 do $$ declare o jsonb := '{}'; l1 bigint; l2 bigint; ent text; v jsonb; begin
   perform set_config('qd.duty_fixtures', 'on', true);
   select name into ent from screening_entry where run_id = (select max(id) from screening_run where status = 'ok' and source = 'un_consolidated')

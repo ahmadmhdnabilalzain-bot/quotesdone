@@ -22,6 +22,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const { sql } = await import('../lib/db.mjs');
@@ -163,7 +164,7 @@ begin
 end $p$;`;
 
 let r;
-try { await sql(replay + '\n' + probe, { retry: false }); console.error('the probe COMMITTED: it must always raise'); process.exit(2); }
+try { await replaySql(replay + '\n' + probe, { retry: false }); console.error('the probe COMMITTED: it must always raise'); process.exit(2); }
 catch (e) {
   const m = String(e.message).match(/CHK<<(.*)>>/s);
   if (!m) throw e;
