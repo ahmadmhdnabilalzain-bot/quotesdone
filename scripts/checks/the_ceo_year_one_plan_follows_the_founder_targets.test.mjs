@@ -8,7 +8,8 @@
 //     ZZ DEMO / example.invalid): the replaced targets are still active; a November day with nothing measured opens
 //     no task; a cost over its ceiling is not a miss; the month closes no directive, sends no report, or issues a
 //     seat no directive; a second run issues twice; a stuck handoff is not re-run; the founder's note goes out on a
-//     day when nothing matters or twice on a day when something does; a recurring miss makes no improvement.
+//     day when nothing matters or twice on a day when something does; a recurring miss makes no improvement; five
+//     missed targets do not get exactly one improvement each; a second sweep proposes anything (it must settle in one run).
 //
 //   node --test scripts/checks/the_ceo_year_one_plan_follows_the_founder_targets.test.mjs
 import { test } from 'node:test';
@@ -23,7 +24,8 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const MINE = 'scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targets.sql';
 const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql',
   'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql',
-  'scripts/sql/the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql', MINE];
+  'scripts/sql/the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql', MINE,
+  'scripts/sql/the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 const code = (p) => read(p).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
@@ -143,10 +145,15 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; begin
   -- recurring misses become an improvement, once
   insert into public.target_daily_verdict (day, contract_id, metric_key, owner_seat, expected, actual, gap_pct, status)
   select current_date - g, c, 'inquiries_posted', 'marketing', 10, 0, -100, 'miss' from generate_series(1, 8) g
-  on conflict (day, contract_id, metric_key) do update set status = 'miss';
+  on conflict (day, contract_id, metric_key) do update set status = 'miss', owner_seat = excluded.owner_seat;   -- live days carry the real owner
+  -- five ZZ DEMO targets behind their path: exactly one improvement each, in ONE run
+  insert into public.target_daily_verdict (day, contract_id, metric_key, owner_seat, expected, actual, gap_pct, status)
+  select current_date - g, c, 'zz_demo_target_' || k, 'marketing', 10, 0, -100, 'miss' from generate_series(1, 5) k, generate_series(0, 7) g;
   v := public.fn_ceo_improvement_sweep();
   o := o || jsonb_build_object('improvement', (select jsonb_build_object('seat', seat, 'status', status, 'handoff', (select status from public.agent_actions where id = i.handoff_id))
             from public.ceo_improvement i where source_kind = 'recurring_miss' and source_ref like 'inquiries_posted:%'),
+    'zz_improvements', (select jsonb_build_object('rows', count(*), 'targets', count(distinct evidence->>'metric')) from public.ceo_improvement
+            where source_kind = 'recurring_miss' and evidence->>'metric' like 'zz_demo_target_%'),
     'sweep_again', (public.fn_ceo_improvement_sweep()->>'proposed')::int);
   -- the weekly summary email: plan against actual for every metric
   v := public.fn_ceo_weekly_report(date '2026-11-16');
@@ -183,11 +190,17 @@ end $$;`);
   assert.ok(o.month_miss_improvements >= 1, 'a missed month opened no improvement');
   assert.equal(o.report_has_targets, true, 'the monthly report does not carry the targets');
   assert.deepEqual(o.improvement, { seat: 'marketing', status: 'assigned', handoff: 'pending' }, 'a recurring miss did not become an assigned improvement');
-  assert.equal(o.sweep_again, 0, 'the sweep proposed the same improvement twice');
+  assert.deepEqual(o.zz_improvements, { rows: 5, targets: 5 }, 'five missed targets did not get exactly one improvement each');
+  assert.equal(o.sweep_again, 0, 'a second sweep proposed more: the sweep does not settle in one run (it must close before it proposes, until a pass changes nothing)');
   assert.equal(o.status_metrics, 16);
   assert.equal(o.weekly.has_section, true, 'the weekly summary email carries no plan against actual');
   assert.equal(o.weekly.rows, 16, 'the weekly summary misses a metric');
   assert.match(o.weekly.line ?? '', /^registrations_verified_cumulative \(sales_engineer\): target [\d.]+, actual \d+, gap -?[\d.]+, (on plan|BEHIND)(\n|\\n)\s*Action: .+/, 'a weekly line lacks target, actual, gap, seat or action: ' + o.weekly.line);
   assert.equal(o.weekly.once, true, 'the section was written twice');
   assert.equal(o.forecast_reads_it, true, 'the weekly forecast does not read the founder\'s contract');
+});
+
+test('production, aborted: five missed ZZ targets settle in one sweep; a recovered one and a month rollover open nothing', { skip: SKIP }, async () => {
+  const o = await probe(read('scripts/sql/the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run_probe.sql'));
+  assert.equal(o.verdict, 'PROBE OK', JSON.stringify(o));
 });
