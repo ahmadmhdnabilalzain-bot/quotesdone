@@ -9,7 +9,8 @@
 --   * s4 said automated processing "does not produce binding legal effects on you without human involvement": refund and
 --     dispute findings are made by the seats' models (post_reveal_dispute.finding_model). Now disclosed, with the PDPL right
 --     to object and ask for a person to reconsider.
---   * s4 said requests go to "vetted suppliers"; matching reaches invited, unvetted leads. Now "suppliers in the matching trade".
+--   * s4 said requests go to "vetted suppliers". That is backed (fn_is_matchable: verified, approved by the sales engineer,
+--     documents in date, not banned or closed); the text now says "suppliers in the matching trade", which is also true.
 --   * s5/s6 named no provider and said "analytics" (the cookie policy says none is used). Now each provider is named, what it
 --     processes, and the one measured location (Supabase: ap-southeast-1, Singapore, read from the project 6 Oct).
 --   * s7 said "a reasonable period". Now 5 years, on Cabinet Decision 74/2023 Art. 3(1)(b) (read from the FTA text), with
