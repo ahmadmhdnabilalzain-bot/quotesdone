@@ -265,6 +265,7 @@ export const REGISTER = {
   fn_accountant_record_supplier_payment: { relay: 'records the refusal of a bank payment above what is still owed on a supplier due; fires only when a caller attempts that overpayment, and a healthy day has none' },
   fn_supplier_due_record_settlement: { relay: 'records a Stripe settlement (stripe_webhook\'s write to supplier_dues.paid_at) with no stored checkout amount, or above what was owed; fires only on that settlement, and a healthy day has none' },
   fn_customer_support_sends_the_it_digest: { relay: 'raises nothing itself: the match is its file\'s rolled-back probe, which seeds one ZZ DEMO duty:access finding to prove a real founder decision still mails; on a healthy day the digest only reads findings' },
+  fn_web_search_degraded: { relay: 'records that web_search.ts degraded (no key, an outage, a refused Serper key, or the daily cap fn_web_search_claim counted); the failure is what the caller read, and a healthy day searches without one' },
   fn_accountant_duty_stage: { relay: 'records that an accountant duty stage raised; the error is the finding' },
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
   fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
