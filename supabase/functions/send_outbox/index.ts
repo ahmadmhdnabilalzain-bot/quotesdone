@@ -15,6 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
+import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, graphSend, holdForM365, m365Body, m365Carries, m365CopyLint, m365Mime, m365Text, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -33,7 +34,7 @@ export const OUTBOX_KEYS = ['unsubscribe_signing_key', 'email_enabled', 'supplie
   'resend_api_key', 'email_from_supplier', 'email_from_info', 'email_reply_supplier', 'email_reply_supplier_docs',
   'email_reply_info', 'email_logo_url', 'unsubscribe_public_base', 'email_asset_public_base', 'email_signature_name',
   'email_signature_name_ar', 'email_signature_title', 'invite_preheader', 'daily_send_cap', 'invite_lane_enabled',
-  'invite_lane_from', 'invite_daily_cap'];
+  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox'];
 let secCache: Map<string, string | undefined> | null = null;
 async function warmSecrets() {
   secCache = null;
@@ -190,10 +191,24 @@ Deno.serve(observe('send_outbox', async (req) => {
     // reveal and account notices to a registered supplier.
     // THE INVITATION LANE (24 Sep 2026, marketing + it_engineer; invite_lane.ts). Flag off = LANE_OFF and no call.
     // On, it asks Resend whether the lane's subdomain is verified before a single invitation uses it.
+    // THE MICROSOFT 365 LANE (5 Oct 2026, ledger 1115; m365_lane.ts). A row it carries never reaches the Resend lanes below.
+    const m365Enabled = switchOn(await setting('invite_m365_enabled'));
+    const carries = (r: any) => m365Carries({ enabled: m365Enabled, type: r.type, kind: r.kind, supplierSide: r.to_role === 'supplier' });
+    const fileFinding = async (args: Record<string, unknown>) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; };
+    let m365 = await resolveM365({ needed: rows.some(carries), mailbox: await setting('invite_m365_mailbox'), env: (k) => Deno.env.get(k),
+      fetchFn: (u, i) => timedFetch(u, i || {}, 10_000), fileFinding });
+    let cappedSentToday = 0, m365SentToday = 0;
+    if (m365.active) {
+      const a = await admin.from('notifications').select('id', { count: 'exact', head: true }).in('type', [...LANE_CAPPED_TYPES]).eq('status', 'sent').gte('sent_at', since.toISOString());
+      const b = await admin.from('notifications').select('id', { count: 'exact', head: true }).like('provider_message_id', M365_ID_PREFIX + '%').eq('status', 'sent').gte('sent_at', since.toISOString());
+      // A count that cannot be read is treated as the ceiling reached: the lane holds rather than guesses.
+      cappedSentToday = a.error ? Number.MAX_SAFE_INTEGER : (a.count || 0);
+      m365SentToday = b.error ? M365_HARD_CEILING : (b.count || 0);
+    }
     const lane = await resolveLane({ enabled: await setting('invite_lane_enabled'), from: await setting('invite_lane_from'), apiKey: key,
-      needed: rows.some((r: any) => r.to_role === 'supplier' && isLaneType(r.type)),
+      needed: rows.some((r: any) => r.to_role === 'supplier' && isLaneType(r.type) && !carries(r)),
       fetchFn: (u, i) => timedFetch(u, i || {}, 10_000),
-      fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; } });
+      fileFinding });
     // The lane's own daily ceiling is the ramp's number (invite_daily_cap), counted over invitations and nudges actually sent today.
     const laneCapRaw = parseInt((await setting('invite_daily_cap')) || '', 10);
     const laneCap = Number.isFinite(laneCapRaw) && laneCapRaw >= 0 ? laneCapRaw : 30;
@@ -241,7 +256,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
       // A LANE INVITATION IS HELD, NEVER DIVERTED (review of #963; invite_lane.ts holdFor). Left 'queued' with
       // not_before moved on, so it does not come back into the next claim and crowd out other mail.
-      const laneHold = holdFor({ lane, type: n.type, supplierSide, laneSentToday, laneCap });
+      const laneHold = carries(n) ? null : holdFor({ lane, type: n.type, supplierSide, laneSentToday, laneCap });
       if (laneHold) {
         await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil(laneHold, new Date()).toISOString(),
           last_error: laneHold === 'unverified' ? 'held: the invitation lane is on but ' + lane.why + '; never sent from the main sender'
@@ -261,6 +276,41 @@ Deno.serve(observe('send_outbox', async (req) => {
       if (holdForNoUnsubscribe(supplierSide, docReq, unsub)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: no unsubscribe link could be built (unsubscribe_signing_key unreadable); supplier mail never goes without one' }).eq('id', n.id); held++; continue; }
       // NEVER AN ARABIC INVITATION (24 Sep 2026, marketing, ledger 993): held with its reason, not sent.
       if (holdArabicInvitation(n.type, n.lang, supplierSide)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: supplier mail is English only (ledger 993; founder 28 Sep 2026); this row was queued in Arabic' }).eq('id', n.id); held++; continue; }
+      if (carries(n)) {
+        // Held, never diverted to Resend: refused lane, shared invite cap or the mailbox's ceiling.
+        const mh = holdForM365({ m365, type: n.type, cappedSentToday, inviteCap: laneCap, m365SentToday });
+        if (mh) {
+          await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil(mh, new Date()).toISOString(),
+            last_error: mh === 'cap' ? 'held: the Microsoft 365 lane reached invite_daily_cap or its ' + M365_HARD_CEILING + '/day ceiling'
+                                     : 'held: the Microsoft 365 lane is on but ' + m365.why + '; never sent through Resend' }).eq('id', n.id);
+          laneHeld++; continue;
+        }
+        const mBody = m365Body(n.type, n.body || '');
+        const bad = m365CopyLint({ subject: n.subject || '', body: mBody }).filter((l) => !l.ok);
+        if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
+        const now = new Date(); const mid = messageIdFor(n.id, now);
+        const mime = m365Mime({ from: 'QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply, subject: n.subject || 'QuotesDone', text: m365Text(mBody, unsub), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
+        try {
+          const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid);
+          if (r.ok) {
+            await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
+            sent++; m365SentToday++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
+          } else {
+            // Graph refused: this row and every later one in the run are held, one finding says why.
+            m365 = { ...m365, active: false, refused: true, why: 'refused: ' + r.status };
+            try { await fileFinding(refusalFinding(m365.mailbox, r.status, M365_SECRET_NAMES.filter((k) => !!Deno.env.get(k)))); } catch (_e) { /* the hold below still happens */ }
+            await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil('unverified', new Date()).toISOString(),
+              last_error: ('held: ' + r.status + '; never sent through Resend').slice(0, 500) }).eq('id', n.id);
+            laneHeld++;
+          }
+        } catch (e) {
+          // No answer: sent-unconfirmed, never sent again (the same rule as the Resend path below).
+          lastErr = String((e as Error)?.message || e).slice(0, 200); unconfirmed++;
+          await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
+            last_error: ('the POST to Microsoft Graph did not return (' + lastErr + '); sent-unconfirmed, will NOT be sent again').slice(0, 500) }).eq('id', n.id);
+        }
+        continue;
+      }
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
       // agent"), so its mail is signed by that seat, not with the founder's name.
@@ -340,7 +390,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts and will never be delivered. Last error: ' + lastErr);
     else if (failed) await logRun('error', { sent, failed, retried, suppressed, held, skipped, pending: rows.length }, 'Resend rejected ' + failed + ' email(s), will retry. Last error: ' + lastErr);
     else if (didWork) await logRun('ok', { sent, suppressed, held, skipped, pending: rows.length, remaining_today: Math.max(0, remaining - sent) }, held ? (held + ' held (supplier sending gate or stale)') : '');
-    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent), invite_lane: lane.active ? lane.domain : lane.why, invite_lane_held: laneHeld });
+    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent), invite_lane: lane.active ? lane.domain : lane.why, invite_m365: m365.active ? m365.mailbox : m365.why, invite_lane_held: laneHeld });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
   finally {
     // Rows this run resolved are no longer 'sending', so the status filter makes this exact: only a
