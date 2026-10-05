@@ -4395,6 +4395,56 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_record_supplier_payment(p_due_id bigint, p_amount numeric, p_paid_on date, p_reference text, p_entered_by text DEFAULT 'accountant'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.supplier_dues; v_id bigint; v jsonb; v_owed numeric; v_today date := (now() at time zone 'Asia/Dubai')::date;
+begin
+  if coalesce(p_entered_by, '') not in ('accountant', 'service') then
+    return jsonb_build_object('ok', false, 'reason', 'entered_by must be accountant or service');
+  end if;
+  if p_amount is null or p_amount <= 0 then return jsonb_build_object('ok', false, 'reason', 'the amount must be above zero'); end if;
+  if p_paid_on is null or p_paid_on > v_today then
+    return jsonb_build_object('ok', false, 'reason', 'the payment date is missing or in the future');
+  end if;
+  if nullif(btrim(p_reference), '') is null then return jsonb_build_object('ok', false, 'reason', 'a bank or Stripe reference is required'); end if;
+  select * into d from public.supplier_dues where id = p_due_id for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such due'); end if;
+  if d.paid_at is not null or coalesce(d.status, '') in ('paid', 'settled', 'waived', 'reversed', 'refunded', 'cancelled', 'void') then
+    return jsonb_build_object('ok', false, 'reason', 'this due is ' || coalesce(nullif(d.status, ''), 'paid') || ', so nothing is owed on it');
+  end if;
+  v_owed := least((public.fn_supplier_dues_outstanding(array[d.id], p_paid_on) -> d.id::text ->> 'owed_aed')::numeric,
+                  (public.fn_supplier_dues_outstanding(array[d.id], v_today)   -> d.id::text ->> 'owed_aed')::numeric);
+  if v_owed is null or round(p_amount, 2) > v_owed then
+    perform public.fn_it_engineer_finding_upsert('acct:supplier_overpayment:' || d.id || ':' || btrim(p_reference),
+      'An attempt to record AED ' || round(p_amount, 2) || ' against supplier due ' || d.id || ' exceeds the AED ' || coalesce(v_owed, 0) || ' still owed',
+      'public.fn_accountant_record_supplier_payment', 'agent_facing', 1,
+      jsonb_build_object('due_id', d.id, 'amount_aed', round(p_amount, 2), 'owed_aed', v_owed, 'paid_on', p_paid_on,
+                         'reference', btrim(p_reference), 'entered_by', p_entered_by, 'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+      '{}'::text[], '{}'::text[], 'accountant');
+    return jsonb_build_object('ok', false, 'reason', 'the amount is above the AED ' || coalesce(v_owed, 0) || ' still owed on this due; nothing was recorded', 'owed_aed', v_owed);
+  end if;
+  insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference, entered_by)
+  values (p_due_id, p_paid_on, round(p_amount, 2), btrim(p_reference), p_entered_by)
+  on conflict (due_id, reference) do nothing returning id into v_id;
+  if v_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'this reference is already recorded against this due, so the payment is not counted twice');
+  end if;
+  v := case when d.transaction_id is not null then public.fn_accountant_nonresponse_charge(d.transaction_id, null) end;
+  -- settled only when nothing is outstanding on the same figure the cap reads (principal, interest, fees and any legacy
+  -- fine; a due with no transaction reads its stored columns less payments)
+  v_owed := (public.fn_supplier_dues_outstanding(array[d.id], v_today) -> d.id::text ->> 'owed_aed')::numeric;
+  if v_owed <= 0 then
+    update public.supplier_dues set paid_at = now(), status = 'paid', payment_ref = btrim(p_reference) where id = p_due_id;
+  end if;
+  return jsonb_build_object('ok', true, 'payment_id', v_id, 'due_id', p_due_id, 'settled', v_owed <= 0, 'owed_aed', v_owed,
+                            'paid_aed', v->'paid_aed', 'unpaid_principal_aed', v->'unpaid_principal_aed', 'interest_aed', v->'interest_aed', 'total_aed', v->'total_aed');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_recovery_position()
  RETURNS jsonb
  LANGUAGE sql
