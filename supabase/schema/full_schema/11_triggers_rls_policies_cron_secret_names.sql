@@ -641,6 +641,7 @@ ALTER TABLE public.it_duty_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_finding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_scanner ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_expected_table_growth ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_expiry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_founder_decision_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_game_day_run ENABLE ROW LEVEL SECURITY;
@@ -1115,6 +1116,7 @@ CREATE POLICY it_cost_watch_week_service_role_only ON public.it_cost_watch_week 
 CREATE POLICY it_credential_class_service_role_only ON public.it_credential_class AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_credential_rotation_service_role_only ON public.it_credential_rotation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_duty_schedule_service_role_only ON public.it_duty_schedule AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_expected_table_growth_service_role_only ON public.it_expected_table_growth AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_founder_decision_class_service_role_only ON public.it_founder_decision_class AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_game_day_run_service_role_only ON public.it_game_day_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
