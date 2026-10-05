@@ -1,7 +1,0 @@
-Applied at merge by the release train (apply at merge, never before). Applying deletes nothing and reads nothing heavy:
-it creates kb_trim_hash, kb_trim_plan, the hash page, the plan build and the batch routine, and runs a 200-row probe.
-The census (hashed in 2,000-row pages), the plan and the deletes are run afterwards, 23:00-06:00 Dubai only, by
-node scripts/kb/trim_kb_chunks.mjs --run (load guard before every page). Whole file staged on production on 5 Oct 2026
-inside a block that ended in raise exception: 0.8 s, PROBE OK (200 hashed, 200 planned, 20 deleted and rolled back),
-no object left behind. Measured read-only the same day: 90,488 qd_kb_pack and 3,478 exact duplicates (content, title
-and category) would be planned. Seat: it_engineer.
