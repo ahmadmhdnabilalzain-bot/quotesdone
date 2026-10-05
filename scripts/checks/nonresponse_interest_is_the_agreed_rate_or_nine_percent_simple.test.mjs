@@ -98,7 +98,7 @@ begin
 end $$;`;
 
 export async function runProbe(replay) {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql: sql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   try { await sql((replay ? read(FILE) + '\n' : '') + PROBE, { retry: false }); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw new Error('the probe failed before it could report: ' + String(e.message).slice(0, 800));

@@ -37,7 +37,7 @@ test('static: revoke, pinned search_path, pending XOR applied', () => {
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
 test('production, aborted: registered, due to the tick, monthly, and off pg_cron', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql: sql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   const replay = pending() ? read(FILE) + '\n' : '';
   let o;
   try {
