@@ -5572,6 +5572,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_postmortem()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
+        n_known int := 0; n_waiting int := 0; v_cause text; v_hid bigint;
         v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
 begin
   select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
@@ -5601,24 +5602,46 @@ begin
     end if;
   end loop;
 
-  -- A class the playbook has never seen: its root cause is asked once, three incidents a run, oldest first. Asked from
-  -- the incident (not the pass that opened it) so an incident past one run's cap is asked on the next.
+  -- A class the playbook has never seen: its root cause is asked ONCE PER FAULT (the finding key, digits stripped),
+  -- three faults a run, oldest first. An incident of a fault whose cause is already known takes that cause with no
+  -- model; one whose fault already has a question in the last 7 days waits for that answer (the apply fills it).
   for h in
-    select i.id inc_id, a.detail, a.evidence from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
+    select i.id inc_id, a.detail, a.evidence, public.fn_it_postmortem_fault_key(a.detail) fk
+      from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
      where i.created_at >= v_since and i.playbook_class is null and coalesce(btrim(i.cause), '') = ''
        and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'postmortem:' || i.id)
-     order by i.id limit 3
+     order by i.id
   loop
+    select i2.cause into v_cause from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
+     where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_fault_key(a2.detail) = h.fk
+     order by i2.id desc limit 1;
+    if v_cause is not null then
+      update public.it_incident set cause = v_cause, recorded_by = 'it_engineer.postmortem (same fault as an earlier incident)',
+             updated_at = now() where id = h.inc_id;
+      n_known := n_known + 1;
+      continue;
+    end if;
+    if exists (select 1 from public.reasoning_held_question q
+                where q.surface = 'it_engineer.postmortem' and q.subject->>'fault_key' = h.fk
+                  and q.status in ('held', 'reasoned', 'applied') and q.created_at > now() - interval '7 days') then
+      n_waiting := n_waiting + 1;
+      continue;
+    end if;
+    exit when n_asked >= 3;
     select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
-    perform public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
+    v_hid := public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
       'Postmortem: what was the root cause of this fault, in two or three sentences? ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
       jsonb_build_object('seat', 'it_engineer', 'surface', 'it_engineer.postmortem', 'research', false, 'stakes', 'normal',
         'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
         'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
           'finding', to_jsonb(f) - 'evidence')),
-        'subject', jsonb_build_object('incident_id', h.inc_id), 'dedupeKey', 'postmortem:' || h.inc_id),
-      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id), 'seat_duty', 'postmortem:' || h.inc_id);
-    n_asked := n_asked + 1;
+        'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk), 'dedupeKey', 'postmortem:' || h.inc_id),
+      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk),
+      'seat_duty', 'postmortem:' || h.inc_id);
+    -- only a question actually filed spends the run's budget (a refused or recently failed one files nothing)
+    if exists (select 1 from public.reasoning_held_question q where q.id = v_hid and q.dedupe_key = 'postmortem:' || h.inc_id) then
+      n_asked := n_asked + 1;
+    end if;
   end loop;
 
   select count(*) into v_hist from public.agent_actions a
@@ -5635,7 +5658,8 @@ begin
       'evidence', jsonb_build_object('incident_ids', v_ids)));
   end if;
 
-  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked,
+  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_already_known', n_known,
+                            'waiting_on_its_fault', n_waiting,
                             'historical_without_postmortem', v_hist, 'settled', public.fn_it_duty_settle('postmortem', v_items));
 end $function$
 
@@ -7036,6 +7060,17 @@ begin
   perform public.fn_it_duty_ran('postmaster', v_res);
   return v_res;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_postmortem_fault_key(p_detail jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- null, never '', when the finding names nothing: an empty key would make every such incident "the same fault"
+  select nullif(regexp_replace(lower(btrim(coalesce(p_detail ->> 'issue_key', p_detail ->> 'title', ''))), '[0-9]+', '#', 'g'), '');
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_provider_rotation_baseline(p_provider text, p_ref text, p_created_at timestamp with time zone)
