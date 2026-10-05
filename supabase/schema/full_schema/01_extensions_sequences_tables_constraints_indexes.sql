@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T00:33:55.261Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T00:35:30.061Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -90,7 +90,6 @@ CREATE SEQUENCE IF NOT EXISTS public.dept_library_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.doc_backups_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.doc_versions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.documents_id_seq;
-CREATE SEQUENCE IF NOT EXISTS public.dr_restore_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.email_block_pattern_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.employee_kpi_history_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.employee_kpi_id_seq;
@@ -212,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (695) =====
+-- ===== TABLES (694) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -2857,14 +2856,6 @@ CREATE TABLE IF NOT EXISTS public.documents (
   attempts integer DEFAULT 0,
   created_at timestamp with time zone DEFAULT now(),
   processed_at timestamp with time zone
-);
-
-CREATE TABLE IF NOT EXISTS public.dr_restore (
-  id bigint DEFAULT nextval('dr_restore_id_seq'::regclass) NOT NULL,
-  drill_at timestamp with time zone DEFAULT now(),
-  kind text,
-  "row" jsonb,
-  run_id uuid
 );
 
 CREATE TABLE IF NOT EXISTS public.drawing_redaction_runs (
@@ -9824,7 +9815,6 @@ ALTER TABLE public.doc_reviews ADD CONSTRAINT doc_reviews_pkey PRIMARY KEY (id);
 ALTER TABLE public.doc_versions ADD CONSTRAINT doc_versions_pkey PRIMARY KEY (id);
 ALTER TABLE public.document_kpi_snapshots ADD CONSTRAINT document_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.documents ADD CONSTRAINT documents_pkey PRIMARY KEY (id);
-ALTER TABLE public.dr_restore ADD CONSTRAINT dr_restore_pkey PRIMARY KEY (id);
 ALTER TABLE public.drawing_redaction_runs ADD CONSTRAINT drawing_redaction_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.dropbox_files ADD CONSTRAINT dropbox_files_pkey PRIMARY KEY (id);
 ALTER TABLE public.duty_pause ADD CONSTRAINT duty_pause_pkey PRIMARY KEY (duty);
@@ -11845,7 +11835,6 @@ CREATE INDEX doc_backups_gen_kind_ref_idx ON public.doc_backups USING btree (gen
 CREATE INDEX doc_reviews_status_idx ON public.doc_reviews USING btree (status, created_at DESC);
 CREATE UNIQUE INDEX document_kpi_snap_day ON public.document_kpi_snapshots USING btree (snapshot_date);
 CREATE INDEX documents_drainable_idx ON public.documents USING btree (id) WHERE (status = ANY (ARRAY['pending'::text, 'error'::text]));
-CREATE INDEX dr_restore_run_kind_idx ON public.dr_restore USING btree (run_id, kind);
 CREATE INDEX drawing_redaction_runs_caller_ref_idx ON public.drawing_redaction_runs USING btree (caller_ref text_pattern_ops);
 CREATE INDEX drawing_redaction_runs_customer_idx ON public.drawing_redaction_runs USING btree (customer_id, created_at DESC);
 CREATE INDEX drawing_redaction_runs_outputs_idx ON public.drawing_redaction_runs USING gin (output_paths);

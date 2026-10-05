@@ -1,1 +1,0 @@
-Drops public.dr_restore (0 rows, no live reader) and its export-registry row. Applied at merge by the release operator; on apply, delete this note and append the .sql to the end of MANIFEST.txt.
