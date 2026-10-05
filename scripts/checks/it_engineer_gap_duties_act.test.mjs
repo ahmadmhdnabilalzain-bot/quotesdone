@@ -100,9 +100,9 @@ do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_inci
   o := o || jsonb_build_object('dq_quote', qid is not null, 'dq_cross', (select count(*) from public.it_engineer_finding
     where issue_key = 'duty:data_quality:demo_quote_crosses_real' and closed_at is null and evidence->'ids' @> to_jsonb(qid)));
 
-  -- model spend
+  -- model spend (repeats key on prompt_hash since every_model_call_carries_its_prompt_hash_and_spend_is_watched_by_class.sql)
   for i in 1..40 loop
-    insert into public.ai_cost_log (fn, task_class, model_used, occurred_at, cached, cache_hit_key)
+    insert into public.ai_cost_log (fn, task_class, model_used, occurred_at, cached, prompt_hash)
     values ('zz_demo_fn', 'zz_loop', 'zz/model', now() - interval '5 minutes', false, 'zz-same-call');
   end loop;
   insert into public.ai_cost_log (fn, task_class, model_used, occurred_at) values ('sales_engineer', 'agent_reasoning', 'zz/model', now());
@@ -115,15 +115,16 @@ do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_inci
     'm_inventory', (select calls_30d from public.fn_it_model_consumer_inventory() where consumer = 'zz_demo_fn:zz_loop'));
 
   -- postmortem: a high-severity fault of a known class, closed after the duty went live
-  insert into public.agent_actions (agent, kind, status, detail, decided_at, evidence)
-  values ('sales_engineer', 'handoff', 'done', jsonb_build_object('type', 'it.finding', 'severity', 'high',
+  -- a handoff names its case and what it needs (trg_handoff_carries_its_note refuses one that does not), so the fixture does too
+  insert into public.agent_actions (agent, kind, status, target_id, title, detail, decided_at, evidence)
+  values ('sales_engineer', 'handoff', 'done', 'it.finding:duty:latency_slo:zz_demo_portal', 'ZZ DEMO slow', jsonb_build_object('type', 'it.finding', 'severity', 'high',
           'issue_key', 'duty:latency_slo:zz_demo_portal', 'title', 'ZZ DEMO slow', 'occurrence_started_at', now() - interval '2 hours'),
           now(), '{"answer":"ZZ DEMO bounded"}')
   returning id into hid;
-  insert into public.agent_actions (agent, kind, status, detail, decided_at)
-  select 'ceo', 'handoff', 'done', jsonb_build_object('type', 'it.finding', 'severity', 'critical',
-          'issue_key', 'zz_demo_new_class:' || g, 'title', 'ZZ DEMO new class ' || g, 'occurrence_started_at', now() - interval '2 hours'), now()
-    from generate_series(1, 4) g;
+  insert into public.agent_actions (agent, kind, status, target_id, title, detail, decided_at)
+  select 'ceo', 'handoff', 'done', 'it.finding:zz_demo_new_class:' || g, 'ZZ DEMO new class ' || g, jsonb_build_object('type', 'it.finding', 'severity', 'critical',
+          'issue_key', 'zz_demo_new_class:' || chr(96 + g), 'title', 'ZZ DEMO new class ' || g, 'occurrence_started_at', now() - interval '2 hours'), now()
+    from generate_series(1, 4) g;  -- four distinct faults: one postmortem per fault keys on the issue_key with digits stripped  -- four distinct faults: one postmortem per fault keys on the issue_key with digits stripped
   v := public.fn_it_engineer_postmortem();
   perform public.fn_it_engineer_postmortem();
   select * into inc from public.it_incident where handoff_id = hid;
