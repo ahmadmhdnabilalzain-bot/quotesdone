@@ -3,7 +3,7 @@
 --
 -- MEASURED 5 Oct 2026: the IT digest (notification 84149) asked the founder a DECISION on
 -- duty:integration:web_search, "an external connection is down that only its account holder can restore".
--- web_search was the keyless DuckDuckGo HTML scrape: no account, no key, and every datacenter call now gets a
+-- web_search was the keyless search-engine HTML scrape: no account, no key, and every datacenter call now gets a
 -- bot-check (HTTP 202) or a connection reset. Its finding already carried evidence.notify = false (the registry
 -- said so), but fn_customer_support_sends_the_it_digest matched the class row 'duty:integration%'
 -- (to_founder = true) and never read the flag.
@@ -75,7 +75,7 @@ begin
     end if;
     -- 5 OCT 2026 (notifications#84149): the watch marks a failing integration notify=false when no account the
     -- founder holds can restore it (a keyless endpoint, or a registry opt-out). The 'duty:integration%' class
-    -- asked him anyway, so the keyless DuckDuckGo scrape reached him as a DECISION. It stays the IT engineer's.
+    -- asked him anyway, so the keyless search scrape reached him as a DECISION. It stays the IT engineer's.
     if f.issue_key like 'duty:integration:%' and f.evidence->>'notify' is distinct from 'true' then
       perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
         'why', 'the integration watch marked it notify=false: no account the founder holds can restore it; the IT engineer owns it',
@@ -151,7 +151,7 @@ end $function$
 -- Handoff 130592 is a new-bug incident: it closes only through fn_it_attach_learning (cause, fix, regression
 -- check, and the reason it is not a playbook class), which closes it as its originator once the finding is closed.
 select public.fn_it_attach_learning(a.id,
-  'web_search was the keyless DuckDuckGo HTML scrape; every datacenter call is answered with a bot-check (HTTP 202) or a connection reset, so it cannot work from the edge by design',
+  'web_search was the keyless search-engine HTML scrape; every datacenter call is answered with a bot-check (HTTP 202) or a connection reset, so it cannot work from the edge by design',
   'scrape removed: think.ts webSearch returns no hits and research degrades to the knowledge base; registry web_search is covered (nothing to probe); the digest keeps notify=false integrations internal',
   'supabase/functions/_shared/integration_watch.test.ts (founderMayBeAsked) and the probe in scripts/sql/an_integration_the_founder_holds_no_account_for_is_never_his_decision.sql',
   null,

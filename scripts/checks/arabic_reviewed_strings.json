@@ -554,17 +554,15 @@
   "d2f51ce60d95",
   "e0c574ae3528"
  ],
+ "scripts/sql/a_web_search_is_capped_names_no_private_party_and_tells_the_founder_only_of_his_account.sql": [
+  "9e03b148b744",
+  "d40621091456"
+ ],
  "scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql": [
   "f1b2f677e087"
  ],
  "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql": [
   "3cbc1543d65e"
- ],
- "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english_probe.sql": [
-  "2c34b688d18c",
-  "6e8f5d8a80f0",
-  "a428e819f9a6",
-  "cf76d5fb9275"
  ],
  "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english.sql": [
   "036eb5e90eaa",
