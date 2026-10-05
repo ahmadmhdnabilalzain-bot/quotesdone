@@ -3353,14 +3353,19 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_management_review()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_week date := public.fn_ceo_review_week(); v_facts jsonb; v_held bigint;
+declare v_week date := public.fn_ceo_review_week(); v_facts jsonb; v_held bigint; v_cap int;
 begin
   if (select held_id from public.ceo_review where kind = 'management_review' and period = v_week) is not null then
     return jsonb_build_object('week', v_week, 'already_filed', true);
   end if;
+  -- BOUNDED (5 Oct 2026, ceo): 200 characters of each duty's result, then none if the facts still pass 45,000.
+  foreach v_cap in array array[200, 0] loop
   select jsonb_build_object(
     'seats', (select jsonb_object_agg(r.role_id, jsonb_build_object(
-        'duties', (select coalesce(jsonb_agg(jsonb_build_object('duty', d.duty, 'last_ok_at', d.last_ok_at, 'failures', d.failures, 'last_result', d.last_result)), '[]'::jsonb)
+        'duties', (select coalesce(jsonb_agg(jsonb_build_object('duty', d.duty, 'last_ok_at', d.last_ok_at, 'failures', d.failures,
+                     'last_result', case when v_cap = 0 then null
+                                         when length(d.last_result::text) <= v_cap then d.last_result
+                                         else to_jsonb(left(d.last_result::text, v_cap) || '...') end)), '[]'::jsonb)
                      from public.seat_duty d where d.owner_seat = r.role_id),
         'open_findings', (select count(*) from public.it_engineer_finding f where f.closed_at is null
                             and coalesce(f.evidence->>'owner_seat', f.raised_by) = r.role_id),
@@ -3382,6 +3387,8 @@ begin
     'last_review', (select jsonb_build_object('week', period, 'verdict', decision, 'fields', fields) from public.ceo_review
                      where kind = 'management_review' and period < v_week and decision is not null order by period desc limit 1))
   into v_facts;
+  exit when length(v_facts::text) <= 45000;
+  end loop;
   insert into public.ceo_review (kind, period, facts) values ('management_review', v_week, v_facts)
   on conflict (kind, period) do update set facts = excluded.facts;
 
