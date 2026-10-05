@@ -249,3 +249,10 @@ values ('it_engineer.contact_dedup', 'it_engineer', '1 day', 'fn_it_engineer_con
         'Group leads and customers that share one email identity (phone only confirms); merge demo groups, hand real ones to sales_engineer for a reviewed fn_contact_merge. Nothing is deleted.',
         'scripts/sql/the_it_engineer_finds_duplicate_contacts_by_email_and_merges_only_reviewed_or_demo_ones.sql', true)
 on conflict (duty) do update set routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file, every = excluded.every;
+
+-- both new tables join the daily export: who duplicates whom, and every merge that was made
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('contact_duplicate_group', true, 'company', 'groups of leads and customers that share one email identity, with their review state (contact dedup)', 'it_engineer'),
+  ('contact_merge_audit', true, 'company', 'every contact merge made: which group, winner and loser, by whom (contact dedup; nothing is deleted)', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
