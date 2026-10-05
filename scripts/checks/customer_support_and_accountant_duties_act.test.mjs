@@ -28,6 +28,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..', '..');
@@ -90,7 +91,7 @@ test('production, aborted: every duty acts on ZZ DEMO fixtures, once', { skip: h
   const { sql } = await import('../lib/db.mjs');
   const replay = [FRAME, ...FILES, REVEAL, OWNERS].filter(pending).map(read).join('\n');
   let o;
-  try { await sql(replay + '\n' + PROBE, { retry: false }); }
+  try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));

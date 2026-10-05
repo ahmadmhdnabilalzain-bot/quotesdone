@@ -150,8 +150,8 @@ CREATE OR REPLACE FUNCTION public.fn_inquiry_add_missing_specs(p_inquiry uuid, p
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  i public.inquiries; v_missing jsonb; v_add jsonb := '{}'::jsonb; v_lines text := ''; e record; v_val text; v_ask text;
-  v_note bigint; v_after public.inquiries; v_told int := 0; l record; v_res jsonb;
+  i public.inquiries; v_missing jsonb; v_add jsonb := '{}'::jsonb; v_lines text := ''; v_held text := ''; e record; v_val text; v_ask text;
+  v_note bigint; v_held_note bigint; v_after public.inquiries; v_told int := 0; l record; v_res jsonb; v_head text; v_q text; v_kept jsonb := '[]'::jsonb;
 begin
   if p_source not in ('customer_portal', 'email_reply') then raise exception 'missing specs come from customer_portal or email_reply, not %', p_source; end if;
   if p_source = 'customer_portal' and p_customer is null then raise exception 'a portal answer names its customer'; end if;
@@ -167,45 +167,78 @@ begin
     v_val := left(btrim(coalesce(e.value, '')), 300);
     select m->>'ask' into v_ask from jsonb_array_elements(v_missing) m where m->>'key' = lower(btrim(e.key));
     if v_ask is null or not public._rfq_answered(v_val) then continue; end if;
+    -- Budget and emirate are columns every supplier copy reads raw (inquiries_supplier_safe.emirate, the invitation):
+    -- in Arabic script they are NOT written and stay missing, so the page asks them again; digits and English pass
+    -- (Arabic-Indic digits are written as the same Western digits first, so "٥٠٠٠" is 5000).
+    if lower(btrim(e.key)) in ('budget', 'emirate') then
+      v_val := translate(v_val, '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789');
+    end if;
+    if lower(btrim(e.key)) in ('budget', 'emirate') and v_val ~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]' then
+      v_kept := v_kept || jsonb_build_array(lower(btrim(e.key))); continue;
+    end if;
     v_add := v_add || jsonb_build_object(lower(btrim(e.key)), v_val);
-    v_lines := v_lines || case when v_lines = '' then '' else chr(10) end || v_ask || ' ' || v_val;
+    -- Suppliers read English only: an answer in Arabic script waits for its English on the held note.
+    if v_val ~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]' then
+      v_held := v_held || case when v_held = '' then '' else chr(10) end || v_ask || ' ' || v_val;
+    else
+      v_lines := v_lines || case when v_lines = '' then '' else chr(10) end || v_ask || ' ' || v_val;
+    end if;
   end loop;
-  if v_add = '{}'::jsonb then return jsonb_build_object('ok', false, 'error', 'nothing_to_add', 'missing', v_missing); end if;
+  if v_add = '{}'::jsonb then return jsonb_build_object('ok', false, 'error', 'nothing_to_add', 'missing', v_missing, 'kept_missing', v_kept); end if;
 
-  -- The row's own trigger (trg_rfq_complete) re-runs the hold check on this write. Budget and emirate are the
-  -- request's own columns; every other answer is a spec under its key.
+  -- The row's own trigger (trg_rfq_complete) re-runs the hold check on this write: every answer, Arabic included,
+  -- counts as answered. Budget and emirate are the request's own columns; every other answer is a spec under its key.
   update public.inquiries
      set spec = case when jsonb_typeof(spec) = 'object' then spec else '{}'::jsonb end || (v_add - 'budget' - 'emirate'),
          budget = coalesce(v_add->>'budget', budget),
          emirate = coalesce(v_add->>'emirate', emirate)
    where id = i.id returning * into v_after;
 
-  insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
-  values (i.id, null, 'note',
-          case when p_source = 'email_reply' then 'The customer replied with the details this trade needs:' else 'The customer added the details this trade needs:' end
-          || chr(10) || v_lines, now(), 'missing_specs')
-  returning id into v_note;
+  v_head := case when p_source = 'email_reply' then 'The customer replied with the details this trade needs:' else 'The customer added the details this trade needs:' end;
 
-  -- Every supplier already invited is told, through customer_support's door (suppliers are written in English).
-  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email
-             from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
-            where x.inquiry_id = i.id and not coalesce(le.banned, false)
-              and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
-    v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
-      'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
-      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
-      'subject', 'The customer added detail to a request you were invited to quote',
-      'body', 'The customer added this to the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
-              || ' you were invited to quote:' || chr(10) || chr(10) || v_lines || chr(10) || chr(10)
-              || 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.',
-      'dedupe_key', 'missing_specs:' || v_note || ':' || l.id)));
-    v_told := v_told + 1;
-  end loop;
+  if v_held <> '' then
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answer_as_written, english_held_at, answered_at, source)
+    values (i.id, null, 'note', null, v_head || chr(10) || v_held, now(), now(), 'missing_specs')
+    returning id into v_held_note;
+    -- The same request _shared/supplier_english.ts holdForEnglish files (englishQuestion), filed here so the note
+    -- and its English can never be separated.
+    v_q := 'Translate this message from a customer into clear, professional English for the suppliers quoting the job, '
+        || 'as a UAE sales engineer would write it. Keep every measurement, quantity, brand, model and grade code exactly as written. '
+        || 'Add nothing and leave nothing out. Put ONLY the English text in "answer".' || chr(10) || chr(10) || v_head || chr(10) || v_held;
+    perform public.fn_reason_hold('sales_engineer', 'sales_engineer.supplier_english', left(v_q, 8000),
+      jsonb_build_object('seat', 'sales_engineer', 'surface', 'sales_engineer.supplier_english', 'question', v_q,
+        'context', jsonb_build_object('audience', 'internal', 'language', 'en'), 'research', false,
+        'subject', jsonb_build_object('clarification_id', v_held_note), 'dedupeKey', 'supplier_english:' || v_held_note),
+      '{}'::jsonb, jsonb_build_object('clarification_id', v_held_note), 'filed_from_a_request_path', 'supplier_english:' || v_held_note);
+  end if;
+
+  if v_lines <> '' then
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
+    values (i.id, null, 'note', v_head || chr(10) || v_lines, now(), 'missing_specs')
+    returning id into v_note;
+
+    -- Every supplier already invited is told, through customer_support's door (suppliers are written in English).
+    for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email
+               from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
+              where x.inquiry_id = i.id and not coalesce(le.banned, false)
+                and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
+      v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+        'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
+        'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
+        'subject', 'The customer added detail to a request you were invited to quote',
+        'body', 'The customer added this to the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+                || ' you were invited to quote:' || chr(10) || chr(10) || v_lines || chr(10) || chr(10)
+                || 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.',
+        'dedupe_key', 'missing_specs:' || v_note || ':' || l.id)));
+      v_told := v_told + 1;
+    end loop;
+  end if;
 
   v_missing := public.fn_inquiry_missing_specs(i.id, null);
   return jsonb_build_object('ok', true, 'added', (select jsonb_agg(k) from jsonb_object_keys(v_add) k),
     'ready', coalesce(v_after.rfq_ready, false), 'still_missing', v_missing->'missing',
-    'reached_suppliers', (v_missing->>'reached_suppliers')::boolean, 'suppliers_told', v_told, 'note_id', v_note);
+    'reached_suppliers', (v_missing->>'reached_suppliers')::boolean, 'suppliers_told', v_told, 'note_id', v_note,
+    'held_for_english', v_held_note is not null, 'held_note_id', v_held_note, 'kept_missing', v_kept);
 end $function$
 
 
@@ -5231,9 +5264,9 @@ begin
   end if;
 
   -- one time-bound beat: score today's unscored questions until 4 s have passed (67 ms a call warm, measured)
-  for q in select * from public.seat_knowledge_eval_question q
-            where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = q.id)
-            order by q.id limit 150
+  for q in select * from public.seat_knowledge_eval_question eq
+            where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = eq.id)
+            order by eq.id limit 150
   loop
     exit when clock_timestamp() - v_t > interval '4 seconds';
     insert into public.seat_knowledge_recall_answer (day, question_id, seat, lang, recall)
@@ -5245,8 +5278,8 @@ begin
     on conflict do nothing;
     v_scored := v_scored + 1;
   end loop;
-  select count(*) into v_left from public.seat_knowledge_eval_question q
-   where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = q.id);
+  select count(*) into v_left from public.seat_knowledge_eval_question eq
+   where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = eq.id);
   if v_left > 0 then
     return jsonb_build_object('day', v_day, 'scored', v_scored, 'left', v_left);
   end if;
@@ -8811,6 +8844,127 @@ begin
     'action', 'route_or_ask_scope_details', 'catalog_num', v_cat.num,
     'candidates', jsonb_build_array(jsonb_build_object('catalog_num', v_cat.num, 'live_slug', v_cat.slug, 'live_name', v_cat.name)),
     'reason', 'the category was reasoned by the caller', 'clarification', null, 'rules', coalesce(v_rules, '[]'::jsonb));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_trim_batch(p_limit integer DEFAULT 2000)
+ RETURNS TABLE(batch_no integer, deleted_count bigint, deleted_bytes bigint, cursor_from bigint, cursor_to bigint, remaining_count bigint)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET enable_seqscan TO 'off'
+ SET max_parallel_workers_per_gather TO '0'
+ SET lock_timeout TO '2s'
+AS $function$
+declare v_from bigint; v_to bigint; v_batch integer; v_deleted bigint; v_bytes bigint; v_left bigint;
+begin
+  if p_limit is null or p_limit < 1 or p_limit > 5000 then
+    raise exception 'fn_kb_trim_batch: p_limit must be 1..5000 (got %)', p_limit;
+  end if;
+  if not pg_try_advisory_xact_lock(hashtext('public.fn_kb_purge_batch')) then
+    raise exception 'fn_kb_trim_batch: a purge or trim batch is running - refusing to overlap it';
+  end if;
+  if not exists (select 1 from public.kb_purge_ledger l where l.verdict = 'TRIM' and l.batch_no is null) then
+    raise exception 'fn_kb_trim_batch: no census in kb_purge_ledger - run select public.fn_kb_trim_plan_build() first';
+  end if;
+  select coalesce(max(l.batch_no), 0) + 1 into v_batch
+    from public.kb_purge_ledger l where l.verdict = 'TRIM' and l.batch_no is not null;
+  perform set_config('qd.export_change_bulk', 'kb_chunks', true);
+
+  with pick as (
+    select p.id, p.clause from public.kb_trim_plan p order by p.id limit p_limit
+  ), done as (
+    delete from public.kb_trim_plan p using pick where p.id = pick.id returning p.id
+  ), del as (
+    delete from public.kb_chunks k using pick p where k.id = p.id
+    returning k.id, p.clause, k.source_kind, octet_length(k.content) b
+  ), rec as (
+    insert into public.kb_purge_ledger (verdict, clause, source_kind, category, rows, bytes, batch_no, id_from, id_to)
+    select 'TRIM', d.clause, d.source_kind, null, count(*), sum(d.b), v_batch, (select min(id) from del), (select max(id) from del)
+      from del d group by d.clause, d.source_kind
+    returning rows, bytes, id_from, id_to
+  )
+  select coalesce(sum(r.rows), 0), coalesce(sum(r.bytes), 0), min(r.id_from), max(r.id_to)
+    into v_deleted, v_bytes, v_from, v_to from rec r;
+  select count(*) into v_left from public.kb_trim_plan p;
+  return query select v_batch, v_deleted, v_bytes, v_from, v_to, v_left;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_trim_hash_page(p_after bigint, p_limit integer DEFAULT 2000)
+ RETURNS TABLE(last_id bigint, hashed bigint)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET enable_seqscan TO 'off'
+ SET max_parallel_workers_per_gather TO '0'
+AS $function$
+declare v_last bigint; v_n bigint;
+begin
+  if p_limit is null or p_limit < 1 or p_limit > 5000 then
+    raise exception 'fn_kb_trim_hash_page: p_limit must be 1..5000 (got %)', p_limit;
+  end if;
+  if exists (select 1 from public.kb_trim_plan) then
+    raise exception 'fn_kb_trim_hash_page: a plan is being worked; finish it with scripts/kb/trim_kb_chunks.mjs --run';
+  end if;
+  with pg as (
+    select k.id, md5(k.content) || md5(coalesce(k.title, '') || chr(31) || coalesce(k.category, '')) k,
+           (case when k.source_kind = 'qd_kb_pack' then 2 when coalesce(k.citation, '') = '' then 1 else 0 end)::smallint pref,
+           k.source_kind = 'qd_kb_pack' is_qd
+      from public.kb_chunks k where k.id > coalesce(p_after, 0) order by k.id limit p_limit
+  ), ins as (
+    insert into public.kb_trim_hash (id, k, pref, is_qd) select id, k, pref, is_qd from pg
+    on conflict (id) do update set k = excluded.k, pref = excluded.pref, is_qd = excluded.is_qd, clause = null, keeper_id = null
+    returning id
+  )
+  select max(id), count(*) into v_last, v_n from ins;
+  return query select v_last, v_n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_trim_plan_build(p_upto bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v6 bigint; v7 bigint;
+begin
+  if not pg_try_advisory_xact_lock(hashtext('public.fn_kb_purge_batch')) then
+    raise exception 'fn_kb_trim_plan_build: a purge or trim batch is running';
+  end if;
+  if exists (select 1 from public.kb_trim_plan) then
+    raise exception 'fn_kb_trim_plan_build: a plan is being worked; finish it with scripts/kb/trim_kb_chunks.mjs --run';
+  end if;
+  if p_upto is null and exists (select 1 from public.kb_chunks where id > coalesce((select max(id) from public.kb_trim_hash), 0)) then
+    raise exception 'fn_kb_trim_plan_build: kb_trim_hash does not reach the newest kb_chunks id; hash the remaining pages first';
+  end if;
+  delete from public.kb_purge_ledger where verdict = 'TRIM' and batch_no is null;
+  delete from public.kb_trim_hash h where not exists (select 1 from public.kb_chunks k where k.id = h.id);
+
+  with cited as (select distinct split_part(x, ':', 2)::bigint id from public.sales_decision_log s, unnest(s.cited) x
+                  where x ~ '^kb_chunks:[0-9]+$'),
+  r as (select h.id, h.is_qd, (c.id is not null) is_cited,
+               first_value(h.id) over w keeper, first_value(h.is_qd) over w keeper_qd
+          from public.kb_trim_hash h left join cited c on c.id = h.id
+         where h.id <= coalesce(p_upto, h.id)
+        window w as (partition by h.k order by h.pref, h.id)),
+  v as (select id, keeper,
+               (case when is_cited then null
+                     when is_qd then 6
+                     when id <> keeper and not keeper_qd then 7 end)::smallint clause from r)
+  update public.kb_trim_hash h set clause = v.clause, keeper_id = case when v.clause = 7 then v.keeper end
+    from v where v.id = h.id;
+  insert into public.kb_trim_plan (id, clause)
+  select id, clause from public.kb_trim_hash where clause is not null and id <= coalesce(p_upto, id);
+
+  insert into public.kb_purge_ledger (verdict, clause, source_kind, category, rows, note)
+  select 'TRIM', c.clause, case c.clause when 6 then 'qd_kb_pack' else 'duplicate' end, null,
+         (select count(*) from public.kb_trim_plan p where p.clause = c.clause),
+         'census before the first trim batch (ledger 1085)'
+    from (values (6::smallint), (7::smallint)) c(clause);   -- both rows always: an empty clause is a census too
+  select count(*) filter (where clause = 6), count(*) filter (where clause = 7) into v6, v7 from public.kb_trim_plan;
+  return jsonb_build_object('clause6_qd_kb_pack', v6, 'clause7_duplicate', v7);
 end $function$
 
 

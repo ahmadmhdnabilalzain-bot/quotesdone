@@ -30,7 +30,7 @@ export function MissingSpecs({ inq, token, lang, call, onChange }) {
     setBusy(false);
     if (j && j.ok) {
       setVals({});
-      setMsg(t(lang, j.released ? 'ms_released' : 'ms_saved'));
+      setMsg(t(lang, j.released ? 'ms_released' : 'ms_saved') + (j.held_for_english ? ' ' + (lang === 'ar' ? j.notice : j.notice_en) : ''));
       await load();
       if (j.released && onChange) onChange();
     } else setErr(errText(j, lang));

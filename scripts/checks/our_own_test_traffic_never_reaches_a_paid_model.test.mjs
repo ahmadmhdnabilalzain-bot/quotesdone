@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -56,6 +57,6 @@ test('production: the fixture check agrees with the estate and never stubs a cus
   const { sql } = await import('../lib/db.mjs');
   const [live] = await sql(`select to_regprocedure('public.fn_ai_subject_is_fixture(jsonb)') is not null as applied`);
   if (!live.applied) { t.skip('our_own_test_traffic_never_reaches_a_paid_model.sql is not applied yet'); return; }
-  const [row] = await sql(read('scripts/sql/our_own_test_traffic_never_reaches_a_paid_model_probe.sql'));
+  const [row] = await replaySql(read('scripts/sql/our_own_test_traffic_never_reaches_a_paid_model_probe.sql'), { rows: true });
   assert.equal(row.verdict, 'PROBE OK', row.detail);
 });

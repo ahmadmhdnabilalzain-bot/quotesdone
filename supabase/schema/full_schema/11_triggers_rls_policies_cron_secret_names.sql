@@ -680,6 +680,8 @@ ALTER TABLE public.kb_operational_route_test ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_purge_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_revisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_route_scope_trigger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kb_trim_hash ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kb_trim_plan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_usage_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_domain ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_exam_questions ENABLE ROW LEVEL SECURITY;
@@ -1146,6 +1148,8 @@ CREATE POLICY kb_citation_jurisdiction_service_role_only ON public.kb_citation_j
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_purge_ledger_service_role_only ON public.kb_purge_ledger AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY kb_trim_hash_service_role_only ON public.kb_trim_hash AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY kb_trim_plan_service_role_only ON public.kb_trim_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_ml_claim_service_role_only ON public.knowledge_ml_claim AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_ml_status_service_role_only ON public.knowledge_ml_status AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_vector_ml_service_role_only ON public.knowledge_vector_ml AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

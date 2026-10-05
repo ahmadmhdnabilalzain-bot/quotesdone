@@ -18,6 +18,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/the_it_engineer_watches_every_integration_and_fixes_what_it_can.sql';
@@ -69,7 +70,7 @@ end $p$;`;
 test('production: an open external cause keeps him out of it until the provider asks something of him', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let message = '';
-  try { await sql(PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  try { await replaySql(PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 1500));
   const o = JSON.parse(chk[1].replace(/\\"/g, '"'));

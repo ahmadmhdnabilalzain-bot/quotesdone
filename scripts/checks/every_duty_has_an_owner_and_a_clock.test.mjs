@@ -16,6 +16,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -87,7 +88,7 @@ test('fn_suppression_stops answers what suppressionStops answers, on every reaso
 });
 
 test('the rolled-back rehearsal on production answers PROBE OK', { skip: SKIP }, async () => {
-  const r = await sql(PROBE, { retry: false });
+  const r = await replaySql(PROBE, { retry: false, rows: true });
   const verdict = Array.isArray(r) && r[0] ? String(r[0].verdict) : JSON.stringify(r).slice(0, 500);
   assert.match(verdict, /^PROBE OK/, verdict);
 });
