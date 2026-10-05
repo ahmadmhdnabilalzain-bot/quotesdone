@@ -125,8 +125,11 @@ begin
     select count(*) into v_n from public.notifications where lead_id = v_a and type = 'supplier_portfolio_incomplete' and channel = 'email';
     if v_n <> 1 then f := f || ('(a) ' || v_n || ' emails, not 1'); end if;
     select * into e from public.notifications where lead_id = v_a and type = 'supplier_portfolio_incomplete' and channel = 'email';
-    if e.lang is distinct from 'ar' or e.body !~ 'تحية طيبة وبعد' or e.body !~ 'الدهانات والتشطيبات' or e.body !~ '/ar/portal' then
-      f := f || text '(a) the Arabic-registered supplier was not written to in formal Arabic naming his trade and his portal'; end if;
+    -- Founder ruling 28 Sep 2026: suppliers ALWAYS get English, whatever language they registered in. This
+    -- supplier registered in Arabic on purpose, so the assertion is that it still gets English and no Arabic.
+    if e.lang is distinct from 'en' or e.body !~ '^Dear ' or e.body !~ 'Painting & finishes' or e.body !~ '/en/portal'
+       or e.body ~ '[؀-ۿ]' then
+      f := f || text '(a) the Arabic-registered supplier was not written to in English (ruling 28 Sep) naming his trade and his portal'; end if;
     select count(*) into v_n from public.notifications where lead_id = v_a and type = 'supplier_portfolio_incomplete' and channel = 'whatsapp';
     if v_n <> 1 then f := f || ('(a) ' || v_n || ' WhatsApp twins, not 1'); end if;
     if coalesce(v_ev#>>'{whatsapp,state}', '') not in ('queued', 'pending_template', 'suppressed')
@@ -248,7 +251,7 @@ begin
   select count(*) into v_left from storage.objects where name like 'zz-demo-portfolio-probe/%';
   if v_left <> 0 then f := f || (v_left || ' probe storage row(s) survived the rollback'); end if;
   insert into zz_portfolio_probe values (case when cardinality(f) = 0
-    then 'PROBE OK: (a) one handoff, one formal-Arabic email and one WhatsApp twin with its state recorded, at Tuesday 10:00 and not before; (b) a supplier who ticked straight away gets nothing; (c) one who completed between detection and send gets nothing; (d) Thursday + 3 working days is Tuesday, the weekend not counted; (e) re-runs send nothing twice and only sales_engineer closes, after re-verifying; nothing to a real address; zero residue. #868 guard: closed raises no trade-only reminder, open raises it; the live matcher reads ticks = ' || v_guard_live::text || '. Closing waits for both legs to be final; no portal address, nothing sent; nothing opened at 19:00 Dubai'
+    then 'PROBE OK: (a) one handoff, one English email (to an Arabic-registered supplier, ruling 28 Sep) and one WhatsApp twin with its state recorded, at Tuesday 10:00 and not before; (b) a supplier who ticked straight away gets nothing; (c) one who completed between detection and send gets nothing; (d) Thursday + 3 working days is Tuesday, the weekend not counted; (e) re-runs send nothing twice and only sales_engineer closes, after re-verifying; nothing to a real address; zero residue. #868 guard: closed raises no trade-only reminder, open raises it; the live matcher reads ticks = ' || v_guard_live::text || '. Closing waits for both legs to be final; no portal address, nothing sent; nothing opened at 19:00 Dubai'
     else 'PROBE FAILED: ' || array_to_string(f, '; ') end);
 end $probe$;
 select verdict from zz_portfolio_probe;

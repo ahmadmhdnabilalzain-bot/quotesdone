@@ -225,7 +225,9 @@ begin
 
   -- test-path rows (fixture addresses) are not invitations and must not spend the day's cap:
   -- measured in the rolled-back rehearsal, two test sends plus one real row cut a batch of 5 to 2.
-  select count(*) into v_used from notifications where type='supplier_invite' and (created_at at time zone 'UTC')::date = v_today
+  -- ONE daily cap for invitations and their nudges (review of #1007, 29 Sep 2026): a nudge queued today spends it too,
+  -- as fn_sales_engineer_nudges_invited_suppliers already counts the invitations queued today against the same cap.
+  select count(*) into v_used from notifications where type in ('supplier_invite', 'supplier_invite_nudge') and (created_at at time zone 'UTC')::date = v_today
      and not public.fn_is_demo_email(to_email);
   v_remaining := greatest(0, v_planned - v_used);
   if v_remaining <= 0 then return 0; end if;
