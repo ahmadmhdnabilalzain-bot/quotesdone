@@ -12,7 +12,7 @@ const BRAND = STORAGE + '/object/public/brand/';
 const SEAL = new Set(['qd_stamp.png', 'qd_signature.png']);
 async function sealUrl(p: string): Promise<string | null> {
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); if (!key) return null;
-  const r = await fetch(`${STORAGE}/object/sign/company-seal/${p}`, { method: 'POST', headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn: 60 }) });
+  const r = await fetch(`${STORAGE}/object/sign/company-seal/${p}`, { method: 'POST', headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn: 60 }), signal: AbortSignal.timeout(15_000) });
   const j = r.ok ? await r.json() : null; return j?.signedURL ? STORAGE + j.signedURL : null;
 }
 const cache = new Map<string, Uint8Array | null>();

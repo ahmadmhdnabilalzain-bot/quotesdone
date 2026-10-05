@@ -5,6 +5,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
 import { observe } from '../_shared/observe.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { renderPdf } from './render.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
@@ -23,7 +24,7 @@ const SEAL_FILES = new Set(['qd_stamp.png', 'qd_signature.png']);
 async function fetchBytes(path: string){
   try {
     if (SEAL_FILES.has(path)) { const { data, error } = await admin.storage.from(SEAL_BUCKET).download(path); return error || !data ? null : new Uint8Array(await data.arrayBuffer()); }
-    const r = await fetch(`${ASSET}/${path}`); if(!r.ok) return null; return new Uint8Array(await r.arrayBuffer());
+    const r = await timedFetch(`${ASSET}/${path}`); if(!r.ok) return null; return new Uint8Array(await r.arrayBuffer());
   } catch { return null; }
 }
 
