@@ -133,7 +133,7 @@
     "supabase": {
       "what": "the database, auth, storage and every edge function",
       "hosts": ["htdblwldjkcgjvmqkbeh.supabase.co"], "secrets": ["anon_key", "project_ref"],
-      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SB_REGION"],
+      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SB_REGION", "QD_OTP_RACE_PG"],
       "owner_seat": "it_engineer", "blast": "customer_facing",
       "probe": { "kind": "http", "method": "GET", "url": "{env:SUPABASE_URL}/auth/v1/health", "auth": "apikey:SUPABASE_ANON_KEY", "ok": [200] },
       "self_fix": "retried once after 3 s",
