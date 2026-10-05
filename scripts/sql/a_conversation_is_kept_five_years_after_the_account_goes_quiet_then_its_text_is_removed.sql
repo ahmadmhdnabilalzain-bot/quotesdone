@@ -79,6 +79,39 @@ insert into public.table_export_registry (table_name, exported, category, reason
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
   reason = excluded.reason, added_by = excluded.added_by;
 
+-- ── THE SWITCH (release review, 6 Oct 2026): the job removes text only when app_secrets.conversation_retention_mode
+-- = 'remove'. No row - which is the state this file leaves - means DRY RUN: every message it WOULD remove is written to
+-- conversation_retention_plan_log with the day it was decided, and nothing is changed. Same pattern as
+-- fn_backup_prune_mode (the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql). Switching it on is a separate,
+-- recorded production act.
+create table if not exists public.conversation_retention_plan_log (
+  decided_for   date not null,
+  source_table  text not null,
+  source_id     text not null,
+  party_kind    text,
+  party_id      text,
+  occurred_at   timestamptz,
+  last_activity timestamptz,
+  decided_at    timestamptz not null default now(),
+  primary key (decided_for, source_table, source_id));
+comment on table public.conversation_retention_plan_log is
+  'Dry-run decisions of the conversation retention job: what it would remove, per day. Written only while conversation_retention_mode is not remove.';
+alter table public.conversation_retention_plan_log enable row level security;
+revoke all on public.conversation_retention_plan_log from anon, authenticated;
+create policy conversation_retention_plan_log_service_only on public.conversation_retention_plan_log
+  for all to service_role using (true) with check (true);
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('conversation_retention_plan_log', true, 'company', 'what the conversation retention job would remove each day while it runs dry', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
+create or replace function public.fn_conversation_retention_mode()
+returns text
+language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce((select 'remove' from public.app_secrets s where s.key = 'conversation_retention_mode' and s.value = 'remove'), 'dry_run');
+$fn$;
+revoke execute on function public.fn_conversation_retention_mode() from public, anon, authenticated;
+
 -- ── A party under legal hold. Conservative: any row not clearly finished holds. ─────────────────────
 create or replace function public.fn_conversation_party_on_hold(p_kind text, p_id text)
 returns boolean
@@ -168,8 +201,16 @@ language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   k constant text := '[removed under the QuotesDone retention policy]';
   r record; n int := 0;
+  v_mode constant text := public.fn_conversation_retention_mode();
 begin
   for r in select * from public.fn_conversation_retention_plan(now(), p_limit) loop
+    if v_mode <> 'remove' then
+      insert into public.conversation_retention_plan_log (decided_for, source_table, source_id, party_kind, party_id, occurred_at, last_activity)
+      values (current_date, r.source_table, r.source_id, r.party_kind, r.party_id, r.occurred_at, r.last_activity)
+      on conflict do nothing;
+      n := n + 1;
+      continue;                                                                   -- DRY RUN: nothing is changed
+    end if;
     if r.source_table = 'inbound_messages' then
       update public.inbound_messages set subject = k, body = k, html = null where id::text = r.source_id;
     elsif r.source_table = 'notifications' then
@@ -192,7 +233,7 @@ begin
     on conflict do nothing;
     n := n + 1;
   end loop;
-  return jsonb_build_object('removed', n, 'ran_at', now(),
+  return jsonb_build_object('mode', v_mode, case when v_mode = 'remove' then 'removed' else 'would_remove' end, n, 'ran_at', now(),
                             'pdfs_owed', (select count(*) from public.conversation_retention_pdf where deleted_at is null));
 end $fn$;
 revoke execute on function public.fn_conversation_retention_purge(int) from public, anon, authenticated;
@@ -213,6 +254,7 @@ with now_plan as (select count(*) n from public.fn_conversation_retention_plan(n
                or f.source_table not in ('inbound_messages', 'notifications', 'wa_messages', 'messages', 'assistant_logs')))
 select case when (select n from now_plan) <> 0 then 'PROBE FAILED: ' || (select n from now_plan) || ' messages eligible today'
             when (select n from bad) <> 0 then 'PROBE FAILED: a held, active or non-conversation row was planned'
+            when public.fn_conversation_retention_mode() <> 'dry_run' then 'PROBE FAILED: the job is armed; this file must leave it dry'
             when (select count(*) from cron.job where jobname = 'conversation_retention_daily') <> 1 then 'PROBE FAILED: the cron is missing'
             else 'PROBE OK: 0 eligible today; ' || (select count(*) from future) || ' would be eligible on 2045-01-01, none held or active'
        end as verdict;
