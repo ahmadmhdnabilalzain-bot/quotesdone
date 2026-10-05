@@ -169,7 +169,7 @@ export async function runEntry(f: Fetch, key: string, e: Entry, sec: Sec, env: E
 
 /**
  * Whether a failing integration may reach the founder at all (5 Oct 2026, notifications#84149: the keyless
- * DuckDuckGo scrape was sent to him as a DECISION "only its account holder can restore"). A keyless endpoint (an
+ * web search scrape was sent to him as a DECISION "only its account holder can restore"). A keyless endpoint (an
  * http probe with no auth and no registry secret) has no account holder, so it is always the IT engineer's.
  * Account-backed connections (an auth on the probe, a secret, or a custom probe of a provider account) keep the
  * registry's own opt-outs. Measured on the registry that day: this changes no entry except a keyless one.

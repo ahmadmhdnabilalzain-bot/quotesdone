@@ -544,17 +544,20 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     },
     space: async () => { const { readSpace } = await import('./ml_embed_client.ts'); return await readSpace(admin); },
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
-    search: webSearch,
+    search: (q) => webSearch(admin, q),
     read: readPage,
   };
 }
 
-// The search engine. 5 Oct 2026 (notifications#84149): DuckDuckGo's keyless HTML endpoint answers every
-// datacenter call with a bot-check (HTTP 202, no results), so the scrape is gone, not retried. The company holds no
-// search-API key (app_secrets read the same day: no Brave/Tavily/Serper/Exa), so research degrades to no web hits
-// and think() reasons from the knowledge base alone. A keyed provider is wired here when one is held.
-export function webSearch(_query: string): Promise<{ url: string; title: string }[]> {
-  return Promise.resolve([]);
+// The search engine: Serper, through web_search.ts (cap, private-name guard, official UAE sources only).
+// Without a key, over the cap or on a failure it returns no hits and think() reasons from the knowledge base.
+export async function webSearch(admin: Admin, query: string): Promise<{ url: string; title: string }[]> {
+  const { serperSearch } = await import('./web_search.ts');
+  return await serperSearch(query, {
+    key: Deno.env.get('SERPER_API_KEY'),
+    fetch: (u, i) => fetch(u, i),
+    rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
+  });
 }
 export async function readPage(url: string): Promise<string | null> {
   if (!authoritative(url)) return null;

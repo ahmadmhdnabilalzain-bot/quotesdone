@@ -1,0 +1,1 @@
+Committed, not applied: the release train applies it at merge (apply_sql --apply --ddl), then deletes this note and appends the file to the END of MANIFEST.txt. Adds web_search_day, fn_web_search_claim and fn_web_search_degraded, which think.ts webSearch (Serper) calls; until applied, the claim rpc errors and search degrades to none. Seat: it_engineer.

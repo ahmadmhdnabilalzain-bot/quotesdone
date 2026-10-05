@@ -441,7 +441,7 @@ export const trendWatch: Duty = {
 export const geoAudit: Duty = {
   name: 'geo_audit',
   owner_seat: 'marketing',
-  // GEO = visibility INSIDE AI answer engines (28 Sep 2026). The DuckDuckGo scrape was refused by a bot-check from
+  // GEO = visibility INSIDE AI answer engines (28 Sep 2026). The keyless search scrape was refused by a bot-check from
   // every datacenter call and never recorded a row, so the engines are asked directly through ai_gateway:
   //   answer_search  task class marketing_geo_search  -> perplexity/sonar (a web-search answer engine)
   //   answer_online  task class marketing_geo_online  -> a routed model's :online (web-grounded) variant

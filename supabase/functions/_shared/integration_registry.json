@@ -234,10 +234,11 @@
       "action": "Nothing to reconnect: a CDN outage passes; check https://status.esm.sh if it persists", "link": "https://esm.sh/"
     },
     "web_search": {
-      "what": "the seats' web lookups while reasoning (keyless; no search API key is held)", "hosts": [], "secrets": [],
+      "what": "the seats' web lookups while reasoning (Serper, official UAE sources only, 50 a day)", "hosts": ["google.serper.dev"], "secrets": [], "env": ["SERPER_API_KEY"],
       "owner_seat": "it_engineer", "blast": "agent_facing",
-      "notify_founder": false, "notify_why": "keyless, no account: nothing he holds can restore it; the IT engineer owns it",
-      "probe": { "kind": "covered", "by": "nothing to probe: the DuckDuckGo scrape was removed on 5 Oct 2026 (bot-check HTTP 202 from every datacenter call); think() reasons from the knowledge base until a keyed search provider is held" }
+      "notify_founder": true, "notify_why": "the Serper account and its billing are the founder's: a refused key or billing failure needs him; an outage or the daily cap never does",
+      "probe": { "kind": "covered", "by": "web_search.ts raises the finding itself on each call (fn_web_search_degraded): HTTP 401/402/403 notify=true, outages, no key and the cap notify=false; a probe would spend a paid search" },
+      "action": "Sign in to serper.dev and check the API key and the account's credit", "link": "https://serper.dev/"
     },
     "apify": {
       "what": "lead scraping (paused by the founder until about February 2027)", "hosts": [], "secrets": ["apify_token"],
