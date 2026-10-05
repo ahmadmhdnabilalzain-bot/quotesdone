@@ -1371,7 +1371,7 @@ begin
   v_cmp := nullif(btrim(p_touch->>'utm_campaign'), '');   if v_cmp !~ v_ok then v_cmp := null; end if;
   v_cnt := nullif(btrim(p_touch->>'utm_content'), '');    if v_cnt !~ v_ok then v_cnt := null; end if;
   v_path := nullif(btrim(p_touch->>'landing_path'), '');  if v_path !~ '^/\S{0,200}$' then v_path := null; end if;
-  -- THE INVITATION IS A TOUCH EVEN WHEN THE BROWSER KEPT NONE (28 Sep 2026, this file): private mode or a link
+  -- THE INVITATION IS A TOUCH EVEN WHEN THE BROWSER KEPT NONE (28 Sep 2026): private mode or a link
   -- opened before the ref existed leaves no tagged visit, but claim_lookup stamps invite_clicked_at when the
   -- lead's own claim link is opened. That is evidence of the invitation, not a status column.
   if v_src is null then
@@ -1379,7 +1379,9 @@ begin
       into v_src, v_med, v_cmp, v_cnt, v_path, v_at
       from public.leads l where l.id = p_lead_id and l.invite_clicked_at is not null;
     if v_src is null then
-      return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'no valid utm_source and no opened invitation');
+      -- refused, not accepted: nothing is recorded, and the caller can tell (outcome audit 30 Sep 2026)
+      return jsonb_build_object('ok', false, 'recorded', false, 'reason', 'no_utm',
+        'detail', 'no valid utm_source and no opened invitation');
     end if;
     p_touch := jsonb_build_object('first_seen_at', v_at);
   end if;
