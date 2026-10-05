@@ -24,6 +24,7 @@ import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRo
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 import { clientIp } from '../_shared/supplier_terms.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { currentCustomerTermsVersion, needsReacceptance, customerTermsRecord, REACCEPT_MESSAGE } from '../_shared/customer_terms.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink } from '../_shared/site_origins.ts';
@@ -854,7 +855,7 @@ Deno.serve(observe('customer_api', async (req) => {
       await admin.from('customers').update({ tos_sha256 }).eq('id', cust.id).then(() => null, () => null);
       try {
         const s = await getSecret('cred_fn_customer_api');
-        fetch(`${SUPABASE_URL}/functions/v1/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: s, action: 'sign', kind: 'customer', email }) }).catch(() => { /* best effort */ });
+        timedFetch(`${SUPABASE_URL}/functions/v1/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: s, action: 'sign', kind: 'customer', email }) }).catch(() => { /* best effort */ });
       } catch (_e) { /* never blocks the customer */ }
       return true;
     };
