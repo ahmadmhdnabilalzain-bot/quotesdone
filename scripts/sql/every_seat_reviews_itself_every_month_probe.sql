@@ -98,4 +98,4 @@ end $$;
 
 select coalesce(current_setting('qd.probe_verdict', true), 'PROBE FAILED (the block set no verdict)') as verdict;
 
-commit;
+rollback;
