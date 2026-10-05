@@ -47,3 +47,9 @@ insert into public.company_calendar (event_name, kind, starts_on, ends_on, recur
 select r.event_name, 'compliance', r.starts_on, r.starts_on, r.recurrence, r.affects, r.action, 'accountant', r.source_url
   from r
  where not exists (select 1 from public.company_calendar c where c.event_name = r.event_name);
+
+-- company_calendar has a writer now (this file), so it leaves the no_writer exclusion and joins the daily export.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('company_calendar', true, 'company', 'the company legal and compliance calendar: licence, NOL, VAT threshold watch and Terms dates (T6)', 'accountant')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
