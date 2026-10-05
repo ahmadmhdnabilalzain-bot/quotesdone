@@ -58,6 +58,12 @@ update public.wa_template_registry r
  where r.template_name = m.name and m.v_status is not null
    and (r.checked_at is null or r.checked_at < m.last_checked_at);
 
+-- It has a writer now, so it is no longer frozen "no_writer": it is exported beside messaging_template.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('wa_template_registry', true, 'conversation', 'The WhatsApp templates'' purpose and Meta status, kept in step with messaging_template by trigger z50_wa_template_registry_follows (6 Oct 2026).', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 -- PROBE (a verdict row; this file defines a routine, so it never raises)
 select case
   when not exists (select 1 from pg_trigger where tgname = 'z50_wa_template_registry_follows'
