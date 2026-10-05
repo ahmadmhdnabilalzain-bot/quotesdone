@@ -143,7 +143,7 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; begin
   -- recurring misses become an improvement, once
   insert into public.target_daily_verdict (day, contract_id, metric_key, owner_seat, expected, actual, gap_pct, status)
   select current_date - g, c, 'inquiries_posted', 'marketing', 10, 0, -100, 'miss' from generate_series(1, 8) g
-  on conflict (day, contract_id, metric_key) do update set status = 'miss', owner_seat = excluded.owner_seat;   -- live days carry the real owner
+  on conflict (day, contract_id, metric_key) do update set status = 'miss';
   v := public.fn_ceo_improvement_sweep();
   o := o || jsonb_build_object('improvement', (select jsonb_build_object('seat', seat, 'status', status, 'handoff', (select status from public.agent_actions where id = i.handoff_id))
             from public.ceo_improvement i where source_kind = 'recurring_miss' and source_ref like 'inquiries_posted:%'),
