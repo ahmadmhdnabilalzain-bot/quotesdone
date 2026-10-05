@@ -5231,9 +5231,9 @@ begin
   end if;
 
   -- one time-bound beat: score today's unscored questions until 4 s have passed (67 ms a call warm, measured)
-  for q in select * from public.seat_knowledge_eval_question q
-            where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = q.id)
-            order by q.id limit 150
+  for q in select * from public.seat_knowledge_eval_question eq
+            where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = eq.id)
+            order by eq.id limit 150
   loop
     exit when clock_timestamp() - v_t > interval '4 seconds';
     insert into public.seat_knowledge_recall_answer (day, question_id, seat, lang, recall)
@@ -5245,8 +5245,8 @@ begin
     on conflict do nothing;
     v_scored := v_scored + 1;
   end loop;
-  select count(*) into v_left from public.seat_knowledge_eval_question q
-   where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = q.id);
+  select count(*) into v_left from public.seat_knowledge_eval_question eq
+   where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = eq.id);
   if v_left > 0 then
     return jsonb_build_object('day', v_day, 'scored', v_scored, 'left', v_left);
   end if;
