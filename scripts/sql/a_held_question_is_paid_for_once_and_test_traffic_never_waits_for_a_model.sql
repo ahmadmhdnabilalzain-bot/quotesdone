@@ -107,8 +107,9 @@ begin
     return null;                                   -- our own test traffic: nothing is filed, nothing is ever paid for
   end if;
   -- THE 3-TRY LIMIT HOLDS ACROSS RE-FILINGS: the same question that failed in the last 7 days is not asked again.
+  -- Not for a visitor chat: it lives an hour, and one visitor's failed "hi" must not silence the next visitor's.
   select h.id into v_id from public.reasoning_held_question h
-   where h.surface = p_surface and h.qhash = v_hash and h.status = 'failed'
+   where p_surface not like 'site_assistant.%' and h.surface = p_surface and h.qhash = v_hash and h.status = 'failed'
      and coalesce(h.last_attempt_at, h.created_at) > now() - interval '7 days'
    order by h.id desc limit 1;
   if v_id is not null then return v_id; end if;
@@ -134,7 +135,8 @@ returns text
 language sql immutable
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select regexp_replace(lower(btrim(coalesce(p_detail ->> 'issue_key', p_detail ->> 'title', ''))), '[0-9]+', '#', 'g');
+  -- null, never '', when the finding names nothing: an empty key would make every such incident "the same fault"
+  select nullif(regexp_replace(lower(btrim(coalesce(p_detail ->> 'issue_key', p_detail ->> 'title', ''))), '[0-9]+', '#', 'g'), '');
 $fn$;
 revoke execute on function public.fn_it_postmortem_fault_key(jsonb) from public, anon, authenticated;
 grant execute on function public.fn_it_postmortem_fault_key(jsonb) to service_role;
@@ -150,6 +152,10 @@ declare
   n_failed int; n_fixture int; n_gone int; n_stale int; n_dup_failed int; n_pm int;
   x constant text := 'fn_reason_held_sweep';
 begin
+  -- One sweep at a time: replayHeld and fn_reason_held_due both call it, and two ticks may overlap.
+  if not pg_try_advisory_xact_lock(hashtext('fn_reason_held_sweep')) then
+    return jsonb_build_object('skipped', 'another sweep is running');
+  end if;
   update public.reasoning_held_question set qhash = public.fn_reason_qhash(surface, question, request)
    where qhash is null and status = 'held';
 
@@ -191,7 +197,7 @@ begin
     from (select distinct on (surface, qhash) id, surface, qhash from public.reasoning_held_question
            where status = 'failed' and qhash is not null and coalesce(last_attempt_at, created_at) > now() - interval '7 days'
            order by surface, qhash, id desc) f
-   where h.status = 'held' and h.surface = f.surface and h.qhash = f.qhash;
+   where h.status = 'held' and h.surface = f.surface and h.qhash = f.qhash and h.surface not like 'site_assistant.%';
   get diagnostics n_dup_failed = row_count;
 
   -- ONE POSTMORTEM PER FAULT (R4): the oldest held question of a fault stays; the rest wait on it.
@@ -199,12 +205,15 @@ begin
      set subject = h.subject || jsonb_build_object('fault_key', public.fn_it_postmortem_fault_key(a.detail))
     from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
    where h.surface = 'it_engineer.postmortem' and h.status = 'held' and h.subject ->> 'fault_key' is null
-     and h.subject ->> 'incident_id' ~ '^[0-9]+$' and i.id = (h.subject ->> 'incident_id')::bigint;
+     and h.subject ->> 'incident_id' ~ '^[0-9]+$' and i.id = (h.subject ->> 'incident_id')::bigint
+     and public.fn_it_postmortem_fault_key(a.detail) is not null;
   update public.reasoning_held_question h
      set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', x,
            'why', 'one postmortem per fault: held question ' || l.id || ' asks it, and its answer fills this incident too')
     from (select distinct on (subject ->> 'fault_key') id, subject ->> 'fault_key' fk from public.reasoning_held_question
-           where surface = 'it_engineer.postmortem' and status in ('held', 'reasoned', 'applied') and subject ->> 'fault_key' is not null
+           where surface = 'it_engineer.postmortem' and subject ->> 'fault_key' is not null
+             -- a held leader of any age is still pending; an answered one covers its fault for 7 days, as the duty asks
+             and (status = 'held' or (status in ('reasoned', 'applied') and created_at > now() - interval '7 days'))
            order by subject ->> 'fault_key', id) l
    where h.surface = 'it_engineer.postmortem' and h.status = 'held' and h.subject ->> 'fault_key' = l.fk and h.id <> l.id;
   get diagnostics n_pm = row_count;
@@ -313,8 +322,11 @@ begin
         v_fan := v_fan || jsonb_build_object('id', f.id, 'seat', f.seat, 'surface', f.surface, 'request', f.request,
                                              'subject', f.subject, 'status', v_one->>'status');
       exception when others then
+        -- the answer is good, only this row's apply failed: kept as reasoned with its answer, never 'failed' (which
+        -- would block the hash for 7 days and lose the answer)
         update public.reasoning_held_question
-           set status = 'failed', result = p_result || jsonb_build_object('fanned_from', p_id, 'apply_error', left(sqlerrm, 300))
+           set status = 'reasoned', reasoned_at = now(),
+               result = p_result || jsonb_build_object('fanned_from', p_id, 'apply_error', left(sqlerrm, 300))
          where id = f.id;
       end;
     end loop;
@@ -333,7 +345,7 @@ language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
-        n_known int := 0; n_waiting int := 0; v_cause text;
+        n_known int := 0; n_waiting int := 0; v_cause text; v_hid bigint;
         v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
 begin
   select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
@@ -390,7 +402,7 @@ begin
     end if;
     exit when n_asked >= 3;
     select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
-    perform public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
+    v_hid := public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
       'Postmortem: what was the root cause of this fault, in two or three sentences? ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
       jsonb_build_object('seat', 'it_engineer', 'surface', 'it_engineer.postmortem', 'research', false, 'stakes', 'normal',
         'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
@@ -399,7 +411,10 @@ begin
         'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk), 'dedupeKey', 'postmortem:' || h.inc_id),
       jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk),
       'seat_duty', 'postmortem:' || h.inc_id);
-    n_asked := n_asked + 1;
+    -- only a question actually filed spends the run's budget (a refused or recently failed one files nothing)
+    if exists (select 1 from public.reasoning_held_question q where q.id = v_hid and q.dedupe_key = 'postmortem:' || h.inc_id) then
+      n_asked := n_asked + 1;
+    end if;
   end loop;
 
   select count(*) into v_hist from public.agent_actions a

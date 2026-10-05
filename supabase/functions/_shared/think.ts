@@ -591,7 +591,8 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
   const d = deps ?? defaultDeps(admin, 'resilience_ping');
   // The sweep runs on every tick, hold or not (5 Oct 2026): until then it ran inside fn_reason_held_due, which this
   // function never reached while the hold was on, so fixture and stale rows piled up for the day the hold lifts.
-  const { data: swept } = await d.rpc('fn_reason_held_sweep', {});
+  // A failed sweep never stops the replay: it is retried on the next tick, and fn_reason_held_due sweeps again.
+  const swept = await d.rpc('fn_reason_held_sweep', {}).then((r) => r?.data ?? r?.error?.message ?? null, (e) => String(e));
   if (heldFromGate(await d.gate().catch(() => null))) return { replayed: 0, reason: 'model_hold', swept };
   const { data, error } = await d.rpc('fn_reason_held_due', { p_limit: limit });
   if (error) return { replayed: 0, error: error.message, swept };
@@ -599,7 +600,8 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
   const send = async (row: HeldRow, r: ThinkResult) => {
     let delivery: unknown;
     try { delivery = await deliver!(row, r); } catch (err) { delivery = { delivered: false, via: 'error', detail: String((err as Error)?.message || err).slice(0, 200) }; }
-    await d.rpc('fn_reason_held_delivered', { p_id: row.id, p_delivery: delivery });
+    // recording the delivery never aborts the rest of the batch
+    await d.rpc('fn_reason_held_delivered', { p_id: row.id, p_delivery: delivery }).then(() => null, () => null);
     return delivery;
   };
   for (const row of (data ?? []) as HeldRow[]) {
