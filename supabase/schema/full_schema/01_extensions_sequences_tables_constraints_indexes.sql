@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T01:44:15.199Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T02:30:34.589Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7577,7 +7577,9 @@ CREATE TABLE IF NOT EXISTS public.rfq_clarification (
   answer text,
   source text DEFAULT 'portal'::text NOT NULL,
   asked_at timestamp with time zone DEFAULT now() NOT NULL,
-  answered_at timestamp with time zone
+  answered_at timestamp with time zone,
+  answer_as_written text,
+  english_held_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.risk_register (
@@ -11204,8 +11206,9 @@ ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_qua
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_range CHECK (((rating >= 1) AND (rating <= 5))) NOT VALID;
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_reason_required CHECK (((comment IS NULL) OR (length(btrim(comment)) >= 10)));
+ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_held_keeps_its_text_ck CHECK (((english_held_at IS NULL) OR (answer_as_written IS NOT NULL)));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_kind_check CHECK ((kind = ANY (ARRAY['question'::text, 'note'::text])));
-ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_shape_ck CHECK ((((kind = 'question'::text) AND (supplier_id IS NOT NULL) AND (question IS NOT NULL)) OR ((kind = 'note'::text) AND (supplier_id IS NULL) AND (answer IS NOT NULL) AND (answered_at IS NOT NULL))));
+ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_shape_ck CHECK ((((kind = 'question'::text) AND (supplier_id IS NOT NULL) AND (question IS NOT NULL)) OR ((kind = 'note'::text) AND (supplier_id IS NULL) AND (answered_at IS NOT NULL) AND ((answer IS NOT NULL) OR ((english_held_at IS NOT NULL) AND (answer_as_written IS NOT NULL))))));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_source_check CHECK ((source = ANY (ARRAY['portal'::text, 'rfq_flag'::text, 'rfq_note'::text, 'missing_specs'::text])));
 ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_kind_check CHECK ((kind = ANY (ARRAY['quote_spec_match'::text, 'repeat_request'::text, 'supplier_trade_words'::text, 'unknown_sender_mail'::text])));
 ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'done'::text, 'failed'::text, 'superseded'::text])));
