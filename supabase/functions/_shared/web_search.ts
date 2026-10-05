@@ -31,7 +31,7 @@ export function officialUaeSource(url: string): boolean {
   } catch { return false; }
 }
 
-export const isArabic = (q: string) => /[؀-ۿ]/.test(q);
+export const isArabic = (q: string) => /\p{Script=Arabic}/u.test(q);
 
 export function serperBody(query: string) {
   return { q: `${query} site:gov.ae`, gl: 'ae', hl: isArabic(query) ? 'ar' : 'en', num: 10 };

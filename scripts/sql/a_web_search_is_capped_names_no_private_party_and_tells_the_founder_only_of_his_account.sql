@@ -39,6 +39,9 @@ drop policy if exists web_search_day_service_role_only on public.web_search_day;
 create policy web_search_day_service_role_only on public.web_search_day
   as permissive for all to public using (false) with check (false);
 revoke all on public.web_search_day from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('web_search_day', false, 'measurement', 'a per-day count of web searches against the cap; no query text, rebuilt by the next day', 'it_engineer')
+on conflict (table_name) do nothing;
 
 create or replace function public.fn_web_search_degraded(p_reason text, p_notify boolean, p_detail text)
  returns jsonb
