@@ -47,9 +47,13 @@ begin
   for k in 1..5 loop
     q := gen_random_uuid(); qs := qs || q;
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status)
-    values (q, mkt, sup[k], px[k] * 100, 'form', 14 + k, case when k = 3 then 'revealed' else 'submitted' end);
+    values (q, mkt, sup[k], px[k] * 100, 'form', 14 + k, 'draft');
     insert into public.quote_items (quote_id, line_no, description, specification, qty, unit, unit_price, amount)
     values (q::text, 1, 'Gypsum board partition', '12.5mm ZZPROBE', 100, 'm2', px[k], px[k] * 100);
+    update public.quotes set status = case when k = 3 then 'revealed' else 'submitted' end where id = q;
+    -- z40 quote QC holds a line-only fixture as a draft; release it as its 24 h clock would, then send it again
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = q and released_at is null;
+    update public.quotes set status = case when k = 3 then 'revealed' else 'submitted' end where id = q;
     if k = 4 then
       select count(*) into n4 from public.fn_price_benchmarks(true, cmp) where item_key like '%zzprobe%';
     end if;
@@ -60,9 +64,13 @@ begin
   delete from public.quotes where id = qs[5];
   q := gen_random_uuid();
   insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status)
-  values (q, mkt, d[3], 5000, 'form', 19, 'submitted');
+  values (q, mkt, d[3], 5000, 'form', 19, 'draft');
   insert into public.quote_items (quote_id, line_no, description, specification, qty, unit, unit_price, amount)
   values (q::text, 1, 'Gypsum board partition', '12.5mm ZZPROBE', 100, 'm2', 50, 5000);
+  update public.quotes set status = 'submitted' where id = q;
+  -- z40 quote QC holds a line-only fixture as a draft; release it as its 24 h clock would, then send it again
+  update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = q and released_at is null;
+  update public.quotes set status = 'submitted' where id = q;
 
   select * into b from public.fn_price_benchmarks(true, cmp) where item_key like '%zzprobe%';
   select count(*) into after_real from public.fn_price_benchmarks(false, null);
@@ -70,11 +78,15 @@ begin
   foreach st in array array[d[4] || ':120', d[3] || ':44', d[1] || ':10'] loop
     q := gen_random_uuid();
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status)
-    values (q, cmp, split_part(st, ':', 1)::bigint, 9999, 'form', 19, 'submitted');
+    values (q, cmp, split_part(st, ':', 1)::bigint, 10 * split_part(st, ':', 2)::numeric + 77, 'form', 19, 'draft');
     cq := cq || q::text;
     insert into public.quote_items (quote_id, line_no, description, specification, qty, unit, unit_price, amount) values
-      (q::text, 1, 'Gypsum board partition', '12.5mm ZZPROBE', 10, 'M2', split_part(st, ':', 2)::numeric, 0),
+      (q::text, 1, 'Gypsum board partition', '12.5mm ZZPROBE', 10, 'M2', split_part(st, ':', 2)::numeric, 10 * split_part(st, ':', 2)::numeric),
       (q::text, 2, 'ZZPROBE item nobody else priced', null, 1, 'each', 77, 77);
+    update public.quotes set status = 'submitted' where id = q;
+    -- z40 quote QC holds a line-only fixture as a draft; release it as its 24 h clock would, then send it again
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = q and released_at is null;
+    update public.quotes set status = 'submitted' where id = q;
   end loop;
   -- The compared enquiry already carries other ZZ DEMO quote lines; judge only this probe's own three quotes.
   select jsonb_agg(e) into f from jsonb_array_elements(public.fn_price_benchmark_flags_for_inquiry(cmp, true)) e
@@ -93,15 +105,15 @@ begin
      or not exists (select 1 from jsonb_array_elements(f) e where (e->>'line_no') = '1' and e->>'status' = 'well_below')
      or (select count(*) from jsonb_array_elements(f) e where (e->>'line_no') = '2' and e->>'status' = 'no_benchmark_yet') <> 3
      or exists (select 1 from jsonb_array_elements(f) e where coalesce(e->>'reason', '') = '') then
-    fails := fails || ' 4:flags(' || left(f::text, 600) || ')'; end if;
+    fails := fails || ' 4:flags(' || coalesce(left(f::text, 600), 'no lines: the probe quotes were not judged') || ')'; end if;
   if exists (select 1 from jsonb_array_elements(f_real) e where e->>'status' <> 'no_benchmark_yet')
-     or jsonb_array_length(f_real) <> 6 then fails := fails || ' 5:real_not_empty'; end if;
+     or coalesce(jsonb_array_length(f_real), 0) <> 6 then fails := fails || ' 5:real_not_empty'; end if;
   if f::text ~ '"(min|max|low|high)"' or f::text like '%40.00%' or f::text like '%50.00%' then
     fails := fails || ' 6:extreme_leaked'; end if;
 
-  raise exception 'CHK<<%>>', case when fails = '' then
+  raise exception 'CHK<<%>>', coalesce(case when fails = '' then
     'PROBE OK median=' || b.median || ' p25=' || b.p25 || ' p75=' || b.p75 || ' n=' || b.quote_count
     || ' suppliers=' || b.supplier_count || ' accepted=' || b.accepted_count || ' real_ranges=' || after_real
     || ' | ' || (select string_agg(e->>'status', ',') from jsonb_array_elements(f) e)
-    else 'PROBE FAILED:' || fails end;
+    else 'PROBE FAILED:' || fails end, 'PROBE FAILED: the verdict itself was null');
 end $probe$;
