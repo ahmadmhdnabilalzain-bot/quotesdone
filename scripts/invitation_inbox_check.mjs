@@ -18,6 +18,12 @@
 //       placeholders) instead of the live copy; --role=customer routes it through the info@ identity and
 //       customer frame instead (a diagnostic to split sender identity from content), so a copy fix is placement-tested before app_secrets changes.
 //
+//   ... --send-seed --to=<seed> --lane=m365
+//       (5 Oct 2026, ledger 1115) the same seed, marked kind 'invite_m365_seed', so send_outbox sends it through the
+//       Microsoft 365 lane (send_outbox/m365_lane.ts: Graph, the plain-text variant, List-Unsubscribe in the MIME)
+//       even while invite_m365_enabled is 'false'. Without the three MS_* edge secrets the row is held, never sent
+//       through Resend. The same address refusal applies; --lane accepts only resend (default) or m365.
+//
 // ENGLISH ONLY (24 Sep 2026, marketing, ledger 993 item 4 "invitations always in English"). The render and the
 // seed are English; --lang=ar is refused. The copy rules (one closing question after the link, never the word
 // AI, English only) come from supabase/functions/send_outbox/invitation_copy.ts, and the render applies
@@ -45,6 +51,9 @@ export function seedAddressAllowed(addr) {
   return SEED_DOMAINS.some((d) => host === d || host.endsWith('.' + d));
 }
 
+// The send paths a seed may take. m365 marks the row with send_outbox/m365_lane.ts's M365_SEED_KIND.
+export const LANES = ['resend', 'm365'];
+export const seedKind = (lane) => (lane === 'm365' ? "'invite_m365_seed'" : 'null');
 const arg = (k) => { const a = process.argv.find((x) => x.startsWith(`--${k}=`)); return a ? a.slice(k.length + 3) : undefined; };
 const flag = (k) => process.argv.includes(`--${k}`);
 
@@ -115,14 +124,17 @@ async function main() {
   if (flag('send-seed')) {
     const to = arg('to');
     if (arg('lang') && arg('lang') !== 'en') { console.error('REFUSED: the supplier invitation is English only (ledger 993).'); process.exit(2); }
+    const lane = arg('lane') || 'resend';
+    if (!LANES.includes(lane)) { console.error(`REFUSED: --lane must be one of ${LANES.join(', ')}.`); process.exit(2); }
+    if (lane === 'm365' && arg('role') === 'customer') { console.error('REFUSED: the Microsoft 365 lane carries supplier mail only.'); process.exit(2); }
     if (!seedAddressAllowed(to)) { console.error(`REFUSED: ${to || '(no --to)'} is not on an inbox-test service (${SEED_DOMAINS.join(', ')}).`); process.exit(2); }
     const readOpt = (k) => (arg(k) ? readFileSync(arg(k), 'utf8').trim() : undefined);
     for (const k of ['subject-file', 'body-file']) {
       if (ARABIC_SCRIPT.test(readOpt(k) ?? '')) { console.error(`REFUSED: --${k} carries Arabic script; the supplier invitation is English only (ledger 993).`); process.exit(2); }
     }
     const subject = readOpt('subject-file') ?? c.invite_subject;
-    const [row] = await sql(`insert into notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
-      values ('supplier_invite_seed', ${dq(to.toLowerCase())}, '${arg('role') === 'customer' ? 'customer' : 'supplier'}', ${dq(subject)}, ${dq(inviteBody(c, readOpt('body-file')))}, 'en', 'queued', 'customer_support')
+    const [row] = await sql(`insert into notifications (type, kind, to_email, to_role, subject, body, lang, status, requested_by)
+      values ('supplier_invite_seed', ${seedKind(lane)}, ${dq(to.toLowerCase())}, '${arg('role') === 'customer' ? 'customer' : 'supplier'}', ${dq(subject)}, ${dq(inviteBody(c, readOpt('body-file')))}, 'en', 'queued', 'customer_support')
       returning id, status`);
     console.log(`queued notifications#${row.id} (${row.status}) to ${to}; waiting for send_outbox ...`);
     for (let i = 0; i < 40; i++) {
