@@ -4,6 +4,7 @@ import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
+import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
@@ -1463,6 +1464,16 @@ Deno.serve(observe('customer_api', async (req) => {
         const clean = String(scrubIdentity(String(v ?? '').slice(0, 300), cust.full_name, hits) || '').trim();
         if (clean.replace(/\[removed\]/g, '').trim()) answers[String(k).slice(0, 80)] = clean;
       }
+      // "Not sure" records no answer: it opens a handoff to the sales engineer for those specs (./spec_handoff.ts).
+      const unsure = notSureKeys(body.not_sure);
+      const hand = specHandoffArgs(iid, cust.id, unsure);
+      let handoff: number | null = null;
+      if (hand) {
+        const { data: hid, error: herr } = await admin.rpc('fn_seat_handoff', hand);
+        if (herr) return J({ ok: false, error: 'handoff_failed' }, 500);
+        handoff = (hid as number) ?? null;
+      }
+      if (!Object.keys(answers).length && hand) return J({ ok: true, released: false, handoff, not_sure: unsure });
       const { data: res, error } = await admin.rpc('fn_inquiry_add_missing_specs', { p_inquiry: iid, p_customer: cust.id, p_answers: answers, p_source: 'customer_portal' });
       if (error) return J({ ok: false, error: 'save_failed' }, 500);
       const r = (res || {}) as Record<string, any>;
@@ -1475,7 +1486,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // An answer in Arabic script was saved as written and its supplier copy is held for its English
       // (fn_inquiry_add_missing_specs files it for the replay; _shared/supplier_english.ts finishEnglish sends it).
       const held = r.held_for_english === true ? { notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en } : {};
-      return J({ ...r, ...held, released: r.ready === true, matches, removed: hits.length });
+      return J({ ...r, ...held, released: r.ready === true, matches, removed: hits.length, handoff });
     }
 
     if (action === 'rfq_note') {
