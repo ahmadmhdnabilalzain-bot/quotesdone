@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T00:35:30.061Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T00:38:19.850Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -1820,7 +1820,7 @@ CREATE TABLE IF NOT EXISTS public.ceo_year_plan (
   reveals integer NOT NULL,
   fee_aed numeric NOT NULL,
   fee_cum_aed numeric NOT NULL,
-  enterprise integer NOT NULL,
+  business_accounts integer NOT NULL,
   cost_ceiling_aed numeric NOT NULL,
   basis text NOT NULL
 );
@@ -10598,8 +10598,8 @@ ALTER TABLE public.ceo_strategy_memo ADD CONSTRAINT ceo_strategy_memo_month_chec
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_blocked_says_why CHECK (((state <> 'blocked'::text) OR (COALESCE(btrim(blocked_reason), ''::text) <> ''::text)));
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_done_shows_evidence CHECK (((state <> 'done'::text) OR (COALESCE(btrim(evidence), ''::text) <> ''::text)));
 ALTER TABLE public.ceo_weekly_report ADD CONSTRAINT ceo_weekly_report_status_check CHECK ((status = ANY (ARRAY['generated'::text, 'partial'::text, 'delivered'::text, 'delivery_failed'::text])));
+ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_business_accounts_check CHECK ((business_accounts >= 0));
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_cost_ceiling_aed_check CHECK ((cost_ceiling_aed > (0)::numeric));
-ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_enterprise_check CHECK ((enterprise >= 0));
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_fee_aed_check CHECK ((fee_aed >= (0)::numeric));
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_fee_cum_aed_check CHECK ((fee_cum_aed >= (0)::numeric));
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
