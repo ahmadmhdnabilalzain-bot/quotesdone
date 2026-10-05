@@ -1,0 +1,5 @@
+Not applied: the release train applies it at merge (no pre-merge applies, 28 Sep). Seat: customer_support.
+Proved before merge by scripts/checks/every_fallback_chain_model_is_in_the_registry.test.mjs, which replays this file
+in one aborted transaction on production and must print PROBE OK (without it, production as of 6 Oct FAILS:
+whatsapp_conversation rung 1 google/gemini-3-flash). Dry run (node scripts/apply_sql.mjs): see the PR.
+What moves it: the merge. Then delete this note and append the .sql to the END of scripts/sql/MANIFEST.txt.
