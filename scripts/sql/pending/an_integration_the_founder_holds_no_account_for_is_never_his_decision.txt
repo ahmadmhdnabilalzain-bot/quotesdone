@@ -1,1 +1,0 @@
-Committed, not applied: the release train applies it at merge (apply_sql --apply --ddl), then deletes this note and appends the file to the END of MANIFEST.txt. Redefines fn_customer_support_sends_the_it_digest and completes CEO handoff 130592 on the keyless web_search finding.

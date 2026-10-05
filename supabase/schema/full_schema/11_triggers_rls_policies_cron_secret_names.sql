@@ -1026,6 +1026,7 @@ ALTER TABLE public.wa_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_reply_intent ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_template_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_turn ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.web_search_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workflow ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workflow_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workflow_step ENABLE ROW LEVEL SECURITY;
@@ -1304,6 +1305,7 @@ CREATE POLICY taxonomy_trade_service_service_role_only ON public.taxonomy_trade_
 CREATE POLICY trade_spec_checklist_service_role_only ON public.trade_spec_checklist AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.transactions AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.vision_horizon AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY web_search_day_service_role_only ON public.web_search_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY writer_seat_service_role_only ON public.writer_seat AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 

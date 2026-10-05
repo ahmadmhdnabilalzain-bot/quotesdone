@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T17:39:24.453Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T18:40:23.266Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (700) =====
+-- ===== TABLES (701) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -9583,6 +9583,13 @@ CREATE TABLE IF NOT EXISTS public.wa_turn (
   cost_aed numeric
 );
 
+CREATE TABLE IF NOT EXISTS public.web_search_day (
+  day date NOT NULL,
+  used integer DEFAULT 0 NOT NULL,
+  cap integer DEFAULT 50 NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.workflow (
   workflow_key text NOT NULL,
   name text NOT NULL,
@@ -10367,6 +10374,7 @@ ALTER TABLE public.wa_messages ADD CONSTRAINT wa_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_reply_intent ADD CONSTRAINT wa_reply_intent_pkey PRIMARY KEY (intent_key);
 ALTER TABLE public.wa_template_registry ADD CONSTRAINT wa_template_registry_pkey PRIMARY KEY (template_name);
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_pkey PRIMARY KEY (id);
+ALTER TABLE public.web_search_day ADD CONSTRAINT web_search_day_pkey PRIMARY KEY (day);
 ALTER TABLE public.workflow ADD CONSTRAINT workflow_pkey PRIMARY KEY (workflow_key);
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.workflow_step ADD CONSTRAINT workflow_step_pkey PRIMARY KEY (workflow_key, step_no);
@@ -11478,6 +11486,8 @@ ALTER TABLE public.wa_template_registry ADD CONSTRAINT wa_template_registry_stat
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_answered_by_check CHECK ((answered_by = ANY (ARRAY['deterministic'::text, 'model'::text, 'human'::text, 'template'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_direction_check CHECK ((direction = ANY (ARRAY['in'::text, 'out'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_transcript_source_check CHECK ((transcript_source = ANY (ARRAY['twilio'::text, 'model'::text, 'none'::text])));
+ALTER TABLE public.web_search_day ADD CONSTRAINT web_search_day_cap_check CHECK ((cap > 0));
+ALTER TABLE public.web_search_day ADD CONSTRAINT web_search_day_used_check CHECK ((used >= 0));
 ALTER TABLE public.writer_seat ADD CONSTRAINT writer_seat_kind_check CHECK ((kind = ANY (ARRAY['agent_runs_label'::text, 'cron_job'::text])));
 ALTER TABLE public.accountant_subscription_paid_from_change ADD CONSTRAINT accountant_subscription_paid_from_change_vendor_fkey FOREIGN KEY (vendor) REFERENCES accountant_owner_ruled_subscription(vendor);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_workflow_step_run_id_fkey FOREIGN KEY (workflow_step_run_id) REFERENCES workflow_step_run(id);

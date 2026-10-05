@@ -3245,6 +3245,107 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_web_search_claim(p_query text, p_now timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_q    text := public.fn_web_search_norm(p_query);
+  v_day  date := (p_now at time zone 'Asia/Dubai')::date;
+  v_used integer;
+begin
+  -- 1. emails: any address in the query that the company holds for a party (exact, case-folded)
+  if exists (
+    select 1 from regexp_matches(lower(coalesce(p_query, '')), '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}', 'g') m(e)
+     where exists (select 1 from public.leads l where lower(l.email) = m.e[1])
+        or exists (select 1 from public.customers c where lower(c.email) = m.e[1])) then
+    return jsonb_build_object('allowed', false, 'reason', 'names_a_private_party');
+  end if;
+  -- 2. phones: any number in the query, as its national number, equal to one held for a party
+  if exists (
+    select 1 from regexp_matches(coalesce(public.fn_ar_norm(p_query), ''), '\+?[0-9][0-9 ().-]{5,}[0-9]', 'g') m(t)
+     cross join lateral (select public.fn_web_search_phone(m.t[1]) n) q
+     where length(q.n) >= 7 and exists (
+       select 1 from public.leads l
+        cross join lateral (values (l.phone), (l.phone_e164), (l.whatsapp), (l.whatsapp_phone)) x(v)
+        where public.fn_web_search_phone(x.v) = q.n
+       union all
+       select 1 from public.customers c
+        cross join lateral (values (c.phone), (c.whatsapp_phone)) x(v)
+        where public.fn_web_search_phone(x.v) = q.n)) then
+    return jsonb_build_object('allowed', false, 'reason', 'names_a_private_party');
+  end if;
+  -- 3. names: the exact held name of a party, as a whole phrase of the normalised query. A lead at a *.gov.ae
+  --    domain is an authority: only its COMPANY name is exempt; its contact and signatory are people.
+  if exists (
+    select 1 from (
+      select x.n from public.leads l
+       cross join lateral (values
+         (case when coalesce(l.email_domain, '') ~ '(^|\.)gov\.ae$' then null else l.company_name end),
+         (l.licence_legal_name), (l.contact_name), (l.signatory_name)) x(n)
+      union all select full_name from public.customers union all select full_name from public.supplier_beneficial_owner
+    ) s
+     where length(btrim(public.fn_web_search_norm(s.n))) >= 3
+       and position(public.fn_web_search_norm(s.n) in v_q) > 0) then
+    return jsonb_build_object('allowed', false, 'reason', 'names_a_private_party');
+  end if;
+  -- 4. the day's cap, counted atomically
+  insert into public.web_search_day as d (day, used) values (v_day, 1)
+  on conflict (day) do update set used = d.used + 1, updated_at = now() where d.used < d.cap
+  returning used into v_used;
+  if v_used is null then
+    perform public.fn_web_search_degraded('daily_cap', false,
+      'the daily cap of ' || (select cap from public.web_search_day where day = v_day) || ' searches is reached for ' || v_day);
+    return jsonb_build_object('allowed', false, 'reason', 'daily_cap');
+  end if;
+  return jsonb_build_object('allowed', true, 'used', v_used);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_web_search_degraded(p_reason text, p_notify boolean, p_detail text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_billing boolean := p_reason = 'key_or_billing';
+  v_key text := 'duty:integration:web_search:' || case when v_billing then 'billing' else 'outage' end;
+begin
+  perform public.fn_it_engineer_finding_upsert(
+    v_key,
+    'web_search (Serper): ' || coalesce(p_detail, p_reason) || '. The seats reason without the web until it answers again',
+    'supabase/functions/_shared/web_search.ts', 'agent_facing', 1,
+    jsonb_build_object('integration', 'web_search', 'owner_seat', 'it_engineer', 'reason', p_reason,
+                       'notify', coalesce(p_notify, false) and v_billing,
+                       'reconnect_url', 'https://serper.dev/'),
+    '{}'::text[], '{}'::text[], 'it_engineer.web_search');
+  return jsonb_build_object('raised', true, 'reason', p_reason, 'issue_key', v_key);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_web_search_norm(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select ' ' || btrim(regexp_replace(replace(lower(coalesce(public.fn_ar_norm(p_text), '')), '.', ''), '[^[:alnum:]]+', ' ', 'g')) || ' '
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_web_search_phone(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select nullif(regexp_replace(regexp_replace(coalesce(public.fn_ar_norm(p_text), ''), '[^0-9]', '', 'g'), '^(00971|971|0)', ''), '')
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_what_if(p_question text, p_change jsonb DEFAULT '{}'::jsonb, p_scenario text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
