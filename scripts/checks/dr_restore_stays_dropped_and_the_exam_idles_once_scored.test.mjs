@@ -27,7 +27,8 @@ export const recreates = (sql) => /create\s+table\s+(?:if\s+not\s+exists\s+)?pub
 // The exam body idles after completion iff the aggregated-day return comes before the slice insert.
 export function idlesOnceScored(body) {
   const b = strip(body);
-  const guard = b.search(/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.seat_knowledge_recall\s+where\s+day\s*=\s*v_day\s*\)\s*then\s*return/i);
+  const guard = b.search(/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.seat_knowledge_recall\s+where\s+day\s*=\s*v_day(?:\s+and\s+path\s*=\s*'ml')?\s*\)\s*then\s*return/i);
+  // (5 Oct 2026: #1203 scores the bilingual path, so "aggregated" means aggregated on path 'ml'; same guard.)
   const insert = b.search(/insert\s+into\s+public\.seat_knowledge_recall_answer/i);
   return guard >= 0 && insert > guard;
 }

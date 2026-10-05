@@ -15,8 +15,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readSchemaMirror } from '../lib/schema_mirror.mjs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 
 const SCHEMA = readSchemaMirror();
+
+// name -> body of every plpgsql routine a pending (applied-at-merge) scripts/sql file defines; last file wins.
+function pendingDefinitions() {
+  const dir = new URL('../sql/', import.meta.url);
+  const out = new Map();
+  for (const note of readdirSync(new URL('pending/', dir)).filter((n) => n.endsWith('.txt')).sort()) {
+    const f = new URL(note.replace(/\.txt$/, '.sql'), dir);
+    if (!existsSync(f)) continue;
+    const sql = readFileSync(f, 'utf8');
+    for (const m of sql.matchAll(/create\s+or\s+replace\s+function\s+public\.([a-z_]\w*)\s*\([\s\S]*?\bas\s+(\$\w*\$)([\s\S]*?)\2/gi)) {
+      out.set(m[1].toLowerCase(), m[3]);
+    }
+  }
+  return out;
+}
 const SQL_WORDS = new Set(['where', 'set', 'on', 'join', 'left', 'right', 'inner', 'cross', 'using', 'order', 'group',
   'limit', 'returning', 'values', 'select', 'for', 'and', 'or', 'as', 'with', 'union', 'having', 'lateral', 'natural',
   'full', 'outer', 'into', 'then', 'loop', 'end', 'offset', 'window', 'except', 'intersect', 'default', 'from', 'do']);
@@ -48,10 +64,15 @@ test('no plpgsql routine in the live schema aliases a table with the name of its
   const found = [];
   const chunks = SCHEMA.split('CREATE OR REPLACE FUNCTION public.').slice(1);
   assert.ok(chunks.length > 500, `read only ${chunks.length} routines — the split is wrong, not the schema`);
+  // A routine a pending file (applied at merge) redefines is judged by that file's body, which is what production
+  // runs once this branch merges (5 Oct 2026: otherwise the PR that fixes a shadowed alias stays red on the old body).
+  const pendingBody = pendingDefinitions();
   for (const c of chunks) {
     const head = c.slice(0, c.indexOf('$function$'));
     if (!/LANGUAGE plpgsql/.test(head)) continue;
-    const s = shadowedAliases(c.slice(head.length, c.indexOf('$function$', head.length + 10)));
+    const name = c.slice(0, c.indexOf('(')).trim().toLowerCase();
+    const body = pendingBody.get(name) ?? c.slice(head.length, c.indexOf('$function$', head.length + 10));
+    const s = shadowedAliases(body);
     if (s.length) found.push(`${c.slice(0, c.indexOf('('))}: ${s.join(', ')}`);
   }
   assert.deepEqual(found, [], 'each of these raises 42702 "column reference is ambiguous" when the statement runs; rename the alias');
