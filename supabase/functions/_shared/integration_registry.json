@@ -52,6 +52,15 @@
       "probe": { "kind": "covered", "by": "resilience_ping inboxPlacement: a mailbox that cannot be read by the window's start is verdict 'unread', which holds the batch and files deliverability:inbox_placement" },
       "action": "Store a Gmail refresh token (scope gmail.readonly) as app_secrets.gmail_seed_refresh_token and the Microsoft Graph app's tenant, client id and secret as ms_graph_tenant_id / ms_graph_client_id / ms_graph_client_secret", "link": "https://console.cloud.google.com/apis/credentials"
     },
+    "m365_invitation_lane": {
+      "what": "the supplier invitation sent from the company's Microsoft 365 mailbox (app_secrets.invite_m365_mailbox) through Microsoft Graph sendMail with client credentials, only while app_secrets.invite_m365_enabled is true (or for a --lane=m365 seed); send_outbox/m365_lane.ts holds the invitations and files invite_m365_lane_refused when the token or a send is refused (5 Oct 2026, ledger 1115)",
+      "hosts": ["graph.microsoft.com", "login.microsoftonline.com"],
+      "secrets": ["invite_m365_enabled", "invite_m365_mailbox"],
+      "env": ["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET"],
+      "owner_seat": "it_engineer", "blast": "customer_facing",
+      "probe": { "kind": "covered", "by": "send_outbox resolveM365: every batch carrying a lane invitation asks for a token first; a refusal holds the batch and files invite_m365_lane_refused" },
+      "action": "Set the edge function secrets MS_TENANT_ID, MS_CLIENT_ID and MS_CLIENT_SECRET for an Entra app with the Mail.Send application permission (admin-consented, scoped to the sending mailbox)", "link": "https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
+    },
     "twilio": {
       "what": "WhatsApp, SMS and the account every Twilio product bills to",
       "hosts": ["api.twilio.com", "content.twilio.com", "monitor.twilio.com"],

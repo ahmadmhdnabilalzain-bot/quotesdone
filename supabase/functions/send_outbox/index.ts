@@ -256,7 +256,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
       // A LANE INVITATION IS HELD, NEVER DIVERTED (review of #963; invite_lane.ts holdFor). Left 'queued' with
       // not_before moved on, so it does not come back into the next claim and crowd out other mail.
-      const laneHold = carries(n) ? null : holdFor({ lane, type: n.type, supplierSide, laneSentToday, laneCap });
+      const laneHold = holdFor({ lane, type: n.type, supplierSide: supplierSide && !carries(n), laneSentToday, laneCap });
       if (laneHold) {
         await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil(laneHold, new Date()).toISOString(),
           last_error: laneHold === 'unverified' ? 'held: the invitation lane is on but ' + lane.why + '; never sent from the main sender'

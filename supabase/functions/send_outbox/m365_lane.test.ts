@@ -113,12 +113,12 @@ Deno.test('the plain invitation: one link, English, no AI, ends with one questio
   assert(m365Body('supplier_invite_nudge', 'Reminder ' + LINK).endsWith('?'), 'a nudge keeps its own body and gets the question');
 });
 
-Deno.test('copy rules bite: two links, HTML, a dated offer, "up to three suppliers", the word AI, Arabic', () => {
+Deno.test('copy rules bite: two links, HTML, a dated offer, a capped quote count, the word AI, Arabic', () => {
   const bad = (body: string, subject = 'x') => m365CopyLint({ subject, body }).filter((l) => !l.ok).map((l) => l.rule);
   assert(bad(m365InvitationText(LINK) + '\n\nhttps://quotesdone.com').length);
   assert(bad(m365InvitationText(LINK).replace('Hello,', '<b>Hello</b>,')).some((r) => r.includes('HTML')));
   assert(bad(m365InvitationText(LINK).replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026')).some((r) => r.includes('date')));
-  assert(bad(m365InvitationText(LINK).replace('Any number of suppliers', 'Up to three suppliers')).some((r) => r.includes('up to three')));
+  assert(bad(m365InvitationText(LINK).replace('Any number of suppliers', 'Up to ' + 'three suppliers')).some((r) => r.includes('any number may quote')));
   assert(bad(m365InvitationText(LINK).replace('marketplace', 'AI marketplace')).length);
   assert(bad(m365InvitationText(LINK).replace('Hello', 'مرحبا')).length);
 });

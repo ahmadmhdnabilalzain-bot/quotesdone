@@ -144,7 +144,7 @@ export function m365CopyLint(o: { subject: string; body: string; preheader?: str
     { rule: 'exactly one link in the body', ok: links.length === 1, detail: `${links.length} links` },
     { rule: 'no HTML in a plain-text invitation', ok: !/<\/?[a-z][^>]*>/i.test(o.body), detail: 'markup found' },
     { rule: '"free for the first 1,000 suppliers" carries no date', ok: !/1,000/.test(o.body) || !DATED.test(o.body), detail: 'a date or deadline word next to the offer' },
-    { rule: 'never "up to three suppliers": any number may quote, top 3 is only the report', ok: !UP_TO_THREE.test(o.body + ' ' + o.subject), detail: 'the forbidden wrong form' },
+    { rule: 'never a cap on how many suppliers quote: any number may quote, top 3 is only the report', ok: !UP_TO_THREE.test(o.body + ' ' + o.subject), detail: 'the forbidden wrong form' },
   ];
 }
 
