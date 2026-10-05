@@ -71,9 +71,10 @@ test('production, aborted: target, experiments, competitor watch and stages act'
   const o = await probe(String.raw`
 do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; t bigint; hid bigint; n bigint; tgt jsonb; f jsonb; begin
   perform set_config('app.qd_stub_founder_notify', 'on', true);
+  -- author models are proven on internal_judgement, think()'s decision class (founder_instruction 1056, 29 Sep)
   insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values
-    ('probe', 'ceo', 'ceo', 'agent_reasoning', 'openai/gpt-5.6-sol', true),
-    ('probe', 'marketing', 'marketing', 'agent_reasoning', 'google/gemini-3.8-flash', true);
+    ('probe', 'ceo', 'ceo', 'internal_judgement', 'anthropic/claude-opus-5.5', true),
+    ('probe', 'marketing', 'marketing', 'internal_judgement', 'google/gemini-3.8-flash', true);
 
   -- the seeded unknowns
   o := o || jsonb_build_object('seeded', (select jsonb_agg(jsonb_build_object('key', x.key, 'seat', q.seat, 'stakes', q.request->>'stakes') order by x.key)
@@ -87,13 +88,13 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
     perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"x","decision":{"choice":"yolo"}}');
     o := o || jsonb_build_object('bad_choice', 'applied');
   exception when others then o := o || jsonb_build_object('bad_choice', left(sqlerrm, 20)); end;
-  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: sound, the metric is measured by code and fourteen days is enough","model":"openai/gpt-5.6-sol","decision":{"choice":"approve","fields":{"owner_seat":{"value":"marketing"},"days":{"value":"14"}}}}');
+  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: sound, the metric is measured by code and fourteen days is enough","model":"anthropic/claude-opus-5.5","decision":{"choice":"approve","fields":{"owner_seat":{"value":"marketing"},"days":{"value":"14"}}}}');
   o := o || jsonb_build_object('approved', (select jsonb_build_object('status', status, 'owner', owner_seat, 'days', ends_on - starts_on,
             'reviewer', (select reviewer_seat from public.seat_deliberation where id = (approval->'review'->>'deliberation_id')::bigint))
             from public.ceo_experiment where id = e));
   v := public.fn_ceo_experiment_review();
   select held_id into h from public.ceo_experiment_verdict where experiment_id = e;
-  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: refuted","model":"openai/gpt-5.6-sol","decision":{"choice":"killed","fields":{"lesson":{"value":"ZZ DEMO lesson"}}}}');
+  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: refuted, the metric did not move in fourteen days","model":"anthropic/claude-opus-5.5","decision":{"choice":"killed","fields":{"lesson":{"value":"ZZ DEMO lesson"}}}}');
   o := o || jsonb_build_object('killed', (select status from public.ceo_experiment where id = e),
     'case', (select jsonb_build_object('seat', seat, 'final', finalised, 'lessons', lessons) from public.seat_case_memory
               where source_table = 'ceo_experiment_verdict' and source_id like e || ':%'));
