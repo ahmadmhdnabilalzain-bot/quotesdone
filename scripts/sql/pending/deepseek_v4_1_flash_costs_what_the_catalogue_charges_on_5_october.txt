@@ -1,1 +1,0 @@
-Not applied (it_engineer, 5 Oct 2026): applies at merge by the release train. Routes measured in an aborted transaction: 800, 6 moved (marketing_geo_search capability override back to openai/gpt-6-luna). Then delete this note and append the .sql to the END of MANIFEST.txt.
