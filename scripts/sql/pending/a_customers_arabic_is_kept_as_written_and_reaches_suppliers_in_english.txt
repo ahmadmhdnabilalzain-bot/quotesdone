@@ -1,3 +1,0 @@
-Committed, not applied: applied at merge (apply-at-merge rule), together with the deploy of messages_api, customer_api
-and resilience_ping, which read and write rfq_clarification.answer_as_written / english_held_at. On apply this note is
-deleted and the file is appended to the end of MANIFEST.txt in the same commit. Seat: sales_engineer. PR #1195.
