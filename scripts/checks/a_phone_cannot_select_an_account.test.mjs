@@ -145,6 +145,60 @@ for (const [label, project] of Object.entries(PROJECTS)) {
   });
 }
 
+// ONE ADMIN SESSION, REUSED (6 Oct 2026). The customer_api test below needs a signed-in identity that is
+// not a customer, and it used to mint a fresh admin session through login_otp on every run and never
+// sign it out. Measured 6 Oct: 358 of the 359 auth.sessions on the admin address had never been used
+// after creation (no refresh), each created within seconds of this file's fixture login_otp calls in
+// agent_runs, user agent SupabaseEdgeRuntime (login_otp's verifyOtp), roughly one per checks run.
+// Now the run refreshes ONE cached session (refresh token in app_secrets) and only mints when the
+// cache is missing or dead. The rotated token is written back compare-and-swap; a run that loses the
+// race (a concurrent run already stored a newer token) signs its own session out, so at most one
+// session for this check is ever left alive.
+const SESSION_KEY = 'check_customer_api_admin_refresh_token';
+const tokenOk = (t) => /^[A-Za-z0-9_-]{8,200}$/.test(String(t || ''));
+const anonKey = async (project) => {
+  const r = await fetch(`https://api.supabase.com/v1/projects/${project}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmtToken } });
+  const k = (await r.json().catch(() => [])).find?.((x) => x.name === 'anon')?.api_key;
+  assert.ok(k, `could not read the anon key: ${r.status}`);
+  return k;
+};
+async function adminSession(project, adminEmail) {
+  const anon = await anonKey(project);
+  const [row] = await q(project, `select value from public.app_secrets where key = '${SESSION_KEY}'`);
+  const cached = row ? row.value : null;
+  if (tokenOk(cached)) {
+    const r = await fetch(`https://${project}.supabase.co/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST', headers: { apikey: anon, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: cached }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.access_token && String(j.user?.email || '').toLowerCase() === adminEmail) return { anon, hadRow: !!row, cached, ...j };
+  }
+  const code = '246813';
+  await q(project, `insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
+    values ('${adminEmail}', encode(hmac('${code}', (select value from app_secrets where key='otp_hmac_key'), 'sha256'), 'hex'),
+            'login', 'admin', now() + interval '5 minutes')`);
+  const mint = await fetch(`https://${project}.supabase.co/functions/v1/login_otp`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'verify', user_kind: 'admin', identifier: adminEmail, code }),
+  }).then((r) => r.json());
+  assert.ok(mint.access_token, `could not mint an admin session: ${JSON.stringify({ ...mint, access_token: undefined, refresh_token: undefined }).slice(0, 160)}`);
+  return { anon, hadRow: !!row, cached, ...mint };
+}
+async function keepOrRevoke(project, s) {
+  let kept = [];
+  if (tokenOk(s.refresh_token)) {
+    kept = await q(project, !s.hadRow
+      ? `insert into public.app_secrets (key, value) values ('${SESSION_KEY}', '${s.refresh_token}') on conflict (key) do nothing returning 1 k`
+      : `update public.app_secrets set value = '${s.refresh_token}', updated_at = now() where key = '${SESSION_KEY}'
+           ${tokenOk(s.cached) ? `and value = '${s.cached}'` : ''} returning 1 k`);
+  }
+  if (!kept.length) {
+    await fetch(`https://${project}.supabase.co/auth/v1/logout?scope=local`, {
+      method: 'POST', headers: { apikey: s.anon, Authorization: 'Bearer ' + s.access_token },
+    }).catch(() => {});
+  }
+}
+
 // READING WHO YOU ARE MUST NOT CREATE WHO YOU ARE.
 //
 // customer_api opened with `if (!cust) insert({ email })`, so ANY authenticated identity that
@@ -171,26 +225,18 @@ for (const [label, project] of Object.entries(PROJECTS)) {
     assert.equal(Number(hasRow[0].n), 0,
       `${adminEmail} holds a customers row, so this check cannot prove the endpoint stopped creating them. Retire that row first.`);
 
-    const code = '246813';
-    await q(project, `insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
-      values ('${adminEmail}', encode(hmac('${code}', (select value from app_secrets where key='otp_hmac_key'), 'sha256'), 'hex'),
-              'login', 'admin', now() + interval '5 minutes')`);
+    const mint = await adminSession(project, adminEmail);
+    try {
+      const me = await fetch(`https://${project}.supabase.co/functions/v1/customer_api`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + mint.access_token },
+        body: JSON.stringify({ action: 'me' }),
+      });
+      assert.equal(me.status, 403, `an identity with no customer account must be refused, got ${me.status}`);
 
-    const mint = await fetch(`https://${project}.supabase.co/functions/v1/login_otp`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'verify', user_kind: 'admin', identifier: adminEmail, code }),
-    }).then((r) => r.json());
-    assert.ok(mint.access_token, `could not mint an admin session: ${JSON.stringify(mint).slice(0, 160)}`);
-
-    const me = await fetch(`https://${project}.supabase.co/functions/v1/customer_api`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + mint.access_token },
-      body: JSON.stringify({ action: 'me' }),
-    });
-    assert.equal(me.status, 403, `an identity with no customer account must be refused, got ${me.status}`);
-
-    const after = await q(project, `select count(*)::int n from public.customers`);
-    assert.equal(Number(after[0].n), Number(before[0].n),
+      const after = await q(project, `select count(*)::int n from public.customers`);
+      assert.equal(Number(after[0].n), Number(before[0].n),
       'reading customer_api created a customers row - the endpoint is manufacturing accounts again');
+    } finally { await keepOrRevoke(project, mint); }
   });
 }
 
