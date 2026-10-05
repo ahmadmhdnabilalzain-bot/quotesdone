@@ -1,7 +1,0 @@
-Committed unapplied (it_engineer, 4 Oct 2026, item 21): applied at merge, never before (apply at merge).
-On apply, delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
-
-Measured 4 Oct 2026 against production, the file replayed in ONE aborted transaction (scratch copy whose verdict
-travels in a raise, so nothing committed; read back after: no fn_it_engineer_duty_pause_expiry, no seat_duty row,
-0 duty_pause rows): CHK<<PROBE OK>>. With the money classification broken in the scratch copy:
-PROBE FAILED: an 8-day money pause raised agent_facing.
