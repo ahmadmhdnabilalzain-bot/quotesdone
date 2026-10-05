@@ -1,0 +1,1 @@
+Committed, not applied: no production apply in this PR (founder ledger 1122, legal audit 6 Oct 2026). Apply at merge with node scripts/apply_sql.mjs scripts/sql/the_agent_knowledge_that_misstates_the_money_terms_is_quarantined.sql --apply, then delete this note and append the file to the END of MANIFEST.txt. Seat: accountant.
