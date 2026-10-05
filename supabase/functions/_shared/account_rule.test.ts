@@ -41,3 +41,9 @@ Deno.test('no name fails; an empty account lists everything', () => {
   assertEquals(accountMissing({ ...ok, full_name: ' ' }, TODAY), ['name']);
   assertEquals(accountMissing(null, TODAY), ['name', 'date_of_birth', 'verified_email_or_mobile', 'terms_accepted']);
 });
+
+Deno.test('a customer on an older Terms version must accept the current one', () => {
+  assertEquals(accountMissing({ ...ok, tos_version: 'v4' }, TODAY, 'v9'), ['terms_accepted']);
+  assertEquals(accountMissing({ ...ok, tos_version: 'v9' }, TODAY, 'v9'), []);
+  assertEquals(accountMissing({ ...ok, tos_version: 'v4' }, TODAY), []); // no current version given: unchanged
+});

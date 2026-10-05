@@ -1174,7 +1174,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // a name, an 18+ date of birth, an OTP-verified mobile OR email, and the Terms checkbox. The
       // definition lives in _shared/account_rule.ts so kyc and this gate cannot drift. A reachable
       // mobile stays required on top (the reveal hands the winning supplier a contact card).
-      const missingAcct = accountMissing(cust);
+      const missingAcct = accountMissing(cust, new Date(), (await getSecret('customer_terms_version')) || null);
       if (!String(cust.phone || '').trim()) missingAcct.push('mobile_number');
       if (missingAcct.length) return J({ error: 'account_incomplete', code: 'account_incomplete', missing: missingAcct, message: 'Please finish setting up your account first: ' + missingAcct.join(', ') + '. Open the Account tab.' }, 403);
       // REGISTRATION COMPLETENESS GATE (2 Aug 2026, external code review). This endpoint checked
