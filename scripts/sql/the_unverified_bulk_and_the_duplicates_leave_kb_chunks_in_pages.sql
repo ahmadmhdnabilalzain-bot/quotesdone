@@ -62,6 +62,11 @@ alter table public.kb_trim_plan enable row level security;
 drop policy if exists kb_trim_plan_service_role_only on public.kb_trim_plan;
 create policy kb_trim_plan_service_role_only on public.kb_trim_plan as permissive for all to public using (false) with check (false);
 revoke all on public.kb_trim_plan from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('kb_trim_hash', false, 'cache', 'Working hashes of kb_chunks for the night trim, rebuilt from kb_chunks on every run.', 'it_engineer'),
+  ('kb_trim_plan', false, 'cache', 'The night trim''s work list, rebuilt from kb_trim_hash on every run and emptied as it goes.', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 create or replace function public.fn_kb_trim_hash_page(p_after bigint, p_limit integer default 2000)
 returns table (last_id bigint, hashed bigint)
@@ -70,7 +75,6 @@ security definer
 set search_path to 'public', 'pg_temp'
 set enable_seqscan to 'off'
 set max_parallel_workers_per_gather to '0'
-set statement_timeout to '30s'
 as $fn$
 declare v_last bigint; v_n bigint;
 begin
@@ -101,7 +105,6 @@ returns jsonb
 language plpgsql
 security definer
 set search_path to 'public', 'pg_temp'
-set statement_timeout to '60s'
 as $fn$
 declare v6 bigint; v7 bigint;
 begin

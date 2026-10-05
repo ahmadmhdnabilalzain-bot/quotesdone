@@ -86,13 +86,13 @@ if (!st.census) {
   console.log(`== census: hash in pages of ${LIMIT}, resuming after id ${st.hash_to}`);
   for (let after = Number(st.hash_to); ;) {
     await guard();
-    const p = await one(`select * from public.fn_kb_trim_hash_page(${after}, ${LIMIT})`, false);
+    const p = await one(`set statement_timeout = '30s'; select * from public.fn_kb_trim_hash_page(${after}, ${LIMIT})`, false);
     if (!Number(p.hashed)) break;
     after = Number(p.last_id);
     await sleep(1000);
   }
   await guard();
-  console.log('   census:', JSON.stringify((await one('select public.fn_kb_trim_plan_build() c', false)).c));
+  console.log('   census:', JSON.stringify((await one("set statement_timeout = '60s'; select public.fn_kb_trim_plan_build() c", false)).c));
 }
 
 console.log(`== trim in batches of ${LIMIT}`);
