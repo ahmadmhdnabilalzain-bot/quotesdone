@@ -44,7 +44,11 @@ const OWNING_SQLS = [
   'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_now_charges.sql',
   // 4 Oct 2026 ~20:20Z: re-priced again to 0.003 / 2.4; this file wins.
   'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_charges_on_4_october.sql',
+  // 5 Oct 2026, matrix v2: deepseek/deepseek-v4.1-flash and qwen/qwen3.7-plus are switched off (active = false), so
+  // they leave the claim; a retired model is skipped, every active one is still compared strictly.
+  'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql',
 ];
+const V2_SQL = 'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql';
 const RETIRING_SQL = 'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql';
 const OWNING_SQL = OWNING_SQLS.join(' + ');
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
@@ -98,10 +102,12 @@ const claimed = () => {
   // and this check would stay green (measured in the review of PR #867).
   assert.ok(out.has('openai/gpt-5.6-sol'),
     'openai/gpt-5.6-sol was not parsed out of its registering file, so its price is not being checked');
-  // The same for the re-price: if its statement stops parsing, the 23 Sep insert silently becomes the
-  // claim again and the check compares a price the registry no longer holds.
-  assert.ok(out.has('deepseek/deepseek-v4.1-flash'),
-    'deepseek/deepseek-v4.1-flash was not parsed out of its registering file, so its price is not being checked');
+  // The matrix v2 retirement must parse, or the two retired models' stale claims come back and block CI.
+  for (const id of ['deepseek/deepseek-v4.1-flash', 'qwen/qwen3.7-plus']) {
+    assert.ok(retired.get(id) === V2_SQL && !out.has(id),
+      `${id} was not parsed as retired by ${V2_SQL}, so a model no route can name is still being compared`);
+  }
+  assert.ok(out.has('openai/gpt-6-luna'), 'openai/gpt-6-luna, every seat\'s main model, is not being checked');
   // The retirement must parse too, or the retired model's stale claim comes back and blocks CI again.
   assert.ok([...retired.values()].includes(RETIRING_SQL),
     `no retirement was parsed out of ${RETIRING_SQL}, so a retired model is being compared as if a route could name it`);
@@ -181,10 +187,9 @@ test('the capabilities the registry file claims are the ones the catalogue adver
     // gemini-3.1-flash-lite and gemini-3.5-flash. speech_transcription has no second model that
     // hears, so if this goes audio:false every voice note stops being transcribed.
     'google/gemini-3.8-flash': { image: true, audio: true },
+    // Every seat's main model since matrix v2 (5 Oct 2026): image:true is what lets a vision or file call run on it;
+    // audio:false is why speech_transcription and marketing_watch stay on Gemini with no fallback at all.
     'openai/gpt-6-luna': { image: true, audio: false },
-    // Every other seat's fallback (founder_instruction 1056). image:true is what lets a vision call fall back to it;
-    // audio:false is why speech_transcription and marketing_watch have no fallback at all.
-    'deepseek/deepseek-v4.1-flash': { image: true, audio: false },
   };
   const wrong = [];
   for (const [id, want] of Object.entries(expect)) {

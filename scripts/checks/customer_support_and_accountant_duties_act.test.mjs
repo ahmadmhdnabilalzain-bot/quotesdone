@@ -127,7 +127,7 @@ test('production, aborted: every duty acts on ZZ DEMO fixtures, once', { skip: h
 
 const PROBE = String.raw`
 do $$ declare o jsonb := '{}'; ca uuid; cb uuid; cc uuid; l1 bigint; l2 bigint; i1 uuid; i2 uuid; q2 uuid; t2 uuid; h bigint; hf bigint; d bigint; ent text;
-  m text := '{"status":"answered","answer":"x","model":"qwen/qwen3.7-plus","decision":{"choice":"%s"}}';
+  m text := '{"status":"answered","answer":"x","model":"openai/gpt-6-luna","decision":{"choice":"%s"}}';
 begin
   perform set_config('qd.duty_fixtures', 'on', true);
   -- inside this aborted transaction only: let the door queue mail to the fixture domain so the effect is countable

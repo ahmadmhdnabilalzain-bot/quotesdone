@@ -294,8 +294,8 @@ Return {"findings":[]} if the pages do not answer it.`;
 // routine_employee_reasoning; a seat's own answer or decision is internal_judgement; a reply a customer, a
 // visitor or a supplier reads, and any Arabic reply, keeps its audience class. The model is chosen in the
 // database from the seat (sent as `agent`): fn_ai_route takes a seat's own '<seat>__<class>' row where one
-// exists (the CEO's judgement on Opus, while its planning runs on Gemini) and otherwise gives the seat its own
-// plan B (gpt-6-luna for the sales engineer and the CEO, DeepSeek for every other seat); the class logged stays
+// exists (the CEO's judgement on Opus, while its planning runs on luna) and otherwise gives the seat its own
+// plan B (google/gemini-3.8-flash for every seat since matrix v2, 5 Oct 2026); the class logged stays
 // the one named here (scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql). Verify stays
 // knowledge_validation: routed through counterpart_model to a reviewer of ANOTHER family than the author.
 // A FIXTURE QUESTION IS NEVER QUEUED (it_engineer, 24 Sep 2026). The gateway stubs a fixture call, but a question

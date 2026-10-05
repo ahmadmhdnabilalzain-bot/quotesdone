@@ -79,6 +79,6 @@ test('every active model class has a seat and runs its route (pending model file
 
 test('a new class with no seat in the matrix fails the probe', { skip: !token() }, async () => {
   const v = await run(replay() + `\n;\ninsert into public.model_policy (task_class, tier, model_primary, model_fallback, max_tokens, active)
-    values ('zz_probe_unmapped_class', 'medium', 'google/gemini-3.8-flash', 'deepseek/deepseek-v4.1-flash', 500, true);\n` + probe());
+    values ('zz_probe_unmapped_class', 'medium', 'openai/gpt-6-luna', 'google/gemini-3.8-flash', 500, true);\n` + probe());
   assert.match(v, /zz_probe_unmapped_class has no seat in the matrix/, v);
 });
