@@ -1,2 +1,0 @@
-Not applied yet (marketing, 30 Sep 2026): applied at merge, then this note is deleted and the file appended to MANIFEST.txt.
-Proved against production in ONE rolled-back request with its probe: this file + each_post_is_measured_and_names_the_suppliers_it_brought_probe.sql -> PROBE OK (14 scorecard rows); this file + the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them_probe.sql -> PROBE OK. Against the live body the updated probe fails with "junk touch accepted", as it must.
