@@ -1967,7 +1967,7 @@ function RequestTracker({ inq, quotes, lang }) {
   const fmt = (d) => { try { return new Date(d).toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (_e) { return ''; } };
   return (
     <div className="mt-3">
-      <ol className="flex flex-col gap-1.5 sm:flex-row sm:gap-0" aria-label={lang === 'ar' ? 'مراحل الطلب' : 'Request progress'}>
+      <ol className="flex flex-col gap-1.5 sm:flex-row sm:gap-0" aria-label={lang === 'ar' ? 'مراحل تقدّم الطلب' : 'Request progress'}>
         {tr.stages.map((st, i) => (
           <li key={st.key} aria-current={st.current ? 'step' : undefined} className="flex min-w-0 items-start gap-2 sm:flex-1 sm:flex-col sm:gap-1">
             <div className="flex items-center sm:w-full">

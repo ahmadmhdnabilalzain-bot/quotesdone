@@ -8,6 +8,7 @@
 // a timestamp is shown only where the server recorded one, and a stage is lit only on its own fact.
 //
 // Pure and in its own file so it can be executed: node --test scripts/checks/the_request_tracker_reads_the_stage_from_the_servers_fields.test.mjs
+import { countPhrase } from '../../lib/countedNoun.ts';
 
 export type TrackerQuote = { revealed?: boolean | null; revealed_at?: string | null; rated?: boolean | null };
 export type TrackerInquiry = {
@@ -41,14 +42,14 @@ const L = {
     },
   },
   ar: {
-    posted: 'نُشر', specs: 'المواصفات مكتملة', held: 'بانتظار المواصفات', sent: 'أُرسل إلى الموردين المطابقين',
-    sentN: (n: number) => `أُرسل إلى ${n} من الموردين المطابقين`,
+    posted: 'نُشر', specs: 'المواصفات مكتملة', held: 'بانتظار المواصفات', sent: 'أُرسل إلى المورّدين المطابقين',
+    sentN: (n: number) => `أُرسل إلى ${countPhrase('ar', n, 'supplier', { oblique: true })}`,
     quotes: 'وردت العروض', quotesN: (n: number) => `وردت العروض (${n})`, compare: 'المقارنة',
     revealed: 'تم الكشف', done: 'اكتمل العمل', reviewed: 'اكتمل العمل · تم التقييم',
     next: {
-      specs: 'التالي: أضف التفاصيل الناقصة أدناه ليُرسل طلبك إلى الموردين.',
-      sent: 'التالي: نرسل طلبك إلى الموردين المطابقين له تمامًا.',
-      quotes: 'التالي: يرسل الموردون المطابقون عروضهم، وسنُعلمك عند وصول كل عرض.',
+      specs: 'التالي: أضف التفاصيل الناقصة أدناه ليُرسل طلبك إلى المورّدين.',
+      sent: 'التالي: نرسل طلبك إلى المورّدين المطابقين له تمامًا.',
+      quotes: 'التالي: يرسل المورّدون المطابقون عروضهم، وسنُعلمك عند وصول كل عرض.',
       compare: 'التالي: عرض ثانٍ يتيح لك مقارنة العروض جنبًا إلى جنب.',
       revealed: 'التالي: قارن العروض واكشف المورّد الذي تختاره.',
       done: 'التالي: بعد إنجاز العمل، قيّم المورّد الذي تعاقدت معه.',
