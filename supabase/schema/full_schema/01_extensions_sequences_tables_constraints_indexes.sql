@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T05:47:50.353Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T13:12:53.139Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (697) =====
+-- ===== TABLES (700) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4608,6 +4608,21 @@ CREATE TABLE IF NOT EXISTS public.kb_route_scope_trigger (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.kb_trim_hash (
+  id bigint NOT NULL,
+  k text NOT NULL,
+  pref smallint NOT NULL,
+  is_qd boolean NOT NULL,
+  clause smallint,
+  keeper_id bigint
+);
+
+CREATE TABLE IF NOT EXISTS public.kb_trim_plan (
+  id bigint NOT NULL,
+  clause smallint NOT NULL,
+  planned_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.kb_usage_log (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   query text,
@@ -7965,7 +7980,8 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_eval_question (
   question text NOT NULL,
   expected text[] NOT NULL,
   embedding vector(384) NOT NULL,
-  loaded_at timestamp with time zone DEFAULT now() NOT NULL
+  loaded_at timestamp with time zone DEFAULT now() NOT NULL,
+  embedding_ml vector(384)
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_exam (
@@ -7992,7 +8008,8 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall (
   questions integer NOT NULL,
   recall_en numeric,
   recall_ar numeric,
-  measured_at timestamp with time zone DEFAULT now() NOT NULL
+  measured_at timestamp with time zone DEFAULT now() NOT NULL,
+  path text DEFAULT 'gte'::text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall_answer (
@@ -8001,6 +8018,14 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall_answer (
   seat text NOT NULL,
   lang text NOT NULL,
   recall numeric NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall_floor (
+  seat text NOT NULL,
+  lang text NOT NULL,
+  floor numeric NOT NULL,
+  set_on date NOT NULL,
+  set_from numeric NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_refresh (
@@ -9993,6 +10018,8 @@ ALTER TABLE public.kb_operational_route_test ADD CONSTRAINT kb_operational_route
 ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_pkey PRIMARY KEY (catalog_num, trigger_scope);
+ALTER TABLE public.kb_trim_hash ADD CONSTRAINT kb_trim_hash_pkey PRIMARY KEY (id);
+ALTER TABLE public.kb_trim_plan ADD CONSTRAINT kb_trim_plan_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_usage_log ADD CONSTRAINT kb_usage_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_domain ADD CONSTRAINT knowledge_domain_pkey PRIMARY KEY (domain_key);
 ALTER TABLE public.knowledge_exam_questions ADD CONSTRAINT knowledge_exam_questions_pkey PRIMARY KEY (id);
@@ -10228,6 +10255,7 @@ ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_ev
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_knowledge_recall ADD CONSTRAINT seat_knowledge_recall_pkey PRIMARY KEY (day, seat);
 ALTER TABLE public.seat_knowledge_recall_answer ADD CONSTRAINT seat_knowledge_recall_answer_pkey PRIMARY KEY (day, question_id);
+ALTER TABLE public.seat_knowledge_recall_floor ADD CONSTRAINT seat_knowledge_recall_floor_pkey PRIMARY KEY (seat, lang);
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_pkey PRIMARY KEY (seat, quarter);
 ALTER TABLE public.seat_learning_daily ADD CONSTRAINT seat_learning_daily_pkey PRIMARY KEY (seat, day);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_pkey PRIMARY KEY (cluster_key);
@@ -10819,8 +10847,10 @@ ALTER TABLE public.kb_citation_jurisdiction ADD CONSTRAINT kb_citation_jurisdict
 ALTER TABLE public.kb_citation_jurisdiction ADD CONSTRAINT kb_citation_jurisdiction_jurisdiction_check CHECK ((jurisdiction = ANY (ARRAY['quotesdone'::text, 'uae'::text, 'gcc'::text, 'international'::text, 'us'::text, 'other_foreign'::text])));
 ALTER TABLE public.kb_embed_priority ADD CONSTRAINT kb_embed_priority_tier_check CHECK (((tier >= 1) AND (tier <= 4)));
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk CHECK ((regulatory_coverage_status = ANY (ARRAY['confirmed_none'::text, 'confirmed_covered'::text, 'incomplete'::text, 'requires_review'::text])));
-ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_clause_check CHECK (((clause >= 0) AND (clause <= 5)));
-ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_verdict_check CHECK ((verdict = ANY (ARRAY['KEEP'::text, 'UNSURE'::text, 'DELETE'::text, 'SIZE'::text])));
+ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_clause_check CHECK (((clause >= 0) AND (clause <= 7)));
+ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_verdict_check CHECK ((verdict = ANY (ARRAY['KEEP'::text, 'UNSURE'::text, 'DELETE'::text, 'SIZE'::text, 'TRIM'::text])));
+ALTER TABLE public.kb_trim_hash ADD CONSTRAINT kb_trim_hash_clause_check CHECK ((clause = ANY (ARRAY[6, 7])));
+ALTER TABLE public.kb_trim_plan ADD CONSTRAINT kb_trim_plan_clause_check CHECK ((clause = ANY (ARRAY[6, 7])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'ok'::text, 'failed'::text, 'rolled_back'::text])));
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
@@ -11272,6 +11302,8 @@ ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_ev
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_question_check CHECK ((btrim(question) <> ''::text));
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_question_check CHECK ((btrim(question) <> ''::text));
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_verdict_check CHECK ((verdict = ANY (ARRAY['correct'::text, 'partial'::text, 'wrong'::text, 'not_covered'::text])));
+ALTER TABLE public.seat_knowledge_recall_floor ADD CONSTRAINT seat_knowledge_recall_floor_floor_check CHECK (((floor >= (0)::numeric) AND (floor <= (1)::numeric)));
+ALTER TABLE public.seat_knowledge_recall_floor ADD CONSTRAINT seat_knowledge_recall_floor_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_quarter_check CHECK ((quarter = (date_trunc('quarter'::text, (quarter)::timestamp with time zone))::date));
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_case_ids_check CHECK ((cardinality(case_ids) >= 3));
 ALTER TABLE public.seat_playbook ADD CONSTRAINT seat_playbook_seat_check CHECK ((seat = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'marketing'::text])));

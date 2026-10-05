@@ -16,6 +16,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/knowledge_lookup_goes_to_the_trade_first.sql';
@@ -64,7 +65,7 @@ test('production, one aborted transaction: another trade or area never, its own 
 ${cases.flatMap(([s, a]) => [false, true].map((ml) => `o := o || jsonb_build_array(${ids(s, a, ml)});`)).join('\n')}
 raise exception 'CHK<<%>>', o::text; end $qdchk$;`;
   let out;
-  try { await sql(pending + setup + block, { retry: false }); }
+  try { await replaySql(pending + setup + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));

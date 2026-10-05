@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { definitions } from '../lib/canonical_sql.mjs';
 import { exportedTables } from '../lib/table_export_registry.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql';
@@ -78,7 +79,7 @@ test('production, aborted: the probe answers PROBE OK', { skip: hasToken ? false
   const text = [FILE, EVAL, PROBE].map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n;\n');
   let msg = '';
   for (let attempt = 0; attempt < 2; attempt++) {
-    try { await sql(text, { retry: false }); msg = 'the probe did not raise'; break; }
+    try { await replaySql(text, { retry: false }); msg = 'the probe did not raise'; break; }
     catch (e) { msg = String(e.message); if (!/deadlock detected|55P03|57014/.test(msg)) break; }   // serial re-issue of a rolled-back replay is safe
   }
   const i = msg.indexOf('CHK<<');

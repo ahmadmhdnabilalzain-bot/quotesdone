@@ -44,6 +44,8 @@ const OWNING_SQLS = [
   'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_now_charges.sql',
   // 4 Oct 2026 ~20:20Z: re-priced again to 0.003 / 2.4; this file wins.
   'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_charges_on_4_october.sql',
+  // 5 Oct 2026 ~06:10Z: back to 0.3 / 1.2; this file wins.
+  'scripts/sql/deepseek_v4_1_flash_costs_what_the_catalogue_charges_on_5_october.sql',
   // 5 Oct 2026, matrix v2: deepseek/deepseek-v4.1-flash and qwen/qwen3.7-plus are switched off (active = false), so
   // they leave the claim; a retired model is skipped, every active one is still compared strictly.
   'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql',

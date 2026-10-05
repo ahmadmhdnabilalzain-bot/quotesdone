@@ -21,6 +21,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -262,7 +263,7 @@ test('production, in one aborted transaction: independence, blind first, steelma
   const body = (r.applied ? '' : read(FILE) + '\n') + (r.matrix_applied ? '' : read(MATRIX) + '\n') + V2_REPLAY + PROBE;
   let out;
   try {
-    await sql(body, { retry: false });
+    await replaySql(body, { retry: false });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;
