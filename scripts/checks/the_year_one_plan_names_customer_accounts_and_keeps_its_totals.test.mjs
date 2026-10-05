@@ -64,7 +64,7 @@ test('production: no target names the grouping; totals match the last ledger ent
 });
 
 test('production, aborted: every monthly and yearly total is identical before and after; verdict and forecast run', { skip: SKIP }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql } = await import('../lib/safe_replay.mjs');   // the one door: the pending body cannot commit
   const body = pending(MINE) ? read(MINE).replace(/\n-- Verdict:[\s\S]*$/, '\n') : '';
   const snap = `(select jsonb_object_agg(y.month, (to_jsonb(y) - 'basis' - 'enterprise' - 'business_accounts')
       || jsonb_build_object('accounts', coalesce(to_jsonb(y)->'business_accounts', to_jsonb(y)->'enterprise'))) from public.ceo_year_plan y)`;
@@ -72,7 +72,7 @@ test('production, aborted: every monthly and yearly total is identical before an
       where c.contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30')`;
   let o;
   try {
-    await sql(`create temp table zz_before on commit drop as select ${snap} as months, ${TOTALS} as year, ${paths} as paths;\n${body}\n` + String.raw`
+    await replaySql(`create temp table zz_before on commit drop as select ${snap} as months, ${TOTALS} as year, ${paths} as paths;\n${body}\n` + String.raw`
 do $$ declare o jsonb; v jsonb; f jsonb; begin
   perform set_config('app.qd_stub_founder_notify', 'on', true);
   v := public.fn_ceo_target_daily_verdict(now());

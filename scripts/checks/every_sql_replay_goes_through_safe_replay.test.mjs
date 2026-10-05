@@ -38,8 +38,37 @@ export const ALLOWED = new Map([
 const READS_SQL_FILES = /scripts\/sql\b|join\([^)]*['"]sql['"]|canonicalReplay\(/;
 const READS = /\breadFileSync\(|\breadFile\(|\bread\(|\bR\(|\bsrc\(/;
 const SENDS = /lib\/db\.mjs|database\/query|mgmtFixture|mgmtWrite/;
-// A template's interpolation that can carry a file's text: a reader call, or a name that says it is one.
-const CARRIES_FILE = /\$\{[^}]*(readFileSync|\bread\(|\bR\(|\bsrc\(|replay|pending|file|sql)/i;
+// A template's interpolation that can carry a file's text: a reader call, a name that says it is one, or any name
+// bound (directly or through other names) to a reader's result - the template watcher's `${def}`, cut from a file.
+const READER = /readFileSync\(|\bread\(|\bR\(|\bsrc\(/;
+const CARRIES_NAME = /replay|pending|file|sql/i;
+const esc = (t) => t.replace(/\$/g, '\\$');
+function fileNames(code) {
+  const binds = [...code.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=([^;]*)/g)].map((m) => [m[1], m[2]]);
+  // the seed: a reader whose path is a .sql file (literally, or through a name bound to one); data read from
+  // other files (word lists, packs) is not a replay
+  const paths = new Set(binds.filter(([, rhs]) => /scripts\/sql\b|\.sql\b|['"]sql['"]/.test(rhs)).map(([n]) => n));
+  const readsSql = (rhs) => READER.test(rhs) && (/scripts\/sql\b|\.sql\b|['"]sql['"]/.test(rhs)
+    || [...paths].some((p) => new RegExp(`(?<![\\w$.])${esc(p)}(?![\\w$])`).test(rhs)));
+  const names = new Set();
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const [n, rhs] of binds) {
+      // a function is not text, and a list or array made from the text is data, not a replay
+      if (names.has(n) || /^\s*(\([^)]*\)|[\w$]+)\s*=>|^\s*(async\s+)?function\b/.test(rhs)
+        || /\.(map|flatMap|matchAll|split|filter)\(|JSON\.parse|^\s*\[/.test(rhs)) continue;
+      if (readsSql(rhs) || [...names].some((t) => new RegExp(`(?<![\\w$.])${esc(t)}(?![\\w$])`).test(rhs))) { names.add(n); grew = true; }
+    }
+  }
+  return names;
+}
+function carriesFile(tpl, names) {
+  for (const m of tpl.matchAll(/\$\{([^}]*)\}/g)) {
+    if (READER.test(m[1]) || CARRIES_NAME.test(m[1])) return true;
+    if ((m[1].match(/[A-Za-z_$][\w$]*/g) || []).some((id) => names.has(id))) return true;
+  }
+  return false;
+}
 
 // The text of the balanced (...) that opens at `open`, skipping strings and templates (with their ${}).
 function argsAt(code, open) {
@@ -68,6 +97,7 @@ export function bypasses(src) {
   if (!READS_SQL_FILES.test(code) || !READS.test(code) || !SENDS.test(code)) return [];
   const lineOf = (i) => code.slice(0, i).split('\n').length;
   const out = [];
+  const names = fileNames(code);
   // A renamed import (`import { sql as q }`) is the same sender under another name.
   const aliases = [...code.matchAll(/\b(?:sql|mgmtFixture|mgmtWrite)\s+as\s+([A-Za-z_$][\w$]*)/g)].map((a) => a[1]);
   const senders = new RegExp(`(?<![\\w.$])(${['sql', 'mgmtFixture', 'mgmtWrite', ...aliases].join('|')})\\(`, 'g');
@@ -77,7 +107,7 @@ export function bypasses(src) {
     if (/readOnly\s*:\s*true/.test(args)) continue;                                         // cannot write
     const first = (m[1] === 'sql' ? args : args.replace(/^\s*[\w.]+\s*,/, '')).trimStart();
     if (/^['"]/.test(first)) continue;                                                      // a literal
-    if (first.startsWith('`') && !CARRIES_FILE.test(first.slice(0, first.indexOf('`', 1) + 1 || undefined))) continue;
+    if (first.startsWith('`') && !carriesFile(first.slice(0, first.indexOf('`', 1) + 1 || undefined), names)) continue;
     out.push(`line ${lineOf(m.index)}: ${code.slice(m.index, m.index + 120).split('\n')[0].trim()}`);
   }
   for (const m of code.matchAll(/database\/query/g)) {
@@ -120,6 +150,11 @@ test('the rule fails a deliberately bad replayer and passes the same file throug
   assert.deepEqual(bypasses(bad.replace('sql(replay', "sql(`select 1`, replay")), []);          // a literal
   assert.deepEqual(bypasses(bad.replace('{ retry: false }', '{ readOnly: true }')), []);        // cannot write
   assert.equal(bypasses(bad.replace('{ sql }', '{ sql as q }').replace('await sql(', 'await q(')).length, 1);   // renamed
+  // a body cut from a file under a name that says nothing (the template watcher's `${def}`) is still caught
+  const cut = "import { sql } from '../lib/db.mjs';\nconst def = readFileSync('scripts/sql/x.sql', 'utf8').match(/create[\\s\\S]*/)[0];\n"
+    + 'await sql(`${def}\n  do $p$ begin raise exception \'CHK\'; end $p$;`);';
+  assert.equal(bypasses(cut).length, 1, 'a ${def} send was not flagged');
+  assert.deepEqual(bypasses(cut.replace('{ sql } from \'../lib/db.mjs\'', '{ replaySql } from \'../lib/safe_replay.mjs\'').replace('await sql(', 'await replaySql(')), []);
   assert.equal(bypasses("import x from '../lib/db.mjs'; read('scripts/sql/a.sql'); await fetch(`${u}/database/query`, {});").length, 1);
 });
 
