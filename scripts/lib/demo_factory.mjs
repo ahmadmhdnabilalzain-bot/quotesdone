@@ -113,14 +113,17 @@ export async function call(slug, jwt, body, timeoutMs = 90000) {
   try {
     const r = await fetch(`${BASE}/functions/v1/${slug}?forceFunctionRegion=ap-southeast-1`, {
       method: 'POST',
-      headers: { apikey: ANON, Authorization: 'Bearer ' + (jwt || ANON), 'Content-Type': 'application/json' },
+      // QD_E2E_RUN_TAG: the stage-2 harness's run tag, carried to every model call so its ai_cost_log
+      // rows are stamped (scripts/sql/a_sandbox_run_tags_its_own_model_cost.sql).
+      headers: { apikey: ANON, Authorization: 'Bearer ' + (jwt || ANON), 'Content-Type': 'application/json',
+        ...(process.env.QD_E2E_RUN_TAG ? { 'x-qd-e2e-run': process.env.QD_E2E_RUN_TAG } : {}) },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });
     const text = await r.text();
     let json = null;
     try { json = JSON.parse(text); } catch { /* a non-JSON body is itself the finding */ }
-    return { status: r.status, json, text: text.slice(0, 200).replace(/\s+/g, ' ') };
+    return { status: r.status, json, text: text.slice(0, 200).replace(/\s+/g, ' '), body: text };
   } catch (e) {
     return { status: 0, json: null, text: String(e.message).slice(0, 200) };
   }

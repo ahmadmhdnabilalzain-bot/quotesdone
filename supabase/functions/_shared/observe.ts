@@ -37,6 +37,29 @@
 // slow tail, which is the half that answers "is this lagging". If per-call latency is ever needed,
 // pass okEveryMs: 0.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { AsyncLocalStorage } from 'node:async_hooks';
+
+// THE SANDBOX RUN TAG TRAVELS WITH THE REQUEST (ledger 1119, 6 Oct 2026). The stage-2 harness sends
+// x-qd-e2e-run: <tag> on its calls. Every function is wrapped in observe(), so the tag is held here for
+// the life of that request, and every fetch the function makes back to THIS project (ai_gateway, another
+// function, PostgREST through supabase-js) carries it on. trg_ai_cost_log_e2e_run_tag reads it from
+// request.headers and stamps the cost row, and only for a run with an open rehearsal_window. With no
+// header, nothing is added to any request.
+const E2E_RUN = new AsyncLocalStorage<string | null>();
+export const e2eRunTag = (): string | null => E2E_RUN.getStore() ?? null;
+const OWN = Deno.env.get('SUPABASE_URL') || '';
+if (OWN && !(globalThis as { __qdE2eFetch?: boolean }).__qdE2eFetch) {
+  (globalThis as { __qdE2eFetch?: boolean }).__qdE2eFetch = true;
+  const base = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    const tag = E2E_RUN.getStore();
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    if (!tag || !url.startsWith(OWN)) return base(input, init);
+    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+    headers.set('x-qd-e2e-run', tag);
+    return base(input, { ...init, headers });
+  };
+}
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -215,7 +238,8 @@ export function observe(
     const t0 = Date.now();
     let res: Response;
     try {
-      res = await handler(req);
+      const h = req.headers.get('x-qd-e2e-run') || '';
+      res = await E2E_RUN.run(/^[a-z0-9]{4,16}$/.test(h) ? h : null, () => handler(req));
     } catch (e) {
       const msg = String((e as Error)?.message || e);
       background(record(slug, 'error', { ...baseCounts(req, 500), threw: true },

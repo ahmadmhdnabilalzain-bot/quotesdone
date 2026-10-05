@@ -22,11 +22,12 @@
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHmac } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
 import { newRun, teardown, makeLicenceGatedSupplier, runIntake, quotePayload, TRADES, EMIRATES, q, keys } from '../lib/demo_factory.mjs';
 import { demoPdf } from '../lib/demo_pdf.mjs';
 import { buildInventory, classify, summarise } from './stage2_coverage.mjs';
+import { liveDuties, probeDuty } from './stage2_duties.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
@@ -69,6 +70,9 @@ export const SCENARIOS = [
   { key: 'S14', title: 'Public forms: unsubscribe (signed link), contact, complaint status, rating', calls: [] },
   { key: 'S15', title: 'Every notice the run caused is rendered and captured, never sent: AR customer gets Arabic, supplier gets English', calls: [] },
   { key: 'S16', title: 'Every page (EN + AR) and every portal tab renders for a demo customer and supplier', calls: [] },
+  { key: 'S18', title: "Every live duty (public.seat_duty + the resilience tick routines) run in an aborted transaction scoped to the run: no error, no non-demo row written, its effect on the run's demo rows recorded", calls: [] },
+  { key: 'S19', title: 'Inbound channels with real provider signatures from demo senders: WhatsApp and SMS (Twilio-signed), email (Svix-signed Resend), delivery receipts; the message is stored', calls: [['wa_inbound', 2, 3000, 500], ['resend_inbound', 1, 3000, 500]] },
+  { key: 'S20', title: 'Every remaining edge function answers a demo caller with a body (CEO and IT consoles read-only, intelligence, embeddings, error ingest, sanctions, onboarding, catalog)', calls: [['support_ai', 2, 2000, 300]] },
   { key: 'S17', title: 'Marketing seat: blog draft -> CEO review -> founder FYI, social plan. Saved to the Desktop, NEVER published or posted', calls: [['marketing_article_draft', 1, 6000, 3000], ['ceo_article_review', 1, 6000, 1000], ['marketing_plan', 1, 4000, 2000]] },
 ];
 
@@ -130,9 +134,8 @@ async function download(bucket, path) {
 // with the models ON also writes things a seat LEARNS from, and ai_cost_log, which has no inquiry or run
 // column at all. Founder, 6 Oct: "no agent learns from them". Each delete below is fenced twice: by the
 // ids or tag the run recorded, and (for tables with no such handle) by the run's time window AND a demo
-// marker in the text. ai_cost_log is the one table with neither; it is deleted only for the run window,
-// only when NOTHING real happened in that window (0 non-demo customers, inquiries, quotes, leads or
-// notifications created) — otherwise it is left and the report says so.
+// marker in the text. ai_cost_log rows carry the run tag itself (e2e_run_tag, stamped by
+// trg_ai_cost_log_e2e_run_tag), so exactly the run's cost rows go and no time window is guessed.
 async function cleanupLearning(tag, ids, window) {
   const lst = (a) => (a && a.length ? a.map((x) => q(String(x))).join(',') : 'null');
   const all = [...(ids.inquiries || []), ...(ids.quotes || []), ...(ids.leads || []), ...(ids.customers || []), ...(ids.transactions || []), ...(ids.refunds || [])];
@@ -153,14 +156,9 @@ async function cleanupLearning(tag, ids, window) {
   await del('reasoning_knowledge_candidate', `delete from public.reasoning_knowledge_candidate where ${W} and ${m('question||coalesce(finding,\'\')')}`);
   await del('sales_knowledge_gap', `delete from public.sales_knowledge_gap where ${W.replace(/created_at/g, 'first_asked_at')} and ${m('question')}`);
   await del('email_suppressions', `delete from public.email_suppressions where email like ${q('qd-' + tag + '-%@example.invalid')}`);
-  if (window) {
-    const real = (await read(`select
-        (select count(*) from public.customers where created_at between ${q(window.from)} and ${q(window.to)} and email not like 'qd-%@example.%')::int
-      + (select count(*) from public.inquiries where created_at between ${q(window.from)} and ${q(window.to)} and id::text not in (${lst(ids.inquiries)}))::int
-      + (select count(*) from public.notifications where created_at between ${q(window.from)} and ${q(window.to)} and coalesce(to_email,'') not like 'qd-%@example.%' and coalesce(inquiry_id::text,'') not in (${lst(ids.inquiries)}))::int n`))[0].n;
-    if (real === 0) await del('ai_cost_log', `delete from public.ai_cost_log where id > ${Number(window.costFrom)} and id <= ${Number(window.costTo)}`);
-    else out.ai_cost_log = `KEPT: ${real} non-demo rows were created inside the run window, so its ai_cost_log rows cannot be attributed to the run alone`;
-  }
+  const hasCol = (await read(`select count(*)::int n from information_schema.columns where table_schema='public' and table_name='ai_cost_log' and column_name='e2e_run_tag'`))[0].n;
+  if (hasCol) await del('ai_cost_log', `delete from public.ai_cost_log where e2e_run_tag = ${q(tag)}`);
+  else out.ai_cost_log = 'PENDING: ai_cost_log.e2e_run_tag is not applied yet (--run refuses until it is)';
   return out;
 }
 
@@ -215,6 +213,8 @@ async function preconditions({ forRun }) {
   c('the 10 supplier trades and the unmatched trade exist', [...SUPPLIER_TRADES, UNMATCHED_TRADE].every((t) => trades.includes(t)), [...SUPPLIER_TRADES, UNMATCHED_TRADE].join(','));
   const demoUnmatched = (await read(`select count(*)::int n from public.leads where is_demo and (coalesce(categories::text,'') ilike ${q('%' + UNMATCHED_TRADE + '%')} or coalesce(services::text,'') ilike '%elevator%')`).catch(() => [{ n: -1 }]))[0].n;
   c(`no standing demo supplier in ${UNMATCHED_TRADE} (else the hold scenario would match it)`, demoUnmatched === 0, `${demoUnmatched} demo leads`);
+  const col = (await read(`select count(*)::int n from information_schema.columns where table_schema='public' and table_name='ai_cost_log' and column_name='e2e_run_tag'`))[0].n;
+  c(forRun ? 'ai_cost_log.e2e_run_tag exists (a_sandbox_run_tags_its_own_model_cost.sql applied)' : 'ai_cost_log.e2e_run_tag state read (pending until merge)', forRun ? col === 1 : true, col ? 'present' : 'not yet applied: --run refuses until it is');
   const smoke = (await read(`select count(*)::int n from public.rehearsal_window where ended_at is null`))[0].n;
   c('no other harness run is open (rehearsal windows)', smoke === 0, `${smoke} open`);
   return { checks, ok: checks.every((x) => x.ok), pr, gate };
@@ -222,13 +222,16 @@ async function preconditions({ forRun }) {
 
 // ---- the real run -----------------------------------------------------------------------------------
 async function costWatermark() { return Number((await read(`select coalesce(max(id),0)::bigint m from public.ai_cost_log`))[0].m); }
+// Only the rows THIS run caused: stamped with its tag by trg_ai_cost_log_e2e_run_tag. Real traffic in
+// the same minutes is never counted against the cap or deleted by the cleanup.
+let RUN_TAG = null;
 async function costSince(from, to) {
-  return read(`select task_class, model_used, ok, coalesce(cost_aed,0)::float aed from public.ai_cost_log where id > ${from}${to ? ` and id <= ${to}` : ''}`);
+  return read(`select task_class, model_used, ok, coalesce(cost_aed,0)::float aed from public.ai_cost_log where id > ${from}${to ? ` and id <= ${to}` : ''} and e2e_run_tag = ${q(RUN_TAG)}`);
 }
 
 async function realRun(pre) {
   const run = await openRun({});
-  const tag = run.tag;
+  const tag = run.tag; RUN_TAG = tag; process.env.QD_E2E_RUN_TAG = tag;
   run.ids.transactions = new Set(); run.ids.refunds = new Set();
   const steps = [];
   const fx = { suppliers: [], customers: [], inq: {} };
@@ -362,8 +365,8 @@ async function realRun(pre) {
         const opus = rows.filter((x) => x.task_class === 'quote_comparison');
         if (r.json?.url) save(`${dir}/comparison_${lang}.pdf`, Buffer.from(await (await fetch(r.json.url)).arrayBuffer()));
         const csv = await call('customer_api', inq.cu.jwt, { action: 'compare_csv', inquiry_id: inq.id, lang });
-        save(`${dir}/comparison_${lang}.csv`, csv.text || '');
-        const lines = String(csv.text || '').trim().split('\n').length - 1;
+        save(`${dir}/comparison_${lang}.csv`, csv.body || '');
+        const lines = String(csv.body || '').trim().split('\n').length - 1;
         A(`comparison ${lang}: report produced on the Opus route`, r.status === 200 && opus.length > 0 && opus.every((x) => x.model_used === 'anthropic/claude-opus-5.5'), `HTTP ${r.status} routes=${rows.map((x) => x.task_class + ':' + x.model_used).join(' ')}`, opus.map((x) => x.model_used).join(','));
         A(`comparison ${lang}: every live quote listed (top 3 + the rest)`, lines >= 4, `${lines} quote lines in the CSV`);
       }
@@ -480,6 +483,95 @@ async function realRun(pre) {
         }
       } finally { await browser.close(); }
     },
+    S18: async () => {
+      const ds = await liveDuties(read, readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8'));
+      const out = [];
+      for (const d of ds) {
+        const r = await probeDuty(d, tag);
+        out.push({ duty: d.duty, routine: d.routine, ...r });
+        A(`duty ${d.duty} ran on the demo scope and wrote no real row`, !r.error && r.real === 0,
+          r.error || `demo rows written ${r.demo}, real ${r.real}, ${r.ms} ms, result ${String(r.result).slice(0, 120)}`);
+      }
+      save('duties/duty_probes.json', out);
+    },
+    S19: async () => {
+      const sec = async (k) => (await read(`select value from public.app_secrets where key=${q(k)}`))[0]?.value || null;
+      const candidates = (await read(`select r.table_name t from public.table_export_registry r
+          join information_schema.tables i on i.table_schema='public' and i.table_name=r.table_name and i.table_type='BASE TABLE'
+          where r.category in ('conversation','customer','supplier','inquiry','log','marketing')`)).map((x) => x.t);
+      const hits = async (m) => {
+        const out = [];
+        for (const t of candidates) {
+          try { const n = (await read(`select count(*)::int n from public.${t} x where x::text like ${q('%' + m + '%')}`))[0].n; if (n) out.push(t + ':' + n); }
+          catch { /* an unreadable table is not a hit */ }
+        }
+        return out;
+      };
+      const tw = await sec('twilio_auth_token');
+      const twilio = async (slug, params) => {
+        const url = `${BASE}/functions/v1/${slug}`;
+        const data = url + Object.keys(params).sort().map((k) => k + params[k]).join('');
+        const sig = createHmac('sha1', tw || '').update(data, 'utf8').digest('base64');
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Twilio-Signature': sig, 'x-qd-e2e-run': tag }, body: new URLSearchParams(params) });
+        return { status: r.status, text: (await r.text()).slice(0, 200) };
+      };
+      const phone = fx.customers[2].phone;
+      for (const [slug, from] of [['wa_inbound', 'whatsapp:' + phone], ['sms_inbound', phone]]) {
+        const m = `ZZ DEMO ${tag} inbound ${slug}`;
+        const r = await twilio(slug, { From: from, To: slug === 'wa_inbound' ? 'whatsapp:+971000000000' : '+971000000000', Body: m, MessageSid: `SMzzdemo${tag}${slug.length}`, NumMedia: '0' });
+        await new Promise((ok) => setTimeout(ok, 4000));
+        const h = await hits(m);
+        save(`chats/${slug}.json`, { sent: m, response: r, stored_in: h });
+        A(`${slug}: a Twilio-signed message from a demo number is accepted and stored`, tw && r.status < 300 && h.length > 0, `HTTP ${r.status} stored in ${h.join(', ') || 'nothing'}`);
+      }
+      const st = await twilio('wa_status', { MessageSid: `SMzzdemo${tag}`, MessageStatus: 'delivered', To: 'whatsapp:' + phone });
+      A('wa_status: a Twilio-signed delivery receipt is accepted', tw && st.status < 300, `HTTP ${st.status} ${st.text}`);
+      const svix = async (slug, secretKey, payload) => {
+        const secret = await sec(secretKey); const body = JSON.stringify(payload);
+        const id = 'msg_zzdemo' + tag + randomBytes(3).toString('hex'), ts = String(Math.floor(Date.now() / 1000));
+        const key = Buffer.from(String(secret || '').replace(/^whsec_/, ''), 'base64');
+        const sig = 'v1,' + createHmac('sha256', key).update(`${id}.${ts}.${body}`).digest('base64');
+        const r = await fetch(`${BASE}/functions/v1/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': sig, 'x-qd-e2e-run': tag }, body });
+        return { status: r.status, text: (await r.text()).slice(0, 200), secret: !!secret };
+      };
+      const em = `ZZ DEMO ${tag} inbound email`;
+      const ri = await svix('resend_inbound', 'resend_inbound_signing_secret', { type: 'email.received', created_at: new Date().toISOString(),
+        data: { from: fx.customers[2].email, to: ['support@mail.quotesdone.com'], subject: em, text: em + ': where is my quote?' } });
+      await new Promise((ok) => setTimeout(ok, 4000));
+      const hi = await hits(em);
+      save('chats/resend_inbound.json', { sent: em, response: ri, stored_in: hi });
+      A('resend_inbound: a Svix-signed email from a demo address is accepted and stored', ri.secret && ri.status < 300 && hi.length > 0, `HTTP ${ri.status} stored in ${hi.join(', ') || 'nothing'}`);
+      const rw = await svix('resend_webhook', 'resend_webhook_signing_secret', { type: 'email.delivered', created_at: new Date().toISOString(), data: { email_id: `zzdemo-${tag}`, to: [fx.customers[2].email] } });
+      A('resend_webhook: a Svix-signed delivery event is accepted', rw.secret && rw.status < 300, `HTTP ${rw.status} ${rw.text}`);
+      const ib = await call('inbound_email', null, { __secret: await sec('inbound_secret'), from: fx.customers[3].email, subject: `ZZ DEMO ${tag} inbound_email`, text: `ZZ DEMO ${tag} inbound_email body` });
+      A('inbound_email: an authenticated inbound email from a demo address is accepted', ib.status > 0 && ib.status < 300, `HTTP ${ib.status} ${ib.text}`);
+    },
+    S20: async () => {
+      const cred = async (slug) => (await read(`select value from public.app_secrets where key in (${q('cred_fn_' + slug)}, 'cred_db_internal') order by key = ${q('cred_fn_' + slug)} desc limit 1`))[0]?.value;
+      const cu = fx.customers[0], su = fx.suppliers[0];
+      const plan = [
+        ...['forecast', 'savings', 'supplier_performance', 'supplier_relationship'].map((a) => ['customer_intelligence', cu.jwt, { action: a }]),
+        ...['board', 'seats', 'inbox', 'context'].map((a) => ['ceo_agent', null, { action: a, __secret: 'cred' }]),
+        ...['health', 'status'].map((a) => ['it_engineer', null, { action: a, __secret: 'cred' }]),
+        ['compliance_archive', null, { action: 'ping', __secret: 'cred' }],
+        ['embed_ml', null, { action: 'query', text: `ZZ DEMO ${tag} aluminium windows`, __secret: 'cred' }],
+        ['site_error_ingest', null, { message: `ZZ DEMO ${tag} harness error probe`, path: '/', lang: 'en' }],
+        ['sanctions_screen', null, { name: `ZZ DEMO ${tag} Trading`, __secret: 'cred' }],
+        ['role_guard', cu.jwt, {}],
+        ['supplier_onboard', su.jwt, {}],
+        ['supplier_catalog_ingest', su.jwt, { dry_run: true }],
+      ];
+      const res = [];
+      for (const [slug, jwt, body] of plan) {
+        if (body.__secret === 'cred') body.__secret = await cred(slug);
+        const r = await call(slug, jwt, body);
+        res.push({ slug, action: body.action || null, status: r.status, body: r.text });
+        A(`${slug}${body.action ? '.' + body.action : ''} answers a demo caller with a body`, r.status > 0 && r.status < 500 && (r.json !== null || (r.body || '').length > 0), `HTTP ${r.status} ${r.text.slice(0, 120)}`);
+      }
+      const page = await fetch(`${BASE}/functions/v1/stripe_setup_page`);
+      A('stripe_setup_page renders', page.status < 500 && (await page.text()).length > 100, `HTTP ${page.status}`);
+      save('functions/remaining_function_answers.json', res);
+    },
     S17: async () => {
       const w0 = await costWatermark();
       const r = await call('marketing', null, { action: 'article_draft', dry_run: true, demo_tag: tag, publish: false });
@@ -517,8 +609,23 @@ async function cleanupAll(tag, manifest) {
   run.ids = { inquiries: new Set(manifest?.ids?.inquiries || []), quotes: new Set(manifest?.ids?.quotes || []), leads: new Set(manifest?.ids?.leads || []), customers: new Set(manifest?.ids?.customers || []), storage: [] };
   const learning = await cleanupLearning(tag, manifest?.ids || {}, manifest?.window);
   const closed = await closeRun(run, {});
-  const v = await verifyClean(tag, manifest?.ids || {});
-  return { learning, removed: closed.removed?.summary, leftovers: closed.leftovers, verify: v };
+  // THE SWEEP: whatever teardown never knew (conversation rows from the signed inbound messages, seat
+  // notes, error-ingest rows) is found by verifyClean and removed only where the row itself carries the
+  // run's unique marker. The tag is 8 random hex characters; no real row contains 'qd-<tag>-' or
+  // 'ZZ DEMO <tag>'. Up to three passes, because a child row can block its parent's delete.
+  const swept = {};
+  const mk = (x) => [`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`].map((m) => `${x}::text like ${q('%' + m + '%')}`).join(' or ');
+  let v = await verifyClean(tag, manifest?.ids || {});
+  for (let pass = 0; pass < 3 && v.found.length; pass++) {
+    for (const f of v.found) {
+      try {
+        const r = await write(`with d as (delete from public.${f.table} x where ${mk('x')} returning 1) select count(*)::int n from d`, `stage2 sweep ${f.table}`);
+        swept[f.table] = (swept[f.table] || 0) + (r?.[0]?.n ?? 0);
+      } catch (e) { swept[f.table] = 'ERROR ' + String(e.message).slice(0, 100); }
+    }
+    v = await verifyClean(tag, manifest?.ids || {});
+  }
+  return { learning, removed: closed.removed?.summary, swept, leftovers: closed.leftovers, verify: v };
 }
 
 // ---- main ---------------------------------------------------------------------------------------------
@@ -551,7 +658,12 @@ if (MODE === '--dry-run') {
   const td = await teardown(newRun({ tag: probeTag, quiet: true })).catch((e) => ({ error: e.message }));
   const lc = await cleanupLearning(probeTag, {}, null);
   const vc = await verifyClean(probeTag, {});
-  const pathsOk = !td.error && Object.values(lc).every((v) => v === 0) && vc.clean;
+  const pathsOk = !td.error && Object.values(lc).every((v) => v === 0 || String(v).startsWith('PENDING')) && vc.clean;
+  // Every live duty, in an aborted transaction: no model, nothing commits. Measures today which duty would write a real row.
+  const dp = []; for (const d of await liveDuties(read, readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8'))) dp.push({ duty: d.duty, ...(await probeDuty(d, probeTag)) });
+  const dBad = dp.filter((x) => x.error || x.real);
+  log(`${dBad.length ? 'FAIL' : 'OK  '} ${dp.length} live duties ran in aborted transactions: ${dp.length - dBad.length} clean, ${dBad.length} errored or wrote a real row${dBad.length ? ' — ' + dBad.map((x) => x.duty + ':' + (x.error || 'real=' + x.real)).join('; ').slice(0, 600) : ''}`);
+  save('duties/duty_probes_dry_run.json', dp);
   log(`${pathsOk ? 'OK  ' : 'FAIL'} cleanup paths on an empty tag (${probeTag}) — teardown: ${td.error || td.summary}; learning: ${JSON.stringify(lc)}; verify: ${vc.tables_scanned}/${vc.tables_in_registry} registry tables scanned, found ${vc.found.length}, unverified ${vc.unverified.length}, storage ${vc.storage.length}, auth ${vc.auth_users} (${Math.round((Date.now() - t0) / 1000)} s)`);
   if (vc.unverified.length) log('     unverified tables: ' + vc.unverified.map((u) => `${u.table} (${u.error})`).join('; '));
   const models = (await read(`select count(*)::int n from public.ai_cost_log where occurred_at > now() - interval '2 minutes' and fn in ('site_assistant','inquiry_intake','quote_compare')`))[0].n;

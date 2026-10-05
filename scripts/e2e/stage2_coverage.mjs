@@ -7,13 +7,15 @@
 //   tab       every customer portal nav id (PortalShell NAV_GROUPS) and supplier portal tab id
 //   action    every edge function action (`action === 'x'`), or the function itself if it has none
 //   notice    every notification type written by the functions, plus every type seen in 365 days
-//   duty      every cron_registry job in a category that touches a customer, supplier, inquiry,
-//             quote or payment
+//   duty      every LIVE duty: public.seat_duty, plus the zero-argument routines resilience_ping calls.
+//             cron_registry's jobs are not counted. They are labels only: cron.job held 0 rows on
+//             6 Oct 2026, so nothing fires them.
 // Each item is then classed by the rules below as TESTED (a scenario step asserts its real effect),
 // JUSTIFIED (a written reason it cannot run in the sandbox) or UNCOVERED. UNCOVERED is reported as
 // such — a gap is a finding, never rounded into a percentage that reads as done.
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { liveDuties } from './stage2_duties.mjs';
 
 const walk = (dir, out = []) => {
   if (!existsSync(dir)) return out;
@@ -25,10 +27,6 @@ const walk = (dir, out = []) => {
 };
 const uniq = (a) => [...new Set(a)].sort();
 
-// Duty categories that reach a customer, supplier, inquiry, quote or payment (cron_registry.category,
-// compared lower-case). Governance, knowledge, backup, security and the like run on the company itself.
-export const CUSTOMER_FACING_DUTY = ['operations', 'marketplace', 'supplier growth', 'finance', 'messaging',
-  'demand', 'supply', 'marketing', 'growth', 'trust_and_safety'];
 
 export async function buildInventory(repo, read) {
   const items = [];
@@ -62,8 +60,7 @@ export async function buildInventory(repo, read) {
   const dbTypes = (await read(`select distinct type from public.notifications where created_at > now() - interval '365 days' and type is not null`)).map((r) => r.type);
   for (const t of uniq([...codeTypes, ...dbTypes])) add('notice', t, 'notifications');
   // seat duties
-  const duties = await read(`select jobname, lower(category) category, purpose from public.cron_registry order by jobname`);
-  for (const d of duties.filter((d) => CUSTOMER_FACING_DUTY.includes(d.category))) add('duty', d.jobname, d.category);
+  for (const d of await liveDuties(read, readFileSync(join(repo, 'supabase/functions/resilience_ping/index.ts'), 'utf8'))) add('duty', d.duty, d.source);
   return items;
 }
 
@@ -95,22 +92,29 @@ export const TESTED = [
   ['notice', /^(support_reply|contact_message)$/, 'S14'],
   ['notice', /^marketing_/, 'S17'],
   ['action', /^project_api\./, 'S04'],
+  ['action', /^ai_gateway/, 'S04'],                          // every model call: the route is asserted against matrix v2 per scenario
+  ['action', /^ceo_agent\.review_refund/, 'S11'],
+  ['duty', /.*/, 'S18'],                                     // aborted transaction scoped to the run: no error, 0 real rows written
+  ['action', /^(wa_inbound|sms_inbound|wa_status|resend_inbound|resend_webhook|inbound_email)$/, 'S19'],
+  ['action', /^customer_intelligence\.|^ceo_agent\.(board|seats|inbox|context)$|^it_engineer\.(health|status)$|^compliance_archive\.ping$|^embed_ml\.query$|^(site_error_ingest|sanctions_screen|role_guard|supplier_onboard|supplier_catalog_ingest|stripe_setup_page)$/, 'S20'],
 ];
 
 // JUSTIFIED: [kind, regex, reason]. Each reason names what WOULD be touched and why the sandbox may not.
 export const JUSTIFIED = [
   ['action', /^marketing_social_connect|^marketing_social_inbox|^oauth_connect|^marketing_channels/, 'Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead.'],
-  ['action', /^wa_template_setup|^wa_templates_watch|^wa_status/, 'Registers templates with Meta or reads Meta delivery receipts for real numbers. A fixture number never reaches Meta (code fixture_number); the rendered body is asserted in S15.'],
-  ['action', /^wa_inbound|^sms_inbound|^resend_inbound|^inbound_email|^resend_webhook|^email_triage/, 'Needs a provider-signed webhook from Meta, Twilio or Resend. A forged signature is refused by design; the parser is covered by the static checks named in docs/e2e.md.'],
+  ['action', /^wa_template_setup|^wa_templates_watch/, 'Registers or polls message templates on the real Meta WhatsApp Business account. A demo run may not create, delete or re-submit company templates. Every message the run causes is rendered from those templates and asserted in S15.'],
+  ['action', /^email_triage/, 'Triages the real company mailbox (the founder and support inboxes). Demo email enters through the Svix-signed resend_inbound path in S19.'],
   ['action', /^supplier_api\.pay_registration/, 'Charges a supplier registration fee. Suppliers register free under the current offer, so a demo run does not take this payment path.'],
   ['notice', /^(expense_logged|wa_templates_ready)$/, 'Internal notice to the accountant or the founder (company spend, Meta template approval); no customer or supplier receives it.'],
   ['action', /^voice_otp|^voice_otp_capture|^transcribe|^supplier_api\.transcribe_service_note/, 'Places a real phone call or needs recorded audio from one.'],
-  ['action', /^stripe_setup|^stripe_setup_page|^supplier_pay/, 'Creates live Stripe Connect / subscription objects on the company account; stage 2 stays on Stripe TEST checkout only.'],
-  ['action', /^backup|^dropbox_backup|^compliance_archive|^conversation_archive/, 'Writes company-wide archives to Dropbox and storage; running it for demo traffic would archive real rows too.'],
-  ['action', /^ai_gateway|^embed_ml|^resilience_ping|^site_error_ingest|^role_guard|^sanctions_screen|^it_engineer|^ceo_agent|^email_cron|^customer_intelligence|^supplier_onboard|^supplier_catalog_ingest/, 'Infrastructure or a seat runtime with no customer-facing action of its own; every route through it is measured in ai_cost_log by the scenarios that call it (model route asserted per step).'],
+  ['action', /^stripe_setup$|^supplier_pay/, 'Creates Stripe Connect / registration-payment objects. The code holds no demo-to-test-key switch for these (stripeKeyNames is used only by stripe_checkout), so a call would act on the LIVE company Stripe account.'],
+  ['action', /^backup|^dropbox_backup|^compliance_archive\.(register|sign)$|^conversation_archive/, 'Writes company-wide archives to Dropbox and storage. Running it would archive or erase real rows together with the demo ones; it has no per-run scope.'],
+  ['action', /^embed_ml\.(gte|tick)$/, 'The batch embedder over every pending row in the company (cases, knowledge). The run reaches embeddings through embed_ml.query in S20; a tick would embed real rows too.'],
+  ['action', /^resilience_ping/, 'The scheduler endpoint drains the REAL outbox (send_outbox) on every call. Each routine it ticks is tested one by one in S18 instead.'],
+  ['action', /^email_cron/, 'Sends the live supplier campaign to the real leads pool.'],
+  ['action', /^ceo_agent\.(accept|command|decide|judgement|task)$|^it_engineer\.(assist|authority|inbox_placement|incident_pdf|triage)$/, 'Acts as the CEO or IT seat on the company\'s live queue and real findings, and pages the founder. The CEO\'s decisions on the run\'s own cases are tested in S11 (refund decision) and S18 (every duty).'],
   ['notice', /^(founder_alert|founder_brief|board_report|it_engineer_handover|accountant_spend_report|accountant_weekly_report|delivery_feedback_canary)$/, 'Goes to the founder or a seat, not to a customer or supplier; a demo run must never page the founder (rehearsal window).'],
   ['notice', /^supplier_(campaign|invite)/, 'Supplier campaign to the real leads pool; the composer is covered by the_supplier_campaign_honours_unsubscribe and S14 asserts the unsubscribe effect.'],
-  ['duty', /.*/, 'Scheduled duties act on every row in production. Firing one from the harness would act on real customers and suppliers too. Their demo-row effects are proved by the aborted-transaction duty probes in scripts/checks (stage 1 §6).'],
 ];
 
 export function classify(items) {

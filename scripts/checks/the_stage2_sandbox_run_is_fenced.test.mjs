@@ -29,8 +29,23 @@ test('the real run refuses while a precondition fails, and refuses a live Stripe
 test('cleanup is scoped by the run tag and never purges the founder demo account', () => {
   assert.match(src, /tag === 'founderdemo'/);
   assert.match(src, /\^\[a-z0-9\]\{4,16\}\$/);
-  // ai_cost_log has no run column: deleted only when nothing real happened in the run window.
-  assert.match(src, /if \(real === 0\) await del\('ai_cost_log'/);
+  // ai_cost_log: exactly the run's rows, by the tag the trigger stamps, never a time window.
+  assert.match(src, /delete from public\.ai_cost_log where e2e_run_tag = /);
+  assert.doesNotMatch(src, /delete from public\.ai_cost_log where id/);
+  // the spend the cap counts is the run's own, never real traffic in the same minutes
+  assert.match(src, /and e2e_run_tag = \$\{q\(RUN_TAG\)\}/);
+});
+
+test('a duty probe can never commit: it raises after measuring', () => {
+  const d = readFileSync(new URL('../e2e/stage2_duties.mjs', import.meta.url), 'utf8');
+  assert.match(d, /raise exception 'CHK<<%>>'/);
+  assert.match(d, /the probe did not raise: it may have COMMITTED/);
+});
+
+test('the sandbox tag on a cost row is kept only for an open harness run', () => {
+  const sql = readFileSync(new URL('../sql/a_sandbox_run_tags_its_own_model_cost.sql', import.meta.url), 'utf8');
+  assert.match(sql, /w\.run_tag = 'qd_run:' \|\| v_tag and w\.ended_at is null/);
+  assert.match(sql, /revoke execute on function public\.fn_ai_cost_log_e2e_run_tag\(\) from public, anon, authenticated/);
 });
 
 test('the coverage classifier never calls an unknown feature tested', () => {
