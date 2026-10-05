@@ -396,6 +396,7 @@ ALTER TABLE public.autonomy_control_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.autonomy_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.backup_prune_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_line_owner_ruling ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bank_reference_code ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_statement_intake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_statement_line ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
@@ -1048,6 +1049,7 @@ CREATE POLICY arabic_outbound_hold_service_role_only ON public.arabic_outbound_h
 CREATE POLICY arabic_translation_service_role_only ON public.arabic_translation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY backup_prune_log_service_role_only ON public.backup_prune_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_line_owner_ruling_service_role_only ON public.bank_line_owner_ruling AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY bank_reference_code_service_role_only ON public.bank_reference_code AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_intake_service_role_only ON public.bank_statement_intake AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_line_service_role_only ON public.bank_statement_line AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY blog_posts_public_read ON public.blog_posts AS PERMISSIVE FOR SELECT TO anon USING ((published = true));

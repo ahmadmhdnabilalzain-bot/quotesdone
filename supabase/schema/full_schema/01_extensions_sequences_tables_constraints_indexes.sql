@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T02:30:34.589Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-05T02:52:59.896Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (696) =====
+-- ===== TABLES (697) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -1042,6 +1042,19 @@ CREATE TABLE IF NOT EXISTS public.bank_line_owner_ruling (
   ruling text NOT NULL,
   founder_instruction_id bigint,
   noted_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.bank_reference_code (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  bank text NOT NULL,
+  code_prefix text NOT NULL,
+  code_suffix text,
+  sign smallint NOT NULL,
+  kind text,
+  gl_account text,
+  meaning text NOT NULL,
+  added_by text DEFAULT 'accountant'::text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.bank_statement_intake (
@@ -9696,6 +9709,7 @@ ALTER TABLE public.autonomy_control_audit ADD CONSTRAINT autonomy_control_audit_
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_pkey PRIMARY KEY (id);
 ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_pkey PRIMARY KEY (line_id);
+ALTER TABLE public.bank_reference_code ADD CONSTRAINT bank_reference_code_pkey PRIMARY KEY (id);
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_pkey PRIMARY KEY (source_ref);
 ALTER TABLE public.bank_statement_line ADD CONSTRAINT bank_statement_line_pkey PRIMARY KEY (id);
 ALTER TABLE public.blog_posts ADD CONSTRAINT blog_posts_pkey PRIMARY KEY (id);
@@ -10331,6 +10345,7 @@ ALTER TABLE public.yello_staging ADD CONSTRAINT yello_staging_pkey PRIMARY KEY (
 ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_key_uniq UNIQUE (report_key);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.ai_model_register ADD CONSTRAINT ai_model_register_model_key UNIQUE (model);
+ALTER TABLE public.bank_reference_code ADD CONSTRAINT bank_reference_code_bank_code_prefix_code_suffix_key UNIQUE NULLS NOT DISTINCT (bank, code_prefix, code_suffix);
 ALTER TABLE public.bank_statement_line ADD CONSTRAINT bank_statement_line_line_hash_key UNIQUE (line_hash);
 ALTER TABLE public.blog_posts ADD CONSTRAINT blog_posts_slug_key UNIQUE (slug);
 ALTER TABLE public.boq_fixture ADD CONSTRAINT boq_fixture_document_id_key UNIQUE (document_id);
@@ -10549,6 +10564,9 @@ ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_single CHECK (
 ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_mode_check CHECK ((mode = ANY (ARRAY['dry_run'::text, 'delete'::text])));
 ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_origin_check CHECK ((origin = ANY (ARRAY['export'::text, 'legacy'::text])));
 ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_ruling_check CHECK ((ruling = ANY (ARRAY['capital'::text, 'loan'::text])));
+ALTER TABLE public.bank_reference_code ADD CONSTRAINT bank_reference_code_check CHECK ((((kind IS NULL) AND (gl_account IS NULL)) OR ((kind = 'bank_charge'::text) AND (sign = '-1'::integer) AND (gl_account = '6300'::text)) OR ((kind = 'bank_interest'::text) AND (sign = 1) AND (gl_account = '7000'::text))));
+ALTER TABLE public.bank_reference_code ADD CONSTRAINT bank_reference_code_kind_check CHECK ((kind = ANY (ARRAY['bank_charge'::text, 'bank_interest'::text])));
+ALTER TABLE public.bank_reference_code ADD CONSTRAINT bank_reference_code_sign_check CHECK ((sign = ANY (ARRAY['-1'::integer, 1])));
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_state_check CHECK ((state = ANY (ARRAY['parsed'::text, 'unreadable'::text])));
 ALTER TABLE public.bank_statement_line ADD CONSTRAINT bank_statement_line_kind_check CHECK (((kind IS NULL) OR (kind = ANY (ARRAY['bank_charge'::text, 'owner_transfer'::text, 'bank_interest'::text, 'stripe_payout'::text, 'other'::text]))));
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
@@ -11439,6 +11457,7 @@ ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN 
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
 ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_line_id_fkey FOREIGN KEY (line_id) REFERENCES bank_statement_line(id);
+ALTER TABLE public.bank_reference_code ADD CONSTRAINT bank_reference_code_gl_account_fkey FOREIGN KEY (gl_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.bank_statement_line ADD CONSTRAINT bank_statement_line_source_ref_fkey FOREIGN KEY (source_ref) REFERENCES bank_statement_intake(source_ref);
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_advisor_key_fkey FOREIGN KEY (advisor_key) REFERENCES board_advisor(advisor_key);
 ALTER TABLE public.boq_fixture ADD CONSTRAINT boq_fixture_document_id_fkey FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE;
