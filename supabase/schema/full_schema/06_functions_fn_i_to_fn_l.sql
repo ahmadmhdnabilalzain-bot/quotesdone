@@ -4040,7 +4040,11 @@ begin
                join public.it_table_size_daily o on o.relid = t.relid and o.day = current_date - 7
               where t.day = current_date
                 and t.bytes > public.fn_it_threshold('table_growth_7d_multiple') * o.bytes
-                and t.bytes - o.bytes > public.fn_it_threshold('table_growth_min_bytes') loop
+                and t.bytes - o.bytes > public.fn_it_threshold('table_growth_min_bytes')
+                -- A registered backfill is growth the company chose, not a fault: it is skipped until its
+                -- end date. Past that date the same growth is raised again, so a backfill cannot hide a leak.
+                and not exists (select 1 from public.it_expected_table_growth g
+                                 where g.relid = t.relid and current_date <= g.until) loop
       v_items := v_items || jsonb_build_object('item', 'growth:' || x.relid, 'owner_seat', 'ceo', 'subject', 'database',
         'title', x.relid || ' grew from ' || pg_size_pretty(x.old_bytes) || ' to ' || pg_size_pretty(x.bytes) || ' in a week',
         'blast', 'internal', 'affected', 1, 'evidence', jsonb_build_object('bytes', x.bytes, 'bytes_7d_ago', x.old_bytes));
@@ -4760,6 +4764,40 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_knowledge_exam()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$ select jsonb_build_object('asked', 0, 'retired', 'the model exam files no question (24 Sep 2026)') $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_pause_expiry()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p record; v_stakes text; v_out jsonb := '[]'::jsonb; v_closed int;
+begin
+  for p in select dp.* from public.duty_pause dp where dp.paused_at < now() - interval '7 days' order by dp.paused_at loop
+    v_stakes := public.fn_duty_pause_stakes(p.duty);
+    perform public.fn_it_engineer_finding_upsert(
+      'duty_pause_expired:' || p.duty,
+      'Duty ' || p.duty || ' (' || v_stakes || ') has been paused for ' || extract(day from now() - p.paused_at)::int
+        || ' days, since ' || to_char(p.paused_at at time zone 'Asia/Dubai', 'YYYY-MM-DD') || ' by ' || p.paused_by || ': ' || p.reason,
+      'public.duty_pause / ' || p.duty,
+      case when v_stakes in ('money', 'security') then 'security' else 'agent_facing' end,
+      1,
+      jsonb_build_object('duty', p.duty, 'stakes', v_stakes, 'paused_at', p.paused_at, 'paused_by', p.paused_by,
+                         'reason', p.reason, 'limit', '7 days'),
+      '{}'::text[],
+      array['whether the pause is still meant: resume = delete from public.duty_pause where duty = ''' || p.duty || ''''],
+      'it_engineer');
+    v_out := v_out || jsonb_build_object('duty', p.duty, 'stakes', v_stakes);
+  end loop;
+  update public.it_engineer_finding f
+     set closed_at = now(), close_note = 'the pause was lifted or renewed (fn_it_engineer_duty_pause_expiry)'
+   where f.issue_key like 'duty_pause_expired:%' and f.closed_at is null
+     and not exists (select 1 from public.duty_pause dp
+                      where 'duty_pause_expired:' || dp.duty = f.issue_key and dp.paused_at < now() - interval '7 days');
+  get diagnostics v_closed = row_count;
+  return jsonb_build_object('expired', v_out, 'closed', v_closed);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_chase()
@@ -6060,6 +6098,12 @@ AS $function$
   with h as (
     select a.id, a.agent, a.created_at, a.detail->>'type' t, a.detail ? 'replied_at' replied,
            coalesce(k.reply_within, interval '1 hour') w,
+           -- The contract's own clock: a month directive is closed by the CEO at its due_at (month end),
+           -- so it is late only after that, never two days after it was sent.
+           coalesce((a.detail->>'due_at')::timestamptz, a.created_at) due,
+           -- A review step held by the model hold has not been answered; it waits on the hold, which is
+           -- the founder's standing OpenRouter limit and is reported by the review_independence duty.
+           coalesce(a.evidence#>>'{step,action}', '') = 'held' held,
            f.closed_at f_closed,
            (f.issue_key is null or f.closed_at is not null
             or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz) cleared
@@ -6079,7 +6123,7 @@ AS $function$
         -- ponytail: other originator-closed types get a flat 24 h past their window, because
         -- fn_originators_reverify_handoffs escalates them to the CEO at the window first. Per-type
         -- rules belong in seat_handoff_kind if one of them ever needs a different allowance.
-        when h.replied and h.t <> 'it.finding' and now() > h.created_at + h.w + interval '24 hours' then 'unclosed'
+        when h.replied and h.t <> 'it.finding' and not h.held and now() > h.due + h.w + interval '24 hours' then 'unclosed'
         -- 23 Sep 2026: answered, the problem is still there, and a day has gone by.
         when h.replied and h.t = 'it.finding' and not h.cleared and now() > h.created_at + interval '24 hours' then 'open_over_24h'
       end state

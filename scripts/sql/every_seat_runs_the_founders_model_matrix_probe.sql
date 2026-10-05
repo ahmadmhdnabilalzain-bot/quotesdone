@@ -277,10 +277,13 @@ begin
   -- class with no line here is a finding: whoever adds it decides its seat here, in the same PR.
   -- ('measure' = the GEO measurement engines, whose models are the measurement itself; their pair is not asserted.)
   for r in
-    with route(route, p, f) as (values
-      ('se', c_gem, c_luna), ('se_compare', c_opus, c_luna), ('se_review', c_luna, c_opus),
-      ('ceo_hard', c_opus, c_luna), ('ceo_review', c_luna, c_deep), ('other', c_gem, c_deep),
-      ('other_review', c_deep, c_luna), ('hears', c_gem, null), ('measure', null, null)),
+    -- (4 Oct 2026, item 21) each route also carries the TIER the change file's sections 4a/4b write for it and the
+    -- max_tokens FLOOR its section 4d writes: 4000 on every route with Opus as primary or fallback (room for thinking),
+    -- else only "set" (>= 1). drawing_and_boq_analysis has its own 8000 (4d), asserted below the loop.
+    with route(route, p, f, t, min_tok) as (values
+      ('se', c_gem, c_luna, 'medium', 1), ('se_compare', c_opus, c_luna, 'xlarge', 4000), ('se_review', c_luna, c_opus, 'small', 4000),
+      ('ceo_hard', c_opus, c_luna, 'xlarge', 4000), ('ceo_review', c_luna, c_deep, 'small', 1), ('other', c_gem, c_deep, 'medium', 1),
+      ('other_review', c_deep, c_luna, 'small', 1), ('hears', c_gem, null, 'medium', 1), ('measure', null, null, null, null)),
     matrix(cls, seat, route) as (values
       ('quote_comparison', 'sales_engineer', 'se_compare'), ('sales_engineer_reasoning', 'sales_engineer', 'se'),
       ('customer_portal_assistant', 'sales_engineer', 'se'), ('inquiry_qualification_conversation', 'sales_engineer', 'se'),
@@ -314,7 +317,8 @@ begin
       ('procurement_reasoning', 'shared', 'other'), ('knowledge_ingestion', 'shared', 'other'), ('knowledge_research', 'shared', 'other'),
       ('memory_retrieval', 'shared', 'other'), ('summarization', 'shared', 'other'), ('translation', 'shared', 'other'),
       ('translation_general', 'shared', 'other'), ('knowledge_validation', 'shared', 'other_review'))
-    select p.task_class, p.model_primary, p.model_fallback, m.seat, m.route, rt.p want_p, rt.f want_f
+    select p.task_class, p.model_primary, p.model_fallback, p.tier, p.max_tokens, m.seat, m.route, rt.p want_p, rt.f want_f,
+           rt.t want_t, rt.min_tok
       from public.model_policy p
       left join matrix m on m.cls = p.task_class
       left join route rt on rt.route = m.route
@@ -326,8 +330,15 @@ begin
     elsif r.route <> 'measure' and (r.model_primary is distinct from r.want_p or r.model_fallback is distinct from r.want_f) then
       bad := bad || to_jsonb(r.task_class || ' (' || r.seat || ', ' || r.route || ') runs ' || r.model_primary || '>'
                              || coalesce(r.model_fallback, 'none') || ', the matrix says ' || r.want_p || '>' || coalesce(r.want_f, 'none'));
+    elsif r.route <> 'measure' and r.tier is distinct from r.want_t then
+      bad := bad || to_jsonb(r.task_class || ' (' || r.route || ') is tier ' || r.tier || ', the matrix says ' || r.want_t);
+    elsif r.route <> 'measure' and coalesce(r.max_tokens, 0) < r.min_tok then
+      bad := bad || to_jsonb(r.task_class || ' (' || r.route || ') allows ' || coalesce(r.max_tokens::text, 'no') || ' max_tokens, the matrix needs at least ' || r.min_tok);
     end if;
   end loop;
+  if (select coalesce(max_tokens, 0) from public.model_policy where task_class = 'drawing_and_boq_analysis') < 8000 then
+    bad := bad || to_jsonb('drawing_and_boq_analysis allows fewer than its 8000 max_tokens'::text);
+  end if;
 
   if exists (select 1 from public.model_policy where active and model_fallback = model_primary and model_primary not in ('none', 'none/deterministic')) then
     bad := bad || to_jsonb('a class falls back to its own primary'::text);
