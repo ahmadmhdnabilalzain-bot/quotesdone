@@ -1,8 +1,12 @@
 # Runbook: rewrite `public.kb_chunks` to give its dead space back to the disk
 
-Seat: it_engineer. Written 5 Oct 2026 (ledger 1085, stage 4). **This runbook needs the founder's go, given to the
-operator directly, before step 3.** A table rewrite locks a live table; it is the one step of the trim that is not
-paged.
+Seat: it_engineer. Written 5 Oct 2026 (ledger 1085, stage 4). The founder gave the go on 5 Oct (ledger 1094).
+
+**Method since 5 Oct: paged copy-and-swap** (`scripts/kb/kb_chunks_copy_swap.mjs`, section "Copy-and-swap"). The
+founder's `VACUUM FULL` attempt on 5 Oct timed out with no change (148,326 rows, 8,089 MB, nothing left running): it
+needs ~3 min of exclusive lock and both the management API and the SQL editor cancel a statement at ~2 min. The
+copy-and-swap keeps every statement under ~60-115 s and holds the exclusive lock only for one short transaction.
+The `VACUUM FULL` / `pg_repack` sections below stay as the reference for an operator with a direct connection.
 
 ## Why
 
@@ -41,7 +45,55 @@ the table but never returns it to the disk; only a rewrite does. After the trim
 5. Disk: a rewrite writes a full new copy before dropping the old: free disk must exceed **2x the live size plus the
    indexes** (after the trim about 1.5 GB); check `/v1/projects/htdblwldjkcgjvmqkbeh/config/disk/util` fs_avail_bytes.
 
-## Lock estimate
+## Copy-and-swap (the method)
+
+Needs `scripts/sql/kb_chunks_records_every_write_while_its_copy_is_built.sql` applied (the release train does it at
+merge): `public.kb_chunks_swap_log` and `public.fn_kb_chunks_swap_log()`.
+
+The driver checks preconditions 1-4 itself before every mutating stage (trim ledger row "live rows after the trim" and
+0 planned rows present; the newest verified full export newer than the newest row; 02:00-05:00 Dubai outside
+02:50-03:10; `fn_kb_purge_load()` through the purge guard incl. 3 GB disk floor; no vacuum/reindex running; no smoke,
+E2E, journey, release-train or apply run in progress on GitHub). Any false: it prints `STOP: <why>` and exits 1.
+
+```
+node scripts/kb/kb_chunks_copy_swap.mjs                    # plan only: preconditions + progress
+node scripts/kb/kb_chunks_copy_swap.mjs --stage=all        # prepare, copy, index, catchup, swap (+ read-back)
+node scripts/kb/kb_chunks_copy_swap.mjs --stage=verify     # read-back again, any time after the swap
+```
+
+| stage | what | lock on the live `kb_chunks` |
+|---|---|---|
+| prepare | `kb_chunks_new` LIKE kb_chunks (defaults, generated, identity, storage; pkey only), RLS + policies + grants copied (its default grants revoked first), then the row trigger `zz_kb_chunks_swap_log` on kb_chunks | trigger create: SHARE ROW EXCLUSIVE for a moment, `lock_timeout 5s` |
+| copy | live rows in id-range pages of <= 5,000, one statement each (`on conflict do nothing`; a page already equal is skipped on resume) | none (reads) |
+| index | every non-pkey index of kb_chunks rebuilt on the copy as `<name>_cs` (HNSW last, `maintenance_work_mem 512MB`, 115 s budget each), then `analyze` | none: the trigger writes only to the log, so building on the copy never blocks a writer |
+| catchup | replays the log (delete + re-read the current row for every logged id), then compares `md5(row)` per id in pages; also checks grants, RLS, policies and index count match | none |
+| swap | ONE transaction, `lock_timeout 5s`: lock both tables, final replay, drop the log trigger, re-create kb_chunks's triggers on the copy (same names), move the publication (`supabase_realtime`), set the copy's identity sequence past the old one, rename indexes / pkey / sequence / tables (`kb_chunks` -> `kb_chunks_old`, `kb_chunks_new` -> `kb_chunks`), re-create the dependent views (`knowledge_kpis`, `v_knowledge_ml_source`: they bind by OID, so they would otherwise keep reading `kb_chunks_old`) | ACCESS EXCLUSIVE for the transaction (seconds) |
+| verify | row count = kb_chunks_old; every index valid and the same number; grants, RLS, policies, triggers equal; publication moved; no view still reads kb_chunks_old; identity sequence ahead of max(id); `fn_table_export_page('kb_chunks')` answers; per seat, `fn_reason_retrieve` and `fn_reason_retrieve_ml` return the same counts (all items, and kb_chunks items) as just before the swap; writes the `SIZE` ledger row | none |
+
+Every stage is resumable and safe to stop. Inventory measured 5 Oct: no FK in or out; 13 indexes (pkey, 10 btree, GIN
+`kb_chunks_fts`, HNSW `kb_chunks_emb_hnsw`); 5 triggers (4 export-change statement triggers, `z_ml_vectors_stale`);
+policy `os_owner_admin_read`; grants postgres + service_role only; identity `kb_chunks_id_seq`; publication
+`supabase_realtime`; no BEGIN ATOMIC routine depends on it (the 25 routines naming it are plpgsql / plain SQL and
+resolve the name at call time); `knowledge_vector_ml` and the export registry link by id / by name, both unchanged.
+
+Rehearsal: `--rehearse=zz_<name>` runs every stage against a scratch table (no preconditions, retrieval, export or
+ledger). Rehearsed 5 Oct on a 12,000-row copy (results in the PR).
+
+**Abandon before the swap:** `drop trigger zz_kb_chunks_swap_log on public.kb_chunks; drop table public.kb_chunks_new;
+truncate public.kb_chunks_swap_log;` - kb_chunks was never changed.
+
+**Rollback after the swap** (read-back failed; kb_chunks_old is intact but receives no writes after the swap), one
+transaction with `lock_timeout 5s`, then re-run `--stage=verify` reversed by hand: rename `kb_chunks` -> `kb_chunks_new`,
+`kb_chunks_old` -> `kb_chunks` (and their pkeys, sequences and `_old` indexes back), move the publication back,
+`create or replace` the two views again, and copy any row written since the swap with the restore path's
+`on conflict (id) do nothing` insert.
+
+**Step 8, a day after a passing read-back (its own PR):** `drop table public.kb_chunks_old;` (its triggers, indexes and
+sequence go with it), then drop `public.fn_kb_chunks_swap_log()` and `public.kb_chunks_swap_log` by a manifest file
+and `DROPPED.txt`, and record `pg_database_size` before/after in `kb_purge_ledger`. The disk returns at the drop, not
+at the swap.
+
+## Lock estimate (VACUUM FULL, for reference)
 
 `VACUUM FULL` holds ACCESS EXCLUSIVE on `kb_chunks` for the whole rewrite: every read of the table waits, which means
 `fn_reason_retrieve` / `fn_reason_retrieve_ml` (think()) and the export wait too.
@@ -63,7 +115,7 @@ exclusive lock only for the final swap (seconds) and is the better tool for a 7.
 host with a **direct** database connection and the database password, which this estate's tooling (management API
 only) does not have. Use it when that operator has both; otherwise `VACUUM FULL` as below.
 
-## Steps
+## Steps (VACUUM FULL, for reference)
 
 1. Read and record the before state (paste into the PR / ledger):
    ```sql
@@ -112,7 +164,7 @@ full export the driver named in its preflight line (2026-10-02 on 5 Oct):
    then confirm the count and that `embedding_gte` is present (a restored row with a null vector is re-embedded by the
    normal embed claim).
 
-## Rollback of the rewrite
+## Rollback of the VACUUM FULL rewrite
 
 - **Before it finishes** (lock_timeout, statement_timeout, cancel, connection loss): `VACUUM FULL` is transactional;
   the old files stay and nothing changed. Check `pg_stat_activity` that no rewrite backend is still running before a
