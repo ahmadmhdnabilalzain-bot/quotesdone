@@ -1493,6 +1493,18 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_spec_handoff_waits(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('waiting', coalesce(a.detail ->> 'waiting_for',
+                                                'the sales engineer to help the customer settle the spec'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_stalled_inquiry_notice(p_lang text, p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql

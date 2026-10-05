@@ -157,4 +157,7 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // closes each once the receiving seat has answered (scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql)
   { type: 'social.escalation', from: 'marketing', to: 'customer_support' },
   { type: 'social.lead', from: 'marketing', to: 'sales_engineer' },
+  // a customer answered "not sure" to a spec on a held request: the sales engineer takes that spec up
+  // (scripts/sql/a_not_sure_spec_opens_a_handoff_to_the_sales_engineer.sql, handler fn_sales_engineer_spec_handoff_waits)
+  { type: 'spec.not_sure', from: 'customer_support', to: 'sales_engineer' },
 ] as const;
