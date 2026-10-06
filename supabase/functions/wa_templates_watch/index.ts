@@ -62,7 +62,9 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     const { data: register, error: registerErr } = await sb.from('messaging_template')
       .select('sid,template_key,status,last_checked_at').eq('channel', 'whatsapp').limit(500);
     const unconfirmed = (r: any) => !r.last_checked_at || Date.now() - Date.parse(r.last_checked_at) >= RECHECK_MS;
-    const due = (register ?? []).filter((r: any) => r.status !== 'rejected' && (r.status !== 'approved' || unconfirmed(r)));
+    // 'missing' (Twilio 404: the Content SID no longer exists) is as final as 'rejected': nothing to poll.
+    const FINAL = new Set(['rejected', 'missing']);
+    const due = (register ?? []).filter((r: any) => !FINAL.has(r.status) && (r.status !== 'approved' || unconfirmed(r)));
     if (!registerErr && due.length === 0
         && ((await sec('wa_templates_ready')) || 'false') === 'true') {
       // nothing waiting on Meta and the channel is open = idle run, deliberately not logged
@@ -91,20 +93,25 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     // step `orphans` has failed every run since 16:46 UTC. A rejected sid, or an approved one confirmed
     // within RECHECK_MS, is read from the register; everything else goes to Twilio, in parallel.
     const decided = new Map((register ?? [])
-      .filter((r: any) => r.status === 'rejected' || (r.status === 'approved' && !unconfirmed(r)))
+      .filter((r: any) => FINAL.has(r.status) || (r.status === 'approved' && !unconfirmed(r)))
       .map((r: any) => [r.sid as string, r.status as string]));
     const wasApproved = new Set((register ?? []).filter((r: any) => r.status === 'approved').map((r: any) => r.sid as string));
     const statuses:any[] = await Promise.all([...sids, ...extra].map(async (s) => {
-      let st = decided.get(s.sid) || 'unknown'; let reason: string | null = null;
+      let st = decided.get(s.sid) || 'unknown'; let reason: string | null = null; let http: number | null = null;
       if (!decided.has(s.sid)) {
         try{
           const r=await fetch(`https://content.twilio.com/v1/Content/${s.sid}/ApprovalRequests`,{ headers:{ 'Authorization':auth }, signal: AbortSignal.timeout(8000) });
-          const j=await r.json();
-          st = j?.whatsapp?.status || j?.status || 'unknown';
+          const j=await r.json().catch(()=>({}));
+          http = r.status;
+          // AN HTTP CODE IS NOT A STATUS (customer_support, 6 Oct 2026). Twilio's error body carries
+          // `status: 404`, and the old `j?.status` fallback wrote the string "404" into the register as
+          // if Meta had said it. Measured 6 Oct: six rows read "404". A 404 is 'missing'; any other
+          // non-2xx is no verdict at all; the code itself goes to last_http_status.
+          st = r.status === 404 ? 'missing' : !r.ok ? 'error:http ' + r.status : (j?.whatsapp?.status || 'unknown');
           reason = j?.whatsapp?.rejection_reason || null;
         }catch(e){ st='error:'+String(e); }
       }
-      return { name:s.name, sid:s.sid, status:st, reason, polled: !decided.has(s.sid) };
+      return { name:s.name, sid:s.sid, status:st, reason, http, polled: !decided.has(s.sid) };
     }));
     let approved=0, rejected=0;
     for (const x of statuses) if (tracked.has(x.sid)) { if (x.status==='approved') approved++; else if (x.status==='rejected') rejected++; }
@@ -122,8 +129,8 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
       const now = new Date().toISOString();
       // A verdict that is not 'approved' clears approved_at (send_whatsapp writes the same shape), so
       // the register never says approved-at-a-time for a template Meta has since paused or rejected.
-      const patch = x.status === 'approved' ? { status: x.status, last_checked_at: now }
-        : { status: x.status, last_checked_at: now, approved_at: null, rejection_reason: x.reason };
+      const patch = x.status === 'approved' ? { status: x.status, last_checked_at: now, last_http_status: x.http }
+        : { status: x.status, last_checked_at: now, last_http_status: x.http, approved_at: null, rejection_reason: x.reason };
       const { error: upErr, count } = await sb.from('messaging_template')
         .update(patch, { count: 'exact' }).eq('sid', x.sid);
       if (upErr) { stampErrs++; continue; }
@@ -142,7 +149,9 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     // is to say so, once per template, to the seat that owns the templates - and to close it the day
     // Meta approves it again.
     const FINDING = 'whatsapp:template_not_approved:';
-    const regressed = statuses.filter((x: any) => x.polled && wasApproved.has(x.sid) && x.status !== 'approved'
+    // A LIVE SID THAT TWILIO NO LONGER HAS is raised too, approved before or not: send_whatsapp would
+    // otherwise hold every message for it forever. Superseded SIDs (not in wa_template_sids) are only stamped.
+    const regressed = statuses.filter((x: any) => x.polled && (wasApproved.has(x.sid) || (x.status === 'missing' && tracked.has(x.sid))) && x.status !== 'approved'
       && x.status !== 'unknown' && !String(x.status).startsWith('error:'));
     for (const x of regressed) {
       const { error: fErr } = await sb.rpc('fn_it_engineer_finding_upsert', {
@@ -190,7 +199,7 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
       if(!anotes.length) anotes.push('all '+sids.length+' WhatsApp templates approved: wa_templates_ready flipped to true and the founder notice handed to customer_support. WhatsApp job/quote/unlock alerts are now live');
       await logRun((readyErr||notifErr) ? 'error' : 'ok', { total:sids.length, approved, rejected, all_approved:true, ready_write_failed: readyErr?1:0, notify_failed: notifErr?1:0 }, anotes.join(' | '));
     } else {
-      const bad = statuses.filter((x:any)=> x.status==='unknown' || String(x.status).startsWith('error:'));
+      const bad = statuses.filter((x:any)=> x.status==='unknown' || x.status==='missing' || String(x.status).startsWith('error:'));
       if(rejected){ await logThrottled('templates_rejected', 60, 'error', { total:sids.length, approved, rejected, unknown: bad.length }, rejected+' of '+sids.length+' WhatsApp templates were REJECTED by Meta ('+statuses.filter((x:any)=>x.status==='rejected').map((x:any)=>x.name).join(',')+'); approval can never reach 100%, so wa_templates_ready is never flipped and suppliers and customers will never receive WhatsApp job, quote or unlock alerts until the templates are resubmitted'); }
       else if(bad.length){ await logThrottled('twilio_status_unknown', 60, 'error', { total:sids.length, approved, rejected, unknown: bad.length }, 'could not read an approval status for '+bad.length+' of '+sids.length+' templates ('+bad.map((x:any)=>x.name+'='+x.status).slice(0,6).join(',')+'); those templates can never be counted as approved, so wa_templates_ready is never flipped and WhatsApp alerts stay off indefinitely'); }
       // otherwise: templates simply still pending = idle run that did no work, deliberately not logged

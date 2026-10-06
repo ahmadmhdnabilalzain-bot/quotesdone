@@ -501,6 +501,9 @@ ALTER TABLE public.control_mode_challenge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_session ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_archive ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_retention_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_retention_pdf ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_retention_plan_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.critical_capability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_notes ENABLE ROW LEVEL SECURITY;
@@ -1093,6 +1096,9 @@ CREATE POLICY company_review_ask_service_role_only ON public.company_review_ask 
 CREATE POLICY competitor_scan_service_role_only ON public.competitor_scan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY complaint_tickets_service_role_only ON public.complaint_tickets AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY conversation_archive_service_role_only ON public.conversation_archive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY conversation_retention_log_service_only ON public.conversation_retention_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY conversation_retention_pdf_service_only ON public.conversation_retention_pdf AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY conversation_retention_plan_log_service_only ON public.conversation_retention_plan_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY customer_followup_service_role_only ON public.customer_followup AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY customer_spec_guide_public_reads_published ON public.customer_spec_guide AS PERMISSIVE FOR SELECT TO authenticated USING ((status = 'published'::text));
 CREATE POLICY customer_support_case_review_service_role_only ON public.customer_support_case_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1314,6 +1320,7 @@ CREATE POLICY writer_seat_service_role_only ON public.writer_seat AS PERMISSIVE 
 
 -- ===== CRON JOBS =====
 select cron.schedule('inquiry_conversation_summary_daily','40 23 * * *',$CRON$select public.fn_inquiry_conversation_summary_run(50);$CRON$);
+select cron.schedule('conversation_retention_daily','20 23 * * *',$CRON$select public.fn_conversation_retention_purge(500);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

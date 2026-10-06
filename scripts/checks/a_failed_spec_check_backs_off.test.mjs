@@ -51,6 +51,17 @@ begin
   insert into public.inquiries (customer_id, category, summary, status, rfq_no) values (v_cust, 'glass', 'ZZ DEMO spec backoff probe', 'sent', v_rfq) returning id into v_a;
   insert into public.inquiry_matches (inquiry_id, supplier_id, sent_at) values (v_a, v_lead, now());
   insert into public.quotes (inquiry_id, supplier_id, quote_amount, status, source) values (v_a, v_lead, 1000, 'submitted', 'form');
+  -- founder_instruction 1018 (round 3, item 2; a_quote_is_checked_for_specs_prices_and_terms_before_the_customer_sees_it.sql,
+  -- MANIFEST 1890): z40_quote_quality_gate holds a flagged quote as 'draft' for up to 24 h, and a draft is not a live
+  -- quote, so this bare fixture quote stopped being a sweep candidate. The quote reaches the customer the way the
+  -- hold desk's own tick releases it after its wait (step b of fn_sales_engineer_quote_quality_tick): the hold is
+  -- marked released 'waited_24h' first, then the quote leaves draft. Asserted, so a gate that changes shape fails here.
+  if (select status from public.quotes where inquiry_id = v_a) = 'draft' then
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h', updated_at = now()
+     where inquiry_id = v_a and released_at is null;
+    update public.quotes set status = 'submitted' where inquiry_id = v_a and status = 'draft';
+  end if;
+  r := r || jsonb_build_object('quote_live', (select status from public.quotes where inquiry_id = v_a));
 
   execute cand into v_in using v_a; r := r || jsonb_build_object('candidate_before', v_in);
   f := public.fn_spec_offer_failed(v_a, 'ZZ DEMO probe: quote_compare HTTP 500');
@@ -84,6 +95,7 @@ test('production: a failure backs off, doubles, and after the last attempt goes 
   try { await sql(PROBE); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
   assert.ok(out, 'the probe did not report');
   if (out.skipped) { t.skip(out.skipped); return; }
+  assert.equal(out.quote_live, 'submitted', 'the fixture quote is live once the quality hold has released it');
   assert.equal(out.candidate_before, true, 'the demo inquiry is a sweep candidate');
   assert.deepEqual(out.first, { ok: true, attempts: 1, handed_to_seat: false });
   assert.equal(out.candidate_after_first_failure, false, 'a failed check is NOT handed back on the next tick');
