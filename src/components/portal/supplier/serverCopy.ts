@@ -565,6 +565,7 @@ const COPY: Record<string, Entry> = {
   no_licence: s('no trade licence on file', 'لا توجد رخصة تجارية محفوظة'),
   licence_expired: s('the trade licence on file has expired', 'الرخصة التجارية المحفوظة منتهية الصلاحية'),
   licence_name_unread: s('we could not read the company name on your trade licence, so our team is checking it by hand. You do not need to do anything; a clearer copy speeds it up',
+    'لم نتمكن من قراءة اسم الشركة في رخصتكم التجارية، لذا يراجعها فريقنا يدويًا. لا يلزمكم أي إجراء، ورفع نسخة أوضح يسرّع المراجعة'),
   licence_unreadable: s('we could not read the company name on your trade licence, so our team is checking it by hand. You do not need to do anything; a clearer copy speeds it up',
     'لم نتمكن من قراءة اسم الشركة في رخصتكم التجارية، لذا يراجعها فريقنا يدويًا. لا يلزمكم أي إجراء، ورفع نسخة أوضح يسرّع المراجعة'),
   licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
