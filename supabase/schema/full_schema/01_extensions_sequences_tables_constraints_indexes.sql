@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-06T02:57:31.709Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-06T13:25:13.517Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (705) =====
+-- ===== TABLES (707) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6697,6 +6697,26 @@ CREATE TABLE IF NOT EXISTS public.pdpl_erase_files (
   erased_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.pdpl_lead_erase_vault (
+  request_id uuid NOT NULL,
+  lead_id bigint NOT NULL,
+  snapshot jsonb NOT NULL,
+  erased_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.pdpl_operator_log (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  at timestamp with time zone DEFAULT now() NOT NULL,
+  db_user text DEFAULT SESSION_USER NOT NULL,
+  actor text DEFAULT fn_pdpl_actor() NOT NULL,
+  caller text,
+  operator text,
+  action text NOT NULL,
+  email text,
+  request_id uuid,
+  result jsonb
+);
+
 CREATE TABLE IF NOT EXISTS public.pdpl_requests (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   kind text NOT NULL,
@@ -6706,7 +6726,16 @@ CREATE TABLE IF NOT EXISTS public.pdpl_requests (
   status text DEFAULT 'received'::text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   handled_at timestamp with time zone,
-  handled_by text
+  handled_by text,
+  verified_via text,
+  verified_at timestamp with time zone,
+  code_sha text,
+  code_expires timestamp with time zone,
+  confirm_after timestamp with time zone,
+  completed_at timestamp with time zone,
+  cancelled_at timestamp with time zone,
+  outcome jsonb,
+  attempts integer DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.phase1_rollback_log (
@@ -10219,6 +10248,8 @@ ALTER TABLE public.outreach_channel_policy ADD CONSTRAINT outreach_channel_polic
 ALTER TABLE public.pages ADD CONSTRAINT pages_pkey PRIMARY KEY (slug);
 ALTER TABLE public.paid_route_exception ADD CONSTRAINT paid_route_exception_pkey PRIMARY KEY (route);
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_pkey PRIMARY KEY (id);
+ALTER TABLE public.pdpl_lead_erase_vault ADD CONSTRAINT pdpl_lead_erase_vault_pkey PRIMARY KEY (request_id, lead_id);
+ALTER TABLE public.pdpl_operator_log ADD CONSTRAINT pdpl_operator_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_pkey PRIMARY KEY (id);
 ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.phone_verifications ADD CONSTRAINT phone_verifications_pkey PRIMARY KEY (id);
@@ -11762,6 +11793,7 @@ ALTER TABLE public.os_runbooks ADD CONSTRAINT os_runbooks_os_key_fkey FOREIGN KE
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_expected_kpi_id_fkey FOREIGN KEY (expected_kpi_id) REFERENCES employee_kpi(id);
 ALTER TABLE public.paid_route_exception ADD CONSTRAINT paid_route_exception_authority_instruction_id_fkey FOREIGN KEY (authority_instruction_id) REFERENCES founder_instruction(id);
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id) ON DELETE CASCADE;
+ALTER TABLE public.pdpl_lead_erase_vault ADD CONSTRAINT pdpl_lead_erase_vault_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
