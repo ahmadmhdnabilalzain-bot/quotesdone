@@ -418,7 +418,7 @@ const UNCOMMITTED_DDL = [];
 // objects (table, columns, constraints, indexes); with the date set in the past the check reported all 27 (exit 1).
 // The drop waits for sales_engineer Arabic recall back at its 0.55 floor (0.548 on 7 Oct).
 const ROLLBACK_OBJECTS = { kb_chunks_old: '2026-10-13' };   // table -> expiry (UTC date); runbook step 8 drops it
-const rollbackExempt = t => ROLLBACK_OBJECTS[t] && new Date().toISOString().slice(0, 10) < ROLLBACK_OBJECTS[t];
+const rollbackExempt = t => Object.hasOwn(ROLLBACK_OBJECTS, t) && new Date().toISOString().slice(0, 10) < ROLLBACK_OBJECTS[t];
 if (!REPO_ONLY) {
   const repoTables = new Set(), repoCols = new Set(), repoIdx = new Set(), repoCons = new Set();
   const eatDdl = src => {
