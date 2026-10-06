@@ -105,6 +105,17 @@ do $$ declare o jsonb := '{}'; v jsonb; lid bigint; inq uuid; h bigint; n bigint
                    and not coalesce(permanently_closed, false) and not coalesce(is_demo, false) order by id limit 3);
   update public.supply_gap set status = 'open', decided_by = null, decided_at = null, held_id = null
    where emirate = 'UAE' and trade in (tr, em);
+  -- THE WAITING CUSTOMER: since a_demo_request_is_never_supply_gap_demand.sql (MANIFEST 1942, 5 Oct 2026) a fixture
+  -- customer's request is never demand, and the only 3 inquiries on production are founder-demo requests, so on
+  -- 6 Oct production held 0 gaps with demand_90d > 0 (217 deferred by rule) and this stage had nothing to recruit for.
+  -- The probe makes its own waiting request the way that file's own probe does: a request with no customer (so not a
+  -- fixture, and nobody to reach) for a third deferred trade, inside this rolled-back transaction. It takes the trade
+  -- with the most uninvited leads, so the funnel stage below has real leads to put first, as a real waiting request would.
+  insert into public.inquiries (customer_id, category, trades, emirate, raw_input, status)
+  select null, g.trade, array[g.trade], 'Dubai', 'ZZ DEMO duties probe request without a customer', 'quoted'
+    from public.supply_gap g join public.taxonomy_trade tt on tt.code = g.trade and tt.active
+   where g.emirate = 'UAE' and g.status = 'deferred' and g.matchable < g.target and g.trade not in (tr, em)
+   order by g.uninvited_pool desc, g.trade limit 1;
   v := public.fn_sales_engineer_supply_gap(1);
   o := o || jsonb_build_object('rule', (select count(*) from public.supply_gap where decided_by = 'rule:customer_waiting' and status = 'recruit' and demand_90d > 0),
     'filed', v->'filed_for_reasoning',

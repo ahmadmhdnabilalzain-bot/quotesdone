@@ -8764,6 +8764,63 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_conversation_party_last_activity(p_kind text, p_id text)
+ RETURNS timestamp with time zone
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_kind = 'customer' then (
+      select greatest(
+        (select max(greatest(i.created_at, i.stage_changed_at, i.completed_at)) from public.inquiries i where i.customer_id::text = p_id),
+        (select max(m.created_at) from public.messages m where m.customer_id::text = p_id),
+        (select max(u.last_sign_in_at) from public.customers c join auth.users u on lower(u.email) = lower(c.email) where c.id::text = p_id),
+        (select max(coalesce(n.sent_at, n.created_at)) from public.customers c join public.notifications n on lower(n.to_email) = lower(c.email) where c.id::text = p_id),
+        (select max(im.created_at) from public.customers c join public.inbound_messages im on lower(im.from_email) = lower(c.email) where c.id::text = p_id),
+        (select c.created_at from public.customers c where c.id::text = p_id)))
+    when p_kind = 'supplier' then (
+      select greatest(
+        (select max(m.created_at) from public.messages m where m.supplier_id::text = p_id),
+        (select max(coalesce(n.sent_at, n.created_at)) from public.notifications n where n.lead_id::text = p_id),
+        (select max(im.created_at) from public.inbound_messages im where im.lead_id::text = p_id),
+        (select max(u.last_sign_in_at) from public.leads l join auth.users u on u.id::text = l.claimed_by or lower(u.email) = lower(l.email) where l.id::text = p_id)))
+    end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_party_on_hold(p_kind text, p_id text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_kind = 'customer' then
+         exists (select 1 from public.post_reveal_dispute d where d.customer_id::text = p_id and d.decided_at is null)
+      or exists (select 1 from public.refunds r where r.customer_id::text = p_id
+                  and (r.decided_at is null or (r.settled_at is null and coalesce(r.status, '') !~* 'reject|declin|cancel|denied')))
+      or exists (select 1 from public.transactions t join public.stripe_dispute s on s.transaction_id = t.id
+                  where t.customer_id::text = p_id and s.closed_at is null)
+      or exists (select 1 from public.transactions t join public.refund_case rc on rc.transaction_id = t.id
+                  where t.customer_id::text = p_id and rc.settled_at is null
+                    and (rc.decided_at is null or coalesce(rc.decision, '') !~* 'reject|declin|denied'))
+      or exists (select 1 from public.customers c join public.complaint_tickets ct on lower(ct.email) = lower(c.email)
+                  where c.id::text = p_id and ct.final_response_at is null)
+    when p_kind = 'supplier' then
+         exists (select 1 from public.supplier_dues sd where sd.supplier_id::text = p_id and sd.paid_at is null
+                  and coalesce(sd.status, '') !~* '^(paid|reversed|waived|cancelled|canceled|written_off)$')
+      or exists (select 1 from public.post_reveal_dispute d where d.supplier_id::text = p_id and d.decided_at is null)
+      or exists (select 1 from public.refunds r where r.supplier_lead_id::text = p_id
+                  and (r.decided_at is null or (r.settled_at is null and coalesce(r.status, '') !~* 'reject|declin|cancel|denied')))
+      or exists (select 1 from public.transactions t join public.stripe_dispute s on s.transaction_id = t.id
+                  where t.supplier_id::text = p_id and s.closed_at is null)
+      or exists (select 1 from public.leads l join public.complaint_tickets ct on lower(ct.email) = lower(l.email)
+                  where l.id::text = p_id and ct.final_response_at is null)
+    else false end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_conversation_record(p_contact text, p_limit integer DEFAULT 200)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -8837,6 +8894,93 @@ AS $function$
     'sample', (select coalesce(jsonb_agg(u.source_table || ':' || u.source_id), '[]'::jsonb)
                  from (select source_table, source_id from unarchived union all select * from unqueued limit 10) u));
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_retention_mode()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select 'remove' from public.app_secrets s where s.key = 'conversation_retention_mode' and s.value = 'remove'), 'dry_run');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_retention_plan(p_now timestamp with time zone DEFAULT now(), p_limit integer DEFAULT 500)
+ RETURNS TABLE(source_table text, source_id text, party_kind text, party_id text, occurred_at timestamp with time zone, last_activity timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with c as (
+    select v.source_table, v.source_id, v.party_kind, v.party_id, v.occurred_at
+      from public.v_conversation_message v
+     where v.source_table in ('inbound_messages', 'notifications', 'wa_messages', 'messages', 'assistant_logs')
+       and v.occurred_at < p_now - interval '5 years'
+       and date_trunc('year', v.occurred_at) + interval '6 years' <= p_now      -- end of creation year + 5 years
+       and not exists (select 1 from public.conversation_retention_log l
+                        where l.source_table = v.source_table and l.source_id = v.source_id)),
+  p as (
+    select distinct c.party_kind, c.party_id from c where c.party_id is not null),
+  pa as (
+    select p.party_kind, p.party_id,
+           public.fn_conversation_party_last_activity(p.party_kind, p.party_id) as last_activity,
+           public.fn_conversation_party_on_hold(p.party_kind, p.party_id) as on_hold
+      from p)
+  select c.source_table, c.source_id, c.party_kind, c.party_id, c.occurred_at,
+         coalesce(pa.last_activity, c.occurred_at)
+    from c left join pa on pa.party_kind = c.party_kind and pa.party_id = c.party_id
+   where not coalesce(pa.on_hold, false)
+     and greatest(coalesce(pa.last_activity, c.occurred_at), c.occurred_at) < p_now - interval '5 years'
+   order by c.occurred_at
+   limit greatest(p_limit, 0);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_retention_purge(p_limit integer DEFAULT 500)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  k constant text := '[removed under the QuotesDone retention policy]';
+  r record; n int := 0;
+  v_mode constant text := public.fn_conversation_retention_mode();
+begin
+  for r in select * from public.fn_conversation_retention_plan(now(), p_limit) loop
+    if v_mode <> 'remove' then
+      insert into public.conversation_retention_plan_log (decided_for, source_table, source_id, party_kind, party_id, occurred_at, last_activity)
+      values (current_date, r.source_table, r.source_id, r.party_kind, r.party_id, r.occurred_at, r.last_activity)
+      on conflict do nothing;
+      n := n + 1;
+      continue;                                                                   -- DRY RUN: nothing is changed
+    end if;
+    if r.source_table = 'inbound_messages' then
+      update public.inbound_messages set subject = k, body = k, html = null where id::text = r.source_id;
+    elsif r.source_table = 'notifications' then
+      update public.notifications set subject = k, body = k, html = null where id::text = r.source_id;
+    elsif r.source_table = 'wa_messages' then
+      update public.wa_messages set inbound = k, reply = case when reply is null then null else k end where id::text = r.source_id;
+    elsif r.source_table = 'messages' then
+      update public.messages set body = k where id::text = r.source_id;          -- attachment_path is kept
+    elsif r.source_table = 'assistant_logs' then
+      update public.assistant_logs set message = k, reply = k where id::text = r.source_id;
+    else
+      continue;                                                                   -- never anything else
+    end if;
+    insert into public.conversation_retention_log (source_table, source_id, party_kind, party_id, occurred_at, last_activity)
+    values (r.source_table, r.source_id, r.party_kind, r.party_id, r.occurred_at, r.last_activity)
+    on conflict do nothing;
+    insert into public.conversation_retention_pdf (source_table, source_id, pdf_bucket, pdf_path)
+    select a.source_table, a.source_id, a.pdf_bucket, a.pdf_path from public.conversation_archive a
+     where a.source_table = r.source_table and a.source_id = r.source_id
+    on conflict do nothing;
+    n := n + 1;
+  end loop;
+  return jsonb_build_object('mode', v_mode, case when v_mode = 'remove' then 'removed' else 'would_remove' end, n, 'ran_at', now(),
+                            'pdfs_owed', (select count(*) from public.conversation_retention_pdf where deleted_at is null));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_cron_liveness()
@@ -10977,7 +11121,7 @@ begin
   values (p_stage, p_key, p_customer, p_lead, v_to)
   on conflict (stage, subject_key) do nothing;
   if not found then return jsonb_build_object('sent', false, 'reason', 'already written at this stage'); end if;
-  v_ok := public.fn_email_sendable(v_to);
+  v_ok := public.fn_email_sendable(v_to, 'duty_' || replace(p_stage, '.', '_'));          -- the type: a dispute is never marketing
   if not coalesce((v_ok->>'ok')::boolean, false) then
     update public.customer_support_duty_message set outcome = 'not_sendable: ' || (v_ok->>'reason')
      where stage = p_stage and subject_key = p_key;
@@ -11428,6 +11572,15 @@ begin
     if public.fn_it_credential_founder_required(f.issue_key, f.title, f.evidence) then
       perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
         'why', 'founder ruling 1090: a credential only the founder can renew is recorded by the IT engineer, never sent to him',
+        'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_int := n_int + 1; continue;
+    end if;
+    -- 5 OCT 2026 (notifications#84149): the watch marks a failing integration notify=false when no account the
+    -- founder holds can restore it (a keyless endpoint, or a registry opt-out). The 'duty:integration%' class
+    -- asked him anyway, so the keyless search scrape reached him as a DECISION. It stays the IT engineer's.
+    if f.issue_key like 'duty:integration:%' and f.evidence->>'notify' is distinct from 'true' then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
+        'why', 'the integration watch marked it notify=false: no account the founder holds can restore it; the IT engineer owns it',
         'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
       n_int := n_int + 1; continue;
     end if;

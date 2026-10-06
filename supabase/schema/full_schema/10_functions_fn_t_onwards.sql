@@ -2939,14 +2939,17 @@ begin
            'rung', rung, 'model', model, 'kind', kind, 'rationale', rationale) order by rung), '[]'::jsonb)
     into v_chain
     from public.model_fallback_chain
-   where purpose = 'whatsapp_conversation' and active;
+   -- 6 Oct: a voice note has its own chain (received audio stays on Gemini, matrix v2)
+   where purpose = case when p_has_audio then 'whatsapp_voice_note' else 'whatsapp_conversation' end and active;
 
   return jsonb_build_object(
     'ok', true,
     'needs_model', v_needs,
     'why', v_why,
     'inference_held', v_held,
-    'model', case when v_needs then 'google/gemini-3-flash' else null end,
+    -- 6 Oct: rung 1 of the chain, never a literal, so the table is the one place a model is named
+    'model', case when v_needs then (select e ->> 'model' from jsonb_array_elements(v_chain) e
+                                      where e ->> 'kind' = 'model' order by (e ->> 'rung')::int limit 1) else null end,
     'fallback_chain', case when v_needs then v_chain else null end,
     'on_model_failure',
       'Try each rung in order. Record model_wanted, model_used and fell_back on llm_calls for every '
@@ -2954,7 +2957,10 @@ begin
    || 'final rung is the deterministic reply and it cannot fail.',
     'model_reason', case
       when not v_needs then 'No model needed. The database answered it.'
-      else 'google/gemini-3-flash first, by founder ruling. On failure claude-sonnet-5. On failure the '
+      -- 6 Oct: matrix v2 (founder_instruction 1108)
+      when p_has_audio then 'google/gemini-3.8-flash hears the voice note (received audio stays on Gemini). On failure '
+        || 'the deterministic reply.'
+      else 'openai/gpt-6-luna first, by the founder''s matrix v2. On failure google/gemini-3.8-flash. On failure the '
         || 'deterministic reply. Every rung gets the same fact pack and the same boundaries.' end,
 
     -- One decision. Handing to a person and giving the number are the same act.
@@ -3063,6 +3069,30 @@ begin
                                 else coalesce(last_error || '; ', '') || v_mark end, 500)
    where id = w.id and coalesce(last_error, '') not like '%sms failover:%';
   return jsonb_build_object('ok', true, 'outcome', 'sms_twin', 'sms_id', v_twin);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_template_registry_follows_messaging_template()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_status text;
+begin
+  if new.channel is distinct from 'whatsapp' or new.last_checked_at is null then return new; end if;
+  v_status := case when new.status in ('approved', 'rejected') then new.status
+                   when new.status in ('received', 'pending', 'submitted', 'in_review', 'unsubmitted') then 'pending' end;
+  if v_status is null then return new; end if;
+  update public.wa_template_registry r
+     set status = v_status,
+         checked_at = new.last_checked_at,
+         approved_on = case when v_status = 'approved' then coalesce(r.approved_on, new.last_checked_at::date) else r.approved_on end,
+         source = 'wa_templates_watch: Twilio Content API said "' || new.status || '" on '
+                  || to_char(new.last_checked_at at time zone 'UTC', 'DD Mon YYYY HH24:MI') || ' UTC (messaging_template ' || new.sid || ')'
+   where r.template_name = new.name
+     and (r.checked_at is null or r.checked_at < new.last_checked_at);
+  return new;
 end $function$
 
 
@@ -3242,6 +3272,107 @@ begin
     'new_conditions_alerted', v_alerts,
     'alerted', v_alerts > 0);
 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_web_search_claim(p_query text, p_now timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_q    text := public.fn_web_search_norm(p_query);
+  v_day  date := (p_now at time zone 'Asia/Dubai')::date;
+  v_used integer;
+begin
+  -- 1. emails: any address in the query that the company holds for a party (exact, case-folded)
+  if exists (
+    select 1 from regexp_matches(lower(coalesce(p_query, '')), '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}', 'g') m(e)
+     where exists (select 1 from public.leads l where lower(l.email) = m.e[1])
+        or exists (select 1 from public.customers c where lower(c.email) = m.e[1])) then
+    return jsonb_build_object('allowed', false, 'reason', 'names_a_private_party');
+  end if;
+  -- 2. phones: any number in the query, as its national number, equal to one held for a party
+  if exists (
+    select 1 from regexp_matches(coalesce(public.fn_ar_norm(p_query), ''), '\+?[0-9][0-9 ().-]{5,}[0-9]', 'g') m(t)
+     cross join lateral (select public.fn_web_search_phone(m.t[1]) n) q
+     where length(q.n) >= 7 and exists (
+       select 1 from public.leads l
+        cross join lateral (values (l.phone), (l.phone_e164), (l.whatsapp), (l.whatsapp_phone)) x(v)
+        where public.fn_web_search_phone(x.v) = q.n
+       union all
+       select 1 from public.customers c
+        cross join lateral (values (c.phone), (c.whatsapp_phone)) x(v)
+        where public.fn_web_search_phone(x.v) = q.n)) then
+    return jsonb_build_object('allowed', false, 'reason', 'names_a_private_party');
+  end if;
+  -- 3. names: the exact held name of a party, as a whole phrase of the normalised query. A lead at a *.gov.ae
+  --    domain is an authority: only its COMPANY name is exempt; its contact and signatory are people.
+  if exists (
+    select 1 from (
+      select x.n from public.leads l
+       cross join lateral (values
+         (case when coalesce(l.email_domain, '') ~ '(^|\.)gov\.ae$' then null else l.company_name end),
+         (l.licence_legal_name), (l.contact_name), (l.signatory_name)) x(n)
+      union all select full_name from public.customers union all select full_name from public.supplier_beneficial_owner
+    ) s
+     where length(btrim(public.fn_web_search_norm(s.n))) >= 3
+       and position(public.fn_web_search_norm(s.n) in v_q) > 0) then
+    return jsonb_build_object('allowed', false, 'reason', 'names_a_private_party');
+  end if;
+  -- 4. the day's cap, counted atomically
+  insert into public.web_search_day as d (day, used) values (v_day, 1)
+  on conflict (day) do update set used = d.used + 1, updated_at = now() where d.used < d.cap
+  returning used into v_used;
+  if v_used is null then
+    perform public.fn_web_search_degraded('daily_cap', false,
+      'the daily cap of ' || (select cap from public.web_search_day where day = v_day) || ' searches is reached for ' || v_day);
+    return jsonb_build_object('allowed', false, 'reason', 'daily_cap');
+  end if;
+  return jsonb_build_object('allowed', true, 'used', v_used);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_web_search_degraded(p_reason text, p_notify boolean, p_detail text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_billing boolean := p_reason = 'key_or_billing';
+  v_key text := 'duty:integration:web_search:' || case when v_billing then 'billing' else 'outage' end;
+begin
+  perform public.fn_it_engineer_finding_upsert(
+    v_key,
+    'web_search (Serper): ' || coalesce(p_detail, p_reason) || '. The seats reason without the web until it answers again',
+    'supabase/functions/_shared/web_search.ts', 'agent_facing', 1,
+    jsonb_build_object('integration', 'web_search', 'owner_seat', 'it_engineer', 'reason', p_reason,
+                       'notify', coalesce(p_notify, false) and v_billing,
+                       'reconnect_url', 'https://serper.dev/'),
+    '{}'::text[], '{}'::text[], 'it_engineer.web_search');
+  return jsonb_build_object('raised', true, 'reason', p_reason, 'issue_key', v_key);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_web_search_norm(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select ' ' || btrim(regexp_replace(replace(lower(coalesce(public.fn_ar_norm(p_text), '')), '.', ''), '[^[:alnum:]]+', ' ', 'g')) || ' '
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_web_search_phone(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select nullif(regexp_replace(regexp_replace(coalesce(public.fn_ar_norm(p_text), ''), '[^0-9]', '', 'g'), '^(00971|971|0)', ''), '')
 $function$
 
 
@@ -7028,6 +7159,60 @@ begin
                                  from jsonb_each(j) as t(k, v));
     else return j;
   end case;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.pdpl_cancel_me(p_request uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email();
+begin
+  if v_em is null or not exists (select 1 from public.pdpl_requests where id = p_request and email = v_em) then
+    return jsonb_build_object('ok', false, 'code', 'not_yours');
+  end if;
+  return public.fn_pdpl_cancel(p_request, 'self_service');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.pdpl_confirm_me(p_request uuid, p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email();
+begin
+  if v_em is null or not exists (select 1 from public.pdpl_requests where id = p_request and email = v_em and kind = 'delete') then
+    return jsonb_build_object('ok', false, 'code', 'not_yours');
+  end if;
+  return public.fn_pdpl_verify(p_request, p_code, 'self_service');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.pdpl_request_me(p_kind text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email(); v_id uuid;
+begin
+  if v_em is null then
+    return jsonb_build_object('ok', false, 'code', 'email_not_verified',
+      'message', 'Verify your email address in your account first.', 'message_ar', 'يُرجى توثيق بريدكم الإلكتروني في حسابكم أولًا.');
+  end if;
+  if p_kind not in ('export', 'delete') then return jsonb_build_object('ok', false, 'code', 'bad_kind'); end if;
+  -- ERASE NEEDS A SECOND VERIFIED ACTION: a code is emailed and the clock starts only at pdpl_confirm_me.
+  if p_kind = 'delete' then
+    return public.fn_pdpl_open(v_em, 'delete', 'self_service') || jsonb_build_object('next', 'pdpl_confirm_me(request_id, code)');
+  end if;
+  insert into public.pdpl_requests (kind, email, role, details, status, verified_via, verified_at, handled_by)
+  values (p_kind, v_em, 'self_service', 'signed-in, email verified by code', 'received', 'session+email_verified', now(), 'self_service')
+  returning id into v_id;
+  return public.fn_pdpl_carry_out(v_id);
 end $function$
 
 

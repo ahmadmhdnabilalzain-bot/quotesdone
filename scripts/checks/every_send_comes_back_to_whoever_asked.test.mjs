@@ -105,7 +105,10 @@ const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 't
   'a_credential_only_the_founder_can_renew_is_never_rotated_or_reminded.sql',
   // 4 Oct 2026: redefines the digest to carry only founder decisions; its marking and the closing of every
   // told request with the digest's notification ids are carried over unchanged.
-  'the_originator_closes_what_was_answered_and_the_digest_carries_only_his_decisions.sql']);
+  'the_originator_closes_what_was_answered_and_the_digest_carries_only_his_decisions.sql',
+  // 5 Oct 2026: redefines the digest with one added step (a notify=false integration closes internal); its marking
+  // and the closing of every told request with the digest's notification ids are carried over unchanged.
+  'an_integration_the_founder_holds_no_account_for_is_never_his_decision.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;

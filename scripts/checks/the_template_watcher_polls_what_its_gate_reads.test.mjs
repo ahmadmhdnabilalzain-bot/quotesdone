@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 const src = readFileSync(new URL('../../supabase/functions/wa_templates_watch/index.ts', import.meta.url), 'utf8');
-const gateSql = readFileSync(new URL('../sql/an_approved_whatsapp_template_is_rechecked_with_twilio_once_a_day.sql', import.meta.url), 'utf8');
+const gateSql = readFileSync(new URL('../sql/a_whatsapp_template_twilio_no_longer_has_is_missing_not_404.sql', import.meta.url), 'utf8');
 
 test('the poll covers the undecided register rows the gate reads', () => {
   assert.match(src, /\[\.\.\.sids, \.\.\.extra\]/);
@@ -34,23 +34,31 @@ test('an already-live channel is not re-announced', () => {
 });
 
 test('an approved row is trusted only while confirmed within the re-check window', () => {
-  // due: not rejected, and either undecided or approved-but-unconfirmed
-  assert.match(src, /r\.status !== 'rejected' && \(r\.status !== 'approved' \|\| unconfirmed\(r\)\)/);
-  // read from the register (not asked): rejected, or approved AND confirmed
-  assert.match(src, /r\.status === 'rejected' \|\| \(r\.status === 'approved' && !unconfirmed\(r\)\)/);
+  // final verdicts (6 Oct 2026: 'missing' = Twilio 404 joins 'rejected') are never asked again
+  assert.match(src, /const FINAL = new Set\(\['rejected', 'missing'\]\);/);
+  // due: not final, and either undecided or approved-but-unconfirmed
+  assert.match(src, /!FINAL\.has\(r\.status\) && \(r\.status !== 'approved' \|\| unconfirmed\(r\)\)/);
+  // read from the register (not asked): final, or approved AND confirmed
+  assert.match(src, /FINAL\.has\(r\.status\) \|\| \(r\.status === 'approved' && !unconfirmed\(r\)\)/);
 });
 
 test('the watcher and the scheduler gate use the same 20 hours', () => {
   const ms = src.match(/const RECHECK_MS = (\d+) \* 3600 \* 1000;/);
   assert.ok(ms, 'RECHECK_MS not found');
-  const sqlArm = gateSql.match(/status <> 'rejected'\s+and \(last_checked_at is null or last_checked_at < now\(\) - interval '(\d+) hours'\)/);
+  const sqlArm = gateSql.match(/status not in \('rejected', 'missing'\)\s+and \(last_checked_at is null or last_checked_at < now\(\) - interval '(\d+) hours'\)/);
   assert.ok(sqlArm, 'the wa_templates arm no longer re-checks approved rows');
   assert.equal(Number(ms[1]), Number(sqlArm[1]));
 });
 
 test('a paused or rejected approval is written to the register and raises a finding', () => {
   assert.match(src, /approved_at: null, rejection_reason: x\.reason/);
-  assert.match(src, /wasApproved\.has\(x\.sid\) && x\.status !== 'approved'/);
+  assert.match(src, /wasApproved\.has\(x\.sid\) \|\| \(x\.status === 'missing' && tracked\.has\(x\.sid\)\)\) && x\.status !== 'approved'/);
+  // an HTTP code is never written as a status (6 Oct 2026: six register rows read "404")
+  // the read lives in verdict.ts since #1252; the watcher must go through it
+  assert.match(src, /twilioVerdict\(r\.status, j\)/);
+  const verdict = readFileSync(new URL('../../supabase/functions/wa_templates_watch/verdict.ts', import.meta.url), 'utf8');
+  assert.match(verdict, /httpStatus === 404\) return \{ status: 'missing'/);
+  assert.doesNotMatch(src, /j\?\.whatsapp\?\.status \|\| j\?\.status/);
   assert.match(src, /rpc\('fn_it_engineer_finding_upsert'/);
 });
 
@@ -65,7 +73,7 @@ test('a stale approved template opens the scheduler gate, a confirmed one does n
   let got;
   try {
     await replaySql(`${def}
-      do $p$ declare a boolean; b boolean; c boolean; v_sid text; begin
+      do $p$ declare a boolean; b boolean; c boolean; d boolean; v_sid text; begin
         if coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') <> 'true' then
           raise exception 'CHK<<{"skip":"wa_templates_ready is not true, the flag arm holds the gate open"}>>';
         end if;
@@ -77,7 +85,9 @@ test('a stale approved template opens the scheduler gate, a confirmed one does n
         b := (public.fn_resilience_orphan_steps_due()->>'wa_templates')::boolean;
         update public.messaging_template set status = 'rejected' where sid = v_sid;
         c := (public.fn_resilience_orphan_steps_due()->>'wa_templates')::boolean;
-        raise exception 'CHK<<%>>', jsonb_build_object('all_fresh', a, 'approved_stale', b, 'rejected_stale', c);
+        update public.messaging_template set status = 'missing' where sid = v_sid;
+        d := (public.fn_resilience_orphan_steps_due()->>'wa_templates')::boolean;
+        raise exception 'CHK<<%>>', jsonb_build_object('all_fresh', a, 'approved_stale', b, 'rejected_stale', c, 'missing_stale', d);
       end $p$;`, { label: 'the wa_templates gate probe' });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
@@ -86,5 +96,5 @@ test('a stale approved template opens the scheduler gate, a confirmed one does n
   }
   assert.ok(got, 'probe committed instead of rolling back');
   if (got.skip) return;
-  assert.deepEqual(got, { all_fresh: false, approved_stale: true, rejected_stale: false });
+  assert.deepEqual(got, { all_fresh: false, approved_stale: true, rejected_stale: false, missing_stale: false });
 });
