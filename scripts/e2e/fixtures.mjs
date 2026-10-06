@@ -196,7 +196,7 @@ export async function makeDemoCustomer(run, opts = {}) {
  * A supplier with the mandatory six (founder's list): name, mobile, email, trade licence document,
  * profile, and the CURRENT Supplier Agreement accepted and signed - approved, capability confirmed.
  */
-export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', locale = 'en' } = {}) {
+export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', locale = 'en', activity = 'Aluminium and Glass Works' } = {}) {
   const email = demoEmail(run, 'sup');
   const phone = demoMobile();
   const company = `ZZ DEMO ${label} ${trade} ${run.tag}`;
@@ -208,7 +208,7 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
   // bucket - fn_supplier_mandatory_six counts a document only if its path exists in supplier-docs.
   const licenceNo = `ZZDEMO-${run.tag}-${label}`.toUpperCase();
   const path = `licenses/${s.leadId}/${run.tag}_trade_licence.pdf`;
-  await uploadObject('supplier-docs', path, demoTradeLicence({ company, licenceNo, activity: 'Aluminium and Glass Works' }), 'application/pdf');
+  await uploadObject('supplier-docs', path, demoTradeLicence({ company, licenceNo, activity }), 'application/pdf');
   run.ids.storage.push(`supplier-docs/${path}`);
   const profilePath = `profiles/${s.leadId}/${run.tag}_company_profile.pdf`;
   await uploadObject('supplier-docs', profilePath, demoPdf([
