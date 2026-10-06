@@ -2,6 +2,8 @@
 //
 //   node scripts/e2e/browser_walk.mjs public            # public site, desktop+iPhone 13, EN+AR, both domains
 //   node scripts/e2e/browser_walk.mjs portals ids.json  # signed-in walks for the sandbox run's demo identities
+//   node scripts/e2e/browser_walk.mjs journeys ids.json # uploads, terms re-accept, Stripe TEST success+decline, rating, export, unsubscribe
+//   node scripts/e2e/browser_walk.mjs remeasure /services/cleaning 3
 //   node scripts/e2e/browser_walk.mjs index             # (re)write browser/index.html + link from INDEX.html
 //
 // Founder, ledger 1160: "test like a real user, in a real browser, not only through code". Journeys a-h
@@ -302,6 +304,178 @@ async function walkPortals(browser, idsFile) {
   }
 }
 
+// ---- JOURNEY STEPS (need the sandbox run's demo data) ----------------------------------------------
+// ids.json for `journeys`: { customer:{email,label}, customerAr:{email,label}, supplier:{email,label} }.
+// Every identity must be @example.invalid (demoSessionFactory refuses otherwise). Stripe is TEST only:
+// the hosted page must be a cs_test_ session or the step refuses to type a card.
+const DECLINE_CARD = '4000 0000 0000 0002';
+const sq = (v) => `'${String(v).replace(/'/g, "''")}'`;
+
+async function jstep(rep, J, page, dir, name, fn) {
+  const t0 = Date.now(); let ok = false, detail = '';
+  try { [ok, detail] = await fn(); } catch (e) { detail = 'threw: ' + String(e.message).slice(0, 200); }
+  const file = join(dir, slug(name) + '.png');
+  await page.screenshot({ path: file, fullPage: true }).catch(() => {});
+  const status = ok === 'SKIP' ? 'SKIP' : ok ? 'PASS' : 'FAIL';
+  rep.add({ journey: J, step: name, status, ms: Date.now() - t0, detail, issues: status === 'PASS' ? [] : [{ sev: status === 'SKIP' ? 'low' : 'high', what: detail }], shot: file });
+  console.log(`${status} ${J} ${name} — ${detail.slice(0, 160)}`);
+}
+
+async function customerJourney(browser, w, lang, view) {
+  const { read, write } = await import('./fixtures.mjs');
+  const { demoOfficePlanPng } = await import('../lib/demo_pdf.mjs');
+  const { payHostedTestCheckout, TEST_CARD } = await import('./stripe_test_checkout.mjs');
+  const J = `journey_customer_${w.label}_${view}_${lang}`;
+  const dir = join(OUT, 'customers', `${w.label}_journey_${view}_${lang}`); mkdirSync(dir, { recursive: true });
+  const rep = new Report(J);
+  const who = { kind: 'customer', ...w, newSession: await demoSessionFactory(w.email) };
+  const { ctx, page } = await signedInPage(browser, who, { lang, viewport: view });
+  const me = SITE + (lang === 'ar' ? '/ar' : '') + '/me';
+  await page.goto(me, { waitUntil: 'load' }); await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+
+  // 1. Terms re-accept inline prompt: put THIS demo customer one version behind, then send a request.
+  await jstep(rep, J, page, dir, 'terms re-accept inline prompt', async () => {
+    const cur = (await read(`select value from public.app_secrets where key='customer_terms_version'`))[0]?.value;
+    await write(`update public.customers set tos_version = 'v1' where email = ${sq(w.email)} and is_demo`, 'walk: terms one version behind (demo only)');
+    await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(3000);
+    const box = page.locator('textarea:visible').first();
+    await box.fill(lang === 'ar' ? 'ZZ DEMO: أحتاج دهان شقة غرفتين في دبي' : 'ZZ DEMO: paint a two-bedroom apartment in Dubai');
+    await box.press('Enter'); await page.waitForTimeout(6000);
+    const alert = page.locator('[role=alert]').filter({ has: page.locator('input[type=checkbox]') }).first();
+    if (!(await alert.isVisible().catch(() => false))) return [false, `no inline re-accept prompt after send (current terms ${cur})`];
+    await alert.locator('input[type=checkbox]').check(); await alert.getByRole('button').last().click(); await page.waitForTimeout(5000);
+    const now = (await read(`select tos_version from public.customers where email = ${sq(w.email)}`))[0]?.tos_version;
+    return [now === cur, `prompt shown, ticked and accepted; customers.tos_version now ${now} (want ${cur})`];
+  });
+
+  // 2. Drawing/photo upload on a new request (spec questions incl. "not sure" follow in the chat).
+  await jstep(rep, J, page, dir, 'new request: drawing upload + spec answer "not sure"', async () => {
+    const png = join(dir, 'zz_demo_plan.png'); writeFileSync(png, demoOfficePlanPng());
+    const input = page.locator('input[type=file]').first();
+    if (!(await input.count())) return [false, 'no file input on the new-request screen'];
+    await input.setInputFiles(png); await page.waitForTimeout(15000);
+    const notSure = page.getByRole('button').filter({ hasText: lang === 'ar' ? /لست متأكد|غير متأكد/ : /not sure/i }).first();
+    const ns = await notSure.count();
+    if (ns) { await notSure.click(); await page.waitForTimeout(6000); }
+    const body = await page.locator('body').innerText();
+    return [/zz_demo_plan/i.test(body), `drawing named on screen: ${/zz_demo_plan/i.test(body)}; "not sure" offered: ${ns > 0}`];
+  });
+
+  // 3. Quotes and the comparison report (top-3 + full list).
+  await jstep(rep, J, page, dir, 'quotes and comparison report', async () => {
+    await page.locator('nav a, nav button').filter({ hasText: lang === 'ar' ? /طلبات|عروض/ : /request|quote/i }).first().click().catch(() => {});
+    await page.waitForTimeout(4000);
+    const body = await page.locator('body').innerText();
+    return [/AED|درهم/.test(body), `prices on screen: ${/AED|درهم/.test(body)}; comparison words: ${/top|compare|مقارنة|أفضل/i.test(body)}`];
+  });
+
+  // 4-5. Reveal checkout: success (4242) then decline (0002), Stripe TEST only.
+  for (const [name, card] of [['reveal checkout: test card success', TEST_CARD.number], ['reveal checkout: test card decline', DECLINE_CARD]]) {
+    await jstep(rep, J, page, dir, name, async () => {
+      const btn = page.getByRole('button').filter({ hasText: lang === 'ar' ? /كشف|اكشف|ادفع/ : /reveal|unlock|pay/i }).first();
+      if (!(await btn.count())) return ['SKIP', 'no reveal button visible (needs an unrevealed quote)'];
+      const [pop] = await Promise.all([page.waitForEvent('popup', { timeout: 8000 }).catch(() => null), btn.click()]);
+      const sp = pop || page;
+      await sp.waitForURL(/checkout\.stripe\.com/, { timeout: 30000 });
+      if (!/cs_test_/.test(sp.url())) return [false, 'refused: checkout is not a TEST session'];
+      await sp.locator('#cardNumber').waitFor({ timeout: 20000 });
+      if (card === TEST_CARD.number) await payHostedTestCheckout(sp);
+      else {
+        await sp.locator('#cardNumber').fill(card); await sp.locator('#cardExpiry').fill(TEST_CARD.expiry); await sp.locator('#cardCvc').fill(TEST_CARD.cvc);
+        await sp.locator('#billingName').fill(TEST_CARD.name).catch(() => {});
+        if (await sp.locator('#billingCountry').count()) await sp.locator('#billingCountry').selectOption('AE');
+        await sp.locator('button[type=submit]').click();
+      }
+      await sp.waitForTimeout(12000);
+      await sp.screenshot({ path: join(dir, slug(name) + '_stripe.png') }).catch(() => {});
+      if (card === DECLINE_CARD) {
+        const onStripe = /checkout\.stripe\.com/.test(sp.url());
+        const declined = onStripe && /declined/i.test(await sp.locator('body').innerText());
+        if (onStripe) await sp.goto(me).catch(() => {});
+        return [declined, `decline message on Stripe and no return: ${declined}`];
+      }
+      return [/quotesdone/.test(sp.url()), 'returned to ' + sp.url().slice(0, 100)];
+    });
+  }
+
+  // 6. Post-reveal supplier details + rating.
+  await jstep(rep, J, page, dir, 'post-reveal supplier details and rating', async () => {
+    await page.goto(me, { waitUntil: 'load' }); await page.waitForTimeout(4000);
+    const body = await page.locator('body').innerText();
+    const star = page.getByRole('button', { name: /Rate 5 of 5|5 من 5/ }).first();
+    if (!(await star.count())) return ['SKIP', `no rating stars visible (needs a revealed supplier); contact details shown: ${/\+971|@/.test(body)}`];
+    const [res] = await Promise.all([page.waitForResponse((r) => (r.request().postData() || '').includes('rate_supplier'), { timeout: 30000 }).catch(() => null), star.click()]);
+    return [!!res && res.status() < 400, `rate_supplier HTTP ${res?.status()}`];
+  });
+
+  // 7. Account page: terms version block + data export/erase request, STOP before the code.
+  await jstep(rep, J, page, dir, 'account: terms version + data export request (stopped before code)', async () => {
+    await page.locator('nav a, nav button, button').filter({ hasText: lang === 'ar' ? /الحساب|حسابي/ : /account/i }).first().click().catch(() => {});
+    await page.waitForTimeout(3000);
+    const ver = /v\d+|version|الإصدار/i.test(await page.locator('body').innerText());
+    const exp = page.getByRole('button').filter({ hasText: lang === 'ar' ? /تصدير|بياناتي|حذف حسابي|مسح/ : /export|download my data|delete my account|erase/i }).first();
+    if (!(await exp.count())) return [false, `terms version shown: ${ver}; NO data export/erase control on the account page`];
+    await exp.click(); await page.waitForTimeout(3000);
+    const codeBox = await page.locator('input[autocomplete=one-time-code], input[inputmode=numeric]').count();
+    return [ver, `terms version shown: ${ver}; export/erase pressed; code box shown: ${codeBox > 0} (not filled)`];
+  });
+  await ctx.close();
+}
+
+/** The unsubscribe link with a REAL token for a demo supplier; GET only, the confirm is never pressed. */
+async function unsubscribeStep(browser, sup) {
+  if (!/@example\.invalid$/i.test(sup.email)) throw new Error('refused: not a demo identity');
+  const { read } = await import('./fixtures.mjs');
+  const { createHmac } = await import('node:crypto');
+  const key = (await read(`select value from public.app_secrets where key='unsubscribe_signing_key'`))[0]?.value;
+  const t = createHmac('sha256', key).update(sup.email.toLowerCase()).digest('hex').slice(0, 20);   // = unsubscribe/index.ts tok()
+  const rep = new Report('journey_unsubscribe_real_token');
+  for (const view of ['desktop', 'mobile']) {
+    const dir = join(OUT, 'suppliers', 'unsubscribe_' + view); mkdirSync(dir, { recursive: true });
+    const { page, bag, close } = await openCtx(browser, view, 'en', join(OUT, 'videos'));
+    const r = await visit(page, bag, `${SITE}/u/unsubscribe?e=${encodeURIComponent(sup.email)}&t=${t}`, join(dir, 'confirm_page.png'), { lang: 'en', audience: 'supplier' });
+    const body = await page.locator('body').innerText().catch(() => '');
+    if (!(await page.locator('button, input[type=submit]').count())) { r.status = 'FAIL'; r.issues.push({ sev: 'high', what: 'valid token but no confirm button: ' + body.slice(0, 120) }); }
+    rep.add({ journey: 'unsubscribe', step: `${view}: GET with a valid token (confirm NOT pressed)`, ...r, detail: body.slice(0, 160) });
+    console.log(`${r.status} unsubscribe ${view} ${body.slice(0, 100).replace(/\n/g, ' ')}`);
+    await close('journey_unsubscribe_' + view);
+  }
+}
+
+/** Licence upload on registration: supplier_registration_walk.mjs already owns it (own demo lead, own teardown). */
+async function supplierRegistration() {
+  const { spawnSync } = await import('node:child_process');
+  const r = spawnSync(process.execPath, ['scripts/e2e/supplier_registration_walk.mjs', '--lang', 'en', '--vp', 'desktop,mobile'], { encoding: 'utf8', timeout: 900000, env: { ...process.env, QD_FIXTURES: '1' } });
+  const out = (r.stdout || '') + (r.stderr || '');
+  writeFileSync(join(OUT, 'supplier_registration_walk.log'), out);
+  new Report('journey_supplier_registration_licence').add({ step: 'registration with licence upload (supplier_registration_walk.mjs)', status: r.status === 0 ? 'PASS' : 'FAIL',
+    detail: out.split('\n').slice(-6).join(' | ').slice(0, 400), issues: r.status === 0 ? [] : [{ sev: 'high', what: `exit ${r.status}: ` + out.split('\n').filter((l) => /FAIL/.test(l)).slice(0, 3).join(' | ') }] });
+  console.log('supplier registration walk exit', r.status);
+}
+
+async function walkJourneys(browser, idsFile) {
+  const ids = JSON.parse(readFileSync(idsFile, 'utf8'));
+  for (const view of ['desktop', 'mobile']) {
+    if (ids.customer) await customerJourney(browser, ids.customer, 'en', view).catch((e) => console.log('FAIL customer journey', e.message));
+    if (ids.customerAr) await customerJourney(browser, ids.customerAr, 'ar', view).catch((e) => console.log('FAIL customerAr journey', e.message));
+  }
+  if (ids.supplier) await unsubscribeStep(browser, ids.supplier);
+  await supplierRegistration();
+}
+
+/** N cold loads of one page on iPhone 13, a fresh context each. */
+async function remeasure(browser, path = '/services/cleaning', n = 3) {
+  const rep = new Report('remeasure_' + slug(path) + '_mobile');
+  const dir = join(OUT, 'public', 'remeasure'); mkdirSync(dir, { recursive: true });
+  for (let i = 1; i <= n; i++) {
+    const ctx = await browser.newContext({ ...VIEWS.mobile }); const page = await ctx.newPage(); const bag = instrument(page);
+    const r = await visit(page, bag, SITE + path, join(dir, `${slug(path)}_${i}.png`), { lang: 'en', audience: 'public' });
+    rep.add({ journey: 'remeasure', step: `${path} mobile cold load ${i}`, ...r });
+    console.log(`${r.status} remeasure ${path} #${i} ${r.ms} ms`);
+    await ctx.close();
+  }
+}
+
 // ---- the index -----------------------------------------------------------------------------------
 export function writeIndex() {
   const files = readdirSync(OUT).filter((f) => f.endsWith('.json'));
@@ -335,5 +509,7 @@ if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}` || proc
   try {
     if (mode === 'public') await walkPublic(browser);
     else if (mode === 'portals') await walkPortals(browser, process.argv[3]);
+    else if (mode === 'journeys') await walkJourneys(browser, process.argv[3]);
+    else if (mode === 'remeasure') await remeasure(browser, process.argv[3] || '/services/cleaning', Number(process.argv[4] || 3));
   } finally { await browser.close(); writeIndex(); }
 }
