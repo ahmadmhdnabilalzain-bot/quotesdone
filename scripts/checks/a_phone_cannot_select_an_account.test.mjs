@@ -145,58 +145,55 @@ for (const [label, project] of Object.entries(PROJECTS)) {
   });
 }
 
-// ONE ADMIN SESSION, REUSED (6 Oct 2026). The customer_api test below needs a signed-in identity that is
-// not a customer, and it used to mint a fresh admin session through login_otp on every run and never
-// sign it out. Measured 6 Oct: 358 of the 359 auth.sessions on the admin address had never been used
-// after creation (no refresh), each created within seconds of this file's fixture login_otp calls in
-// agent_runs, user agent SupabaseEdgeRuntime (login_otp's verifyOtp), roughly one per checks run.
-// Now the run refreshes ONE cached session (refresh token in app_secrets) and only mints when the
-// cache is missing or dead. The rotated token is written back compare-and-swap; a run that loses the
-// race (a concurrent run already stored a newer token) signs its own session out, so at most one
-// session for this check is ever left alive.
-const SESSION_KEY = 'check_customer_api_admin_refresh_token';
-const tokenOk = (t) => /^[A-Za-z0-9_-]{8,200}$/.test(String(t || ''));
+// A QA IDENTITY, NEVER A PERSON, AND NO SESSION OUTLIVES THE RUN (6 Oct 2026). The customer_api test
+// below needs a signed-in identity that is not a customer. It used to sign in as admin_emails[0] --
+// the founder's own address -- through login_otp on every run and never sign out. Measured 6 Oct:
+// 358 of the 359 auth.sessions on that address had never been refreshed, each created within seconds
+// of this file's fixture login_otp calls in agent_runs. A first fix cached a refresh token for that
+// account in public.app_secrets; that put a live credential for the founder in a table and turned the
+// schema drift check red. Both are gone:
+//   - the identity is QA_IDENTITY below, a ZZ DEMO address on example.invalid that can never deliver
+//     mail to anybody. login_otp's verify (user_kind admin) creates its auth user on first use and
+//     writes no customers or leads row for it. assertQaIdentity refuses anything else, and refuses
+//     any address listed in app_secrets.admin_emails, so the founder's account cannot be selected
+//     even by editing the constant.
+//   - the session lives only in this process. Nothing is written to app_secrets or any table, and
+//     the finally signs the session out (scope=global, so a leftover from a killed run dies too).
+const QA_IDENTITY = 'zz-demo-qa-check-admin@example.invalid';
+function assertQaIdentity(email, adminList) {
+  const e = String(email || '').trim().toLowerCase();
+  assert.ok(/^zz-demo-[a-z0-9.-]+@example\.invalid$/.test(e) || /^qa\.[a-z0-9.-]+@quotesdone\.com$/.test(e),
+    `refusing to sign in as ${e}: this check may only use a ZZ DEMO @example.invalid or qa.*@quotesdone.com identity`);
+  const admins = String(adminList || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  assert.ok(!admins.includes(e), `refusing to sign in as ${e}: it is listed in admin_emails, which is a real person`);
+  return e;
+}
 const anonKey = async (project) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${project}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmtToken } });
   const k = (await r.json().catch(() => [])).find?.((x) => x.name === 'anon')?.api_key;
   assert.ok(k, `could not read the anon key: ${r.status}`);
   return k;
 };
-async function adminSession(project, adminEmail) {
+async function qaSession(project, email) {
   const anon = await anonKey(project);
-  const [row] = await q(project, `select value from public.app_secrets where key = '${SESSION_KEY}'`);
-  const cached = row ? row.value : null;
-  if (tokenOk(cached)) {
-    const r = await fetch(`https://${project}.supabase.co/auth/v1/token?grant_type=refresh_token`, {
-      method: 'POST', headers: { apikey: anon, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: cached }),
-    });
-    const j = await r.json().catch(() => ({}));
-    if (r.ok && j.access_token && String(j.user?.email || '').toLowerCase() === adminEmail) return { anon, hadRow: !!row, cached, ...j };
-  }
-  const code = '246813';
+  // A one-time code generated for this run; it is hashed into the row and never printed.
+  const code = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
   await q(project, `insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
-    values ('${adminEmail}', encode(hmac('${code}', (select value from app_secrets where key='otp_hmac_key'), 'sha256'), 'hex'),
+    values ('${email}', encode(hmac('${code}', (select value from app_secrets where key='otp_hmac_key'), 'sha256'), 'hex'),
             'login', 'admin', now() + interval '5 minutes')`);
   const mint = await fetch(`https://${project}.supabase.co/functions/v1/login_otp`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'verify', user_kind: 'admin', identifier: adminEmail, code }),
+    body: JSON.stringify({ action: 'verify', user_kind: 'admin', identifier: email, code }),
   }).then((r) => r.json());
-  assert.ok(mint.access_token, `could not mint an admin session: ${JSON.stringify({ ...mint, access_token: undefined, refresh_token: undefined }).slice(0, 160)}`);
-  return { anon, hadRow: !!row, cached, ...mint };
+  assert.ok(mint.access_token, `could not mint a QA session: ${JSON.stringify({ ...mint, access_token: undefined, refresh_token: undefined }).slice(0, 160)}`);
+  assert.equal(String(mint.email || '').toLowerCase(), email, 'login_otp signed in a different identity than the QA one asked for');
+  return { anon, access_token: mint.access_token };
 }
-async function keepOrRevoke(project, s) {
-  let kept = [];
-  if (tokenOk(s.refresh_token)) {
-    kept = await q(project, !s.hadRow
-      ? `insert into public.app_secrets (key, value) values ('${SESSION_KEY}', '${s.refresh_token}') on conflict (key) do nothing returning 1 k`
-      : `update public.app_secrets set value = '${s.refresh_token}', updated_at = now() where key = '${SESSION_KEY}'
-           ${tokenOk(s.cached) ? `and value = '${s.cached}'` : ''} returning 1 k`);
-  }
-  if (!kept.length) {
-    await fetch(`https://${project}.supabase.co/auth/v1/logout?scope=local`, {
-      method: 'POST', headers: { apikey: s.anon, Authorization: 'Bearer ' + s.access_token },
-    }).catch(() => {});
-  }
+async function signOut(project, s) {
+  const r = await fetch(`https://${project}.supabase.co/auth/v1/logout?scope=global`, {
+    method: 'POST', headers: { apikey: s.anon, Authorization: 'Bearer ' + s.access_token },
+  });
+  assert.ok(r.status === 204 || r.ok, `could not sign the QA session out: ${r.status}`);
 }
 
 // READING WHO YOU ARE MUST NOT CREATE WHO YOU ARE.
@@ -215,17 +212,16 @@ for (const [label, project] of Object.entries(PROJECTS)) {
     if (!mgmtToken) { t.skip('no management token'); return; }
 
     const admins = await q(project, `select value from app_secrets where key='admin_emails'`);
-    const adminEmail = String(admins[0]?.value || '').split(',')[0].trim().toLowerCase();
-    assert.ok(adminEmail, 'admin_emails is unset, so this check has no non-customer identity to use');
+    const qaEmail = assertQaIdentity(QA_IDENTITY, admins[0]?.value);
 
     const before = await q(project, `select count(*)::int n from public.customers`);
-    const hasRow = await q(project, `select count(*)::int n from public.customers where lower(btrim(email)) = '${adminEmail}'`);
-    // If the admin address genuinely holds a customer account this check cannot tell creation from
-    // a pre-existing row, so say so rather than pass on a technicality.
+    const hasRow = await q(project, `select count(*)::int n from public.customers where lower(btrim(email)) = '${qaEmail}'`);
+    // If the QA address holds a customer account this check cannot tell creation from a
+    // pre-existing row, so say so rather than pass on a technicality.
     assert.equal(Number(hasRow[0].n), 0,
-      `${adminEmail} holds a customers row, so this check cannot prove the endpoint stopped creating them. Retire that row first.`);
+      `${qaEmail} holds a customers row, so this check cannot prove the endpoint stopped creating them. Retire that row first.`);
 
-    const mint = await adminSession(project, adminEmail);
+    const mint = await qaSession(project, qaEmail);
     try {
       const me = await fetch(`https://${project}.supabase.co/functions/v1/customer_api`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + mint.access_token },
@@ -236,7 +232,7 @@ for (const [label, project] of Object.entries(PROJECTS)) {
       const after = await q(project, `select count(*)::int n from public.customers`);
       assert.equal(Number(after[0].n), Number(before[0].n),
       'reading customer_api created a customers row - the endpoint is manufacturing accounts again');
-    } finally { await keepOrRevoke(project, mint); }
+    } finally { await signOut(project, mint); }
   });
 }
 
