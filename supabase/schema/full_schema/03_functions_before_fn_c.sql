@@ -11350,7 +11350,7 @@ AS $function$
     select max(d.dy) filter (where d.kd = 'full' and d.st = 'done') as newest_full,
            max(d.dy) filter (where d.kd = 'full') as latest_full_attempt
       from d),
-  -- kept for ever: the first complete full copy of each month, or a full-less month's last complete copy
+  -- the month's copy: its first complete full copy, or a full-less month's last complete copy
   mf as (
     select date_trunc('month', d.dy)::date as mo,
            min(d.dy) filter (where d.kd = 'full' and d.st = 'done') as first_full,
@@ -11358,7 +11358,8 @@ AS $function$
       from d group by 1),
   k as (
     select d.dy, d.og, d.kd, d.st,
-           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as forever,
+           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as month_copy,
+           (date_trunc('month', d.dy)::date > (date_trunc('month', p_today) - interval '12 months')::date) as within_12_months,
            case when g.newest_full is null then 'blocked: no complete full copy exists, so nothing is deleted'
                 when g.latest_full_attempt > g.newest_full
                   then 'blocked: the latest full copy (' || g.latest_full_attempt || ') did not complete, so nothing is deleted'
@@ -11366,12 +11367,11 @@ AS $function$
            d.dy = g.newest_full as is_newest_full,
            d.dy > g.newest_full as after_newest_full,
            d.st = 'running' as running,
-           (p_today - d.dy) <= 90 as within_90,
-           (d.kd = 'full' and d.st = 'done' and extract(isodow from d.dy) = 5
-            and d.dy > (p_today - interval '12 months')::date) as friday_kept
+           (p_today - d.dy) <= 30 as within_30
       from d cross join g left join mf on mf.mo = date_trunc('month', d.dy)::date),
   kp as (
-    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.forever or k.within_90 or k.friday_kept) as policy_keep from k),
+    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.within_30
+                 or (k.month_copy and k.within_12_months)) as policy_keep from k),
   anchor as (
     select kp.dy as inc_day,
            (select max(f.dy) from d f where f.kd = 'full' and f.st = 'done' and f.dy <= kp.dy) as full_day
@@ -11384,14 +11384,13 @@ AS $function$
               when c.is_newest_full then 'the newest complete full copy'
               when c.after_newest_full then 'part of the newest restore chain (the newest full copy and every day after it)'
               when c.running then 'still being written'
-              when c.forever and c.kd = 'full' then 'the first complete full copy of its month, kept forever'
-              when c.forever then 'the last complete copy of a month with no full copy, kept forever'
-              when c.within_90 then 'within 90 days'
-              when c.friday_kept then 'a complete Friday full copy within 12 months'
+              when c.within_30 then 'within 30 days'
+              when c.month_copy and c.within_12_months and c.kd = 'full' then 'the first complete full copy of its month, within 12 months'
+              when c.month_copy and c.within_12_months then 'the last complete copy of a month with no full copy, within 12 months'
               when c.in_kept_chain then 'needed by a kept kb_chunks restore chain (its full copy, or a day between)'
-              when c.kd = 'full' and c.st = 'done' and extract(isodow from c.dy) = 5 then 'a Friday full copy older than 12 months'
-              when c.st <> 'done' then 'an incomplete export (' || coalesce(nullif(c.st, ''), 'unknown') || ') older than 90 days'
-              else 'a daily copy older than 90 days'
+              when c.month_copy then 'a monthly copy older than 12 months'
+              when c.st <> 'done' then 'an incomplete export (' || coalesce(nullif(c.st, ''), 'unknown') || ') older than 30 days'
+              else 'a daily copy older than 30 days'
          end
     from c order by c.dy;
 $function$
