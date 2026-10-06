@@ -1316,6 +1316,33 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_e2e_run_tag_current()
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return coalesce(nullif(current_setting('app.e2e_run_tag', true), ''),
+                  case when nullif(current_setting('request.jwt.claims', true), '')::json ->> 'role' = 'service_role'
+                       then nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-qd-e2e-run', '') end);
+exception when others then
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_e2e_run_tag_open(p_tag text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_tag ~ '^[a-z0-9]{4,16}$' and exists (
+    select 1 from public.rehearsal_window w
+     where w.run_tag = 'qd_run:' || p_tag and w.ended_at is null and w.models_allowed and w.expires_at > now())
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ea_agenda(p_days integer DEFAULT 7)
  RETURNS jsonb
  LANGUAGE sql
@@ -1518,6 +1545,46 @@ begin
   end loop;
   return jsonb_build_object('ok', true, 'reason', 'sendable');
 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text, p_type text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_e text; v_pat record; v_dom text;
+begin
+  v_e := lower(btrim(coalesce(p_email, '')));
+  if v_e = '' then return jsonb_build_object('ok', false, 'reason', 'no address'); end if;
+  if v_e !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$' then
+    return jsonb_build_object('ok', false, 'reason', 'not a valid address shape');
+  end if;
+  if exists (select 1 from public.email_suppressions s where lower(s.email) = v_e
+               and (lower(btrim(coalesce(s.reason, ''))) <> 'unsubscribe' or public.fn_email_type_is_marketing(p_type))) then
+    return jsonb_build_object('ok', false, 'reason', 'suppressed');
+  end if;
+  v_dom := split_part(v_e, '@', 2);
+  if exists (select 1 from public.email_domain_mx m
+              where m.domain = v_dom and m.has_mx = false and m.kind in ('nxdomain', 'no_records')) then
+    return jsonb_build_object('ok', false, 'reason', 'domain does not accept mail');
+  end if;
+  for v_pat in select pattern, reason from public.email_block_pattern where active loop
+    if v_e ~ v_pat.pattern then return jsonb_build_object('ok', false, 'reason', v_pat.reason); end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'reason', 'sendable');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_type_is_marketing(p_type text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_type is null or p_type = any (public.fn_opt_out_types())
+      or p_type ~* '(invite|nudge|newsletter|marketing|promo|winback|activation)';
 $function$
 
 

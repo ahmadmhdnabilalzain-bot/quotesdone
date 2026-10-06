@@ -242,6 +242,104 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with i as (select * from public.inquiries where id = p_inquiry),
+  msg as (select v.source_table, v.source_id, v.channel, v.direction, v.occurred_at
+            from public.v_conversation_message v where v.inquiry_id = p_inquiry::text),
+  q as (select qu.*, l.company_name from public.quotes qu left join public.leads l on l.id = qu.supplier_id
+         where qu.inquiry_id = p_inquiry),
+  t as (select * from public.transactions where inquiry_id = p_inquiry),
+  rq as (select * from q where q.id in (select quote_id from t))
+  select jsonb_build_object(
+    'inquiry', (select jsonb_build_object('id', i.id, 'rfq_no', i.rfq_no, 'category', i.category, 'trades', i.trades,
+                  'emirate', i.emirate, 'summary', i.summary, 'budget', i.budget, 'required_by', i.required_by,
+                  'status', i.status) from i),
+    'parties', jsonb_build_object(
+       'customer_id', (select customer_id from i),
+       'suppliers', (select coalesce(jsonb_agg(distinct jsonb_build_object('supplier_id', q.supplier_id, 'company', q.company_name)), '[]') from q)),
+    'spec_decisions', jsonb_build_object(
+       'clarifications', (select coalesce(jsonb_agg(jsonb_build_object('asked_at', r.asked_at, 'kind', r.kind,
+                            'question', r.question, 'answer', r.answer) order by r.asked_at), '[]')
+                            from public.rfq_clarification r where r.inquiry_id = p_inquiry),
+       'accepted_alternatives', (select accepted_alternatives from i)),
+    'amounts', jsonb_build_object(
+       'quotes', (select coalesce(jsonb_agg(jsonb_build_object('supplier_id', q.supplier_id, 'quote_amount', q.quote_amount,
+                    'customer_price', q.customer_price, 'status', q.status, 'at', q.created_at) order by q.created_at), '[]') from q),
+       'transactions', (select coalesce(jsonb_agg(jsonb_build_object('quote_id', t.quote_id, 'quote_amount', t.quote_amount,
+                    'reveal_fee', t.reveal_fee, 'total_charged', t.total_charged, 'revealed_at', t.revealed_at,
+                    'refund_status', t.refund_status, 'refund_amount_aed', t.refund_amount_aed)), '[]') from t)),
+    'dates', jsonb_build_object(
+       'created', (select created_at from i), 'first_quote', (select min(created_at) from q),
+       'revealed', (select min(revealed_at) from t), 'completed', (select completed_at from i),
+       'first_message', (select min(occurred_at) from msg), 'last_message', (select max(occurred_at) from msg)),
+    'commitments', (select coalesce(jsonb_agg(jsonb_build_object('supplier_id', rq.supplier_id, 'lead_time', rq.lead_time,
+                      'validity', rq.validity, 'payment_terms', rq.payment_terms, 'warranty', rq.warranty,
+                      'scope', rq.scope, 'exclusions', rq.exclusions)), '[]') from rq),
+    'disputes', jsonb_build_object(
+       'post_reveal', (select coalesce(jsonb_agg(jsonb_build_object('raised_by', d.raised_by, 'stage', d.stage,
+                        'outcome', d.outcome, 'decided_at', d.decided_at)), '[]') from public.post_reveal_dispute d where d.inquiry_id = p_inquiry),
+       'refunds', (select coalesce(jsonb_agg(jsonb_build_object('status', r.status, 'reason_code', r.reason_code,
+                    'amount_fils', r.amount_fils, 'settled_at', r.settled_at)), '[]') from public.refunds r where r.inquiry_id = p_inquiry),
+       'complaints', (select coalesce(jsonb_agg(jsonb_build_object('ticket_no', ct.ticket_no, 'status', ct.status,
+                       'at', ct.created_at)), '[]')
+                       from public.complaint_tickets ct join public.customers c on lower(c.email) = lower(ct.email)
+                      where c.id = (select customer_id from i))),
+    'outcome', (select jsonb_build_object('outcome', i.outcome, 'lost_reason', i.lost_reason, 'status', i.status,
+                  'hired_supplier_id', i.hired_supplier_id) from i),
+    'conversation', jsonb_build_object(
+       'messages', (select count(*) from msg),
+       'by_channel', (select coalesce(jsonb_object_agg(channel, n), '{}') from (select channel, count(*) n from msg group by 1) c),
+       'sources', (select coalesce(jsonb_agg(source_table || ':' || source_id order by occurred_at), '[]') from msg)),
+    'originals', 'kept: Cabinet Decision 74/2023 Art. 3(1)(b) requires the records for 5 years from the end of the year of creation; this summary is an index');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_due(p_now timestamp with time zone DEFAULT now(), p_limit integer DEFAULT 50)
+ RETURNS TABLE(inquiry_id uuid, last_activity timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select i.id, la.at
+    from public.inquiries i
+    cross join lateral (
+      select greatest(i.created_at, i.stage_changed_at, i.completed_at,
+                      (select max(v.occurred_at) from public.v_conversation_message v where v.inquiry_id = i.id::text),
+                      (select max(t.revealed_at) from public.transactions t where t.inquiry_id = i.id)) as at) la
+   where (i.completed_at is not null or i.outcome is not null or i.lost_reason is not null
+          or lower(coalesce(i.status, '')) in ('closed', 'completed', 'cancelled', 'canceled', 'lost', 'expired', 'won', 'hired', 'revealed'))
+     and la.at < p_now - interval '90 days'
+     and not exists (select 1 from public.inquiry_conversation_summary s where s.inquiry_id = i.id and s.last_activity >= la.at)
+   order by la.at
+   limit greatest(p_limit, 0);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_run(p_limit integer DEFAULT 50)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; n int := 0;
+begin
+  for r in select * from public.fn_inquiry_conversation_summary_due(now(), p_limit) loop
+    insert into public.inquiry_conversation_summary (inquiry_id, customer_id, summary, last_activity, built_at)
+    select r.inquiry_id, i.customer_id, public.fn_inquiry_conversation_summary_build(r.inquiry_id), r.last_activity, now()
+      from public.inquiries i where i.id = r.inquiry_id
+    on conflict (inquiry_id) do update
+       set summary = excluded.summary, last_activity = excluded.last_activity, built_at = excluded.built_at;
+    n := n + 1;
+  end loop;
+  return jsonb_build_object('summarised', n, 'ran_at', now());
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inquiry_is_demo(p_inquiry uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -8457,6 +8555,24 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_kb_chunks_swap_log()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if tg_op in ('UPDATE', 'DELETE') then
+    insert into public.kb_chunks_swap_log (id) values (old.id);
+  end if;
+  if tg_op = 'INSERT' or (tg_op = 'UPDATE' and new.id is distinct from old.id) then
+    insert into public.kb_chunks_swap_log (id) values (new.id);
+  end if;
+  return null;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_kb_embed_backlog()
  RETURNS jsonb
  LANGUAGE sql
@@ -9081,6 +9197,10 @@ declare
   v_model   text := nullif(btrim(coalesce(p_model, '')), '');
   v_reg     boolean;
   v_open    timestamptz;
+  v_tag     text;
+  v_cap     numeric;
+  v_spent   numeric;
+  v_rehearsal boolean := false;
 begin
   -- An EMPTY STRING is not a deterministic path, it is a caller that did not say. Denied, with its
   -- own rule name, because "I passed you nothing" and "I am not calling a provider" are different
@@ -9097,6 +9217,25 @@ begin
   if v_model is null or v_model in ('none', 'none/deterministic') then
     return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
       'rule', 'deterministic_path', 'reason', 'no provider call is being made', 'model', p_model);
+  end if;
+
+  -- 0. A SANDBOX RUN'S CALL (ledger 1119). Untagged traffic skips this block entirely.
+  v_tag := public.fn_e2e_run_tag_current();
+  if v_tag is not null then
+    if not coalesce(public.fn_e2e_run_tag_open(v_tag), false) then
+      return jsonb_build_object('allowed', false, 'gate', 'kernel_k12', 'rule', 'rehearsal_window_closed',
+        'reason', 'the call carries sandbox run tag ' || left(v_tag, 16) || ' but no open, unexpired, model-enabled rehearsal window names it',
+        'model', v_model);
+    end if;
+    select w.cap_usd into v_cap from public.rehearsal_window w
+     where w.run_tag = 'qd_run:' || v_tag and w.ended_at is null order by w.started_at desc limit 1;
+    select coalesce(sum(cost_aed), 0) / 3.6725 into v_spent from public.ai_cost_log where e2e_run_tag = v_tag;
+    if v_spent >= v_cap then
+      return jsonb_build_object('allowed', false, 'gate', 'kernel_k12', 'rule', 'rehearsal_cap',
+        'reason', 'sandbox run ' || v_tag || ' has spent USD ' || round(v_spent, 4) || ' of its USD ' || v_cap || ' cap',
+        'model', v_model);
+    end if;
+    v_rehearsal := true;
   end if;
 
   -- 1. the explicit switch
@@ -9120,9 +9259,10 @@ begin
   end if;
 
   -- 3. the founder's hold, on ANY route. He held the whole estate on 15 Aug 2026; holding one route
-  --    and leaving the others open would not be what he asked for.
+  --    and leaving the others open would not be what he asked for. A sandbox run inside its open
+  --    window passes the hold; it does not lift it.
   select count(*) into v_held from public.llm_route_health where open_until is not null and open_until > now();
-  if v_held > 0 then
+  if v_held > 0 and not v_rehearsal then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
       'rule', 'founder_hold',
       'reason', v_held || ' of ' || v_routes || ' routes are held open-circuit until '
@@ -9138,13 +9278,23 @@ begin
       'reason', 'model ' || v_model || ' is not an active row in model_registry', 'model', v_model);
   end if;
 
-  -- 5. this route's own breaker
+  -- 5. this route's own breaker. For a sandbox run, a route held by the hold is not a breaker. Measured
+  --    6 Oct 2026: every route is held to 2126-08-15, with opened_reason either 'HELD BY THE FOUNDER' or
+  --    'held with the rest of the fleet'. A real breaker opens for cooldown_seconds (900). So 'held' is
+  --    read from the date (more than a year out), never from the reason text, which has two spellings.
   select open_until into v_open from public.llm_route_health where model_id = v_model;
-  if v_open is not null and v_open > now() then
+  if v_open is not null and v_open > now()
+     and not (v_rehearsal and v_open > now() + interval '365 days') then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
       'rule', 'route_open', 'reason', 'circuit open until ' || v_open::text, 'model', v_model);
   end if;
 
+  if v_rehearsal then
+    return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
+      'rule', 'rehearsal_window', 'reason', 'sandbox run ' || v_tag || ' inside its open window, USD '
+             || round(v_spent, 4) || ' of ' || v_cap || ' spent; the founder''s hold stays on for all other traffic',
+      'model', v_model);
+  end if;
   return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
     'rule', 'registered_breaker_closed', 'reason', 'switch off, no hold, route registered, breaker closed',
     'model', v_model);
@@ -10249,6 +10399,55 @@ AS $function$
     (select c.retryable and p_attempt_no <= c.max_retries
        from llm_failure_class c where c.class_key = p_class_key),
     false);   -- unknown class is NOT retryable: an unnamed failure never earns another attempt
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_login_otp_email_issue(p_email text, p_hash text, p_kind text, p_ttl_seconds integer DEFAULT 600)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform pg_advisory_xact_lock(hashtext('login_otp_email:' || p_email));
+  update public.email_verifications set used_at = now()
+   where email = p_email and purpose = 'login' and used_at is null;
+  insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
+  values (p_email, p_hash, 'login', p_kind, now() + make_interval(secs => p_ttl_seconds));
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_login_otp_email_verify(p_email text, p_hash text, p_code text, p_max_attempts integer DEFAULT 5)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+begin
+  select id, expires_at, attempts, token_hash, token
+    into r
+    from public.email_verifications
+   where email = p_email and purpose = 'login' and used_at is null
+   order by created_at desc
+   limit 1
+   for update;
+  if not found then return 'no_code'; end if;
+  if r.expires_at < now() then return 'expired'; end if;
+  if coalesce(r.attempts, 0) >= p_max_attempts then
+    update public.email_verifications set used_at = now() where id = r.id and used_at is null;
+    return 'burned';
+  end if;
+  update public.email_verifications set attempts = coalesce(attempts, 0) + 1 where id = r.id;
+  if (r.token_hash is not null and r.token_hash = p_hash)
+     or (r.token_hash is null and r.token is not null and r.token = p_code) then
+    update public.email_verifications set used_at = now() where id = r.id and used_at is null;
+    if found then return 'ok'; end if;
+  end if;
+  return 'wrong';
+end
 $function$
 
 

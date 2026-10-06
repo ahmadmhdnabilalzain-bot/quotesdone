@@ -20,6 +20,7 @@ import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
+import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { defaultDeps, replayHeld } from '../_shared/think.ts';
@@ -139,14 +140,26 @@ async function ratingTick(): Promise<unknown> {
 // SELECT and returns — 96 a day, sending nothing and consuming none of the daily send cap — and in
 // exchange `send_outbox has not run` becomes a sentence that is only true when something IS broken.
 // A heartbeat that beats only under load is not a heartbeat.
+// FOUR SWEEPS AT ONCE (it_engineer, 6 Oct 2026). One sweep of 4 a beat is 16 PDFs an hour; on 5 Oct
+// the supplier invitation run sent 106 mails at 18:38 UTC and 27 messages were still without a PDF
+// past the 2-hour line every_conversation_is_kept checks. A sweep cannot take more (5 is the
+// renderer's per-worker ceiling), so four run in parallel, each in its own worker, over disjoint
+// slices of the oldest-first list: 64 an hour for the same wall time. An empty slice is one SELECT.
+const ARCHIVE_SWEEPS = 4, ARCHIVE_BATCH = 4;
 async function archiveTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
-    const r = await fetch(FN + '/conversation_archive', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-      body: JSON.stringify({ __secret: secret, action: 'sweep', limit: 4 }), signal: AbortSignal.timeout(50000),
-    });
-    return { status: r.status, result: await r.json().catch(() => null) };
+    const one = async (offset: number) => {
+      try {
+        const r = await fetch(FN + '/conversation_archive', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal: AbortSignal.timeout(50000),
+        });
+        return { offset, status: r.status, result: await r.json().catch(() => null) };
+      } catch (e) { return { offset, ok: false, error: String((e as Error)?.message || e) }; }
+    };
+    const sweeps = await Promise.all(Array.from({ length: ARCHIVE_SWEEPS }, (_, i) => one(i * ARCHIVE_BATCH)));
+    return { status: (sweeps[0] as { status?: number }).status, result: (sweeps[0] as { result?: unknown }).result, sweeps };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -1109,11 +1122,37 @@ async function itIntegrationsTick(): Promise<unknown> {
                settled: (data as Record<string, unknown> | null)?.failing ?? null };
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
   })();
+  const replies = m365Replies();   // a third independent path (6 Oct 2026): replies to the Microsoft 365 mailbox
   const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
+  const inbox = await replies;
   // Either path failing is this step's failure (duty:heartbeat:itintegrations), so it reaches the IT engineer's loop
   // the same beat. The batch is held by the gate regardless. placement carries counts and verdicts only (public).
-  const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null].filter(Boolean);
-  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement };
+  const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null,
+    inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null].filter(Boolean);
+  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox };
+}
+
+// REPLIES TO supplier@quotesdone.com (6 Oct 2026, it_engineer + customer_support; _shared/m365_reply_inbox.ts).
+// The invitation lane sends without a Reply-To once this reader is proven, so a supplier's answer lands in that
+// mailbox; this reads it and hands every new message to resend_inbound, the handler every other reply goes through.
+async function m365Replies(): Promise<Record<string, unknown>> {
+  try {
+    return await pollReplyInbox({
+      fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
+      mailbox: await sec('invite_m365_mailbox'), inboundToken: await sec('resend_inbound_token'),
+      signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
+      onFile: async (ids) => {
+        const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
+        if (error) throw new Error('inbound_messages: ' + error.message);
+        return new Set((data || []).map((r) => String(r.provider_email_id)));
+      },
+      fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; },
+      record: async (status, counts, note) => {
+        await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),
+          started_at: new Date().toISOString(), finished_at: new Date().toISOString() });
+      },
+    });
+  } catch (e) { return { ok: false, why: String((e as Error)?.message || e).slice(0, 200) }; }
 }
 
 // DUTIES 9-15 ON THEIR OWN CADENCES (founder, 14 Sep 2026: "fine build those tasks for IT agent").
