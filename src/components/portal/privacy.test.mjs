@@ -22,8 +22,8 @@ test('every routine the screen calls is granted to authenticated, with the argum
 });
 
 test('both account pages mount the controls; the supplier one is English only', () => {
-  assert.match(read('../me/CustomerPortal.tsx'), /<PrivacyControls lang=\{lang === 'ar' \? 'ar' : 'en'\} \/>/);
-  assert.match(read('./supplier/SupplierSettings.tsx'), /<PrivacyControls lang="en" \/>/);
+  assert.ok(read('../me/CustomerPortal.tsx').includes("<PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} />"));
+  assert.ok(read('./supplier/SupplierSettings.tsx').includes('<PrivacyControls token={token} lang="en" />'));
   for (const id of ['privacy-export', 'privacy-erase', 'privacy-code', 'privacy-erase-cancel']) assert.ok(UI.includes(`data-testid="${id}"`), id);
 });
 
@@ -89,4 +89,17 @@ test('the server status decides Cancel on any device; an unanswerable status kee
   assert.equal(pendingFromStatus({ ok: true, requests: [{ request_id: 'r', kind: 'delete', status: 'received' }] }, now), null);
   assert.equal(pendingFromStatus({ ok: false, code: 'email_not_verified' }, now), undefined);
   assert.equal(pendingFromStatus(null, now), undefined);
+});
+
+test('each portal calls the routines with its OWN session, never a shared storage key', () => {
+  // the controls take the portal's token and use it for every call; no storage key is named here
+  const has = (src, s) => assert.ok(src.includes(s), s), lacks = (src, s) => assert.ok(!src.includes(s), 'must not contain ' + s);
+  has(UI, "supaRpcAs(token || '', fn, args)");
+  for (const s of ['qd-portal-auth', 'qd-cust-auth', 'supaRpcMaybeOne', 'supaClient(']) lacks(UI, s);
+  // and that token is the portal's own: the customer's comes from qd-cust-token, the supplier's from qd-sup-token
+  const cust = read('../me/CustomerPortal.tsx'), sup = read('./SupplierPortal.tsx'), set = read('./supplier/SupplierSettings.tsx');
+  has(cust, "localStorage.setItem('qd-cust-token'"); lacks(cust, 'qd-sup-token');
+  has(sup, "localStorage.setItem('qd-sup-token'"); lacks(sup, 'qd-cust-token');
+  has(sup, '<SupplierSettings token={token}'); has(set, '<PrivacyControls token={token}');
+  has(cust, '<AccountSettings token={token}'); has(cust, '<PrivacyControls token={token}');
 });

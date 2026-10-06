@@ -7,11 +7,10 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { supaRpcMaybeOne } from '@/lib/supaClient';
+import { supaRpcAs } from '@/lib/supaClient';
 import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode } from './privacy';
 
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<Record<string, any> | null>;
-const liveRpc: Rpc = (fn, args) => supaRpcMaybeOne('qd-portal-auth', fn, args);
 
 const store = {
   get: () => { try { return localStorage.getItem(STORE_KEY); } catch { return null; } },
@@ -31,7 +30,10 @@ const Msg = ({ m, err }: { m: string; err: boolean }) => m
   ? <p role={err ? 'alert' : 'status'} className={err ? 'text-[12.5px] text-danger-fg' : 'text-[12.5px] text-muted-foreground'}>{m}</p>
   : null;
 
-export function PrivacyControls({ lang = 'en', rpc = liveRpc }: { lang?: Lang; rpc?: Rpc }) {
+// `token` is the calling portal's own access token (customer: qd-cust-token, supplier: qd-sup-token), never a
+// shared storage key: a fixed key ran a customer's request as the supplier session (review of #1273).
+export function PrivacyControls({ token, lang = 'en', rpc: rpcIn }: { token?: string | null; lang?: Lang; rpc?: Rpc }) {
+  const rpc: Rpc = rpcIn ?? ((fn, args) => supaRpcAs(token || '', fn, args));
   const ids = useId();
   const [busy, setBusy] = useState('');
   const [exp, setExp] = useState({ m: '', err: false });
@@ -46,10 +48,11 @@ export function PrivacyControls({ lang = 'en', rpc = liveRpc }: { lang?: Lang; r
   // The server's answer wins (any device); the browser's memory is only the fallback if the routine cannot answer.
   useEffect(() => {
     setPending(livePending(store.get()));
+    if (!token) return;
     let live = true;
     rpc('pdpl_status_me', {}).then((j) => { const p = pendingFromStatus(j); if (live && p !== undefined) { store.set(p); setPending(p); } }).catch(() => {});
     return () => { live = false; };
-  }, [rpc]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (req) codeRef.current?.focus(); }, [req]);
 
   const run = async (k: string, f: () => Promise<void>) => {

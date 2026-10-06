@@ -227,7 +227,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
           : t(lang, 'never')}</Fact>
       </section>
       {/* Suppliers are English only on every channel (standing rule), whatever the interface language. */}
-      <PrivacyControls lang="en" />
+      <PrivacyControls token={token} lang="en" />
     </div>
   );
 }

@@ -1966,7 +1966,7 @@ function AccountSettings({ token, lang, onChanged }) {
       </div>
     </Card>
     <p className={S.hint}>{t(lang, 'acct_device_note')}</p>
-    <PrivacyControls lang={lang === 'ar' ? 'ar' : 'en'} />
+    <PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} />
   </div>);
 }
 
