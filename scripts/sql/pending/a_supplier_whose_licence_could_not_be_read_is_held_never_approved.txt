@@ -1,0 +1,1 @@
+Assigned: sales_engineer. Committed, not applied: the release train applies it at merge (apply-at-merge rule), then runs a_supplier_whose_licence_could_not_be_read_is_held_never_approved_probe.sql. On apply: delete this note and append the .sql to the END of MANIFEST.txt.
