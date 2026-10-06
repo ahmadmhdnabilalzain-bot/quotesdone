@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // supplier_portal v5 — advanced supplier dashboard API. Supplier-authed (own leads row via claimed_by).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
@@ -153,7 +154,7 @@ async function listDocuments(supId: number) {
       attention: docs.filter((d) => d.status === 'expired' || d.status === 'expiring').length } };
 }
 
-Deno.serve(observe('supplier_portal', async (req) => {
+Deno.serve(siteCors(observe('supplier_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
   // what needs exercising. See warmPortal() in resilience_ping/index.ts.
@@ -706,4 +707,4 @@ Deno.serve(observe('supplier_portal', async (req) => {
 
     return J({ error: 'unknown_action', action }, 400);
   } catch (e) { return failed('request', 'unexpected_error', 'Something went wrong. Please try again.', e as Error); }
-}));
+})));
