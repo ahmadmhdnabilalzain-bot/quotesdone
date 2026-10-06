@@ -16,7 +16,7 @@ Deno.test('phone: a customer sign-in on a supplier number is texted, then refuse
   assertEquals(send.twilio.length, 1, 'the code goes to the handset before anything is said about the role');
   const v = await invoke(await fn(), supplierHolds, { action: 'verify', user_kind: 'customer', identifier: REAL_LOOKING, code: '123456' });
   assertEquals(v.status, 409, JSON.stringify(v.json));
-  assertEquals([v.json.code, v.json.conflict], ['role_conflict', 'supplier']);
+  assertEquals([v.json.code, v.json.conflict], ['role_conflict_phone', 'supplier']);
   assert(!minted(v.calls), 'a role conflict must not mint a session');
 });
 
@@ -28,7 +28,7 @@ Deno.test('phone: a wrong code on that number says only "wrong code", never the 
 
 Deno.test('phone control: the number\'s own role signs in, with no conflict', async () => {
   const v = await invoke(await fn(), supplierHolds, { action: 'verify', user_kind: 'supplier', identifier: REAL_LOOKING, code: '123456' });
-  assert(v.json?.code !== 'role_conflict', JSON.stringify(v.json));
+  assert(!String(v.json?.code).startsWith('role_conflict'), JSON.stringify(v.json));
   assert(minted(v.calls), 'the control must reach the session step, or it proves nothing');
 });
 

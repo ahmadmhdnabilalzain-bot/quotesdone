@@ -511,7 +511,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       const email = owner ? owner.email : '';
       if (!email) {
         const other = await otherRoleByPhone(kind, e164);
-        if (other) return J({ error: ROLE_CONFLICT_MSG[other], code: 'role_conflict', conflict: other }, 409);
+        if (other) return J({ error: ROLE_CONFLICT_MSG[other], code: 'role_conflict_phone', conflict: other }, 409);
       }
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.', code: 'no_account_for_number' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);

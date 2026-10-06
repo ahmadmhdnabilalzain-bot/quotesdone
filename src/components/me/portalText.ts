@@ -16,6 +16,7 @@ export const T = {
     call_note:'That number is a landline, so we are calling you now and reading the 6-digit code out. Answer and type it in below.', use_diff_number:'Use a different number',
     signup_email_only:"Please sign up with an email address — you'll add and verify your mobile in the next step.",
     conflict_supplier:'This email is registered as a supplier. Please use the Supplier portal to sign in.',
+    conflict_supplier_phone:'This mobile number is registered as a supplier. Please use the Supplier portal to sign in.',
     session_expired:'Your session has expired. Please sign in again.', load_failed:"Couldn't load your account. Please retry.", retry:'Retry',
     gate_title:'Complete your account', gate_sub:"A few details to finish signing up. We verify your mobile and email for everyone's security.",
     full_name:'Full name', mobile_ph:'Mobile (05x xxx xxxx)', dob_label:'Date of birth (you must be 18+)', save_details:'Save details', saving:'Saving…',
@@ -112,6 +113,7 @@ export const T = {
     junk_note:'قد يستغرق وصول الرمز دقيقة؛ تحقّق أيضًا من مجلد البريد غير المرغوب فيه.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'الرمز غير صحيح.',
     signup_email_only:'يُرجى التسجيل ببريدك الإلكتروني، ثم تضيف رقم جوالك وتؤكّده في الخطوة التالية.',
     conflict_supplier:'هذا البريد مسجّل لحساب مورّد. يُرجى تسجيل الدخول من بوابة المورّدين.',
+    conflict_supplier_phone:'رقم الجوال هذا مسجّل لحساب مورّد. يُرجى تسجيل الدخول من بوابة المورّدين.',
     session_expired:'انتهت جلستك. يُرجى تسجيل الدخول من جديد.', load_failed:'تعذّر تحميل حسابك. يُرجى المحاولة مجددًا.', retry:'إعادة المحاولة',
     gate_title:'أكمل حسابك', gate_sub:'بقيت بضعة بيانات لإكمال التسجيل. نتحقّق من جوالك وبريدك حفاظًا على أمان الجميع.',
     full_name:'الاسم الكامل', mobile_ph:'الجوال (05x xxx xxxx)', dob_label:'تاريخ الميلاد (يجب أن يكون عمرك 18 عامًا فأكثر)', save_details:'حفظ البيانات', saving:'جارٍ الحفظ…',
@@ -522,7 +524,7 @@ export const emirateName = (e, lang) => (lang === 'ar' && EMIRATE_AR[e]) || e;
 // back to a localised generic line rather than to raw English or a snake_case code.
 const CODE_KEY = {
   // login_otp verify answers role_conflict once the code proved the mailbox; role_guard no longer says so before (6 Oct 2026).
-  role_conflict: 'conflict_supplier',
+  role_conflict: 'conflict_supplier', role_conflict_phone: 'conflict_supplier_phone',
   stripe_not_configured: 'err_stripe_nc', stripe_error: 'err_stripe', intake_required: 'nr_more_details', registration_incomplete: 'err_registration',
   account_incomplete: 'err_registration', dob_required: 'err_dob_required', dob_invalid: 'err_dob_invalid', under_18: 'err_under_18',
   unauthorized: 'session_expired', 'Not signed in': 'session_expired', text_required: 'err_text_required', inquiry_closed: 'err_closed',
