@@ -155,3 +155,25 @@ Deno.test('graphSend: 202 records m365:<Message-ID>; a refusal is returned, not 
   let threw = false; try { await graphSend(fake(new Error('timeout')).fetchFn, ON, 'x', '<id@q>'); } catch { threw = true; }
   assert(threw);
 });
+
+// 5 Oct 2026: m365Body rebuilt the seed text from the link alone and dropped GlockApps' inbox-test ID; 0 of 80 matched.
+Deno.test('a placement seed keeps its trailing inbox-test ID; a real invitation never carries one', () => {
+  const ID = 'id:2026-10-05-18:36:55:550t';
+  const row = 'Dear ZZ DEMO Supplier,\n\nRegister: ' + LINK + '\n\nThanks.\n\n' + ID;
+  const seed = m365Body('supplier_invite_seed', row, M365_SEED_KIND);
+  assert(seed.endsWith('\n\n' + ID), 'the seed ends with its ID line');
+  assertEquals(seed, m365InvitationText(LINK) + '\n\n' + ID);
+  for (const l of m365CopyLint({ subject: 'Your company page on QuotesDone', body: seed, seed: true })) assert(l.ok, `${l.rule}: ${l.detail}`);
+  // the same body is NOT exempt when it is not linted as a seed: the year in the ID is a date
+  assert(m365CopyLint({ subject: 'x', body: seed }).some((l) => !l.ok && l.rule.includes('date')));
+  // a real invitation or nudge with an id: line never carries it
+  assertFalse(m365Body('supplier_invite', row).includes(ID), 'a real invite drops it');
+  assertFalse(m365Body('supplier_invite', row, 'supplier_invite').includes(ID));
+  assert(m365Body('supplier_invite_nudge', 'Reminder ' + LINK + '\n\n' + ID, 'supplier_invite_nudge').endsWith('?'), 'a nudge is not given the marker');
+  // the marker is the only exemption: a date elsewhere in a seed still fails, and so do the content rules
+  const dated = seed.replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026');
+  assert(m365CopyLint({ subject: 'x', body: dated, seed: true }).some((l) => !l.ok && l.rule.includes('date')));
+  assert(m365CopyLint({ subject: 'x', body: seed.replace('marketplace', 'AI marketplace'), seed: true }).some((l) => !l.ok));
+  // a line that is not exactly the marker shape is not carried
+  assertFalse(m365Body('supplier_invite_seed', row.replace(ID, 'id: 2026 bad'), M365_SEED_KIND).includes('id:'));
+});
