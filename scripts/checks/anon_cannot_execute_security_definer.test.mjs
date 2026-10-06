@@ -227,7 +227,7 @@ test('no SECURITY DEFINER routine in public is anon-executable', { skip: SKIP },
   assert.equal(Number(totals.anon_exec), ANON_CEILING, `anon-executable count is ${totals.anon_exec}, not ${ANON_CEILING}`);
 });
 
-test('exactly the two customer-document routines are authenticated-executable', { skip: SKIP }, () => {
+test('exactly the customer-document and PDPL self-service routines are authenticated-executable', { skip: SKIP }, () => {
   // A count alone would stay green if one of the two closed while an unrelated routine opened, so
   // this compares the SET. Anything new here needs the same per-function review E4 did: who calls
   // it, with which client, and is it named in an RLS policy the querying role evaluates?
