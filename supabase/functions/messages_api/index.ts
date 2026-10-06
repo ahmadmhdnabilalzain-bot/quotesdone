@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // messages_api — the customer's unified inbox, the post-reveal customer<->supplier chat, and the
 // pre-reveal anonymous Q&A (clarify_*).
 //
@@ -233,7 +234,7 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
   return R(400, { error: 'unknown action' });
 }
 
-Deno.serve(observe('messages_api', async (req) => {
+Deno.serve(siteCors(observe('messages_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
@@ -446,4 +447,4 @@ Deno.serve(observe('messages_api', async (req) => {
 
     return J({ error: 'unknown action' }, 400);
   } catch (e) { console.error('messages_api: unhandled —', String((e as Error)?.message || e)); return J({ error: 'Something went wrong. Please try again.', code: 'unexpected_error' }, 500); }
-}));
+})));

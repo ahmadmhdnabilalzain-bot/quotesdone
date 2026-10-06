@@ -15,7 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries, m365CopyLint, m365Mime, m365Text, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, graphSend, holdForM365, m365Body, m365Carries, m365CopyLint, m365Mime, m365ReplyTo, m365Text, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -197,8 +197,11 @@ Deno.serve(observe('send_outbox', async (req) => {
     const fileFinding = async (args: Record<string, unknown>) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; };
     let m365 = await resolveM365({ needed: rows.some(carries), mailbox: await setting('invite_m365_mailbox'), env: (k) => Deno.env.get(k),
       fetchFn: (u, i) => timedFetch(u, i || {}, 10_000), fileFinding });
-    let cappedSentToday = 0, m365SentToday = 0;
+    let cappedSentToday = 0, m365SentToday = 0, m365ProofAt: string | null = null;
     if (m365.active) {
+      // Reply-To is dropped only while the reply reader is proven (m365ReplyTo); an unreadable row keeps the old one.
+      const p = await admin.from('agent_runs').select('status,finished_at').eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1').order('finished_at', { ascending: false }).limit(1).maybeSingle();
+      m365ProofAt = !p.error && p.data?.status === 'ok' ? (p.data.finished_at as string) : null;
       const a = await admin.from('notifications').select('id', { count: 'exact', head: true }).in('type', [...LANE_CAPPED_TYPES]).eq('status', 'sent').gte('sent_at', since.toISOString());
       const b = await admin.from('notifications').select('id', { count: 'exact', head: true }).like('provider_message_id', M365_ID_PREFIX + '%').eq('status', 'sent').gte('sent_at', since.toISOString());
       // A count that cannot be read is treated as the ceiling reached: the lane holds rather than guesses.
@@ -289,7 +292,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         const bad = m365CopyLint({ subject: n.subject || '', body: mBody, seed: n.kind === M365_SEED_KIND }).filter((l) => !l.ok);
         if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
         const now = new Date(); const mid = messageIdFor(n.id, now);
-        const mime = m365Mime({ from: 'QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply, subject: n.subject || 'QuotesDone', text: m365Text(mBody, unsub), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
+        const mime = m365Mime({ from: 'QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: n.subject || 'QuotesDone', text: m365Text(mBody, unsub), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
         try {
           const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid);
           if (r.ok) {

@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
@@ -22,7 +23,7 @@ function mkLog(t0: number) {
   };
 }
 
-Deno.serve(observe('stripe_confirm', async (req) => {
+Deno.serve(siteCors(observe('stripe_confirm', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
@@ -91,4 +92,4 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     if (!e2) await logRun('ok', { quote_id: qid, reveal_fee: fee, quote_amount: amount }, 'recorded by stripe_confirm (browser path)');
     return J({ ok: true, ...(await disclose()) });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-}));
+})));

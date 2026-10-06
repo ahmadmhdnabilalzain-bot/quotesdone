@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // customer_documents — SPEC §14, the Document Intelligence Vault as the CUSTOMER reaches it.
 //
 // MEASURED BEFORE THIS FUNCTION EXISTED (production, 6 Aug 2026): public.documents had RLS enabled
@@ -33,7 +34,7 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 // bilingual answer line live in ./shape.ts so shape.test.ts can prove them without a database.
 import { answerLine, shape, type Doc, type Lang } from './shape.ts';
 
-Deno.serve(observe('customer_documents', async (req) => {
+Deno.serve(siteCors(observe('customer_documents', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     // FAIL CLOSED, AND FAIL FIRST. Without the anon key there is no way to reach PostgREST AS THE
@@ -191,4 +192,4 @@ Deno.serve(observe('customer_documents', async (req) => {
   } catch (e) {
     return J({ error: 'exception', detail: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));
