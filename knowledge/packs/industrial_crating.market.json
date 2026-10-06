@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "How should machinery be packed for a long sea voyage?",
-      "q_ar": "كيف تُغلف الآلات لرحلة بحرية طويلة؟",
+      "q_en": "What export crating and industrial packing options do UAE packers offer for cargo?",
+      "q_ar": "ما خيارات الصناديق الخشبية للتصدير والتغليف الصناعي التي تقدمها شركات التغليف في الإمارات للشحنات؟",
       "expected_entry_ids": [
         "industrial_crating:uae-market-products"
       ]

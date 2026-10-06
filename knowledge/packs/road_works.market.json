@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What thickness of interlock is needed for a car park?",
-      "q_ar": "ما سماكة الإنترلوك المطلوبة لموقف سيارات؟",
+      "q_en": "Which road, asphalt and interlock paving works do UAE contractors offer?",
+      "q_ar": "ما أعمال الطرق والأسفلت وبلاط الإنترلوك التي يقدمها المقاولون في الإمارات؟",
       "expected_entry_ids": [
         "road_works:uae-market-products"
       ]

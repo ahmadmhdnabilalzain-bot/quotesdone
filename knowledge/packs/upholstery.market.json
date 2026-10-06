@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What foam density should we use for majlis seat cushions?",
-      "q_ar": "ما كثافة الإسفنج التي يجب استخدامها لوسائد جلسات المجلس؟",
+      "q_en": "What upholstery materials and services can I find in the UAE, such as fabrics, leathers, foam and reupholstery?",
+      "q_ar": "ما مواد وخدمات التنجيد المتوفرة في الإمارات، مثل الأقمشة والجلود والإسفنج وإعادة التنجيد؟",
       "expected_entry_ids": [
         "upholstery:uae-market-products"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which concrete admixture helps pouring in UAE summer heat?",
-      "q_ar": "ما إضافة الخرسانة المناسبة للصب في حرارة صيف الإمارات؟",
+      "q_en": "What construction and industrial chemicals are commonly supplied in the UAE?",
+      "q_ar": "ما الكيماويات الإنشائية والصناعية التي تُورَّد عادةً في الإمارات؟",
       "expected_entry_ids": [
         "chemicals:uae-market-products"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What share of a building's cost is usually MEP?",
-      "q_ar": "ما النسبة المعتادة للأعمال الكهروميكانيكية من تكلفة المبنى؟",
+      "q_en": "How are MEP packages typically priced in the UAE, by BOQ per discipline or as a lump sum?",
+      "q_ar": "كيف تُسعَّر عادةً حزم الأعمال الكهروميكانيكية في الإمارات، بجدول كميات لكل تخصص أم بمبلغ مقطوع؟",
       "expected_entry_ids": [
         "mep_general:uae-market-sizes"
       ]

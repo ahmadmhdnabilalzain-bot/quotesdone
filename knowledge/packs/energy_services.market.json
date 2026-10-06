@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Is rooftop solar priced per kWp, and is there a zero-capex option?",
-      "q_ar": "هل تُسعّر الطاقة الشمسية على الأسطح لكل كيلوواط ذروة، وهل يوجد خيار دون نفقات رأسمالية؟",
+      "q_en": "How are energy audits, solar PV, ESCO retrofits and EV chargers priced in the UAE?",
+      "q_ar": "كيف تُسعَّر عمليات تدقيق الطاقة والطاقة الشمسية الكهروضوئية ومشاريع شركات خدمات الطاقة وشواحن السيارات الكهربائية في الإمارات؟",
       "expected_entry_ids": [
         "energy_services:uae-market-sizes"
       ]

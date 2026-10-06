@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Do we need an FTA-registered tax agent to handle our corporate tax audit?",
-      "q_ar": "هل نحتاج إلى وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب للتعامل مع تدقيق ضريبة الشركات؟",
+      "q_en": "Which tax advisory services do firms in the UAE provide across corporate tax, VAT and related compliance?",
+      "q_ar": "ما خدمات الاستشارات الضريبية التي تقدمها الشركات في الإمارات في ضريبة الشركات وضريبة القيمة المضافة والامتثال المرتبط بهما؟",
       "expected_entry_ids": [
         "tax_advisory:uae-market-products"
       ]

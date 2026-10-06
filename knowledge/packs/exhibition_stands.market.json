@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What is the maximum stand height allowed at Dubai World Trade Centre?",
-      "q_ar": "ما الحد الأقصى لارتفاع الجناح المسموح به في مركز دبي التجاري العالمي؟",
+      "q_en": "Which types of exhibition stands and display services can I source from UAE stand builders?",
+      "q_ar": "ما أنواع أجنحة المعارض وخدمات العرض التي يمكنني الحصول عليها من مقاولي الأجنحة في الإمارات؟",
       "expected_entry_ids": [
         "exhibition_stands:uae-market-products"
       ]

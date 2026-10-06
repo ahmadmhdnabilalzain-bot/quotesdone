@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which butterfly valve suits chilled water in a building?",
-      "q_ar": "ما صمام الفراشة المناسب للمياه المبردة في مبنى؟",
+      "q_en": "Which valve types and actuators are supplied in the UAE for water, HVAC and oil and gas service?",
+      "q_ar": "ما أنواع الصمامات والمشغلات التي تُورَّد في الإمارات لاستخدامات المياه والتكييف والنفط والغاز؟",
       "expected_entry_ids": [
         "valves_actuators:uae-market-products"
       ]

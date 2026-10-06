@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are clinical chemistry analysers usually priced for a hospital lab?",
-      "q_ar": "كيف تُسعّر عادةً محللات الكيمياء السريرية لمختبر مستشفى؟",
+      "q_en": "How are lab instruments, reagents and service contracts usually priced in the UAE?",
+      "q_ar": "كيف تُسعَّر الأجهزة المخبرية والكواشف وعقود الصيانة في الإمارات عادةً؟",
       "expected_entry_ids": [
         "laboratory_equipment:uae-market-sizes"
       ]

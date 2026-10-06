@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What panel thickness is used for a -20 °C freezer room?",
-      "q_ar": "ما سماكة الألواح المستخدمة لغرفة تجميد بدرجة -20 °م؟",
+      "q_en": "Give me an overview of the cold room and refrigeration equipment sold in the UAE market.",
+      "q_ar": "أعطني لمحة عامة عن غرف التبريد ومعدات التبريد المعروضة في السوق الإماراتي.",
       "expected_entry_ids": [
         "refrigeration_cold_rooms:uae-market-products"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which shielding gas is used for MIG welding carbon steel?",
-      "q_ar": "ما غاز الحماية المستخدم للحام MIG للفولاذ الكربوني؟",
+      "q_en": "Which industrial, medical and welding gases are supplied in the UAE?",
+      "q_ar": "ما الغازات الصناعية والطبية وغازات اللحام التي تُورَّد في الإمارات؟",
       "expected_entry_ids": [
         "industrial_gases:uae-market-products"
       ]

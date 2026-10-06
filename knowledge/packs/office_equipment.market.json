@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How is a managed print service priced for an office copier?",
-      "q_ar": "كيف تُسعّر خدمة الطباعة المُدارة لآلة تصوير مكتبية؟",
+      "q_en": "Should I buy, lease or pay per page for copiers in the UAE, and how do suppliers charge each?",
+      "q_ar": "هل أشتري آلات التصوير في الإمارات أم أستأجرها أم أدفع لكل صفحة، وكيف يحتسب الموردون كل خيار؟",
       "expected_entry_ids": [
         "office_equipment:uae-market-sizes"
       ]

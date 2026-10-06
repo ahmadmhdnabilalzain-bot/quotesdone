@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What rub count and fire standard should upholstery meet for hotel lobby sofas?",
-      "q_ar": "ما مقاومة الاحتكاك ومعيار الحريق الذي يجب أن يستوفيه التنجيد لأرائك ردهة الفندق؟",
+      "q_en": "What range of guestroom, lobby and outdoor furniture do hotel furniture suppliers in the UAE provide?",
+      "q_ar": "ما مجموعة أثاث غرف النزلاء والردهات والمساحات الخارجية التي يوفرها موردو أثاث الفنادق في الإمارات؟",
       "expected_entry_ids": [
         "hotel_furniture:uae-market-products"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Is an outsourced call centre agent priced per hour or per month?",
-      "q_ar": "هل يُسعّر وكيل مركز الاتصال الخارجي بالساعة أم بالشهر؟",
+      "q_en": "What pricing models do UAE call centre and BPO providers use, and how long are their contracts?",
+      "q_ar": "ما نماذج التسعير التي يعتمدها مزودو مراكز الاتصال والاستعانة بمصادر خارجية في الإمارات، وما مدة عقودهم؟",
       "expected_entry_ids": [
         "call_centre_bpo:uae-market-sizes"
       ]

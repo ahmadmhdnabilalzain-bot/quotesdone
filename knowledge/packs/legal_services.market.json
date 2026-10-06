@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Can a foreign law firm represent us in a Dubai onshore court?",
-      "q_ar": "هل يمكن لمكتب محاماة أجنبي تمثيلنا أمام محكمة دبي المحلية؟",
+      "q_en": "Which areas of law do legal service providers in the UAE typically cover for businesses?",
+      "q_ar": "ما مجالات القانون التي يغطيها مقدمو الخدمات القانونية في الإمارات للشركات عادةً؟",
       "expected_entry_ids": [
         "legal_services:uae-market-products"
       ]

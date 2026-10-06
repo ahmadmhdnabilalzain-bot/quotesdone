@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which stainless steel grade should I use for a handrail near the beach?",
-      "q_ar": "ما درجة الفولاذ المقاوم للصدأ المناسبة لدرابزين قرب الشاطئ؟",
+      "q_en": "Which steel structures, sections and fabrication services can be sourced from the UAE market?",
+      "q_ar": "ما المنشآت والمقاطع الفولاذية وخدمات التصنيع المعدني التي يمكن توفيرها من السوق الإماراتي؟",
       "expected_entry_ids": [
         "steel:uae-market-products"
       ]

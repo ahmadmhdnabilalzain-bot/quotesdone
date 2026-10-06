@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How is volumetric weight calculated for an international courier parcel?",
-      "q_ar": "كيف يُحسب الوزن الحجمي لطرد بريد سريع دولي؟",
+      "q_en": "How are courier shipments priced in the UAE, including weight brackets, zones and COD fees?",
+      "q_ar": "كيف تُسعَّر شحنات البريد السريع في الإمارات، بما في ذلك فئات الوزن والمناطق ورسوم الدفع عند الاستلام؟",
       "expected_entry_ids": [
         "courier_express:uae-market-sizes"
       ]

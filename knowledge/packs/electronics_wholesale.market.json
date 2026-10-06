@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Does a Bluetooth speaker need TDRA approval before it can be sold in the UAE?",
-      "q_ar": "هل يحتاج مكبر الصوت بتقنية بلوتوث إلى اعتماد من هيئة تنظيم الاتصالات قبل بيعه في الإمارات؟",
+      "q_en": "What ranges of electronics do wholesalers in the UAE trade in?",
+      "q_ar": "ما تشكيلات الإلكترونيات التي يتاجر بها تجار الجملة في الإمارات؟",
       "expected_entry_ids": [
         "electronics_wholesale:uae-market-products"
       ]

@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are trees priced in a UAE landscaping quote?",
-      "q_ar": "كيف تُسعّر الأشجار في عرض تنسيق حدائق بالإمارات؟",
+      "q_en": "How are plants, turf, irrigation and hardscape priced in landscaping quotes in the UAE?",
+      "q_ar": "كيف تُسعَّر النباتات والعشب والري وأعمال التنسيق الصلبة في عروض أسعار تنسيق الحدائق في الإمارات؟",
       "expected_entry_ids": [
         "landscaping:uae-market-sizes"
       ]

@@ -67,8 +67,8 @@
   ],
   "eval": [
     {
-      "q_en": "What fineness number is stamped on 22K gold jewellery in the UAE?",
-      "q_ar": "ما رقم النقاوة المدموغ على مجوهرات الذهب عيار 22 في الإمارات؟",
+      "q_en": "What precious metals, stones, findings and packaging can jewellers source from UAE suppliers?",
+      "q_ar": "ما المعادن الثمينة والأحجار والإكسسوارات ومواد التغليف التي يمكن للصاغة الحصول عليها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "jewellery_supplies:uae-market-products"
       ]

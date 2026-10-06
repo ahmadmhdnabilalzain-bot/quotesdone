@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What standard should an ergonomic office chair meet?",
-      "q_ar": "ما المعيار الذي يجب أن يستوفيه الكرسي المكتبي المريح؟",
+      "q_en": "What office furniture ranges are on offer in the UAE for fitting out a new workplace?",
+      "q_ar": "ما تشكيلات أثاث المكاتب المعروضة في الإمارات لتجهيز مكان عمل جديد؟",
       "expected_entry_ids": [
         "office_furniture:uae-market-products"
       ]

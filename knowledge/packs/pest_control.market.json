@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Does a restaurant in Dubai have to use a Dubai Municipality approved pest control company?",
-      "q_ar": "هل يجب على مطعم في دبي استخدام شركة مكافحة آفات معتمدة من بلدية دبي؟",
+      "q_en": "What pest control and fumigation services do licensed UAE companies provide?",
+      "q_ar": "ما خدمات مكافحة الآفات والتبخير التي تقدمها الشركات المرخصة في الإمارات؟",
       "expected_entry_ids": [
         "pest_control:uae-market-products"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between a Middle East version and an international version phone?",
-      "q_ar": "ما الفرق بين هاتف نسخة الشرق الأوسط والنسخة الدولية؟",
+      "q_en": "Besides new smartphones, what product lines do mobile phone wholesalers in the UAE trade?",
+      "q_ar": "إلى جانب الهواتف الذكية الجديدة، ما خطوط المنتجات التي يتاجر بها موزعو الهواتف بالجملة في الإمارات؟",
       "expected_entry_ids": [
         "mobile_phones_wholesale:uae-market-products"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which load class of manhole cover is needed for a road?",
-      "q_ar": "ما فئة الحمل المطلوبة لغطاء غرفة تفتيش في طريق؟",
+      "q_en": "Could you outline the castings and forgings available from UAE foundries and suppliers?",
+      "q_ar": "هل يمكنك توضيح المسبوكات والمطروقات المتوفرة لدى المسابك والموردين في الإمارات؟",
       "expected_entry_ids": [
         "castings_forgings:uae-market-products"
       ]

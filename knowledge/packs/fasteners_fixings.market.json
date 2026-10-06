@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "What stud bolt grade is normal for oil and gas flanges?",
-      "q_ar": "ما درجة المسامير الملولبة المعتادة لفلنجات النفط والغاز؟",
+      "q_en": "Give me an overview of the bolts, anchors and other fixings commonly stocked by UAE suppliers.",
+      "q_ar": "أعطني لمحة عن البراغي والمثبتات وغيرها من أدوات التثبيت التي يوفرها الموردون في الإمارات عادةً.",
       "expected_entry_ids": [
         "fasteners_fixings:uae-market-products"
       ]

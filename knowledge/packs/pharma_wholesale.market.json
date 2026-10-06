@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Can a pharmacy buy medicines directly from an overseas supplier?",
-      "q_ar": "هل يمكن للصيدلية شراء الأدوية مباشرة من مورد خارجي؟",
+      "q_en": "Which categories of medicines and health products does pharmaceutical wholesale in the UAE cover?",
+      "q_ar": "ما فئات الأدوية والمنتجات الصحية التي تشملها تجارة الأدوية بالجملة في الإمارات؟",
       "expected_entry_ids": [
         "pharma_wholesale:uae-market-products"
       ]

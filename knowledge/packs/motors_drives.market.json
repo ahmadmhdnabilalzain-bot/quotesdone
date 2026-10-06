@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Should I buy an IE3 or IE4 motor for a pump running all day?",
-      "q_ar": "هل أشتري محركاً بكفاءة IE3 أم IE4 لمضخة تعمل طوال اليوم؟",
+      "q_en": "Which electric motor types and drive products can be bought from suppliers in the UAE?",
+      "q_ar": "ما أنواع المحركات الكهربائية ومنتجات التحكم بالسرعة التي يمكن شراؤها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "motors_drives:uae-market-products"
       ]

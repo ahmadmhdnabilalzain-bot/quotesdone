@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Must our calibration lab be ISO 17025 accredited for the specific instrument?",
-      "q_ar": "هل يجب أن يكون مختبر المعايرة معتمداً وفق ISO 17025 للجهاز المحدد؟",
+      "q_en": "Which instrument types can calibration laboratories in the UAE calibrate?",
+      "q_ar": "ما أنواع الأجهزة التي تستطيع مختبرات المعايرة في الإمارات معايرتها؟",
       "expected_entry_ids": [
         "calibration_services:uae-market-products"
       ]

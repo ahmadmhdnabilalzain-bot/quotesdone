@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How is piling usually priced in a UAE tender?",
-      "q_ar": "كيف تُسعّر الخوازيق عادة في مناقصة إماراتية؟",
+      "q_en": "How do contractors in the UAE quote civil works such as excavation, piling, concrete and waterproofing?",
+      "q_ar": "كيف يسعّر المقاولون في الإمارات الأعمال المدنية مثل الحفر والخوازيق والخرسانة والعزل المائي؟",
       "expected_entry_ids": [
         "civil_works:uae-market-sizes"
       ]

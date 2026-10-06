@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What do I need before I can sell an imported face cream in Dubai?",
-      "q_ar": "ما الذي أحتاجه قبل أن أتمكن من بيع كريم وجه مستورد في دبي؟",
+      "q_en": "What product categories do cosmetics wholesalers in the UAE carry?",
+      "q_ar": "ما فئات المنتجات التي يوفرها تجار الجملة لمستحضرات التجميل في الإمارات؟",
       "expected_entry_ids": [
         "cosmetics_wholesale:uae-market-products"
       ]

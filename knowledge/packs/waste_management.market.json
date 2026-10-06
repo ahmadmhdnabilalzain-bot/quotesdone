@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What skip sizes are available for renovation waste?",
-      "q_ar": "ما أحجام الحاويات المتاحة لمخلفات التجديد؟",
+      "q_en": "How are skips, bins and waste collection priced in the UAE, and in which container sizes?",
+      "q_ar": "كيف تُسعَّر حاويات المخلفات والصناديق وخدمات جمع النفايات في الإمارات، وما أحجام الحاويات المتاحة؟",
       "expected_entry_ids": [
         "waste_management:uae-market-sizes"
       ]

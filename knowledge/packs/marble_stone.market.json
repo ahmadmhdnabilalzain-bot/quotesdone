@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between quartz and sintered stone for a countertop?",
-      "q_ar": "ما الفرق بين الكوارتز والحجر الملبّد لسطح عمل المطبخ؟",
+      "q_en": "Which marbles, granites and other natural stones can I source from UAE stone suppliers?",
+      "q_ar": "ما أنواع الرخام والجرانيت والأحجار الطبيعية الأخرى التي يمكنني الحصول عليها من موردي الحجر في الإمارات؟",
       "expected_entry_ids": [
         "marble_stone:uae-market-products"
       ]

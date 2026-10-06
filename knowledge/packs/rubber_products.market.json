@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which rubber should I use outdoors in UAE sun?",
-      "q_ar": "ما المطاط المناسب للاستخدام الخارجي تحت شمس الإمارات؟",
+      "q_en": "I need rubber goods in the UAE; what product lines are available, such as belts, hoses, sheets and seals?",
+      "q_ar": "أحتاج منتجات مطاطية في الإمارات؛ ما الأصناف المتوفرة مثل السيور والخراطيم والألواح والحشوات؟",
       "expected_entry_ids": [
         "rubber_products:uae-market-products"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Do imported toys need ECAS certification before sale in the UAE?",
-      "q_ar": "هل تحتاج الألعاب المستوردة إلى شهادة نظام المطابقة الإماراتي قبل بيعها في الإمارات؟",
+      "q_en": "What toy categories can retailers buy from wholesalers in the UAE?",
+      "q_ar": "ما فئات الألعاب التي يمكن لتجار التجزئة شراؤها من موزعي الجملة في الإمارات؟",
       "expected_entry_ids": [
         "toys_wholesale:uae-market-products"
       ]

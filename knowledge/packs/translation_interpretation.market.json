@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Does a contract submitted to a Dubai court need a translation by an MOJ-licensed translator?",
-      "q_ar": "هل يحتاج العقد المقدم إلى محكمة في دبي إلى ترجمة من مترجم مرخص من وزارة العدل؟",
+      "q_en": "Which translation and interpreting services are offered in the UAE, from legal translation to conference interpreting?",
+      "q_ar": "ما خدمات الترجمة التحريرية والفورية المتاحة في الإمارات، من الترجمة القانونية إلى الترجمة في المؤتمرات؟",
       "expected_entry_ids": [
         "translation_interpretation:uae-market-products"
       ]

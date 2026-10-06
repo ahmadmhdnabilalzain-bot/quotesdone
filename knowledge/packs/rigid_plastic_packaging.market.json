@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "What is the minimum order for jerry cans in a custom colour?",
-      "q_ar": "ما الحد الأدنى لطلب جراكن بلون خاص؟",
+      "q_en": "For jerry cans, pails and bottles in the UAE, what capacities exist and how are orders priced and quantified?",
+      "q_ar": "ما السعات المتوفرة في الإمارات للجالونات والدلاء والعبوات البلاستيكية، وكيف تُسعَّر الطلبات وتُحدد كمياتها؟",
       "expected_entry_ids": [
         "rigid_plastic_packaging:uae-market-sizes"
       ]

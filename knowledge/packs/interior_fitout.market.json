@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What approvals do I need to fit out an office in a Dubai free zone?",
-      "q_ar": "ما الاعتمادات المطلوبة لتجهيز مكتب في منطقة حرة بدبي؟",
+      "q_en": "What spaces and scope of work do interior fit-out contractors in the UAE usually handle?",
+      "q_ar": "ما المساحات ونطاق الأعمال التي يتولاها عادةً مقاولو التشطيبات الداخلية في الإمارات؟",
       "expected_entry_ids": [
         "interior_fitout:uae-market-products"
       ]

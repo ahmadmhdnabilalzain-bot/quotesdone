@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Does a disinfectant need Dubai Municipality registration before it can be sold in Dubai?",
-      "q_ar": "هل يحتاج المطهر إلى تسجيل لدى بلدية دبي قبل بيعه في دبي؟",
+      "q_en": "Which cleaning and hygiene chemicals can a facility buy from UAE suppliers?",
+      "q_ar": "ما مواد التنظيف والتعقيم الكيميائية التي يمكن لمنشأة شراؤها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "cleaning_chemicals:uae-market-products"
       ]

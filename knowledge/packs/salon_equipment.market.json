@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Can a beauty salon buy and use an IPL hair removal machine without a medical licence?",
-      "q_ar": "هل يمكن لصالون تجميل شراء جهاز إزالة الشعر بالضوء النبضي واستخدامه دون ترخيص طبي؟",
+      "q_en": "Setting up a salon or spa in the UAE, which furniture and equipment can I source locally?",
+      "q_ar": "عند تجهيز صالون أو مركز سبا في الإمارات، ما الأثاث والمعدات التي يمكنني توفيرها محلياً؟",
       "expected_entry_ids": [
         "salon_equipment:uae-market-products"
       ]

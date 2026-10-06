@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What capacity washer-extractor does a 150-room hotel laundry typically need?",
-      "q_ar": "ما سعة الغسالة-العصارة التي تحتاجها عادةً مغسلة فندق من 150 غرفة؟",
+      "q_en": "How are commercial laundry machines and full laundry projects sold and priced in the UAE?",
+      "q_ar": "كيف تُباع آلات المغاسل التجارية ومشاريع المغاسل المتكاملة وتُسعَّر في الإمارات؟",
       "expected_entry_ids": [
         "laundry_equipment:uae-market-sizes"
       ]

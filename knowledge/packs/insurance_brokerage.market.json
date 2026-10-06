@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Is health insurance mandatory for employees in Dubai, and who must pay for it?",
-      "q_ar": "هل التأمين الصحي إلزامي للموظفين في دبي، ومن يجب أن يدفعه؟",
+      "q_en": "What types of business insurance can a UAE broker arrange for a company?",
+      "q_ar": "ما أنواع تأمين الأعمال التي يمكن لوسيط تأمين في الإمارات ترتيبها لشركة؟",
       "expected_entry_ids": [
         "insurance_brokerage:uae-market-products"
       ]

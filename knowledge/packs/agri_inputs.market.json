@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which fertiliser grade is used for date palms in fertigation?",
-      "q_ar": "ما درجة السماد المستخدمة للنخيل في التسميد بالري؟",
+      "q_en": "I farm near Al Ain: what fertilisers, growing media, seeds and other agricultural inputs are sold locally?",
+      "q_ar": "أزرع قرب العين: ما الأسمدة ووسائط الزراعة والبذور وغيرها من المدخلات الزراعية المتوفرة محلياً؟",
       "expected_entry_ids": [
         "agri_inputs:uae-market-products"
       ]

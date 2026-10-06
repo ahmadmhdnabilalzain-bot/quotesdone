@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What socket type is used in the UAE?",
-      "q_ar": "ما نوع المقابس المستخدم في الإمارات؟",
+      "q_en": "What electrical products and systems does the UAE contracting market cover, from distribution boards to wiring accessories?",
+      "q_ar": "ما المنتجات والأنظمة الكهربائية التي يغطيها سوق المقاولات في الإمارات، من لوحات التوزيع إلى ملحقات التمديدات؟",
       "expected_entry_ids": [
         "electrical:uae-market-products"
       ]

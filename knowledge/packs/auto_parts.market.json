@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between genuine, OES and aftermarket brake pads?",
-      "q_ar": "ما الفرق بين فحمات المكابح الأصلية وعلامة المورد الأصلي والبديلة؟",
+      "q_en": "Broadly, what categories of car spare parts can a workshop source in the UAE?",
+      "q_ar": "بشكل عام، ما فئات قطع غيار السيارات التي يمكن لورشة أن تحصل عليها في الإمارات؟",
       "expected_entry_ids": [
         "auto_parts:uae-market-products"
       ]

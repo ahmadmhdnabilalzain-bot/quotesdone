@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What sizes do standard female mannequins come in?",
-      "q_ar": "ما المقاسات التي تتوفر بها عارضات الأزياء النسائية القياسية؟",
+      "q_en": "What sizes do mannequins usually come in here, and how are they priced per piece and for custom orders?",
+      "q_ar": "ما المقاسات المعتادة للمانيكانات في الإمارات، وكيف تُسعَّر بالقطعة وللطلبات المخصصة؟",
       "expected_entry_ids": [
         "mannequins_visual_merchandising:uae-market-sizes"
       ]

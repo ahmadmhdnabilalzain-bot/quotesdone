@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How is scrap copper cable priced when a company sells it?",
-      "q_ar": "كيف يُسعّر كابل النحاس الخردة عندما تبيعه شركة؟",
+      "q_en": "On what basis do scrap buyers in the UAE price metal, paper and plastic, and which terms appear on their offers?",
+      "q_ar": "على أي أساس يسعّر مشترو الخردة في الإمارات المعادن والورق والبلاستيك، وما الشروط التي ترد في عروضهم؟",
       "expected_entry_ids": [
         "recycling_scrap:uae-market-sizes"
       ]

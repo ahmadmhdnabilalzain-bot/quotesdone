@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Who can install a rooftop solar system on my villa in Dubai?",
-      "q_ar": "من يحق له تركيب نظام شمسي على سطح فيلتي في دبي؟",
+      "q_en": "What solar and renewable energy solutions are available in the UAE, from rooftop PV to utility-scale projects?",
+      "q_ar": "ما حلول الطاقة الشمسية والمتجددة المتاحة في الإمارات، من الألواح على الأسطح إلى المشاريع الكبرى؟",
       "expected_entry_ids": [
         "solar:uae-market-products"
       ]

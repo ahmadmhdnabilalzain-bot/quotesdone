@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What geomembrane thickness is used to line a landfill cell?",
-      "q_ar": "ما سماكة الغشاء الجيوتقني المستخدمة لتبطين خلية مكب؟",
+      "q_en": "What geotextiles, geomembranes and other geosynthetics are available for projects in the UAE?",
+      "q_ar": "ما المنسوجات الأرضية والأغشية الأرضية وغيرها من المواد الجيوتركيبية المتاحة للمشاريع في الإمارات؟",
       "expected_entry_ids": [
         "industrial_textiles:uae-market-products"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What payment terms are normal for a villa construction contract in Dubai?",
-      "q_ar": "ما شروط الدفع المعتادة لعقد بناء فيلا في دبي؟",
+      "q_en": "How are building contracts in the UAE usually quoted and paid, lump sum or BOQ, and with what retention?",
+      "q_ar": "كيف تُسعَّر عقود البناء في الإمارات وتُدفع عادةً، بمبلغ مقطوع أم بجدول كميات، وبأي نسبة محتجزات؟",
       "expected_entry_ids": [
         "general_contracting:uae-market-sizes"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are interior design fees usually charged for an office fit-out?",
-      "q_ar": "كيف تُحتسب عادةً أتعاب التصميم الداخلي لتجهيز مكتب؟",
+      "q_en": "How do design consultants in the UAE usually set their fees, and how are renders and walkthroughs charged?",
+      "q_ar": "كيف يحدد مستشارو التصميم في الإمارات أتعابهم عادةً، وكيف تُحتسب تكلفة الصور ثلاثية الأبعاد والجولات الافتراضية؟",
       "expected_entry_ids": [
         "design_consultancy:uae-market-sizes"
       ]

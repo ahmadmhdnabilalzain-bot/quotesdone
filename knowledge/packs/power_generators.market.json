@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between prime and standby generator rating?",
-      "q_ar": "ما الفرق بين التصنيف الرئيسي والاحتياطي للمولد؟",
+      "q_en": "What types and capacity ranges of generators and power equipment are sold in the UAE?",
+      "q_ar": "ما أنواع المولدات ومعدات الطاقة ونطاقات قدراتها المباعة في الإمارات؟",
       "expected_entry_ids": [
         "power_generators:uae-market-products"
       ]

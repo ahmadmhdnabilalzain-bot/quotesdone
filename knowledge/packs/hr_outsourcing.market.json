@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What costs are included in an employer-of-record monthly fee?",
-      "q_ar": "ما التكاليف المشمولة في الرسوم الشهرية لخدمة صاحب العمل المسجل؟",
+      "q_en": "How are employer-of-record, payroll and visa processing services priced by HR outsourcing firms in the UAE?",
+      "q_ar": "كيف تسعّر شركات الاستعانة بمصادر خارجية للموارد البشرية في الإمارات خدمات صاحب العمل المسجَّل والرواتب ومعاملات التأشيرات؟",
       "expected_entry_ids": [
         "hr_outsourcing:uae-market-sizes"
       ]

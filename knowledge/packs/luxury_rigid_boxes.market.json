@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What is the usual minimum order for custom perfume gift boxes?",
-      "q_ar": "ما الحد الأدنى المعتاد لطلب علب هدايا عطور بتصميم خاص؟",
+      "q_en": "For luxury rigid boxes in the UAE, what minimum orders, one-off tooling costs and lead times should I expect?",
+      "q_ar": "ما الحد الأدنى للطلب وتكاليف القوالب لمرة واحدة ومدد التسليم المتوقعة لعلب الهدايا الفاخرة الصلبة في الإمارات؟",
       "expected_entry_ids": [
         "luxury_rigid_boxes:uae-market-sizes"
       ]

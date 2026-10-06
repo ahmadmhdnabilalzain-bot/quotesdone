@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What board grade is used for printed retail cartons?",
-      "q_ar": "ما درجة الكرتون المستخدمة لعلب التجزئة المطبوعة؟",
+      "q_en": "Which paper and paperboard grades are traded in the UAE for printing and packaging?",
+      "q_ar": "ما درجات الورق والكرتون المتداولة في الإمارات لأغراض الطباعة والتغليف؟",
       "expected_entry_ids": [
         "paper_board:uae-market-products"
       ]

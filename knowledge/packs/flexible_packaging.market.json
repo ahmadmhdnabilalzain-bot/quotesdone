@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What thickness of stretch film should I use for pallets?",
-      "q_ar": "ما سماكة فيلم التغليف المطاطي المناسبة للمنصات؟",
+      "q_en": "How are stretch film and printed pouches sold and priced in the UAE, including minimum order quantities?",
+      "q_ar": "كيف تُباع أفلام التغليف المطاطية والأكياس المطبوعة وتُسعَّر في الإمارات، بما في ذلك الحد الأدنى للطلب؟",
       "expected_entry_ids": [
         "flexible_packaging:uae-market-sizes"
       ]

@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What does SN 5000 mean on a sewer pipe?",
-      "q_ar": "ماذا يعني SN 5000 على أنبوب صرف صحي؟",
+      "q_en": "How are utility pipes specified, traded and quoted for infrastructure networks in the UAE?",
+      "q_ar": "كيف تُحدَّد مواصفات أنابيب المرافق وتُتداول وتُسعَّر لشبكات البنية التحتية في الإمارات؟",
       "expected_entry_ids": [
         "infrastructure_utilities:uae-market-sizes"
       ]

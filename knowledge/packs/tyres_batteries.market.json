@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How old can a new tyre be when sold in the UAE?",
-      "q_ar": "كم يمكن أن يكون عمر الإطار الجديد عند بيعه في الإمارات؟",
+      "q_en": "Tell me what tyres and batteries are sold in the UAE, across cars, trucks, off-road and industrial uses.",
+      "q_ar": "أخبرني عن الإطارات والبطاريات المباعة في الإمارات للسيارات والشاحنات والطرق الوعرة والاستخدامات الصناعية.",
       "expected_entry_ids": [
         "tyres_batteries:uae-market-products"
       ]

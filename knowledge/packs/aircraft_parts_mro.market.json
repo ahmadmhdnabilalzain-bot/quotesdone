@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What release certificate should accompany an overhauled aircraft component?",
-      "q_ar": "ما شهادة الإفراج التي يجب أن ترافق مكون طائرة معاد عَمرته؟",
+      "q_en": "Give me an overview of the aircraft maintenance and parts services available in the UAE.",
+      "q_ar": "أعطني لمحة عامة عن خدمات صيانة الطائرات وتوريد قطع غيارها المتاحة في الإمارات.",
       "expected_entry_ids": [
         "aircraft_parts_mro:uae-market-products"
       ]

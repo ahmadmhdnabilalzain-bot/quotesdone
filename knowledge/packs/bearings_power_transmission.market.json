@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What does 6205-2RS C3 mean on a bearing?",
-      "q_ar": "ماذا يعني الرمز 6205-2RS C3 على المحمل؟",
+      "q_en": "When buying bearings, belts, chains and gearboxes in the UAE, what units are they sold in and how are prices quoted?",
+      "q_ar": "عند شراء المحامل والسيور والجنازير وعلب التروس في الإمارات، بأي وحدات تُباع وكيف تُسعَّر؟",
       "expected_entry_ids": [
         "bearings_power_transmission:uae-market-sizes"
       ]

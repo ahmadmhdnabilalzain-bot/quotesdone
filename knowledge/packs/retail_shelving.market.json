@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What bay width and shelf load are standard for supermarket gondolas?",
-      "q_ar": "ما عرض الوحدة وحمولة الرف القياسيان لرفوف الجندولا في السوبرماركت؟",
+      "q_en": "What types of shop and supermarket shelving and display fixtures can retailers buy in the UAE?",
+      "q_ar": "ما أنواع رفوف المحلات والسوبرماركت ووحدات العرض التي يمكن لتجار التجزئة شراؤها في الإمارات؟",
       "expected_entry_ids": [
         "retail_shelving:uae-market-products"
       ]

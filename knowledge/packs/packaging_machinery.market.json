@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "What should I specify when buying a liquid filling machine?",
-      "q_ar": "ماذا يجب أن أحدد عند شراء آلة تعبئة سوائل؟",
+      "q_en": "What filling, capping, labelling and other packaging machines can be sourced in the UAE?",
+      "q_ar": "ما آلات التعبئة والإغلاق ووضع الملصقات وغيرها من آلات التغليف التي يمكن توفيرها في الإمارات؟",
       "expected_entry_ids": [
         "packaging_machinery:uae-market-products"
       ]

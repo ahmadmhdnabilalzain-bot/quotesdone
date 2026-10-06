@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Do export pallets from the UAE need ISPM 15 treatment?",
-      "q_ar": "هل تحتاج منصات التصدير من الإمارات معالجة ISPM 15؟",
+      "q_en": "What wooden and plastic pallet options, including export-grade ones, are available in the UAE?",
+      "q_ar": "ما خيارات المنصات الخشبية والبلاستيكية المتاحة في الإمارات، بما فيها المنصات المعتمدة للتصدير؟",
       "expected_entry_ids": [
         "pallets_wood_plastic:uae-market-products"
       ]

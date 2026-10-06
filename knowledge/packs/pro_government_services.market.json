@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Are government fees included in the PRO company's visa price?",
-      "q_ar": "هل الرسوم الحكومية مشمولة في سعر التأشيرة لدى شركة المعقب؟",
+      "q_en": "How do PRO service providers in the UAE charge, per transaction or through a monthly retainer?",
+      "q_ar": "كيف يحتسب مقدمو خدمات المعاملات الحكومية في الإمارات أتعابهم، لكل معاملة أم باشتراك شهري؟",
       "expected_entry_ids": [
         "pro_government_services:uae-market-sizes"
       ]

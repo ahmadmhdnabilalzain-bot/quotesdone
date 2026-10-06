@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What size RO system does a villa need?",
-      "q_ar": "ما حجم نظام التناضح العكسي الذي تحتاجه فيلا؟",
+      "q_en": "In which units is RO and water treatment capacity specified in the UAE, and how are systems priced?",
+      "q_ar": "ما الوحدات التي تُحدد بها سعة أنظمة التناضح العكسي ومعالجة المياه في الإمارات، وكيف تُسعَّر هذه الأنظمة؟",
       "expected_entry_ids": [
         "water_treatment:uae-market-sizes"
       ]

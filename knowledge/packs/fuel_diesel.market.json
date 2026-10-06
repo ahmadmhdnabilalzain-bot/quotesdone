@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "How is bulk diesel for a construction site priced in the UAE?",
-      "q_ar": "كيف يُسعّر الديزل السائب لموقع بناء في الإمارات؟",
+      "q_en": "In what units is diesel traded in the UAE, and how are delivered bulk prices set?",
+      "q_ar": "بأي وحدات يُتداول الديزل في الإمارات، وكيف تُحدَّد أسعار التوريد بالجملة؟",
       "expected_entry_ids": [
         "fuel_diesel:uae-market-sizes"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which safety shoe class should warehouse staff wear, S1P or S3?",
-      "q_ar": "ما فئة حذاء السلامة التي يجب أن يرتديها موظفو المستودع، S1P أم S3؟",
+      "q_en": "What leathers, footwear and leather goods are traded in the UAE market?",
+      "q_ar": "ما أنواع الجلود والأحذية والمصنوعات الجلدية المتداولة في السوق الإماراتي؟",
       "expected_entry_ids": [
         "leather_footwear:uae-market-products"
       ]

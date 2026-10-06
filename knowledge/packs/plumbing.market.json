@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which pipe is normally used for hot and cold water inside UAE buildings?",
-      "q_ar": "ما الأنبوب المستخدم عادة للمياه الساخنة والباردة داخل مباني الإمارات؟",
+      "q_en": "What plumbing pipes, drainage systems and sanitary products are used in UAE buildings?",
+      "q_ar": "ما أنابيب السباكة وأنظمة الصرف والأدوات الصحية المستخدمة في المباني بالإمارات؟",
       "expected_entry_ids": [
         "plumbing:uae-market-products"
       ]

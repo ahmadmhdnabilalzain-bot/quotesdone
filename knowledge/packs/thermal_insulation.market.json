@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What insulation is used on chilled water pipes in the UAE?",
-      "q_ar": "ما العزل المستخدم على أنابيب المياه المبردة في الإمارات؟",
+      "q_en": "Which thermal and acoustic insulation materials are on the UAE market for roofs, walls, pipes and ducts?",
+      "q_ar": "ما مواد العزل الحراري والصوتي المتوفرة في السوق الإماراتي للأسطح والجدران والأنابيب ومجاري الهواء؟",
       "expected_entry_ids": [
         "thermal_insulation:uae-market-products"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which authority regulates veterinary medicines in the UAE?",
-      "q_ar": "ما الجهة التي تنظم الأدوية البيطرية في الإمارات؟",
+      "q_en": "What veterinary products can farms, clinics and pet owners source in the UAE market?",
+      "q_ar": "ما المنتجات البيطرية التي يمكن للمزارع والعيادات وأصحاب الحيوانات الأليفة الحصول عليها من السوق الإماراتي؟",
       "expected_entry_ids": [
         "veterinary_supplies:uae-market-products"
       ]

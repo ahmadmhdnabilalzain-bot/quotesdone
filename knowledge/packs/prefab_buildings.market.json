@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What size is a standard porta cabin in the UAE?",
-      "q_ar": "ما مقاس الكبينة الجاهزة القياسية في الإمارات؟",
+      "q_en": "What standard porta cabin sizes exist in the UAE, and are they priced per unit or per square metre?",
+      "q_ar": "ما المقاسات القياسية للكبائن الجاهزة في الإمارات، وهل تُسعَّر بالوحدة أم بالمتر المربع؟",
       "expected_entry_ids": [
         "prefab_buildings:uae-market-sizes"
       ]

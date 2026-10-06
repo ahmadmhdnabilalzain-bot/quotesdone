@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do we verify that an ISO certificate from a supplier is genuine and accredited?",
-      "q_ar": "كيف نتحقق من أن شهادة الأيزو لدى المورد أصلية ومعتمدة؟",
+      "q_en": "Which certification bodies are commonly used for ISO certification in the UAE?",
+      "q_ar": "ما جهات منح الشهادات المعتمدة عادةً للحصول على شهادات الأيزو في الإمارات؟",
       "expected_entry_ids": [
         "iso_certification:uae-market-brands"
       ]

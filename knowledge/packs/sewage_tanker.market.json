@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What tanker sizes are available for septic tank emptying?",
-      "q_ar": "ما أحجام الصهاريج المتاحة لتفريغ خزان التحليل؟",
+      "q_en": "In what tanker capacities are sewage and grease trap services sold in the UAE, and how are they billed?",
+      "q_ar": "ما سعات الصهاريج المعتمدة لخدمات شفط الصرف الصحي ومصائد الشحوم في الإمارات، وكيف تُحتسب أسعارها؟",
       "expected_entry_ids": [
         "sewage_tanker:uae-market-sizes"
       ]

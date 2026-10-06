@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Is structured cabling priced per data point, and what does that include?",
-      "q_ar": "هل تُسعّر الكابلات الهيكلية لكل نقطة بيانات، وما الذي يشمله ذلك؟",
+      "q_en": "How do IT service providers in the UAE charge for managed support, projects and structured cabling?",
+      "q_ar": "كيف يتقاضى مزودو خدمات تقنية المعلومات في الإمارات أجور الدعم المُدار والمشاريع والتمديدات الشبكية؟",
       "expected_entry_ids": [
         "it_services:uae-market-sizes"
       ]

@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What fire suppression standard does Civil Defence require for a kitchen hood in Dubai?",
-      "q_ar": "ما معيار نظام إطفاء الحريق الذي يشترطه الدفاع المدني لشفاط المطبخ في دبي؟",
+      "q_en": "Opening a restaurant in Dubai: what commercial kitchen equipment is available on the local market?",
+      "q_ar": "أفتتح مطعماً في دبي: ما معدات المطابخ التجارية المتوفرة في السوق المحلي؟",
       "expected_entry_ids": [
         "commercial_kitchen:uae-market-products"
       ]

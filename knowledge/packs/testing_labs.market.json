@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Does the lab testing our concrete cubes need to be approved by Dubai Municipality?",
-      "q_ar": "هل يجب أن يكون المختبر الذي يختبر مكعبات الخرسانة معتمداً من بلدية دبي؟",
+      "q_en": "What testing laboratory services can be commissioned in the UAE across construction, environmental and product testing?",
+      "q_ar": "ما خدمات مختبرات الفحص التي يمكن طلبها في الإمارات في مجالات مواد البناء والبيئة وفحص المنتجات؟",
       "expected_entry_ids": [
         "testing_labs:uae-market-products"
       ]

@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Is hotel linen priced per kilogram or per piece?",
-      "q_ar": "هل تُسعّر بياضات الفنادق بالكيلوغرام أم بالقطعة؟",
+      "q_en": "What pricing models do commercial and consumer laundry services use in the UAE?",
+      "q_ar": "ما نماذج التسعير التي تعتمدها خدمات الغسيل التجارية والاستهلاكية في الإمارات؟",
       "expected_entry_ids": [
         "laundry_services:uae-market-sizes"
       ]

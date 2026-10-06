@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What board should a 20 kg export carton be made of?",
-      "q_ar": "من أي كرتون يجب أن تُصنع كرتونة تصدير بوزن 20 كغ؟",
+      "q_en": "How do UAE box makers quote corrugated cartons, and what minimum quantities and lead times apply?",
+      "q_ar": "كيف يسعّر مصنعو الكراتين في الإمارات العلب المموجة، وما الحد الأدنى للكميات ومدد التسليم؟",
       "expected_entry_ids": [
         "corrugated_packaging:uae-market-sizes"
       ]

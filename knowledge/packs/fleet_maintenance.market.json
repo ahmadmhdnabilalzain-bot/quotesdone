@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How often should a fleet car in the UAE be serviced?",
-      "q_ar": "كم مرة يجب صيانة سيارة الأسطول في الإمارات؟",
+      "q_en": "What does a fleet maintenance provider in the UAE typically cover for a company's vehicles?",
+      "q_ar": "ما الخدمات التي يغطيها عادةً مزود صيانة الأساطيل في الإمارات لمركبات الشركات؟",
       "expected_entry_ids": [
         "fleet_maintenance:uae-market-products"
       ]

@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "How many days of CCTV recording does SIRA require in Dubai?",
-      "q_ar": "كم يوماً من تسجيل الكاميرات تشترط سيرا في دبي؟",
+      "q_en": "What security systems are commonly supplied in the UAE, covering CCTV, access control, alarms and screening?",
+      "q_ar": "ما أنظمة الأمن الشائع توريدها في الإمارات، بما فيها كاميرات المراقبة والتحكم بالدخول والإنذار وأجهزة الفحص؟",
       "expected_entry_ids": [
         "security_systems:uae-market-products"
       ]

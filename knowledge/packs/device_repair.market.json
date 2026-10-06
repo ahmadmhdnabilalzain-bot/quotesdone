@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Will an iPhone screen repaired with a non-genuine part lose Apple warranty?",
-      "q_ar": "هل يفقد هاتف آيفون ضمان أبل إذا أُصلحت شاشته بقطعة غير أصلية؟",
+      "q_en": "What phone, tablet and laptop repair services are available in UAE repair shops?",
+      "q_ar": "ما خدمات إصلاح الهواتف والأجهزة اللوحية والحواسيب المحمولة المتاحة في محلات الصيانة بالإمارات؟",
       "expected_entry_ids": [
         "device_repair:uae-market-products"
       ]

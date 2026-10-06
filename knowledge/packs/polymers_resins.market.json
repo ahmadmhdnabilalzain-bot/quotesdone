@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which PE grade is used for making water pipes?",
-      "q_ar": "ما درجة البولي إيثيلين المستخدمة لصناعة أنابيب المياه؟",
+      "q_en": "Which polymer and resin raw materials can converters buy from UAE traders?",
+      "q_ar": "ما المواد الخام من البوليمرات والراتنجات التي يمكن لمصانع التحويل شراؤها من التجار في الإمارات؟",
       "expected_entry_ids": [
         "polymers_resins:uae-market-products"
       ]

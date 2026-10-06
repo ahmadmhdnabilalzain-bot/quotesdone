@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How thick should wet-pour rubber surfacing be under a 2 metre platform?",
-      "q_ar": "ما السماكة المطلوبة للأرضية المطاطية المصبوبة تحت منصة بارتفاع مترين؟",
+      "q_en": "How are playground structures, safety surfacing and shade sails costed when ordering in the UAE?",
+      "q_ar": "كيف تُحتسب تكلفة هياكل الألعاب وأرضيات الأمان ومظلات الظل عند طلبها في الإمارات؟",
       "expected_entry_ids": [
         "playground_equipment:uae-market-sizes"
       ]

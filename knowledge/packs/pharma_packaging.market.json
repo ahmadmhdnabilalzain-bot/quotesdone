@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What serialisation is needed on medicine packs sold in the UAE?",
-      "q_ar": "ما الترقيم التسلسلي المطلوب على عبوات الأدوية المباعة في الإمارات؟",
+      "q_en": "What primary and secondary pharmaceutical packaging materials are supplied in the UAE?",
+      "q_ar": "ما مواد التغليف الدوائي الأولية والثانوية التي يجري توريدها في الإمارات؟",
       "expected_entry_ids": [
         "pharma_packaging:uae-market-products"
       ]

@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What LPG cylinder sizes are available for a restaurant in the UAE?",
-      "q_ar": "ما أحجام أسطوانات الغاز المسال المتاحة لمطعم في الإمارات؟",
+      "q_en": "What LPG cylinder sizes are sold in the UAE, and how are refills, deposits and bulk tanks charged?",
+      "q_ar": "ما أحجام أسطوانات الغاز المسال المتوفرة في الإمارات، وكيف تُحتسب رسوم التعبئة والتأمين والخزانات الكبيرة؟",
       "expected_entry_ids": [
         "lpg_gas:uae-market-sizes"
       ]

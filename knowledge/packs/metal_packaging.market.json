@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What does the UN marking 1A1 on a steel drum mean?",
-      "q_ar": "ماذا يعني الرمز 1A1 من الأمم المتحدة على برميل فولاذي؟",
+      "q_en": "Which metal cans, pails and drums are made or sold in the UAE for paints and chemicals?",
+      "q_ar": "ما العلب والسطول والبراميل المعدنية المصنّعة أو المباعة في الإمارات لتعبئة الدهانات والكيماويات؟",
       "expected_entry_ids": [
         "metal_packaging:uae-market-products"
       ]

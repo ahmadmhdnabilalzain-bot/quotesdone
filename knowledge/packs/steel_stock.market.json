@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How long is a steel price quote usually valid in the UAE?",
-      "q_ar": "كم تبقى صلاحية عرض سعر الحديد عادة في الإمارات؟",
+      "q_en": "How do UAE steel stockists sell sections, plates, sheets and pipes in terms of units, standard lengths and price basis?",
+      "q_ar": "كيف يبيع تجار الحديد في الإمارات المقاطع والصفائح والألواح والأنابيب من حيث الوحدات والأطوال القياسية وأساس التسعير؟",
       "expected_entry_ids": [
         "steel_stock:uae-market-sizes"
       ]

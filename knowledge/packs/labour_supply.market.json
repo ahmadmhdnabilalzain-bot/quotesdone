@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Is a hired steel fixer priced per hour or per month, and what is included?",
-      "q_ar": "هل يُسعّر عامل تثبيت حديد التسليح المستأجر بالساعة أم بالشهر، وما المشمول؟",
+      "q_en": "On what basis do UAE manpower suppliers charge for workers, and what minimums apply?",
+      "q_ar": "على أي أساس يحتسب موردو العمالة في الإمارات أجور العمال، وما الحدود الدنيا المطبقة؟",
       "expected_entry_ids": [
         "labour_supply:uae-market-sizes"
       ]

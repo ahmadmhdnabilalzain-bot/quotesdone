@@ -67,8 +67,8 @@
   ],
   "eval": [
     {
-      "q_en": "Does an influencer need a licence to promote our product in the UAE?",
-      "q_ar": "هل يحتاج المؤثر إلى ترخيص للترويج لمنتجنا في الإمارات؟",
+      "q_en": "Which digital marketing services can a business hire from agencies in the UAE?",
+      "q_ar": "ما خدمات التسويق الرقمي التي يمكن لشركة الاستعانة بها من الوكالات في الإمارات؟",
       "expected_entry_ids": [
         "digital_marketing:uae-market-products"
       ]

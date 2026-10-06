@@ -67,8 +67,8 @@
   ],
   "eval": [
     {
-      "q_en": "What shelf life must medical consumables have at delivery for hospital tenders?",
-      "q_ar": "ما مدة الصلاحية المطلوبة للمستهلكات الطبية عند التسليم في مناقصات المستشفيات؟",
+      "q_en": "Are medical consumables in the UAE sold per box, per carton or under annual hospital contracts?",
+      "q_ar": "هل تُباع المستهلكات الطبية في الإمارات بالعلبة أم بالكرتونة أم من خلال عقود سنوية مع المستشفيات؟",
       "expected_entry_ids": [
         "medical_consumables:uae-market-sizes"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do I know a spare part is genuine?",
-      "q_ar": "كيف أعرف أن قطعة الغيار أصلية؟",
+      "q_en": "Which dealers and aftermarket brands supply heavy machinery spare parts in the UAE?",
+      "q_ar": "من هم الوكلاء والعلامات التجارية البديلة التي توفر قطع غيار المعدات الثقيلة في الإمارات؟",
       "expected_entry_ids": [
         "machinery_spare_parts:uae-market-brands"
       ]

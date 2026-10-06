@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do collection agencies charge for recovering a commercial debt?",
-      "q_ar": "كيف تتقاضى وكالات التحصيل أتعابها لاسترداد دين تجاري؟",
+      "q_en": "What fee structures do debt collection agencies in the UAE use for amicable and legal recovery?",
+      "q_ar": "ما هياكل الرسوم التي تعتمدها وكالات تحصيل الديون في الإمارات للتحصيل الودي والقانوني؟",
       "expected_entry_ids": [
         "debt_collection:uae-market-sizes"
       ]

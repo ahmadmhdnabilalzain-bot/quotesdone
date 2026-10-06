@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How is A4 copy paper priced for a corporate account?",
-      "q_ar": "كيف يُسعّر ورق التصوير A4 لحساب شركة؟",
+      "q_en": "What pack sizes and pricing units apply to office stationery in the UAE, and how do corporate rate lists work?",
+      "q_ar": "ما أحجام العبوات ووحدات التسعير المعتمدة للقرطاسية المكتبية في الإمارات، وكيف تعمل قوائم الأسعار للشركات؟",
       "expected_entry_ids": [
         "stationery_office_supplies:uae-market-sizes"
       ]

@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which standard should a temporary suspended cradle comply with, and what certificate do we need before use?",
-      "q_ar": "ما المعيار الذي يجب أن يلتزم به المهد المعلق المؤقت، وما الشهادة المطلوبة قبل الاستخدام؟",
+      "q_en": "What facade access and maintenance services are offered for buildings in the UAE, from BMUs to rope access?",
+      "q_ar": "ما خدمات الوصول إلى الواجهات وصيانتها المتاحة للمباني في الإمارات، من وحدات صيانة المباني إلى العمل بالحبال؟",
       "expected_entry_ids": [
         "facade_access_maintenance:uae-market-products"
       ]

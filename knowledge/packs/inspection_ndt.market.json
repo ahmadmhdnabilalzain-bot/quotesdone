@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What certification should an NDT technician hold for UT on pipeline welds?",
-      "q_ar": "ما الشهادة التي يجب أن يحملها فني الاختبارات غير الإتلافية للفحص بالموجات فوق الصوتية على لحامات خطوط الأنابيب؟",
+      "q_en": "What inspection and NDT services can companies in the UAE carry out for us?",
+      "q_ar": "ما خدمات الفحص والاختبارات غير الإتلافية التي يمكن للشركات في الإمارات تنفيذها لنا؟",
       "expected_entry_ids": [
         "inspection_ndt:uae-market-products"
       ]

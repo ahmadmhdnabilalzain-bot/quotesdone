@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "How is pallet racking priced for a new warehouse?",
-      "q_ar": "كيف تُسعّر رفوف المنصات لمستودع جديد؟",
+      "q_en": "How do UAE racking suppliers quote a job: per pallet position, per bay or per square metre of mezzanine?",
+      "q_ar": "كيف يُعدّ موردو الرفوف في الإمارات عروض الأسعار: لكل موقع منصة أم لكل وحدة رف أم لكل متر مربع من الميزانين؟",
       "expected_entry_ids": [
         "racking_storage:uae-market-sizes"
       ]

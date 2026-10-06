@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Is it cheaper to rent a bottleless point-of-use dispenser or buy 5-gallon bottles?",
-      "q_ar": "هل استئجار موزع نقطة استخدام بدون عبوات أرخص أم شراء عبوات 5 غالونات؟",
+      "q_en": "What does drinking water supply cost in the UAE in terms of bottles, deposits, coupons and dispenser rental?",
+      "q_ar": "ما تكلفة توريد مياه الشرب في الإمارات من حيث العبوات والتأمين والكوبونات وإيجار البرادات؟",
       "expected_entry_ids": [
         "water_dispensers:uae-market-sizes"
       ]

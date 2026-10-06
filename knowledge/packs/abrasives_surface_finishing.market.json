@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which cutting disc thickness is best for stainless steel?",
-      "q_ar": "ما سماكة قرص القطع الأنسب للفولاذ المقاوم للصدأ؟",
+      "q_en": "What range of abrasives can I buy in the UAE, from cutting discs and flap discs to sanding belts and blasting media?",
+      "q_ar": "ما تشكيلة المواد الكاشطة المتوفرة في الإمارات، من أقراص القطع والأقراص الورقية إلى أحزمة الصنفرة ومواد السفع؟",
       "expected_entry_ids": [
         "abrasives_surface_finishing:uae-market-products"
       ]
