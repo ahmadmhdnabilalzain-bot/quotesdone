@@ -574,21 +574,15 @@
   "d2f51ce60d95",
   "e0c574ae3528"
  ],
+ "scripts/sql/a_web_search_is_capped_names_no_private_party_and_tells_the_founder_only_of_his_account.sql": [
+  "9e03b148b744",
+  "d40621091456"
+ ],
  "scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql": [
   "f1b2f677e087"
  ],
  "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql": [
   "3cbc1543d65e"
- ],
- "scripts/sql/a_web_search_is_capped_names_no_private_party_and_tells_the_founder_only_of_his_account.sql": [
-  "9e03b148b744",
-  "d40621091456"
- ],
- "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english_probe.sql": [
-  "2c34b688d18c",
-  "6e8f5d8a80f0",
-  "a428e819f9a6",
-  "cf76d5fb9275"
  ],
  "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english.sql": [
   "036eb5e90eaa",
@@ -2616,6 +2610,44 @@
   "df41819eedaa",
   "e5b97c22b0a2",
   "f38622845c37"
+ ],
+ "scripts/sql/the_terms_of_6_october_2026_say_quotesdone_is_an_intermediary_not_a_party.sql": [
+  "0323f92c845d",
+  "076b6d5ad3ac",
+  "083e8276f79e",
+  "0ae572b45180",
+  "31799a1dacb4",
+  "31fb5fdaefb2",
+  "347954a3e357",
+  "3540d39928d8",
+  "3a8ecb488816",
+  "48175a54e663",
+  "50c21c1fd012",
+  "56b5c7595316",
+  "66cdbd243f65",
+  "6ee550bf08c6",
+  "74db16d12837",
+  "832c92fb3975",
+  "88bb24dfb897",
+  "8c92b3e38b32",
+  "9fcba2406792",
+  "9ff28a224a3d",
+  "a56dbf495b14",
+  "aaaf4fb2adf3",
+  "aed9d55060dd",
+  "af68e7f40dcb",
+  "afc34aee5102",
+  "c086f100b7da",
+  "c8861ca62e11",
+  "c945142d1ff3",
+  "d8571810ff3d",
+  "d8f5c71bf9df",
+  "d9a4353cc86d",
+  "df41819eedaa",
+  "e5b97c22b0a2",
+  "e88c52b925fc",
+  "f38622845c37",
+  "fa8603f50563"
  ],
  "scripts/sql/the_tools_the_maintenance_runs_on_are_not_dead_code.sql": [
   "2b28d0a6d8d3",
@@ -4969,6 +5001,7 @@
   "086144a9d119",
   "09c62c85e0f3",
   "0c9a4a9aaf31",
+  "1033ec029504",
   "10d61059a6bb",
   "1125b13e7138",
   "153f7d6d7e82",
@@ -5007,6 +5040,7 @@
   "444653723f1a",
   "448c7a1eb876",
   "478f3fd957c6",
+  "496e569ffae9",
   "49b83d887375",
   "49fd06863521",
   "4baf7b1bfea2",
@@ -5075,6 +5109,7 @@
   "9e7644e4de9a",
   "9ec43f377b2e",
   "9f047b633034",
+  "9fbbe69df406",
   "9ff553b0f985",
   "a1cae16ee668",
   "a315afcd2099",
@@ -5083,6 +5118,7 @@
   "a5ad82fc33e3",
   "a8a5aa5aae32",
   "a963ee0ae88b",
+  "ab7393af4c20",
   "abb8b40659d3",
   "acc60178bc8f",
   "ad34a32b50c4",
@@ -5671,8 +5707,8 @@
   "fb124abd6131"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
-  "0ace90eb0853",
-  "5839dc1b25d3"
+  "2eeb132406ba",
+  "bc769b49e75d"
  ],
  "supabase/functions/_shared/supplier_charge_documents.ts": [
   "028bd4e1bdc6",
