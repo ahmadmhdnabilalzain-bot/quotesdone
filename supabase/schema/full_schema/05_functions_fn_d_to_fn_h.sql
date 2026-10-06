@@ -1316,6 +1316,33 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_e2e_run_tag_current()
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return coalesce(nullif(current_setting('app.e2e_run_tag', true), ''),
+                  case when nullif(current_setting('request.jwt.claims', true), '')::json ->> 'role' = 'service_role'
+                       then nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-qd-e2e-run', '') end);
+exception when others then
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_e2e_run_tag_open(p_tag text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_tag ~ '^[a-z0-9]{4,16}$' and exists (
+    select 1 from public.rehearsal_window w
+     where w.run_tag = 'qd_run:' || p_tag and w.ended_at is null and w.models_allowed and w.expires_at > now())
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ea_agenda(p_days integer DEFAULT 7)
  RETURNS jsonb
  LANGUAGE sql
