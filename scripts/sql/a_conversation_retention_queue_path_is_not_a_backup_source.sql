@@ -9,7 +9,6 @@
 -- live buckets and main is red on it until one of the two lands.
 --   node scripts/apply_sql.mjs scripts/sql/a_conversation_retention_queue_path_is_not_a_backup_source.sql --apply --ddl --seat it_engineer
 
-begin;
 
 CREATE OR REPLACE FUNCTION public.fn_backup_source_registry()
  RETURNS TABLE(source text, kind text, bucket text, backed_up boolean, enqueue_rule text, reason text)
@@ -130,4 +129,3 @@ $function$;
 
 revoke execute on function public.fn_backup_source_registry() from public, anon, authenticated;
 
-commit;
