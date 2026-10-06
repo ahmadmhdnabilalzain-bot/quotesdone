@@ -5566,7 +5566,7 @@ AS $function$
       or exists (
         select 1 from public.messaging_template
          where channel = 'whatsapp'
-           and status <> 'rejected'
+           and status not in ('rejected', 'missing')
            and (last_checked_at is null or last_checked_at < now() - interval '20 hours')),
 
     -- The queue is the gate. No flag, because nothing here costs a model call and a queued SMS has a
