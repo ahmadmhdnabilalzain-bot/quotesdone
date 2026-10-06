@@ -51,7 +51,8 @@ alter table public.pdpl_requests
   add column if not exists confirm_after timestamptz,
   add column if not exists completed_at  timestamptz,
   add column if not exists cancelled_at  timestamptz,
-  add column if not exists outcome       jsonb;
+  add column if not exists outcome       jsonb,
+  add column if not exists attempts      integer not null default 0;
 
 create table if not exists public.pdpl_lead_erase_vault (
   request_id  uuid not null references public.pdpl_requests(id),
@@ -249,13 +250,27 @@ returns jsonb
 language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare q public.pdpl_requests; v_out jsonb;
 begin
-  select * into q from public.pdpl_requests where id = p_request;
+  -- ATTEMPTS ARE COUNTED, COMPARED AND SPENT IN ONE LOCKED STEP (third review; the pattern of #1245's
+  -- fn_login_otp_email_verify): the request row is locked, so guesses sent at the same moment are serialised;
+  -- 5 guesses per code, then the code is burned; and at most 10 verifications per address per hour, counted
+  -- under an advisory lock on the address so two requests for it cannot both read the same count.
+  select * into q from public.pdpl_requests where id = p_request for update;
+  if q.id is not null then perform pg_advisory_xact_lock(hashtext('pdpl_verify:' || q.email)); end if;
   if q.id is null or q.status <> 'received' then
     v_out := jsonb_build_object('ok', false, 'error', 'no open request');
+  elsif (select count(*) from public.pdpl_operator_log l where l.action = 'verify' and l.email = q.email and l.at > now() - interval '1 hour') >= 10 then
+    v_out := jsonb_build_object('ok', false, 'error', 'too many attempts for this address; try again in an hour');
+  elsif q.attempts >= 5 or q.code_sha is null then
+    update public.pdpl_requests set code_sha = null, status = 'burned' where id = q.id;
+    v_out := jsonb_build_object('ok', false, 'error', 'this code is spent; ask for a new one');
   elsif q.code_expires < now() or q.code_sha is distinct from encode(sha256(convert_to(btrim(coalesce(p_code, '')), 'UTF8')), 'hex') then
-    v_out := jsonb_build_object('ok', false, 'error', 'wrong or expired code');
+    update public.pdpl_requests set attempts = attempts + 1,
+           code_sha = case when attempts + 1 >= 5 then null else code_sha end,
+           status = case when attempts + 1 >= 5 then 'burned' else status end
+     where id = q.id;
+    v_out := jsonb_build_object('ok', false, 'error', 'wrong or expired code', 'attempts_left', greatest(4 - q.attempts, 0));
   else
-    update public.pdpl_requests set verified_via = 'email_code', verified_at = now(), code_sha = null where id = q.id;
+    update public.pdpl_requests set verified_via = 'email_code', verified_at = now(), code_sha = null, attempts = attempts + 1 where id = q.id;
     v_out := public.fn_pdpl_carry_out(q.id);
   end if;
   insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result)
@@ -376,6 +391,79 @@ end $fn$;
 revoke execute on function public.pdpl_cancel_me(uuid) from public, anon;
 grant execute on function public.pdpl_cancel_me(uuid) to authenticated;
 
+-- ── WHICH MAIL A PDPL OPT-OUT STOPS, AT THE SOURCE (third review, 6 Oct 2026) ─────────────────────────
+-- fn_email_sendable(email) refused EVERY mail to an address with ANY email_suppressions row, so the 'unsubscribe'
+-- row an erasure writes would have stopped dispute.opened / dispute.decided (customer_support duty mail, which
+-- calls it) - the mail the law most needs to reach the person. The new two-argument form knows the mail type:
+-- an opt-out row ('unsubscribe') blocks only MARKETING (fn_opt_out_types(), and any type naming an invite, a
+-- nudge, a newsletter, marketing, a promotion, a win-back or an activation nudge); every other row (a bounce, a complaint, a block) still blocks
+-- everything. The one-argument form is unchanged in effect (no type = treated as marketing), so the invitation
+-- eligibility, outreach and scorecard callers keep their meaning; customer_support's duty sender now passes its type.
+-- Mirror of supabase/functions/_shared/suppression_policy.ts (isOptOut / suppressionStops).
+create or replace function public.fn_email_type_is_marketing(p_type text)
+returns boolean
+language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select p_type is null or p_type = any (public.fn_opt_out_types())
+      or p_type ~* '(invite|nudge|newsletter|marketing|promo|winback|activation)';
+$fn$;
+revoke execute on function public.fn_email_type_is_marketing(text) from public, anon, authenticated;
+
+create or replace function public.fn_email_sendable(p_email text, p_type text)
+returns jsonb
+language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_e text; v_pat record; v_dom text;
+begin
+  v_e := lower(btrim(coalesce(p_email, '')));
+  if v_e = '' then return jsonb_build_object('ok', false, 'reason', 'no address'); end if;
+  if v_e !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$' then
+    return jsonb_build_object('ok', false, 'reason', 'not a valid address shape');
+  end if;
+  if exists (select 1 from public.email_suppressions s where lower(s.email) = v_e
+               and (lower(btrim(coalesce(s.reason, ''))) <> 'unsubscribe' or public.fn_email_type_is_marketing(p_type))) then
+    return jsonb_build_object('ok', false, 'reason', 'suppressed');
+  end if;
+  v_dom := split_part(v_e, '@', 2);
+  if exists (select 1 from public.email_domain_mx m
+              where m.domain = v_dom and m.has_mx = false and m.kind in ('nxdomain', 'no_records')) then
+    return jsonb_build_object('ok', false, 'reason', 'domain does not accept mail');
+  end if;
+  for v_pat in select pattern, reason from public.email_block_pattern where active loop
+    if v_e ~ v_pat.pattern then return jsonb_build_object('ok', false, 'reason', v_pat.reason); end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'reason', 'sendable');
+end $fn$;
+revoke execute on function public.fn_email_sendable(text, text) from public, anon, authenticated;
+
+create or replace function public.fn_customer_support_duty_send(p_stage text, p_key text, p_to_role text, p_email text,
+  p_lang text, p_subject text, p_body text, p_customer uuid default null, p_lead bigint default null, p_inquiry uuid default null)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_to text := lower(nullif(btrim(coalesce(p_email, '')), '')); v_ok jsonb; v_res jsonb; v_h bigint;
+begin
+  insert into public.customer_support_duty_message (stage, subject_key, customer_id, lead_id, to_email)
+  values (p_stage, p_key, p_customer, p_lead, v_to)
+  on conflict (stage, subject_key) do nothing;
+  if not found then return jsonb_build_object('sent', false, 'reason', 'already written at this stage'); end if;
+  v_ok := public.fn_email_sendable(v_to, 'duty_' || replace(p_stage, '.', '_'));          -- the type: a dispute is never marketing
+  if not coalesce((v_ok->>'ok')::boolean, false) then
+    update public.customer_support_duty_message set outcome = 'not_sendable: ' || (v_ok->>'reason')
+     where stage = p_stage and subject_key = p_key;
+    return jsonb_build_object('sent', false, 'reason', v_ok->>'reason');
+  end if;
+  v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+    'type', 'duty_' || replace(p_stage, '.', '_'), 'requested_by', 'customer_support', 'channel', 'email',
+    'to_email', v_to, 'to_role', p_to_role, 'lead_id', p_lead, 'inquiry_id', p_inquiry,
+    'lang', case when p_lang = 'ar' then 'ar' else 'en' end,
+    'dedupe_key', 'duty:' || p_stage || ':' || p_key, 'subject', p_subject, 'body', p_body)));
+  v_h := (v_res->0->>'handoff_id')::bigint;
+  update public.customer_support_duty_message set outcome = 'queued', handoff_id = v_h
+   where stage = p_stage and subject_key = p_key;
+  return jsonb_build_object('sent', true, 'handoff_id', v_h);
+end $fn$;
+revoke execute on function public.fn_customer_support_duty_send(text, text, text, text, text, text, text, uuid, bigint, uuid) from public, anon, authenticated;
+
 -- PROBE: read-only. Returns ONE verdict row.
 select case
   when has_function_privilege('anon', 'public.pdpl_request_me(text)', 'execute')
@@ -383,6 +471,10 @@ select case
     or has_function_privilege('authenticated', 'public.fn_pdpl_export_data(text)', 'execute')
     or has_function_privilege('authenticated', 'public.fn_pdpl_carry_out(uuid)', 'execute')
     then 'PROBE FAILED: a PDPL routine is reachable by the wrong role'
+  when public.fn_email_type_is_marketing('duty_dispute_opened') or public.fn_email_type_is_marketing('duty_dispute_decided')
+    or public.fn_email_type_is_marketing('refund_in_progress') or not public.fn_email_type_is_marketing('supplier_invite')
+    or not public.fn_email_type_is_marketing('duty_winback_dormant')
+    then 'PROBE FAILED: an opt-out would stop dispute or refund mail, or let an invitation through'
   when (select count(*) from cron.job where jobname = 'pdpl_erasure_daily') <> 1 then 'PROBE FAILED: the daily erasure tick is missing'
   else 'PROBE OK: only the self-service pair is open to signed-in users; the operator path needs a code'
 end as verdict;
