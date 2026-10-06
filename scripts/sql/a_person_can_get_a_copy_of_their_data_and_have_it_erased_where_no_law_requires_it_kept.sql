@@ -4,7 +4,12 @@
 -- export/erasure as a real working path." Founder ledger 1122. Revised the same day on the release
 -- operator's review: (1) never act on an unverified email, (2) erase is two-step with a 7-day cooling-off,
 -- (3) a lead erase is reversible inside that window, (4) every operator call is logged, (5) erasure
--- suppresses marketing only, never transactional mail.
+-- suppresses marketing only, never transactional mail. Second review, same day: (6) a self-service erase needs a
+-- second verified action (the emailed code) before the 7-day clock starts, (7) every call is logged whatever the
+-- role, with the actor (the JWT role, e.g. service_role) and the calling function, and the helpers are revoked from
+-- service_role too, so the only doors are the logged ones, (8) mail the law requires (dispute, refund, payment, legal
+-- notice) still reaches the person: the opt-out is 'unsubscribe', which stops only fn_opt_out_types(), and a party
+-- with an open dispute, refund, complaint or unpaid amount is never soft-erased (legal hold) - both proved by the probe.
 --
 -- MEASURED BEFORE WRITING (6 Oct 2026, production, read-only): no routine named %pdpl%, %erase%,
 -- %data_export% or %dsar% exists. fn_pdpl_export and fn_pdpl_erase_plan were dropped on 7 Sep 2026
@@ -60,10 +65,19 @@ alter table public.pdpl_lead_erase_vault enable row level security;
 revoke all on public.pdpl_lead_erase_vault from anon, authenticated;
 create policy pdpl_lead_erase_vault_service_only on public.pdpl_lead_erase_vault for all to service_role using (true) with check (true);
 
+-- who is calling: the request's JWT role (service_role, authenticated) when PostgREST set one, else the database user
+create or replace function public.fn_pdpl_actor()
+returns text
+language sql stable set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', session_user::text);
+$fn$;
+
 create table if not exists public.pdpl_operator_log (
   id          bigint generated always as identity primary key,
   at          timestamptz not null default now(),
   db_user     text not null default session_user,
+  actor       text not null default public.fn_pdpl_actor(),
+  caller      text,
   operator    text,
   action      text not null,
   email       text,
@@ -91,7 +105,7 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
                   select unnest(array[l.phone, l.phone_e164, l.whatsapp, l.whatsapp_phone]) from public.leads l where lower(l.email) = lower(p_email)) s
            where x is not null) u;
 $fn$;
-revoke execute on function public.fn_pdpl_phone_tails(text) from public, anon, authenticated;
+revoke execute on function public.fn_pdpl_phone_tails(text) from public, anon, authenticated, service_role;
 
 create or replace function public.fn_pdpl_export_data(p_email text)
 returns jsonb
@@ -127,7 +141,7 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
                   where right(regexp_replace(coalesce(w.wa_from, ''), '[^0-9]', '', 'g'), 9) = any (e.tails)),
     'opt_out', (select to_jsonb(s) from public.email_suppressions s, e where lower(s.email) = e.em limit 1));
 $fn$;
-revoke execute on function public.fn_pdpl_export_data(text) from public, anon, authenticated;
+revoke execute on function public.fn_pdpl_export_data(text) from public, anon, authenticated, service_role;
 
 -- ── the erase decision for an address (pure read): which leads can be soft-erased now, what is deferred ──
 create or replace function public.fn_pdpl_erase_plan(p_email text)
@@ -158,7 +172,7 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
                  'kept_until', (greatest(coalesce(c.last_act, now()), date_trunc('year', now()) + interval '1 year') + interval '5 years')::date,
                  'reason', 'a customer account: kept under Cabinet Decision 74/2023 Art. 3; conversations are removed on that date') from c) d));
 $fn$;
-revoke execute on function public.fn_pdpl_erase_plan(text) from public, anon, authenticated;
+revoke execute on function public.fn_pdpl_erase_plan(text) from public, anon, authenticated, service_role;
 
 -- ── the work done once a request is verified ─────────────────────────────────────────────────────────
 create or replace function public.fn_pdpl_carry_out(p_request uuid)
@@ -167,6 +181,8 @@ language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare q public.pdpl_requests; v_plan jsonb; v_out jsonb; v_id bigint;
 begin
   select * into q from public.pdpl_requests where id = p_request for update;
+  insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result)
+  values ('fn_pdpl_carry_out', q.handled_by, 'carry_out:' || coalesce(q.kind, ''), q.email, p_request, jsonb_build_object('verified', q.verified_at is not null));
   if q.verified_at is null then return jsonb_build_object('ok', false, 'error', 'not verified'); end if;
   if q.kind = 'export' then
     v_out := public.fn_pdpl_export_data(q.email);
@@ -195,7 +211,7 @@ begin
    where id = q.id;
   return jsonb_build_object('ok', true, 'request_id', q.id, 'status', 'cooling_off', 'confirm_after', now() + interval '7 days', 'plan', v_plan);
 end $fn$;
-revoke execute on function public.fn_pdpl_carry_out(uuid) from public, anon, authenticated;
+revoke execute on function public.fn_pdpl_carry_out(uuid) from public, anon, authenticated, service_role;
 
 -- ── operator entry points (customer_support), each logged ───────────────────────────────────────────
 create or replace function public.fn_pdpl_open(p_email text, p_kind text, p_operator text)
@@ -223,7 +239,7 @@ begin
       '{}', 'pdpl_verification:' || v_id::text);
     v_out := jsonb_build_object('ok', true, 'request_id', v_id, 'code_sent_to', v_em);
   end if;
-  insert into public.pdpl_operator_log (operator, action, email, request_id, result) values (p_operator, 'open:' || coalesce(p_kind, ''), v_em, v_id, v_out);
+  insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result) values ('fn_pdpl_open', p_operator, 'open:' || coalesce(p_kind, ''), v_em, v_id, v_out);
   return v_out;
 end $fn$;
 revoke execute on function public.fn_pdpl_open(text, text, text) from public, anon, authenticated;
@@ -242,8 +258,8 @@ begin
     update public.pdpl_requests set verified_via = 'email_code', verified_at = now(), code_sha = null where id = q.id;
     v_out := public.fn_pdpl_carry_out(q.id);
   end if;
-  insert into public.pdpl_operator_log (operator, action, email, request_id, result)
-  values (p_operator, 'verify', q.email, p_request, v_out - 'export');                      -- the export itself is not copied into the log
+  insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result)
+  values ('fn_pdpl_verify', p_operator, 'verify', q.email, p_request, v_out - 'export');                      -- the export itself is not copied into the log
   return v_out;
 end $fn$;
 revoke execute on function public.fn_pdpl_verify(uuid, text, text) from public, anon, authenticated;
@@ -272,7 +288,7 @@ begin
     v := jsonb_build_object('ok', true, 'restored_leads', n,
            'note', 'the marketing opt-out stays; the person can resubscribe from any invitation link');
   end if;
-  insert into public.pdpl_operator_log (operator, action, email, request_id, result) values (p_operator, 'cancel', q.email, p_request, v);
+  insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result) values ('fn_pdpl_cancel', p_operator, 'cancel', q.email, p_request, v);
   return v;
 end $fn$;
 revoke execute on function public.fn_pdpl_cancel(uuid, text) from public, anon, authenticated;
@@ -294,7 +310,7 @@ begin
       done := done + 1;
     end if;
   end loop;
-  insert into public.pdpl_operator_log (operator, action, result) values ('fn_pdpl_tick', 'tick', jsonb_build_object('completed', done, 'held', held))
+  insert into public.pdpl_operator_log (caller, operator, action, result) values ('fn_pdpl_tick', 'fn_pdpl_tick', 'tick', jsonb_build_object('completed', done, 'held', held))
   ;
   return jsonb_build_object('completed', done, 'held', held);
 end $fn$;
@@ -310,7 +326,7 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
    where exists (select 1 from public.customers c where lower(c.email) = e.em and c.email_verified)
       or exists (select 1 from public.leads l where lower(l.claimed_by) = e.em and l.owner_email_verified);
 $fn$;
-revoke execute on function public.fn_pdpl_my_verified_email() from public, anon, authenticated;
+revoke execute on function public.fn_pdpl_my_verified_email() from public, anon, authenticated, service_role;
 
 create or replace function public.pdpl_request_me(p_kind text)
 returns jsonb
@@ -322,6 +338,10 @@ begin
       'message', 'Verify your email address in your account first.', 'message_ar', 'يُرجى توثيق بريدكم الإلكتروني في حسابكم أولًا.');
   end if;
   if p_kind not in ('export', 'delete') then return jsonb_build_object('ok', false, 'code', 'bad_kind'); end if;
+  -- ERASE NEEDS A SECOND VERIFIED ACTION: a code is emailed and the clock starts only at pdpl_confirm_me.
+  if p_kind = 'delete' then
+    return public.fn_pdpl_open(v_em, 'delete', 'self_service') || jsonb_build_object('next', 'pdpl_confirm_me(request_id, code)');
+  end if;
   insert into public.pdpl_requests (kind, email, role, details, status, verified_via, verified_at, handled_by)
   values (p_kind, v_em, 'self_service', 'signed-in, email verified by code', 'received', 'session+email_verified', now(), 'self_service')
   returning id into v_id;
@@ -329,6 +349,19 @@ begin
 end $fn$;
 revoke execute on function public.pdpl_request_me(text) from public, anon;
 grant execute on function public.pdpl_request_me(text) to authenticated;
+
+create or replace function public.pdpl_confirm_me(p_request uuid, p_code text)
+returns jsonb
+language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_em text := public.fn_pdpl_my_verified_email();
+begin
+  if v_em is null or not exists (select 1 from public.pdpl_requests where id = p_request and email = v_em and kind = 'delete') then
+    return jsonb_build_object('ok', false, 'code', 'not_yours');
+  end if;
+  return public.fn_pdpl_verify(p_request, p_code, 'self_service');
+end $fn$;
+revoke execute on function public.pdpl_confirm_me(uuid, text) from public, anon;
+grant execute on function public.pdpl_confirm_me(uuid, text) to authenticated;
 
 create or replace function public.pdpl_cancel_me(p_request uuid)
 returns jsonb
