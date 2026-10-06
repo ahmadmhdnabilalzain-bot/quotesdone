@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can a foreign law firm represent us in a Dubai onshore court?",
-      "q_ar": "هل يمكن لمكتب محاماة أجنبي تمثيلنا أمام محكمة دبي المحلية؟",
+      "q_en": "Which matters can an attorney's office support a business with around here?",
+      "q_ar": "ما القضايا التي يستطيع مكتب محاماة هنا مساعدة شركة فيها؟",
       "expected_entry_ids": [
         "legal_services:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the legal practice areas law firms cover for businesses.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

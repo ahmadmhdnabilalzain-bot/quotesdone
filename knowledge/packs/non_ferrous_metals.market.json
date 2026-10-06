@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is aluminium sheet priced by UAE traders?",
-      "q_ar": "كيف يسعّر التجار في الإمارات ألواح الألمنيوم؟",
+      "q_en": "Is red metal or light metal bought by kilo or by bar around town, honestly?",
+      "q_ar": "هل يُشترى النحاس أو الألمنيوم بالكيلو أم بالقضيب في المدينة؟",
       "expected_entry_ids": [
         "non_ferrous_metals:uae-market-sizes"
-      ]
+      ],
+      "why": "States non-ferrous metals are priced per kg or per tonne on LME plus premium, with tubes per coil or length.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

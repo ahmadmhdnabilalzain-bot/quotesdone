@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How do we check that an engineering consultant is registered with Dubai Municipality?",
-      "q_ar": "كيف نتحقق من أن الاستشاري الهندسي مسجل لدى بلدية دبي؟",
+      "q_en": "What can technical consulting offices deliver locally: drawings, oversight onsite, sign-offs from officials?",
+      "q_ar": "ماذا تقدّم المكاتب الاستشارية الفنية محلياً: مخططات، وإشراف في الموقع، وموافقات الجهات الرسمية؟",
       "expected_entry_ids": [
         "engineering_consultancy:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists design, supervision and authority approval services of engineering consultancies.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

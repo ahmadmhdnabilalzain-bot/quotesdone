@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is a PR retainer typically structured in Dubai?",
-      "q_ar": "كيف تُنظم عادةً أتعاب العلاقات العامة الشهرية في دبي؟",
+      "q_en": "Do press agencies work on ongoing monthly deals or for each campaign?",
+      "q_ar": "هل تعمل وكالات العلاقات الإعلامية بعقود شهرية مستمرة أم لكل حملة؟",
       "expected_entry_ids": [
         "public_relations:uae-market-sizes"
-      ]
+      ],
+      "why": "States PR is billed as a monthly retainer or per project.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

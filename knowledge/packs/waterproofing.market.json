@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "How long should a roof waterproofing warranty be in the UAE?",
-      "q_ar": "كم يجب أن تكون مدة ضمان عزل السطح في الإمارات؟",
+      "q_en": "Is sealing a building against leaks costed by surface, and is a guarantee period part of it?",
+      "q_ar": "هل يُسعَّر عزل المبنى ضد التسرب حسب المساحة، وهل تدخل فترة الضمان ضمنه؟",
       "expected_entry_ids": [
         "waterproofing:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Bitumen membranes come in 1 m x 10 m rolls (10 m2), 3-4 mm thick; PVC/TPO rolls 2 m wide; liquid membranes in 5-25 kg pails or 200 L drums with coverage per m2 at stated dry film thickness (e.g\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

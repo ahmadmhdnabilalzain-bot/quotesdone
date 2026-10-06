@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What wallpaper type is required for a hotel corridor?",
-      "q_ar": "ما نوع ورق الجدران المطلوب لممر فندق؟",
+      "q_en": "Which ornamental wall coverings and photo prints are favourites here?",
+      "q_ar": "ما أغطية الجدران الزخرفية والمطبوعات الفوتوغرافية المفضلة هنا؟",
       "expected_entry_ids": [
         "wallpaper:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Wallpaper and wall finishes in the UAE: vinyl wallcoverings (Type I, II, III by weight for residential, commercial and heavy-traffic hotel corridors; fabric-backed), non-woven wallpapers, paper-backed and textile wallcov...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

@@ -67,11 +67,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does an influencer need a licence to promote our product in the UAE?",
-      "q_ar": "هل يحتاج المؤثر إلى ترخيص للترويج لمنتجنا في الإمارات؟",
+      "q_en": "Which web and online promotion bundles do agencies around here typically put together?",
+      "q_ar": "ما باقات الترويج عبر الإنترنت والويب التي تجمعها الوكالات هنا عادةً؟",
       "expected_entry_ids": [
         "digital_marketing:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists SEO, paid search, paid social and social media management services in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

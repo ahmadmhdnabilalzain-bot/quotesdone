@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does a disinfectant need Dubai Municipality registration before it can be sold in Dubai?",
-      "q_ar": "هل يحتاج المطهر إلى تسجيل لدى بلدية دبي قبل بيعه في دبي؟",
+      "q_en": "Which hygiene goods for scrubbing and sterilising can a facility realistically buy nearby?",
+      "q_ar": "ما سلع النظافة للفرك والتعقيم التي يمكن لمنشأة شراؤها بالقرب منها؟",
       "expected_entry_ids": [
         "cleaning_chemicals:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists floor cleaners, degreasers, disinfectants and janitorial supplies sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

@@ -42,6 +42,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "vending_machines:placement-and-commission-models",
+      "topic": "Vending placement and commission models",
+      "kind": "commercial_model",
+      "body_en": "In Dubai, vending machines can be placed in malls, offices, gyms, schools, hospitals, airports, metro stations, hotels and family entertainment zones, subject to a location agreement with each property owner or operator. High-footfall sites such as Dubai Mall and metro stations command premium fees. The operator's vending activity falls under activity code 4773.96. Hosts should agree the terms in writing. Not established here: whether free placement, revenue sharing or rent applies to offices, typical commission percentages, and minimum headcounts.",
+      "body_ar": "في دبي، يمكن وضع آلات البيع الذاتي في مراكز التسوق والمكاتب والصالات الرياضية والمدارس والمستشفيات والمطارات ومحطات المترو والفنادق ومناطق الترفيه العائلي، بشرط إبرام اتفاقية موقع مع كل مالك أو مشغّل للعقار. وتفرض المواقع ذات الحركة الكثيفة مثل دبي مول ومحطات المترو رسوماً مرتفعة. ويندرج نشاط البيع الآلي للمشغّل تحت رمز النشاط 4773.96. وينبغي للجهة المضيفة الاتفاق على الشروط كتابياً. لم يُثبت هنا: ما إذا كان الوضع المجاني أو تقاسم الإيرادات أو الإيجار ينطبق على المكاتب، ونسب العمولة المعتادة، والحد الأدنى لعدد الموظفين.",
+      "sources": [
+        "https://www.meydanfz.ae/activity-hub/vending-machine-business-dubai"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "vending_machines:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Can a vending company place a machine in our office for free?",
+      "q_ar": "هل يمكن لشركة بيع آلي وضع آلة في مكتبنا مجاناً؟",
+      "expected_entry_ids": [
+        "vending_machines:placement-and-commission-models"
+      ],
+      "why": "No entry of this pack answered it (No entry covers free-placement/commission vending models; missing). vending_machines:placement-and-commission-models was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from vending_machines.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "vending_machines:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "vending_machines:placement-and-commission-models"
+    ]
   }
 }

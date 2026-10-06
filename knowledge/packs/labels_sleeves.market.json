@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "How are self-adhesive labels priced?",
-      "q_ar": "كيف تُسعّر الملصقات ذاتية اللصق؟",
+      "q_en": "Are product stickers costed per roll or by quantity, and what's the smallest order?",
+      "q_ar": "هل تُسعَّر ملصقات المنتجات بالبكرة أم بالكمية، وما أصغر طلب؟",
       "expected_entry_ids": [
         "labels_sleeves:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry explains label pricing per roll or per 1,000 and the minimum order.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

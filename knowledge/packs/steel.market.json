@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which stainless steel grade should I use for a handrail near the beach?",
-      "q_ar": "ما درجة الفولاذ المقاوم للصدأ المناسبة لدرابزين قرب الشاطئ؟",
+      "q_en": "Which fabricating jobs in iron and alloys can workshops here take on?",
+      "q_ar": "ما أعمال التصنيع بالحديد والسبائك التي تستطيع الورش هنا تنفيذها؟",
       "expected_entry_ids": [
         "steel:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Steel and metal fabrication in the UAE: structural steel buildings (portal-frame warehouses, pre-engineered buildings PEB, mezzanines, multi-storey frames), steel sections (UB/UC, IPE/HEA/HEB, channels, angles, hollow se...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

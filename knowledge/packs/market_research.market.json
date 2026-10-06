@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is a focus group priced in Dubai?",
-      "q_ar": "كيف تُسعّر مجموعة التركيز في دبي؟",
+      "q_en": "How do insight agencies bill a questionnaire study: by person asked or as a whole job?",
+      "q_ar": "كيف تسعّر وكالات الأبحاث دراسة استبيان: بكل مشارك أم كمشروع كامل؟",
       "expected_entry_ids": [
         "market_research:uae-market-sizes"
-      ]
+      ],
+      "why": "Explains pricing per completed interview driven by sample size, or per project.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How are interior design fees usually charged for an office fit-out?",
-      "q_ar": "كيف تُحتسب عادةً أتعاب التصميم الداخلي لتجهيز مكتب؟",
+      "q_en": "Do decorators planning offices or homes bill by size of space or as a share of total build spend?",
+      "q_ar": "هل يحاسب المصممون الذين يخططون المكاتب أو المنازل حسب حجم المساحة أم كنسبة من إجمالي تكلفة البناء؟",
       "expected_entry_ids": [
         "design_consultancy:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says interior design fees are a percentage of fit-out cost, per stage, or per m2/sq ft.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.091
     }
   ],
   "verified": {

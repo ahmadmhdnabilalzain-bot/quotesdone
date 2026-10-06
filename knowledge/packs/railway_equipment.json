@@ -40,6 +40,17 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "railway_equipment:etihad-rail-rail-section",
+      "topic": "Rail section on the UAE national network",
+      "kind": "technical_reference",
+      "body_en": "Not established. No page opened for this entry states the rail section laid on the Etihad Rail network, and the supplier news page that was tried returned an error. For any quotation, treat the rail profile, steel grade, length and weld method as fields the buyer must confirm from the project specification or Etihad Rail's engineering standards rather than assuming one.",
+      "body_ar": "غير مثبت. لا توجد صفحة فُتحت لهذا المدخل تذكر مقطع السكة المستخدم في شبكة الاتحاد للقطارات، وقد أعادت صفحة أخبار المورّد التي جرت محاولة فتحها خطأً. في أي عرض سعر، اعتبر مقطع السكة ودرجة الفولاذ والطول وطريقة اللحام حقولاً يجب أن يؤكدها المشتري من مواصفات المشروع أو المعايير الهندسية لشركة الاتحاد للقطارات بدلاً من افتراض أي منها.",
+      "sources": [],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -56,6 +67,15 @@
       "expected_entry_ids": [
         "railway_equipment:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which rail profile is used on the Etihad Rail network?",
+      "q_ar": "ما مقطع القضبان المستخدم في شبكة قطار الاتحاد؟",
+      "expected_entry_ids": [
+        "railway_equipment:etihad-rail-rail-section"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry states the Etihad Rail rail profile (for example UIC 60 / 60E1); spec-checklist only lists \"rail profile\" as a field). railway_equipment:etihad-rail-rail-section was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from railway_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +92,9 @@
       "railway_equipment:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "railway_equipment:etihad-rail-rail-section"
+    ]
   }
 }

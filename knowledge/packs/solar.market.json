@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Who can install a rooftop solar system on my villa in Dubai?",
-      "q_ar": "من يحق له تركيب نظام شمسي على سطح فيلتي في دبي؟",
+      "q_en": "Photovoltaic modules, converters, sun-powered boilers: which green kit can buyers find?",
+      "q_ar": "الألواح الكهروضوئية والعواكس والسخانات الشمسية: ما المعدات الخضراء التي يجدها المشترون؟",
       "expected_entry_ids": [
         "solar:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Solar and renewable energy in the UAE: rooftop and car-park grid-connected PV (net metering under DEWA's Shams Dubai; Abu Dhabi's distributed generation rules with ADDC/AADC; SEWA and EtihadWE rules elsewhere), ground-mo...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

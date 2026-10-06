@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between HDPE, PVC and PTFE shade fabric?",
-      "q_ar": "ما الفرق بين أقمشة التظليل HDPE وPVC وPTFE؟",
+      "q_en": "What boundary barriers, vehicle shelters and stretched fabric roofs do contractors offer around here?",
+      "q_ar": "ما الأسوار ومظلات السيارات والأسقف القماشية المشدودة التي يقدمها المقاولون هنا؟",
       "expected_entry_ids": [
         "fencing_shades:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists fencing types, car-park shades and tensile fabric structures offered.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

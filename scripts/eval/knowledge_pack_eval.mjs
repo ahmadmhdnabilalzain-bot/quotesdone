@@ -79,12 +79,18 @@ if (mode === 'live') {
   const rv = await embedder.many(rows.map((r) => r.text));
   rows.forEach((r, i) => { r.vec = rv[i]; });
   // The pack rows each seat's retrieval reads, per table (mirrors the WHERE clauses of fn_reason_retrieve).
+  // Only rows the routine can return: an unverified entry (runtime_index_eligible = false, verified_packs.mjs isVerified)
+  // is stored but never read, so staging it would only take a slot from a row the routine does return.
   const pools = (seat) => {
-    const own = rows.filter((r) => r.table === SEAT_TABLE[seat]);   // sales_engineer: its pack AND every trade pack
-    if (seat === 'customer_support') return [rows.filter((r) => r.table === 'sales_knowledge' && r.cols.pack_id.startsWith('verified:trade:')), own];
+    const own = rows.filter((r) => r.table === SEAT_TABLE[seat] && r.cols.runtime_index_eligible !== false);   // sales_engineer: its pack AND every trade pack
+    if (seat === 'customer_support') return [rows.filter((r) => r.table === 'sales_knowledge' && r.cols.pack_id.startsWith('verified:trade:') && r.cols.runtime_index_eligible !== false), own];
     return [own];
   };
   const pending = existsSync(PENDING_NOTE) ? readFileSync(join(REPO, SQL_FILE), 'utf8') + '\n' : '';
+  // A row loaded earlier as eligible whose entry is now unverified is switched off inside each aborted transaction too,
+  // so the staged ranking is the one the next load will produce.
+  const off = Object.entries(Object.groupBy(rows.filter((r) => r.cols.runtime_index_eligible === false), (r) => r.table))
+    .map(([t, rs]) => `update public.${t} set runtime_index_eligible = false where record_id = any(${lit(rs.map((r) => r.record_id))});\n`).join('');
   for (const p of packs) {
     const all = qs.filter((q) => q.pack === p.key);
     // 24 Sep 2026: a pack with ~130 questions (EN + AR) staged in ONE request hit HTTP 413 (request entity
@@ -100,11 +106,17 @@ if (mode === 'live') {
     for (const r of stage.values()) (byTable[r.table] ??= []).push(r);
     const inserts = Object.entries(byTable).map(([t, rs]) => upsertSql(t, rs)).join('\n');
     const block = `do $qdeval$ declare o jsonb := '[]'::jsonb; begin\n${mine.map((q) => `o := o || jsonb_build_array(${hitsExpr(q)});`).join('\n')}\nraise exception 'CHK<<%>>', o::text; end $qdeval$;`;
-    try { await replaySql(pending + inserts + block, { retry: false }); throw new Error('the probe committed instead of rolling back'); }
+    // A management-API throttle (429) is a blip, not a finding: the probe is an aborted transaction, so it is re-run
+    // after a pause (7 Oct 2026: two full runs stopped at the same pack on 429 after ~180 probes).
+    for (let attempt = 0; ; attempt++) {
+    try { await replaySql(pending + off + inserts + block, { retry: false }); throw new Error('the probe committed instead of rolling back'); }
     catch (e) {
       const m = String(e.message).match(/CHK<<(.*?)>>/s);
+      if (!m && /HTTP 429/.test(String(e.message)) && attempt < 6) { await new Promise((r) => setTimeout(r, 30_000 * (attempt + 1))); continue; }
       if (!m) throw new Error(`${p.key}: the probe failed before it could report: ${String(e.message).slice(0, 400)}`);
       JSON.parse(m[1]).forEach((h, j) => { mine[j].hits = h; });
+      break;
+    }
     }
     }
     process.stdout.write(`${p.key} `);

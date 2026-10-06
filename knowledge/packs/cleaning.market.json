@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is a post-construction deep clean priced per hour or per square metre?",
-      "q_ar": "هل يُسعّر التنظيف العميق بعد الإنشاء بالساعة أم بالمتر المربع؟",
+      "q_en": "How do housekeeping firms bill: hourly rate, by staff member sent, or a set amount each month?",
+      "q_ar": "كيف تحاسب شركات التنظيف: بسعر الساعة، أم بعدد العاملين المرسلين، أم بمبلغ ثابت كل شهر؟",
       "expected_entry_ids": [
         "cleaning:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says cleaning is quoted per cleaner per hour, per cleaner per month, or per m2.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.083
     }
   ],
   "verified": {

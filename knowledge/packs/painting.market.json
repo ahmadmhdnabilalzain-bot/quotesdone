@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What coating system should I use on steel near the coast in the UAE?",
-      "q_ar": "ما نظام الطلاء المناسب للحديد قرب الساحل في الإمارات؟",
+      "q_en": "Water-based, shiny, rough-look: which coatings for walls are used around here nowadays?",
+      "q_ar": "المائي واللامع والمحبب: ما الطلاءات المستخدمة للجدران هنا حالياً؟",
       "expected_entry_ids": [
         "painting:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the emulsions, gloss enamels and textured finishes sold, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

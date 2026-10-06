@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "What should I specify when buying a liquid filling machine?",
-      "q_ar": "ماذا يجب أن أحدد عند شراء آلة تعبئة سوائل؟",
+      "q_en": "Which kit that pours drinks or sauces into jars and closes them can I purchase locally for a modest plant, honestly?",
+      "q_ar": "ما المعدات التي تعبّئ المشروبات أو الصلصات في البرطمانات وتغلقها ويمكنني شراؤها محلياً لمصنع متوسط؟",
       "expected_entry_ids": [
         "packaging_machinery:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the filling, capping and labelling machines, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

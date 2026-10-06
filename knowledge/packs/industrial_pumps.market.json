@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What data do I need to size a booster pump for a building?",
-      "q_ar": "ما البيانات التي أحتاجها لتحديد مضخة رفع لمبنى؟",
+      "q_en": "Which pumping units, like borehole types, are on offer around town?",
+      "q_ar": "ما وحدات الضخ، مثل مضخات الآبار، المعروضة في المدينة؟",
       "expected_entry_ids": [
         "industrial_pumps:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the pump types sold, including submersible borehole pumps.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which rubber should I use outdoors in UAE sun?",
-      "q_ar": "ما المطاط المناسب للاستخدام الخارجي تحت شمس الإمارات؟",
+      "q_en": "Which floor matting, gaskets and moving bands can I find nearby?",
+      "q_ar": "ما الحصائر الأرضية والحشوات والأشرطة المتحركة التي يمكنني إيجادها بالقرب مني؟",
       "expected_entry_ids": [
         "rubber_products:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Rubber products and belts in the UAE: conveyor belts (EP fabric, steel cord, chevron, heat and oil resistant), transmission belts (see bearings), industrial hoses (water, air, oil, chemical, steam, suction and delivery; ...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

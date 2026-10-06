@@ -67,11 +67,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can I still use normal PE core ACP on a villa façade in Dubai?",
-      "q_ar": "هل يمكنني استخدام ألواح ACP بقلب بولي إيثيلين عادي على واجهة فيلا في دبي؟",
+      "q_en": "Which light-metal shapes and outside cover sheets show up most on local towers nowadays?",
+      "q_ar": "ما أشكال المعدن الخفيف وألواح التكسية الخارجية الأكثر ظهوراً على الأبراج المحلية حالياً؟",
       "expected_entry_ids": [
         "aluminium:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists architectural extrusions and ACP/solid cladding families used on UAE buildings.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can a beauty salon buy and use an IPL hair removal machine without a medical licence?",
-      "q_ar": "هل يمكن لصالون تجميل شراء جهاز إزالة الشعر بالضوء النبضي واستخدامه دون ترخيص طبي؟",
+      "q_en": "Which hairdressing seats, treatment couches and nail kit do wholesalers here sell?",
+      "q_ar": "ما مقاعد تصفيف الشعر وأرائك العلاجات وأدوات الأظافر التي يبيعها تجار الجملة هنا؟",
       "expected_entry_ids": [
         "salon_equipment:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Salon and spa equipment sold in the UAE includes styling chairs (hydraulic), barber chairs, shampoo backwash units, styling stations and mirrors, hair dryers and hood dryers, climazones, trolleys, manicure and pedicure s...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

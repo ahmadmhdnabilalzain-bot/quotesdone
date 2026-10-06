@@ -475,6 +475,16 @@
         "it_services:quote-red-flags-it",
         "it_services:price-drivers-it"
       ]
+    },
+    {
+      "q_en": "Is structured cabling priced per data point, and what does that include?",
+      "q_ar": "هل تُسعّر الكابلات الهيكلية لكل نقطة بيانات، وما الذي يشمله ذلك؟",
+      "expected_entry_ids": [
+        "it_services:price-drivers-it",
+        "it_services:spec-structured-cabling"
+      ],
+      "why": "price-drivers-it names termination labour per point and the cabling cost drivers, and spec-structured-cabling lists what a per-point price includes or leaves out (outlets, patch cords, containment, racks, certification).",
+      "origin": "real buyer question, moved from it_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

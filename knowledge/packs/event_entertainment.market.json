@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What permits are needed for a drone light show at a corporate event in Dubai?",
-      "q_ar": "ما التصاريح المطلوبة لعرض إضاءة بالطائرات بدون طيار في فعالية شركة في دبي؟",
+      "q_en": "What kind of acts can I hire for a company evening around here?",
+      "q_ar": "ما نوع الفقرات الفنية التي يمكنني حجزها لأمسية شركة هنا؟",
       "expected_entry_ids": [
         "event_entertainment:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists live bands, DJs, cultural and roaming performers available for events.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

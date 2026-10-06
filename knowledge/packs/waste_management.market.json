@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What skip sizes are available for renovation waste?",
-      "q_ar": "ما أحجام الحاويات المتاحة لمخلفات التجديد؟",
+      "q_en": "How is a rubbish skip costed around town: by its capacity or by each pickup?",
+      "q_ar": "كيف تُسعَّر حاوية النفايات في المدينة: بسعتها أم بكل عملية جمع؟",
       "expected_entry_ids": [
         "waste_management:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Skips (open containers) are 4, 6, 10, 15, 20 and 30 m3 (often called 6-yard to 40-yard in trade), priced per lift/exchange including transport, with landfill fee included up to a weight or charged per tonne\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is an electric motor rewind priced?",
-      "q_ar": "كيف تُسعّر إعادة لف محرك كهربائي؟",
+      "q_en": "Do machine repair shops charge hourly, per callout, or under an AMC?",
+      "q_ar": "هل تحاسب ورش إصلاح الآلات بالساعة أم لكل زيارة أم بعقد صيانة سنوي؟",
       "expected_entry_ids": [
         "machinery_repair:uae-market-sizes"
-      ]
+      ],
+      "why": "Explains inspection fee, labour per hour or lump sum, field service per technician-hour plus call-out, and PPM contracts per year.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

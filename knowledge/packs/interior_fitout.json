@@ -479,6 +479,16 @@
       "expected_entry_ids": [
         "interior_fitout:fire-finish-classes-2018"
       ]
+    },
+    {
+      "q_en": "What approvals do I need to fit out an office in a Dubai free zone?",
+      "q_ar": "ما الاعتمادات المطلوبة لتجهيز مكتب في منطقة حرة بدبي؟",
+      "expected_entry_ids": [
+        "interior_fitout:free-zone-and-master-developer-nocs",
+        "interior_fitout:civil-defence-fitout"
+      ],
+      "why": "The free-zone/master-developer entry names the zone authority (DMCC, DDA, Trakhees, DIFC, etc.) that approves the fit-out, and the Civil Defence fit-out entry covers the fire and life safety approval every office fit-out also needs.",
+      "origin": "real buyer question, moved from interior_fitout.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What payment terms are normal for a villa construction contract in Dubai?",
-      "q_ar": "ما شروط الدفع المعتادة لعقد بناء فيلا في دبي؟",
+      "q_en": "How are construction jobs typically priced locally: by floor area, or by bill of quantities?",
+      "q_ar": "كيف تُسعَّر أعمال البناء محلياً عادةً: بمساحة الأرضية أم بجدول الكميات؟",
       "expected_entry_ids": [
         "general_contracting:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry explains construction pricing per built-up area versus a priced BOQ.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What geomembrane thickness is used to line a landfill cell?",
-      "q_ar": "ما سماكة الغشاء الجيوتقني المستخدمة لتبطين خلية مكب؟",
+      "q_en": "Which ground stabilisation membranes and engineered cloths can I buy locally?",
+      "q_ar": "ما أغشية تثبيت التربة والأقمشة الهندسية التي يمكنني شراؤها محلياً؟",
       "expected_entry_ids": [
         "industrial_textiles:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists geotextiles and technical fabrics sold.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

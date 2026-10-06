@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does a training provider in Dubai need a KHDA permit?",
-      "q_ar": "هل يحتاج مقدم التدريب في دبي إلى تصريح من هيئة المعرفة والتنمية البشرية؟",
+      "q_en": "Which course organisers and accrediting authorities hold recognition locally?",
+      "q_ar": "ما الجهات المنظمة للدورات وهيئات الاعتماد المعترف بها محلياً؟",
       "expected_entry_ids": [
         "corporate_training:uae-market-brands"
-      ]
+      ],
+      "why": "Brands entry names UAE training providers and awarding bodies and the KHDA/ADEK permit check.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

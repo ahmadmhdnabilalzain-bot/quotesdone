@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "What protects electronics from static during shipping?",
-      "q_ar": "ما الذي يحمي الإلكترونيات من الكهرباء الساكنة أثناء الشحن؟",
+      "q_en": "Which cushioning and padding for parcels is available locally for an online shop?",
+      "q_ar": "ما مواد التبطين والحشو للطرود المتوفرة محلياً لمتجر إلكتروني؟",
       "expected_entry_ids": [
         "protective_packaging:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the bubble wrap, air pillows, foams and void fill, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What costs are included in an employer-of-record monthly fee?",
-      "q_ar": "ما التكاليف المشمولة في الرسوم الشهرية لخدمة صاحب العمل المسجل؟",
+      "q_en": "What do employer-of-record and pay processing firms charge for each person, roughly, every few weeks?",
+      "q_ar": "كم تتقاضى شركات صاحب العمل المسجّل ومعالجة الرواتب عن كل موظف تقريباً بشكل دوري؟",
       "expected_entry_ids": [
         "hr_outsourcing:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry gives EOR and payroll fees as a per-employee monthly charge.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.083
     }
   ],
   "verified": {

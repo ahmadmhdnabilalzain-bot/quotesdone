@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What standard should an ergonomic office chair meet?",
-      "q_ar": "ما المعيار الذي يجب أن يستوفيه الكرسي المكتبي المريح؟",
+      "q_en": "Desks, seats, cubicles: which workplace furnishing ranges are offered around town these days?",
+      "q_ar": "المكاتب والمقاعد والحجيرات: ما تشكيلات أثاث أماكن العمل المعروضة في المدينة هذه الأيام؟",
       "expected_entry_ids": [
         "office_furniture:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the workstations, chairs, storage and other office furniture ranges, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

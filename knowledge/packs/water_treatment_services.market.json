@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How often must a building water tank be cleaned in Dubai?",
-      "q_ar": "كم مرة يجب تنظيف خزان مياه المبنى في دبي؟",
+      "q_en": "Which facility running and reservoir washing jobs can firms around here provide?",
+      "q_ar": "ما أعمال تشغيل المنشآت وغسل الخزانات التي تقدمها الشركات هنا؟",
       "expected_entry_ids": [
         "water_treatment_services:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Water treatment plant O&M and tank cleaning in the UAE: operation and maintenance of sewage treatment plants (STPs), RO and desalination plants, and swimming-pool plant rooms; chemical treatment programmes for cooling to...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

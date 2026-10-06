@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is cold storage priced for frozen food pallets in Jebel Ali?",
-      "q_ar": "كيف يُسعّر التخزين المبرد لمنصات الأغذية المجمدة في جبل علي؟",
+      "q_en": "For refrigerated warehousing, do they charge per stacked load each day, or per chilled lorry?",
+      "q_ar": "للتخزين المبرد، هل يحاسبون عن كل حمولة مكدّسة يومياً أم عن كل شاحنة مبرّدة؟",
       "expected_entry_ids": [
         "cold_chain_logistics:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says storage is priced per pallet position per day/week/month and transport per trip by truck size.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

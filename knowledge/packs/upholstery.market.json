@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What foam density should we use for majlis seat cushions?",
-      "q_ar": "ما كثافة الإسفنج التي يجب استخدامها لوسائد جلسات المجلس؟",
+      "q_en": "Which couch recovering and cushion jobs can local workshops do around town nowadays?",
+      "q_ar": "ما أعمال إعادة تنجيد الأرائك والوسائد التي تنفذها الورش المحلية في المدينة حالياً؟",
       "expected_entry_ids": [
         "upholstery:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Upholstery supplies and services in the UAE include upholstery fabrics (velvet, chenille, jacquard, linen blends, performance fabrics, outdoor acrylics), genuine and faux leather (PU, PVC, microfibre), foam (PU foam in d...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "What stud bolt grade is normal for oil and gas flanges?",
-      "q_ar": "ما درجة المسامير الملولبة المعتادة لفلنجات النفط والغاز؟",
+      "q_en": "Screws, wall plugs, blind nails: which hardware items are kept in stock around town?",
+      "q_ar": "البراغي ومثبتات الجدران والمسامير العمياء: ما قطع العُدد المتوفرة في المخزون بالمدينة؟",
       "expected_entry_ids": [
         "fasteners_fixings:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the screws, anchors/plugs, rivets and other fixings stocked in the market.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

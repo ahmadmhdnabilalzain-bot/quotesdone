@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the maximum stand height allowed at Dubai World Trade Centre?",
-      "q_ar": "ما الحد الأقصى لارتفاع الجناح المسموح به في مركز دبي التجاري العالمي؟",
+      "q_en": "Ready-made booth or bespoke: which trade fair setups do builders around here offer?",
+      "q_ar": "جناح جاهز أم مصمم حسب الطلب: ما أنواع أجنحة المعارض التي يقدمها المنفذون هنا؟",
       "expected_entry_ids": [
         "exhibition_stands:uae-market-products"
-      ]
+      ],
+      "why": "The products entry names the stand types offered: custom-built timber stands versus modular/system stands, double-deck and pavilions.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What paper weight is standard for a company brochure cover?",
-      "q_ar": "ما وزن الورق القياسي لغلاف كتيب الشركة؟",
+      "q_en": "Litho, toner-based, wide banners: which press jobs can nearby print houses accept?",
+      "q_ar": "الطباعة الحجرية والرقمية واللافتات العريضة: ما أعمال الطباعة التي تقبلها المطابع القريبة؟",
       "expected_entry_ids": [
         "commercial_printing:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists offset, digital, large-format and packaging printing services in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

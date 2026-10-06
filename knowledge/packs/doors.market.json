@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What thickness should a 60-minute fire door be and what certificate must it have in the UAE?",
-      "q_ar": "ما سماكة باب الحريق 60 دقيقة وما الشهادة المطلوبة له في الإمارات؟",
+      "q_en": "Are entrance leaves and glazed openings priced each, or by area, around here?",
+      "q_ar": "هل تُسعَّر الأبواب والفتحات الزجاجية بالقطعة أم بالمساحة هنا؟",
       "expected_entry_ids": [
         "doors:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says doors are quoted per set and gives standard leaf sizes, windows by area.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

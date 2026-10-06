@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does a dental OPG X-ray unit need a FANR licence in the UAE?",
-      "q_ar": "هل يحتاج جهاز الأشعة البانورامية للأسنان إلى ترخيص من الهيئة الاتحادية للرقابة النووية في الإمارات؟",
+      "q_en": "Which treatment seats, fillings and disposables for dentists are on offer locally?",
+      "q_ar": "ما كراسي العلاج ومواد الحشو والمستهلكات الخاصة بأطباء الأسنان المعروضة محلياً؟",
       "expected_entry_ids": [
         "dental_supplies:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists dental chairs, restorative materials and consumables sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

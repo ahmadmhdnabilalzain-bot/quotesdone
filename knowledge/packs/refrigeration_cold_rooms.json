@@ -45,6 +45,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "refrigeration_cold_rooms:panel-thickness-by-room-temperature",
+      "topic": "Insulated panel thickness by cold-room temperature",
+      "kind": "sizing_rule",
+      "body_en": "Cold rooms are built from prefabricated panels of two steel sheets with injected polyurethane foam. Refindustry's guidance links thickness to room temperature: about 80 mm for chilling rooms around 0 °C; 100-140 mm for freezing rooms below -10 °C down to -20 °C; and 150-200 mm for blast freezing at -40 °C. A -20 °C freezer room therefore falls in the 100-140 mm band. The final choice also depends on thermal insulation requirements, air tightness, budget and cooling demand, and on the enclosure details such as doors and air curtains that limit energy loss. Not established here: a UAE regulation setting minimum panel thickness, or how hot UAE ambient conditions shift the choice; a heat-load calculation by the supplier should confirm it.",
+      "body_ar": "تُبنى غرف التبريد من ألواح مسبقة الصنع مكوّنة من صفيحتين من الحديد مع رغوة بولي يوريثان محقونة. ويربط دليل Refindustry سماكة اللوح بدرجة حرارة الغرفة: نحو 80 مم لغرف التبريد عند حوالي 0 °م؛ و100-140 مم لغرف التجميد من دون -10 °م حتى -20 °م؛ و150-200 مم للتجميد السريع عند -40 °م. وعليه فإن غرفة التجميد عند -20 °م تقع ضمن نطاق 100-140 مم. ويعتمد الاختيار النهائي أيضاً على متطلبات العزل الحراري، وإحكام منع تسرب الهواء، والميزانية، وحمل التبريد، وعلى تفاصيل الغرفة مثل الأبواب والستائر الهوائية التي تحد من فقد الطاقة. غير مثبت هنا: لائحة إماراتية تحدد حداً أدنى لسماكة الألواح، أو مدى تأثير درجات الحرارة المحيطة المرتفعة في الإمارات على الاختيار؛ ويجب تأكيد ذلك بحساب حمل حراري من المورد.",
+      "sources": [
+        "https://refindustry.com/articles/articles/how-to-choose-the-thickness-of-the-refrigeration-panel-for-a-cold-storage-room"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -61,6 +74,15 @@
       "expected_entry_ids": [
         "refrigeration_cold_rooms:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What panel thickness is used for a -20 °C freezer room?",
+      "q_ar": "ما سماكة الألواح المستخدمة لغرفة تجميد بدرجة -20 °م؟",
+      "expected_entry_ids": [
+        "refrigeration_cold_rooms:panel-thickness-by-room-temperature"
+      ],
+      "why": "No entry of this pack answered it (Standards entry explicitly says the sources do not set a panel thickness and the checklist gives none; missing: panel thickness by room temperature entry). refrigeration_cold_rooms:panel-thickness-by-room-temperature was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from refrigeration_cold_rooms.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -77,6 +99,9 @@
       "refrigeration_cold_rooms:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "refrigeration_cold_rooms:panel-thickness-by-room-temperature"
+    ]
   }
 }

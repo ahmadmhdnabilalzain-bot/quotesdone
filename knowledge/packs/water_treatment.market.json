@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What size RO system does a villa need?",
-      "q_ar": "ما حجم نظام التناضح العكسي الذي تحتاجه فيلا؟",
+      "q_en": "Is a purification unit costed by its output in cubic metres daily?",
+      "q_ar": "هل تُسعَّر وحدة تنقية المياه حسب إنتاجها بالمتر المكعب يومياً؟",
       "expected_entry_ids": [
         "water_treatment:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"RO capacity is stated in gallons per day (GPD) for domestic units and m3/day for commercial and industrial; membranes are 4 inch or 8 inch x 40 inch elements\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Are government fees included in the PRO company's visa price?",
-      "q_ar": "هل الرسوم الحكومية مشمولة في سعر التأشيرة لدى شركة المعقب؟",
+      "q_en": "Do visa and paperwork agents charge for each errand or a flat sum every month?",
+      "q_ar": "هل يحاسب مندوبو التأشيرات والمعاملات على كل معاملة أم بمبلغ ثابت كل شهر؟",
       "expected_entry_ids": [
         "pro_government_services:uae-market-sizes"
-      ]
+      ],
+      "why": "States PRO services are priced per transaction or as a monthly/annual retainer.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

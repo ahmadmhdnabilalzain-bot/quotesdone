@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What respirator class protects against fine dust during concrete cutting?",
-      "q_ar": "ما فئة قناع التنفس التي تحمي من الغبار الدقيق أثناء قطع الخرسانة؟",
+      "q_en": "Which gear like hard hats and boots can I purchase for a site team locally?",
+      "q_ar": "ما المعدات مثل الخوذ والأحذية التي يمكنني شراؤها لفريق موقع محلياً؟",
       "expected_entry_ids": [
         "safety_equipment:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Safety equipment sold in the UAE includes personal protective equipment (safety helmets to EN 397, safety glasses EN 166, hearing protection EN 352, respirators EN 149 FFP1-3 and half/full masks EN 140/136 with filters, ...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

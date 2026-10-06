@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Who issues permits for a billboard campaign in Dubai?",
-      "q_ar": "من يصدر تصاريح حملة لوحات إعلانية في دبي؟",
+      "q_en": "What else can an ad agency do for my company beyond producing commercials, realistically, around town?",
+      "q_ar": "ماذا يمكن لوكالة إعلان أن تقدّم لشركتي غير إنتاج الإعلانات فعلياً في المدينة؟",
       "expected_entry_ids": [
         "marketing_advertising:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the the full range of agency services beyond creative campaigns (media buying, OOH, BTL, etc.), which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

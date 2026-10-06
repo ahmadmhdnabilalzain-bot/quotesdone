@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What par level of bed linen should we order for a 200-room hotel?",
-      "q_ar": "ما المستوى المعياري لبياضات الأسرّة الذي يجب طلبه لفندق من 200 غرفة؟",
+      "q_en": "Guest toiletries and bedding for guesthouses: costed each, by twelve, or by case?",
+      "q_ar": "مستلزمات النزلاء والمفروشات لدور الضيافة: هل تُسعَّر بالقطعة أم بالدزينة أم بالكرتونة؟",
       "expected_entry_ids": [
         "hospitality_supplies:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry states linen and amenities are priced per piece, cutlery per dozen and chinaware in carton multiples.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

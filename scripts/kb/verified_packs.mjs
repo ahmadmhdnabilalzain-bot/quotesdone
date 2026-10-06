@@ -25,6 +25,15 @@ export const SEAT_TABLE = {
 export const TRADE_SEATS = ['sales_engineer', 'customer_support'];
 export const TABLES = [...new Set(Object.values(SEAT_TABLE))];
 
+// THE STATING RULE (founder, 7 Oct 2026): an entry with low confidence, or carrying any fact that was not read on a
+// page actually opened, is stored verified=false and is never stated to a customer or a supplier. It is kept in its
+// pack and loaded (so the gap is on record and can be verified later), but its rows carry runtime_index_eligible =
+// false, and every retrieval a seat answers from (fn_reason_retrieve, fn_reason_retrieve_ml) reads only eligible rows.
+export const isVerified = (e) => e.verified !== false && e.confidence !== 'low';
+// The ml path reads support_knowledge and ceo_knowledge through knowledge_vector_ml without that filter, so a seat pack
+// for those two seats may not hold an unverified entry at all.
+const UNFILTERED_SEATS = ['customer_support', 'ceo'];
+
 const sha = (s) => createHash('sha256').update(s).digest('hex');
 const AR = /[؀-ۿ]/;
 
@@ -33,8 +42,12 @@ const AR = /[؀-ۿ]/;
 // low-confidence TECHNICAL claim. A commercial gap (price, lead time, warranty, contract) marked "not
 // established" is an honest answer, not a failure (coordinator ruling, PROGRESS.md).
 const COM = /price|cost|lead.?time|warrant|amc|contract|payment|rental|mistake|red.?flag/i;
+// An entry DECLARED verified=false is quarantined: it is stored for the record, never retrievable (isVerified), and so
+// not part of what the pack serves; the 10% rule is measured over the entries the pack serves. An entry that is low
+// confidence but NOT declared still counts against the pack, exactly as before (7 Oct 2026).
 export function gate(pack) {
-  const bad = pack.entries.filter((e) => {
+  const served = pack.entries.filter((e) => e.verified !== false);
+  const bad = served.filter((e) => {
     const src = (e.sources || []).length > 0;
     const ne = /not established/i.test(e.body_en);
     const commercial = e.gap_kind === 'commercial' || (!e.gap_kind && (COM.test(e.id) || /price_driver|lead_time|warranty|buyer_mistake|quote_red_flag/.test(e.kind || '')));
@@ -42,7 +55,7 @@ export function gate(pack) {
     if (!src && !ne) return true;
     return e.confidence === 'low' || (!src && ne);
   });
-  const ok = !!pack.verified && typeof pack.verified === 'object' && pack.entries.length > 0 && bad.length / pack.entries.length <= 0.1;
+  const ok = !!pack.verified && typeof pack.verified === 'object' && served.length > 0 && bad.length / served.length <= 0.1;
   return { ok, bad: bad.map((e) => e.id) };
 }
 
@@ -64,6 +77,8 @@ export function validate(pack, kind, code) {
     if (typeof e.body_ar === 'string' && !AR.test(e.body_ar)) err.push(`${at}: body_ar is not Arabic`);
     if (!Array.isArray(e.sources)) err.push(`${at}: sources must be an array`);
     if (!['high', 'medium', 'low'].includes(e.confidence)) err.push(`${at}: confidence ${e.confidence}`);
+    if (e.verified !== undefined && typeof e.verified !== 'boolean') err.push(`${at}: verified must be true or false`);
+    if (kind === 'seat' && UNFILTERED_SEATS.includes(code) && !isVerified(e)) err.push(`${at}: an unverified entry cannot sit in the ${code} pack (its ml retrieval does not filter)`);
     if (e.area !== undefined && !/^[a-z_]+$/.test(e.area)) err.push(`${at}: area must be a lowercase_word, got ${JSON.stringify(e.area)}`);
   }
   for (const q of pack.eval ?? []) {
@@ -71,7 +86,7 @@ export function validate(pack, kind, code) {
     for (const x of q.expected_entry_ids ?? []) if (!ids.has(x)) err.push(`eval: expects ${x}, not in the pack`);
   }
   const g = gate(pack);
-  if (!g.ok) err.push(`not verified: ${pack.verified ? `${g.bad.length}/${pack.entries.length} unsourced or low-confidence technical` : 'no verified block'}`);
+  if (!g.ok) err.push(`not verified: ${pack.verified ? `${g.bad.length}/${pack.entries.filter((e) => e.verified !== false).length} served entries unsourced or low-confidence technical` : 'no verified block'}`);
   return err;
 }
 
@@ -126,29 +141,30 @@ export function rowsOf(p) {
     // area: the seat's own subject area (founder instructions 889/893/894, 28 Sep 2026), so a lookup can narrow to
     // the right area before ranking by meaning. Optional: a pack without it loads exactly as before.
     const tags = [...(p.kind === 'trade' ? ['trade:' + p.code] : []), 'verified_pack', 'lang:' + lang, 'kind:' + e.kind,
-      ...(e.area ? ['area:' + e.area] : []), 'confidence:' + e.confidence];
-    const sd = { entry_id: e.id, lang, kind: e.kind, area: e.area ?? null, confidence: e.confidence, as_of: e.as_of, gap_kind: e.gap_kind ?? null,
+      ...(e.area ? ['area:' + e.area] : []), 'confidence:' + e.confidence, 'verified:' + isVerified(e)];
+    const eligible = isVerified(e);
+    const sd = { entry_id: e.id, lang, verified: eligible, kind: e.kind, area: e.area ?? null, confidence: e.confidence, as_of: e.as_of, gap_kind: e.gap_kind ?? null,
       required_specs: e.required_specs ?? null, source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };
     const b = sha(body);
     let cols;
     if (table === 'support_knowledge') {
       cols = { record_id, schema_version: 'verified_pack.v1', record_version: p.version, record_kind: 'verified_pack_entry', title: e.topic,
         domain: e.kind, tags, language: lang, review_status: 'verified_sourced', content_origin: 'verified_pack', authority_effect: 'none',
-        runtime_use: 'retrieval', runtime_index_eligible: true, contains_synthetic_example: false,
+        runtime_use: 'retrieval', runtime_index_eligible: eligible, contains_synthetic_example: false,
         requires_current_verification: e.confidence !== 'high', source_ids: sources, source_path: sources[0] ?? null,
         structured_data: sd, body, body_sha256: b, pack_id: p.pack_id, pack_version: p.version, imported_at: now };
     } else if (table === 'ceo_knowledge') {
       // ceo_knowledge has no pack_id; the pack is in tags ('pack:<id>') and in extra.
       cols = { record_id, schema_version: 'verified_pack.v1', record_version: p.version, record_kind: 'verified_pack_entry', title: e.topic,
         domain: e.kind, tags: [...tags, 'pack:' + p.pack_id], language: lang, company_scope: 'industry', review_status: 'verified_sourced',
-        content_origin: 'verified_pack', authority_effect: 'none', runtime_use: 'retrieval', runtime_index_eligible: true,
+        content_origin: 'verified_pack', authority_effect: 'none', runtime_use: 'retrieval', runtime_index_eligible: eligible,
         external_execution_enabled: false, contains_synthetic_example: false, requires_current_verification: e.confidence !== 'high',
         source_ids: sources, source_path: sources[0] ?? null, body, body_sha256: b, extra: { ...sd, pack_id: p.pack_id },
         pack_fingerprint: p.version, imported_at: now };
     } else {
       cols = { record_id, record_type: 'verified_pack_entry', domain: e.kind, title: e.topic, content: body, structured_data: sd,
         source_ids: sources, epistemic_status: 'verified_pack_sourced', jurisdiction: 'AE', pack_id: p.pack_id, pack_version: p.version,
-        body_sha256: b, runtime_index_eligible: true, authority_effect: 'none', tags, updated_at: now };
+        body_sha256: b, runtime_index_eligible: eligible, authority_effect: 'none', tags, updated_at: now };
       if (table === 'sales_knowledge') Object.assign(cols, { record_version: p.version, content_sha256: b });
     }
     // The text embedded: title + newline + body, the recipe every other knowledge vector in this estate uses

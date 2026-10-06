@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What capacity washer-extractor does a 150-room hotel laundry typically need?",
-      "q_ar": "ما سعة الغسالة-العصارة التي تحتاجها عادةً مغسلة فندق من 150 غرفة؟",
+      "q_en": "For a wash house, which drum capacities in kilograms are common in machines around here?",
+      "q_ar": "لمغسلة، ما سعات الأحواض بالكيلوغرام الشائعة في الآلات هنا؟",
       "expected_entry_ids": [
         "laundry_equipment:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry gives washer and dryer capacities in kg.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does 6205-2RS C3 mean on a bearing?",
-      "q_ar": "ماذا يعني الرمز 6205-2RS C3 على المحمل؟",
+      "q_en": "Do rolling elements and drive straps come with a price each, per matched kit, or by the maker's listing dimensions?",
+      "q_ar": "هل تُسعَّر عناصر الدحرجة وسيور الإدارة بالقطعة أم بالطقم المتطابق أم حسب مقاسات كتالوج الصانع؟",
       "expected_entry_ids": [
         "bearings_power_transmission:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says bearings and belts are sold per piece by designation/size with list-minus-discount pricing.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.083
     }
   ],
   "verified": {

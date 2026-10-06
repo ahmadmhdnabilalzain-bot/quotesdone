@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is pallet racking priced for a new warehouse?",
-      "q_ar": "كيف تُسعّر رفوف المنصات لمستودع جديد؟",
+      "q_en": "Are warehouse shelf setups costed per section, per slot, or per tier around here?",
+      "q_ar": "هل تُسعَّر رفوف المستودعات بالقسم أم بالموضع أم بالمستوى هنا؟",
       "expected_entry_ids": [
         "racking_storage:uae-market-sizes"
-      ]
+      ],
+      "why": "States racking is quoted per pallet position or per bay, shelving per bay.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

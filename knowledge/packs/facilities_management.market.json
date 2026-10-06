@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between a comprehensive and a non-comprehensive FM contract?",
-      "q_ar": "ما الفرق بين عقد إدارة المرافق الشامل وغير الشامل؟",
+      "q_en": "Are upkeep deals for offices costed by space, by headcount, or a yearly fixed figure?",
+      "q_ar": "هل تُسعَّر عقود صيانة المكاتب بالمساحة أم بعدد الأشخاص أم بمبلغ سنوي ثابت؟",
       "expected_entry_ids": [
         "facilities_management:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry states FM is quoted as an annual lump sum, per m2 of built-up area per year, or as a manpower schedule of rates (per technician), which covers the space-vs-headcount-vs-fixed question.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

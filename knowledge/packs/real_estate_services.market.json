@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What forms and permits must a Dubai broker have before advertising my property?",
-      "q_ar": "ما النماذج والتصاريح التي يجب أن يحصل عليها الوسيط في دبي قبل الإعلان عن عقاري؟",
+      "q_en": "What can property agents do for me: renting out, selling, looking after my flat?",
+      "q_ar": "ماذا يمكن للوسطاء العقاريين أن يقدموا لي: التأجير، أو البيع، أو إدارة شقتي؟",
       "expected_entry_ids": [
         "real_estate_services:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the brokerage, leasing, property management and valuation services, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

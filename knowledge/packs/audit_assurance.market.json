@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does our free-zone company need an auditor from the free zone's approved list?",
-      "q_ar": "هل تحتاج شركتنا في المنطقة الحرة إلى مدقق من القائمة المعتمدة لدى المنطقة الحرة؟",
+      "q_en": "Which audit firms operate here, Big Four only or local ones too?",
+      "q_ar": "ما شركات التدقيق العاملة هنا، الأربع الكبرى فقط أم شركات محلية أيضاً؟",
       "expected_entry_ids": [
         "audit_assurance:uae-market-brands"
-      ]
+      ],
+      "why": "Brands entry names the audit networks active in the UAE (Big Four and mid-tier) and the register to check.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

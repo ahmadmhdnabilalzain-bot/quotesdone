@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between genuine, OES and aftermarket brake pads?",
-      "q_ar": "ما الفرق بين فحمات المكابح الأصلية وعلامة المورد الأصلي والبديلة؟",
+      "q_en": "Is it easy to find maker-original, factory-equivalent or third-party replacements for my car nearby?",
+      "q_ar": "هل من السهل إيجاد بدائل أصلية من الصانع أو مكافئة للمصنع أو من طرف ثالث لسيارتي في مكان قريب؟",
       "expected_entry_ids": [
         "auto_parts:uae-market-products"
-      ]
+      ],
+      "why": "Products entry covers auto parts sold in the UAE including genuine/OEM and aftermarket grades.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

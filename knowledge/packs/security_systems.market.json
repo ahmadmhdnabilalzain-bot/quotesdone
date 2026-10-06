@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "How many days of CCTV recording does SIRA require in Dubai?",
-      "q_ar": "كم يوماً من تسجيل الكاميرات تشترط سيرا في دبي؟",
+      "q_en": "Cameras, door entry, intruder warnings: which protection setups get fitted around here?",
+      "q_ar": "الكاميرات وأنظمة الدخول وإنذارات التسلل: ما أنظمة الحماية التي تُركَّب هنا؟",
       "expected_entry_ids": [
         "security_systems:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Security systems in the UAE: CCTV (IP cameras, NVRs, VMS, video analytics, ANPR), access control (card, PIN, biometric, turnstiles, barriers, bollards), intrusion alarms, video intercoms, X-ray baggage scanners and walk-...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

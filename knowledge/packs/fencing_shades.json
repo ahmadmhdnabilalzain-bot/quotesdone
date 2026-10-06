@@ -40,6 +40,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "fencing_shades:shade-fabric-types-hdpe-pvc-ptfe",
+      "topic": "Shade membrane materials: HDPE mesh, PVC-coated polyester, PTFE-coated glass",
+      "kind": "material_comparison",
+      "body_en": "Three membrane families are used for shade structures. HDPE shade fabric is breathable, letting air pass through, gives UV-A and UV-B protection, and is not waterproof: rain can seep through. PVC-coated polyester is water-resistant, wind-proof, flame-retardant and easy to clean, but less breathable; Architen notes its structural lifespan exceeds 20 years but its quoted lifespan is based on visual appearance, because plasticisers migrate to the surface and make cleaning harder, with 10-20 years depending on the protective PVDF coating type. PTFE-coated glass cloth is chemically inert and self-cleaning (it bleaches white in strong sunlight within weeks); Architen gives an anticipated membrane lifespan of 25-30 years and calls it the natural choice for permanent structures with a design life over 15 years. Buyers should state material, fabric weight (g/m²), UV/shade rating, fire classification, warranty years and colour. Not established here: HDPE service life and relative costs.",
+      "body_ar": "تُستخدم ثلاث عائلات من الأغشية في هياكل التظليل. قماش التظليل من البولي إيثيلين عالي الكثافة (HDPE) قابل للتهوية يسمح بمرور الهواء، ويوفّر حماية من الأشعة فوق البنفسجية UV-A وUV-B، وهو غير مقاوم للماء إذ يمكن أن يتسرّب المطر من خلاله. أما البوليستر المغطّى بـ PVC فهو مقاوم للماء والرياح ومثبّط للهب وسهل التنظيف لكنه أقل تهوية؛ وتذكر شركة Architen أن عمره الإنشائي يتجاوز 20 عاماً، لكن العمر المعلن له يستند إلى المظهر البصري لأن الملدّنات تهاجر إلى السطح فتجعل تنظيفه أصعب، ويتراوح بين 10 و20 عاماً بحسب نوع طلاء PVDF الواقي. أما قماش الألياف الزجاجية المغطّى بـ PTFE فهو خامل كيميائياً وذاتي التنظيف (يبيضّ تحت أشعة الشمس القوية خلال أسابيع)؛ وتقدّر Architen العمر المتوقع للغشاء بـ 25-30 عاماً وتعدّه الخيار الطبيعي للمنشآت الدائمة التي يزيد عمرها التصميمي على 15 عاماً. ينبغي للمشترين تحديد المادة ووزن القماش (غ/م²) ونسبة الحجب/التظليل من الأشعة وتصنيف مقاومة الحريق وسنوات الضمان واللون. غير مثبت هنا: عمر خدمة قماش HDPE وتكلفته النسبية.",
+      "sources": [
+        "https://www.architen.com/articles/the-materials-of-tensile-architecture/",
+        "https://www.usa-shade.com/blog/best-fabric-for-shade-structure/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +70,15 @@
       "expected_entry_ids": [
         "fencing_shades:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the difference between HDPE, PVC and PTFE shade fabric?",
+      "q_ar": "ما الفرق بين أقمشة التظليل HDPE وPVC وPTFE؟",
+      "expected_entry_ids": [
+        "fencing_shades:shade-fabric-types-hdpe-pvc-ptfe"
+      ],
+      "why": "No entry of this pack answered it (No entry compares HDPE, PVC and PTFE shade fabrics; missing). fencing_shades:shade-fabric-types-hdpe-pvc-ptfe was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from fencing_shades.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +94,9 @@
       "fencing_shades:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "fencing_shades:shade-fabric-types-hdpe-pvc-ptfe"
+    ]
   }
 }

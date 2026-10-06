@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between a Middle East version and an international version phone?",
-      "q_ar": "ما الفرق بين هاتف نسخة الشرق الأوسط والنسخة الدولية؟",
+      "q_en": "Which handsets and add-ons can I purchase in volume around town?",
+      "q_ar": "ما الهواتف وملحقاتها التي يمكنني شراؤها بكميات في المدينة؟",
       "expected_entry_ids": [
         "mobile_phones_wholesale:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the smartphones, tablets, accessories and refurbished phones traded wholesale, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

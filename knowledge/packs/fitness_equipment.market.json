@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between a commercial and home treadmill for a residential tower gym?",
-      "q_ar": "ما الفرق بين جهاز المشي التجاري والمنزلي لصالة رياضية في برج سكني؟",
+      "q_en": "What running machines and exercise kit can I source for a new club?",
+      "q_ar": "ما أجهزة الجري ومعدات التمارين التي يمكنني توفيرها لنادٍ جديد؟",
       "expected_entry_ids": [
         "fitness_equipment:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists treadmills and the cardio and strength equipment ranges sold for gyms.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

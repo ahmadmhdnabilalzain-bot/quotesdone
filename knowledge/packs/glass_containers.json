@@ -44,6 +44,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "glass_containers:perfume-bottle-moq-stock-vs-custom",
+      "topic": "Minimum orders for stock and custom-moulded perfume bottles",
+      "kind": "commercial_terms",
+      "body_en": "It depends on whether the bottle is stock or custom. Stock perfume bottles use existing designs and can generally be ordered by the case, which for perfume bottles may hold about 100 to 400 bottles, so the outlay is in the hundreds rather than tens of thousands of dollars. A custom bottle needs design services and die costs and then a certain minimum order; one industry reference estimates the minimum cost of a custom bottle from European sources at around USD 100,000, with Chinese sources somewhat cheaper. Not established here: unit minimums for custom runs. Confirm the minimum, mould ownership, tooling fee and sample lead time in writing with each glassworks.",
+      "body_ar": "يعتمد ذلك على ما إذا كانت الزجاجة جاهزة أم مصممة حسب الطلب. تعتمد زجاجات العطور الجاهزة على تصاميم قائمة ويمكن طلبها عموماً بالكرتونة، التي قد تضم في حالة زجاجات العطور نحو 100 إلى 400 زجاجة، فتكون التكلفة بالمئات لا بعشرات الآلاف من الدولارات. أما الزجاجة المصممة حسب الطلب فتحتاج إلى خدمات تصميم وتكاليف قوالب ثم حد أدنى معين للطلب؛ ويقدّر أحد المراجع في هذا القطاع الحد الأدنى لتكلفة الزجاجة المخصصة من مصادر أوروبية بنحو 100,000 دولار أمريكي، وتكون المصادر الصينية أقل تكلفة بعض الشيء. غير ثابت هنا: الحد الأدنى بعدد الوحدات للإنتاج المخصص. أكّد كتابياً مع كل مصنع زجاج الحد الأدنى وملكية القالب ورسوم الأدوات ومدة تسليم العينات.",
+      "sources": [
+        "https://perfumeprojects.com/perfume/technology/bottles_for_perfume.shtml"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +73,15 @@
       "expected_entry_ids": [
         "glass_containers:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the minimum order for custom perfume bottles?",
+      "q_ar": "ما الحد الأدنى لطلب زجاجات عطور بتصميم خاص؟",
+      "expected_entry_ids": [
+        "glass_containers:perfume-bottle-moq-stock-vs-custom"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry states MOQs for custom (moulded) perfume bottles versus stock bottles). glass_containers:perfume-bottle-moq-stock-vs-custom was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from glass_containers.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +98,9 @@
       "glass_containers:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "glass_containers:perfume-bottle-moq-stock-vs-custom"
+    ]
   }
 }

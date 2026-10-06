@@ -647,6 +647,16 @@
         "civil_works:hot-weather-and-midday-ban",
         "civil_works:site-safety"
       ]
+    },
+    {
+      "q_en": "How is piling usually priced in a UAE tender?",
+      "q_ar": "كيف تُسعّر الخوازيق عادة في مناقصة إماراتية؟",
+      "expected_entry_ids": [
+        "civil_works:piling-types",
+        "civil_works:boq-measurement"
+      ],
+      "why": "piling-types defines bored/CFA/driven/micro piles, and boq-measurement explains how such items are measured and rated in a UAE tender BOQ.",
+      "origin": "real buyer question, moved from civil_works.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

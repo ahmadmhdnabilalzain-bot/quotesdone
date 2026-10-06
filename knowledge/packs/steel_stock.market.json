@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How long is a steel price quote usually valid in the UAE?",
-      "q_ar": "كم تبقى صلاحية عرض سعر الحديد عادة في الإمارات؟",
+      "q_en": "Are reinforcing bars and structural beams bought by weight or by bar length?",
+      "q_ar": "هل يُشترى حديد التسليح والكمرات الإنشائية بالوزن أم بطول القضيب؟",
       "expected_entry_ids": [
         "steel_stock:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Priced per tonne (sections, plates, coil, rebar) or per piece/length (pipes and hollow sections in 6 m or 12 m); sheets 1219/1250/1500 x 2438/2500/3000/6000 mm; coil by width and thickness\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

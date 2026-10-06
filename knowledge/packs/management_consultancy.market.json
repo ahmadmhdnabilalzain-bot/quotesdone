@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How are management consultancy fees usually structured for a strategy project?",
-      "q_ar": "كيف تُنظم عادةً أتعاب الاستشارات الإدارية لمشروع استراتيجي؟",
+      "q_en": "Do business advisers bill daily, by assignment, or through an ongoing monthly arrangement?",
+      "q_ar": "هل يحاسب المستشارون الإداريون باليوم أم بالمهمة أم باتفاق شهري مستمر؟",
       "expected_entry_ids": [
         "management_consultancy:uae-market-sizes"
-      ]
+      ],
+      "why": "Describes fixed project fees, man-day rates per grade and monthly retainers.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

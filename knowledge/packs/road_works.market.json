@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What thickness of interlock is needed for a car park?",
-      "q_ar": "ما سماكة الإنترلوك المطلوبة لموقف سيارات؟",
+      "q_en": "Blacktop, paver bricks, edging stones: which street surfacing jobs are carried out around here?",
+      "q_ar": "الإسفلت وبلاط الإنترلوك وأحجار الحواف: ما أعمال رصف الطرق المنفذة هنا؟",
       "expected_entry_ids": [
         "road_works:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Roads, asphalt and interlock paving in the UAE: flexible pavement layers (subgrade preparation, granular sub-base, aggregate road base, asphalt base course and wearing course), asphalt mixes to authority specifications (...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

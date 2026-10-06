@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do I need an oil-free compressor for a pharmaceutical line?",
-      "q_ar": "هل أحتاج ضاغطاً خالياً من الزيت لخط أدوية؟",
+      "q_en": "For machines that push pressurised gas to power my tools, which designs make sense around here?",
+      "q_ar": "للآلات التي تدفع الهواء المضغوط لتشغيل عُددي، ما التصاميم المناسبة هنا؟",
       "expected_entry_ids": [
         "air_compressors:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists screw, oil-free, scroll and portable compressor types used in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

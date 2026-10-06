@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What serialisation is needed on medicine packs sold in the UAE?",
-      "q_ar": "ما الترقيم التسلسلي المطلوب على عبوات الأدوية المباعة في الإمارات؟",
+      "q_en": "Which tablet cards, little phials and dose jars do pill makers buy locally nowadays, honestly, for export?",
+      "q_ar": "ما بطاقات الأقراص والقوارير الصغيرة وعبوات الجرعات التي يشتريها مصنعو الحبوب محلياً حالياً للتصدير؟",
       "expected_entry_ids": [
         "pharma_packaging:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the blister films, glass vials and bottles for pharma packaging, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

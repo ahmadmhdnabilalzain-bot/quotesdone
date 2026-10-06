@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is bulk diesel for a construction site priced in the UAE?",
-      "q_ar": "كيف يُسعّر الديزل السائب لموقع بناء في الإمارات؟",
+      "q_en": "How is gasoil brought to site and charged: by the volume pumped, or by the full bowser?",
+      "q_ar": "كيف يُوصَل الديزل إلى الموقع ويُحاسَب: بالكمية المضخوخة أم بالصهريج الكامل؟",
       "expected_entry_ids": [
         "fuel_diesel:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry states bulk diesel is sold per litre or imperial gallon delivered by tanker of 5,000-36,000 L, answering volume-pumped vs full-load.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

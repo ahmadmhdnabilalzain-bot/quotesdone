@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is structured cabling priced per data point, and what does that include?",
-      "q_ar": "هل تُسعّر الكابلات الهيكلية لكل نقطة بيانات، وما الذي يشمله ذلك؟",
+      "q_en": "Is tech help billed by person, by machine, or through a flat plan every few weeks?",
+      "q_ar": "هل يُحاسَب الدعم التقني بالشخص أم بالجهاز أم بخطة ثابتة دورية؟",
       "expected_entry_ids": [
         "it_services:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry explains IT support pricing per user, per device or as a monthly fixed plan.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

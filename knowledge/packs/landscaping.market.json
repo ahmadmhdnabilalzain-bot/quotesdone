@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How are trees priced in a UAE landscaping quote?",
-      "q_ar": "كيف تُسعّر الأشجار في عرض تنسيق حدائق بالإمارات؟",
+      "q_en": "For gardens and pools, do contractors quote per square metre or per job?",
+      "q_ar": "للحدائق والمسابح، هل يسعّر المقاولون بالمتر المربع أم للمشروع؟",
       "expected_entry_ids": [
         "landscaping:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry gives per-m2 pricing for turf, hardscape and irrigation and per-site maintenance; pools are not covered, so it is the closest answer.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

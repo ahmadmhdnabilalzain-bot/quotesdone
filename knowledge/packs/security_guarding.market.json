@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is a security guard priced per hour or per month for a 24/7 post?",
-      "q_ar": "هل يُسعّر الحارس الأمني بالساعة أم بالشهر لموقع يعمل على مدار الساعة؟",
+      "q_en": "Are watchmen billed hourly, by duty period, or per post each month?",
+      "q_ar": "هل يُحاسَب الحراس بالساعة أم بالمناوبة أم لكل موقع شهرياً؟",
       "expected_entry_ids": [
         "security_guarding:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Guarding is priced per guard per month for a fixed shift (typically 12 hours x 26 or 30 days), or per guard per hour for events and short-term cover\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

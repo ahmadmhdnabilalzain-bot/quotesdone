@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does our restaurant POS need to print VAT-compliant tax invoices in Arabic?",
-      "q_ar": "هل يجب أن يطبع نظام نقاط البيع في مطعمنا فواتير ضريبية متوافقة مع ضريبة القيمة المضافة باللغة العربية؟",
+      "q_en": "Which checkout tills and store tech do local shops rely on?",
+      "q_ar": "ما أجهزة الكاشير وتقنيات المتاجر التي تعتمد عليها المحلات المحلية؟",
       "expected_entry_ids": [
         "pos_retail:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the POS terminals, software and card payment terminals, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

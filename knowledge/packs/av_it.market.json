@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Should I install Cat6 or Cat6A cabling in a new Dubai office?",
-      "q_ar": "هل أركّب كابلات Cat6 أم Cat6A في مكتب جديد بدبي؟",
+      "q_en": "What does so-called light electrical contracting include locally: cameras, cabling for computers, speakers, that sort of thing?",
+      "q_ar": "ماذا تشمل أعمال التيار الخفيف محلياً: الكاميرات وتمديدات الحاسوب والسماعات وما شابه؟",
       "expected_entry_ids": [
         "av_it:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists low-current systems: structured cabling, CCTV, audio/PA, IPTV and similar.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.091
     }
   ],
   "verified": {

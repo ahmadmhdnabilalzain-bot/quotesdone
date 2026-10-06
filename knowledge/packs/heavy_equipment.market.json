@@ -67,11 +67,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is a monthly backhoe hire usually priced in the UAE?",
-      "q_ar": "كيف يُسعّر تأجير لودر حفار شهرياً في الإمارات عادة؟",
+      "q_en": "Do earthmoving machine rental firms charge by hours worked, daily, or monthly?",
+      "q_ar": "هل تحاسب شركات تأجير آليات الحفر بساعات التشغيل أم يومياً أم شهرياً؟",
       "expected_entry_ids": [
         "heavy_equipment:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry explains equipment rental charging per hour, per day or per month.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

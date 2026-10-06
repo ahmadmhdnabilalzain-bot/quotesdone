@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which frame material lasts best for beachfront hotel loungers?",
-      "q_ar": "ما مادة الهيكل الأكثر تحملاً لكراسي التشمس في الفنادق الشاطئية؟",
+      "q_en": "Which garden and terrace seating survives the scorching local summer?",
+      "q_ar": "ما أثاث الحدائق والشرفات الذي يتحمّل صيف المنطقة الحارق؟",
       "expected_entry_ids": [
         "outdoor_furniture:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the outdoor furniture types and heat-resistant materials (marine-grade aluminium, teak, PE wicker, HDPE), which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

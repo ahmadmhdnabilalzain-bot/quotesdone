@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which battery chemistry is best for a solar home battery in UAE heat?",
-      "q_ar": "ما كيمياء البطارية الأنسب لبطارية منزلية شمسية في حرارة الإمارات؟",
+      "q_en": "Which battery banks for houses or businesses can buyers actually find locally these days?",
+      "q_ar": "ما أنظمة البطاريات للمنازل أو الشركات التي يجدها المشترون محلياً هذه الأيام؟",
       "expected_entry_ids": [
         "batteries_storage:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists lead-acid and lithium (LFP) storage for homes, UPS and commercial use.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

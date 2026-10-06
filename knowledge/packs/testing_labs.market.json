@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does the lab testing our concrete cubes need to be approved by Dubai Municipality?",
-      "q_ar": "هل يجب أن يكون المختبر الذي يختبر مكعبات الخرسانة معتمداً من بلدية دبي؟",
+      "q_en": "Which ground, cement and building sample checks can local facilities carry out?",
+      "q_ar": "ما فحوص عينات التربة والإسمنت والبناء التي تنفذها المرافق المحلية؟",
       "expected_entry_ids": [
         "testing_labs:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Testing laboratory services in the UAE include construction materials testing (concrete cubes/cylinders compressive strength to BS EN 12390, aggregates, cement, steel rebar tensile testing, soil testing and CBR, asphalt,...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

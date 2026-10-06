@@ -463,6 +463,15 @@
       "expected_entry_ids": [
         "heavy_equipment:tower-cranes"
       ]
+    },
+    {
+      "q_en": "How is a monthly backhoe hire usually priced in the UAE?",
+      "q_ar": "كيف يُسعّر تأجير لودر حفار شهرياً في الإمارات عادة؟",
+      "expected_entry_ids": [
+        "heavy_equipment:rate-structures"
+      ],
+      "why": "Explains UAE plant hire quoted per hour/day/week/month and what a monthly rate assumes (set working hours, overtime, mobilisation).",
+      "origin": "real buyer question, moved from heavy_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does a shop sign in Dubai need Arabic text and a permit?",
-      "q_ar": "هل تحتاج لافتة المحل في دبي إلى نص عربي وتصريح؟",
+      "q_en": "Storefront boards, raised lettering, banners: what can display makers around here produce?",
+      "q_ar": "اللوحات الأمامية للمحلات والحروف البارزة واللافتات: ماذا يستطيع صانعو اللوحات هنا إنتاجه؟",
       "expected_entry_ids": [
         "signage:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Signage sold in the UAE includes shop front signs (3D channel letters with LED illumination, acrylic face, stainless steel and aluminium letters, lightboxes), pylon and totem signs, building-top and facade signs for towe...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

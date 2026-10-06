@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does a restaurant in Dubai have to use a Dubai Municipality approved pest control company?",
-      "q_ar": "هل يجب على مطعم في دبي استخدام شركة مكافحة آفات معتمدة من بلدية دبي؟",
+      "q_en": "Which insect and mouse jobs can exterminators around here handle for houses and offices nowadays?",
+      "q_ar": "ما أعمال مكافحة الحشرات والفئران التي تنفذها شركات المكافحة هنا للمنازل والمكاتب حالياً؟",
       "expected_entry_ids": [
         "pest_control:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the pest control services for cockroaches, rodents, termites and more, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

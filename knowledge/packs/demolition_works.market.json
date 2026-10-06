@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What permits are needed before demolishing a building in Dubai?",
-      "q_ar": "ما التصاريح المطلوبة قبل هدم مبنى في دبي؟",
+      "q_en": "What knocking-down and interior gutting jobs can nearby contractors take on?",
+      "q_ar": "ما أعمال الهدم وتفريغ الديكورات الداخلية التي يمكن للمقاولين القريبين تنفيذها؟",
       "expected_entry_ids": [
         "demolition_works:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists soft strip-out, selective and structural demolition services in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

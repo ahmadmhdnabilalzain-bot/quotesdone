@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do we need a permit to film a corporate video on a public beach in Dubai?",
-      "q_ar": "هل نحتاج إلى تصريح لتصوير فيديو لشركة على شاطئ عام في دبي؟",
+      "q_en": "Which camera and footage jobs can studios here deliver?",
+      "q_ar": "ما أعمال التصوير واللقطات التي تستطيع الاستوديوهات هنا تنفيذها؟",
       "expected_entry_ids": [
         "photo_video_production:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the corporate video, TVC, photography and other production services, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

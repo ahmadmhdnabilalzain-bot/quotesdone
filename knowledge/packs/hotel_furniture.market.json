@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What rub count and fire standard should upholstery meet for hotel lobby sofas?",
-      "q_ar": "ما مقاومة الاحتكاك ومعيار الحريق الذي يجب أن يستوفيه التنجيد لأرائك ردهة الفندق؟",
+      "q_en": "Which seating and fixed fittings can nearby makers produce for a new hospitality project?",
+      "q_ar": "ما المقاعد والتجهيزات الثابتة التي يستطيع المصنّعون القريبون إنتاجها لمشروع ضيافة جديد؟",
       "expected_entry_ids": [
         "hotel_furniture:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists loose and fixed furniture (FF&E) items made for hotel projects.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

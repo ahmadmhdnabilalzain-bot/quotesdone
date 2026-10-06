@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is oud oil priced and what does a tola equal?",
-      "q_ar": "كيف يُسعّر دهن العود وكم تعادل التولة؟",
+      "q_en": "Is agarwood and scent concentrate traded in bulk by the tola, by kilo or by flask?",
+      "q_ar": "هل يُتداول العود ومركّزات العطور بالجملة بالتولة أم بالكيلو أم بالقارورة؟",
       "expected_entry_ids": [
         "perfumes_wholesale:uae-market-sizes"
-      ]
+      ],
+      "why": "States attar/oil is priced per tola or per ml/gram, oud chips per tola or kg, and fragrance oil per kg.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

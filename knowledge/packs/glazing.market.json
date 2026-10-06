@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do façade tempered panes need heat-soak testing in the UAE?",
-      "q_ar": "هل يحتاج الزجاج المقسّى للواجهات اختبار الغمر الحراري في الإمارات؟",
+      "q_en": "Which kinds of window panes, like toughened or two-layer, can I order nearby?",
+      "q_ar": "ما أنواع ألواح النوافذ، كالمقسّى أو الطبقتين، التي يمكنني طلبها في المنطقة؟",
       "expected_entry_ids": [
         "glazing:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists glass types offered: tempered, laminated, double-glazed units and others.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

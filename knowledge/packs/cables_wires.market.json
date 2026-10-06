@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Why does a cable price quote change with the copper price?",
-      "q_ar": "لماذا يتغير سعر الكابل مع سعر النحاس؟",
+      "q_en": "For electric conductors, do people purchase by reel or bundle, and which thicknesses exist around town?",
+      "q_ar": "هل يشتري الناس الموصلات الكهربائية بالبكرة أم بالحزمة، وما السماكات المتوفرة في المدينة؟",
       "expected_entry_ids": [
         "cables_wires:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says wires are sold in 100 m coils or 500 m drums, power cable per metre, with cross-sections listed.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

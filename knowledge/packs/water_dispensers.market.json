@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is it cheaper to rent a bottleless point-of-use dispenser or buy 5-gallon bottles?",
-      "q_ar": "هل استئجار موزع نقطة استخدام بدون عبوات أرخص أم شراء عبوات 5 غالونات؟",
+      "q_en": "Are drinking machines leased monthly, and how are replacement jugs charged around town nowadays?",
+      "q_ar": "هل تُؤجَّر موزعات مياه الشرب شهرياً، وكيف تُحاسَب القوارير البديلة في المدينة حالياً؟",
       "expected_entry_ids": [
         "water_dispensers:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"5-gallon water is priced per bottle (refill) with a one-time refundable bottle deposit, often in coupon books or monthly subscriptions; small bottles per carton (e.g\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

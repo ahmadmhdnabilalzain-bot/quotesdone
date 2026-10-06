@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is volumetric weight calculated for an international courier parcel?",
-      "q_ar": "كيف يُحسب الوزن الحجمي لطرد بريد سريع دولي؟",
+      "q_en": "How do parcel firms around town work out what they charge: by kilograms, destination, or dimensions?",
+      "q_ar": "كيف تحسب شركات الطرود في المدينة رسومها: بالكيلوغرام أم بالوجهة أم بالأبعاد؟",
       "expected_entry_ids": [
         "courier_express:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says courier pricing is by weight bracket and zone using actual or volumetric weight.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

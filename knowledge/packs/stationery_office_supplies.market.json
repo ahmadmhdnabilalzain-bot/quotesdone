@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is A4 copy paper priced for a corporate account?",
-      "q_ar": "كيف يُسعّر ورق التصوير A4 لحساب شركة؟",
+      "q_en": "Are workplace pens and printing stuff bought by carton, bundle, or case around town, honestly?",
+      "q_ar": "هل تُشترى الأقلام ولوازم الطباعة المكتبية بالكرتونة أم بالحزمة أم بالصندوق في المدينة؟",
       "expected_entry_ids": [
         "stationery_office_supplies:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Copy paper is priced per ream (500 sheets) or per box (5 reams), pallets for large buyers; pens per box of 12 or 50; files per piece or pack of 10; envelopes per box of 500\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

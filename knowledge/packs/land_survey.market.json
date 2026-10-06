@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does a boundary survey in Dubai need a licensed surveyor?",
-      "q_ar": "هل يحتاج مسح الحدود في دبي إلى مساح مرخص؟",
+      "q_en": "Which kinds of measuring, ashore or underwater, can firms here perform?",
+      "q_ar": "ما أنواع القياس، على الشاطئ أو تحت الماء، التي تستطيع الشركات هنا إجراءها؟",
       "expected_entry_ids": [
         "land_survey:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the survey types offered, including topographic and hydrographic.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

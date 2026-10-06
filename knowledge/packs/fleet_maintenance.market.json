@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How often should a fleet car in the UAE be serviced?",
-      "q_ar": "كم مرة يجب صيانة سيارة الأسطول في الإمارات؟",
+      "q_en": "What upkeep and repair jobs can garages here carry out on company vans and cars?",
+      "q_ar": "ما أعمال الصيانة والإصلاح التي يمكن للورش هنا تنفيذها على سيارات الشركة وشاحناتها الصغيرة؟",
       "expected_entry_ids": [
         "fleet_maintenance:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the servicing and repair jobs workshops perform on company fleets.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

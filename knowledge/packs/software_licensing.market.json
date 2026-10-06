@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is Microsoft 365 cheaper on a monthly or annual commitment?",
-      "q_ar": "هل مايكروسوفت 365 أرخص بالتزام شهري أم سنوي؟",
+      "q_en": "Are programs licensed by person, by machine, or through a plan renewed each twelve months?",
+      "q_ar": "هل تُرخَّص البرامج حسب الشخص أم الجهاز أم بخطة تُجدَّد كل اثني عشر شهراً؟",
       "expected_entry_ids": [
         "software_licensing:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Subscriptions are priced per user per month or per year (annual commitment usually cheaper than monthly), per device/core for server products, per named user for engineering software, and as annual support/maintenance (c...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

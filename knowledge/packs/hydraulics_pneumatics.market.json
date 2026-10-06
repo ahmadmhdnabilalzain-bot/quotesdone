@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between 2SN and 4SH hydraulic hose?",
-      "q_ar": "ما الفرق بين الخرطوم الهيدروليكي 2SN و4SH؟",
+      "q_en": "Rams, liquid movers, taps for fluid lines: which oil-driven and compressed-gas parts do dealers nearby keep?",
+      "q_ar": "الأسطوانات ومحركات السوائل وصمامات الخطوط: ما القطع الهيدروليكية والهوائية التي يحتفظ بها الوكلاء القريبون؟",
       "expected_entry_ids": [
         "hydraulics_pneumatics:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists cylinders, pumps, valves and other hydraulic and pneumatic components sold.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.154
     }
   ],
   "verified": {

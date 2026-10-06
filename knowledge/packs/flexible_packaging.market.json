@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What thickness of stretch film should I use for pallets?",
-      "q_ar": "ما سماكة فيلم التغليف المطاطي المناسبة للمنصات؟",
+      "q_en": "Is pallet wrap and stand-up pouch stock bought by weight, by reel, or per thousand?",
+      "q_ar": "هل تُشترى أغلفة المنصات وأكياس الحفظ القائمة بالوزن أم بالبكرة أم بالألف؟",
       "expected_entry_ids": [
         "flexible_packaging:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry states how stretch film and pouches are priced (per kg, per roll, per 1,000 pcs).",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is included in a full-maintenance corporate car lease?",
-      "q_ar": "ما المشمول في تأجير سيارات الشركات بالصيانة الكاملة؟",
+      "q_en": "Which hire and lengthy contract options exist around town for saloons, minibuses and coaches?",
+      "q_ar": "ما خيارات الاستئجار والعقود الطويلة المتاحة في المدينة للسيارات الصالون والحافلات الصغيرة والكبيرة؟",
       "expected_entry_ids": [
         "vehicle_leasing:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Vehicle leasing in the UAE includes long-term corporate leasing (operating lease, 1-5 years) of sedans, SUVs, pickups, vans, buses and trucks, short-term rental (daily, weekly, monthly), lease-to-own/finance lease, chauf...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

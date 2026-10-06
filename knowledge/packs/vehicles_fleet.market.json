@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Why should a fleet buyer insist on GCC-spec vehicles in the UAE?",
-      "q_ar": "لماذا يجب أن يصر مشتري الأسطول على مركبات بالمواصفات الخليجية في الإمارات؟",
+      "q_en": "Which cars, vans and lorries can a business purchase around town for its employees?",
+      "q_ar": "ما السيارات والشاحنات الصغيرة والكبيرة التي يمكن لشركة شراؤها في المدينة لموظفيها؟",
       "expected_entry_ids": [
         "vehicles_fleet:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Fleet vehicles sold in the UAE include sedans and hatchbacks for sales staff (Toyota Corolla/Yaris, Nissan Sunny, Hyundai Accent/Elantra, Kia), SUVs (Toyota Land Cruiser, Prado, Fortuner, Nissan Patrol, Mitsubishi Pajero...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

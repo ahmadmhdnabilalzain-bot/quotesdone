@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What hi-vis class is required for road workers' vests?",
-      "q_ar": "ما فئة الملابس عالية الوضوح المطلوبة لسترات عمال الطرق؟",
+      "q_en": "Which staff outfits and protective clothing can be tailored for my team locally?",
+      "q_ar": "ما الأزياء الموحدة للموظفين والملابس الواقية التي يمكن تفصيلها لفريقي محلياً؟",
       "expected_entry_ids": [
         "uniforms_corporate_apparel:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Uniforms and corporate apparel sold in the UAE include corporate office wear (suits, shirts, blouses, ties, scarves), hospitality uniforms (front office, F&B, chef coats and aprons, housekeeping), healthcare scrubs and l...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

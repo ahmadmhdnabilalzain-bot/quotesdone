@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which authority regulates veterinary medicines in the UAE?",
-      "q_ar": "ما الجهة التي تنظم الأدوية البيطرية في الإمارات؟",
+      "q_en": "Which cattle feed, remedies for dogs and cats, and husbandry stuff are available locally nowadays?",
+      "q_ar": "ما أعلاف الماشية وأدوية الكلاب والقطط ومستلزمات تربية الحيوانات المتوفرة محلياً حالياً؟",
       "expected_entry_ids": [
         "veterinary_supplies:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Veterinary supplies sold in the UAE include veterinary medicines (antibiotics, antiparasitics, anti-inflammatories), vaccines for livestock, poultry, camels, horses and pets (cold chain 2-8 °C), feed additives and premix...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

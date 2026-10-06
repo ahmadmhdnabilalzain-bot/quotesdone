@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is a weekly tool rental usually priced?",
-      "q_ar": "كيف يُسعّر تأجير العدد أسبوعياً عادة؟",
+      "q_en": "For hiring kit, is it by daily, weekly, or monthly rates, and do they ask for a security payment?",
+      "q_ar": "لاستئجار المعدات، هل الأسعار يومية أم أسبوعية أم شهرية، وهل يطلبون مبلغ تأمين؟",
       "expected_entry_ids": [
         "tool_equipment_rental:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Rental is priced per day, per week (often about 3-4 days' rate) or per month (about 2-3 weeks' rate), plus delivery/collection, fuel (for engines), consumables and damage waiver; a deposit or credit account is required\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

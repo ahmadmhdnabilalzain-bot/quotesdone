@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Should I buy an IE3 or IE4 motor for a pump running all day?",
-      "q_ar": "هل أشتري محركاً بكفاءة IE3 أم IE4 لمضخة تعمل طوال اليوم؟",
+      "q_en": "Which motors, inverters and gentle-start units do dealers around town keep on shelves nowadays?",
+      "q_ar": "ما المحركات والعواكس ووحدات البدء الناعم التي يحتفظ بها الوكلاء في المدينة حالياً؟",
       "expected_entry_ids": [
         "motors_drives:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the motor types, VFDs and soft starters sold, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

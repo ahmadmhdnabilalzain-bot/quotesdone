@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do I need a pool chiller for a villa pool in Dubai?",
-      "q_ar": "هل أحتاج مبرد مسبح لمسبح فيلا في دبي؟",
+      "q_en": "Which backyard fountains and paddling setups can builders here create for a home?",
+      "q_ar": "ما النوافير في الفناء الخلفي وأحواض الخوض التي يمكن للبنّائين هنا تنفيذها لمنزل؟",
       "expected_entry_ids": [
         "swimming_pools:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Swimming pools and water features in the UAE: in-ground reinforced concrete pools (skimmer or overflow/infinity), fibreglass one-piece pools, prefabricated steel-panel pools, rooftop pools (with structural and waterproof...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

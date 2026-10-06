@@ -41,6 +41,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "musical_pro_audio:tdra-radio-microphone-approval",
+      "topic": "TDRA type approval and bands for radio microphones",
+      "kind": "regulatory_reference",
+      "body_en": "TDRA type approval in the UAE covers wireless equipment, which includes wireless microphones as radio transmitters. Per TÜV's TDRA market-access summary, approval involves sample testing with no factory inspection; equipment registration is valid for three years and telecom supplier registration for five years. Before ordering, ask for the TDRA approval certificate or registration for the exact model and check its frequency range. Not established here: the frequency bands and power limits TDRA permits for radio microphones, and whether event licences are available for large productions.",
+      "body_ar": "تشمل الموافقة على النوع من هيئة تنظيم الاتصالات والحكومة الرقمية في الإمارات الأجهزةَ اللاسلكية، ومنها الميكروفونات اللاسلكية بوصفها أجهزة إرسال راديوي. ووفق ملخص TÜV لمتطلبات النفاذ إلى السوق لدى الهيئة، تتضمن الموافقة اختبار عينات دون تفتيش على المصنع؛ ويسري تسجيل الجهاز ثلاث سنوات وتسجيل مورّد الاتصالات خمس سنوات. قبل الطلب، اطلب شهادة موافقة الهيئة أو التسجيل للطراز المحدد وتحقق من نطاق تردده. غير مثبت هنا: نطاقات التردد وحدود القدرة التي تسمح بها الهيئة للميكروفونات الراديوية، وإمكانية الحصول على تراخيص للفعاليات الكبيرة.",
+      "sources": [
+        "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "musical_pro_audio:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Do wireless microphones need TDRA approval in the UAE?",
+      "q_ar": "هل تحتاج الميكروفونات اللاسلكية إلى اعتماد من هيئة تنظيم الاتصالات في الإمارات؟",
+      "expected_entry_ids": [
+        "musical_pro_audio:tdra-radio-microphone-approval"
+      ],
+      "why": "No entry of this pack answered it (no entry on TDRA type approval or frequency rules for wireless microphones). musical_pro_audio:tdra-radio-microphone-approval was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from musical_pro_audio.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "musical_pro_audio:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "musical_pro_audio:tdra-radio-microphone-approval"
+    ]
   }
 }

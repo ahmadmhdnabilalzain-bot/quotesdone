@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is a managed print service priced for an office copier?",
-      "q_ar": "كيف تُسعّر خدمة الطباعة المُدارة لآلة تصوير مكتبية؟",
+      "q_en": "Are photocopiers on a plan paid every few weeks, or billed by each sheet run?",
+      "q_ar": "هل تُؤجَّر آلات التصوير بخطة دورية أم تُحاسَب بكل ورقة مطبوعة؟",
       "expected_entry_ids": [
         "office_equipment:uae-market-sizes"
-      ]
+      ],
+      "why": "Covers monthly leases for copiers and managed print priced as cost per page plus monthly minimum.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

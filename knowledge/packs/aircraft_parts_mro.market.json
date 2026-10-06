@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What release certificate should accompany an overhauled aircraft component?",
-      "q_ar": "ما شهادة الإفراج التي يجب أن ترافق مكون طائرة معاد عَمرته؟",
+      "q_en": "Which plane bits and fix-up help can be found inside the country, without importing everything?",
+      "q_ar": "ما قطع الطائرات وخدمات إصلاحها التي يمكن إيجادها داخل الدولة دون استيراد كل شيء؟",
       "expected_entry_ids": [
         "aircraft_parts_mro:uae-market-products"
-      ]
+      ],
+      "why": "Products entry covers line/base maintenance, engine MRO, component repair and parts supply available in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

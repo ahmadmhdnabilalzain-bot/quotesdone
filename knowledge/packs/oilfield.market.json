@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does PSL2 mean on API 5L line pipe?",
-      "q_ar": "ماذا يعني PSL2 على أنبوب خطوط API 5L؟",
+      "q_en": "Which well-site provisions and plant supplies can I obtain locally?",
+      "q_ar": "ما مؤن مواقع الآبار ولوازم المصانع التي يمكنني الحصول عليها محلياً؟",
       "expected_entry_ids": [
         "oilfield:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the OCTG, line pipe, valves, wellhead and other oilfield supplies, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

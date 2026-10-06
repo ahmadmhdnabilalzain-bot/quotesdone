@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between prime and standby generator rating?",
-      "q_ar": "ما الفرق بين التصنيف الرئيسي والاحتياطي للمولد؟",
+      "q_en": "Which gensets, backup power and changeover kit can people purchase or hire?",
+      "q_ar": "ما المولدات وأنظمة الطاقة الاحتياطية ومعدات التحويل التي يمكن شراؤها أو استئجارها؟",
       "expected_entry_ids": [
         "power_generators:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the diesel gensets, transfer switches, UPS and rental power kit, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

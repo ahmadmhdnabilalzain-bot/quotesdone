@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can a flexi-desk in a business centre be used for Ejari and how many visas does it allow?",
-      "q_ar": "هل يمكن استخدام مكتب مرن في مركز أعمال لتسجيل إيجاري وكم عدد التأشيرات التي يسمح بها؟",
+      "q_en": "Beyond renting one seat, which workspace arrangements exist around town: shared spots, a mailing-only setup, or my own closed room?",
+      "q_ar": "بعيداً عن استئجار مقعد واحد، ما ترتيبات مساحات العمل المتاحة: أماكن مشتركة، أو عنوان بريدي فقط، أو غرفة مغلقة خاصة بي؟",
       "expected_entry_ids": [
         "business_centres:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists serviced offices, coworking desks, virtual offices and flexi-desks.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.067
     }
   ],
   "verified": {

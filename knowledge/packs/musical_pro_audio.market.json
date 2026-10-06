@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do wireless microphones need TDRA approval in the UAE?",
-      "q_ar": "هل تحتاج الميكروفونات اللاسلكية إلى اعتماد من هيئة تنظيم الاتصالات في الإمارات؟",
+      "q_en": "Which instruments, mixers and speakers can a concert hall or nightclub purchase around town nowadays, honestly?",
+      "q_ar": "ما الآلات الموسيقية والمازجات والسماعات التي يمكن لقاعة حفلات أو نادٍ ليلي شراؤها في المدينة حالياً؟",
       "expected_entry_ids": [
         "musical_pro_audio:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the instruments, PA loudspeakers, mixers and amplifiers sold, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

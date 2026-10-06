@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "protective_packaging:esd-bags-pink-vs-shielding",
+      "topic": "Anti-static vs static-shielding bags for electronics",
+      "kind": "buyer_guidance",
+      "body_en": "Two common bag types are used. Pink anti-static bags are made so that static electricity does not build up on their surface; they suit parts that are not highly sensitive to electrostatic discharge (ESD). Metallised static-shielding bags have a conductive layer that removes static and a metallic layer that creates a Faraday-cage effect, protecting the contents from ESD; they are the choice for sensitive electronics such as integrated circuits and printed circuit boards. For shipping sensitive boards, specify static-shielding bags and the bag size and closure. Not established here: shielding test performance figures and the applicable ESD packaging standard.",
+      "body_ar": "يُستخدم نوعان شائعان من الأكياس. الأكياس الوردية المضادة للكهرباء الساكنة مصنوعة بحيث لا تتراكم الكهرباء الساكنة على سطحها، وتناسب القطع غير الحساسة بدرجة عالية للتفريغ الكهروستاتيكي. أما أكياس الحماية من الكهرباء الساكنة المعدنية فتحتوي على طبقة موصلة تزيل الشحنات وطبقة معدنية تُحدث تأثير قفص فاراداي، فتحمي المحتويات من التفريغ الكهروستاتيكي، وهي الخيار المناسب للإلكترونيات الحساسة مثل الدوائر المتكاملة ولوحات الدوائر المطبوعة. لشحن اللوحات الحساسة، حدّد أكياس الحماية المعدنية ومقاس الكيس وطريقة إغلاقه. غير مثبت هنا: أرقام أداء اختبار الحماية والمواصفة المطبقة على تغليف الحماية من التفريغ الكهروستاتيكي.",
+      "sources": [
+        "https://interplas.com/blog/anti-static-bag-vs-static-shielding-bags"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "protective_packaging:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What protects electronics from static during shipping?",
+      "q_ar": "ما الذي يحمي الإلكترونيات من الكهرباء الساكنة أثناء الشحن؟",
+      "expected_entry_ids": [
+        "protective_packaging:esd-bags-pink-vs-shielding"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry explains ESD/anti-static bags, pink poly vs metallised shielding; spec-checklist only lists \"anti-static\" as a property). protective_packaging:esd-bags-pink-vs-shielding was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from protective_packaging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "protective_packaging:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "protective_packaging:esd-bags-pink-vs-shielding"
+    ]
   }
 }

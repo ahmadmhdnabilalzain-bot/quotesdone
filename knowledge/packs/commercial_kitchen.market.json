@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What fire suppression standard does Civil Defence require for a kitchen hood in Dubai?",
-      "q_ar": "ما معيار نظام إطفاء الحريق الذي يشترطه الدفاع المدني لشفاط المطبخ في دبي؟",
+      "q_en": "What gear do restaurant outfitters here usually carry when someone opens a new eatery?",
+      "q_ar": "ما المعدّات التي يوفّرها عادةً مجهّزو المطاعم هنا عند افتتاح مطعم جديد؟",
       "expected_entry_ids": [
         "commercial_kitchen:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists ranges, ovens, fryers, refrigeration and dishwashers sold for restaurants.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

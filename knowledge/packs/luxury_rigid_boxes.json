@@ -41,6 +41,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "luxury_rigid_boxes:moq-and-run-economics",
+      "topic": "Order minimums for custom rigid boxes",
+      "kind": "pricing_basis",
+      "body_en": "Custom rigid (set-up) boxes are made from solid greyboard wrapped in printed paper; one online platform specifies 1.9 mm board. That platform states a minimum order of 1,000 pieces for two-piece lid-and-base rigid boxes, while its price table starts from 30 pieces, and it offers sample packs before larger orders. Options such as magnetic closures, foil stamping, embossing or debossing and custom inserts are available from rigid box makers. A request should state internal dimensions, construction, board, wrap paper, print, finishes, insert and quantity per design. Not established here: typical minimums of UAE-based rigid box makers.",
+      "body_ar": "تُصنع العلب الصلبة المخصصة من الكرتون الرمادي المصمت المغلف بورق مطبوع؛ وتحدد إحدى المنصات الإلكترونية سماكة الكرتون بـ1.9 مم. وتذكر تلك المنصة حداً أدنى للطلب قدره 1,000 قطعة للعلب الصلبة المكونة من غطاء وقاعدة، بينما يبدأ جدول أسعارها من 30 قطعة، وتوفر عبوات عينات قبل الطلبات الأكبر. ويوفر صانعو العلب الصلبة خيارات مثل الإغلاق المغناطيسي والختم بالرقائق والنقش البارز أو الغائر والحشوات المخصصة. ينبغي أن يحدد الطلب الأبعاد الداخلية وطريقة التصنيع والكرتون وورق التغليف والطباعة والتشطيبات والحشوة والكمية لكل تصميم. لم يُثبت هنا: الحدود الدنيا المعتادة لدى صانعي العلب الصلبة في الإمارات.",
+      "sources": [
+        "https://packhelp.co.uk/rigid-box-with-lid",
+        "https://www.vivopak.com.au/custom-boxes/box-styles-we-make/custom-rigid-boxes"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +71,15 @@
       "expected_entry_ids": [
         "luxury_rigid_boxes:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the usual minimum order for custom perfume gift boxes?",
+      "q_ar": "ما الحد الأدنى المعتاد لطلب علب هدايا عطور بتصميم خاص؟",
+      "expected_entry_ids": [
+        "luxury_rigid_boxes:moq-and-run-economics"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry states typical MOQs for custom rigid gift boxes (packaging:moq-tooling exists in another trade, not this one)). luxury_rigid_boxes:moq-and-run-economics was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from luxury_rigid_boxes.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +95,9 @@
       "luxury_rigid_boxes:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "luxury_rigid_boxes:moq-and-run-economics"
+    ]
   }
 }

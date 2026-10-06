@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which measurement standard is used for BOQs in UAE building projects?",
-      "q_ar": "ما معيار القياس المستخدم لجداول الكميات في مشاريع المباني في الإمارات؟",
+      "q_en": "What do QS practices and estimators offer to clients around here?",
+      "q_ar": "ماذا تقدم مكاتب مساحي الكميات والمقدّرون للعملاء هنا؟",
       "expected_entry_ids": [
         "quantity_surveying:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the cost planning, BOQ, tender and contract administration services offered by QS firms, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

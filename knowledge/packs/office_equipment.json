@@ -492,6 +492,15 @@
         "office_equipment:warranty-service",
         "office_equipment:quote-red-flags"
       ]
+    },
+    {
+      "q_en": "How is a managed print service priced for an office copier?",
+      "q_ar": "كيف تُسعّر خدمة الطباعة المُدارة لآلة تصوير مكتبية؟",
+      "expected_entry_ids": [
+        "office_equipment:managed-print-services"
+      ],
+      "why": "explains MPS billing: device or monthly base fee, separate mono and colour click rates, minimum click allowance with overage, and what is included.",
+      "origin": "real buyer question, moved from office_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

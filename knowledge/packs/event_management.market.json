@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What permits does a corporate outdoor event in Dubai need?",
-      "q_ar": "ما التصاريح التي تحتاجها فعالية خارجية لشركة في دبي؟",
+      "q_en": "What does a company organising functions here typically handle from start to finish?",
+      "q_ar": "ما الذي تتولاه عادةً شركة تنظيم الفعاليات هنا من البداية إلى النهاية؟",
       "expected_entry_ids": [
         "event_management:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the services an events firm covers (conferences, launches, galas, MICE, team-building), i.e. its end-to-end scope.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

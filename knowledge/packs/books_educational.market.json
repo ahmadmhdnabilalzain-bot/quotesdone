@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do imported books need Media Council approval before we can sell them to schools?",
-      "q_ar": "هل تحتاج الكتب المستوردة إلى موافقة مجلس الإمارات للإعلام قبل بيعها للمدارس؟",
+      "q_en": "What sort of school reading and classroom stuff do distributors around here keep on hand?",
+      "q_ar": "ما نوع الكتب المدرسية ومستلزمات الفصول التي يحتفظ بها الموزعون هنا؟",
       "expected_entry_ids": [
         "books_educational:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists curriculum textbooks, readers and classroom supplies sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

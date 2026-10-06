@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does SN 5000 mean on a sewer pipe?",
-      "q_ar": "ماذا يعني SN 5000 على أنبوب صرف صحي؟",
+      "q_en": "Are underground pipe and service jobs charged by running distance or for each hookup?",
+      "q_ar": "هل تُحاسَب أعمال الأنابيب والخدمات تحت الأرض بالمسافة الطولية أم بكل توصيلة؟",
       "expected_entry_ids": [
         "infrastructure_utilities:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry states installed networks are quoted per linear metre with chambers per number; it does not name a per-connection rate, so it is the closest answer.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

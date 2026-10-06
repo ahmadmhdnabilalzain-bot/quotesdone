@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Does an HSE consultant working in Abu Dhabi need OSHAD registration?",
-      "q_ar": "هل يحتاج استشاري الصحة والسلامة العامل في أبوظبي إلى التسجيل لدى OSHAD؟",
+      "q_en": "Which workplace hazard support can an adviser around town provide to my company?",
+      "q_ar": "ما الدعم في مخاطر بيئة العمل الذي يقدّمه مستشار في المدينة لشركتي؟",
       "expected_entry_ids": [
         "hse_consultancy:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the HSE services consultants provide (risk assessments, audits, training, plans).",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is a wedding tent rental priced in the UAE?",
-      "q_ar": "كيف يُسعّر تأجير خيمة أعراس في الإمارات؟",
+      "q_en": "Are marquees hired by area, or by dimensions and duration?",
+      "q_ar": "هل تُستأجر الخيام الكبيرة بالمساحة أم حسب الأبعاد والمدة؟",
       "expected_entry_ids": [
         "tents_shades:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Frame tents are specified by span x length in bays (e.g\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

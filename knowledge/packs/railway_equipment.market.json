@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which rail profile is used on the Etihad Rail network?",
-      "q_ar": "ما مقطع القضبان المستخدم في شبكة قطار الاتحاد؟",
+      "q_en": "Which train-line kit and related support can be obtained nearby?",
+      "q_ar": "ما معدات خطوط القطارات والدعم المرتبط بها التي يمكن الحصول عليها بالقرب منا؟",
       "expected_entry_ids": [
         "railway_equipment:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the rolling stock, track materials and related railway equipment and services, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

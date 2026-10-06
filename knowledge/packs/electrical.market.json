@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What socket type is used in the UAE?",
-      "q_ar": "ما نوع المقابس المستخدم في الإمارات؟",
+      "q_en": "What cabling and switchgear items do contractors here usually bring and fit?",
+      "q_ar": "ما مواد الكابلات ولوحات المفاتيح التي يحضرها المقاولون هنا ويركّبونها عادةً؟",
       "expected_entry_ids": [
         "electrical:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists LV boards, switchgear, cable containment and wiring that electrical contractors supply and install.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

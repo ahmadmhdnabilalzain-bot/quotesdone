@@ -45,6 +45,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "flexible_packaging:stretch-film-thickness-for-pallets",
+      "topic": "Stretch film thickness for pallet wrapping",
+      "kind": "buyer_guidance",
+      "body_en": "A packaging supplier's gauge guide gives these ranges. Stable loads up to about 400 kg can be wrapped with thin hand film of 17-20 µm. Heavy pallets, sharp edges or unstable stacks up to about 1,000 kg call for 23-35 µm. Hand film is typically 17-23 µm and can only be pre-stretched about 10-30% by hand; machine film is usually 20-35 µm and is pre-stretched 150-300% by the wrapper's pre-stretch unit. The guide stresses that thickness alone does not decide performance: what counts is the combination of thickness, pre-stretch and holding force, and a thinner high-performance film with strong pre-stretch can outperform a thicker standard film. State load weight, edges, hand or machine use and pre-stretch when asking for quotes.",
+      "body_ar": "يعطي دليل السماكات لدى أحد موردي التغليف النطاقات التالية: الأحمال المستقرة حتى نحو 400 كغ يمكن لفّها بفيلم يدوي رقيق بسماكة 17-20 ميكرون. أما المنصات الثقيلة أو ذات الحواف الحادة أو الرصّات غير المستقرة حتى نحو 1000 كغ فتحتاج إلى 23-35 ميكرون. الفيلم اليدوي عادةً بسماكة 17-23 ميكرون ولا يمكن شدّه مسبقاً باليد إلا بنحو 10-30%، أما فيلم الآلات فعادةً 20-35 ميكرون ويُشدّ مسبقاً بنسبة 150-300% بواسطة وحدة الشد المسبق في آلة اللف. ويؤكد الدليل أن السماكة وحدها لا تحدد الأداء، بل المهم هو الجمع بين السماكة والشد المسبق وقوة التثبيت، وقد يتفوق فيلم أرق عالي الأداء مع شد مسبق قوي على فيلم قياسي أسمك. حدّد وزن الحمولة والحواف واللف اليدوي أو الآلي ونسبة الشد المسبق عند طلب عروض الأسعار.",
+      "sources": [
+        "https://boxic24.com/english/ratgeber/stretch-film-gauge-guide"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -61,6 +74,15 @@
       "expected_entry_ids": [
         "flexible_packaging:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What thickness of stretch film should I use for pallets?",
+      "q_ar": "ما سماكة فيلم التغليف المطاطي المناسبة للمنصات؟",
+      "expected_entry_ids": [
+        "flexible_packaging:stretch-film-thickness-for-pallets"
+      ],
+      "why": "No entry of this pack answered it (No entry gives stretch-film gauge/micron guidance; missing). flexible_packaging:stretch-film-thickness-for-pallets was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from flexible_packaging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +98,9 @@
       "flexible_packaging:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "flexible_packaging:stretch-film-thickness-for-pallets"
+    ]
   }
 }

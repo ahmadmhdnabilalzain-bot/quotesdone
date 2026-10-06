@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which cutting disc thickness is best for stainless steel?",
-      "q_ar": "ما سماكة قرص القطع الأنسب للفولاذ المقاوم للصدأ؟",
+      "q_en": "What scratchy pads, spinning cutters for metal and shiny-finish pastes might a small workshop pick up around town?",
+      "q_ar": "ما أنواع الوسائد الخشنة وأقراص القطع الدوّارة للمعادن ومعاجين التلميع التي يمكن لورشة صغيرة شراؤها محلياً؟",
       "expected_entry_ids": [
         "abrasives_surface_finishing:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists bonded cutting/grinding discs, flap discs, coated abrasives and polishing compounds sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

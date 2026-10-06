@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is a hired steel fixer priced per hour or per month, and what is included?",
-      "q_ar": "هل يُسعّر عامل تثبيت حديد التسليح المستأجر بالساعة أم بالشهر، وما المشمول؟",
+      "q_en": "Is hired workforce billed hourly, daily, or by the month for each person?",
+      "q_ar": "هل تُحاسَب العمالة المستأجرة بالساعة أم يومياً أم شهرياً لكل عامل؟",
       "expected_entry_ids": [
         "labour_supply:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry explains manpower billing per hour, per day or per month per worker.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

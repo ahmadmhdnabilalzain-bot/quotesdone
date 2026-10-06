@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is drydocking priced for a 60 m offshore supply vessel?",
-      "q_ar": "كيف يُسعّر الإرساء في الحوض الجاف لسفينة إمداد بحرية بطول 60 م؟",
+      "q_en": "How do dockside workshops bill boat fixes: by time on the slipway, or a figure for everything?",
+      "q_ar": "كيف تحاسب ورش الأحواض على إصلاح القوارب: بمدة البقاء على المزلق أم بمبلغ للعمل كاملاً؟",
       "expected_entry_ids": [
         "shipbuilding_repair:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Newbuilds are priced per vessel under shipbuilding contracts with milestone payments (e.g\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

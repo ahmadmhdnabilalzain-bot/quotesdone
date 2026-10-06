@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "How should machinery be packed for a long sea voyage?",
-      "q_ar": "كيف تُغلف الآلات لرحلة بحرية طويلة؟",
+      "q_en": "Which wooden overseas consignment boxes do local firms build and fill for me around town?",
+      "q_ar": "ما صناديق التصدير الخشبية التي تصنعها الشركات المحلية وتعبئها لي في المدينة؟",
       "expected_entry_ids": [
         "industrial_crating:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the wooden export crates and packing services firms provide.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

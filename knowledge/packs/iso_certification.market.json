@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How do we verify that an ISO certificate from a supplier is genuine and accredited?",
-      "q_ar": "كيف نتحقق من أن شهادة الأيزو لدى المورد أصلية ومعتمدة؟",
+      "q_en": "Which accredited auditors for management system standards are active around town?",
+      "q_ar": "ما جهات التدقيق المعتمدة لمعايير أنظمة الإدارة النشطة في المدينة؟",
       "expected_entry_ids": [
         "iso_certification:uae-market-brands"
-      ]
+      ],
+      "why": "The brands entry names the certification bodies used in the UAE (SGS, Bureau Veritas, TUV etc.) and the accreditation to check.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

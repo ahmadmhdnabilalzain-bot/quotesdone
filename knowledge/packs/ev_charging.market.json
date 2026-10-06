@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What charger should I install at my villa in Dubai?",
-      "q_ar": "ما الشاحن الذي يجب أن أركّبه في فيلتي بدبي؟",
+      "q_en": "Which electric car charging points for houses and businesses can be fitted locally?",
+      "q_ar": "ما نقاط شحن السيارات الكهربائية للمنازل والشركات التي يمكن تركيبها محلياً؟",
       "expected_entry_ids": [
         "ev_charging:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists AC wallboxes and DC fast chargers installed for villas, buildings and businesses.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

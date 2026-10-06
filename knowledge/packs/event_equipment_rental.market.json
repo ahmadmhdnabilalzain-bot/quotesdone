@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is an outdoor LED screen priced for a two-day event?",
-      "q_ar": "كيف تُسعّر شاشة LED خارجية لفعالية مدتها يومان؟",
+      "q_en": "For stage and sound kit hire, is billing daily or per occasion?",
+      "q_ar": "لاستئجار معدات المسرح والصوت، هل تكون الفوترة يومية أم لكل مناسبة؟",
       "expected_entry_ids": [
         "event_equipment_rental:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says rental is priced per item per day, per event, or per week/month.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which FIBC type is needed for a flammable powder?",
-      "q_ar": "ما نوع الكيس الجامبو المطلوب لمسحوق قابل للاشتعال؟",
+      "q_en": "Which polypropylene carriers and big one-tonne FIBCs are manufactured or on offer locally?",
+      "q_ar": "ما أكياس البولي بروبيلين والأكياس الكبيرة سعة طن التي تُصنع أو تُعرض محلياً؟",
       "expected_entry_ids": [
         "bulk_bags_sacks:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists PP woven sacks and FIBC jumbo bag types offered in the UAE (closest; brands only notes unnamed local producers).",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

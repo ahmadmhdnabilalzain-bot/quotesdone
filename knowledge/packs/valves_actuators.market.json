@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which butterfly valve suits chilled water in a building?",
-      "q_ar": "ما صمام الفراشة المناسب للمياه المبردة في مبنى؟",
+      "q_en": "Sluice, ball, wafer types: which flow stoppers and their drivers do dealers around town keep?",
+      "q_ar": "البوابية والكروية والرقائقية: ما صمامات التحكم في التدفق ومشغّلاتها التي يحتفظ بها الوكلاء في المدينة؟",
       "expected_entry_ids": [
         "valves_actuators:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Valves and actuators in the UAE: gate, globe and check valves (API 600/602/594, BS 1414/1868/1873), ball valves (floating and trunnion, API 6D/ISO 17292), butterfly valves (concentric rubber-lined for water and HVAC to E...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

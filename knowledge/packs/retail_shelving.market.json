@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What bay width and shelf load are standard for supermarket gondolas?",
-      "q_ar": "ما عرض الوحدة وحمولة الرف القياسيان لرفوف الجندولا في السوبرماركت؟",
+      "q_en": "Which aisle stands and showcase fittings can shopkeepers buy nearby?",
+      "q_ar": "ما حوامل الممرات وتجهيزات العرض التي يمكن لأصحاب المتاجر شراؤها بالقرب منهم؟",
       "expected_entry_ids": [
         "retail_shelving:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Retail shelving sold in the UAE includes gondola shelving (single and double-sided, back panels perforated or plain, base decks and adjustable shelves), wall shelving, supermarket fruit and vegetable racks, pharmacy shel...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

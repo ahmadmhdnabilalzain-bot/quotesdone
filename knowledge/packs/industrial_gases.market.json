@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which shielding gas is used for MIG welding carbon steel?",
-      "q_ar": "ما غاز الحماية المستخدم للحام MIG للفولاذ الكربوني؟",
+      "q_en": "Which bottled factory gas supplies, brought to my premises, can I realistically arrange?",
+      "q_ar": "ما إمدادات غازات المصانع المعبأة في أسطوانات التي يمكنني ترتيب توصيلها إلى منشأتي؟",
       "expected_entry_ids": [
         "industrial_gases:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the cylinder and bulk industrial gases delivered to customer sites.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

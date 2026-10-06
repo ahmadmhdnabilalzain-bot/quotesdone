@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What size is a standard porta cabin in the UAE?",
-      "q_ar": "ما مقاس الكبينة الجاهزة القياسية في الإمارات؟",
+      "q_en": "Are portable site cabins sold by footprint dimensions, and how are they costed?",
+      "q_ar": "هل تُباع الكبائن المتنقلة للمواقع حسب أبعاد المساحة، وكيف تُسعَّر؟",
       "expected_entry_ids": [
         "prefab_buildings:uae-market-sizes"
-      ]
+      ],
+      "why": "Gives standard cabin sizes and pricing per unit by size or per m2, plus monthly rental.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

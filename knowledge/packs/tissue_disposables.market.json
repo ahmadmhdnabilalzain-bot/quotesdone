@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can we still buy styrofoam food containers for a restaurant in Dubai?",
-      "q_ar": "هل لا يزال بإمكاننا شراء حاويات طعام من الفوم لمطعم في دبي؟",
+      "q_en": "Which serviettes, towels and throwaway tableware can I purchase in volume around town nowadays?",
+      "q_ar": "ما المناديل والمناشف وأدوات المائدة ذات الاستخدام الواحد التي يمكنني شراؤها بكميات في المدينة حالياً؟",
       "expected_entry_ids": [
         "tissue_disposables:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Tissue and disposables sold in the UAE include facial tissues (2-ply, 150-200 sheets), toilet rolls (2-3 ply, standard and jumbo/maxi rolls), kitchen towels, hand towels (interfold/M-fold/Z-fold, centre-pull and autocut ...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

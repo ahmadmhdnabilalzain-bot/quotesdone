@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What openness factor should we choose for sunscreen roller blinds in an office?",
-      "q_ar": "ما نسبة الانفتاح التي يجب أن نختارها للستائر الدوارة الشمسية في مكتب؟",
+      "q_en": "Roll-up, light-blocking, electric: which window covering styles are favourites around here?",
+      "q_ar": "الستائر الملفوفة والمعتمة والكهربائية: ما أنماط تغطية النوافذ المفضلة هنا؟",
       "expected_entry_ids": [
         "curtains_blinds:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists blackout curtains, roller, Roman, Venetian and motorised blinds sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

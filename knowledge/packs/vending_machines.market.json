@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can a vending company place a machine in our office for free?",
-      "q_ar": "هل يمكن لشركة بيع آلي وضع آلة في مكتبنا مجاناً؟",
+      "q_en": "Are snack dispensers bought outright, hired, or placed on an income split?",
+      "q_ar": "هل تُشترى آلات البيع الذاتي نقداً أم تُستأجر أم توضع بنظام تقاسم الإيرادات؟",
       "expected_entry_ids": [
         "vending_machines:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Machines are sold per unit (priced by model and selections, e.g\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

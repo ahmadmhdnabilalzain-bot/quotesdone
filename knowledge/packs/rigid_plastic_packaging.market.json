@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the minimum order for jerry cans in a custom colour?",
-      "q_ar": "ما الحد الأدنى لطلب جراكن بلون خاص؟",
+      "q_en": "Which tub and bottle capacities in ml or litres are common, and what's the smallest order?",
+      "q_ar": "ما سعات العلب والقوارير الشائعة بالمليلتر أو اللتر، وما أصغر طلب؟",
       "expected_entry_ids": [
         "rigid_plastic_packaging:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Priced per piece at quantity breaks (MOQ for stock items per carton/pallet; custom colours often 5,000-10,000 pcs; new moulds are a one-off cost with 6-10 weeks lead time)\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

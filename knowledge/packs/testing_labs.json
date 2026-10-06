@@ -58,6 +58,16 @@
       "expected_entry_ids": [
         "testing_labs:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does the lab testing our concrete cubes need to be approved by Dubai Municipality?",
+      "q_ar": "هل يجب أن يكون المختبر الذي يختبر مكعبات الخرسانة معتمداً من بلدية دبي؟",
+      "expected_entry_ids": [
+        "testing_labs:spec-checklist",
+        "testing_labs:uae-standards-and-approvals"
+      ],
+      "why": "The standards entry says Dubai Municipality operates and recognises labs for construction testing under ISO/IEC 17025, and the checklist requires 17025 scope and authority recognition.",
+      "origin": "real buyer question, moved from testing_labs.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is a thermal block and why is it required in Dubai?",
-      "q_ar": "ما هو الطابوق الحراري ولماذا هو مطلوب في دبي؟",
+      "q_en": "Which bricklaying and rendering jobs do builders around here usually take on for a villa?",
+      "q_ar": "ما أعمال البناء بالطوب واللياسة التي يتولاها البنّاؤون هنا عادةً لفيلا؟",
       "expected_entry_ids": [
         "masonry_blockwork:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the block types and plastering work used in villas and buildings, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

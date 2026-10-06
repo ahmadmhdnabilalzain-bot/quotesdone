@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What certification should an NDT technician hold for UT on pipeline welds?",
-      "q_ar": "ما الشهادة التي يجب أن يحملها فني الاختبارات غير الإتلافية للفحص بالموجات فوق الصوتية على لحامات خطوط الأنابيب؟",
+      "q_en": "Which examination techniques that leave the part intact can independent firms carry out locally?",
+      "q_ar": "ما تقنيات الفحص التي لا تُتلف القطعة والتي تنفذها الشركات المستقلة محلياً؟",
       "expected_entry_ids": [
         "inspection_ndt:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the NDT methods (UT, RT, MPI, DPI etc.) inspection firms perform.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

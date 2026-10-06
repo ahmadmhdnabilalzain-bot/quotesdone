@@ -60,6 +60,15 @@
       "expected_entry_ids": [
         "packaging_machinery:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What should I specify when buying a liquid filling machine?",
+      "q_ar": "ماذا يجب أن أحدد عند شراء آلة تعبئة سوائل؟",
+      "expected_entry_ids": [
+        "packaging_machinery:spec-checklist"
+      ],
+      "why": "The spec checklist lists what the buyer must specify when buying packaging machinery, which is exactly what the question asks (generic, not liquid-filler-specific).",
+      "origin": "real buyer question, moved from packaging_machinery.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does the UN marking 1A1 on a steel drum mean?",
-      "q_ar": "ماذا يعني الرمز 1A1 من الأمم المتحدة على برميل فولاذي؟",
+      "q_en": "Which barrels, buckets and steel tubs are produced or on offer nearby?",
+      "q_ar": "ما البراميل والسطول والأوعية الفولاذية التي تُصنَّع أو تُعرض بالقرب منا؟",
       "expected_entry_ids": [
         "metal_packaging:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the drums, pails and cans sold locally, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

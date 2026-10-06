@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between 60/70 and PG 76-10 bitumen?",
-      "q_ar": "ما الفرق بين بيتومين 60/70 وPG 76-10؟",
+      "q_en": "Which asphalt binder specifications and diesel or petrol supplies can someone purchase nearby?",
+      "q_ar": "ما مواصفات مادة ربط الإسفلت وإمدادات الديزل أو البنزين التي يمكن شراؤها في المنطقة؟",
       "expected_entry_ids": [
         "bitumen_petroleum_products:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists paving bitumen grades and refined fuels sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

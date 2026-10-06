@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "rigid_plastic_packaging:custom-colour-jerry-can-moq",
+      "topic": "Order minimums for coloured jerry cans",
+      "kind": "moq",
+      "body_en": "Stock HDPE jerry cans are extrusion blow-moulded and can be bought in small lots: ALPLA's catalogue lists a minimum order of 60 units for its 20 litre, 800 g jerry can. Not established here: the minimum order for a custom colour, which the catalogue does not state; buyers must ask the moulder.",
+      "body_ar": "تُصنع عبوات الجيركان من البولي إيثيلين عالي الكثافة (HDPE) بتقنية النفخ بالبثق، ويمكن شراء العبوات القياسية بكميات صغيرة: إذ يذكر كتالوج ALPLA حداً أدنى للطلب قدره 60 وحدة لعبوة الجيركان سعة 20 لتراً ووزن 800 غرام. لم يُثبت هنا: الحد الأدنى لطلب لون مخصص، إذ لا يذكره الكتالوج، وعلى المشتري الاستفسار من المصنّع.",
+      "sources": [
+        "https://product-catalogue.alpla.com/product/20000-ml-jerry-can-800-g"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "rigid_plastic_packaging:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the minimum order for jerry cans in a custom colour?",
+      "q_ar": "ما الحد الأدنى لطلب جراكن بلون خاص؟",
+      "expected_entry_ids": [
+        "rigid_plastic_packaging:custom-colour-jerry-can-moq"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry states MOQ for custom-colour jerry cans (masterbatch run minimums)). rigid_plastic_packaging:custom-colour-jerry-can-moq was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from rigid_plastic_packaging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "rigid_plastic_packaging:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "rigid_plastic_packaging:custom-colour-jerry-can-moq"
+    ]
   }
 }

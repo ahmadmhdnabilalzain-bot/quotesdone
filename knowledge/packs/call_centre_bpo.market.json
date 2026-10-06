@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is an outsourced call centre agent priced per hour or per month?",
-      "q_ar": "هل يُسعّر وكيل مركز الاتصال الخارجي بالساعة أم بالشهر؟",
+      "q_en": "For outsourced phone support, do they bill by person working, by minutes, or by each contact answered?",
+      "q_ar": "لدعم الهاتف المُسنَد خارجياً، هل تكون الفوترة حسب الموظف العامل أم بالدقائق أم بكل اتصال يُجاب عليه؟",
       "expected_entry_ids": [
         "call_centre_bpo:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says call centres price per FTE per month, per hour, per minute or per transaction/outcome.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

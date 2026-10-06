@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which load class of manhole cover is needed for a road?",
-      "q_ar": "ما فئة الحمل المطلوبة لغطاء غرفة تفتيش في طريق؟",
+      "q_en": "Can I have poured-metal moulded pieces, pressure-cast items or hammered components produced locally?",
+      "q_ar": "هل يمكنني تصنيع قطع معدنية مصبوبة أو مسبوكة بالضغط أو مطروقة محلياً؟",
       "expected_entry_ids": [
         "castings_forgings:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists sand, investment and die castings and forgings available in the UAE market.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

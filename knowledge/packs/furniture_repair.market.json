@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is fabric included in the reupholstery price, and how many metres does a three-seater sofa need?",
-      "q_ar": "هل القماش مشمول في سعر إعادة التنجيد، وكم متراً تحتاج الأريكة ذات المقاعد الثلاثة؟",
+      "q_en": "Do people fixing couches and cabinets quote for each piece or by number of places to sit?",
+      "q_ar": "هل يسعّر مصلحو الأرائك والخزائن بالقطعة أم بعدد المقاعد؟",
       "expected_entry_ids": [
         "furniture_repair:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry explains repair pricing per piece versus per seat.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

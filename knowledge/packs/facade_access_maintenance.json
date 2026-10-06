@@ -41,6 +41,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "facade_access_maintenance:en-1808-cradle-inspection",
+      "topic": "EN 1808 suspended platforms and pre-use inspection",
+      "kind": "standard_and_certification",
+      "body_en": "Suspended cradles are inspected against BS EN 1808: an inspection body's accreditation scope published by MoIAT lists initial and periodic inspection of window/paint cradles to BS EN 1808:2015. Under UAE rules, when a cradle is received an independent safety company inspects it and issues a safety certificate before it can be used; that certificate is presented to the emirate's municipality to obtain authorisation to use the cradle. Workers in the cradle must wear a safety harness attached to an independent lifeline fixed separately to the building. Not established here: a fixed re-inspection interval and which bodies each municipality approves, so confirm both with the municipality or the inspection body.",
+      "body_ar": "تُفحص منصات العمل المعلّقة (السقالات المعلقة) وفق المواصفة BS EN 1808: إذ يتضمن نطاق اعتماد جهة تفتيش نشرته وزارة الصناعة والتكنولوجيا المتقدمة الفحص الأولي والدوري لمنصات تنظيف النوافذ والطلاء وفق المواصفة BS EN 1808:2015. وبموجب القواعد في الإمارات، تفحص شركة سلامة مستقلة المنصة عند استلامها وتصدر شهادة سلامة قبل استخدامها، وتُقدَّم هذه الشهادة إلى بلدية الإمارة للحصول على إذن الاستخدام. ويجب على العاملين في المنصة ارتداء حزام أمان متصل بحبل نجاة مستقل مثبت بالمبنى بشكل منفصل. غير ثابت هنا: فترة إعادة الفحص المحددة والجهات التي تعتمدها كل بلدية، لذا تأكد من الأمرين لدى البلدية أو جهة التفتيش.",
+      "sources": [
+        "https://www.moiat.gov.ae/-/media/site/moiat/accreditation-cabs-folder/acc-scope-nai-031.ashx",
+        "https://thenationalnews.com/uae/laws-exist-to-protect-cradle-workers-1.546622"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +71,15 @@
       "expected_entry_ids": [
         "facade_access_maintenance:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which standard should a temporary suspended cradle comply with, and what certificate do we need before use?",
+      "q_ar": "ما المعيار الذي يجب أن يلتزم به المهد المعلق المؤقت، وما الشهادة المطلوبة قبل الاستخدام؟",
+      "expected_entry_ids": [
+        "facade_access_maintenance:en-1808-cradle-inspection"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry names the temporary suspended platform standard (EN 1808) or the third-party inspection certificate required before use). facade_access_maintenance:en-1808-cradle-inspection was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from facade_access_maintenance.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +96,9 @@
       "facade_access_maintenance:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "facade_access_maintenance:en-1808-cradle-inspection"
+    ]
   }
 }

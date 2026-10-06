@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which manganese grade should jaw crusher plates be for gabbro?",
-      "q_ar": "ما درجة المنغنيز المناسبة لألواح كسارة الفك للغابرو؟",
+      "q_en": "Which rock-boring and stone-crushing kit can pits purchase locally?",
+      "q_ar": "ما معدات حفر الصخور وتكسير الأحجار التي تشتريها المحاجر محلياً؟",
       "expected_entry_ids": [
         "mining_quarry_supplies:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the crusher wear parts, drilling consumables and other quarry supplies, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What LPG cylinder sizes are available for a restaurant in the UAE?",
-      "q_ar": "ما أحجام أسطوانات الغاز المسال المتاحة لمطعم في الإمارات؟",
+      "q_en": "How are cooking fuel bottles and bigger supplies charged around town: per refill or by kilo?",
+      "q_ar": "كيف تُحاسَب أسطوانات غاز الطهي والإمدادات الأكبر في المدينة: بكل تعبئة أم بالكيلو؟",
       "expected_entry_ids": [
         "lpg_gas:uae-market-sizes"
-      ]
+      ],
+      "why": "States cylinder pricing is per refill plus deposit and bulk/piped gas per kg or metered unit.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

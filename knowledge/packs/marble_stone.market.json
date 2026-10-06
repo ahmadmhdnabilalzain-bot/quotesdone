@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between quartz and sintered stone for a countertop?",
-      "q_ar": "ما الفرق بين الكوارتز والحجر الملبّد لسطح عمل المطبخ؟",
+      "q_en": "Which quarried slabs for floors or counters can I find in yards around town these days?",
+      "q_ar": "ما ألواح الحجر المستخرج للأرضيات أو أسطح المطابخ التي أجدها في الساحات بالمدينة هذه الأيام؟",
       "expected_entry_ids": [
         "marble_stone:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the marble, granite, limestone and other natural stones sold, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

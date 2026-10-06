@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "How do collection agencies charge for recovering a commercial debt?",
-      "q_ar": "كيف تتقاضى وكالات التحصيل أتعابها لاسترداد دين تجاري؟",
+      "q_en": "Do agencies recovering unpaid invoices keep a cut of what they get back, or bill flat?",
+      "q_ar": "هل تحتفظ وكالات تحصيل الفواتير غير المدفوعة بنسبة مما تستردّه أم تفرض رسماً ثابتاً؟",
       "expected_entry_ids": [
         "debt_collection:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says amicable collection is a no-cure-no-pay percentage of amount recovered, sometimes with a file fee.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

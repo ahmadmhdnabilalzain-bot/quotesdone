@@ -39,6 +39,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "translation_interpretation:court-submissions-arabic-legal-translation",
+      "topic": "Foreign-language documents before UAE courts",
+      "kind": "regulatory_reference",
+      "body_en": "Arabic is the official legal language in the UAE, so documents submitted to courts or government in another language must be translated by a recognised provider. An MOJ-certified translation carries the translator's official stamp and a certification statement; without proper certification a document risks being rejected by courts, delayed, or returned for correction. Documents commonly needing this include court judgments, corporate incorporation papers and personal certificates, and machine translation is not accepted by courts. In practice, therefore, a contract filed in a Dubai court should carry an MOJ-certified Arabic translation. Not established from a primary source here: the exact procedural article, Dubai Courts' own filing rule, and DIFC Courts' language rules.",
+      "body_ar": "اللغة العربية هي اللغة القانونية الرسمية في الإمارات، لذا يجب ترجمة المستندات المقدمة إلى المحاكم أو الجهات الحكومية بلغة أخرى لدى جهة ترجمة معترف بها. تحمل الترجمة المعتمدة من وزارة العدل الختم الرسمي للمترجم وإقرار اعتماد؛ ومن دون الاعتماد الصحيح يتعرض المستند لخطر الرفض من المحاكم أو التأخير أو الإعادة للتصحيح. ومن المستندات التي تحتاج عادةً إلى ذلك الأحكام القضائية وأوراق تأسيس الشركات والشهادات الشخصية، ولا تقبل المحاكم الترجمة الآلية. وعليه، عمليًا، ينبغي أن يُرفق بالعقد المقدم إلى محكمة في دبي ترجمة عربية معتمدة من وزارة العدل. غير مثبت من مصدر أولي هنا: المادة الإجرائية الدقيقة، وقاعدة الإيداع الخاصة بمحاكم دبي، وقواعد اللغة في محاكم مركز دبي المالي العالمي.",
+      "sources": [
+        "https://www.communicationdubai.com/moj-certified-translation-uae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "translation_interpretation:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does a contract submitted to a Dubai court need a translation by an MOJ-licensed translator?",
+      "q_ar": "هل يحتاج العقد المقدم إلى محكمة في دبي إلى ترجمة من مترجم مرخص من وزارة العدل؟",
+      "expected_entry_ids": [
+        "translation_interpretation:court-submissions-arabic-legal-translation"
+      ],
+      "why": "No entry of this pack answered it (MISSING: uae-standards says MOJ registers legal translators but explicitly does not say which documents require one (courts require Arabic legal translation)). translation_interpretation:court-submissions-arabic-legal-translation was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from translation_interpretation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "translation_interpretation:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "translation_interpretation:court-submissions-arabic-legal-translation"
+    ]
   }
 }

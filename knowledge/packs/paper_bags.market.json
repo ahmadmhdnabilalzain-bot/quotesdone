@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What GSM kraft paper is used for retail shopping bags?",
-      "q_ar": "ما وزن ورق الكرافت المستخدم لأكياس التسوق؟",
+      "q_en": "Which branded shopper carriers made from sturdy wrapping stock can be produced locally for my boutique nowadays, honestly?",
+      "q_ar": "ما أكياس التسوق المطبوعة بالعلامة التجارية من الورق المتين التي يمكن إنتاجها محلياً لمتجري حالياً؟",
       "expected_entry_ids": [
         "paper_bags:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the kraft and luxury carrier bags with handles and finishes, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

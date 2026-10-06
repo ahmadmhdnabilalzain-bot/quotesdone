@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which rotary hammer type do I need for 32 mm holes in concrete?",
-      "q_ar": "ما نوع المطرقة الدوارة الذي أحتاجه لثقوب 32 مم في الخرسانة؟",
+      "q_en": "Which manual and electric gear can trade shoppers find from nearby dealers?",
+      "q_ar": "ما العُدد اليدوية والكهربائية التي يجدها المشترون المحترفون لدى الوكلاء القريبين؟",
       "expected_entry_ids": [
         "hand_power_tools:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the hand and power tool categories sold through local dealers.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

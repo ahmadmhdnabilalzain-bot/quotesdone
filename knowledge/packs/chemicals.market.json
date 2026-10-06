@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which concrete admixture helps pouring in UAE summer heat?",
-      "q_ar": "ما إضافة الخرسانة المناسبة للصب في حرارة صيف الإمارات؟",
+      "q_en": "Which cement additives, joint fillers and factory compounds are easy to source in town these days?",
+      "q_ar": "ما إضافات الإسمنت ومواد حشو الفواصل والمركّبات الصناعية التي يسهل الحصول عليها في المدينة هذه الأيام؟",
       "expected_entry_ids": [
         "chemicals:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists concrete admixtures, grouts, sealants and industrial chemicals sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

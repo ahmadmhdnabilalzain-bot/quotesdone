@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What insulation is used on chilled water pipes in the UAE?",
-      "q_ar": "ما العزل المستخدم على أنابيب المياه المبردة في الإمارات؟",
+      "q_en": "Which heat barrier materials, like rigid boards or fibre blankets, are used locally on rooftops?",
+      "q_ar": "ما مواد العزل الحراري، مثل الألواح الصلبة أو بطانيات الألياف، المستخدمة محلياً على الأسطح؟",
       "expected_entry_ids": [
         "thermal_insulation:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Thermal and acoustic insulation in the UAE: extruded polystyrene (XPS) boards for roofs and foundations, expanded polystyrene (EPS) for blocks and walls, polyurethane (PU/PIR) spray foam and boards, glass wool and rock w...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

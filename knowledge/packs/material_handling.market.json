@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does 3 tonnes at 500 mm load centre mean on a forklift?",
-      "q_ar": "ماذا يعني 3 أطنان عند مركز حمل 500 مم في الرافعة الشوكية؟",
+      "q_en": "Which lifting vehicles and stockroom kit can shoppers find around town: gas, battery, or compact ones?",
+      "q_ar": "ما مركبات الرفع ومعدات المستودعات التي يجدها المشترون في المدينة: بالغاز أم بالبطارية أم المدمجة؟",
       "expected_entry_ids": [
         "material_handling:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the forklift types (diesel, LPG, electric), reach trucks, stackers and warehouse handling kit, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1
     }
   ],
   "verified": {

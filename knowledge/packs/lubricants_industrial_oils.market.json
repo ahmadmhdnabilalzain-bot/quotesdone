@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which engine oil specification should a heavy diesel fleet use?",
-      "q_ar": "ما مواصفة زيت المحرك المناسبة لأسطول ديزل ثقيل؟",
+      "q_en": "Which motor and machinery lubes can shoppers find around town these days, honestly?",
+      "q_ar": "ما زيوت المحركات والآلات والشحوم التي يجدها المشترون في المدينة هذه الأيام؟",
       "expected_entry_ids": [
         "lubricants_industrial_oils:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the engine, gear, hydraulic, turbine and other oil grades sold, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

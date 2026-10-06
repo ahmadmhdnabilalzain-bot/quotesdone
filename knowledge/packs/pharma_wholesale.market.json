@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can a pharmacy buy medicines directly from an overseas supplier?",
-      "q_ar": "هل يمكن للصيدلية شراء الأدوية مباشرة من مورد خارجي؟",
+      "q_en": "Which pharmacy stock can authorised distributors around here realistically provide to chemists?",
+      "q_ar": "ما مخزون الصيدليات الذي يستطيع الموزعون المرخصون هنا توفيره للصيدليات فعلياً؟",
       "expected_entry_ids": [
         "pharma_wholesale:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the prescription, OTC, vaccines and other categories handled by pharma wholesalers, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

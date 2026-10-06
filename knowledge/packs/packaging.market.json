@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can one supplier cover cartons, tape and stretch film for my warehouse?",
-      "q_ar": "هل يمكن لمورد واحد توفير الكراتين والأشرطة وفيلم التغليف لمستودعي؟",
+      "q_en": "Which wrapping and print consumable labels are distributed around here?",
+      "q_ar": "ما العلامات التجارية لمواد التغليف ومستلزمات الطباعة الموزعة هنا؟",
       "expected_entry_ids": [
         "packaging:uae-market-brands"
-      ]
+      ],
+      "why": "Lists the packaging converters, distributors and board sources (Taghleef, Falcon Pack, Cosmoplast, Interplast, etc.).",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

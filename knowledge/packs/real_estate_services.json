@@ -54,6 +54,15 @@
       "expected_entry_ids": [
         "real_estate_services:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What forms and permits must a Dubai broker have before advertising my property?",
+      "q_ar": "ما النماذج والتصاريح التي يجب أن يحصل عليها الوسيط في دبي قبل الإعلان عن عقاري؟",
+      "expected_entry_ids": [
+        "real_estate_services:uae-standards-and-approvals"
+      ],
+      "why": "States DLD licenses brokers through RERA with a public broker list; partial only, as it does not cover Form A or the Trakheesi advertising permit, which are missing.",
+      "origin": "real buyer question, moved from real_estate_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

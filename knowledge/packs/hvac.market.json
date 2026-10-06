@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How many tons of AC does a 20 m2 bedroom need in Dubai?",
-      "q_ar": "كم طن تكييف تحتاج غرفة نوم مساحتها 20 م2 في دبي؟",
+      "q_en": "Are room coolers costed by how much they chill, and which capacities are popular around here nowadays?",
+      "q_ar": "هل تُسعَّر مكيفات الغرف حسب قدرة التبريد، وما السعات الرائجة هنا حالياً؟",
       "expected_entry_ids": [
         "hvac:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry explains that AC units are sold by cooling capacity in tons (TR) and lists the common tonnages.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which fertiliser grade is used for date palms in fertigation?",
-      "q_ar": "ما درجة السماد المستخدمة للنخيل في التسميد بالري؟",
+      "q_en": "Setting up a farm locally, where would I find plant nutrients, crop starters and livestock rations?",
+      "q_ar": "أؤسس مزرعة محلياً، فأين أجد مغذيات النبات والبذور وأعلاف الماشية؟",
       "expected_entry_ids": [
         "agri_inputs:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists fertilisers, seeds/growing media and animal feed sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

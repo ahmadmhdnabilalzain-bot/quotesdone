@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What board grade is used for printed retail cartons?",
-      "q_ar": "ما درجة الكرتون المستخدمة لعلب التجزئة المطبوعة؟",
+      "q_en": "Which sheet and cardstock specifications can print houses and converting plants purchase locally?",
+      "q_ar": "ما مواصفات الورق والكرتون التي تشتريها المطابع ومصانع التحويل محلياً؟",
       "expected_entry_ids": [
         "paper_board:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the paper and board grades and GSM ranges, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

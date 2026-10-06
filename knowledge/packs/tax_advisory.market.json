@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do we need an FTA-registered tax agent to handle our corporate tax audit?",
-      "q_ar": "هل نحتاج إلى وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب للتعامل مع تدقيق ضريبة الشركات؟",
+      "q_en": "Which VAT and profits help do accountants around here provide for a company nowadays?",
+      "q_ar": "ما المساعدة في ضريبة القيمة المضافة وضريبة الأرباح التي يقدمها المحاسبون هنا للشركات حالياً؟",
       "expected_entry_ids": [
         "tax_advisory:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Tax advisory in the UAE covers corporate tax (Federal Decree-Law 47 of 2022: 9% on taxable income above AED 375,000, 0% for qualifying free zone persons on qualifying income, small business relief, tax groups, transfer p...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

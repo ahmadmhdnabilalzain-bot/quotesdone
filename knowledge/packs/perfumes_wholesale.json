@@ -42,6 +42,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "perfumes_wholesale:oud-oil-tola-pricing",
+      "topic": "Oud oil trade unit and price drivers",
+      "kind": "pricing_basis",
+      "body_en": "Oud oil is traded by the tola, a traditional weight unit equal to about 11.66 g, standardised historically at 180 troy grains. Retailers also sell fractions: one UAE-facing seller lists its oud oils in quarter-tola quantities, priced from about AED 112.70 to AED 338.11 per quarter tola (discounted prices) depending on origin and age, with origins including Indian, Cambodian (aged 20 years), Laotian, Thai and Indonesian. Price therefore depends on origin and age. Buyers should ask for origin, age and whether the oil is pure or blended. Not established here: the ml fill equivalent of a tola, wholesale price levels, and any UAE grading standard.",
+      "body_ar": "يُتداول دهن العود بوحدة التولة، وهي وحدة وزن تقليدية تعادل نحو 11.66 غراماً، وقد وُحّدت تاريخياً عند 180 حبة تروي. ويبيع التجار أيضاً أجزاءً منها: إذ يعرض أحد البائعين الموجّهين للسوق الإماراتية زيوت العود بكميات ربع تولة، بأسعار تتراوح بين نحو 112.70 و338.11 درهماً لربع التولة (أسعار بعد الخصم) بحسب المنشأ والعمر، ومن المناشئ: الهندي والكمبودي (المعتّق 20 عاماً) واللاوسي والتايلندي والإندونيسي. فالسعر إذن يتوقف على المنشأ والعمر. وينبغي للمشتري أن يسأل عن المنشأ والعمر وما إذا كان الدهن صافياً أم مخلوطاً. لم يُثبت هنا: ما يعادل التولة بالمليلتر، ومستويات أسعار الجملة، وأي معيار تصنيف إماراتي.",
+      "sources": [
+        "https://icicidirect.com/ilearn/loan/articles/what-is-tola-and-how-much-does-one-tola-of-gold-weigh-in-grams",
+        "https://oudalmaher.com/en/product-category/oud-oil/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +72,15 @@
       "expected_entry_ids": [
         "perfumes_wholesale:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is oud oil priced and what does a tola equal?",
+      "q_ar": "كيف يُسعّر دهن العود وكم تعادل التولة؟",
+      "expected_entry_ids": [
+        "perfumes_wholesale:oud-oil-tola-pricing"
+      ],
+      "why": "No entry of this pack answered it (no entry on oud oil pricing or the tola (about 11.66 g / 12 ml)). perfumes_wholesale:oud-oil-tola-pricing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from perfumes_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +97,9 @@
       "perfumes_wholesale:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "perfumes_wholesale:oud-oil-tola-pricing"
+    ]
   }
 }

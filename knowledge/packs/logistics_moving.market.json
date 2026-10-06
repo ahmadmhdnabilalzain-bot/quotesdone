@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is air freight chargeable weight calculated from Dubai?",
-      "q_ar": "كيف يُحسب الوزن الخاضع للرسوم في الشحن الجوي من دبي؟",
+      "q_en": "Do relocation firms bill by vehicle capacity, by cubic load, or per journey?",
+      "q_ar": "هل تحاسب شركات النقل بحجم المركبة أم بحجم الحمولة أم بكل رحلة؟",
       "expected_entry_ids": [
         "logistics_moving:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry prices trucking per trip by truck type and freight per CBM; it covers freight rather than household moves specifically, so it is the closest answer.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What approvals do I need to fit out an office in a Dubai free zone?",
-      "q_ar": "ما الاعتمادات المطلوبة لتجهيز مكتب في منطقة حرة بدبي؟",
+      "q_en": "What does an interiors contractor include when kitting a workspace or store?",
+      "q_ar": "ماذا يشمل مقاول التجهيزات الداخلية عند تجهيز مكتب أو متجر؟",
       "expected_entry_ids": [
         "interior_fitout:uae-market-products"
-      ]
+      ],
+      "why": "The products entry sets out fit-out scope for offices and retail (partitions, ceilings, flooring, joinery, MEP).",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

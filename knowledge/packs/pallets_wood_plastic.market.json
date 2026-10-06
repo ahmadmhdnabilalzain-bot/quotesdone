@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do export pallets from the UAE need ISPM 15 treatment?",
-      "q_ar": "هل تحتاج منصات التصدير من الإمارات معالجة ISPM 15؟",
+      "q_en": "Timber or polymer skids: which kinds can I purchase or hire locally?",
+      "q_ar": "المنصات الخشبية أو البوليمرية: ما الأنواع التي يمكنني شراؤها أو استئجارها محلياً؟",
       "expected_entry_ids": [
         "pallets_wood_plastic:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the wooden and plastic pallet types (EPAL, ISPM 15, HDPE/PP), which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

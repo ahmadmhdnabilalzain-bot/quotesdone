@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do imported toys need ECAS certification before sale in the UAE?",
-      "q_ar": "هل تحتاج الألعاب المستوردة إلى شهادة نظام المطابقة الإماراتي قبل بيعها في الإمارات؟",
+      "q_en": "Which kids' playthings categories do bulk traders around here keep?",
+      "q_ar": "ما فئات ألعاب الأطفال التي يحتفظ بها تجار الجملة هنا؟",
       "expected_entry_ids": [
         "toys_wholesale:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Toys wholesale in the UAE covers infant and pre-school toys, dolls and action figures, construction and building sets, educational and STEM toys, puzzles and board games, remote-control cars, drones and ride-ons (battery...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

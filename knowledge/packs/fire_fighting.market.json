@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which fire suppression gas is used for a server room in the UAE?",
-      "q_ar": "ما غاز الإطفاء المستخدم لغرفة الخوادم في الإمارات؟",
+      "q_en": "Which blaze protection kit is certified and on offer around town for buildings?",
+      "q_ar": "ما معدات الحماية من الحريق المعتمدة والمعروضة في المدينة للمباني؟",
       "expected_entry_ids": [
         "fire_fighting:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the fire protection equipment and systems sold, with civil-defence approval requirements.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

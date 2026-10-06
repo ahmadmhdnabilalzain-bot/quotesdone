@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Must our calibration lab be ISO 17025 accredited for the specific instrument?",
-      "q_ar": "هل يجب أن يكون مختبر المعايرة معتمداً وفق ISO 17025 للجهاز المحدد؟",
+      "q_en": "Which measuring tools and dials can nearby accredited checking labs verify for my business?",
+      "q_ar": "ما أدوات القياس والعدادات التي يمكن للمختبرات المعتمدة القريبة التحقق منها لنشاطي؟",
       "expected_entry_ids": [
         "calibration_services:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists dimensional, pressure, temperature, electrical and other instruments calibrated in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

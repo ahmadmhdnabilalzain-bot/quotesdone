@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What board should I use for a bathroom ceiling?",
-      "q_ar": "ما نوع اللوح المناسب لسقف حمام؟",
+      "q_en": "Which dividing walls and dropped-ceiling setups do interior firms use here?",
+      "q_ar": "ما الجدران الفاصلة وأنظمة الأسقف المنخفضة التي تستخدمها شركات التصميم الداخلي هنا؟",
       "expected_entry_ids": [
         "gypsum:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists gypsum partition and suspended-ceiling systems used by interior contractors.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

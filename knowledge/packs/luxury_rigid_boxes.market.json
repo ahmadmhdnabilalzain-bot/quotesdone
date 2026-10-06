@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What is the usual minimum order for custom perfume gift boxes?",
-      "q_ar": "ما الحد الأدنى المعتاد لطلب علب هدايا عطور بتصميم خاص؟",
+      "q_en": "What's the smallest batch for premium presentation packaging, and how is it costed?",
+      "q_ar": "ما أصغر دفعة لعلب التقديم الفاخرة، وكيف تُسعَّر؟",
       "expected_entry_ids": [
         "luxury_rigid_boxes:uae-market-sizes"
-      ]
+      ],
+      "why": "Gives local MOQ of 300-1,000 and per-box pricing by size and specification with quantity breaks and one-off tooling costs.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

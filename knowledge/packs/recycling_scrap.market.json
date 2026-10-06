@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is scrap copper cable priced when a company sells it?",
-      "q_ar": "كيف يُسعّر كابل النحاس الخردة عندما تبيعه شركة؟",
+      "q_en": "How do metal merchants value old iron or copper: by kilo or by weight?",
+      "q_ar": "كيف يقيّم تجار المعادن الحديد أو النحاس القديم: بالكيلو أم بالوزن؟",
       "expected_entry_ids": [
         "recycling_scrap:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Scrap is bought per kg (non-ferrous) or per tonne (ferrous, paper, plastic), with price linked to LME (e.g\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

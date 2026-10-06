@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "How old can a new tyre be when sold in the UAE?",
-      "q_ar": "كم يمكن أن يكون عمر الإطار الجديد عند بيعه في الإمارات؟",
+      "q_en": "Which wheels and vehicle accumulators can fleet buyers find locally?",
+      "q_ar": "ما الإطارات وبطاريات المركبات التي يجدها مشترو الأساطيل محلياً؟",
       "expected_entry_ids": [
         "tyres_batteries:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Tyres and batteries sold in the UAE include passenger car tyres (radial, sizes 13-22 inch, e.g\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

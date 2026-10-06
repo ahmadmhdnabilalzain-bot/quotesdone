@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "How do I know a spare part is genuine?",
-      "q_ar": "كيف أعرف أن قطعة الغيار أصلية؟",
+      "q_en": "Which equipment manufacturers have authorised replacement-component agents locally?",
+      "q_ar": "ما مصنّعو المعدات الذين لديهم وكلاء معتمدون لقطع الغيار محلياً؟",
       "expected_entry_ids": [
         "machinery_spare_parts:uae-market-brands"
-      ]
+      ],
+      "why": "Names the dealers for genuine parts (Al-Bahar for Caterpillar, Galadari for Komatsu/JCB, FAMCO for Volvo CE) and aftermarket brands.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

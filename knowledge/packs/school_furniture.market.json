@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What furniture size mark suits Grade 5 students?",
-      "q_ar": "ما علامة مقاس الأثاث المناسبة لطلاب الصف الخامس؟",
+      "q_en": "Which pupil workstations, seats and laboratory fittings can classrooms find nearby?",
+      "q_ar": "ما محطات عمل الطلاب والمقاعد وتجهيزات المختبرات التي يمكن للفصول الدراسية إيجادها بالقرب منها؟",
       "expected_entry_ids": [
         "school_furniture:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"School furniture sold in the UAE includes student desks and chairs (single and double, fixed or height-adjustable), polypropylene shell chairs on steel frames, early-years tables and chairs in child sizes, teacher desks,...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

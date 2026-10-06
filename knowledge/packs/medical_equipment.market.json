@@ -64,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What registrations does an imported ultrasound machine need before a clinic in Dubai can use it?",
-      "q_ar": "ما التسجيلات التي يحتاجها جهاز الموجات فوق الصوتية المستورد قبل أن تستخدمه عيادة في دبي؟",
+      "q_en": "Which clinical apparatus and healthcare kit can be purchased locally?",
+      "q_ar": "ما الأجهزة السريرية ومستلزمات الرعاية الصحية التي يمكن شراؤها محلياً؟",
       "expected_entry_ids": [
         "medical_equipment:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the imaging, monitors, ventilators and other medical equipment sold, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does SDR 11 PE100 mean on an HDPE pipe?",
-      "q_ar": "ماذا يعني SDR 11 PE100 على أنبوب HDPE؟",
+      "q_en": "Which polymer tubing types and connectors are common here?",
+      "q_ar": "ما أنواع الأنابيب البوليمرية ووصلاتها الشائعة هنا؟",
       "expected_entry_ids": [
         "plastics_pipes:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the uPVC, PPR, HDPE and other pipe types and fittings, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

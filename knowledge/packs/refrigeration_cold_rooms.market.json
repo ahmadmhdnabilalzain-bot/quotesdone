@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What panel thickness is used for a -20 °C freezer room?",
-      "q_ar": "ما سماكة الألواح المستخدمة لغرفة تجميد بدرجة -20 °م؟",
+      "q_en": "Step-inside freezers, water coolers for plant, glass-front fridges: what's offered locally?",
+      "q_ar": "غرف التجميد التي يُدخل إليها، ومبردات المياه للمصانع، والثلاجات ذات الواجهة الزجاجية: ما المعروض محلياً؟",
       "expected_entry_ids": [
         "refrigeration_cold_rooms:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Refrigeration and cold rooms sold in the UAE include modular walk-in cold rooms and freezer rooms built from PU or PIR sandwich panels (polyurethane foam, 75-200 mm thick, density about 40-42 kg/m3, with cam-lock joints)...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which MCB curve should I buy for motor loads?",
-      "q_ar": "ما منحنى القاطع MCB المناسب لأحمال المحركات؟",
+      "q_en": "When buying sockets, switches and breakers in bulk, is it by case, pack or mixed lots?",
+      "q_ar": "عند شراء المقابس والمفاتيح والقواطع بالجملة، هل يكون ذلك بالكرتونة أم بالعبوة أم بدفعات مختلطة؟",
       "expected_entry_ids": [
         "electrical_wholesale:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says accessories are sold per piece or per box of 10-20 and MCBs per piece, with trade discounts.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

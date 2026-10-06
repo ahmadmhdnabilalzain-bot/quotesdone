@@ -718,6 +718,15 @@
       "expected_entry_ids": [
         "fire_fighting:smoke-control"
       ]
+    },
+    {
+      "q_en": "Which fire suppression gas is used for a server room in the UAE?",
+      "q_ar": "ما غاز الإطفاء المستخدم لغرفة الخوادم في الإمارات؟",
+      "expected_entry_ids": [
+        "fire_fighting:clean-agent-comparison"
+      ],
+      "why": "compares FM-200, Novec 1230, inert gas and CO2 for server rooms and other rooms where water would damage the contents.",
+      "origin": "real buyer question, moved from fire_fighting.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

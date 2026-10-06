@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How are clinical chemistry analysers usually priced for a hospital lab?",
-      "q_ar": "كيف تُسعّر عادةً محللات الكيمياء السريرية لمختبر مستشفى؟",
+      "q_en": "For beakers and testing chemicals, which quantities do vendors around here quote?",
+      "q_ar": "للأدوات الزجاجية والكواشف المخبرية، ما الكميات التي يقدّم الموردون هنا أسعارها؟",
       "expected_entry_ids": [
         "laboratory_equipment:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry states chemicals are quoted per bottle (500 ml, 2.5 L) or pack and glassware per piece or pack.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

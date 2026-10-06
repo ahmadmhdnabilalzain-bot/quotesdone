@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which operators can provide a business fibre line with an SLA in Dubai?",
-      "q_ar": "ما المشغلون الذين يمكنهم توفير خط ألياف للأعمال مع اتفاقية مستوى خدمة في دبي؟",
+      "q_en": "Which network vendors and communications hardware makers have a presence locally?",
+      "q_ar": "ما موردو الشبكات وصانعو معدات الاتصالات الموجودون محلياً؟",
       "expected_entry_ids": [
         "telecom_services:uae-market-brands"
-      ]
+      ],
+      "why": "Closest match: the brands entry names the licensed operators and satellite providers present (e&, du, Virgin Mobile, Yahsat, Thuraya); it does not list equipment makers, so it answers only the provider part.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

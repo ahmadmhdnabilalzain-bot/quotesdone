@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which 3D printing process gives strong functional nylon parts?",
-      "q_ar": "ما عملية الطباعة ثلاثية الأبعاد التي تعطي قطع نايلون وظيفية قوية؟",
+      "q_en": "Which 3D build methods and plastics can nearby print bureaus realistically handle for me these days?",
+      "q_ar": "ما أساليب التصنيع ثلاثي الأبعاد والمواد البلاستيكية التي تستطيع مكاتب الطباعة القريبة تنفيذها لي فعلياً هذه الأيام؟",
       "expected_entry_ids": [
         "additive_manufacturing:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists FDM/FFF, SLA/DLP, SLS/MJF and metal printing with their materials.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

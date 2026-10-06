@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which pipe is normally used for hot and cold water inside UAE buildings?",
-      "q_ar": "ما الأنبوب المستخدم عادة للمياه الساخنة والباردة داخل مباني الإمارات؟",
+      "q_en": "Which bathroom and kitchen taps, loos and connectors are easy to find locally nowadays?",
+      "q_ar": "ما الحنفيات والمراحيض والوصلات للحمامات والمطابخ التي يسهل إيجادها محلياً حالياً؟",
       "expected_entry_ids": [
         "plumbing:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the sanitary ware, water supply pipes and fittings, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What sizes do standard female mannequins come in?",
-      "q_ar": "ما المقاسات التي تتوفر بها عارضات الأزياء النسائية القياسية؟",
+      "q_en": "Are shop dummies and display bits costed each or as a bundle?",
+      "q_ar": "هل تُسعَّر دمى العرض وقطع العرض بالقطعة أم كباقة؟",
       "expected_entry_ids": [
         "mannequins_visual_merchandising:uae-market-sizes"
-      ]
+      ],
+      "why": "States mannequins are priced per piece with volume discounts and props/POP displays per piece or per set.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143
     }
   ],
   "verified": {

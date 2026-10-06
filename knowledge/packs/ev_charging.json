@@ -47,6 +47,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "ev_charging:residential-ac-wallbox-sizing",
+      "topic": "Residential AC wallbox sizing for villas",
+      "kind": "technical_guidance",
+      "body_en": "Home EV charging uses an AC wallbox, and two constraints set the useful rating. First, the supply: a standard single-phase supply comfortably supports a 7 kW (32 A) charger, the default 7.4 kW recommendation, while 11 kW or 22 kW charging needs a three-phase 400 V supply. Second, the car's onboard charger caps AC charging speed, typically at 7-11 kW (some models 6.6 kW), with only some cars accepting the full 22 kW; a 6.6 kW car on a 22 kW wallbox still charges at 6.6 kW. A 7.4 kW overnight charge takes a typical battery from low to full in about 4-9 hours. These figures come from a Malaysian installer guide. Not established here: UAE connector standards, DEWA approval and contractor requirements, load assessment, and the tariff for home charging; confirm with DEWA.",
+      "body_ar": "يعتمد شحن السيارات الكهربائية في المنزل على شاحن جداري بالتيار المتردد (AC)، ويحدد قيدان القدرة المفيدة. أولاً، مصدر التغذية: تدعم التغذية أحادية الطور القياسية شاحناً بقدرة 7 كيلوواط (32 أمبير) بسهولة، وهي التوصية الافتراضية بقدرة 7.4 كيلوواط، بينما يتطلب الشحن بقدرة 11 أو 22 كيلوواط تغذية ثلاثية الطور بجهد 400 فولت. ثانياً، يحدّ الشاحن المدمج في السيارة من سرعة الشحن بالتيار المتردد، وعادةً ما يكون بين 7 و11 كيلوواط (وبعض الطرازات 6.6 كيلوواط)، ولا تقبل القدرة الكاملة البالغة 22 كيلوواط سوى بعض السيارات؛ فالسيارة ذات الشاحن 6.6 كيلوواط تُشحن بقدرة 6.6 كيلوواط حتى على شاحن جداري 22 كيلوواط. ويشحن شاحن 7.4 كيلوواط ليلاً بطارية نموذجية من مستوى منخفض إلى الامتلاء في نحو 4 إلى 9 ساعات. هذه الأرقام مأخوذة من دليل لشركة تركيب ماليزية. لم يُثبت هنا: معايير الموصلات في الإمارات، واعتماد هيئة كهرباء ومياه دبي (ديوا) ومتطلبات المقاولين، وتقييم الأحمال، والتعرفة المطبقة على الشحن المنزلي؛ يُرجى التأكد من ديوا.",
+      "sources": [
+        "https://www.evguru.com.my/post/7kw-vs-22kw-ev-charger-malaysia-which-one-do-you-actually-need"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -63,6 +76,15 @@
       "expected_entry_ids": [
         "ev_charging:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What charger should I install at my villa in Dubai?",
+      "q_ar": "ما الشاحن الذي يجب أن أركّبه في فيلتي بدبي؟",
+      "expected_entry_ids": [
+        "ev_charging:residential-ac-wallbox-sizing"
+      ],
+      "why": "No entry of this pack answered it (Standards entry gives DEWA approval/approved-contractor rule but nothing says what charger (AC power rating, wallbox type) suits a villa; missing residential charger guidance). ev_charging:residential-ac-wallbox-sizing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from ev_charging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -78,6 +100,9 @@
       "ev_charging:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "ev_charging:residential-ac-wallbox-sizing"
+    ]
   }
 }

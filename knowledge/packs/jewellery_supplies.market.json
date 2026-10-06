@@ -67,11 +67,14 @@
   ],
   "eval": [
     {
-      "q_en": "What fineness number is stamped on 22K gold jewellery in the UAE?",
-      "q_ar": "ما رقم النقاوة المدموغ على مجوهرات الذهب عيار 22 في الإمارات؟",
+      "q_en": "Which bench equipment, presentation cases and small parts do jewellers' wholesalers here sell?",
+      "q_ar": "ما معدات طاولة العمل وعلب العرض والقطع الصغيرة التي يبيعها تجار الجملة لمستلزمات المجوهرات هنا؟",
       "expected_entry_ids": [
         "jewellery_supplies:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists jewellers tools, display/packaging and findings sold by suppliers.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

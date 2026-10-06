@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What fee does a recruitment agency charge for a mid-level hire in Dubai?",
-      "q_ar": "ما الأتعاب التي تتقاضاها وكالة التوظيف لتعيين موظف متوسط المستوى في دبي؟",
+      "q_en": "Do headhunters bill a share of the hire's yearly pay, or one flat amount?",
+      "q_ar": "هل يتقاضى صائدو الكفاءات نسبة من الراتب السنوي للموظف المعيَّن أم مبلغاً ثابتاً واحداً؟",
       "expected_entry_ids": [
         "recruitment_executive_search:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Contingency recruitment is priced as a percentage of the hire's first-year annual (or guaranteed) salary, commonly around 15-25%; retained search typically 25-35% paid in thirds; RPO per hire or per month; volume recruit...\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

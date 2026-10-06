@@ -67,11 +67,14 @@
   ],
   "eval": [
     {
-      "q_en": "What shelf life must medical consumables have at delivery for hospital tenders?",
-      "q_ar": "ما مدة الصلاحية المطلوبة للمستهلكات الطبية عند التسليم في مناقصات المستشفيات؟",
+      "q_en": "Are exam mitts, needles and wound pads purchased by pack, case or bulk lot locally?",
+      "q_ar": "هل تُشترى القفازات والإبر والضمادات بالعلبة أم بالكرتونة أم بالجملة محلياً؟",
       "expected_entry_ids": [
         "medical_consumables:uae-market-sizes"
-      ]
+      ],
+      "why": "States consumables are priced per box or per carton with tender pricing per unit.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

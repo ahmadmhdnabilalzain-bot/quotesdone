@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What safety equipment must a pleasure boat carry in Dubai?",
-      "q_ar": "ما معدات السلامة التي يجب أن يحملها قارب النزهة في دبي؟",
+      "q_en": "Which stores and provisions for seagoing crews can be obtained from nearby harbours?",
+      "q_ar": "ما المؤن والمخازن لطواقم البحر التي يمكن الحصول عليها من الموانئ القريبة؟",
       "expected_entry_ids": [
         "marine:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the marine supplies and services including deck, safety equipment and provisions for vessels, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

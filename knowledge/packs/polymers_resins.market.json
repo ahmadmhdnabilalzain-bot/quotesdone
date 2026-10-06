@@ -52,11 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which PE grade is used for making water pipes?",
-      "q_ar": "ما درجة البولي إيثيلين المستخدمة لصناعة أنابيب المياه؟",
+      "q_en": "Which granules can I purchase locally to feed the moulding machines at my factory nowadays?",
+      "q_ar": "ما الحبيبات التي يمكنني شراؤها محلياً لتغذية آلات القولبة في مصنعي حالياً؟",
       "expected_entry_ids": [
         "polymers_resins:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the polymer resins (PE, PP, PVC, PET, ABS etc.) by grade, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {

@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How thick should wet-pour rubber surfacing be under a 2 metre platform?",
-      "q_ar": "ما السماكة المطلوبة للأرضية المطاطية المصبوبة تحت منصة بارتفاع مترين؟",
+      "q_en": "Is kids' outdoor kit costed by each item, or as one whole finished zone?",
+      "q_ar": "هل تُسعَّر ألعاب الأطفال الخارجية بالقطعة أم كمنطقة متكاملة جاهزة؟",
       "expected_entry_ids": [
         "playground_equipment:uae-market-sizes"
-      ]
+      ],
+      "why": "States play structures are priced per unit and complete playgrounds as a lump sum.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

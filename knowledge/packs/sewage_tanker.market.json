@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What tanker sizes are available for septic tank emptying?",
-      "q_ar": "ما أحجام الصهاريج المتاحة لتفريغ خزان التحليل؟",
+      "q_en": "Do wastewater suction trucks bill by journey or by the volume removed?",
+      "q_ar": "هل تحاسب شاحنات شفط مياه الصرف بالرحلة أم بالكمية المسحوبة؟",
       "expected_entry_ids": [
         "sewage_tanker:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Tankers are sized in imperial gallons: 1,500, 3,000, 5,000 gallons (about 6.8, 13.6, 22.7 m3); priced per trip/load by size and distance, with municipality discharge fees included or itemised\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0
     }
   ],
   "verified": {

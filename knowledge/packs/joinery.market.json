@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What board should kitchen cabinets be made of in a humid UAE apartment?",
-      "q_ar": "من أي لوح يجب أن تُصنع خزائن المطبخ في شقة رطبة بالإمارات؟",
+      "q_en": "Which bespoke carpentry can craftsmen here build for my place, such as cupboards and entrance leaves?",
+      "q_ar": "ما أعمال النجارة حسب الطلب التي يمكن للحرفيين هنا تنفيذها لمكاني، مثل الخزائن وأبواب المدخل؟",
       "expected_entry_ids": [
         "joinery:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists custom joinery made (wardrobes, kitchen cabinets, doors).",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.111
     }
   ],
   "verified": {

@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "How is scaffolding hire usually priced in the UAE?",
-      "q_ar": "كيف يُسعّر تأجير السقالات عادة في الإمارات؟",
+      "q_en": "Is temporary framing for reaching heights rented by area, by weight, or weekly around here?",
+      "q_ar": "هل تُؤجَّر هياكل الوصول المؤقتة للارتفاعات بالمساحة أم بالوزن أم أسبوعياً هنا؟",
       "expected_entry_ids": [
         "scaffolding:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Tubes are sold/hired in 6.0, 4.0, 3.0 and 2.0 m lengths; cuplock standards 1.0-3.0 m, ledgers 0.6-2.5 m; boards 3.9 m (13 ft) x 225 mm x 38 mm\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

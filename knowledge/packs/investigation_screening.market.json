@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Can a background screening company check a candidate's criminal record in the UAE?",
-      "q_ar": "هل يمكن لشركة الفحص الخلفي التحقق من السجل الجنائي للمرشح في الإمارات؟",
+      "q_en": "Which history checks on applicants and discreet enquiries can agencies around here realistically carry out?",
+      "q_ar": "ما فحوص السوابق للمتقدمين والتحريات السرية التي تنفذها الوكالات هنا فعلياً؟",
       "expected_entry_ids": [
         "investigation_screening:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists background screening and investigation services agencies offer.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

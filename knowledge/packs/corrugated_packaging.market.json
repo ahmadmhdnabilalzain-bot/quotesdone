@@ -58,11 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What board should a 20 kg export carton be made of?",
-      "q_ar": "من أي كرتون يجب أن تُصنع كرتونة تصدير بوزن 20 كغ؟",
+      "q_en": "What's the smallest run of branded shipping boxes, and how do makers set their prices?",
+      "q_ar": "ما أصغر كمية لصناديق الشحن المطبوعة بالعلامة التجارية، وكيف يحدد المصنّعون أسعارهم؟",
       "expected_entry_ids": [
         "corrugated_packaging:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry gives MOQ (500-2,000 per size) and per-piece pricing at quantity breaks against board spec.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125
     }
   ],
   "verified": {

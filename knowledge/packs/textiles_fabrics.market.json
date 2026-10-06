@@ -61,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How many metres of fabric are needed for one kandura?",
-      "q_ar": "كم متراً من القماش تحتاج الكندورة الواحدة؟",
+      "q_en": "Is cloth charged here by the running length or by the whole bolt?",
+      "q_ar": "هل يُحاسَب على القماش هنا بالطول الجاري أم باللفة الكاملة؟",
       "expected_entry_ids": [
         "textiles_fabrics:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Fabric is priced per metre or per yard retail, and per metre, per kg or per roll/bale wholesale (rolls typically 50-100 m; kandura fabric often sold in pieces or 'thobe lengths' of about 3.5-4 m, or rolls of 30-50 yards)\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167
     }
   ],
   "verified": {
