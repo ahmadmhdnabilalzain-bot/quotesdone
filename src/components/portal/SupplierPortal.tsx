@@ -868,7 +868,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -918,6 +918,22 @@ const AGREEMENT_CHANGES = {
       'الاسترداد بسبب عدم الاستجابة (البند 33): تُحتسب الآن رسوم مزوّد خدمة الدفع على رسوم الكشف المستردّة التي لم نتمكن من استردادها بمبلغها المسجَّل، إضافةً إلى المبلغ المستردّ والرسم الإداري البالغ 500 درهم إماراتي.',
       'تُحتسب على أي مبلغ متأخر فائدة بسيطة بنسبة 12% سنويًا، وهو السعر المتفق عليه وفقًا لقانون المعاملات التجارية، ولا تُركَّب (البندان 31 و33). ويبقى على المبلغ الذي استُحق في ظل إصدار سابق سعرُ ذلك الإصدار.',
       'إذا بقي رسم دون سداد، تُضاف بالتكلفة الرسوم الرسمية لتحصيله (رسوم المحكمة وأمر الأداء والتنفيذ والتوثيق)، ويجوز لنا إجراء المقاصة بين ما تدينون به وأي مبلغ ندين به لكم (البندان 9 و33).',
+    ],
+  },
+  // v15, 6 Oct 2026 (ceo; founder rulings 1155 and the addendum: QuotesDone is a portal and introducer only).
+  // Legal basis: CTL 50/2022 Arts 252, 258, 265; Civil Transactions Law 25/2025 Arts 236, 257, 334(2), 443.
+  15: {
+    en: [
+      'QuotesDone is a portal and introducer only. It gives no warranty on leads, inquiries, Customers or results, and is not a party to your contract with a Customer (clauses 17 and 18).',
+      'To the fullest extent UAE law permits, QuotesDone is not liable to you. Only if a court refuses that exclusion is its liability capped, at the greater of the fees you paid in the last 12 months or AED 5,000. Fraud, gross fault and harmful acts are never excluded (clause 18).',
+      'You indemnify QuotesDone for claims caused by your quotations, statements, licences, goods, works or people (clause 18(c)).',
+      'New clause 38: third-party services, a 90-day notice of any claim (late notice never bars it), suspension or removal of unlawful or misleading content, and the entire agreement. Force majeure now names its examples (clause 20). No fee or charge changes.',
+    ],
+    ar: [
+      'QuotesDone بوابة ووسيط تعريف فقط، ولا تقدّم أي ضمان بشأن الفرص أو الطلبات أو العملاء أو النتائج، وليست طرفًا في عقدكم مع العميل (البندان 17 و18).',
+      'إلى أقصى حد يجيزه قانون دولة الإمارات، لا تُسأل QuotesDone تجاهكم. وإذا رفضت محكمةٌ هذا الاستبعاد فقط، تُحدَّد مسؤوليتها بالمبلغ الأعلى من الرسوم التي دفعتموها خلال آخر 12 شهرًا أو 5,000 درهم إماراتي. ولا تُستبعد أبدًا المسؤولية عن الغش أو الخطأ الجسيم أو الفعل الضار (البند 18).',
+      'تعوّضون QuotesDone عن المطالبات الناشئة عن عروض أسعاركم أو بياناتكم أو رخصكم أو سلعكم أو أعمالكم أو العاملين لديكم (البند 18(ج)).',
+      'بند جديد 38: خدمات الغير، والإخطار بأي مطالبة خلال 90 يومًا (ولا يُسقط التأخيرُ المطالبة)، وتعليق المحتوى المخالف أو المضلل أو إزالته، وكامل الاتفاق. ويذكر بند القوة القاهرة أمثلتها الآن (البند 20). لا تغيير في أي رسم.',
     ],
   },
 };

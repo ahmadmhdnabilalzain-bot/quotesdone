@@ -40,10 +40,14 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const addr = (v: unknown): string => { const s = Array.isArray(v) ? String(v[0] ?? '') : String(v ?? ''); const m = s.match(/<([^>]+)>/); return (m ? m[1] : s).trim().toLowerCase(); };
 
-async function sweep(limit: number) {
-  const { data, error } = await admin.rpc('fn_conversation_archive_pending', { p_limit: limit });
+// `offset` lets the heartbeat run several sweeps at once, each in its own worker, over disjoint
+// slices of the same oldest-first list (offset 0 takes rows 1-4, offset 4 rows 5-8 ...). A row that
+// is archived between two reads can shift a slice by one; the record is an upsert, so the worst case
+// is one message drawn twice, never one skipped.
+async function sweep(limit: number, offset = 0) {
+  const { data, error } = await admin.rpc('fn_conversation_archive_pending', { p_limit: offset + limit });
   if (error) return { ok: false, stage: 'pending', error: error.message };
-  const rows = (data || []) as ConversationRow[];
+  const rows = ((data || []) as ConversationRow[]).slice(offset);
   const identity = rows.length ? await docIdentity(admin) : undefined;
   let archived = 0, queued = 0; const failed: Array<{ ref: string; error: string }> = [];
   for (const r of rows) {
@@ -151,11 +155,12 @@ Deno.serve(observe('conversation_archive', async (req) => {
     // subsetting is the cost. The heartbeat asks for 4 every 15 minutes - 384 a day, well above the
     // ~100 messages a day this estate writes - and a call that dies archives nothing twice.
     const limit = Math.max(1, Math.min(Number(body.limit) || 4, 5));
+    const offset = Math.max(0, Math.min(Math.trunc(Number(body.offset) || 0), 195));
     if (body.action === 'resend_backfill') {
       const bf = await resendBackfill();
       const sw = await sweep(limit);
       return J({ backfill: bf, sweep: sw });
     }
-    return J(await sweep(limit));
+    return J(await sweep(limit, offset));
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

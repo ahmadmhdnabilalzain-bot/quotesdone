@@ -23,6 +23,9 @@ import { storedAt } from '../_shared/stored_at.ts';
 import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, jobNoOf, isCurrentDoc, arCategory, arEmirate, enCategory, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
+import { clientIp } from '../_shared/supplier_terms.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
+import { currentCustomerTermsVersion, needsReacceptance, customerTermsRecord, REACCEPT_MESSAGE } from '../_shared/customer_terms.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
@@ -840,7 +843,28 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
     const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
-    if (action === 'me') return J({ customer: cust });
+    // RE-ACCEPTANCE OF A NEW TERMS VERSION (6 Oct 2026, release review of #1240). Recorded the same way as sign-up
+    // (_shared/customer_terms.ts: version, time, IP, SHA of the pinned text) and the signed certificate re-issued.
+    const recordTermsAcceptance = async (): Promise<boolean> => {
+      const rec = await customerTermsRecord(getSecret, clientIp(req));
+      if (!rec || !cust?.id) return false;
+      const { tos_sha256, ...base } = rec;
+      const { error } = await admin.from('customers').update(base).eq('id', cust.id);
+      if (error) return false;
+      // A separate write, so a database without the column yet cannot fail the acceptance itself.
+      await admin.from('customers').update({ tos_sha256 }).eq('id', cust.id).then(() => null, () => null);
+      try {
+        const s = await getSecret('cred_fn_customer_api');
+        timedFetch(`${SUPABASE_URL}/functions/v1/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: s, action: 'sign', kind: 'customer', email }) }).catch(() => { /* best effort */ });
+      } catch (_e) { /* never blocks the customer */ }
+      return true;
+    };
+    if (action === 'me') return J({ customer: cust, terms_current_version: await currentCustomerTermsVersion(getSecret) });
+    if (action === 'accept_terms') {
+      if (!cust?.tos_accepted_at) return J({ error: 'finish_signup_first', code: 'finish_signup_first' }, 400);
+      const ok = await recordTermsAcceptance();
+      return ok ? J({ ok: true, version: await currentCustomerTermsVersion(getSecret) }) : J({ error: 'could not record the acceptance', code: 'terms_not_recorded' }, 500);
+    }
 
     // ATTACH A BOQ (founder, 14 Sep 2026: "describe a job / drop a drawing is fine but add attach a
     // BOQ also"). A spreadsheet BOQ (xlsx / xls / csv). drawing_boq mode 'sheet' sniffs it by its
@@ -1192,6 +1216,16 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       // customer's ability to trade away for an operational fault of ours. It is repaired in the
       // background instead, so the evidence still lands and the gap stays visible.
       // (Enforced by the account-rule gate above since 14 Sep 2026.)
+      // A NEWER TERMS VERSION IS ACCEPTED INLINE, NEVER A WALL (release review of #1240): an older acceptance stands
+      // until this, the customer's next request. The composer shows the current Terms with a checkbox and resends
+      // with accept_terms_version; nothing else about the request changes. 409, with the message in both languages.
+      {
+        const curV = await currentCustomerTermsVersion(getSecret);
+        if (needsReacceptance(cust, curV)) {
+          if (body.accept_terms_version !== curV) return J({ error: 'terms_reaccept', code: 'terms_reaccept', version: curV, message: REACCEPT_MESSAGE.en, message_ar: REACCEPT_MESSAGE.ar }, 409);
+          if (!(await recordTermsAcceptance())) return J({ error: 'could not record the acceptance', code: 'terms_not_recorded' }, 500);
+        }
+      }
       if (!cust.signed_terms_path) {
         // Fire-and-forget repair. Never awaited: create_inquiry must not inherit the latency or
         // the failure mode of a PDF render and a Dropbox round-trip.

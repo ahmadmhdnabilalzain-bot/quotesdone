@@ -6,6 +6,7 @@ import { annotate, observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
@@ -162,7 +163,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
     // ONE round trip for everything every action reads, instead of five in a row. The sanction check still
     // decides before anything is written or answered; it simply no longer waits alone.
     const LEAD_COLS = 'id,contact_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,signed_terms_url,company_name';
-    const CUST_COLS = 'id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,signed_terms_url';
+    const CUST_COLS = 'id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,tos_version,signed_terms_url';
     const WA_COLS = 'whatsapp_phone,whatsapp_verified_at,whatsapp_opt,whatsapp_asked_at';
     const [sanctioned, bodyIn, leadR, custR, leadWaR, custWaR] = await Promise.all([
       sanctionedEmail(admin, email),
@@ -498,7 +499,13 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
           await admin.from('leads').update(rec).eq('claimed_by', email);
         }
       }
-      else await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
+      else {
+        // 6 Oct 2026 (release review of #1240): the SHA of the accepted text is recorded, as for suppliers
+        // (_shared/customer_terms.ts). Written separately so a database without the column cannot fail the acceptance.
+        await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
+        const rec = await customerTermsRecord(sec, ip);
+        if (rec && rec.tos_version === custV) await admin.from('customers').update({ tos_sha256: rec.tos_sha256 }).eq('email', email).then(() => null, () => null);
+      }
       // A CUSTOMER'S CERTIFICATE IS ISSUED AFTER THE ANSWER (it_engineer, 29 Sep 2026, finding
       // duty:latency_slo:kyc:error_budget). Every one of the 12 over-budget kyc runs in 30 days was an
       // accept_terms waiting 2.9-12 s on compliance_archive rendering the signed PDF (6 customer, 5 supplier,

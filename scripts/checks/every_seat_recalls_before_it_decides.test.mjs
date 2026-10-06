@@ -27,6 +27,7 @@ import { join, dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { withRetry } from '../lib/retry.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -107,10 +108,21 @@ test('a reworded case from another customer recalls the finalised one, masked; a
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
   const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
   assert.ok(secret, 'no cred_fn_ai in app_secrets');
+  // The edge runtime answers a bare 503 now and then before ai_gateway's own code runs. Measured 6 Oct 2026 from
+  // function_edge_logs: three POST ai_gateway 503s 7-20 s apart at 00:33:55-00:34:23Z and again at 02:24:12-39Z on
+  // 5 Oct -- the shape of this test's three embeds -- and every other ai_gateway POST in the 24 hours answered 200.
+  // An embed is a read, so a gateway-level 502/503/504/546 is retried as a blip (lib/retry.mjs); any other status,
+  // or a 200 without an embedding, fails at once as before.
+  const BLIP = new Set([502, 503, 504, 546]);
   const embed = async (text) => {
-    const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: secret, fn: 'check_case_recall', action: 'embed', text }) });
+    const r = await withRetry(async () => {
+      const res = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: secret, fn: 'check_case_recall', action: 'embed', text }) });
+      if (BLIP.has(res.status)) throw new Error(`ai_gateway answered ${res.status}`);
+      return res;
+    });
+    assert.equal(r.status, 200, `ai_gateway embed answered ${r.status}`);
     const j = await r.json();
     assert.ok(j?.embedding, 'ai_gateway returned no embedding');
     return typeof j.embedding === 'string' ? j.embedding : JSON.stringify(j.embedding);
