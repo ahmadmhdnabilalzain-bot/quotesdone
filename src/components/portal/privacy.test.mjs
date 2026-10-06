@@ -1,0 +1,70 @@
+// The self-service privacy controls: what a person is told, and whether the screens still call the
+// routines #1237 granted. Fails if either portal's account page loses the controls, if the supplier's
+// stops being English, or if a routine the screen calls is no longer granted to signed-in users.
+//
+//   node --test src/components/portal/privacy.test.mjs
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { errorText, keptLines, pendingFrom, livePending, isCode, pt, ptList } from './privacy.ts';
+
+const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const SQL = read('../../../scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql');
+const UI = read('./PrivacyControls.tsx');
+
+test('every routine the screen calls is granted to authenticated, with the argument names it sends', () => {
+  for (const [fn, args] of [['pdpl_request_me', ['p_kind']], ['pdpl_confirm_me', ['p_request', 'p_code']], ['pdpl_cancel_me', ['p_request']]]) {
+    assert.ok(UI.includes(`'${fn}'`), `${fn} is called`);
+    assert.match(SQL, new RegExp(`grant execute on function public\\.${fn}\\([^)]*\\) to authenticated`), `${fn} granted`);
+    const sig = SQL.match(new RegExp(`function public\\.${fn}\\(([^)]*)\\)\\s*returns`))[1];
+    for (const a of args) { assert.ok(sig.includes(a), `${fn} takes ${a}`); assert.ok(UI.includes(a + ':'), `UI sends ${a}`); }
+  }
+});
+
+test('both account pages mount the controls; the supplier one is English only', () => {
+  assert.match(read('../me/CustomerPortal.tsx'), /<PrivacyControls lang=\{lang === 'ar' \? 'ar' : 'en'\} \/>/);
+  assert.match(read('./supplier/SupplierSettings.tsx'), /<PrivacyControls lang="en" \/>/);
+  for (const id of ['privacy-export', 'privacy-erase', 'privacy-code', 'privacy-erase-cancel']) assert.ok(UI.includes(`data-testid="${id}"`), id);
+});
+
+test('refusals become plain sentences, never the server wording', () => {
+  assert.equal(errorText('en', { ok: false, code: 'email_not_verified' }), 'Verify your email address in your account first.');
+  assert.equal(errorText('en', { ok: false, error: 'wrong or expired code', attempts_left: 3 }), 'That code is wrong or has expired. 3 tries left.');
+  assert.match(errorText('ar', { ok: false, error: 'this code is spent; ask for a new one' }), /رمز جديد/);
+  assert.match(errorText('en', { ok: false, error: 'too many attempts for this address; try again in an hour' }), /hour/);
+  assert.match(errorText('en', { ok: false, error: 'no erasure in its cooling-off window' }), /no longer be cancelled/);
+  assert.equal(errorText('en', null), pt('en', 'e_generic'));
+});
+
+test('a confirmed erase is scheduled, a refusal is not', () => {
+  const ok = { ok: true, request_id: 'r1', status: 'cooling_off', confirm_after: '2026-10-14T10:00:00Z',
+    plan: { erase_now: [], deferred: [{ record: 'customer 9', legal_hold: true, kept_until: '2032-01-01', reason: 'x' }] } };
+  assert.deepEqual(pendingFrom('r1', ok), { id: 'r1', confirm_after: '2026-10-14T10:00:00Z', deferred: ok.plan.deferred });
+  assert.equal(pendingFrom('r1', { ok: false, error: 'wrong or expired code' }), null);
+  assert.equal(pendingFrom('r1', { ok: true, request_id: 'r1', export: {} }), null);
+});
+
+test('a legal hold is stated plainly; a statutory keep names its date; Arabic is Arabic', () => {
+  const [hold, law] = keptLines('en', [{ record: 'supplier 4', legal_hold: true }, { record: 'customer 9', legal_hold: false, kept_until: '2032-01-01' }]);
+  assert.match(hold, /^On hold: your supplier record is linked to an open dispute/);
+  assert.match(law, /^Kept until 1 January 2032/);
+  for (const l of keptLines('ar', [{ record: 'customer 9', legal_hold: true }]).concat(ptList('ar', 'del_warn'))) assert.doesNotMatch(l, /[A-Za-z]/, l);
+});
+
+test('the warning names what is kept: tax records 5 years and open disputes', () => {
+  const w = ptList('en', 'del_warn').join(' ');
+  assert.match(w, /tax records are kept for 5 years/); assert.match(w, /open dispute/); assert.match(w, /7 days/);
+  assert.doesNotMatch(UI + JSON.stringify(ptList('en', 'del_warn')), /\bAI\b/);
+});
+
+test('a remembered erase shows only while it can be cancelled', () => {
+  const now = Date.parse('2026-10-08T00:00:00Z');
+  assert.ok(livePending(JSON.stringify({ id: 'r', confirm_after: '2026-10-14T00:00:00Z', deferred: [] }), now));
+  assert.equal(livePending(JSON.stringify({ id: 'r', confirm_after: '2026-10-01T00:00:00Z', deferred: [] }), now), null);
+  assert.equal(livePending('not json', now), null);
+  assert.equal(livePending(null, now), null);
+});
+
+test('only six digits are a code', () => {
+  assert.ok(isCode('012345')); assert.ok(!isCode('12345')); assert.ok(!isCode('1234567')); assert.ok(!isCode('12a456'));
+});
