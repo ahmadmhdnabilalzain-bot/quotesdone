@@ -1,1 +1,0 @@
-Committed, not applied: apply at merge (it_engineer, 6 Oct 2026). Replaces fn_backup_source_registry with one EXEMPT row for conversation_retention_pdf.pdf_path (#1232 deletion queue) and the company-seal bucket (STORAGE SWEEP); no data, no edge function.
