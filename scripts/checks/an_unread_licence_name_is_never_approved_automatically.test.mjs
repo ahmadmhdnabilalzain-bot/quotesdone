@@ -11,15 +11,21 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const R = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
-const SQL = R('scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql');
+const SQL = R('scripts/sql/a_supplier_whose_licence_could_not_be_read_is_held_never_approved.sql');
 
 test('the review holds an unread name before it reaches automatic approval', () => {
-  const unread = SQL.indexOf("elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_name_unread';");
+  const unread = SQL.indexOf("elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_unreadable';");
   const auto = SQL.indexOf("elsif coalesce(v_auto, false) then v_decision := 'approved';");
   assert.ok(unread > 0, 'no unread-name branch');
   assert.ok(auto > unread, 'automatic approval is decided before the unread name is held');
   assert.match(SQL, /v_name_unread := public\.fn_company_name_norm\(coalesce\(l\.licence_legal_name, ''\)\) = ''/);
-  assert.match(SQL, /case when v_reason = 'licence_name_unread' then 'needs_review' else 'auto_done' end/);
+  assert.match(SQL, /case when v_reason = 'licence_unreadable' then 'needs_review' else 'auto_done' end/);
+});
+
+// Stage-2 #1230 S02 (7 Oct 2026): an ALREADY approved supplier whose licence was never read kept the approval
+// with reason null, because the "approved and complete" branch did not ask whether the name had been read.
+test('an approval stands only while the licence name has been read', () => {
+  assert.match(SQL, /= 'approved' and cardinality\(v_missing\) = 0 and not v_name_unread then/);
 });
 
 test('every upload path records the licence name, a scan included', () => {
