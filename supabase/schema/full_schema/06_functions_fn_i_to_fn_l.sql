@@ -10384,3 +10384,52 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_login_otp_email_issue(p_email text, p_hash text, p_kind text, p_ttl_seconds integer DEFAULT 600)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform pg_advisory_xact_lock(hashtext('login_otp_email:' || p_email));
+  update public.email_verifications set used_at = now()
+   where email = p_email and purpose = 'login' and used_at is null;
+  insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
+  values (p_email, p_hash, 'login', p_kind, now() + make_interval(secs => p_ttl_seconds));
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_login_otp_email_verify(p_email text, p_hash text, p_code text, p_max_attempts integer DEFAULT 5)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+begin
+  select id, expires_at, attempts, token_hash, token
+    into r
+    from public.email_verifications
+   where email = p_email and purpose = 'login' and used_at is null
+   order by created_at desc
+   limit 1
+   for update;
+  if not found then return 'no_code'; end if;
+  if r.expires_at < now() then return 'expired'; end if;
+  if coalesce(r.attempts, 0) >= p_max_attempts then
+    update public.email_verifications set used_at = now() where id = r.id and used_at is null;
+    return 'burned';
+  end if;
+  update public.email_verifications set attempts = coalesce(attempts, 0) + 1 where id = r.id;
+  if (r.token_hash is not null and r.token_hash = p_hash)
+     or (r.token_hash is null and r.token is not null and r.token = p_code) then
+    update public.email_verifications set used_at = now() where id = r.id and used_at is null;
+    if found then return 'ok'; end if;
+  end if;
+  return 'wrong';
+end
+$function$
+
+
