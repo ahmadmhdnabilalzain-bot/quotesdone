@@ -1339,6 +1339,7 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   ai_spend_spike_multiple
 --   anon_key
 --   apify_token
+--   backup_prune_mode
 --   bd_daily_cap
 --   bd_outreach_enabled
 --   bd_source_mode
