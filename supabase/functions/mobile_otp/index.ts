@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // mobile_otp v3 - customer mobile verification via Twilio VERIFY API (API-key auth).
 // Uses the credentials that are actually provisioned: twilio_verify_service_sid + twilio_api_key_sid/_secret
 // (account uses API keys + a Verify service, not legacy auth_token+from). Twilio manages the OTP code itself.
@@ -36,7 +37,7 @@ async function verifyCheck(svc: string, ks: string, kk: string, to: string, code
   const jd = await r.json().catch(()=>({})); return { ok: r.ok, status: r.status, vstatus: jd?.status || null, error: r.ok ? null : (jd?.message || ('http '+r.status)) };
 }
 
-Deno.serve(observe('mobile_otp', async (req) => {
+Deno.serve(siteCors(observe('mobile_otp', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
@@ -100,4 +101,4 @@ Deno.serve(observe('mobile_otp', async (req) => {
 
     return J({ error: 'unknown action' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+})));

@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // transcribe — server-side speech-to-text via OpenRouter audio models (funded key that powers the agents).
 // Replaces the browser Web Speech API (broke on Safari/iOS, poor with UAE Arabic/English mixed speech).
 // Client records WAV. Prompt is NEUTRAL + anti-hallucination (no domain priming) so silence/noise returns empty. Auth-gated.
@@ -16,7 +17,7 @@ async function sec(k: string): Promise<string | null> { const { data } = await a
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const PROMPT = 'Transcribe the spoken words in this audio EXACTLY as spoken, word for word. The speaker may talk in Arabic, English, or a mix of both (United Arab Emirates). Output ONLY the transcribed words and nothing else. Do NOT translate, summarise, correct, complete, punctuate creatively, or invent anything. Keep numbers, measurements and units as spoken. If the audio contains no clear human speech - for example silence, background noise, music, or a tone - say so in the speech field, and never guess or fabricate any sentence. Reply with ONE JSON object and nothing else: {"speech": true, "text": "<the transcribed words>"} when there is speech, {"speech": false, "text": ""} when there is none.';
 
-Deno.serve(observe('transcribe', async (req) => {
+Deno.serve(siteCors(observe('transcribe', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -59,4 +60,4 @@ Deno.serve(observe('transcribe', async (req) => {
     if (text === null) return J({ error: 'transcription_failed', detail: lastErr }, 502);
     return J({ ok: true, text });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+})));

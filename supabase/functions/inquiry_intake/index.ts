@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // inquiry_intake — conversational intake agent. Detects category, asks category-specific clarifying
 // questions (driven by category_specs checklists + AI), rejects junk, and emits a supplier-ready
 // structured brief with a readiness score. Also detects multiple trades, urgency, budget/timeline
@@ -54,7 +55,7 @@ async function llm(messages: any[], subject: { email?: string; customer_id?: str
 }
 function parseJson(s: string): any { try { return JSON.parse(s); } catch (_e) {} const m = String(s || '').match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch (_e2) {} } return null; }
 
-Deno.serve(observe('inquiry_intake', async (req) => {
+Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -728,4 +729,4 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
 
     return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], next_question: nextQuestion, readiness: { filled: readinessFields.filled, required: readinessFields.required, score: Number(out.readiness) || 0 }, readiness_score: Number(out.readiness) || 0, missing: out.missing || [], brief, remaining_questions: remainingQuestions, agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+})));
