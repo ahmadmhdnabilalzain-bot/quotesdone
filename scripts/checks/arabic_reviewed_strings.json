@@ -3066,7 +3066,9 @@
   "fc644b0eb14a",
   "fe7e984490db",
   "fed9f6096feb",
-  "ff0cc7c9de41"
+  "ff0cc7c9de41",
+  "bc8c5d7ef013",
+  "f3635fc2a79c"
  ],
  "src/components/me/quoteExpiry.ts": [
   "124fb2c05c50",
@@ -6338,5 +6340,8 @@
   "a5cba62f3cdc",
   "d7028cd29b51",
   "d9a9b884d813"
+ ],
+ "supabase/functions/_shared/customer_terms.ts": [
+  "bb6521bace53"
  ]
 }

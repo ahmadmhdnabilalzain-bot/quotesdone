@@ -1862,8 +1862,11 @@ function AccountSettings({ token, lang, onChanged }) {
   // A refusal was printed in the same muted grey as "Saved" and never announced (e2e forms probe, 23 Sep
   // 2026: name emptied -> kyc 400 enter_name -> a grey line). An error is an alert now.
   const [msgErr, setMsgErr] = useState(false);
+  // THE TERMS VERSION ON FILE vs THE CURRENT ONE (6 Oct 2026, release review of #1240): shown here with an accept
+  // button, so a customer is never sent to a page that cannot act. customer_api accept_terms records it.
+  const [termsV, setTermsV] = useState(''); const [termsTick, setTermsTick] = useState(false);
   const load = () => call('customer_api', { action: 'me' }, token)
-    .then((j) => { if (j && j.customer) { setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); setDob(String(j.customer.date_of_birth || '').slice(0, 10)); } else setErr(t(lang, 'acct_failed')); })
+    .then((j) => { if (j && j.customer) { setTermsV(j.terms_current_version || ''); setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); setDob(String(j.customer.date_of_birth || '').slice(0, 10)); } else setErr(t(lang, 'acct_failed')); })
     .catch(() => setErr(t(lang, 'acct_failed')));
   // DO NOT ASK AN AUTHENTICATED ENDPOINT WHO WE ARE BEFORE WE HAVE A TOKEN. This ran on the first
   // render, when `token` is still '' because it is read from localStorage and from
@@ -1947,6 +1950,15 @@ function AccountSettings({ token, lang, onChanged }) {
         <div className="text-[12.5px] font-medium text-muted-foreground">{waText(lang, 'row_label')}</div>
         <div className="min-w-0"><WhatsAppChoice token={token} lang={lang} mode="settings" current={wa} mobile={me.phone} onDone={loadWa} /></div>
       </div> : null}
+      {termsV && me.tos_accepted_at ? <Row label={t(lang, 'acct_terms')}>
+        {me.tos_version === termsV
+          ? <div className="text-[13px] text-foreground">{tf(lang, 'acct_terms_ok', { v: termsV })}</div>
+          : <div className="flex flex-col gap-2">
+              <div className="text-[13px] text-warn-fg">{tf(lang, 'acct_terms_old', { old: me.tos_version || '—', v: termsV })}</div>
+              <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground"><input type="checkbox" checked={termsTick} onChange={(e) => setTermsTick(e.target.checked)} /> <a href={lang === 'ar' ? '/ar/terms' : '/terms'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_read')}</a></label>
+              <div><Button size="sm" disabled={!termsTick || busy === 'terms'} onClick={async () => { setBusy('terms'); setMsg(''); const j = await call('customer_api', { action: 'accept_terms' }, token); setBusy(''); setMsgErr(!(j && j.ok)); if (j && j.ok) { setMsg(t(lang, 'terms_accepted_ok')); setTermsTick(false); load(); } else setMsg(errText(j, lang, 'acct_failed')); }}>{t(lang, 'terms_accept_btn')}</Button></div>
+            </div>}
+      </Row> : null}
       <Row label={t(lang, 'acct_since')}><div className="text-[13px] text-foreground">{since || '—'}</div></Row>
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3.5">
         <Button size="sm" disabled={!dirty || busy === 'save'} onClick={saveProfile}>{busy === 'save' ? t(lang, 'saving') : t(lang, 'save_details')}</Button>
