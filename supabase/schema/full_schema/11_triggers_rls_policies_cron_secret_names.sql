@@ -827,6 +827,8 @@ ALTER TABLE public.outreach_channel_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.paid_route_exception ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pdpl_erase_files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pdpl_lead_erase_vault ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pdpl_operator_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pdpl_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase1_rollback_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phone_verifications ENABLE ROW LEVEL SECURITY;
@@ -1217,6 +1219,8 @@ CREATE POLICY otp_blocked_prefix_service_role_only ON public.otp_blocked_prefix 
 CREATE POLICY otp_prefix_allowed_service_role_only ON public.otp_prefix_allowed AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY otp_served_country_service_role_only ON public.otp_served_country AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY paid_route_exception_service_role_only ON public.paid_route_exception AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY pdpl_lead_erase_vault_service_only ON public.pdpl_lead_erase_vault AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY pdpl_operator_log_service_only ON public.pdpl_operator_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY post_reveal_dispute_service_role_only ON public.post_reveal_dispute AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_benchmark_service_role_only ON public.price_benchmark AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_trade_term_service_role_only ON public.price_trade_term AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1321,6 +1325,7 @@ CREATE POLICY writer_seat_service_role_only ON public.writer_seat AS PERMISSIVE 
 -- ===== CRON JOBS =====
 select cron.schedule('inquiry_conversation_summary_daily','40 23 * * *',$CRON$select public.fn_inquiry_conversation_summary_run(50);$CRON$);
 select cron.schedule('conversation_retention_daily','20 23 * * *',$CRON$select public.fn_conversation_retention_purge(500);$CRON$);
+select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_pdpl_tick();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1334,6 +1339,7 @@ select cron.schedule('conversation_retention_daily','20 23 * * *',$CRON$select p
 --   ai_spend_spike_multiple
 --   anon_key
 --   apify_token
+--   backup_prune_mode
 --   bd_daily_cap
 --   bd_outreach_enabled
 --   bd_source_mode
