@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // claim_lookup v2 - public "is this your company?" check for the supplier claim flow.
 //
 // SECURITY FIX 19 Jul 2026 ---------------------------------------------------------------------
@@ -37,7 +38,7 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-Deno.serve(observe('claim_lookup', async (req) => {
+Deno.serve(siteCors(observe('claim_lookup', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
   // what needs exercising. See warmPortal() in resilience_ping/index.ts.
@@ -96,4 +97,4 @@ Deno.serve(observe('claim_lookup', async (req) => {
     await logRun('error', { unhandled_exception: 1 }, 'claim_lookup threw an unhandled exception: ' + String((e as Error)?.message || e).slice(0, 200) + ' - a supplier trying to claim their listing was blocked for an internal reason.');
     return J({ ok: false, error: 'error' }, 500);
   }
-}));
+})));

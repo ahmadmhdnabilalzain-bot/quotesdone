@@ -40,7 +40,7 @@ on:
 jobs:
   checks:
     name: classification, pricing and refund checks
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -127,7 +127,7 @@ jobs:
   # finding either, and a linter people mute is worse than no linter.
   migration-lint:
     name: lint migrations for locking operations
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -154,7 +154,7 @@ jobs:
 
   typecheck:
     name: typecheck the app
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -172,7 +172,7 @@ jobs:
 
   deno-check:
     name: typecheck the edge functions
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -224,3 +224,32 @@ jobs:
         run: deno check --no-lock --node-modules-dir=auto supabase/functions/ceo_agent/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_pay/index.ts supabase/functions/customer_api/index.ts supabase/functions/supplier_api/index.ts supabase/functions/resend_inbound/index.ts supabase/functions/supplier_catalog_ingest/index.ts
       - name: Check every other edge function
         run: deno check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts
+
+  # 6 OCT 2026 — A SIGN-IN CODE IS COUNTED AND SPENT ONCE (pre-launch security pass, H1). The committed
+  # body of public.fn_login_otp_email_verify runs against a throwaway Postgres started for this job
+  # (never the production project): 20 parallel wrong guesses must evaluate exactly 5, and 20 parallel
+  # copies of the right code must verify exactly once. A separate job because it needs a database
+  # service, which nothing else in this workflow does.
+  otp-race:
+    name: a sign-in code survives 5 guesses and verifies once under a burst
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: race
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Twenty parallel guesses against the locked verify routine
+        env:
+          QD_OTP_RACE_PG: postgres://postgres:race@127.0.0.1:5432/postgres
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read --allow-write=node_modules --allow-env
+          --allow-net supabase/functions/login_otp/verify_race.check.ts

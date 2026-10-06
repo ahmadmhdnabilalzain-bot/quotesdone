@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T18:40:23.266Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-06T18:20:08.323Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (701) =====
+-- ===== TABLES (707) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -806,7 +806,8 @@ CREATE TABLE IF NOT EXISTS public.ai_cost_log (
   counterpart_model text,
   review_violation text,
   reviewer_tier text,
-  prompt_hash text
+  prompt_hash text,
+  e2e_run_tag text
 );
 
 CREATE TABLE IF NOT EXISTS public.ai_model_register (
@@ -2386,6 +2387,36 @@ CREATE TABLE IF NOT EXISTS public.conversation_archive (
   archived_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.conversation_retention_log (
+  source_table text NOT NULL,
+  source_id text NOT NULL,
+  party_kind text,
+  party_id text,
+  occurred_at timestamp with time zone,
+  last_activity timestamp with time zone,
+  removed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.conversation_retention_pdf (
+  source_table text NOT NULL,
+  source_id text NOT NULL,
+  pdf_bucket text,
+  pdf_path text,
+  queued_at timestamp with time zone DEFAULT now() NOT NULL,
+  deleted_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.conversation_retention_plan_log (
+  decided_for date NOT NULL,
+  source_table text NOT NULL,
+  source_id text NOT NULL,
+  party_kind text,
+  party_id text,
+  occurred_at timestamp with time zone,
+  last_activity timestamp with time zone,
+  decided_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.critical_capability (
   capability_key text NOT NULL,
   capability text NOT NULL,
@@ -2596,7 +2627,8 @@ CREATE TABLE IF NOT EXISTS public.customers (
   whatsapp_phone text,
   whatsapp_verified_at timestamp with time zone,
   whatsapp_opt text,
-  whatsapp_asked_at timestamp with time zone
+  whatsapp_asked_at timestamp with time zone,
+  tos_sha256 text
 );
 
 CREATE TABLE IF NOT EXISTS public.dead_letter (
@@ -3783,6 +3815,16 @@ CREATE TABLE IF NOT EXISTS public.inquiry_cancellations (
   customer_id uuid,
   reason text,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.inquiry_conversation_summary (
+  inquiry_id uuid NOT NULL,
+  customer_id uuid,
+  summary jsonb NOT NULL,
+  last_activity timestamp with time zone NOT NULL,
+  built_at timestamp with time zone DEFAULT now() NOT NULL,
+  method text DEFAULT 'deterministic'::text NOT NULL,
+  originals_kept boolean DEFAULT true NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiry_gate (
@@ -5829,7 +5871,8 @@ CREATE TABLE IF NOT EXISTS public.messaging_template (
   rejection_reason text,
   last_checked_at timestamp with time zone,
   note text,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_http_status integer
 );
 
 CREATE TABLE IF NOT EXISTS public.meta_insights (
@@ -6655,6 +6698,26 @@ CREATE TABLE IF NOT EXISTS public.pdpl_erase_files (
   erased_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.pdpl_lead_erase_vault (
+  request_id uuid NOT NULL,
+  lead_id bigint NOT NULL,
+  snapshot jsonb NOT NULL,
+  erased_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.pdpl_operator_log (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  at timestamp with time zone DEFAULT now() NOT NULL,
+  db_user text DEFAULT SESSION_USER NOT NULL,
+  actor text DEFAULT fn_pdpl_actor() NOT NULL,
+  caller text,
+  operator text,
+  action text NOT NULL,
+  email text,
+  request_id uuid,
+  result jsonb
+);
+
 CREATE TABLE IF NOT EXISTS public.pdpl_requests (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   kind text NOT NULL,
@@ -6664,7 +6727,16 @@ CREATE TABLE IF NOT EXISTS public.pdpl_requests (
   status text DEFAULT 'received'::text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   handled_at timestamp with time zone,
-  handled_by text
+  handled_by text,
+  verified_via text,
+  verified_at timestamp with time zone,
+  code_sha text,
+  code_expires timestamp with time zone,
+  confirm_after timestamp with time zone,
+  completed_at timestamp with time zone,
+  cancelled_at timestamp with time zone,
+  outcome jsonb,
+  attempts integer DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.phase1_rollback_log (
@@ -7201,7 +7273,7 @@ CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
   subject jsonb,
   reason text NOT NULL,
   status text DEFAULT 'held'::text NOT NULL,
-  expires_at timestamp with time zone,
+  expires_at timestamp with time zone DEFAULT (now() + '14 days'::interval),
   attempts integer DEFAULT 0 NOT NULL,
   last_attempt_at timestamp with time zone,
   result jsonb,
@@ -7438,7 +7510,10 @@ CREATE TABLE IF NOT EXISTS public.rehearsal_window (
   opened_by text DEFAULT 'demo_factory.withRun'::text NOT NULL,
   started_at timestamp with time zone DEFAULT now() NOT NULL,
   ended_at timestamp with time zone,
-  note text
+  note text,
+  models_allowed boolean DEFAULT false NOT NULL,
+  cap_usd numeric DEFAULT 4 NOT NULL,
+  expires_at timestamp with time zone DEFAULT (now() + '02:00:00'::interval) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.removed_trigger_log (
@@ -9848,6 +9923,9 @@ ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_
 ALTER TABLE public.control_mode_identity ADD CONSTRAINT control_mode_identity_pkey PRIMARY KEY (admin_email);
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_pkey PRIMARY KEY (id);
 ALTER TABLE public.conversation_archive ADD CONSTRAINT conversation_archive_pkey PRIMARY KEY (source_table, source_id);
+ALTER TABLE public.conversation_retention_log ADD CONSTRAINT conversation_retention_log_pkey PRIMARY KEY (source_table, source_id);
+ALTER TABLE public.conversation_retention_pdf ADD CONSTRAINT conversation_retention_pdf_pkey PRIMARY KEY (source_table, source_id);
+ALTER TABLE public.conversation_retention_plan_log ADD CONSTRAINT conversation_retention_plan_log_pkey PRIMARY KEY (decided_for, source_table, source_id);
 ALTER TABLE public.critical_capability ADD CONSTRAINT critical_capability_pkey PRIMARY KEY (capability_key);
 ALTER TABLE public.crm_activities ADD CONSTRAINT crm_activities_pkey PRIMARY KEY (id);
 ALTER TABLE public.crm_notes ADD CONSTRAINT crm_notes_pkey PRIMARY KEY (id);
@@ -9958,6 +10036,7 @@ ALTER TABLE public.inquiry_answer_corroboration ADD CONSTRAINT inquiry_answer_co
 ALTER TABLE public.inquiry_answer_document ADD CONSTRAINT inquiry_answer_document_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_answer_scope ADD CONSTRAINT inquiry_answer_scope_pkey PRIMARY KEY (answer_id, workstream_id);
 ALTER TABLE public.inquiry_cancellations ADD CONSTRAINT inquiry_cancellations_pkey PRIMARY KEY (id);
+ALTER TABLE public.inquiry_conversation_summary ADD CONSTRAINT inquiry_conversation_summary_pkey PRIMARY KEY (inquiry_id);
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_gate_required ADD CONSTRAINT inquiry_gate_required_pkey PRIMARY KEY (gate_key);
 ALTER TABLE public.inquiry_intake ADD CONSTRAINT inquiry_intake_pkey PRIMARY KEY (id);
@@ -10170,6 +10249,8 @@ ALTER TABLE public.outreach_channel_policy ADD CONSTRAINT outreach_channel_polic
 ALTER TABLE public.pages ADD CONSTRAINT pages_pkey PRIMARY KEY (slug);
 ALTER TABLE public.paid_route_exception ADD CONSTRAINT paid_route_exception_pkey PRIMARY KEY (route);
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_pkey PRIMARY KEY (id);
+ALTER TABLE public.pdpl_lead_erase_vault ADD CONSTRAINT pdpl_lead_erase_vault_pkey PRIMARY KEY (request_id, lead_id);
+ALTER TABLE public.pdpl_operator_log ADD CONSTRAINT pdpl_operator_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_pkey PRIMARY KEY (id);
 ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.phone_verifications ADD CONSTRAINT phone_verifications_pkey PRIMARY KEY (id);
@@ -11250,6 +11331,8 @@ ALTER TABLE public.refunds ADD CONSTRAINT refunds_currency_check CHECK ((currenc
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_reason_code_check CHECK ((reason_code = ANY (ARRAY['supplier_unresponsive'::text, 'supplier_withdrew'::text, 'duplicate_charge'::text, 'customer_cancelled_in_window'::text, 'service_not_delivered'::text, 'fraud_or_dispute'::text, 'goodwill'::text, 'other'::text])));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_settled_needs_amount CHECK (((status <> 'succeeded'::text) OR (amount_fils IS NOT NULL) OR (reconciliation_note IS NOT NULL)));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'approved'::text, 'rejected'::text, 'processing'::text, 'succeeded'::text, 'failed'::text, 'cancelled'::text])));
+ALTER TABLE public.rehearsal_window ADD CONSTRAINT rehearsal_window_at_most_two_hours CHECK ((expires_at <= (started_at + '02:01:00'::interval))) NOT VALID;
+ALTER TABLE public.rehearsal_window ADD CONSTRAINT rehearsal_window_cap_is_small CHECK (((cap_usd > (0)::numeric) AND (cap_usd <= (15)::numeric))) NOT VALID;
 ALTER TABLE public.resilience_step ADD CONSTRAINT resilience_step_budget_ms_check CHECK ((budget_ms > 0));
 ALTER TABLE public.resilience_step ADD CONSTRAINT resilience_step_every_check CHECK ((every > '00:00:00'::interval));
 ALTER TABLE public.resilience_step ADD CONSTRAINT resilience_step_place_check CHECK ((place = ANY (ARRAY['plan'::text, 'last'::text])));
@@ -11614,6 +11697,7 @@ ALTER TABLE public.inquiry_answer_corroboration ADD CONSTRAINT inquiry_answer_co
 ALTER TABLE public.inquiry_answer_document ADD CONSTRAINT inquiry_answer_document_answer_id_fkey FOREIGN KEY (answer_id) REFERENCES inquiry_answer(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_scope ADD CONSTRAINT inquiry_answer_scope_answer_id_fkey FOREIGN KEY (answer_id) REFERENCES inquiry_answer(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_scope ADD CONSTRAINT inquiry_answer_scope_workstream_id_fkey FOREIGN KEY (workstream_id) REFERENCES inquiry_workstream(id) ON DELETE CASCADE;
+ALTER TABLE public.inquiry_conversation_summary ADD CONSTRAINT inquiry_conversation_summary_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_gate_key_fkey FOREIGN KEY (gate_key) REFERENCES inquiry_gate_required(gate_key);
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_workstream_id_fkey FOREIGN KEY (workstream_id) REFERENCES inquiry_workstream(id) ON DELETE CASCADE;
@@ -11710,6 +11794,7 @@ ALTER TABLE public.os_runbooks ADD CONSTRAINT os_runbooks_os_key_fkey FOREIGN KE
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_expected_kpi_id_fkey FOREIGN KEY (expected_kpi_id) REFERENCES employee_kpi(id);
 ALTER TABLE public.paid_route_exception ADD CONSTRAINT paid_route_exception_authority_instruction_id_fkey FOREIGN KEY (authority_instruction_id) REFERENCES founder_instruction(id);
 ALTER TABLE public.pdpl_erase_files ADD CONSTRAINT pdpl_erase_files_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id) ON DELETE CASCADE;
+ALTER TABLE public.pdpl_lead_erase_vault ADD CONSTRAINT pdpl_lead_erase_vault_request_id_fkey FOREIGN KEY (request_id) REFERENCES pdpl_requests(id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_account_code_fkey FOREIGN KEY (account_code) REFERENCES gl_accounts(code);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES inv_items(id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id) ON DELETE CASCADE;
@@ -11875,6 +11960,7 @@ CREATE INDEX agent_training_case_run ON public.agent_training_case USING btree (
 CREATE INDEX agent_training_case_scope ON public.agent_training_case USING btree (scope_type, scope_key, case_family);
 CREATE INDEX ai_cost_log_confidence_prior_idx ON public.ai_cost_log USING btree (agent_key, task_class, occurred_at DESC) WHERE (confidence IS NOT NULL);
 CREATE INDEX ai_cost_log_dubai_day_idx ON public.ai_cost_log USING btree ((((occurred_at AT TIME ZONE 'Asia/Dubai'::text))::date));
+CREATE INDEX ai_cost_log_e2e_run_tag_idx ON public.ai_cost_log USING btree (e2e_run_tag) WHERE (e2e_run_tag IS NOT NULL);
 CREATE UNIQUE INDEX ai_cost_log_generation_id_uidx ON public.ai_cost_log USING btree (generation_id) WHERE (generation_id IS NOT NULL);
 CREATE INDEX ai_cost_log_prompt_hash_idx ON public.ai_cost_log USING btree (prompt_hash, occurred_at) WHERE (prompt_hash IS NOT NULL);
 CREATE UNIQUE INDEX ai_trainer_snap_day ON public.ai_trainer_snapshots USING btree (snapshot_date);

@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // project_api — Procurement Projects for customers. Groups multiple RFQs (inquiries) under a project.
 // Auth: customer Supabase JWT -> email -> customers row (same model as customer_api).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -17,7 +18,7 @@ async function customer(req: Request): Promise<{ id: string; email: string } | n
   return { id: c.id as string, email: c.email as string };
 }
 
-Deno.serve(observe('project_api', async (req) => {
+Deno.serve(siteCors(observe('project_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
@@ -163,4 +164,4 @@ Deno.serve(observe('project_api', async (req) => {
 
     return J({ error: 'unknown action' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+})));

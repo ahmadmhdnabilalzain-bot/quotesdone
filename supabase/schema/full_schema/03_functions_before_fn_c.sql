@@ -7728,16 +7728,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -7763,6 +7753,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -9740,6 +9740,24 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ai_cost_log_e2e_run_tag()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_tag text;
+begin
+  v_tag := coalesce(new.e2e_run_tag, public.fn_e2e_run_tag_current());
+  if v_tag is not null and not coalesce(public.fn_e2e_run_tag_open(v_tag), false) then v_tag := null; end if;
+  new.e2e_run_tag := v_tag;
+  return new;
+exception when others then
+  new.e2e_run_tag := null;   -- the cost record is never lost to a malformed header
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ai_quality_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -11332,7 +11350,7 @@ AS $function$
     select max(d.dy) filter (where d.kd = 'full' and d.st = 'done') as newest_full,
            max(d.dy) filter (where d.kd = 'full') as latest_full_attempt
       from d),
-  -- kept for ever: the first complete full copy of each month, or a full-less month's last complete copy
+  -- the month's copy: its first complete full copy, or a full-less month's last complete copy
   mf as (
     select date_trunc('month', d.dy)::date as mo,
            min(d.dy) filter (where d.kd = 'full' and d.st = 'done') as first_full,
@@ -11340,7 +11358,8 @@ AS $function$
       from d group by 1),
   k as (
     select d.dy, d.og, d.kd, d.st,
-           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as forever,
+           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as month_copy,
+           (date_trunc('month', d.dy)::date > (date_trunc('month', p_today) - interval '12 months')::date) as within_12_months,
            case when g.newest_full is null then 'blocked: no complete full copy exists, so nothing is deleted'
                 when g.latest_full_attempt > g.newest_full
                   then 'blocked: the latest full copy (' || g.latest_full_attempt || ') did not complete, so nothing is deleted'
@@ -11348,12 +11367,11 @@ AS $function$
            d.dy = g.newest_full as is_newest_full,
            d.dy > g.newest_full as after_newest_full,
            d.st = 'running' as running,
-           (p_today - d.dy) <= 90 as within_90,
-           (d.kd = 'full' and d.st = 'done' and extract(isodow from d.dy) = 5
-            and d.dy > (p_today - interval '12 months')::date) as friday_kept
+           (p_today - d.dy) <= 30 as within_30
       from d cross join g left join mf on mf.mo = date_trunc('month', d.dy)::date),
   kp as (
-    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.forever or k.within_90 or k.friday_kept) as policy_keep from k),
+    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.within_30
+                 or (k.month_copy and k.within_12_months)) as policy_keep from k),
   anchor as (
     select kp.dy as inc_day,
            (select max(f.dy) from d f where f.kd = 'full' and f.st = 'done' and f.dy <= kp.dy) as full_day
@@ -11366,14 +11384,13 @@ AS $function$
               when c.is_newest_full then 'the newest complete full copy'
               when c.after_newest_full then 'part of the newest restore chain (the newest full copy and every day after it)'
               when c.running then 'still being written'
-              when c.forever and c.kd = 'full' then 'the first complete full copy of its month, kept forever'
-              when c.forever then 'the last complete copy of a month with no full copy, kept forever'
-              when c.within_90 then 'within 90 days'
-              when c.friday_kept then 'a complete Friday full copy within 12 months'
+              when c.within_30 then 'within 30 days'
+              when c.month_copy and c.within_12_months and c.kd = 'full' then 'the first complete full copy of its month, within 12 months'
+              when c.month_copy and c.within_12_months then 'the last complete copy of a month with no full copy, within 12 months'
               when c.in_kept_chain then 'needed by a kept kb_chunks restore chain (its full copy, or a day between)'
-              when c.kd = 'full' and c.st = 'done' and extract(isodow from c.dy) = 5 then 'a Friday full copy older than 12 months'
-              when c.st <> 'done' then 'an incomplete export (' || coalesce(nullif(c.st, ''), 'unknown') || ') older than 90 days'
-              else 'a daily copy older than 90 days'
+              when c.month_copy then 'a monthly copy older than 12 months'
+              when c.st <> 'done' then 'an incomplete export (' || coalesce(nullif(c.st, ''), 'unknown') || ') older than 30 days'
+              else 'a daily copy older than 30 days'
          end
     from c order by c.dy;
 $function$
@@ -11651,6 +11668,7 @@ AS $function$
     ('reports',          'bucket', 'reports',          true, 'fn_enqueue_doc_backups: STORAGE SWEEP (board and executive report PDFs; their rows are not in the daily table export)', null),
     ('social-media',     'bucket', 'social-media',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (generated post cards and avatars; not in the repository)', null),
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
+    ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
     ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),
@@ -11709,6 +11727,7 @@ AS $function$
     ('cad_read_jobs.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a work-queue pointer to the customer''s original drawing in drawing-files, which is backed up through inquiries.drawing_file_path; the job holds no second copy'),
     ('marketing_first_touch.landing_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): the site page (a URL path such as /en/suppliers) a supplier first landed on from a post, not a stored file; the row is in the daily table export'),
     ('marketing_asset_feature.asset_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): a pointer to a post video already in marketing-media (backed up through marketing_post.video_path and media_paths); the feature row measures it and holds no second copy'),
+    ('conversation_retention_pdf.pdf_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): a pointer, kept after the text is removed, to the conversation PDF already in backups/conversations/ (backed up through conversation_archive.pdf_path); it holds no second copy'),
     ('action_class_demand.on_revenue_path', 'column', null, false, null, 'EXEMPT (not a file or not ours): a boolean saying whether an action_class is on the revenue path; it names no file, and the row is in the daily table export'),
     ('ml-models',                            'bucket', null, false, null, 'EXEMPT (not a file or not ours): a copy of a public embedding model downloaded from Hugging Face for the multilingual embedder; it can be fetched again and holds no record'),
     ('supplier_campaign_daily_list.pdf_path', 'column', null, false, null, 'EXEMPT (not a file or not ours): the 18:00 supplier-list PDF is drawn from its own row (rows, pdf_blocks), which is in the daily table export; it can be rendered again'),

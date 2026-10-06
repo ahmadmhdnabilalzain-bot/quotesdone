@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 import { manifestWithPending, manifestHas } from '../lib/pending_sql.mjs';
 import { readRegistry, registryRowsIn, EXCLUSION_CATEGORIES } from '../lib/table_export_registry.mjs';
+import { definitions } from '../lib/canonical_sql.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (f) => readFileSync(join(REPO, f), 'utf8');
@@ -99,7 +100,14 @@ test('every registry row names a real table, an exclusion names a known category
 });
 
 test('a no_writer table still has no writer', () => {
-  const routines = SCHEMA.slice(SCHEMA.indexOf('-- ===== FUNCTIONS')) + PENDING.map(stripComments).join('\n');
+  // A writer is a ROUTINE, the same subject on both sides. The mirror contributes its FUNCTIONS section only, so a
+  // pending file contributes only its CREATE FUNCTION statements -- never its file-level DML. Measured 6 Oct 2026:
+  // two open branches (conversation-retention-five-years, closed-inquiry-conversation-summary) register a cron with a
+  // one-off file-level write to cron_registry; while the file was pending that read as a writer and this test failed,
+  // and once the train applied it the same statement left what was read and it passed. A full-suite run in a tree
+  // that changed branch between runs flipped on exactly that.
+  const routines = SCHEMA.slice(SCHEMA.indexOf('-- ===== FUNCTIONS'))
+    + PENDING.flatMap((t) => definitions(t).map((d) => stripComments(d.stmt))).join('\n');
   let code = '';
   const walk = (d) => {
     if (!existsSync(d)) return;
