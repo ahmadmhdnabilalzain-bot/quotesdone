@@ -11121,7 +11121,7 @@ begin
   values (p_stage, p_key, p_customer, p_lead, v_to)
   on conflict (stage, subject_key) do nothing;
   if not found then return jsonb_build_object('sent', false, 'reason', 'already written at this stage'); end if;
-  v_ok := public.fn_email_sendable(v_to);
+  v_ok := public.fn_email_sendable(v_to, 'duty_' || replace(p_stage, '.', '_'));          -- the type: a dispute is never marketing
   if not coalesce((v_ok->>'ok')::boolean, false) then
     update public.customer_support_duty_message set outcome = 'not_sendable: ' || (v_ok->>'reason')
      where stage = p_stage and subject_key = p_key;
