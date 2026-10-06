@@ -1,3 +1,0 @@
-Applied at merge by the release train (apply at merge, never before). It adds the write log the kb_chunks
-copy-and-swap needs (scripts/kb/kb_chunks_copy_swap.mjs refuses to prepare without it); it changes no existing object
-and no trigger is attached until the driver's prepare stage runs in the 02:00-05:00 Dubai window.

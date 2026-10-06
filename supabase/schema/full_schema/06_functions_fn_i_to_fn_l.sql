@@ -8555,6 +8555,24 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_kb_chunks_swap_log()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if tg_op in ('UPDATE', 'DELETE') then
+    insert into public.kb_chunks_swap_log (id) values (old.id);
+  end if;
+  if tg_op = 'INSERT' or (tg_op = 'UPDATE' and new.id is distinct from old.id) then
+    insert into public.kb_chunks_swap_log (id) values (new.id);
+  end if;
+  return null;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_kb_embed_backlog()
  RETURNS jsonb
  LANGUAGE sql

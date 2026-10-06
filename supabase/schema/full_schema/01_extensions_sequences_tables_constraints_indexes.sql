@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-06T18:20:08.323Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-06T19:10:19.245Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (707) =====
+-- ===== TABLES (708) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4543,6 +4543,12 @@ CREATE TABLE IF NOT EXISTS public.kb_chunks (
   embedding_gte vector(384),
   category_norm text GENERATED ALWAYS AS (NULLIF(regexp_replace(lower(COALESCE(category, ''::text)), '^cat:'::text, ''::text), ''::text)) STORED,
   embed_claimed_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.kb_chunks_swap_log (
+  seq bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  id bigint NOT NULL,
+  logged_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.kb_citation_jurisdiction (
@@ -10097,6 +10103,7 @@ ALTER TABLE public.kb_category_aliases ADD CONSTRAINT kb_category_aliases_pkey P
 ALTER TABLE public.kb_category_stats ADD CONSTRAINT kb_category_stats_pkey PRIMARY KEY (category, source_kind);
 ALTER TABLE public.kb_chunk_quarantine ADD CONSTRAINT kb_chunk_quarantine_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_chunks ADD CONSTRAINT kb_chunks_pkey PRIMARY KEY (id);
+ALTER TABLE public.kb_chunks_swap_log ADD CONSTRAINT kb_chunks_swap_log_pkey PRIMARY KEY (seq);
 ALTER TABLE public.kb_citation_jurisdiction ADD CONSTRAINT kb_citation_jurisdiction_pkey PRIMARY KEY (citation_md5);
 ALTER TABLE public.kb_embed_inflight ADD CONSTRAINT kb_embed_inflight_pkey PRIMARY KEY (request_id);
 ALTER TABLE public.kb_embed_priority ADD CONSTRAINT kb_embed_priority_pkey PRIMARY KEY (category);
