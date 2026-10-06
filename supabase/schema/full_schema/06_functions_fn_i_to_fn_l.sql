@@ -242,6 +242,104 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with i as (select * from public.inquiries where id = p_inquiry),
+  msg as (select v.source_table, v.source_id, v.channel, v.direction, v.occurred_at
+            from public.v_conversation_message v where v.inquiry_id = p_inquiry::text),
+  q as (select qu.*, l.company_name from public.quotes qu left join public.leads l on l.id = qu.supplier_id
+         where qu.inquiry_id = p_inquiry),
+  t as (select * from public.transactions where inquiry_id = p_inquiry),
+  rq as (select * from q where q.id in (select quote_id from t))
+  select jsonb_build_object(
+    'inquiry', (select jsonb_build_object('id', i.id, 'rfq_no', i.rfq_no, 'category', i.category, 'trades', i.trades,
+                  'emirate', i.emirate, 'summary', i.summary, 'budget', i.budget, 'required_by', i.required_by,
+                  'status', i.status) from i),
+    'parties', jsonb_build_object(
+       'customer_id', (select customer_id from i),
+       'suppliers', (select coalesce(jsonb_agg(distinct jsonb_build_object('supplier_id', q.supplier_id, 'company', q.company_name)), '[]') from q)),
+    'spec_decisions', jsonb_build_object(
+       'clarifications', (select coalesce(jsonb_agg(jsonb_build_object('asked_at', r.asked_at, 'kind', r.kind,
+                            'question', r.question, 'answer', r.answer) order by r.asked_at), '[]')
+                            from public.rfq_clarification r where r.inquiry_id = p_inquiry),
+       'accepted_alternatives', (select accepted_alternatives from i)),
+    'amounts', jsonb_build_object(
+       'quotes', (select coalesce(jsonb_agg(jsonb_build_object('supplier_id', q.supplier_id, 'quote_amount', q.quote_amount,
+                    'customer_price', q.customer_price, 'status', q.status, 'at', q.created_at) order by q.created_at), '[]') from q),
+       'transactions', (select coalesce(jsonb_agg(jsonb_build_object('quote_id', t.quote_id, 'quote_amount', t.quote_amount,
+                    'reveal_fee', t.reveal_fee, 'total_charged', t.total_charged, 'revealed_at', t.revealed_at,
+                    'refund_status', t.refund_status, 'refund_amount_aed', t.refund_amount_aed)), '[]') from t)),
+    'dates', jsonb_build_object(
+       'created', (select created_at from i), 'first_quote', (select min(created_at) from q),
+       'revealed', (select min(revealed_at) from t), 'completed', (select completed_at from i),
+       'first_message', (select min(occurred_at) from msg), 'last_message', (select max(occurred_at) from msg)),
+    'commitments', (select coalesce(jsonb_agg(jsonb_build_object('supplier_id', rq.supplier_id, 'lead_time', rq.lead_time,
+                      'validity', rq.validity, 'payment_terms', rq.payment_terms, 'warranty', rq.warranty,
+                      'scope', rq.scope, 'exclusions', rq.exclusions)), '[]') from rq),
+    'disputes', jsonb_build_object(
+       'post_reveal', (select coalesce(jsonb_agg(jsonb_build_object('raised_by', d.raised_by, 'stage', d.stage,
+                        'outcome', d.outcome, 'decided_at', d.decided_at)), '[]') from public.post_reveal_dispute d where d.inquiry_id = p_inquiry),
+       'refunds', (select coalesce(jsonb_agg(jsonb_build_object('status', r.status, 'reason_code', r.reason_code,
+                    'amount_fils', r.amount_fils, 'settled_at', r.settled_at)), '[]') from public.refunds r where r.inquiry_id = p_inquiry),
+       'complaints', (select coalesce(jsonb_agg(jsonb_build_object('ticket_no', ct.ticket_no, 'status', ct.status,
+                       'at', ct.created_at)), '[]')
+                       from public.complaint_tickets ct join public.customers c on lower(c.email) = lower(ct.email)
+                      where c.id = (select customer_id from i))),
+    'outcome', (select jsonb_build_object('outcome', i.outcome, 'lost_reason', i.lost_reason, 'status', i.status,
+                  'hired_supplier_id', i.hired_supplier_id) from i),
+    'conversation', jsonb_build_object(
+       'messages', (select count(*) from msg),
+       'by_channel', (select coalesce(jsonb_object_agg(channel, n), '{}') from (select channel, count(*) n from msg group by 1) c),
+       'sources', (select coalesce(jsonb_agg(source_table || ':' || source_id order by occurred_at), '[]') from msg)),
+    'originals', 'kept: Cabinet Decision 74/2023 Art. 3(1)(b) requires the records for 5 years from the end of the year of creation; this summary is an index');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_due(p_now timestamp with time zone DEFAULT now(), p_limit integer DEFAULT 50)
+ RETURNS TABLE(inquiry_id uuid, last_activity timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select i.id, la.at
+    from public.inquiries i
+    cross join lateral (
+      select greatest(i.created_at, i.stage_changed_at, i.completed_at,
+                      (select max(v.occurred_at) from public.v_conversation_message v where v.inquiry_id = i.id::text),
+                      (select max(t.revealed_at) from public.transactions t where t.inquiry_id = i.id)) as at) la
+   where (i.completed_at is not null or i.outcome is not null or i.lost_reason is not null
+          or lower(coalesce(i.status, '')) in ('closed', 'completed', 'cancelled', 'canceled', 'lost', 'expired', 'won', 'hired', 'revealed'))
+     and la.at < p_now - interval '90 days'
+     and not exists (select 1 from public.inquiry_conversation_summary s where s.inquiry_id = i.id and s.last_activity >= la.at)
+   order by la.at
+   limit greatest(p_limit, 0);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_run(p_limit integer DEFAULT 50)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; n int := 0;
+begin
+  for r in select * from public.fn_inquiry_conversation_summary_due(now(), p_limit) loop
+    insert into public.inquiry_conversation_summary (inquiry_id, customer_id, summary, last_activity, built_at)
+    select r.inquiry_id, i.customer_id, public.fn_inquiry_conversation_summary_build(r.inquiry_id), r.last_activity, now()
+      from public.inquiries i where i.id = r.inquiry_id
+    on conflict (inquiry_id) do update
+       set summary = excluded.summary, last_activity = excluded.last_activity, built_at = excluded.built_at;
+    n := n + 1;
+  end loop;
+  return jsonb_build_object('summarised', n, 'ran_at', now());
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inquiry_is_demo(p_inquiry uuid)
  RETURNS boolean
  LANGUAGE sql

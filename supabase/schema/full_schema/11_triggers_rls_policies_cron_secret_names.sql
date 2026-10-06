@@ -610,6 +610,7 @@ ALTER TABLE public.inquiry_answer_corroboration ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_answer_document ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_answer_scope ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_cancellations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inquiry_conversation_summary ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_gate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_gate_required ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_intake ENABLE ROW LEVEL SECURITY;
@@ -1114,6 +1115,7 @@ CREATE POLICY os_owner_admin_read ON public.gl_journal AS PERMISSIVE FOR SELECT 
 CREATE POLICY gl_prior_period_adjustment_service_role_only ON public.gl_prior_period_adjustment AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY governance_sensitive_service_role_only ON public.governance_sensitive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.inquiries AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY inquiry_conversation_summary_service_only ON public.inquiry_conversation_summary AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY intake_trade_taxonomy_service_role_only ON public.intake_trade_taxonomy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY invite_placement_check_service_role_only ON public.invite_placement_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_access_known_service_role_only ON public.it_access_known AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1310,7 +1312,7 @@ CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO
 CREATE POLICY writer_seat_service_role_only ON public.writer_seat AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 
 -- ===== CRON JOBS =====
-
+select cron.schedule('inquiry_conversation_summary_daily','40 23 * * *',$CRON$select public.fn_inquiry_conversation_summary_run(50);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
