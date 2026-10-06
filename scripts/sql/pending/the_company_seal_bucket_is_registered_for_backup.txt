@@ -1,0 +1,1 @@
+Committed, not applied (it_engineer, 6 Oct 2026). Registers the private company-seal bucket (created by hand on 5 Oct for #1246) in fn_backup_source_registry so the storage sweep backs it up. The release train applies it at merge, then this note goes and the file joins the end of MANIFEST.txt.

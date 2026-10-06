@@ -54,7 +54,10 @@ test('a paused or rejected approval is written to the register and raises a find
   assert.match(src, /approved_at: null, rejection_reason: x\.reason/);
   assert.match(src, /wasApproved\.has\(x\.sid\) \|\| \(x\.status === 'missing' && tracked\.has\(x\.sid\)\)\) && x\.status !== 'approved'/);
   // an HTTP code is never written as a status (6 Oct 2026: six register rows read "404")
-  assert.match(src, /r\.status === 404 \? 'missing'/);
+  // the read lives in verdict.ts since #1252; the watcher must go through it
+  assert.match(src, /twilioVerdict\(r\.status, j\)/);
+  const verdict = readFileSync(new URL('../../supabase/functions/wa_templates_watch/verdict.ts', import.meta.url), 'utf8');
+  assert.match(verdict, /httpStatus === 404\) return \{ status: 'missing'/);
   assert.doesNotMatch(src, /j\?\.whatsapp\?\.status \|\| j\?\.status/);
   assert.match(src, /rpc\('fn_it_engineer_finding_upsert'/);
 });
