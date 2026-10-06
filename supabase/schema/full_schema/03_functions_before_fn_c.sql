@@ -9740,6 +9740,24 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ai_cost_log_e2e_run_tag()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_tag text;
+begin
+  v_tag := coalesce(new.e2e_run_tag, public.fn_e2e_run_tag_current());
+  if v_tag is not null and not coalesce(public.fn_e2e_run_tag_open(v_tag), false) then v_tag := null; end if;
+  new.e2e_run_tag := v_tag;
+  return new;
+exception when others then
+  new.e2e_run_tag := null;   -- the cost record is never lost to a malformed header
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ai_quality_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
