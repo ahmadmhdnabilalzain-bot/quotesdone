@@ -9179,6 +9179,10 @@ declare
   v_model   text := nullif(btrim(coalesce(p_model, '')), '');
   v_reg     boolean;
   v_open    timestamptz;
+  v_tag     text;
+  v_cap     numeric;
+  v_spent   numeric;
+  v_rehearsal boolean := false;
 begin
   -- An EMPTY STRING is not a deterministic path, it is a caller that did not say. Denied, with its
   -- own rule name, because "I passed you nothing" and "I am not calling a provider" are different
@@ -9195,6 +9199,25 @@ begin
   if v_model is null or v_model in ('none', 'none/deterministic') then
     return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
       'rule', 'deterministic_path', 'reason', 'no provider call is being made', 'model', p_model);
+  end if;
+
+  -- 0. A SANDBOX RUN'S CALL (ledger 1119). Untagged traffic skips this block entirely.
+  v_tag := public.fn_e2e_run_tag_current();
+  if v_tag is not null then
+    if not coalesce(public.fn_e2e_run_tag_open(v_tag), false) then
+      return jsonb_build_object('allowed', false, 'gate', 'kernel_k12', 'rule', 'rehearsal_window_closed',
+        'reason', 'the call carries sandbox run tag ' || left(v_tag, 16) || ' but no open, unexpired, model-enabled rehearsal window names it',
+        'model', v_model);
+    end if;
+    select w.cap_usd into v_cap from public.rehearsal_window w
+     where w.run_tag = 'qd_run:' || v_tag and w.ended_at is null order by w.started_at desc limit 1;
+    select coalesce(sum(cost_aed), 0) / 3.6725 into v_spent from public.ai_cost_log where e2e_run_tag = v_tag;
+    if v_spent >= v_cap then
+      return jsonb_build_object('allowed', false, 'gate', 'kernel_k12', 'rule', 'rehearsal_cap',
+        'reason', 'sandbox run ' || v_tag || ' has spent USD ' || round(v_spent, 4) || ' of its USD ' || v_cap || ' cap',
+        'model', v_model);
+    end if;
+    v_rehearsal := true;
   end if;
 
   -- 1. the explicit switch
@@ -9218,9 +9241,10 @@ begin
   end if;
 
   -- 3. the founder's hold, on ANY route. He held the whole estate on 15 Aug 2026; holding one route
-  --    and leaving the others open would not be what he asked for.
+  --    and leaving the others open would not be what he asked for. A sandbox run inside its open
+  --    window passes the hold; it does not lift it.
   select count(*) into v_held from public.llm_route_health where open_until is not null and open_until > now();
-  if v_held > 0 then
+  if v_held > 0 and not v_rehearsal then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
       'rule', 'founder_hold',
       'reason', v_held || ' of ' || v_routes || ' routes are held open-circuit until '
@@ -9236,13 +9260,23 @@ begin
       'reason', 'model ' || v_model || ' is not an active row in model_registry', 'model', v_model);
   end if;
 
-  -- 5. this route's own breaker
+  -- 5. this route's own breaker. For a sandbox run, a route held by the hold is not a breaker. Measured
+  --    6 Oct 2026: every route is held to 2126-08-15, with opened_reason either 'HELD BY THE FOUNDER' or
+  --    'held with the rest of the fleet'. A real breaker opens for cooldown_seconds (900). So 'held' is
+  --    read from the date (more than a year out), never from the reason text, which has two spellings.
   select open_until into v_open from public.llm_route_health where model_id = v_model;
-  if v_open is not null and v_open > now() then
+  if v_open is not null and v_open > now()
+     and not (v_rehearsal and v_open > now() + interval '365 days') then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
       'rule', 'route_open', 'reason', 'circuit open until ' || v_open::text, 'model', v_model);
   end if;
 
+  if v_rehearsal then
+    return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
+      'rule', 'rehearsal_window', 'reason', 'sandbox run ' || v_tag || ' inside its open window, USD '
+             || round(v_spent, 4) || ' of ' || v_cap || ' spent; the founder''s hold stays on for all other traffic',
+      'model', v_model);
+  end if;
   return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
     'rule', 'registered_breaker_closed', 'reason', 'switch off, no hold, route registered, breaker closed',
     'model', v_model);
