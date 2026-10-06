@@ -139,14 +139,26 @@ async function ratingTick(): Promise<unknown> {
 // SELECT and returns — 96 a day, sending nothing and consuming none of the daily send cap — and in
 // exchange `send_outbox has not run` becomes a sentence that is only true when something IS broken.
 // A heartbeat that beats only under load is not a heartbeat.
+// FOUR SWEEPS AT ONCE (it_engineer, 6 Oct 2026). One sweep of 4 a beat is 16 PDFs an hour; on 5 Oct
+// the supplier invitation run sent 106 mails at 18:38 UTC and 27 messages were still without a PDF
+// past the 2-hour line every_conversation_is_kept checks. A sweep cannot take more (5 is the
+// renderer's per-worker ceiling), so four run in parallel, each in its own worker, over disjoint
+// slices of the oldest-first list: 64 an hour for the same wall time. An empty slice is one SELECT.
+const ARCHIVE_SWEEPS = 4, ARCHIVE_BATCH = 4;
 async function archiveTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
-    const r = await fetch(FN + '/conversation_archive', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-      body: JSON.stringify({ __secret: secret, action: 'sweep', limit: 4 }), signal: AbortSignal.timeout(50000),
-    });
-    return { status: r.status, result: await r.json().catch(() => null) };
+    const one = async (offset: number) => {
+      try {
+        const r = await fetch(FN + '/conversation_archive', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal: AbortSignal.timeout(50000),
+        });
+        return { offset, status: r.status, result: await r.json().catch(() => null) };
+      } catch (e) { return { offset, ok: false, error: String((e as Error)?.message || e) }; }
+    };
+    const sweeps = await Promise.all(Array.from({ length: ARCHIVE_SWEEPS }, (_, i) => one(i * ARCHIVE_BATCH)));
+    return { status: (sweeps[0] as { status?: number }).status, result: (sweeps[0] as { result?: unknown }).result, sweeps };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 

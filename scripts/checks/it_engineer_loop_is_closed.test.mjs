@@ -44,16 +44,36 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { manifestWithPending, manifestLines } from '../lib/pending_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
+
+// THE REGISTER AS IT WILL BE, NOT ONLY AS IT IS (it_engineer, ceo, 6 Oct 2026). Tests 1 and 2 read
+// public.seat_handoff_kind. A committed-but-unapplied file that changes that register (a scripts/sql/pending
+// note) is replayed first, inside one rolled-back request (safe_replay), and the same query or probe runs after
+// it in that request - so a PR is measured against the rows it will apply, and a PR that registers a one-way
+// conversation fails here before it reaches main. The assertions are the same either way.
+const REPO = fileURLToPath(new URL('../..', import.meta.url));
+const applied = new Set(manifestLines());
+const PENDING_REGISTER = manifestWithPending().filter((f) => !applied.has(f))
+  .map((f) => readFileSync(join(REPO, f), 'utf8')).filter((t) => /seat_handoff_kind/.test(t));
+const withPending = (tail) => [...PENDING_REGISTER, tail].join('\n;\n');
+async function rows(query) {
+  return PENDING_REGISTER.length ? replaySql(withPending(query), { rows: true, label: 'pending seat_handoff_kind' }) : sql(query);
+}
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 // Runs a block that must end in `raise exception 'CHK<<json>>'` and returns the parsed json.
-async function probe(body) {
+async function probe(body, { pending = false } = {}) {
   try {
-    await sql(`do $p$ ${body} $p$;`);
+    const block = `do $p$ ${body} $p$;`;
+    if (pending && PENDING_REGISTER.length) await replaySql(withPending(block), { label: 'pending seat_handoff_kind' });
+    else await sql(block);
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));
@@ -66,15 +86,22 @@ async function probe(body) {
 // receiver completes its step and a delivery.result conversation carries the outcome back to the
 // it_engineer, which checks it (fn_originator_checks_delivery).
 test('every conversation the it_engineer starts has a reply window and comes back to it', { skip: SKIP }, async () => {
-  const types = await sql(`select k.type, k.to_seat, k.reply_within::text reply_within, k.originator_closes,
+  const types = await rows(`select k.type, k.to_seat, k.reply_within::text reply_within, k.originator_closes,
                                   exists (select 1 from public.seat_handoff_kind r
                                            where r.type = 'delivery.result' and r.from_seat = k.to_seat
-                                             and r.to_seat = 'it_engineer') result_comes_back
+                                             and r.to_seat = 'it_engineer') result_comes_back,
+                                  exists (select 1 from public.seat_handoff_kind r
+                                           where r.type = 'ceo.decision_closed' and r.from_seat = k.to_seat
+                                             and r.to_seat = 'it_engineer') decision_comes_back
                              from public.seat_handoff_kind k
                             where k.from_seat = 'it_engineer' order by 1, 2`);
   assert.ok(types.length > 0, 'fn_seat_handoff_types lists no it_engineer conversation at all');
+  // A third shape (founder_instruction 1059, a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql):
+  // ceo.decision_owed is closed by the CEO's decision, which can only be replace or withdraw, and every such decision
+  // goes back to the originating seat as ceo.decision_closed with its reasons. It counts only while that return exists.
   const bad = types.filter((t) => !t.reply_within || !(t.originator_closes === true
-    || (t.type === 'delivery.request' && t.result_comes_back === true)));
+    || (t.type === 'delivery.request' && t.result_comes_back === true)
+    || (t.type === 'ceo.decision_owed' && t.decision_comes_back === true)));
   assert.deepEqual(bad, [], 'it_engineer conversations without a reply window, or that the receiver can close with nothing coming back');
 });
 
@@ -105,7 +132,7 @@ test('a receiving seat cannot close an it_engineer handoff; the it_engineer can'
         if found then closed := closed + 1; end if;
       end loop;
       raise exception 'CHK<<%>>', json_build_object('conversations', n, 'refused', refused, 'originator_closed', closed);
-    end`);
+    end`, { pending: true });
   assert.ok(r.conversations > 0);
   assert.equal(r.refused, r.conversations, 'a receiving seat closed an it_engineer handoff');
   assert.equal(r.originator_closed, r.conversations, 'the it_engineer could not close its own handoff');

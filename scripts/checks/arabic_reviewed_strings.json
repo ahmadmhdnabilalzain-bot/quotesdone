@@ -1,4 +1,11 @@
 {
+ "scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql": [
+  "014ff0cd3cb4",
+  "157e9ef57506",
+  "64d677e419b0",
+  "b4df49975269",
+  "dc9917268801"
+ ],
  "scripts/sql/the_ladder_notices_quote_the_clause_33_the_supplier_signed_not_the_v12_figures.sql": [
   "1412493dad3a",
   "3039920eee7e",
@@ -3091,7 +3098,9 @@
   "fc644b0eb14a",
   "fe7e984490db",
   "fed9f6096feb",
-  "ff0cc7c9de41"
+  "ff0cc7c9de41",
+  "bc8c5d7ef013",
+  "f3635fc2a79c"
  ],
  "src/components/me/quoteExpiry.ts": [
   "124fb2c05c50",
@@ -6367,5 +6376,8 @@
   "a5cba62f3cdc",
   "d7028cd29b51",
   "d9a9b884d813"
+ ],
+ "supabase/functions/_shared/customer_terms.ts": [
+  "bb6521bace53"
  ]
 }
