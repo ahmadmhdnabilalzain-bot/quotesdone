@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-06T02:35:32.287Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-06T02:42:20.513Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7242,7 +7242,7 @@ CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
   subject jsonb,
   reason text NOT NULL,
   status text DEFAULT 'held'::text NOT NULL,
-  expires_at timestamp with time zone,
+  expires_at timestamp with time zone DEFAULT (now() + '14 days'::interval),
   attempts integer DEFAULT 0 NOT NULL,
   last_attempt_at timestamp with time zone,
   result jsonb,
