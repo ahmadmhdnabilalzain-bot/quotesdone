@@ -33,7 +33,7 @@ export const rowText = (title: string | null, body: string | null): string =>
 // Arabic questions (412 pack x seat pairs, multilingual space alone): recall@5 0.959 with the marks, 0.974 without,
 // pairs under 0.35 8 -> 5. Letter folding as well (alef forms, alef maqsura, teh marbuta: fn_ar_norm's fold) was
 // measured too and LOWERED it to 0.934 (13 pairs), so only the marks go. English and digits are untouched.
-const AR_MARKS = /[ً-ٰٟـ]/g;
+const AR_MARKS = /[\u064B-\u065F\u0670\u0640]/g;
 export const mlClean = (t: string): string => String(t ?? '').replace(AR_MARKS, '');
 /** The text a question (or a case situation) is embedded from in the ml space. */
 export const mlQueryText = (t: string): string => ML_QUERY_PREFIX + mlClean(String(t ?? '').trim().slice(0, 2000));
@@ -46,7 +46,7 @@ export const mlRowText = (src: string, title: string | null, body: string | null
 // weight: on the market packs' Arabic questions the fused path read 0.891 against 0.964 for the multilingual space
 // alone (English: 0.998 fused, 0.990 alone, so English keeps the fusion). The rule reads the SCRIPT, never a word:
 // a question whose letters are mostly Arabic gets no gte vector, and the routine ranks it by the multilingual space.
-const AR_LETTER = /[ء-يٮ-ۓۺ-ۿ]/g;
+const AR_LETTER = /[\u0621-\u064A\u066E-\u06D3\u06FA-\u06FF]/g;
 const LATIN_LETTER = /[A-Za-z]/g;
 export const gteReads = (t: string): boolean => {
   const s = String(t ?? '');

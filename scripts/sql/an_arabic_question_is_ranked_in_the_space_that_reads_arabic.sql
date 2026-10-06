@@ -147,10 +147,10 @@ end $fn$;
 delete from public.knowledge_vector_ml v
  using public.v_knowledge_ml_source s
  where s.src = v.src and s.row_id = v.row_id and s.src <> 'kb_chunks'
-   and coalesce(s.title, '') || coalesce(s.body, '') ~ '[ً-ٰٟـ]';
+   and coalesce(s.title, '') || coalesce(s.body, '') ~ '[\u064B-\u065F\u0670\u0640]';
 
 update public.seat_knowledge_eval_question set embedding_ml = null
- where embedding_ml is not null and question ~ '[ً-ٰٟـ]';
+ where embedding_ml is not null and question ~ '[\u064B-\u065F\u0670\u0640]';
 
 select case when position('case when q.lang = ''ar'' then null' in pg_get_functiondef('public.fn_it_engineer_knowledge_recall_exam()'::regprocedure)) > 0
             then 'PROBE OK' else 'PROBE FAILED: the exam still sends gte-small an Arabic question' end as verdict;
