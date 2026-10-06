@@ -390,16 +390,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -570,6 +560,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -2695,11 +2695,16 @@ begin
   ), due as (
     select h.id from public.reasoning_held_question h
      where h.id in (select id from lead where last_attempt_at is null or last_attempt_at < now() - interval '10 minutes')
-     order by h.last_attempt_at nulls first, h.created_at
+     -- 6 Oct: the NEWEST due question first; a retry (last_attempt_at set) still waits its 10 minutes, then goes
+     -- behind untried rows exactly as before, so it is never starved past its three tries.
+     order by h.last_attempt_at nulls first, h.created_at desc
      limit greatest(1, least(coalesce(p_limit, 3), 10))
      for update skip locked
   ), claimed as (
-    update public.reasoning_held_question h set attempts = h.attempts + 1, last_attempt_at = now()
+    -- 6 Oct: the first claim starts the 14-day clock (a question waits out the hold without ageing)
+    update public.reasoning_held_question h set attempts = h.attempts + 1, last_attempt_at = now(),
+           expires_at = case when h.attempts = 0 and h.surface not like 'site_assistant.%'
+                             then now() + interval '14 days' else h.expires_at end
       from due where h.id = due.id
     returning h.id, h.seat, h.surface, h.request, h.subject
   )
@@ -2743,6 +2748,40 @@ begin
                                               'subject', m.subject, 'status', m.status)), '[]'::jsonb)
     into v from marked m where (select count(*) from filed) >= 0;
   return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_held_expire(p_ids bigint[], p_by text, p_why text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n_exp int; n_handoff int;
+begin
+  with gone as (
+    update public.reasoning_held_question h
+       set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
+     where h.id = any(p_ids) and h.status = 'held'
+    returning h.id, h.seat, h.surface, h.question, h.subject, h.created_at,
+              coalesce(h.request -> 'context' ->> 'audience', '') audience
+  ), filed as (
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    select g.seat, 'held_question_expired', 'pending', 'low',
+           left('A ' || coalesce(nullif(g.audience, ''), 'person-facing') || ' question on ' || g.surface
+                || ' expired unanswered: reply through the deterministic path', 200),
+           jsonb_build_object('held_id', g.id, 'surface', g.surface, 'audience', g.audience,
+                              'question', left(g.question, 1000), 'subject', g.subject, 'held_since', g.created_at,
+                              'why_expired', p_why,
+                              'needed', 'the person who asked still gets a reply: send the deterministic answer for this '
+                                        || 'surface, or answer by hand; the model will not be asked this question again'),
+           'reasoning_held_question', g.id::text
+      from gone g
+     where g.audience <> 'internal'
+    returning id
+  )
+  select (select count(*) from gone), (select count(*) from filed) into n_exp, n_handoff;
+  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff);
 end $function$
 
 
@@ -2878,6 +2917,9 @@ declare
   v_uuid constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
   n_failed int; n_fixture int; n_gone int; n_stale int; n_dup_failed int; n_pm int;
   x constant text := 'fn_reason_held_sweep';
+  -- 6 Oct: under the founder's hold a held question never expires by age (the hold is what keeps it waiting)
+  v_held boolean := coalesce(public.fn_kernel_paid_provider_gate('hold-probe/not-a-model') ->> 'rule', '')
+                      in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state');
 begin
   -- One sweep at a time: replayHeld and fn_reason_held_due both call it, and two ticks may overlap.
   if not pg_try_advisory_xact_lock(hashtext('fn_reason_held_sweep')) then
@@ -2915,8 +2957,17 @@ begin
      set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', x,
            'why', 'a visitor chat past its hour: the visitor has gone, a late answer reaches nobody')
    where status = 'held'
-     and (expires_at < now() or (surface like 'site_assistant.%' and created_at < now() - interval '1 hour'));
+     and surface like 'site_assistant.%' and (expires_at < now() or created_at < now() - interval '1 hour');
   get diagnostics n_stale = row_count;
+
+  -- 6 Oct: anything else ages out only with the model open, only after its first attempt started its 14-day clock,
+  -- and through fn_reason_held_expire, so a customer or supplier still waiting is handed to the seat, never dropped.
+  if not v_held then
+    n_stale := n_stale + coalesce((public.fn_reason_held_expire(
+      array(select id from public.reasoning_held_question
+             where status = 'held' and surface not like 'site_assistant.%' and attempts > 0 and expires_at < now()),
+      x, 'held 14 days after its first attempt with the model open: its moment has passed') ->> 'expired')::int, 0);
+  end if;
 
   -- A FAILED QUESTION TAKES ITS WAITING DUPLICATES WITH IT (R3): the same hash is not tried three more times.
   update public.reasoning_held_question h
@@ -2972,7 +3023,8 @@ begin
   insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, qhash, expires_at)
   values (p_seat, p_surface, left(p_question, 8000), p_request, coalesce(p_plan, '{}'::jsonb), p_subject, p_reason, p_dedupe_key, v_hash,
           -- A VISITOR'S CHAT IS ANSWERED WHILE THE VISITOR IS THERE, OR NOT AT ALL.
-          case when p_surface like 'site_assistant.%' then now() + interval '1 hour' end)
+          -- 6 Oct: every other question lives 14 days (it can only expire while a model may run; see the sweep).
+          case when p_surface like 'site_assistant.%' then now() + interval '1 hour' else now() + interval '14 days' end)
   on conflict (dedupe_key) do update set reason = excluded.reason, plan = excluded.plan
    where reasoning_held_question.status = 'held'   -- a failed or expired row stays closed (R3)
   returning id into v_id;
