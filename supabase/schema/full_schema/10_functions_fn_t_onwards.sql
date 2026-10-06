@@ -7138,6 +7138,60 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.pdpl_cancel_me(p_request uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email();
+begin
+  if v_em is null or not exists (select 1 from public.pdpl_requests where id = p_request and email = v_em) then
+    return jsonb_build_object('ok', false, 'code', 'not_yours');
+  end if;
+  return public.fn_pdpl_cancel(p_request, 'self_service');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.pdpl_confirm_me(p_request uuid, p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email();
+begin
+  if v_em is null or not exists (select 1 from public.pdpl_requests where id = p_request and email = v_em and kind = 'delete') then
+    return jsonb_build_object('ok', false, 'code', 'not_yours');
+  end if;
+  return public.fn_pdpl_verify(p_request, p_code, 'self_service');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.pdpl_request_me(p_kind text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email(); v_id uuid;
+begin
+  if v_em is null then
+    return jsonb_build_object('ok', false, 'code', 'email_not_verified',
+      'message', 'Verify your email address in your account first.', 'message_ar', 'يُرجى توثيق بريدكم الإلكتروني في حسابكم أولًا.');
+  end if;
+  if p_kind not in ('export', 'delete') then return jsonb_build_object('ok', false, 'code', 'bad_kind'); end if;
+  -- ERASE NEEDS A SECOND VERIFIED ACTION: a code is emailed and the clock starts only at pdpl_confirm_me.
+  if p_kind = 'delete' then
+    return public.fn_pdpl_open(v_em, 'delete', 'self_service') || jsonb_build_object('next', 'pdpl_confirm_me(request_id, code)');
+  end if;
+  insert into public.pdpl_requests (kind, email, role, details, status, verified_via, verified_at, handled_by)
+  values (p_kind, v_em, 'self_service', 'signed-in, email verified by code', 'received', 'session+email_verified', now(), 'self_service')
+  returning id into v_id;
+  return public.fn_pdpl_carry_out(v_id);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.qd_project_ref()
  RETURNS text
  LANGUAGE plpgsql
