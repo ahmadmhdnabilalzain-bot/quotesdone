@@ -33,7 +33,12 @@ import { liveDuties, probeDuty } from './stage2_duties.mjs';
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const MODE = ['--dry-run', '--run', '--cleanup-only', '--verify-clean'].find((m) => argv.includes(m));
-if (!MODE) { console.error('usage: --dry-run | --run | --cleanup-only --tag <t> | --verify-clean --tag <t>'); process.exit(2); }
+if (!MODE) { console.error('usage: --dry-run | --run [--keep] | --cleanup-only --tag <t> | --verify-clean --tag <t>'); process.exit(2); }
+// --keep (with --run): the founder's browser walk reuses this run's demo data. The models are switched off
+// and the rehearsal window is CLOSED exactly as in a normal run; only the demo rows and the tag are kept.
+// Remove them later with --cleanup-only --tag <t>.
+const KEEP = argv.includes('--keep');
+if (KEEP && MODE !== '--run') { console.error('REFUSED: --keep only applies to --run'); process.exit(2); }
 // USD 4 per rehearsal window (review of #1230). The DATABASE enforces it: fn_kernel_paid_provider_gate
 // refuses every further call tagged with this run once ai_cost_log holds cap_usd of them. The script
 // checks it as well, between and after scenarios. rehearsal_window_cap_is_small allows at most USD 15.
@@ -300,7 +305,7 @@ async function realRun(pre) {
           : [`${t.name} for a villa in ${cu.cfg.emirate}. Line 1: ${t.products[0]} x 20. Line 2: ${t.products[1]} x 10. Line 3: ${t.products[2]} x 5.`, 'Sizes: line 1 is 1200 x 1500 mm; for lines 2 and 3 I am not sure, please advise the standard.', 'Supply and install, within six weeks, ground and first floor.', `Brand: ${t.brands?.[0] || 'not sure'}; grade: not sure, standard commercial.`];
         const w0 = await costWatermark();
         const it = await runIntake(cu, answers);
-        const inq = (await read(`select id, status, trades, locale, emirate from public.inquiries where customer_id=${q(cu.customerId)} order by created_at desc limit 1`))[0];
+        const inq = (await read(`select id, status, trades, lang, emirate from public.inquiries where customer_id=${q(cu.customerId)} order by created_at desc limit 1`))[0];
         if (inq) { run.ids.inquiries.add(String(inq.id)); fx.inq[`${cu.cfg.label}:${trade}`] = { ...inq, cu, trade }; }
         const route = (await costSince(w0)).map((r) => `${r.task_class}:${r.model_used}`).join(' ');
         A(`${cu.cfg.label} ${cu.cfg.locale} ${trade} in ${cu.cfg.emirate}: interview reached ready and became a request`, it.status === 'ready' && !!inq, `turns=${it.turns} readiness=${it.readiness} missing=${it.missing.join('|')} inquiry=${inq?.id} status=${inq?.status}`, route);
@@ -490,11 +495,12 @@ async function realRun(pre) {
           A(`page ${it.id} renders`, r.status() === 200 && errs.length === 0, `HTTP ${r.status()} console errors ${errs.length}`);
         }
         for (const [who, lang] of [[fx.customers[0], 'en'], [fx.customers[1], 'ar'], [fx.suppliers[0], 'en'], [fx.suppliers[0], 'ar']]) {
-          const p = await signedInPage(browser, who, { lang });
+          // signedInPage returns { ctx, page, ... } (browser.mjs), not a page; the run of 7 Oct died on p.$$eval.
+          const { ctx, page: p } = await signedInPage(browser, who, { lang });
           const tabs = await p.$$eval('nav [data-nav-id], nav button[id]', (els) => els.map((e) => e.getAttribute('data-nav-id') || e.id)).catch(() => []);
           A(`${who.kind} ${lang}: portal tabs found`, tabs.length > 0, tabs.join(','));
           for (const t of tabs) { await p.click(`[data-nav-id="${t}"], #${t}`).catch(() => {}); await p.waitForTimeout(800); }
-          await p.context().close();
+          await ctx.close();
         }
       } finally { await browser.close(); }
     },
@@ -629,7 +635,23 @@ async function cleanupAll(tag, manifest) {
   // run's unique marker. The tag is 8 random hex characters; no real row contains 'qd-<tag>-' or
   // 'ZZ DEMO <tag>'. Up to three passes, because a child row can block its parent's delete.
   const swept = {};
-  const mk = (x) => [`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`].map((m) => `${x}::text like ${q('%' + m + '%')}`).join(' or ');
+  // The last marker is ai_gateway's blocked-call line in agent_runs / os_audit_log, which names the tag only
+  // inside fn_ai_subject_is_fixture's phrase; the exact phrase with the tag cannot match another run's row.
+  const mk = (x) => [`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`, `an identity of harness run ${tag} (opened in rehearsal_window)`]
+    .map((m) => `${x}::text like ${q('%' + m.replace(/[\\%_]/g, '\\$&') + '%')}`).join(' or ');
+  // SUPPORT CASES FIRST (tag b12d9559 left 30 rows, 7 Oct 2026): support_case carries no run marker of its own,
+  // only customer_profile_id, so the profile (which carries the run's email) was refused by the FK. Delete the
+  // run's cases, and their children, through the run's profiles before the sweep reaches the profiles.
+  try {
+    const cases = `(select c.case_id from public.support_case c join public.support_customer_profile p on p.id = c.customer_profile_id where ${mk('p')})`;
+    const r = await write(`with
+      f as (delete from public.feedback where case_id in ${cases} or profile_id in (select id from public.support_customer_profile p where ${mk('p')}) returning 1),
+      i as (delete from public.support_document_intake where case_id in ${cases} returning 1),
+      n as (delete from public.support_notification where case_id in ${cases} returning 1),
+      c as (delete from public.support_case where case_id in ${cases} and not exists (select 1 from public.refund_case rc where rc.case_id = support_case.case_id) returning 1)
+      select (select count(*) from c)::int n`, 'stage2 support cases');
+    swept.support_case = r?.[0]?.n ?? 0;
+  } catch (e) { swept.support_case = 'ERROR ' + String(e.message).slice(0, 100); }
   let v = await verifyClean(tag, manifest?.ids || {});
   for (let pass = 0; pass < 3 && v.found.length; pass++) {
     for (const f of v.found) {
@@ -702,8 +724,13 @@ finally {
   if (RUN_TAG) {
     await write(`update public.rehearsal_window set models_allowed = false where run_tag = ${q('qd_run:' + RUN_TAG)}`, 'stage2 window: models off').catch(() => {});
     const mp = join(OUT, 'run_manifest.json');
-    try { clean = await cleanupAll(RUN_TAG, existsSync(mp) ? JSON.parse(readFileSync(mp, 'utf8')) : null); }
-    catch (e) { clean = { error: String(e.message), verify: { clean: false } }; }
+    if (KEEP) {
+      try { await closeRun(newRun({ tag: RUN_TAG, quiet: true }), { keep: true }); clean = { kept: true, tag: RUN_TAG, verify: { clean: true, kept: true } }; }
+      catch (e) { clean = { kept: true, error: String(e.message), verify: { clean: false } }; }
+    } else {
+      try { clean = await cleanupAll(RUN_TAG, existsSync(mp) ? JSON.parse(readFileSync(mp, 'utf8')) : null); }
+      catch (e) { clean = { error: String(e.message), verify: { clean: false } }; }
+    }
     save(`cleanup_${RUN_TAG}.json`, clean);
   }
 }
@@ -714,5 +741,5 @@ writeIndex({ scenarios: scen.map((s) => ({ ...s, ...(res.scenarioRows.find((r) =
   spend: { estimate_usd: estUsd, measured_usd: res.spentUsd }, mode: res.aborted ? 'run (ABORTED: ' + res.aborted + ')' : 'run', tag: res.tag,
   steps: [...res.steps, { scenario: 'cleanup', name: '0 rows of this run remain in every registry table, storage and auth', ok: !!clean.verify?.clean, detail: JSON.stringify(clean.verify).slice(0, 400) }] });
 const fails = res.steps.filter((s) => !s.ok).length;
-log(`\nSTAGE 2 ${fails ? fails + ' FAILED' : 'all passed'} · spend USD ${res.spentUsd.toFixed(3)} · cleanup ${clean.verify?.clean ? 'verified clean' : 'NOT CLEAN - run --cleanup-only --tag ' + res.tag} · ${join(OUT, 'INDEX.html')}`);
+log(`\nSTAGE 2 ${fails ? fails + ' FAILED' : 'all passed'} · spend USD ${res.spentUsd.toFixed(3)} · cleanup ${clean.kept ? 'KEPT (--keep): window closed, demo data and tag ' + res.tag + ' kept; remove with --cleanup-only --tag ' + res.tag : clean.verify?.clean ? 'verified clean' : 'NOT CLEAN - run --cleanup-only --tag ' + res.tag} · ${join(OUT, 'INDEX.html')}`);
 process.exit(fails || !clean.verify?.clean ? 1 : 0);
