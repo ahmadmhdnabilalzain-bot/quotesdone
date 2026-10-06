@@ -13,7 +13,9 @@
 // are English only), and controls that are unnamed or dead. Every page gets a screenshot; every journey
 // a video.
 //
-// NOTHING REACHES A PERSON. Public pages are read only; the contact form is filled but never submitted.
+// NOTHING REACHES A PERSON. Public pages are read only; the contact form, the job box and the support chat
+// are filled but NEVER submitted (no anonymous model call, no untagged row). Journeys and portal walks run
+// only through sandboxGate(): the stage-2 run tag, its open models_allowed window, and its own identities.
 // Portal walks use ONLY identities on @example.invalid (refused otherwise); a session for an existing
 // demo user is obtained by the Auth admin API setting a fresh password on THAT demo user, which sends
 // nothing. Builds on browser.mjs (signedInPage, shot, realErrors) rather than beside it.
@@ -202,11 +204,10 @@ async function homeExtras(page, bag, dir, rep, J, lang) {
     await page.waitForTimeout(500);
     const go = page.getByRole('button').filter({ hasText: lang === 'ar' ? /افحص|تحقق|ابدأ|اطلب|أرسل|التالي|عروض/ : /check my job|check|start|next|continue/i }).first();
     if (!(await go.count())) return [false, 'no button next to the job box'];
-    const before = page.url();
-    await go.click(); await page.waitForTimeout(4000);
-    const txt = (await page.locator('body').innerText()).slice(0, 4000);
-    const moved = page.url() !== before;
-    return [moved || /aluminium|ألمنيوم|trade|sign|تسجيل|email|بريد/i.test(txt), `pressed "${(await go.innerText()).trim().slice(0, 40)}"; url ${moved ? 'changed to ' + page.url() : 'unchanged'}`];
+    // STOPS BEFORE SUBMIT (review of #1270): an anonymous press on production can reach a model and write a
+    // row no run tag covers. Asserted: the box takes text and the button is present and enabled.
+    const enabled = await go.isEnabled();
+    return [enabled, `filled; "${(await go.innerText()).trim().slice(0, 40)}" present, enabled: ${enabled} — NOT pressed`];
   });
   await step('support_chat', async () => {
     await page.goto(SITE + (lang === 'ar' ? '/ar' : ''), { waitUntil: 'load' });
@@ -216,11 +217,9 @@ async function homeExtras(page, bag, dir, rep, J, lang) {
     const input = page.locator('textarea:visible, input[type=text]:visible').last();
     if (!(await input.count())) return [false, 'chat opened but no input'];
     await input.fill(lang === 'ar' ? 'كيف تعمل الخدمة؟' : 'How does QuotesDone work?');
-    await input.press('Enter');
-    await page.waitForTimeout(15000);
-    const body = await page.locator('body').innerText();
-    const ar = (body.match(/[\u0600-\u06FF]+/g) || []).length;
-    return [true, `asked; ${lang === 'ar' ? 'arabic words on page after reply: ' + ar : 'reply waited 15 s'}`];
+    // STOPS BEFORE SEND (review of #1270): an anonymous visitor's question is a live model call outside any
+    // tagged window. Reply quality is measured by the support scenario suite, not here.
+    return [await input.isEditable(), 'opened; question typed — NOT sent (no model call outside a sandbox window)'];
   });
 }
 
@@ -294,8 +293,12 @@ async function walkPortal(browser, who, view, lang) {
 }
 
 async function walkPortals(browser, idsFile) {
-  const ids = JSON.parse(readFileSync(idsFile, 'utf8'));   // [{kind:'customer'|'supplier', email, label}]
-  for (const w of ids) {
+  // { tag, walk:[{kind:'customer'|'supplier', email, label}] } — read-only tab walk, still the run's identities only.
+  const ids = JSON.parse(readFileSync(idsFile, 'utf8'));
+  const closed = await sandboxGate({ tag: ids.tag, ...Object.fromEntries((ids.walk || []).map((w, i) => ['w' + i, w])) }) ||
+    ((ids.walk || []).some((w) => !new RegExp(`^qd-${ids.tag}-`, 'i').test(w.email)) ? 'identities not of run ' + ids.tag : null);
+  if (closed) { console.log('SKIP portals — ' + closed); return; }
+  for (const w of ids.walk) {
     const newSession = await demoSessionFactory(w.email);
     const who = { ...w, newSession };
     for (const view of ['desktop', 'mobile']) for (const lang of w.kind === 'supplier' ? ['en'] : ['en', 'ar']) {
@@ -336,16 +339,30 @@ async function customerJourney(browser, w, lang, view) {
   // 1. Terms re-accept inline prompt: put THIS demo customer one version behind, then send a request.
   await jstep(rep, J, page, dir, 'terms re-accept inline prompt', async () => {
     const cur = (await read(`select value from public.app_secrets where key='customer_terms_version'`))[0]?.value;
-    await write(`update public.customers set tos_version = 'v1' where email = ${sq(w.email)} and is_demo`, 'walk: terms one version behind (demo only)');
-    await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(3000);
-    const box = page.locator('textarea:visible').first();
-    await box.fill(lang === 'ar' ? 'ZZ DEMO: أحتاج دهان شقة غرفتين في دبي' : 'ZZ DEMO: paint a two-bedroom apartment in Dubai');
-    await box.press('Enter'); await page.waitForTimeout(6000);
-    const alert = page.locator('[role=alert]').filter({ has: page.locator('input[type=checkbox]') }).first();
-    if (!(await alert.isVisible().catch(() => false))) return [false, `no inline re-accept prompt after send (current terms ${cur})`];
-    await alert.locator('input[type=checkbox]').check(); await alert.getByRole('button').last().click(); await page.waitForTimeout(5000);
-    const now = (await read(`select tos_version from public.customers where email = ${sq(w.email)}`))[0]?.tos_version;
-    return [now === cur, `prompt shown, ticked and accepted; customers.tos_version now ${now} (want ${cur})`];
+    const orig = (await read(`select tos_version from public.customers where email = ${sq(w.email)} and is_demo`))[0]?.tos_version;
+    if (orig === undefined) return [false, 'refused: no demo customer row for ' + w.email];
+    let verdict;
+    try {
+      await write(`update public.customers set tos_version = 'v1' where email = ${sq(w.email)} and is_demo`, 'walk: terms one version behind (demo only)');
+      await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(3000);
+      const box = page.locator('textarea:visible').first();
+      await box.fill(lang === 'ar' ? 'ZZ DEMO: أحتاج دهان شقة غرفتين في دبي' : 'ZZ DEMO: paint a two-bedroom apartment in Dubai');
+      await box.press('Enter'); await page.waitForTimeout(6000);
+      const alert = page.locator('[role=alert]').filter({ has: page.locator('input[type=checkbox]') }).first();
+      if (!(await alert.isVisible().catch(() => false))) verdict = [false, `no inline re-accept prompt after send (current terms ${cur})`];
+      else {
+        await alert.locator('input[type=checkbox]').check(); await alert.getByRole('button').last().click(); await page.waitForTimeout(5000);
+        const now = (await read(`select tos_version from public.customers where email = ${sq(w.email)}`))[0]?.tos_version;
+        verdict = [now === cur, `prompt shown, ticked and accepted; tos_version after accept ${now} (want ${cur})`];
+      }
+    } finally {
+      // RESTORED WHATEVER HAPPENED (review of #1270), then read back: a demo customer left a version behind
+      // would make every later run meet the prompt for a reason this step created.
+      await write(`update public.customers set tos_version = ${sq(orig)} where email = ${sq(w.email)} and is_demo`, 'walk: restore tos_version (demo only)');
+    }
+    const back = (await read(`select tos_version from public.customers where email = ${sq(w.email)}`))[0]?.tos_version;
+    if (back !== orig) return [false, `${verdict?.[1] || ''}; RESTORE FAILED: tos_version ${back}, was ${orig}`];
+    return [verdict[0], `${verdict[1]}; restored to ${back} (verified)`];
   });
 
   // 2. Drawing/photo upload on a new request (spec questions incl. "not sure" follow in the chat).
@@ -457,8 +474,34 @@ async function supplierRegistration() {
   console.log('supplier registration walk exit', r.status);
 }
 
+/**
+ * THE SANDBOX GATE (review of #1270). Journeys send requests, attach drawings and pay reveals, so they can
+ * reach a model and write rows. They run ONLY on the stage-2 run's own data, inside its open window:
+ *   - ids.tag names the run; its rehearsal_window row is open, models_allowed, and not expired;
+ *   - every identity's email is that run's (qd-<tag>-…@example.invalid), so every row it writes carries the tag
+ *     and the run's cleanup removes it.
+ * Anything else is refused before a browser opens. Returns null when open, else the reason.
+ */
+export async function sandboxGate(ids) {
+  const tag = String(ids.tag || '');
+  if (!/^[0-9a-f]{8}$/.test(tag)) return 'ids.tag missing or not a run tag';
+  const who = ['customer', 'customerAr', 'supplier'].map((k) => ids[k]).filter(Boolean);
+  const bad = who.filter((w) => !new RegExp(`^qd-${tag}-[a-z]+\\d+@example\\.invalid$`, 'i').test(w.email));
+  if (bad.length) return 'identities not of run ' + tag + ': ' + bad.map((w) => w.email).join(', ');
+  const { read } = await import('./fixtures.mjs');
+  const r = await read(`select count(*)::int n from public.rehearsal_window where run_tag = ${sq('qd_run:' + tag)}
+                          and ended_at is null and models_allowed and expires_at > now()`);
+  return r[0]?.n > 0 ? null : `no open models_allowed window for qd_run:${tag}`;
+}
+
 async function walkJourneys(browser, idsFile) {
   const ids = JSON.parse(readFileSync(idsFile, 'utf8'));
+  const closed = await sandboxGate(ids);
+  if (closed) {
+    new Report('journeys_refused').add({ step: 'sandbox gate', status: 'SKIP', detail: closed, issues: [{ sev: 'low', what: 'journeys not run: ' + closed }] });
+    console.log('SKIP journeys — ' + closed);
+    return;
+  }
   for (const view of ['desktop', 'mobile']) {
     if (ids.customer) await customerJourney(browser, ids.customer, 'en', view).catch((e) => console.log('FAIL customer journey', e.message));
     if (ids.customerAr) await customerJourney(browser, ids.customerAr, 'ar', view).catch((e) => console.log('FAIL customerAr journey', e.message));
