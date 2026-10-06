@@ -63,7 +63,7 @@ jobs:
   # own anything.
   parity:
     name: the database is running what this repository says
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
@@ -210,7 +210,7 @@ jobs:
     concurrency:
       group: kernel-gate-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: false
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
