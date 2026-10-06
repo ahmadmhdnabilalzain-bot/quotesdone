@@ -1,0 +1,1 @@
+Applied at merge by the release train, never before (memory: apply at merge). Moves when PR merges: apply, then load_verified_packs --apply, deploy embed_ml + think bundles, run ml-embed-backfill, load_knowledge_eval_questions --ml.

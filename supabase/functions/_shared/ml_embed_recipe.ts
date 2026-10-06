@@ -27,6 +27,32 @@ export const TEXT_CUT = 1200;
 export const rowText = (title: string | null, body: string | null): string =>
   ((title ? String(title) + '\n' : '') + String(body ?? '')).slice(0, TEXT_CUT);
 
+// ARABIC MARKS ARE TAKEN OUT BEFORE THE MODEL SEES A TEXT, on BOTH sides (6 Oct 2026). Tashkeel (U+064B-U+065F),
+// the superscript alef (U+0670) and tatweel (U+0640) are optional in written Arabic: the same word arrives with
+// and without them, and the tokenizer cuts each spelling into different pieces. Measured on the market packs'
+// Arabic questions (412 pack x seat pairs, multilingual space alone): recall@5 0.959 with the marks, 0.974 without,
+// pairs under 0.35 8 -> 5. Letter folding as well (alef forms, alef maqsura, teh marbuta: fn_ar_norm's fold) was
+// measured too and LOWERED it to 0.934 (13 pairs), so only the marks go. English and digits are untouched.
+const AR_MARKS = /[ً-ٰٟـ]/g;
+export const mlClean = (t: string): string => String(t ?? '').replace(AR_MARKS, '');
+/** The text a question (or a case situation) is embedded from in the ml space. */
+export const mlQueryText = (t: string): string => ML_QUERY_PREFIX + mlClean(String(t ?? '').trim().slice(0, 2000));
+/** The text a knowledge row is embedded from in the ml space: a case is a query-side text, knowledge a passage. */
+export const mlRowText = (src: string, title: string | null, body: string | null): string =>
+  (src === 'seat_case_memory' ? ML_QUERY_PREFIX : ML_PASSAGE_PREFIX) + mlClean(rowText(title, body));
+
+// GTE-SMALL IS NOT ASKED ABOUT AN ARABIC QUESTION (6 Oct 2026). fn_reason_retrieve_ml fuses the multilingual space
+// with gte-small, an English-only model. For an Arabic question its vector is noise, and the fusion still gave it
+// weight: on the market packs' Arabic questions the fused path read 0.891 against 0.964 for the multilingual space
+// alone (English: 0.998 fused, 0.990 alone, so English keeps the fusion). The rule reads the SCRIPT, never a word:
+// a question whose letters are mostly Arabic gets no gte vector, and the routine ranks it by the multilingual space.
+const AR_LETTER = /[ء-يٮ-ۓۺ-ۿ]/g;
+const LATIN_LETTER = /[A-Za-z]/g;
+export const gteReads = (t: string): boolean => {
+  const s = String(t ?? '');
+  return (s.match(AR_LETTER)?.length ?? 0) <= (s.match(LATIN_LETTER)?.length ?? 0);
+};
+
 /** Where transformers.js fetches `model` from: ML_MODEL from this project's Storage, anything else from Hugging
  *  Face. Node callers (backfill, evals) assign it to transformers.js `env` before building a pipeline. */
 export const modelHost = (model: string, projectUrl: string): { remoteHost: string; remotePathTemplate: string } =>
