@@ -35,9 +35,10 @@
 --      touched: priority_complete_at is set once and fn_ml_read_space reads only it.
 --   c. Every exam question whose text carries a mark loses its embedding_ml, so it is re-made under the same recipe;
 --      until then the exam raises knowledge_recall:no_ml_vectors naming the command, as designed.
--- AT MERGE (the release operator): apply this file; node scripts/kb/load_verified_packs.mjs --apply (the 615 Arabic
--- titles); deploy embed_ml and every function that bundles think.ts; run the ml-embed-backfill workflow;
--- node scripts/kb/load_knowledge_eval_questions.mjs --ml.
+-- AT MERGE (the release operator), after #1255, IN THIS ORDER: (1) deploy embed_ml and every function that bundles
+-- think.ts FIRST - otherwise the old embed_ml tick re-embeds the deleted rows with the old recipe; (2) apply this file;
+-- (3) node scripts/kb/load_verified_packs.mjs --apply (the Arabic titles and bodies); (4) run the ml-embed-backfill
+-- workflow; (5) node scripts/kb/load_knowledge_eval_questions.mjs --ml.
 -- CREATE OR REPLACE keeps the exam routine's grants (service_role only). No begin/commit.
 -- prevented by: scripts/checks/an_arabic_question_is_ranked_in_the_space_that_reads_arabic.test.mjs
 
