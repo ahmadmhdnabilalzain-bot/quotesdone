@@ -1,3 +1,0 @@
-Committed, not applied: the release train applies it at merge (it_engineer, pre-launch security H1).
-login_otp calls public.fn_login_otp_email_verify (verify) and public.fn_login_otp_email_issue (send), so both must be live before
-the login_otp deploy that calls it. When applied, delete this note and append the file to the END of MANIFEST.txt.
