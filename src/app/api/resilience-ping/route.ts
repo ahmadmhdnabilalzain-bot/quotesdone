@@ -29,6 +29,7 @@ export const maxDuration = 180;
 import { SITE_ORIGINS } from '@/lib/domains';
 import { SUPA_URL } from '@/lib/supaEnv';
 import { isUp } from '@/lib/uptime';
+import { cronAuthorized } from '@/lib/cronAuth';
 
 const PING = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/resilience_ping';
 
@@ -70,11 +71,11 @@ async function recordUptime(checks: Check[]) {
 }
 
 export async function GET(req: Request) {
-  // Vercel signs cron invocations with CRON_SECRET when it is set. If it is not set the route
-  // still works — this endpoint triggers a health check and returns a verdict, it mutates nothing
-  // and leaks nothing, so an unauthenticated call is a wasted request rather than a risk.
-  const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
+  // FAIL CLOSED (6 Oct 2026, review of #1246). Since this route sends the service key to resilience_ping,
+  // an open route would let anyone run the whole sweep through it. Vercel signs cron invocations with
+  // `Authorization: Bearer <CRON_SECRET>`; with CRON_SECRET unset, or that exact header absent, the answer
+  // is 401 and nothing below runs: no ping, no key forwarded, no uptime row written.
+  if (!cronAuthorized(req, process.env.CRON_SECRET)) {
     return Response.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
   // The origin checks run alongside the ping, so a slow watchdog never delays the 15-minute sample.
