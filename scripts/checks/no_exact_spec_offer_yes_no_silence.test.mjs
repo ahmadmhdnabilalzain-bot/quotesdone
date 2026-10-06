@@ -49,6 +49,16 @@ begin
   -- CANDIDATE RULE: A has one invited supplier, and that supplier quoted.
   insert into public.inquiry_matches (inquiry_id, supplier_id, sent_at) values (v_a, v_lead, now());
   insert into public.quotes (inquiry_id, supplier_id, quote_amount, status, source) values (v_a, v_lead, 1000, 'submitted', 'form');
+  -- founder_instruction 1018 (round 3, item 2; MANIFEST 1890): z40_quote_quality_gate holds a flagged quote as 'draft'
+  -- for up to 24 h, and a draft is not a live quote, so this bare fixture quote stopped counting as "quoted". It reaches
+  -- the customer the way the hold desk's own tick releases it (step b of fn_sales_engineer_quote_quality_tick): the
+  -- hold is marked released 'waited_24h', then the quote leaves draft. Asserted, so a gate that changes shape fails here.
+  if (select status from public.quotes where inquiry_id = v_a) = 'draft' then
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h', updated_at = now()
+     where inquiry_id = v_a and released_at is null;
+    update public.quotes set status = 'submitted' where inquiry_id = v_a and status = 'draft';
+  end if;
+  r := r || jsonb_build_object('quote_live', (select status from public.quotes where inquiry_id = v_a));
   r := r || jsonb_build_object('candidate_why', (select why from public.fn_spec_offer_candidates(100) where inquiry_id = v_a));
 
   -- STRUCTURAL: an alternative with a supplier identity key is refused by the table itself.
@@ -150,10 +160,11 @@ test('production: yes, no and silence on demo data, and nothing survives', { ski
   const { sql } = await import('../lib/db.mjs');
   let out = null;
   const parse = (s) => { try { return JSON.parse(s); } catch { return JSON.parse(s.replace(/\\\\/g, '\\').replace(/\\"/g, '"')); } };
-  try { await sql(PROBE); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
+  try { await sql(PROBE); } catch (e) { const m = String(e.body || e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
   assert.ok(out, 'the probe did not report');
   if (out.skipped) { t.skip(out.skipped); return; }
 
+  assert.equal(out.quote_live, 'submitted', 'the fixture quote is live once the quality hold has released it');
   assert.equal(out.candidate_why, 'every_invited_supplier_quoted', 'A is ready: its one invited supplier quoted');
   assert.equal(out.identity_refused, true, 'the table refuses an alternative that carries a supplier identity');
   assert.equal(out.checked_marked, true);
