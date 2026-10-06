@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { errorText, keptLines, pendingFrom, livePending, isCode, pt, ptList } from './privacy.ts';
+import { errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pt, ptList } from './privacy.ts';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const SQL = read('../../../scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql');
@@ -67,4 +67,26 @@ test('a remembered erase shows only while it can be cancelled', () => {
 
 test('only six digits are a code', () => {
   assert.ok(isCode('012345')); assert.ok(!isCode('12345')); assert.ok(!isCode('1234567')); assert.ok(!isCode('12a456'));
+});
+
+const STATUS_SQL = read('../../../scripts/sql/a_person_sees_their_own_open_privacy_requests_on_any_device.sql');
+test('pdpl_status_me: own address only, pinned, anon revoked, authenticated granted, no secrets returned', () => {
+  for (const s of ['function public.pdpl_status_me()', "security definer set search_path to 'public', 'pg_temp'", 'fn_pdpl_my_verified_email()',
+    'revoke execute on function public.pdpl_status_me() from public, anon;', 'grant execute on function public.pdpl_status_me() to authenticated;'])
+    assert.ok(STATUS_SQL.includes(s), s);
+  assert.doesNotMatch(STATUS_SQL.replace(/^--.*$/gm, ''), /code_sha|fn_pdpl_export_data/);
+  assert.ok(UI.includes("'pdpl_status_me'"), 'the account page reads it on load');
+  assert.match(read('../../../scripts/checks/anon_cannot_execute_security_definer.test.mjs'), /pdpl_status_me:/);
+});
+
+test('the server status decides Cancel on any device; an unanswerable status keeps the local one', () => {
+  const now = Date.parse('2026-10-08T00:00:00Z');
+  const ok = { ok: true, requests: [
+    { request_id: 'x', kind: 'export', status: 'received' },
+    { request_id: 'r9', kind: 'delete', status: 'cooling_off', confirm_after: '2026-10-14T00:00:00Z', deferred: [{ record: 'customer 1', legal_hold: true }] }] };
+  assert.deepEqual(pendingFromStatus(ok, now), { id: 'r9', confirm_after: '2026-10-14T00:00:00Z', deferred: [{ record: 'customer 1', legal_hold: true }] });
+  assert.equal(pendingFromStatus({ ok: true, requests: [] }, now), null);
+  assert.equal(pendingFromStatus({ ok: true, requests: [{ request_id: 'r', kind: 'delete', status: 'received' }] }, now), null);
+  assert.equal(pendingFromStatus({ ok: false, code: 'email_not_verified' }, now), undefined);
+  assert.equal(pendingFromStatus(null, now), undefined);
 });

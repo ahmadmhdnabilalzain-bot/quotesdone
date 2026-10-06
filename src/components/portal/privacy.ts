@@ -10,6 +10,7 @@
 //   pdpl_confirm_me(request, code)   -> { ok, status:'cooling_off', confirm_after, plan:{ erase_now, deferred[] } }
 //                                       or { ok:false, error, attempts_left? } / { ok:false, code:'not_yours' }
 //   pdpl_cancel_me(request)          -> { ok } or { ok:false, error:'no erasure in its cooling-off window' }
+//   pdpl_status_me()                 -> { ok, requests:[{ request_id, kind, status, confirm_after, deferred }] }  (#1273)
 //   any of them, unverified email    -> { ok:false, code:'email_not_verified' }
 // There is no "status of my request" routine, so the confirmed erase (id + date + what is kept) is
 // remembered in this browser; on another device the Cancel button is not shown, and support can cancel.
@@ -147,6 +148,13 @@ export function livePending(raw: string | null, now = Date.now()): Pending | nul
     const p = raw ? JSON.parse(raw) : null;
     return p && p.id && Date.parse(p.confirm_after) > now ? p : null;
   } catch { return null; }
+}
+
+/** The open erase from pdpl_status_me; undefined = the routine could not answer (keep the local one). */
+export function pendingFromStatus(j: Record<string, any> | null | undefined, now = Date.now()): Pending | null | undefined {
+  if (!j || j.ok !== true || !Array.isArray(j.requests)) return undefined;
+  const q = j.requests.find((r: any) => r.kind === 'delete' && r.status === 'cooling_off' && Date.parse(r.confirm_after) > now);
+  return q ? { id: String(q.request_id), confirm_after: String(q.confirm_after), deferred: Array.isArray(q.deferred) ? q.deferred : [] } : null;
 }
 
 export const isCode = (s: string) => /^\d{6}$/.test(s.trim());

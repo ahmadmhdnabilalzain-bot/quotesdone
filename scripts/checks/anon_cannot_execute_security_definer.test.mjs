@@ -122,7 +122,8 @@ const ANON_CEILING = 0;
 // with the whole Phase A-D programme. Both existed to let the FOUNDER approve something from his own
 // browser; the founder approves nothing now -- every approval is the CEO's -- so neither the routines
 // nor their grants have a caller left. What remains is the two customer-document routines.
-const AUTHENTICATED_CEILING = 5;
+const AUTHENTICATED_CEILING = 6;
+// 7 Oct 2026: 5 -> 6, pdpl_status_me (#1273): reads the caller's own open requests; same address rule.
 // 6 Oct 2026: 2 -> 5, the three PDPL self-service routines of #1237 (pdpl_request_me, pdpl_confirm_me,
 // pdpl_cancel_me). Reviewed per function below: each takes NO identity argument; the address is
 // fn_pdpl_my_verified_email(), i.e. auth.jwt() email AND that account's email_verified flag, so a signed-in
@@ -149,6 +150,8 @@ const AUTHENTICATED_BY_DESIGN = {
     'PDPL self-service: confirms the caller\'s own request with the emailed code; address from fn_pdpl_my_verified_email()',
   pdpl_cancel_me:
     'PDPL self-service: cancels the caller\'s own request inside the cooling-off; address from fn_pdpl_my_verified_email()',
+  pdpl_status_me:
+    'PDPL self-service: lists the caller\'s own open requests (state, date, holds; no code, no export); address from fn_pdpl_my_verified_email()',
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];

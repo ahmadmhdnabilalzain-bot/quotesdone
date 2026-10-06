@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { supaRpcMaybeOne } from '@/lib/supaClient';
-import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, isCode } from './privacy';
+import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode } from './privacy';
 
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<Record<string, any> | null>;
 const liveRpc: Rpc = (fn, args) => supaRpcMaybeOne('qd-portal-auth', fn, args);
@@ -43,7 +43,13 @@ export function PrivacyControls({ lang = 'en', rpc = liveRpc }: { lang?: Lang; r
   const codeRef = useRef<HTMLInputElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => { setPending(livePending(store.get())); }, []);
+  // The server's answer wins (any device); the browser's memory is only the fallback if the routine cannot answer.
+  useEffect(() => {
+    setPending(livePending(store.get()));
+    let live = true;
+    rpc('pdpl_status_me', {}).then((j) => { const p = pendingFromStatus(j); if (live && p !== undefined) { store.set(p); setPending(p); } }).catch(() => {});
+    return () => { live = false; };
+  }, [rpc]);
   useEffect(() => { if (req) codeRef.current?.focus(); }, [req]);
 
   const run = async (k: string, f: () => Promise<void>) => {
