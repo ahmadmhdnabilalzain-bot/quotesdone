@@ -20,6 +20,7 @@ import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
+import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { defaultDeps, replayHeld } from '../_shared/think.ts';
@@ -1121,11 +1122,37 @@ async function itIntegrationsTick(): Promise<unknown> {
                settled: (data as Record<string, unknown> | null)?.failing ?? null };
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
   })();
+  const replies = m365Replies();   // a third independent path (6 Oct 2026): replies to the Microsoft 365 mailbox
   const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
+  const inbox = await replies;
   // Either path failing is this step's failure (duty:heartbeat:itintegrations), so it reaches the IT engineer's loop
   // the same beat. The batch is held by the gate regardless. placement carries counts and verdicts only (public).
-  const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null].filter(Boolean);
-  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement };
+  const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null,
+    inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null].filter(Boolean);
+  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox };
+}
+
+// REPLIES TO supplier@quotesdone.com (6 Oct 2026, it_engineer + customer_support; _shared/m365_reply_inbox.ts).
+// The invitation lane sends without a Reply-To once this reader is proven, so a supplier's answer lands in that
+// mailbox; this reads it and hands every new message to resend_inbound, the handler every other reply goes through.
+async function m365Replies(): Promise<Record<string, unknown>> {
+  try {
+    return await pollReplyInbox({
+      fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
+      mailbox: await sec('invite_m365_mailbox'), inboundToken: await sec('resend_inbound_token'),
+      signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
+      onFile: async (ids) => {
+        const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
+        if (error) throw new Error('inbound_messages: ' + error.message);
+        return new Set((data || []).map((r) => String(r.provider_email_id)));
+      },
+      fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; },
+      record: async (status, counts, note) => {
+        await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),
+          started_at: new Date().toISOString(), finished_at: new Date().toISOString() });
+      },
+    });
+  } catch (e) { return { ok: false, why: String((e as Error)?.message || e).slice(0, 200) }; }
 }
 
 // DUTIES 9-15 ON THEIR OWN CADENCES (founder, 14 Sep 2026: "fine build those tasks for IT agent").
