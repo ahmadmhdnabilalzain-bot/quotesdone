@@ -123,6 +123,24 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'fraud.money_released', from: 'accountant', to: 'customer_support' },
   // the demand stage is the marketing seat's (instruction 721): the CEO steers it like every other seat, never approves
   { type: 'ceo.directive', from: 'ceo', to: 'marketing' },
+  // a rejection never ends the cycle (founder_instruction 1059; MANIFEST 1894,
+  // scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql): the CEO sends a
+  // submission back with reasons, returns its final decision, and is owed one when a revision stalls
+  { type: 'ceo.revise', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.revise', from: 'ceo', to: 'sales_engineer' },
+  { type: 'ceo.revise', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.revise', from: 'ceo', to: 'it_engineer' },
+  { type: 'ceo.revise', from: 'ceo', to: 'marketing' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'sales_engineer' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'it_engineer' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'marketing' },
+  { type: 'ceo.decision_owed', from: 'customer_support', to: 'ceo' },
+  { type: 'ceo.decision_owed', from: 'sales_engineer', to: 'ceo' },
+  { type: 'ceo.decision_owed', from: 'accountant', to: 'ceo' },
+  { type: 'ceo.decision_owed', from: 'it_engineer', to: 'ceo' },
+  { type: 'ceo.decision_owed', from: 'marketing', to: 'ceo' },
   // the root cause of a target miss (the ambition build, #913) and the year-one plan's month directive and improvement (#923)
   { type: 'ceo.root_cause', from: 'ceo', to: 'sales_engineer' },
   { type: 'ceo.root_cause', from: 'ceo', to: 'customer_support' },
