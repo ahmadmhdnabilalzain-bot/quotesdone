@@ -413,11 +413,15 @@ async function customerJourney(browser, w, lang, view) {
     await page.locator('nav a, nav button, button').filter({ hasText: lang === 'ar' ? /الحساب|حسابي/ : /account/i }).first().click().catch(() => {});
     await page.waitForTimeout(3000);
     const ver = /v\d+|version|الإصدار/i.test(await page.locator('body').innerText());
-    const exp = page.getByRole('button').filter({ hasText: lang === 'ar' ? /تصدير|بياناتي|حذف حسابي|مسح/ : /export|download my data|delete my account|erase/i }).first();
-    if (!(await exp.count())) return [false, `terms version shown: ${ver}; NO data export/erase control on the account page`];
-    await exp.click(); await page.waitForTimeout(3000);
-    const codeBox = await page.locator('input[autocomplete=one-time-code], input[inputmode=numeric]').count();
-    return [ver, `terms version shown: ${ver}; export/erase pressed; code box shown: ${codeBox > 0} (not filled)`];
+    // Named controls (PrivacyControls.tsx, #1273). Export is read-only; erase is driven only to the code box:
+    // the code goes to an @example.invalid address that is never delivered, and it is never entered.
+    const exp = page.getByTestId('privacy-export'), erase = page.getByTestId('privacy-erase');
+    if (!(await exp.count()) || !(await erase.count())) return [false, `terms version shown: ${ver}; NO data export/erase control on the account page`];
+    const dl = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
+    await exp.click(); const file = await dl;
+    await page.getByTestId('privacy-erase-ack').check(); await erase.click();
+    const codeBox = await page.getByTestId('privacy-code').waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
+    return [ver && !!file && codeBox, `terms version shown: ${ver}; export downloaded: ${!!file}; erase code box shown: ${codeBox} (not filled, nothing erased)`];
   });
   await ctx.close();
 }
