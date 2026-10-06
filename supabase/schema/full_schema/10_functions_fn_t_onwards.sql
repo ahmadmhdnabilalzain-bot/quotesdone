@@ -2939,14 +2939,17 @@ begin
            'rung', rung, 'model', model, 'kind', kind, 'rationale', rationale) order by rung), '[]'::jsonb)
     into v_chain
     from public.model_fallback_chain
-   where purpose = 'whatsapp_conversation' and active;
+   -- 6 Oct: a voice note has its own chain (received audio stays on Gemini, matrix v2)
+   where purpose = case when p_has_audio then 'whatsapp_voice_note' else 'whatsapp_conversation' end and active;
 
   return jsonb_build_object(
     'ok', true,
     'needs_model', v_needs,
     'why', v_why,
     'inference_held', v_held,
-    'model', case when v_needs then 'google/gemini-3-flash' else null end,
+    -- 6 Oct: rung 1 of the chain, never a literal, so the table is the one place a model is named
+    'model', case when v_needs then (select e ->> 'model' from jsonb_array_elements(v_chain) e
+                                      where e ->> 'kind' = 'model' order by (e ->> 'rung')::int limit 1) else null end,
     'fallback_chain', case when v_needs then v_chain else null end,
     'on_model_failure',
       'Try each rung in order. Record model_wanted, model_used and fell_back on llm_calls for every '
@@ -2954,7 +2957,10 @@ begin
    || 'final rung is the deterministic reply and it cannot fail.',
     'model_reason', case
       when not v_needs then 'No model needed. The database answered it.'
-      else 'google/gemini-3-flash first, by founder ruling. On failure claude-sonnet-5. On failure the '
+      -- 6 Oct: matrix v2 (founder_instruction 1108)
+      when p_has_audio then 'google/gemini-3.8-flash hears the voice note (received audio stays on Gemini). On failure '
+        || 'the deterministic reply.'
+      else 'openai/gpt-6-luna first, by the founder''s matrix v2. On failure google/gemini-3.8-flash. On failure the '
         || 'deterministic reply. Every rung gets the same fact pack and the same boundaries.' end,
 
     -- One decision. Handing to a person and giving the number are the same act.

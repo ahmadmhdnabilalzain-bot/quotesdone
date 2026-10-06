@@ -1042,12 +1042,12 @@ begin
         || 'Under the Supplier Agreement you must respond within ' || v_window || ' working days of the reveal, that is by '
         || coalesce(to_char(v_final at time zone 'Asia/Dubai', 'DD Mon YYYY'), 'the deadline')
         || '. If there is no response by then, our chief executive decides the case and the customer is refunded everything they paid (AED ' || v_amt
-        || '). Under the supplier terms that amount is then recovered from your account with an administrative fee of AED 250 and interest at 9% a year until settled, and matching is paused until it is paid.' || E'\n\n'
+        || '). Under the Supplier Agreement you accepted, that amount is then recovered from your account with the administrative fee, interest and other amounts set out in its clause 33, and matching is paused until it is paid.' || E'\n\n'
         || 'If you have already been in touch with this customer, reply here and we will close this off.',
       'إجراء مطلوب: عميل بانتظار ردّكم — QuotesDone',
       'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم بتاريخ ' || v_when || ' ولم يتلقَّ منكم ردًّا بعد مرور ' || v_chase || ' أيام عمل، والعميل مُدرَج في نسخة هذه الرسالة. '
         || 'وتُلزم اتفاقية المورّد بالرد خلال ' || v_window || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه (' || v_amt
-        || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا حتى السداد. وإن كنتم قد تواصلتم مع العميل، فيُرجى الرد على هذه الرسالة.',
+        || ' درهم)، ويُسترد من حسابكم المبلغ المردود مع الرسم الإداري والفائدة وسائر المبالغ المبيّنة في البند 33 من اتفاقية المورّد التي قبلتموها، ويُعلَّق إسناد الطلبات إليكم حتى السداد. وإن كنتم قد تواصلتم مع العميل، فيُرجى الرد على هذه الرسالة.',
       array_remove(array[cust.email], null), v_key, v_watch, v_extra);
 
   elsif p_step = 'final_call' then
@@ -1058,12 +1058,12 @@ begin
         || 'This is our final call about the customer who paid to reveal your contact details on ' || v_when
         || '. The ' || v_window || ' working days the Supplier Agreement allows have passed with no response from you, to the customer or to our reminder.' || E'\n\n'
         || 'If we do not hear from you by ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY')
-        || ', the customer is refunded everything they paid (AED ' || v_amt || ') and that amount is recovered from your account with an administrative fee of AED 250 and interest at 9% a year. '
+        || ', the customer is refunded everything they paid (AED ' || v_amt || ') and that amount is recovered from your account with the administrative fee, interest and other amounts set out in clause 33 of the Supplier Agreement you accepted. '
         || 'Reply to this email, message the customer in your portal, or answer us on WhatsApp — any of them stops this.',
       'نداء أخير: عميل لا يزال بانتظار ردّكم — QuotesDone',
       'هذا نداؤنا الأخير بشأن العميل الذي كشف عن بيانات التواصل معكم بتاريخ ' || v_when || '، وقد انقضت أيام العمل المحددة دون ردّ منكم. '
         || 'فإن لم يصلنا ردّكم حتى ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' فسيُردّ إلى العميل كامل ما دفعه (' || v_amt
-        || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا. ويكفي أي ردّ منكم عبر البريد الإلكتروني أو البوابة أو واتساب لإيقاف ذلك.',
+        || ' درهم)، ويُسترد من حسابكم المبلغ المردود مع الرسم الإداري والفائدة وسائر المبالغ المبيّنة في البند 33 من اتفاقية المورّد التي قبلتموها. ويكفي أي ردّ منكم عبر البريد الإلكتروني أو البوابة أو واتساب لإيقاف ذلك.',
       array_remove(array[cust.email], null), v_key, v_watch, v_extra);
 
   elsif p_step = 'customer_proof' then

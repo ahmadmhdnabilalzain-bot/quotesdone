@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, sweepStaleRuns, read, REF } from './fixtures.mjs';
 import { launch, SITE, HARNESS_SIGNED_OUT } from './browser.mjs';
 import { JOURNEYS } from './journeys.mjs';
-import { newRun, teardown } from '../lib/demo_factory.mjs';
+import { newRun, teardown, closeRehearsalWindow } from '../lib/demo_factory.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
@@ -41,6 +41,9 @@ process.env.QD_FIXTURES = '1';
 if (val('--purge-tag')) {
   const t = await teardown(newRun({ tag: val('--purge-tag'), quiet: true }));
   console.log('torn down:', t.summary);
+  // a purged run is over: its window closes too (a run killed before its finally left one open)
+  await closeRehearsalWindow(val('--purge-tag'));
+  console.log('rehearsal window closed');
   process.exit(0);
 }
 
