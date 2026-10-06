@@ -411,6 +411,14 @@ if (!REPO_ONLY) {
 //     (`<table>_pkey`, `<table>_<col>_key`, `<table>_<col>_fkey`) and that name appears in no file.
 //     Eleven kernel constraints, every one of them committed, were reported missing.
 const UNCOMMITTED_DDL = [];
+// DATED ROLLBACK OBJECTS (7 Oct 2026, it_engineer). The kb_chunks copy-and-swap (#1220, docs/runbooks/kb_chunks_rewrite.md)
+// keeps the pre-swap table as kb_chunks_old: the rollback, by design in no canonical file. It is named here by TABLE
+// with a hard expiry, never by pattern: on or after the date the exemption ends and every object of that table counts
+// again, so a rollback copy that outlives its runbook step 8 drop turns this check red. Measured 6 Oct 22:01 UTC: 27
+// objects (table, columns, constraints, indexes); with the date set in the past the check reported all 27 (exit 1).
+// The drop waits for sales_engineer Arabic recall back at its 0.55 floor (0.548 on 7 Oct).
+const ROLLBACK_OBJECTS = { kb_chunks_old: '2026-10-13' };   // table -> expiry (UTC date); runbook step 8 drops it
+const rollbackExempt = t => ROLLBACK_OBJECTS[t] && new Date().toISOString().slice(0, 10) < ROLLBACK_OBJECTS[t];
 if (!REPO_ONLY) {
   const repoTables = new Set(), repoCols = new Set(), repoIdx = new Set(), repoCons = new Set();
   const eatDdl = src => {
@@ -480,6 +488,7 @@ if (!REPO_ONLY) {
        and not exists (select 1 from pg_depend d where d.objid=i.oid and d.deptype='e')`);
   for (const row of liveDdl) {
     const t = row.obj.toLowerCase(), d = (row.detail || '').toLowerCase();
+    if (rollbackExempt(t)) continue;
     if (row.kind === 'table' && !repoTables.has(t)) UNCOMMITTED_DDL.push(`table       ${t}`);
     else if (row.kind === 'column' && !repoCols.has(`${t}.${d}`)) UNCOMMITTED_DDL.push(`column      ${t}.${d}`);
     else if (row.kind === 'constraint' && !repoCons.has(d)) UNCOMMITTED_DDL.push(`constraint  ${d}  on ${t}`);
