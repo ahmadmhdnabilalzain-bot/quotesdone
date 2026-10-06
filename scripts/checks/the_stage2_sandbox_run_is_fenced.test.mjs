@@ -1,5 +1,5 @@
 // The stage-2 sandbox run (scripts/e2e/stage2.mjs, ledger 1119) spends real model money on production
-// with the hold lifted. These are the fences that keep it from costing more than the founder allowed,
+// past the hold, for its own tagged calls only (the hold itself never changes: a_sandbox_success_never_lifts_the_model_hold). These are the fences that keep it from costing more than the founder allowed,
 // from reaching a real person, from taking a live card, and from leaving anything a seat could learn from.
 //   node --test scripts/checks/the_stage2_sandbox_run_is_fenced.test.mjs
 import { test } from 'node:test';
