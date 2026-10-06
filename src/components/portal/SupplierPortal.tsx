@@ -337,6 +337,7 @@ const T = {
     signup_email_only:"Please sign up with your work email — you'll register your company and verify your mobile next.",
     signup_email_reserved:'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real work email.', err_need_email:'Please enter your work email first.', err_need_id:'Please enter your email or mobile number first.',
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
+    conflict_customer_phone:'This mobile number is registered as a customer. Please use the customer app to sign in.',
     setup_title:'Set up your supplier account', setup_sub_company:'Register your company, then complete your profile.', setup_sub_profile:'Complete your profile to start receiving RFQs and submitting quotes.',
     onboard_title:'Register your company', onboard_sub:'Enter your company name and your main trade. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
     bill_title:'Amounts due', bill_none:'Nothing to pay. You are not charged commission on the work you win.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.',
@@ -377,6 +378,7 @@ const T = {
     signup_email_only:'يُرجى التسجيل ببريدكم الإلكتروني للعمل، ثم تسجيل شركتكم وتأكيد رقم جوالكم في الخطوة التالية.',
     signup_email_reserved:'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريد العمل الحقيقي.', err_need_email:'يُرجى إدخال بريد العمل أولًا.', err_need_id:'يُرجى إدخال بريدكم الإلكتروني أو رقم جوالكم أولًا.',
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
+    conflict_customer_phone:'رقم الجوال هذا مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
     setup_title:'إنشاء حساب المورّد', setup_sub_company:'سجّلوا شركتكم ثم أكملوا ملف الشركة.', setup_sub_profile:'أكملوا ملف الشركة لتبدأوا استقبال الاستفسارات وتقديم عروض الأسعار.',
     onboard_title:'تسجيل الشركة', onboard_sub:'أدخلوا اسم شركتكم وتخصصها الرئيسي. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'يُرجى إدخال اسم الشركة.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
     bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة، ولا نتقاضى أي عمولة على الأعمال التي تفوزون بها.', bill_total:'إجمالي المستحق', bill_pay:'الدفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدكم. يُرجى المحاولة مرة أخرى.', bill_refund:'رسم عدم الاستجابة (المبلغ المردود ورسوم مزوّد الدفع غير المستردّة)', bill_admin:'رسوم إدارية', bill_interest:'فوائد ورسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'إعادة المحاولة', bill_secure:'ستنتقلون إلى صفحة الدفع الآمنة في Stripe، ولا تطّلع QuotesDone على بيانات بطاقتكم. ولا تنشأ هذه المبالغ إلا عند ردّ مبلغ إلى العميل لتعذّر التواصل معكم \u2014 ولا عمولة على الأعمال المنجزة.', t_rfqs:'الاستفسارات', approved:'معتمد', pending:'قيد المراجعة',
@@ -772,6 +774,8 @@ function InviteBanner({ invite, lang, onStart }) {
 // sentence table and then to the generic line, so adding a code to the function can never make the
 // page worse than it was — but it should be added here the same day.
 const LOGIN_CODE = {
+  // role_conflict: the address is a customer account, told only after the code proved the mailbox (6 Oct 2026).
+  role_conflict: 'conflict_customer', role_conflict_phone: 'conflict_customer_phone', limiter_unavailable: 'le_generic',
   rate_limited: 'le_too_many', too_many_attempts: 'le_attempts', code_burned: 'le_attempts',
   bad_identifier: 'le_bad_id', bad_mobile: 'le_bad_id',
   email_suppressed: 'le_suppressed', ambiguous_phone: 'le_ambiguous', sms_signup_refused: 'le_signup_email',
@@ -811,7 +815,6 @@ function Login({ onAuth, lang, startMode }) {
   // An empty press says so, and a sign-up address is checked for shape AND for reserved names that
   // can never receive a code (src/lib/signupEmail.ts; audit 21 Sep 2026, items 26 and 28).
   const send = async () => { const v = id.trim(); if (!v) { setMsg(t(lang, isSignup ? 'err_need_email' : 'err_need_id')); return; } if (isSignup) { const p = signupEmailProblem(v); if (p) { setMsg(t(lang, p)); return; } } setBusy(true); setMsg('');
-    try { const g = await call('role_guard', { user_kind: 'supplier', identifier: v }); if (g && g.conflict === 'customer') { setBusy(false); setMsg(t(lang, 'conflict_customer')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(loginErr(lang, j, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(loginErr(lang, j, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token, j.locale); };
   const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setCode(''); };

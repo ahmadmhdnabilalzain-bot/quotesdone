@@ -7,6 +7,7 @@ import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import {
   M365_HARD_CEILING, M365_ID_PREFIX, M365_OFF, M365_REFUSED_ISSUE, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries,
   m365CopyLint, m365InvitationText, m365Mime, m365Text, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365,
+  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo,
 } from './m365_lane.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
 
@@ -176,4 +177,24 @@ Deno.test('a placement seed keeps its trailing inbox-test ID; a real invitation 
   assert(m365CopyLint({ subject: 'x', body: seed.replace('marketplace', 'AI marketplace'), seed: true }).some((l) => !l.ok));
   // a line that is not exactly the marker shape is not carried
   assertFalse(m365Body('supplier_invite_seed', row.replace(ID, 'id: 2026 bad'), M365_SEED_KIND).includes('id:'));
+});
+
+Deno.test('Reply-To (6 Oct 2026): dropped only while the reply reader is proven within two hours; the MIME then carries none', () => {
+  const now = new Date('2026-10-06T12:00:00Z');
+  const fb = 'suppliers@mail.quotesdone.com';
+  assertEquals(m365ReplyTo({ proofAt: null, now, fallback: fb }), fb, 'never proven: the old Reply-To stays');
+  assertEquals(m365ReplyTo({ proofAt: 'not a date', now, fallback: fb }), fb);
+  assertEquals(m365ReplyTo({ proofAt: '2026-10-06T11:50:00Z', now, fallback: fb }), '', 'proven 10 minutes ago: no Reply-To');
+  assertEquals(m365ReplyTo({ proofAt: new Date(now.getTime() - M365_INBOX_PROOF_MAX_AGE_MS - 1).toISOString(), now, fallback: fb }), fb, 'a stale proof is no proof');
+  assertEquals(m365ReplyTo({ proofAt: '2026-10-07T12:00:00Z', now, fallback: fb }), fb, 'a proof from the future is no proof');
+  const mime = (reply: string) => unb64(m365Mime({ from: 'QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply, subject: 's', text: 't', unsub: '', unsubMailto: '', messageId: '<m@q>', now })).split('\r\n\r\n')[0];
+  assertFalse(/Reply-To:/i.test(mime('')), 'an empty reply writes no Reply-To header');
+  assert(mime(fb).includes('Reply-To: ' + fb));
+  assertEquals(M365_INBOX_AGENT, 'resend_inbound');
+});
+
+Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, reading the proof under the reader\'s label', () => {
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assert(/m365Mime\(\{[^}]*reply: m365ReplyTo\(\{ proofAt: m365ProofAt, now, fallback: reply \}\)/.test(src), 'the lane MIME no longer asks m365ReplyTo');
+  assert(src.includes(".eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1')"), 'the proof read no longer selects the reader rows');
 });

@@ -676,6 +676,7 @@ ALTER TABLE public.kb_category_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_category_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunk_quarantine ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kb_chunks_swap_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_citation_jurisdiction ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_embed_inflight ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_embed_priority ENABLE ROW LEVEL SECURITY;
@@ -1157,6 +1158,7 @@ CREATE POLICY it_table_size_daily_service_role_only ON public.it_table_size_dail
 CREATE POLICY it_threshold_service_role_only ON public.it_threshold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_chunk_quarantine_service_role_only ON public.kb_chunk_quarantine AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.kb_chunks AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY kb_chunks_swap_log_service_role_only ON public.kb_chunks_swap_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_citation_jurisdiction_service_role_only ON public.kb_citation_jurisdiction AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

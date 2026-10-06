@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // refunds_api v6 — READ-ONLY views of reveal-fee refund cases. It moves no money.
 // Actions: list_pending · list_recent.   'resolve' is RETIRED (410).
 // Auth: __secret == inbound_secret OR admin-email JWT.
@@ -66,7 +67,7 @@ async function enrich(txs: any[]) {
   }; });
 }
 
-Deno.serve(observe('refunds_api', async (req) => {
+Deno.serve(siteCors(observe('refunds_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -90,4 +91,4 @@ Deno.serve(observe('refunds_api', async (req) => {
     await logRun('error', { action }, 'unknown_action');
     return J({ error: 'unknown_action' }, 400);
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-}));
+})));

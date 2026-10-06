@@ -27,7 +27,7 @@ import { clientIp } from '../_shared/supplier_terms.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { currentCustomerTermsVersion, needsReacceptance, customerTermsRecord, REACCEPT_MESSAGE } from '../_shared/customer_terms.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
-import { portalLink } from '../_shared/site_origins.ts';
+import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
@@ -801,7 +801,7 @@ async function resolveRedactedPaths(custId: string, authUserId: string, drawing:
   return { paths };
 }
 
-Deno.serve(observe('customer_api', async (req) => {
+Deno.serve(siteCors(observe('customer_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
@@ -2313,4 +2313,4 @@ Deno.serve(observe('customer_api', async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));
