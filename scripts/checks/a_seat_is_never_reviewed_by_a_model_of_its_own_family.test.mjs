@@ -191,15 +191,30 @@ begin
   perform public.fn_seat_deliberation_record(v_id, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel));
   begin
     perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', upper(v_steel),
-              'agreements', 'the split', 'disagreements', 'none'));
+              'agreements', 'the split between search and social fits the lead volume we measured', 'disagreements', 'none'));
     e := 'ACCEPTED';
   exception when others then e := left(sqlerrm, 16); end;
   o := o || jsonb_build_object('compare_repeats_blind_steelman', e);
   begin
-    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2));
+    -- the CEO's 'reasoning' sentence satisfies a04_ceo_turn_carries_its_reasons (1059), so the turn guard's
+    -- missing-agreements rule is what refuses it
+    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2,
+              'reasoning', 'the split between search and social fits the lead volume we measured'));
     e := 'ACCEPTED';
   exception when others then e := left(sqlerrm, 16); end;
   o := o || jsonb_build_object('compare_without_agreements', e);
+  begin
+    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2));
+    e := 'ACCEPTED';
+  exception when others then e := left(sqlerrm, 16); end;
+  o := o || jsonb_build_object('compare_reasonless', e);
+  -- valid reasons (passes the 1059 trigger) but no disagreements: the turn guard's own MALFORMED_REVIEW rule
+  begin
+    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2,
+              'agreements', 'the split between search and social fits the lead volume we measured'));
+    e := 'ACCEPTED';
+  exception when others then e := left(sqlerrm, 16); end;
+  o := o || jsonb_build_object('compare_without_disagreements', e);
   -- A CEO decision carries its reasons (founder_instruction 1059, a_rejection_never_ends_the_cycle_...sql): the
   -- agreements are the approval's logic, so they are a sentence, and once that file is applied the author closes an
   -- approved deliberation the moment the CEO's decision reaches it. Both states read the same here.
@@ -265,7 +280,7 @@ test('production, in one aborted transaction: independence, blind first, steelma
   try {
     await replaySql(body, { retry: false });
   } catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    const m = String(e.body ?? e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;
     const full = { '~MR': 'MALFORMED_REVIEW', '~BL': 'BLIND_PASS_LEAK', '~AU': 'AUTHOR_MODEL_UNPROVEN', '~SF': 'SAME_FAMILY_REVIEW', '~H ': 'held, not run: ' };
     out = JSON.parse(m[1].replace(/\\"/g, '"').replace(/~MR|~BL|~AU|~SF|~H /g, (k) => full[k]));
@@ -318,6 +333,11 @@ test('production, in one aborted transaction: independence, blind first, steelma
 
   assert.equal(out.approval_without_steelman, 'MALFORMED_REVIEW');
   assert.equal(out.compare_without_agreements, 'MALFORMED_REVIEW');
+  // founder_instruction 1059 added a04_ceo_turn_carries_its_reasons, which fires before trg_seat_deliberation_turn_guard
+  // (name order). Fixtures that test the turn guard carry a reasons sentence so they reach it; with no reasons at all
+  // the CEO's comparison is refused first as a reasonless decision.
+  assert.equal(out.compare_reasonless, 'REASONLESS_DECIS', 'a CEO comparison with no reasons is refused (founder_instruction 1059)');
+  assert.equal(out.compare_without_disagreements, 'MALFORMED_REVIEW', 'a comparison with reasons but no disagreements is malformed (turn guard)');
   assert.equal(out.reviewed, 'reviewed');
   assert.equal(out.compare_provider, 'anthropic');
   assert.equal(out.close, 'approve');
