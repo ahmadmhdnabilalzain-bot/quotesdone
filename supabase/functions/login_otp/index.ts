@@ -7,7 +7,7 @@ import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
-import { sendWhatsAppFirst, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
@@ -344,7 +344,7 @@ Deno.serve(observe('login_otp', async (req) => {
       try {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
         const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail }, body.lang);
-        const send = async (channel: 'whatsapp' | 'sms') => {
+        const send = async (channel: 'whatsapp' | 'sms' | 'call') => {
           const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: channel, Locale: smsLocale }) });
           return { r, jd: await r.json() };
         };
@@ -359,7 +359,19 @@ Deno.serve(observe('login_otp', async (req) => {
             ? { ...x, refused: null, ok: true, channel: 'sms' } : { ...x, refused: null, ok: false, channel: null };
         };
         const wantsWa = await confirmedWhatsApp(kind, acctEmail, e164);
-        const res = wantsWa ? await sendWhatsAppFirst(send) : await smsOnly();
+        const res = await voiceAfterSms(wantsWa ? await sendWhatsAppFirst(send) : await smsOnly(), send);
+        // A WHATSAPP REFUSAL IS ONE FINDING, NOT A LOG LINE PER CODE (customer_support, 6 Oct 2026). Verify
+        // refused its WhatsApp channel (sender or Authentication template), so this code went by SMS or voice.
+        // The upsert is keyed by the refusal code, so a thousand sign-ins raise one open finding.
+        if (res.refused) {
+          await admin.rpc('fn_it_engineer_finding_upsert', {
+            p_issue_key: 'login_otp:whatsapp_refused:' + res.refused,
+            p_title: 'Sign-in codes cannot go by WhatsApp: Twilio Verify refused the channel (' + res.refused + ')',
+            p_where: 'login_otp -> Twilio Verify', p_blast: 'customer_facing', p_affected: 1,
+            p_evidence: { refused_code: res.refused, delivered_by: res.channel, effect: 'the code fell back to the next channel; no sign-in was lost' },
+            p_ruled_out: [], p_undetermined: ['whether the Verify WhatsApp sender or its Authentication template is the missing piece'],
+            p_raised_by: 'customer_support' }).then(() => {}, () => {});
+        }
         if (!res.ok) return J({ error: 'Could not send the sign-in code. Please try again in a minute.', code: 'sms_send_failed' }, 502);
         // The delivered channel is recorded in phone_verifications.code (the column only ever held the
         // marker 'twilio'; no reader compares it), the same convention kyc's whatsapp_send_code uses,
