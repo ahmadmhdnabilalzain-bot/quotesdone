@@ -1,1 +1,0 @@
-Committed, not applied: no production apply in this PR (founder ledger 1122, release review of #1240). Apply at merge with node scripts/apply_sql.mjs scripts/sql/a_customer_acceptance_records_the_hash_of_the_terms_text.sql --apply --ddl, then delete this note and append the file to the END of MANIFEST.txt. Seat: it_engineer.
