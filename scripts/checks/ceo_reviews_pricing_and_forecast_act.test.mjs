@@ -71,8 +71,9 @@ test('production, aborted: the forecast, the management review and the pricing m
 do $$ declare o jsonb := '{}'; v jsonb; h bigint; n bigint; begin
   perform set_config('app.qd_stub_founder_notify', 'on', true);
   delete from public.ceo_review where true;
-  -- the author model is proven the way think() proves it: the seat's latest agent_reasoning call
-  insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values ('probe', 'ceo', 'ceo', 'agent_reasoning', 'openai/gpt-5.6-sol', true);
+  -- the author model is proven the way fn_seat_duty_cross_review proves it: the seat's latest internal_judgement call
+  -- (founder_instruction 1056, 29 Sep: think()'s decision class; CEO hard work runs on anthropic/claude-opus-5.5)
+  insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values ('probe', 'ceo', 'ceo', 'internal_judgement', 'anthropic/claude-opus-5.5', true);
 
   v := public.fn_ceo_target_forecast();
   o := o || jsonb_build_object('verdicts', jsonb_array_length(v->'verdicts'),
@@ -85,7 +86,7 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; n bigint; begin
       o := o || jsonb_build_object('bad_choice', 'applied');
     exception when others then o := o || jsonb_build_object('bad_choice', left(sqlerrm, 40)); end;
     select coalesce(max(id), 0) into n from public.agent_actions;
-    perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: this needs the founder","model":"openai/gpt-5.6-sol","decision":{"choice":"tell_founder","fields":{}}}');
+    perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: this needs the founder","model":"anthropic/claude-opus-5.5","decision":{"choice":"tell_founder","fields":{}}}');
     o := o || jsonb_build_object('fc', (select jsonb_build_object('decision', decision, 'founder', founder_notice->'evidence'->>'stubbed', 'challenged', (review->>'deliberation_id') is not null)
                                           from public.ceo_review where kind = 'target_forecast'),
       'founder_via', (select jsonb_agg(distinct agent) from public.agent_actions where id > n and kind = 'handoff' and detail->>'recipient_role' = 'founder'));
@@ -96,7 +97,7 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; n bigint; begin
     'mr_seats', (select count(*) from public.ceo_review r, jsonb_object_keys(r.facts->'seats') k where r.kind = 'management_review'));
   select held_id into h from public.ceo_review where kind = 'management_review';
   o := o || jsonb_build_object('mr_fields', (select jsonb_array_length(request->'decision'->'fields') from public.reasoning_held_question where id = h));
-  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: supply is the binding constraint.","model":"openai/gpt-5.6-sol","decision":{"choice":"off_track","fields":{"binding_constraint":{"value":"verified suppliers per trade","evidence":"0 categories open"}}}}');
+  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: supply is the binding constraint.","model":"anthropic/claude-opus-5.5","decision":{"choice":"off_track","fields":{"binding_constraint":{"value":"verified suppliers per trade","evidence":"0 categories open"}}}}');
   o := o || jsonb_build_object('mr', (select jsonb_build_object('decision', decision, 'binding', fields->>'binding_constraint',
             'reviewer', (select reviewer_seat from public.seat_deliberation where id = (review->>'deliberation_id')::bigint)) from public.ceo_review where kind = 'management_review'));
 
