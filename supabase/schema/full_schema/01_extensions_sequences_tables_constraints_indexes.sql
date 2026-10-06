@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-05T23:56:17.702Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-06T00:55:16.730Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (701) =====
+-- ===== TABLES (702) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3783,6 +3783,16 @@ CREATE TABLE IF NOT EXISTS public.inquiry_cancellations (
   customer_id uuid,
   reason text,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.inquiry_conversation_summary (
+  inquiry_id uuid NOT NULL,
+  customer_id uuid,
+  summary jsonb NOT NULL,
+  last_activity timestamp with time zone NOT NULL,
+  built_at timestamp with time zone DEFAULT now() NOT NULL,
+  method text DEFAULT 'deterministic'::text NOT NULL,
+  originals_kept boolean DEFAULT true NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiry_gate (
@@ -9958,6 +9968,7 @@ ALTER TABLE public.inquiry_answer_corroboration ADD CONSTRAINT inquiry_answer_co
 ALTER TABLE public.inquiry_answer_document ADD CONSTRAINT inquiry_answer_document_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_answer_scope ADD CONSTRAINT inquiry_answer_scope_pkey PRIMARY KEY (answer_id, workstream_id);
 ALTER TABLE public.inquiry_cancellations ADD CONSTRAINT inquiry_cancellations_pkey PRIMARY KEY (id);
+ALTER TABLE public.inquiry_conversation_summary ADD CONSTRAINT inquiry_conversation_summary_pkey PRIMARY KEY (inquiry_id);
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_gate_required ADD CONSTRAINT inquiry_gate_required_pkey PRIMARY KEY (gate_key);
 ALTER TABLE public.inquiry_intake ADD CONSTRAINT inquiry_intake_pkey PRIMARY KEY (id);
@@ -11614,6 +11625,7 @@ ALTER TABLE public.inquiry_answer_corroboration ADD CONSTRAINT inquiry_answer_co
 ALTER TABLE public.inquiry_answer_document ADD CONSTRAINT inquiry_answer_document_answer_id_fkey FOREIGN KEY (answer_id) REFERENCES inquiry_answer(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_scope ADD CONSTRAINT inquiry_answer_scope_answer_id_fkey FOREIGN KEY (answer_id) REFERENCES inquiry_answer(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer_scope ADD CONSTRAINT inquiry_answer_scope_workstream_id_fkey FOREIGN KEY (workstream_id) REFERENCES inquiry_workstream(id) ON DELETE CASCADE;
+ALTER TABLE public.inquiry_conversation_summary ADD CONSTRAINT inquiry_conversation_summary_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_gate_key_fkey FOREIGN KEY (gate_key) REFERENCES inquiry_gate_required(gate_key);
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_gate ADD CONSTRAINT inquiry_gate_workstream_id_fkey FOREIGN KEY (workstream_id) REFERENCES inquiry_workstream(id) ON DELETE CASCADE;
