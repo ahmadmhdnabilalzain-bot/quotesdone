@@ -55,6 +55,16 @@ test('an unverified entry is stored but never retrievable, and a verified one is
     assert.match(read(f), /from public\.sales_knowledge s\s+where[^;]*?s\.runtime_index_eligible/, `${f}: sales_knowledge read without the eligibility filter`);
 });
 
+test('the eval scores the path production reads: ml, gte fused for English, none for Arabic (#1259)', async () => {
+  const ev = read('scripts/eval/knowledge_pack_eval.mjs');
+  assert.ok(ev.includes('select public.fn_ml_read_space()'), 'the default path is not production\'s own space');
+  assert.ok(ev.includes("public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${gteReads(q.text) ? vecLit(q.vec) : 'null'}"), 'the ml call does not drop gte for Arabic');
+  const src = ev.slice(ev.indexOf('const AR_LETTER'), ev.indexOf('// = #1259'));
+  const gteReads = new Function(src.replace('export const gteReads', 'const gteReads') + '; return gteReads;')();
+  assert.equal(gteReads('Which bubble wrap is sold locally?'), true);
+  assert.equal(gteReads('ما مواد التبطين المتوفرة محلياً؟'), false);
+});
+
 test('the loader and the eval run the shared module, not a copy', () => {
   for (const f of ['scripts/kb/load_verified_packs.mjs', 'scripts/eval/knowledge_pack_eval.mjs']) {
     assert.match(read(f), /from '\.\.\/kb\/verified_packs\.mjs'|from '\.\/verified_packs\.mjs'/, f);

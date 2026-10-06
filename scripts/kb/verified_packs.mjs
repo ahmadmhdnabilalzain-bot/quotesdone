@@ -84,6 +84,9 @@ export function validate(pack, kind, code) {
   for (const q of pack.eval ?? []) {
     if (!q.q_en || !q.q_ar || !Array.isArray(q.expected_entry_ids) || !q.expected_entry_ids.length) err.push(`eval: malformed ${JSON.stringify(q).slice(0, 80)}`);
     for (const x of q.expected_entry_ids ?? []) if (!ids.has(x)) err.push(`eval: expects ${x}, not in the pack`);
+    // 'any' = each named entry answers the question; it must name 2+ entries and say why, per question.
+    if (q.expected_mode !== undefined && (q.expected_mode !== 'any' || (q.expected_entry_ids ?? []).length < 2 || !String(q.why ?? '').trim()))
+      err.push(`eval: expected_mode must be 'any' with 2+ entries and a why: ${String(q.q_en).slice(0, 60)}`);
   }
   const g = gate(pack);
   if (!g.ok) err.push(`not verified: ${pack.verified ? `${g.bad.length}/${pack.entries.filter((e) => e.verified !== false).length} served entries unsourced or low-confidence technical` : 'no verified block'}`);
