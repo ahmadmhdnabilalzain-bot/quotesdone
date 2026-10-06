@@ -70,6 +70,16 @@ const CSP = [
 
 const SECURITY_HEADERS = [
   { key: 'Content-Security-Policy', value: CSP },
+  // HSTS WITH includeSubDomains (pre-launch security pass, 6 Oct 2026, L8). Vercel's default header was
+  // max-age=63072000 alone, so a subdomain could still be reached over plain HTTP first. Measured on DNS
+  // the same day: every name that serves the web (apex and www on .com and .ae) is HTTPS on Vercel; hello.,
+  // mail., send., send.hello. and send.mail.quotesdone.com are MX/TXT only (no A record, no web), so HSTS
+  // does not touch them; mail.quotesdone.ae has an A record to Vercel and no site or certificate behind
+  // it, so nothing that works today is lost. `preload` is deliberately NOT sent: the preload list is
+  // hard to leave, and a future plain-HTTP subdomain would be unreachable for months.
+  // CSP nonces for script-src: still 'unsafe-inline', for the reason above (a nonce forces every page
+  // dynamic). Recorded for the post-launch audit rather than changed here.
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' }, // frame-ancestors for browsers that predate CSP2
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
