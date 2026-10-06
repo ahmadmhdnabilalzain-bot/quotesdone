@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-06T02:42:20.513Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-06T02:57:31.709Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -5870,7 +5870,8 @@ CREATE TABLE IF NOT EXISTS public.messaging_template (
   rejection_reason text,
   last_checked_at timestamp with time zone,
   note text,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_http_status integer
 );
 
 CREATE TABLE IF NOT EXISTS public.meta_insights (
