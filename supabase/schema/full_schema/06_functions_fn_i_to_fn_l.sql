@@ -10402,6 +10402,30 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_llm_route_founder_held(p_open_until timestamp with time zone)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select coalesce(p_open_until > now() + interval '1 year', false) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_llm_route_health_founder_hold_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if public.fn_llm_route_founder_held(old.open_until)
+     and (tg_op = 'DELETE' or new.open_until is null or new.open_until < old.open_until)
+     and not public.fn_founder_hold_change_allowed() then
+    raise exception 'FOUNDER_HOLD: route % is held by the founder until %; only he lifts it. Release with set local app.change_reason = ''founder:<ledger id>'' in the same transaction.',
+      old.model_id, old.open_until using errcode = 'P0001';
+  end if;
+  return case when tg_op = 'DELETE' then old else new end;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_login_otp_email_issue(p_email text, p_hash text, p_kind text, p_ttl_seconds integer DEFAULT 600)
  RETURNS void
  LANGUAGE plpgsql

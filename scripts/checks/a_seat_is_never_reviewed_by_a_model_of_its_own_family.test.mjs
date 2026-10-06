@@ -262,6 +262,7 @@ begin
     'no_ceil_why', public.fn_seat_deliberation_budget('accountant', 'ceo')->>'why', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
   -- A DEMO NEVER REACHES call_model, even with the hold lifted (inside this rolled-back transaction only)
   delete from public.ai_cost_log where task_class = 'seat_deliberation_blind' and agent_key = 'ceo' and cost_aed = 60;
+  perform set_config('app.change_reason', 'probe:a_seat_is_never_reviewed_by_a_model_of_its_own_family', true);  -- the founder-hold guard admits an aborted probe by name
   update public.llm_route_health set open_until = null;
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO no hold', v_ev, v_pr, c_sol, null, null, null, true);
   o := o || jsonb_build_object('demo_unheld', (select left(why, 32) from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'));
