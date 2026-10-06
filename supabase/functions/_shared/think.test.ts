@@ -282,3 +282,25 @@ Deno.test('a fixture question is held but never queued for a paid replay (e2e jo
   assert(real.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a real subject is still filed');
   assertEquals(isFixtureRequest({ subject: { intake_id: 'x' } }), false);
 });
+
+// Stage-2 sandbox run #1230 was aborted because a fixture was stubbed even inside its own open window (it_engineer, 7 Oct 2026).
+Deno.test('a fixture inside a proven, open sandbox window makes a model call; outside it, or unproven, it is stubbed', async () => {
+  const { E2E_RUN } = await import('./e2e_run.ts');
+  const opts = { name: 'trade', options: [{ id: 'aluminium', meaning: 'aluminium work' }, { id: 'glazing', meaning: 'glazing work' }] };
+  const req = { seat: 'sales_engineer' as const, surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } };
+  const run = (open: unknown, tag: string | null) => {
+    const m = mock({ gate: { allowed: true, rule: 'allowed' }, replies: {} });
+    const rpc = m.deps.rpc;
+    m.deps.rpc = (fn, args) => fn === 'fn_e2e_run_tag_open' ? Promise.resolve({ data: open, error: null }) : rpc(fn, args);
+    const go = () => think(m.deps, req);
+    return (tag ? E2E_RUN.run({ tag, secret: null }, go) : go()).then((r) => ({ r, m }));
+  };
+  const inside = await run(true, 'ab12cd34');
+  assert(inside.m.calls.length > 0, 'inside an open window the fixture reaches the model');
+  assert(inside.r.reason !== 'fixture_no_spend');
+  for (const [open, tag] of [[false, 'ab12cd34'], [true, null], [null, 'ab12cd34']] as [unknown, string | null][]) {
+    const out = await run(open, tag);
+    assertEquals(out.r.reason, 'fixture_no_spend', `open=${open} tag=${tag}`);
+    assertEquals(out.m.calls.length, 0);
+  }
+});

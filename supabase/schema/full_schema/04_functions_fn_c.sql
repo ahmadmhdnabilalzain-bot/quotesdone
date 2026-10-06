@@ -4887,7 +4887,7 @@ begin
            else jsonb_build_object('facts_cut_at_50000_chars', left(rv.facts::text, 50000)) end,
       jsonb_build_object('call', v_choice, 'fields', v_fields, 'reasoning', left(coalesce(p_result->>'answer', ''), 3000),
                          'founder_detail', left(coalesce(v_fields->>'proposal', '') || E'\n\n' || coalesce(v_fields->>'evidence', '') || E'\n\n' || coalesce(p_result->>'answer', ''), 4000)),
-      nullif(p_result->>'model', ''), 'agent_reasoning');
+      nullif(p_result->>'model', ''), 'internal_judgement');
     v_review := v_gate;
   elsif v_choice in ('propose_change', 'tell_founder') then
     v_review := public.fn_seat_duty_cross_review('ceo.' || v_kind, 'ceo', 'accountant',

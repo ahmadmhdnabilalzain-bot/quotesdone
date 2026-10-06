@@ -46,6 +46,8 @@
 // model, embedder and database as `deps`, so think.test.ts runs every path with a mocked model.
 import { heldFromGate, HOLD_PROBE_MODEL, type GateAnswer } from './llm_hold.ts';
 import { recallCases } from './case_recall.ts';
+import { e2eRunTag } from './e2e_run.ts';
+import { rehearsalLetsFixtureThrough } from './spend_guards.ts';
 
 export const SEATS = ['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] as const;
 export type Seat = typeof SEATS[number];
@@ -309,6 +311,14 @@ export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
   return !!req.subject && (req.subject as Record<string, unknown>).fixture === true;
 }
 
+/** A fixture may reason only for a proven run tag whose rehearsal window the database reports open. */
+export async function fixtureInOpenWindow(deps: Pick<ThinkDeps, 'rpc'>): Promise<boolean> {
+  const tag = e2eRunTag();
+  if (!tag) return false;
+  try { const { data, error } = await deps.rpc('fn_e2e_run_tag_open', { p_tag: tag }); return rehearsalLetsFixtureThrough(tag, data, error); }
+  catch (_e) { return false; }
+}
+
 export function taskClassFor(phase: Phase, audience: string, _deciding: boolean, language = 'en'): string {
   if (phase === 'verify') return 'knowledge_validation';
   if (phase === 'decompose' || phase === 'research') return 'routine_employee_reasoning';
@@ -365,7 +375,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // fixture already kept it out of the queue; the model was still called, and would be paid the day the hold lifts
   // (measured: 26 line_specs.assess and 1 postmortem fixture rows in 4 days, each a full think() run). Every other
   // call carries its subject, so the gateway's own fixture check can stub what this flag does not know about.
-  if (isFixtureRequest(req)) {
+  // ...EXCEPT inside a proven, open sandbox window (it_engineer, 7 Oct 2026; spend_guards.rehearsalLetsFixtureThrough).
+  if (isFixtureRequest(req) && !(await fixtureInOpenWindow(deps))) {
     steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
     return await hold('fixture_no_spend', {});
   }
