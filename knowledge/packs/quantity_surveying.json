@@ -29,9 +29,10 @@
     {
       "id": "quantity_surveying:uae-standards-and-approvals",
       "topic": "Quantity surveying - UAE standards, authorities and approvals",
+      "topic_ar": "مسح الكميات: الموافقات والمعايير وطرق القياس في الإمارات",
       "kind": "standard",
       "body_en": "Engineering and cost consultancy firms operate under an emirate trade licence and, where they act as registered consultants, under the emirate building authority (Dubai Municipality in Dubai). Measurement methods such as POMI, NRM or CESMM are chosen by contract, not by law. What the cited sources do not establish: The sources read do not make any measurement method mandatory; state the method in the request.",
-      "body_ar": "تعمل شركات الاستشارات الهندسية واستشارات التكلفة برخصة تجارية من الإمارة، وحين تعمل بصفة استشاري مسجل فتحت إشراف جهة البناء في الإمارة (بلدية دبي في دبي). وتُختار طرق القياس مثل POMI أو NRM أو CESMM بموجب العقد لا بموجب القانون. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تجعل أي طريقة قياس إلزامية؛ حدد الطريقة في الطلب.",
+      "body_ar": "مكاتب مسح الكميات والاستشارات الهندسية واستشارات التكلفة تعمل برخصة تجارية من الإمارة، وإذا عملت كاستشاري مسجل فهي تحت إشراف جهة البناء في الإمارة (بلدية دبي في دبي). أما طريقة قياس جداول الكميات، مثل POMI أو NRM أو CESMM، فيحددها العقد وليس القانون. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تجعل أي طريقة قياس إلزامية؛ اذكر طريقة القياس في الطلب.",
       "source_note": "The sources read do not make any measurement method mandatory; state the method in the request.",
       "sources": [
         "https://www.dm.gov.ae/"

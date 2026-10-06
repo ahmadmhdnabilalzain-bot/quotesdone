@@ -29,9 +29,10 @@
     {
       "id": "real_estate_services:uae-standards-and-approvals",
       "topic": "Real estate services - UAE standards, authorities and approvals",
+      "topic_ar": "الخدمات العقارية: الترخيص والموافقات والجهات في الإمارات",
       "kind": "standard",
       "body_en": "Who regulates property brokers in the UAE and how to check one: in Dubai, brokers are licensed by the Dubai Land Department through RERA, and other emirates have their own land departments. In Dubai the Dubai Land Department (DLD) licenses real estate brokers through RERA and publishes a public list of licensed brokers; the buyer can check a broker against that list. Other emirates have their own land departments. What the cited sources do not establish: The DLD page read does not state commission rates or broker card requirements; those must be agreed in the contract and not guessed.",
-      "body_ar": "في دبي ترخص دائرة الأراضي والأملاك الوسطاء العقاريين عبر مؤسسة التنظيم العقاري وتنشر قائمة عامة بالوسطاء المرخصين يمكن للمشتري التحقق منها. ولكل إمارة أخرى دائرة أراضٍ خاصة بها. ما لا تثبته المصادر المذكورة: صفحة دائرة الأراضي المقروءة لا تذكر نسب العمولة ولا متطلبات بطاقة الوسيط؛ يجب الاتفاق عليها في العقد وعدم تخمينها.",
+      "body_ar": "في دبي، دائرة الأراضي والأملاك ترخص الوسطاء العقاريين عن طريق مؤسسة التنظيم العقاري (ريرا)، وتنشر قائمة عامة بالوسطاء المرخصين يستطيع المشتري أن يتحقق فيها من الوسيط. ولكل إمارة أخرى دائرة أراضٍ خاصة بها. ما لا تثبته المصادر المذكورة: صفحة دائرة الأراضي المقروءة لا تذكر نسب العمولة ولا متطلبات بطاقة الوسيط؛ يجب الاتفاق عليها في العقد وعدم تخمينها.",
       "source_note": "The DLD page read does not state commission rates or broker card requirements; those must be agreed in the contract and not guessed.",
       "sources": [
         "https://dubailand.gov.ae/en/"
