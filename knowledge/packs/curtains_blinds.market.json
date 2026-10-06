@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What styles of curtains and blinds can I order from UAE suppliers?",
-      "q_ar": "ما أنواع الستائر والستائر المعدنية والدوّارة التي يمكنني طلبها من الموردين في الإمارات؟",
+      "q_en": "What openness factor should we choose for sunscreen roller blinds in an office?",
+      "q_ar": "ما نسبة الانفتاح التي يجب أن نختارها للستائر الدوارة الشمسية في مكتب؟",
       "expected_entry_ids": [
         "curtains_blinds:uae-market-products"
       ]

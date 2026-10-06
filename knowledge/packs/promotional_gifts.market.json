@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are branded corporate gifts priced in the UAE, and what minimum quantities do suppliers ask for?",
-      "q_ar": "كيف تُسعَّر هدايا الشركات المطبوعة بالشعار في الإمارات، وما الكميات الدنيا التي يطلبها الموردون؟",
+      "q_en": "What is the minimum order for branded power banks?",
+      "q_ar": "ما الحد الأدنى للطلب لبنوك الطاقة المطبوعة بالشعار؟",
       "expected_entry_ids": [
         "promotional_gifts:uae-market-sizes"
       ]

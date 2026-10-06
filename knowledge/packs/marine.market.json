@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What kinds of boats, vessels, marine engines and marine services are available in the UAE market?",
-      "q_ar": "ما أنواع القوارب والسفن والمحركات البحرية والخدمات البحرية المتاحة في السوق الإماراتي؟",
+      "q_en": "What safety equipment must a pleasure boat carry in Dubai?",
+      "q_ar": "ما معدات السلامة التي يجب أن يحملها قارب النزهة في دبي؟",
       "expected_entry_ids": [
         "marine:uae-market-products"
       ]

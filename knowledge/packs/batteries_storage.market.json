@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which battery and energy storage options are sold in the UAE for UPS, solar and commercial use?",
-      "q_ar": "ما خيارات البطاريات وتخزين الطاقة المباعة في الإمارات لأنظمة الطاقة غير المنقطعة والطاقة الشمسية والاستخدام التجاري؟",
+      "q_en": "Which battery chemistry is best for a solar home battery in UAE heat?",
+      "q_ar": "ما كيمياء البطارية الأنسب لبطارية منزلية شمسية في حرارة الإمارات؟",
       "expected_entry_ids": [
         "batteries_storage:uae-market-products"
       ]

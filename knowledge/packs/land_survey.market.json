@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What surveying services can I hire from land survey firms in the UAE?",
-      "q_ar": "ما خدمات المساحة التي يمكنني طلبها من شركات المساحة في الإمارات؟",
+      "q_en": "Does a boundary survey in Dubai need a licensed surveyor?",
+      "q_ar": "هل يحتاج مسح الحدود في دبي إلى مساح مرخص؟",
       "expected_entry_ids": [
         "land_survey:uae-market-products"
       ]

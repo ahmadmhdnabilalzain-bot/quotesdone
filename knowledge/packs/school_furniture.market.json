@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which classroom, lab and library furniture do suppliers offer to schools in the UAE?",
-      "q_ar": "ما أثاث الفصول والمختبرات والمكتبات الذي يوفره الموردون للمدارس في الإمارات؟",
+      "q_en": "What furniture size mark suits Grade 5 students?",
+      "q_ar": "ما علامة مقاس الأثاث المناسبة لطلاب الصف الخامس؟",
       "expected_entry_ids": [
         "school_furniture:uae-market-products"
       ]

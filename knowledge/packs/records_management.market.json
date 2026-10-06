@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do UAE records management companies charge for archive boxes, intake, retrievals and transport?",
-      "q_ar": "كيف تحتسب شركات إدارة السجلات في الإمارات رسوم صناديق الأرشيف والاستلام والاسترجاع والنقل؟",
+      "q_en": "How is offsite archive storage priced and how quickly can we retrieve a file?",
+      "q_ar": "كيف يُسعّر تخزين الأرشيف خارج الموقع وما مدى سرعة استرجاع الملف؟",
       "expected_entry_ids": [
         "records_management:uae-market-sizes"
       ]

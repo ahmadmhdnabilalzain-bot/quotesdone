@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are cement, blocks, rebar and other building materials typically sold and priced in the UAE?",
-      "q_ar": "كيف يُباع الإسمنت والطوب وحديد التسليح ومواد البناء الأخرى عادةً وكيف تُسعَّر في الإمارات؟",
+      "q_en": "What block sizes are standard in the UAE and what does an 8 inch block mean?",
+      "q_ar": "ما مقاسات الطابوق المعتادة في الإمارات وماذا يعني طابوق 8 إنش؟",
       "expected_entry_ids": [
         "building_materials:uae-market-sizes"
       ]

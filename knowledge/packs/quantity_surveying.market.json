@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What services do quantity surveyors and cost consultants offer to UAE project owners?",
-      "q_ar": "ما الخدمات التي يقدمها مساحو الكميات واستشاريو التكاليف لملاك المشاريع في الإمارات؟",
+      "q_en": "Which measurement standard is used for BOQs in UAE building projects?",
+      "q_ar": "ما معيار القياس المستخدم لجداول الكميات في مشاريع المباني في الإمارات؟",
       "expected_entry_ids": [
         "quantity_surveying:uae-market-products"
       ]

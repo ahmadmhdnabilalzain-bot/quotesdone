@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "When a machine goes in for repair in the UAE, how is the job normally quoted and charged?",
-      "q_ar": "عند إرسال آلة للإصلاح في الإمارات، كيف يُعدّ عرض السعر عادةً وكيف تُحتسب التكلفة؟",
+      "q_en": "How is an electric motor rewind priced?",
+      "q_ar": "كيف تُسعّر إعادة لف محرك كهربائي؟",
       "expected_entry_ids": [
         "machinery_repair:uae-market-sizes"
       ]

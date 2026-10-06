@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Renting tools or equipment in the UAE: how do daily, weekly and monthly rates compare, and what extra charges apply?",
-      "q_ar": "عند استئجار العدد أو المعدات في الإمارات، كيف تقارن الأسعار اليومية والأسبوعية والشهرية، وما الرسوم الإضافية؟",
+      "q_en": "How is a weekly tool rental usually priced?",
+      "q_ar": "كيف يُسعّر تأجير العدد أسبوعياً عادة؟",
       "expected_entry_ids": [
         "tool_equipment_rental:uae-market-sizes"
       ]

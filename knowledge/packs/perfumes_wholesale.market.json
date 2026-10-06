@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "In UAE perfume wholesale, how are bottles, attar, oud and bakhoor priced and what MOQs apply?",
-      "q_ar": "في تجارة العطور بالجملة في الإمارات، كيف تُسعَّر الزجاجات ودهن العود والعود والبخور، وما الحد الأدنى للطلب؟",
+      "q_en": "How is oud oil priced and what does a tola equal?",
+      "q_ar": "كيف يُسعّر دهن العود وكم تعادل التولة؟",
       "expected_entry_ids": [
         "perfumes_wholesale:uae-market-sizes"
       ]

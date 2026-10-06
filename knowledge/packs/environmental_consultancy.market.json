@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What services do environmental consultants in the UAE provide, from EIAs to monitoring and remediation?",
-      "q_ar": "ما الخدمات التي يقدمها المستشارون البيئيون في الإمارات، من تقييم الأثر البيئي إلى الرصد والمعالجة؟",
+      "q_en": "Who approves an EIA for a project in Abu Dhabi?",
+      "q_ar": "من يعتمد تقييم الأثر البيئي لمشروع في أبوظبي؟",
       "expected_entry_ids": [
         "environmental_consultancy:uae-market-products"
       ]

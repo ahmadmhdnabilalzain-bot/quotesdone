@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are event tents and shade structures sized and charged in the UAE, including the extras?",
-      "q_ar": "كيف تُحدد مقاسات الخيام ومظلات الفعاليات في الإمارات وكيف تُسعَّر مع الإضافات؟",
+      "q_en": "How is a wedding tent rental priced in the UAE?",
+      "q_ar": "كيف يُسعّر تأجير خيمة أعراس في الإمارات؟",
       "expected_entry_ids": [
         "tents_shades:uae-market-sizes"
       ]

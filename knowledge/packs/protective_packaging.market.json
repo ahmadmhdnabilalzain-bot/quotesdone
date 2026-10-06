@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which cushioning and protective packaging materials are sold in the UAE for shipping goods?",
-      "q_ar": "ما مواد الحماية والتوسيد المستخدمة في تغليف البضائع للشحن والمباعة في الإمارات؟",
+      "q_en": "What protects electronics from static during shipping?",
+      "q_ar": "ما الذي يحمي الإلكترونيات من الكهرباء الساكنة أثناء الشحن؟",
       "expected_entry_ids": [
         "protective_packaging:uae-market-products"
       ]

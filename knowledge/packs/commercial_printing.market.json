@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What printing services, from offset and digital to packaging and large format, are offered in the UAE?",
-      "q_ar": "ما خدمات الطباعة المقدمة في الإمارات، من الأوفست والطباعة الرقمية إلى طباعة التغليف والطباعة كبيرة الحجم؟",
+      "q_en": "What paper weight is standard for a company brochure cover?",
+      "q_ar": "ما وزن الورق القياسي لغلاف كتيب الشركة؟",
       "expected_entry_ids": [
         "commercial_printing:uae-market-products"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "For a corporate gala, what types of entertainers and performers can be booked in the UAE?",
-      "q_ar": "لحفل شركة، ما أنواع الفنانين ومقدمي العروض الذين يمكن حجزهم في الإمارات؟",
+      "q_en": "What permits are needed for a drone light show at a corporate event in Dubai?",
+      "q_ar": "ما التصاريح المطلوبة لعرض إضاءة بالطائرات بدون طيار في فعالية شركة في دبي؟",
       "expected_entry_ids": [
         "event_entertainment:uae-market-products"
       ]

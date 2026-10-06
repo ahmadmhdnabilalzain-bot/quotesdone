@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "I'm equipping a gym in Dubai: what range of cardio, strength and free-weight equipment is sold locally?",
-      "q_ar": "أجهّز صالة رياضية في دبي: ما مجموعة أجهزة الكارديو والقوة والأوزان الحرة المتوفرة محلياً؟",
+      "q_en": "What is the difference between a commercial and home treadmill for a residential tower gym?",
+      "q_ar": "ما الفرق بين جهاز المشي التجاري والمنزلي لصالة رياضية في برج سكني؟",
       "expected_entry_ids": [
         "fitness_equipment:uae-market-products"
       ]

@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are printed labels and shrink sleeves priced in the UAE, and what MOQs and lead times apply?",
-      "q_ar": "كيف تُسعَّر الملصقات المطبوعة والأغلفة الانكماشية في الإمارات، وما الحد الأدنى للطلب ومدد التسليم؟",
+      "q_en": "How are self-adhesive labels priced?",
+      "q_ar": "كيف تُسعّر الملصقات ذاتية اللصق؟",
       "expected_entry_ids": [
         "labels_sleeves:uae-market-sizes"
       ]

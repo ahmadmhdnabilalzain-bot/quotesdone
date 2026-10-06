@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What types of air compressors are available in the UAE, from screw and oil-free units to piston models?",
-      "q_ar": "ما أنواع ضواغط الهواء المتوفرة في الإمارات، من الضواغط اللولبية والخالية من الزيت إلى الضواغط الترددية؟",
+      "q_en": "Do I need an oil-free compressor for a pharmaceutical line?",
+      "q_ar": "هل أحتاج ضاغطاً خالياً من الزيت لخط أدوية؟",
       "expected_entry_ids": [
         "air_compressors:uae-market-products"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What wear parts and consumables do UAE quarries typically buy for crushing and screening?",
-      "q_ar": "ما قطع الغيار المعرّضة للتآكل والمستهلكات التي تشتريها المحاجر في الإمارات عادةً للتكسير والغربلة؟",
+      "q_en": "Which manganese grade should jaw crusher plates be for gabbro?",
+      "q_ar": "ما درجة المنغنيز المناسبة لألواح كسارة الفك للغابرو؟",
       "expected_entry_ids": [
         "mining_quarry_supplies:uae-market-products"
       ]

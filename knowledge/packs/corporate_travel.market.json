@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do travel management companies in the UAE charge for flights, hotels, visas and group events?",
-      "q_ar": "كيف تتقاضى شركات إدارة السفر في الإمارات رسومها على الرحلات والفنادق والتأشيرات والفعاليات الجماعية؟",
+      "q_en": "How do travel management companies charge for corporate bookings?",
+      "q_ar": "كيف تتقاضى شركات إدارة السفر رسوم حجوزات الشركات؟",
       "expected_entry_ids": [
         "corporate_travel:uae-market-sizes"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What shade structures, fencing types and shade fabrics are available from suppliers in the UAE?",
-      "q_ar": "ما هياكل المظلات وأنواع الأسوار وأقمشة التظليل المتوفرة لدى الموردين في الإمارات؟",
+      "q_en": "What is the difference between HDPE, PVC and PTFE shade fabric?",
+      "q_ar": "ما الفرق بين أقمشة التظليل HDPE وPVC وPTFE؟",
       "expected_entry_ids": [
         "fencing_shades:uae-market-products"
       ]

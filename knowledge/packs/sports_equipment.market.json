@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "When buying sports equipment, courts or flooring in the UAE, what units and sizes are quotes based on?",
-      "q_ar": "عند شراء معدات رياضية أو ملاعب أو أرضيات في الإمارات، ما الوحدات والمقاسات التي تُبنى عليها عروض الأسعار؟",
+      "q_en": "What is the standard size of a padel court and how is it priced?",
+      "q_ar": "ما المقاس القياسي لملعب البادل وكيف يُسعّر؟",
       "expected_entry_ids": [
         "sports_equipment:uae-market-sizes"
       ]

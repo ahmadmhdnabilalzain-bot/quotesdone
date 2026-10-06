@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do guarding companies in the UAE structure their rates and contract terms for manned security?",
-      "q_ar": "كيف تحدد شركات الحراسة في الإمارات أسعارها وشروط عقودها لخدمات الحراس الأمنيين؟",
+      "q_en": "Is a security guard priced per hour or per month for a 24/7 post?",
+      "q_ar": "هل يُسعّر الحارس الأمني بالساعة أم بالشهر لموقع يعمل على مدار الساعة؟",
       "expected_entry_ids": [
         "security_guarding:uae-market-sizes"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Tell me about the main families of industrial pumps sold in the UAE and where each is used.",
-      "q_ar": "حدّثني عن الفئات الرئيسية للمضخات الصناعية المباعة في الإمارات واستخدامات كل منها.",
+      "q_en": "What data do I need to size a booster pump for a building?",
+      "q_ar": "ما البيانات التي أحتاجها لتحديد مضخة رفع لمبنى؟",
       "expected_entry_ids": [
         "industrial_pumps:uae-market-products"
       ]

@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which curricula and kinds of books and learning resources do UAE educational suppliers stock?",
-      "q_ar": "ما المناهج وأنواع الكتب والموارد التعليمية التي يوفرها موردو المستلزمات التعليمية في الإمارات؟",
+      "q_en": "Do imported books need Media Council approval before we can sell them to schools?",
+      "q_ar": "هل تحتاج الكتب المستوردة إلى موافقة مجلس الإمارات للإعلام قبل بيعها للمدارس؟",
       "expected_entry_ids": [
         "books_educational:uae-market-products"
       ]

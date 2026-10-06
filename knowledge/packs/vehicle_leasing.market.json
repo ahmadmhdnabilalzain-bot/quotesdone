@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What leasing and rental options do UAE companies offer for cars, vans, buses and heavy vehicles?",
-      "q_ar": "ما خيارات التأجير التمويلي والتشغيلي التي تقدمها الشركات في الإمارات للسيارات والشاحنات الصغيرة والحافلات والمركبات الثقيلة؟",
+      "q_en": "What is included in a full-maintenance corporate car lease?",
+      "q_ar": "ما المشمول في تأجير سيارات الشركات بالصيانة الكاملة؟",
       "expected_entry_ids": [
         "vehicle_leasing:uae-market-products"
       ]

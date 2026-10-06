@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Are consultancy engagements in the UAE usually billed as fixed fees, man-day rates or monthly retainers?",
-      "q_ar": "هل تُحتسب أتعاب الاستشارات الإدارية في الإمارات عادةً كرسوم ثابتة أم بأجر يومي للاستشاري أم باشتراك شهري؟",
+      "q_en": "How are management consultancy fees usually structured for a strategy project?",
+      "q_ar": "كيف تُنظم عادةً أتعاب الاستشارات الإدارية لمشروع استراتيجي؟",
       "expected_entry_ids": [
         "management_consultancy:uae-market-sizes"
       ]

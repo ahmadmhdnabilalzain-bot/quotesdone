@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What joinery and carpentry work do UAE joinery workshops produce, and in which materials?",
-      "q_ar": "ما أعمال النجارة التي تنتجها ورش النجارة في الإمارات، وبأي مواد؟",
+      "q_en": "What board should kitchen cabinets be made of in a humid UAE apartment?",
+      "q_ar": "من أي لوح يجب أن تُصنع خزائن المطبخ في شقة رطبة بالإمارات؟",
       "expected_entry_ids": [
         "joinery:uae-market-products"
       ]

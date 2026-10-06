@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What kinds of pools, water features and pool equipment are built and supplied in the UAE?",
-      "q_ar": "ما أنواع المسابح والنوافير ومعدات المسابح التي تُنفَّذ وتُورَّد في الإمارات؟",
+      "q_en": "Do I need a pool chiller for a villa pool in Dubai?",
+      "q_ar": "هل أحتاج مبرد مسبح لمسبح فيلا في دبي؟",
       "expected_entry_ids": [
         "swimming_pools:uae-market-products"
       ]

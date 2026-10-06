@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which investigation and screening services are on offer from firms operating in the UAE?",
-      "q_ar": "ما خدمات التحقيق والتحري التي تقدمها الشركات العاملة في الإمارات؟",
+      "q_en": "Can a background screening company check a candidate's criminal record in the UAE?",
+      "q_ar": "هل يمكن لشركة الفحص الخلفي التحقق من السجل الجنائي للمرشح في الإمارات؟",
       "expected_entry_ids": [
         "investigation_screening:uae-market-products"
       ]

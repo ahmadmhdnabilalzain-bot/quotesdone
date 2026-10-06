@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which block types and plastering products are used for masonry work on UAE projects?",
-      "q_ar": "ما أنواع البلوك ومواد اللياسة المستخدمة في أعمال البناء بمشاريع الإمارات؟",
+      "q_en": "What is a thermal block and why is it required in Dubai?",
+      "q_ar": "ما هو الطابوق الحراري ولماذا هو مطلوب في دبي؟",
       "expected_entry_ids": [
         "masonry_blockwork:uae-market-products"
       ]

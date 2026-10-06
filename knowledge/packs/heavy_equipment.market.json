@@ -67,8 +67,8 @@
   ],
   "eval": [
     {
-      "q_en": "Explain how heavy equipment hire is quoted in the UAE: hourly, daily or monthly, and what is included.",
-      "q_ar": "وضّح كيف تُسعَّر عروض استئجار المعدات الثقيلة في الإمارات: بالساعة أم باليوم أم بالشهر، وما الذي يشمله السعر.",
+      "q_en": "How is a monthly backhoe hire usually priced in the UAE?",
+      "q_ar": "كيف يُسعّر تأجير لودر حفار شهرياً في الإمارات عادة؟",
       "expected_entry_ids": [
         "heavy_equipment:uae-market-sizes"
       ]

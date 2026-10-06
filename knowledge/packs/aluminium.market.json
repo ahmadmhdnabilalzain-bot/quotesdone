@@ -67,8 +67,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which aluminium product families does the UAE market supply, such as extrusions, cladding panels and sheet?",
-      "q_ar": "ما فئات منتجات الألمنيوم التي يوفرها السوق الإماراتي، مثل المقاطع المبثوقة وألواح الكسوة والصفائح؟",
+      "q_en": "Can I still use normal PE core ACP on a villa façade in Dubai?",
+      "q_ar": "هل يمكنني استخدام ألواح ACP بقلب بولي إيثيلين عادي على واجهة فيلا في دبي؟",
       "expected_entry_ids": [
         "aluminium:uae-market-products"
       ]

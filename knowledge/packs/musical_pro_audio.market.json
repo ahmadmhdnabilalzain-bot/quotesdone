@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What instruments, including Arabic ones, and pro audio gear can I find in UAE music shops?",
-      "q_ar": "ما الآلات الموسيقية، بما فيها الآلات العربية، ومعدات الصوت الاحترافية التي أجدها في متاجر الموسيقى بالإمارات؟",
+      "q_en": "Do wireless microphones need TDRA approval in the UAE?",
+      "q_ar": "هل تحتاج الميكروفونات اللاسلكية إلى اعتماد من هيئة تنظيم الاتصالات في الإمارات؟",
       "expected_entry_ids": [
         "musical_pro_audio:uae-market-products"
       ]

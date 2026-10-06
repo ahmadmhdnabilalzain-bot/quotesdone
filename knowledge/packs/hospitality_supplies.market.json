@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are hotel chinaware, cutlery, linen and amenities typically packed and priced by UAE suppliers?",
-      "q_ar": "كيف يعبّئ موردو الإمارات أواني الفنادق الخزفية وأدوات المائدة والبياضات ومستلزمات الضيافة ويسعّرونها عادةً؟",
+      "q_en": "What par level of bed linen should we order for a 200-room hotel?",
+      "q_ar": "ما المستوى المعياري لبياضات الأسرّة الذي يجب طلبه لفندق من 200 غرفة؟",
       "expected_entry_ids": [
         "hospitality_supplies:uae-market-sizes"
       ]

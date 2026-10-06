@@ -52,8 +52,8 @@
   ],
   "eval": [
     {
-      "q_en": "What woven sacks and jumbo bag types are manufactured or supplied in the UAE?",
-      "q_ar": "ما أنواع الأكياس المنسوجة والأكياس الضخمة التي تُصنع أو تُورَّد في الإمارات؟",
+      "q_en": "Which FIBC type is needed for a flammable powder?",
+      "q_ar": "ما نوع الكيس الجامبو المطلوب لمسحوق قابل للاشتعال؟",
       "expected_entry_ids": [
         "bulk_bags_sacks:uae-market-products"
       ]

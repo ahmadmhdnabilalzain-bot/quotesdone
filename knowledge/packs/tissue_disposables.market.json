@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What tissue, napkin and food-service disposable products are commonly supplied in the UAE?",
-      "q_ar": "ما منتجات المناديل الورقية والمستلزمات أحادية الاستخدام لخدمات الطعام الشائع توريدها في الإمارات؟",
+      "q_en": "Can we still buy styrofoam food containers for a restaurant in Dubai?",
+      "q_ar": "هل لا يزال بإمكاننا شراء حاويات طعام من الفوم لمطعم في دبي؟",
       "expected_entry_ids": [
         "tissue_disposables:uae-market-products"
       ]

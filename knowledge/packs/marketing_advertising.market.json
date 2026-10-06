@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What range of marketing and advertising services can a business buy from agencies in the UAE?",
-      "q_ar": "ما نطاق خدمات التسويق والإعلان التي يمكن لشركة أن تطلبها من الوكالات في الإمارات؟",
+      "q_en": "Who issues permits for a billboard campaign in Dubai?",
+      "q_ar": "من يصدر تصاريح حملة لوحات إعلانية في دبي؟",
       "expected_entry_ids": [
         "marketing_advertising:uae-market-products"
       ]

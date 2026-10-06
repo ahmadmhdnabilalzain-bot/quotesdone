@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What commercial models exist for vending machines in the UAE: outright purchase, monthly rental or operator revenue share?",
-      "q_ar": "ما النماذج التجارية لآلات البيع الذاتي في الإمارات: الشراء المباشر أم الإيجار الشهري أم تقاسم الإيرادات مع المشغل؟",
+      "q_en": "Can a vending company place a machine in our office for free?",
+      "q_ar": "هل يمكن لشركة بيع آلي وضع آلة في مكتبنا مجاناً؟",
       "expected_entry_ids": [
         "vending_machines:uae-market-sizes"
       ]

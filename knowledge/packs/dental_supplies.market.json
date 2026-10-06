@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "From chairs to consumables, what dental equipment and supplies are sold in the UAE?",
-      "q_ar": "من كراسي الأسنان إلى المستهلكات، ما معدات ومستلزمات طب الأسنان المباعة في الإمارات؟",
+      "q_en": "Does a dental OPG X-ray unit need a FANR licence in the UAE?",
+      "q_ar": "هل يحتاج جهاز الأشعة البانورامية للأسنان إلى ترخيص من الهيئة الاتحادية للرقابة النووية في الإمارات؟",
       "expected_entry_ids": [
         "dental_supplies:uae-market-products"
       ]

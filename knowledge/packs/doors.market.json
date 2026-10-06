@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What door sizes are standard in the UAE, and how are doors quoted for a project?",
-      "q_ar": "ما مقاسات الأبواب القياسية في الإمارات، وكيف تُسعَّر الأبواب للمشاريع؟",
+      "q_en": "What thickness should a 60-minute fire door be and what certificate must it have in the UAE?",
+      "q_ar": "ما سماكة باب الحريق 60 دقيقة وما الشهادة المطلوبة له في الإمارات؟",
       "expected_entry_ids": [
         "doors:uae-market-sizes"
       ]

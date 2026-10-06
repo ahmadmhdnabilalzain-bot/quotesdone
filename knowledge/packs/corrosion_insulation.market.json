@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What measurement units are used when quoting insulation, coatings and cathodic protection in the UAE?",
-      "q_ar": "ما وحدات القياس المستخدمة عند تسعير العزل والطلاءات والحماية الكاثودية في الإمارات؟",
+      "q_en": "How is pipe insulation priced in an industrial project?",
+      "q_ar": "كيف يُسعّر عزل الأنابيب في مشروع صناعي؟",
       "expected_entry_ids": [
         "corrosion_insulation:uae-market-sizes"
       ]

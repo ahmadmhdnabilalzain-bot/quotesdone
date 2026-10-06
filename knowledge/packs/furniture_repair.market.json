@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do furniture repair and reupholstery workshops in the UAE usually quote their jobs?",
-      "q_ar": "كيف تقدّم ورش إصلاح الأثاث وإعادة تنجيده في الإمارات عروض أسعارها عادةً؟",
+      "q_en": "Is fabric included in the reupholstery price, and how many metres does a three-seater sofa need?",
+      "q_ar": "هل القماش مشمول في سعر إعادة التنجيد، وكم متراً تحتاج الأريكة ذات المقاعد الثلاثة؟",
       "expected_entry_ids": [
         "furniture_repair:uae-market-sizes"
       ]

@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which kinds of real estate services can I hire in the UAE besides sales and leasing brokerage?",
-      "q_ar": "ما أنواع الخدمات العقارية التي يمكنني التعاقد عليها في الإمارات إلى جانب وساطة البيع والتأجير؟",
+      "q_en": "What forms and permits must a Dubai broker have before advertising my property?",
+      "q_ar": "ما النماذج والتصاريح التي يجب أن يحصل عليها الوسيط في دبي قبل الإعلان عن عقاري؟",
       "expected_entry_ids": [
         "real_estate_services:uae-market-products"
       ]

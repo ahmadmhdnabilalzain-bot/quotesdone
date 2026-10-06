@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which oilfield supply categories, such as OCTG, line pipe and fittings, are traded in the UAE?",
-      "q_ar": "ما فئات مستلزمات حقول النفط المتداولة في الإمارات، مثل أنابيب التغليف وأنابيب الخطوط والتوصيلات؟",
+      "q_en": "What does PSL2 mean on API 5L line pipe?",
+      "q_ar": "ماذا يعني PSL2 على أنبوب خطوط API 5L؟",
       "expected_entry_ids": [
         "oilfield:uae-market-products"
       ]

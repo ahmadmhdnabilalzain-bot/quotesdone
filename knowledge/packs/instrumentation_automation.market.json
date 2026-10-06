@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which instrumentation and automation products, such as PLCs, SCADA and field instruments, are sold in the UAE?",
-      "q_ar": "ما منتجات القياس والأتمتة، مثل وحدات التحكم المنطقية وأنظمة سكادا وأجهزة القياس الميدانية، التي تُباع في الإمارات؟",
+      "q_en": "Which flow meter suits treated sewage effluent?",
+      "q_ar": "ما مقياس التدفق المناسب لمياه الصرف المعالجة؟",
       "expected_entry_ids": [
         "instrumentation_automation:uae-market-products"
       ]

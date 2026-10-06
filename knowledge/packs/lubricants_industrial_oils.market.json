@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Give me an overview of the engine, gear, hydraulic and other industrial oil families sold in the UAE.",
-      "q_ar": "أعطني لمحة عن فئات زيوت المحركات والتروس والزيوت الهيدروليكية وغيرها من الزيوت الصناعية المباعة في الإمارات.",
+      "q_en": "Which engine oil specification should a heavy diesel fleet use?",
+      "q_ar": "ما مواصفة زيت المحرك المناسبة لأسطول ديزل ثقيل؟",
       "expected_entry_ids": [
         "lubricants_industrial_oils:uae-market-products"
       ]

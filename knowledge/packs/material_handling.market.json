@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "I'm equipping a warehouse: which forklifts, reach trucks and pallet handling equipment are offered in the UAE?",
-      "q_ar": "أجهّز مستودعاً: ما الرافعات الشوكية ورافعات الوصول ومعدات مناولة المنصات المعروضة في الإمارات؟",
+      "q_en": "What does 3 tonnes at 500 mm load centre mean on a forklift?",
+      "q_ar": "ماذا يعني 3 أطنان عند مركز حمل 500 مم في الرافعة الشوكية؟",
       "expected_entry_ids": [
         "material_handling:uae-market-products"
       ]

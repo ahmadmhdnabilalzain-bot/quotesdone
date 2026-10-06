@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What fee models do UAE recruiters use: contingency percentages, retained search, RPO or per-head volume hiring?",
-      "q_ar": "ما نماذج الرسوم التي تعتمدها شركات التوظيف في الإمارات: نسبة عند التعيين، أم البحث المحتجز، أم التعهيد، أم السعر لكل موظف؟",
+      "q_en": "What fee does a recruitment agency charge for a mid-level hire in Dubai?",
+      "q_ar": "ما الأتعاب التي تتقاضاها وكالة التوظيف لتعيين موظف متوسط المستوى في دبي؟",
       "expected_entry_ids": [
         "recruitment_executive_search:uae-market-sizes"
       ]

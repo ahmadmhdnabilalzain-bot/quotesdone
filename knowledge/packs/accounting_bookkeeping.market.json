@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do UAE accounting firms price bookkeeping, VAT returns, payroll and year-end financial statements?",
-      "q_ar": "كيف تسعّر مكاتب المحاسبة في الإمارات مسك الدفاتر وإقرارات ضريبة القيمة المضافة والرواتب والقوائم المالية السنوية؟",
+      "q_en": "Is the firm an FTA-registered tax agent, and how are VAT returns priced?",
+      "q_ar": "هل الشركة وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب، وكيف تُسعّر إقرارات ضريبة القيمة المضافة؟",
       "expected_entry_ids": [
         "accounting_bookkeeping:uae-market-sizes"
       ]

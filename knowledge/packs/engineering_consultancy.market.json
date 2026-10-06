@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which engineering consultancy disciplines can a developer engage in the UAE?",
-      "q_ar": "ما تخصصات الاستشارات الهندسية التي يمكن لمطوّر عقاري التعاقد عليها في الإمارات؟",
+      "q_en": "How do we check that an engineering consultant is registered with Dubai Municipality?",
+      "q_ar": "كيف نتحقق من أن الاستشاري الهندسي مسجل لدى بلدية دبي؟",
       "expected_entry_ids": [
         "engineering_consultancy:uae-market-products"
       ]

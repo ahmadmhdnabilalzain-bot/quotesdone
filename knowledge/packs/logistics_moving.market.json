@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do UAE forwarders and movers price their work: per container, per CBM, per chargeable kg or per truck trip?",
-      "q_ar": "كيف يسعّر وكلاء الشحن وشركات النقل في الإمارات خدماتهم: بالحاوية أم بالمتر المكعب أم بالكيلوغرام المحتسب أم بالرحلة؟",
+      "q_en": "How is air freight chargeable weight calculated from Dubai?",
+      "q_ar": "كيف يُحسب الوزن الخاضع للرسوم في الشحن الجوي من دبي؟",
       "expected_entry_ids": [
         "logistics_moving:uae-market-sizes"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "In what lengths and drums are cables sold in the UAE, and on what basis are they priced?",
-      "q_ar": "بأي أطوال وبكرات تُباع الكابلات في الإمارات، وعلى أي أساس يتم تسعيرها؟",
+      "q_en": "Why does a cable price quote change with the copper price?",
+      "q_ar": "لماذا يتغير سعر الكابل مع سعر النحاس؟",
       "expected_entry_ids": [
         "cables_wires:uae-market-sizes"
       ]

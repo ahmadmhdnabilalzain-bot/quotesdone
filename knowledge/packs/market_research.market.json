@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do research agencies in the UAE cost a study, for example per completed interview or per focus group?",
-      "q_ar": "كيف تحتسب شركات أبحاث السوق في الإمارات تكلفة الدراسة، مثلاً لكل مقابلة مكتملة أو لكل مجموعة نقاش؟",
+      "q_en": "How is a focus group priced in Dubai?",
+      "q_ar": "كيف تُسعّر مجموعة التركيز في دبي؟",
       "expected_entry_ids": [
         "market_research:uae-market-sizes"
       ]

@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do hazardous and medical waste contractors in the UAE charge for collection and disposal?",
-      "q_ar": "كيف يتقاضى مقاولو النفايات الخطرة والطبية في الإمارات أجور الجمع والتخلص؟",
+      "q_en": "How is medical waste collection from a clinic usually charged?",
+      "q_ar": "كيف يُحتسب جمع النفايات الطبية من العيادة عادة؟",
       "expected_entry_ids": [
         "hazardous_waste:uae-market-sizes"
       ]

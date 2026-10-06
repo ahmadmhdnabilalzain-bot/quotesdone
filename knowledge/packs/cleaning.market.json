@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What are the usual pricing units for cleaning services in the UAE, from hourly cleaners to facade and tank cleaning?",
-      "q_ar": "ما وحدات التسعير المعتادة لخدمات التنظيف في الإمارات، من عمال النظافة بالساعة إلى تنظيف الواجهات والخزانات؟",
+      "q_en": "Is a post-construction deep clean priced per hour or per square metre?",
+      "q_ar": "هل يُسعّر التنظيف العميق بعد الإنشاء بالساعة أم بالمتر المربع؟",
       "expected_entry_ids": [
         "cleaning:uae-market-sizes"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What uniform and workwear ranges do UAE suppliers make for offices, hospitality, healthcare and industry?",
-      "q_ar": "ما تشكيلات الأزياء الموحدة وملابس العمل التي يصنعها الموردون في الإمارات للمكاتب والضيافة والرعاية الصحية والصناعة؟",
+      "q_en": "What hi-vis class is required for road workers' vests?",
+      "q_ar": "ما فئة الملابس عالية الوضوح المطلوبة لسترات عمال الطرق؟",
       "expected_entry_ids": [
         "uniforms_corporate_apparel:uae-market-products"
       ]

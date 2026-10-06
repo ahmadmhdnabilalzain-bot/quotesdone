@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which wallcoverings and wall finishes are available in the UAE, from vinyl to bespoke murals?",
-      "q_ar": "ما أنواع ورق الجدران وتشطيبات الجدران المتوفرة في الإمارات، من الفينيل إلى الجداريات حسب الطلب؟",
+      "q_en": "What wallpaper type is required for a hotel corridor?",
+      "q_ar": "ما نوع ورق الجدران المطلوب لممر فندق؟",
       "expected_entry_ids": [
         "wallpaper:uae-market-products"
       ]

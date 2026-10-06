@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What POS hardware and software options are available for shops and restaurants in the UAE?",
-      "q_ar": "ما خيارات أجهزة وبرامج نقاط البيع المتاحة للمتاجر والمطاعم في الإمارات؟",
+      "q_en": "Does our restaurant POS need to print VAT-compliant tax invoices in Arabic?",
+      "q_ar": "هل يجب أن يطبع نظام نقاط البيع في مطعمنا فواتير ضريبية متوافقة مع ضريبة القيمة المضافة باللغة العربية؟",
       "expected_entry_ids": [
         "pos_retail:uae-market-products"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which hydraulic and pneumatic components can I buy from suppliers in the UAE?",
-      "q_ar": "ما مكونات الأنظمة الهيدروليكية والهوائية التي يمكنني شراؤها من الموردين في الإمارات؟",
+      "q_en": "What is the difference between 2SN and 4SH hydraulic hose?",
+      "q_ar": "ما الفرق بين الخرطوم الهيدروليكي 2SN و4SH؟",
       "expected_entry_ids": [
         "hydraulics_pneumatics:uae-market-products"
       ]

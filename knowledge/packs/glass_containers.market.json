@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What bottle sizes, MOQs and lead times should I expect when buying perfume and attar glass in the UAE?",
-      "q_ar": "ما أحجام الزجاجات والحد الأدنى للطلب ومدد التسليم المتوقعة عند شراء زجاجات العطور ودهن العود في الإمارات؟",
+      "q_en": "What is the minimum order for custom perfume bottles?",
+      "q_ar": "ما الحد الأدنى لطلب زجاجات عطور بتصميم خاص؟",
       "expected_entry_ids": [
         "glass_containers:uae-market-sizes"
       ]

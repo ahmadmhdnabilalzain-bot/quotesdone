@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which vehicle models and types are typically bought for company fleets in the UAE?",
-      "q_ar": "ما طرازات وأنواع المركبات التي تُشترى عادةً لأساطيل الشركات في الإمارات؟",
+      "q_en": "Why should a fleet buyer insist on GCC-spec vehicles in the UAE?",
+      "q_ar": "لماذا يجب أن يصر مشتري الأسطول على مركبات بالمواصفات الخليجية في الإمارات؟",
       "expected_entry_ids": [
         "vehicles_fleet:uae-market-products"
       ]

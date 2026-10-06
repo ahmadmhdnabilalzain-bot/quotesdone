@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What component lengths does UAE scaffolding come in, and how are sale and hire charged?",
-      "q_ar": "ما أطوال مكونات السقالات المتوفرة في الإمارات، وكيف يُحتسب سعر البيع والتأجير؟",
+      "q_en": "How is scaffolding hire usually priced in the UAE?",
+      "q_ar": "كيف يُسعّر تأجير السقالات عادة في الإمارات؟",
       "expected_entry_ids": [
         "scaffolding:uae-market-sizes"
       ]

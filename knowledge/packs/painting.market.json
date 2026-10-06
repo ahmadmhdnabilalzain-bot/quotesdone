@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which interior, exterior and specialist paint finishes are sold in the UAE?",
-      "q_ar": "ما أنواع الدهانات الداخلية والخارجية والتشطيبات المتخصصة المباعة في الإمارات؟",
+      "q_en": "What coating system should I use on steel near the coast in the UAE?",
+      "q_ar": "ما نظام الطلاء المناسب للحديد قرب الساحل في الإمارات؟",
       "expected_entry_ids": [
         "painting:uae-market-products"
       ]

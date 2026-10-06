@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What sign types can businesses order from UAE signage makers, from shop fronts to wayfinding?",
-      "q_ar": "ما أنواع اللافتات التي يمكن للشركات طلبها من مصنّعي اللافتات في الإمارات، من واجهات المحلات إلى لوحات الإرشاد؟",
+      "q_en": "Does a shop sign in Dubai need Arabic text and a permit?",
+      "q_ar": "هل تحتاج لافتة المحل في دبي إلى نص عربي وتصريح؟",
       "expected_entry_ids": [
         "signage:uae-market-products"
       ]

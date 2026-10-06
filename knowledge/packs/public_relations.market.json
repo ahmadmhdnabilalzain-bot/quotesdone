@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Do PR agencies in the UAE work on monthly retainers or per project, and what extra costs are passed on?",
-      "q_ar": "هل تعمل وكالات العلاقات العامة في الإمارات باشتراك شهري أم بالمشروع، وما التكاليف الإضافية التي تُحمَّل على العميل؟",
+      "q_en": "How is a PR retainer typically structured in Dubai?",
+      "q_ar": "كيف تُنظم عادةً أتعاب العلاقات العامة الشهرية في دبي؟",
       "expected_entry_ids": [
         "public_relations:uae-market-sizes"
       ]

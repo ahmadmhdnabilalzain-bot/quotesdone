@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which 3D printing processes and materials are offered by print bureaus in the UAE?",
-      "q_ar": "ما عمليات الطباعة ثلاثية الأبعاد والمواد التي تقدمها مكاتب الطباعة في الإمارات؟",
+      "q_en": "Which 3D printing process gives strong functional nylon parts?",
+      "q_ar": "ما عملية الطباعة ثلاثية الأبعاد التي تعطي قطع نايلون وظيفية قوية؟",
       "expected_entry_ids": [
         "additive_manufacturing:uae-market-products"
       ]

@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What roll and pack sizes do waterproofing materials come in here, and how are waterproofing works quoted in the UAE?",
-      "q_ar": "ما أحجام اللفات والعبوات لمواد العزل المائي، وكيف تُسعَّر أعمال العزل المائي في الإمارات؟",
+      "q_en": "How long should a roof waterproofing warranty be in the UAE?",
+      "q_ar": "كم يجب أن تكون مدة ضمان عزل السطح في الإمارات؟",
       "expected_entry_ids": [
         "waterproofing:uae-market-sizes"
       ]

@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What water treatment O&M and tank cleaning services are offered to buildings and facilities in the UAE?",
-      "q_ar": "ما خدمات تشغيل وصيانة محطات معالجة المياه وتنظيف الخزانات المقدمة للمباني والمنشآت في الإمارات؟",
+      "q_en": "How often must a building water tank be cleaned in Dubai?",
+      "q_ar": "كم مرة يجب تنظيف خزان مياه المبنى في دبي؟",
       "expected_entry_ids": [
         "water_treatment_services:uae-market-products"
       ]

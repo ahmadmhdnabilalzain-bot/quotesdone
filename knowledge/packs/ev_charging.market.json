@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What EV charging equipment, AC and DC, is installed across the UAE?",
-      "q_ar": "ما معدات شحن السيارات الكهربائية، بالتيار المتردد والمستمر، التي تُركَّب في الإمارات؟",
+      "q_en": "What charger should I install at my villa in Dubai?",
+      "q_ar": "ما الشاحن الذي يجب أن أركّبه في فيلتي بدبي؟",
       "expected_entry_ids": [
         "ev_charging:uae-market-products"
       ]

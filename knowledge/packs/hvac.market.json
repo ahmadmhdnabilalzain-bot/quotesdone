@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are AC units and HVAC installation sized and priced in the UAE market?",
-      "q_ar": "كيف تُحدَّد سعات وحدات التكييف وأسعار تركيب أنظمة التكييف والتهوية في السوق الإماراتي؟",
+      "q_en": "How many tons of AC does a 20 m2 bedroom need in Dubai?",
+      "q_ar": "كم طن تكييف تحتاج غرفة نوم مساحتها 20 م2 في دبي؟",
       "expected_entry_ids": [
         "hvac:uae-market-sizes"
       ]

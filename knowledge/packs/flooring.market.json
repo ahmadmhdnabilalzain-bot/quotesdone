@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which flooring materials can buyers choose from in the UAE market, from tiles and stone to vinyl and wood?",
-      "q_ar": "ما مواد الأرضيات التي يمكن للمشترين الاختيار منها في السوق الإماراتي، من البلاط والحجر إلى الفينيل والخشب؟",
+      "q_en": "Which vinyl flooring is suitable for a clinic in Dubai?",
+      "q_ar": "ما أرضيات الفينيل المناسبة لعيادة في دبي؟",
       "expected_entry_ids": [
         "flooring:uae-market-products"
       ]

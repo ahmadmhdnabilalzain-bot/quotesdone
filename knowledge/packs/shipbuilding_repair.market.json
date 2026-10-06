@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Explain how UAE shipyards price newbuild contracts and repair work such as docking, dock days and blasting.",
-      "q_ar": "اشرح كيف تسعّر أحواض السفن في الإمارات عقود البناء الجديد وأعمال الإصلاح كالإدخال إلى الحوض وأيام الحوض والسفع.",
+      "q_en": "How is drydocking priced for a 60 m offshore supply vessel?",
+      "q_ar": "كيف يُسعّر الإرساء في الحوض الجاف لسفينة إمداد بحرية بطول 60 م؟",
       "expected_entry_ids": [
         "shipbuilding_repair:uae-market-sizes"
       ]

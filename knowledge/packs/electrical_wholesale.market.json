@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "At UAE electrical wholesalers, what pack sizes and lengths are items sold in, and how is trade pricing worked out?",
-      "q_ar": "لدى تجار الجملة للمواد الكهربائية في الإمارات، بأي عبوات وأطوال تُباع المواد وكيف يُحسب سعر التجار؟",
+      "q_en": "Which MCB curve should I buy for motor loads?",
+      "q_ar": "ما منحنى القاطع MCB المناسب لأحمال المحركات؟",
       "expected_entry_ids": [
         "electrical_wholesale:uae-market-sizes"
       ]

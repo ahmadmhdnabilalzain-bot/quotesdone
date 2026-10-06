@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What kinds of events can an event management company in the UAE organise for us?",
-      "q_ar": "ما أنواع الفعاليات التي يمكن لشركة إدارة فعاليات في الإمارات تنظيمها لنا؟",
+      "q_en": "What permits does a corporate outdoor event in Dubai need?",
+      "q_ar": "ما التصاريح التي تحتاجها فعالية خارجية لشركة في دبي؟",
       "expected_entry_ids": [
         "event_management:uae-market-products"
       ]

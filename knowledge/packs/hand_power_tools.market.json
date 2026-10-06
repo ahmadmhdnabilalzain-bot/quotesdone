@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What sorts of corded, cordless and hand tools are commonly available from UAE tool dealers?",
-      "q_ar": "ما أنواع العدد الكهربائية السلكية واللاسلكية واليدوية المتوفرة عادةً لدى تجار العدد في الإمارات؟",
+      "q_en": "Which rotary hammer type do I need for 32 mm holes in concrete?",
+      "q_ar": "ما نوع المطرقة الدوارة الذي أحتاجه لثقوب 32 مم في الخرسانة؟",
       "expected_entry_ids": [
         "hand_power_tools:uae-market-products"
       ]

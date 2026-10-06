@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Who are the licensed telecom operators and satellite providers a UAE business can buy from?",
-      "q_ar": "من هم مشغلو الاتصالات المرخصون ومزودو خدمات الأقمار الصناعية الذين يمكن للشركات في الإمارات التعامل معهم؟",
+      "q_en": "Which operators can provide a business fibre line with an SLA in Dubai?",
+      "q_ar": "ما المشغلون الذين يمكنهم توفير خط ألياف للأعمال مع اتفاقية مستوى خدمة في دبي؟",
       "expected_entry_ids": [
         "telecom_services:uae-market-brands"
       ]

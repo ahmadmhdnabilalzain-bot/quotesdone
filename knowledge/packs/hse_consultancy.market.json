@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What services can an HSE consultancy in the UAE deliver for our company?",
-      "q_ar": "ما الخدمات التي يمكن لاستشاري الصحة والسلامة والبيئة في الإمارات تقديمها لشركتنا؟",
+      "q_en": "Does an HSE consultant working in Abu Dhabi need OSHAD registration?",
+      "q_ar": "هل يحتاج استشاري الصحة والسلامة العامل في أبوظبي إلى التسجيل لدى OSHAD؟",
       "expected_entry_ids": [
         "hse_consultancy:uae-market-products"
       ]

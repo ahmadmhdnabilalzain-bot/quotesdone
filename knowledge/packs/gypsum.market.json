@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What gypsum boards, partition systems and ceiling products does the UAE market offer?",
-      "q_ar": "ما ألواح الجبس وأنظمة القواطع ومنتجات الأسقف التي يوفرها السوق الإماراتي؟",
+      "q_en": "What board should I use for a bathroom ceiling?",
+      "q_ar": "ما نوع اللوح المناسب لسقف حمام؟",
       "expected_entry_ids": [
         "gypsum:uae-market-products"
       ]

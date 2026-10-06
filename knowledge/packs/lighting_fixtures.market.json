@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Looking for luminaires in the UAE: which indoor, outdoor and industrial light fittings can suppliers offer?",
-      "q_ar": "أبحث عن وحدات إنارة في الإمارات: ما وحدات الإضاءة الداخلية والخارجية والصناعية التي يمكن للموردين توفيرها؟",
+      "q_en": "What CRI and colour temperature should retail lighting have?",
+      "q_ar": "ما مؤشر تجسيد اللون ودرجة حرارة اللون المناسبة لإنارة المحلات؟",
       "expected_entry_ids": [
         "lighting_fixtures:uae-market-products"
       ]

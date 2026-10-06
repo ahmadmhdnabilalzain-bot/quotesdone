@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "Can you outline the kinds of paper and carrier bags that UAE manufacturers produce?",
-      "q_ar": "هل يمكنك توضيح أنواع الأكياس الورقية وأكياس التسوق التي ينتجها المصنعون في الإمارات؟",
+      "q_en": "What GSM kraft paper is used for retail shopping bags?",
+      "q_ar": "ما وزن ورق الكرافت المستخدم لأكياس التسوق؟",
       "expected_entry_ids": [
         "paper_bags:uae-market-products"
       ]

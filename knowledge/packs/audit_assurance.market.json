@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which audit firms and networks operate in the UAE for statutory company audits?",
-      "q_ar": "ما شركات وشبكات التدقيق العاملة في الإمارات لتدقيق حسابات الشركات القانوني؟",
+      "q_en": "Does our free-zone company need an auditor from the free zone's approved list?",
+      "q_ar": "هل تحتاج شركتنا في المنطقة الحرة إلى مدقق من القائمة المعتمدة لدى المنطقة الحرة؟",
       "expected_entry_ids": [
         "audit_assurance:uae-market-brands"
       ]

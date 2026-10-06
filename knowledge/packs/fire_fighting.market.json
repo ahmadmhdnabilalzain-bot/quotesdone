@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which fire fighting and life safety systems do UAE contractors typically supply and install?",
-      "q_ar": "ما أنظمة مكافحة الحرائق وسلامة الأرواح التي يوردها المقاولون في الإمارات ويركّبونها عادةً؟",
+      "q_en": "Which fire suppression gas is used for a server room in the UAE?",
+      "q_ar": "ما غاز الإطفاء المستخدم لغرفة الخوادم في الإمارات؟",
       "expected_entry_ids": [
         "fire_fighting:uae-market-products"
       ]

@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "What kinds of office space and workspace services do business centres in the UAE provide?",
-      "q_ar": "ما أنواع المكاتب وخدمات مساحات العمل التي تقدمها مراكز الأعمال في الإمارات؟",
+      "q_en": "Can a flexi-desk in a business centre be used for Ejari and how many visas does it allow?",
+      "q_ar": "هل يمكن استخدام مكتب مرن في مركز أعمال لتسجيل إيجاري وكم عدد التأشيرات التي يسمح بها؟",
       "expected_entry_ids": [
         "business_centres:uae-market-products"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What range of PPE and site safety equipment is sold in the UAE, and to which standards?",
-      "q_ar": "ما تشكيلة معدات الوقاية الشخصية وتجهيزات السلامة في المواقع المباعة في الإمارات، ووفق أي معايير؟",
+      "q_en": "What respirator class protects against fine dust during concrete cutting?",
+      "q_ar": "ما فئة قناع التنفس التي تحمي من الغبار الدقيق أثناء قطع الخرسانة؟",
       "expected_entry_ids": [
         "safety_equipment:uae-market-products"
       ]

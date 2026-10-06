@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "How are cold storage, blast freezing and refrigerated transport charged in the UAE?",
-      "q_ar": "كيف تُحتسب رسوم التخزين المبرد والتجميد السريع والنقل المبرد في الإمارات؟",
+      "q_en": "How is cold storage priced for frozen food pallets in Jebel Ali?",
+      "q_ar": "كيف يُسعّر التخزين المبرد لمنصات الأغذية المجمدة في جبل علي؟",
       "expected_entry_ids": [
         "cold_chain_logistics:uae-market-sizes"
       ]

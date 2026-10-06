@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What does the UAE market offer in structured cabling, networking, audio-visual and other low-current systems?",
-      "q_ar": "ماذا يقدم السوق الإماراتي في الكابلات المهيكلة والشبكات والأنظمة السمعية والبصرية وأنظمة التيار الخفيف الأخرى؟",
+      "q_en": "Should I install Cat6 or Cat6A cabling in a new Dubai office?",
+      "q_ar": "هل أركّب كابلات Cat6 أم Cat6A في مكتب جديد بدبي؟",
       "expected_entry_ids": [
         "av_it:uae-market-products"
       ]

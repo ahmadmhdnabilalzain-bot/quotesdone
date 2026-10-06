@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "What railway products and services are on offer in the UAE, from rolling stock and track materials to signalling?",
-      "q_ar": "ما منتجات وخدمات السكك الحديدية المتاحة في الإمارات، من عربات القطارات ومواد السكة إلى أنظمة الإشارات؟",
+      "q_en": "Which rail profile is used on the Etihad Rail network?",
+      "q_ar": "ما مقطع القضبان المستخدم في شبكة قطار الاتحاد؟",
       "expected_entry_ids": [
         "railway_equipment:uae-market-products"
       ]

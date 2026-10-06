@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "When renting event gear in the UAE, how are LED screens, tents, furniture and generators usually charged?",
-      "q_ar": "عند استئجار معدات الفعاليات في الإمارات، كيف تُحتسب عادةً أسعار شاشات LED والخيام والأثاث والمولدات؟",
+      "q_en": "How is an outdoor LED screen priced for a two-day event?",
+      "q_ar": "كيف تُسعّر شاشة LED خارجية لفعالية مدتها يومان؟",
       "expected_entry_ids": [
         "event_equipment_rental:uae-market-sizes"
       ]

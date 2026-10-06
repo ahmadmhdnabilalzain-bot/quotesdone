@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Moving home or office in the UAE: how are local, office and international removals typically quoted?",
-      "q_ar": "عند نقل منزل أو مكتب في الإمارات، كيف تُسعَّر عادةً عمليات النقل المحلي والمكتبي والدولي؟",
+      "q_en": "How do movers estimate the price of an international move from Dubai?",
+      "q_ar": "كيف تقدر شركات النقل سعر الانتقال الدولي من دبي؟",
       "expected_entry_ids": [
         "removals_relocation:uae-market-sizes"
       ]

@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Who are the established corporate training providers and certification bodies in the UAE?",
-      "q_ar": "من هم مزودو التدريب المؤسسي وجهات منح الشهادات المعروفون في الإمارات؟",
+      "q_en": "Does a training provider in Dubai need a KHDA permit?",
+      "q_ar": "هل يحتاج مقدم التدريب في دبي إلى تصريح من هيئة المعرفة والتنمية البشرية؟",
       "expected_entry_ids": [
         "corporate_training:uae-market-brands"
       ]

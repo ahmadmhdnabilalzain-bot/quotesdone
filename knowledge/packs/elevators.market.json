@@ -55,8 +55,8 @@
   ],
   "eval": [
     {
-      "q_en": "What lift capacities and speeds are common in the UAE, and how are lifts, escalators and maintenance contracts priced?",
-      "q_ar": "ما سعات المصاعد وسرعاتها الشائعة في الإمارات، وكيف تُسعَّر المصاعد والسلالم المتحركة وعقود الصيانة؟",
+      "q_en": "What is the difference between comprehensive and semi-comprehensive lift maintenance?",
+      "q_ar": "ما الفرق بين صيانة المصاعد الشاملة وشبه الشاملة؟",
       "expected_entry_ids": [
         "elevators:uae-market-sizes"
       ]

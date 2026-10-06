@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which plastic pipe systems and fittings are commonly supplied for UAE projects?",
-      "q_ar": "ما أنظمة الأنابيب البلاستيكية والتوصيلات التي تُورَّد عادةً لمشاريع الإمارات؟",
+      "q_en": "What does SDR 11 PE100 mean on an HDPE pipe?",
+      "q_ar": "ماذا يعني SDR 11 PE100 على أنبوب HDPE؟",
       "expected_entry_ids": [
         "plastics_pipes:uae-market-products"
       ]

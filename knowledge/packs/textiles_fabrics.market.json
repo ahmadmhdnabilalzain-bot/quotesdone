@@ -61,8 +61,8 @@
   ],
   "eval": [
     {
-      "q_en": "Is fabric in the UAE sold by the metre, yard, kilo or roll, and what minimum quantities do wholesalers set?",
-      "q_ar": "هل تُباع الأقمشة في الإمارات بالمتر أم بالياردة أم بالكيلو أم باللفة، وما الحد الأدنى للطلب لدى تجار الجملة؟",
+      "q_en": "How many metres of fabric are needed for one kandura?",
+      "q_ar": "كم متراً من القماش تحتاج الكندورة الواحدة؟",
       "expected_entry_ids": [
         "textiles_fabrics:uae-market-sizes"
       ]

@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "What glass types and glazing products are supplied for projects across the UAE?",
-      "q_ar": "ما أنواع الزجاج ومنتجات التزجيج التي تُورَّد للمشاريع في أنحاء الإمارات؟",
+      "q_en": "Do façade tempered panes need heat-soak testing in the UAE?",
+      "q_ar": "هل يحتاج الزجاج المقسّى للواجهات اختبار الغمر الحراري في الإمارات؟",
       "expected_entry_ids": [
         "glazing:uae-market-products"
       ]

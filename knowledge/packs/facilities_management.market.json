@@ -64,8 +64,8 @@
   ],
   "eval": [
     {
-      "q_en": "How do UAE facilities management companies price their contracts, and what terms are typical?",
-      "q_ar": "كيف تسعّر شركات إدارة المرافق في الإمارات عقودها، وما الشروط المعتادة فيها؟",
+      "q_en": "What is the difference between a comprehensive and a non-comprehensive FM contract?",
+      "q_ar": "ما الفرق بين عقد إدارة المرافق الشامل وغير الشامل؟",
       "expected_entry_ids": [
         "facilities_management:uae-market-sizes"
       ]

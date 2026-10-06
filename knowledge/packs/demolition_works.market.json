@@ -58,8 +58,8 @@
   ],
   "eval": [
     {
-      "q_en": "Which demolition and strip-out services do contractors in the UAE offer?",
-      "q_ar": "ما خدمات الهدم وإزالة التشطيبات التي يقدمها المقاولون في الإمارات؟",
+      "q_en": "What permits are needed before demolishing a building in Dubai?",
+      "q_ar": "ما التصاريح المطلوبة قبل هدم مبنى في دبي؟",
       "expected_entry_ids": [
         "demolition_works:uae-market-products"
       ]
