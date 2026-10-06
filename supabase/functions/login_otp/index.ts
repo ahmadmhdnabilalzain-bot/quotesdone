@@ -195,6 +195,20 @@ async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwn
   if (owners.length > 1) return { ambiguous: true };
   return owners.length ? { email: owners[0] } : null;
 }
+// THE CROSS-ROLE CHECK ON THE PHONE PATH (6 Oct 2026, review of #1245). role_guard used to refuse a
+// customer sign-in on a supplier's number (and the reverse) before any code was sent. That answer now
+// comes only after the code proves the handset: send texts the number when the OTHER role holds it, and
+// verify answers role_conflict instead of a session. Asked of the account tables only, like the resolver.
+async function otherRoleByPhone(kind: string, e164: string): Promise<'supplier' | 'customer' | null> {
+  if (kind !== 'customer' && kind !== 'supplier') return null;
+  const last9 = e164.replace(/\D/g, '').slice(-9);
+  if (last9.length < 9) return null;
+  const { data } = kind === 'customer'
+    ? await admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(1)
+    : await admin.from('customers').select('email').not('email', 'is', null).ilike('phone', '%' + last9).limit(1);
+  return data && data.length ? (kind === 'customer' ? 'supplier' : 'customer') : null;
+}
+const ROLE_CONFLICT_MSG = { supplier: 'This mobile number is registered to a supplier account. Please use the Supplier portal to sign in.', customer: 'This mobile number is registered to a customer account. Please use the customer app to sign in.' };
 const AMBIGUOUS_MSG = 'More than one QuotesDone account uses this mobile number, so we cannot tell which one is yours. Please sign in with your email address instead.';
 
 // THE SIGN-IN CODE MAY GO BY WHATSAPP (founder, 18 Sep 2026), AND ONLY TO A NUMBER THE ACCOUNT
@@ -279,7 +293,10 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         const { count } = await admin.from('email_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
         if ((count || 0) >= 8) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
         const c = code6();
-        await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'login', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        // A RESEND RETIRES EVERY EARLIER CODE, in the same transaction as the new one is written
+        // (public.fn_login_otp_email_issue, review of #1245), so only the newest code can ever verify.
+        const { error: issueErr } = await admin.rpc('fn_login_otp_email_issue', { p_email: email, p_hash: await otpHash(c), p_kind: kind, p_ttl_seconds: 600 });
+        if (issueErr) { console.error('login_otp: issue routine failed —', issueErr.message); return J({ error: 'Could not send the email code. Please try again in a minute.', code: 'email_not_sent' }, 502); }
         const codeAr = (await registeredLocale(admin, { role: kind, email }, body.lang)) === 'ar';
         const mail = codeEmail('signin', c, codeAr);
         // A code that did not leave is not "sent" (21 Sep 2026). The result was discarded, so a Resend
@@ -327,7 +344,8 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       // that key on email, and nothing a second device could ever sign in with. A phone confirms
       // an identity; it cannot mint one. So the sign-up path is email, and the refusal now happens
       // before the spend and says what to do instead.
-      if (!acctEmail) {
+      const otherRole = acctEmail ? null : await otherRoleByPhone(kind, e164);
+      if (!acctEmail && !otherRole) {
         if (allowSignup) {
           // 'skipped' for the same reason as the ambiguity refusal above: expected, routine, and
           // not a fault. This one fires every time somebody tries to sign up with a phone number.
@@ -370,7 +388,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       if ((count || 0) >= 6) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
       try {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
-        const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail }, body.lang);
+        const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail || '' }, body.lang);
         const send = async (channel: 'whatsapp' | 'sms') => {
           const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: channel, Locale: smsLocale }) });
           return { r, jd: await r.json() };
@@ -385,7 +403,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
           return x.r.ok && x.jd?.status !== 'canceled'
             ? { ...x, refused: null, ok: true, channel: 'sms' } : { ...x, refused: null, ok: false, channel: null };
         };
-        const wantsWa = await confirmedWhatsApp(kind, acctEmail, e164);
+        const wantsWa = acctEmail ? await confirmedWhatsApp(kind, acctEmail, e164) : false;
         const res = wantsWa ? await sendWhatsAppFirst(send) : await smsOnly();
         if (!res.ok) return J({ error: 'Could not send the sign-in code. Please try again in a minute.', code: 'sms_send_failed' }, 502);
         // The delivered channel is recorded in phone_verifications.code (the column only ever held the
@@ -491,6 +509,10 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       const owner = await resolveEmailByPhone(kind, e164);
       if (owner && 'ambiguous' in owner) return annotate(J({ error: AMBIGUOUS_MSG, code: 'ambiguous_phone', ambiguous: true }, 409), { ambiguous_phone: 1 });
       const email = owner ? owner.email : '';
+      if (!email) {
+        const other = await otherRoleByPhone(kind, e164);
+        if (other) return J({ error: ROLE_CONFLICT_MSG[other], code: 'role_conflict', conflict: other }, 409);
+      }
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.', code: 'no_account_for_number' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);

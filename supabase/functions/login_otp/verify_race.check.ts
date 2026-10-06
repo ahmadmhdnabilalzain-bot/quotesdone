@@ -6,7 +6,8 @@
 // to beat a read-then-write counter, and the check asserts:
 //   * 20 wrong guesses at one code: exactly 5 are evaluated (`wrong`), the counter ends at 5, and a
 //     right guess after that finds the code burned;
-//   * 20 copies of the RIGHT code at once: exactly one `ok`, so one code mints one session.
+//   * 20 copies of the RIGHT code at once: exactly one `ok`, so one code mints one session;
+//   * a resend retires the earlier code, and 20 sends at once leave exactly one live code.
 // `p_max_attempts` is login_otp's EMAIL_VERIFY_MAX_ATTEMPTS (5).
 import postgres from 'npm:postgres@3.4.5';
 
@@ -55,8 +56,23 @@ Deno.test({ name: 'a sign-in code survives at most 5 guesses and verifies once u
               values ('zz-race-3@example.invalid', 'login', 'RIGHT', now() - interval '1 minute')`;
     const exp = (await sql`select public.fn_login_otp_email_verify('zz-race-3@example.invalid', 'RIGHT', '000000', 5) as v`)[0].v;
     if (exp !== 'expired') throw new Error(`an expired code must answer expired, got ${exp}`);
+
+    // 4. A resend retires the earlier code: only the newest one verifies (review of #1245).
+    await sql`select public.fn_login_otp_email_issue('zz-race-4@example.invalid', 'OLD', 'customer', 600)`;
+    await sql`select public.fn_login_otp_email_issue('zz-race-4@example.invalid', 'NEW', 'customer', 600)`;
+    const live = (await sql`select count(*)::int n from public.email_verifications where email = 'zz-race-4@example.invalid' and used_at is null`)[0].n;
+    if (live !== 1) throw new Error(`after a resend exactly one code may be live, found ${live}`);
+    const old = (await sql`select public.fn_login_otp_email_verify('zz-race-4@example.invalid', 'OLD', '000000', 5) as v`)[0].v;
+    if (old === 'ok') throw new Error('the code issued before a resend still verified');
+    const neu = (await sql`select public.fn_login_otp_email_verify('zz-race-4@example.invalid', 'NEW', '000000', 5) as v`)[0].v;
+    if (neu !== 'ok') throw new Error(`the newest code must verify, got ${neu}`);
+
+    // 5. Twenty sends at once still leave exactly one live code.
+    await Promise.all(Array.from({ length: 20 }, (_, i) => sql`select public.fn_login_otp_email_issue('zz-race-5@example.invalid', ${'H' + i}, 'customer', 600)`));
+    const live5 = (await sql`select count(*)::int n from public.email_verifications where email = 'zz-race-5@example.invalid' and used_at is null`)[0].n;
+    if (live5 !== 1) throw new Error(`20 concurrent sends left ${live5} live codes`);
   } finally {
-    await sql.unsafe('drop table if exists public.email_verifications cascade; drop function if exists public.fn_login_otp_email_verify(text,text,text,integer);').catch(() => {});
+    await sql.unsafe('drop table if exists public.email_verifications cascade; drop function if exists public.fn_login_otp_email_verify(text,text,text,integer); drop function if exists public.fn_login_otp_email_issue(text,text,text,integer);').catch(() => {});
     await sql.end();
   }
 } });

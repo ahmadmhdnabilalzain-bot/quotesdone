@@ -27,9 +27,15 @@
 -- (rl_check), and they now refuse when the limiter itself fails. Phone codes are checked by Twilio
 -- Verify, which enforces its own attempts and expiry; this file does not touch that path.
 --
--- PREVENTED BY: scripts/checks/a_sign_in_code_is_counted_and_spent_once.test.mjs replays twenty
--- parallel guesses against this exact function body and fails if more than five are evaluated or if
--- a code verifies twice.
+-- A RESEND RETIRES EVERY EARLIER CODE (review of #1245). login_otp inserted a new row on every send and
+-- left the older unused codes live, so a resend multiplied the codes an attacker could hit and the 5-guess
+-- cap applied per code, not per sign-in. public.fn_login_otp_email_issue spends every earlier unused login
+-- code for the address and inserts the new one in one transaction, under a per-address advisory lock so two
+-- sends at once cannot both survive.
+--
+-- PREVENTED BY: supabase/functions/login_otp/verify_race.check.ts (CI job otp-race in checks.yml) replays
+-- twenty parallel guesses against these exact bodies and fails if more than five are evaluated, if a code
+-- verifies twice, or if an older code still verifies after a resend.
 
 create or replace function public.fn_login_otp_email_verify(
   p_email text, p_hash text, p_code text, p_max_attempts integer default 5)
@@ -65,3 +71,21 @@ end
 $fn$;
 
 revoke execute on function public.fn_login_otp_email_verify(text, text, text, integer) from public, anon, authenticated;
+
+create or replace function public.fn_login_otp_email_issue(
+  p_email text, p_hash text, p_kind text, p_ttl_seconds integer default 600)
+returns void
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  perform pg_advisory_xact_lock(hashtext('login_otp_email:' || p_email));
+  update public.email_verifications set used_at = now()
+   where email = p_email and purpose = 'login' and used_at is null;
+  insert into public.email_verifications (email, token_hash, purpose, user_kind, expires_at)
+  values (p_email, p_hash, 'login', p_kind, now() + make_interval(secs => p_ttl_seconds));
+end
+$fn$;
+
+revoke execute on function public.fn_login_otp_email_issue(text, text, text, integer) from public, anon, authenticated;

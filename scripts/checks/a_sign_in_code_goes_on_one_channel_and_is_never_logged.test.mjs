@@ -53,10 +53,10 @@ test('login_otp asks for WhatsApp only for a number the account itself confirmed
 
 test('the WhatsApp branch runs after every existing refusal and rate limit', () => {
   const at = (s) => { const i = OTP.indexOf(s); assert.ok(i > 0, `missing: ${s}`); return i; };
-  const wa = at('const wantsWa = await confirmedWhatsApp');
+  const wa = at('const wantsWa = acctEmail ? await confirmedWhatsApp');
   for (const guard of [
     "if (owner && 'ambiguous' in owner)",   // a shared number may not select a person
-    'if (!acctEmail) {',                    // no account -> no paid send
+    'if (!acctEmail && !otherRole) {',     // no account in either role -> no paid send
     'if (isDemoPhone(e164))',               // a fixture number is never texted
     'const pb = await prefixBlocked',       // an OTP-pumping prefix
     "await rl('login_otp_sms_ip:'",         // per-caller ceiling
