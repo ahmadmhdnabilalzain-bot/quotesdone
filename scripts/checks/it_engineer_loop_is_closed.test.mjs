@@ -69,12 +69,19 @@ test('every conversation the it_engineer starts has a reply window and comes bac
   const types = await sql(`select k.type, k.to_seat, k.reply_within::text reply_within, k.originator_closes,
                                   exists (select 1 from public.seat_handoff_kind r
                                            where r.type = 'delivery.result' and r.from_seat = k.to_seat
-                                             and r.to_seat = 'it_engineer') result_comes_back
+                                             and r.to_seat = 'it_engineer') result_comes_back,
+                                  exists (select 1 from public.seat_handoff_kind r
+                                           where r.type = 'ceo.decision_closed' and r.from_seat = k.to_seat
+                                             and r.to_seat = 'it_engineer') decision_comes_back
                              from public.seat_handoff_kind k
                             where k.from_seat = 'it_engineer' order by 1, 2`);
   assert.ok(types.length > 0, 'fn_seat_handoff_types lists no it_engineer conversation at all');
+  // A third shape (founder_instruction 1059, a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql):
+  // ceo.decision_owed is closed by the CEO's decision, which can only be replace or withdraw, and every such decision
+  // goes back to the originating seat as ceo.decision_closed with its reasons. It counts only while that return exists.
   const bad = types.filter((t) => !t.reply_within || !(t.originator_closes === true
-    || (t.type === 'delivery.request' && t.result_comes_back === true)));
+    || (t.type === 'delivery.request' && t.result_comes_back === true)
+    || (t.type === 'ceo.decision_owed' && t.decision_comes_back === true)));
   assert.deepEqual(bad, [], 'it_engineer conversations without a reply window, or that the receiver can close with nothing coming back');
 });
 
