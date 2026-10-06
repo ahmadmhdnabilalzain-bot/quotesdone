@@ -158,3 +158,14 @@ returned `redirect_to` back and refuses rather than hand over a link that does n
 
 The token is single-use and expires after `mailer_otp_exp` (3600 s on this project). The SESSION it
 creates is an ordinary one — the portal refreshes it, so a tab left open keeps working past the hour.
+
+## Stage 2: the sandbox run with the model hold lifted (ledger 1119)
+
+`scripts/e2e/stage2.mjs` reuses the stage-1 fixtures and teardown, and runs the whole funnel at founder scale. The scale is 10 ZZ DEMO suppliers in 10 trades, plus 3 more aluminium suppliers so one request gets a real comparison, and 10 ZZ DEMO customers in EN and AR.
+
+- `--dry-run` checks every precondition, runs every cleanup path on an empty tag, scans the 701-table export registry, prints the spend estimate and coverage, and writes the Desktop skeleton with INDEX.html. It makes no model call.
+- `--run` does not lift the founder's hold. It opens a rehearsal window with `models_allowed`, a USD 4 `cap_usd` and a 2-hour `expires_at`. `fn_kernel_paid_provider_gate` lets only calls carrying this run's tag past the hold, and refuses them once the tagged `ai_cost_log` spend reaches the cap. Untagged traffic takes exactly the path it took before; there is no cap on production spend (ledger 1134). The window is turned off in a `finally` block and expires in the database regardless. The run exports every artifact to `C:UsersOperaDesktopQuotesDone Sandbox Test 2026-10`, then cleans up and verifies that 0 rows remain.
+- `--cleanup-only --tag <t>` and `--verify-clean --tag <t>` handle a run that did not finish.
+- Live duties are `public.seat_duty` plus the zero-argument routines `resilience_ping` ticks. They are not `cron_registry`: `cron.job` held 0 rows on 6 Oct. Each one runs in an aborted transaction with `app.e2e_run_tag` set (`scripts/e2e/stage2_duties.mjs`) and must write no non-demo row.
+- Model cost is attributed exactly. The harness sends `x-qd-e2e-run`, `_shared/observe.ts` forwards it on every call back to the project, and `trg_ai_cost_log_e2e_run_tag` stamps `ai_cost_log.e2e_run_tag` (`scripts/sql/a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql`, applied at merge). `--run` refuses until that file is applied.
+- Coverage comes from `scripts/e2e/stage2_coverage.mjs`, which reads routes, portal tabs, edge-function actions, notice types and duties from the code and the database. Fences: `scripts/checks/the_stage2_sandbox_run_is_fenced.test.mjs`.
