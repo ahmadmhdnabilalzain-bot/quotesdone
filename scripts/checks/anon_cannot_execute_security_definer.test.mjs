@@ -122,7 +122,12 @@ const ANON_CEILING = 0;
 // with the whole Phase A-D programme. Both existed to let the FOUNDER approve something from his own
 // browser; the founder approves nothing now -- every approval is the CEO's -- so neither the routines
 // nor their grants have a caller left. What remains is the two customer-document routines.
-const AUTHENTICATED_CEILING = 2;
+const AUTHENTICATED_CEILING = 5;
+// 6 Oct 2026: 2 -> 5, the three PDPL self-service routines of #1237 (pdpl_request_me, pdpl_confirm_me,
+// pdpl_cancel_me). Reviewed per function below: each takes NO identity argument; the address is
+// fn_pdpl_my_verified_email(), i.e. auth.jwt() email AND that account's email_verified flag, so a signed-in
+// caller can only open, confirm or cancel a request for their own verified address. anon is revoked; no RLS
+// policy names them. Erasure still needs the emailed code (pdpl_confirm_me) and has the 7-day cooling-off.
                                    // 27 Aug 2026: 6 -> 7, fn_phase_c_founder_subject_bind. It is a
                                    // NARROWING: the routine simultaneously LOST its service_role
                                    // grant, which is what a service_role call was using to bind the
@@ -137,6 +142,13 @@ const AUTHENTICATED_BY_DESIGN = {
     + ' policy documents.documents_customer_select, which is evaluated as the querying role',
   fn_customer_documents:
     'called with the customer\'s own JWT at customer_documents/index.ts:125, :167 and :197',
+  pdpl_request_me:
+    'PDPL self-service over PostgREST rpc with the caller\'s own JWT; no identity argument - the address is'
+    + ' fn_pdpl_my_verified_email() (JWT email AND email_verified); erase only opens a request, a code confirms it',
+  pdpl_confirm_me:
+    'PDPL self-service: confirms the caller\'s own request with the emailed code; address from fn_pdpl_my_verified_email()',
+  pdpl_cancel_me:
+    'PDPL self-service: cancels the caller\'s own request inside the cooling-off; address from fn_pdpl_my_verified_email()',
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
@@ -227,7 +239,7 @@ test('no SECURITY DEFINER routine in public is anon-executable', { skip: SKIP },
   assert.equal(Number(totals.anon_exec), ANON_CEILING, `anon-executable count is ${totals.anon_exec}, not ${ANON_CEILING}`);
 });
 
-test('exactly the two customer-document routines are authenticated-executable', { skip: SKIP }, () => {
+test('exactly the customer-document and PDPL self-service routines are authenticated-executable', { skip: SKIP }, () => {
   // A count alone would stay green if one of the two closed while an unrelated routine opened, so
   // this compares the SET. Anything new here needs the same per-function review E4 did: who calls
   // it, with which client, and is it named in an RLS policy the querying role evaluates?
