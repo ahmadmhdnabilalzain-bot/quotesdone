@@ -77,3 +77,22 @@ liability that UAE law does not allow to be limited or excluded.
 
 The founder has ruled no lawyer (memory: company-knowledge-stays-in-sync-everywhere). This memo states what the
 official texts say and how the clauses were drafted to stay inside them; it is not a legal opinion.
+
+## 6. How each cited article was verified (added for the #1250 review)
+
+Method: the official site returns HTTP 403 to automated fetches (curl and WebFetch, measured 6 Oct 2026). Every
+article below marked OFFICIAL was read on 6 Oct 2026 by opening the official page in a real browser session
+(Claude in Chrome) and extracting the article text from the page DOM; the quoted text in section 1 is that
+extraction, verbatim, from the English text (the page states the Arabic text prevails).
+
+| Article | URL | Read how / when | Quoted text (key words) |
+|---|---|---|---|
+| CTL 50/2022 Arts 1, 2(1), 6(16), 252, 258, 261, 265(1)-(2) | https://uaelegislation.gov.ae/en/legislations/1610 (page: issued 03 Oct 2022, effective 02 Jan 2023, Gazette 737 suppl. 1, "Active") | OFFICIAL, browser, 6 Oct 2026 | Art 265(1): "A broker shall not be required to guarantee the solvency of the two parties … and shall bear no liability for its implementation or for the value and quality of the goods related thereto, unless an act of fraud or fault is established on his part…" |
+| Civil Transactions Law 25/2025 Arts 113(2), 120, 221(1), 223, 236(1), 257, 334(2), 443(1) | https://uaelegislation.gov.ae/en/legislations/4011 | OFFICIAL, browser, 6 Oct 2026 | Art 257: "Any condition providing for exemption or mitigation of liability arising from a harmful act shall be void." Art 334(2): "In all cases, the debtor remains liable for fraud or gross fault." Art 443(1): "…nor may it be agreed that a claim shall not be admissible after a period other than that specified by law." |
+| Civil Transactions Law 25/2025 Art 340 | same URL | OFFICIAL, but read 14 Sep 2026 (docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md §3f), NOT re-read 6 Oct. Secondary confirmation 6 Oct: Chambers, "UAE Civil Transactions Law: key changes under Federal Decree-Law No. 25 of 2025" (chambers.com), naming "Article 340 - Agreed damages: Court may reduce agreed compensation if 'excessive'…; creditor can claim more upon proving 'fraud or gross negligence'" | not newly cited in v10/v15; only the existing clause 37 / Terms 22 rely on it |
+| Consumer Protection Law 15/2020 Arts 1 (definitions), 21, 24(1) | https://uaelegislation.gov.ae/en/legislations/1455 | OFFICIAL, browser, 6 Oct 2026 | Art 21: "Every term in a contract, invoice or otherwise shall be deemed void if it would exempt the provider from any of the obligations provided in this Law." Art 24(1): "…Any agreement made otherwise shall be deemed void." |
+| FDL 14/2023 (Modern Technology-Based Trade) Arts 6, 12 | https://uaelegislation.gov.ae/en/legislations/2150 | OFFICIAL, browser, 6 Oct 2026 | Art 12: "Whoever is subject to the provisions of this Decree-Law shall be liable for its obligations." (memo only; not cited in the contracts) |
+| Replacement of FL 5/1985 by FDL 25/2025, in force 1 Jun 2026 | legislations/4011 page header; secondary: Squire Patton Boggs client update (squirepattonboggs.com) "issued on 1 October 2025 and is effective from 1 June 2026. It repealed Federal Law No. 5 of 1985" | OFFICIAL page + secondary, 6 Oct 2026 | — |
+
+Articles cited inside the v10 / v15 text: CTL 252, 258, 265; CivTL 236, 257, 334(2); CPL 21, 24. All OFFICIAL,
+read 6 Oct 2026. A reviewer without a browser session can re-check each at the URLs above (Arabic: replace /en/ with /ar/).
