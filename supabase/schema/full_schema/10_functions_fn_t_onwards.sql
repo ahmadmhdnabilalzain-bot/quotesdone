@@ -3072,6 +3072,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_template_registry_follows_messaging_template()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_status text;
+begin
+  if new.channel is distinct from 'whatsapp' or new.last_checked_at is null then return new; end if;
+  v_status := case when new.status in ('approved', 'rejected') then new.status
+                   when new.status in ('received', 'pending', 'submitted', 'in_review', 'unsubmitted') then 'pending' end;
+  if v_status is null then return new; end if;
+  update public.wa_template_registry r
+     set status = v_status,
+         checked_at = new.last_checked_at,
+         approved_on = case when v_status = 'approved' then coalesce(r.approved_on, new.last_checked_at::date) else r.approved_on end,
+         source = 'wa_templates_watch: Twilio Content API said "' || new.status || '" on '
+                  || to_char(new.last_checked_at at time zone 'UTC', 'DD Mon YYYY HH24:MI') || ' UTC (messaging_template ' || new.sid || ')'
+   where r.template_name = new.name
+     and (r.checked_at is null or r.checked_at < new.last_checked_at);
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_unmatched_reply()
  RETURNS text
  LANGUAGE sql

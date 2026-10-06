@@ -1,1 +1,0 @@
-Committed, not applied (it_engineer, 6 Oct 2026). A trigger on messaging_template carries every fresh Twilio verdict from wa_templates_watch to wa_template_registry, and the verdicts already read are carried across once. The release train applies it at merge, then this note goes and the file joins the end of MANIFEST.txt.
