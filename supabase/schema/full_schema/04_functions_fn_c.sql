@@ -2509,7 +2509,7 @@ declare r record; d public.ceo_directive; v bigint; v_ok boolean; v_err text; v_
   n_issued int := 0; n_met int := 0; n_esc int := 0; n_missed int := 0; v_q date;
   v_late text := $q$exists (select 1 from public.agent_actions a
       join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
-     where a.kind = 'handoff' and a.agent = %1$L and a.status = 'pending' and a.created_at < now() - k.reply_within)$q$;
+     where a.kind = 'handoff' and a.agent = %1$L and a.status = 'pending' and public.fn_handoff_is_late(a.detail, a.created_at, k.reply_within))$q$;
 begin
   -- 1. target misses on the year-one plan
   for r in select e->>'metric' as metric, e->>'owner_seat' as seat, e->>'actual' as actual, e->>'expected' as expected
@@ -5343,7 +5343,7 @@ begin
     select count(*) into v_failing from jsonb_array_elements(v_health) h where h->>'owner_seat' = s.role_id;
     select count(*) into v_late from public.agent_actions a
       join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
-     where a.kind = 'handoff' and a.agent = s.role_id and a.status = 'pending' and a.created_at < p_at - k.reply_within;
+     where a.kind = 'handoff' and a.agent = s.role_id and a.status = 'pending' and public.fn_handoff_is_late(a.detail, a.created_at, k.reply_within, p_at);
     select count(*) into v_missed from public.ceo_seat_directive
      where seat = s.role_id and status = 'missed' and month >= (v_q - interval '3 months')::date;
 
