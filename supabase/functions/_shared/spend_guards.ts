@@ -101,6 +101,17 @@ export function fixtureVerdict(data: unknown, error: unknown): { stub: boolean; 
   return { stub: true, why: 'the fixture check gave no yes/no answer, so no paid call was made' };
 }
 
+// ---- a fixture inside an OPEN sandbox window may reach a model (it_engineer, 7 Oct 2026) ------
+// The stage-2 run (#1230) was aborted because every harness subject got the fixture stub even inside
+// its own open, capped rehearsal window, so the AI never ran. A fixture is let through ONLY when the
+// request carries a PROVEN run tag (e2e_run.resolveE2eRun: service-role bearer or the internal secret;
+// an unproven header resolves to null) AND the database answers fn_e2e_run_tag_open(tag) = true (an
+// open, unexpired, models_allowed window). Anything else - no tag, an error, a non-true answer - keeps
+// the stub. The window's USD cap is still enforced by fn_kernel_paid_provider_gate on the call itself.
+export function rehearsalLetsFixtureThrough(tag: string | null, open: unknown, error: unknown): boolean {
+  return !!tag && !error && open === true;
+}
+
 // ---- quote_compare: a failure is cached too ---------------------------------------------------
 // A degraded answer used to be deliberately NOT cached "so the model result wins the moment the
 // model works again" — which also meant a failing input re-spent the whole ladder on every card

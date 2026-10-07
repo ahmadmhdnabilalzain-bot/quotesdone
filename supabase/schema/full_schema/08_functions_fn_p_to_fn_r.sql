@@ -4103,7 +4103,7 @@ CREATE OR REPLACE FUNCTION public.fn_record_llm_attempt(p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_req      uuid    := coalesce(nullif(p->>'request_id','')::uuid, gen_random_uuid());
@@ -4146,7 +4146,12 @@ begin
 
   if v_ok then
     update llm_route_health
-       set consecutive_failures = 0, open_until = null, opened_reason = null, opened_class = null,
+       -- A SUCCESS CLOSES A BREAKER, NEVER THE FOUNDER'S HOLD (7 Oct 2026). A sandbox call passes the hold
+       -- inside its window; its success used to null open_until here and lift the hold for everyone.
+       set consecutive_failures = 0,
+           open_until    = case when public.fn_llm_route_founder_held(open_until) then open_until end,
+           opened_reason = case when public.fn_llm_route_founder_held(open_until) then opened_reason end,
+           opened_class  = case when public.fn_llm_route_founder_held(open_until) then opened_class end,
            last_ok_at = now(), total_attempts = total_attempts + 1, total_ok = total_ok + 1,
            updated_at = now()
      where model_id = v_model;
@@ -4167,8 +4172,9 @@ begin
                              then 'opened on first occurrence of ' || v_key
                              else v_conseq || ' consecutive failures, threshold ' || v_thresh end,
              opened_class = v_key
-       where model_id = v_model;
-      v_state := 'opened_by_this';
+       where model_id = v_model
+         and not public.fn_llm_route_founder_held(open_until);   -- a 15-minute breaker never replaces a 2126 hold
+      if found then v_state := 'opened_by_this'; end if;
     end if;
   end if;
 

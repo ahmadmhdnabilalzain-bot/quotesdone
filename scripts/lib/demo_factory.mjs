@@ -639,12 +639,19 @@ async function completeMandatorySix(run, sups) {
  * The real licence object it replaced is still named by its documents row, so teardown removes it.
  */
 export async function makeLicenceGatedSupplier(run, opts = {}) {
-  const s = await makeSupplier(run, { ...opts, capability: opts.capability !== false });
+  // ZZ DEMO naming (demo-fixture convention). Without a name this supplier fell to makeSupplier's
+  // "QD Demo <trade>" default: stage-2 S02 left "QD Demo Steel Fabrication" (sup13) on 7 Oct 2026.
+  const name = opts.company_name || `ZZ DEMO licence-gated ${(TRADES[opts.trade || 'aluminium'] || {}).name || 'supplier'} ${run.tag}`;
+  const s = await makeSupplier(run, { ...opts, company_name: name, capability: opts.capability !== false });
   await mgmtFixture(REF,
     `update public.leads
         set license_doc_path = ${q(opts.license_doc_path || `supplier-docs/demo/${run.tag}/licence.pdf`)},
             trade_license_no = ${q(opts.trade_license_no ?? null)},
-            license_expiry   = ${opts.license_expiry ? q(opts.license_expiry) : 'null'}
+            license_expiry   = ${opts.license_expiry ? q(opts.license_expiry) : 'null'},
+            -- a NEW licence nobody has read: the product nulls the name exactly so (supplier_api
+            -- "a new licence replaces the old name even when nothing is read"); a stale read name
+            -- here made the gate look passed (stage-2 S02, 7 Oct 2026)
+            licence_legal_name = ${opts.licence_legal_name ? q(opts.licence_legal_name) : 'null'}
       where id = ${num(s.leadId)}`, 'open licence gate');
   const row = (await mgmtRead(REF,
     `select approval_status, licence_gate_reason from public.leads where id=${num(s.leadId)}`))[0];
