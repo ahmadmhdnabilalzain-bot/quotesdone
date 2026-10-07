@@ -281,8 +281,10 @@ update public.model_registry set context_len = 1050000, in_per_mtok_usd = 0.20,
 insert into public.llm_route_health
   (model_id, consecutive_failures, failure_threshold, cooldown_seconds, open_until, opened_reason)
 select r.model_id, 0, 3, 300,
-       null,  -- ledger 1175 (7 Oct 2026): OpenRouter always on; a new route starts closed
-       null  -- no opened_reason: fn_it_run_is_held reads 'HELD BY THE FOUNDER' by prefix
+       (select max(h.open_until) from public.llm_route_health h),
+       'held with the rest of the fleet: added to llm_route_health 23 Sep 2026 because '
+       || 'fn_llm_preflight used to answer allowed=true for a registered model with no row here, '
+       || 'so the founder''s hold did not reach it'
   from public.model_registry r
  where not exists (select 1 from public.llm_route_health h where h.model_id = r.model_id)
 on conflict (model_id) do nothing;
@@ -394,7 +396,8 @@ select case
   when (select v from probe_preflight where k = 'left_behind') <> '0'
     then 'PROBE FAILED: the probe left ' || (select v from probe_preflight where k = 'left_behind')
          || ' zzdemo row(s) in model_registry'
-  when (select o from hold) > now() + interval '1 year' then 'PROBE FAILED: a route is founder-held again (' || (select o from hold)::text || ') - ledger 1175 keeps OpenRouter on'
+  when (select n from held)  > 0 then 'PROBE FAILED: ' || (select n from held)::text || ' model(s) are ALLOWED — the hold was lifted, which this file must never do'
+  when (select o from hold) < now() then 'PROBE FAILED: the hold has expired (' || (select o from hold)::text || ') — not this file''s business, but nothing below is held'
   else 'PROBE OK: every model named by an active policy is a registered, measured route; '
        || (select count(*) from public.model_registry where active)::text || ' active registry rows, '
        || (select count(*) from public.llm_route_health)::text || ' breaker rows, all held until '
