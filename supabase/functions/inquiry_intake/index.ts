@@ -10,6 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
+import { settleModelTurn, replyFromState } from './slots.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -338,7 +339,7 @@ Return STRICT JSON only, no prose, with this shape:
     \"details\": { }
   }
 }
-Only include \"questions\" when status is needs_info or rejected. Only include a full \"brief\" when status is ready (for other statuses set brief to null). Keep questions concise so the whole JSON stays complete.`;
+Only include \"questions\" when status is needs_info or rejected. ALWAYS return \"brief\" (never null, on every status): \"brief\".\"details\" holds every checklist item the customer has stated ANYWHERE in the conversation so far, under its canonical key (rule 3b) — including on the very first message — because the request's state is built from it; the summary fields may be left empty until status is ready. Never tell the customer the request is ready, complete or about to be shared unless status is \"ready\". Keep questions concise so the whole JSON stays complete.`;
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
     const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null });
@@ -385,6 +386,23 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         return J({ ok: true, intake_id: draft.id, status: 'held', category: null, trades: [], assistant_message: heldMsg, questions: [], next_question: null,
                    readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, agent: ACTOR });
       }
+    }
+
+    // THE MODEL EXTRACTS, THE ROW DECIDES (7 Oct 2026, sales_engineer; ./slots.ts says what was measured).
+    // Slots the model read this turn are merged with the ones earlier turns captured; status and missing
+    // are derived from them, and a sentence written for a status the row does not hold is replaced.
+    let slotDetails: Record<string, string> | null = null;
+    const slotLang = ar ? 'ar' : 'en';
+    // Turn 1 has no stored trade, so the checklist is empty until the model names one: load the model's
+    // trade's checklist here, or what the first message states is read against nothing and lost.
+    if (out && llmParseOk && !checklist.length && out.category && validSlugs.includes(String(out.category))) {
+      const { data: cs1 } = await admin.from('category_specs').select('fields').eq('category', String(out.category)).maybeSingle();
+      if (Array.isArray(cs1?.fields)) checklist = cs1.fields;
+    }
+    if (out && llmParseOk && checklist.length && out.status !== 'rejected') {
+      const prevDet = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
+      const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
+      slotDetails = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0)).details;
     }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
@@ -517,6 +535,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       const b = (out.brief && typeof out.brief === 'object') ? out.brief : {};
       const det = (b.details && typeof b.details === 'object') ? b.details : {};
       if (!b.details || typeof b.details !== 'object') b.details = det;
+      if (slotDetails) for (const [k, v] of Object.entries(slotDetails)) if (det[k] === undefined) det[k] = v;
       const isAbsent = (f: any) => { const v = b[f.key] ?? det[f.key]; return v === undefined || v === null || String(v).trim() === ''; };
       // EXACT SPEC BY REASONING (23 Sep 2026, founder_instruction 886-903). fn_rfq_required_check used to
       // count a required spec as answered when a 4-letter token of any of its option labels appeared
@@ -542,6 +561,9 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         out.missing = absent.map((f: any) => String(f.question || f.key));
         out.questions = absent.slice(0, 4).map((f: any) => String(f.question || f.key));
         out.readiness = Math.min(Number(out.readiness) || 0, 80);
+        // The model (or the slots) said 'ready' and the canonical gate did not agree: the reply is the state's.
+        out.assistant_message = replyFromState('needs_info', out.questions[0] || null, slotLang);
+        slotDetails = { ...(slotDetails || {}), ...Object.fromEntries(Object.entries(det).filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '').map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])) };
         // The brief exists but is not canonical; say which keys were wanted so the next turn can
         // ask for them by name instead of re-asking the whole checklist.
         requiredGate = { category, missing_keys: absent.map((f: any) => String(f.key)) };
@@ -701,7 +723,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
     const briefToSave = brief
       ? { ...brief, req_answers: reqAnswers, ...drawingState }
-      : { details: interview ? interview.details : (prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
+      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
