@@ -178,11 +178,15 @@ begin
         coalesce(nullif(btrim(i.regression_check), ''), case when v.cause = 'wa' then c_wa_rc else v.regression_check end),
         v.playbook_class, null, c_by);
 
-      update public.support_ceo_report
-         set status = 'completed', completed_at = now(),
-             completion_note = 'IT engineer re-verified: handoff ' || v.id || ' is closed with its learning recorded (' || c_by || ').'
-       where idempotency_key = 'it_loop:' || v.id and status = 'accepted';
-      get diagnostics n_rep = row_count;
+      -- The CEO report completes only when the handoff really closed (review of #1281).
+      n_rep := 0;
+      if coalesce((r->>'closed')::boolean, false) then
+        update public.support_ceo_report
+           set status = 'completed', completed_at = now(),
+               completion_note = 'IT engineer re-verified: handoff ' || v.id || ' is closed with its learning recorded (' || c_by || ').'
+         where idempotency_key = 'it_loop:' || v.id and status = 'accepted';
+        get diagnostics n_rep = row_count;
+      end if;
       insert into _qd_resolution values ('handoff ' || v.id,
         case when coalesce((r->>'closed')::boolean, false) then 'CLOSED' else 'LEARNING RECORDED, NOT CLOSED' end,
         jsonb_build_object('issue_key', v.issue_key, 'incident_id', i.id, 'finding_closed_at', f.closed_at,
