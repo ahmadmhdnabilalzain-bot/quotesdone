@@ -2336,10 +2336,16 @@ begin
                    when v_name_mismatch then 'licence_name_mismatch'
                    when v_expired then 'licence_expired' end;
 
-  if coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0 and not v_name_unread then
+  if coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0 and not v_name_unread
+     and not v_name_mismatch then
     -- An approved supplier whose licence has since expired stays approved: fn_reconcile_doc_blocks
     -- pauses their matching and restores it on renewal, without taking the registration away.
     v_decision := 'approved';
+  -- 7 Oct 2026 (review of #1275): an APPROVED supplier whose licence names another company is held for
+  -- review, whatever asked - a licence change or a save. The approved branch above used to keep him approved
+  -- and log "the licence name matches", which was false. A supplier whose name matches is untouched by a save.
+  elsif coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0
+        and v_name_mismatch then v_decision := 'pending'; v_reason := 'licence_name_mismatch';
   elsif v_reason is not null then v_decision := 'action_required';
   elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_unreadable';
   elsif coalesce(v_auto, false) then v_decision := 'approved';
@@ -2358,14 +2364,16 @@ begin
   get diagnostics v_changed = row_count;
 
   -- Every decision is recorded; a re-run by the trigger that changed nothing is not a decision.
-  if v_changed > 0 or p_source <> 'mandatory_item_changed' then
+  if v_changed > 0 or p_source not in ('mandatory_item_changed', 'licence_changed') then
   insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'supplier_verification', case when v_reason = 'licence_unreadable' then 'needs_review' else 'auto_done' end,
-          case when v_decision = 'action_required' or v_reason = 'licence_unreadable' then 'medium' else 'low' end,
+  values ('sales_engineer', 'supplier_verification', case when v_reason = 'licence_unreadable' or (v_decision = 'pending' and v_reason = 'licence_name_mismatch') then 'needs_review' else 'auto_done' end,
+          case when v_decision = 'action_required' or v_reason in ('licence_unreadable', 'licence_name_mismatch') then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
             when 'approved' then 'No action required. All six mandatory items are present, the licence name matches and the licence is not known to be expired.'
-            when 'pending' then case when v_reason = 'licence_unreadable'
+            when 'pending' then case when v_reason = 'licence_name_mismatch'
+              then 'Review: an approved supplier uploaded a new trade licence whose company name does not match the registered name. Matching is held. Compare the licence with the registered name, then re-approve or ask for the right licence.'
+              when v_reason = 'licence_unreadable'
               then 'Review: complete, but the company name on the trade licence could not be read (a scan the document model could not read, or the model is held). Compare the licence with the registered name, then approve or ask for the right licence. It is never approved automatically without a name match.'
               else 'Complete, and waiting for the sales engineer: pricing_config.auto_approve_suppliers is off.' end
             else 'No action required. The supplier was told exactly what is missing; the verification re-runs when it arrives, and the registration closes after 14 days.' end,

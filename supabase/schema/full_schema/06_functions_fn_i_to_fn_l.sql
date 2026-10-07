@@ -9853,7 +9853,11 @@ CREATE OR REPLACE FUNCTION public.fn_leads_mandatory_item_landed_reverifies()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
-  perform public.fn_sales_engineer_verifies_supplier(new.id, 'mandatory_item_changed');
+  perform public.fn_sales_engineer_verifies_supplier(new.id,
+    case when old.approval_status = 'approved'
+              and (old.license_doc_path is distinct from new.license_doc_path
+                   or old.licence_legal_name is distinct from new.licence_legal_name)
+         then 'licence_changed' else 'mandatory_item_changed' end);
   return null;
 end $function$
 
