@@ -2472,7 +2472,7 @@ create temp table it_runs7 on commit drop as
          coalesce(x.started_at <@ rw.covered, false) rehearsal
     from (select a.*, row_number() over (partition by a.agent order by a.started_at desc) rn
             from public.agent_runs a where a.started_at > v_now - c_base) x
-   cross join (select max(l.open_until) hold_until,
+   cross join (select greatest(max(l.open_until), timestamptz '2026-10-07 03:25:36.237679+00') hold_until,
                       (select coalesce(array_agg(distinct s.subject), '{}') from public.it_hold_signature s) subjects
                  from public.llm_route_health l
                 where l.opened_reason like 'HELD BY THE FOUNDER%') h
@@ -7917,8 +7917,9 @@ AS $function$
                 where h.subject = regexp_replace(coalesce(p_agent, ''), '^fn:', '')
                   and coalesce(p_counts, '{}'::jsonb) @> h.counts_match
                   and (h.note_like is null or coalesce(p_note, '') like h.note_like))
-   and exists (select 1 from public.llm_route_health r
+   and (exists (select 1 from public.llm_route_health r
                 where r.opened_reason like 'HELD BY THE FOUNDER%' and r.open_until > p_started)
+       or p_started < timestamptz '2026-10-07 03:25:36.237679+00')
   , false)
 $function$
 
