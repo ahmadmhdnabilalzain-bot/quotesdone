@@ -622,7 +622,7 @@ const handle = async (req: Request): Promise<Response> => {
         let jd: any = null;
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120_000) });
             jd = await r.json().catch(() => null);
             if (jd?.ok) return jd;
           } catch (e) { jd = { error: String((e as Error)?.message || e) }; }
