@@ -96,7 +96,7 @@ Deno.test('a licence proposes trades from its activities line only, never from t
   assertEquals([none.trades.length, none.reason], [0, 'no activities line could be read on the licence']);
 });
 Deno.test('a certificate the company holds is a credential, not a service; a certification body keeps its line', () => {
-  assertEquals(withoutCredentialLines('Plumbing works\n- ISO 9001:2015 quality management\nHVAC'), 'Plumbing works\nHVAC');
+  assertEquals(withoutCredentialLines('Plumbing works\nCertifications\n- ISO 9001:2015 quality management\nHVAC'), 'Plumbing works\nHVAC');
   assertEquals(withoutCredentialLines('ISO 9001:2015 certification services for contractors'), 'ISO 9001:2015 certification services for contractors');
 });
 Deno.test('a trade named in general is accepted by its trade name; a word that names ANOTHER trade decides nothing', () => {

@@ -76,9 +76,12 @@ function catalogueText(text: string): { text: string; supply_only: boolean } {
 // A CERTIFICATE THE COMPANY HOLDS IS NOT A SERVICE IT SELLS (7 Oct 2026, accuracy suite ledger 1162). "ISO
 // 9001:2015 quality management" on a contractor's profile proposed the trade iso_certification on every profile of
 // the corpus (meaning: "iso 9001", head word present). A line that cites a dated standard is a credential unless it
-// offers certification, auditing, consultancy or training AS a service.
+// offers certification, auditing, consultancy or training AS a service. The section heading over such lines
+// ("Certifications", "Our Certificates", "Accreditations") is the same credential: it proposed corporate_training
+// ("IT & professional certification") on every profile of the corpus.
+const CREDENTIAL_HEADING = /^\s*[-•*]?\s*(our\s+)?(certifications?|certificates?|accreditations?|approvals?\s+and\s+certifications?)\s*:?\s*$/i;
 export function withoutCredentialLines(text: string): string {
-  return String(text ?? '').split(/\r?\n/).filter((l) => !(/\bISO\s*\d{3,5}(?:-\d+)?\s*:\s*\d{4}\b/i.test(l)
+  return String(text ?? '').split(/\r?\n/).filter((l) => !CREDENTIAL_HEADING.test(l) && !(/\bISO\s*\d{3,5}(?:-\d+)?\s*:\s*\d{4}\b/i.test(l)
     && !/\b(certification|audit(?:ing)?|consultan(?:cy|ts?)|training|implementation)\s+(services?|body|bodies)\b|\bwe\s+(certify|audit|train)\b/i.test(l))).join('\n');
 }
 
