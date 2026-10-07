@@ -6,11 +6,13 @@
 //                                                                        unrecorded real files (metadata only)
 //   deno run -A scripts/it/dropbox_tree_repair.ts --apply --moves --founder-ok=<ledger id>
 //                                                                        also MOVES (merge, ownerless, demo): HELD until
-//                                                                        the founder's explicit OK; refused without it
+//                                                                        the founder's explicit OK; refused unless that
+//                                                                        founder_instruction row approves the Dropbox moves
+//   --max=<n>   records written in one run (default 50)
 // Run by the release operator after merge. The plan, the before/after counts and every operation's result
 // are written to --out (default: the Desktop sandbox-evidence folder). No token or secret is printed.
 import { DropboxClient, memoryStore, refreshAccessToken, TokenCache } from '../../supabase/functions/dropbox_backup/dropbox.ts';
-import { counts, plan, ROOT, type Listed, type Row } from './dropbox_tree_repair_plan.ts';
+import { capRecords, counts, founderApprovesMoves, plan, recordOutcome, recordStatement, ROOT, type Listed, type Row, type Ruling } from './dropbox_tree_repair_plan.ts';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const args = new Set(Deno.args);
@@ -19,10 +21,7 @@ const APPLY = args.has('--apply'), MOVES = args.has('--moves'), FOUNDER_OK = opt
 const DATE = opt('date') ?? new Date().toISOString().slice(0, 10);
 const home = Deno.env.get('USERPROFILE') ?? Deno.env.get('HOME') ?? '';
 const OUT = opt('out') ?? home + '/Desktop/QuotesDone Sandbox Test 2026-10/backups/';
-if (MOVES && !(APPLY && /^\d+$/.test(FOUNDER_OK ?? ''))) {
-  console.log(JSON.stringify({ ok: false, refused: 'moves touch real files: --apply --moves needs --founder-ok=<founder_instruction ledger id>' }));
-  Deno.exit(2);
-}
+const MAX = opt('max') !== undefined ? Number(opt('max')) : undefined;
 
 const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(home + '/.supabase/access-token')).trim();
 async function sql<T = Record<string, unknown>>(query: string): Promise<T[]> {
@@ -35,6 +34,13 @@ async function sql<T = Record<string, unknown>>(query: string): Promise<T[]> {
   }
 }
 const lit = (s: unknown) => s === null || s === undefined ? 'null' : `'${String(s).replace(/'/g, "''")}'`;
+// The moves touch real files: the founder's own ruling must exist AND approve them (review of #1284).
+if (MOVES) {
+  const id = /^\d+$/.test(FOUNDER_OK ?? '') ? Number(FOUNDER_OK) : null;
+  const r = id === null ? [] : await sql<Ruling>(`select id, instruction, subject, status from public.founder_instruction where id = ${id}`);
+  const v = APPLY ? founderApprovesMoves(r[0]) : { ok: false, why: '--moves needs --apply' };
+  if (!v.ok) { console.log(JSON.stringify({ ok: false, refused: 'moves touch real files: ' + v.why })); Deno.exit(2); }
+}
 const sec = Object.fromEntries((await sql<{ key: string; value: string }>("select key, value from public.app_secrets where key in ('dropbox_refresh_token', 'dropbox_app_key', 'dropbox_app_secret')")).map((r) => [r.key, r.value]));
 const dbx = new DropboxClient(new TokenCache(memoryStore(), () => refreshAccessToken(sec.dropbox_refresh_token, sec.dropbox_app_key, sec.dropbox_app_secret)));
 
@@ -80,20 +86,19 @@ Deno.writeTextFileSync(OUT + `dropbox_tree_repair_plan_${DATE}.json`, JSON.strin
 if (APPLY && !report.refused) {
   // D: records only. The customer of a "(id8)" folder is resolved to its full id when it still exists.
   const done: unknown[] = [];
-  for (const rec of before.plan.records) {
+  const cap = capRecords(before.plan.records, MAX);
+  report.records_held_by_cap = cap.held;
+  for (const rec of cap.take) {
     const ent = rec.entity === 'customer'
       ? (await sql<{ id: string }>(`select id::text id from public.customers where left(id::text, 8) = ${lit(rec.entity_ref)} limit 2`))
       : [];
     const entityId = rec.entity === 'customer' ? (ent.length === 1 ? ent[0].id : 'dropbox:' + rec.entity_ref) : rec.entity_ref;
-    const ins = await sql(`insert into public.doc_backups (entity, entity_id, doc_type, file_name, dropbox_path, source, dedupe_key, status,
-        dropbox_content_hash, dropbox_size, bytes, backed_up_at, verified_at, error)
-      values (${lit(rec.entity)}, ${lit(entityId)}, 'Dropbox only', ${lit(rec.path.replace(/^.*\//, ''))}, ${lit(rec.path)}, 'dropbox',
-        ${lit('DBX:' + rec.path.normalize('NFC').toLowerCase())}, 'done', ${lit(rec.hash)}, ${rec.size}, ${rec.size},
-        ${lit(rec.modified)}, now(), 'recorded 7 Oct 2026: in Dropbox with no backup record; no storage source (it_engineer repair)')
-      on conflict do nothing returning id`);
-    done.push({ path: rec.path, recorded: ins.length === 1 });
+    let err: string | null = null;
+    try { await sql(recordStatement(rec, entityId, lit)); } catch (e) { err = String((e as Error).message); }
+    done.push({ path: rec.path, ...recordOutcome(err) });
   }
   report.records = done;
+  report.records_failed = done.filter((d) => !(d as { recorded: boolean }).recorded).length;
 
   if (MOVES) {
     const moved: unknown[] = [];

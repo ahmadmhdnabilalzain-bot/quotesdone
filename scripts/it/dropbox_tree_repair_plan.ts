@@ -75,3 +75,54 @@ export function counts(p: ReturnType<typeof plan>) {
   const by = (k: string) => p.moves.filter((m) => m.kind === k).length;
   return { merge: by('merge'), ownerless: by('ownerless'), demo: by('demo'), record: p.records.length, collisions: p.collisions.length };
 }
+
+// ── the guards of the runner (review of #1284) ──
+
+// 1. The moves touch real files: they need the founder's own ruling, read from public.founder_instruction,
+//    whose words approve moving these Dropbox files. A ledger id alone, or a ruling about something else, is refused.
+export type Ruling = { id: number; instruction: string | null; subject: string | null; status: string | null };
+export function founderApprovesMoves(r: Ruling | undefined): { ok: boolean; why: string } {
+  if (!r) return { ok: false, why: 'no such founder_instruction row' };
+  if (/withdrawn|rejected|cancel/i.test(r.status ?? '')) return { ok: false, why: `the ruling is ${r.status}` };
+  const t = `${r.subject ?? ''} ${r.instruction ?? ''}`;
+  if (!/dropbox/i.test(t)) return { ok: false, why: 'the ruling does not name Dropbox' };
+  if (!/\b(move|moves|moving|archive|merge|repair|re-?file)\b/i.test(t)) return { ok: false, why: 'the ruling does not name a move' };
+  if (!/\b(yes|ok|okay|approve[sd]?|go ahead|proceed|do it|allowed?)\b/i.test(t) || /\b(hold|wait|not yet|don'?t move|do not move|no moves?)\b/i.test(t)) {
+    return { ok: false, why: 'the ruling does not approve the moves in so many words' };
+  }
+  return { ok: true, why: `founder_instruction ${r.id}` };
+}
+
+// 3. At most 50 records a run unless the operator raises it on purpose.
+export const RECORD_CAP = 50;
+export function capRecords<T>(records: T[], max?: number): { take: T[]; held: number } {
+  const n = max !== undefined && Number.isInteger(max) && max > 0 ? max : RECORD_CAP;
+  return { take: records.slice(0, n), held: Math.max(0, records.length - n) };
+}
+
+// 2. The admit trigger normalises dropbox_path (fn_dbx_path) and drops a row it reads as demo. A record is
+//    good only when the row that landed names EXACTLY the file in Dropbox; anything else is a failure and
+//    the statement raises, so nothing half-right is left behind.
+export const recordKey = (path: string) => 'DBX:' + path.normalize('NFC').toLowerCase();
+export function recordStatement(rec: Record_, entityId: string, lit: (s: unknown) => string): string {
+  return `do $rec$ declare v_path text; begin
+  if exists (select 1 from public.doc_backups where dedupe_key = ${lit(recordKey(rec.path))}) then
+    raise exception 'REC<<already recorded>>';
+  end if;
+  insert into public.doc_backups (entity, entity_id, doc_type, file_name, dropbox_path, source, dedupe_key, status,
+      dropbox_content_hash, dropbox_size, bytes, backed_up_at, verified_at, error)
+    values (${lit(rec.entity)}, ${lit(entityId)}, 'Dropbox only', ${lit(rec.path.replace(/^.*\//, ''))}, ${lit(rec.path)}, 'dropbox',
+      ${lit(recordKey(rec.path))}, 'done', ${lit(rec.hash)}, ${rec.size}, ${rec.size}, ${lit(rec.modified)}, now(),
+      'recorded 7 Oct 2026: in Dropbox with no backup record; no storage source (it_engineer repair)')
+    returning dropbox_path into v_path;
+  if v_path is null then raise exception 'REC<<dropped by the admit trigger (read as demo)>>'; end if;
+  if v_path <> ${lit(rec.path)} then raise exception 'REC<<the trigger rewrote the path to %>>', v_path; end if;
+  raise notice 'REC<<ok>>';
+end $rec$;`;
+}
+// The answer of one record statement: ok only when it ran without error.
+export function recordOutcome(error: string | null): { recorded: boolean; reason: string } {
+  if (!error) return { recorded: true, reason: 'recorded' };
+  const m = /REC<<(.*?)>>/s.exec(error);
+  return { recorded: false, reason: m ? m[1] : 'error: ' + error.slice(0, 160) };
+}
