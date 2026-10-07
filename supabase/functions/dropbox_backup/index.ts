@@ -44,7 +44,7 @@ import { AuthUnavailable, DropboxClient, isAuthStop, refreshAccessToken, TokenCa
 import { drainClaim } from './drain.ts';
 import { uploadFile, type ReadChunk, type UploadState } from './upload.ts';
 import { backupRow, dbxMeta, verifyUploaded } from './row.ts';
-import { compareListing, dailyRoots, listTree, type Expected } from './listing.ts';
+import { compareListing, dailyRoots, fileSlices, listTree, type Expected } from './listing.ts';
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 import { classifyDropboxFailure, isTransientDbError } from './health.ts';
 
@@ -132,7 +132,7 @@ async function reconcile(dbx: DropboxClient, n: number, ids?: number[]) {
   let listing: Record<string, unknown> | null = null;
   if (!ids?.length) {
     try {
-      const l = await listingCheck(dbx, await dailyRoots(dbx), T0 + LISTING_BUDGET_MS);
+      const l = await listingCheck(dbx, await dailyRoots(dbx), T0 + LISTING_BUDGET_MS, true);
       const seen = new Set(results.map((r) => Number(r.id)));
       for (const f of l.findings) if (!seen.has(Number(f.id))) results.push(f);
       listing = l.summary;
@@ -154,13 +154,20 @@ const CONFIRM_MAX = 25;
 // List each root, compare with doc_backups, and confirm every "missing" one by one with get_metadata
 // (at most CONFIRM_MAX a run; the rest are counted and re-read the next day). A root the budget cut
 // short is not compared at all. Returns the confirmed findings in fn_it_backup_check's shape.
-async function listingCheck(dbx: DropboxClient, roots: string[], deadline: number) {
-  const summary = { roots: roots.length, unlisted_roots: 0, expected: 0, listed: 0, missing: 0, confirmed_missing: 0, changed: 0, stray: 0 };
+async function listingCheck(dbx: DropboxClient, roots: string[], deadline: number, refreshFiles = false) {
+  const summary = { roots: roots.length, unlisted_roots: 0, expected: 0, listed: 0, missing: 0, confirmed_missing: 0, changed: 0, stray: 0, files_refreshed: 0, files_removed: 0 };
+  const stamp = new Date().toISOString();
   const findings: Record<string, unknown>[] = [];
   for (const root of roots) {
     if (Date.now() >= deadline) { summary.unlisted_roots++; continue; }
     const t = await listTree(dbx, root, deadline);
     if (!t.complete) { summary.unlisted_roots++; continue; }
+    // public.dropbox_files follows the same complete walk (a root cut short is left as it was)
+    if (refreshFiles) for (const sl of fileSlices(t.entries)) {
+      const { data: fr, error: fe } = await admin.rpc('fn_dropbox_files_refresh', { p_root: root, p_rows: sl.rows, p_stamp: stamp, p_final: sl.final });
+      if (fe) throw new Error('fn_dropbox_files_refresh ' + fe.message);
+      summary.files_refreshed += Number(fr?.upserted || 0); summary.files_removed += Number(fr?.removed || 0);
+    }
     const { data: exp, error } = await admin.rpc('fn_it_backup_listing_expected', { p_root: root });
     if (error) throw new Error('fn_it_backup_listing_expected ' + error.message);
     const c = compareListing((exp || []) as Expected[], t.entries);

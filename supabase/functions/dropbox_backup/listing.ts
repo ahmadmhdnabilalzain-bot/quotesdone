@@ -11,7 +11,8 @@
 // and its path_lower is not guaranteed to equal Postgres lower() for every script.
 import type { DropboxClient } from './dropbox.ts';
 
-export type Listed = { p: string; h: string; s: number };
+// id/n/m (Dropbox file id, name, server_modified) are kept so the walk also refreshes public.dropbox_files.
+export type Listed = { p: string; h: string; s: number; id?: string; n?: string; m?: string };
 // [id, dropbox_path, dropbox_content_hash, status] as fn_it_backup_listing_expected returns it
 export type Expected = [number, string, string | null, string];
 export type Compared = { expected: number; listed: number; missing: number[]; changed: { id: number; hash: string; size: number }[]; stray: number };
@@ -44,7 +45,7 @@ export async function listTree(dbx: DropboxClient, root: string, deadline: numbe
     if (r.status === 409 && t.includes('not_found')) return { entries, complete: true };   // the folder is gone: every file in it is missing
     if (!r.ok) throw new Error('list_folder ' + r.status + ' ' + t.slice(0, 160));
     const j = JSON.parse(t);
-    for (const e of j.entries || []) if (e['.tag'] === 'file') entries.push({ p: String(e.path_display || e.path_lower), h: String(e.content_hash || ''), s: Number(e.size) });
+    for (const e of j.entries || []) if (e['.tag'] === 'file') entries.push({ p: String(e.path_display || e.path_lower), h: String(e.content_hash || ''), s: Number(e.size), id: e.id, n: e.name, m: e.server_modified });
     if (!j.has_more) return { entries, complete: true };
     if (now() >= deadline) return { entries, complete: false };
     r = await dbx.call('api', 'files/list_folder/continue', { cursor: j.cursor });
@@ -52,7 +53,8 @@ export async function listTree(dbx: DropboxClient, root: string, deadline: numbe
 }
 
 // The roots the daily check lists: every top folder of the backup, and Company's sub-folders one by one
-// so the large Database Exports folder is listed last and alone. Never _selftest or _sandbox.
+// so the large Database Exports folder is listed last and alone. Never _selftest or _sandbox (probes and
+// tagged demo runs); _archive (moved, never deleted, copies) IS listed.
 export async function dailyRoots(dbx: DropboxClient): Promise<string[]> {
   const names = async (path: string) => {
     const r = await dbx.call('api', 'files/list_folder', { path, recursive: false, include_deleted: false, limit: 2000 });
@@ -60,11 +62,23 @@ export async function dailyRoots(dbx: DropboxClient): Promise<string[]> {
     const j = await r.json();
     return (j.entries || []).filter((e: Record<string, string>) => e['.tag'] === 'folder').map((e: Record<string, string>) => String(e.name));
   };
-  const top = (await names('/QuotesDone Backup')).filter((n: string) => !n.startsWith('_'));
+  const top = (await names('/QuotesDone Backup')).filter((n: string) => n !== '_selftest' && n !== '_sandbox');
   const roots: string[] = [];
   for (const n of top) {
     if (n !== 'Company') { roots.push('/QuotesDone Backup/' + n); continue; }
     for (const s of await names('/QuotesDone Backup/Company')) roots.push('/QuotesDone Backup/Company/' + s);
   }
   return roots.sort((a, b) => Number(/Database Exports$/.test(a)) - Number(/Database Exports$/.test(b)));
+}
+
+// public.dropbox_files is refreshed from the same walk (it_engineer, 7 Oct 2026: last synced 7 Sep, and
+// seven routines still read it). Sent in slices so no request carries 21k rows; the LAST slice of a
+// completely listed root removes the rows under that root this walk did not see.
+export const FILES_SLICE = 2000;
+export function fileSlices(entries: Listed[], n = FILES_SLICE) {
+  const rows = entries.map((e) => ({ id: e.id ?? null, path: e.p, name: e.n ?? e.p.replace(/^.*\//, ''), size: e.s, hash: e.h, modified: e.m ?? null }));
+  const out: { rows: typeof rows; final: boolean }[] = [];
+  for (let i = 0; i < rows.length; i += n) out.push({ rows: rows.slice(i, i + n), final: i + n >= rows.length });
+  if (!out.length) out.push({ rows: [], final: true });
+  return out;
 }

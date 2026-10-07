@@ -70,3 +70,26 @@ Deno.test('the roots skip _selftest and _sandbox and list Database Exports last'
   assertEquals(roots, ['/QuotesDone Backup/Company/Correspondence', '/QuotesDone Backup/Suppliers', '/QuotesDone Backup/Customers',
     '/QuotesDone Backup/Company/Database Exports']);
 });
+
+Deno.test('dropbox_files is refreshed in slices; only the last slice of a root may remove rows', async () => {
+  const { fileSlices } = await import('./listing.ts');
+  const e = Array.from({ length: 4500 }, (_, i) => ({ p: `/QuotesDone Backup/X/${i}.pdf`, h: 'h', s: i, id: 'id:' + i, n: `${i}.pdf`, m: '2026-10-07T00:00:00Z' }));
+  const sl = fileSlices(e);
+  assertEquals(sl.map((s) => [s.rows.length, s.final]), [[2000, false], [2000, false], [500, true]]);
+  assertEquals(sl[0].rows[1], { id: 'id:1', path: '/QuotesDone Backup/X/1.pdf', name: '1.pdf', size: 1, hash: 'h', modified: '2026-10-07T00:00:00Z' });
+  // an empty root still sends one final slice, so files deleted from it leave dropbox_files too
+  assertEquals(fileSlices([]), [{ rows: [], final: true }]);
+});
+
+Deno.test('the walk keeps the Dropbox id, name and time for dropbox_files; _archive is listed', async () => {
+  const { dbx } = fakeDbx([[{ '.tag': 'file', id: 'id:a', name: 'a.pdf', path_display: '/QuotesDone Backup/X/a.pdf', content_hash: 'h', size: 3, server_modified: '2026-10-07T01:00:00Z' }]]);
+  const t = await listTree(dbx, '/QuotesDone Backup/X', Date.now() + 60_000);
+  assertEquals(t.entries[0], { p: '/QuotesDone Backup/X/a.pdf', h: 'h', s: 3, id: 'id:a', n: 'a.pdf', m: '2026-10-07T01:00:00Z' });
+  const f = (_url: string, init: RequestInit): Promise<Response> => {
+    const path = JSON.parse(String(init.body)).path;
+    const folders = path === '/QuotesDone Backup' ? ['_archive', '_selftest', '_sandbox', 'Suppliers'] : [];
+    return Promise.resolve(Response.json({ entries: folders.map((name) => ({ '.tag': 'folder', name })), has_more: false }));
+  };
+  assertEquals(await dailyRoots(new DropboxClient({ token: () => Promise.resolve('t'), refreshes: 0, reused: 0 }, f)),
+    ['/QuotesDone Backup/_archive', '/QuotesDone Backup/Suppliers']);
+});

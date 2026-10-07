@@ -73,10 +73,13 @@ test('a customer\'s quotations, receipts and reports are filed under the request
 
 test('the daily check compares the whole Dropbox listing, inside the caller\'s wait', () => {
   const d = src('supabase/functions/dropbox_backup/index.ts');
-  assert.match(d, /await listingCheck\(dbx, await dailyRoots\(dbx\), T0 \+ LISTING_BUDGET_MS\)/, 'reconcile must list every root every day');
+  assert.match(d, /await listingCheck\(dbx, await dailyRoots\(dbx\), T0 \+ LISTING_BUDGET_MS, true\)/, 'reconcile must list every root every day');
   const budget = Number(/const LISTING_BUDGET_MS = ([\d_]+)/.exec(d)?.[1].replace(/_/g, ''));
   const wait = Number(/mode: 'reconcile'[^\n]*AbortSignal\.timeout\((\d+)\)/.exec(src('supabase/functions/resilience_ping/index.ts'))?.[1]);
   assert.ok(budget > 0 && wait > 0 && budget + 10_000 <= wait, `the listing budget (${budget} ms) plus confirmation must end inside resilience_ping's wait (${wait} ms)`);
   assert.match(d, /fn_it_backup_listing_record/, 'every listing reading is put on the record');
+  // public.dropbox_files was last synced 7 Sep 2026 while seven routines read it: the daily walk refreshes it
+  assert.match(d, /rpc\('fn_dropbox_files_refresh', \{ p_root: root, p_rows: sl\.rows, p_stamp: stamp, p_final: sl\.final \}\)/, 'the daily walk refreshes public.dropbox_files');
+  assert.match(canonicalBody('fn_dropbox_files_refresh'), /if p_final then\s+delete from public\.dropbox_files/, 'only the final slice of a complete root removes rows');
   assert.match(canonicalBody('fn_it_backup_listing_expected'), /starts_with\(p_root, '\/QuotesDone Backup\/_sandbox\/'\)/, 'demo rows are expected only under _sandbox/');
 });

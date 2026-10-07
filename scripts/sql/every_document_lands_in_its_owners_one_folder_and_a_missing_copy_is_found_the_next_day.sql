@@ -549,6 +549,36 @@ begin
 end $function$;
 revoke execute on function public.fn_it_backup_listing_record(jsonb) from public, anon, authenticated;
 
+-- ── it_engineer: public.dropbox_files follows the daily walk (last synced 7 Sep 2026; seven routines read it) ──
+-- dropbox_backup sends each completely listed root in slices of 2,000: each slice is upserted on the
+-- Dropbox file id with this walk's stamp; the FINAL slice removes the rows under that root the walk did
+-- not see (a file moved or deleted in Dropbox). A root the walk did not finish is never touched.
+create or replace function public.fn_dropbox_files_refresh(p_root text, p_rows jsonb, p_stamp timestamptz, p_final boolean)
+ returns jsonb
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare v_up integer := 0; v_rm integer := 0;
+begin
+  if coalesce(p_root, '') !~ '^/QuotesDone Backup/[^/]' or p_stamp is null then
+    raise exception 'fn_dropbox_files_refresh: a root under /QuotesDone Backup/ and the walk stamp are required';
+  end if;
+  insert into public.dropbox_files (dropbox_id, path, name, is_folder, size, content_hash, server_modified, synced_at)
+  select r->>'id', r->>'path', r->>'name', false, (r->>'size')::bigint, r->>'hash', (r->>'modified')::timestamptz, p_stamp
+    from jsonb_array_elements(coalesce(p_rows, '[]'::jsonb)) r
+   where coalesce(r->>'id', '') <> '' and starts_with(lower(r->>'path'), lower(p_root) || '/')
+  on conflict (dropbox_id) do update set path = excluded.path, name = excluded.name, size = excluded.size,
+        content_hash = excluded.content_hash, server_modified = excluded.server_modified, synced_at = excluded.synced_at;
+  get diagnostics v_up = row_count;
+  if p_final then
+    delete from public.dropbox_files f where starts_with(lower(f.path), lower(p_root) || '/') and f.synced_at < p_stamp;
+    get diagnostics v_rm = row_count;
+  end if;
+  return jsonb_build_object('upserted', v_up, 'removed', v_rm);
+end $function$;
+revoke execute on function public.fn_dropbox_files_refresh(text, jsonb, timestamptz, boolean) from public, anon, authenticated;
+
 -- ── probe: the trigger files a second document of an entity beside its first, sandbox and demo rules ──
 -- Runs on rows it creates and removes in this transaction; it touches no real row (it reads the
 -- count of real rows before and after) and returns one verdict row.
@@ -581,6 +611,11 @@ begin
   get diagnostics v_drop = row_count;
   if v_drop <> 0 then v_fail := v_fail || ' other_tag_admitted'; end if;
   perform set_config('qd.backup_sandbox', '', true);
+  -- dropbox_files: a listed file is upserted; a later complete walk that no longer sees it removes it
+  v_r := public.fn_dropbox_files_refresh('/QuotesDone Backup/_probe1162', '[{"id":"id:probe1162","path":"/QuotesDone Backup/_probe1162/a.pdf","name":"a.pdf","size":1,"hash":"h"}]'::jsonb, now() - interval '1 minute', false)->>'upserted';
+  if v_r <> '1' then v_fail := v_fail || ' files_upsert:' || v_r; end if;
+  v_r := public.fn_dropbox_files_refresh('/QuotesDone Backup/_probe1162', '[]'::jsonb, now(), true)->>'removed';
+  if v_r <> '1' or exists (select 1 from public.dropbox_files where dropbox_id = 'id:probe1162') then v_fail := v_fail || ' files_remove:' || v_r; end if;
   -- the enqueue still runs inside its budget (the new CUSTOMER DOCUMENTS block included)
   v_r := clock_timestamp()::text;
   perform public.fn_enqueue_doc_backups();
