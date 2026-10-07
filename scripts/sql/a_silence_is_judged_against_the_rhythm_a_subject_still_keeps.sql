@@ -14,8 +14,9 @@
 --   completed gap still fitted that rhythm, it accepted a sub-minute median, and it watched public surfaces,
 --   from refused calls, which measure a caller's demand, not the subject's schedule.
 -- CHANGE: three conditions in D2's qualifying WHERE (see the 7 Oct comment in the body):
---   p50 >= 1 min; the rhythm is built from served (not refused) runs; the last completed gap is within the
---   silence threshold. (Excluding public surfaces outright was measured and rejected: resilience_ping, the
+--   p50 >= 1 min; the rhythm is built from served (not refused) runs; a subject whose last TWO completed gaps
+--   both exceed the silence threshold has settled into a new rhythm and is not judged by the old one (a single
+--   long gap -- stop, run once, stop again -- is still judged and raised). (Excluding public surfaces outright was measured and rejected: resilience_ping, the
 --   heartbeat itself, is registered public_surface and must stay watched.)
 --   Body otherwise copied from the canonical a_queue_filled_this_hour_is_not_a_stopped_queue.sql.
 -- prevented by: scripts/checks/the_three_detector_gaps_of_the_learning_audit_stay_closed.test.mjs
@@ -258,7 +259,8 @@ for r in
            (percentile_cont(0.5) within group (order by gap) filter (where gap > 0))::numeric p50,
            (percentile_cont(0.9) within group (order by gap) filter (where gap > 0))::numeric p90,
            max(started_at)                                                        last_run,
-           (array_agg(gap order by started_at desc))[1]                           last_gap
+           (array_agg(gap order by started_at desc))[1]                           last_gap,
+           (array_agg(gap order by started_at desc))[2]                           prev_gap
     from g group by agent)
   select c.*, coalesce(s.public_surface,false) pub,
          extract(epoch from (v_now - c.last_run))/60 silent_min
@@ -267,10 +269,11 @@ for r in
     -- 7 Oct 2026 (gap 3, PR #1281): a sub-minute median is a burst, not a schedule (ai_gateway, p50 0.01);
     -- the rhythm is built from served runs only (above), so outside traffic refused 400 cannot lend a public
     -- surface a schedule (unsubscribe); and a subject whose LAST completed gap already exceeded the threshold
-    -- has left the old rhythm on purpose (wa_templates_watch after #1049) -- the old gaps must not judge it
-    -- for the next seven days.
+    -- has settled into a new rhythm -- its last TWO completed gaps both past the threshold (wa_templates_watch
+    -- after #1049) -- is not judged by the old gaps for the next seven days. ONE long gap is a stop that ran once:
+    -- a subject that stops, runs once and stops again is still raised (review of #1283).
     and c.p50 >= 1
-    and coalesce(c.last_gap, 0) <= greatest(c.p50 * 4, 30)
+    and not (coalesce(c.last_gap, 0) > greatest(c.p50 * 4, 30) and coalesce(c.prev_gap, 0) > greatest(c.p50 * 4, 30))
 loop
   v_watched := v_watched + 1;
   continue when r.silent_min <= greatest(r.p50 * 4, 30);
@@ -1100,6 +1103,6 @@ $function$;
 revoke execute on function public.fn_it_detect(jsonb, boolean) from public, anon, authenticated;
 
 select case when (public.fn_it_detect(null::jsonb, false) ->> 'ok') = 'true'
-             and position('coalesce(c.last_gap, 0) <= greatest(c.p50 * 4, 30)' in (select prosrc from pg_proc where oid = 'public.fn_it_detect(jsonb,boolean)'::regprocedure)) > 0
+             and position('coalesce(c.prev_gap, 0) > greatest(c.p50 * 4, 30)' in (select prosrc from pg_proc where oid = 'public.fn_it_detect(jsonb,boolean)'::regprocedure)) > 0
             then 'PROBE OK :: fn_it_detect runs unpersisted and D2 judges silence against the rhythm a subject still keeps'
             else 'PROBE FAILED :: fn_it_detect did not answer ok or the D2 rhythm conditions are missing' end as verdict;

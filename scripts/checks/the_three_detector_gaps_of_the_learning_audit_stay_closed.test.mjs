@@ -50,6 +50,30 @@ test('gap 3: run_silent judges silence against the rhythm a subject still keeps'
   const d2 = b.slice(b.indexOf('A SUBJECT THAT HAS STOPPED RUNNING'), b.indexOf("v_key := 'run_silent:'"));
   assert.match(d2, /from it_runs7\s*(--[^\n]*\n\s*)?where not refused0/, `${file}: D2 builds a rhythm from refused calls again`);
   assert.match(d2, /c\.p50 >= 1/, `${file}: D2 accepts a sub-minute burst as a schedule again`);
-  assert.match(d2, /coalesce\(c\.last_gap, 0\) <= greatest\(c\.p50 \* 4, 30\)/,
-    `${file}: D2 judges a subject against a rhythm its last gap has already left`);
+  assert.match(d2, /c\.prev_gap/, `${file}: D2 must look at the last two gaps before calling a rhythm changed`);
+});
+
+// D2's qualifying WHERE, lifted from the canonical fn_it_detect and evaluated in JS on gap histories, so a
+// change to the SQL changes what this test sees.
+const qualifies = (d2) => {
+  const where = d2.slice(d2.indexOf('where c.samples >= 10'), d2.search(/\nloop/))
+    .replace(/--[^\n]*/g, '').replace(/^where /, '');
+  const js = where
+    .replace(/coalesce\(s\.public_surface, false\)/g, 'false')
+    .replace(/coalesce\(([\w.]+), 0\)/g, '($1 ?? 0)')
+    .replace(/greatest\(/g, 'Math.max(')
+    .replace(/\bnot\b/g, '!').replace(/\band\b/g, '&&');
+  return new Function('c', `return (${js});`);
+};
+const subject = (gaps) => ({ samples: gaps.length, hours: 24, p50: 30, p90: 31, last_gap: gaps.at(-1), prev_gap: gaps.at(-2) });
+
+test('gap 3: a subject that stops, runs once and stops again is still watched; one settled into a new rhythm is not', () => {
+  const [file, b] = routine('fn_it_detect');
+  const ok = qualifies(b.slice(b.indexOf('A SUBJECT THAT HAS STOPPED RUNNING'), b.indexOf("v_key := 'run_silent:'")));
+  const steady = Array(40).fill(30);
+  assert.equal(ok(subject(steady)), true, `${file}: a steady 30-minute subject must be watched`);
+  assert.equal(ok(subject([...steady, 300])), true,
+    `${file}: stopped 5 h, ran once, now silent again -- it must still be watched (review of #1283)`);
+  assert.equal(ok(subject([...steady, 1185, 1200])), false,
+    `${file}: two 20-hour gaps after a 30-minute rhythm is a new cadence (wa_templates_watch after #1049)`);
 });

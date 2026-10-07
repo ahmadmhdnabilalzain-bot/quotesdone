@@ -16,7 +16,7 @@ declare
   v record; h public.agent_actions; i public.it_incident; r jsonb;
   c_by constant text := 'it_engineer (the_three_detector_gaps_record_their_regression_checks.sql, 7 Oct 2026)';
   c_test constant text := 'scripts/checks/the_three_detector_gaps_of_the_learning_audit_stay_closed.test.mjs';
-  c_silent_fix constant text := 'scripts/sql/a_silence_is_judged_against_the_rhythm_a_subject_still_keeps.sql: run_silent builds a rhythm from served (not refused) runs, ignores a sub-minute burst median, and does not judge a subject whose last completed gap already left the old rhythm. Replayed on the incident times: the old rule raised at every one, the new rule at none; a 3-hour stop of send_outbox, wa_status or resilience_ping is still raised.';
+  c_silent_fix constant text := 'scripts/sql/a_silence_is_judged_against_the_rhythm_a_subject_still_keeps.sql: run_silent builds a rhythm from served (not refused) runs, ignores a sub-minute burst median, and does not judge a subject whose last two completed gaps both left the old rhythm (a single long gap -- stop, run once, stop -- is still raised). Replayed on the incident times: the old rule raised at every one; a 3-hour stop of send_outbox, wa_status or resilience_ping is still raised.';
 begin
   for v in select * from (values
     (100487::bigint, 'watch:refusal_rate:claim_lookup',
