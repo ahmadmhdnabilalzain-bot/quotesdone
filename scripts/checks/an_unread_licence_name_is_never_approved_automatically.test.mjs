@@ -38,3 +38,10 @@ test('every upload path records the licence name, a scan included', () => {
   assert.match(sp, /codeName = await readLicenceName\(stored\.bytes, stored\.mime\)/, 'supplier_portal does not read the licence name');
   assert.match(sp, /upd\.licence_legal_name = codeName;/, 'supplier_portal does not record the licence name');
 });
+
+// Stage-2 S02 again (7 Oct 2026): the routine held an approved supplier with an unread name, but z20 only re-ran
+// it for a WAITING supplier, so a new licence uploaded by an approved supplier never reached the review.
+test('a new licence or licence name re-reviews an APPROVED supplier too', () => {
+  const z20 = R('scripts/sql/an_approved_supplier_who_swaps_in_an_unreadable_licence_is_held_again.sql');
+  assert.match(z20, /new\.approval_status = 'approved'\s+and \(old\.license_doc_path is distinct from new\.license_doc_path\s+or old\.licence_legal_name is distinct from new\.licence_legal_name\)/);
+});
