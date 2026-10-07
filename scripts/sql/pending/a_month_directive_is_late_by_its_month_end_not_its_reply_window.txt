@@ -1,1 +1,0 @@
-Applied at merge (memory: apply at merge, never before; the release guard refuses an unmerged file). Redefines fn_ceo_seat_audit and fn_ceo_directive_run to time a handoff through fn_handoff_is_late, and rewrites the old predicate inside the 7 open seat_health directives by id. Moves to MANIFEST.txt when applied with --apply --ddl.
