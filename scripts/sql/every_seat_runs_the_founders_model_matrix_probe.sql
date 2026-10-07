@@ -258,7 +258,8 @@ begin
   -- Ledger 1175 (7 Oct 2026): OpenRouter is always on. No route is held by the founder (held = more than a
   -- year out); a real failure breaker opens for minutes on its own route and is not a hold.
   select max(open_until) into v_hold from public.llm_route_health;
-  if v_hold > now() + interval '1 year' then
+  if v_hold > now() + interval '1 year'
+     or exists (select 1 from public.llm_route_health where opened_reason like 'HELD BY THE FOUNDER%' and open_until > now()) then
     bad := bad || to_jsonb('a route is founder-held again (ledger 1175 keeps OpenRouter on): max(open_until) = ' || v_hold::text);
   end if;
   for r in select distinct x.m from public.model_policy p, unnest(array[p.model_primary, p.model_fallback]) x(m)
