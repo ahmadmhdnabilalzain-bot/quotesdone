@@ -5406,6 +5406,17 @@ declare
   v_from timestamptz := now() - make_interval(days => greatest(1, coalesce(p_days, 7)));
   j jsonb;
 begin
+  -- agent_runs is rolled up per AGENT first (~110 distinct), then mapped to a seat: fn_run_seat runs
+  -- ~110 times instead of once per row per subquery (3 x 6 seats x ~269k rows = ~4.8M calls).
+  with ar as (
+    select public.fn_run_seat(a.agent) as seat,
+           sum(a.runs)::bigint as runs, sum(a.errors)::bigint as errors, max(a.last_seen) as last_seen
+      from (select r.agent,
+                   count(*) filter (where r.started_at >= v_from)                      as runs,
+                   count(*) filter (where r.status = 'error' and r.started_at >= v_from) as errors,
+                   max(r.started_at)                                                     as last_seen
+              from agent_runs r group by r.agent) a
+     group by 1)
   select jsonb_build_object(
     'window_days', greatest(1, coalesce(p_days, 7)),
     'since', v_from,
@@ -5414,13 +5425,9 @@ begin
 
         -- WHAT IT DID: every run, and every run that failed. Same source for all six, so the
         -- comparison between seats is honest.
-        'runs',        (select count(*) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat and r.started_at >= v_from),
-        'errors',      (select count(*) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat
-                           and r.status = 'error' and r.started_at >= v_from),
-        'last_seen',   (select max(r.started_at) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat),
+        'runs',        coalesce((select ar.runs   from ar where ar.seat = s.seat), 0),
+        'errors',      coalesce((select ar.errors from ar where ar.seat = s.seat), 0),
+        'last_seen',   (select ar.last_seen from ar where ar.seat = s.seat),
 
         -- WHAT IS WAITING ON IT: work assigned and not finished. This is the half the CEO had no
         -- sight of at all.
