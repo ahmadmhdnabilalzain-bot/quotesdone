@@ -579,6 +579,13 @@ begin
 end $function$;
 revoke execute on function public.fn_dropbox_files_refresh(text, jsonb, timestamptz, boolean) from public, anon, authenticated;
 
+-- dropbox_files has a writer again, so it is no longer 'no_writer': it is a CACHE of the Dropbox listing,
+-- rebuilt from Dropbox every day; Dropbox itself is the record, so the daily table export leaves it out.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('dropbox_files', false, 'cache', 'A cache of the Dropbox listing, rebuilt every day by the it_engineer''s full-tree walk (fn_dropbox_files_refresh); Dropbox is the record.', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 -- ── probe: the trigger files a second document of an entity beside its first, sandbox and demo rules ──
 -- Runs on rows it creates and removes in this transaction; it touches no real row (it reads the
 -- count of real rows before and after) and returns one verdict row.
