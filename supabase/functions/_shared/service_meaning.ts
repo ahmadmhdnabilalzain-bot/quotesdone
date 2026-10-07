@@ -56,7 +56,7 @@ export type MeaningService = ServiceTerm & { vec: Vec | null; vec_ml?: Vec | nul
 export type MeaningLine = { text: string; vec: Vec | null; space?: Space };
 export type MeaningProposal = {
   key: string; trade: string; label_en: string; label_ar: string; similarity: number;
-  because: 'head_word' | 'alias'; word: string | null; lines: string[];
+  because: 'head_word' | 'alias' | 'trade_word'; word: string | null; lines: string[];
 };
 
 // Calibrated 21 Sep 2026 on gte-small (numbers above and in service_meaning.test.ts).
@@ -186,10 +186,10 @@ export function corroborate(s: MeaningService, words: Set<string>, norm: string,
 
 /** The proposals, strongest first. `stated` are the keys already found exactly (never re-proposed). */
 export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[],
-  opts: { stated?: string[]; supplyOnly?: boolean; floor?: number; mlFloor?: number } = {}): MeaningProposal[] {
+  opts: { stated?: string[]; supplyOnly?: boolean; floor?: number; mlFloor?: number; tradeLabels?: Record<string, string> } = {}): MeaningProposal[] {
   const stated = new Set(opts.stated || []);
   const eligible = services.filter((s) => !(opts.supplyOnly && isInstallWork(s)));
-  type Cand = { s: MeaningService; sim: number; line: string; because: 'head_word' | 'alias' | null; word: string | null };
+  type Cand = { s: MeaningService; sim: number; line: string; because: 'head_word' | 'alias' | 'trade_word' | null; word: string | null };
   const byKey = new Map<string, Cand[]>();
   for (const line of lines.slice(0, MEANING_MAX_LINES)) {
     if (!line.vec) continue;
@@ -209,15 +209,35 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
     // above the floor, the first a name word corroborates — measured 29 Sep 2026, the multilingual space ranks the
     // right service 1st-5th (الدهانات: forgings 0.854, then painting 0.850), and noise scores as high, so the
     // corroborating word decides and the vector only shortlists.
-    const shortlist = ranked.slice(0, ml ? ML_TOP : 1).filter(([c]) => c >= floor);
+    // 7 Oct 2026 (opt-in, supplier_doc_trades only, through opts.tradeLabels): English shortlists 3, like Arabic does,
+    // and the corroborating word decides - "Painting Contracting" lands 1st on a fleet body-paint service and 2nd on
+    // exterior painting, whose head word the line holds. Without tradeLabels nothing changes (the Services tab).
+    const shortlist = ranked.slice(0, ml ? ML_TOP : (opts.tradeLabels ? 3 : 1)).filter(([c]) => c >= floor);
     const words = new Set(contentWords(line.text));
     const norm = arNorm(line.text);
-    const pick = shortlist.find(([, s]) => corroborate(s, words, norm, ml).because) ?? shortlist[0];
+    // A TRADE, NOT A SERVICE (7 Oct 2026, accuracy suite ledger 1162; opt-in). A licence or a profile names its trade
+    // in general: "Plumbing works", "Landscaping Works". The nearest service is then a specific service of the RIGHT
+    // trade (plumbing.maintenance) whose own head word the line lacks, and the trade was proposed by nothing. With
+    // tradeLabels, a line holding a WHOLE part of that service's TRADE name ("Plumbing & sanitary" -> plumbing)
+    // corroborates the trade: the same rule one level up, English only, and the service itself is never claimed by it.
+    // A part counts only whole ("Lighting fixtures" needs both words: a footer saying "fixture" is not a lighting
+    // company). And the other way: when the corroborating word is the whole name of ANOTHER trade, the line is
+    // ambiguous for this service and it is passed over - "Aluminium works" lands nearest an aluminium SHEET service of
+    // non_ferrous_metals, but "aluminium" is the aluminium trade's own name. Exact trade or none.
+    const parts = (code: string) => String(opts.tradeLabels?.[code] ?? '').toLowerCase().split(/[&,()/]| and /).map((x) => contentWords(x)).filter((x) => x.length);
+    const judgeOf = (s: MeaningService): { because: Cand['because']; word: string | null } => {
+      let { because, word }: { because: Cand['because']; word: string | null } = corroborate(s, words, norm, ml);
+      if (ml || !opts.tradeLabels) return { because, word };
+      if (!because) { const whole = parts(s.trade_code).find((x) => x.every((w) => words.has(w))); if (whole) { because = 'trade_word'; word = whole.join(' '); } }
+      if (because && word && Object.keys(opts.tradeLabels).some((code) => code !== s.trade_code && parts(code).some((x) => x.length === 1 && x[0] === word))) return { because: null, word: null };
+      return { because, word };
+    };
+    const pick = shortlist.find(([, s]) => judgeOf(s).because) ?? shortlist[0];
     if (!pick) continue;
     const [sim, best] = pick;
     const key = `${best.trade_code}.${best.code}`;
     if (stated.has(key)) continue;
-    const { because, word } = corroborate(best, words, norm, ml);
+    const { because, word } = judgeOf(best);
     const list = byKey.get(key) || [];
     list.push({ s: best, sim, line: line.text, because, word });
     byKey.set(key, list);

@@ -21,7 +21,7 @@ import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { licenceModelPayload, licenceNameFromModel, readExpiry, readLicenceName } from '../_shared/document_expiry.ts';
+import { licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -676,6 +676,14 @@ const handle = async (req: Request): Promise<Response> => {
       // A NEW licence replaces the old name even when nothing is read: a stale name must never match for a new
       // document. null = not read, and the review then holds the registration (licence_name_unread).
       if (licBytes?.bytes) upd.licence_legal_name = codeName;
+      // EVERY LABELLED FIELD, BY CODE (7 Oct 2026, accuracy suite ledger 1162). Until today the licence number, the
+      // authority and the emirate were written only from the model, whose switch is off, so a text licence's number
+      // was never recorded. Code's reading is written first; the model below fills only what code left unread.
+      let codeFields: Partial<LicenceFields> = {};
+      if (licBytes?.bytes) { try { codeFields = await readLicenceFields(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeFields = {}; } }
+      if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
+      if (codeFields.authority) upd.license_authority = codeFields.authority;
+      if (codeFields.emirate) upd.emirate = codeFields.emirate;
       // The supplier reads this note in the portal, so it is written in both languages the
       // registration speaks (the estate's rule: a document message is English and fully Arabic).
       const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
@@ -700,12 +708,20 @@ const handle = async (req: Request): Promise<Response> => {
       // flag the portal uses (app_secrets.document_expiry_ai). With the flag off nothing is asked
       // of a gateway that cannot answer, and nothing above depends on it.
       // A scan the code could not name is sent from storage when the portal did not resend it (24 Sep 2026).
-      const modelDoc = licenceModelPayload({ ...lic, images: licImgs }, licBytes?.bytes ? { bytes: licBytes.bytes, mime: licBytes.mime || 'application/pdf' } : null, codeName);
+      // The model is asked when code left the name, the number OR the expiry unread (licenceNeedsModel), not only the name.
+      const modelDoc = licenceModelPayload({ ...lic, images: licImgs }, licBytes?.bytes ? { bytes: licBytes.bytes, mime: licBytes.mime || 'application/pdf' } : null,
+        licBytes?.bytes && licenceNeedsModel({ ...codeFields, legal_name_en: codeName, expiry_date: codeFields.expiry_date }) ? null : codeName);
       if (modelDoc && await flagOn('document_expiry_ai')) {
         try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc }) }); const jd = await r.json();
           if (jd?.ok && jd.doc) { const d = jd.doc;
-            if (d.license_number) upd.trade_license_no = d.license_number;
-            if (d.license_authority) upd.license_authority = d.license_authority;
+            if (d.license_number && !codeFields.licence_no) upd.trade_license_no = d.license_number;
+            if (d.license_authority && !codeFields.authority) upd.license_authority = d.license_authority;
+            // A scan's activities, read by the model, are read for trades exactly as a text licence's are (exact code
+            // or meaning, supplier_doc_trades), and only when code read no activities line itself.
+            if (!codeFields.activities?.length && Array.isArray(d.activities) && d.activities.length) {
+              const q = readQueue.find((x) => x.kind === 'licence');
+              if (q) q.photo_text = 'Activities: ' + d.activities.map((a: unknown) => String(a)).join(', ');
+            }
             if (d.city) upd.license_city = d.city;
             // CODE FIRST, AND THE MODEL DOES NOT OVERRULE IT (founder: "code first, LLM only where
             // code can't"). When the document itself printed a date beside an expiry keyword, that
@@ -716,7 +732,7 @@ const handle = async (req: Request): Promise<Response> => {
                 if (String(d.expiry_date) !== codeExpiry) out.license_expiry_model_differs = { code: codeExpiry, model: d.expiry_date };
               } else upd.license_expiry = d.expiry_date;
             }
-            if (d.emirate) upd.emirate = d.emirate;
+            if (d.emirate && !codeFields.emirate) upd.emirate = d.emirate;
             if (d.trn) upd.trn = d.trn;
             upd.doc_extracted_at = new Date().toISOString();
             // 24 Sep 2026: the licence name is RECORDED, never copied over the registered name. Copying it

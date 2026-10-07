@@ -568,6 +568,11 @@ const COPY: Record<string, Entry> = {
     'لم نتمكن من قراءة اسم الشركة في رخصتكم التجارية، لذا يراجعها فريقنا يدويًا. لا يلزمكم أي إجراء، ورفع نسخة أوضح يسرّع المراجعة'),
   licence_unreadable: s('we could not read the company name on your trade licence, so our team is checking it by hand. You do not need to do anything; a clearer copy speeds it up',
     'لم نتمكن من قراءة اسم الشركة في رخصتكم التجارية، لذا يراجعها فريقنا يدويًا. لا يلزمكم أي إجراء، ورفع نسخة أوضح يسرّع المراجعة'),
+  // 7 Oct 2026 (accuracy suite, ledger 1162): the licence is held, never approved on a guess, when its expiry or number cannot be read.
+  licence_expiry_unread: s('we could not read the expiry date on your trade licence, so our team is checking it by hand. You do not need to do anything; a clearer copy speeds it up',
+    'لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية، لذا يراجعها فريقنا يدويًا. لا يلزمكم أي إجراء، ورفع نسخة أوضح يسرّع المراجعة'),
+  licence_number_unread: s('we could not read the licence number on your trade licence, so our team is checking it by hand. You do not need to do anything; a clearer copy speeds it up',
+    'لم نتمكن من قراءة رقم رخصتكم التجارية، لذا يراجعها فريقنا يدويًا. لا يلزمكم أي إجراء، ورفع نسخة أوضح يسرّع المراجعة'),
   licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
     'اسم الشركة في الرخصة التجارية لا يطابق اسم شركتكم المسجّل. يُرجى رفع الرخصة التجارية الخاصة بشركتكم، أو التواصل معنا إن كان اسمكم المسجّل يحتاج إلى تعديل'),
 
