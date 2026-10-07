@@ -9,7 +9,7 @@
 --   unread   : new licence, name null (process_docs on a scan)               -> pending / licence_unreadable
 --   mismatch : new licence naming another company                            -> pending / licence_name_mismatch, needs_review
 do $$
-declare v_id bigint; c1 public.leads; c2 public.leads; u public.leads; m public.leads; v_rev text;
+declare v_id bigint; c1 public.leads; c2 public.leads; u public.leads; m public.leads; s public.leads; v_rev text; s_rev text; s_rec text;
         v_real_before bigint; v_real_after bigint;
 begin
   select id into v_id from public.leads
@@ -39,6 +39,14 @@ begin
   select status into v_rev from public.agent_actions
    where agent = 'sales_engineer' and kind = 'supplier_verification' and target_id = v_id::text
    order by id desc limit 1;
+  -- save: an approved supplier ALREADY holding another company's licence saves his profile. Status and name
+  -- land in one statement; the name does not change, so z20 does not run and only the save asks.
+  update public.leads set approval_status = 'approved', verified = true, licence_gate_reason = null where id = v_id;
+  perform public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
+  select * into s from public.leads where id = v_id;
+  select status, recommendation into s_rev, s_rec from public.agent_actions
+   where agent = 'sales_engineer' and kind = 'supplier_verification' and target_id = v_id::text
+   order by id desc limit 1;
   select count(*) into v_real_after from public.leads where approval_status = 'approved' and id <> v_id;
 
   raise exception 'CHK<<%>>', case
@@ -46,9 +54,12 @@ begin
          and u.approval_status = 'pending' and u.licence_gate_reason = 'licence_unreadable' and not coalesce(u.verified, false)
          and m.approval_status = 'pending' and m.licence_gate_reason = 'licence_name_mismatch' and not coalesce(m.verified, false)
          and v_rev = 'needs_review' and v_real_before = v_real_after
+         and s.approval_status = 'pending' and s.licence_gate_reason = 'licence_name_mismatch'
+         and s_rev = 'needs_review' and s_rec not ilike '%name matches%'
       then 'PROBE OK: ZZ DEMO ' || v_id || ' control approved->approved after a profile save; unread -> pending/licence_unreadable; '
-           || 'other company''s licence -> pending/licence_name_mismatch (needs_review); other approvals untouched (' || v_real_after || ')'
+           || 'other company''s licence -> pending/licence_name_mismatch (needs_review); approved + other company''s licence + profile save -> held, log truthful; other approvals untouched (' || v_real_after || ')'
     else 'PROBE FAILED: control=' || coalesce(c1.approval_status, 'null') || '>' || coalesce(c2.approval_status, 'null')
          || ' unread=' || coalesce(u.approval_status, 'null') || '/' || coalesce(u.licence_gate_reason, 'null')
-         || ' mismatch=' || coalesce(m.approval_status, 'null') || '/' || coalesce(m.licence_gate_reason, 'null') || ' review=' || coalesce(v_rev, 'null') end;
+         || ' mismatch=' || coalesce(m.approval_status, 'null') || '/' || coalesce(m.licence_gate_reason, 'null') || ' review=' || coalesce(v_rev, 'null') || ' save=' || coalesce(s.approval_status, 'null') || '/' || coalesce(s.licence_gate_reason, 'null')
+         || ' save_log=' || coalesce(s_rev, 'null') || ':' || left(coalesce(s_rec, 'null'), 60) end;
 end $$;

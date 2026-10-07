@@ -20,11 +20,11 @@
 -- approved supplier whose licence merely expired stays approved, as before.
 --
 -- 7 Oct 2026, the same day (coordinator decision): a licence change on an APPROVED supplier also asks the
--- name question. A new READABLE licence that names another company holds him as pending, reason
--- licence_name_mismatch, needs_review for the sales engineer. z20 tells the routine which case it is by
--- p_source = 'licence_changed' (only when he was approved and the licence document or name changed);
--- save_profile and every other source keep the approved branch exactly as before, so an ordinary profile
--- save never re-gates an approved supplier.
+-- name question. A READABLE licence that names another company holds him as pending, reason
+-- licence_name_mismatch, needs_review for the sales engineer - and the approved branch now requires the name
+-- to match, so the log's "the licence name matches" is true whenever it is written. A profile save re-gates
+-- nobody whose licence matches (measured 7 Oct: 0 of 4 approved suppliers mismatch). z20 passes
+-- p_source = 'licence_changed' for a licence change on an approved supplier, so the log says why it ran.
 --
 -- Both routines are CREATE OR REPLACE (ACL preserved, so no revoke; signatures unchanged, search_path pinned). pg_trigger_depth() < 1 stays: the
 -- verification's own update never re-enters.
@@ -80,14 +80,14 @@ begin
                    when v_expired then 'licence_expired' end;
 
   if coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0 and not v_name_unread
-     and not (p_source = 'licence_changed' and v_name_mismatch) then
+     and not v_name_mismatch then
     -- An approved supplier whose licence has since expired stays approved: fn_reconcile_doc_blocks
     -- pauses their matching and restores it on renewal, without taking the registration away.
     v_decision := 'approved';
-  -- 7 Oct 2026: an APPROVED supplier whose new licence names another company is held for review, never
-  -- approved and never told "action required" by code alone. Only a licence change asks this (z20 passes
-  -- 'licence_changed'); an ordinary profile save leaves an approved supplier approved, as before.
-  elsif p_source = 'licence_changed' and coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0
+  -- 7 Oct 2026 (review of #1275): an APPROVED supplier whose licence names another company is held for
+  -- review, whatever asked - a licence change or a save. The approved branch above used to keep him approved
+  -- and log "the licence name matches", which was false. A supplier whose name matches is untouched by a save.
+  elsif coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0
         and v_name_mismatch then v_decision := 'pending'; v_reason := 'licence_name_mismatch';
   elsif v_reason is not null then v_decision := 'action_required';
   elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_unreadable';
