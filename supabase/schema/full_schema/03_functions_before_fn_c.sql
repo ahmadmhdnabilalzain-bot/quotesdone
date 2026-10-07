@@ -7728,16 +7728,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -7763,6 +7753,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -10576,6 +10576,22 @@ begin
   end if;
   return new;
 end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_app_secrets_no_paid_ai_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if old.key = 'no_paid_ai' and lower(coalesce(old.value, '')) in ('1','true','yes','on')
+     and (tg_op = 'DELETE' or new.key <> 'no_paid_ai' or lower(coalesce(new.value, '')) not in ('1','true','yes','on'))
+     and not public.fn_founder_hold_change_allowed() then
+    raise exception 'FOUNDER_HOLD: app_secrets.no_paid_ai is on; only the founder turns it off (set local app.change_reason = ''founder:<ledger id>'').'
+      using errcode = 'P0001';
+  end if;
+  return case when tg_op = 'DELETE' then old else new end;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_apply_playbook(p_agent_key text, p_query_embedding vector, p_query_text text, p_min_similarity real DEFAULT 0.85, p_k integer DEFAULT 20)

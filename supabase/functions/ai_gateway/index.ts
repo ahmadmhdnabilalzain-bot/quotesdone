@@ -36,7 +36,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { annotate, observe } from '../_shared/observe.ts';
-import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, subjectOf } from '../_shared/spend_guards.ts';
+import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, subjectOf } from '../_shared/spend_guards.ts';
+import { e2eRunTag } from '../_shared/e2e_run.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
 
@@ -507,7 +508,17 @@ async function handle(req: Request): Promise<Response> {
       const subject = subjectOf((body as { subject?: unknown }).subject);
       let ownWork = ownWorkByName(fnName)
         ? 'the calling function "' + fnName + '" is our own automated work (probe, rehearsal, smoke or eval)' : '';
-      if (!ownWork && subject) {
+      // A proven sandbox run inside its open window is the one case a fixture subject may be answered
+      // (spend_guards.rehearsalLetsFixtureThrough). The paid gate below still enforces the window's cap.
+      let inWindow = false;
+      const runTag = e2eRunTag();
+      if (!ownWork && subject && runTag) {
+        let open: unknown = null; let openErr: unknown = null;
+        try { const res = await admin.rpc('fn_e2e_run_tag_open', { p_tag: runTag }); open = res.data; openErr = res.error; }
+        catch (e) { openErr = e; }
+        inWindow = rehearsalLetsFixtureThrough(runTag, open, openErr);
+      }
+      if (!ownWork && subject && !inWindow) {
         let fx: unknown = null; let fxErr: unknown = null;
         try { const res = await admin.rpc('fn_ai_subject_is_fixture', { p_subject: subject }); fx = res.data; fxErr = res.error; }
         catch (e) { fxErr = e; }
