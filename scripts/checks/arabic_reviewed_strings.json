@@ -1,24 +1,4 @@
 {
- "scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql": [
-  "014ff0cd3cb4",
-  "157e9ef57506",
-  "64d677e419b0",
-  "b4df49975269",
-  "dc9917268801"
- ],
- "scripts/sql/the_ladder_notices_quote_the_clause_33_the_supplier_signed_not_the_v12_figures.sql": [
-  "1412493dad3a",
-  "3039920eee7e",
-  "4ae3a0485360",
-  "5a5ba8e2fb00",
-  "5e01ea37101f",
-  "68d176d5ac02",
-  "9af216d0be0d",
-  "9b18f22750e4",
-  "b5a5f52a6894",
-  "e10ef6ab25d0",
-  "e68a1001aebd"
- ],
  "docs/marketing/month1_social_calendar.json": [
   "0085d90f2eff",
   "046f75f8399d",
@@ -509,6 +489,13 @@
   "415d60f32c58",
   "5b783224f4d2",
   "fc3b6977c5b6"
+ ],
+ "scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql": [
+  "014ff0cd3cb4",
+  "157e9ef57506",
+  "64d677e419b0",
+  "b4df49975269",
+  "dc9917268801"
  ],
  "scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_before_the_customer_sees_it.sql": [
   "12572be91239",
@@ -1337,6 +1324,19 @@
  ],
  "scripts/sql/the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql": [
   "d4da55db16ad"
+ ],
+ "scripts/sql/the_ladder_notices_quote_the_clause_33_the_supplier_signed_not_the_v12_figures.sql": [
+  "1412493dad3a",
+  "3039920eee7e",
+  "4ae3a0485360",
+  "5a5ba8e2fb00",
+  "5e01ea37101f",
+  "68d176d5ac02",
+  "9af216d0be0d",
+  "9b18f22750e4",
+  "b5a5f52a6894",
+  "e10ef6ab25d0",
+  "e68a1001aebd"
  ],
  "scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql": [
   "e3377772a818"
@@ -2495,9 +2495,6 @@
   "f7982e5b1c22",
   "fca452be09ee"
  ],
- "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
-  "ac6c63ab5f9f"
- ],
  "scripts/sql/the_registered_language_follows_every_message_until_the_reveal.sql": [
   "34d5d7e54ec8",
   "9d231fc92d97"
@@ -3032,6 +3029,7 @@
   "bb44969905d2",
   "bba16777842a",
   "bc6affc679ed",
+  "bc8c5d7ef013",
   "bd55a7eb1750",
   "bead649ee009",
   "bf41ed4abd8e",
@@ -3085,6 +3083,7 @@
   "ef4f41b972a1",
   "efa91f65ffc9",
   "f1624f88a2ac",
+  "f3635fc2a79c",
   "f39622327efe",
   "f4088118692b",
   "f41e8ce0f533",
@@ -3099,9 +3098,7 @@
   "fc644b0eb14a",
   "fe7e984490db",
   "fed9f6096feb",
-  "ff0cc7c9de41",
-  "bc8c5d7ef013",
-  "f3635fc2a79c"
+  "ff0cc7c9de41"
  ],
  "src/components/me/quoteExpiry.ts": [
   "124fb2c05c50",
@@ -4428,6 +4425,7 @@
   "5758b1978b29",
   "58f146635bcb",
   "58f550f419b9",
+  "5917e0b03ca2",
   "596377a4e142",
   "598ed715a1e2",
   "59c9a95379b9",
@@ -4548,6 +4546,7 @@
   "ac08f8e6af50",
   "acabbe5ca20d",
   "ad48b6a563eb",
+  "ae89643c1ccd",
   "ae9e74a3c4ed",
   "af2798650a9c",
   "af80f5ae1866",
@@ -5467,10 +5466,25 @@
   "9c9347b8a06d",
   "c607dba157a1"
  ],
+ "supabase/functions/_shared/customer_terms.ts": [
+  "bb6521bace53"
+ ],
  "supabase/functions/_shared/document_expiry.ts": [
+  "02d636db7e4d",
+  "13c74e96e847",
+  "241f89d952b5",
+  "3eb3f87a4eff",
+  "53b0f3a5760a",
+  "5e25f72d8739",
+  "5e2d7be9d702",
+  "8e4b315bec52",
+  "96afe0afc59c",
+  "9f3e073253f3",
   "a26139843907",
-  "cbb176539761",
-  "fbe144d11ac6"
+  "a55eed84e8ff",
+  "a851e616d0b9",
+  "b539face70fe",
+  "cbb176539761"
  ],
  "supabase/functions/_shared/drawing_format.ts": [
   "939055a3b61f"
@@ -5853,6 +5867,9 @@
  ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
+ ],
+ "supabase/functions/_shared/trade_resolve.ts": [
+  "a1150629315a"
  ],
  "supabase/functions/_shared/unsubscribe_mailbox.ts": [
   "fe749a06f354"
@@ -6378,8 +6395,5 @@
   "a5cba62f3cdc",
   "d7028cd29b51",
   "d9a9b884d813"
- ],
- "supabase/functions/_shared/customer_terms.ts": [
-  "bb6521bace53"
  ]
 }
