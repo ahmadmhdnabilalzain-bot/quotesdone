@@ -589,25 +589,41 @@ export function htmlText(html: string): string {
 // resilience_ping calls this each tick. fn_reason_held_due claims the oldest held rows (and does
 // nothing while the gate refuses); each is re-run through think() and handed to fn_reason_held_resolve,
 // which applies the effect the owning surface registered (see the SQL) and records the result.
-export type HeldRow = { id: number; seat: string; surface: string; request: ThinkRequest; subject: Record<string, unknown> | null };
-export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>): Promise<unknown> {
+export type HeldRow = { id: number; seat: string; surface: string; request: ThinkRequest; subject: Record<string, unknown> | null; created_at?: string };
+// THE BACKLOG CLEARS IN ABOUT AN HOUR (7 Oct 2026, ledger 1175 lifted the hold). Until then one tick claimed 3 rows, so
+// 206 held questions took ~17 hours at the 15-minute tick. Now a tick claims `limit` rows at a time, reasons each claim
+// concurrently, and claims again until the claim comes back short, MAX_ROWS are done, or the time budget is spent - so
+// the tick stays inside the edge function's wall clock and the spend per tick is bounded by MAX_ROWS answers.
+// Only status 'held' rows under 3 tries are claimed (fn_reason_held_due); expired/answered rows are never re-asked, and
+// the sweep before it closes what has expired. A STALE answer (question older than STALE_MS) is stored but never sent
+// to a person unreviewed: it goes to the owning seat as held_for_review instead of out on the channel.
+export const REPLAY_MAX_ROWS = 60;
+export const REPLAY_BUDGET_MS = 60_000;
+export const REPLAY_STALE_MS = 24 * 3600_000;
+export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>,
+  opts: { maxRows?: number; budgetMs?: number; staleMs?: number; now?: () => number } = {}): Promise<unknown> {
   const d = deps ?? defaultDeps(admin, 'resilience_ping');
+  const now = opts.now ?? Date.now;
+  const t0 = now();
+  const maxRows = opts.maxRows ?? limit;            // a caller that does not opt in keeps the old one-claim behaviour
+  const budget = opts.budgetMs ?? REPLAY_BUDGET_MS;
+  const staleMs = opts.staleMs ?? REPLAY_STALE_MS;
   // The sweep runs on every tick, hold or not (5 Oct 2026): until then it ran inside fn_reason_held_due, which this
   // function never reached while the hold was on, so fixture and stale rows piled up for the day the hold lifts.
   // A failed sweep never stops the replay: it is retried on the next tick, and fn_reason_held_due sweeps again.
   const swept = await d.rpc('fn_reason_held_sweep', {}).then((r) => r?.data ?? r?.error?.message ?? null, (e) => String(e));
   if (heldFromGate(await d.gate().catch(() => null))) return { replayed: 0, reason: 'model_hold', swept };
-  const { data, error } = await d.rpc('fn_reason_held_due', { p_limit: limit });
-  if (error) return { replayed: 0, error: error.message, swept };
   const out: unknown[] = [];
   const send = async (row: HeldRow, r: ThinkResult) => {
     let delivery: unknown;
-    try { delivery = await deliver!(row, r); } catch (err) { delivery = { delivered: false, via: 'error', detail: String((err as Error)?.message || err).slice(0, 200) }; }
+    const age = row.created_at ? now() - Date.parse(row.created_at) : 0;
+    if (age > staleMs) delivery = { delivered: false, via: 'held_for_review', detail: `stale: asked ${Math.round(age / 3600_000)} h ago; the seat reviews before anything reaches a person` };
+    else try { delivery = await deliver!(row, r); } catch (err) { delivery = { delivered: false, via: 'error', detail: String((err as Error)?.message || err).slice(0, 200) }; }
     // recording the delivery never aborts the rest of the batch
     await d.rpc('fn_reason_held_delivered', { p_id: row.id, p_delivery: delivery }).then(() => null, () => null);
     return delivery;
   };
-  for (const row of (data ?? []) as HeldRow[]) {
+  const one = async (row: HeldRow) => {
     // One row's failure never abandons the batch: a throw is resolved as still held, and counted.
     let r: ThinkResult;
     try { r = await think(d, { ...row.request, queueWhenHeld: false }); }
@@ -619,9 +635,17 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
     const fanned = ((res as { fanned?: HeldRow[] } | null)?.fanned ?? []);
     if (!e && r.status === 'answered' && deliver) {
       delivery = await send(row, r);
-      for (const f of fanned) await send(f, r);
+      for (const f of fanned) await send({ ...f, created_at: f.created_at ?? row.created_at }, r);
     }
-    out.push({ id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, fanned: fanned.length, delivery, error: e?.message });
+    return { id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, fanned: fanned.length, delivery, error: e?.message };
+  };
+  let error: string | undefined;
+  while (out.length < maxRows && now() - t0 < budget) {
+    const { data, error: ce } = await d.rpc('fn_reason_held_due', { p_limit: Math.min(limit, maxRows - out.length) });
+    if (ce) { error = ce.message; break; }
+    const rows = (data ?? []) as HeldRow[];
+    out.push(...await Promise.all(rows.map(one)));
+    if (rows.length < limit) break;               // the queue is drained (or the claim was short)
   }
-  return { replayed: out.length, rows: out, swept };
+  return error && !out.length ? { replayed: 0, error, swept } : { replayed: out.length, rows: out, swept, ...(error ? { error } : {}) };
 }

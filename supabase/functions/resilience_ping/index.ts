@@ -23,7 +23,7 @@ import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { defaultDeps, replayHeld } from '../_shared/think.ts';
+import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_MAX_ROWS } from '../_shared/think.ts';
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
@@ -1227,8 +1227,10 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   await step('review_independence', async () => rpc('fn_it_review_independence_watch'));
   // Questions a seat could not reason about under the hold are reasoned the moment it lifts
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
-  // returns nothing and no model is asked, so this step costs one gate read.
-  await step('reasoning_held', async () => replayHeld(admin, 3, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin))));
+  // returns nothing and no model is asked, so this step costs one gate read. Since 7 Oct (ledger 1175) a tick claims 10
+  // at a time, concurrently, up to REPLAY_MAX_ROWS within REPLAY_BUDGET_MS: the backlog clears in about an hour.
+  await step('reasoning_held', async () => replayHeld(admin, 10, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
+    { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS }));
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).

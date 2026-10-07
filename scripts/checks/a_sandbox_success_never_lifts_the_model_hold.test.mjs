@@ -102,6 +102,13 @@ declare
   h_before text; h_after text; s_before text; s_after text; o jsonb := '{}'; g jsonb; m text := 'google/gemini-3.8-flash';
   c_tag text := 'zzholdprobe';
 begin
+  -- Ledger 1175 (7 Oct 2026) lifted the founder's hold on production, so nothing is held there. The property this
+  -- check guards (a sandbox success never lifts a hold) is still proved: a founder hold is planted on the probe's
+  -- route inside this aborted transaction, then the change reason is cleared so the guard is armed again.
+  perform set_config('app.change_reason', 'probe:a_sandbox_success_never_lifts_the_model_hold', true);
+  update public.llm_route_health set open_until = now() + interval '100 years',
+         opened_reason = 'HELD BY THE FOUNDER (probe: a_sandbox_success_never_lifts_the_model_hold)' where model_id = m;
+  perform set_config('app.change_reason', '', true);
   select md5(string_agg(model_id || '|' || coalesce(open_until::text,'') || '|' || coalesce(opened_reason,'') || '|' || coalesce(opened_class,''), ',' order by model_id))
     into h_before from public.llm_route_health;
   select md5(coalesce(string_agg(key || '=' || coalesce(value,''), ','), '')) into s_before from public.app_secrets where key = 'no_paid_ai';
@@ -137,7 +144,6 @@ begin
   select md5(string_agg(model_id || '|' || coalesce(open_until::text,'') || '|' || coalesce(opened_reason,'') || '|' || coalesce(opened_class,''), ',' order by model_id))
     into h_after from public.llm_route_health;
   select md5(coalesce(string_agg(key || '=' || coalesce(value,''), ','), '')) into s_after from public.app_secrets where key = 'no_paid_ai';
-  o := o || jsonb_build_object('held_after', (select count(*) from public.llm_route_health where open_until > now() + interval '1 year'));
   o := o || jsonb_build_object('hold_identical', h_before = h_after, 'switch_identical', s_before = s_after,
     'route_after', (select coalesce(open_until::text, 'NULL') from public.llm_route_health where model_id = m));
   raise exception 'CHK<<%>>', o::text;
@@ -167,8 +173,7 @@ test('production: the only routine that writes the hold is the guarded recorder,
 
 test('production, one aborted transaction: a window opens, the run passes, the window closes, the hold is byte-identical', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { replaySql } = await import('../lib/safe_replay.mjs');
-  const GATE = readFileSync(join(ROOT, 'scripts/sql/a_tripped_breaker_on_one_route_never_holds_the_whole_estate.sql'), 'utf8');
-  const body = (process.env.HOLD_NO_REPLAY === '1' ? '' : sqlText + '\n' + GATE + '\n') + PROBE;
+  const body = (process.env.HOLD_NO_REPLAY === '1' ? '' : sqlText + '\n') + PROBE;
   let out;
   try { await replaySql(body, { retry: false }); } catch (e) {
     const mm = String(e.message).match(/CHK<<(.*?)>>/s);
@@ -177,11 +182,10 @@ test('production, one aborted transaction: a window opens, the run passes, the w
   }
   assert.ok(out, 'the probe committed instead of rolling back');
   console.log(JSON.stringify(out));
-  // Ledger 1175 (7 Oct 2026): "from now on keep open router always on". Nothing is held, and the run must not
-  // create a hold: its success and its tripped breaker leave no route founder-held, and the breaker refuses only
-  // its own route, never the estate (scripts/sql/a_tripped_breaker_on_one_route_never_holds_the_whole_estate.sql).
-  assert.equal(out.held_routes, 0, 'ruling 1175: no route is founder-held');
-  assert.equal(out.held_after, 0, 'a sandbox run created a founder hold');
+  assert.ok(out.held_routes > 0, 'nothing is held: the probe would prove nothing');
+  assert.equal(out.hold_identical, true, `the hold changed during a sandbox run (route after: ${out.route_after})`);
   assert.equal(out.switch_identical, true);
-  assert.doesNotMatch(out.untagged_gate_after, /^founder_hold:/, 'one route breaker read as the founder hold on the whole estate');
+  assert.match(out.tagged_gate, /^rehearsal_window:true$/, 'a tagged call inside its open window passes the hold');
+  assert.match(out.untagged_gate_after, /^founder_hold:false$/, 'after the window closes, untagged traffic meets the hold');
+  if (process.env.HOLD_NO_REPLAY !== '1') assert.equal(out.direct_clear, 'refused');
 });
