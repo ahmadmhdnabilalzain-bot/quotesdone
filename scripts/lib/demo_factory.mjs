@@ -637,13 +637,26 @@ async function completeMandatorySix(run, sups) {
  * opens the 14-day window in the same statement. This is the exception-window fixture. (Until 7 Sep the
  * refusal came from fn_supplier_licence_gate, dropped that day; the six gate is what refuses now.)
  * The real licence object it replaced is still named by its documents row, so teardown removes it.
+ * opts.unreadable_upload: instead the supplier uploads an unreadable licence through supplier_api process_docs
+ * (the real path) - the licence_unreadable case. The direct write stays only for the missing-object case, which
+ * the product refuses to produce (process_docs answers document_not_found).
  */
 export async function makeLicenceGatedSupplier(run, opts = {}) {
   // ZZ DEMO naming (demo-fixture convention). Without a name this supplier fell to makeSupplier's
   // "QD Demo <trade>" default: stage-2 S02 left "QD Demo Steel Fabrication" (sup13) on 7 Oct 2026.
   const name = opts.company_name || `ZZ DEMO licence-gated ${(TRADES[opts.trade || 'aluminium'] || {}).name || 'supplier'} ${run.tag}`;
   const s = await makeSupplier(run, { ...opts, company_name: name, capability: opts.capability !== false });
-  await mgmtFixture(REF,
+  if (opts.unreadable_upload) {
+    // THE PRODUCT PATH (stage-2 S02, 7 Oct 2026). The supplier uploads a new licence through supplier_api
+    // process_docs, exactly as the portal does: a valid image with no text layer, so code reads no name and
+    // process_docs writes licence_legal_name = null itself. Whatever re-gates him (z20 -> the sales engineer's
+    // verification) must do it from that write; a direct UPDATE here hid that nothing re-ran the review.
+    // Zero model calls while app_secrets.document_expiry_ai is unset (measured 7 Oct 2026: absent).
+    const PNG_1PX = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const r = await call('supplier_api', s.jwt, { action: 'process_docs',
+      license: { original_b64: PNG_1PX, mime: 'image/png', filename: 'zz_demo_unreadable_licence.png' } });
+    if (r.status !== 200) throw new Error(`process_docs licence upload failed: HTTP ${r.status} ${r.text}`);
+  } else await mgmtFixture(REF,
     `update public.leads
         set license_doc_path = ${q(opts.license_doc_path || `supplier-docs/demo/${run.tag}/licence.pdf`)},
             trade_license_no = ${q(opts.trade_license_no ?? null)},
