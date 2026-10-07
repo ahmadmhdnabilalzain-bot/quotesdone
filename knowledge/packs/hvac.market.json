@@ -68,7 +68,8 @@
       ],
       "why": "The sizes entry explains that AC units are sold by cooling capacity in tons (TR) and lists the common tonnages.",
       "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
-      "word_overlap_excluding_label": 0.167
+      "word_overlap_excluding_label": 0.167,
+      "same_trade_entries_judged": "7 Oct 2026, a fresh judge saw only this question and each of the hvac trade-pack entries (no scores, no ranks) and accepted an entry only if it alone fully answers: none fully answers; nothing added."
     }
   ],
   "verified": {

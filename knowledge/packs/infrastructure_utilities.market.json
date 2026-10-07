@@ -71,7 +71,8 @@
       ],
       "why": "The sizes entry states installed networks are quoted per linear metre with chambers per number; it does not name a per-connection rate, so it is the closest answer.",
       "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
-      "word_overlap_excluding_label": 0
+      "word_overlap_excluding_label": 0,
+      "same_trade_entries_judged": "7 Oct 2026, a fresh judge saw only this question and each of the infrastructure_utilities trade-pack entries (no scores, no ranks) and accepted an entry only if it alone fully answers: none fully answers; nothing added."
     }
   ],
   "verified": {

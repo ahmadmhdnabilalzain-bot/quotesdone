@@ -68,7 +68,8 @@
       ],
       "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Copy paper is priced per ream (500 sheets) or per box (5 reams), pallets for large buyers; pens per box of 12 or 50; files per piece or pack of 10; envelopes per box of 500\".",
       "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
-      "word_overlap_excluding_label": 0
+      "word_overlap_excluding_label": 0,
+      "same_trade_entries_judged": "7 Oct 2026, a fresh judge saw only this question and each of the stationery_office_supplies trade-pack entries (no scores, no ranks) and accepted an entry only if it alone fully answers: none fully answers; nothing added."
     }
   ],
   "verified": {

@@ -70,7 +70,8 @@
       "why": "Sizes entry says wires are sold in 100 m coils or 500 m drums, power cable per metre, with cross-sections listed. Products entry lists building-wire sizes 1.5-16 mm2 and the power and MV cable types available.",
       "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
       "expected_mode": "any",
-      "word_overlap_excluding_label": 0.167
+      "word_overlap_excluding_label": 0.167,
+      "same_trade_entries_judged": "7 Oct 2026, a fresh judge saw only this question and each of the cables_wires trade-pack entries (no scores, no ranks) and accepted an entry only if it alone fully answers: none fully answers; nothing added."
     }
   ],
   "verified": {

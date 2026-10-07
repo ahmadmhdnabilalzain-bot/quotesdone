@@ -60,7 +60,10 @@ export function gate(pack) {
 }
 
 /** Every refusal for one pack, named. `code` is the trade or seat the file is for. */
-export function validate(pack, kind, code) {
+// sibling: the entry ids of the SAME trade's other file (<trade>.json for <trade>.market.json). A market question may
+// name one only with expected_mode 'any' and a why (7 Oct 2026: judged by a fresh agent that saw only the question and
+// the entry text and accepted it only if it alone fully answers). Never another trade's entry.
+export function validate(pack, kind, code, sibling = new Set()) {
   const err = [];
   const owner = kind === 'trade' ? pack.trade : pack.seat;
   if (owner !== code) err.push(`${kind} is ${JSON.stringify(owner)}, file is for ${code}`);
@@ -83,7 +86,7 @@ export function validate(pack, kind, code) {
   }
   for (const q of pack.eval ?? []) {
     if (!q.q_en || !q.q_ar || !Array.isArray(q.expected_entry_ids) || !q.expected_entry_ids.length) err.push(`eval: malformed ${JSON.stringify(q).slice(0, 80)}`);
-    for (const x of q.expected_entry_ids ?? []) if (!ids.has(x)) err.push(`eval: expects ${x}, not in the pack`);
+    for (const x of q.expected_entry_ids ?? []) if (!ids.has(x) && !(sibling.has(x) && q.expected_mode === 'any')) err.push(`eval: expects ${x}, not in the pack`);
     // 'any' = each named entry answers the question; it must name 2+ entries and say why, per question.
     if (q.expected_mode !== undefined && (q.expected_mode !== 'any' || (q.expected_entry_ids ?? []).length < 2 || !String(q.why ?? '').trim()))
       err.push(`eval: expected_mode must be 'any' with 2+ entries and a why: ${String(q.q_en).slice(0, 60)}`);
@@ -115,7 +118,9 @@ export function readPacks(root) {
     let pack; try { pack = JSON.parse(text); } catch (e) { return { ...p, errors: ['not JSON: ' + e.message] }; }
     const version = 'sha256:' + sha(text).slice(0, 16);
     const pack_id = `verified:${p.kind}:${p.key}`;
-    return { ...p, pack, version, pack_id, errors: validate(pack, p.kind, p.code) };
+    let sib = new Set();
+    if (p.key.endsWith('.market')) { const t = join(root, 'packs', p.code + '.json'); if (existsSync(t)) try { sib = new Set(JSON.parse(readFileSync(t, 'utf8')).entries.map((e) => e.id)); } catch { /* the sibling's own validation reports it */ } }
+    return { ...p, pack, version, pack_id, errors: validate(pack, p.kind, p.code, sib) };
   });
   const seen = new Map();
   for (const p of packs) for (const e of p.pack?.entries ?? []) {

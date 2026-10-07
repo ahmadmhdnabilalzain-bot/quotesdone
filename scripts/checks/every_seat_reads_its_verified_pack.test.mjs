@@ -21,7 +21,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { readPacks, gate, rowsOf, upsertSql, vecLit, SEATS, SEAT_TABLE, TABLES } from '../kb/verified_packs.mjs';
+import { readPacks, gate, validate, rowsOf, upsertSql, vecLit, SEATS, SEAT_TABLE, TABLES } from '../kb/verified_packs.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -63,6 +63,16 @@ test('the eval scores the path production reads: ml, gte fused for English, none
   const gteReads = new Function(src.replace('export const gteReads', 'const gteReads') + '; return gteReads;')();
   assert.equal(gteReads('Which bubble wrap is sold locally?'), true);
   assert.equal(gteReads('ما مواد التبطين المتوفرة محلياً؟'), false);
+});
+
+test('a market question may also name an entry of its own trade pack, only as a justified any, never another trade', () => {
+  const e = (id) => ({ id, topic: 't', kind: 'concept', body_en: 'b', body_ar: 'ب', sources: ['https://example.invalid'], confidence: 'high', as_of: '2026-10-07' });
+  const pk = (q) => ({ trade: 'zz', verified: {}, entries: [e('zz:uae-market-sizes'), e('zz:uae-market-products')], eval: [q] });
+  const sib = new Set(['zz:price-drivers']);
+  const q = (ids, x = {}) => ({ q_en: 'q', q_ar: 'س', expected_entry_ids: ids, ...x });
+  assert.deepEqual(validate(pk(q(['zz:uae-market-sizes', 'zz:price-drivers'], { expected_mode: 'any', why: 'w' })), 'trade', 'zz', sib), []);
+  assert.ok(validate(pk(q(['zz:uae-market-sizes', 'zz:price-drivers'])), 'trade', 'zz', sib).length, 'a sibling id without any is refused');
+  assert.ok(validate(pk(q(['zz:uae-market-sizes', 'yy:price-drivers'], { expected_mode: 'any', why: 'w' })), 'trade', 'zz', sib).length, 'another trade is refused');
 });
 
 test('the loader and the eval run the shared module, not a copy', () => {

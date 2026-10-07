@@ -62,7 +62,8 @@
       ],
       "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Bitumen membranes come in 1 m x 10 m rolls (10 m2), 3-4 mm thick; PVC/TPO rolls 2 m wide; liquid membranes in 5-25 kg pails or 200 L drums with coverage per m2 at stated dry film thickness (e.g\".",
       "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
-      "word_overlap_excluding_label": 0
+      "word_overlap_excluding_label": 0,
+      "same_trade_entries_judged": "7 Oct 2026, a fresh judge saw only this question and each of the waterproofing trade-pack entries (no scores, no ranks) and accepted an entry only if it alone fully answers: proposed waterproofing:price-drivers: It sets out how UAE waterproofing and insulation jobs are costed: system type, thickness and layers, detailing density, access, surface preparation, insulation material and U-value-driven thickness, testing, protection, warranty type and material origin. The judge itself noted it does not state the pricing unit, so it does not fully answer; not added."
     }
   ],
   "verified": {
