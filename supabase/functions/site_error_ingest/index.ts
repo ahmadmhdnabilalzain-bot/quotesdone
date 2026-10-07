@@ -77,7 +77,7 @@ async function raiseNotConfigured(): Promise<void> {
         subject: 'site_error_ingest', owner_seat: 'it_engineer', demo: false,
         secret_name: 'SITE_ERROR_INGEST_SECRET',
         set_in: [
-          'Supabase edge function secret SITE_ERROR_INGEST_SECRET (project htdblwldjkcgjvmqkbeh)',
+          'Supabase edge function secret SITE_ERROR_INGEST_SECRET (this project)',
           'Vercel env SITE_ERROR_INGEST_SECRET on quotesdone-next (production and preview), the same value',
           'app_secrets.cred_site_error_ingest, the same value (resilience_ping reads it to know reporting is configured)',
         ],

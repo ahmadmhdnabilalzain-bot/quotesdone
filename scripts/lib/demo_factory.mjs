@@ -145,33 +145,8 @@ export const AUTHORITY = {
   security_systems: 'sira',
 };
 
-export const TRADES = {
-  aluminium: { name: 'Aluminium & Cladding', products: ['aluminium windows', 'aluminium doors', 'curtain walling', 'cladding', 'louvres', 'powder coated profiles', 'thermal break profiles', 'sliding systems'], brands: ['Technal', 'Schueco', 'Alumil'] },
-  av_it: { name: 'AV & IT Systems', products: ['structured cabling', 'av distribution', 'projectors', 'led video wall', 'conference room av', 'pa system', 'network switches', 'cctv cabling'], brands: ['Crestron', 'Extron', 'Bosch'] },
-  civil_works: { name: 'Civil Works', products: ['concrete works', 'blockwork', 'plastering', 'excavation', 'shoring', 'screed', 'rebar fixing', 'formwork'], brands: ['Doka', 'Peri'] },
-  cleaning: { name: 'Cleaning Services', products: ['deep cleaning', 'facade cleaning', 'post construction cleaning', 'disinfection', 'housekeeping', 'carpet cleaning', 'pest control', 'waste removal'], brands: ['Karcher', 'Diversey'] },
-  doors: { name: 'Doors & Windows', products: ['wooden doors', 'fire rated doors', 'automatic sliding doors', 'upvc windows', 'aluminium windows', 'glass doors', 'door hardware', 'roller shutters'], brands: ['Assa Abloy', 'Dorma', 'Hormann'] },
-  electrical: { name: 'Electrical', products: ['db panels', 'cable trays', 'lv panels', 'light fittings', 'wiring accessories', 'earthing system', 'diesel generator', 'busbar trunking'], brands: ['Schneider', 'ABB', 'Legrand'] },
-  elevators: { name: 'Elevators & Escalators', products: ['passenger lift', 'service lift', 'escalator', 'dumbwaiter', 'platform lift', 'lift modernisation', 'lift amc', 'travelator'], brands: ['Otis', 'Kone', 'Schindler'] },
-  fire_fighting: { name: 'Fire Fighting', products: ['fire alarm panel', 'sprinkler system', 'fm200 system', 'fire extinguisher', 'smoke detector', 'hose reel', 'fire pump', 'emergency lighting'], brands: ['Notifier', 'Tyco', 'Honeywell'] },
-  flooring: { name: 'Flooring', products: ['porcelain tiles', 'vinyl flooring', 'epoxy flooring', 'marble flooring', 'parquet', 'carpet tiles', 'raised access floor', 'skirting'], brands: ['Tarkett', 'RAK Ceramics', 'Interface'] },
-  glazing: { name: 'Glass & Glazing', products: ['double glazed units', 'tempered glass', 'laminated glass', 'glass partitions', 'shower screens', 'mirrors', 'frameless glass', 'spider glazing'], brands: ['Guardian', 'Saint-Gobain', 'Emirates Glass'] },
-  gypsum: { name: 'Gypsum & Ceilings', products: ['gypsum board partitions', 'false ceiling', 'acoustic ceiling', 'drywall', 'bulkheads', 'gypsum cornice', 'metal stud framing', 'access panels'], brands: ['Knauf', 'Gyproc', 'Armstrong'] },
-  hvac: { name: 'HVAC', products: ['fan coil unit', 'air handling unit', 'ducting', 'vrf system', 'split ac', 'chiller', 'ventilation fans', 'duct insulation'], brands: ['Daikin', 'Carrier', 'Trane'] },
-  interior_fitout: { name: 'Interior Fit-Out', products: ['fit out works', 'joinery fitout', 'partitions', 'ceiling works', 'painting works', 'flooring works', 'mep fitout', 'turnkey fitout'], brands: ['Vitra', 'Herman Miller'] },
-  joinery: { name: 'Joinery & Carpentry', products: ['kitchen cabinets', 'wardrobes', 'reception desk', 'wall panelling', 'joinery doors', 'veneer works', 'solid surface counters', 'custom furniture'], brands: ['Blum', 'Hettich', 'Egger'] },
-  landscaping: { name: 'Landscaping & Pools', products: ['soft landscaping', 'hard landscaping', 'irrigation system', 'swimming pool', 'water features', 'pergola', 'artificial grass', 'outdoor lighting'], brands: ['Hunter', 'Rain Bird', 'Pentair'] },
-  mep_general: { name: 'MEP (combined)', products: ['mep works', 'plumbing works', 'electrical works', 'hvac works', 'fire fighting works', 'drainage', 'bms', 'elv systems'], brands: ['Schneider', 'Siemens'] },
-  painting: { name: 'Painting & Finishes', products: ['interior painting', 'exterior painting', 'decorative finishes', 'epoxy paint', 'texture coating', 'waterproof paint', 'spray painting', 'wood coating'], brands: ['Jotun', 'Dulux', 'National Paints'] },
-  plumbing: { name: 'Plumbing & Sanitary', products: ['sanitary ware', 'ppr pipes', 'drainage pipes', 'water heater', 'booster pumps', 'water tank', 'upvc pipes', 'valves and fittings'], brands: ['Grohe', 'Geberit', 'Duravit'] },
-  scaffolding: { name: 'Scaffolding & Access', products: ['scaffolding rental', 'cuplock scaffolding', 'mobile tower', 'shoring props', 'safety nets', 'ladder access', 'formwork panels', 'edge protection'], brands: ['Layher', 'Doka'] },
-  security_systems: { name: 'Security Systems', products: ['cctv cameras', 'access control', 'video intercom', 'road barriers', 'turnstiles', 'intruder alarm', 'nvr recorder', 'sira compliant cctv'], brands: ['Hikvision', 'Axis', 'Dahua'] },
-  signage: { name: 'Signage & Printing', products: ['acrylic signage', 'led signage', '3d letters', 'vinyl printing', 'banners', 'wayfinding signage', 'digital printing', 'pylon sign'], brands: ['3M', 'Avery Dennison'] },
-  steel: { name: 'Steel Fabrication', products: ['structural steel', 'steel fabrication', 'handrails', 'steel staircase', 'gates', 'mezzanine floor', 'ms fabrication', 'ss railing'], brands: ['Emirates Steel', 'Conares'] },
-  upholstery: { name: 'Upholstery & Soft Furnishing', products: ['sofa upholstery', 'curtains', 'blinds', 'cushions', 'headboards', 'fabric supply', 'majlis seating', 'loose furniture'], brands: ['Kvadrat', 'Silent Gliss'] },
-  wallpaper: { name: 'Wall Finishes', products: ['wallpaper supply', 'wall panels', '3d wall panels', 'wall murals', 'fabric wall covering', 'acoustic wall panels', 'wall cladding', 'decorative film'], brands: ['Vescom', 'Omexco'] },
-  waterproofing: { name: 'Waterproofing & Insulation', products: ['bituminous membrane', 'liquid waterproofing', 'pu coating', 'basement tanking', 'roof waterproofing', 'wet area waterproofing', 'thermal insulation', 'vapour barrier'], brands: ['Sika', 'Fosroc', 'BASF'] },
-};
+import { TRADE_DEFS as TRADES } from './trade_defs.mjs';
+export { TRADES };
 export const TRADE_CODES = Object.keys(TRADES);
 
 export const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain'];
@@ -851,88 +826,8 @@ export const DEFAULT_INTAKE_ANSWERS = (t, emirate) => [
 ];
 
 /** The adaptive intake loop. Each turn answers whatever the server still says is missing. */
-// ---- the interview: a FACT SHEET per demo customer ------------------------------------------
-// Stage-2 run fe7ba9c4 (7 Oct 2026): after four scripted answers the harness sent "standard
-// specification, please assume typical values" for whatever was missing, so no interview reached
-// ready and every downstream scenario had no request to work on. A demo customer now carries a fact
-// sheet covering every slot of its trade's checklist, and each turn answers the question the intake
-// actually asked, chosen by the KEYS the response returns (next_question.key,
-// required_gate.missing_keys, and `missing` entries that are keys) -- never by reading the question.
-//
-// Keys are the category_specs field keys (read on production for the 11 stage-2 trades, 7 Oct 2026)
-// and the sales engineer's requirement keys (supabase/functions/_shared/intake_requirements.ts). A key
-// the sheet does not know is answered with the whole sheet: real facts, never filler.
-const SLOT_OF = {
-  element: 'element', item_type: 'element', floor_type: 'element', type: 'element', system_type: 'element',
-  dimensions_qty: 'lines', quantity_size: 'lines', 'quantity-unit': 'lines', fixture_count: 'lines', point_counts: 'lines',
-  stops: 'stops', capacity: 'capacity',
-  location: 'location', location_floor: 'location',
-  area_sqm: 'area', area: 'area', property_area: 'area', areas: 'purpose', application_area: 'purpose', safety_context: 'purpose',
-  scope: 'scope', scope_mode: 'scope', supply_install: 'scope',
-  new_mod: 'new_or_replace', new_or_replace: 'new_or_replace', issue: 'new_or_replace', removal_levelling: 'new_or_replace',
-  timeline: 'timeline', supply_phase: 'supply_phase', surface_prep: 'surface_prep', design: 'design',
-  system_finish: 'material', glazing: 'material', glazing_performance: 'material', finish: 'material', aluminium_system: 'material',
-  carcass_material: 'material', brand_tier: 'material', brand: 'material', color_finish: 'material', thickness_wear: 'material',
-};
-// The sales engineer's tap-to-answer questions accept an option VALUE (parseRequirementAnswer matches
-// x.v), so these answers are the same in either language.
-const REQ_VALUE = { installation: 'yes', warranty: 'yes_24', required_by: 'm1' };
-
-/**
- * Every slot a trade checklist can ask, for one demo customer: element and lines with sizes and
- * quantities, location and emirate, timeline, warranty, new or replacement, area, purpose per line,
- * material. `notSure` answers the material question "not sure" on purpose -- that path is proved too.
- */
-export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = false } = {}) {
-  const t = TRADES[trade] || { name: trade, products: [trade, trade, trade] };
-  const [p0, p1, p2] = t.products;
-  const v = lang === 'ar' ? {
-    element: `${t.name}: ${p0} و${p1} و${p2}`,
-    lines: `البند 1: ${p0} عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: ${p1} عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: ${p2} عدد 5، مقاس 3000 × 2400 مم لكل وحدة`,
-    purpose: 'البند 1 لغرف النوم، البند 2 للمدخل الرئيسي والشرفات، البند 3 لواجهة غرفة المعيشة',
-    location: `فيلا في ${emirate}، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة`,
-    area: 'حوالي 450 متر مربع مساحة مبنية، 6 غرف',
-    scope: 'توريد وتركيب، مع إزالة القطع القديمة والتخلص منها',
-    new_or_replace: 'استبدال قطع قائمة في فيلا مسكونة',
-    timeline: 'خلال شهر واحد',
-    warranty: 'ضمان سنتان على الأقل',
-    supply_phase: 'تغذية ثلاثية الطور 400 فولت',
-    surface_prep: 'جدران مدهونة سابقًا بحالة جيدة مع إصلاح شقوق بسيطة',
-    stops: '4 وقفات (أرضي + 3)', capacity: '8 أشخاص، 630 كغ', design: 'التصميم جاهز',
-    material: notSure ? 'لست متأكداً' : 'درجة تجارية قياسية من علامة معروفة',
-  } : {
-    element: `${t.name}: ${p0}, ${p1} and ${p2}`,
-    lines: `Line 1: ${p0} x 20, 1200 x 1500 mm each; Line 2: ${p1} x 10, 900 x 2100 mm each; Line 3: ${p2} x 5, 3000 x 2400 mm each`,
-    purpose: 'Line 1 is for the bedrooms, line 2 for the main entrance and balconies, line 3 for the living-room facade',
-    location: `Villa in ${emirate}, ground and first floor, clear road access, no crane needed`,
-    area: 'About 450 m2 built-up, 6 rooms',
-    scope: 'Supply and install, including removal and disposal of the existing items',
-    new_or_replace: 'Replacement of existing items in an occupied villa',
-    timeline: 'Within 1 month',
-    warranty: 'At least 2 years',
-    supply_phase: 'Three-phase 400 V supply',
-    surface_prep: 'Previously painted walls in fair condition, minor crack repair',
-    stops: '4 stops (G+3)', capacity: '8 persons, 630 kg', design: 'Design is ready',
-    material: notSure ? 'Not sure' : `Standard commercial grade, ${t.brands?.[0] || 'a known brand'}`,
-  };
-  const whole = () => Object.entries(v).map(([k, x]) => `${k}: ${x}`).join('. ') + '.';
-  return {
-    trade, lang, notSure, values: v,
-    opening: `${v.element}. ${v.lines}. ${v.location}.`,
-    /** The answer to the next turn, from the keys the last intake response returned. */
-    answerFor(r) {
-      const nq = r?.next_question || null;
-      const k0 = nq?.key ? String(nq.key) : null;
-      if (k0 && REQ_VALUE[k0]) return REQ_VALUE[k0];
-      if (k0 && k0.startsWith('material.')) return notSure ? v.material : (Array.isArray(nq.options) && nq.options[0]) || v.material;
-      const keys = [...new Set([k0, ...(r?.required_gate?.missing_keys || []),
-        ...(Array.isArray(r?.missing) ? r.missing : []).filter((m) => /^[a-z0-9_.-]+$/i.test(String(m)))]
-        .filter(Boolean).map(String))];
-      const parts = keys.filter((k) => v[SLOT_OF[k]]).map((k) => `${k}: ${v[SLOT_OF[k]]}`);
-      return parts.length ? parts.join('. ') + '.' : whole();
-    },
-  };
-}
+// The fact sheet lives in ./fact_sheet.mjs (importable without a management token, so its test runs in CI).
+export { factSheet } from './fact_sheet.mjs';
 
 /**
  * Drive inquiry_intake. `answers` are the scripted turns; after them a `sheet` (factSheet) answers

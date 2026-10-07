@@ -3,7 +3,7 @@
 // and no interview reached ready. This fails if the filler comes back or a key goes unanswered.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { factSheet } from './demo_factory.mjs';
+import { factSheet } from './fact_sheet.mjs';
 
 const KEYS = { // category_specs required keys of the 11 stage-2 trades, read on production 7 Oct 2026
   aluminium: ['element', 'dimensions_qty', 'scope', 'location'], joinery: ['item_type', 'quantity_size', 'finish', 'scope', 'location_floor'],
