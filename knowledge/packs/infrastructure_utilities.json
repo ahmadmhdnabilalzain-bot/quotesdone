@@ -4,9 +4,10 @@
     {
       "id": "infrastructure_utilities:spec-checklist",
       "topic": "Infrastructure and utilities works - what the buyer must state",
+      "topic_ar": "أعمال البنية التحتية والمرافق: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
       "body_en": "For infrastructure and utilities works (trade code infrastructure_utilities only), every quoted line must state: Utility type and network; Bill of quantities and drawings; Materials specification; Utility authority approvals and NOCs; Contractor registration category; Testing and commissioning; Reinstatement scope; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط أعمال البنية التحتية والمرافق (رمز النشاط infrastructure_utilities فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المرفق والشبكة؛ جدول الكميات والمخططات؛ مواصفة المواد؛ موافقات جهات المرافق وشهادات عدم الممانعة؛ فئة تسجيل المقاول؛ الاختبار والتشغيل؛ نطاق إعادة الحال؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_ar": "عند طلب عروض أسعار لأعمال البنية التحتية وشبكات المرافق (رمز النشاط infrastructure_utilities فقط)، يجب أن يذكر كل بند: نوع المرفق والشبكة؛ جدول الكميات والمخططات؛ مواصفات المواد؛ موافقات جهات المرافق وشهادات عدم الممانعة؛ فئة تصنيف المقاول؛ الفحص والتشغيل؛ نطاق إعادة الوضع إلى ما كان عليه؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
       "required_specs": [
         "Utility type and network",
         "Bill of quantities and drawings",
