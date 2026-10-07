@@ -355,10 +355,12 @@ export async function buildCorpus(outDir) {
     const p = await picture(licenceSvg(AUTHORITIES.sharjah_sedd, t, 'en'), 'jpg');
     save('lic_expired_scan', p.bytes, p.ext, p.mime, { kind: 'licence', authority: 'sharjah_sedd', format: 'jpg', registered_name: t.legal_name_en, truth: t, expected: 'licence_expired', text_layer: false }); }
   { const t = licenceTruth('dubai_ded_old', n++, { legal: 'ZZ DEMO Mirage Contracting LLC' });
-    save('lic_mismatch_text', licenceTextPdf(AUTHORITIES.dubai_ded_old, t), 'pdf', 'application/pdf', { kind: 'licence', authority: 'dubai_ded_old', format: 'text_pdf_colon', registered_name: 'ZZ DEMO Sahara Technical Services LLC', truth: t, expected: 'licence_name_mismatch', text_layer: true }); }
+    save('lic_mismatch_text', licenceTextPdf(AUTHORITIES.dubai_ded_old, t), 'pdf', 'application/pdf', { kind: 'licence', authority: 'dubai_ded_old', format: 'text_pdf_colon', registered_name: 'ZZ DEMO Sahara Technical Services LLC', truth: t, expected: 'name_autofilled', text_layer: true });
+    // the same licence uploaded by an ALREADY APPROVED supplier registered under another name (a licence swap)
+    docs.push({ id: 'lic_mismatch_text_approved_swap', file: 'lic_mismatch_text.pdf', mime: 'application/pdf', kind: 'licence', authority: 'dubai_ded_old', format: 'text_pdf_colon', registered_name: 'ZZ DEMO Oasis Swap Trading LLC', start_approved: true, truth: t, expected: 'name_autofilled', text_layer: true }); }
   { const t = licenceTruth('rakez', n++, { legal: 'ZZ DEMO Atlas Building Works FZ LLC' });
     const p = await picture(licenceSvg(AUTHORITIES.rakez, t, 'en'), 'png');
-    save('lic_mismatch_scan', p.bytes, p.ext, p.mime, { kind: 'licence', authority: 'rakez', format: 'png', registered_name: 'ZZ DEMO Zenith Maintenance FZ LLC', truth: t, expected: 'licence_name_mismatch', text_layer: false }); }
+    save('lic_mismatch_scan', p.bytes, p.ext, p.mime, { kind: 'licence', authority: 'rakez', format: 'png', registered_name: 'ZZ DEMO Zenith Maintenance FZ LLC', truth: t, expected: 'name_autofilled', text_layer: false }); }
   const blankTruth = { licence_no: null, legal_name_en: null, legal_name_ar: null, trade_name: null, activities: [], trades: [], authority: null, legal_form: null, issue_date: null, expiry_date: null, emirate: null };
   save('lic_blank_pdf', rawPdf([{ content: '' }]), 'pdf', 'application/pdf', { kind: 'licence', authority: 'none', format: 'blank_pdf', registered_name: 'ZZ DEMO Blank Page LLC', truth: blankTruth, expected: 'licence_unreadable', text_layer: false });
   save('lic_blank_photo', await sharp({ create: { width: 900, height: 1200, channels: 3, background: '#f4f4f0' } }).jpeg().toBuffer(), 'jpg', 'image/jpeg', { kind: 'licence', authority: 'none', format: 'blank_photo', registered_name: 'ZZ DEMO Blank Photo LLC', truth: blankTruth, expected: 'licence_unreadable', text_layer: false });

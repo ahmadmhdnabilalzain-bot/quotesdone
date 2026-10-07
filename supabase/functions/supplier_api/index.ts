@@ -615,6 +615,20 @@ const handle = async (req: Request): Promise<Response> => {
     }
 
     if (action === 'process_docs') {
+      // FOUNDER RULING 1177 (7 Oct 2026): "it should always read". A model read that fails (a 5xx, a truncated or
+      // unparseable answer) is asked once more before the document counts as unread; the gateway already falls back
+      // to the route's second model inside each call (model_policy.document_extraction).
+      const extract = async (body: Record<string, unknown>) => {
+        let jd: any = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            jd = await r.json().catch(() => null);
+            if (jd?.ok) return jd;
+          } catch (e) { jd = { error: String((e as Error)?.message || e) }; }
+        }
+        return jd;
+      };
       const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const secret = await secretVal('cred_fn_supplier_api');
@@ -712,7 +726,7 @@ const handle = async (req: Request): Promise<Response> => {
       const modelDoc = licenceModelPayload({ ...lic, images: licImgs }, licBytes?.bytes ? { bytes: licBytes.bytes, mime: licBytes.mime || 'application/pdf' } : null,
         licBytes?.bytes && licenceNeedsModel({ ...codeFields, legal_name_en: codeName, expiry_date: codeFields.expiry_date }) ? null : codeName);
       if (modelDoc && await flagOn('document_expiry_ai')) {
-        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc }) }); const jd = await r.json();
+        try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
           if (jd?.ok && jd.doc) { const d = jd.doc;
             if (d.license_number && !codeFields.licence_no) upd.trade_license_no = d.license_number;
             if (d.license_authority && !codeFields.authority) upd.license_authority = d.license_authority;
@@ -769,6 +783,9 @@ const handle = async (req: Request): Promise<Response> => {
         if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
         readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
+        // A PHOTO-ONLY PROFILE IS READ TOO (ruling 1177): code has no text to read in a picture, so the picture goes to
+        // the vision model (profile mode) like the page images the portal sends; its services are then read for trades.
+        if (/^image\//i.test(s.mime)) profImgs.push({ b64: btoa(Array.from(s.bytes, (c) => String.fromCharCode(c)).join('')), mime: s.mime });
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
       const cats = Array.isArray(body.catalogs) ? body.catalogs.slice(0, 5) : []; const catPaths: string[] = [];
@@ -799,7 +816,7 @@ const handle = async (req: Request): Promise<Response> => {
         upd.catalog_doc_paths = [...existingCat, ...catPaths.filter((p) => !existingCat.includes(p))].slice(0, 20);
       }
       if (profImgs.length) {
-        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', images: profImgs.slice(0, 10) }) }); const jd = await r.json();
+        try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', images: profImgs.slice(0, 10) });
           if (jd?.ok && jd.profile) { const pf = jd.profile;
             if (pf.summary) upd.capability_summary = pf.summary;
             // DOCUMENTS LEAD (spec, 29 Jul 2026). This line used to read
@@ -810,6 +827,9 @@ const handle = async (req: Request): Promise<Response> => {
             // The supplier's own words are not lost - they are preserved as the declared value
             // and cross-checked immediately below.
             if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); upd.services = xServices.join(', '); }
+            // The services the model read off a picture are read for trades exactly as a text profile's lines are.
+            const pq = readQueue.find((x) => x.kind === 'profile' && x.mime && /^image\//i.test(x.mime));
+            if (pq && xServices.length) pq.photo_text = xServices.join('\n');
             if (Array.isArray(pf.products) && pf.products.length && !sup.products) upd.products = pf.products.join(', ');
             if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) upd.service_emirates = pf.emirates;
             out.profile = { summary: pf.summary, sectors: pf.sectors, confidence: pf.confidence };

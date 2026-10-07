@@ -111,10 +111,13 @@ export function scoreRun({ docs, code, model, merged, probe, label, spend, gateS
     const critWrong = CRITICAL.filter((f) => judge(f, d.truth[f], merged[d.id][f]) === 'wrong');
     let verdict;
     if (exp === 'approve') verdict = reason == null ? (critWrong.length ? 'UNSAFE' : 'correct') : unreadFamily.has(reason) ? 'held' : 'wrong';
+    // ruling 1176: a read licence name that differs becomes the company name, and the gate approves
+    else if (exp === 'name_autofilled') verdict = reason == null && g.status === 'approved' && normName(g.company_name || '') === normName(d.truth.legal_name_en)
+      ? (critWrong.length ? 'UNSAFE' : 'correct') : approved ? 'wrong' : unreadFamily.has(reason) ? 'held' : 'wrong';
     else if (exp === 'hold_name') verdict = ['licence_unreadable', 'licence_name_mismatch'].includes(reason) ? 'correct' : approved ? 'UNSAFE' : 'wrong';
     // a licence that must be held and WAS held because a field could not be read is held safely (its own reason was unreadable)
     else verdict = reason === exp ? 'correct' : (approved || reason == null) ? 'UNSAFE' : unreadFamily.has(reason) ? 'held' : 'wrong';
-    gateRows.push({ id: d.id, authority: d.authority, format: d.format, expected: exp, status: g.status, reason, verdict, critical_wrong: critWrong });
+    gateRows.push({ id: d.id, authority: d.authority, format: d.format, expected: exp, status: g.status, reason, verdict, critical_wrong: critWrong, company_name: g.company_name });
     if (verdict !== 'correct') failures.push({ area: 'gate', id: d.id, verdict, expected: exp, got: `${g.status}${reason ? ' (' + reason + ')' : ''}`,
       cause: critWrong.length ? `approved on a wrong reading of ${critWrong.join(', ')}` : verdict === 'held' ? `held: ${reason} (${CRITICAL.filter((f) => judge(f, d.truth[f], merged[d.id][f]) === 'held').join(', ') || 'see fields'} not read)` : `expected ${exp}` });
   }
@@ -127,7 +130,7 @@ export function scoreRun({ docs, code, model, merged, probe, label, spend, gateS
   for (const [trade, leads] of Object.entries(probe.match)) {
     const got = new Set(leads.map((l) => leadDoc[l]));
     const want = new Set(docs.filter((d) => ['licence', 'profile', 'catalogue'].includes(d.kind) && (d.truth.trades || []).includes(trade)
-      && (d.kind !== 'licence' || d.expected === 'approve')).map((d) => d.id));
+      && (d.kind !== 'licence' || ['approve', 'name_autofilled'].includes(d.expected))).map((d) => d.id));
     const extra = [...got].filter((x) => !want.has(x)), missing = [...want].filter((x) => !got.has(x));
     const missHeld = missing.filter((x) => gateOf[x]?.reason || !merged[x].trades.length);
     const missWrong = missing.filter((x) => !missHeld.includes(x));
@@ -173,7 +176,7 @@ export function renderReport(r) {
   L.push('', '## Per format', '', '| format | correct | held | wrong | accuracy | critical accuracy |', '|---|---|---|---|---|---|');
   for (const [a, t] of Object.entries(r.perFormat)) L.push(`| ${a} | ${t.correct} | ${t.held} | ${t.wrong} | ${pct(t)} | ${pct(t.critical)} |`);
   L.push('', '## Gate decisions (fn_sales_engineer_verifies_supplier)', '', '| document | format | expected | got | verdict |', '|---|---|---|---|---|');
-  for (const g of r.gate.rows) L.push(`| ${g.id} | ${g.format} | ${g.expected} | ${g.status}${g.reason ? ' (' + g.reason + ')' : ''} | ${g.verdict} |`);
+  for (const g of r.gate.rows) L.push(`| ${g.id} | ${g.format} | ${g.expected} | ${g.status}${g.reason ? ' (' + g.reason + ')' : ''}${g.expected === 'name_autofilled' ? ' · name now "' + g.company_name + '"' : ''} | ${g.verdict} |`);
   L.push('', '## Trades proposed from the documents (exact trade or none)', '', '| document | kind | truth | proposed | wrong | missed |', '|---|---|---|---|---|---|');
   for (const t of r.trades) L.push(`| ${t.id} | ${t.kind} | ${t.truth.join(', ')} | ${t.proposed.join(', ') || (t.status === 'needs_ocr' ? '(no text layer)' : '–')} | ${t.wrong.join(', ')} | ${t.missing.join(', ')} |`);
   L.push('', '## Matching probe (fn_match_capability, one request per trade)', '', '| trade | should reach | reached | wrong supplier | missed (held) | missed: named, no exact trade |', '|---|---|---|---|---|---|');

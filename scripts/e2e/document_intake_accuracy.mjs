@@ -92,7 +92,8 @@ else if (MODEL) {
       ? (await read(`select value from public.app_secrets where key='cred_fn_supplier_api'`))[0]?.value
       : (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value;
     deno('document_intake_model.ts', [corpusDir, codePath, modelPath, MODEL],
-      { ...SB, QD_RUN_TAG: run.tag, QD_SUBJECT: JSON.stringify({ supplier_id: Number(subj.leadId), email: subj.email }), QD_SECRET: secret, QD_E2E_SECRET: await internalCred() });
+      { ...SB, QD_RUN_TAG: run.tag, QD_SUBJECT: JSON.stringify({ supplier_id: Number(subj.leadId), email: subj.email }), QD_SECRET: secret, QD_E2E_SECRET: await internalCred(),
+        QD_SECRET_EXTRACT: (await read(`select value from public.app_secrets where key='cred_fn_supplier_api'`))[0]?.value || '' });
     model = JSON.parse(readFileSync(modelPath, 'utf8'));
   } finally {
     await write(`update public.rehearsal_window set models_allowed = false where run_tag = ${q('qd_run:' + run.tag)}`, 'accuracy window: models off').catch(() => {});
@@ -122,9 +123,9 @@ supplierDocs.forEach((d, i) => {
   body += `
   ${lic ? `insert into storage.objects (bucket_id, name) values ('supplier-docs', ${q(lic)});` : ''}
   insert into storage.objects (bucket_id, name) values ('supplier-docs', ${q(prof)});
-  insert into public.leads (company_name, email, phone, owner_email_verified, owner_phone_verified, accepted_terms_at, signed_terms_path,
+  insert into public.leads (approval_status, verified, company_name, email, phone, owner_email_verified, owner_phone_verified, accepted_terms_at, signed_terms_path,
                             license_doc_path, company_profile_doc_path, licence_legal_name, license_expiry, trade_license_no, emirate, city, source, tags)
-  values (${q(name)}, ${q(`qd-${tag}-acc${i}@example.invalid`)}, ${q(demoMobile())}, true, true, now(), ${q(`terms/zzdemo-accuracy-${tag}/${d.id}.pdf`)},
+  values (${d.start_approved ? "'approved', true" : 'null, false'}, ${q(name)}, ${q(`qd-${tag}-acc${i}@example.invalid`)}, ${q(demoMobile())}, true, true, now(), ${q(`terms/zzdemo-accuracy-${tag}/${d.id}.pdf`)},
           ${lic ? q(lic) : 'null'}, ${q(prof)}, ${licName ? q(licName) : 'null'}, ${expiry ? q(expiry) + '::date' : 'null'}, ${no ? q('ZZACC-' + tag + '-' + no) : 'null'},
           'Dubai', 'Dubai', 'document_intake_accuracy', array['qd_demo', ${q('qd_run:' + tag)}]::text[])
   returning id into lid;
@@ -137,7 +138,8 @@ supplierDocs.forEach((d, i) => {
                   from public.taxonomy_trade t, unnest(t.authority_required) a where t.code = any(${arr(m.trades)})), '{}'::jsonb),
       '{}', '{"overall":0.9}', '{}', '{}', 90, 'confirmed', now(), now(), array['Dubai']);` : ''}
   res := res || jsonb_build_object('id', ${q(d.id)}, 'lead', lid, 'gate', v,
-           'status', (select approval_status from public.leads where id = lid), 'reason', (select licence_gate_reason from public.leads where id = lid));`;
+           'status', (select approval_status from public.leads where id = lid), 'reason', (select licence_gate_reason from public.leads where id = lid),
+           'company_name', (select company_name from public.leads where id = lid));`;
 });
 const allTrades = [...new Set(supplierDocs.flatMap((d) => d.truth.trades || []).concat(Object.values(merged).flatMap((m) => m.trades)))].sort();
 const sql = `do $probe$

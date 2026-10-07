@@ -84,4 +84,28 @@ for (const d of truth.docs) {
   out.push({ id: d.id, asked: true, status: res.status, ok: !!j?.ok, doc: j?.doc ?? null, model_trades, ...merge(c, j?.ok ? j.doc as Record<string, unknown> : null), error: j?.ok ? null : [j?.error, (j as { detail?: string })?.detail].filter(Boolean).join(': ').slice(0, 400) || JSON.stringify(j).slice(0, 200), ms: Date.now() - t0 });
   console.log(`${d.id}: ${res.status} ${j?.ok ? 'read' : 'not read: ' + String(j?.error ?? '').slice(0, 80)}`);
 }
+// A PHOTO-ONLY COMPANY PROFILE (ruling 1177): the picture goes to license_extract's profile mode, exactly as
+// supplier_api.process_docs now sends it, and the services it reads are read for trades through photo_text.
+for (const d of truth.docs) {
+  if (via === 'none' || d.kind !== 'profile' || !d.file || !/^image\//.test(d.mime)) continue;
+  if (Deno.env.get('QD_ONLY') && !Deno.env.get('QD_ONLY')!.split(',').includes(d.id)) continue;
+  const bytes = await Deno.readFile(`${dir}/${d.file}`);
+  let b64 = ''; for (let i = 0; i < bytes.length; i += 0x8000) b64 += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  let jd: any = null;
+  for (let attempt = 0; attempt < 2 && !jd?.ok; attempt++) {
+    const r = await fetch(`${URL_}/functions/v1/license_extract`, { method: 'POST', headers, signal: AbortSignal.timeout(150_000),
+      body: JSON.stringify({ __secret: Deno.env.get('QD_SECRET_EXTRACT'), subject: SUBJECT, mode: 'profile', images: [{ b64: btoa(b64), mime: d.mime }] }) });
+    jd = await r.json().catch(() => null);
+  }
+  let model_trades: string[] = [];
+  const services: string[] = jd?.ok ? (jd.profile?.services || []) : [];
+  if (services.length) {
+    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy');
+    deps.budget.left = 40;
+    const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'profile', bytes, mime: d.mime, photo_text: services.join('\n') }, deps);
+    model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();
+  }
+  out.push({ id: d.id, asked: true, ok: !!jd?.ok, profile: jd?.profile ?? null, error: jd?.ok ? null : String(jd?.error || 'no answer'), model_trades });
+  console.log(`${d.id}: ${jd?.ok ? 'read ' + services.length + ' services' : 'not read'}`);
+}
 await Deno.writeTextFile(outPath, JSON.stringify({ via, run_tag: TAG, read_at: new Date().toISOString(), docs: out }, null, 1));
