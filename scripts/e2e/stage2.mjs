@@ -286,12 +286,12 @@ async function realRun(pre) {
       }
     },
     S02: async () => {
-      const g = await makeLicenceGatedSupplier(run, { trade: 'steel', license_doc_path: fx.suppliers[0].row.license_doc_path });
+      const g = await makeLicenceGatedSupplier(run, { trade: 'steel', unreadable_upload: true });
       run.ids.leads.add(String(g.leadId));
       const r = await call('supplier_api', fx.suppliers[0].jwt, { action: 'process_docs' });
       const row = (await read(`select licence_legal_name, approval_status, licence_gate_reason from public.leads where id=${Number(fx.suppliers[0].leadId)}`))[0];
       A('process_docs reads the licence and records the legal name', r.status === 200 && !!row.licence_legal_name, `HTTP ${r.status} name=${row.licence_legal_name} gate=${row.licence_gate_reason}`);
-      A('a supplier whose licence is not readable is held at the gate, not approved', g.approval_status !== 'approved', `approval=${g.approval_status} reason=${g.licence_gate_reason}`);
+      A('an approved supplier who uploads an unreadable licence is held as licence_unreadable', g.approval_status === 'pending' && g.licence_gate_reason === 'licence_unreadable', `approval=${g.approval_status} reason=${g.licence_gate_reason}`);
     },
     S03: async () => {
       for (const c of CUSTOMERS) {
