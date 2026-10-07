@@ -1466,6 +1466,7 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   default_post_image
 --   deploy_secret
 --   dispatch_force_key
+--   document_expiry_ai
 --   dropbox_access_token
 --   dropbox_app_key
 --   dropbox_app_secret
