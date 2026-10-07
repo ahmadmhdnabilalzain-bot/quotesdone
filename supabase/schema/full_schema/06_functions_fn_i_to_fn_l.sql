@@ -4938,7 +4938,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_chase()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare f public.it_engineer_finding; o public.agent_actions; n_chased int := 0; n_opened int := 0; v_day int; v_id bigint;
-        v_seats jsonb := '{}'::jsonb;
+        v_seats jsonb := '{}'::jsonb; v_old bigint; n_superseded int := 0;
 begin
   for f in
     select * from public.it_engineer_finding
@@ -4965,10 +4965,27 @@ begin
         'chase', true, 'age_hours', round(extract(epoch from now() - f.started_at) / 3600),
         'original_handoff_id', o.id, 'finding_severity', public.fn_it_engineer_severity(f.blast, f.affected, f.started_at),
         'escalated_report_id', o.detail->'escalated_report_id'));
+    -- ONE LIVE CHASE: the originator closes every older chase of this occurrence (see header).
+    perform set_config('qd.handoff_closer', 'it_engineer', true);
+    for v_old in
+      select a.id from public.agent_actions a
+       where a.kind = 'handoff' and a.status = 'pending' and a.id <> v_id
+         and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+         and coalesce((a.detail->>'chase')::boolean, false)
+         and a.detail->>'issue_key' = f.issue_key
+         and (a.detail->>'occurrence_started_at')::timestamptz = f.started_at
+    loop
+      perform public.fn_seat_handoff_complete(v_old, jsonb_build_object(
+        'verified_by', 'it_engineer', 'verified_at', now(),
+        'verdict', 'superseded by chase day ' || v_day || ' (handoff ' || v_id || '); the finding is still open',
+        'superseded_by', v_id));
+      n_superseded := n_superseded + 1;
+    end loop;
+    perform set_config('qd.handoff_closer', '', true);
     n_chased := n_chased + 1;
     v_seats := jsonb_set(v_seats, array[o.agent], to_jsonb(coalesce((v_seats->>o.agent)::int, 0) + 1));
   end loop;
-  return jsonb_build_object('chased', n_chased, 'loops_opened', n_opened, 'by_seat', v_seats);
+  return jsonb_build_object('chased', n_chased, 'loops_opened', n_opened, 'superseded', n_superseded, 'by_seat', v_seats);
 end $function$
 
 
