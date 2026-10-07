@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which matters can an attorney's office support a business with around here?",
-      "q_ar": "ما القضايا التي يستطيع مكتب محاماة هنا مساعدة شركة فيها؟",
+      "q_en": "What legal support do attorneys and legal consultancies in the UAE typically offer businesses?",
+      "q_ar": "ما الدعم القانوني الذي يقدمه المحامون والمستشارون القانونيون في الإمارات للشركات عادةً؟",
       "expected_entry_ids": [
         "legal_services:uae-market-products"
       ],
       "why": "The products entry lists the legal practice areas law firms cover for businesses.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

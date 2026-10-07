@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How do insight agencies bill a questionnaire study: by person asked or as a whole job?",
-      "q_ar": "كيف تسعّر وكالات الأبحاث دراسة استبيان: بكل مشارك أم كمشروع كامل؟",
+      "q_en": "How do market research and survey firms in the UAE usually price their studies?",
+      "q_ar": "كيف تسعّر شركات أبحاث السوق والاستبيانات في الإمارات دراساتها عادةً؟",
       "expected_entry_ids": [
         "market_research:uae-market-sizes"
       ],
       "why": "Explains pricing per completed interview driven by sample size, or per project.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

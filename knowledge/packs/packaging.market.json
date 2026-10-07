@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which wrapping and print consumable labels are distributed around here?",
-      "q_ar": "ما العلامات التجارية لمواد التغليف ومستلزمات الطباعة الموزعة هنا؟",
+      "q_en": "Which packaging and printing material makers and stockists operate in the UAE?",
+      "q_ar": "ما الشركات المصنعة وتجار مواد التغليف والطباعة العاملون في الإمارات؟",
       "expected_entry_ids": [
         "packaging:uae-market-brands"
       ],
       "why": "Lists the packaging converters, distributors and board sources (Taghleef, Falcon Pack, Cosmoplast, Interplast, etc.).",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

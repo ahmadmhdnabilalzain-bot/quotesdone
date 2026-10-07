@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What's the smallest batch for premium presentation packaging, and how is it costed?",
-      "q_ar": "ما أصغر دفعة لعلب التقديم الفاخرة، وكيف تُسعَّر؟",
+      "q_en": "What batch volumes and finishes do luxury gift packaging suppliers in the UAE usually accept?",
+      "q_ar": "ما أحجام الدفعات والتشطيبات التي يقبلها موردو علب الهدايا والتغليف الفاخر في الإمارات عادةً؟",
       "expected_entry_ids": [
         "luxury_rigid_boxes:uae-market-sizes"
       ],
       "why": "Gives local MOQ of 300-1,000 and per-box pricing by size and specification with quantity breaks and one-off tooling costs.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

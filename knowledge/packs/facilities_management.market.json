@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Are upkeep deals for offices costed by space, by headcount, or a yearly fixed figure?",
-      "q_ar": "هل تُسعَّر عقود صيانة المكاتب بالمساحة أم بعدد الأشخاص أم بمبلغ سنوي ثابت؟",
+      "q_en": "How are facilities management agreements in the UAE usually structured and billed?",
+      "q_ar": "كيف تُهيكل اتفاقيات إدارة المرافق في الإمارات وتُحتسب تكلفتها عادةً؟",
       "expected_entry_ids": [
         "facilities_management:uae-market-sizes"
       ],
       "why": "The sizes entry states FM is quoted as an annual lump sum, per m2 of built-up area per year, or as a manpower schedule of rates (per technician), which covers the space-vs-headcount-vs-fixed question.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

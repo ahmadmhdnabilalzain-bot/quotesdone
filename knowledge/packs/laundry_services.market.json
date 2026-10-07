@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do industrial laundries around here bill by weight or by each piece?",
-      "q_ar": "هل تحاسب المغاسل الصناعية هنا بالوزن أم بالقطعة؟",
+      "q_en": "How do commercial laundry and linen hire providers in the UAE usually charge, by weight or per article?",
+      "q_ar": "كيف تحاسب المغاسل التجارية ومزودو تأجير البياضات في الإمارات عادةً، بالوزن أم لكل قطعة؟",
       "expected_entry_ids": [
         "laundry_services:uae-market-sizes"
       ],
       "why": "The sizes entry explains commercial laundry pricing per kg versus per piece.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

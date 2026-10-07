@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does a company organising functions here typically handle from start to finish?",
-      "q_ar": "ما الذي تتولاه عادةً شركة تنظيم الفعاليات هنا من البداية إلى النهاية؟",
+      "q_en": "What can event management firms in the UAE organise for company functions?",
+      "q_ar": "ما الذي يمكن لشركات تنظيم الفعاليات في الإمارات تنظيمه لمناسبات الشركات؟",
       "expected_entry_ids": [
         "event_management:uae-market-products"
       ],
       "why": "The products entry lists the services an events firm covers (conferences, launches, galas, MICE, team-building), i.e. its end-to-end scope.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does so-called light electrical contracting include locally: cameras, cabling for computers, speakers, that sort of thing?",
-      "q_ar": "ماذا تشمل أعمال التيار الخفيف محلياً: الكاميرات وتمديدات الحاسوب والسماعات وما شابه؟",
+      "q_en": "Which AV, IT and low current solutions do UAE installers commonly supply?",
+      "q_ar": "ما حلول الصوت والصورة وتقنية المعلومات والتيار الخفيف التي يوردها المركّبون في الإمارات عادةً؟",
       "expected_entry_ids": [
         "av_it:uae-market-products"
       ],
       "why": "Products entry lists low-current systems: structured cabling, CCTV, audio/PA, IPTV and similar.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.091,
-      "word_overlap_after_enrichment": 0.091
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

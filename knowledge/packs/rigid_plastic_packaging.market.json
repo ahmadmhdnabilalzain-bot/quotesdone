@@ -52,17 +52,16 @@
   ],
   "eval": [
     {
-      "q_en": "Which tub and bottle capacities in ml or litres are common, and what's the smallest order?",
-      "q_ar": "ما سعات العلب والقوارير الشائعة بالمليلتر أو اللتر، وما أصغر طلب؟",
+      "q_en": "What capacities and batch volumes do rigid plastic container suppliers in the UAE offer?",
+      "q_ar": "ما السعات وأحجام الدفعات التي يوفرها موردو العبوات البلاستيكية الصلبة في الإمارات؟",
       "expected_entry_ids": [
         "rigid_plastic_packaging:uae-market-sizes",
         "rigid_plastic_packaging:uae-market-products"
       ],
       "why": "The sizes entry gives the standard jerry can and pail capacities and the minimum order quantities; the products entry also lists the common capacities (jerry cans 1-30 L, pails 1-25 L, IBCs 1,000 L, drums 120-220 L).",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
       "expected_mode": "any",
-      "word_overlap_after_enrichment": 0.143
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

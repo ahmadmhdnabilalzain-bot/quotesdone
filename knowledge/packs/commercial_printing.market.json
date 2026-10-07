@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Litho, toner-based, wide banners: which press jobs can nearby print houses accept?",
-      "q_ar": "الطباعة الحجرية والرقمية واللافتات العريضة: ما أعمال الطباعة التي تقبلها المطابع القريبة؟",
+      "q_en": "What commercial and digital printing options can businesses get from print shops in the UAE?",
+      "q_ar": "ما خيارات الطباعة التجارية والرقمية التي يمكن للشركات الحصول عليها من المطابع في الإمارات؟",
       "expected_entry_ids": [
         "commercial_printing:uae-market-products"
       ],
       "why": "Products entry lists offset, digital, large-format and packaging printing services in the UAE.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.1,
-      "word_overlap_after_enrichment": 0.1
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

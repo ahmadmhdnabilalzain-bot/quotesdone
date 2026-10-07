@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What boundary barriers, vehicle shelters and stretched fabric roofs do contractors offer around here?",
-      "q_ar": "ما الأسوار ومظلات السيارات والأسقف القماشية المشدودة التي يقدمها المقاولون هنا؟",
+      "q_en": "What fencing, shade and tensile structure options do UAE suppliers typically offer?",
+      "q_ar": "ما خيارات الأسوار والمظلات والهياكل الشدية التي يقدمها الموردون في الإمارات عادةً؟",
       "expected_entry_ids": [
         "fencing_shades:uae-market-products"
       ],
       "why": "The products entry lists fencing types, car-park shades and tensile fabric structures offered.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which couch recovering and cushion jobs can local workshops do around town nowadays?",
-      "q_ar": "ما أعمال إعادة تنجيد الأرائك والوسائد التي تنفذها الورش المحلية في المدينة حالياً؟",
+      "q_en": "What upholstery and soft furnishing work can businesses get from workshops in the UAE?",
+      "q_ar": "ما أعمال التنجيد والمفروشات التي يمكن للشركات الحصول عليها من الورش في الإمارات؟",
       "expected_entry_ids": [
         "upholstery:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Upholstery supplies and services in the UAE include upholstery fabrics (velvet, chenille, jacquard, linen blends, performance fabrics, outdoor acrylics), genuine and faux leather (PU, PVC, microfibre), foam (PU foam in d...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

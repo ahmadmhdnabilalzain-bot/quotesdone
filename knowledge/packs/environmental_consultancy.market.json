@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which nature studies and green sign-offs can advisory firms prepare locally?",
-      "q_ar": "ما الدراسات البيئية والموافقات الخضراء التي تعدّها الشركات الاستشارية محلياً؟",
+      "q_en": "What kind of support do environmental consultancies in the UAE typically give businesses?",
+      "q_ar": "ما نوع الدعم الذي تقدمه مكاتب الاستشارات البيئية في الإمارات للشركات عادةً؟",
       "expected_entry_ids": [
         "environmental_consultancy:uae-market-products"
       ],
       "why": "Products entry lists EIAs, baseline surveys, monitoring and environmental permits.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

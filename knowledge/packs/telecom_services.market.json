@@ -55,17 +55,16 @@
   ],
   "eval": [
     {
-      "q_en": "Which network vendors and communications hardware makers have a presence locally?",
-      "q_ar": "ما موردو الشبكات وصانعو معدات الاتصالات الموجودون محلياً؟",
+      "q_en": "Which telecom equipment makers and carriers are present in the UAE market?",
+      "q_ar": "ما الشركات المصنعة لمعدات الاتصالات وشركات النقل الموجودة في السوق الإماراتي؟",
       "expected_entry_ids": [
         "telecom_services:uae-market-brands",
         "telecom_services:uae-market-products"
       ],
       "why": "The brands entry names the licensed operators and satellite providers present (e&, du, Virgin Mobile, Yahsat, Thuraya). The products entry states that only the licensed operators e& and du provide public telecom services in the UAE, naming the providers present locally.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
       "expected_mode": "any",
-      "word_overlap_after_enrichment": 0
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

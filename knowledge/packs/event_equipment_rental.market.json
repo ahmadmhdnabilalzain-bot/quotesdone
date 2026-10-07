@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "For stage and sound kit hire, is billing daily or per occasion?",
-      "q_ar": "لاستئجار معدات المسرح والصوت، هل تكون الفوترة يومية أم لكل مناسبة؟",
+      "q_en": "How is event equipment and AV rental usually charged in the UAE, per event or by rental duration?",
+      "q_ar": "كيف يُحتسب تأجير معدات الفعاليات والصوت والصورة في الإمارات عادةً، لكل فعالية أم حسب مدة التأجير؟",
       "expected_entry_ids": [
         "event_equipment_rental:uae-market-sizes"
       ],
       "why": "Sizes entry says rental is priced per item per day, per event, or per week/month.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

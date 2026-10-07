@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which well-site provisions and plant supplies can I obtain locally?",
-      "q_ar": "ما مؤن مواقع الآبار ولوازم المصانع التي يمكنني الحصول عليها محلياً؟",
+      "q_en": "What oilfield and industrial supplies can companies source from stockists in the UAE?",
+      "q_ar": "ما مستلزمات حقول النفط والصناعة التي يمكن للشركات الحصول عليها من التجار في الإمارات؟",
       "expected_entry_ids": [
         "oilfield:uae-market-products"
       ],
       "why": "The products entry lists the OCTG, line pipe, valves, wellhead and other oilfield supplies, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

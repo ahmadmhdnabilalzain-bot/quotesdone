@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What cabling and switchgear items do contractors here usually bring and fit?",
-      "q_ar": "ما مواد الكابلات ولوحات المفاتيح التي يحضرها المقاولون هنا ويركّبونها عادةً؟",
+      "q_en": "What electrical products and works can buyers source from suppliers and contractors in the UAE?",
+      "q_ar": "ما المنتجات والأعمال الكهربائية التي يمكن للمشترين الحصول عليها من الموردين والمقاولين في الإمارات؟",
       "expected_entry_ids": [
         "electrical:uae-market-products"
       ],
       "why": "Products entry lists LV boards, switchgear, cable containment and wiring that electrical contractors supply and install.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0.167
     }
   ],
   "verified": {

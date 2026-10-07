@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Timber or polymer skids: which kinds can I purchase or hire locally?",
-      "q_ar": "المنصات الخشبية أو البوليمرية: ما الأنواع التي يمكنني شراؤها أو استئجارها محلياً؟",
+      "q_en": "What kinds of timber and plastic pallets can businesses source in the UAE?",
+      "q_ar": "ما أنواع الطبليات الخشبية والبلاستيكية التي يمكن للشركات الحصول عليها في الإمارات؟",
       "expected_entry_ids": [
         "pallets_wood_plastic:uae-market-products"
       ],
       "why": "The products entry lists the wooden and plastic pallet types (EPAL, ISPM 15, HDPE/PP), which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

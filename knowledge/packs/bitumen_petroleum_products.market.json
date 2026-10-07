@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which asphalt binder specifications and diesel or petrol supplies can someone purchase nearby?",
-      "q_ar": "ما مواصفات مادة ربط الإسفلت وإمدادات الديزل أو البنزين التي يمكن شراؤها في المنطقة؟",
+      "q_en": "Which kinds of bitumen and refined petroleum products can buyers obtain locally in the UAE?",
+      "q_ar": "ما أنواع البيتومين والمنتجات البترولية المكررة التي يمكن للمشترين الحصول عليها محليًا في الإمارات؟",
       "expected_entry_ids": [
         "bitumen_petroleum_products:uae-market-products"
       ],
       "why": "Products entry lists paving bitumen grades and refined fuels sold in the UAE.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

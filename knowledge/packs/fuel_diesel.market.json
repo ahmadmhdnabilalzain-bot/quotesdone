@@ -64,17 +64,16 @@
   ],
   "eval": [
     {
-      "q_en": "How is gasoil brought to site and charged: by the volume pumped, or by the full bowser?",
-      "q_ar": "كيف يُوصَل الديزل إلى الموقع ويُحاسَب: بالكمية المضخوخة أم بالصهريج الكامل؟",
+      "q_en": "How is diesel and fuel supply usually trucked and billed for businesses in the UAE?",
+      "q_ar": "كيف يُنقل الديزل والوقود بالشاحنات للشركات في الإمارات وكيف تُحتسب فواتيره عادةً؟",
       "expected_entry_ids": [
         "fuel_diesel:uae-market-sizes",
         "fuel_diesel:uae-market-products"
       ],
       "why": "Sizes: bulk diesel is sold per litre or imperial gallon delivered by tanker (5,000-36,000 L). Products: bulk diesel is delivered to sites, generators and fleets by licensed distributors with tankers, answering how it is brought to site.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
       "expected_mode": "any",
-      "word_overlap_after_enrichment": 0.25
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

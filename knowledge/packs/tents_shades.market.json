@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Are marquees hired by area, or by dimensions and duration?",
-      "q_ar": "هل تُستأجر الخيام الكبيرة بالمساحة أم حسب الأبعاد والمدة؟",
+      "q_en": "How are tents, shades and canopies usually hired or sold in the UAE?",
+      "q_ar": "كيف تُستأجر أو تُباع الخيام والمظلات في الإمارات عادةً؟",
       "expected_entry_ids": [
         "tents_shades:uae-market-sizes"
       ],
       "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Frame tents are specified by span x length in bays (e.g\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

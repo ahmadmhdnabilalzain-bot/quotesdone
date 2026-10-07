@@ -67,15 +67,14 @@
   ],
   "eval": [
     {
-      "q_en": "Are exam mitts, needles and wound pads purchased by pack, case or bulk lot locally?",
-      "q_ar": "هل تُشترى القفازات والإبر والضمادات بالعلبة أم بالكرتونة أم بالجملة محلياً؟",
+      "q_en": "How are medical consumables usually packed and sold by suppliers in the UAE, per pack or per case?",
+      "q_ar": "كيف يعبئ الموردون في الإمارات المستهلكات الطبية ويبيعونها عادةً، بالعبوة أم بالصندوق؟",
       "expected_entry_ids": [
         "medical_consumables:uae-market-sizes"
       ],
       "why": "States consumables are priced per box or per carton with tender pricing per unit.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

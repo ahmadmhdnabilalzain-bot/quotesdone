@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What can technical consulting offices deliver locally: drawings, oversight onsite, sign-offs from officials?",
-      "q_ar": "ماذا تقدّم المكاتب الاستشارية الفنية محلياً: مخططات، وإشراف في الموقع، وموافقات الجهات الرسمية؟",
+      "q_en": "What work do engineering consultancy and architecture firms in the UAE typically take on?",
+      "q_ar": "ما الأعمال التي تتولاها مكاتب الاستشارات الهندسية والعمارة في الإمارات عادةً؟",
       "expected_entry_ids": [
         "engineering_consultancy:uae-market-products"
       ],
       "why": "Products entry lists design, supervision and authority approval services of engineering consultancies.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

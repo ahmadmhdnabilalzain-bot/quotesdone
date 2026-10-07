@@ -55,17 +55,16 @@
   ],
   "eval": [
     {
-      "q_en": "How are construction jobs typically priced locally: by floor area, or by bill of quantities?",
-      "q_ar": "كيف تُسعَّر أعمال البناء محلياً عادةً: بمساحة الأرضية أم بجدول الكميات؟",
+      "q_en": "How do general building contracting firms in the UAE usually price jobs, fixed total or remeasured?",
+      "q_ar": "كيف تسعّر شركات المقاولات العامة للمباني في الإمارات الأعمال عادةً، بمبلغ إجمالي ثابت أم بإعادة القياس؟",
       "expected_entry_ids": [
         "general_contracting:uae-market-sizes",
         "general_contracting:uae-market-products"
       ],
       "why": "Sizes: quotes are lump sum or re-measured against a BOQ, compared per m2 of built-up area. Products: buyers specify a BOQ or lump sum basis, answering the bill-of-quantities side of the question.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.143,
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
       "expected_mode": "any",
-      "word_overlap_after_enrichment": 0.143
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

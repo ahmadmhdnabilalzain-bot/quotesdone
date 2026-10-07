@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which wooden overseas consignment boxes do local firms build and fill for me around town?",
-      "q_ar": "ما صناديق التصدير الخشبية التي تصنعها الشركات المحلية وتعبئها لي في المدينة؟",
+      "q_en": "What export crating and industrial packing options do firms in the UAE provide?",
+      "q_ar": "ما خيارات صناديق التصدير والتغليف الصناعي التي توفرها الشركات في الإمارات؟",
       "expected_entry_ids": [
         "industrial_crating:uae-market-products"
       ],
       "why": "The products entry lists the wooden export crates and packing services firms provide.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

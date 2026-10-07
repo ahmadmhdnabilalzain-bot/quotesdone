@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Water-based, shiny, rough-look: which coatings for walls are used around here nowadays?",
-      "q_ar": "المائي واللامع والمحبب: ما الطلاءات المستخدمة للجدران هنا حالياً؟",
+      "q_en": "What painting and finishing products and services are available from UAE suppliers and contractors?",
+      "q_ar": "ما منتجات وخدمات الدهانات والتشطيبات المتوفرة لدى الموردين والمقاولين في الإمارات؟",
       "expected_entry_ids": [
         "painting:uae-market-products"
       ],
       "why": "The products entry lists the emulsions, gloss enamels and textured finishes sold, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.143,
-      "word_overlap_after_enrichment": 0.143
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0.167
     }
   ],
   "verified": {

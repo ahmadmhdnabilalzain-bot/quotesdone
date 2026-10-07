@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "How do housekeeping firms bill: hourly rate, by staff member sent, or a set amount each month?",
-      "q_ar": "كيف تحاسب شركات التنظيف: بسعر الساعة، أم بعدد العاملين المرسلين، أم بمبلغ ثابت كل شهر؟",
+      "q_en": "Do UAE cleaning and facility services firms usually charge by the hour or a fixed periodic rate?",
+      "q_ar": "هل تتقاضى شركات التنظيف وخدمات المرافق في الإمارات أجرها عادةً بالساعة أم بسعر دوري ثابت؟",
       "expected_entry_ids": [
         "cleaning:uae-market-sizes"
       ],
       "why": "Sizes entry says cleaning is quoted per cleaner per hour, per cleaner per month, or per m2.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.083,
-      "word_overlap_after_enrichment": 0.083
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0.167
     }
   ],
   "verified": {

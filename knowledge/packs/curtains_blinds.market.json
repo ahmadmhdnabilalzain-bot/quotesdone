@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Roll-up, light-blocking, electric: which window covering styles are favourites around here?",
-      "q_ar": "الستائر الملفوفة والمعتمة والكهربائية: ما أنماط تغطية النوافذ المفضلة هنا؟",
+      "q_en": "What styles of curtains and blinds do UAE suppliers offer for commercial premises?",
+      "q_ar": "ما أشكال الستائر التي يقدمها الموردون في الإمارات للمنشآت التجارية؟",
       "expected_entry_ids": [
         "curtains_blinds:uae-market-products"
       ],
       "why": "Products entry lists blackout curtains, roller, Roman, Venetian and motorised blinds sold in the UAE.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

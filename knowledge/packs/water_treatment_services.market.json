@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which facility running and reservoir washing jobs can firms around here provide?",
-      "q_ar": "ما أعمال تشغيل المنشآت وغسل الخزانات التي تقدمها الشركات هنا؟",
+      "q_en": "What water treatment plant O&M and tank cleaning support can businesses arrange in the UAE?",
+      "q_ar": "ما دعم تشغيل محطات المعالجة وصيانتها وتنظيف الخزانات الذي يمكن للشركات ترتيبه في الإمارات؟",
       "expected_entry_ids": [
         "water_treatment_services:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Water treatment plant O&M and tank cleaning in the UAE: operation and maintenance of sewage treatment plants (STPs), RO and desalination plants, and swimming-pool plant rooms; chemical treatment programmes for cooling to...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

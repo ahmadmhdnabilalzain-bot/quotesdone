@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which VAT and profits help do accountants around here provide for a company nowadays?",
-      "q_ar": "ما المساعدة في ضريبة القيمة المضافة وضريبة الأرباح التي يقدمها المحاسبون هنا للشركات حالياً؟",
+      "q_en": "What VAT and corporate tax advisory support do firms in the UAE typically offer?",
+      "q_ar": "ما دعم استشارات ضريبة القيمة المضافة وضريبة الشركات الذي تقدمه المكاتب في الإمارات عادةً؟",
       "expected_entry_ids": [
         "tax_advisory:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Tax advisory in the UAE covers corporate tax (Federal Decree-Law 47 of 2022: 9% on taxable income above AED 375,000, 0% for qualifying free zone persons on qualifying income, small business relief, tax groups, transfer p...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which tablet cards, little phials and dose jars do pill makers buy locally nowadays, honestly, for export?",
-      "q_ar": "ما بطاقات الأقراص والقوارير الصغيرة وعبوات الجرعات التي يشتريها مصنعو الحبوب محلياً حالياً للتصدير؟",
+      "q_en": "What pharmaceutical packaging options can pharma manufacturers source locally in the UAE?",
+      "q_ar": "ما خيارات التغليف الدوائي التي يمكن لمصنعي الأدوية الحصول عليها محليًا في الإمارات؟",
       "expected_entry_ids": [
         "pharma_packaging:uae-market-products"
       ],
       "why": "The products entry lists the blister films, glass vials and bottles for pharma packaging, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

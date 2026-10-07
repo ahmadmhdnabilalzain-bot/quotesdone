@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "For beakers and testing chemicals, which quantities do vendors around here quote?",
-      "q_ar": "للأدوات الزجاجية والكواشف المخبرية، ما الكميات التي يقدّم الموردون هنا أسعارها؟",
+      "q_en": "How are laboratory equipment and chemicals usually packaged and sold by UAE suppliers?",
+      "q_ar": "كيف يعبئ الموردون في الإمارات معدات ومواد المختبرات ويبيعونها عادةً؟",
       "expected_entry_ids": [
         "laboratory_equipment:uae-market-sizes"
       ],
       "why": "The sizes entry states chemicals are quoted per bottle (500 ml, 2.5 L) or pack and glassware per piece or pack.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

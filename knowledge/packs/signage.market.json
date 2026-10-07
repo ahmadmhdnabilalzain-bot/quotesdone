@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Storefront boards, raised lettering, banners: what can display makers around here produce?",
-      "q_ar": "اللوحات الأمامية للمحلات والحروف البارزة واللافتات: ماذا يستطيع صانعو اللوحات هنا إنتاجه؟",
+      "q_en": "What signage and printing items can businesses order from suppliers in the UAE?",
+      "q_ar": "ما مواد اللافتات والطباعة التي يمكن للشركات طلبها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "signage:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Signage sold in the UAE includes shop front signs (3D channel letters with LED illumination, acrylic face, stainless steel and aluminium letters, lightboxes), pylon and totem signs, building-top and facade signs for towe...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

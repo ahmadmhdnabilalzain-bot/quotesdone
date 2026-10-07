@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What does an interiors contractor include when kitting a workspace or store?",
-      "q_ar": "ماذا يشمل مقاول التجهيزات الداخلية عند تجهيز مكتب أو متجر؟",
+      "q_en": "What interior fit-out jobs do contractors in the UAE usually take on for retail and commercial spaces?",
+      "q_ar": "ما أعمال التشطيبات والتجهيزات الداخلية التي يتولاها المقاولون في الإمارات للمساحات التجارية ومحلات التجزئة عادةً؟",
       "expected_entry_ids": [
         "interior_fitout:uae-market-products"
       ],
       "why": "The products entry sets out fit-out scope for offices and retail (partitions, ceilings, flooring, joinery, MEP).",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0.167
     }
   ],
   "verified": {

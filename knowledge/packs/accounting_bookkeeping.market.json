@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "How do folks who keep company ledgers bill clients here: a flat fee each month, or by every entry they record?",
-      "q_ar": "كيف يحاسب من يمسكون دفاتر الشركات عملاءهم هنا: رسم ثابت كل شهر أم حسب كل قيد يسجّلونه؟",
+      "q_en": "How do UAE accounting and bookkeeping firms usually charge, a recurring retainer or per invoice processed?",
+      "q_ar": "كيف تتقاضى شركات المحاسبة ومسك الدفاتر في الإمارات أجرها عادةً، باشتراك دوري أم لكل فاتورة تتم معالجتها؟",
       "expected_entry_ids": [
         "accounting_bookkeeping:uae-market-sizes"
       ],
       "why": "Sizes entry says bookkeeping is priced per month by transaction volume (entries/month) or bank accounts.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.077,
-      "word_overlap_after_enrichment": 0.154
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

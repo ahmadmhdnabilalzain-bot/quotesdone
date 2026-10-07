@@ -61,17 +61,16 @@
   ],
   "eval": [
     {
-      "q_en": "For electric conductors, do people purchase by reel or bundle, and which thicknesses exist around town?",
-      "q_ar": "هل يشتري الناس الموصلات الكهربائية بالبكرة أم بالحزمة، وما السماكات المتوفرة في المدينة؟",
+      "q_en": "How are cables and wires typically quoted by UAE suppliers, per linear run or per full reel?",
+      "q_ar": "كيف يعرض الموردون في الإمارات أسعار الكابلات والأسلاك عادةً، حسب الطول المطلوب أم بالبكرة الكاملة؟",
       "expected_entry_ids": [
         "cables_wires:uae-market-sizes",
         "cables_wires:uae-market-products"
       ],
       "why": "Sizes entry says wires are sold in 100 m coils or 500 m drums, power cable per metre, with cross-sections listed. Products entry lists building-wire sizes 1.5-16 mm2 and the power and MV cable types available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
       "expected_mode": "any",
-      "word_overlap_after_enrichment": 0.125
+      "word_overlap_excluding_label": 0.167
     }
   ],
   "verified": {

@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which ground, cement and building sample checks can local facilities carry out?",
-      "q_ar": "ما فحوص عينات التربة والإسمنت والبناء التي تنفذها المرافق المحلية؟",
+      "q_en": "What geotechnical and materials testing do labs in the UAE commonly carry out?",
+      "q_ar": "ما فحوصات التربة والمواد التي تجريها المختبرات في الإمارات عادةً؟",
       "expected_entry_ids": [
         "testing_labs:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Testing laboratory services in the UAE include construction materials testing (concrete cubes/cylinders compressive strength to BS EN 12390, aggregates, cement, steel rebar tensile testing, soil testing and CBR, asphalt,...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

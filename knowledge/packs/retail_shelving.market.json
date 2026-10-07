@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which aisle stands and showcase fittings can shopkeepers buy nearby?",
-      "q_ar": "ما حوامل الممرات وتجهيزات العرض التي يمكن لأصحاب المتاجر شراؤها بالقرب منهم؟",
+      "q_en": "What retail shelving and display fixtures do suppliers in the UAE offer to shops?",
+      "q_ar": "ما الرفوف ووحدات العرض التي يقدمها الموردون في الإمارات لمتاجر التجزئة؟",
       "expected_entry_ids": [
         "retail_shelving:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Retail shelving sold in the UAE includes gondola shelving (single and double-sided, back panels perforated or plain, base decks and adjustable shelves), wall shelving, supermarket fruit and vegetable racks, pharmacy shel...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

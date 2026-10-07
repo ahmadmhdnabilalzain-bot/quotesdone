@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which wheels and vehicle accumulators can fleet buyers find locally?",
-      "q_ar": "ما الإطارات وبطاريات المركبات التي يجدها مشترو الأساطيل محلياً؟",
+      "q_en": "What tyres and vehicle batteries do suppliers in the UAE offer to fleet operators?",
+      "q_ar": "ما الإطارات والبطاريات التي يقدمها الموردون في الإمارات لمشغلي الأساطيل؟",
       "expected_entry_ids": [
         "tyres_batteries:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Tyres and batteries sold in the UAE include passenger car tyres (radial, sizes 13-22 inch, e.g\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

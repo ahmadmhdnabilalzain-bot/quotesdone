@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What gear do restaurant outfitters here usually carry when someone opens a new eatery?",
-      "q_ar": "ما المعدّات التي يوفّرها عادةً مجهّزو المطاعم هنا عند افتتاح مطعم جديد؟",
+      "q_en": "What commercial kitchen equipment do suppliers in the UAE typically offer to restaurants and hotels?",
+      "q_ar": "ما معدات المطابخ التجارية التي يقدمها الموردون في الإمارات عادةً للمطاعم والفنادق؟",
       "expected_entry_ids": [
         "commercial_kitchen:uae-market-products"
       ],
       "why": "Products entry lists ranges, ovens, fryers, refrigeration and dishwashers sold for restaurants.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

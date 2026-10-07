@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Are room coolers costed by how much they chill, and which capacities are popular around here nowadays?",
-      "q_ar": "هل تُسعَّر مكيفات الغرف حسب قدرة التبريد، وما السعات الرائجة هنا حالياً؟",
+      "q_en": "How do UAE suppliers usually match cooling load and cost for HVAC and air conditioning equipment?",
+      "q_ar": "كيف يحدد الموردون في الإمارات حمل التبريد والتكلفة لمعدات التكييف والتهوية عادةً؟",
       "expected_entry_ids": [
         "hvac:uae-market-sizes"
       ],
       "why": "The sizes entry explains that AC units are sold by cooling capacity in tons (TR) and lists the common tonnages.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0.167
     }
   ],
   "verified": {

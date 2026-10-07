@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which dividing walls and dropped-ceiling setups do interior firms use here?",
-      "q_ar": "ما الجدران الفاصلة وأنظمة الأسقف المنخفضة التي تستخدمها شركات التصميم الداخلي هنا؟",
+      "q_en": "What gypsum, partition and ceiling materials are commonly available in the UAE market?",
+      "q_ar": "ما مواد الجبس والقواطع والأسقف المتوفرة عادةً في السوق الإماراتي؟",
       "expected_entry_ids": [
         "gypsum:uae-market-products"
       ],
       "why": "The products entry lists gypsum partition and suspended-ceiling systems used by interior contractors.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.143,
-      "word_overlap_after_enrichment": 0.143
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

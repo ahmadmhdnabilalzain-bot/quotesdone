@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Are reinforcing bars and structural beams bought by weight or by bar length?",
-      "q_ar": "هل يُشترى حديد التسليح والكمرات الإنشائية بالوزن أم بطول القضيب؟",
+      "q_en": "How do steel stockists in the UAE usually trade, by weight or by bar count?",
+      "q_ar": "كيف يبيع تجار الحديد والصلب في الإمارات عادةً، بالوزن أم بعدد القضبان؟",
       "expected_entry_ids": [
         "steel_stock:uae-market-sizes"
       ],
       "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Priced per tonne (sections, plates, coil, rebar) or per piece/length (pipes and hollow sections in 6 m or 12 m); sheets 1219/1250/1500 x 2438/2500/3000/6000 mm; coil by width and thickness\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.143,
-      "word_overlap_after_enrichment": 0.143
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which hanging cradles for tall towers and abseiling jobs can firms in town realistically handle nowadays?",
-      "q_ar": "ما المنصات المعلّقة للأبراج العالية وأعمال الحبال التي تستطيع الشركات في المدينة تنفيذها حالياً؟",
+      "q_en": "What façade access, BMU and rope access options can businesses arrange with firms in the UAE?",
+      "q_ar": "ما خيارات الوصول إلى الواجهات ووحدات صيانة المباني والعمل بالحبال التي يمكن للشركات ترتيبها في الإمارات؟",
       "expected_entry_ids": [
         "facade_access_maintenance:uae-market-products"
       ],
       "why": "The products entry lists the access equipment and methods (building maintenance units/cradles, rope access) firms provide.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

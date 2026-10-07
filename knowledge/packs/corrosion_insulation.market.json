@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is lagging and anti-rust treatment on piping priced by length, by area, or as one lot?",
-      "q_ar": "هل يُسعَّر تغليف الأنابيب ومعالجتها ضد الصدأ بالطول أم بالمساحة أم كمقطوعية واحدة؟",
+      "q_en": "How is industrial insulation and corrosion protection work usually costed in the UAE, by area or lump sum?",
+      "q_ar": "كيف تُحتسب تكلفة أعمال العزل الصناعي والحماية من التآكل في الإمارات عادةً، بالمساحة أم بمبلغ مقطوع؟",
       "expected_entry_ids": [
         "corrosion_insulation:uae-market-sizes"
       ],
       "why": "Sizes entry says insulation is quoted per linear metre of pipe, per m2 for equipment, coatings per m2.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0.1
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

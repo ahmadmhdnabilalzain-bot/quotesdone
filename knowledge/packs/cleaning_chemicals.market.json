@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which hygiene goods for scrubbing and sterilising can a facility realistically buy nearby?",
-      "q_ar": "ما سلع النظافة للفرك والتعقيم التي يمكن لمنشأة شراؤها بالقرب منها؟",
+      "q_en": "What cleaning chemicals and janitorial supplies can businesses buy from UAE suppliers?",
+      "q_ar": "ما مواد التنظيف ومستلزمات النظافة التي يمكن للشركات شراؤها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "cleaning_chemicals:uae-market-products"
       ],
       "why": "Products entry lists floor cleaners, degreasers, disinfectants and janitorial supplies sold in the UAE.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

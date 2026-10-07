@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which cement additives, joint fillers and factory compounds are easy to source in town these days?",
-      "q_ar": "ما إضافات الإسمنت ومواد حشو الفواصل والمركّبات الصناعية التي يسهل الحصول عليها في المدينة هذه الأيام؟",
+      "q_en": "What industrial and construction chemicals are readily available from suppliers in the UAE?",
+      "q_ar": "ما الكيماويات الصناعية والإنشائية المتوفرة بسهولة لدى الموردين في الإمارات؟",
       "expected_entry_ids": [
         "chemicals:uae-market-products"
       ],
       "why": "Products entry lists concrete admixtures, grouts, sealants and industrial chemicals sold in the UAE.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

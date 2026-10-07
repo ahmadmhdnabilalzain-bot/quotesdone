@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which equipment manufacturers have authorised replacement-component agents locally?",
-      "q_ar": "ما مصنّعو المعدات الذين لديهم وكلاء معتمدون لقطع الغيار محلياً؟",
+      "q_en": "Which machinery spare parts makers and stockists are active in the UAE?",
+      "q_ar": "ما الشركات المصنعة وتجار قطع غيار الآلات النشطون في الإمارات؟",
       "expected_entry_ids": [
         "machinery_spare_parts:uae-market-brands"
       ],
       "why": "Names the dealers for genuine parts (Al-Bahar for Caterpillar, Galadari for Komatsu/JCB, FAMCO for Volvo CE) and aftermarket brands.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

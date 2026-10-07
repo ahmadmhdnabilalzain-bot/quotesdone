@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which lifting vehicles and stockroom kit can shoppers find around town: gas, battery, or compact ones?",
-      "q_ar": "ما مركبات الرفع ومعدات المستودعات التي يجدها المشترون في المدينة: بالغاز أم بالبطارية أم المدمجة؟",
+      "q_en": "What forklifts and material handling machines can businesses buy or rent in the UAE?",
+      "q_ar": "ما الرافعات الشوكية وآلات المناولة التي يمكن للشركات شراؤها أو استئجارها في الإمارات؟",
       "expected_entry_ids": [
         "material_handling:uae-market-products"
       ],
       "why": "The products entry lists the forklift types (diesel, LPG, electric), reach trucks, stackers and warehouse handling kit, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.1,
-      "word_overlap_after_enrichment": 0.1
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

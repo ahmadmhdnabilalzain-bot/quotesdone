@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which serviettes, towels and throwaway tableware can I purchase in volume around town nowadays?",
-      "q_ar": "ما المناديل والمناشف وأدوات المائدة ذات الاستخدام الواحد التي يمكنني شراؤها بكميات في المدينة حالياً؟",
+      "q_en": "What tissue and disposable items can businesses source from suppliers in the UAE?",
+      "q_ar": "ما المناديل الورقية والمستلزمات أحادية الاستخدام التي يمكن للشركات الحصول عليها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "tissue_disposables:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Tissue and disposables sold in the UAE include facial tissues (2-ply, 150-200 sheets), toilet rolls (2-3 ply, standard and jumbo/maxi rolls), kitchen towels, hand towels (interfold/M-fold/Z-fold, centre-pull and autocut ...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

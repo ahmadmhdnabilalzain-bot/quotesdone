@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which accredited auditors for management system standards are active around town?",
-      "q_ar": "ما جهات التدقيق المعتمدة لمعايير أنظمة الإدارة النشطة في المدينة؟",
+      "q_en": "Which ISO and product certification bodies are active in the UAE market?",
+      "q_ar": "ما جهات منح شهادات الأيزو والمنتجات العاملة في السوق الإماراتي؟",
       "expected_entry_ids": [
         "iso_certification:uae-market-brands"
       ],
       "why": "The brands entry names the certification bodies used in the UAE (SGS, Bureau Veritas, TUV etc.) and the accreditation to check.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

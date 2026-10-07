@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Sluice, ball, wafer types: which flow stoppers and their drivers do dealers around town keep?",
-      "q_ar": "البوابية والكروية والرقائقية: ما صمامات التحكم في التدفق ومشغّلاتها التي يحتفظ بها الوكلاء في المدينة؟",
+      "q_en": "What valves and actuators are commonly stocked by industrial suppliers in the UAE?",
+      "q_ar": "ما الصمامات والمشغلات المتوفرة عادةً لدى الموردين الصناعيين في الإمارات؟",
       "expected_entry_ids": [
         "valves_actuators:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Valves and actuators in the UAE: gate, globe and check valves (API 600/602/594, BS 1414/1868/1873), ball valves (floating and trunnion, API 6D/ISO 17292), butterfly valves (concentric rubber-lined for water and HVAC to E...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

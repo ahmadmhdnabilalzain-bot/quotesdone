@@ -52,15 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "Screws, wall plugs, blind nails: which hardware items are kept in stock around town?",
-      "q_ar": "البراغي ومثبتات الجدران والمسامير العمياء: ما قطع العُدد المتوفرة في المخزون بالمدينة؟",
+      "q_en": "What fasteners and fixings are commonly stocked by suppliers in the UAE?",
+      "q_ar": "ما البراغي والمثبتات المتوفرة عادةً في مخزون الموردين في الإمارات؟",
       "expected_entry_ids": [
         "fasteners_fixings:uae-market-products"
       ],
       "why": "The products entry lists the screws, anchors/plugs, rivets and other fixings stocked in the market.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

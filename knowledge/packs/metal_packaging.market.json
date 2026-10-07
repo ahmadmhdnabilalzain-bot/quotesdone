@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which barrels, buckets and steel tubs are produced or on offer nearby?",
-      "q_ar": "ما البراميل والسطول والأوعية الفولاذية التي تُصنَّع أو تُعرض بالقرب منا؟",
+      "q_en": "What metal cans, drums and cylinders can manufacturers source from suppliers in the UAE?",
+      "q_ar": "ما العلب والبراميل المعدنية التي يمكن للمصنّعين الحصول عليها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "metal_packaging:uae-market-products"
       ],
       "why": "The products entry lists the drums, pails and cans sold locally, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

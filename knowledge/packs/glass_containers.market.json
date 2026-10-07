@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which glass packaging capacities are common, and what's the smallest order makers accept?",
-      "q_ar": "ما السعات الشائعة لعبوات الزجاج، وما أصغر طلب يقبله المصنّعون؟",
+      "q_en": "What capacities and order quantities do glass bottle and jar suppliers in the UAE offer?",
+      "q_ar": "ما السعات والكميات التي يوفرها موردو القوارير والمرطبانات الزجاجية في الإمارات؟",
       "expected_entry_ids": [
         "glass_containers:uae-market-sizes"
       ],
       "why": "The sizes entry gives the common bottle capacities in ml and the MOQ for stock and custom designs.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

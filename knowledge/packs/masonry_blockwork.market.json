@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which bricklaying and rendering jobs do builders around here usually take on for a villa?",
-      "q_ar": "ما أعمال البناء بالطوب واللياسة التي يتولاها البنّاؤون هنا عادةً لفيلا؟",
+      "q_en": "What masonry, blockwork and plastering services do contractors in the UAE provide?",
+      "q_ar": "ما خدمات البناء بالطابوق واللياسة التي يقدمها المقاولون في الإمارات؟",
       "expected_entry_ids": [
         "masonry_blockwork:uae-market-products"
       ],
       "why": "The products entry lists the block types and plastering work used in villas and buildings, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

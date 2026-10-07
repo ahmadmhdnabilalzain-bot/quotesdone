@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which blaze protection kit is certified and on offer around town for buildings?",
-      "q_ar": "ما معدات الحماية من الحريق المعتمدة والمعروضة في المدينة للمباني؟",
+      "q_en": "What fire fighting and life safety solutions do UAE installers and suppliers provide?",
+      "q_ar": "ما حلول مكافحة الحريق والسلامة التي يقدمها المركّبون والموردون في الإمارات؟",
       "expected_entry_ids": [
         "fire_fighting:uae-market-products"
       ],
       "why": "The products entry lists the fire protection equipment and systems sold, with civil-defence approval requirements.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

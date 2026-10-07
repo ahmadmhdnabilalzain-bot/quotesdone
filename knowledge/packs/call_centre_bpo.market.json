@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "For outsourced phone support, do they bill by person working, by minutes, or by each contact answered?",
-      "q_ar": "لدعم الهاتف المُسنَد خارجياً، هل تكون الفوترة حسب الموظف العامل أم بالدقائق أم بكل اتصال يُجاب عليه؟",
+      "q_en": "How do call centre and BPO providers in the UAE usually bill, per staff member or per call handled?",
+      "q_ar": "كيف تحاسب مراكز الاتصال وشركات تعهيد العمليات في الإمارات عملاءها عادةً، لكل موظف أم لكل مكالمة يتم التعامل معها؟",
       "expected_entry_ids": [
         "call_centre_bpo:uae-market-sizes"
       ],
       "why": "Sizes entry says call centres price per FTE per month, per hour, per minute or per transaction/outcome.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.1,
-      "word_overlap_after_enrichment": 0.1
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

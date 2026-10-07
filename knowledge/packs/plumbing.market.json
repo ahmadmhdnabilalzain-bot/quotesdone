@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which bathroom and kitchen taps, loos and connectors are easy to find locally nowadays?",
-      "q_ar": "ما الحنفيات والمراحيض والوصلات للحمامات والمطابخ التي يسهل إيجادها محلياً حالياً؟",
+      "q_en": "What plumbing and sanitary supplies are commonly available from stockists in the UAE?",
+      "q_ar": "ما مستلزمات السباكة والأدوات الصحية المتوفرة عادةً لدى التجار في الإمارات؟",
       "expected_entry_ids": [
         "plumbing:uae-market-products"
       ],
       "why": "The products entry lists the sanitary ware, water supply pipes and fittings, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.143,
-      "word_overlap_after_enrichment": 0.143
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

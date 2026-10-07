@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What can property agents do for me: renting out, selling, looking after my flat?",
-      "q_ar": "ماذا يمكن للوسطاء العقاريين أن يقدموا لي: التأجير، أو البيع، أو إدارة شقتي؟",
+      "q_en": "What real estate brokerage and property management help is offered to businesses in the UAE?",
+      "q_ar": "ما المساعدة في الوساطة العقارية وإدارة العقارات المقدمة للشركات في الإمارات؟",
       "expected_entry_ids": [
         "real_estate_services:uae-market-products"
       ],
       "why": "The products entry lists the brokerage, leasing, property management and valuation services, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

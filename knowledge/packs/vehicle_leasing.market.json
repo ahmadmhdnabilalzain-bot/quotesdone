@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which hire and lengthy contract options exist around town for saloons, minibuses and coaches?",
-      "q_ar": "ما خيارات الاستئجار والعقود الطويلة المتاحة في المدينة للسيارات الصالون والحافلات الصغيرة والكبيرة؟",
+      "q_en": "What vehicle rental and leasing options are available to businesses in the UAE?",
+      "q_ar": "ما خيارات تأجير السيارات والتأجير التمويلي المتاحة للمنشآت في الإمارات؟",
       "expected_entry_ids": [
         "vehicle_leasing:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Vehicle leasing in the UAE includes long-term corporate leasing (operating lease, 1-5 years) of sedans, SUVs, pickups, vans, buses and trucks, short-term rental (daily, weekly, monthly), lease-to-own/finance lease, chauf...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

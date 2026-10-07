@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Are underground pipe and service jobs charged by running distance or for each hookup?",
-      "q_ar": "هل تُحاسَب أعمال الأنابيب والخدمات تحت الأرض بالمسافة الطولية أم بكل توصيلة؟",
+      "q_en": "How do contractors in the UAE usually cost utility network and pipeline works?",
+      "q_ar": "كيف يحتسب المقاولون في الإمارات تكلفة أعمال شبكات المرافق وخطوط الأنابيب عادةً؟",
       "expected_entry_ids": [
         "infrastructure_utilities:uae-market-sizes"
       ],
       "why": "The sizes entry states installed networks are quoted per linear metre with chambers per number; it does not name a per-connection rate, so it is the closest answer.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

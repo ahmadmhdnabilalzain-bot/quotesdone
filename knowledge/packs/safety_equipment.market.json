@@ -61,15 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which gear like hard hats and boots can I purchase for a site team locally?",
-      "q_ar": "ما المعدات مثل الخوذ والأحذية التي يمكنني شراؤها لفريق موقع محلياً؟",
+      "q_en": "What safety equipment and PPE can companies buy from suppliers in the UAE?",
+      "q_ar": "ما معدات السلامة والوقاية الشخصية التي يمكن للشركات شراؤها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "safety_equipment:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Safety equipment sold in the UAE includes personal protective equipment (safety helmets to EN 397, safety glasses EN 166, hearing protection EN 352, respirators EN 149 FFP1-3 and half/full masks EN 140/136 with filters, ...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What's the smallest run of branded shipping boxes, and how do makers set their prices?",
-      "q_ar": "ما أصغر كمية لصناديق الشحن المطبوعة بالعلامة التجارية، وكيف يحدد المصنّعون أسعارهم؟",
+      "q_en": "What order quantities and box sizes do UAE corrugated carton suppliers usually accept?",
+      "q_ar": "ما الكميات وأحجام الصناديق التي يقبلها موردو الكرتون المموج في الإمارات عادةً؟",
       "expected_entry_ids": [
         "corrugated_packaging:uae-market-sizes"
       ],
       "why": "Sizes entry gives MOQ (500-2,000 per size) and per-piece pricing at quantity breaks against board spec.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0.167
     }
   ],
   "verified": {

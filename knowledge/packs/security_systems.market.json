@@ -52,15 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "Cameras, door entry, intruder warnings: which protection setups get fitted around here?",
-      "q_ar": "الكاميرات وأنظمة الدخول وإنذارات التسلل: ما أنظمة الحماية التي تُركَّب هنا؟",
+      "q_en": "What security systems do suppliers and installers in the UAE typically provide?",
+      "q_ar": "ما الأنظمة الأمنية التي يقدمها الموردون والمركّبون في الإمارات عادةً؟",
       "expected_entry_ids": [
         "security_systems:uae-market-products"
       ],
       "why": "The question asks what is sold or done locally, and the products entry lists it: \"Security systems in the UAE: CCTV (IP cameras, NVRs, VMS, video analytics, ANPR), access control (card, PIN, biometric, turnstiles, barriers, bollards), intrusion alarms, video intercoms, X-ray baggage scanners and walk-...\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

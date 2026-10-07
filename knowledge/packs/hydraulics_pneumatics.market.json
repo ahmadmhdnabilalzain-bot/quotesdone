@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Rams, liquid movers, taps for fluid lines: which oil-driven and compressed-gas parts do dealers nearby keep?",
-      "q_ar": "الأسطوانات ومحركات السوائل وصمامات الخطوط: ما القطع الهيدروليكية والهوائية التي يحتفظ بها الوكلاء القريبون؟",
+      "q_en": "What hydraulic and pneumatic parts and systems are available from UAE suppliers?",
+      "q_ar": "ما قطع وأنظمة الهيدروليك والهواء المضغوط المتوفرة لدى الموردين في الإمارات؟",
       "expected_entry_ids": [
         "hydraulics_pneumatics:uae-market-products"
       ],
       "why": "The products entry lists cylinders, pumps, valves and other hydraulic and pneumatic components sold.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.154,
-      "word_overlap_after_enrichment": 0.154
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which surfaces underfoot are common here: plastic planks, clay squares, timber, poured resin?",
-      "q_ar": "ما الأرضيات الشائعة هنا: ألواح بلاستيكية، مربعات طينية، خشب، أم راتنج مصبوب؟",
+      "q_en": "What flooring materials and installation options are available from suppliers in the UAE?",
+      "q_ar": "ما مواد الأرضيات وخيارات تركيبها المتوفرة لدى الموردين في الإمارات؟",
       "expected_entry_ids": [
         "flooring:uae-market-products"
       ],
       "why": "The products entry lists the floor types sold (vinyl/LVT, ceramic and porcelain tiles, wood, epoxy/resin).",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.1,
-      "word_overlap_after_enrichment": 0.1
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

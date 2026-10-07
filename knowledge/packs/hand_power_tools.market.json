@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which manual and electric gear can trade shoppers find from nearby dealers?",
-      "q_ar": "ما العُدد اليدوية والكهربائية التي يجدها المشترون المحترفون لدى الوكلاء القريبين؟",
+      "q_en": "What hand and power tools are readily available from industrial suppliers in the UAE?",
+      "q_ar": "ما العدد اليدوية والكهربائية المتوفرة بسهولة لدى الموردين الصناعيين في الإمارات؟",
       "expected_entry_ids": [
         "hand_power_tools:uae-market-products"
       ],
       "why": "The products entry lists the hand and power tool categories sold through local dealers.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

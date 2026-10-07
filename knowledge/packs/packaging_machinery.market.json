@@ -52,15 +52,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which kit that pours drinks or sauces into jars and closes them can I purchase locally for a modest plant, honestly?",
-      "q_ar": "ما المعدات التي تعبّئ المشروبات أو الصلصات في البرطمانات وتغلقها ويمكنني شراؤها محلياً لمصنع متوسط؟",
+      "q_en": "What packaging machinery is available from suppliers and agents in the UAE?",
+      "q_ar": "ما آلات التعبئة والتغليف المتوفرة لدى الموردين والوكلاء في الإمارات؟",
       "expected_entry_ids": [
         "packaging_machinery:uae-market-products"
       ],
       "why": "The products entry lists the filling, capping and labelling machines, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

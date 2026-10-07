@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Which motor and machinery lubes can shoppers find around town these days, honestly?",
-      "q_ar": "ما زيوت المحركات والآلات والشحوم التي يجدها المشترون في المدينة هذه الأيام؟",
+      "q_en": "What lubricants and industrial oils are commonly available from suppliers in the UAE?",
+      "q_ar": "ما الزيوت ومواد التشحيم الصناعية المتوفرة عادةً لدى الموردين في الإمارات؟",
       "expected_entry_ids": [
         "lubricants_industrial_oils:uae-market-products"
       ],
       "why": "The products entry lists the engine, gear, hydraulic, turbine and other oil grades sold, which answers what is available.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

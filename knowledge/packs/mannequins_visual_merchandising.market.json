@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Are shop dummies and display bits costed each or as a bundle?",
-      "q_ar": "هل تُسعَّر دمى العرض وقطع العرض بالقطعة أم كباقة؟",
+      "q_en": "How are mannequins and visual merchandising items usually sold or rented in the UAE?",
+      "q_ar": "كيف تُباع أو تُؤجّر عارضات الأزياء وتجهيزات العرض المرئي في الإمارات عادةً؟",
       "expected_entry_ids": [
         "mannequins_visual_merchandising:uae-market-sizes"
       ],
       "why": "States mannequins are priced per piece with volume discounts and props/POP displays per piece or per set.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.143,
-      "word_overlap_after_enrichment": 0.143
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

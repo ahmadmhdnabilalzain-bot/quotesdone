@@ -58,17 +58,16 @@
   ],
   "eval": [
     {
-      "q_en": "Which battery banks for houses or businesses can buyers actually find locally these days?",
-      "q_ar": "ما أنظمة البطاريات للمنازل أو الشركات التي يجدها المشترون محلياً هذه الأيام؟",
+      "q_en": "What batteries and energy storage solutions can buyers find from suppliers in the UAE?",
+      "q_ar": "ما البطاريات وحلول تخزين الطاقة التي يمكن للمشترين إيجادها لدى الموردين في الإمارات؟",
       "expected_entry_ids": [
         "batteries_storage:uae-market-products",
         "batteries_storage:uae-market-sizes"
       ],
       "why": "Products entry lists lead-acid and lithium (LFP) storage for homes, UPS and commercial use. Sizes entry lists the home battery (5-15 kWh) and commercial cabinet and container systems on offer.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.167,
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
       "expected_mode": "any",
-      "word_overlap_after_enrichment": 0.167
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

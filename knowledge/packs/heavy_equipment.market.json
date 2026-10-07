@@ -67,15 +67,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do earthmoving machine rental firms charge by hours worked, daily, or monthly?",
-      "q_ar": "هل تحاسب شركات تأجير آليات الحفر بساعات التشغيل أم يومياً أم شهرياً؟",
+      "q_en": "How is heavy equipment rental usually charged in the UAE, hourly, daily or monthly?",
+      "q_ar": "كيف يُحتسب استئجار المعدات الثقيلة والآليات في الإمارات عادةً، بالساعة أم باليوم أم بالشهر؟",
       "expected_entry_ids": [
         "heavy_equipment:uae-market-sizes"
       ],
       "why": "The sizes entry explains equipment rental charging per hour, per day or per month.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

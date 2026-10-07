@@ -64,15 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do agencies recovering unpaid invoices keep a cut of what they get back, or bill flat?",
-      "q_ar": "هل تحتفظ وكالات تحصيل الفواتير غير المدفوعة بنسبة مما تستردّه أم تفرض رسماً ثابتاً؟",
+      "q_en": "How do debt collection and credit report agencies in the UAE charge, a share of recoveries or a flat rate?",
+      "q_ar": "كيف تتقاضى وكالات تحصيل الديون والتقارير الائتمانية في الإمارات أجرها، بنسبة من المبالغ المحصلة أم بسعر موحد؟",
       "expected_entry_ids": [
         "debt_collection:uae-market-sizes"
       ],
       "why": "Sizes entry says amicable collection is a no-cure-no-pay percentage of amount recovered, sometimes with a file fee.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

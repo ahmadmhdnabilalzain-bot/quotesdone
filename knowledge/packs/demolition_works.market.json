@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "What knocking-down and interior gutting jobs can nearby contractors take on?",
-      "q_ar": "ما أعمال الهدم وتفريغ الديكورات الداخلية التي يمكن للمقاولين القريبين تنفيذها؟",
+      "q_en": "What demolition and strip-out services do contractors in the UAE typically provide?",
+      "q_ar": "ما خدمات الهدم والإزالة التي يقدمها المقاولون في الإمارات عادةً؟",
       "expected_entry_ids": [
         "demolition_works:uae-market-products"
       ],
       "why": "Products entry lists soft strip-out, selective and structural demolition services in the UAE.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.143,
-      "word_overlap_after_enrichment": 0.143
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

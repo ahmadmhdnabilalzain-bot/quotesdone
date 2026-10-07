@@ -58,15 +58,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do relocation firms bill by vehicle capacity, by cubic load, or per journey?",
-      "q_ar": "هل تحاسب شركات النقل بحجم المركبة أم بحجم الحمولة أم بكل رحلة؟",
+      "q_en": "How do logistics, moving and storage companies in the UAE usually charge for their services?",
+      "q_ar": "كيف تحتسب شركات النقل والتخزين والخدمات اللوجستية في الإمارات أسعار خدماتها عادةً؟",
       "expected_entry_ids": [
         "logistics_moving:uae-market-sizes"
       ],
       "why": "The sizes entry prices trucking per trip by truck type and freight per CBM; it covers freight rather than household moves specifically, so it is the closest answer.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

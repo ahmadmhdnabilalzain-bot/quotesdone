@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is temporary framing for reaching heights rented by area, by weight, or weekly around here?",
-      "q_ar": "هل تُؤجَّر هياكل الوصول المؤقتة للارتفاعات بالمساحة أم بالوزن أم أسبوعياً هنا؟",
+      "q_en": "How is scaffolding rental usually costed in the UAE, by area, weight or rental period?",
+      "q_ar": "كيف تُحتسب تكلفة تأجير السقالات في الإمارات عادةً، بالمساحة أم بالوزن أم بمدة الإيجار؟",
       "expected_entry_ids": [
         "scaffolding:uae-market-sizes"
       ],
       "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Tubes are sold/hired in 6.0, 4.0, 3.0 and 2.0 m lengths; cuplock standards 1.0-3.0 m, ledgers 0.6-2.5 m; boards 3.9 m (13 ft) x 225 mm x 38 mm\".",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

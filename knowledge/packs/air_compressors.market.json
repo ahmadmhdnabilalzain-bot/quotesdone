@@ -55,15 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "For machines that push pressurised gas to power my tools, which designs make sense around here?",
-      "q_ar": "للآلات التي تدفع الهواء المضغوط لتشغيل عُددي، ما التصاميم المناسبة هنا؟",
+      "q_en": "What types of air compressors can businesses buy or rent from suppliers in the UAE?",
+      "q_ar": "ما أنواع ضواغط الهواء التي يمكن للشركات شراؤها أو استئجارها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "air_compressors:uae-market-products"
       ],
       "why": "Products entry lists screw, oil-free, scroll and portable compressor types used in the UAE.",
-      "written_blind": true,
-      "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {
