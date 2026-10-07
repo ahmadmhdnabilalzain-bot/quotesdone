@@ -678,7 +678,8 @@ async function buildBriefPdf(inq: any, lang: string) {
     'هذا ملخّص الطلب كما ترسله QuotesDone إلى المورّدين المطابقين، دون الإفصاح عن هوية العميل؛ فلا يتضمّن اسمه ولا اسم شركته ولا بيانات التواصل معه. يقدّم المورّدون عروضهم استنادًا إلى نطاق العمل وحده، ولا تُتبادل بيانات التواصل إلا بعد أن يكشف العميل عن العرض الذي يختاره.') });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص الطلب للمورّدين'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true } }) });
+    // filed under the request in Dropbox (fn_enqueue_doc_backups: CUSTOMER DOCUMENTS reads agent-docs/brief/<inquiry id>/)
+    body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص الطلب للمورّدين'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true }, folder: 'brief/' + inq.id }) });
   const j = await r.json();
   return { j, ref };
 }
@@ -721,7 +722,8 @@ async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, __secret: secret }) });
+    // filed under the request in Dropbox (fn_enqueue_doc_backups: CUSTOMER DOCUMENTS reads agent-docs/compare/<inquiry id>/)
+    body: JSON.stringify({ ...body, __secret: secret, folder: 'compare/' + inq.id }) });
   const j = await r.json();
   return { j, ref };
 }
