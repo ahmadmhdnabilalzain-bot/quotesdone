@@ -45,3 +45,12 @@ test('a new licence or licence name re-reviews an APPROVED supplier too', () => 
   const z20 = R('scripts/sql/an_approved_supplier_who_swaps_in_an_unreadable_licence_is_held_again.sql');
   assert.match(z20, /new\.approval_status = 'approved'\s+and \(old\.license_doc_path is distinct from new\.license_doc_path\s+or old\.licence_legal_name is distinct from new\.licence_legal_name\)/);
 });
+
+// Same day: a new READABLE licence naming another company holds an approved supplier for review - but only a
+// licence change asks (source licence_changed); an ordinary profile save never re-gates him.
+test('an approved supplier\'s new licence naming another company is held; a profile save is not', () => {
+  const z20 = R('scripts/sql/an_approved_supplier_who_swaps_in_an_unreadable_licence_is_held_again.sql');
+  assert.match(z20, /then 'licence_changed' else 'mandatory_item_changed' end/);
+  assert.match(z20, /and not \(p_source = 'licence_changed' and v_name_mismatch\) then/);
+  assert.match(z20, /elsif p_source = 'licence_changed' and coalesce\(l\.approval_status, ''\) = 'approved' and cardinality\(v_missing\) = 0\s+and v_name_mismatch then v_decision := 'pending'; v_reason := 'licence_name_mismatch';/);
+});
