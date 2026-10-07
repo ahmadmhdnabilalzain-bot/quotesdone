@@ -1,0 +1,1 @@
+Applied at merge, AFTER scripts/sql/the_29_parked_it_handoffs_of_23_september_to_5_october_close_with_what_was_learned.sql (PR #1281), whose recorded causes it keeps; until then every row skips. Rolled back together on 7 Oct: 13 RECORDED. Moves to MANIFEST.txt when applied with --apply --ddl.

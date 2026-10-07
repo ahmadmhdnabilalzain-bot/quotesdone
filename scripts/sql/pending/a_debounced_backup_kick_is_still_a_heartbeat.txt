@@ -1,0 +1,1 @@
+Applied at merge (apply at merge, never before; the release guard refuses an unmerged file). Moves to MANIFEST.txt when applied with --apply --ddl. Rolled-back proof 7 Oct: see the PR body.
