@@ -56,9 +56,44 @@ function throttled(): boolean {
   return ++windowN > LIMIT_PER_MIN;
 }
 
+// NOT CONFIGURED IS A FINDING, NOT A QUIET 503 (7 Oct 2026, stage-2 run fe7ba9c4). With the secret
+// missing here AND on Vercel, the site's post() returns before sending and this function answers 503:
+// zero website error rows, which reads exactly like a healthy site. A 503 now upserts ONE it_engineer
+// finding (one issue_key, so it recurs rather than multiplies). The secret value is never generated or
+// stored by an agent; the finding names where a human must set it.
+const NOT_CONFIGURED_ISSUE = 'site_error_ingest_secret_not_set';
+let raisedAt = 0;
+async function raiseNotConfigured(): Promise<void> {
+  if (Date.now() - raisedAt < 3_600_000) return; // at most once an hour per isolate: no write amplifier
+  raisedAt = Date.now();
+  try {
+    const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: NOT_CONFIGURED_ISSUE,
+      p_title: 'Website runtime errors are being dropped: SITE_ERROR_INGEST_SECRET is not set',
+      p_where: 'supabase/functions/site_error_ingest (function secret) + Vercel project quotesdone-next env read by src/instrumentation.ts',
+      p_blast: 'internal',
+      p_affected: 0,
+      p_evidence: {
+        subject: 'site_error_ingest', owner_seat: 'it_engineer', demo: false,
+        secret_name: 'SITE_ERROR_INGEST_SECRET',
+        set_in: [
+          'Supabase edge function secret SITE_ERROR_INGEST_SECRET (project htdblwldjkcgjvmqkbeh)',
+          'Vercel env SITE_ERROR_INGEST_SECRET on quotesdone-next (production and preview), the same value',
+          'app_secrets.cred_site_error_ingest, the same value (resilience_ping reads it to know reporting is configured)',
+        ],
+        why: 'without the function secret every report answers 503; without the Vercel env src/instrumentation.ts never posts',
+      },
+      p_raised_by: 'it_engineer',
+    });
+    if (error) console.error('site_error_ingest: finding could not be opened -', error.message);
+  } catch (e) {
+    console.error('site_error_ingest: finding could not be opened -', String((e as Error)?.message || e));
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return J({ error: 'method_not_allowed' }, 405);
-  if (!WANT) return J({ error: 'not_configured', detail: 'SITE_ERROR_INGEST_SECRET is not set on this function' }, 503);
+  if (!WANT) { await raiseNotConfigured(); return J({ error: 'not_configured', detail: 'SITE_ERROR_INGEST_SECRET is not set on this function' }, 503); }
   if (!sameSecret(String(req.headers.get('x-qd-site-secret') || ''), WANT)) return J({ error: 'unauthorized' }, 401);
   if (throttled()) return J({ error: 'too_many_reports', detail: 'over ' + LIMIT_PER_MIN + ' reports in this minute' }, 429);
 
