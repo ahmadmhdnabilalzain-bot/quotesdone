@@ -98,6 +98,6 @@ select case
     then 'PROBE FAILED: not all six classes are active in model_policy'
   when not exists (select 1 from public.internal_credential where context = 'fn.marketing' and active and scope @> array['ai_gateway'])
     then 'PROBE FAILED: fn.marketing cannot present to ai_gateway'
-  when exists (select 1 from public.llm_route_health where open_until is null or open_until < now() + interval '50 years')
-    then 'PROBE FAILED: a route is no longer held - this file must not open the hold'
+  when exists (select 1 from public.llm_route_health where open_until > now() + interval '1 year')
+    then 'PROBE FAILED: a route is founder-held - ledger 1175 keeps OpenRouter on'
   else 'PROBE OK' end as verdict;

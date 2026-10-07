@@ -118,13 +118,8 @@ on conflict (model_id) do update set
 insert into public.llm_route_health
   (model_id, consecutive_failures, failure_threshold, cooldown_seconds, open_until, opened_reason)
 select 'deepseek/deepseek-v4.1-flash', 0, 3, 300,
-       (select max(h.open_until) from public.llm_route_health h),
-       -- the founder's own hold wording, copied from a row that carries it: fn_it_run_is_held and fn_it_detect
-       -- recognise the hold by that prefix
-       coalesce((select h.opened_reason from public.llm_route_health h
-                  where h.opened_reason like 'HELD BY THE FOUNDER%' order by h.model_id limit 1),
-                'held with the rest of the fleet from the moment it was registered (founder_instruction 1056): '
-                || 'opening the hold is the founder''s')
+       null,  -- ledger 1175 (7 Oct 2026): OpenRouter always on; a new route starts closed
+       null  -- no opened_reason: fn_it_run_is_held reads 'HELD BY THE FOUNDER' by prefix
 where not exists (select 1 from public.llm_route_health h where h.model_id = 'deepseek/deepseek-v4.1-flash');
 
 -- ── 2. THE REVIEW POOL FOLLOWS THE MATRIX ───────────────────────────────────────────────────────────
@@ -1026,8 +1021,8 @@ select case
        is distinct from 'openai/gpt-6-luna'
     then 'PROBE FAILED: the sales engineer''s plan B is not its own'
   when (select count(*) from public.llm_route_health where model_id = 'deepseek/deepseek-v4.1-flash'
-          and open_until = (select max(open_until) from public.llm_route_health)) <> 1
-    then 'PROBE FAILED: deepseek is not held with the fleet'
+          and (open_until is null or open_until < now() + interval '1 year')) <> 1
+    then 'PROBE FAILED: deepseek has no route row, or it is founder-held (ledger 1175: OpenRouter stays on)'
   when not public.fn_it_model_consumer_listed('wa_inbound', 'internal_judgement')
     or not public.fn_it_model_consumer_listed('sales_engineer', 'customer_communication')
     or not public.fn_it_model_consumer_listed('quote_extract', 'sales_engineer__document_extraction')

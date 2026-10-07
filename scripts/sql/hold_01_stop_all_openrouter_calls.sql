@@ -34,16 +34,8 @@ select m from (
 ) r
 on conflict (model_id) do nothing;
 
--- 2. open every circuit, far enough out that it cannot lapse on its own.
-update public.llm_route_health
-   set open_until    = now() + interval '100 years',
-       opened_reason = 'HELD BY THE FOUNDER 15 Aug 2026: no OpenRouter calls until he releases it. '
-                       || 'Release with: update llm_route_health set open_until = null;',
-       -- opened_class stays NULL on purpose. It carries a foreign key to llm_failure_class, whose
-       -- rows drive fn_classify_llm_failure and fn_llm_retry_allowed. Inventing a 'founder_hold'
-       -- class to sit in this column would put a hold into the retry/breaker vocabulary and change
-       -- how real failures are classified. This is not a failure; it is a deliberate stop.
-       opened_class  = null,
-       updated_at    = now();
+-- 2. RETIRED 7 Oct 2026 (founder ruling, ledger 1175: "from now on keep open router always on").
+--    This step used to set open_until = now() + 100 years on every route. It is removed so that a
+--    re-apply of this file can never re-impose the hold; step 1 (every policy route has a row) stays.
 
 commit;

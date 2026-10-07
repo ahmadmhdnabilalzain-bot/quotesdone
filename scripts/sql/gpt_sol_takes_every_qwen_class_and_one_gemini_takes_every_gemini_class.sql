@@ -115,9 +115,8 @@ on conflict (model_id) do update set
 insert into public.llm_route_health
   (model_id, consecutive_failures, failure_threshold, cooldown_seconds, open_until, opened_reason)
 select 'openai/gpt-5.6-sol', 0, 3, 300,
-       (select max(h.open_until) from public.llm_route_health h),
-       'held with the rest of the fleet from the moment it was registered (founder_instruction 854): '
-       || 'opening the hold is the founder''s'
+       null,  -- ledger 1175 (7 Oct 2026): OpenRouter always on; a new route starts closed
+       null  -- no opened_reason: fn_it_run_is_held reads 'HELD BY THE FOUNDER' by prefix
 where not exists (select 1 from public.llm_route_health h where h.model_id = 'openai/gpt-5.6-sol');
 
 -- 2-4. The policies. The three classes whose fallback would otherwise equal their primary are set
@@ -177,11 +176,11 @@ select case when
   and (select coalesce(model_fallback,'-') from public.model_policy where task_class = 'speech_transcription') = '-'
   and (select count(*) from public.model_policy_by_identity
         where primary_model in ('z-ai/glm-5.3-flash','openai/gpt-5.6-sol')) = 3
-  and (select count(*) from public.llm_route_health where model_id = 'openai/gpt-5.6-sol' and open_until > now()) = 1
+  and (select count(*) from public.llm_route_health where model_id = 'openai/gpt-5.6-sol' and (open_until is null or open_until < now() + interval '1 year')) = 1
   and (select sum(monthly_aed) from public.department_budget) = 1600
 then 'PROBE OK :: 37 classes on gpt-5.6-sol (36 ex-qwen + the verify), 0 on qwen, 0 on gemini 3.5 / flash-lite, '
      || 'speech on gemini-3.8-flash with no fallback, 0 self-fallbacks, 3 seat catch-alls on glm/sol, '
-     || 'Sol registered and held, ceilings AED 1,600/month'
+     || 'Sol registered with a closed route (ledger 1175), ceilings AED 1,600/month'
 else 'PROBE FAILED :: the matrix did not land as written - read the counts above'
 end as verdict;
 
