@@ -305,6 +305,9 @@ async function realRun(pre) {
           : [`${t.name} for a villa in ${cu.cfg.emirate}. Line 1: ${t.products[0]} x 20. Line 2: ${t.products[1]} x 10. Line 3: ${t.products[2]} x 5.`, 'Sizes: line 1 is 1200 x 1500 mm; for lines 2 and 3 I am not sure, please advise the standard.', 'Supply and install, within six weeks, ground and first floor.', `Brand: ${t.brands?.[0] || 'not sure'}; grade: not sure, standard commercial.`];
         const w0 = await costWatermark();
         const it = await runIntake(cu, answers);
+        // The customer confirms before anything goes to suppliers: ready enables "Send to suppliers",
+        // and the harness presses it exactly as the portal does (customer_api create_inquiry).
+        if (it.status === 'ready') { const sent = await call('customer_api', cu.jwt, { action: 'create_inquiry', intake_id: it.intakeId, text: answers[0], lang: cu.cfg.locale }); it.sent = sent.status; }
         const inq = (await read(`select id, status, trades, lang, emirate from public.inquiries where customer_id=${q(cu.customerId)} order by created_at desc limit 1`))[0];
         if (inq) { run.ids.inquiries.add(String(inq.id)); fx.inq[`${cu.cfg.label}:${trade}`] = { ...inq, cu, trade }; }
         const route = (await costSince(w0)).map((r) => `${r.task_class}:${r.model_used}`).join(' ');

@@ -25,6 +25,7 @@
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
 import { orderFields, questionText, type Lang, type SpecField } from './interview.ts';
+import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
 
 const asText = (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).trim();
 const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]', 'null'].includes(asText(v));
@@ -71,6 +72,9 @@ export function settleModelTurn(checklist: SpecField[], prevDetails: Record<stri
   const sl = reconcileSlots(checklist, prevDetails, out, lang);
   const modelStatus = out.status;
   const modelAsked = Array.isArray(out.questions) && out.questions.some((q: unknown) => String(q ?? '').trim() !== '');
+  // claims_ready: the model's own structured flag saying its sentence tells the customer the request is
+  // ready/complete/about to be shared. A missing flag is read as a claim (it cannot be shown false).
+  const claimsReady = out.claims_ready !== false;
   out.status = sl.complete ? 'ready' : 'needs_info';
   if (sl.complete) {
     const base = out.brief && typeof out.brief === 'object' ? out.brief : briefOf(sl.details);
@@ -80,9 +84,73 @@ export function settleModelTurn(checklist: SpecField[], prevDetails: Record<stri
     out.missing = sl.missing;
     if (!Array.isArray(out.questions) || !out.questions.length) out.questions = sl.missing.slice(0, 1);
   }
-  // A needs_info sentence that asks nothing is a sentence written as if the request were done (run
-  // fe7ba9c4: "The request is ready to share with suppliers" beside status needs_info). Not ready and
-  // asking nothing -> the state asks its next question instead.
-  if (modelStatus !== out.status || (out.status === 'needs_info' && !modelAsked)) out.assistant_message = replyFromState(out.status, sl.missing[0] || null, lang);
+  // The reply must agree with the row (review of #1277). READY: always the state's sentence, which tells
+  // the customer to press Send to suppliers - the request goes nowhere until they confirm. NOT READY: the
+  // model's sentence stands only when it wrote for needs_info, asked something, and flagged
+  // claims_ready=false; anything else ("The request is ready to share with suppliers" beside needs_info,
+  // run fe7ba9c4) is replaced by the state's next question. Structured fields only, no word matching.
+  if (out.status === 'ready' || modelStatus !== out.status || !modelAsked || claimsReady) out.assistant_message = replyFromState(out.status, sl.missing[0] || null, lang);
   return sl;
+}
+
+// ── THE SALES ENGINEER'S FOUR QUESTIONS, READ BY THE MODEL (7 Oct 2026, run fe7ba9c4) ─────────────
+// Measured in the run's transcripts: C1 and C7 said "Supply and install, within six weeks" in turn 3
+// and were still asked "By when do you need it done?" at turn 10; "grade: not sure, standard
+// commercial" and "standard specification, please assume typical values" were never recorded as a
+// material answer (C1 req_answers kept only installation + material.profile; C7 only installation),
+// because the deterministic reader only takes an answer to the ONE question it last asked, and reads
+// "six" as no number. The model reads the whole conversation; it returns each answer as a VALUE from
+// the closed vocabulary below, and only a value isValidAnswer accepts is recorded. No customer word is
+// matched here (ruling 890).
+
+/** Instruction text for the prompt: every requirement key of the trade and the values it accepts. */
+export function requirementsContract(category: string | null): string {
+  const qs = requirementQuestions(String(category || ''));
+  const mats = qs.filter((q) => q.kind === 'material').map((q) => `"${q.key}": one of ${JSON.stringify(q.options.map((o) => o.v))}, or "not_sure" when the customer is unsure or asks for the standard, or {"other": "<their words>"}`);
+  return [...mats,
+    '"installation": "yes" | "supply_only" | "not_needed" | "not_sure"',
+    '"warranty": {"months": <minimum months>} | "not_needed" | "not_sure"',
+    '"required_by": {"days": <days from today>, "text": "<their words>"} | {"date": "YYYY-MM-DD"} | "flexible"',
+  ].join('\n');
+}
+
+const isoDay = (now: Date, days: number) => new Date(now.getTime() + days * 86400000).toISOString().slice(0, 10);
+
+/** The model's values -> stored answers, keeping only what is a valid answer to the question. */
+export function requirementsFromModel(category: string | null, req: unknown, now = new Date()): Answers {
+  const out: Answers = {};
+  if (!req || typeof req !== 'object') return out;
+  const r = req as Record<string, any>;
+  for (const q of requirementQuestions(String(category || ''))) {
+    const v = r[q.key];
+    if (v === undefined || v === null || v === '') continue;
+    let a: Ans | null = null;
+    if (q.kind === 'material') {
+      if (v === 'not_sure' || v === NO_PREFERENCE.v) a = { v: NO_PREFERENCE.v, note: v === 'not_sure' ? 'Not sure: supplier to propose the standard specification' : null };
+      else if (typeof v === 'object' && String(v.other ?? '').trim()) a = { v: 'other', note: String(v.other).trim().slice(0, 200) };
+      else if (typeof v === 'string') a = { v };
+    } else if (q.kind === 'installation') {
+      if (typeof v === 'string') a = { v };
+    } else if (q.kind === 'warranty') {
+      if (typeof v === 'object' && Number(v.months) > 0) a = { v: 'yes', min_months: Math.round(Number(v.months)) };
+      else if (typeof v === 'string') a = { v, min_months: null };
+    } else if (q.kind === 'required_by') {
+      if (v === 'flexible') a = { v: 'flexible', date: null, text: 'Flexible' };
+      else if (typeof v === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(String(v.date || ''))) a = { v: 'date', date: String(v.date), text: String(v.text || v.date) };
+      else if (typeof v === 'object' && Number(v.days) >= 0 && Number.isFinite(Number(v.days))) a = { v: 'date', date: isoDay(now, Math.round(Number(v.days))), text: String(v.text || `${Math.round(Number(v.days))} days`).slice(0, 80) };
+    }
+    if (a && isValidAnswer(q, a)) out[q.key] = a;
+  }
+  return out;
+}
+
+// ── WHAT WAS RECORDED WHEN (7 Oct 2026) ──────────────────────────────────────────────────────────
+// The run's transcripts showed what the assistant SAID each turn and only the final row, so nobody
+// could see that turn 1's slots were never stored. Each assistant turn now carries the state saved
+// with it.
+export type TurnSlots = { status: string; details: Record<string, unknown>; req_answers: Answers; missing: string[] };
+export function stampTurn(turns: any[], snap: TurnSlots): void {
+  for (let i = turns.length - 1; i >= 0; i--) {
+    if (turns[i] && turns[i].role === 'assistant') { turns[i].slots = { ...snap, at: new Date().toISOString() }; return; }
+  }
 }

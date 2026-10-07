@@ -10,7 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState } from './slots.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn } from './slots.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -321,12 +321,14 @@ Return STRICT JSON only, no prose, with this shape:
   \"urgency\": \"emergency\" | \"urgent\" | \"normal\",
   \"status\": \"rejected\" | \"needs_info\" | \"ready\",
   \"assistant_message\": \"<1-2 sentence reply to the customer>\",
+  \"claims_ready\": <true if assistant_message tells the customer the request is ready, complete or about to be shared; else false>,
   \"already_provided\": [\"<fact the customer has already given>\"],
   \"questions\": [\"<q1>\", \"<q2>\"],
   \"readiness\": <0-100>,
   \"missing\": [\"<field>\"],
   \"plausibility\": { \"budget_ok\": true, \"timeline_ok\": true, \"note\": \"\" },
   \"provenance\": { \"<field>\": \"stated\" | \"inferred\" },
+  \"requirements\": { \"<key>\": <value> },
   \"brief\": {
     \"summary\": \"<one-line summary>\",
     \"category\": \"<slug>\",
@@ -339,7 +341,9 @@ Return STRICT JSON only, no prose, with this shape:
     \"details\": { }
   }
 }
-Only include \"questions\" when status is needs_info or rejected. ALWAYS return \"brief\" (never null, on every status): \"brief\".\"details\" holds every checklist item the customer has stated ANYWHERE in the conversation so far, under its canonical key (rule 3b) — including on the very first message — because the request's state is built from it; the summary fields may be left empty until status is ready. Never tell the customer the request is ready, complete or about to be shared unless status is \"ready\". Keep questions concise so the whole JSON stays complete.`;
+Only include \"questions\" when status is needs_info or rejected. ALWAYS return \"brief\" (never null, on every status): \"brief\".\"details\" holds every checklist item the customer has stated ANYWHERE in the conversation so far, under its canonical key (rule 3b) — including on the very first message — because the request's state is built from it; the summary fields may be left empty until status is ready. Never tell the customer the request is ready, complete or about to be shared unless status is \"ready\".
+\"requirements\" holds, on every status, each of these that the customer has ANSWERED anywhere in the conversation (omit a key they have not addressed; never guess one), as exactly one of the values listed:
+${requirementsContract(category)} Keep questions concise so the whole JSON stays complete.`;
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
     const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null });
@@ -582,6 +586,9 @@ Only include \"questions\" when status is needs_info or rejected. ALWAYS return 
     const reqLang = ar ? 'ar' : 'en';
     const prevBrief: any = (draft.brief && typeof draft.brief === 'object') ? draft.brief : {};
     let reqAnswers: Answers = (prevBrief.req_answers && typeof prevBrief.req_answers === 'object') ? prevBrief.req_answers : {};
+    // What the model read of the four answers anywhere in the conversation (./slots.ts); an answer the
+    // customer already gave on an earlier turn stands.
+    if (out && llmParseOk && category) reqAnswers = { ...requirementsFromModel(category, out.requirements), ...reqAnswers };
     let reqAsked: string | null = null;
     // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
     // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
@@ -741,6 +748,11 @@ Only include \"questions\" when status is needs_info or rejected. ALWAYS return 
       else readinessFields = { filled: readinessFields.filled, required: readinessFields.required + reqTotal };
     }
     const remainingQuestions: string[] = status === 'ready' ? [] : Array.from(new Set([...(Array.isArray(out.missing) ? out.missing.map((m: any) => String(m)) : []), ...reqRemaining])).slice(0, 12);
+    // The reply is final only here (the canonical gate, the four questions and the drawing check all
+    // rewrite it after the assistant turn was pushed). Save the CORRECTED reply, so a false "ready" is
+    // neither kept in the history nor fed back to the model next turn (review of #1277).
+    for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; break; }
+    stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [] });
     const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
     if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0 }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the customer was told their request was accepted but the brief was never persisted, so the RFQ cannot be dispatched and this looks like the customer simply never finished intake.'); }
 
