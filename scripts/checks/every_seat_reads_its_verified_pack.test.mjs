@@ -58,7 +58,7 @@ test('an unverified entry is stored but never retrievable, and a verified one is
 test('the eval scores the path production reads: ml, gte fused for English, none for Arabic (#1259)', async () => {
   const ev = read('scripts/eval/knowledge_pack_eval.mjs');
   assert.ok(ev.includes('select public.fn_ml_read_space()'), 'the default path is not production\'s own space');
-  assert.ok(ev.includes("public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${gteReads(q.text) ? vecLit(q.vec) : 'null'}"), 'the ml call does not drop gte for Arabic');
+  assert.ok(ev.includes("public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${PATH === 'ml' && gteReads(q.text) ? vecLit(q.vec) : 'null'}"), 'the ml call does not drop gte for Arabic');
   const src = ev.slice(ev.indexOf('const AR_LETTER'), ev.indexOf('// = #1259'));
   const gteReads = new Function(src.replace('export const gteReads', 'const gteReads') + '; return gteReads;')();
   assert.equal(gteReads('Which bubble wrap is sold locally?'), true);

@@ -65,7 +65,8 @@ if (!mode) {
   mode = !existsSync(PENDING_NOTE) && loaded >= rows.filter((r) => r.table === 'sales_knowledge').length ? 'live' : 'staged';
 }
 const PATH = at('--path') ?? (await sql(`select public.fn_ml_read_space() s`).then((r) => r[0]?.s, () => 'gte'));
-if (!['gte', 'ml'].includes(PATH)) throw new Error('--path gte|ml, got ' + PATH);
+if (!['gte', 'ml', 'ml-only'].includes(PATH)) throw new Error('--path gte|ml|ml-only, got ' + PATH);
+const ML = PATH !== 'gte';   // 'ml-only' = the multilingual routine with no gte vector for any language (diagnosis, 7 Oct 2026)
 console.log(`mode: ${mode}  path: ${PATH}  (${packs.length} packs, ${rows.length} rows)`);
 
 // The questions: every pack's eval, both languages, for every seat that reads the pack.
@@ -80,7 +81,7 @@ qs.forEach((q) => { q.vec = vOf.get(q.text); });
 // passage by the backfill's own recipe (scripts/kb/run_ml_embed_backfill.mjs), cached by sha in the OS temp dir.
 const sha = (t) => createHash('sha256').update(t).digest('hex');
 let mlPassages = null;
-if (PATH === 'ml') {
+if (ML) {
   const cred = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
   const one = async (t) => { for (let i = 0; ; i++) {
     const j = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/embed_ml`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -107,8 +108,8 @@ if (PATH === 'ml') {
     rs.forEach((r) => { r.mvec = cache[sha(key(r))]; });
   };
 }
-const routineCall = (q) => PATH === 'ml'
-  ? `public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${gteReads(q.text) ? vecLit(q.vec) : 'null'}, ${K_RETRIEVE})`
+const routineCall = (q) => ML
+  ? `public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${PATH === 'ml' && gteReads(q.text) ? vecLit(q.vec) : 'null'}, ${K_RETRIEVE})`
   : `public.fn_reason_retrieve('${q.seat}', ${vecLit(q.vec)}, ${K_RETRIEVE})`;
 
 // The expected entries among the first TOP rows the routine returns, counted in SQL: a staged probe reports
@@ -126,7 +127,7 @@ if (mode === 'live') {
 } else {
   const rv = await embedder.many(rows.map((r) => r.text));
   rows.forEach((r, i) => { r.vec = rv[i]; });
-  if (PATH === 'ml') await mlPassages(rows.filter((r) => r.cols.runtime_index_eligible !== false));
+  if (ML) await mlPassages(rows.filter((r) => r.cols.runtime_index_eligible !== false));
   // The pack rows each seat's retrieval reads, per table (mirrors the WHERE clauses of fn_reason_retrieve).
   // Only rows the routine can return: an unverified entry (runtime_index_eligible = false, verified_packs.mjs isVerified)
   // is stored but never read, so staging it would only take a slot from a row the routine does return.
@@ -146,19 +147,19 @@ if (mode === 'live') {
     // too large) at the management API. Staged in chunks of 24 questions: each chunk is its own aborted
     // transaction with the rows its own questions could reach, so the ranking per question is unchanged.
     // The ml path stages two spaces per row and sends two vectors per question: 24 hit HTTP 413 on 7 Oct 2026.
-    const CHUNK = PATH === 'ml' ? 6 : 24;
+    const CHUNK = ML ? 6 : 24;
     for (let c = 0; c < all.length; c += CHUNK) {
     const mine = all.slice(c, c + CHUNK);
     const stage = new Map();
     for (const q of mine) for (const pool of pools(q.seat)) {
       pool.map((r) => [r, cosine(q.vec, r.vec)]).sort((a, b) => b[1] - a[1]).slice(0, K_RETRIEVE).forEach(([r]) => stage.set(r.record_id, r));
       // In the ml path the routine also takes each space's own nearest rows, so the multilingual top k is staged too.
-      if (PATH === 'ml') pool.map((r) => [r, cosine(q.mvec, r.mvec)]).sort((a, b) => b[1] - a[1]).slice(0, K_RETRIEVE).forEach(([r]) => stage.set(r.record_id, r));
+      if (ML) pool.map((r) => [r, cosine(q.mvec, r.mvec)]).sort((a, b) => b[1] - a[1]).slice(0, K_RETRIEVE).forEach(([r]) => stage.set(r.record_id, r));
     }
     const byTable = {};
     for (const r of stage.values()) (byTable[r.table] ??= []).push(r);
     const f6 = (v) => `'[${v.map((x) => x.toFixed(6)).join(',')}]'::vector(384)`;
-    const inserts = Object.entries(byTable).map(([t, rs]) => upsertSql(t, rs)).join('\n') + (PATH !== 'ml' ? '' : '\n' + [...stage.values()].map((r) =>
+    const inserts = Object.entries(byTable).map(([t, rs]) => upsertSql(t, rs)).join('\n') + (!ML ? '' : '\n' + [...stage.values()].map((r) =>
       `insert into public.knowledge_vector_ml (src, row_id, text_hash, embedding) values (${lit(r.table)}, ${lit(r.record_id)}, 'zz-staged-eval', ${f6(r.mvec)}) on conflict (src, row_id) do update set embedding = excluded.embedding;`).join('\n'));
     const block = `do $qdeval$ declare o jsonb := '[]'::jsonb; begin\n${mine.map((q) => `o := o || jsonb_build_array(${hitsExpr(q)});`).join('\n')}\nraise exception 'CHK<<%>>', o::text; end $qdeval$;`;
     // A management-API throttle (429) or a deadlock with another session (40P01) is a blip, not a finding: the probe is an aborted transaction, so it is re-run
