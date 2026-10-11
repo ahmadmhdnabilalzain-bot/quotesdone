@@ -1,0 +1,1 @@
+Committed, not applied: applied at merge by the release operator (apply at merge, never before). Adds ai_gateway to the scope of fn.resilience_ping and fn.accountant, whose gateway calls return 403 since the hold lift so the held-question queue cannot drain. On apply: delete this note and append the file to the END of MANIFEST.txt. Seat: it_engineer.
