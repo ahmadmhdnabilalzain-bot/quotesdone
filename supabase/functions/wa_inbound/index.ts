@@ -17,6 +17,7 @@
 //      nothing recorded that it had arrived. The same journey by EMAIL has worked for weeks. This
 //      is that path, reused rather than reinvented: same bucket, same sanitiser, same extractor,
 //      same columns, same audit row.
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
@@ -931,7 +932,9 @@ async function handleInbound(req: Request): Promise<Response> {
           reply = anyApplied
             ? 'Got it — your trade licence is on file and I have updated your record (' + results.filter((r) => r.startsWith('updated:')).map((r) => r.replace('updated: ', '')).join('; ') + '). You can check it any time at https://quotesdone.com/suppliers.'
             : anyOk
-              ? 'Thanks — the document is saved against your account, but I could not read the details off it confidently, so nothing on your record was changed. If the licence number or expiry is wrong on your profile, please correct it at https://quotesdone.com/suppliers.'
+              // Ruling 1177 (12 Oct 2026): a file both the code and the model could not read is answered with a clearer-copy
+              // request (suppliers: always English); the copy sent back on this chat is read by this same path on arrival.
+              ? 'Thanks — the document is saved against your account, but I could not read the details off it confidently, so nothing on your record was changed. ' + clearerCopyAsk('supplier', 'en', 'the document')
               : 'Sorry — I could not accept that file (' + results[0].replace('not stored — ', '') + '). Please send the trade licence as a PDF or a clear photo, or upload it at https://quotesdone.com/suppliers.';
         }
 

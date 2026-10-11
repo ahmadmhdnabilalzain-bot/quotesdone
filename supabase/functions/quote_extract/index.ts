@@ -56,7 +56,7 @@ Deno.serve(observe('quote_extract', async (req) => {
     // 14 Sep 2026. THE DETERMINISTIC PATH. Under the model hold every quotation failed here. When the
     // supplier's ORIGINAL file is supplied (file_b64), _shared/doc_read reads it with no model and
     // quote_from_document turns it into the same proposal shape; prices kept, supplier identity masked.
-    const detQuote = async (why: string) => {
+    const detQuote = async (why: string, needTotal = false) => {
       if (!body.file_b64) return null;
       try {
         const rd = await readDocument(String(body.file_b64), String(body.filename || 'quotation'), String(body.mime || ''));
@@ -66,6 +66,7 @@ Deno.serve(observe('quote_extract', async (req) => {
         const masks = Array.isArray(body.supplier_terms) ? body.supplier_terms.map((s: unknown) => String(s)) : [];
         const priced = quoteFromExtracted(rd, masks);
         if (priced.amount == null && !priced.line_items.length) return null;   // no model is asked about a file with no price
+        if (needTotal && priced.amount == null) return null;   // code first: only a priced reading stops the model
         const terms = await quoteTerms(defaultDeps(admin, 'quote_extract'), { text: quoteText(rd) });
         const p = terms.value ? quoteFromExtracted(rd, masks, terms.value) : priced;
         if (!terms.value) p.notes += ' The lead time, validity, payment terms, warranty and exclusions were not read from the file: please type them in the form. / لم تُقرأ مدة التسليم وصلاحية العرض وشروط الدفع والضمان والاستثناءات من الملف: يُرجى كتابتها في النموذج.';
@@ -74,7 +75,10 @@ Deno.serve(observe('quote_extract', async (req) => {
       } catch (_e) { return null; }
     };
     const secret = await sec('cred_fn_ai');
-    if (!secret || body.deterministic === true) { const d = await detQuote(secret ? 'requested' : 'no_ai_key'); if (d) return d; }
+    // CODE FIRST (ruling 1177, 12 Oct 2026). This ran only with no AI key or on request, so a text PDF with a printed
+    // total went to the model first. Now the supplied file is read by code every time, and the model is asked only
+    // when code found no total (a scan, a photo, a layout the reader does not price).
+    { const d = await detQuote(!secret ? 'no_ai_key' : body.deterministic === true ? 'requested' : 'code_first', !!secret && body.deterministic !== true); if (d) return d; }
     if (!secret) { await logRun('error', { quote_extracted: 0, ai_key_present: 0 }, 'quote_extract aborted: the cred_fn_ai credential is missing, so the AI gateway cannot be called and no supplier quotation can be read at all. Every quote uploaded while this persists is silently dropped and the customer sees fewer (or zero) quotes to compare.'); return J({ error: 'no ai key' }, 500); }
     const inq = body.inquiry || {};
 
@@ -104,8 +108,14 @@ Deno.serve(observe('quote_extract', async (req) => {
       // smallest real quotation. parseJson then returned {}, every text field was scrubbed to '',
       // and the function reported ok:true with an empty proposal: the supplier's real price was
       // silently dropped from the customer's comparison. 6000 covers a multi-page quotation.
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'quote_extract', subject: body.subject ?? null, max: 6000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }], client_timeout_ms: 100000 }) });
-      const jd = await r.json();
+      // ONE MORE ASKING (ruling 1177): an answer with no parseable JSON or no total is asked once more before the
+      // quotation is called unreadable; the gateway itself falls to the route's second model on a provider failure.
+      let r!: Response; let jd: any;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'quote_extract', subject: body.subject ?? null, max: 6000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }], client_timeout_ms: 100000 }) });
+        jd = await r.json();
+        if (!r.ok || jd?.ok === false || Number(parseJson(jd?.content || '{}')?.amount) > 0) break;
+      }
       if (!r.ok || jd?.ok === false) { const d = await detQuote('ai_gateway_refused'); if (d) return d; await logRun('error', { quote_extracted: 0, pages: aiPages, ai_ok: 0 }, 'quote_extract could not read a supplier quotation because the vision model call returned an error (' + String(jd?.detail || jd?.error || ('http ' + r.status)).slice(0, 140) + '). The supplier\'s quotation exists but produced no structured quote, so the customer\'s comparison is missing a real price.'); return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0,300) }, 502); }
       extractedBy = typeof jd?.model === 'string' && jd.model ? jd.model : 'unknown';
       const _rawContent = jd?.content || '{}';

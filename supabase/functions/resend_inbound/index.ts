@@ -21,6 +21,7 @@
 // svix-signature) against app_secrets.resend_inbound_signing_secret. The ?s= token is KEPT as a
 // second factor - both must now pass. The body is read ONCE as raw text because the signature is
 // over the exact bytes; it is parsed only after verification succeeds.
+import { readEveryAttachment, envGatewayVision, clearerCopyAsk } from '../_shared/read_every_attachment.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -415,7 +416,14 @@ export const handler = observe('resend_inbound', async (req) => {
           docText = await pdfText(att.bytes);
           if (!docText) receiptReason = 'The attached PDF carries no text layer we can trust — it is scanned, or uses a font we cannot map — so nothing was read from it. ';
         } else if (att) {
-          receiptReason = 'The receipt is an image, which has no text layer; reading it needs a vision model and every paid route is held. ';
+          receiptReason = 'The receipt is an image, which has no text layer. ';
+        }
+        // RULING 1177 (12 Oct 2026): a scanned PDF or a photographed receipt is READ by the vision model (_shared/
+        // read_every_attachment: one more asking, the gateway's second model). Held only when both askings fail.
+        if (att && !docText) {
+          const seen = await readEveryAttachment(att.bytes, att.name, att.mime, envGatewayVision());
+          if (seen.status === 'read') { docText = seen.text.slice(0, 8000); receiptReason = ''; }
+          else receiptReason += 'The vision model could not read it either (' + String(seen.reason || 'no answer').slice(0, 80) + '), so it is held for a clearer copy. ';
         }
         // A CSV export (the .csv extension is a file-format fact) is read as text; it is used only if the message is
         // reasoned to be a statement, and the reasoning reads it too.
@@ -719,7 +727,7 @@ export const handler = observe('resend_inbound', async (req) => {
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
     let lead: any = null;
     if (from) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
-    let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = [];
+    let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = [];
     let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0; let classifySkipped = 0;
     for (const a of atts.slice(0,6)) {
       const fname = String(a.filename || a.name || 'document').slice(0,180);
@@ -775,6 +783,7 @@ export const handler = observe('resend_inbound', async (req) => {
       if (lead && inbSecret) {
         if (cat === 'trade_license') {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
+          if (!ex?.doc || ex.doc.confidence === 'low') unreadDocs.push(fname);   // ruling 1177: ask for a clearer copy
           if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
               // The name printed on this licence (a scan is read by the vision model); null = not read, and the
               // sales engineer's review then holds the registration for a human (licence_name_unread).
@@ -795,6 +804,7 @@ export const handler = observe('resend_inbound', async (req) => {
           }
         } else if (cat === 'company_profile' || cat === 'catalogue') {
           const ex = await extractDoc('profile', bytes, mime, fname, inbSecret);
+          if (!ex?.profile || ex.profile.confidence === 'low') unreadDocs.push(fname);
           const u:any = { doc_extracted_at: new Date().toISOString() };
           if (cat === 'company_profile') u.company_profile_doc_path = path;
           if (cat === 'catalogue') { const cur = Array.isArray(lead.catalog_doc_paths)?lead.catalog_doc_paths:[]; u.catalog_doc_paths = [...cur, path]; }
@@ -832,7 +842,12 @@ export const handler = observe('resend_inbound', async (req) => {
     if (lead && appliedSummary.length) {
       try{ await requestDelivery(admin, { type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
-    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body:`Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and updated your records.`, status:'queued' });
+    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body: unreadDocs.length
+      // RULING 1177 (12 Oct 2026): this said 'updated your records' even when nothing could be read. A document both the
+      // code and the model could not read is now answered with a clearer-copy request (suppliers: always English), and
+      // the clearer copy, sent to the same address, is read by this same path when it arrives.
+      ? `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s). ` + unreadDocs.map((n) => clearerCopyAsk('supplier', 'en', n)).join(' ')
+      : `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and ${appliedSummary.length ? 'updated your records' : 'our team will add them to your profile'}.`, status:'queued' });
     const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, classify_skipped_zero_cost: classifySkipped, applied: appliedSummary.length, signature_verified: 1 };
     if (lostAttachments || uploadFailures) await logRun('error', counts, 'INBOUND DOCUMENTS LOST - ' + lostAttachments + ' attachment(s) could not be downloaded from Resend and ' + uploadFailures + ' failed to upload to storage. Sender: ' + from + ', subject: ' + subject.slice(0, 120));
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));
