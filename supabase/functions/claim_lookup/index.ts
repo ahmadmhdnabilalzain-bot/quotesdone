@@ -22,7 +22,8 @@ import { siteCors } from '../_shared/site_origins.ts';
 //     https://quotesdone.com/claim?t=<leads.claim_token>
 // Never put leads.id in a supplier invitation.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { observe } from '../_shared/observe.ts';
+import { observe, annotate } from '../_shared/observe.ts';
+import { probeCaller } from '../_shared/probe_caller.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -55,7 +56,10 @@ Deno.serve(siteCors(observe('claim_lookup', async (req) => {
     }
 
     if (!token || !UUID_RE.test(token)) {
-      return J({ ok: false, error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation.' }, 400);
+      // Our own hourly launch-path probe is marked fixture by its credential, never by its say-so
+      // (_shared/probe_caller.ts; 7 Oct 2026, handoff 100487: 24 of 24 refusals in a day were that probe).
+      return annotate(J({ ok: false, error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation.' }, 400),
+        await probeCaller(admin, req, 'claim_lookup'));
     }
 
     const { data: l, error } = await admin.from('leads')
