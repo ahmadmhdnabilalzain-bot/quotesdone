@@ -6284,6 +6284,9 @@
   "afa6fc3ea96a",
   "c393ed6907b8"
  ],
+ "supabase/functions/transcribe/index.ts": [
+  "e6000ddeb9a0"
+ ],
  "supabase/functions/voice_otp/twiml.ts": [
   "2106a8f82cd2",
   "ee21e997c5f4"
@@ -6316,7 +6319,9 @@
   "5cbb277245b5",
   "61e5bb9d6ede",
   "6c8d4e17edaa",
+  "7fea49861151",
   "a543b7484225",
+  "b2a7e76366cb",
   "c09183a62789",
   "e687fbf0ba76"
  ],

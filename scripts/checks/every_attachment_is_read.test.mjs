@@ -56,6 +56,10 @@ const PATHS = [
   ['supplier_portal/index.ts', /unread: true, message: clearerCopyAsk\('supplier', 'en'/, 'an unread certificate or licence carries the clearer-copy request'],
   ['extract_text/index.ts', /if\(!text\)\{\s*try\{\s*const r = await fetch\(GW/, 'a scanned PDF is asked again without the text-only engine'],
   ['wa_inbound/index.ts', /clearerCopyAsk\('supplier', 'en', 'the document'\)/, 'a WhatsApp document that could not be read asks for a clearer copy'],
+  ['supplier_api/index.ts', /if \(!jd\?\.ok && orig\.b64\) \{\s*const seen = await readQuotationFile\(/, 'a quotation quote_extract could not price is read by the helper before the supplier is asked'],
+  ['supplier_api/index.ts', /message: clearerCopyAsk\('supplier', 'en'/, 'and the supplier is asked for a clearer copy, not sent to the form'],
+  ['wa_inbound/index.ts', /readEveryAttachment\(sc\.result\.bytes, 'whatsapp-file'/, 'a WhatsApp file from a number with no account is read'],
+  ['transcribe/index.ts', /for \(let attempt = 1; attempt <= 2 && text === null; attempt\+\+\)/, 'an unreadable voice note is asked once more'],
 ];
 for (const [file, re, what] of PATHS) {
   test(`${file}: ${what}`, () => assert.match(code(file), re, `${file} no longer does this: ${what}`));

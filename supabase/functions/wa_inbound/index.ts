@@ -18,6 +18,7 @@
 //      is that path, reused rather than reinvented: same bucket, same sanitiser, same extractor,
 //      same columns, same audit row.
 import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
+import { readEveryAttachment, envGatewayVision } from '../_shared/read_every_attachment.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
@@ -917,11 +918,32 @@ async function handleInbound(req: Request): Promise<Response> {
 
       const docWork = (async () => {
         const enabled = (await sec('wa_autoreply_enabled')) === 'true';
-        let reply = ''; const results: string[] = [];
+        let reply = ''; const results: string[] = []; let readText = '';
 
         if (!leadId) {
-          // Not a supplier we can find. Never silently discard it, and never guess whose it is.
-          reply = 'Thanks — I can see you have sent a file, but this number is not linked to a supplier account yet, so I cannot file it against a company. Register or sign in at https://quotesdone.com/suppliers and upload it there, and it will be read automatically.';
+          // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
+          // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
+          // conversation turn, so the next message on this chat is answered knowing what was sent. The reply says it was
+          // read and gives both doors: a customer's request goes in at the request page, a supplier registers.
+          // Whether it is a request or a supplier document is NOT guessed here from words (founder_instruction 886-903).
+          for (const m of media.slice(0, 3)) {
+            const got = await fetchTwilioMedia(m.url, internalCaller);
+            if (!got.bytes) { results.push('not downloaded'); continue; }
+            const sc = await sanitizeAndScan({ input: got.bytes, declaredMime: got.mime || m.mime, filename: 'whatsapp-file', allow: SAFE_UPLOAD,
+              scan: { source: 'wa_inbound.unknown_sender_doc', subject: From, filename: 'whatsapp-file', bucket: null } });
+            if (!sc.ok) { results.push('refused: ' + sc.body.error); continue; }
+            const seen = await readEveryAttachment(sc.result.bytes, 'whatsapp-file', sc.result.mime, envGatewayVision({ subject: { phone: From } }));
+            results.push(seen.status === 'read' ? 'read by ' + seen.by : 'unreadable: ' + String(seen.reason || seen.status).slice(0, 60));
+            if (seen.status === 'read') readText += '\n[attachment read by ' + seen.by + ']\n' + seen.text.slice(0, 3000);
+          }
+          const ar = /[؀-ۿ]/.test(Body + readText) && !/[A-Za-z]{4}/.test(Body);
+          reply = readText
+            ? (ar
+              ? 'شكرًا، قرأنا الملف الذي أرسلتموه. إن كان طلب أسعار فيُرجى تقديمه عبر https://quotesdone.com لنرسله إلى الموردين المناسبين، وإن كنتم موردًا فيُرجى التسجيل عبر https://quotesdone.com/suppliers ليُحفظ في ملف شركتكم.'
+              : 'Thanks — we have read the file you sent. If it is a request for quotes, please submit it at https://quotesdone.com and we will send it to the right suppliers; if you are a supplier, register at https://quotesdone.com/suppliers and it will be filed against your company.')
+            : (results.some((r) => r.startsWith('unreadable'))
+              ? clearerCopyAsk(ar ? 'customer' : 'supplier', ar ? 'ar' : 'en', 'the file')
+              : 'Thanks — I can see you have sent a file, but it could not be opened. Please send it again as a PDF or a clear photo.');
         } else {
           for (const m of media.slice(0, 3)) {
             const r = await handleSupplierDoc(leadId, m.url, m.mime, From, internalCaller);
@@ -944,7 +966,7 @@ async function handleInbound(req: Request): Promise<Response> {
         try {
           await waInsert(receivedAt, {
             wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
-            inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
+            inbound: ((Body || '(no caption)') + readText).slice(0, 4000), reply, lang: 'en', escalated: false, sent,
             meta: { enabled, audience, route: 'media_in', media_count: media.length, lead_id: leadId,
                     results, send_error: sendErr || null, provenance_verified: true,
                     message_sid: MessageSid || null },
@@ -953,7 +975,7 @@ async function handleInbound(req: Request): Promise<Response> {
         await logRun(leadId && results.every((r) => r.startsWith('not stored')) ? 'error' : 'ok',
           { audience, route: 'media_in', media: media.length, lead_id: leadId, sent },
           leadId ? ('WhatsApp document from lead ' + leadId + ': ' + results.join(' | '))
-                 : 'WhatsApp document from a number with no supplier account; nothing was filed and the sender was told why');
+                 : ('WhatsApp file from a number with no account: ' + results.join(' | ') + '; nothing was filed against a company'));
       })();
 
       const erDoc = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
