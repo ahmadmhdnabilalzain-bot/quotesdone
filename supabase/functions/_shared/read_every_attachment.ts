@@ -111,7 +111,7 @@ export function envGatewayVision(opts: { subject?: unknown } = {}): Vision {
   return async (req) => {
     const url = Deno.env.get('SUPABASE_URL'), key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!url || !key) return { ok: false, text: '', why: 'no_project_env' };
-    const r = await fetch(`${url}/rest/v1/app_secrets?key=eq.cred_fn_ai&select=value`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).catch(() => null);
+    const r = await fetch(`${url}/rest/v1/app_secrets?key=eq.cred_fn_ai&select=value`, { headers: { apikey: key, Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000) }).catch(() => null);
     const secret = r && r.ok ? (await r.json().catch(() => []))?.[0]?.value : null;
     if (!secret) return { ok: false, text: '', why: 'no_gateway_credential' };
     return gatewayVision(`${url}/functions/v1/ai_gateway`, secret, opts)(req);

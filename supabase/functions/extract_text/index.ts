@@ -54,7 +54,7 @@ Deno.serve(observe('extract_text', async (req) => {
     // asked once more with the file itself and no text-only plugin, so the vision model reads the page.
     if(!text){
       try{
-        const r = await fetch(GW, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'extract_text', input: [{ role:'user', content }] }) });
+        const r = await fetch(GW, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'extract_text', input: [{ role:'user', content }] }), signal: AbortSignal.timeout(110_000) });
         const jd = await r.json();
         if (jd?.truncated === true || jd?.finish_reason === 'length') modelTruncated = true;
         const c = jd?.content; if(c && String(c).trim().length>5){ text = String(c).trim(); } else last = jd?.detail || jd?.error || jd?.why || last;
