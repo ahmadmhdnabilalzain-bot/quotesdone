@@ -8,7 +8,6 @@
 --   deepseek/deepseek-v4.1-flash     prompt 0.0000003, completion 0.0000012, context 1048576
 -- deepseek/deepseek-v4.1-flash also differs from the old file trail, but matrix v2 retired it (active = false), so it
 -- is not a claim and is left alone.
--- so it is re-derived here.
 -- No routine, table or grant. OpenRouter stays on (ruling 1175). No begin/commit. Ends in a PROBE verdict row.
 
 update public.model_registry set context_len = 1000000, in_per_mtok_usd = 0.1,
