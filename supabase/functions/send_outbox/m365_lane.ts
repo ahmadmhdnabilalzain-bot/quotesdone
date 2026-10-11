@@ -125,18 +125,42 @@ export function m365InvitationText(link: string): string {
   ].join('\n\n');
 }
 
-/** The body this lane sends: the plain variant for an invitation with exactly one portal link; else the row's own body. */
-export function m365Body(type: unknown, rowBody: string): string {
+// A placement-test seed (GlockApps) is matched by an inbox-test ID on the LAST line of the body, e.g.
+// "id:2026-10-05-18:36:55:550t". 5 Oct 2026: m365Body rebuilt the text from the link alone, dropped that line,
+// and GlockApps matched 0 of 80 seeds. Only a seed row carries it; a real invitation or nudge never does.
+const SEED_MARKER = /^id:[0-9A-Za-z:_-]{6,64}$/;
+
+/** The inbox-test ID on the last non-empty line of a body, or '' when there is none. */
+export function seedMarker(body: string): string {
+  const last = String(body || '').trimEnd().split(/\r?\n/).pop()?.trim() || '';
+  return SEED_MARKER.test(last) ? last : '';
+}
+
+/** The body this lane sends: the plain variant for an invitation with exactly one portal link; else the row's own body.
+ *  A seed row (kind M365_SEED_KIND) keeps its trailing inbox-test ID line at the end of whatever is built. */
+export function m365Body(type: unknown, rowBody: string, kind?: unknown): string {
   const links = String(rowBody || '').match(PORTAL_LINK) || [];
-  if (type !== 'supplier_invite_nudge' && links.length === 1) return m365InvitationText(links[0]);
-  return withReplyQuestion(rowBody || '');
+  const marker = kind === M365_SEED_KIND ? seedMarker(rowBody) : '';
+  const own = marker ? String(rowBody).trimEnd().slice(0, -marker.length).trimEnd() : (rowBody || '');
+  const built = type !== 'supplier_invite_nudge' && links.length === 1 ? m365InvitationText(links[0]) : withReplyQuestion(own);
+  return marker ? built + '\n\n' + marker : built;
 }
 
 const DATED = /\b(?:20\d\d|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|deadline|until|expires?|limited time)\b/i;
 const UP_TO_THREE = /\b(?:up to|only|maximum of|max(?:imum)?)\s+(?:three|3)\s+(?:suppliers|quotes|quotations)\b/i;
 
 /** Every rule the lane's body must pass before it leaves. Any failure holds the row. */
-export function m365CopyLint(o: { subject: string; body: string; preheader?: string }): CopyRule[] {
+// For a seed, ONLY the trailing inbox-test ID line is set aside, and only for the rules it cannot honour by being
+// there: the date rules (the ID holds a year) and the two question-placement rules (the ID must be the last line).
+// Every content rule (English, the word, one link, no HTML, no cap on suppliers) still reads the whole body.
+const MARKER_EXEMPT = /date|ends with one question|question comes after/;
+export function m365CopyLint(o: { subject: string; body: string; preheader?: string; seed?: boolean }): CopyRule[] {
+  const marker = o.seed ? seedMarker(o.body) : '';
+  if (marker) {
+    const rest = o.body.trimEnd().slice(0, -marker.length).trimEnd();
+    const without = new Map(m365CopyLint({ ...o, body: rest, seed: false }).map((l) => [l.rule, l]));
+    return m365CopyLint({ ...o, seed: false }).map((l) => (MARKER_EXEMPT.test(l.rule) ? without.get(l.rule) || l : l));
+  }
   const links = o.body.match(/https?:\/\/\S+/g) || [];
   const portal = (o.body.match(PORTAL_LINK) || [])[0];
   return [
@@ -158,10 +182,27 @@ export function messageIdFor(notificationId: number | string, now: Date): string
   return `<qd-notif-${notificationId}.${now.getTime()}@quotesdone.com>`;
 }
 
-/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). */
+// ---------------------------------------------------------------- Reply-To (6 Oct 2026, it_engineer)
+// MEASURED 6 Oct 2026: an invitation from this lane passed SPF, DKIM (selector1, d=quotesdone.com) and DMARC, scored
+// 10/10 at mail-tester with outbound SCL 1, and still landed in Junk at a Microsoft 365 recipient. Its From was
+// supplier@quotesdone.com and its Reply-To suppliers@mail.quotesdone.com (app_secrets.email_reply_supplier): a
+// Reply-To on another domain than the From is a phishing signal. So the lane sends with NO Reply-To and a reply goes
+// to the mailbox itself -- but only once _shared/m365_reply_inbox.ts has PROVED, on a recent tick, that it can read
+// that mailbox and hand its mail to resend_inbound. Until then the old Reply-To stays, so a reply is never sent to a
+// mailbox nobody reads. The proof is the newest agent_runs row of M365_INBOX_AGENT carrying counts.m365_inbox, status 'ok'.
+export const M365_INBOX_AGENT = 'resend_inbound';   // = m365_reply_inbox.ts PROOF_LABEL; its rows carry counts.m365_inbox = 1
+export const M365_INBOX_PROOF_MAX_AGE_MS = 2 * 60 * 60_000;
+/** '' = no Reply-To header (replies reach the From mailbox); otherwise the fallback, kept until the reader is proven. */
+export function m365ReplyTo(o: { proofAt: string | null | undefined; now: Date; fallback: string }): string {
+  const t = o.proofAt ? Date.parse(o.proofAt) : NaN;
+  const age = o.now.getTime() - t;
+  return Number.isFinite(t) && age <= M365_INBOX_PROOF_MAX_AGE_MS && age >= -60_000 ? '' : o.fallback;
+}
+
+/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To. */
 export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date }): string {
   const lines = [
-    `From: ${clean(o.from)}`, `To: ${clean(o.to)}`, `Reply-To: ${clean(o.reply)}`, `Subject: ${hdr(clean(o.subject) || 'QuotesDone')}`,
+    `From: ${clean(o.from)}`, `To: ${clean(o.to)}`, ...(clean(o.reply) ? [`Reply-To: ${clean(o.reply)}`] : []), `Subject: ${hdr(clean(o.subject) || 'QuotesDone')}`,
     `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, 'MIME-Version: 1.0',
   ];
   if (o.unsub) lines.push(`List-Unsubscribe: <${clean(o.unsub)}>, <mailto:${o.unsubMailto}?subject=unsubscribe>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click');

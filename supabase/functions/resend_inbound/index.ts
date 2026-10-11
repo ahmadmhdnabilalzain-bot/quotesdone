@@ -44,6 +44,7 @@ import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
 import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
+import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -174,6 +175,10 @@ export const handler = observe('resend_inbound', async (req) => {
     const isResend = p?.type === 'email.received' && p?.data;
     let d = isResend ? p.data : (p.data || p);
     const emailId = String(d.email_id || d.id || '');
+    // 6 Oct 2026: a reply read from the Microsoft 365 mailbox (_shared/m365_reply_inbox.ts) arrives with its body,
+    // headers and files inline and an id of 'm365:<Graph immutable id>'. Resend has no such email, so it is never
+    // asked for one; the id is still the provider_email_id that makes a second delivery a duplicate.
+    const resendEmailId = emailId.startsWith(M365_INBOUND_PREFIX) ? '' : emailId;
     // 6 SEP 2026 (MASTER_PLAN A6): the classifier no longer holds a provider key. It reaches the
     // model through ai_gateway like every other caller; `key` below is only "is classification on".
     const rkey = await sec('resend_api_key'); const key = await sec('cred_fn_resend_inbound'); const inbSecret = await sec('cred_fn_ai');
@@ -182,8 +187,8 @@ export const handler = observe('resend_inbound', async (req) => {
     // The RFC headers a customer reply needs (Message-ID, for In-Reply-To) and the ones that say a machine sent
     // it (Auto-Submitted, Content-Type); kept from the webhook, or from the full read below when it runs.
     let hdrs: Record<string, unknown> | null = (d.headers && typeof d.headers === 'object') ? d.headers : null;
-    if ((!text || text.length < 20 || !atts.length) && emailId && rkey) {
-      const full = await fetchInboundEmail(emailId, rkey);
+    if ((!text || text.length < 20 || !atts.length) && resendEmailId && rkey) {
+      const full = await fetchInboundEmail(resendEmailId, rkey);
       if (full) { const fd = full.data || full; if (fd.headers && typeof fd.headers === 'object') hdrs = { ...fd.headers, ...(hdrs || {}) }; const fb = pickBody(fd); if (fb && fb.length > text.length) text = fb; if (Array.isArray(fd.attachments) && fd.attachments.length) atts = fd.attachments; if (!d.subject && fd.subject) d = { ...d, subject: fd.subject }; if (!d.from && fd.from) d = { ...d, from: fd.from }; if (!d.to && fd.to) d = { ...d, to: fd.to }; if (!d.html && fd.html) d = { ...d, html: fd.html }; }
       else if (emailId) await logRun('error', { email_id: emailId }, 'could not fetch full inbound email from Resend - body and attachments may be incomplete');
     }
@@ -223,7 +228,7 @@ export const handler = observe('resend_inbound', async (req) => {
     // + content unchanged since it was sent + month not over + "approve". It answers him itself.
     if (isCalendarReply({ to, subject })) {
       const calHdrs = d.headers?.['authentication-results'] ? d.headers
-        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+        : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
       const verdict = { token: calendarTokenOf({ to, subject }) || '', from_email: from,
         authenticated: fromDomainAuthenticated(calHdrs?.['authentication-results'], from), message_id: providerEmailId || '', intent: replyIntent(fullText),
         // his own words (quote cut off): a reply that is not exactly "approve" becomes the marketing seat's change request
@@ -245,7 +250,7 @@ export const handler = observe('resend_inbound', async (req) => {
     const approveToken = approvalTokenOf({ to, subject });
     if (approveToken) {
       const aHdrs = d.headers?.['authentication-results'] ? d.headers
-        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+        : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
       const av = { token: approveToken, from_email: from, authenticated: fromDomainAuthenticated(aHdrs?.['authentication-results'], from),
         message_id: providerEmailId || '', intent: replyIntent(fullText), text: ownWords(fullText).slice(0, 4000) };
       const { data: out, error: aErr } = await admin.rpc('fn_marketing_approval_reply', { p: av });
@@ -266,7 +271,7 @@ export const handler = observe('resend_inbound', async (req) => {
     const planToken = planTokenOf({ to, subject });
     if (planToken) {
       const pHdrs = d.headers?.['authentication-results'] ? d.headers
-        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+        : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
       const pv = { token: planToken, from_email: from, authenticated: fromDomainAuthenticated(pHdrs?.['authentication-results'], from),
         message_id: providerEmailId || '', text: ownWords(fullText).slice(0, 4000),
         attachments: atts.map((a: any) => String(a?.filename || a?.name || '')).filter(Boolean).slice(0, 50) };
@@ -334,7 +339,7 @@ export const handler = observe('resend_inbound', async (req) => {
       } else {
         // The webhook is metadata-only; the headers come from GET /emails/inbound/{id} (measured 22 Sep 2026).
         const hdrs = d.headers?.['authentication-results'] ? d.headers
-          : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+          : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
         if (!fromDomainAuthenticated(hdrs?.['authentication-results'], from)) {
           why = 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
         } else {
@@ -812,7 +817,7 @@ export const handler = observe('resend_inbound', async (req) => {
     // it. It was needs_review=false, which email_triage's selection excludes, so a customer's question was stored
     // and never read. raw keeps what the reply and noAutoReply need (_shared/customer_mail.ts).
     const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
-    const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'),
+    const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'), in_reply_to: hv('in-reply-to'), references: hv('references'),
       content_type: hv('content-type'), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.

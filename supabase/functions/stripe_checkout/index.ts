@@ -2,7 +2,7 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { jobNoOf } from '../_shared/quote_documents.ts';
 import { observe } from '../_shared/observe.ts';
-import { siteReturnBase } from '../_shared/site_origins.ts';
+import { siteReturnBase, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
@@ -30,7 +30,7 @@ function mkLog(t0: number) {
   };
 }
 
-Deno.serve(observe('stripe_checkout', async (req) => {
+Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
@@ -231,4 +231,4 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     await logRun('ok', { quote_id: qid, fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, session: String(sj?.id || '') }, '');
     return J({ ok: true, url: sj.url, fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-}));
+})));

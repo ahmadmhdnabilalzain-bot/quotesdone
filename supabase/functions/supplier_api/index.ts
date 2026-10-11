@@ -11,7 +11,7 @@ import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { CANONICAL_ORIGIN, siteReturnBase } from '../_shared/site_origins.ts';
+import { CANONICAL_ORIGIN, siteReturnBase, siteCors } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
 import { boqWithArabic } from '../_shared/boq_arabic.ts';
@@ -1848,4 +1848,4 @@ const handle = async (req: Request): Promise<Response> => {
     return J({ error: String(e) }, 500);
   }
 };
-Deno.serve(observe('supplier_api', handle));
+Deno.serve(siteCors(observe('supplier_api', handle)));

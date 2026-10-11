@@ -490,6 +490,13 @@
   "5b783224f4d2",
   "fc3b6977c5b6"
  ],
+ "scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql": [
+  "014ff0cd3cb4",
+  "157e9ef57506",
+  "64d677e419b0",
+  "b4df49975269",
+  "dc9917268801"
+ ],
  "scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_before_the_customer_sees_it.sql": [
   "12572be91239",
   "15bd385ae25c",
@@ -554,21 +561,18 @@
   "d2f51ce60d95",
   "e0c574ae3528"
  ],
+ "scripts/sql/a_web_search_is_capped_names_no_private_party_and_tells_the_founder_only_of_his_account.sql": [
+  "9e03b148b744",
+  "d40621091456"
+ ],
+ "scripts/sql/a_whatsapp_request_for_a_person_is_escalated_never_left_waiting.sql": [
+  "58c1fcf37910"
+ ],
  "scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql": [
   "f1b2f677e087"
  ],
  "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql": [
   "3cbc1543d65e"
- ],
- "scripts/sql/a_web_search_is_capped_names_no_private_party_and_tells_the_founder_only_of_his_account.sql": [
-  "9e03b148b744",
-  "d40621091456"
- ],
- "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english_probe.sql": [
-  "2c34b688d18c",
-  "6e8f5d8a80f0",
-  "a428e819f9a6",
-  "cf76d5fb9275"
  ],
  "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english.sql": [
   "036eb5e90eaa",
@@ -1323,6 +1327,19 @@
  ],
  "scripts/sql/the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql": [
   "d4da55db16ad"
+ ],
+ "scripts/sql/the_ladder_notices_quote_the_clause_33_the_supplier_signed_not_the_v12_figures.sql": [
+  "1412493dad3a",
+  "3039920eee7e",
+  "4ae3a0485360",
+  "5a5ba8e2fb00",
+  "5e01ea37101f",
+  "68d176d5ac02",
+  "9af216d0be0d",
+  "9b18f22750e4",
+  "b5a5f52a6894",
+  "e10ef6ab25d0",
+  "e68a1001aebd"
  ],
  "scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql": [
   "e3377772a818"
@@ -2481,9 +2498,6 @@
   "f7982e5b1c22",
   "fca452be09ee"
  ],
- "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
-  "ac6c63ab5f9f"
- ],
  "scripts/sql/the_registered_language_follows_every_message_until_the_reveal.sql": [
   "34d5d7e54ec8",
   "9d231fc92d97"
@@ -2596,6 +2610,44 @@
   "df41819eedaa",
   "e5b97c22b0a2",
   "f38622845c37"
+ ],
+ "scripts/sql/the_terms_of_6_october_2026_say_quotesdone_is_an_intermediary_not_a_party.sql": [
+  "0323f92c845d",
+  "076b6d5ad3ac",
+  "083e8276f79e",
+  "0ae572b45180",
+  "31799a1dacb4",
+  "31fb5fdaefb2",
+  "347954a3e357",
+  "3540d39928d8",
+  "3a8ecb488816",
+  "48175a54e663",
+  "50c21c1fd012",
+  "56b5c7595316",
+  "66cdbd243f65",
+  "6ee550bf08c6",
+  "74db16d12837",
+  "832c92fb3975",
+  "88bb24dfb897",
+  "8c92b3e38b32",
+  "9fcba2406792",
+  "9ff28a224a3d",
+  "a56dbf495b14",
+  "aaaf4fb2adf3",
+  "aed9d55060dd",
+  "af68e7f40dcb",
+  "afc34aee5102",
+  "c086f100b7da",
+  "c8861ca62e11",
+  "c945142d1ff3",
+  "d8571810ff3d",
+  "d8f5c71bf9df",
+  "d9a4353cc86d",
+  "df41819eedaa",
+  "e5b97c22b0a2",
+  "e88c52b925fc",
+  "f38622845c37",
+  "fa8603f50563"
  ],
  "scripts/sql/the_tools_the_maintenance_runs_on_are_not_dead_code.sql": [
   "2b28d0a6d8d3",
@@ -2850,6 +2902,7 @@
   "29faf6c4d3d2",
   "2a0a6a601687",
   "2a6a3970ce25",
+  "2b24f3b49cbb",
   "2ca7a81a8f8f",
   "2e12fc21277c",
   "31a801eee967",
@@ -2979,6 +3032,7 @@
   "bb44969905d2",
   "bba16777842a",
   "bc6affc679ed",
+  "bc8c5d7ef013",
   "bd55a7eb1750",
   "bead649ee009",
   "bf41ed4abd8e",
@@ -3032,6 +3086,7 @@
   "ef4f41b972a1",
   "efa91f65ffc9",
   "f1624f88a2ac",
+  "f3635fc2a79c",
   "f39622327efe",
   "f4088118692b",
   "f41e8ce0f533",
@@ -4947,6 +5002,7 @@
   "086144a9d119",
   "09c62c85e0f3",
   "0c9a4a9aaf31",
+  "1033ec029504",
   "10d61059a6bb",
   "1125b13e7138",
   "153f7d6d7e82",
@@ -4985,6 +5041,7 @@
   "444653723f1a",
   "448c7a1eb876",
   "478f3fd957c6",
+  "496e569ffae9",
   "49b83d887375",
   "49fd06863521",
   "4baf7b1bfea2",
@@ -5053,6 +5110,7 @@
   "9e7644e4de9a",
   "9ec43f377b2e",
   "9f047b633034",
+  "9fbbe69df406",
   "9ff553b0f985",
   "a1cae16ee668",
   "a315afcd2099",
@@ -5061,6 +5119,7 @@
   "a5ad82fc33e3",
   "a8a5aa5aae32",
   "a963ee0ae88b",
+  "ab7393af4c20",
   "abb8b40659d3",
   "acc60178bc8f",
   "ad34a32b50c4",
@@ -5074,7 +5133,7 @@
   "b7ce8dfa74d8",
   "b7fac52b3806",
   "b8d847277b35",
-  "c146992d411c",
+  "262dbc8ca5bc",
   "c2c305a5d90c",
   "c336e0135404",
   "c5010faf90c2",
@@ -5113,6 +5172,7 @@
   "fab082d190e8",
   "fbc845db1a7e",
   "fd3788506791",
+  "fd4d1114538b",
   "fd9cfbba2824",
   "fe4f54bad0fc"
  ],
@@ -5407,6 +5467,9 @@
   "9c9347b8a06d",
   "c607dba157a1"
  ],
+ "supabase/functions/_shared/customer_terms.ts": [
+  "bb6521bace53"
+ ],
  "supabase/functions/_shared/document_expiry.ts": [
   "a26139843907",
   "cbb176539761",
@@ -5649,8 +5712,8 @@
   "fb124abd6131"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
-  "0ace90eb0853",
-  "5839dc1b25d3"
+  "2eeb132406ba",
+  "bc769b49e75d"
  ],
  "supabase/functions/_shared/supplier_charge_documents.ts": [
   "028bd4e1bdc6",

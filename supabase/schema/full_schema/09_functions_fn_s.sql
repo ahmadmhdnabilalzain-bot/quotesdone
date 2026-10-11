@@ -1042,12 +1042,12 @@ begin
         || 'Under the Supplier Agreement you must respond within ' || v_window || ' working days of the reveal, that is by '
         || coalesce(to_char(v_final at time zone 'Asia/Dubai', 'DD Mon YYYY'), 'the deadline')
         || '. If there is no response by then, our chief executive decides the case and the customer is refunded everything they paid (AED ' || v_amt
-        || '). Under the supplier terms that amount is then recovered from your account with an administrative fee of AED 250 and interest at 9% a year until settled, and matching is paused until it is paid.' || E'\n\n'
+        || '). Under the Supplier Agreement you accepted, that amount is then recovered from your account with the administrative fee, interest and other amounts set out in its clause 33, and matching is paused until it is paid.' || E'\n\n'
         || 'If you have already been in touch with this customer, reply here and we will close this off.',
       'إجراء مطلوب: عميل بانتظار ردّكم — QuotesDone',
       'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم بتاريخ ' || v_when || ' ولم يتلقَّ منكم ردًّا بعد مرور ' || v_chase || ' أيام عمل، والعميل مُدرَج في نسخة هذه الرسالة. '
         || 'وتُلزم اتفاقية المورّد بالرد خلال ' || v_window || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه (' || v_amt
-        || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا حتى السداد. وإن كنتم قد تواصلتم مع العميل، فيُرجى الرد على هذه الرسالة.',
+        || ' درهم)، ويُسترد من حسابكم المبلغ المردود مع الرسم الإداري والفائدة وسائر المبالغ المبيّنة في البند 33 من اتفاقية المورّد التي قبلتموها، ويُعلَّق إسناد الطلبات إليكم حتى السداد. وإن كنتم قد تواصلتم مع العميل، فيُرجى الرد على هذه الرسالة.',
       array_remove(array[cust.email], null), v_key, v_watch, v_extra);
 
   elsif p_step = 'final_call' then
@@ -1058,12 +1058,12 @@ begin
         || 'This is our final call about the customer who paid to reveal your contact details on ' || v_when
         || '. The ' || v_window || ' working days the Supplier Agreement allows have passed with no response from you, to the customer or to our reminder.' || E'\n\n'
         || 'If we do not hear from you by ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY')
-        || ', the customer is refunded everything they paid (AED ' || v_amt || ') and that amount is recovered from your account with an administrative fee of AED 250 and interest at 9% a year. '
+        || ', the customer is refunded everything they paid (AED ' || v_amt || ') and that amount is recovered from your account with the administrative fee, interest and other amounts set out in clause 33 of the Supplier Agreement you accepted. '
         || 'Reply to this email, message the customer in your portal, or answer us on WhatsApp — any of them stops this.',
       'نداء أخير: عميل لا يزال بانتظار ردّكم — QuotesDone',
       'هذا نداؤنا الأخير بشأن العميل الذي كشف عن بيانات التواصل معكم بتاريخ ' || v_when || '، وقد انقضت أيام العمل المحددة دون ردّ منكم. '
         || 'فإن لم يصلنا ردّكم حتى ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' فسيُردّ إلى العميل كامل ما دفعه (' || v_amt
-        || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا. ويكفي أي ردّ منكم عبر البريد الإلكتروني أو البوابة أو واتساب لإيقاف ذلك.',
+        || ' درهم)، ويُسترد من حسابكم المبلغ المردود مع الرسم الإداري والفائدة وسائر المبالغ المبيّنة في البند 33 من اتفاقية المورّد التي قبلتموها. ويكفي أي ردّ منكم عبر البريد الإلكتروني أو البوابة أو واتساب لإيقاف ذلك.',
       array_remove(array[cust.email], null), v_key, v_watch, v_extra);
 
   elsif p_step = 'customer_proof' then
@@ -2336,12 +2336,18 @@ begin
                    when v_name_mismatch then 'licence_name_mismatch'
                    when v_expired then 'licence_expired' end;
 
-  if coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0 then
+  if coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0 and not v_name_unread
+     and not v_name_mismatch then
     -- An approved supplier whose licence has since expired stays approved: fn_reconcile_doc_blocks
     -- pauses their matching and restores it on renewal, without taking the registration away.
     v_decision := 'approved';
+  -- 7 Oct 2026 (review of #1275): an APPROVED supplier whose licence names another company is held for
+  -- review, whatever asked - a licence change or a save. The approved branch above used to keep him approved
+  -- and log "the licence name matches", which was false. A supplier whose name matches is untouched by a save.
+  elsif coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0
+        and v_name_mismatch then v_decision := 'pending'; v_reason := 'licence_name_mismatch';
   elsif v_reason is not null then v_decision := 'action_required';
-  elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_name_unread';
+  elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_unreadable';
   elsif coalesce(v_auto, false) then v_decision := 'approved';
   else v_decision := 'pending';
   end if;
@@ -2358,14 +2364,16 @@ begin
   get diagnostics v_changed = row_count;
 
   -- Every decision is recorded; a re-run by the trigger that changed nothing is not a decision.
-  if v_changed > 0 or p_source <> 'mandatory_item_changed' then
+  if v_changed > 0 or p_source not in ('mandatory_item_changed', 'licence_changed') then
   insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'supplier_verification', case when v_reason = 'licence_name_unread' then 'needs_review' else 'auto_done' end,
-          case when v_decision = 'action_required' or v_reason = 'licence_name_unread' then 'medium' else 'low' end,
+  values ('sales_engineer', 'supplier_verification', case when v_reason = 'licence_unreadable' or (v_decision = 'pending' and v_reason = 'licence_name_mismatch') then 'needs_review' else 'auto_done' end,
+          case when v_decision = 'action_required' or v_reason in ('licence_unreadable', 'licence_name_mismatch') then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
             when 'approved' then 'No action required. All six mandatory items are present, the licence name matches and the licence is not known to be expired.'
-            when 'pending' then case when v_reason = 'licence_name_unread'
+            when 'pending' then case when v_reason = 'licence_name_mismatch'
+              then 'Review: an approved supplier uploaded a new trade licence whose company name does not match the registered name. Matching is held. Compare the licence with the registered name, then re-approve or ask for the right licence.'
+              when v_reason = 'licence_unreadable'
               then 'Review: complete, but the company name on the trade licence could not be read (a scan the document model could not read, or the model is held). Compare the licence with the registered name, then approve or ask for the right licence. It is never approved automatically without a name match.'
               else 'Complete, and waiting for the sales engineer: pricing_config.auto_approve_suppliers is off.' end
             else 'No action required. The supplier was told exactly what is missing; the verification re-runs when it arrives, and the registration closes after 14 days.' end,

@@ -16,6 +16,7 @@ export const T = {
     call_note:'That number is a landline, so we are calling you now and reading the 6-digit code out. Answer and type it in below.', use_diff_number:'Use a different number',
     signup_email_only:"Please sign up with an email address — you'll add and verify your mobile in the next step.",
     conflict_supplier:'This email is registered as a supplier. Please use the Supplier portal to sign in.',
+    conflict_supplier_phone:'This mobile number is registered as a supplier. Please use the Supplier portal to sign in.',
     session_expired:'Your session has expired. Please sign in again.', load_failed:"Couldn't load your account. Please retry.", retry:'Retry',
     gate_title:'Complete your account', gate_sub:"A few details to finish signing up. We verify your mobile and email for everyone's security.",
     full_name:'Full name', mobile_ph:'Mobile (05x xxx xxxx)', dob_label:'Date of birth (you must be 18+)', save_details:'Save details', saving:'Saving…',
@@ -112,6 +113,7 @@ export const T = {
     junk_note:'قد يستغرق وصول الرمز دقيقة؛ تحقّق أيضًا من مجلد البريد غير المرغوب فيه.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'الرمز غير صحيح.',
     signup_email_only:'يُرجى التسجيل ببريدك الإلكتروني، ثم تضيف رقم جوالك وتؤكّده في الخطوة التالية.',
     conflict_supplier:'هذا البريد مسجّل لحساب مورّد. يُرجى تسجيل الدخول من بوابة المورّدين.',
+    conflict_supplier_phone:'رقم الجوال هذا مسجّل لحساب مورّد. يُرجى تسجيل الدخول من بوابة المورّدين.',
     session_expired:'انتهت جلستك. يُرجى تسجيل الدخول من جديد.', load_failed:'تعذّر تحميل حسابك. يُرجى المحاولة مجددًا.', retry:'إعادة المحاولة',
     gate_title:'أكمل حسابك', gate_sub:'بقيت بضعة بيانات لإكمال التسجيل. نتحقّق من جوالك وبريدك حفاظًا على أمان الجميع.',
     full_name:'الاسم الكامل', mobile_ph:'الجوال (05x xxx xxxx)', dob_label:'تاريخ الميلاد (يجب أن يكون عمرك 18 عامًا فأكثر)', save_details:'حفظ البيانات', saving:'جارٍ الحفظ…',
@@ -237,6 +239,8 @@ Object.assign(T.en, {
   nr_multi_tk_h: 'One company for the whole project (default)', nr_multi_tk_b: 'a single contractor handles every trade end to end.',
   nr_note: 'Note:', nr_send_suppliers: 'Send to suppliers', nr_sending: 'Sending…', nr_keep_typing: 'or keep typing below to add more detail',
   nr_more_details: 'Just a couple more details first, so suppliers can quote accurately.', nr_could_not_send: 'Could not send your request.',
+  terms_reaccept_h: 'Our Terms of Service have been updated', terms_reaccept_b: 'Please read and accept the current version ({v}) to continue. Your request is kept as it is.', terms_accept_send: 'Accept and send', terms_accept_btn: 'Accept the current Terms', terms_read: 'Read the Terms of Service', terms_accepted_ok: 'Thank you. The current Terms are accepted.',
+  acct_terms: 'Terms of Service', acct_terms_ok: 'You accepted the current version ({v}).', acct_terms_old: 'You accepted version {old}. The current version is {v}: please read and accept it before your next request.',
   nr_split_failed: 'Your request could not go out to every trade ({list}), so nothing was sent. Nothing is lost — please press Send again.',
   nr_readiness: 'Ready for suppliers', nr_handled_by: 'Handled by {name}',
   nr_left: '{n} left before this can go to suppliers', nr_req_title: 'What you asked for', nr_req_change: 'Change', nr_req_keep: 'Keep', nr_suggested: 'Suggested',
@@ -388,6 +392,8 @@ Object.assign(T.ar, {
   nr_multi_tk_h: 'شركة واحدة للمشروع كاملًا (الافتراضي)', nr_multi_tk_b: 'مقاول واحد يتولى كل التخصصات من البداية إلى النهاية.',
   nr_note: 'ملاحظة:', nr_send_suppliers: 'أرسل إلى الموردين', nr_sending: 'جارٍ الإرسال…', nr_keep_typing: 'أو تابع الكتابة أدناه لإضافة تفاصيل',
   nr_more_details: 'بعض التفاصيل الإضافية أولًا، حتى يسعّر الموردون بدقة.', nr_could_not_send: 'تعذّر إرسال طلبك.',
+  terms_reaccept_h: 'حُدِّثت شروط الخدمة لدينا', terms_reaccept_b: 'يُرجى الاطلاع على الإصدار الحالي ({v}) والموافقة عليه للمتابعة، ويبقى طلبكم كما هو.', terms_accept_send: 'الموافقة والإرسال', terms_accept_btn: 'الموافقة على الشروط الحالية', terms_read: 'الاطلاع على شروط الخدمة', terms_accepted_ok: 'شكرًا لكم، تمت الموافقة على الشروط الحالية.',
+  acct_terms: 'شروط الخدمة', acct_terms_ok: 'وافقتم على الإصدار الحالي ({v}).', acct_terms_old: 'وافقتم على الإصدار {old}، والإصدار الحالي هو {v}. يُرجى الاطلاع عليه والموافقة عليه قبل طلبكم القادم.',
   nr_split_failed: 'تعذّر إرسال طلبك إلى جميع التخصصات ({list})، فلم يُرسَل أيٌّ منها. بياناتك محفوظة؛ اضغط «إرسال» مرة أخرى.',
   nr_readiness: 'جاهزية الطلب للموردين', nr_handled_by: 'يتولاه {name}',
   nr_left: 'تبقّى {n} قبل أن يُرسل الطلب إلى الموردين', nr_req_title: 'ما طلبته', nr_req_change: 'تغيير', nr_req_keep: 'إبقاء', nr_suggested: 'مقترح',
@@ -521,6 +527,8 @@ export const emirateName = (e, lang) => (lang === 'ar' && EMIRATE_AR[e]) || e;
 // matched first, then the fixed English sentences those functions send; anything unrecognised falls
 // back to a localised generic line rather than to raw English or a snake_case code.
 const CODE_KEY = {
+  // login_otp verify answers role_conflict once the code proved the mailbox; role_guard no longer says so before (6 Oct 2026).
+  role_conflict: 'conflict_supplier', role_conflict_phone: 'conflict_supplier_phone',
   stripe_not_configured: 'err_stripe_nc', stripe_error: 'err_stripe', intake_required: 'nr_more_details', registration_incomplete: 'err_registration',
   account_incomplete: 'err_registration', dob_required: 'err_dob_required', dob_invalid: 'err_dob_invalid', under_18: 'err_under_18',
   unauthorized: 'session_expired', 'Not signed in': 'session_expired', text_required: 'err_text_required', inquiry_closed: 'err_closed',

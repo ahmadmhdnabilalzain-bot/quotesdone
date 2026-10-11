@@ -2505,9 +2505,12 @@ CREATE OR REPLACE FUNCTION public.fn_wa_human_request(p_phone text, p_hold boole
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_digits text := regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g'); v_h bigint; v_ok boolean := true; v_err text;
+  v_founder boolean;
 begin
   if length(v_digits) < 9 then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
-  if p_hold then
+  -- A. The founder trying "Talk to a person" from his own number is not a person waiting (handoff 58191, 22 Sep).
+  v_founder := coalesce(public.fn_identify_contact(v_digits) ->> 'audience', '') = 'founder';
+  if p_hold and not v_founder then
     insert into public.wa_conversation (phone_e164, party_kind, message_count, thread_state, handed_to)
     values (v_digits, 'unknown', 0, 'handed_to_human', 'customer_support')
     on conflict (phone_e164) do update set thread_state = 'handed_to_human', handed_to = 'customer_support', last_seen_at = now();
@@ -2515,7 +2518,7 @@ begin
   select id into v_h from public.agent_actions
    where kind = 'handoff' and status = 'pending' and detail ->> 'type' = 'support.human_requested' and detail ->> 'phone_digits' = v_digits
    order by id desc limit 1;
-  if v_h is null then
+  if v_h is null and not v_founder then
     v_h := public.fn_seat_handoff('customer_support', 'customer_support', 'support.human_requested', 'wa_conversation',
       v_digits || ':' || to_char(now() at time zone 'UTC', 'YYYYMMDDHH24MISS'),
       jsonb_build_object('phone_digits', v_digits, 'held', p_hold, 'event', p_event,
@@ -2527,7 +2530,7 @@ begin
                                      p_owner_agent => 'customer_support');
   exception when others then v_ok := false; v_err := left(sqlerrm, 300);
   end;
-  return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'notified', v_ok, 'notify_error', v_err);
+  return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'founder_own_number', v_founder, 'notified', v_ok, 'notify_error', v_err);
 end $function$
 
 
@@ -2559,15 +2562,16 @@ CREATE OR REPLACE FUNCTION public.fn_wa_human_request_tick()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r record; v_conv public.wa_conversation; v_ref text; v_secret text; v_req bigint; v_body text; v_lang text; n int := 0; v_sent int := 0;
+  v_held boolean; v_window interval; v_rep jsonb; rep public.support_ceo_report; n_esc int := 0; n_closed int := 0;
 begin
   select value into v_ref from public.app_secrets where key = 'project_ref';
   select value into v_secret from public.app_secrets where key = 'cred_fn_resilience_ping';
   for r in select a.* from public.agent_actions a
             where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
               and a.created_at < now() - interval '23 hours' and not (a.detail ? 'followed_up_at')
-              and coalesce(a.detail ->> 'held', 'true') = 'true'
             order by a.id limit 20 loop
     n := n + 1; v_req := null;
+    v_held := coalesce(r.detail ->> 'held', 'true') = 'true';
     update public.wa_conversation set thread_state = 'open', handed_to = null
      where phone_e164 = r.detail ->> 'phone_digits' and thread_state = 'handed_to_human'
     returning * into v_conv;
@@ -2576,7 +2580,7 @@ begin
     v_body := case when v_lang = 'ar'
       then 'نعتذر عن تأخر ردنا عليكم. لم يتمكن أحد أعضاء الفريق من التواصل معكم بعد، وقد أبلغناه مجددًا بطلبكم. وإلى حين ذلك عادت إليكم خدمة الردود الفورية في هذه المحادثة، فتفضلوا بإرسال كلمة «قائمة» لعرض الخيارات أو كتابة استفساركم.' || E'\n\nفريق خدمة العملاء في QuotesDone'
       else 'We are sorry you have not heard from us yet. A member of the team has not been able to reach you, and we have reminded them of your request. Meanwhile, instant answers are back on in this chat: reply MENU for the options or type your question.' || E'\n\nQuotesDone Customer Support' end;
-    if v_conv.window_expires_at > now() and v_ref is not null and v_secret is not null then
+    if v_held and v_conv.window_expires_at > now() and v_ref is not null and v_secret is not null then
       select net.http_post(
         url := 'https://' || v_ref || '.supabase.co/functions/v1/send_whatsapp',
         headers := jsonb_build_object('Content-Type', 'application/json'),
@@ -2597,10 +2601,54 @@ begin
     end;
     update public.agent_actions
        set detail = detail || jsonb_build_object('followed_up_at', now(), 'followup_request_id', v_req,
-                                                 'followup_skipped', case when v_req is null then 'the 24-hour WhatsApp window had closed' end)
+                                                 'followup_skipped', case when v_req is not null then null
+                                                                           when not v_held then 'not held: the automatic replies were never paused'
+                                                                           else 'the 24-hour WhatsApp window had closed' end)
      where id = r.id;
   end loop;
-  return jsonb_build_object('ok', true, 'due', n, 'followups_queued', v_sent);
+  -- B. 24 h, the reply clock (seat_handoff_kind.reply_within): customer_support reports it to the CEO, once.
+  select reply_within into v_window from public.seat_handoff_kind
+   where type = 'support.human_requested' and from_seat = 'customer_support' and to_seat = 'customer_support';
+  v_window := coalesce(v_window, interval '24 hours');
+  for r in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
+              and a.created_at < now() - v_window and not (a.detail ? 'escalated_report_id')
+            order by a.id limit 20 loop
+    v_rep := public.fn_support_report_to_ceo('wa_human:' || r.id, 'serious',
+      'A WhatsApp contact asked for a person and nobody answered within ' || v_window || ' (handoff ' || r.id || ')',
+      jsonb_build_object('handoff_id', r.id, 'phone_digits', r.detail ->> 'phone_digits', 'asked_at', r.created_at,
+                         'event', r.detail ->> 'event', 'followed_up_at', r.detail ->> 'followed_up_at',
+                         'followup_request_id', r.detail ->> 'followup_request_id', 'followup_skipped', r.detail ->> 'followup_skipped'),
+      jsonb_build_array('customer_support alerted the founder at ' || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
+                        coalesce('customer_support followed up with the contact at ' || (r.detail ->> 'followed_up_at'),
+                                 'customer_support has not yet followed up with the contact')),
+      'Decide who answers this contact today (call, email or WhatsApp from the company number) and record it. The request stays open until the contact was followed up and this report is completed.',
+      p_review_in => interval '4 hours', p_source_agent => 'customer_support');
+    if coalesce((v_rep ->> 'ok')::boolean, false) then
+      update public.agent_actions
+         set detail = detail || jsonb_build_object('escalated_report_id', (v_rep ->> 'report_id')::bigint, 'escalated_at', now())
+       where id = r.id;
+      n_esc := n_esc + 1;
+    end if;
+  end loop;
+
+  -- The loop closes when the contact was followed up AND the CEO's report is completed; the verdict names both.
+  for r in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
+              and a.detail ? 'followed_up_at' and a.detail ? 'escalated_report_id'
+            order by a.id limit 20 loop
+    select * into rep from public.support_ceo_report where id = (r.detail ->> 'escalated_report_id')::bigint;
+    continue when rep.id is null or rep.status <> 'completed';
+    perform set_config('qd.handoff_closer', 'customer_support', true);
+    perform public.fn_seat_handoff_complete(r.id, coalesce(r.evidence, '{}'::jsonb) || jsonb_build_object(
+      'verified_by', 'customer_support', 'verified_at', now(),
+      'verdict', 'followed up ' || (r.detail ->> 'followed_up_at')
+                 || coalesce(' (' || (r.detail ->> 'followup_skipped') || ')', '')
+                 || '; the CEO decided (report ' || rep.id || '): ' || left(coalesce(rep.completion_note, rep.acceptance_receipt, 'completed'), 400)));
+    perform set_config('qd.handoff_closer', '', true);
+    n_closed := n_closed + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'due', n, 'followups_queued', v_sent, 'escalated', n_esc, 'closed', n_closed);
 end $function$
 
 
@@ -2939,14 +2987,17 @@ begin
            'rung', rung, 'model', model, 'kind', kind, 'rationale', rationale) order by rung), '[]'::jsonb)
     into v_chain
     from public.model_fallback_chain
-   where purpose = 'whatsapp_conversation' and active;
+   -- 6 Oct: a voice note has its own chain (received audio stays on Gemini, matrix v2)
+   where purpose = case when p_has_audio then 'whatsapp_voice_note' else 'whatsapp_conversation' end and active;
 
   return jsonb_build_object(
     'ok', true,
     'needs_model', v_needs,
     'why', v_why,
     'inference_held', v_held,
-    'model', case when v_needs then 'google/gemini-3-flash' else null end,
+    -- 6 Oct: rung 1 of the chain, never a literal, so the table is the one place a model is named
+    'model', case when v_needs then (select e ->> 'model' from jsonb_array_elements(v_chain) e
+                                      where e ->> 'kind' = 'model' order by (e ->> 'rung')::int limit 1) else null end,
     'fallback_chain', case when v_needs then v_chain else null end,
     'on_model_failure',
       'Try each rung in order. Record model_wanted, model_used and fell_back on llm_calls for every '
@@ -2954,7 +3005,10 @@ begin
    || 'final rung is the deterministic reply and it cannot fail.',
     'model_reason', case
       when not v_needs then 'No model needed. The database answered it.'
-      else 'google/gemini-3-flash first, by founder ruling. On failure claude-sonnet-5. On failure the '
+      -- 6 Oct: matrix v2 (founder_instruction 1108)
+      when p_has_audio then 'google/gemini-3.8-flash hears the voice note (received audio stays on Gemini). On failure '
+        || 'the deterministic reply.'
+      else 'openai/gpt-6-luna first, by the founder''s matrix v2. On failure google/gemini-3.8-flash. On failure the '
         || 'deterministic reply. Every rung gets the same fact pack and the same boundaries.' end,
 
     -- One decision. Handing to a person and giving the number are the same act.
@@ -3063,6 +3117,30 @@ begin
                                 else coalesce(last_error || '; ', '') || v_mark end, 500)
    where id = w.id and coalesce(last_error, '') not like '%sms failover:%';
   return jsonb_build_object('ok', true, 'outcome', 'sms_twin', 'sms_id', v_twin);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_template_registry_follows_messaging_template()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_status text;
+begin
+  if new.channel is distinct from 'whatsapp' or new.last_checked_at is null then return new; end if;
+  v_status := case when new.status in ('approved', 'rejected') then new.status
+                   when new.status in ('received', 'pending', 'submitted', 'in_review', 'unsubmitted') then 'pending' end;
+  if v_status is null then return new; end if;
+  update public.wa_template_registry r
+     set status = v_status,
+         checked_at = new.last_checked_at,
+         approved_on = case when v_status = 'approved' then coalesce(r.approved_on, new.last_checked_at::date) else r.approved_on end,
+         source = 'wa_templates_watch: Twilio Content API said "' || new.status || '" on '
+                  || to_char(new.last_checked_at at time zone 'UTC', 'DD Mon YYYY HH24:MI') || ' UTC (messaging_template ' || new.sid || ')'
+   where r.template_name = new.name
+     and (r.checked_at is null or r.checked_at < new.last_checked_at);
+  return new;
 end $function$
 
 
@@ -7129,6 +7207,60 @@ begin
                                  from jsonb_each(j) as t(k, v));
     else return j;
   end case;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.pdpl_cancel_me(p_request uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email();
+begin
+  if v_em is null or not exists (select 1 from public.pdpl_requests where id = p_request and email = v_em) then
+    return jsonb_build_object('ok', false, 'code', 'not_yours');
+  end if;
+  return public.fn_pdpl_cancel(p_request, 'self_service');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.pdpl_confirm_me(p_request uuid, p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email();
+begin
+  if v_em is null or not exists (select 1 from public.pdpl_requests where id = p_request and email = v_em and kind = 'delete') then
+    return jsonb_build_object('ok', false, 'code', 'not_yours');
+  end if;
+  return public.fn_pdpl_verify(p_request, p_code, 'self_service');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.pdpl_request_me(p_kind text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := public.fn_pdpl_my_verified_email(); v_id uuid;
+begin
+  if v_em is null then
+    return jsonb_build_object('ok', false, 'code', 'email_not_verified',
+      'message', 'Verify your email address in your account first.', 'message_ar', 'يُرجى توثيق بريدكم الإلكتروني في حسابكم أولًا.');
+  end if;
+  if p_kind not in ('export', 'delete') then return jsonb_build_object('ok', false, 'code', 'bad_kind'); end if;
+  -- ERASE NEEDS A SECOND VERIFIED ACTION: a code is emailed and the clock starts only at pdpl_confirm_me.
+  if p_kind = 'delete' then
+    return public.fn_pdpl_open(v_em, 'delete', 'self_service') || jsonb_build_object('next', 'pdpl_confirm_me(request_id, code)');
+  end if;
+  insert into public.pdpl_requests (kind, email, role, details, status, verified_via, verified_at, handled_by)
+  values (p_kind, v_em, 'self_service', 'signed-in, email verified by code', 'received', 'session+email_verified', now(), 'self_service')
+  returning id into v_id;
+  return public.fn_pdpl_carry_out(v_id);
 end $function$
 
 

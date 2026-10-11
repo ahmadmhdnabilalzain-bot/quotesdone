@@ -7,6 +7,7 @@ import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import {
   M365_HARD_CEILING, M365_ID_PREFIX, M365_OFF, M365_REFUSED_ISSUE, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries,
   m365CopyLint, m365InvitationText, m365Mime, m365Text, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365,
+  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo,
 } from './m365_lane.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
 
@@ -154,4 +155,46 @@ Deno.test('graphSend: 202 records m365:<Message-ID>; a refusal is returned, not 
   assert(!r2.ok && r2.refused && r2.status.includes('403') && r2.status.includes('ErrorAccessDenied'));
   let threw = false; try { await graphSend(fake(new Error('timeout')).fetchFn, ON, 'x', '<id@q>'); } catch { threw = true; }
   assert(threw);
+});
+
+// 5 Oct 2026: m365Body rebuilt the seed text from the link alone and dropped GlockApps' inbox-test ID; 0 of 80 matched.
+Deno.test('a placement seed keeps its trailing inbox-test ID; a real invitation never carries one', () => {
+  const ID = 'id:2026-10-05-18:36:55:550t';
+  const row = 'Dear ZZ DEMO Supplier,\n\nRegister: ' + LINK + '\n\nThanks.\n\n' + ID;
+  const seed = m365Body('supplier_invite_seed', row, M365_SEED_KIND);
+  assert(seed.endsWith('\n\n' + ID), 'the seed ends with its ID line');
+  assertEquals(seed, m365InvitationText(LINK) + '\n\n' + ID);
+  for (const l of m365CopyLint({ subject: 'Your company page on QuotesDone', body: seed, seed: true })) assert(l.ok, `${l.rule}: ${l.detail}`);
+  // the same body is NOT exempt when it is not linted as a seed: the year in the ID is a date
+  assert(m365CopyLint({ subject: 'x', body: seed }).some((l) => !l.ok && l.rule.includes('date')));
+  // a real invitation or nudge with an id: line never carries it
+  assertFalse(m365Body('supplier_invite', row).includes(ID), 'a real invite drops it');
+  assertFalse(m365Body('supplier_invite', row, 'supplier_invite').includes(ID));
+  assert(m365Body('supplier_invite_nudge', 'Reminder ' + LINK + '\n\n' + ID, 'supplier_invite_nudge').endsWith('?'), 'a nudge is not given the marker');
+  // the marker is the only exemption: a date elsewhere in a seed still fails, and so do the content rules
+  const dated = seed.replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026');
+  assert(m365CopyLint({ subject: 'x', body: dated, seed: true }).some((l) => !l.ok && l.rule.includes('date')));
+  assert(m365CopyLint({ subject: 'x', body: seed.replace('marketplace', 'AI marketplace'), seed: true }).some((l) => !l.ok));
+  // a line that is not exactly the marker shape is not carried
+  assertFalse(m365Body('supplier_invite_seed', row.replace(ID, 'id: 2026 bad'), M365_SEED_KIND).includes('id:'));
+});
+
+Deno.test('Reply-To (6 Oct 2026): dropped only while the reply reader is proven within two hours; the MIME then carries none', () => {
+  const now = new Date('2026-10-06T12:00:00Z');
+  const fb = 'suppliers@mail.quotesdone.com';
+  assertEquals(m365ReplyTo({ proofAt: null, now, fallback: fb }), fb, 'never proven: the old Reply-To stays');
+  assertEquals(m365ReplyTo({ proofAt: 'not a date', now, fallback: fb }), fb);
+  assertEquals(m365ReplyTo({ proofAt: '2026-10-06T11:50:00Z', now, fallback: fb }), '', 'proven 10 minutes ago: no Reply-To');
+  assertEquals(m365ReplyTo({ proofAt: new Date(now.getTime() - M365_INBOX_PROOF_MAX_AGE_MS - 1).toISOString(), now, fallback: fb }), fb, 'a stale proof is no proof');
+  assertEquals(m365ReplyTo({ proofAt: '2026-10-07T12:00:00Z', now, fallback: fb }), fb, 'a proof from the future is no proof');
+  const mime = (reply: string) => unb64(m365Mime({ from: 'QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply, subject: 's', text: 't', unsub: '', unsubMailto: '', messageId: '<m@q>', now })).split('\r\n\r\n')[0];
+  assertFalse(/Reply-To:/i.test(mime('')), 'an empty reply writes no Reply-To header');
+  assert(mime(fb).includes('Reply-To: ' + fb));
+  assertEquals(M365_INBOX_AGENT, 'resend_inbound');
+});
+
+Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, reading the proof under the reader\'s label', () => {
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assert(/m365Mime\(\{[^}]*reply: m365ReplyTo\(\{ proofAt: m365ProofAt, now, fallback: reply \}\)/.test(src), 'the lane MIME no longer asks m365ReplyTo');
+  assert(src.includes(".eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1')"), 'the proof read no longer selects the reader rows');
 });
