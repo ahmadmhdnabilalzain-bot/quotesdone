@@ -4968,6 +4968,18 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_handoff_is_late(p_detail jsonb, p_created_at timestamp with time zone, p_window interval, p_at timestamp with time zone DEFAULT now())
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when p_detail ? 'replied_at'
+              then coalesce((p_detail->>'due_at')::timestamptz, p_created_at + p_window) < p_at
+              else p_created_at + p_window < p_at end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_handoff_summary(p_detail jsonb, p_agent text, p_target_table text, p_target_id text, p_title text DEFAULT NULL::text, p_recommendation text DEFAULT NULL::text, p_self_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
