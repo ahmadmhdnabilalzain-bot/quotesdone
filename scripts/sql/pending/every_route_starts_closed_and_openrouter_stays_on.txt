@@ -1,1 +1,0 @@
-Committed, not applied: applied at merge by the release operator (apply at merge, never before). Data only: every routable model gets a CLOSED llm_route_health row; supersedes the hold-copying inserts of earlier files (ledger 1175). On apply: delete this note and append the file to the END of MANIFEST.txt. Seat: it_engineer.

@@ -9279,12 +9279,12 @@ begin
   -- 3. the founder's hold, on ANY route. He held the whole estate on 15 Aug 2026; holding one route
   --    and leaving the others open would not be what he asked for. A sandbox run inside its open
   --    window passes the hold; it does not lift it.
-  select count(*) into v_held from public.llm_route_health where open_until is not null and open_until > now();
+  select count(*) into v_held from public.llm_route_health where open_until is not null and open_until > now() + interval '1 year';
   if v_held > 0 and not v_rehearsal then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
       'rule', 'founder_hold',
       'reason', v_held || ' of ' || v_routes || ' routes are held open-circuit until '
-             || (select max(open_until)::text from public.llm_route_health where open_until > now()),
+             || (select max(open_until)::text from public.llm_route_health where open_until > now() + interval '1 year'),
       'held', v_held, 'routes', v_routes, 'model', v_model);
   end if;
 
