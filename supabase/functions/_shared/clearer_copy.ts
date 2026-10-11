@@ -6,6 +6,6 @@ export type Audience = 'supplier' | 'customer';
 export function clearerCopyAsk(audience: Audience, lang: string | null | undefined, filename: string): string {
   const name = String(filename || 'your file').slice(0, 80);
   if (audience === 'customer' && String(lang || '').toLowerCase().startsWith('ar'))
-    return `لم نتمكن من قراءة الملف «${name}» بوضوح. يُرجى إرسال نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها تلقائياً فور وصولها.`;
+    return `لم نتمكن من قراءة الملف «${name}» بوضوح. يُرجى إرسال نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها تلقائيًا فور وصولها.`;
   return `We could not read "${name}" clearly. Please send a clearer copy (a PDF, or a sharp photo of the whole page) and we will read it automatically as soon as it arrives.`;
 }
