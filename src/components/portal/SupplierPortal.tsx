@@ -1185,7 +1185,7 @@ function Dashboard({ token, lang, onExpired }) {
             It wraps now, and every control is at least 44px tall for a thumb. */}
         <nav aria-label={t(lang, 'main_nav')}>
           <div className={cn(S.tabsWrap, 'flex')}>
-            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
+            {MAIN_TABS.map((k) => <button key={k} type="button" data-nav-id={k} aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
           </div>
         </nav>
       </div>
