@@ -24,7 +24,7 @@ function mock(o: {
       if (fn === 'fn_reason_retrieve') return Promise.resolve({ data: o.retrieve ?? [], error: null });
       if (fn === 'fn_case_recall') return Promise.resolve({ data: { cases: [] }, error: null });
       if (fn === 'fn_reason_hold') return Promise.resolve({ data: 42, error: null });
-      if (fn === 'fn_reason_held_due') return Promise.resolve({ data: [{ id: 42, request: { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt work' }, { id: 'ask', meaning: 'a question' }] } } }], error: null });
+      if (fn === 'fn_reason_held_due') return Promise.resolve({ data: [{ id: 42, created_at: new Date().toISOString(), request: { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt work' }, { id: 'ask', meaning: 'a question' }] } } }], error: null });
       return Promise.resolve({ data: 1, error: null });
     },
     search: () => Promise.resolve(o.search ?? []),
@@ -342,4 +342,19 @@ Deno.test('a fixture inside a proven, open sandbox window makes a model call; ou
     assertEquals(out.r.reason, 'fixture_no_spend', `open=${open} tag=${tag}`);
     assertEquals(out.m.calls.length, 0);
   }
+});
+
+// 12 Oct 2026 (#1287 review): a held row that does not say when it was asked is held for review, never sent.
+Deno.test('replayHeld fails closed: a row without created_at is held for review, not delivered', async () => {
+  const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'read it', needs_knowledge: false }], facts: [] })],
+    synthesise: [J({ answer: 'ZZ answer.', decision: { choice: 'stop' } })] } });
+  const base = m.deps.rpc;
+  m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
+    ? (m.rpcs.push([fn, args]), Promise.resolve({ data: [{ id: 9, seat: 'ceo', surface: 'ceo.command_intent', request: { seat: 'ceo', question: 'ZZ', decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt' }] } } }], error: null }))
+    : base(fn, args);
+  const delivered: number[] = [];
+  await replayHeld(null, 3, m.deps, (row) => { delivered.push(row.id); return Promise.resolve({ delivered: true }); });
+  assertEquals(delivered, [], 'nothing reaches a person');
+  const rec = m.rpcs.find(([f]) => f === 'fn_reason_held_delivered');
+  assertEquals((rec?.[1] as { p_delivery: { via: string } }).p_delivery.via, 'held_for_review');
 });

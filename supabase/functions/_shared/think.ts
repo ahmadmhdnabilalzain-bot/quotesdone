@@ -616,8 +616,10 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
   const out: unknown[] = [];
   const send = async (row: HeldRow, r: ThinkResult) => {
     let delivery: unknown;
-    const age = row.created_at ? now() - Date.parse(row.created_at) : 0;
-    if (age > staleMs) delivery = { delivered: false, via: 'held_for_review', detail: `stale: asked ${Math.round(age / 3600_000)} h ago; the seat reviews before anything reaches a person` };
+    // fail closed: a row that does not say when it was asked is treated as stale, never sent unreviewed
+    const asked = row.created_at ? Date.parse(row.created_at) : NaN;
+    const age = Number.isFinite(asked) ? now() - asked : Infinity;
+    if (age > staleMs) delivery = { delivered: false, via: 'held_for_review', detail: `stale: asked ${Number.isFinite(age) ? Math.round(age / 3600_000) + ' h ago' : 'at an unknown time'}; the seat reviews before anything reaches a person` };
     else try { delivery = await deliver!(row, r); } catch (err) { delivery = { delivered: false, via: 'error', detail: String((err as Error)?.message || err).slice(0, 200) }; }
     // recording the delivery never aborts the rest of the batch
     await d.rpc('fn_reason_held_delivered', { p_id: row.id, p_delivery: delivery }).then(() => null, () => null);

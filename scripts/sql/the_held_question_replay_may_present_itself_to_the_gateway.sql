@@ -40,7 +40,7 @@ begin
   end loop;
 end $c$;
 
-select case when (select count(*) from public.internal_credential
+select case when (select count(distinct context) from public.internal_credential
                    where context in ('fn.resilience_ping', 'fn.accountant') and active and 'ai_gateway' = any(scope)) = 2
             and (select count(*) from public.app_secrets where key in ('cred_fn_site_assistant','cred_fn_wa_inbound') and coalesce(value,'') <> '') = 2
             then 'PROBE OK: resilience_ping, accountant, site_assistant and wa_inbound may present themselves to ai_gateway'

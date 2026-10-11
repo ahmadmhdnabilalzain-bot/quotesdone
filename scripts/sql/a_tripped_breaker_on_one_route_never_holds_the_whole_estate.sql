@@ -100,7 +100,7 @@ begin
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
       'rule', 'founder_hold',
       'reason', v_held || ' of ' || v_routes || ' routes are held open-circuit until '
-             || (select max(open_until)::text from public.llm_route_health where open_until > now()),
+             || (select max(open_until)::text from public.llm_route_health where open_until > now() + interval '1 year'),
       'held', v_held, 'routes', v_routes, 'model', v_model);
   end if;
 

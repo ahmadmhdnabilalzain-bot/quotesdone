@@ -58,7 +58,7 @@ begin
   select model_id into a from public.llm_route_health h
    where exists (select 1 from public.model_registry r where r.model_id = h.model_id and r.active) order by model_id limit 1;
   select model_id into b from public.llm_route_health h
-   where exists (select 1 from public.model_registry r where r.model_id = h.model_id and r.active) and model_id <> a order by model_id limit 1;
+   where exists (select 1 from public.model_registry r where r.model_id = h.model_id and r.active) and model_id <> a and h.open_until is null order by model_id limit 1;
   o := o || jsonb_build_object('held_routes', (select count(*) from public.llm_route_health where open_until > now() + interval '1 year'));
   -- a real breaker: one route, cooldown in minutes (rolled back by the raise below)
   perform set_config('app.change_reason', 'probe:a_tripped_breaker_on_one_route_never_holds_the_whole_estate', true);
