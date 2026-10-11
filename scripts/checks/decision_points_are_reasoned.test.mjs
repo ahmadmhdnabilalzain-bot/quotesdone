@@ -82,7 +82,8 @@ test('no migrated decision point is decided by a word list again, and each one a
   // Case memory: think() recalls through the one shared recall (#910), which calls fn_case_recall itself.
   assert.ok(th.includes('await recallCases(deps, '), 'think.ts lost its case recall (recallCases)');
   assert.ok(read('supabase/functions/_shared/case_recall.ts').includes("admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {"), 'case_recall.ts lost fn_case_recall');
-  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, 3, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\)\)\)/);
+  // 7 Oct 2026 (ledger 1175): 10 a claim, concurrently, bounded by REPLAY_MAX_ROWS and REPLAY_BUDGET_MS per tick.
+  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, 10, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\),\s*\{ maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS \}\)\)/);
 });
 
 test('provider webhooks are acknowledged at once and handled after (reasoning never runs inside Twilio\'s or Meta\'s deadline)', () => {
@@ -210,7 +211,8 @@ begin
   v_id := public.fn_reason_hold('ceo', 'ceo.command_intent', 'ZZ DEMO stop the campaign', '{"seat":"ceo"}'::jsonb, '{}'::jsonb,
             jsonb_build_object('command_id', (select command_id from public.fn_ceo_command_submit('api', 'ZZ DEMO probe', 'ZZ DEMO stop the campaign'))), 'model_hold', 'zz-demo-probe-1');
   o := o || jsonb_build_object('hold_dedupe', public.fn_reason_hold('ceo', 'ceo.command_intent', 'ZZ DEMO again', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_failed: x', 'zz-demo-probe-1') = v_id);
-  o := o || jsonb_build_object('gate_rule', public.fn_kernel_paid_provider_gate('hold-probe/not-a-model')->>'rule', 'due_under_gate', public.fn_reason_held_due(3));
+  o := o || jsonb_build_object('gate_rule', public.fn_kernel_paid_provider_gate((select h.model_id from public.llm_route_health h join public.model_registry r using (model_id) where r.active and h.open_until is null order by 1 limit 1))->>'rule',
+                               'due_claimed', coalesce(jsonb_array_length(public.fn_reason_held_due(3)), 0));
   o := o || jsonb_build_object('resolve_held', public.fn_reason_held_resolve(v_id, '{"status":"held"}'::jsonb)->>'status',
                                'resolve_answered', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ DEMO halt","decision":{"choice":"stop"}}'::jsonb)->>'status');
   select jsonb_build_object('row', h.status, 'cmd', c.state || ':' || c.intent_id) into v
@@ -311,8 +313,10 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   assert.ok(out.keyed_present.includes('floor_type'), 'a keyed answer is');
 
   assert.equal(out.hold_dedupe, true, 'one held row per inbound message');
-  assert.equal(out.gate_rule, 'founder_hold', 'this check assumes the founder\'s hold is on; if released, rewrite the due assertion');
-  assert.deepEqual(out.due_under_gate, [], 'under the hold nothing is replayed');
+  // Ledger 1175 (7 Oct 2026): OpenRouter is always on. A registered route with a closed breaker passes the gate, and
+  // the held queue is claimed for replay (at most the limit; 0 only once it has drained).
+  assert.equal(out.gate_rule, 'registered_breaker_closed', 'ruling 1175: the gate is open for a registered route');
+  assert.ok(out.due_claimed >= 0 && out.due_claimed <= 3, 'the replay claims at most its limit');
   assert.equal(out.resolve_held, 'still_held');
   assert.equal(out.resolve_answered, 'applied');
   assert.deepEqual(out.resolved, { row: 'applied', cmd: 'tasks_created:stop' });
@@ -327,8 +331,10 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   // Measured 23 Sep 2026: 3 — the only 3 inquiries on production, all quoted or revealed, so readiness no longer gates them.
   console.log('already-dispatched inquiries whose readiness the text scan had supplied:', out.rfq_flipped_after_dispatch);
   assert.equal(out.intake_after, 'needs_info:reasoning', 'the held intake reopens with the reasoned trade');
-  assert.equal(out.intake_expires, true, 'a held intake never expires');
-  assert.equal(out.channel_expires, false, 'a held question never expires (the hold lasts a while)');
+  // Since 6 Oct (a_held_question_lives_fourteen_days_once_the_model_is_open_...sql) every filed question carries a 14-day
+  // clock; it can only expire while a model may run and once it has been tried (fn_reason_held_sweep).
+  assert.equal(out.intake_expires, false, 'a held intake carries its 14-day clock');
+  assert.equal(out.channel_expires, true, 'a held question carries its 14-day clock (it expires only once tried, while a model may run)');
   assert.equal(out.delivered_row, 'applied:whatsapp_template');
   assert.equal(out.old_status, 'held', 'a 49-hour-old question is still held for the replay, never expired');
   assert.equal(out.escalated, 1, 'at 48 hours it is escalated to its seat');
@@ -656,6 +662,9 @@ begin
   o := o || jsonb_build_object('not_go', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason');
 
   -- 2. 'go' under the model hold: nothing is filed (it would only wait and pile up in the seat's queue).
+  -- Ledger 1175 (7 Oct 2026) lifted the hold on production; the hold is re-imposed HERE, inside this aborted
+  -- transaction, so the property "under a hold nothing is filed" is still proved for the day one returns.
+  create or replace function public.fn_kernel_paid_provider_gate(p_model text default null) returns jsonb language sql as $g$ select '{"allowed":false,"rule":"founder_hold"}'::jsonb $g$;
   update public.app_secrets set value = 'go' where key = 'lead_reclassify_backfill';
   o := o || jsonb_build_object('held_gate', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason');
   -- ... and with the models open (the gate stubbed inside this aborted transaction) and room for exactly two more
@@ -1082,7 +1091,7 @@ end $p$;`);
   assert.equal(out.producer_status, 'queued', 'a real outage from the real producer is sent at once, not digested');
   assert.equal(out.type_outage, 'queued:critical', 'an outage type goes at once whatever its subject says');
   assert.equal(out.type_routine, 'digest:warn', 'a routine type folds whatever its subject says');
-  assert.equal(out.reopened, 'failed:5:false:true:true', 'a failed question filed again is reopened: the 3-try limit is bypassed (burn audit R3)');
+  assert.equal(out.reopened, 'failed:5:false:false:true', 'a failed question filed again is reopened: the 3-try limit is bypassed (burn audit R3)');
   assert.equal(out.kept_code, 'ZZ DEMO IP65');
   assert.equal(out.prose_echo_rejected, true, 'title-case English echoed back is not stored as its Arabic');
   assert.equal(out.waiter_early, false);

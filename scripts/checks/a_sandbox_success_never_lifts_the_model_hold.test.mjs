@@ -102,6 +102,13 @@ declare
   h_before text; h_after text; s_before text; s_after text; o jsonb := '{}'; g jsonb; m text := 'google/gemini-3.8-flash';
   c_tag text := 'zzholdprobe';
 begin
+  -- Ledger 1175 (7 Oct 2026) lifted the founder's hold on production, so nothing is held there. The property this
+  -- check guards (a sandbox success never lifts a hold) is still proved: a founder hold is planted on the probe's
+  -- route inside this aborted transaction, then the change reason is cleared so the guard is armed again.
+  perform set_config('app.change_reason', 'probe:a_sandbox_success_never_lifts_the_model_hold', true);
+  update public.llm_route_health set open_until = now() + interval '100 years',
+         opened_reason = 'HELD BY THE FOUNDER (probe: a_sandbox_success_never_lifts_the_model_hold)' where model_id = m;
+  perform set_config('app.change_reason', '', true);
   select md5(string_agg(model_id || '|' || coalesce(open_until::text,'') || '|' || coalesce(opened_reason,'') || '|' || coalesce(opened_class,''), ',' order by model_id))
     into h_before from public.llm_route_health;
   select md5(coalesce(string_agg(key || '=' || coalesce(value,''), ','), '')) into s_before from public.app_secrets where key = 'no_paid_ai';
@@ -178,6 +185,7 @@ test('production, one aborted transaction: a window opens, the run passes, the w
   assert.ok(out.held_routes > 0, 'nothing is held: the probe would prove nothing');
   assert.equal(out.hold_identical, true, `the hold changed during a sandbox run (route after: ${out.route_after})`);
   assert.equal(out.switch_identical, true);
+  assert.match(out.tagged_gate, /^rehearsal_window:true$/, 'a tagged call inside its open window passes the hold');
   assert.match(out.untagged_gate_after, /^founder_hold:false$/, 'after the window closes, untagged traffic meets the hold');
   if (process.env.HOLD_NO_REPLAY !== '1') assert.equal(out.direct_clear, 'refused');
 });
