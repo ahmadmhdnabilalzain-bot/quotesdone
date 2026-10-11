@@ -2472,7 +2472,7 @@ create temp table it_runs7 on commit drop as
          coalesce(x.started_at <@ rw.covered, false) rehearsal
     from (select a.*, row_number() over (partition by a.agent order by a.started_at desc) rn
             from public.agent_runs a where a.started_at > v_now - c_base) x
-   cross join (select greatest(max(l.open_until), timestamptz '2026-10-07 03:25:36.237679+00') hold_until,
+   cross join (select max(l.open_until) hold_until,
                       (select coalesce(array_agg(distinct s.subject), '{}') from public.it_hold_signature s) subjects
                  from public.llm_route_health l
                 where l.opened_reason like 'HELD BY THE FOUNDER%') h
@@ -2579,7 +2579,9 @@ v_watched := 0;
 for r in
   with s0 as (
     select subject agent, started_at
-    from it_runs7),
+    from it_runs7
+    -- 7 Oct 2026 (gap 3): a refused call is a caller's demand, not the subject's own rhythm.
+    where not refused0),
   g as (
     select agent, started_at,
            extract(epoch from (started_at - lag(started_at) over (partition by agent order by started_at)))/60 gap
@@ -2590,12 +2592,22 @@ for r in
            count(distinct date_trunc('hour', started_at))::int                    hours,
            (percentile_cont(0.5) within group (order by gap) filter (where gap > 0))::numeric p50,
            (percentile_cont(0.9) within group (order by gap) filter (where gap > 0))::numeric p90,
-           max(started_at)                                                        last_run
+           max(started_at)                                                        last_run,
+           (array_agg(gap order by started_at desc))[1]                           last_gap,
+           (array_agg(gap order by started_at desc))[2]                           prev_gap
     from g group by agent)
   select c.*, coalesce(s.public_surface,false) pub,
          extract(epoch from (v_now - c.last_run))/60 silent_min
   from c left join public.it_watch_subject s on s.subject = c.agent
   where c.samples >= 10 and c.hours >= 12 and c.p50 > 0 and c.p90 <= c.p50 * 3
+    -- 7 Oct 2026 (gap 3, PR #1281): a sub-minute median is a burst, not a schedule (ai_gateway, p50 0.01);
+    -- the rhythm is built from served runs only (above), so outside traffic refused 400 cannot lend a public
+    -- surface a schedule (unsubscribe); and a subject whose LAST completed gap already exceeded the threshold
+    -- has settled into a new rhythm -- its last TWO completed gaps both past the threshold (wa_templates_watch
+    -- after #1049) -- is not judged by the old gaps for the next seven days. ONE long gap is a stop that ran once:
+    -- a subject that stops, runs once and stops again is still raised (review of #1283).
+    and c.p50 >= 1
+    and not (coalesce(c.last_gap, 0) > greatest(c.p50 * 4, 30) and coalesce(c.prev_gap, 0) > greatest(c.p50 * 4, 30))
 loop
   v_watched := v_watched + 1;
   continue when r.silent_min <= greatest(r.p50 * 4, 30);
