@@ -1,6 +1,6 @@
 {
   "_about": "THE ONE SOURCE OF TRUTH for every company figure a customer, supplier or seat can read: fees, penalties, rates. Founder rule (C), 23 Sep 2026: a change to company knowledge reaches every place at once. Change a value HERE, then run `node scripts/legal/sync_company_facts.mjs --write-repo` (rewrites the website texts) and `--emit-sql <file>` (the production knowledge, the signed registry and the seats' policy keys, one transaction). `scripts/checks/company_facts_agree_everywhere.test.mjs` fails CI if any repository surface states a different figure; `sync_company_facts.mjs --probe` does the same against production. Each fact's `basis` is the INTERNAL legal annex: the article relied on and why the figure is the safe maximum. It is never rendered on a public page.",
-  "version": "2026-09-24.2",
+  "version": "2026-10-06.1",
   "documents": {
     "terms": {
       "version": "v9",

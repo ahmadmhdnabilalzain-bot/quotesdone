@@ -1572,6 +1572,27 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_classify_bank_lines_by_reference()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n int;
+begin
+  update public.bank_statement_line b
+     set kind = c.kind, kind_by = 'bank_reference_code#' || c.id, kind_at = now()
+    from public.bank_reference_code c
+   where b.kind is null and c.kind is not null
+     and b.account = c.bank and b.reference is not null
+     and starts_with(split_part(b.reference, ' ', 1), c.code_prefix)
+     and (c.code_suffix is null or split_part(b.reference, ' ', 2) = c.code_suffix)
+     and sign(b.amount_aed) = c.sign;
+  get diagnostics n = row_count;
+  return n;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_close_by_day_5()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1745,9 +1766,22 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_cost_booking_tick()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_sync int; v_bank jsonb; v_cap jsonb;
+declare v_sync int; v_class int; v_bank jsonb; v_cap jsonb;
 begin
   v_sync := public.fn_gl_sync_business();
+  -- Structured reference codes first, so the bank-charge and bank-credit rules below book what they classify.
+  -- Its own block: a classifier failure never undoes the business sync or stops the bookings below.
+  begin
+    v_class := public.fn_accountant_classify_bank_lines_by_reference();
+    perform public.fn_accountant_duty_settle('bank_reference_classify', '[]'::jsonb);
+  exception when others then
+    -- never silent (release review): the failure is an accountant finding, and the bookings below still run
+    v_class := null;
+    perform public.fn_accountant_duty_settle('bank_reference_classify', jsonb_build_array(jsonb_build_object(
+      'item', 'run', 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+      'title', 'Classifying bank lines by their reference code failed, so none was classified this run: ' || sqlerrm,
+      'blast', 'agent_facing', 'affected', 1)));
+  end;
   v_bank := public.fn_accountant_book_bank_charges();
   -- The bank-credit rule runs in its own block (review of b06d251): whatever fails in it can never undo the
   -- business sync or the bank charges above; the failure is an accountant finding instead.
@@ -1761,7 +1795,8 @@ begin
       'title', 'Booking the bank''s credits failed, so nothing was booked from them this run: ' || sqlerrm,
       'blast', 'agent_facing', 'affected', 1)));
   end;
-  return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank, 'bank_credits', v_cap);
+  return jsonb_build_object('gl_sync_business_entries', v_sync, 'classified_by_reference_code', v_class,
+                            'bank_charges', v_bank, 'bank_credits', v_cap);
 end $function$
 
 
@@ -4392,6 +4427,56 @@ begin
    where id = p_due_id and legal_stage in ('filing_pack_due', 'filing_pack_sent');
   if not found then return jsonb_build_object('ok', false, 'reason', 'due ' || p_due_id || ' is not waiting for a filing outcome'); end if;
   return jsonb_build_object('ok', true, 'due_id', p_due_id, 'outcome', p_outcome);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_record_supplier_payment(p_due_id bigint, p_amount numeric, p_paid_on date, p_reference text, p_entered_by text DEFAULT 'accountant'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.supplier_dues; v_id bigint; v jsonb; v_owed numeric; v_today date := (now() at time zone 'Asia/Dubai')::date;
+begin
+  if coalesce(p_entered_by, '') not in ('accountant', 'service') then
+    return jsonb_build_object('ok', false, 'reason', 'entered_by must be accountant or service');
+  end if;
+  if p_amount is null or p_amount <= 0 then return jsonb_build_object('ok', false, 'reason', 'the amount must be above zero'); end if;
+  if p_paid_on is null or p_paid_on > v_today then
+    return jsonb_build_object('ok', false, 'reason', 'the payment date is missing or in the future');
+  end if;
+  if nullif(btrim(p_reference), '') is null then return jsonb_build_object('ok', false, 'reason', 'a bank or Stripe reference is required'); end if;
+  select * into d from public.supplier_dues where id = p_due_id for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such due'); end if;
+  if d.paid_at is not null or coalesce(d.status, '') in ('paid', 'settled', 'waived', 'reversed', 'refunded', 'cancelled', 'void') then
+    return jsonb_build_object('ok', false, 'reason', 'this due is ' || coalesce(nullif(d.status, ''), 'paid') || ', so nothing is owed on it');
+  end if;
+  v_owed := least((public.fn_supplier_dues_outstanding(array[d.id], p_paid_on) -> d.id::text ->> 'owed_aed')::numeric,
+                  (public.fn_supplier_dues_outstanding(array[d.id], v_today)   -> d.id::text ->> 'owed_aed')::numeric);
+  if v_owed is null or round(p_amount, 2) > v_owed then
+    perform public.fn_it_engineer_finding_upsert('acct:supplier_overpayment:' || d.id || ':' || btrim(p_reference),
+      'An attempt to record AED ' || round(p_amount, 2) || ' against supplier due ' || d.id || ' exceeds the AED ' || coalesce(v_owed, 0) || ' still owed',
+      'public.fn_accountant_record_supplier_payment', 'agent_facing', 1,
+      jsonb_build_object('due_id', d.id, 'amount_aed', round(p_amount, 2), 'owed_aed', v_owed, 'paid_on', p_paid_on,
+                         'reference', btrim(p_reference), 'entered_by', p_entered_by, 'owner_seat', 'accountant', 'raised_by_seat', 'accountant'),
+      '{}'::text[], '{}'::text[], 'accountant');
+    return jsonb_build_object('ok', false, 'reason', 'the amount is above the AED ' || coalesce(v_owed, 0) || ' still owed on this due; nothing was recorded', 'owed_aed', v_owed);
+  end if;
+  insert into public.supplier_due_payments (due_id, paid_on, amount_aed, reference, entered_by)
+  values (p_due_id, p_paid_on, round(p_amount, 2), btrim(p_reference), p_entered_by)
+  on conflict (due_id, reference) do nothing returning id into v_id;
+  if v_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'this reference is already recorded against this due, so the payment is not counted twice');
+  end if;
+  v := case when d.transaction_id is not null then public.fn_accountant_nonresponse_charge(d.transaction_id, null) end;
+  -- settled only when nothing is outstanding on the same figure the cap reads (principal, interest, fees and any legacy
+  -- fine; a due with no transaction reads its stored columns less payments)
+  v_owed := (public.fn_supplier_dues_outstanding(array[d.id], v_today) -> d.id::text ->> 'owed_aed')::numeric;
+  if v_owed <= 0 then
+    update public.supplier_dues set paid_at = now(), status = 'paid', payment_ref = btrim(p_reference) where id = p_due_id;
+  end if;
+  return jsonb_build_object('ok', true, 'payment_id', v_id, 'due_id', p_due_id, 'settled', v_owed <= 0, 'owed_aed', v_owed,
+                            'paid_aed', v->'paid_aed', 'unpaid_principal_aed', v->'unpaid_principal_aed', 'interest_aed', v->'interest_aed', 'total_aed', v->'total_aed');
 end $function$
 
 
@@ -9655,6 +9740,24 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ai_cost_log_e2e_run_tag()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_tag text;
+begin
+  v_tag := coalesce(new.e2e_run_tag, public.fn_e2e_run_tag_current());
+  if v_tag is not null and not coalesce(public.fn_e2e_run_tag_open(v_tag), false) then v_tag := null; end if;
+  new.e2e_run_tag := v_tag;
+  return new;
+exception when others then
+  new.e2e_run_tag := null;   -- the cost record is never lost to a malformed header
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ai_quality_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9809,7 +9912,7 @@ declare
   v_split   text;
   v_route_base text;
   v_base_pol model_policy%rowtype;
-  v_seat_fb text;
+  v_seat_fb text; v_seat_p text;
 begin
   if p_task_class is not null and length(btrim(p_task_class)) > 0 then
     v_class := p_task_class; v_src := 'caller-supplied task_class';
@@ -9859,9 +9962,9 @@ begin
 
   -- THE SEAT'S OWN ROUTE (29 Sep 2026, sales_engineer; founder_instruction 1056).
   -- think() and every other shared engine bill a step to a class chosen by WHAT the step is
-  -- (routine_employee_reasoning, customer_communication, ...). The founder's matrix routes by WHO asks:
-  -- the CEO and the sales engineer fall back to openai/gpt-6-luna, every other seat to
-  -- deepseek/deepseek-v4.1-flash, and the CEO's judgement runs on Opus. The seat is the caller's agent,
+  -- (routine_employee_reasoning, customer_communication, ...). The founder's matrix routes by WHO asks. Matrix v2
+  -- (5 Oct 2026): every seat runs openai/gpt-6-luna with google/gemini-3.8-flash as its plan B, and the CEO's
+  -- hard work and the comparison report run on Opus with luna behind. The seat is the caller's agent,
   -- resolved as the agent_reasoning block above resolves it (an alias of a seat is that seat).
   --   1. A policy row named '<seat>__<class>' is that seat's own route for <class>: its MODELS are taken, while
   --      the CLASS stays <class> - ai_cost_log, the response cache, the confidence prior and every author proof
@@ -9869,7 +9972,8 @@ begin
   --      fn_ai_route_review_for reads for a review's pair.
   --   2. Otherwise the seat's PLAN B is its own for every class it calls: the fallback of its catch-all row in
   --      model_policy_by_identity replaces the class's, unless the class has no fallback on purpose (only Gemini
-  --      hears) or is a review (its pair is chosen against its author's family).
+  --      hears) or is a review (its pair is chosen against its author's family). Since matrix v2 only on a class
+  --      that runs on the seat's own primary: an Opus class keeps luna behind it.
   -- A '<seat>__<class>' row - reached through the seat, or named by fn_task_class for the seat's own function -
   -- never allows fewer tokens than <class>. A seat's own row is never served from the semantic cache: that cache is keyed
   -- by class, not model, so a CEO judgement on Opus could otherwise be answered by another seat's Gemini answer.
@@ -9901,10 +10005,11 @@ begin
 
   if v_split is null and not v_generic and v_seat is not null and v_pol.model_fallback is not null
      and cardinality(coalesce(v_pol.reviews_class, '{}')) = 0 then
-    select i.fallback_model into v_seat_fb from model_policy_by_identity i
+    select i.fallback_model, i.primary_model into v_seat_fb, v_seat_p from model_policy_by_identity i
      where i.scope = 'current_agent' and i.identity_key = v_seat
        and exists (select 1 from org_role o where o.role_id = v_seat and o.status = 'active');  -- a live seat's row only
-    if v_seat_fb is not null and v_seat_fb not in (v_pol.model_primary, v_pol.model_fallback) then
+    if v_seat_fb is not null and v_seat_fb not in (v_pol.model_primary, v_pol.model_fallback)
+       and v_pol.model_primary is not distinct from v_seat_p then  -- matrix v2: only on the seat's own routine model
       v_src := v_src || ' | seat "' || v_seat || '" falls back to its own plan B ' || v_seat_fb
                      || ' instead of ' || v_pol.model_fallback;
       v_pol.model_fallback := v_seat_fb;
@@ -10180,12 +10285,11 @@ begin
       select pol.model_primary model_id, 0 ord from pol
       union all select pol.model_fallback, 1 from pol
       union all select p.model_id, 10 + p.rank from public.review_pool p where p.active
-      -- 1068 (30 Sep 2026): the last-resort families are the matrix's live ones, cheapest first and Opus last.
+      -- 1068 (30 Sep 2026): the last-resort families are the matrix's live ones. 5 Oct 2026 (matrix v2): the two retired
+      -- models leave the list; Gemini first, then luna, Opus last.
       union all select 'google/gemini-3.8-flash', 2000000
-      union all select 'deepseek/deepseek-v4.1-flash', 2000001
-      union all select 'qwen/qwen3.7-plus', 2000002
-      union all select 'openai/gpt-6-luna', 2000003
-      union all select 'anthropic/claude-opus-5.5', 2000004)
+      union all select 'openai/gpt-6-luna', 2000001
+      union all select 'anthropic/claude-opus-5.5', 2000002)
     select d.model_id, d.ord, lower(btrim(r.provider)) provider, coalesce(r.active and r.approved, false) reg_ok,
            (not v_vis or coalesce(r.supports_vision, false)) and (not v_aud or coalesce(r.supports_audio, false))
              and (not v_tls or coalesce(r.supports_tools, false)) caps_ok,
@@ -10472,6 +10576,22 @@ begin
   end if;
   return new;
 end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_app_secrets_no_paid_ai_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if old.key = 'no_paid_ai' and lower(coalesce(old.value, '')) in ('1','true','yes','on')
+     and (tg_op = 'DELETE' or new.key <> 'no_paid_ai' or lower(coalesce(new.value, '')) not in ('1','true','yes','on'))
+     and not public.fn_founder_hold_change_allowed() then
+    raise exception 'FOUNDER_HOLD: app_secrets.no_paid_ai is on; only the founder turns it off (set local app.change_reason = ''founder:<ledger id>'').'
+      using errcode = 'P0001';
+  end if;
+  return case when tg_op = 'DELETE' then old else new end;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_apply_playbook(p_agent_key text, p_query_embedding vector, p_query_text text, p_min_similarity real DEFAULT 0.85, p_k integer DEFAULT 20)
@@ -11246,7 +11366,7 @@ AS $function$
     select max(d.dy) filter (where d.kd = 'full' and d.st = 'done') as newest_full,
            max(d.dy) filter (where d.kd = 'full') as latest_full_attempt
       from d),
-  -- kept for ever: the first complete full copy of each month, or a full-less month's last complete copy
+  -- the month's copy: its first complete full copy, or a full-less month's last complete copy
   mf as (
     select date_trunc('month', d.dy)::date as mo,
            min(d.dy) filter (where d.kd = 'full' and d.st = 'done') as first_full,
@@ -11254,7 +11374,8 @@ AS $function$
       from d group by 1),
   k as (
     select d.dy, d.og, d.kd, d.st,
-           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as forever,
+           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as month_copy,
+           (date_trunc('month', d.dy)::date > (date_trunc('month', p_today) - interval '12 months')::date) as within_12_months,
            case when g.newest_full is null then 'blocked: no complete full copy exists, so nothing is deleted'
                 when g.latest_full_attempt > g.newest_full
                   then 'blocked: the latest full copy (' || g.latest_full_attempt || ') did not complete, so nothing is deleted'
@@ -11262,12 +11383,11 @@ AS $function$
            d.dy = g.newest_full as is_newest_full,
            d.dy > g.newest_full as after_newest_full,
            d.st = 'running' as running,
-           (p_today - d.dy) <= 90 as within_90,
-           (d.kd = 'full' and d.st = 'done' and extract(isodow from d.dy) = 5
-            and d.dy > (p_today - interval '12 months')::date) as friday_kept
+           (p_today - d.dy) <= 30 as within_30
       from d cross join g left join mf on mf.mo = date_trunc('month', d.dy)::date),
   kp as (
-    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.forever or k.within_90 or k.friday_kept) as policy_keep from k),
+    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.within_30
+                 or (k.month_copy and k.within_12_months)) as policy_keep from k),
   anchor as (
     select kp.dy as inc_day,
            (select max(f.dy) from d f where f.kd = 'full' and f.st = 'done' and f.dy <= kp.dy) as full_day
@@ -11280,14 +11400,13 @@ AS $function$
               when c.is_newest_full then 'the newest complete full copy'
               when c.after_newest_full then 'part of the newest restore chain (the newest full copy and every day after it)'
               when c.running then 'still being written'
-              when c.forever and c.kd = 'full' then 'the first complete full copy of its month, kept forever'
-              when c.forever then 'the last complete copy of a month with no full copy, kept forever'
-              when c.within_90 then 'within 90 days'
-              when c.friday_kept then 'a complete Friday full copy within 12 months'
+              when c.within_30 then 'within 30 days'
+              when c.month_copy and c.within_12_months and c.kd = 'full' then 'the first complete full copy of its month, within 12 months'
+              when c.month_copy and c.within_12_months then 'the last complete copy of a month with no full copy, within 12 months'
               when c.in_kept_chain then 'needed by a kept kb_chunks restore chain (its full copy, or a day between)'
-              when c.kd = 'full' and c.st = 'done' and extract(isodow from c.dy) = 5 then 'a Friday full copy older than 12 months'
-              when c.st <> 'done' then 'an incomplete export (' || coalesce(nullif(c.st, ''), 'unknown') || ') older than 90 days'
-              else 'a daily copy older than 90 days'
+              when c.month_copy then 'a monthly copy older than 12 months'
+              when c.st <> 'done' then 'an incomplete export (' || coalesce(nullif(c.st, ''), 'unknown') || ') older than 30 days'
+              else 'a daily copy older than 30 days'
          end
     from c order by c.dy;
 $function$
@@ -11565,6 +11684,7 @@ AS $function$
     ('reports',          'bucket', 'reports',          true, 'fn_enqueue_doc_backups: STORAGE SWEEP (board and executive report PDFs; their rows are not in the daily table export)', null),
     ('social-media',     'bucket', 'social-media',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (generated post cards and avatars; not in the repository)', null),
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
+    ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
     ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),
@@ -11623,6 +11743,7 @@ AS $function$
     ('cad_read_jobs.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a work-queue pointer to the customer''s original drawing in drawing-files, which is backed up through inquiries.drawing_file_path; the job holds no second copy'),
     ('marketing_first_touch.landing_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): the site page (a URL path such as /en/suppliers) a supplier first landed on from a post, not a stored file; the row is in the daily table export'),
     ('marketing_asset_feature.asset_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): a pointer to a post video already in marketing-media (backed up through marketing_post.video_path and media_paths); the feature row measures it and holds no second copy'),
+    ('conversation_retention_pdf.pdf_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): a pointer, kept after the text is removed, to the conversation PDF already in backups/conversations/ (backed up through conversation_archive.pdf_path); it holds no second copy'),
     ('action_class_demand.on_revenue_path', 'column', null, false, null, 'EXEMPT (not a file or not ours): a boolean saying whether an action_class is on the revenue path; it names no file, and the row is in the daily table export'),
     ('ml-models',                            'bucket', null, false, null, 'EXEMPT (not a file or not ours): a copy of a public embedding model downloaded from Hugging Face for the multilingual embedder; it can be fetched again and holds no record'),
     ('supplier_campaign_daily_list.pdf_path', 'column', null, false, null, 'EXEMPT (not a file or not ours): the 18:00 supplier-list PDF is drawn from its own row (rows, pdf_blocks), which is in the daily table export; it can be rendered again'),

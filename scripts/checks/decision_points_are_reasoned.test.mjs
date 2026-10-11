@@ -82,7 +82,8 @@ test('no migrated decision point is decided by a word list again, and each one a
   assert.ok(th.includes('await recallCases(deps, '), 'think.ts lost its case recall (recallCases)');
   assert.ok(read('supabase/functions/_shared/case_recall.ts').includes("admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {"), 'case_recall.ts lost fn_case_recall');
   assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, 3, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\)\)\)/);
-});
+  // 7 Oct 2026 (ledger 1175): 10 a claim, concurrently, bounded by REPLAY_MAX_ROWS and REPLAY_BUDGET_MS per tick.
+  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, 10, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\),\s*\{ maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS \}\)\)/);
 
 test('provider webhooks are acknowledged at once and handled after (reasoning never runs inside Twilio\'s or Meta\'s deadline)', () => {
   assert.match(read('supabase/functions/wa_inbound/index.ts'), /return ackThenWork\(TW\(200\), \(\) => handleInbound\(copy\), 'wa_inbound'\);/);
@@ -209,7 +210,8 @@ begin
   v_id := public.fn_reason_hold('ceo', 'ceo.command_intent', 'ZZ DEMO stop the campaign', '{"seat":"ceo"}'::jsonb, '{}'::jsonb,
             jsonb_build_object('command_id', (select command_id from public.fn_ceo_command_submit('api', 'ZZ DEMO probe', 'ZZ DEMO stop the campaign'))), 'model_hold', 'zz-demo-probe-1');
   o := o || jsonb_build_object('hold_dedupe', public.fn_reason_hold('ceo', 'ceo.command_intent', 'ZZ DEMO again', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_failed: x', 'zz-demo-probe-1') = v_id);
-  o := o || jsonb_build_object('gate_rule', public.fn_kernel_paid_provider_gate('hold-probe/not-a-model')->>'rule', 'due_under_gate', public.fn_reason_held_due(3));
+  o := o || jsonb_build_object('gate_rule', public.fn_kernel_paid_provider_gate((select h.model_id from public.llm_route_health h join public.model_registry r using (model_id) where r.active and h.open_until is null order by 1 limit 1))->>'rule',
+                               'due_claimed', coalesce(jsonb_array_length(public.fn_reason_held_due(3)), 0));
   o := o || jsonb_build_object('resolve_held', public.fn_reason_held_resolve(v_id, '{"status":"held"}'::jsonb)->>'status',
                                'resolve_answered', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ DEMO halt","decision":{"choice":"stop"}}'::jsonb)->>'status');
   select jsonb_build_object('row', h.status, 'cmd', c.state || ':' || c.intent_id) into v
@@ -310,8 +312,10 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   assert.ok(out.keyed_present.includes('floor_type'), 'a keyed answer is');
 
   assert.equal(out.hold_dedupe, true, 'one held row per inbound message');
-  assert.equal(out.gate_rule, 'founder_hold', 'this check assumes the founder\'s hold is on; if released, rewrite the due assertion');
-  assert.deepEqual(out.due_under_gate, [], 'under the hold nothing is replayed');
+  // Ledger 1175 (7 Oct 2026): OpenRouter is always on. A registered route with a closed breaker passes the gate, and
+  // the held queue is claimed for replay (at most the limit; 0 only once it has drained).
+  assert.equal(out.gate_rule, 'registered_breaker_closed', 'ruling 1175: the gate is open for a registered route');
+  assert.ok(out.due_claimed >= 0 && out.due_claimed <= 3, 'the replay claims at most its limit');
   assert.equal(out.resolve_held, 'still_held');
   assert.equal(out.resolve_answered, 'applied');
   assert.deepEqual(out.resolved, { row: 'applied', cmd: 'tasks_created:stop' });

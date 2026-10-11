@@ -1,7 +1,7 @@
 // The rules that stop a paid call repeating itself (it_engineer, 22 Sep 2026, founder instruction 705).
 // Each test replays the input that used to multiply spend.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import {
+import { rehearsalLetsFixtureThrough,
   activeFailure, attemptPlan, COMPARE_RETRY_BASE_MS, COMPARE_RETRY_MAX_MS, failureKind, failureRecord,
   fixtureVerdict, isCachedAnalysis, MAX_PAID_CALLS_PER_REQUEST, nextAttempt, ownWorkByName, subjectOf,
 } from './spend_guards.ts';

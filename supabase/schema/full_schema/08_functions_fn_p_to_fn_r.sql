@@ -78,6 +78,283 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_pdpl_actor()
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', session_user::text);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_cancel(p_request uuid, p_operator text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare q public.pdpl_requests; v jsonb; n int := 0; r record;
+begin
+  select * into q from public.pdpl_requests where id = p_request for update;
+  if q.id is null or q.status <> 'cooling_off' or q.confirm_after <= now() then
+    v := jsonb_build_object('ok', false, 'error', 'no erasure in its cooling-off window');
+  else
+    for r in select * from public.pdpl_lead_erase_vault where request_id = q.id loop
+      update public.leads l
+         set email = r.snapshot->>'email', email_domain = r.snapshot->>'email_domain', phone = r.snapshot->>'phone',
+             phone_e164 = r.snapshot->>'phone_e164', whatsapp = r.snapshot->>'whatsapp', whatsapp_phone = r.snapshot->>'whatsapp_phone',
+             contact_name = r.snapshot->>'contact_name', signatory_name = r.snapshot->>'signatory_name',
+             accepted_terms_ip = r.snapshot->>'accepted_terms_ip', permanently_closed = (r.snapshot->>'permanently_closed')::boolean
+       where l.id = r.lead_id;
+      n := n + 1;
+    end loop;
+    delete from public.pdpl_lead_erase_vault where request_id = q.id;
+    update public.pdpl_requests set status = 'cancelled', cancelled_at = now() where id = q.id;
+    v := jsonb_build_object('ok', true, 'restored_leads', n,
+           'note', 'the marketing opt-out stays; the person can resubscribe from any invitation link');
+  end if;
+  insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result) values ('fn_pdpl_cancel', p_operator, 'cancel', q.email, p_request, v);
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_carry_out(p_request uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare q public.pdpl_requests; v_plan jsonb; v_out jsonb; v_id bigint;
+begin
+  select * into q from public.pdpl_requests where id = p_request for update;
+  insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result)
+  values ('fn_pdpl_carry_out', q.handled_by, 'carry_out:' || coalesce(q.kind, ''), q.email, p_request, jsonb_build_object('verified', q.verified_at is not null));
+  if q.verified_at is null then return jsonb_build_object('ok', false, 'error', 'not verified'); end if;
+  if q.kind = 'export' then
+    v_out := public.fn_pdpl_export_data(q.email);
+    update public.pdpl_requests set status = 'completed', completed_at = now(), handled_at = now(),
+           outcome = jsonb_build_object('delivered', 'in the response') where id = q.id;
+    return jsonb_build_object('ok', true, 'request_id', q.id, 'export', v_out);
+  end if;
+  -- erase, step 1: marketing opt-out now (never transactional mail), soft erase, cooling-off
+  insert into public.email_suppressions (email, reason, source) values (lower(q.email), 'unsubscribe', 'pdpl')
+  on conflict do nothing;
+  v_plan := public.fn_pdpl_erase_plan(q.email);
+  for v_id in select (jsonb_array_elements_text(v_plan->'erase_now'))::bigint loop
+    insert into public.pdpl_lead_erase_vault (request_id, lead_id, snapshot)
+    select q.id, l.id, jsonb_build_object('email', l.email, 'email_domain', l.email_domain, 'phone', l.phone, 'phone_e164', l.phone_e164,
+             'whatsapp', l.whatsapp, 'whatsapp_phone', l.whatsapp_phone, 'contact_name', l.contact_name,
+             'signatory_name', l.signatory_name, 'accepted_terms_ip', l.accepted_terms_ip, 'permanently_closed', l.permanently_closed)
+      from public.leads l where l.id = v_id
+    on conflict do nothing;
+    update public.leads
+       set email = null, email_domain = null, phone = null, phone_e164 = null, whatsapp = null, whatsapp_phone = null,
+           contact_name = null, signatory_name = null, accepted_terms_ip = null, permanently_closed = true
+     where id = v_id;
+  end loop;
+  update public.pdpl_requests set status = 'cooling_off', confirm_after = now() + interval '7 days', handled_at = now(),
+         outcome = v_plan || jsonb_build_object('marketing_opt_out', true, 'transactional_mail', 'unaffected')
+   where id = q.id;
+  return jsonb_build_object('ok', true, 'request_id', q.id, 'status', 'cooling_off', 'confirm_after', now() + interval '7 days', 'plan', v_plan);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_erase_plan(p_email text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with l as (
+    select le.id, le.claimed_by,
+           exists (select 1 from public.transactions t where t.supplier_id = le.id)
+        or exists (select 1 from public.supplier_dues d where d.supplier_id = le.id)
+        or exists (select 1 from public.messages m where m.supplier_id = le.id)
+        or exists (select 1 from public.refunds f where f.supplier_lead_id = le.id) as has_records,
+           public.fn_conversation_party_on_hold('supplier', le.id::text) as on_hold,
+           public.fn_conversation_party_last_activity('supplier', le.id::text) as last_act
+      from public.leads le where lower(le.email) = lower(btrim(p_email))),
+  c as (
+    select cu.id, public.fn_conversation_party_on_hold('customer', cu.id::text) as on_hold,
+           public.fn_conversation_party_last_activity('customer', cu.id::text) as last_act
+      from public.customers cu where lower(cu.email) = lower(btrim(p_email)))
+  select jsonb_build_object(
+    'erase_now', (select coalesce(jsonb_agg(l.id), '[]') from l where l.claimed_by is null and not l.has_records and not l.on_hold),
+    'deferred', (select coalesce(jsonb_agg(x), '[]') from (
+        select jsonb_build_object('record', 'supplier ' || l.id, 'legal_hold', l.on_hold,
+                 'kept_until', (greatest(coalesce(l.last_act, now()), date_trunc('year', now()) + interval '1 year') + interval '5 years')::date,
+                 'reason', case when l.on_hold then 'an open dispute, refund, complaint or unpaid amount' else 'a registered supplier or one with transactions, dues or messages: kept under Cabinet Decision 74/2023 Art. 3' end) x
+          from l where not (l.claimed_by is null and not l.has_records and not l.on_hold)
+        union all
+        select jsonb_build_object('record', 'customer ' || c.id, 'legal_hold', c.on_hold,
+                 'kept_until', (greatest(coalesce(c.last_act, now()), date_trunc('year', now()) + interval '1 year') + interval '5 years')::date,
+                 'reason', 'a customer account: kept under Cabinet Decision 74/2023 Art. 3; conversations are removed on that date') from c) d));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_export_data(p_email text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with e as (select lower(btrim(p_email)) as em, public.fn_pdpl_phone_tails(p_email) as tails),
+  c as (select cu.* from public.customers cu, e where lower(cu.email) = e.em),
+  l as (select le.* from public.leads le, e where lower(le.email) = e.em)
+  select jsonb_build_object(
+    'email', (select em from e),
+    'generated_at', now(),
+    'controller', 'QuotesDone Technologies, DET Dubai Trader License No. 1633275, Dubai, United Arab Emirates',
+    'customer_accounts', (select coalesce(jsonb_agg(to_jsonb(c)), '[]') from c),
+    'supplier_records', (select coalesce(jsonb_agg(to_jsonb(l)), '[]') from l),
+    'requests', (select coalesce(jsonb_agg(jsonb_build_object('id', i.id, 'created_at', i.created_at, 'category', i.category,
+                   'summary', i.summary, 'status', i.status, 'emirate', i.emirate, 'budget', i.budget) order by i.created_at), '[]')
+                   from public.inquiries i where i.customer_id in (select id from c)),
+    'transactions', (select coalesce(jsonb_agg(to_jsonb(t)), '[]') from public.transactions t
+                      where t.customer_id in (select id from c) or t.supplier_id in (select id from l)),
+    'refunds', (select coalesce(jsonb_agg(to_jsonb(r)), '[]') from public.refunds r
+                 where r.customer_id in (select id from c) or r.supplier_lead_id in (select id from l)),
+    'portal_chat', (select coalesce(jsonb_agg(jsonb_build_object('at', m.created_at, 'from', m.sender, 'text', m.body,
+                      'attachment', m.attachment_path) order by m.created_at), '[]')
+                      from public.messages m where m.customer_id in (select id from c) or m.supplier_id in (select id from l)),
+    'emails_we_sent', (select coalesce(jsonb_agg(jsonb_build_object('at', coalesce(n.sent_at, n.created_at), 'subject', n.subject,
+                         'text', n.body, 'status', n.status) order by n.created_at), '[]')
+                         from public.notifications n, e where lower(n.to_email) = e.em),
+    'emails_we_received', (select coalesce(jsonb_agg(jsonb_build_object('at', im.created_at, 'subject', im.subject, 'text', im.body)
+                             order by im.created_at), '[]')
+                             from public.inbound_messages im, e where lower(im.from_email) = e.em),
+    'whatsapp', (select coalesce(jsonb_agg(jsonb_build_object('at', w.created_at, 'received', w.inbound, 'replied', w.reply)
+                   order by w.created_at), '[]')
+                   from public.wa_messages w, e
+                  where right(regexp_replace(coalesce(w.wa_from, ''), '[^0-9]', '', 'g'), 9) = any (e.tails)),
+    'opt_out', (select to_jsonb(s) from public.email_suppressions s, e where lower(s.email) = e.em limit 1));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_my_verified_email()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with e as (select lower(nullif(auth.jwt() ->> 'email', '')) em)
+  select e.em from e
+   where exists (select 1 from public.customers c where lower(c.email) = e.em and c.email_verified)
+      or exists (select 1 from public.leads l where lower(l.claimed_by) = e.em and l.owner_email_verified);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_open(p_email text, p_kind text, p_operator text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_em text := lower(btrim(coalesce(p_email, ''))); v_code text; v_id uuid; v_out jsonb;
+begin
+  if v_em !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' or p_kind not in ('export', 'delete') or coalesce(btrim(p_operator), '') = '' then
+    v_out := jsonb_build_object('ok', false, 'error', 'an email, a kind (export|delete) and the operator are required');
+  else
+    v_code := lpad((floor(random() * 1000000))::int::text, 6, '0');
+    insert into public.pdpl_requests (kind, email, role, details, status, code_sha, code_expires, handled_by)
+    values (p_kind, v_em, 'operator', 'opened by ' || p_operator, 'received', encode(sha256(convert_to(v_code, 'UTF8')), 'hex'),
+            now() + interval '24 hours', p_operator)
+    returning id into v_id;
+    perform public.fn_sales_engineer_writes('pdpl_verification', 'customer', v_em, null, null, null, null,
+      'Your QuotesDone data request: confirmation code',
+      'We received a request to ' || case when p_kind = 'export' then 'send you a copy of' else 'erase' end
+        || ' the personal data we hold for this address. If you made it, give us this code: ' || v_code
+        || E'. It expires in 24 hours.\nIf you did not make this request, ignore this email; nothing will change.',
+      'طلب بياناتكم لدى QuotesDone: رمز التأكيد',
+      'تلقّينا طلبًا ' || case when p_kind = 'export' then 'بتزويدكم بنسخة من' else 'بحذف' end
+        || ' البيانات الشخصية المحفوظة لهذا العنوان. إن كنتم قد قدّمتم الطلب، فيُرجى تزويدنا بهذا الرمز: ' || v_code
+        || E'، وتنتهي صلاحيته خلال 24 ساعة.\nوإن لم تقدّموا هذا الطلب، فلا داعي لأي إجراء ولن يتغيّر شيء.',
+      '{}', 'pdpl_verification:' || v_id::text);
+    v_out := jsonb_build_object('ok', true, 'request_id', v_id, 'code_sent_to', v_em);
+  end if;
+  insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result) values ('fn_pdpl_open', p_operator, 'open:' || coalesce(p_kind, ''), v_em, v_id, v_out);
+  return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_phone_tails(p_email text)
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(array_agg(distinct t) filter (where length(t) = 9), '{}')
+    from (select right(regexp_replace(x, '[^0-9]', '', 'g'), 9) t
+            from (select unnest(array[c.phone, c.whatsapp_phone]) x from public.customers c where lower(c.email) = lower(p_email)
+                  union all
+                  select unnest(array[l.phone, l.phone_e164, l.whatsapp, l.whatsapp_phone]) from public.leads l where lower(l.email) = lower(p_email)) s
+           where x is not null) u;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare q record; done int := 0; held int := 0;
+begin
+  for q in select * from public.pdpl_requests where status = 'cooling_off' and confirm_after <= now() for update loop
+    if exists (select 1 from public.pdpl_lead_erase_vault v where v.request_id = q.id
+                and public.fn_conversation_party_on_hold('supplier', v.lead_id::text)) then
+      update public.pdpl_requests set status = 'held', outcome = coalesce(outcome, '{}') || jsonb_build_object('held_at', now(), 'held', 'a legal hold appeared during the cooling-off') where id = q.id;
+      held := held + 1;
+    else
+      delete from public.pdpl_lead_erase_vault where request_id = q.id;
+      update public.pdpl_requests set status = 'completed', completed_at = now() where id = q.id;
+      done := done + 1;
+    end if;
+  end loop;
+  insert into public.pdpl_operator_log (caller, operator, action, result) values ('fn_pdpl_tick', 'fn_pdpl_tick', 'tick', jsonb_build_object('completed', done, 'held', held))
+  ;
+  return jsonb_build_object('completed', done, 'held', held);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_pdpl_verify(p_request uuid, p_code text, p_operator text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare q public.pdpl_requests; v_out jsonb;
+begin
+  -- ATTEMPTS ARE COUNTED, COMPARED AND SPENT IN ONE LOCKED STEP (third review; the pattern of #1245's
+  -- fn_login_otp_email_verify): the request row is locked, so guesses sent at the same moment are serialised;
+  -- 5 guesses per code, then the code is burned; and at most 10 verifications per address per hour, counted
+  -- under an advisory lock on the address so two requests for it cannot both read the same count.
+  select * into q from public.pdpl_requests where id = p_request for update;
+  if q.id is not null then perform pg_advisory_xact_lock(hashtext('pdpl_verify:' || q.email)); end if;
+  if q.id is null or q.status <> 'received' then
+    v_out := jsonb_build_object('ok', false, 'error', 'no open request');
+  elsif (select count(*) from public.pdpl_operator_log l where l.action = 'verify' and l.email = q.email and l.at > now() - interval '1 hour') >= 10 then
+    v_out := jsonb_build_object('ok', false, 'error', 'too many attempts for this address; try again in an hour');
+  elsif q.attempts >= 5 or q.code_sha is null then
+    update public.pdpl_requests set code_sha = null, status = 'burned' where id = q.id;
+    v_out := jsonb_build_object('ok', false, 'error', 'this code is spent; ask for a new one');
+  elsif q.code_expires < now() or q.code_sha is distinct from encode(sha256(convert_to(btrim(coalesce(p_code, '')), 'UTF8')), 'hex') then
+    update public.pdpl_requests set attempts = attempts + 1,
+           code_sha = case when attempts + 1 >= 5 then null else code_sha end,
+           status = case when attempts + 1 >= 5 then 'burned' else status end
+     where id = q.id;
+    v_out := jsonb_build_object('ok', false, 'error', 'wrong or expired code', 'attempts_left', greatest(4 - q.attempts, 0));
+  else
+    update public.pdpl_requests set verified_via = 'email_code', verified_at = now(), code_sha = null, attempts = attempts + 1 where id = q.id;
+    v_out := public.fn_pdpl_carry_out(q.id);
+  end if;
+  insert into public.pdpl_operator_log (caller, operator, action, email, request_id, result)
+  values ('fn_pdpl_verify', p_operator, 'verify', q.email, p_request, v_out - 'export');                      -- the export itself is not copied into the log
+  return v_out;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_phase1_rollback_log_immutable()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2285,15 +2562,23 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__postmortem(p_id b
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.reasoning_held_question; v_inc bigint; v_ans text := btrim(coalesce(p_result->>'answer', ''));
+declare r public.reasoning_held_question; v_inc bigint; v_ans text := btrim(coalesce(p_result->>'answer', '')); n_more int := 0;
+        v_by text := 'it_engineer.postmortem (' || coalesce(p_result->>'model', 'model') || ')';
 begin
   select * into r from public.reasoning_held_question where id = p_id;
   v_inc := (r.subject->>'incident_id')::bigint;
   if v_ans = '' then raise exception 'EMPTY_ANSWER: postmortem question % came back empty', p_id; end if;
   update public.it_incident set cause = coalesce(nullif(btrim(cause), ''), left(v_ans, 2000)),
-         recorded_by = coalesce(recorded_by, 'it_engineer.postmortem (' || coalesce(p_result->>'model', 'model') || ')'), updated_at = now()
+         recorded_by = coalesce(recorded_by, v_by), updated_at = now()
    where id = v_inc;
-  return jsonb_build_object('applied', found, 'incident_id', v_inc);
+  if r.subject->>'fault_key' is not null then
+    update public.it_incident i set cause = left(v_ans, 2000), recorded_by = coalesce(i.recorded_by, v_by || ', same fault'), updated_at = now()
+      from public.agent_actions a
+     where a.id = i.handoff_id and i.id <> v_inc and coalesce(btrim(i.cause), '') = ''
+       and public.fn_it_postmortem_fault_key(a.detail) = r.subject->>'fault_key';
+    get diagnostics n_more = row_count;
+  end if;
+  return jsonb_build_object('applied', true, 'incident_id', v_inc, 'same_fault_filled', n_more);
 end $function$
 
 
@@ -2674,26 +2959,29 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_due(p_limit integer DEFAULT 3)
 AS $function$
 declare v_gate jsonb; v jsonb;
 begin
-  update public.reasoning_held_question set status = 'failed' where status = 'held' and attempts >= 3;
-  -- A fixture row is never replayed (a replay would pay for a test question): the estate's fixture convention in the
-  -- question or request, or a caller's subject.fixture flag. Same criteria as the one-off expiry at the end of this file.
-  update public.reasoning_held_question
-     set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', 'fn_reason_held_due', 'why', 'fixture, never paid for')
-   where status = 'held'
-     and (question ~ 'ZZ DEMO|@example\.invalid' or request::text ~ 'ZZ DEMO|@example\.invalid' or subject->>'fixture' = 'true');
+  perform public.fn_reason_held_sweep();
   v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
   if coalesce(v_gate->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state') then
     return '[]'::jsonb;
   end if;
-  with due as (
-    select id from public.reasoning_held_question
+  with lead as (
+    select distinct on (surface, coalesce(qhash, id::text)) id, attempts, last_attempt_at, created_at
+      from public.reasoning_held_question
      where status = 'held' and attempts < 3
-       and (last_attempt_at is null or last_attempt_at < now() - interval '10 minutes')
-     order by last_attempt_at nulls first, created_at
+     order by surface, coalesce(qhash, id::text), attempts desc, id
+  ), due as (
+    select h.id from public.reasoning_held_question h
+     where h.id in (select id from lead where last_attempt_at is null or last_attempt_at < now() - interval '10 minutes')
+     -- 6 Oct: the NEWEST due question first; a retry (last_attempt_at set) still waits its 10 minutes, then goes
+     -- behind untried rows exactly as before, so it is never starved past its three tries.
+     order by h.last_attempt_at nulls first, h.created_at desc
      limit greatest(1, least(coalesce(p_limit, 3), 10))
      for update skip locked
   ), claimed as (
-    update public.reasoning_held_question h set attempts = h.attempts + 1, last_attempt_at = now()
+    -- 6 Oct: the first claim starts the 14-day clock (a question waits out the hold without ageing)
+    update public.reasoning_held_question h set attempts = h.attempts + 1, last_attempt_at = now(),
+           expires_at = case when h.attempts = 0 and h.surface not like 'site_assistant.%'
+                             then now() + interval '14 days' else h.expires_at end
       from due where h.id = due.id
     returning h.id, h.seat, h.surface, h.request, h.subject
   )
@@ -2737,6 +3025,40 @@ begin
                                               'subject', m.subject, 'status', m.status)), '[]'::jsonb)
     into v from marked m where (select count(*) from filed) >= 0;
   return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_held_expire(p_ids bigint[], p_by text, p_why text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n_exp int; n_handoff int;
+begin
+  with gone as (
+    update public.reasoning_held_question h
+       set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
+     where h.id = any(p_ids) and h.status = 'held'
+    returning h.id, h.seat, h.surface, h.question, h.subject, h.created_at,
+              coalesce(h.request -> 'context' ->> 'audience', '') audience
+  ), filed as (
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    select g.seat, 'held_question_expired', 'pending', 'low',
+           left('A ' || coalesce(nullif(g.audience, ''), 'person-facing') || ' question on ' || g.surface
+                || ' expired unanswered: reply through the deterministic path', 200),
+           jsonb_build_object('held_id', g.id, 'surface', g.surface, 'audience', g.audience,
+                              'question', left(g.question, 1000), 'subject', g.subject, 'held_since', g.created_at,
+                              'why_expired', p_why,
+                              'needed', 'the person who asked still gets a reply: send the deterministic answer for this '
+                                        || 'surface, or answer by hand; the model will not be asked this question again'),
+           'reasoning_held_question', g.id::text
+      from gone g
+     where g.audience <> 'internal'
+    returning id
+  )
+  select (select count(*) from gone), (select count(*) from filed) into n_exp, n_handoff;
+  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff);
 end $function$
 
 
@@ -2795,7 +3117,7 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_resolve(p_id bigint, p_result j
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.reasoning_held_question; v_effect jsonb := null; v_fn text;
+declare r public.reasoning_held_question; v_effect jsonb := null; v_fn text; f record; v_fan jsonb := '[]'::jsonb; v_one jsonb;
 begin
   select * into r from public.reasoning_held_question where id = p_id for update;
   if not found then raise exception 'no held question %', p_id using errcode = 'P0002'; end if;
@@ -2809,7 +3131,12 @@ begin
     update public.reasoning_held_question
        set result = p_result, status = case when attempts >= 3 then 'failed' else 'held' end
      where id = p_id;
-    return jsonb_build_object('id', p_id, 'status', 'still_held');
+    if r.attempts >= 3 and r.qhash is not null then
+      update public.reasoning_held_question
+         set status = 'failed', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('failed_with', p_id)
+       where status = 'held' and surface = r.surface and qhash = r.qhash and id <> p_id;
+    end if;
+    return jsonb_build_object('id', p_id, 'status', case when r.attempts >= 3 then 'failed' else 'still_held' end);
   end if;
   update public.reasoning_held_question set result = p_result, status = 'reasoned', reasoned_at = now() where id = p_id;
   if r.surface = 'ceo.command_intent' and (r.subject->>'command_id') is not null then
@@ -2832,7 +3159,122 @@ begin
   if v_effect is not null then
     update public.reasoning_held_question set status = 'applied', applied_at = now() where id = p_id;
   end if;
-  return jsonb_build_object('id', p_id, 'status', case when v_effect is null then 'reasoned' else 'applied' end, 'effect', v_effect);
+
+  -- THE SAME QUESTION IS PAID FOR ONCE (R2): every row waiting on this hash takes this answer, applied by its own
+  -- surface to its own subject. A fanned row is never fanned again. One row whose apply fails does not undo the rest.
+  if r.qhash is not null and p_result->>'fanned_from' is null then
+    for f in select id, seat, surface, request, subject from public.reasoning_held_question
+              where status = 'held' and surface = r.surface and qhash = r.qhash and id <> p_id order by id loop
+      begin
+        v_one := public.fn_reason_held_resolve(f.id, p_result || jsonb_build_object('fanned_from', p_id));
+        v_fan := v_fan || jsonb_build_object('id', f.id, 'seat', f.seat, 'surface', f.surface, 'request', f.request,
+                                             'subject', f.subject, 'status', v_one->>'status');
+      exception when others then
+        -- the answer is good, only this row's apply failed: kept as reasoned with its answer, never 'failed' (which
+        -- would block the hash for 7 days and lose the answer)
+        update public.reasoning_held_question
+           set status = 'reasoned', reasoned_at = now(),
+               result = p_result || jsonb_build_object('fanned_from', p_id, 'apply_error', left(sqlerrm, 300))
+         where id = f.id;
+      end;
+    end loop;
+  end if;
+  return jsonb_build_object('id', p_id, 'status', case when v_effect is null then 'reasoned' else 'applied' end, 'effect', v_effect,
+                            'fanned', v_fan);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_held_sweep()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_uuid constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
+  n_failed int; n_fixture int; n_gone int; n_stale int; n_dup_failed int; n_pm int;
+  x constant text := 'fn_reason_held_sweep';
+  -- 6 Oct: under the founder's hold a held question never expires by age (the hold is what keeps it waiting)
+  v_held boolean := coalesce(public.fn_kernel_paid_provider_gate('hold-probe/not-a-model') ->> 'rule', '')
+                      in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state');
+begin
+  -- One sweep at a time: replayHeld and fn_reason_held_due both call it, and two ticks may overlap.
+  if not pg_try_advisory_xact_lock(hashtext('fn_reason_held_sweep')) then
+    return jsonb_build_object('skipped', 'another sweep is running');
+  end if;
+  update public.reasoning_held_question set qhash = public.fn_reason_qhash(surface, question, request)
+   where qhash is null and status = 'held';
+
+  update public.reasoning_held_question set status = 'failed' where status = 'held' and attempts >= 3;
+  get diagnostics n_failed = row_count;
+
+  -- OUR OWN TEST TRAFFIC: the fixture convention in the text, a caller's subject.fixture, or a harness identity.
+  update public.reasoning_held_question
+     set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', x, 'why', 'fixture, never paid for')
+   where status = 'held'
+     and (question ~ 'ZZ DEMO|@example\.invalid' or request::text ~ 'ZZ DEMO|@example\.invalid'
+          or public.fn_reason_subject_is_fixture(subject));
+  get diagnostics n_fixture = row_count;
+
+  -- THE SUBJECT IS GONE: the quote, the intake or the inquiry the answer would be applied to no longer exists.
+  update public.reasoning_held_question h
+     set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', x,
+           'why', 'its subject no longer exists, so no answer could be applied (the E2E harness deletes its fixtures)')
+   where h.status = 'held'
+     and (   (h.subject ->> 'quote_id' ~ v_uuid and not exists (select 1 from public.quotes q where q.id = (h.subject ->> 'quote_id')::uuid))
+          or (h.subject ->> 'quote_id' ~ '^review:[0-9a-fA-F-]{36}:' and not exists (select 1 from public.inquiries i
+                where i.id::text = split_part(h.subject ->> 'quote_id', ':', 2)))
+          or (h.subject ->> 'intake_id' ~ v_uuid and not exists (select 1 from public.inquiry_intake i where i.id = (h.subject ->> 'intake_id')::uuid))
+          or (h.subject ->> 'inquiry_id' ~ v_uuid and not exists (select 1 from public.inquiries i where i.id = (h.subject ->> 'inquiry_id')::uuid)));
+  get diagnostics n_gone = row_count;
+
+  -- A VISITOR WHO HAS LEFT IS NEVER ANSWERED LATE (R5): an hour from filing, set by fn_reason_hold; rows filed before
+  -- that column was set are judged by the same hour from created_at.
+  update public.reasoning_held_question
+     set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', x,
+           'why', 'a visitor chat past its hour: the visitor has gone, a late answer reaches nobody')
+   where status = 'held'
+     and surface like 'site_assistant.%' and (expires_at < now() or created_at < now() - interval '1 hour');
+  get diagnostics n_stale = row_count;
+
+  -- 6 Oct: anything else ages out only with the model open, only after its first attempt started its 14-day clock,
+  -- and through fn_reason_held_expire, so a customer or supplier still waiting is handed to the seat, never dropped.
+  if not v_held then
+    n_stale := n_stale + coalesce((public.fn_reason_held_expire(
+      array(select id from public.reasoning_held_question
+             where status = 'held' and surface not like 'site_assistant.%' and attempts > 0 and expires_at < now()),
+      x, 'held 14 days after its first attempt with the model open: its moment has passed') ->> 'expired')::int, 0);
+  end if;
+
+  -- A FAILED QUESTION TAKES ITS WAITING DUPLICATES WITH IT (R3): the same hash is not tried three more times.
+  update public.reasoning_held_question h
+     set status = 'failed', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('failed_with', f.id, 'by', x)
+    from (select distinct on (surface, qhash) id, surface, qhash from public.reasoning_held_question
+           where status = 'failed' and qhash is not null and coalesce(last_attempt_at, created_at) > now() - interval '7 days'
+           order by surface, qhash, id desc) f
+   where h.status = 'held' and h.surface = f.surface and h.qhash = f.qhash and h.surface not like 'site_assistant.%';
+  get diagnostics n_dup_failed = row_count;
+
+  -- ONE POSTMORTEM PER FAULT (R4): the oldest held question of a fault stays; the rest wait on it.
+  update public.reasoning_held_question h
+     set subject = h.subject || jsonb_build_object('fault_key', public.fn_it_postmortem_fault_key(a.detail))
+    from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
+   where h.surface = 'it_engineer.postmortem' and h.status = 'held' and h.subject ->> 'fault_key' is null
+     and h.subject ->> 'incident_id' ~ '^[0-9]+$' and i.id = (h.subject ->> 'incident_id')::bigint
+     and public.fn_it_postmortem_fault_key(a.detail) is not null;
+  update public.reasoning_held_question h
+     set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', x,
+           'why', 'one postmortem per fault: held question ' || l.id || ' asks it, and its answer fills this incident too')
+    from (select distinct on (subject ->> 'fault_key') id, subject ->> 'fault_key' fk from public.reasoning_held_question
+           where surface = 'it_engineer.postmortem' and subject ->> 'fault_key' is not null
+             -- a held leader of any age is still pending; an answered one covers its fault for 7 days, as the duty asks
+             and (status = 'held' or (status in ('reasoned', 'applied') and created_at > now() - interval '7 days'))
+           order by subject ->> 'fault_key', id) l
+   where h.surface = 'it_engineer.postmortem' and h.status = 'held' and h.subject ->> 'fault_key' = l.fk and h.id <> l.id;
+  get diagnostics n_pm = row_count;
+
+  return jsonb_build_object('failed_at_three', n_failed, 'fixture', n_fixture, 'subject_gone', n_gone, 'visitor_gone', n_stale,
+                            'failed_with_its_hash', n_dup_failed, 'postmortem_same_fault', n_pm);
 end $function$
 
 
@@ -2842,18 +3284,30 @@ CREATE OR REPLACE FUNCTION public.fn_reason_hold(p_seat text, p_surface text, p_
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_id bigint;
+declare v_id bigint; v_hash text := public.fn_reason_qhash(p_surface, left(p_question, 8000), p_request);
 begin
-  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key)
-  values (p_seat, p_surface, left(p_question, 8000), p_request, coalesce(p_plan, '{}'::jsonb), p_subject, p_reason, p_dedupe_key)
-  on conflict (dedupe_key) do update set reason = excluded.reason, plan = excluded.plan,
-    status = case when reasoning_held_question.status in ('failed', 'expired') then 'held' else reasoning_held_question.status end,
-    attempts = case when reasoning_held_question.status in ('failed', 'expired') then 0 else reasoning_held_question.attempts end,
-    escalated_at = case when reasoning_held_question.status in ('failed', 'expired') then null else reasoning_held_question.escalated_at end,
-    -- the 48-hour escalation clock restarts with the reopen, or fn_reason_held_escalate would fire on the next tick
-    created_at = case when reasoning_held_question.status in ('failed', 'expired') then now() else reasoning_held_question.created_at end,
-    expires_at = null
+  if public.fn_reason_subject_is_fixture(p_subject) then
+    return null;                                   -- our own test traffic: nothing is filed, nothing is ever paid for
+  end if;
+  -- THE 3-TRY LIMIT HOLDS ACROSS RE-FILINGS: the same question that failed in the last 7 days is not asked again.
+  -- Not for a visitor chat: it lives an hour, and one visitor's failed "hi" must not silence the next visitor's.
+  select h.id into v_id from public.reasoning_held_question h
+   where p_surface not like 'site_assistant.%' and h.surface = p_surface and h.qhash = v_hash and h.status = 'failed'
+     and coalesce(h.last_attempt_at, h.created_at) > now() - interval '7 days'
+   order by h.id desc limit 1;
+  if v_id is not null then return v_id; end if;
+
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, qhash, expires_at)
+  values (p_seat, p_surface, left(p_question, 8000), p_request, coalesce(p_plan, '{}'::jsonb), p_subject, p_reason, p_dedupe_key, v_hash,
+          -- A VISITOR'S CHAT IS ANSWERED WHILE THE VISITOR IS THERE, OR NOT AT ALL.
+          -- 6 Oct: every other question lives 14 days (it can only expire while a model may run; see the sweep).
+          case when p_surface like 'site_assistant.%' then now() + interval '1 hour' else now() + interval '14 days' end)
+  on conflict (dedupe_key) do update set reason = excluded.reason, plan = excluded.plan
+   where reasoning_held_question.status = 'held'   -- a failed or expired row stays closed (R3)
   returning id into v_id;
+  if v_id is null and p_dedupe_key is not null then
+    select id into v_id from public.reasoning_held_question where dedupe_key = p_dedupe_key;
+  end if;
   return v_id;
 end $function$
 
@@ -2876,6 +3330,17 @@ begin
   returning id into v_id;
   return v_id;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_qhash(p_surface text, p_question text, p_request jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select md5(coalesce(p_surface, '') || chr(10) || regexp_replace(btrim(coalesce(p_question, '')), '\s+', ' ', 'g')
+             || chr(10) || coalesce((p_request -> 'context')::text, '') || chr(10) || coalesce((p_request -> 'decision')::text, ''));
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_retrieve(p_seat text, p_embedding vector, p_k integer DEFAULT 6, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text)
@@ -3236,6 +3701,35 @@ begin
     select id into v_id from public.reasoning_held_question where dedupe_key = p_dedupe_key;
   end if;
   return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_subject_is_fixture(p_subject jsonb)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_uuid constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
+  v_q text := p_subject ->> 'quote_id'; v_in text := p_subject ->> 'intake_id';
+  v_s jsonb := coalesce(p_subject, '{}'::jsonb);
+begin
+  if p_subject is null then return false; end if;
+  if p_subject ->> 'fixture' = 'true' then return true; end if;
+  if v_q ~ v_uuid then
+    select v_s || jsonb_strip_nulls(jsonb_build_object('inquiry_id', q.inquiry_id, 'supplier_id', q.supplier_id))
+      into v_s from public.quotes q where q.id = v_q::uuid;
+    v_s := coalesce(v_s, p_subject);
+  elsif v_q ~ '^review:[0-9a-fA-F-]{36}:[0-9]+$' then
+    v_s := v_s || jsonb_build_object('inquiry_id', split_part(v_q, ':', 2), 'supplier_id', split_part(v_q, ':', 3));
+  end if;
+  if v_in ~ v_uuid then
+    select v_s || jsonb_strip_nulls(jsonb_build_object('customer_id', i.customer_id, 'email', i.email))
+      into v_s from public.inquiry_intake i where i.id = v_in::uuid;
+    v_s := coalesce(v_s, p_subject);
+  end if;
+  return coalesce((public.fn_ai_subject_is_fixture(v_s) ->> 'fixture')::boolean, false);
 end $function$
 
 
@@ -3609,7 +4103,7 @@ CREATE OR REPLACE FUNCTION public.fn_record_llm_attempt(p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_req      uuid    := coalesce(nullif(p->>'request_id','')::uuid, gen_random_uuid());
@@ -3652,7 +4146,12 @@ begin
 
   if v_ok then
     update llm_route_health
-       set consecutive_failures = 0, open_until = null, opened_reason = null, opened_class = null,
+       -- A SUCCESS CLOSES A BREAKER, NEVER THE FOUNDER'S HOLD (7 Oct 2026). A sandbox call passes the hold
+       -- inside its window; its success used to null open_until here and lift the hold for everyone.
+       set consecutive_failures = 0,
+           open_until    = case when public.fn_llm_route_founder_held(open_until) then open_until end,
+           opened_reason = case when public.fn_llm_route_founder_held(open_until) then opened_reason end,
+           opened_class  = case when public.fn_llm_route_founder_held(open_until) then opened_class end,
            last_ok_at = now(), total_attempts = total_attempts + 1, total_ok = total_ok + 1,
            updated_at = now()
      where model_id = v_model;
@@ -3673,8 +4172,9 @@ begin
                              then 'opened on first occurrence of ' || v_key
                              else v_conseq || ' consecutive failures, threshold ' || v_thresh end,
              opened_class = v_key
-       where model_id = v_model;
-      v_state := 'opened_by_this';
+       where model_id = v_model
+         and not public.fn_llm_route_founder_held(open_until);   -- a 15-minute breaker never replaces a 2126 hold
+      if found then v_state := 'opened_by_this'; end if;
     end if;
   end if;
 
@@ -5349,7 +5849,7 @@ AS $function$
       or exists (
         select 1 from public.messaging_template
          where channel = 'whatsapp'
-           and status <> 'rejected'
+           and status not in ('rejected', 'missing')
            and (last_checked_at is null or last_checked_at < now() - interval '20 hours')),
 
     -- The queue is the gate. No flag, because nothing here costs a model call and a queued SMS has a

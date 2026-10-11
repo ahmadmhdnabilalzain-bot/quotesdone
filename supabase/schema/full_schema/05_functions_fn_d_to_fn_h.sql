@@ -545,6 +545,26 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_deliberation_subject_is_fixture(p_subject_table text, p_subject_id text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id text := split_part(coalesce(p_subject_id, ''), ':', 1); v_s jsonb;
+begin
+  if p_subject_table = 'inquiries' then
+    v_s := jsonb_build_object('inquiry_id', v_id);
+  elsif p_subject_table = 'refunds' and v_id ~ '^[0-9]+$' then
+    select jsonb_strip_nulls(jsonb_build_object('inquiry_id', r.inquiry_id, 'customer_id', r.customer_id, 'supplier_id', r.supplier_lead_id))
+      into v_s from public.refunds r where r.id = v_id::bigint;
+  elsif p_subject_table = 'quotes' then
+    v_s := jsonb_build_object('quote_id', v_id);
+  end if;
+  return v_s is not null and public.fn_reason_subject_is_fixture(v_s);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_delivery_feedback_canary_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1273,6 +1293,56 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_duty_pause_stakes(p_duty text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when coalesce((select sd.owner_seat from public.seat_duty sd where sd.duty = p_duty), split_part(p_duty, '.', 1)) = 'accountant'
+      or p_duty = 'sales_engineer.disputes'
+      then 'money'
+    when p_duty = any (array[
+      'resilience_ping.rotate_by_api',          -- rotates a provider API key
+      'resilience_ping.renewal',                -- credential renewal reminders
+      'resilience_ping.restore_overdue',        -- the restore drill is overdue
+      'resilience_ping.restore_table',          -- the restore drill itself
+      'it_engineer.credential_rotation_age',
+      'it_engineer.backup_objectives',
+      'it_engineer.dr_review'])
+      then 'security'
+    else 'routine' end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_e2e_run_tag_current()
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return coalesce(nullif(current_setting('app.e2e_run_tag', true), ''),
+                  case when nullif(current_setting('request.jwt.claims', true), '')::json ->> 'role' = 'service_role'
+                       then nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-qd-e2e-run', '') end);
+exception when others then
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_e2e_run_tag_open(p_tag text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_tag ~ '^[a-z0-9]{4,16}$' and exists (
+    select 1 from public.rehearsal_window w
+     where w.run_tag = 'qd_run:' || p_tag and w.ended_at is null and w.models_allowed and w.expires_at > now())
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ea_agenda(p_days integer DEFAULT 7)
  RETURNS jsonb
  LANGUAGE sql
@@ -1444,6 +1514,35 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text, p_type text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_e text; v_pat record; v_dom text;
+begin
+  v_e := lower(btrim(coalesce(p_email, '')));
+  if v_e = '' then return jsonb_build_object('ok', false, 'reason', 'no address'); end if;
+  if v_e !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$' then
+    return jsonb_build_object('ok', false, 'reason', 'not a valid address shape');
+  end if;
+  if exists (select 1 from public.email_suppressions s where lower(s.email) = v_e
+               and (lower(btrim(coalesce(s.reason, ''))) <> 'unsubscribe' or public.fn_email_type_is_marketing(p_type))) then
+    return jsonb_build_object('ok', false, 'reason', 'suppressed');
+  end if;
+  v_dom := split_part(v_e, '@', 2);
+  if exists (select 1 from public.email_domain_mx m
+              where m.domain = v_dom and m.has_mx = false and m.kind in ('nxdomain', 'no_records')) then
+    return jsonb_build_object('ok', false, 'reason', 'domain does not accept mail');
+  end if;
+  for v_pat in select pattern, reason from public.email_block_pattern where active loop
+    if v_e ~ v_pat.pattern then return jsonb_build_object('ok', false, 'reason', v_pat.reason); end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'reason', 'sendable');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1475,6 +1574,17 @@ begin
   end loop;
   return jsonb_build_object('ok', true, 'reason', 'sendable');
 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_type_is_marketing(p_type text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_type is null or p_type = any (public.fn_opt_out_types())
+      or p_type ~* '(invite|nudge|newsletter|marketing|promo|winback|activation)';
 $function$
 
 
@@ -3906,6 +4016,14 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_founder_hold_change_allowed()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select coalesce(current_setting('app.change_reason', true), '') ~ '^(founder:[0-9]+|probe:[a-z0-9_]+)' $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_founder_instruction_needs_evidence()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -5117,6 +5235,10 @@ CREATE OR REPLACE FUNCTION public.fn_high_stakes_gate(p_kind text, p_author_seat
 AS $function$
 declare v_model text := p_author_model; v_class text := p_author_task_class; v_id bigint; v_err text; v_held boolean; c jsonb; v_go boolean;
 begin
+  if public.fn_deliberation_subject_is_fixture(p_subject_table, p_subject_id) then
+    return jsonb_build_object('proceed', true, 'state', 'not_challenged', 'fixture', true, 'deliberation_id', null,
+      'reason', 'the subject is an identity of our own E2E harness: no second-seat review is opened, none is ever paid for');
+  end if;
   -- THE AUTHOR'S MODEL: the one given, else the seat's latest reasoning call in 24 hours (what open() proves), else code.
   if v_model is null then
     select l.model_used, l.task_class into v_model, v_class from public.ai_cost_log l

@@ -247,17 +247,20 @@ begin
   end loop;
 
   -- ── 3. THE FLEET ──────────────────────────────────────────────────────────────────────────────────
+  -- Ledger 1175 (7 Oct 2026): OpenRouter is always on. No route is held by the founder (held = more than a
+  -- year out); a real failure breaker opens for minutes on its own route and is not a hold.
   select max(open_until) into v_hold from public.llm_route_health;
-  if v_hold is null or v_hold < now() + interval '1 year' then
-    bad := bad || to_jsonb('the hold is not on: max(open_until) = ' || coalesce(v_hold::text, 'null'));
+  if v_hold > now() + interval '1 year'
+     or exists (select 1 from public.llm_route_health where opened_reason like 'HELD BY THE FOUNDER%' and open_until > now()) then
+    bad := bad || to_jsonb('a route is founder-held again (ledger 1175 keeps OpenRouter on): max(open_until) = ' || v_hold::text);
   end if;
   for r in select distinct x.m from public.model_policy p, unnest(array[p.model_primary, p.model_fallback]) x(m)
             where p.active and p.tier <> 'none' and x.m is not null and x.m not in ('none', 'none/deterministic') loop
     if not exists (select 1 from public.model_registry g where g.model_id = r.m and g.active and g.approved) then
       bad := bad || to_jsonb(r.m || ' is named by a policy and not an active approved registry row');
     end if;
-    if not exists (select 1 from public.llm_route_health h where h.model_id = r.m and h.open_until = v_hold) then
-      bad := bad || to_jsonb(r.m || ' is named by a policy and not held with the fleet');
+    if not exists (select 1 from public.llm_route_health h where h.model_id = r.m) then
+      bad := bad || to_jsonb(r.m || ' is named by a policy and has no llm_route_health row, so no breaker can trip for it');
     end if;
     if r.m in ('openai/gpt-5.6-sol', 'z-ai/glm-5.3-flash', 'qwen/qwen3.8-max-0902') then
       bad := bad || to_jsonb(r.m || ' is still named by an active policy');

@@ -865,7 +865,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [

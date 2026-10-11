@@ -85,7 +85,7 @@ if (!packs.length) { console.error(`no packs under ${kdir}`); process.exit(2); }
 const seatsOf = (p) => (p.kind === 'trade' ? TRADE_SEATS : [p.code]);
 const packRows = packs.flatMap((p) => p.pack.entries.flatMap((e) => ['en', 'ar'].map((lang) => ({
   src: p.kind === 'trade' ? 'sales_knowledge' : SEAT_OWN[p.code][0], trade: p.kind === 'trade',
-  id: lang === 'en' ? e.id : e.id + '@ar', title: e.topic, body: lang === 'en' ? e.body_en : e.body_ar, seat: p.kind === 'trade' ? null : p.code,
+  id: lang === 'en' ? e.id : e.id + '@ar', title: lang === 'ar' && e.topic_ar ? e.topic_ar : e.topic, body: lang === 'en' ? e.body_en : e.body_ar, seat: p.kind === 'trade' ? null : p.code,
 }))));
 const qs = packs.flatMap((p) => (p.pack.eval ?? []).flatMap((q) => ['en', 'ar'].flatMap((lang) => seatsOf(p).map((seat) =>
   ({ pack: p.key, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: [...new Set(q.expected_entry_ids)] })))));

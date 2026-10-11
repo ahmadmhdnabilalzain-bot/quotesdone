@@ -12,7 +12,7 @@
 // failure is still seen by something outside both.
 //
 // The edge function does all the work — detect, then page the founder over HTTP. The route's only
-// secret is the optional service-role key for the uptime rows below.
+// secret is the service-role key: it authenticates the ping (required since 6 Oct 2026) and writes the uptime rows below.
 //
 // THE CALLER MUST OUTWAIT THE FUNCTION IT CALLS (17 Sep 2026, it_engineer). This route waited 30 s
 // for a function that declares DEADLINE_MS = 110_000 and runs its ticks in sequence, several with
