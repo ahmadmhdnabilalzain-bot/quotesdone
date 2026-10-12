@@ -132,9 +132,17 @@ Deno.test('a stated reveal fee must say no card fee and no VAT; a reply without 
   assertEquals(revealFeeIncomplete('Pay 3% without card fees. No VAT is charged on it.'), []);
   assertEquals(revealFeeIncomplete('رسوم 3٪ بدون رسوم بطاقة، ولا ضريبة قيمة مضافة على الرسوم.'), []);
   assertEquals(revealFeeIncomplete('رسوم 3٪ وتدفع بالبطاقة، وتطبق الضريبة.').length, 2);
-  // ANY 3% fee statement triggers it, with or without the word "reveal"
-  assertEquals(revealFeeIncomplete('Customers pay 3% of the chosen quote.').length, 2);
-  assertEquals(revealFeeIncomplete('تدفع ثلاثة بالمئة من قيمة العرض المختار.').length, 2);
+  // ANY 3% FEE statement triggers it, with or without the word "reveal"
+  assertEquals(revealFeeIncomplete('Our fee is 3% of the chosen quote.').length, 2);
+  assertEquals(revealFeeIncomplete('تدفعون رسومًا قدرها ثلاثة بالمئة من قيمة العرض المختار.').length, 2);
+  // ...but not a quote's own 3% terms, a 3% slope, or the non-response charge (review of #1356)
+  assertEquals(revealFeeIncomplete('The supplier offers a 3% discount on the quote.'), []);
+  assertEquals(revealFeeIncomplete('Their quote holds a 3% retention charge until handover.'), []);
+  assertEquals(revealFeeIncomplete('Lay the screed to a 3% slope toward the drain.'), []);
+  assertEquals(revealFeeIncomplete('A supplier that ignores a paid reveal owes the 3% fee refunded to the customer, an AED 500 admin fee and 12% interest.'), []);
+  assertEquals(revealFeeIncomplete('خصم 3٪ على عرض السعر من المورد.'), []);
+  // the negation must be OF the card fee / the VAT, not anywhere in the sentence
+  assertEquals(revealFeeIncomplete('The reveal fee is 3%. The VAT certificate is not required. Never share your card details.').length, 2);
   assertEquals(revealFeeIncomplete('رسوم الكشف 3٪ من قيمة العرض، ولا يُضاف أي مبلغ عند الدفع بالبطاقة، ولا تُفرض ضريبة القيمة المضافة على رسوم الكشف.'), []);
   assertEquals(revealFeeIncomplete('رسوم الكشف ثلاثة بالمئة من قيمة العرض.').length, 2);
   assertEquals(revealFeeIncomplete('Verification takes up to 3 working days.'), []);

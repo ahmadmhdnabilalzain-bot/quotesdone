@@ -172,21 +172,28 @@ export function policyProblems(text: string): string[] {
   return out;
 }
 
-// ── a stated 3% fee says what is NOT added (zero tolerance; coordinator, 12-13 Oct 2026) ─────────────
-// Checked on the WHOLE reply, never per sentence: when a reply states a 3% fee in any form (3%, ٣٪, "three percent",
-// "ثلاثة بالمئة"), it must also say, in a sentence that NEGATES it, that no card fee is added AND that no VAT is
-// charged on the fee. The bare words "card" or "VAT" are not enough: "VAT applies" or "pay by card" do not count.
-// If either negation is missing, the model rewrites. An affirmed card fee or VAT is refused by policyProblems.
-const CARD_W = /\bcards?\b|بطاقة|البطاقة|بالبطاقة/i;
-const VAT_W = /\bVAT\b|value[- ]added tax|ضريبة القيمة المضافة|ضريبة/i;
+// ── a stated 3% fee says what is NOT added (zero tolerance; coordinator, 12-13 Oct 2026; review of #1356) ──
+// Checked on the WHOLE reply. It applies when a SENTENCE states a 3% fee: a 3% figure (3%, ٣٪, "three percent", "ثلاثة
+// بالمئة") together with a fee word, and none of the words of a quote's own terms or the non-response charge (a 3%
+// discount, retention, advance, slope, interest, refund ...). Then the reply must NEGATE the card fee and the VAT in so
+// many words: "no card fee", "without card fees", "not charged a card fee", "لا يُضاف أي مبلغ عند الدفع بالبطاقة",
+// "بدون رسوم بطاقة"; "no VAT", "VAT is not charged", "لا تُفرض ضريبة". A negation elsewhere in the sentence does not
+// count ("the VAT certificate is not required", "never share your card details"). Missing either: the model rewrites.
+const FEE_SENTENCE = /\bfees?\b|\bcharges?\b|\bcommission\b|رسوم|رسم|عمولة/i;
+const NOT_THE_FEE = /discount|retention|advance|deposit|down ?payment|slope|gradient|\bfall\b|tolerance|interest|penalty|non-?response|refund|خصم|تخفيض|محتجز|احتجاز|دفعة مقدمة|ميل|انحدار|فائدة|غرامة|عدم الاستجابة|استرداد|المسترد|يُرد|يرد/i;
+const CARD_NEG = /\b(?:no|without|zero|not\s+(?:charged\s+)?(?:an?|any))\s+(?:extra\s+|additional\s+)?(?:credit\s+|debit\s+)?card\s*(?:payment\s+|processing\s+)?(?:fees?|surcharges?|charges?)\b|\bcard\s*(?:payment\s+|processing\s+)?(?:fees?|surcharges?|charges?)\s+(?:is|are)\s+(?:not|never)\b|\bnothing\s+(?:is\s+)?added\s+for\s+(?:paying\s+(?:by|with)\s+)?(?:a\s+)?card\b|بدون\s+رسوم\s+(?:على\s+)?(?:الدفع\s+)?(?:ب|عبر\s+)?(?:ال)?بطاقة|لا\s+رسوم\s+(?:على\s+)?(?:الدفع\s+)?(?:ب|عبر\s+)?(?:ال)?بطاقة|لا\s+(?:تُضاف|تضاف|يُضاف|يضاف)\s+(?:أي\s+)?(?:رسوم|مبلغ)[^.،؛]{0,25}بطاقة/i;
+const VAT_NEG = /\b(?:no|without|zero)\s+VAT\b|\bVAT\s+(?:is|are)\s+not\s+(?:charged|added|applied|payable)\b|\bnot\s+(?:charged|subject\s+to)\s+VAT\b|\bno\s+value[- ]added\s+tax\b|لا\s+(?:تُفرض|تفرض|تُضاف|تضاف|تُطبق|تطبق)\s+(?:أي\s+)?ضريبة|(?:بدون|دون)\s+ضريبة|لا\s+ضريبة|غير\s+خاضع(?:ة)?\s+(?:ل)?(?:ل)?ضريبة/i;
 const sentencesOf = (t: string) => t.split(/(?<=[.!?؟\n؛;])\s*/);
-const negated = (t: string, word: RegExp) => sentencesOf(t).some((s) => word.test(s) && NEG.test(s));
+/** Does this sentence state a 3% fee (not a quote's discount, a slope, interest or the non-response charge)? */
+export function statesThreePercentFee(sentence: string): boolean {
+  return figuresOf(sentence).includes('pct:3') && FEE_SENTENCE.test(sentence) && !NOT_THE_FEE.test(sentence);
+}
 export function revealFeeIncomplete(text: string): string[] {
   const t = String(text || '');
-  if (!figuresOf(t).includes('pct:3')) return [];
+  if (!sentencesOf(t).some(statesThreePercentFee)) return [];
   const out: string[] = [];
-  if (!negated(t, CARD_W)) out.push('it states the 3% fee without saying, in so many words, that no card fee is added');
-  if (!negated(t, VAT_W)) out.push('it states the 3% fee without saying, in so many words, that no VAT is charged on it');
+  if (!CARD_NEG.test(t)) out.push('it states the 3% fee without saying, in so many words, that no card fee is added');
+  if (!VAT_NEG.test(t)) out.push('it states the 3% fee without saying, in so many words, that no VAT is charged on it');
   return out;
 }
 
