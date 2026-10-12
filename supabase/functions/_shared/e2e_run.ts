@@ -45,6 +45,38 @@ export async function resolveE2eRun(
   return expected && same(presented, expected) ? { tag, secret: presented } : null;
 }
 
+// THE RUN'S OWN IDENTITY IS PROOF TOO (run 1be65ab2, 12 Oct 2026). The browser walk signs in as the run's own
+// customer (qd-<tag>-...@example.invalid) and cannot send x-qd-e2e-secret, so every intake turn was refused
+// fixture_no_spend although qd_run:<tag> had models_allowed open; the intake held on turn 1 and the terms step
+// never reached "Send to suppliers". The tag is now ALSO honoured when the request's bearer is a user JWT that
+// the auth server VERIFIES (verifyEmail) to belong to that run's own address, and only while
+// fn_e2e_run_tag_open(tag) (window open, models_allowed, unexpired) says so. A header or a guessed tag still
+// gets a public caller nothing: the tag comes from the verified email, never from the request.
+const RUN_EMAIL = /^qd-([a-z0-9]{4,16})-[a-z0-9._+-]+@example\.invalid$/;
+export const runTagOfEmail = (email: unknown): string | null => {
+  const m = RUN_EMAIL.exec(String(email || '').toLowerCase());
+  return m ? m[1] : null;
+};
+/** The unverified JWT payload email, used ONLY to skip the auth round-trip for everyone else. */
+function claimedEmail(bearer: string): string | null {
+  try {
+    const p = bearer.split('.')[1]; if (!p) return null;
+    return JSON.parse(atob(p.replace(/-/g, '+').replace(/_/g, '/')))?.email ?? null;
+  } catch { return null; }
+}
+export async function resolveE2eRunByIdentity(
+  headers: Headers, verifyEmail: (jwt: string) => Promise<string | null>,
+  isOpen: (tag: string) => Promise<boolean>, internalSecret: () => Promise<string | null>,
+): Promise<Run | null> {
+  const bearer = (headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!bearer || !runTagOfEmail(claimedEmail(bearer))) return null;
+  const email = await verifyEmail(bearer).catch(() => null);   // the auth server's answer, not the payload's
+  const tag = runTagOfEmail(email);
+  if (!tag || !(await isOpen(tag).catch(() => false))) return null;
+  const secret = await internalSecret().catch(() => null);      // so the next hop can prove it too
+  return secret ? { tag, secret } : null;
+}
+
 // try: a unit test importing this module without --allow-env must still load it.
 let OWN = '';
 try { OWN = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno?.env.get('SUPABASE_URL') || ''; } catch { /* no env permission: no forwarding */ }

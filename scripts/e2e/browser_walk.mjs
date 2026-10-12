@@ -320,6 +320,8 @@ export async function walkPortal(browser, who, view, lang) {
     const t0 = Date.now();
     const clicked = await byLabel().click({ timeout: 5000 }).then(() => true).catch(() => false);
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+    // Measure the LOADED tab: run 1be65ab2 judged Insights at 436 ms over its aria-busy skeletons.
+    await page.waitForFunction(() => !document.querySelector('[aria-busy="true"], .animate-pulse'), null, { timeout: 15000 }).catch(() => {});
     const f = await domFacts(page);
     const file = join(dir, String(i++).padStart(2, '0') + '_' + slug(label) + '.png');
     await page.screenshot({ path: file, fullPage: true }).catch(() => {});
@@ -414,10 +416,9 @@ async function customerJourney(browser, w, lang, view) {
       const sendBtn = page.getByRole('button', { name: lang === 'ar' ? /أرسل إلى الموردين/ : /send to suppliers/i }).first();
       // RUN 1be65ab2 (12 Oct 2026): every turn came back status 'held' ("our sales engineer is reviewing it to identify
       // the right trade") because a fixture identity is never sent to a paid model (think.ts fixture_no_spend), so
-      // tradeOf cannot reason the trade and the intake holds — by design. The walk then typed "Yes, that is everything"
-      // into a held intake four times. Now: answer what the intake ASKED from the shared fact sheet (the keys in its
-      // response), and when it holds, do what the sales engineer does when the hold lifts — set the reasoned trade on
-      // this demo draft (category_by 'reasoning', which inquiry_intake honours) — and continue the interview.
+      // tradeOf cannot reason the trade and the intake holds. The root fix is in _shared/e2e_run.ts (the run's own
+      // verified identity inside its open models_allowed window is let through), so the intake reasons for real here;
+      // the walk never sets the trade itself. It answers what the intake ASKED, from the shared fact sheet.
       const { factSheet } = await import('../lib/fact_sheet.mjs');
       const sheet = factSheet('painting', { lang });
       let last = null;
@@ -425,11 +426,6 @@ async function customerJourney(browser, w, lang, view) {
       page.on('response', onResp);
       try {
         for (let i = 0; i < 10 && !(await sendBtn.isVisible().catch(() => false)); i++) {
-          if (last?.status === 'held' && last.intake_id) {
-            await write(`update public.inquiry_intake set category = 'painting', status = 'needs_info',
-                           brief = coalesce(brief, '{}'::jsonb) || '{"category_by":"reasoning"}'::jsonb
-                         where id = ${sq(last.intake_id)} and email = ${sq(w.email)} and email like '%@example.invalid'`, 'walk: sales engineer sets the held demo intake\'s trade');
-          }
           const text = i === 0 ? 'ZZ DEMO: ' + sheet.opening : sheet.answerFor(last);
           if (await box.isEnabled().catch(() => false)) { last = null; await box.fill(text); await box.press('Enter'); }
           await sendBtn.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});

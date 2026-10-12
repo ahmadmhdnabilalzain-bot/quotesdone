@@ -89,6 +89,30 @@ test('the tag alone gets a public caller nothing: it needs the service role or t
   assert.match(obs, /await resolveE2eRun\(req\.headers, envOr\('SUPABASE_SERVICE_ROLE_KEY'\), internalSecret\)/);
 });
 
+// Run 1be65ab2: the browser walk's own customer was refused every model although its window was open.
+test('the run\'s own VERIFIED identity in its open window is let through; nothing else is', async () => {
+  const { resolveE2eRunByIdentity, runTagOfEmail } = await import('../../supabase/functions/_shared/e2e_run.ts');
+  const jwt = (email) => 'h.' + Buffer.from(JSON.stringify({ email })).toString('base64url') + '.s';
+  const OWN = 'qd-ab12cd34-cust1@example.invalid';
+  const ask = (claimed, verified, open = true, secret = 'S') => resolveE2eRunByIdentity(
+    new Headers({ authorization: 'Bearer ' + jwt(claimed) }), async () => verified, async (t) => open && t === 'ab12cd34', async () => secret);
+  assert.deepEqual(await ask(OWN, OWN), { tag: 'ab12cd34', secret: 'S' });
+  assert.equal(await ask(OWN, OWN, false), null, 'window closed or models off: nothing');
+  assert.equal(await ask(OWN, 'someone@gmail.com'), null, 'a forged payload the auth server does not confirm: nothing');
+  assert.equal(await ask(OWN, null), null, 'an unverifiable token: nothing');
+  assert.equal(await ask('real@customer.ae', 'real@customer.ae'), null, 'a real customer: nothing');
+  assert.equal(await ask('qd-ab12cd34-x@gmail.com', 'qd-ab12cd34-x@gmail.com'), null, 'only the reserved example.invalid domain');
+  assert.equal(await ask(OWN, OWN, true, null), null, 'no internal secret configured: nothing');
+  assert.equal(await resolveE2eRunByIdentity(new Headers({ 'x-qd-e2e-run': 'ab12cd34' }), async () => OWN, async () => true, async () => 'S'), null,
+    'the tag header alone, with no signed-in identity: nothing');
+  let calls = 0;
+  await resolveE2eRunByIdentity(new Headers({ authorization: 'Bearer ' + jwt('real@customer.ae') }), async () => { calls++; return null; }, async () => true, async () => 'S');
+  assert.equal(calls, 0, 'ordinary traffic never pays the auth round-trip');
+  assert.equal(runTagOfEmail('QD-AB12CD34-C@EXAMPLE.INVALID'), 'ab12cd34');
+  const obs = readFileSync(new URL('../../supabase/functions/_shared/observe.ts', import.meta.url), 'utf8');
+  assert.match(obs, /resolveE2eRunByIdentity\(req\.headers,[\s\S]{0,200}auth\.getUser\(jwt\)[\s\S]{0,200}fn_e2e_run_tag_open/);
+});
+
 test('the harness enables models for its own tag only, and always turns them off', () => {
   assert.match(src, /set models_allowed = true, cap_usd = \$\{Number\(CAP_USD\)\}, expires_at = now\(\) \+ interval '2 hours'/);
   assert.match(src, /finally \{\s+\/\/ ALWAYS: models off/);
