@@ -18,10 +18,13 @@ export function signupPurgeDeleteAllowed(path: string): boolean {
 // folder (or anything inside it) named ZZ DEMO / __selftest__ / QD DEMO, or anything under the _sandbox / _selftest
 // probe roots. Never the root, a table export, _archive, or a folder without the marker.
 const DEMO_ENTITY = /^(Customers|Suppliers\/[^/]+)\/(ZZ ?DEMO(?![a-z])|__selftest__|QD DEMO(?![a-z]))[^/]*(\/.+)?$/i;   // a word: never "ZZ Demolition"
-const DEMO_ROOT = /^_(sandbox|selftest)\/[^/]+(\/.+)?$/;
+// an entity folder whose name says test / QA / demo as a word; fn_demo_purge lists one only when no live customer or
+// supplier owns it (coordinator, 13 Oct 2026). "Contest Trading" or "ZZ Demolition" never match.
+const TEST_ENTITY = /^(Customers|Suppliers\/[^/]+)\/([^/]*[^a-z/])?(test|tester|testing|qa|demo)(?![a-z])[^/]*(\/.+)?$/i;
+const DEMO_ROOT =/^_(sandbox|selftest)\/[^/]+(\/.+)?$/;
 export function demoPurgeDeleteAllowed(path: string): boolean {
   if (!path.startsWith(ROOT) || path.includes('//') || path.includes('\\')) return false;
   if (path.split('/').some((seg) => seg === '.' || seg === '..')) return false;
   const rest = path.slice(ROOT.length);
-  return DEMO_ENTITY.test(rest) || DEMO_ROOT.test(rest);
+  return DEMO_ENTITY.test(rest) || DEMO_ROOT.test(rest) || TEST_ENTITY.test(rest);
 }
