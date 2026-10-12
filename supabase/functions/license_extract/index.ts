@@ -9,7 +9,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 // The licence request and its reading live in one module so the accuracy suite measures exactly this (7 Oct 2026).
-import { SYS_LICENSE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE } from '../_shared/licence_extract.ts';
+import { SYS_LICENSE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages } from '../_shared/licence_extract.ts';
+import { pagesBlank } from '../_shared/licence_page_ink.ts';
+import { pdfText } from '../_shared/document_expiry.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -62,6 +64,14 @@ Deno.serve(observe('license_extract', async (req) => {
     if (!images.length && !body.file_b64) return J({ error: 'no file' }, 400);
     // The blank-image guard runs first, in code: no model is asked to read a page too small to hold print.
     if (mode === 'license' && imagesTooSmallToRead(images, body)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_too_small' });
+    // ...and a page-sized image that carries no print (a white scan, a photo of a wall) is blank, measured by
+    // code (licence_page_ink): the model is not asked. inkProven = every image page decoded and one is printed.
+    let inkProven = false;
+    if (mode === 'license') {
+      const blank = await pagesBlank(licencePages(images, body));
+      if (blank === true) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_blank' });
+      inkProven = blank === false;
+    }
     const content = buildContent(mode, images, body);
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
     let ai: any = {};
@@ -91,7 +101,17 @@ Deno.serve(observe('license_extract', async (req) => {
       ai = parsed;
     } catch (e) { return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 
-    if (mode === 'license') return J({ ok: true, mode, doc: normaliseLicence(ai) });
+    if (mode === 'license') {
+      const doc = normaliseLicence(ai);
+      // A 'low' read is stored only when code proved a real page was read: printed ink measured above, or its
+      // licence number found in the document's own text layer. Otherwise it is held for a person (unreadable).
+      let text: string | null = null;
+      if (doc.confidence === 'low' && !doc.unreadable && !inkProven && body.file_b64 && !/^image\//.test(String(body.mime || ''))) {
+        try { text = await pdfText(Uint8Array.from(atob(String(body.file_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0))); } catch { text = null; }
+      }
+      if (!lowReadProven(doc, inkProven, text)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'low_read_unproven' });
+      return J({ ok: true, mode, doc });
+    }
 
     if (mode === 'cert') {
       const expiry = normDate(ai.expiry_date);

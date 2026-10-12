@@ -92,6 +92,23 @@ export function imagesTooSmallToRead(images: any[], body: { file_b64?: string; m
   return pages.every((b) => { const d = imageDims(b); return !!d && (d.w < MIN_LICENCE_IMAGE_PX || d.h < MIN_LICENCE_IMAGE_PX); });
 }
 
+/** The image pages a licence request carries (base64), for code's own measurements. */
+// deno-lint-ignore no-explicit-any
+export function licencePages(images: any[], body: { file_b64?: string; mime?: string }): string[] {
+  return images.length ? images.map((im) => String(im?.b64 || im || '')).filter(Boolean)
+    : (/^image\//.test(String(body.mime || '')) && body.file_b64 ? [String(body.file_b64)] : []);
+}
+
+/** A 'low' read counts only when code proved a real page was read: ink measured on the image pages, or the read's
+ * licence number standing in the document's own text layer (separators ignored). A read that is not 'low' = true. */
+export function lowReadProven(doc: { confidence: string; unreadable: boolean; license_number: string }, inkProven: boolean, text: string | null): boolean {
+  if (doc.unreadable || doc.confidence !== 'low' || inkProven) return true;
+  const norm = (v: string) => v.replace(/[\-\/.]/g, '').toUpperCase();
+  const n = norm(doc.license_number.trim());
+  if (!text || n.length < 4) return false;
+  return (text.match(/[0-9A-Za-z][0-9A-Za-z\-\/.]*/g) || []).some((t) => norm(t) === n);
+}
+
 /** The doc a licence nobody could read yields: no fields at all. */
 export const UNREADABLE_LICENCE = () => normaliseLicence({});
 
