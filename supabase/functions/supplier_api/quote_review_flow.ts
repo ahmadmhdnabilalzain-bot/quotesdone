@@ -522,6 +522,7 @@ export function submitPayload(inq: SafeInquiry, r: Pick<ReviewRow, 'original_fil
     scope: w.scope, conditions: w.conditions, exclusions: w.exclusions, notes: w.notes, terms_spec: w.terms_spec,
     original_file_path: r.original_file_path, original_file_name: r.original_file_name, masked_terms: w.masked_terms,
     vat_treatment: vt, price_ex_vat: rv.price_ex_vat ?? undefined, subtotal: w.subtotal ?? undefined, vat_amount: w.vat_amount ?? undefined, trn: w.trn ?? undefined,
+    gross_amount: w.gross_amount ?? undefined, discount_amount: w.discount_amount ?? undefined, discount_label: w.discount_label ?? undefined,
     option_totals: Object.keys(w.option_totals || {}).length > 1 ? w.option_totals : undefined,
   };
 }
