@@ -1190,6 +1190,14 @@ const delCount = async (label, sql) => {
  * Delete everything this run created, in foreign-key order, including the storage objects and the
  * auth users. Safe to call twice.
  */
+/** [table, column] of every single-column foreign key in public that references public.<parent>(id). */
+async function fkChildren(parent) {
+  return (await mgmtRead(REF, `select c.conrelid::regclass::text t, a.attname col
+      from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+     where c.contype = 'f' and c.confrelid = ${q('public.' + parent)}::regclass and cardinality(c.conkey) = 1
+       and c.conrelid::regclass::text <> ${q(parent)} order by 1`)).map((r) => [String(r.t).replace(/^public\./, ''), r.col]);
+}
+
 export async function teardown(run) {
   const tag = run.tag;
   const s = scopeForRun(tag);
@@ -1301,11 +1309,16 @@ export async function teardown(run) {
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
+    // EVERY OTHER TABLE THAT POINTS AT leads (12 Oct 2026, stage2 run 1c94fa6a: licence_renewal_ask, added that day,
+    // refused the leads delete and stranded the run). Found from the catalogue at teardown time, so a table added
+    // tomorrow is covered too; only rows of THIS run's own lead ids are removed.
+    ...(await fkChildren('leads')).map(([t, c]) => [`${t} (fk ${c} -> leads)`, `delete from public.${t} where ${c} in ${LEAD}`]),
     ['leads', `delete from public.leads where id in ${LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${CUST}`],
     ['company_event (customer)', `delete from public.company_event where entity_type='customer' and entity_id in (select id::text from public.customers where id in ${CUST})`],
+    ...(await fkChildren('customers')).map(([t, c]) => [`${t} (fk ${c} -> customers)`, `delete from public.${t} where ${c} in ${CUST}`]),
     ['customers', `delete from public.customers where id in ${CUST}`],
     ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.%'`],
     ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.%'`],
@@ -1319,6 +1332,9 @@ export async function teardown(run) {
       const n = await delCount(`teardown ${label}`, sql);
       if (n) counts[label] = n;
     } catch (e) {
+      // A discovered-FK child that is itself still referenced (support_customer_profile <- support_case) is left for
+      // the caller's sweep and NAMED; the parent delete after it then fails loudly if anything really remains.
+      if (/\(fk /.test(label) && /23503/.test(String(e.message))) { counts[`${label} (deferred: still referenced)`] = 0; continue; }
       if (!/42P01|does not exist/.test(String(e.message))) throw e;
       counts[`${label} (table no longer exists)`] = 0;
     }
