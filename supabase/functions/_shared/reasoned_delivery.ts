@@ -45,7 +45,10 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** The reply to a held question, WRITTEN BY A MODEL now (aiReply: the company brief, the figure check, the model
    *  ladder; rulings 1195/1196). null when no model answered — then nothing is sent. */
-  writeReply(question: string, lang: 'en' | 'ar', o?: { channel?: string; note?: string; subject?: Record<string, unknown> }): Promise<string | null>;
+  writeReply(question: string, lang: 'en' | 'ar', o?: { channel?: string; note?: string; subject?: Record<string, unknown>;
+    audience?: 'customer' | 'supplier' | 'visitor' | 'founder'; facts?: string; seat?: 'customer_support' | 'sales_engineer' }): Promise<string | null>;
+  /** A model-written, guarded reply posted into a supplier's quotation thread (never one that is submitted or closed). */
+  postQuoteReview?(reviewId: string, text: string): Promise<Sent>;
   /** A held DM's grounded reply, sent by marketing_social_inbox on the platform (reasoned_reply). */
   socialReply(subject: Record<string, unknown>, meaning: string): Promise<Sent>;
   /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
@@ -60,7 +63,7 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
    *  files the pending inbound_review a customer who asked for a person is owed. */
   emailReply?(messageId: number, text: string, person: boolean): Promise<Sent>;
 }
-export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'email' | 'none'; detail?: string };
+export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'email' | 'portal' | 'none'; detail?: string };
 
 const isAr = (s: string) => /[؀-ۿ]/.test(s);
 
@@ -72,6 +75,12 @@ async function whatsapp(io: DeliveryIO, phone: string, question: string, text: s
   }
   const s = await io.queueWaTemplate(phone, question, text, isAr(question) ? 'ar' : 'en');
   return { delivered: s.ok, via: 'whatsapp_template', detail: s.ok ? 'queued for the support_reply template (outside the 24-hour window)' : s.err };
+}
+
+/** A held conversation turn's question carries its facts and the person's own words ("MESSAGE:" / "THEIR MESSAGE:"). */
+export function splitHeldQuestion(q: string): [string, string] {
+  const m = q.match(/\n\n(?:THEIR )?MESSAGE:\n([\s\S]*)$/);
+  return m ? [q.slice(0, m.index), m[1]] : ['', q];
 }
 
 export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: DeliveryIO): Promise<Delivery> {
@@ -183,9 +192,26 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     return { delivered: s.ok, via: 'email', detail: s.err };
   }
 
-  // A held ANSWER (think.answer on a channel): the answer itself goes back where the question came from.
+  // A held ANSWER (think.answer on a channel). NO MODEL REPLY REACHES A PERSON UNGUARDED (review of #1335): think()'s
+  // answer is not sent as it stands. It goes to aiReply as a fact to check, with the turn's own facts, and only what
+  // passes aiReply's figure, policy, anonymity and reply guards (with model rewrites) is sent. Nothing passes: nothing is
+  // sent, and the 15-minute / 48-hour escalation hands the turn to the seat.
+  const [facts, said] = splitHeldQuestion(question);
+  const audience = (['customer', 'supplier', 'visitor', 'founder'] as const).find((a) => a === row.request?.context?.audience) ?? 'customer';
+  const lang: 'en' | 'ar' = audience === 'supplier' ? 'en' : row.request?.context?.language === 'ar' || isAr(said) ? 'ar' : 'en';
+  const checked = (channel: string, seat: 'customer_support' | 'sales_engineer') => io.writeReply(said, lang, { channel, subject, audience, seat,
+    facts: facts + (r.answer ? '\n\nA REASONED DRAFT TO CHECK (use only what agrees with the brief and the facts):\n' + r.answer.slice(0, 2000) : '') });
+  if (row.surface === 'supplier_api.quote_review_unwritten' && subject.review_id) {
+    if (!io.postQuoteReview) return { delivered: false, via: 'none', detail: 'no quotation-thread poster' };
+    const text = await checked('the supplier portal quotation chat', 'sales_engineer');
+    if (!text) return { delivered: false, via: 'none', detail: 'no model reply passed the guard; the seat gets it at 15 minutes' };
+    const s = await io.postQuoteReview(String(subject.review_id), text);
+    return { delivered: s.ok, via: 'portal', detail: s.err };
+  }
   if (!row.request?.decision && subject.channel === 'whatsapp' && subject.phone && r.answer) {
-    return await whatsapp(io, String(subject.phone), question, r.answer);
+    const text = await checked('WhatsApp', 'customer_support');
+    if (!text) return { delivered: false, via: 'none', detail: 'no model reply passed the guard; the seat gets it by escalation' };
+    return await whatsapp(io, String(subject.phone), question, text);
   }
   return { delivered: false, via: 'none', detail: 'no channel effect for ' + row.surface };
 }
@@ -349,9 +375,15 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
     writeReply: async (question, lang, o = {}) => {
       const { aiReply } = await import('./ai_reply.ts');
       const { defaultDeps } = await import('./think.ts');
-      const a = await aiReply(defaultDeps(admin, 'reasoned_delivery'), { seat: 'customer_support', channel: o.channel ?? 'WhatsApp', audience: 'customer', lang,
-        message: question, rules: o.note, subject: o.subject });
+      const a = await aiReply(defaultDeps(admin, 'reasoned_delivery'), { seat: o.seat ?? 'customer_support', channel: o.channel ?? 'WhatsApp', audience: o.audience ?? 'customer', lang,
+        message: question, rules: o.note, facts: o.facts, subject: o.subject });
       return a.reply || null;
+    },
+    postQuoteReview: async (reviewId, text) => {
+      const { data: rv } = await admin.from('quote_reviews').select('id,status').eq('id', reviewId).maybeSingle();
+      if (!rv || ['submitted', 'closed'].includes(String(rv.status))) return { ok: false, err: 'the thread is closed' };
+      const { error } = await admin.from('quote_review_messages').insert({ review_id: reviewId, role: 'sales_engineer', kind: 'text', body: text.slice(0, 4000), body_ar: null, attachments: [], issues: null });
+      return error ? { ok: false, err: error.message } : { ok: true };
     },
     socialReply: async (subject, meaning) => {
       const { timedFetch } = await import('./timed_fetch.ts');
