@@ -61,6 +61,7 @@ export interface SupportReplyRequest {
   facts?: string;                 // the company block / published facts the channel already reads live
   dedupeKey?: string;
   subject?: Record<string, unknown>;
+  images?: string[];             // photos or drawings with the message (chat_images.acceptImages): answered by a vision model (ruling 1200)
   priceTrades?: string[];         // widget: the published trades; the answering call says which one (if any) is asked the price of
 }
 export interface SupportReply {
@@ -99,7 +100,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
   const fall = async (reason: string): Promise<SupportReply> => {
     const a = await aiReply(deps, { seat: req.seat ?? 'customer_support', channel: req.channel, audience: req.audience, lang: req.lang,
       message: req.message, conversation: req.conversation, facts: [req.profile ? 'THEIR OWN RECORD: ' + JSON.stringify(req.profile) : '', req.facts ?? ''].filter(Boolean).join('\n\n'),
-      rules: FORMAT[req.channel] }).catch(() => ({ reply: '', model: null, attempts: ['threw'] }));
+      rules: FORMAT[req.channel], images: req.images }).catch(() => ({ reply: '', model: null, attempts: ['threw'] }));
     if (a.reply) return await logged({ reply: a.reply, path: 'reasoned', seat: null, reason: 'direct: ' + reason, model: a.model, grounded: true, readability: checkReadability(a.reply, req.lang) });
     return await logged({ reply: '', path: 'fallback', seat: null, reason: reason + ' | no model answered: ' + a.attempts.join(', '), grounded: false });
   };
@@ -112,6 +113,9 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
     // THE WIDGET'S REPLY IS CHECKED, AND ONLY CHECKED TEXT LEAVES (12 Oct 2026). The independent check runs on every widget
     // answer; a reply the reviewer did not AGREE with (not run, or disagreed and redrafted) is never sent or cached: the
     // caller's road answers instead. The plain-language rewrite happens before the check (think.polish), never after.
+    // A PHOTO OR DRAWING (ruling 1200): the reasoning chain reads text only, so a message with images is answered by the
+    // direct model reply, which sends them as image parts to a vision model under the same checks.
+    if (req.images?.length) return await fall('photo');
     const checked = req.channel === 'widget';
     const plain = async (text: string): Promise<string | null> => {
       const g0 = guardSupportReply(text.trim(), req.lang);

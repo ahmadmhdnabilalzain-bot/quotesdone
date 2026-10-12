@@ -64,7 +64,7 @@ Deno.test('site_assistant: every exit that answers a question files the side eff
     const seg = src.slice(prev, i);
     const line = src.slice(i, src.indexOf('\n', i));
     assert(/await fileEffects\(\{ grounded: /.test(seg), 'this exit returns without filing the gap or the person report: ' + line);
-    assert(/from\('assistant_logs'\)\.insert\(/.test(seg), 'this exit returns without writing its log: ' + line);
+    assert(/from\('assistant_logs'\)\.insert\(|logWithAttempts\(admin, 'assistant_logs', /.test(seg), 'this exit returns without writing its log: ' + line);
     prev = i;
   }
 });
@@ -81,7 +81,7 @@ Deno.test('logParty: a signed-in person is customer:<uuid> or supplier:<id> on e
 
 Deno.test('site_assistant: every assistant_logs write names its audience through logParty(who, ...)', async () => {
   const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
-  const writes = src.match(/from\('assistant_logs'\)\.insert\(\{[^\n]*/g) ?? [];
+  const writes = src.match(/(?:from\('assistant_logs'\)\.insert\(|logWithAttempts\(admin, 'assistant_logs', )\{[^\n]*/g) ?? [];
   assert(writes.length >= 1, `expected the widget's reply log, found ${writes.length}`);
   for (const w of writes) assert(/audience: logParty\(who, /.test(w), 'an assistant_logs write does not log the party: ' + w.slice(0, 160));
   const start = src.indexOf('const reply = a.reply.trim()');

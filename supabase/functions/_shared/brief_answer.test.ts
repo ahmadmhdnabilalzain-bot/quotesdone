@@ -65,3 +65,11 @@ Deno.test('a rate-limited sender stops at once', async () => {
   const a = await answerFromBrief(C, () => {}, g.f);
   assertEquals([a.reply, a.error, g.bodies.length], ['', 'rate_limited', 1]);
 });
+
+// prevented by: this test (ruling 1200). A photo with the message reaches the model as an image part of the latest turn.
+Deno.test('a photo rides on the latest message as an image part', async () => {
+  const g = gateway([sse(['A wardrobe fits that wall. '])]);
+  await answerFromBrief({ ...C, images: ['data:image/jpeg;base64,AAAA'] }, () => {}, g.f);
+  const last = (g.bodies[0].input as { content: unknown }[]).at(-1)!.content as { type: string }[];
+  assertEquals(last.map((p) => p.type), ['text', 'image_url']);
+});

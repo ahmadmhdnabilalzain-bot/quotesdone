@@ -146,3 +146,14 @@ Deno.test('widget: the plain-language rewrite runs BEFORE the check, so the revi
   assert(order.lastIndexOf('synthesise') < order.indexOf('verify'));
   assertMatch(s.calls.find((c) => c.phase === 'verify')!.input, /reply within 2 working days/);
 });
+
+// prevented by: this test (ruling 1200). A message with a photo is answered by the direct model reply, image attached.
+Deno.test('a photo goes to the direct model reply as an image', async () => {
+  const s = stub({ synth: [JSON.stringify({ answer: 'That wall between the door and window suits a sliding wardrobe. What width is it?' })] });
+  const seen: unknown[] = [];
+  const deps = { ...s.deps, llm: (p: never, sys: string, input: string, o: { images?: string[] }) => { seen.push(o.images); return s.deps.llm(p, sys, input, o as never); } };
+  const r = await supportReply(deps as never, { channel: 'portal', message: 'wardrobe here?', lang: 'en', audience: 'customer', seat: 'sales_engineer', images: ['data:image/jpeg;base64,AAAA'] }, () => Promise.resolve(null));
+  assertEquals(r.reply, 'That wall between the door and window suits a sliding wardrobe. What width is it?');
+  assertMatch(r.reason ?? '', /^direct: photo/);
+  assertEquals(seen[0], ['data:image/jpeg;base64,AAAA']);
+});

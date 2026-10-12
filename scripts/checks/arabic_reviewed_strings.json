@@ -2776,7 +2776,8 @@
   "22b2e5437067",
   "5174cb3eb40b",
   "9c1f71981011",
-  "a6b33dd50c2d",
+  "a4879318094c",
+  "a69c82313935",
   "c8eadf831cf9"
  ],
  "src/components/CompanyIdentity.tsx": [
@@ -2870,8 +2871,11 @@
   "72ef00ac7f7b"
  ],
  "src/components/me/PortalShell.tsx": [
+  "91262f796854",
+  "9d0e14c86252",
   "ad9ba68b566f",
-  "f01251ebcbc3"
+  "f01251ebcbc3",
+  "f085945a9a01"
  ],
  "src/components/me/portalText.ts": [
   "00883d7920a3",
