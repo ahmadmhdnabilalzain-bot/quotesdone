@@ -3047,7 +3047,11 @@ begin
   with stale as (
     select id from public.reasoning_held_question
      where escalated_at is null
-       and (status = 'failed' or (status = 'held' and created_at <= now() - interval '48 hours'))
+       and (status = 'failed'
+            or (status = 'held' and created_at <= now() - interval '48 hours')
+            -- a person is waiting on a conversation reply no model could write: 15 minutes, not 48 hours
+            or (status = 'held' and surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
+                and created_at <= now() - interval '15 minutes'))
      order by created_at
      limit greatest(1, least(coalesce(p_limit, 20), 100))
      for update skip locked
@@ -3058,7 +3062,10 @@ begin
   ), filed as (
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select m.seat, 'held_question', 'pending', 'low',
-           left('A question held ' || case when m.status = 'failed' then 'after 5 failed reasonings' else 'for 48 hours' end
+           left('A question held ' || case when m.status = 'failed' then 'after 5 failed reasonings'
+                                           when m.surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
+                                             then '15 minutes with no model-written reply (the person has only the held notice)'
+                                           else 'for 48 hours' end
                 || ' on ' || m.surface || ' needs you', 200),
            jsonb_build_object('held_id', m.id, 'surface', m.surface, 'question', left(m.question, 1000), 'subject', m.subject,
                               'held_since', m.created_at, 'status', m.status,
