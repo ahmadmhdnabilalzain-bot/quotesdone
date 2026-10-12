@@ -17,3 +17,17 @@ Deno.test('a table export, a probe, a sandbox, an archive, a folder or anything 
     '/QuotesDone Backup/Customers/./Ann (aaaaaaaa)/a.pdf', '/QuotesDone Backup/Customers/Ann/..', '/QuotesDone Backup/Customers/Ann/.',
     '/QuotesDone Backup/Customers/Ann/../../Company/Database Exports/x.json']) assertEquals(signupPurgeDeleteAllowed(p), false, p);
 });
+
+Deno.test('the demo purge deletes only a path whose name carries the demo marker', async () => {
+  const { demoPurgeDeleteAllowed } = await import('./purge.ts');
+  for (const p of ['/QuotesDone Backup/Customers/ZZ DEMO - shared handset A (ccef2d0d)',
+    '/QuotesDone Backup/Customers/ZZ DEMO Customer 85929fc6 (5fc48b40)/Customer Details.pdf',
+    '/QuotesDone Backup/Suppliers/Uncategorized/ZZ DEMO — section 8 probe supplier A (40466)',
+    '/QuotesDone Backup/Customers/__selftest__ctrl A (ae8d1a34)', '/QuotesDone Backup/Customers/QD DEMO Customer (cbfd972e)',
+    '/QuotesDone Backup/_sandbox/1c94fa6a', '/QuotesDone Backup/_selftest/auth_probe_1.txt']) assertEquals(demoPurgeDeleteAllowed(p), true, p);
+  for (const p of ['/QuotesDone Backup/Customers/QA Test Customer (58371fbd)', '/QuotesDone Backup/Customers/ahmad alzain',
+    '/QuotesDone Backup/Customers', '/QuotesDone Backup/_sandbox', '/QuotesDone Backup/_archive/ZZ DEMO x',
+    '/QuotesDone Backup/Company/Database Exports/ZZ DEMO.json', '/QuotesDone Backup/Customers/ZZ DEMO x/../../Company',
+    '/QuotesDone Backup//Customers/ZZ DEMO x', '/elsewhere/Customers/ZZ DEMO x', '/QuotesDone Backup/Customers/Ann ZZ DEMO'])
+    assertEquals(demoPurgeDeleteAllowed(p), false, p);
+});

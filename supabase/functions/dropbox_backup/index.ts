@@ -44,7 +44,7 @@ import { AuthUnavailable, DropboxClient, isAuthStop, refreshAccessToken, TokenCa
 import { drainClaim } from './drain.ts';
 import { uploadFile, type ReadChunk, type UploadState } from './upload.ts';
 import { backupRow, dbxMeta, verifyUploaded } from './row.ts';
-import { signupPurgeDeleteAllowed } from './purge.ts';
+import { demoPurgeDeleteAllowed, signupPurgeDeleteAllowed } from './purge.ts';
 import { compareListing, dailyRoots, fileSlices, listTree, type Expected } from './listing.ts';
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 import { classifyDropboxFailure, isTransientDbError } from './health.ts';
@@ -338,7 +338,7 @@ async function purgeUnfinishedSignups(dbx: DropboxClient) {
     .lt('attempts', 5).lt('listed_at', new Date(Date.now() - 15 * 60_000).toISOString()).order('attempts').order('id').limit(25);
   for (const c of copies || []) {
     if (Date.now() >= DEADLINE) break;
-    if (!signupPurgeDeleteAllowed(String(c.dropbox_file))) {
+    if (!signupPurgeDeleteAllowed(String(c.dropbox_file)) && !demoPurgeDeleteAllowed(String(c.dropbox_file))) {
       out.dropbox_refused++;
       await admin.from('signup_purge_dropbox').update({ error: 'refused: not a file of the entity tree', attempts: 5 }).eq('id', c.id);
       continue;
@@ -349,8 +349,11 @@ async function purgeUnfinishedSignups(dbx: DropboxClient) {
       const gone = r.status === 409 && t.includes('not_found');
       if (!r.ok && !gone) throw new Error('delete_v2 ' + r.status + ' ' + t.slice(0, 120));
       if (gone) out.dropbox_already_gone++; else out.dropbox_deleted++;
-      const { data: del } = await admin.from('doc_backups').delete().eq('id', c.doc_backup_id).eq('status', 'signup_purge_pending').select('id');
-      out.records_deleted += del?.length ?? 0;
+      // a whole demo folder (fn_demo_purge, ruling 1199) has no backup record of its own
+      if (c.doc_backup_id != null) {
+        const { data: del } = await admin.from('doc_backups').delete().eq('id', c.doc_backup_id).eq('status', 'signup_purge_pending').select('id');
+        out.records_deleted += del?.length ?? 0;
+      }
       await admin.from('signup_purge_dropbox').update({ done_at: new Date().toISOString(), error: null }).eq('id', c.id);
     } catch (e) {
       out.dropbox_failed++;
