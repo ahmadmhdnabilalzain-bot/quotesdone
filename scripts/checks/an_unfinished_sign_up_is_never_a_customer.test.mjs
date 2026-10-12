@@ -48,7 +48,7 @@ test('an unfinished sign-up files are deleted: only the Dropbox copies the purge
   assert.ok(!body.includes('delete from storage.objects'), 'no storage row is deleted in SQL (the storage API removes the object)');
   const d = src('supabase/functions/dropbox_backup/index.ts');
   const a = d.slice(d.indexOf('async function purgeUnfinishedSignups'), d.indexOf("Deno.serve(observe('dropbox_backup'"));
-  assert.ok(a.includes("from('signup_purge_dropbox')") && a.includes('signupPurgeDeleteAllowed(String(c.dropbox_path))'), 'only a listed copy inside the entity tree is deleted');
+  assert.ok(a.includes("from('signup_purge_dropbox')") && a.includes('signupPurgeDeleteAllowed(String(c.dropbox_file))'), 'only a listed copy inside the entity tree is deleted');
   assert.ok(a.includes(".eq('status', 'signup_purge_pending')"), 'only the record the purge marked is deleted');
   assert.ok(a.includes('admin.storage.from(o.bucket).remove([o.path])'), 'storage objects are removed through the storage API');
   assert.ok(a.includes("kind: 'signup_purge'") && !/email|full_name|company_name/.test(a.slice(a.indexOf("from('agent_actions')"))), 'counts only are logged in agent_actions');

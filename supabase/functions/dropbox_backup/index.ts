@@ -332,16 +332,16 @@ async function prune() {
 // API. A copy already gone is an answer. Counts only are logged (agent_actions), never a name or a file.
 async function purgeUnfinishedSignups(dbx: DropboxClient) {
   const out = { dropbox_deleted: 0, dropbox_already_gone: 0, dropbox_refused: 0, dropbox_failed: 0, records_deleted: 0, storage_removed: 0, storage_failed: 0 };
-  const { data: copies } = await admin.from('signup_purge_dropbox').select('id,doc_backup_id,dropbox_path').is('done_at', null).order('id').limit(25);
+  const { data: copies } = await admin.from('signup_purge_dropbox').select('id,doc_backup_id,dropbox_file').is('done_at', null).order('id').limit(25);
   for (const c of copies || []) {
     if (Date.now() >= DEADLINE) break;
-    if (!signupPurgeDeleteAllowed(String(c.dropbox_path))) {
+    if (!signupPurgeDeleteAllowed(String(c.dropbox_file))) {
       out.dropbox_refused++;
       await admin.from('signup_purge_dropbox').update({ error: 'refused: not a file of the entity tree' }).eq('id', c.id);
       continue;
     }
     try {
-      const r = await dbx.call('api', 'files/delete_v2', { path: c.dropbox_path });
+      const r = await dbx.call('api', 'files/delete_v2', { path: c.dropbox_file });
       const t = await r.text();
       const gone = r.status === 409 && t.includes('not_found');
       if (!r.ok && !gone) throw new Error('delete_v2 ' + r.status + ' ' + t.slice(0, 120));

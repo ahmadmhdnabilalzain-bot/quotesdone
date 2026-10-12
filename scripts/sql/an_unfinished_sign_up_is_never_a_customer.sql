@@ -45,7 +45,7 @@ create table if not exists public.signup_purge_dropbox (
   id bigserial primary key,
   purge_id bigint not null references public.signup_purge(id) on delete cascade,
   doc_backup_id bigint not null unique,
-  dropbox_path text not null,
+  dropbox_file text not null,      -- the Dropbox path to delete (named _file: it is never a backup source)
   done_at timestamptz,
   error text
 );
@@ -145,7 +145,7 @@ as $function$
 declare v_listed int; v_dropped int;
 begin
   if p_entity not in ('customer', 'supplier') then raise exception 'fn_signup_purge_backups: customer or supplier only'; end if;
-  insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_path)
+  insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
   select p_purge_id, d.id, d.dropbox_path from public.doc_backups d
    where d.entity = p_entity and d.entity_id = p_entity_id and d.dropbox_path is not null and d.status in ('done', 'processing')
   on conflict (doc_backup_id) do nothing;
@@ -412,7 +412,7 @@ begin
   if exists (select 1 from public.customers where email like 'probe-%-1181@example.invalid')
      or exists (select 1 from public.leads where company_name = 'Probe Invited Co 1181')
      or exists (select 1 from public.doc_backups where dedupe_key like 'PROBE1181:%')
-     or exists (select 1 from public.signup_purge_dropbox where dropbox_path like '%probe-1181%') then
+     or exists (select 1 from public.signup_purge_dropbox where dropbox_file like '%probe-1181%') then
     v_fail := v_fail || ' probe_rows_left';
   end if;
   perform set_config('qd.probe_1181', coalesce(nullif(v_fail, ''), 'ok'), true);
