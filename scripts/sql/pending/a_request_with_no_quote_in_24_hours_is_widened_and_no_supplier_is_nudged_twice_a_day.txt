@@ -1,0 +1,5 @@
+Committed, not applied: apply at merge (rule: never apply before merge). Until it is live a supplier invited to several
+short requests can be reminded once per request on the same day. Moves when the release operator runs
+`node scripts/apply_sql.mjs scripts/sql/a_request_with_no_quote_in_24_hours_is_widened_and_no_supplier_is_nudged_twice_a_day.sql --apply --ddl`, reads PROBE OK, runs
+scripts/sql/a_request_with_no_quote_in_24_hours_is_widened_and_no_supplier_is_nudged_twice_a_day_probe.sql (CHK<<PROBE OK ...>>), then deletes this note and appends the file to the END of
+scripts/sql/MANIFEST.txt in the same commit. Seat: sales_engineer. Ruling 1209.
