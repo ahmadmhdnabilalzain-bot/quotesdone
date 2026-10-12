@@ -1,4 +1,0 @@
-Committed with PR #1330, not applied: apply at merge (rule: never apply before merge). Until it is live,
-company_brief.ts's call to fn_price_brief fails softly and the brief simply has no price block. Moves when the
-release operator applies it with `node scripts/apply_sql.mjs scripts/sql/the_company_brief_carries_the_published_price_ranges.sql --apply --ddl`,
-then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt in the same commit.
