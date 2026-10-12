@@ -26,6 +26,7 @@
 import { taskClassFor, think, type Seat, type ThinkDeps, type Turn } from './think.ts';
 import { checkReadability, rewritePrompt, type Readability } from './readability.ts';
 import { guardSupportReply, type GuardLang } from './support_reply_guard.ts';
+import { aiReply } from './ai_reply.ts';
 
 export type Channel = 'widget' | 'whatsapp' | 'email' | 'portal';
 export type Passage = { content: string; citation?: string | null };
@@ -88,11 +89,18 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
     }
     return out;
   };
+  // NO CANNED FALLBACK (founder rulings 1195/1196/1197, 12 Oct 2026). When the reasoned chain cannot send its reply
+  // (held, failed, unchecked, unreadable), the reply is still written BY A MODEL — aiReply: the company brief given,
+  // one call, the figure check and the reply guard with a model rewrite, the model ladder. The caller's `fallback`
+  // (its old stored/canned road) is no longer called. Only when no model answers at all is the reply '' (path
+  // 'fallback'), and the caller sends nothing.
+  void fallback;
   const fall = async (reason: string): Promise<SupportReply> => {
-    let text: string | null = null;
-    try { text = await fallback(); } catch (_e) { text = null; }
-    const reply = text ? guardSupportReply(text, req.lang).text : '';
-    return await logged({ reply, path: 'fallback', seat: null, reason, grounded: false, readability: reply ? checkReadability(reply, req.lang) : undefined });
+    const a = await aiReply(deps, { seat: req.seat ?? 'customer_support', channel: req.channel, audience: req.audience, lang: req.lang,
+      message: req.message, conversation: req.conversation, facts: [req.profile ? 'THEIR OWN RECORD: ' + JSON.stringify(req.profile) : '', req.facts ?? ''].filter(Boolean).join('\n\n'),
+      rules: FORMAT[req.channel] }).catch(() => ({ reply: '', model: null, attempts: ['threw'] }));
+    if (a.reply) return await logged({ reply: a.reply, path: 'reasoned', seat: null, reason: 'direct: ' + reason, model: a.model, grounded: true, readability: checkReadability(a.reply, req.lang) });
+    return await logged({ reply: '', path: 'fallback', seat: null, reason: reason + ' | no model answered: ' + a.attempts.join(', '), grounded: false });
   };
   try {
     let passages = (req.passages ?? []).filter((p) => p && String(p.content || '').trim());
