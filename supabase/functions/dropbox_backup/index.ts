@@ -329,9 +329,9 @@ async function prune() {
 // it_engineer (founder ruling 1181): what fn_unfinished_signup_purge left. A doc_backups row in
 // 'archive_pending' is MOVED in Dropbox to _archive/unfinished-signups/ (hash and size checked after, never
 // deleted); a row whose file never reached Dropbox is closed as archived with nothing to move. Each
-// signup_purge_object is removed from storage through the storage API (a database delete would orphan it).
+// signup_purge_object is MOVED in storage to _archive/unfinished-signups/ (never deleted; ruling 1181 as amended 12 Oct).
 async function archiveUnfinishedSignups(dbx: DropboxClient) {
-  const out = { archived: 0, nothing_to_move: 0, archive_failed: 0, storage_removed: 0, storage_failed: 0 };
+  const out = { archived: 0, nothing_to_move: 0, archive_failed: 0, storage_archived: 0, storage_failed: 0 };
   const { data: rows } = await admin.from('doc_backups').select('id,dropbox_path').eq('status', 'archive_pending').order('id').limit(25);
   for (const r of rows || []) {
     if (Date.now() >= DEADLINE) break;
@@ -356,11 +356,16 @@ async function archiveUnfinishedSignups(dbx: DropboxClient) {
     }
   }
   const { data: objs } = await admin.from('signup_purge_object').select('id,bucket,path').is('done_at', null).order('id').limit(50);
+  // 12 Oct 2026 (founder, under ruling 1181): an unfinished sign-up's uploads go to _archive, never deleted. The
+  // storage object is MOVED to _archive/unfinished-signups/<month>/<its path> in the same bucket (the storage sweep
+  // skips _archive/: its Dropbox copy is already archived above), and its backup record follows it.
   for (const o of objs || []) {
-    const { error } = await admin.storage.from(o.bucket).remove([o.path]);
-    if (error) { out.storage_failed++; await admin.from('signup_purge_object').update({ error: error.message.slice(0, 200) }).eq('id', o.id); continue; }
-    await admin.from('signup_purge_object').update({ done_at: new Date().toISOString(), error: null }).eq('id', o.id);
-    out.storage_removed++;
+    const to = `_archive/unfinished-signups/${new Date().toISOString().slice(0, 7)}/${o.path}`;
+    const { error } = await admin.storage.from(o.bucket).move(o.path, to);
+    if (error && !/not.?found/i.test(error.message)) { out.storage_failed++; await admin.from('signup_purge_object').update({ error: error.message.slice(0, 200) }).eq('id', o.id); continue; }
+    if (!error) await admin.from('doc_backups').update({ path: to }).eq('bucket', o.bucket).eq('path', o.path);
+    await admin.from('signup_purge_object').update({ done_at: new Date().toISOString(), error: error ? 'already gone: ' + error.message.slice(0, 120) : null }).eq('id', o.id);
+    out.storage_archived++;
   }
   return out;
 }

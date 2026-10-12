@@ -47,7 +47,10 @@ test('backups are archived, never deleted; storage goes through the storage API'
   const a = d.slice(d.indexOf('async function archiveUnfinishedSignups'), d.indexOf("Deno.serve(observe('dropbox_backup'"));
   assert.match(a, /files\/move_v2/, 'the Dropbox copy is moved');
   assert.ok(!/delete_v2/.test(a), 'nothing is deleted from Dropbox');
-  assert.match(a, /admin\.storage\.from\(o\.bucket\)\.remove/, 'storage objects are removed through the storage API');
+  // 12 Oct 2026 (founder, ruling 1181 as amended): uploads go to _archive, never deleted, in storage too
+  assert.ok(a.includes('admin.storage.from(o.bucket).move(o.path, to)'), 'a storage object is MOVED to _archive');
+  assert.ok(!a.includes('.remove('), 'no storage object is removed');
+  assert.ok(SQL.includes("and left(o.name, 9) <> '_archive/'"), 'the storage sweep never files an archived object a second time');
 });
 
 test('the job runs every 5 minutes and names its seat', () => {
@@ -79,10 +82,11 @@ test('the supplier folder is the primary category SLUG, and the one catch-all is
 test('release review: what holds a sign-up, the phone never selects, and a login shared with a complete or held account stays', () => {
   const held = (name) => SQL.slice(SQL.indexOf('function public.' + name), SQL.indexOf('revoke execute on function public.' + name));
   const ch = held('fn_signup_customer_held'), sh = held('fn_signup_supplier_held');
-  for (const c of ['cu.signed_terms_path is not null', "d.source <> 'generated' and d.doc_type <> 'Correspondence'", "o.name like 'drawings/' || cu.id::text || '/%'",
-    'public.inquiry_intake ii', 'm.customer_id = cu.id', 'lower(im.from_email) = lower(cu.email)', 'public.inquiries i']) assert.ok(ch.includes(c), 'a customer is held when ' + c);
-  for (const c of ['im.supplier_id = l.id', 'l.signed_terms_path is not null', "o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) = l.id::text",
-    "d.entity = 'supplier' and d.entity_id = l.id::text and d.source <> 'generated'", 'public.quotes q']) assert.ok(sh.includes(c), 'a supplier is held when ' + c);
+  for (const c of ['cu.signed_terms_path is not null', 'public.inquiry_intake ii', 'm.customer_id = cu.id', 'lower(im.from_email) = lower(cu.email)', 'public.inquiries i'])
+    assert.ok(ch.includes(c), 'a customer is held when ' + c);
+  for (const c of ['im.supplier_id = l.id', 'l.signed_terms_path is not null', 'public.quotes q']) assert.ok(sh.includes(c), 'a supplier is held when ' + c);
+  // an upload does NOT hold a sign-up (founder, 12 Oct 2026): it is archived with it
+  for (const h of [ch, sh]) assert.ok(!h.includes('storage.objects') && !h.includes('public.doc_backups'), 'an upload alone never holds a sign-up');
   assert.ok(body.includes('public.fn_signup_customer_held(cu.id) busy') && body.includes('public.fn_signup_supplier_held(l.id) busy'), 'both loops hold through the functions');
   assert.ok(!body.includes('to_phone') && !body.includes('p.phone'), 'nothing is matched on the unverified mobile');
   const kept = held('fn_signup_email_kept_elsewhere');

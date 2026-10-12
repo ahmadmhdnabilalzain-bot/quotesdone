@@ -52,11 +52,12 @@ insert into public.table_export_registry (table_name, exported, category, reason
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
   reason = excluded.reason, added_by = excluded.added_by;
 
--- WHAT HOLDS A SIGN-UP (release review of #1292, 12 Oct 2026): anything it did that is more than a form left
--- half-filled. A request, a sale, an order, a quote or a match; a signature; an upload (a backup other than our
--- generated PDF and our own outbound mail, a drawing under drawings/<customer>/, a file under
--- supplier-docs/<folder>/<company>/); a draft request (inquiry_intake); a conversation (portal chat, assistant,
--- inbound e-mail, contact form, complaint). A held sign-up is counted, never removed.
+-- WHAT HOLDS A SIGN-UP (release review of #1292, 12 Oct 2026): a request, a sale, an order, a quote or a match; a
+-- signature; a draft request (inquiry_intake); a conversation (portal chat, assistant, inbound e-mail, contact
+-- form, complaint). A held sign-up is counted, never removed.
+-- AN UPLOAD DOES NOT HOLD IT (founder, under ruling 1181, 12 Oct 2026: "the held self-registered company is deleted
+-- ... with its uploads to _archive, never deleted"): the sign-up is removed and every file it uploaded is MOVED to
+-- _archive/unfinished-signups/ in storage and in Dropbox (dropbox_backup), never deleted.
 create or replace function public.fn_signup_customer_held(p_id uuid)
  returns boolean
  language sql
@@ -67,9 +68,6 @@ as $function$
       or exists (select 1 from public.transactions t where t.customer_id = cu.id)
       or exists (select 1 from public.po_orders p where p.customer_id = cu.id)
       or cu.signed_terms_path is not null
-      or exists (select 1 from public.doc_backups d where d.entity = 'customer' and d.entity_id = cu.id::text
-                   and d.source <> 'generated' and d.doc_type <> 'Correspondence')
-      or exists (select 1 from storage.objects o where o.bucket_id = 'drawing-files' and o.name like 'drawings/' || cu.id::text || '/%')
       or exists (select 1 from public.inquiry_intake ii where ii.customer_id = cu.id or lower(ii.email) = lower(cu.email))
       or exists (select 1 from public.messages m where m.customer_id = cu.id)
       or exists (select 1 from public.assistant_logs a where a.audience = 'customer:' || cu.id::text)
@@ -90,8 +88,6 @@ as $function$
       or exists (select 1 from public.transactions t where t.supplier_id = l.id)
       or exists (select 1 from public.inquiry_matches im where im.supplier_id = l.id)
       or l.signed_terms_path is not null
-      or exists (select 1 from public.doc_backups d where d.entity = 'supplier' and d.entity_id = l.id::text and d.source <> 'generated')
-      or exists (select 1 from storage.objects o where o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) = l.id::text)
       or exists (select 1 from public.messages m where m.supplier_id = l.id)
       or exists (select 1 from public.inbound_messages i2 where i2.lead_id = l.id or lower(i2.from_email) = lower(l.claimed_by))
     from public.leads l where l.id = p_id;
@@ -298,6 +294,89 @@ insert into public.writer_seat (kind, name, owner_seat, note, owner_file) values
 on conflict (kind, name) do update set owner_seat = excluded.owner_seat, note = excluded.note, owner_file = excluded.owner_file;
 select cron.schedule('unfinished_signup_purge', '*/5 * * * *', $CRON$select public.fn_unfinished_signup_purge(true)$CRON$);
 
+-- ── the storage sweep leaves an archived sign-up's files alone (they are in Dropbox _archive already) ──
+-- (live definition of 12 Oct 2026, one line added)
+CREATE OR REPLACE FUNCTION public.fn_backup_sweep_objects()
+ RETURNS TABLE(bucket text, path text, bytes bigint, created_at timestamp with time zone, entity text, entity_id text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- The cheap filters first, once: without the fence the planner evaluated the owner lookups below for
+  -- every object of every swept bucket, 8,369 export pages included (47.8 s measured; 125 ms with it).
+  with o as materialized (
+    select o.bucket_id, o.name, o.metadata, o.created_at
+      from storage.objects o
+     where o.bucket_id in (select r.bucket from public.fn_backup_source_registry() r
+                            where r.kind = 'bucket' and r.backed_up and r.enqueue_rule like '%STORAGE SWEEP%')
+       and right(o.name, 1) <> '/' and o.name !~ '(^|/)\.emptyFolderPlaceholder$'
+       and o.name !~* 'zz[ _-]?demo'
+       -- an unfinished sign-up's files moved to _archive/unfinished-signups/ (fn_unfinished_signup_purge, ruling 1181):
+       -- their Dropbox copies are already in _archive, so the sweep never files them a second time
+       and left(o.name, 9) <> '_archive/'
+       and not (o.bucket_id = 'backups' and o.name ~ '^(\d{4}-\d{2}-\d{2}|conversations)/')
+       and not (o.bucket_id = 'signed-terms' and o.name like 'registers/%')
+       and not exists (select 1 from public.pdpl_erase_files e where e.bucket = o.bucket_id and e.storage_path = o.name))
+  select o.bucket_id, o.name, coalesce((o.metadata->>'size')::bigint, 0), o.created_at, x.entity, x.id
+    from o
+    cross join lateral (select
+        (regexp_match(o.name, '^generated/\d+_(customer_details|inquiry_summary|comparison|supplier_details)_([0-9a-f_]{36}|\d{1,18})\.pdf$', 'i')) as gen,
+        split_part(o.name, '/', 2) as seg2, split_part(o.name, '/', 3) as seg3) p
+    -- OFFSET 0 keeps this a subquery computed once per row; flattened, it was copied into every reference.
+    cross join lateral (select coalesce(
+        (select case d.ref_table when 'customers' then 'customer' when 'inquiries' then 'inquiry'
+                                 when 'quotes' then 'quote' when 'leads' then 'supplier' end || ':' || d.ref_id
+           from public.documents d
+          where d.bucket = o.bucket_id and d.path = o.name
+            and d.ref_table in ('customers', 'inquiries', 'quotes', 'leads') and coalesce(d.ref_id, '') <> '' limit 1),
+        (select 'customer:' || c.customer_id from public.quote_pdf_cache c
+          where c.bucket = o.bucket_id and c.path = o.name and c.customer_id is not null limit 1),
+        (select 'customer:' || t.customer_id from public.reveal_invoices ri join public.transactions t on t.id = ri.transaction_id
+          where ri.bucket = o.bucket_id and ri.path = o.name and t.customer_id is not null limit 1),
+        (select 'quote:' || q.id from public.quotes q where o.bucket_id = 'quote-files' and q.original_file_path = o.name limit 1),
+        case when o.bucket_id = 'backups' and p.gen is not null then
+               case lower(p.gen[1]) when 'customer_details' then 'customer' when 'supplier_details' then 'supplier' else 'inquiry' end
+               || ':' || replace(lower(p.gen[2]), '_', '-') end,
+        case when o.bucket_id = 'supplier-docs' and p.seg2 ~ '^\d{1,18}$' then 'supplier:' || p.seg2 end,
+        case when o.bucket_id = 'drawing-files' and p.seg2 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg2) end,
+        case when o.bucket_id = 'quote-files' and p.seg3 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg3) end,
+        'company:storage/' || o.bucket_id) as owner
+      offset 0) y
+    cross join lateral (select split_part(y.owner, ':', 1) as entity, substr(y.owner, strpos(y.owner, ':') + 1) as id) x
+    -- the owner row behind it: is it demo (null when the row is gone), and which customer email, for PDPL.
+    -- Each cast is inside CASE behind the shape test that makes it safe.
+    left join lateral (select
+        case x.entity
+          when 'supplier' then (select coalesce(l.is_demo, false) from public.leads l
+                                 where l.id = case when x.id ~ '^\d{1,18}$' then x.id::bigint end)
+          when 'customer' then (select coalesce(c.is_demo, false) from public.customers c
+                                 where c.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'inquiry'  then (select coalesce(c.is_demo, false) from public.inquiries i left join public.customers c on c.id = i.customer_id
+                                 where i.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'quote'    then (select coalesce(l.is_demo, false) or coalesce(c.is_demo, false)
+                                  from public.quotes q left join public.leads l on l.id = q.supplier_id
+                                  left join public.inquiries i on i.id = q.inquiry_id left join public.customers c on c.id = i.customer_id
+                                 where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+        end as demo,
+        case x.entity
+          when 'customer' then (select c.email from public.customers c
+                                 where c.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'inquiry'  then (select c.email from public.inquiries i join public.customers c on c.id = i.customer_id
+                                 where i.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'quote'    then (select c.email from public.quotes q join public.inquiries i on i.id = q.inquiry_id
+                                  join public.customers c on c.id = i.customer_id
+                                 where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+        end as email
+      offset 0) w on true
+   where not coalesce(w.demo, false)
+     and not (x.entity <> 'company' and w.demo is null
+              and exists (select 1 from public.doc_backups z where z.entity = 'zz_demo' and z.entity_id = x.id))
+     and not (w.email is not null and (w.email ~* '@removed\.invalid$'
+              or exists (select 1 from public.pdpl_requests r
+                          where r.kind = 'delete' and coalesce(r.status, '') not in ('rejected', 'withdrawn', 'cancelled')
+                            and lower(r.email) = lower(w.email))));
+$function$;
+
 -- ── probe: complete sign-ups untouched, an unfinished one removed, an invited lead returned; nothing left ──
 do $probe$
 declare v_fail text := ''; r jsonb; v_c1 uuid := gen_random_uuid(); v_c2 uuid := gen_random_uuid(); v_c3 uuid := gen_random_uuid(); v_l bigint; v_l2 bigint;
@@ -317,11 +396,11 @@ begin
   returning id into v_l;
   r := public.fn_unfinished_signup_purge(true, 20, 'probe-owner-1181@example.invalid');
   if not exists (select 1 from public.leads where id = v_l and not claimed and claimed_by is null) then v_fail := v_fail || ' invited_lead:' || r::text; end if;
-  -- an unfinished sign-up that signed or uploaded something is HELD, not removed
+  -- an unfinished sign-up that SIGNED something is HELD, not removed (an upload alone does not hold it)
   insert into public.customers (id, email, full_name, email_verified, phone_verified, signed_terms_path, created_at)
   values (v_c1, 'probe-held-1181@example.invalid', 'Probe Held', true, false, 'customers/probe_held_1181.pdf', now() - interval '2 hours');
   r := public.fn_unfinished_signup_purge(true, 20, 'probe-held-1181@example.invalid');
-  if not exists (select 1 from public.customers where id = v_c1) or (r->>'held')::int <> 1 then v_fail := v_fail || ' upload_not_held:' || r::text; end if;
+  if not exists (select 1 from public.customers where id = v_c1) or (r->>'held')::int <> 1 then v_fail := v_fail || ' signature_not_held:' || r::text; end if;
   -- a login that is a complete account in the other role is never removed
   insert into public.leads (company_name, email, claimed, claimed_by, owner_email_verified, owner_phone_verified, accepted_terms_at, accepted_terms_ip, created_at, tags)
   values ('Probe Complete Co 1181', 'probe-co-1181@example.invalid', true, 'probe-both-1181@example.invalid', true, true, now(), '10.0.0.2', now(), array['qd_demo']);
