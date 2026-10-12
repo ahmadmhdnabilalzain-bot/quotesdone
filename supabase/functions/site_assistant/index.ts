@@ -352,7 +352,7 @@ RULES:
     const past = history.filter((h: any, i: number) => !(i === history.length - 1 && h.role === 'user' && h.content === message));
     const a = key ? await answerFromBrief({
       gateway: GATEWAY, secret: key, fn: 'site_assistant', agent: seatForSurface, taskClass: live ? 'customer_portal_assistant' : 'visitor_chat',
-      brief, sys, input: [...past, { role: 'user', content: message }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,   // room for a model that reasons before it writes; more with a photo
+      brief, sys, input: [...past, { role: 'user', content: message }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,   // room for a model that reasons before it writes; more with a photo. The gateway takes min(max, route max_tokens): visitor_chat is capped at 900, so a visitor's photo answer gets 900 and only the portal gets 1200; a cut-off answer is rewritten shorter, never shown
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
       check: (s: string) => guardSupportReply(s, replyLang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
     }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential' };
