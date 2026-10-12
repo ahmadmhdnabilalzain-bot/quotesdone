@@ -4,9 +4,11 @@
 -- protects. Founder ruling 1181 (12 Oct 2026): "an unfinished sign-up is never a customer". 30 minutes after
 -- a sign-up starts, if the e-mail, the mobile OTP and the signed terms with the IP are not ALL done, everything
 -- of it is removed: the customers row, the auth user (its sessions go with it), the OTP rows, the outbox items,
--- and any partial uploads (storage objects, removed by dropbox_backup through the storage API) and backups
--- (their Dropbox copies are MOVED to _archive/unfinished-signups/, never deleted). Nothing is kept and nothing
--- is sent; there is no reminder.
+-- and any partial uploads: storage objects, their Dropbox copies and their backup records (removed by dropbox_backup
+-- through the storage and Dropbox APIs). Nothing is kept and nothing is sent; there is no reminder ("as if he didn't
+-- even try"; the live privacy policy 1.6: "deleted in full after 30 minutes"). This is the ONE Dropbox delete outside
+-- the export retention, and it reaches only files this routine listed for a sign-up it removed: every other Dropbox
+-- rule stays "never delete".
 --   * A supplier sign-up on a lead from the invited pool does NOT delete the lead (campaign data): the lead is
 --     put back to its unclaimed state and only the partial account, auth user and OTP rows are removed.
 --   * A supplier sign-up with no lead behind it (source self_registered) is removed like a customer's.
@@ -38,6 +40,19 @@ create table if not exists public.signup_purge_object (
   error text,
   unique (bucket, path)
 );
+-- the Dropbox copies of a removed sign-up, listed here by this routine only; dropbox_backup deletes exactly these
+create table if not exists public.signup_purge_dropbox (
+  id bigserial primary key,
+  purge_id bigint not null references public.signup_purge(id) on delete cascade,
+  doc_backup_id bigint not null unique,
+  dropbox_path text not null,
+  done_at timestamptz,
+  error text
+);
+alter table public.signup_purge_dropbox enable row level security;
+drop policy if exists signup_purge_dropbox_service_role_only on public.signup_purge_dropbox;
+create policy signup_purge_dropbox_service_role_only on public.signup_purge_dropbox as permissive for all to public using (false) with check (false);
+revoke all on public.signup_purge_dropbox from anon, authenticated;
 alter table public.signup_purge enable row level security;
 alter table public.signup_purge_object enable row level security;
 drop policy if exists signup_purge_service_role_only on public.signup_purge;
@@ -48,16 +63,17 @@ revoke all on public.signup_purge, public.signup_purge_object from anon, authent
 
 insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
   ('signup_purge', false, 'log', 'One row per unfinished sign-up removed (kind, hashed e-mail, what was missing, counts): a log of the purge job, never personal data.', 'it_engineer'),
-  ('signup_purge_object', false, 'log', 'The storage objects an unfinished sign-up left, until dropbox_backup removes them through the storage API.', 'it_engineer')
+  ('signup_purge_object', false, 'log', 'The storage objects an unfinished sign-up left, until dropbox_backup removes them through the storage API.', 'it_engineer'),
+  ('signup_purge_dropbox', false, 'log', 'The Dropbox copies of an unfinished sign-up, until dropbox_backup deletes them and their backup records.', 'it_engineer')
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
   reason = excluded.reason, added_by = excluded.added_by;
 
 -- WHAT HOLDS A SIGN-UP (release review of #1292, 12 Oct 2026): a request, a sale, an order, a quote or a match; a
 -- signature; a draft request (inquiry_intake); a conversation (portal chat, assistant, inbound e-mail, contact
 -- form, complaint). A held sign-up is counted, never removed.
--- AN UPLOAD DOES NOT HOLD IT (founder, under ruling 1181, 12 Oct 2026: "the held self-registered company is deleted
--- ... with its uploads to _archive, never deleted"): the sign-up is removed and every file it uploaded is MOVED to
--- _archive/unfinished-signups/ in storage and in Dropbox (dropbox_backup), never deleted.
+-- AN UPLOAD DOES NOT HOLD IT (founder ruling 1181, 12 Oct 2026: "as if he didn't even try"): the sign-up is removed
+-- with every file it uploaded, from storage, from Dropbox and from the backup records (privacy policy 1.6: "deleted in
+-- full after 30 minutes").
 create or replace function public.fn_signup_customer_held(p_id uuid)
  returns boolean
  language sql
@@ -118,6 +134,31 @@ as $function$
 $function$;
 revoke execute on function public.fn_signup_email_kept_elsewhere(text, text, bigint) from public, anon, authenticated;
 
+-- A removed sign-up's backups: a copy that may be in Dropbox (done, or being uploaded) is listed for dropbox_backup to
+-- delete with its record; a record whose file never reached Dropbox is deleted here. Called only by the purge below.
+create or replace function public.fn_signup_purge_backups(p_purge_id bigint, p_entity text, p_entity_id text)
+ returns jsonb
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare v_listed int; v_dropped int;
+begin
+  if p_entity not in ('customer', 'supplier') then raise exception 'fn_signup_purge_backups: customer or supplier only'; end if;
+  insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_path)
+  select p_purge_id, d.id, d.dropbox_path from public.doc_backups d
+   where d.entity = p_entity and d.entity_id = p_entity_id and d.dropbox_path is not null and d.status in ('done', 'processing')
+  on conflict (doc_backup_id) do nothing;
+  get diagnostics v_listed = row_count;
+  update public.doc_backups d set status = 'signup_purge_pending', claimed_at = null, claimed_by = null,
+         error = 'unfinished sign-up removed (signup_purge ' || p_purge_id || '): Dropbox copy and record to be deleted'
+   where d.entity = p_entity and d.entity_id = p_entity_id and d.status in ('done', 'processing');
+  delete from public.doc_backups d where d.entity = p_entity and d.entity_id = p_entity_id and d.status <> 'signup_purge_pending';
+  get diagnostics v_dropped = row_count;
+  return jsonb_build_object('dropbox_copies_listed', v_listed, 'records_never_uploaded_deleted', v_dropped);
+end $function$;
+revoke execute on function public.fn_signup_purge_backups(bigint, text, text) from public, anon, authenticated;
+
 -- p_apply false: the plan only (who and why, no names). p_only_email: the probe's one row; it also lifts the
 -- demo exclusion for that one address, and nothing else.
 create or replace function public.fn_unfinished_signup_purge(p_apply boolean default false, p_limit integer default 20,
@@ -159,11 +200,8 @@ begin
       union select o.bucket_id, o.name from storage.objects o where o.bucket_id = 'drawing-files' and o.name like 'drawings/' || c.id || '/%'
       union select d.bucket, d.path from public.doc_backups d where d.entity = 'customer' and d.entity_id = c.id::text and d.bucket is not null and d.path is not null
     ) x where x.path is not null on conflict do nothing;
-    -- the backups: their Dropbox copies go to _archive (dropbox_backup), never deleted
-    update public.doc_backups d set status = 'archive_pending', claimed_at = null, claimed_by = null,
-           error = 'unfinished sign-up removed (signup_purge ' || v_id || '): Dropbox copy to _archive'
-     where d.entity = 'customer' and d.entity_id = c.id::text and d.status not in ('archived', 'archive_pending');
-    get diagnostics v_n = row_count; v_cnt := jsonb_build_object('backups_to_archive', v_n);
+    -- the backups: Dropbox copies and records go too (dropbox_backup deletes the listed copies)
+    v_cnt := public.fn_signup_purge_backups(v_id, 'customer', c.id::text);
     v_keep := public.fn_signup_email_kept_elsewhere(c.email, 'customer');
     if not v_keep then
       -- by e-mail only (the mobile was never verified), and only when no other account of this e-mail stays
@@ -244,9 +282,7 @@ begin
        where d.entity = 'supplier' and d.entity_id = c.id::text and d.bucket is not null and d.path is not null
       union select v_id, o.bucket_id, o.name from storage.objects o where o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) = c.id::text
       on conflict do nothing;
-      update public.doc_backups d set status = 'archive_pending', claimed_at = null, claimed_by = null,
-             error = 'unfinished sign-up removed (signup_purge ' || v_id || '): Dropbox copy to _archive'
-       where d.entity = 'supplier' and d.entity_id = c.id::text and d.status not in ('archived', 'archive_pending');
+      v_cnt := v_cnt || public.fn_signup_purge_backups(v_id, 'supplier', c.id::text);
       begin
         delete from public.leads l where l.id = c.id;
         v_cnt := v_cnt || jsonb_build_object('lead', 'removed');
@@ -278,9 +314,13 @@ begin
     end;
   end if;
   if p_apply and n_done > 0 and p_only_email is null then
-    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-    values ('it_engineer', 'ok', jsonb_build_object('job', 'unfinished_signup_purge', 'removed', n_done, 'held', n_held),
-            'Unfinished sign-ups removed (founder ruling 1181): ' || n_done || ', held because a request, quote or sale exists: ' || n_held || '.', now(), now());
+    -- counts only: no name, no e-mail, no file (the coordinator, 12 Oct 2026)
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, decided_at, decided_by)
+    values ('it_engineer', 'signup_purge', 'done', 'low', 'Unfinished sign-ups removed (founder ruling 1181)',
+            jsonb_build_object('removed', n_done, 'held', n_held,
+              'customers', (select count(*) from jsonb_array_elements(v_out) i where i->>'kind' = 'customer' and i ? 'purge_id'),
+              'suppliers', (select count(*) from jsonb_array_elements(v_out) i where i->>'kind' = 'supplier' and i ? 'purge_id')),
+            now(), 'it_engineer');
   end if;
   return jsonb_build_object('apply', p_apply, 'removed', n_done, 'held', n_held, 'items', v_out);
 end $function$;
@@ -293,89 +333,6 @@ insert into public.writer_seat (kind, name, owner_seat, note, owner_file) values
    'scripts/sql/an_unfinished_sign_up_is_never_a_customer.sql')
 on conflict (kind, name) do update set owner_seat = excluded.owner_seat, note = excluded.note, owner_file = excluded.owner_file;
 select cron.schedule('unfinished_signup_purge', '*/5 * * * *', $CRON$select public.fn_unfinished_signup_purge(true)$CRON$);
-
--- ── the storage sweep leaves an archived sign-up's files alone (they are in Dropbox _archive already) ──
--- (live definition of 12 Oct 2026, one line added)
-CREATE OR REPLACE FUNCTION public.fn_backup_sweep_objects()
- RETURNS TABLE(bucket text, path text, bytes bigint, created_at timestamp with time zone, entity text, entity_id text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  -- The cheap filters first, once: without the fence the planner evaluated the owner lookups below for
-  -- every object of every swept bucket, 8,369 export pages included (47.8 s measured; 125 ms with it).
-  with o as materialized (
-    select o.bucket_id, o.name, o.metadata, o.created_at
-      from storage.objects o
-     where o.bucket_id in (select r.bucket from public.fn_backup_source_registry() r
-                            where r.kind = 'bucket' and r.backed_up and r.enqueue_rule like '%STORAGE SWEEP%')
-       and right(o.name, 1) <> '/' and o.name !~ '(^|/)\.emptyFolderPlaceholder$'
-       and o.name !~* 'zz[ _-]?demo'
-       -- an unfinished sign-up's files moved to _archive/unfinished-signups/ (fn_unfinished_signup_purge, ruling 1181):
-       -- their Dropbox copies are already in _archive, so the sweep never files them a second time
-       and left(o.name, 9) <> '_archive/'
-       and not (o.bucket_id = 'backups' and o.name ~ '^(\d{4}-\d{2}-\d{2}|conversations)/')
-       and not (o.bucket_id = 'signed-terms' and o.name like 'registers/%')
-       and not exists (select 1 from public.pdpl_erase_files e where e.bucket = o.bucket_id and e.storage_path = o.name))
-  select o.bucket_id, o.name, coalesce((o.metadata->>'size')::bigint, 0), o.created_at, x.entity, x.id
-    from o
-    cross join lateral (select
-        (regexp_match(o.name, '^generated/\d+_(customer_details|inquiry_summary|comparison|supplier_details)_([0-9a-f_]{36}|\d{1,18})\.pdf$', 'i')) as gen,
-        split_part(o.name, '/', 2) as seg2, split_part(o.name, '/', 3) as seg3) p
-    -- OFFSET 0 keeps this a subquery computed once per row; flattened, it was copied into every reference.
-    cross join lateral (select coalesce(
-        (select case d.ref_table when 'customers' then 'customer' when 'inquiries' then 'inquiry'
-                                 when 'quotes' then 'quote' when 'leads' then 'supplier' end || ':' || d.ref_id
-           from public.documents d
-          where d.bucket = o.bucket_id and d.path = o.name
-            and d.ref_table in ('customers', 'inquiries', 'quotes', 'leads') and coalesce(d.ref_id, '') <> '' limit 1),
-        (select 'customer:' || c.customer_id from public.quote_pdf_cache c
-          where c.bucket = o.bucket_id and c.path = o.name and c.customer_id is not null limit 1),
-        (select 'customer:' || t.customer_id from public.reveal_invoices ri join public.transactions t on t.id = ri.transaction_id
-          where ri.bucket = o.bucket_id and ri.path = o.name and t.customer_id is not null limit 1),
-        (select 'quote:' || q.id from public.quotes q where o.bucket_id = 'quote-files' and q.original_file_path = o.name limit 1),
-        case when o.bucket_id = 'backups' and p.gen is not null then
-               case lower(p.gen[1]) when 'customer_details' then 'customer' when 'supplier_details' then 'supplier' else 'inquiry' end
-               || ':' || replace(lower(p.gen[2]), '_', '-') end,
-        case when o.bucket_id = 'supplier-docs' and p.seg2 ~ '^\d{1,18}$' then 'supplier:' || p.seg2 end,
-        case when o.bucket_id = 'drawing-files' and p.seg2 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg2) end,
-        case when o.bucket_id = 'quote-files' and p.seg3 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg3) end,
-        'company:storage/' || o.bucket_id) as owner
-      offset 0) y
-    cross join lateral (select split_part(y.owner, ':', 1) as entity, substr(y.owner, strpos(y.owner, ':') + 1) as id) x
-    -- the owner row behind it: is it demo (null when the row is gone), and which customer email, for PDPL.
-    -- Each cast is inside CASE behind the shape test that makes it safe.
-    left join lateral (select
-        case x.entity
-          when 'supplier' then (select coalesce(l.is_demo, false) from public.leads l
-                                 where l.id = case when x.id ~ '^\d{1,18}$' then x.id::bigint end)
-          when 'customer' then (select coalesce(c.is_demo, false) from public.customers c
-                                 where c.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
-          when 'inquiry'  then (select coalesce(c.is_demo, false) from public.inquiries i left join public.customers c on c.id = i.customer_id
-                                 where i.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
-          when 'quote'    then (select coalesce(l.is_demo, false) or coalesce(c.is_demo, false)
-                                  from public.quotes q left join public.leads l on l.id = q.supplier_id
-                                  left join public.inquiries i on i.id = q.inquiry_id left join public.customers c on c.id = i.customer_id
-                                 where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
-        end as demo,
-        case x.entity
-          when 'customer' then (select c.email from public.customers c
-                                 where c.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
-          when 'inquiry'  then (select c.email from public.inquiries i join public.customers c on c.id = i.customer_id
-                                 where i.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
-          when 'quote'    then (select c.email from public.quotes q join public.inquiries i on i.id = q.inquiry_id
-                                  join public.customers c on c.id = i.customer_id
-                                 where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
-        end as email
-      offset 0) w on true
-   where not coalesce(w.demo, false)
-     and not (x.entity <> 'company' and w.demo is null
-              and exists (select 1 from public.doc_backups z where z.entity = 'zz_demo' and z.entity_id = x.id))
-     and not (w.email is not null and (w.email ~* '@removed\.invalid$'
-              or exists (select 1 from public.pdpl_requests r
-                          where r.kind = 'delete' and coalesce(r.status, '') not in ('rejected', 'withdrawn', 'cancelled')
-                            and lower(r.email) = lower(w.email))));
-$function$;
 
 -- ── probe: complete sign-ups untouched, an unfinished one removed, an invited lead returned; nothing left ──
 do $probe$
@@ -390,6 +347,18 @@ begin
   if not exists (select 1 from public.customers where id = v_c2) then v_fail := v_fail || ' complete_removed'; end if;
   r := public.fn_unfinished_signup_purge(true, 20, 'probe-unfinished-1181@example.invalid');
   if exists (select 1 from public.customers where id = v_c1) or (r->>'removed')::int <> 1 then v_fail := v_fail || ' unfinished_kept:' || r::text; end if;
+  -- a removed sign-up's backups: a copy in Dropbox is listed for deletion with its record; a record never uploaded
+  -- goes at once (a non-existent entity id, so the admit trigger does not drop the probe rows as demo)
+  insert into public.signup_purge (kind, subject_ref, missing) values ('customer', 'probe-1181-backups', array['mobile']) returning id into v_l2;
+  insert into public.doc_backups (entity, entity_id, doc_type, source, gen_kind, gen_ref, dropbox_path, dedupe_key, status)
+  values ('customer', '00000000-0000-4000-8000-000000001181', 'probe', 'generated', 'probe', 'probe', '/QuotesDone Backup/Customers/Probe (probe-1181)/a.pdf', 'PROBE1181:done', 'done'),
+         ('customer', '00000000-0000-4000-8000-000000001181', 'probe', 'generated', 'probe', 'probe', '/QuotesDone Backup/Customers/Probe (probe-1181)/b.pdf', 'PROBE1181:pending', 'pending');
+  r := public.fn_signup_purge_backups(v_l2, 'customer', '00000000-0000-4000-8000-000000001181');
+  if exists (select 1 from public.doc_backups where dedupe_key = 'PROBE1181:pending') then v_fail := v_fail || ' never_uploaded_record_kept'; end if;
+  if not exists (select 1 from public.doc_backups x join public.signup_purge_dropbox p on p.doc_backup_id = x.id
+                  where x.dedupe_key = 'PROBE1181:done' and x.status = 'signup_purge_pending') then v_fail := v_fail || ' dropbox_copy_not_listed:' || r::text; end if;
+  delete from public.doc_backups where dedupe_key like 'PROBE1181:%';
+  delete from public.signup_purge where id = v_l2;
   -- an invited lead: claimed by an unfinished sign-up, returned to the pool (not deleted)
   insert into public.leads (company_name, email, invited_at, invite_status, claimed, claimed_by, owner_email_verified, created_at, portal_updated_at, tags)
   values ('Probe Invited Co 1181', 'probe-lead-1181@example.invalid', now() - interval '3 days', 'invited', true, 'probe-owner-1181@example.invalid', true, now() - interval '3 days', now() - interval '2 hours', array['qd_demo'])
@@ -442,7 +411,8 @@ begin
                                                          encode(sha256(convert_to('probe-owner-1181@example.invalid', 'UTF8')), 'hex'));
   if exists (select 1 from public.customers where email like 'probe-%-1181@example.invalid')
      or exists (select 1 from public.leads where company_name = 'Probe Invited Co 1181')
-     or exists (select 1 from public.agent_runs where counts->>'job' = 'unfinished_signup_purge' and started_at > now() - interval '1 minute' and note like '%probe%') then
+     or exists (select 1 from public.doc_backups where dedupe_key like 'PROBE1181:%')
+     or exists (select 1 from public.signup_purge_dropbox where dropbox_path like '%probe-1181%') then
     v_fail := v_fail || ' probe_rows_left';
   end if;
   perform set_config('qd.probe_1181', coalesce(nullif(v_fail, ''), 'ok'), true);

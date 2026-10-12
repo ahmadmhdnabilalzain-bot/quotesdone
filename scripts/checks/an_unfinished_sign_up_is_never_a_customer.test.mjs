@@ -6,7 +6,8 @@
 //      e-mailed him "Your first request on QuotesDone". The purge removes an unfinished sign-up after 30 minutes,
 //      guarded on the COMPLETION FIELDS (never on time alone), and never a customer with a request or a sale.
 //   2. An invited lead is campaign data: an unfinished claim returns it to the pool, it is never deleted.
-//   3. Its backups are MOVED to _archive in Dropbox, never deleted; its storage objects go through the storage API.
+//   3. Its files go too ("as if he didn't even try"; policy 1.6 "deleted in full"): the Dropbox copies the purge LISTED,
+//      their backup records and its storage objects, through the Dropbox and storage APIs. No other Dropbox delete exists.
 //   4. One customer got two certificates 52 s apart for one acceptance: kyc rewrote tos_accepted_at on a second
 //      accept_terms for the same version. It now writes the acceptance only when that version is not on file.
 import { test } from 'node:test';
@@ -40,17 +41,20 @@ test('an invited lead returns to the pool; only a self-registered company is del
   assert.ok(!/delete from public\.leads/.test(inv), 'the invited lead is never deleted');
 });
 
-test('backups are archived, never deleted; storage goes through the storage API', () => {
-  assert.match(body, /set status = 'archive_pending'/);
-  assert.ok(!/delete from public\.doc_backups/.test(body) && !/delete from storage\.objects/.test(body), 'no backup record and no storage row is deleted in SQL');
+test('an unfinished sign-up files are deleted: only the Dropbox copies the purge listed, their records, and its storage objects', () => {
+  const h = SQL.slice(SQL.indexOf('function public.fn_signup_purge_backups'), SQL.indexOf('revoke execute on function public.fn_signup_purge_backups'));
+  assert.ok(h.includes('insert into public.signup_purge_dropbox'), 'the Dropbox copies to delete are listed by the purge');
+  assert.ok(body.includes("public.fn_signup_purge_backups(v_id, 'customer'") && body.includes("public.fn_signup_purge_backups(v_id, 'supplier'"), 'both roles list their backups');
+  assert.ok(!body.includes('delete from storage.objects'), 'no storage row is deleted in SQL (the storage API removes the object)');
   const d = src('supabase/functions/dropbox_backup/index.ts');
-  const a = d.slice(d.indexOf('async function archiveUnfinishedSignups'), d.indexOf("Deno.serve(observe('dropbox_backup'"));
-  assert.match(a, /files\/move_v2/, 'the Dropbox copy is moved');
-  assert.ok(!/delete_v2/.test(a), 'nothing is deleted from Dropbox');
-  // 12 Oct 2026 (founder, ruling 1181 as amended): uploads go to _archive, never deleted, in storage too
-  assert.ok(a.includes('admin.storage.from(o.bucket).move(o.path, to)'), 'a storage object is MOVED to _archive');
-  assert.ok(!a.includes('.remove('), 'no storage object is removed');
-  assert.ok(SQL.includes("and left(o.name, 9) <> '_archive/'"), 'the storage sweep never files an archived object a second time');
+  const a = d.slice(d.indexOf('async function purgeUnfinishedSignups'), d.indexOf("Deno.serve(observe('dropbox_backup'"));
+  assert.ok(a.includes("from('signup_purge_dropbox')") && a.includes('signupPurgeDeleteAllowed(String(c.dropbox_path))'), 'only a listed copy inside the entity tree is deleted');
+  assert.ok(a.includes(".eq('status', 'signup_purge_pending')"), 'only the record the purge marked is deleted');
+  assert.ok(a.includes('admin.storage.from(o.bucket).remove([o.path])'), 'storage objects are removed through the storage API');
+  assert.ok(a.includes("kind: 'signup_purge'") && !/email|full_name|company_name/.test(a.slice(a.indexOf("from('agent_actions')"))), 'counts only are logged in agent_actions');
+  // the delete is reachable only from here: every other delete_v2 is the export prune, a probe, or the sandbox
+  const deletes = d.split('files/delete_v2').length - 1;
+  assert.equal(deletes, 5, 'a new Dropbox delete was added outside the unfinished sign-up purge: ' + deletes);
 });
 
 test('the job runs every 5 minutes and names its seat', () => {
@@ -85,7 +89,7 @@ test('release review: what holds a sign-up, the phone never selects, and a login
   for (const c of ['cu.signed_terms_path is not null', 'public.inquiry_intake ii', 'm.customer_id = cu.id', 'lower(im.from_email) = lower(cu.email)', 'public.inquiries i'])
     assert.ok(ch.includes(c), 'a customer is held when ' + c);
   for (const c of ['im.supplier_id = l.id', 'l.signed_terms_path is not null', 'public.quotes q']) assert.ok(sh.includes(c), 'a supplier is held when ' + c);
-  // an upload does NOT hold a sign-up (founder, 12 Oct 2026): it is archived with it
+  // an upload does NOT hold a sign-up (founder ruling 1181): it is deleted with it
   for (const h of [ch, sh]) assert.ok(!h.includes('storage.objects') && !h.includes('public.doc_backups'), 'an upload alone never holds a sign-up');
   assert.ok(body.includes('public.fn_signup_customer_held(cu.id) busy') && body.includes('public.fn_signup_supplier_held(l.id) busy'), 'both loops hold through the functions');
   assert.ok(!body.includes('to_phone') && !body.includes('p.phone'), 'nothing is matched on the unverified mobile');
