@@ -30,9 +30,10 @@
     {
       "id": "translation_interpretation:uae-standards-and-approvals",
       "topic": "Translation and interpretation - UAE standards, authorities and approvals",
+      "topic_ar": "الترجمة والترجمة الفورية: المعايير والجهات والموافقات في الإمارات",
       "kind": "standard",
       "body_en": "Legal translation in the UAE is done by legal translators registered with the Ministry of Justice, which offers services for the registration of legal translators and renewal of registration. What the cited sources do not establish: The MOJ page read does not say which documents require a legal translator; the buyer must state whether the translation is for official use.",
-      "body_ar": "تتم الترجمة القانونية في الإمارات عبر مترجمين قانونيين مسجلين لدى وزارة العدل، التي تقدم خدمات تسجيل المترجمين القانونيين وتجديد التسجيل. ما لا تثبته المصادر المذكورة: صفحة وزارة العدل المقروءة لا تحدد المستندات التي تحتاج إلى مترجم قانوني؛ على المشتري أن يحدد ما إذا كانت الترجمة للاستخدام الرسمي.",
+      "body_ar": "في الترجمة، تتم الترجمة القانونية في الإمارات على يد مترجمين قانونيين مقيدين لدى وزارة العدل، التي تقدم خدمات قيد المترجمين القانونيين وتجديد القيد. ما لا تثبته المصادر المستند إليها: صفحة وزارة العدل التي رُوجعت لا تبين أي المستندات تتطلب مترجمًا قانونيًا؛ لذا على المشتري أن يحدد ما إذا كانت الترجمة لاستخدام رسمي.",
       "source_note": "The MOJ page read does not say which documents require a legal translator; the buyer must state whether the translation is for official use.",
       "sources": [
         "https://www.moj.gov.ae/en/services.aspx"
@@ -43,9 +44,10 @@
     {
       "id": "translation_interpretation:court-submissions-arabic-legal-translation",
       "topic": "Foreign-language documents before UAE courts",
+      "topic_ar": "الترجمة والترجمة الفورية: ترجمة المستندات الأجنبية المقدمة إلى محاكم الإمارات",
       "kind": "regulatory_reference",
       "body_en": "Arabic is the official legal language in the UAE, so documents submitted to courts or government in another language must be translated by a recognised provider. An MOJ-certified translation carries the translator's official stamp and a certification statement; without proper certification a document risks being rejected by courts, delayed, or returned for correction. Documents commonly needing this include court judgments, corporate incorporation papers and personal certificates, and machine translation is not accepted by courts. In practice, therefore, a contract filed in a Dubai court should carry an MOJ-certified Arabic translation. Not established from a primary source here: the exact procedural article, Dubai Courts' own filing rule, and DIFC Courts' language rules.",
-      "body_ar": "اللغة العربية هي اللغة القانونية الرسمية في الإمارات، لذا يجب ترجمة المستندات المقدمة إلى المحاكم أو الجهات الحكومية بلغة أخرى لدى جهة ترجمة معترف بها. تحمل الترجمة المعتمدة من وزارة العدل الختم الرسمي للمترجم وإقرار اعتماد؛ ومن دون الاعتماد الصحيح يتعرض المستند لخطر الرفض من المحاكم أو التأخير أو الإعادة للتصحيح. ومن المستندات التي تحتاج عادةً إلى ذلك الأحكام القضائية وأوراق تأسيس الشركات والشهادات الشخصية، ولا تقبل المحاكم الترجمة الآلية. وعليه، عمليًا، ينبغي أن يُرفق بالعقد المقدم إلى محكمة في دبي ترجمة عربية معتمدة من وزارة العدل. غير مثبت من مصدر أولي هنا: المادة الإجرائية الدقيقة، وقاعدة الإيداع الخاصة بمحاكم دبي، وقواعد اللغة في محاكم مركز دبي المالي العالمي.",
+      "body_ar": "في الترجمة القانونية، العربية هي اللغة القانونية الرسمية في الإمارات، لذا يجب أن تُترجم المستندات المقدمة إلى المحاكم أو الجهات الحكومية بلغة أخرى لدى مقدم خدمة معترف به. تحمل الترجمة المعتمدة من وزارة العدل الختم الرسمي للمترجم وإقرار تصديق؛ ومن دون تصديق صحيح يتعرض المستند لخطر الرفض من المحاكم أو التأخير أو الإعادة للتصحيح. ومن المستندات التي تحتاج ذلك عادة: الأحكام القضائية، ومستندات تأسيس الشركات، والشهادات الشخصية، ولا تقبل المحاكم الترجمة الآلية. وعمليًا، ينبغي أن يرفق بالعقد المودع لدى محكمة في دبي ترجمة عربية معتمدة من وزارة العدل. غير ثابت هنا من مصدر أصلي: المادة الإجرائية بعينها، وقاعدة الإيداع الخاصة بمحاكم دبي، وقواعد اللغة في محاكم مركز دبي المالي العالمي (DIFC).",
       "sources": [
         "https://www.communicationdubai.com/moj-certified-translation-uae/"
       ],
