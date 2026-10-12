@@ -1996,3 +1996,4 @@ scripts/sql/a_debounced_backup_kick_is_still_a_heartbeat.sql
 scripts/sql/a_silence_is_judged_against_the_rhythm_a_subject_still_keeps.sql
 scripts/sql/our_own_claim_lookup_probe_proves_itself.sql
 scripts/sql/the_three_detector_gaps_record_their_regression_checks.sql
+scripts/sql/the_vercel_configuration_is_backed_up_every_day.sql
