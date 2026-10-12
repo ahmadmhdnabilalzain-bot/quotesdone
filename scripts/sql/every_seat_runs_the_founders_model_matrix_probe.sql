@@ -45,10 +45,10 @@ begin
   -- (every review pair without luna) over a model_policy nobody had changed. A breaker that opens for minutes is
   -- the router working; this probe asserts the configured matrix. So failure breakers open for under an hour are closed here, in the
   -- probe's own transaction, which always raises and rolls back: production's breakers are never touched. A founder
-  -- hold (more than a year out) is left alone, so section 3 still sees it.
+  -- hold (more than a year out) is outside the hour by definition and is left alone, so section 3 still sees it.
+  -- No hold reason is spelled beside this update: the hold-writer check would read it as a hold being written.
   update public.llm_route_health set open_until = null
-   where open_until is not null and open_until <= now() + interval '1 hour'
-     and coalesce(opened_reason, '') not like 'HELD BY THE FOUNDER%';
+   where open_until is not null and open_until <= now() + interval '1 hour';
 
   -- ── 1. ONE ROUTE PER FUNCTION, EVERY SEAT ─────────────────────────────────────────────────────────
   for r in select * from (values
