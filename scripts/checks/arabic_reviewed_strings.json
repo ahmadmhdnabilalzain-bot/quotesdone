@@ -6211,19 +6211,6 @@
   "d334085df3d0",
   "e2e7c6be7c96"
  ],
- "supabase/functions/supplier_api/index.ts": [
-  "36c646488e20",
-  "37e54704721b",
-  "3ae86111b9c8",
-  "780982602d68",
-  "8fce5732032b",
-  "91ae2c7291d3",
-  "94956e39f7f1",
-  "a2d8778c01cf",
-  "b950c9daf1bf",
-  "bfca58024b1a",
-  "d8840a7d8b95"
- ],
  "supabase/functions/supplier_api/quote_review_flow.ts": [
   "0c4b45efc9bf",
   "265323a0e5fd",
