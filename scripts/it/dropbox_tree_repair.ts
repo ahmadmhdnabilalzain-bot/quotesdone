@@ -38,7 +38,7 @@ const lit = (s: unknown) => s === null || s === undefined ? 'null' : `'${String(
 let RULING: Ruling | undefined;
 if (MOVES) {
   const id = /^\d+$/.test(FOUNDER_OK ?? '') ? Number(FOUNDER_OK) : null;
-  const r = id === null ? [] : await sql<Ruling>(`select id, instruction, subject, status from public.founder_instruction where id = ${id}`);
+  const r = id === null ? [] : await sql<Ruling>(`select id, instruction, subject, status, note from public.founder_instruction where id = ${id}`);
   const v = APPLY ? founderApprovesMoves(r[0]) : { ok: false, why: '--moves needs --apply' };
   if (!v.ok) { console.log(JSON.stringify({ ok: false, refused: 'moves touch real files: ' + v.why })); Deno.exit(2); }
   RULING = r[0];
