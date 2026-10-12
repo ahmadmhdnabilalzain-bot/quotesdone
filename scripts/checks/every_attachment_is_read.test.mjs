@@ -64,3 +64,14 @@ const PATHS = [
 for (const [file, re, what] of PATHS) {
   test(`${file}: ${what}`, () => assert.match(code(file), re, `${file} no longer does this: ${what}`));
 }
+
+test('wa_inbound: a number with no account reads at most one file per message and a daily cap per number', () => {
+  const s = code('wa_inbound/index.ts');
+  assert.match(s, /const UNKNOWN_READS_PER_DAY = 3;/);
+  assert.match(s, /media\.slice\(0, Math\.min\(1, budget\)\)/);
+});
+test('read text from a stranger is fenced as untrusted data where it is stored', () => {
+  assert.match(code('wa_inbound/index.ts'), /readText \+= untrustedBlock\(/);
+  assert.match(code('wa_inbound/index.ts'), /inbound: \(Body \|\| '\(no caption\)'\)\.slice\(0, 2000\)/);
+  assert.ok(code('inbound_email/index.ts').includes('+ untrustedBlock(seen.text'), 'inbound_email fences the read text');
+});

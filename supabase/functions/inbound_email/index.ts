@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
-import { readEveryAttachment, envGatewayVision } from '../_shared/read_every_attachment.ts';
+import { readEveryAttachment, envGatewayVision, untrustedBlock } from '../_shared/read_every_attachment.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. These images are forwarded to a model and
 // can reach a person; a refused one is counted in attachmentsRefused exactly as a bad shape is.
 import { sanitizeAndScan } from '../_shared/malware.ts';
@@ -80,7 +80,7 @@ Deno.serve(observe('inbound_email', async (req) => {
       // stored message and the sector reasoning see what the sender attached. Unreadable ones are named, not dropped.
       const seen = await readEveryAttachment(san.bytes, 'attachment-' + images.length, san.mime, envGatewayVision({ subject: fromEmailOf(body) }));
       text += seen.status === 'read'
-        ? `\n\n[attachment ${images.length}, read by ${seen.by}]\n${seen.text.slice(0, 6000)}`
+        ? '\n\n' + untrustedBlock(seen.text.slice(0, 6000))
         : `\n\n[attachment ${images.length} could not be read: ${String(seen.reason || seen.status).slice(0, 80)}]`;
     }
     if (!fromEmail) return J({ error: 'missing from' }, 400);

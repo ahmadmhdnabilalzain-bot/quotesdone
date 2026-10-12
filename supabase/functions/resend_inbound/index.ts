@@ -783,7 +783,7 @@ export const handler = observe('resend_inbound', async (req) => {
       if (lead && inbSecret) {
         if (cat === 'trade_license') {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
-          if (!ex?.doc || ex.doc.confidence === 'low') unreadDocs.push(fname);   // ruling 1177: ask for a clearer copy
+          if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
           if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
               // The name printed on this licence (a scan is read by the vision model); null = not read, and the
               // sales engineer's review then holds the registration for a human (licence_name_unread).
@@ -804,7 +804,7 @@ export const handler = observe('resend_inbound', async (req) => {
           }
         } else if (cat === 'company_profile' || cat === 'catalogue') {
           const ex = await extractDoc('profile', bytes, mime, fname, inbSecret);
-          if (!ex?.profile || ex.profile.confidence === 'low') unreadDocs.push(fname);
+          if (!ex?.profile) unreadDocs.push(fname);
           const u:any = { doc_extracted_at: new Date().toISOString() };
           if (cat === 'company_profile') u.company_profile_doc_path = path;
           if (cat === 'catalogue') { const cur = Array.isArray(lead.catalog_doc_paths)?lead.catalog_doc_paths:[]; u.catalog_doc_paths = [...cur, path]; }

@@ -18,7 +18,9 @@
 //      is that path, reused rather than reinvented: same bucket, same sanitiser, same extractor,
 //      same columns, same audit row.
 import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
-import { readEveryAttachment, envGatewayVision } from '../_shared/read_every_attachment.ts';
+import { readEveryAttachment, envGatewayVision, untrustedBlock } from '../_shared/read_every_attachment.ts';
+/** Files read per 24 h for a number with no account (review of #1289: a stranger cannot spend at will). */
+const UNKNOWN_READS_PER_DAY = 3;
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
@@ -926,7 +928,14 @@ async function handleInbound(req: Request): Promise<Response> {
           // conversation turn, so the next message on this chat is answered knowing what was sent. The reply says it was
           // read and gives both doors: a customer's request goes in at the request page, a supplier registers.
           // Whether it is a request or a supplier document is NOT guessed here from words (founder_instruction 886-903).
-          for (const m of media.slice(0, 3)) {
+          // A CAP (review of #1289): a stranger must not be able to make us pay for vision reads at will. ONE file per
+          // message and at most UNKNOWN_READS_PER_DAY reads per number per 24 h; past that the file is acknowledged, not read.
+          const since = new Date(Date.now() - 86_400_000).toISOString();
+          const { count: readToday } = await admin.from('wa_messages').select('id', { count: 'exact', head: true })
+            .eq('wa_from', From).gte('created_at', since).eq('meta->>unknown_read', 'true');
+          const budget = Math.max(0, UNKNOWN_READS_PER_DAY - (readToday ?? UNKNOWN_READS_PER_DAY));
+          if (!budget) results.push('not read: daily read cap for a number with no account');
+          for (const m of media.slice(0, Math.min(1, budget))) {
             const got = await fetchTwilioMedia(m.url, internalCaller);
             if (!got.bytes) { results.push('not downloaded'); continue; }
             const sc = await sanitizeAndScan({ input: got.bytes, declaredMime: got.mime || m.mime, filename: 'whatsapp-file', allow: SAFE_UPLOAD,
@@ -934,7 +943,7 @@ async function handleInbound(req: Request): Promise<Response> {
             if (!sc.ok) { results.push('refused: ' + sc.body.error); continue; }
             const seen = await readEveryAttachment(sc.result.bytes, 'whatsapp-file', sc.result.mime, envGatewayVision({ subject: { phone: From } }));
             results.push(seen.status === 'read' ? 'read by ' + seen.by : 'unreadable: ' + String(seen.reason || seen.status).slice(0, 60));
-            if (seen.status === 'read') readText += '\n[attachment read by ' + seen.by + ']\n' + seen.text.slice(0, 3000);
+            if (seen.status === 'read') readText += untrustedBlock(seen.text.slice(0, 3000));
           }
           const ar = /[؀-ۿ]/.test(Body + readText) && !/[A-Za-z]{4}/.test(Body);
           reply = readText
@@ -966,8 +975,10 @@ async function handleInbound(req: Request): Promise<Response> {
         try {
           await waInsert(receivedAt, {
             wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
-            inbound: ((Body || '(no caption)') + readText).slice(0, 4000), reply, lang: 'en', escalated: false, sent,
+            // The read text is kept in its OWN field, marked as untrusted data, never mixed into what the sender typed.
+            inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
             meta: { enabled, audience, route: 'media_in', media_count: media.length, lead_id: leadId,
+                    ...(readText ? { unknown_read: true, attachment_text_untrusted: readText.slice(0, 4000) } : {}),
                     results, send_error: sendErr || null, provenance_verified: true,
                     message_sid: MessageSid || null },
           });
