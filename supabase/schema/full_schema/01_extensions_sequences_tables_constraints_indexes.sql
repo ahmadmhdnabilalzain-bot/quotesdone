@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-12T11:03:23.383Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-12T11:59:52.082Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -136,6 +136,8 @@ CREATE SEQUENCE IF NOT EXISTS public.it_restore_drill_result_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.kb_revisions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_questions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_results_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.lead_prospect_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.lead_sourcing_run_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.licence_renewal_ask_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.llm_calls_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.marketing_asset_perception_id_seq;
@@ -214,7 +216,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (712) =====
+-- ===== TABLES (714) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4801,6 +4803,62 @@ CREATE TABLE IF NOT EXISTS public.lead_category (
   is_primary boolean DEFAULT false NOT NULL,
   method text DEFAULT 'keyword_v1'::text NOT NULL,
   evidence text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.lead_prospect (
+  id bigint DEFAULT nextval('lead_prospect_id_seq'::regclass) NOT NULL,
+  run_id bigint NOT NULL,
+  company_name text NOT NULL,
+  trade_code text,
+  emirate text,
+  website text,
+  domain text,
+  phone_e164 text,
+  phone_kind text,
+  email text,
+  email_status text,
+  contact_name text,
+  contact_title text,
+  place_id text,
+  query text,
+  field_sources jsonb DEFAULT '{}'::jsonb NOT NULL,
+  collected_at timestamp with time zone DEFAULT now() NOT NULL,
+  status text NOT NULL,
+  status_reason text,
+  promoted_lead_id bigint,
+  model_answer text
+);
+
+CREATE TABLE IF NOT EXISTS public.lead_sourcing_run (
+  id bigint DEFAULT nextval('lead_sourcing_run_id_seq'::regclass) NOT NULL,
+  kind text NOT NULL,
+  status text DEFAULT 'done'::text NOT NULL,
+  reserved_serper_credits numeric DEFAULT 0 NOT NULL,
+  reserved_llm_usd numeric DEFAULT 0 NOT NULL,
+  started_at timestamp with time zone DEFAULT now() NOT NULL,
+  run_day date DEFAULT ((now() AT TIME ZONE 'Asia/Dubai'::text))::date NOT NULL,
+  emirate text NOT NULL,
+  trades text[] NOT NULL,
+  queries integer DEFAULT 0 NOT NULL,
+  serper_credits numeric DEFAULT 0 NOT NULL,
+  usd_per_credit numeric DEFAULT 0.001 NOT NULL,
+  places integer DEFAULT 0 NOT NULL,
+  sites_crawled integer DEFAULT 0 NOT NULL,
+  pages_fetched integer DEFAULT 0 NOT NULL,
+  robots_refused integer DEFAULT 0 NOT NULL,
+  prospects integer DEFAULT 0 NOT NULL,
+  complete integer DEFAULT 0 NOT NULL,
+  duplicates integer DEFAULT 0 NOT NULL,
+  suppressed integer DEFAULT 0 NOT NULL,
+  promoted integer DEFAULT 0 NOT NULL,
+  model_calls integer DEFAULT 0 NOT NULL,
+  linkedin_queries integer DEFAULT 0 NOT NULL,
+  llm_cost_usd numeric DEFAULT 0 NOT NULL,
+  by_trade jsonb DEFAULT '{}'::jsonb NOT NULL,
+  errors jsonb DEFAULT '[]'::jsonb NOT NULL,
+  handoff_id bigint,
+  read_by_ceo_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -10178,6 +10236,8 @@ ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_pkey P
 ALTER TABLE public.knowledge_module_standard ADD CONSTRAINT knowledge_module_standard_pkey PRIMARY KEY (module);
 ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_pkey PRIMARY KEY (src, row_id);
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_pkey PRIMARY KEY (lead_id, slug);
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_pkey PRIMARY KEY (id);
+ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_pkey PRIMARY KEY (lead_id, sub_slug);
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_pkey PRIMARY KEY (trade_key);
@@ -11010,6 +11070,10 @@ ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_ru
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
 ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_id_check CHECK (id);
 ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_src_check CHECK ((src = ANY (ARRAY['seat_case_memory'::text, 'ceo_knowledge'::text, 'support_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'sales_knowledge'::text, 'company_faq'::text, 'agent_knowledge'::text, 'ops_knowledge'::text, 'reasoning_knowledge_candidate'::text, 'kb_chunks'::text])));
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_field_sources_check CHECK ((jsonb_typeof(field_sources) = 'object'::text));
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_status_check CHECK ((status = ANY (ARRAY['complete'::text, 'incomplete'::text, 'duplicate'::text, 'suppressed'::text, 'promoted'::text])));
+ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_kind_check CHECK ((kind = ANY (ARRAY['batch'::text, 'pilot'::text, 'probe'::text])));
+ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_status_check CHECK ((status = ANY (ARRAY['reserved'::text, 'done'::text])));
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_confidence_check CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric))));
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_decided_by_check CHECK ((decided_by = 'reasoning'::text));
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_evidence_check CHECK ((btrim(evidence) <> ''::text));
@@ -11797,6 +11861,8 @@ ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_run_id_fkey FOREIGN KEY (run_id) REFERENCES knowledge_ingestion_run(run_id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_promoted_lead_id_fkey FOREIGN KEY (promoted_lead_id) REFERENCES leads(id) ON DELETE SET NULL;
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_run_id_fkey FOREIGN KEY (run_id) REFERENCES lead_sourcing_run(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
@@ -12300,6 +12366,9 @@ CREATE INDEX knowledge_vector_ml_day_idx ON public.knowledge_vector_ml USING btr
 CREATE INDEX knowledge_vector_ml_kb_hnsw ON public.knowledge_vector_ml USING hnsw (embedding vector_cosine_ops) WHERE (src = 'kb_chunks'::text);
 CREATE UNIQUE INDEX lead_category_primary_uidx ON public.lead_category USING btree (lead_id) WHERE is_primary;
 CREATE INDEX lead_category_slug_idx ON public.lead_category USING btree (slug);
+CREATE INDEX lead_prospect_domain_idx ON public.lead_prospect USING btree (domain);
+CREATE INDEX lead_prospect_run_idx ON public.lead_prospect USING btree (run_id);
+CREATE UNIQUE INDEX lead_sourcing_one_reservation ON public.lead_sourcing_run USING btree ((true)) WHERE (status = 'reserved'::text);
 CREATE INDEX lead_subcategory_domain_idx ON public.lead_subcategory USING btree (domain_slug);
 CREATE UNIQUE INDEX lead_subcategory_primary_uidx ON public.lead_subcategory USING btree (lead_id) WHERE is_primary;
 CREATE INDEX lead_subcategory_sub_idx ON public.lead_subcategory USING btree (sub_slug);

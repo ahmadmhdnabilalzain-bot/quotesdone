@@ -3368,7 +3368,7 @@ declare
   v_local date := (p_at at time zone 'Asia/Dubai')::date;
   v_last_month date := (date_trunc('month', v_local) - interval '1 month')::date;
   v_quarter date := date_trunc('quarter', v_local)::date;
-  v_body jsonb; v_id bigint; v_out jsonb := '{}'::jsonb;
+  v_body jsonb; v_id bigint; v_handoff bigint; v_out jsonb := '{}'::jsonb;
 begin
   if extract(day from v_local) >= 2 and not exists (select 1 from public.marketing_review where kind = 'geo_monthly' and period = v_last_month)
      and exists (select 1 from public.marketing_geo_check where month = v_last_month) then
@@ -3376,8 +3376,9 @@ begin
     insert into public.marketing_review (kind, period, body) values ('geo_monthly', v_last_month, v_body)
       on conflict (kind, period) do nothing returning id into v_id;
     if v_id is not null then
-      update public.marketing_review set handoff_id = public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
-        jsonb_build_object('kind', 'geo_monthly', 'period', v_last_month)) where id = v_id;
+      v_handoff := public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
+        jsonb_build_object('kind', 'geo_monthly', 'period', v_last_month));
+      update public.marketing_review set handoff_id = v_handoff where id = v_id;
       v_out := v_out || jsonb_build_object('geo_monthly', v_id);
     end if;
   end if;
@@ -3419,8 +3420,9 @@ begin
     insert into public.marketing_review (kind, period, body) values ('brand_quarterly', v_quarter, v_body)
       on conflict (kind, period) do nothing returning id into v_id;
     if v_id is not null then
-      update public.marketing_review set handoff_id = public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
-        jsonb_build_object('kind', 'brand_quarterly', 'period', v_quarter)) where id = v_id;
+      v_handoff := public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
+        jsonb_build_object('kind', 'brand_quarterly', 'period', v_quarter));
+      update public.marketing_review set handoff_id = v_handoff where id = v_id;
       v_out := v_out || jsonb_build_object('brand_quarterly', v_id);
     end if;
   end if;
@@ -6805,7 +6807,14 @@ begin
          group by 1, 2
       ) x;
 
-    v_settled := public.fn_it_duty_settle('org_task_queue', v_items);
+    declare v_lt text := current_setting('lock_timeout'); begin
+      perform set_config('lock_timeout', '2s', true);
+      v_settled := public.fn_it_duty_settle('org_task_queue', v_items);
+      perform set_config('lock_timeout', v_lt, true);
+    exception when lock_not_available then
+      perform set_config('lock_timeout', v_lt, true);
+      v_settled := jsonb_build_object('skipped', true, 'why', 'a finding row was locked by another transaction for 2 s; settled on the next tick');
+    end;
   end if;
 
   -- THE STEP RUNNER ONLY COUNTS {ok:false, error:'<string>'} AS A FAILURE (resilience_ping/steps.ts,

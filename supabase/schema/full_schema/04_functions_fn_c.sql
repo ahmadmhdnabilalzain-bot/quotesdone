@@ -4173,6 +4173,27 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_reads_lead_sourcing_report(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; n int;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'marketing.lead_sourcing' then
+    raise exception 'fn_ceo_reads_lead_sourcing_report: % is not a marketing.lead_sourcing handoff', p_id;
+  end if;
+  update public.lead_sourcing_run set read_by_ceo_at = coalesce(read_by_ceo_at, now())
+   where kind = 'batch' and run_day = (a.detail->>'subject_id')::date;
+  get diagnostics n = row_count;
+  if n = 0 then raise exception 'marketing.lead_sourcing % names day %, which has no batch', p_id, a.detail->>'subject_id'; end if;
+  return jsonb_build_object('read', true, 'day', a.detail->>'subject_id', 'promoted', a.detail->'promoted', 'by_trade', a.detail->'by_trade',
+                            'note', 'Read by the CEO. New complete supplier leads per trade; nothing to approve.');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_reads_marketing_report(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
