@@ -3,7 +3,7 @@ import { assertEquals } from 'jsr:@std/assert';
 import { acceptImages, MAX_DATA_URL_CHARS, withImages } from './chat_images.ts';
 
 const JPEG = 'data:image/jpeg;base64,' + 'A'.repeat(100);
-const HOST = 'htdblwldjkcgjvmqkbeh.supabase.co';
+const HOST = 'testref.supabase.co';
 
 // prevented by: this test. A public endpoint never pushes a large, foreign or non-image payload through a paid model.
 Deno.test('a small photo or our own stored file is accepted; size, count, type and foreign URLs are refused', () => {
