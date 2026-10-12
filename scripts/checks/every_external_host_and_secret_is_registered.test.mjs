@@ -41,6 +41,18 @@ function* walk(d) {
     else if (/\.(ts|tsx|js|mjs)$/.test(e) && !/\.test\.[a-z]+$/.test(e)) yield p;
   }
 }
+// THE AGENT BRIEF CITES ~80 GOVERNMENT AND PRESS URLs IT NEVER FETCHES (#1333). _shared/brief.generated.ts is
+// compiled from knowledge/brief/*.md and is DATA ONLY: comments and `export const NAME = <JSON literal>;` lines.
+// Only while that holds are its literals skipped as host citations; one line of code in it and it is scanned like
+// every other file. No other file gets this.
+export const BRIEF_GEN = 'supabase/functions/_shared/brief.generated.ts';
+// A line is data when its value parses as JSON on its own: a string, number or array literal, nothing evaluated.
+const DATA_HEAD = /^export const [A-Z0-9_]+(?:: [A-Za-z[\]]+)? = /;
+const isDataLine = (l) => {
+  const m = l.match(DATA_HEAD); if (!m || !l.endsWith(';')) return false;
+  try { const v = JSON.parse(l.slice(m[0].length, -1)); return typeof v !== 'object' || Array.isArray(v); } catch { return false; }
+};
+export const isDataOnly = (src) => src.split(/\r?\n/).every((l) => !l.trim() || l.startsWith('//') || isDataLine(l));
 // Block comments, then line comments not inside a URL (a '//' right after ':' is a scheme).
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 
@@ -50,7 +62,8 @@ export function scan(repo = REPO) {
   for (const root of ['supabase/functions', 'src']) for (const p of walk(join(repo, root))) {
     const rel = relative(repo, p).replace(/\\/g, '/');
     const s = strip(readFileSync(p, 'utf8'));
-    for (const m of s.matchAll(/https?:\/\/([a-z0-9.-]+\.[a-z]{2,})/gi)) add(hosts, m[1].toLowerCase(), rel);
+    const citationsOnly = rel === BRIEF_GEN && isDataOnly(readFileSync(p, 'utf8'));
+    if (!citationsOnly) for (const m of s.matchAll(/https?:\/\/([a-z0-9.-]+\.[a-z]{2,})/gi)) add(hosts, m[1].toLowerCase(), rel);
     // setting('x') is send_outbox's per-request reader over the canonical sec(); it reads app_secrets too.
     for (const m of s.matchAll(/\b(?:sec|setting)\(\s*'([a-z0-9_]+)'/gi)) add(secrets, m[1], rel);
     for (const m of s.matchAll(/secrets\(\s*\[([^\]]+)\]/g)) for (const k of m[1].matchAll(/'([a-z0-9_]+)'/g)) add(secrets, k[1], rel);
@@ -67,6 +80,12 @@ const missing = (m, ok) => [...m].filter(([k]) => !ok(k)).map(([k, f]) => `${k} 
 test('the scan itself sees the estate (a scan that reads nothing would pass everything)', () => {
   assert.ok(hosts.has('api.stripe.com') && secrets.has('stripe_secret_key') && env.has('SUPABASE_URL'),
     'the scan no longer finds Stripe: the patterns or the paths broke');
+});
+
+test('the agent brief is data only, so its URLs are citations, not calls', () => {
+  assert.ok(isDataOnly(readFileSync(join(REPO, BRIEF_GEN), 'utf8')), BRIEF_GEN + ' holds code: regenerate it with scripts/kb/compile_brief.mjs');
+  assert.ok(!isDataOnly('export const BRIEF_TEXT = "x";\nfetch("https://evil.example/")'), 'a line of code must break data-only');
+  assert.ok(!isDataOnly('export const BRIEF_TEXT = "x" + await fetch("https://evil.example/");'), 'an expression is not a literal');
 });
 
 test('every external host called by code is in the registry', () => {
