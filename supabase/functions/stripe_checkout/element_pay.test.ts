@@ -61,6 +61,7 @@ Deno.test('a UAE card pays one invoice with exactly one line, the reveal fee, an
   assertEquals([inv['metadata[fee_basis]'], inv['metadata[card_country]'], inv['metadata[wallet]'], inv['metadata[total_charged]']], ['domestic', 'AE', 'apple_pay', '300']);
   assertEquals(Object.keys(inv).some((k) => /tax/.test(k)), false, 'no tax parameter on the invoice');
   assertEquals(f.calls.find((c) => c.path.endsWith('/confirm'))!.path, 'payment_intents/pi_zzdemo/confirm');
+  assertEquals(f.calls.find((c) => c.path === 'payment_intents/pi_zzdemo')!.form!.statement_descriptor_suffix, 'RVZZDEMO01');
 });
 
 Deno.test('a total the customer was not shown is never charged: nothing is created at Stripe', async () => {
