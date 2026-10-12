@@ -34,9 +34,10 @@
     {
       "id": "refrigeration_cold_rooms:uae-standards-and-approvals",
       "topic": "Refrigeration and cold rooms - UAE standards, authorities and approvals",
+      "topic_ar": "التبريد وغرف التبريد: المعايير والجهات والموافقات في الإمارات",
       "kind": "standard",
       "body_en": "Insulated panels must meet the UAE Fire and Life Safety Code of Practice (Civil Defence); refrigerants are controlled under UAE ozone-layer regulations administered by the Ministry of Climate Change and Environment; food storage rooms in Dubai fall under Dubai Municipality food-safety requirements. What the cited sources do not establish: The sources read do not set a refrigerant or panel thickness; state them explicitly per line.",
-      "body_ar": "يجب أن تطابق الألواح المعزولة كود الإمارات للحماية من الحريق وسلامة الأرواح (الدفاع المدني)؛ وتخضع غازات التبريد لأنظمة حماية طبقة الأوزون التي تديرها وزارة التغير المناخي والبيئة؛ وتخضع غرف تخزين الأغذية في دبي لمتطلبات بلدية دبي لسلامة الغذاء. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد غاز التبريد ولا سماكة الألواح؛ حددهما صراحةً في كل بند.",
+      "body_ar": "في التبريد وغرف التبريد، يجب أن تستوفي الألواح العازلة مدونة الإمارات للحماية من الحريق وسلامة الأرواح (الدفاع المدني)؛ وتخضع غازات التبريد للوائح الإمارات الخاصة بحماية طبقة الأوزون التي تديرها وزارة التغير المناخي والبيئة؛ وتخضع غرف تخزين الأغذية في دبي لاشتراطات سلامة الغذاء في بلدية دبي. ما لا تثبته المصادر المستند إليها: المصادر التي رُوجعت لا تحدد نوع غاز التبريد ولا سماكة الألواح؛ لذا يجب ذكرهما صراحة في كل بند.",
       "source_note": "The sources read do not set a refrigerant or panel thickness; state them explicitly per line.",
       "sources": [
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
@@ -49,9 +50,10 @@
     {
       "id": "refrigeration_cold_rooms:panel-thickness-by-room-temperature",
       "topic": "Insulated panel thickness by cold-room temperature",
+      "topic_ar": "التبريد وغرف التبريد: سماكة الألواح العازلة حسب حرارة الغرفة",
       "kind": "sizing_rule",
       "body_en": "Cold rooms are built from prefabricated panels of two steel sheets with injected polyurethane foam. Refindustry's guidance links thickness to room temperature: about 80 mm for chilling rooms around 0 °C; 100-140 mm for freezing rooms below -10 °C down to -20 °C; and 150-200 mm for blast freezing at -40 °C. A -20 °C freezer room therefore falls in the 100-140 mm band. The final choice also depends on thermal insulation requirements, air tightness, budget and cooling demand, and on the enclosure details such as doors and air curtains that limit energy loss. Not established here: a UAE regulation setting minimum panel thickness, or how hot UAE ambient conditions shift the choice; a heat-load calculation by the supplier should confirm it.",
-      "body_ar": "تُبنى غرف التبريد من ألواح مسبقة الصنع مكوّنة من صفيحتين من الحديد مع رغوة بولي يوريثان محقونة. ويربط دليل Refindustry سماكة اللوح بدرجة حرارة الغرفة: نحو 80 مم لغرف التبريد عند حوالي 0 °م؛ و100-140 مم لغرف التجميد من دون -10 °م حتى -20 °م؛ و150-200 مم للتجميد السريع عند -40 °م. وعليه فإن غرفة التجميد عند -20 °م تقع ضمن نطاق 100-140 مم. ويعتمد الاختيار النهائي أيضاً على متطلبات العزل الحراري، وإحكام منع تسرب الهواء، والميزانية، وحمل التبريد، وعلى تفاصيل الغرفة مثل الأبواب والستائر الهوائية التي تحد من فقد الطاقة. غير مثبت هنا: لائحة إماراتية تحدد حداً أدنى لسماكة الألواح، أو مدى تأثير درجات الحرارة المحيطة المرتفعة في الإمارات على الاختيار؛ ويجب تأكيد ذلك بحساب حمل حراري من المورد.",
+      "body_ar": "تُبنى غرف التبريد من ألواح مسبقة الصنع مكونة من صفيحتين فولاذيتين بينهما رغوة بولي يوريثان محقونة. تربط إرشادات Refindustry السماكة بحرارة الغرفة: نحو 80 mm لغرف التبريد عند حوالي 0 °C؛ و100-140 mm لغرف التجميد من دون -10 °C حتى -20 °C؛ و150-200 mm للتجميد السريع عند -40 °C. وعليه تقع غرفة التجميد عند -20 °C ضمن نطاق 100-140 mm. ويعتمد الاختيار النهائي أيضًا على متطلبات العزل الحراري وإحكام منع تسرب الهواء والميزانية وحمل التبريد، وعلى تفاصيل الغلاف مثل الأبواب والستائر الهوائية التي تحد من فقد الطاقة. غير محدد هنا: لائحة إماراتية تحدد حدًا أدنى لسماكة الألواح، أو كيف تغيّر الأجواء الحارة في الإمارات هذا الاختيار؛ وينبغي أن يؤكده حساب للحمل الحراري يجريه المورد.",
       "sources": [
         "https://refindustry.com/articles/articles/how-to-choose-the-thickness-of-the-refrigeration-panel-for-a-cold-storage-room"
       ],
