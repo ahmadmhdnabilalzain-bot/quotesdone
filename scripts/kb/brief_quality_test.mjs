@@ -19,6 +19,8 @@ const TAG = arg('--tag', 'briefqa' + new Date().toISOString().slice(5, 10).repla
 const CAP = Number(arg('--cap', 3));
 const MODELS = (arg('--models', 'openai/gpt-6-luna,anthropic/claude-haiku-5.5,anthropic/claude-sonnet-5.5,anthropic/claude-opus-5.5')).split(',');
 const JUDGE = 'google/gemini-3.8-flash';
+const MAX = Number(arg('--max', 2000)); // 900 truncated Sonnet 18/30 and Opus 10/30 on 12 Oct
+const JUDGE_FULL = process.argv.includes('--judge-full'); // judge sees the digests too, not only company.md
 mkdirSync(OUT, { recursive: true });
 
 const questions = JSON.parse(readFileSync(new URL('./brief_quality_questions.json', import.meta.url), 'utf8'));
@@ -34,7 +36,7 @@ let spent = 0;
 const key = (await sql(`select value from public.app_secrets where key = 'openrouter_api_key'`))[0]?.value;
 if (!key) throw new Error('openrouter_api_key missing');
 
-async function call(model, system, user, { cache, max = 900 }) {
+async function call(model, system, user, { cache, max = MAX }) {
   if (spent >= CAP - 0.15) throw new Error(`spend ceiling: USD ${spent.toFixed(4)} of ${CAP}`);
   const sys = cache ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system;
   const t0 = Date.now();
@@ -82,7 +84,7 @@ try {
     `0-10. Use the answer letters as keys. Reply ONLY with JSON: {"scores":{"A":{"accuracy":n,"helpfulness":n,"language":n,"overall":n,"note":"<=20 words"},"B":{...}}}\n\n` +
     // ponytail: the judge gets company.md only (~4.6k tokens). The first judged run used the full 29k brief and cost
     // USD 0.84; regulation answers are judged on general expertise. Pass the digests too if the cap allows.
-    readFileSync(new URL('../../knowledge/brief/company.md', import.meta.url), 'utf8');
+    (JUDGE_FULL ? brief.text : readFileSync(new URL('../../knowledge/brief/company.md', import.meta.url), 'utf8'));
   const judged = {};
   for (let i = 0; i < questions.length; i += 3) {
     await Promise.all(questions.slice(i, i + 3).map(async (q) => {
@@ -91,7 +93,7 @@ try {
       const body = `QUESTION:\n${q.q}\n\n` + order.map((m, k) => `=== Answer ${labels[k]} ===\n${answers[m][q.id]?.text || '(no answer)'}`).join('\n\n');
       let r, parsed = null, cost = 0;
       for (let t = 0; t < 2 && !parsed; t++) { // one retry: a judge reply that is not JSON is re-asked, never scored
-        r = await call(JUDGE, JSYS, body, { cache: false, max: 2000 }); cost += r.cost;
+        r = await call(JUDGE, JSYS, body, { cache: true, max: 2500 }); cost += r.cost;
         try { parsed = JSON.parse(r.text.match(/\{[\s\S]*\}/)[0]); } catch { parsed = null; }
       }
       parsed ??= { scores: {} }; r.cost = cost;
