@@ -173,6 +173,9 @@ async function cleanupLearning(tag, ids, window) {
   await del('reasoning_knowledge_candidate', `delete from public.reasoning_knowledge_candidate where ${W} and ${m('question||coalesce(finding,\'\')')}`);
   await del('sales_knowledge_gap', `delete from public.sales_knowledge_gap where ${W.replace(/created_at/g, 'first_asked_at')} and ${m('question')}`);
   await del('email_suppressions', `delete from public.email_suppressions where email like ${q('qd-' + tag + '-%@example.invalid')}`);
+  // supplier_score is written by the scoring job for every lead, keyed by lead_id only (no FK, no text marker): run f4294be8
+  // left 23 rows behind its deleted demo leads, found only by verify-clean's id scan. The run's own lead ids, nothing else.
+  await del('supplier_score', `delete from public.supplier_score where lead_id::text in (${lst(ids.leads)})`);
   const hasCol = (await read(`select count(*)::int n from information_schema.columns where table_schema='public' and table_name='ai_cost_log' and column_name='e2e_run_tag'`))[0].n;
   if (hasCol) await del('ai_cost_log', `delete from public.ai_cost_log where e2e_run_tag = ${q(tag)}`);
   else out.ai_cost_log = 'PENDING: ai_cost_log.e2e_run_tag is not applied yet (--run refuses until it is)';
