@@ -8,7 +8,7 @@
 //      then the same class unstreamed, then a third call routed as a counterpart of the model that failed (the gateway's
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
 // prevented by: _shared/brief_answer.test.ts
-import { briefNumbers, moneyFiguresNotInBrief, takeSentences } from './company_brief.ts';
+import { briefNumbers, moneyFiguresNotInBrief, policyProblems, takeSentences } from './company_brief.ts';
 
 export type Msg = { role: 'user' | 'assistant'; content: string };
 export interface BriefCall {
@@ -77,7 +77,7 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
 
 /** What is wrong with a text: money/rate figures the brief does not state, then the caller's own rules. */
 function problems(c: BriefCall, text: string, known: Set<string>): string[] {
-  return [...moneyFiguresNotInBrief(text, known).map((n) => 'the figure ' + n + ' (the brief states no such fee, price or rate)'), ...(c.check?.(text) ?? [])];
+  return [...moneyFiguresNotInBrief(text, known).map((n) => 'the figure ' + n + ' (the brief states no such fee, price or rate)'), ...policyProblems(text), ...(c.check?.(text) ?? [])];
 }
 
 export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f: Fetch = fetch): Promise<BriefAnswer> {

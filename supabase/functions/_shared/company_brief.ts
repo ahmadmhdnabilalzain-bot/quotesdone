@@ -40,9 +40,17 @@ export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; l
 }
 
 const cache = new Map<string, { at: number; brief: string }>();
+/** 32-bit FNV-1a, hex: a content key for the per-worker cache (not security). */
+export function fnv1a(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16) + ':' + s.length;
+}
 /** The brief for a language, rebuilt from the live sources at most every BRIEF_TTL_MS per worker. */
 export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: 'en' | 'ar', blocks: string[] = [], now = Date.now()): Promise<string> {
-  const key = [lang, facts.length, ...blocks.map((b) => b.length)].join('\u0001');
+  // Keyed on the CONTENT (review of #1330): two callers whose facts or blocks differ only in wording never share a
+  // brief. The FAQ list is the same live table for every caller; its edits reach the brief within BRIEF_TTL_MS.
+  const key = lang + ':' + fnv1a([facts, ...blocks].join('\u0001'));
   const hit = cache.get(key);
   if (hit && now - hit.at < BRIEF_TTL_MS) return hit.brief;
   let company = '';
@@ -68,6 +76,29 @@ export function moneyFiguresNotInBrief(text: string, known: Set<string>): string
   for (const m of toWestern(text).matchAll(MONEY)) {
     const n = num(m[1] ?? m[2]);
     if (!known.has(n) && !out.includes(n)) out.push(n);
+  }
+  return out;
+}
+
+// ── the policy-claim check: false statements that carry no number ─────────────────────────────────
+// A reply can be wrong without a figure: "a card fee is added", "VAT applies on the fee", "we will refund you",
+// "QuotesDone is liable for the work". The brief says the opposite of each (no card fee, no VAT on the reveal fee,
+// every refund is the CEO's decision, the platform is not a party to the work). A sentence that AFFIRMS one of these
+// goes back to the model for a rewrite; a sentence that denies it ("no card fee is added") passes.
+const NEG = /\b(no|not|never|without|nor|isn'?t|aren'?t|won'?t|doesn'?t|don'?t)\b|لا |ليس|ليست|بدون|دون|لن |غير /i;
+const CLAIMS: { problem: string; re: RegExp; unless?: RegExp }[] = [
+  { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|رسوم (?:على )?(?:الدفع (?:ب|عبر )?)?البطاقة|رسوم البطاقة/i },
+  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?؟]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?؟]*\bVAT\b|ضريبة القيمة المضافة/i },
+  { problem: 'it promises a refund (every refund is the CEO\'s decision)', re: /\b(?:we|we'?ll|we will|you will|you'?ll)\b[^.!?؟]*\b(?:refund|get your money back|be refunded)|سن(?:عيد|رد) (?:لك|إليك|لكم)? ?(?:المبلغ|أموالك|رسوم)|ستسترد|سيتم (?:رد|استرداد)/i,
+    // the published non-response rule is conditional ("if the supplier does not respond, you are refunded"): that is policy, not a promise
+    unless: /\b(?:if|when|unless)\b|إذا|إن |في حال|عند /i },
+  { problem: 'it admits liability for the work (QuotesDone is not a party to the work between customer and supplier)', re: /\b(?:we are|we're|quotesdone is)\b[^.!?؟]*\b(?:liable|responsible) for\b|(?:نتحمل|تتحمل QuotesDone) المسؤولية/i },
+];
+/** The policy claims a reply affirms that the brief contradicts. Empty = none. */
+export function policyProblems(text: string): string[] {
+  const out: string[] = [];
+  for (const sentence of String(text || '').split(/(?<=[.!?؟\n])\s*/)) {
+    for (const c of CLAIMS) if (c.re.test(sentence) && !NEG.test(sentence) && !(c.unless?.test(sentence)) && !out.includes(c.problem)) out.push(c.problem);
   }
   return out;
 }

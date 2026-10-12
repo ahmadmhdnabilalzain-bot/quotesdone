@@ -166,19 +166,21 @@ export interface Store {
   record(inId: number, row: Outcome): Promise<void>;
   handoff(type: HandoffType, ev: CommentEvent, cls: Class, extra?: Record<string, unknown>): Promise<number | null>;
   switchOn(key: 'social_send_enabled' | 'social_model_enabled'): Promise<boolean>;
-  library(key: string, lang: Lang): Promise<string>;
-  deterministic(ev: CommentEvent): Promise<Decided>;                 // comment_* library rows, FAQ, knowledge
-  draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // think() over the knowledge, cross-family reviewed
+  /** The public reply, WRITTEN BY A MODEL in the moment (rulings 1195/1196, 12 Oct 2026): the company brief given, the
+   *  figure check, the model ladder (aiReply). `problems` names what the guard refused in the last attempt, so the model
+   *  rewrites it. '' when no model answered. No library row, FAQ or passage is posted as it stands any more. */
+  write(ev: CommentEvent, lang: Lang, kind: CommentKind, problems: string[]): Promise<string>;
   reply(ev: CommentEvent, text: string): Promise<SendResult>;
   hide(ev: CommentEvent): Promise<SendResult>;
   /** Already handled (an inbound row with an outcome): a redelivery must not re-ask the reasoning. Optional for test stores. */
   seen?(ev: CommentEvent): Promise<boolean>;
 }
+export type CommentKind = 'complaint' | 'supplier' | 'lead' | 'praise' | 'question';
 export interface Outcome {
   classification: Class | null;
   outcome: string;
   reply: string | null;
-  decided_by: 'rule' | 'model' | 'guard_fallback' | null;
+  decided_by: 'rule' | 'model' | null;
   send_status: 'sent' | 'failed' | 'held_switch_off' | 'held_fixture' | 'held_model' | 'rate_limited' | 'not_sent' | 'hidden';
   guard_failures: string[];
   handoff_id: number | null;
@@ -218,7 +220,6 @@ export async function processComment(s: Store, ev: CommentEvent, reasoned: Lazy<
     const o: Outcome = { classification: cls, outcome: '', reply: null, decided_by: 'rule', send_status: 'not_sent', guard_failures: [], handoff_id: null };
     const done = async (outcome: string) => { o.outcome = outcome; await s.record(inId!, o); return outcome; };
     const escalate = async (type: HandoffType, extra?: Record<string, unknown>) => { o.handoff_id = await s.handoff(type, ev, o.classification as Class, extra); };
-    const ack = async () => { if (!o.handoff_id) await escalate('social.escalation'); return await s.library('comment_escalated_ack', lang); };
 
     // HELD: what this comment is has not been reasoned yet. Nothing is hidden, said or handed off on a guess;
     // the replay applies the policy the moment the hold lifts. (The person check has its own queue, point 72.)
@@ -236,30 +237,26 @@ export async function processComment(s: Store, ev: CommentEvent, reasoned: Lazy<
       return await done(r.ok ? 'hidden' : 'hide_failed');
     }
 
-    let text = '';
-    if (cls === 'complaint' || cls === 'sensitive_legal') text = await ack();
-    else if (cls === 'supplier_enquiry') { await escalate('social.lead'); text = await s.library('comment_supplier', lang); }
-    else if (cls === 'sales_lead') { await escalate('social.lead'); text = await s.library('comment_lead', lang); }
-    else if (cls === 'praise') text = await s.library('comment_praise', lang);
-    else {
-      const d = await s.deterministic(ev);
-      if (d.kind === 'handoff') { o.classification = 'complaint'; text = await ack(); }
-      else if (d.kind !== 'unknown' && d.text) text = d.text;
-      else {
-        if (!(await s.switchOn('social_model_enabled'))) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_not_run'); }
-        text = String((await s.draft(ev, lang)) || '').trim();
-        o.decided_by = 'model';
-      }
+    // THE REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026). The class decides who is told (a complaint goes
+    // to customer_support, a lead to sales_engineer) and what the reply must do; the words are the model's. EVERY text
+    // passes the guards and fits the platform; a failure goes BACK TO THE MODEL with the problems named (twice at most).
+    // Still failing, or no model: nothing is posted, and the comment goes to customer_support. Never truncated.
+    const kind: CommentKind = cls === 'complaint' || cls === 'sensitive_legal' ? 'complaint' : cls === 'supplier_enquiry' ? 'supplier'
+      : cls === 'sales_lead' ? 'lead' : cls === 'praise' ? 'praise' : 'question';
+    if (kind === 'complaint') await escalate('social.escalation');
+    else if (kind === 'supplier' || kind === 'lead') await escalate('social.lead');
+    o.decided_by = 'model';
+    let text = String(await s.write(ev, lang, kind, []) || '').trim();
+    let failures = text ? guard(text, ev) : ['empty'];
+    for (let i = 0; failures.length && i < 2; i++) {
+      o.guard_failures.push(...failures);
+      text = String(await s.write(ev, lang, kind, failures) || '').trim();
+      failures = text ? guard(text, ev) : ['empty'];
     }
-    // EVERY text, whatever produced it, passes the guards and fits the platform — or it is not sent: the
-    // subject goes to the seat that owns it and the fixed acknowledgement goes instead. Never truncated.
-    const failures = text ? guard(text, ev) : ['empty'];
     if (failures.length) {
-      o.guard_failures = failures;
-      o.decided_by = 'guard_fallback';
-      text = await ack();
-      const again = text ? guard(text, ev) : ['empty'];
-      if (again.length) { o.guard_failures = [...failures, ...again.map((x) => 'ack:' + x)]; return await done('not_sent_guard'); }
+      o.guard_failures.push(...failures);
+      if (!o.handoff_id) await escalate('social.escalation');
+      return await done('not_sent_guard');
     }
     o.reply = text;
     if (!(await s.threadAllowed(ev))) { o.send_status = 'rate_limited'; return await done('rate_limited'); }
