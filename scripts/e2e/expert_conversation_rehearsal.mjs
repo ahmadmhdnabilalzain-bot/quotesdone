@@ -123,7 +123,9 @@ async function main() {
       const j = await r.json().catch(() => ({}));
       return { ok: r.ok && !!j.content, content: j.content, model: j.model ?? j.model_used ?? null, err: j.error ?? (r.ok ? null : r.status) };
     };
-    const image = await studioSketch();
+    // --photo <jpg>: a real photo (e.g. the sandbox test_photos/wardrobe_wall_1.jpg) instead of the rendered sketch.
+    const PHOTO = val('--photo');
+    const image = PHOTO ? 'data:image/jpeg;base64,' + (await sharp(PHOTO).resize({ width: 1024, withoutEnlargement: true }).jpeg({ quality: 80 }).toBuffer()).toString('base64') : await studioSketch();
     for (const s of S) {
       const turns = [{ role: 'customer', text: s.open, image: !!s.image }];
       const models = new Set();
@@ -142,7 +144,7 @@ async function main() {
         turns.push({ role: 'customer', text: reply });
         if (/\b(correct|that.?s right|confirmed|go ahead|proceed)\b|صحيح|تمام/i.test(reply) && /confirm|summary|ملخص|تأكيد|أكد/i.test(turns.at(-2).text)) break;
       }
-      const transcript = turns.map((x) => `${x.role.toUpperCase()}${x.image ? ' (sent an image: a sketch of the wall, ~2.4 m wide, 2.7 m high, window on the right, socket low right)' : ''}: ${x.text}`).join('\n');
+      const transcript = turns.map((x) => `${x.role.toUpperCase()}${x.image ? ' (sent an image of the wall' + (val('--photo') ? ' (a photo)' : ': a sketch, ~2.4 m wide, 2.7 m high, window on the right, socket low right') + ')' : ''}: ${x.text}`).join('\n');
       const agentModel = [...models].join(',') || 'unknown';
       const j = await gw({ fn: 'sales_engineer_conversation_drill', task_class: 'knowledge_validation', counterpart_model: agentModel,
         sys: JUDGE, input: `TRADE: ${s.trade}\nCUSTOMER'S HIDDEN FACTS (for checking completeness): ${s.facts}\n\nTRANSCRIPT:\n${transcript}`, max: 900, temperature: 0 });
