@@ -295,6 +295,10 @@ async function realRun(pre) {
       for (const [trade, label] of all) {
         const s = await makeDemoSupplier(run, { trade, label, activity: TRADES[trade].name });
         fx.suppliers.push(s); run.ids.leads.add(String(s.leadId));
+        // Requests go to seven emirates (CUSTOMERS); a supplier that limits its emirates is matched only there, and the
+        // factory profile covers Dubai only, so run f4294be8 matched 6 of 8 requests to nobody. Every run supplier covers the UAE.
+        await write(`update public.leads set service_emirates = ${`ARRAY[${EMIRATES.map(q).join(',')}]::text[]`} where id = ${Number(s.leadId)};
+            update public.supplier_capabilities set coverage_emirates = ${`ARRAY[${EMIRATES.map(q).join(',')}]::text[]`} where supplier_id = ${Number(s.leadId)}`, 'S01 coverage: all emirates');
         const r = s.row;
         A(`${label} ${trade}: mandatory six, approved, own licence ${r.trade_license_no}`, r.is_demo && r.approval_status === 'approved' && r.missing?.length === 0 && /^ZZDEMO-/.test(r.trade_license_no || ''), `approval=${r.approval_status} missing=${JSON.stringify(r.missing)}`);
         const dir = `suppliers/${safe(label === 'A2' || label === 'A3' || label === 'A4' ? 'aluminium_' + label : trade)}`;
@@ -367,7 +371,7 @@ async function realRun(pre) {
     },
     S06: async () => {
       for (const [k, inq] of Object.entries(fx.inq)) {
-        const m = await read(`select m.supplier_id, l.is_demo, l.trades from public.inquiry_matches m join public.leads l on l.id=m.supplier_id where m.inquiry_id=${q(inq.id)}`);
+        const m = await read(`select m.supplier_id, l.is_demo, coalesce(c.trades, c.proposed_trades) trades from public.inquiry_matches m join public.leads l on l.id=m.supplier_id left join public.supplier_capabilities c on c.supplier_id=l.id where m.inquiry_id=${q(inq.id)}`);
         if (inq.trade === UNMATCHED_TRADE) {
           const st = (await read(`select status from public.inquiries where id=${q(inq.id)}`))[0]?.status;
           A(`${k}: a trade with no supplier HOLDS, no nearest match`, m.length === 0, `matches=${m.length} status=${st}`);
@@ -385,8 +389,11 @@ async function realRun(pre) {
         if (row) run.ids.quotes.add(String(row.id));
         A(`quote ${i + 1} from ${al[i].row.company_name}`, r.status === 200 && row, `HTTP ${r.status} status=${row?.status}`);
       }
+      // run f4294be8: every submit_quote answered 404 (no supplier was matched), and the hold steps below then crashed on
+      // nothing. The four FAILs above already carry the cause; the rest of S07 is skipped with it, never crashed.
+      need(run.ids.quotes.size, 'no quote was accepted on the aluminium request (submit_quote failed above), so there is no hold to walk');
       const held = (await read(`select h.state, h.missing, h.note_en, h.quote_id from public.quote_spec_hold h join public.quotes x on x.id=h.quote_id where x.inquiry_id=${q(inq.id)} and x.supplier_id=${Number(al[3].leadId)}`))[0];
-      A('the incomplete quote is HELD with notes naming what is missing', held?.state === 'open' && held.note_en, JSON.stringify(held).slice(0, 300));
+      A('the incomplete quote is HELD with notes naming what is missing', held?.state === 'open' && held.note_en, String(JSON.stringify(held ?? null)).slice(0, 300));
       save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/held_quote_notes.json`, held || {});
       // The supplier's own door out of a hold (supplier portal "complete your quotation"): spec_hold shows
       // the form, spec_fill answers every missing detail, the sales engineer regenerates the standard
@@ -874,7 +881,7 @@ async function realRun(pre) {
       for (const s of samples) {
         const task_class = fam(s.producer) === 'anthropic' ? 'internal_judgement' : 'ceo__internal_judgement';
         const w0 = await costWatermark();
-        const r = await call('ai_gateway', null, { __secret: await internalCred(), fn: 'stage2_quality_judge', task_class, subject: { email: fx.customers[0].email }, max_tokens: 400,
+        const r = await call('ai_gateway', null, { __secret: (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value, fn: 'stage2_quality_judge', task_class, subject: { email: fx.customers[0].email }, max_tokens: 400,
           messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of a quote to reveal that supplier; no card surcharge). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
                      { role: 'user', content: `QUESTION / INPUT:\n${s.q}\n\nANSWER:\n${s.a || '(empty)'}` }] }, 120000);
         const used = (await costSince(w0)).map((x) => x.model_used).filter(Boolean);
