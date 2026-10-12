@@ -132,3 +132,9 @@ Deno.test('sentences come off the front of the stream whole, the unfinished tail
   assertEquals(rest, 'Suppliers pa');
   assertEquals(takeSentences('نعم، هويتك مخفية؟ ثم').done, ['نعم، هويتك مخفية؟ ']);
 });
+
+Deno.test('ruling 1207: the supplier\'s VAT and a fee taken before VAT are policy; VAT on our fee is still caught', () => {
+  assertEquals(policyProblems('Our 3% fee is taken on the supplier\'s final price before VAT, after any discount.'), []);
+  assertEquals(policyProblems('Supplier B adds VAT of AED 85 to its price, as it stated.'), []);
+  assertEquals(policyProblems('VAT is added to the reveal fee.').length, 1);
+});

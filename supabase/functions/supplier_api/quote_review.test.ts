@@ -536,7 +536,12 @@ Deno.test('finding 2: every open point closes from the chat — the supplier\'s 
   const open2 = rq(inq, w2).issues; assert(open2.some((i) => i.code === 'total_mismatch'));
   assert(!rq(inq, applyCorrections(w2, readReply('Total AED 66,560', open2).corrections)).issues.some((i) => i.code === 'total_mismatch'));
   const wd = applyCorrections(w2, readReply('We give a discount of AED 3,440.', open2).corrections);
-  assert(!rq(inq, wd).issues.some((i) => i.code === 'total_mismatch')); assertMatch(wd.conditions, /discount of AED 3,440/);
+  assert(!rq(inq, wd).issues.some((i) => i.code === 'total_mismatch')); 
+  // Ruling 1207: the discount is a structured price field (gross, discount, final), never folded into the conditions;
+  // ruling 1208: the after-discount figure is the quotation's ex-VAT price, the one our fee is taken on.
+  assertEquals([wd.gross_amount, wd.discount_amount, wd.price_ex_vat, wd.amount], [70000, 3440, 66560, 66560]);
+  assert(!/discount/i.test(wd.conditions), wd.conditions);
+  assertEquals(rq(inq, wd).price_ex_vat, 66560);
   // a material the customer named
   const withGlass: SafeInquiry = { ...inq, category: 'glass', boq_rows: [], spec: { customer_requirements: { version: 1, materials: [{ component: 'glass', label_en: 'Glass', label_ar: 'الزجاج' }] } } };
   const wg = good({ lines: [{ description: 'Shower screen, 8mm clear tempered, chrome hinges', qty: '1', unit: 'nos', unit_price: 9000, amount: 9000 }] });

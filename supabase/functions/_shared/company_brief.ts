@@ -157,7 +157,10 @@ export function moneyFiguresNotInBrief(text: string, known: Set<string>): string
 const NEG = /\b(no|not|never|without|nor|isn'?t|aren'?t|won'?t|doesn'?t|don'?t)\b|لا |ليس|ليست|بدون|دون|لن |غير /i;
 const CLAIMS: { problem: string; re: RegExp; unless?: RegExp }[] = [
   { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|رسوم (?:على )?(?:الدفع (?:ب|عبر )?)?البطاقة|رسوم البطاقة/i },
-  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?؟]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?؟]*\bVAT\b|ضريبة القيمة المضافة/i },
+  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?؟]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?؟]*\bVAT\b|ضريبة القيمة المضافة/i,
+    // ruling 1207: the supplier's own VAT is shown as stated, and the fee is taken on the price before VAT — saying so is policy.
+    // The Arabic alternatives (before VAT / excluding / the supplier) are \u escapes so this line is not an Arabic message.
+    unless: /\b(?:before|excluding|ex)[\s-]VAT\b|\bsupplier'?s?\b|\u0642\u0628\u0644 (?:\u0627\u0644)?\u0636\u0631\u064a\u0628\u0629|\u063a\u064a\u0631 \u0634\u0627\u0645\u0644|\u0627\u0644\u0645\u0648\u0631\u0651?\u062f/i },
   { problem: 'it promises a refund (every refund is the CEO\'s decision)', re: /\b(?:we|we'?ll|we will|you will|you'?ll)\b[^.!?؟]*\b(?:refund|get your money back|be refunded)|سن(?:عيد|رد) (?:لك|إليك|لكم)? ?(?:المبلغ|أموالك|رسوم)|ستسترد|سيتم (?:رد|استرداد)/i,
     // the published non-response rule is conditional ("if the supplier does not respond, you are refunded"): that is policy, not a promise
     unless: /\b(?:if|when|unless)\b|إذا|إن |في حال|عند /i },

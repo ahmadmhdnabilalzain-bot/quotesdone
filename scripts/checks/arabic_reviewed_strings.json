@@ -5540,6 +5540,7 @@
   "6a9d7851b56f",
   "6caad2b4900a",
   "6e6810c5270d",
+  "6fd7fa091d67",
   "71f6af4086e2",
   "74086c183c68",
   "805e49d04702",
@@ -5549,7 +5550,6 @@
   "a844ae93d451",
   "c3731f8fd32a",
   "d1e1bf0448b1",
-  "de62a9134e25",
   "e1814f15aded",
   "eb86d8fc0c02",
   "f4e468bb2a84"
@@ -5813,6 +5813,26 @@
  ],
  "supabase/functions/_shared/size_question.ts": [
   "fb124abd6131"
+ ],
+ "supabase/functions/_shared/stated_price.ts": [
+  "0606cadc7570",
+  "112c4662fbf6",
+  "17a8beaa5500",
+  "49175bc8c637",
+  "5a629a082c9a",
+  "5eada1a04c3f",
+  "659b3e0b6865",
+  "6eb3a5ab7bb4",
+  "704a95d762a3",
+  "7d12b7a501dc",
+  "8c237eb49571",
+  "8cc7466c5249",
+  "9b9c4b356724",
+  "c56381adb176",
+  "c6aa2ccc0e0b",
+  "d1e3bf58385c",
+  "daec3ca59871",
+  "df7419d4841d"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "2eeb132406ba",
