@@ -82,7 +82,7 @@ Deno.test('every recovery document but the guide is signed, and each signing is 
   const inv = pack.find((p) => p.name === '1_invoice' && p.lang === 'en')!;
   const rec = await signingRecord(C, inv, bytes, 1, { signature: new Uint8Array([1]), stamp: null });
   assert(rec);
-  assertEquals([rec.document, rec.ref, rec.agreement_version, rec.issued, rec.signature_asset, rec.stamp_asset_sha256], ['1_invoice', C.invoice.number, C.acceptance.version, C.invoice.date, 'brand/qd_signature.png', null]);
+  assertEquals([rec.document, rec.ref, rec.agreement_version, rec.issued, rec.signature_asset, rec.stamp_asset_sha256], ['1_invoice', C.invoice.number, C.acceptance.version, C.invoice.date, 'company-seal/qd_signature.png', null]);
   assertEquals(rec.pdf_sha256, await sha256Hex(bytes));
   assertEquals(rec.pdf_sha256.length, 64);
   assertEquals(await signingRecord(C, pack.find((p) => p.name === '4c_filing_guide')!, bytes, 1), null);
