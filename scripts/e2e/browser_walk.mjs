@@ -362,6 +362,14 @@ async function jstep(rep, J, page, dir, name, fn) {
 
 /** THE REQUEST BOX IS BEHIND "New request" (walk f4294be8): the dashboard has no textarea, so the terms step's fill
  *  waited 30 s and the drawing step found no file input. Press the button a customer presses, then return the box. */
+/** A portal section by name. On a phone most sections sit under the bottom bar's "More" sheet (PortalShell #qd-nav-more). */
+export async function openSection(page, name) {
+  const visible = page.locator('nav a:visible, nav button:visible').filter({ hasText: name }).first();
+  if (await visible.count()) return visible.click().catch(() => {});
+  await page.locator('button[aria-controls="qd-nav-more"]').click().catch(() => {});
+  await page.locator('#qd-nav-more button').filter({ hasText: name }).first().click({ timeout: 5000 }).catch(() => {});
+}
+
 export async function openNewRequest(page, lang) {
   const box = page.locator('#qd-intake-input');
   if (!(await box.isVisible().catch(() => false))) {
@@ -392,11 +400,34 @@ async function customerJourney(browser, w, lang, view) {
     try {
       await write(`update public.customers set tos_version = 'v1' where email = ${sq(w.email)} and is_demo`, 'walk: terms one version behind (demo only)');
       await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(3000);
+      // Enter sends a CHAT TURN to inquiry_intake; only "Send to suppliers" calls customer_api create_inquiry, the one
+      // place the terms version is checked (409 terms_reaccept). Run 1c94fa6a pressed Enter once and looked for the
+      // prompt, so it measured nothing (the intake was still asking). The walk now answers the intake until the send
+      // button appears and presses it. The legal invariant is read from the database either way: no request is
+      // created for this customer while their terms are a version behind.
+      const nInq = async () => Number((await read(`select count(*)::int n from public.inquiries i join public.customers c on c.id=i.customer_id where c.email = ${sq(w.email)}`))[0]?.n);
+      const before = await nInq();
       const box = await openNewRequest(page, lang);
-      await box.fill(lang === 'ar' ? 'ZZ DEMO: أحتاج دهان شقة غرفتين في دبي' : 'ZZ DEMO: paint a two-bedroom apartment in Dubai');
-      await box.press('Enter'); await page.waitForTimeout(6000);
+      const sendBtn = page.getByRole('button', { name: lang === 'ar' ? /أرسل إلى الموردين/ : /send to suppliers/i }).first();
+      const answers = lang === 'ar'
+        ? ['ZZ DEMO: دهان داخلي لشقة غرفتين في دبي مارينا، 120 متر مربع جدران، لونان، دهان جوتن مطفي، خلال أسبوعين، الميزانية 6000 درهم', 'لست متأكدًا، اقترحوا الأنسب', 'نعم، هذا كل شيء']
+        : ['ZZ DEMO: interior repaint of a two-bedroom apartment in Dubai Marina, 120 m2 of walls, two colours, Jotun matt emulsion, within two weeks, budget AED 6,000', 'Not sure, please suggest the usual', 'Yes, that is everything'];
+      for (let i = 0; i < 6 && !(await sendBtn.isVisible().catch(() => false)); i++) {
+        if (await box.isEnabled().catch(() => false)) { await box.fill(answers[Math.min(i, answers.length - 1)]); await box.press('Enter'); }
+        await sendBtn.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
+      }
+      if (!(await sendBtn.isVisible().catch(() => false))) {
+        const created = (await nInq()) - before;
+        verdict = created === 0
+          ? ['SKIP', `the intake did not reach "Send to suppliers" in 6 turns, so create_inquiry was never called; no request created while terms behind (current ${cur})`]
+          : [false, `LEGAL: ${created} request(s) created while terms were a version behind, without re-acceptance`];
+      } else {
+        await sendBtn.click(); await page.waitForTimeout(6000);
+      }
       const alert = page.locator('[role=alert]').filter({ has: page.locator('input[type=checkbox]') }).first();
-      if (!(await alert.isVisible().catch(() => false))) verdict = [false, `no inline re-accept prompt after send (current terms ${cur})`];
+      if (verdict) { /* decided above */ }
+      else if ((await nInq()) - before > 0) verdict = [false, `LEGAL: Send created a request while terms were a version behind (current ${cur})`];
+      else if (!(await alert.isVisible().catch(() => false))) verdict = [false, `no inline re-accept prompt after "Send to suppliers" (current terms ${cur})`];
       else {
         await alert.locator('input[type=checkbox]').check(); await alert.getByRole('button').last().click(); await page.waitForTimeout(5000);
         const now = (await read(`select tos_version from public.customers where email = ${sq(w.email)}`))[0]?.tos_version;
@@ -475,7 +506,7 @@ async function customerJourney(browser, w, lang, view) {
 
   // 7. Account page: terms version block + data export/erase request, STOP before the code.
   await jstep(rep, J, page, dir, 'account: terms version + data export request (stopped before code)', async () => {
-    await page.locator('nav a, nav button, button').filter({ hasText: lang === 'ar' ? /الحساب|حسابي/ : /account/i }).first().click().catch(() => {});
+    await openSection(page, lang === 'ar' ? /الحساب|حسابي/ : /account/i);   // a phone keeps Account under "More"
     await page.waitForTimeout(3000);
     const ver = /v\d+|version|الإصدار/i.test(await page.locator('body').innerText());
     // Named controls (PrivacyControls.tsx, #1273). Export is read-only; erase is driven only to the code box:
@@ -579,6 +610,7 @@ export function writeIndex() {
   let pass = 0, fail = 0, body = '';
   for (const f of files.sort()) {
     const steps = JSON.parse(readFileSync(join(OUT, f), 'utf8'));
+    if (!Array.isArray(steps)) continue;   // ids.json, remeasure_*.json are not step lists (run 1c94fa6a crashed here, exit 1)
     const p = steps.filter((s) => s.status === 'PASS').length; pass += p; fail += steps.length - p;
     body += `<h3>${esc(f.replace('.json', ''))} — ${p}/${steps.length} PASS</h3><table><tr><th>step</th><th>verdict</th><th>ms</th><th>issues</th><th>shot</th></tr>` +
       steps.map((s) => `<tr><td>${esc(s.step)}</td><td class="${s.status === 'PASS' ? 'ok' : 'bad'}">${s.status}</td><td>${s.ms ?? ''}</td><td>${(s.issues || []).map((i) => `<div>[${i.sev}] ${esc(i.what)}</div>`).join('')}</td><td>${s.shot ? `<a href="${esc(rel(s.shot))}">png</a>` : ''}</td></tr>`).join('') + '</table>';
