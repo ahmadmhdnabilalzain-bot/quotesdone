@@ -69,16 +69,17 @@ export type TradeResolveDeps = {
 // "تجارة الألمنيوم والنحاس" 0.862 (ML_FLOOR 0.83) - no separation. So an Arabic clause is read by NAME, exactly:
 //   * the clause is WORK (catalogue_read's own install/contracting words: أعمال، مقاولات، تركيب ...) and not
 //     supply-only - a company name and a trading clause ("تجارة ...") name no work and propose nothing;
-//   * it holds the HEAD of a part of a trade's own Arabic name (taxonomy_trade.label_ar: the first word of each part
-//     that is not itself a work word - "الأعمال الكهربائية" -> كهربائية; "السباكة والأدوات الصحية" -> سباكة, أدوات);
-//   * a head two trades' names share decides nothing - unless one of them puts its CODE at that part of its English
+//   * it holds the trade's own Arabic name exactly (taxonomy_trade.label_ar, work words left out): the WHOLE of a
+//     part of several words, or the head of the FIRST part - the trade's leading name ("الأعمال الكهربائية" ->
+//     كهربائية; "السباكة والأدوات الصحية" -> سباكة, or "أدوات صحية" whole). A word of a later part never decides
+//     alone: "تركيب أدوات المطبخ" is not plumbing, "أعمال التشطيبات الداخلية" is not painting (review of #1312);
+//   * a name two trades share decides nothing - unless one of them puts its CODE at that part of its English
 //     name ("Aluminium & cladding" / "الألمنيوم والتكسية"): الألمنيوم is the aluminium trade, not non_ferrous_metals
 //     ("الألمنيوم والنحاس والمعادن غير الحديدية").
-// Words fold like contentWords (letters, ال), and a feminine plural ات folds on both sides (الدهانات / الدهان).
+// Words fold like contentWords (letters, ال) and nothing else: no plural folding, so "الدهان" is not "الدهانات".
 // ponytail: Arabic clauses only, and only by the names in the table; a supplier's word the table's name lacks is
 // reached by correcting the trade's Arabic name, never by a list here.
-const arFold = (w: string) => w.replace(/(?<=\p{L}{3})ات$/u, '');
-const arWords = (s: string) => contentWords(s).map(arFold);
+const arWords = (s: string) => contentWords(s);
 const AR_PART = /[،,&()/]|\s+و\s*|\s+(?=وال)/;
 const isArabic = (s: string) => /[؀-ۿ]/.test(s);
 
@@ -91,14 +92,16 @@ export function arabicNameHeads(labelsAr: Record<string, string>, labelsEn: Reco
     const cw = contentWords(code.replace(/_/g, ' '));
     arParts.forEach((p, i) => {
       if (!p.length) return;
-      const h = p[0];
-      // the head alone, and the whole part (when longer): "مكافحة الحريق" - مكافحة is shared with pest control,
-      // the whole part is fire fighting's alone
-      for (const k of p.length > 1 ? [h, p.join(' ')] : [h]) {
+      // A WHOLE part names the trade; the head alone only of the FIRST part (the trade's own leading name). A word
+      // of a later part never decides alone: "تركيب أدوات المطبخ" is not plumbing ("السباكة والأدوات الصحية"),
+      // "أعمال التشطيبات الداخلية" is not painting ("الدهانات والتشطيبات" names finishing only second).
+      const whole = p.join(' ');
+      // A one-word later part is a single word of the name, so it decides nothing either ("التشطيبات").
+      for (const k of new Set(i === 0 ? [p[0], whole] : p.length > 1 ? [whole] : [])) {
         if (!claims.has(k)) claims.set(k, new Set());
         claims.get(k)!.add(code);
       }
-      if (cw.length === 1 && enParts.length === arParts.length && enParts[i]?.length === 1 && enParts[i][0] === cw[0]) codeOf.set(h, code);
+      if (cw.length === 1 && enParts.length === arParts.length && enParts[i]?.length === 1 && enParts[i][0] === cw[0]) codeOf.set(whole, code);
     });
   }
   const out = new Map<string, string>();

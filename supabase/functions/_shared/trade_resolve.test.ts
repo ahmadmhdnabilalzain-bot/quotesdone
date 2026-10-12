@@ -115,7 +115,7 @@ Deno.test('an Arabic work clause names a trade by its own Arabic name; a company
     aluminium: 'الألمنيوم والتكسية', non_ferrous_metals: 'الألمنيوم والنحاس والمعادن غير الحديدية', electrical: 'الأعمال الكهربائية',
     elevators: 'المصاعد والسلالم المتحركة', fire_fighting: 'مكافحة الحريق وأنظمة السلامة', pest_control: 'مكافحة الحشرات والقوارض',
     flooring: 'الأرضيات', glazing: 'الزجاج والواجهات الزجاجية', hvac: 'التكييف والتهوية', joinery: 'النجارة والأعمال الخشبية',
-    landscaping: 'تنسيق الحدائق والمسابح', painting: 'الدهانات والتشطيبات', plumbing: 'السباكة والأدوات الصحية', waterproofing: 'العزل المائي والحراري',
+    landscaping: 'تنسيق الحدائق والمسابح', painting: 'الدهانات والتشطيبات', plumbing: 'السباكة والأدوات الصحية', waterproofing: 'العزل المائي والحراري', thermal_insulation: 'العزل الحراري والصوتي',
   };
   const en = { aluminium: 'Aluminium & cladding', non_ferrous_metals: 'Aluminium, copper & non-ferrous metals' };
   const heads = arabicNameHeads(ar, en);
@@ -123,10 +123,17 @@ Deno.test('an Arabic work clause names a trade by its own Arabic name; a company
   assertEquals(of('أعمال الألمنيوم'), ['aluminium']);
   assertEquals(of('فالكون الألمنيوم ذ.م.م'), [], 'a company name names no work');
   assertEquals(of('تجارة الألمنيوم والنحاس'), [], 'trading is not contracting');
+  // a word of a LATER part of a name decides nothing (review of #1312): أدوات, أنظمة, التشطيبات
+  assertEquals(of('تركيب أدوات المطبخ'), [], 'not plumbing');
+  assertEquals(of('تركيب أنظمة الأمن'), [], 'not fire fighting');
+  assertEquals(of('أعمال التشطيبات الداخلية'), [], 'not painting');
+  assertEquals(of('أعمال الأدوات الصحية'), ['plumbing'], 'a whole later part does');
   const ACT_AR: [string, string | null][] = [
     ['مقاولات أعمال الألمنيوم', 'aluminium'], ['مقاولات التركيبات الكهربائية', 'electrical'], ['تركيب التمديدات الصحية والسباكة', 'plumbing'],
     ['تركيب أنظمة التكييف والتهوية', 'hvac'], ['أعمال تبليط الأرضيات والجدران', 'flooring'], ['أعمال النجارة', 'joinery'],
-    ['مقاولات أعمال الدهان', 'painting'], ['أعمال عزل المباني ضد الماء', 'waterproofing'], ['أعمال تنسيق الحدائق', 'landscaping'],
+    // none, exactly: 'الدهان' is not the name 'الدهانات', and 'عزل' heads three trades' names (waterproofing,
+    // thermal and corrosion insulation) - reached by the trade's Arabic name, not by folding here
+    ['مقاولات أعمال الدهان', null], ['أعمال عزل المباني ضد الماء', null], ['أعمال تنسيق الحدائق', 'landscaping'],
     ['أعمال الزجاج', 'glazing'], ['تركيب وصيانة المصاعد والسلالم المتحركة', 'elevators'], ['تركيب معدات مكافحة الحريق', 'fire_fighting'],
     ['تجارة عامة', null], ['استيراد وتصدير', null],
   ];
