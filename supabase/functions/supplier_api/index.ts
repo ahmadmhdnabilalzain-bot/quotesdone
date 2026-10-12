@@ -1,4 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { envGatewayVision, b64Bytes } from '../_shared/read_every_attachment.ts';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
+import { readQuotationFile } from './quote_review_flow.ts';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms } from '../_shared/anonymise.ts';
 import { asLocale, SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
@@ -1516,7 +1519,14 @@ const handle = async (req: Request): Promise<Response> => {
       try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed', detail: String((e as Error)?.message || e) }, 502); }
       // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
       // the code tells the portal to say "fill in the form", which is a complete way to quote.
-      if (!jd?.ok) return J({ error: jd?.error || 'Could not read the quotation. Please fill the form instead.', code: 'quote_read_failed', detail: jd?.detail || null }, 502);
+      // RULING 1177 (12 Oct 2026): 'fill the form instead' was the answer to every quotation quote_extract could not price.
+      // The original now goes through the read-every-attachment helper (the vision model transcribes it, the quotation
+      // parser prices it, one more asking); only when that fails too is the supplier asked for a clearer copy, in English.
+      if (!jd?.ok && orig.b64) {
+        const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
+        if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
+      }
+      if (!jd?.ok) return J({ error: jd?.error || 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation')), detail: jd?.detail || null }, 502);
       // WHO READ IT (founder instruction ~891). The model quote_extract read this quotation with, kept per supplier and
       // inquiry so the quote submitted from it carries its author and quote_compare can be routed to another family.
       const readBy = typeof jd.extracted_by_model === 'string' && jd.extracted_by_model ? jd.extracted_by_model : 'unknown';
