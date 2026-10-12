@@ -27,7 +27,7 @@ update public.company_faq set answer = 'تدفع رسوم الكشف في دفع
 update public.company_faq set answer = 'بصفتك عميلًا تدفع رسمًا واحدًا فقط عند الكشف عن مورد: رسوم كشف بنسبة 3٪ من السعر النهائي للعرض الذي تختاره، قبل ضريبة القيمة المضافة وبعد أي خصم يذكره المورّد، دون حد أقصى. فالعرض البالغ 2,000 درهم، وبعد الخصم 1,700 درهم مع الضريبة، تكون رسومه 3٪ من 1,700 أي 51 درهمًا. ويظهر المبلغ كاملًا قبل الدفع، ولا تُضاف إليه رسوم بطاقة ولا ضريبة قيمة مضافة. ونعرض كل عرض كما ذكره المورّد تمامًا، بما فيه الخصم وضريبة القيمة المضافة، ولا تتحمّل QuotesDone أي مسؤولية عن تفاصيل عرض المورّد. لا توجد أي رسوم أخرى عليك، والموردون لا يدفعون أي عمولة على الأعمال التي يفوزون بها.', embedding_gte = null, updated_at = now()
  where id = 609 and md5(answer) = '3552e11c37171df93061de794d302463';
 
-update public.company_faq set answer = 'رسوم الـ 3٪ هي رسوم الاطلاع التي يدفعها العميل: 3٪ من السعر النهائي للعرض الذي تختاره، قبل ضريبة القيمة المضافة وبعد أي خصم يذكره المورّد، دون حد أقصى (فالعرض البالغ 2,000 درهم، وبعد الخصم 1,700 درهم مع الضريبة، رسومه 51 درهمًا). يدفعها العميل مرة واحدة لكشف هوية المورد الذي اختاره وبيانات التواصل معه. وهي الرسوم الأساسية للمنصة ويتحملها العميل، والموردون لا يدفعون أي عمولة. لا يُضاف أي مبلغ عند الدفع بالبطاقة، ويظهر المبلغ كاملًا قبل الدفع. لا تُفرض ضريبة القيمة المضافة على رسوم الاطلاع، أما ضريبة المورّد نفسه فتظهر كما ذكرها تمامًا.', embedding_gte = null, updated_at = now()
+update public.company_faq set answer = 'رسوم الـ 3٪ هي رسوم الكشف التي يدفعها العميل: 3٪ من السعر النهائي للعرض الذي تختاره، قبل ضريبة القيمة المضافة وبعد أي خصم يذكره المورّد، دون حد أقصى (فالعرض البالغ 2,000 درهم، وبعد الخصم 1,700 درهم مع الضريبة، رسومه 51 درهمًا). يدفعها العميل مرة واحدة لكشف هوية المورد الذي اختاره وبيانات التواصل معه. وهي الرسوم الأساسية للمنصة ويتحملها العميل، والموردون لا يدفعون أي عمولة. لا يُضاف أي مبلغ عند الدفع بالبطاقة، ويظهر المبلغ كاملًا قبل الدفع. لا تُفرض ضريبة القيمة المضافة على رسوم الكشف، أما ضريبة المورّد نفسه فتظهر كما ذكرها تمامًا.', embedding_gte = null, updated_at = now()
  where id = 610 and md5(answer) = '7eb032be1f1481bcf27e4bbab5b005eb';
 
 -- The verdict: no approved public row still takes the fee on "the value of the quote", in either language.
@@ -35,4 +35,6 @@ select case when exists (
   select 1 from public.company_faq
    where public and status = 'approved'
      and (answer ~* '3% (?:reveal fee )?(?:on|of) the value of the quote' or answer like '%3٪ من قيمة عرض السعر%' or answer like '%3٪ من عرض السعر الذي تختاره%'))
-  then 'PROBE FAILED: a public FAQ row still takes the 3% on the quote value (ruling 1208)' else 'PROBE OK' end as verdict;
+  then 'PROBE FAILED: a public FAQ row still takes the 3% on the quote value (ruling 1208)'
+  when exists (select 1 from public.company_faq where id in (609, 610) and position('رسوم الاطلاع' in answer) > 0)
+  then 'PROBE FAILED: FAQ 609 or 610 still names the reveal fee رسوم الاطلاع' else 'PROBE OK' end as verdict;
