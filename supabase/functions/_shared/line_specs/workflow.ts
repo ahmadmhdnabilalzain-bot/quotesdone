@@ -30,7 +30,7 @@
 //
 // Written against a small repository interface so the workflow test runs entirely in memory: no
 // database, no network, and therefore no way to reach a real supplier.
-import { approvalNotice, assessQuote, deliveryOf, holdNotice, lineText, releasedNotice, SEAT, termItem, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
+import { approvalNotice, assessQuote, validityOf, holdNotice, lineText, releasedNotice, SEAT, termItem, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
 import { TRADES, type Attr } from './model.ts';
 import { applyReading, type QuoteReading } from '../reasoned_matching.ts';
 import { needsChecklist, withReasoned } from './reasoned_specs.ts';
@@ -81,6 +81,7 @@ export type Ctx = { category: string | null; requirements: Requirements; ref: st
   read?: (q: QuoteRow, lines: Line[]) => Promise<QuoteReading | null>;
   checklist?: Attr[]; reason?: (lines: Line[], checklist: Attr[]) => Promise<Record<number, Record<string, string>> | null> };
 const nowIso = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date()).toISOString();
+const nowOf = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date());
 const langOf = (s: Supplier): 'en' | 'ar' => (String(s.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
 
 /** One notice as delivery requests on every channel the supplier has: email and WhatsApp. */
@@ -160,9 +161,9 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
  * was answered still_missing [validity] with no way to supply it. The desk (spec_hold, spec_fill, spec_approve)
  * now asks it as one more quote-level term. The submission gate is unchanged: the review already asks it there.
  */
-export function deskAssess(input: Parameters<typeof assessQuote>[0], validity: string | null | undefined): Assessment {
+export function deskAssess(input: Parameters<typeof assessQuote>[0], validity: string | null | undefined, now: Date = new Date()): Assessment {
   const a = assessQuote(input);
-  if (deliveryOf(String(validity ?? ''))) return a;
+  if (validityOf(String(validity ?? ''), now)) return a;
   return { ...a, held: true, missing: [...a.missing, termItem('validity')] };
 }
 
@@ -279,7 +280,7 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const hold = await repo.liveHold(quoteId);
   if (!hold) return { ok: false as const, code: 'no_hold' as const };
   const lines = await repo.lines(quoteId);
-  const a0 = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity);
+  const a0 = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
   const errors: FillError[] = [];
   const next = lines.map((l) => ({ ...l, spec: { ...(l.spec ?? {}) }, spec_source: { ...(l.spec_source ?? {}) } }));
   for (const [ln, vals] of Object.entries(values.lines ?? {})) {
@@ -296,7 +297,7 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const t = values.terms ?? {}; const tv: Record<string, string> = {};
   for (const [attr, raw] of Object.entries(t)) {
     if (raw == null || String(raw).trim() === '') continue;
-    const v = validateTerm(attr, raw);
+    const v = validateTerm(attr, raw, nowOf(ctx));
     if (!v.ok) errors.push({ scope: 'quote', line_no: null, attr, code: v.code }); else tv[attr] = v.value;
   }
   if (errors.length) return { ok: false as const, code: 'invalid_values' as const, errors };
@@ -324,7 +325,7 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const history = [...(hold.supplier_values ?? []), { at: nowIso(ctx), by: 'supplier', values }];
 
   const q1 = { ...q, ...patch } as QuoteRow;
-  const a1 = deskAssess({ category: ctx.category, lines: next, terms: q1, requirements: ctx.requirements, checklist: ctx.checklist }, q1.validity);
+  const a1 = deskAssess({ category: ctx.category, lines: next, terms: q1, requirements: ctx.requirements, checklist: ctx.checklist }, q1.validity, nowOf(ctx));
   if (a1.held) {
     await repo.updateHold(hold.id, { missing: a1.missing, state: 'open', supplier_values: history });
     return { ok: true as const, complete: false as const, missing: a1.missing, schema: formSchema(a1, next) };
@@ -383,7 +384,7 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   if (arabicPending(hold)) return { ok: false as const, code: 'arabic_pending' as const };
   if (confirm !== true) return { ok: false as const, code: 'confirm_required' as const };
   const lines = await repo.lines(quoteId);
-  const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity);
+  const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
   if (a.held) { await repo.updateHold(hold.id, { state: 'open', missing: a.missing }); return { ok: false as const, code: 'still_missing' as const, missing: a.missing }; }
   if (precheck) {
     const pre = await precheck(q);

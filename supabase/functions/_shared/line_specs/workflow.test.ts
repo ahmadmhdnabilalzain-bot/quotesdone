@@ -9,7 +9,7 @@
 // of every scenario, not assumed.
 // deno test --no-lock --node-modules-dir=none supabase/functions/_shared/line_specs/workflow.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { SEAT, SEAT_LABEL, type Line } from './assess.ts';
+import { SEAT, SEAT_LABEL, validateTerm, type Line } from './assess.ts';
 import { optionAmount, splitOptions } from './options.ts';
 import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, supabaseRepo, type HoldRow, type NotificationRow, type QuoteRow, type SpecRepo } from './workflow.ts';
 import type { QuoteReading } from '../reasoned_matching.ts';
@@ -289,4 +289,13 @@ Deno.test('a held quote with no validity: the form asks it, the fill-in stores i
   const ok = await approve(repo, 'q9', SUP_EN, SUP_EN.email, true, ctx, accept(repo));
   assert(ok.ok && ok.released, JSON.stringify(ok).slice(0, 300));
   nobodyReal(repo);
+});
+
+// Security review of #1371: a lapsed validity is not a validity. NOW() is 14 Sep 2026.
+Deno.test('validity: zero days, a past date and an unreadable date are refused; a future date or positive period passes', () => {
+  const ok = (v: string) => validateTerm('validity', v, NOW()).ok;
+  for (const v of ['0 days', '0 weeks', '2026-09-13', '13/09/2026', '1 Sep 2026', 'Sep 1, 2026', '31/02/2027', '45/13/2026']) assertEquals(ok(v), false, v);
+  for (const v of ['30 days', '4 weeks', '2026-09-14', '30/11/2026', '30 Nov 2026', 'Nov 30, 2026', '30 نوفمبر 2026']) assertEquals(ok(v), true, v);
+  const a = deskAssess({ category: 'joinery', lines: [], terms: {}, requirements: null }, '1 Sep 2026', NOW());
+  assert(a.missing.some((m) => m.attr === 'validity'), 'a quote whose stored validity has lapsed is asked again');
 });

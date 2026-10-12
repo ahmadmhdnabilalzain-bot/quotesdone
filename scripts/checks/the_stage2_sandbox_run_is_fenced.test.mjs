@@ -69,6 +69,21 @@ test('the gate: untagged traffic is untouched, tagged traffic is capped and pass
   assert.match(sql, /PROBE OK: untagged=/);
 });
 
+test('the run secret is forwarded to this project\'s origin only (security review of #1371)', async () => {
+  const { sameOrigin } = await import('../../supabase/functions/_shared/e2e_run.ts');
+  const OWN = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
+  assert.equal(sameOrigin(OWN + '/functions/v1/ai_gateway', OWN), true);
+  assert.equal(sameOrigin(OWN + '/rest/v1/quotes?select=id', OWN), true);
+  assert.equal(sameOrigin('https://htdblwldjkcgjvmqkbeh.supabase.co.evil.com/functions/v1/x', OWN), false, 'a suffix host is not ours');
+  assert.equal(sameOrigin('https://htdblwldjkcgjvmqkbeh.supabase.co@evil.com/', OWN), false, 'userinfo is not our host');
+  assert.equal(sameOrigin('http://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/x', OWN), false, 'another scheme is another origin');
+  assert.equal(sameOrigin('https://htdblwldjkcgjvmqkbeh.supabase.co:8443/', OWN), false, 'another port is another origin');
+  assert.equal(sameOrigin('not a url', OWN), false, 'unparseable fails closed');
+  assert.equal(sameOrigin(OWN + '/x', ''), false, 'no project URL: nothing is forwarded');
+  const run = readFileSync(new URL('../../supabase/functions/_shared/e2e_run.ts', import.meta.url), 'utf8');
+  assert.match(run, /if \(!run \|\| !sameOrigin\(url, OWN\)\) return base\(input, init\);/, 'the wrapper uses the origin test');
+});
+
 test('the tag alone gets a public caller nothing: it needs the service role or the internal secret', async () => {
   const { resolveE2eRun } = await import('../../supabase/functions/_shared/e2e_run.ts');
   const SK = 'service-role-key-xyz', SECRET = 'internal-secret-abc';
