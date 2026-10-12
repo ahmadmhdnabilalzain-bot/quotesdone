@@ -34,6 +34,7 @@ import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts
 import { supportReply, type Channel } from '../_shared/support_reply.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { embedLine } from '../_shared/gte_embed.ts';
+import { replyBesidePrice } from './reply_beside_price.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -423,8 +424,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // reasoning is two model calls (7-13 s measured) and it ran to completion before the reply's own four began, so a
     // visitor asking "How much does it cost to reveal a supplier?" — our fee, not a trade price — waited 37-44 s, and
     // in f4294be8 the worker died at 33 s with WORKER_RESOURCE_LIMIT. The reply is now composed while the price is
-    // reasoned; only when a price block actually came back is it composed again with that block in its facts.
-    // prevented by: scripts/checks/site_assistant_price_beside_reply.test.mjs
+    // reasoned (reply_beside_price.ts).
+    // prevented by: site_assistant/reply_beside_price.test.ts
     const pPrice = (async () => { if (reasoningOpen || who) try {
       // Which trade (if any) the visitor asks the price of is REASONED (think(), reasoned_suppliers.ts;
       // founder_instruction 886-903). Held: no price block, and the visitor is answered from the FAQ and corpus.
@@ -443,7 +444,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     } catch (_e) {
       // Same reasoning as the pack above: a price lookup failing must not take the widget down.
       priceCtx = '';
-    } })();
+    } return priceCtx; })();
 
     const ch = ['whatsapp', 'email', 'portal'].includes(String(b.channel)) ? b.channel as Channel : 'widget';
     const compose = (price: string) => supportReply(defaultDeps(admin, 'site_assistant'), {
@@ -453,8 +454,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       profile: live ?? undefined,
       facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', price, timelineBlock].filter(Boolean).join('\n\n'),
     }, () => Promise.resolve(null));
-    const pFirst = reasoningOpen ? compose('') : null;
-    await pPrice;
+    const besides = reasoningOpen ? replyBesidePrice(pPrice, compose) : null;
+    await pPrice.catch(() => '');
     lap('price');
     const ctx = [packCtx, priceCtx].filter(Boolean).join('\n\n');
 
@@ -462,9 +463,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // The retrieved pack is the narrowed topic; the company block, the published facts, the price bands and
     // the caller's own record are the facts. Only when no model can answer does the road below run.
 
-    if (pFirst) {
-      // A price block changes the facts, so that reply is composed with it; otherwise the one already composed stands.
-      const sr = priceCtx ? await compose(priceCtx) : await pFirst;
+    if (besides) {
+      const sr = (await besides).reply;
       lap('reply');
       if (sr.path === 'reasoned' && sr.reply) {
         const fx = await fileEffects({ grounded: sr.grounded, answered: true, refusal: 'reasoned_without_company_knowledge' });
