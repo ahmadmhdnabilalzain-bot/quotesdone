@@ -172,19 +172,21 @@ export function policyProblems(text: string): string[] {
   return out;
 }
 
-// ── a stated reveal fee says what is NOT added (zero tolerance; coordinator, 12 Oct 2026) ─────────────
-// Checked on the WHOLE reply, never per sentence: when a reply states the reveal fee (3% next to the reveal / الكشف /
-// الاطلاع), it must also say that no card fee is added and that no VAT is charged on the fee. If it does not, the model
-// rewrites. An affirmed card fee or VAT is already refused by policyProblems; this catches the silence.
-const REVEAL = /\breveal|كشف|الاطلاع|اطلاع/i;
-const CARD = /\bcard\b|بطاقة|البطاقة/i;
-const VAT = /\bVAT\b|value[- ]added tax|ضريبة القيمة المضافة|الضريبة/i;
+// ── a stated 3% fee says what is NOT added (zero tolerance; coordinator, 12-13 Oct 2026) ─────────────
+// Checked on the WHOLE reply, never per sentence: when a reply states a 3% fee in any form (3%, ٣٪, "three percent",
+// "ثلاثة بالمئة"), it must also say, in a sentence that NEGATES it, that no card fee is added AND that no VAT is
+// charged on the fee. The bare words "card" or "VAT" are not enough: "VAT applies" or "pay by card" do not count.
+// If either negation is missing, the model rewrites. An affirmed card fee or VAT is refused by policyProblems.
+const CARD_W = /\bcards?\b|بطاقة|البطاقة|بالبطاقة/i;
+const VAT_W = /\bVAT\b|value[- ]added tax|ضريبة القيمة المضافة|ضريبة/i;
+const sentencesOf = (t: string) => t.split(/(?<=[.!?؟\n؛;])\s*/);
+const negated = (t: string, word: RegExp) => sentencesOf(t).some((s) => word.test(s) && NEG.test(s));
 export function revealFeeIncomplete(text: string): string[] {
   const t = String(text || '');
-  if (!REVEAL.test(t) || !figuresOf(t).includes('pct:3')) return [];
+  if (!figuresOf(t).includes('pct:3')) return [];
   const out: string[] = [];
-  if (!CARD.test(t)) out.push('it states the reveal fee without saying that no card fee is added');
-  if (!VAT.test(t)) out.push('it states the reveal fee without saying that no VAT is charged on it');
+  if (!negated(t, CARD_W)) out.push('it states the 3% fee without saying, in so many words, that no card fee is added');
+  if (!negated(t, VAT_W)) out.push('it states the 3% fee without saying, in so many words, that no VAT is charged on it');
   return out;
 }
 
