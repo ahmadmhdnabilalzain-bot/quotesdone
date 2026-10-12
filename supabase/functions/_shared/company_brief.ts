@@ -166,8 +166,10 @@ const SUPPLIER_FEE = /\bsupplier'?s?'?\s+(?:own\s+)?(?:fees?|charges?|commission
 const OUR_FEE = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\b3\s?%|٣\s?٪|\bfees?\b|\bcommission\b|\bplatform\b|الكشف|رسوم|عمولة|المنصة/i;
 // A sentence whose subject is the supplier or its quote, with none of OUR markers, is the supplier's: its bare fee word
 // ("The supplier charges a 5% installation fee plus VAT") is the supplier's fee (review of #1356). "quoted" is not a subject.
-const SUPPLIER_SUBJECT = /\bsuppliers?\b|\bquot(?:e|es|ation|ations)\b|المورد/i;
-const OUR_MARK = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\bplatform\b|\b3\s?%|٣\s?٪|الكشف|المنصة|رسومنا|عمولتنا/i;
+// Only a sentence that BEGINS with the supplier (an Arabic verb may come first: يفرض المورد) has it as subject; a
+// supplier or quote mentioned later ("To unlock a quote you pay a fee plus VAT") does not shield a claim (review of #1356).
+const SUPPLIER_SUBJECT = /^\s*(?:the\s+)?suppliers?(?:'s?)?\b|^\s*(?:\S+\s+)?المورد/i;
+const OUR_MARK = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\bplatform\b|\byou\s+pay\b|\b3\s?%|٣\s?٪|الكشف|المنصة|رسومنا|عمولتنا|تدفع/i;
 const aboutSupplierOnly = (s: string) =>
   (SUPPLIER_SUBJECT.test(s) && !OUR_MARK.test(s)) || (SUPPLIER_TERMS.test(s) && !OUR_FEE.test(s.replace(SUPPLIER_FEE, ' ')));
 const CLAIMS: { problem: string; re: RegExp; unless?: RegExp | ((s: string) => boolean) }[] = [
@@ -182,7 +184,12 @@ const CLAIMS: { problem: string; re: RegExp; unless?: RegExp | ((s: string) => b
 export function policyProblems(text: string): string[] {
   const out: string[] = [];
   for (const sentence of String(text || '').split(/(?<=[.!?؟\n])\s*/)) {
-    for (const c of CLAIMS) if (c.re.test(sentence) && !NEG.test(sentence) && !(typeof c.unless === 'function' ? c.unless(sentence) : c.unless?.test(sentence)) && !out.includes(c.problem)) out.push(c.problem);
+    // NEG counts only in the clause that holds the claim ("Suppliers pay no fee and you pay a fee with VAT" is caught);
+    // a claim that spans clauses falls back to the whole sentence (review of #1356).
+    const clauses = sentence.split(/[,;،؛]|\b(?:and|but|while)\b|لكن/i);
+    const holding = (re: RegExp) => clauses.filter((k) => re.test(k));
+    const affirmed = (re: RegExp) => { const h = holding(re); return h.length ? h.some((k) => !NEG.test(k)) : re.test(sentence) && !NEG.test(sentence); };
+    for (const c of CLAIMS) if (affirmed(c.re) && !(typeof c.unless === 'function' ? c.unless(sentence) : c.unless?.test(sentence)) && !out.includes(c.problem)) out.push(c.problem);
   }
   return out;
 }

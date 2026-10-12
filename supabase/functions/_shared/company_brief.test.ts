@@ -187,6 +187,9 @@ Deno.test('a supplier quotation stands as stated; only our 3% fee carries the no
   for (const s of ['The service fee includes VAT, like the quoted price.', 'رسوم المنصة تشمل ضريبة القيمة المضافة على السعر']) assertEquals(policyProblems(s).length, 1, s);
   assertEquals(policyProblems('The supplier\'s fee includes VAT, as quoted.'), []);
   assertEquals(policyProblems('The supplier charges a 5% installation fee plus VAT.'), []);
+  // a supplier or quote mentioned mid-sentence shields nothing, and a "no" in another clause does not deny the claim
+  for (const s of ['Suppliers pay no fee and you pay a fee with VAT.', 'To unlock a quote you pay a fee plus VAT.', 'When the supplier accepts, you pay a card fee.'])
+    assert(policyProblems(s).length >= 1, s);
   assertEquals(policyProblems('يفرض المورد رسوم تركيب 5% بالإضافة إلى ضريبة القيمة المضافة.'), []);
   assertEquals(policyProblems('رسوم المورد تشمل ضريبة القيمة المضافة حسب عرض السعر.'), []);
   // عرض meaning "show" does not make a sentence about the supplier
