@@ -340,7 +340,7 @@ RULES:
     const a = key ? await answerFromBrief({
       gateway: GATEWAY, secret: key, fn: 'site_assistant', agent: seatForSurface, taskClass: live ? 'customer_portal_assistant' : 'visitor_chat',
       brief, sys, input: [...past, { role: 'user', content: message }], max: live ? 700 : 500,
-      rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email } : undefined,
+      rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
       check: (s: string) => guardSupportReply(s, replyLang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
     }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential' };
     lap('reply');
@@ -348,6 +348,8 @@ RULES:
     const fx = await fileEffects({ grounded: !!reply, answered: !!reply, refusal: a.error || '' });
     try { await admin.from('assistant_logs').insert({ message, reply: reply || null, matched_ids: [], seat: seatForSurface, answered: !!reply, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
     T.rewrites = a.rewrites; T.attempts = a.attempts.length;
+    // The gateway's rate limit for this visitor: the same polite system notice the local limiter gives (not a reply).
+    if (!reply && a.error === 'rate_limited') return J({ reply: RL_REPLY, rate_limited: true });
     if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', attempts: a.attempts }, 503); }
     return J({ reply, scope: live ? audience : 'public', routed: 'brief', model: a.model, attempts: a.attempts });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

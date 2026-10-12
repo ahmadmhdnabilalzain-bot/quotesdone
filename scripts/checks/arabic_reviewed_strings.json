@@ -5474,6 +5474,10 @@
  "src/components/WorkedCase.tsx": [
   "1bfd692ec1f2"
  ],
+ "supabase/functions/_shared/ai_reply.ts": [
+  "2ad26f4e1be5",
+  "f50238aec3f2"
+ ],
  "supabase/functions/_shared/ar_days.ts": [
   "5857bc86ba2e",
   "c710893ac4d9",
@@ -5516,18 +5520,27 @@
   "dc67015343c6"
  ],
  "supabase/functions/_shared/company_brief.ts": [
+  "022c0e841ed6",
   "06338a5c4b64",
   "0681db1a83a2",
-  "0701752ec003",
-  "32dd66cc2b36",
+  "369b9a738647",
+  "383d04ced24b",
+  "4147558986cf",
+  "4b5b600a417e",
+  "55848652e127",
   "59678f3fa3ae",
+  "598c323a04b9",
+  "64dd150b65a8",
+  "6a9d7851b56f",
   "6caad2b4900a",
   "71f6af4086e2",
+  "7e535864f46f",
   "805e49d04702",
-  "aabd5f9e1b5d",
+  "9c3c80eb8969",
   "de62a9134e25",
-  "defecda84b8d",
-  "e1814f15aded"
+  "e08eb7e3abe9",
+  "e1814f15aded",
+  "eecc90d7cab2"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
   "7784a68c401d",

@@ -64,6 +64,37 @@ Deno.test('figure check compares the unit: AED 5 in the brief does not pass 5% i
   assertEquals(moneyFiguresNotInBrief('Interest is 12 AED.', known), ['AED 12'], 'a percentage in the brief is not a dirham amount');
 });
 
+// prevented by: these tests (second review of #1330). Every way a fee or rate can be written is read as a figure.
+const BRIEF2 = 'The reveal fee is 3.00%. Registration is AED 1,000 a year. Admin fee AED 500. Interest 12% per annum. Fine AED 2.5.';
+Deno.test('figure check: "UAE dirhams" and the Arabic abbreviation د.إ are dirham units', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('Registration costs 1,000 UAE dirhams a year.', k), []);
+  assertEquals(moneyFiguresNotInBrief('Registration costs 2,000 UAE dirhams a year.', k), ['AED 2000']);
+  assertEquals(moneyFiguresNotInBrief('رسوم إدارية قدرها 500 د.إ.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم إدارية قدرها 700 د.إ.', k), ['AED 700']);
+});
+Deno.test('figure check: the Arabic decimal mark ٫ and Persian digits are read', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('غرامة ٢٫٥ درهم.', k), []);
+  assertEquals(moneyFiguresNotInBrief('غرامة ۳٫۵ درهم.', k), ['AED 3.5']);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف ۳٪.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف ۵٪.', k), ['5%']);
+});
+Deno.test('figure check: numbers in words and unit-less fees next to fee words are checked', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is three percent.', k), []);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is five per cent.', k), ['5%']);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف خمسة بالمئة.', k), ['5%']);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف ثلاثة في المئة.', k), []);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is 5 on the quote you choose.', k), ['a fee of 5']);
+  assertEquals(moneyFiguresNotInBrief('The admin fee is 500.', k), []);
+});
+Deno.test('figure check: "AED 1,000 - 5 working days" is not a range; a range with units on both sides is', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('Registration is AED 1,000 - 5 working days to verify.', k), []);
+  assertEquals(moneyFiguresNotInBrief('Expect AED 1,000 - 2,000.', k), ['AED 2000']);
+});
+
 Deno.test('sentences come off the front of the stream whole, the unfinished tail stays', () => {
   const { done, rest } = takeSentences('The fee is 3%. Comparing is free! Suppliers pa');
   assertEquals(done, ['The fee is 3%. ', 'Comparing is free! ']);

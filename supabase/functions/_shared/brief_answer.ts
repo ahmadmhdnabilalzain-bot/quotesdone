@@ -87,6 +87,9 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   const s = await streamed(f, c, known, emit);
   attempts.push('stream:' + (s.error ? 'failed ' + s.error : s.bad.length ? 'figures ' + s.bad.join(',') : 'ok'));
   if (!s.error && !s.bad.length) return { reply: s.text, model: s.model, attempts, rewrites, streamed: true };
+  // The gateway refused this sender's rate bucket: no other model is asked (that would spend past the limit); the caller
+  // shows its rate-limit notice.
+  if (s.error && /rate_limited/.test(s.error)) return { reply: '', model: null, attempts, rewrites, streamed: false, error: 'rate_limited' };
   // The figure check failed: the MODEL rewrites the whole answer with the correction named. Checked again, twice at most.
   let draft = s.text; let bad = s.bad; let model = s.model;
   if (!s.error) {
