@@ -32,7 +32,13 @@ async function fillMl() {
   const byText = new Map();
   for (const r of rows) byText.set(r.question, [...(byText.get(r.question) ?? []), Number(r.id)]);
   const texts = [...byText.keys()];
+  // In-process when transformers.js is installed (scripts/lib/service_vectors.mjs says why: each cold embed_ml
+  // worker downloads the 47.8 MB model, counted as Storage egress); embed_ml over HTTP otherwise.
+  const { embedMl } = await import('../lib/service_vectors.mjs');
+  const viaLib = embedMl(PROJECT_REF, secret, 'embed_verified_packs');
   const one = async (text) => {
+    const local = await viaLib(text, 'ml');
+    if (local) return '[' + local.join(',') + ']';
     for (let a = 0; ; a++) {
       const res = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/embed_ml`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
