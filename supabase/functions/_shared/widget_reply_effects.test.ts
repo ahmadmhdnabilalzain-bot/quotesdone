@@ -54,7 +54,9 @@ Deno.test('site_assistant: every exit that answers a question files the side eff
   assert(/const fileEffects = async [^\n]*\n\s+const fx = await widgetReplyEffects\(rpc, /.test(src), 'fileEffects no longer calls widgetReplyEffects');
   const exits = [...src.matchAll(/return J\(\{ reply\b/g)].map((m) => m.index!);
   const answering = exits.filter((i) => !/RL_REPLY/.test(src.slice(i, src.indexOf('\n', i))));
-  assertEquals(answering.length, 5, 'capability, FAQ, missing credential, composed reply, canned road');
+  // 12 Oct 2026 (rulings 1195/1196): the capability, FAQ, missing-credential and canned exits were removed; the model's
+  // reply is the one exit that answers (a request no model could answer returns an error, with no text).
+  assertEquals(answering.length, 1, 'the model-written reply');
   const defined = src.indexOf('const fileEffects = async');
   let prev = defined;
   for (const i of answering) {
@@ -65,9 +67,6 @@ Deno.test('site_assistant: every exit that answers a question files the side eff
     assert(/from\('assistant_logs'\)\.insert\(/.test(seg), 'this exit returns without writing its log: ' + line);
     prev = i;
   }
-  // the stored answers are grounded; the missing-credential exit is not, so a visitor's question there is filed as a gap
-  const credential = src.slice(src.indexOf("if (!key) {"), src.indexOf('return J({ reply })'));
-  assert(/fileEffects\(\{ grounded: false, answered: false/.test(credential), 'the missing-credential exit must file its question as not grounded');
 });
 
 // Review of #1043: a signed-in widget reply is logged as its party so it attaches to the support case (#1036).
@@ -83,8 +82,8 @@ Deno.test('logParty: a signed-in person is customer:<uuid> or supplier:<id> on e
 Deno.test('site_assistant: every assistant_logs write names its audience through logParty(who, ...)', async () => {
   const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
   const writes = src.match(/from\('assistant_logs'\)\.insert\(\{[^\n]*/g) ?? [];
-  assert(writes.length >= 4, `expected the four widget exits, found ${writes.length}`);
+  assert(writes.length >= 1, `expected the widget's reply log, found ${writes.length}`);
   for (const w of writes) assert(/audience: logParty\(who, /.test(w), 'an assistant_logs write does not log the party: ' + w.slice(0, 160));
-  const start = src.indexOf("sr.path === 'reasoned'");
+  const start = src.indexOf('const reply = a.reply.trim()');
   assert(/audience: logParty\(who, audience, source, true\)/.test(src.slice(start, src.indexOf('return J(', start))), 'the composed reply is not logged as its party');
 });

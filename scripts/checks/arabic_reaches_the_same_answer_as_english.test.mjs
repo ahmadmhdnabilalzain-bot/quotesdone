@@ -155,7 +155,9 @@ test('the widget sends the language and the function can tokenise it', () => {
   const tokLine = fn.split('\n').find((l) => l.includes('function tok('));
   if (tokLine) assert.match(tokLine, /\\u0600-\\u06FF|؀-ۿ/,
     'site_assistant.tok() still matches Latin only — every Arabic message scores zero tokens');
-  else assert.match(fn, /widgetMeaning\(/, 'site_assistant neither tokenises Arabic nor reasons the message');
+  // 12 Oct 2026 (rulings 1195/1196): the model now reads the message and writes the reply in one call (answerFromBrief),
+  // in the asker's language; there is no meaning step to reason separately.
+  else assert.match(fn, /answerFromBrief\(/, 'site_assistant neither tokenises Arabic nor has the model read the message');
 
   const widget = readFileSync(join(ROOT, 'src', 'components', 'ChatWidget.tsx'), 'utf8');
   const body = widget.split('\n').find((l) => l.includes('JSON.stringify({ message'));

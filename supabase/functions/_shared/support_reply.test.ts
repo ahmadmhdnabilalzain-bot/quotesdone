@@ -3,7 +3,7 @@ import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
 import { supportReply } from './support_reply.ts';
 
-function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unknown[] }) {
+function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unknown[]; verify?: string | null }) {
   const calls: { phase: Phase; system: string; input: string }[] = []; const rpcs: string[] = [];
   const synth = [...(o.synth ?? [])];
   const deps: ThinkDeps = {
@@ -11,6 +11,8 @@ function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unkno
     llm: (phase, system, input) => {
       calls.push({ phase, system, input });
       if (phase === 'decompose') return Promise.resolve({ content: JSON.stringify({ steps: [{ id: 's1', goal: 'the rule', query: 'non-response refund rule' }], facts: [], high_stakes: false }), model: 'stub' });
+      // the widget's answers are always independently checked now (12 Oct 2026): the reviewer agrees here
+      if (phase === 'verify') return Promise.resolve({ content: o.verify === undefined ? JSON.stringify({ verdict: 'agree', problems: [] }) : o.verify, model: 'stub/other' });
       const n = synth.shift();
       return Promise.resolve(typeof n === 'string' ? { content: n, model: 'stub/qwen' } : (n ?? { content: null, error: 'circuit_open' }));
     },
@@ -50,30 +52,32 @@ Deno.test('the caller\'s own retrieval is the narrowed topic: no second corpus s
   assert(!s.rpcs.includes('fn_support_corpus_search'));
 });
 
-Deno.test('the founder\'s hold: no model call at all, the deterministic road answers, nothing is queued', async () => {
-  const s = stub({ gate: { allowed: false, rule: 'founder_hold' } });
+// Rulings 1195/1196 (12 Oct 2026): the caller's canned road is never sent. When the reasoned chain cannot answer, the
+// reply is still written by a model (aiReply); when no model answers, it is '' and nothing is sent.
+Deno.test('the chain cannot answer: a model writes the reply directly, the caller canned text is never sent', async () => {
+  const s = stub({ gate: { allowed: false, rule: 'founder_hold' }, synth: [JSON.stringify({ answer: 'Hello! How can we help with your job?' })] });
   const r = await supportReply(s.deps, { channel: 'whatsapp', message: 'hi', lang: 'en', audience: 'visitor' }, () => Promise.resolve('Thanks for your message.'));
-  assertEquals(r.path, 'fallback');
-  assertEquals(r.reply, 'Thanks for your message.');
-  assertEquals(s.calls.length, 0);
+  assertEquals(r.reply, 'Hello! How can we help with your job?');
+  assertEquals(r.path, 'reasoned');
   assert(!s.rpcs.includes('fn_reason_hold'), 'a reply already went out; a replay would send a second one');
 });
 
-Deno.test('the gateway down mid-reply: the fallback answers', async () => {
+Deno.test('no model answers at all: no text, never the caller canned line', async () => {
   const s = stub({ synth: [{ content: null, error: 'circuit_open' }] });
   const r = await supportReply(s.deps, { channel: 'portal', message: 'q', lang: 'ar', audience: 'customer', seat: 'sales_engineer' }, () => Promise.resolve('شكرًا لرسالتك.'));
   assertEquals(r.path, 'fallback');
-  assertEquals(r.reply, 'شكرًا لرسالتك.');
+  assertEquals(r.reply, '');
 });
 
-Deno.test('the composed reply passes the outgoing guard; an unknown route is not trusted', async () => {
+// prevented by: this test (review of #1330). A reply the guard refuses is rewritten BY A MODEL, never patched by code.
+Deno.test('a composed reply the guard refuses is rewritten by a model; an unknown route is not trusted', async () => {
   const bad = JSON.stringify({ answer: 'Our AI matches you with suppliers anonymously.', reasoning: ['s1: how it works'], cited: [], confidence: 0.7, route: 'hr' });
-  const s = stub({ synth: [bad] });
+  const s = stub({ synth: [bad, JSON.stringify({ answer: 'Our Smart Engine matches you with suppliers anonymously.' })] });
   const r = await supportReply(s.deps, { channel: 'email', message: 'how does it work', lang: 'en', audience: 'customer' }, () => Promise.resolve(null));
   assertEquals(r.path, 'reasoned');
-  assert(!/\bAI\b/.test(r.reply), r.reply);
+  assertEquals(r.reply, 'Our Smart Engine matches you with suppliers anonymously.');
   assertEquals(r.seat, null);
-  assertEquals(r.grounded, false, 'no topic knowledge and nothing cited: the widget files this as a knowledge gap');
+  assertMatch(r.reason ?? '', /^direct: guard: ai_word/);
 });
 
 // ── the plain-language gate (founder instruction 1013 item 7) ──────────────────────────────────────
@@ -89,12 +93,11 @@ Deno.test('1013/7: a jargon-heavy, one-long-sentence reply is rewritten through 
   assert(s.rpcs.includes('fn_support_reply_readability_log'), 'the score is logged for the monthly self-review');
 });
 
-Deno.test('1013/7: a rewrite that is still not plain sends the canned answer, never the unreadable one', async () => {
-  const s = stub({ synth: [LONG, LONG], corpus: [REFUND] });
+Deno.test('1013/7: a rewrite that is still not plain goes to a direct model reply, never the canned answer', async () => {
+  const s = stub({ synth: [LONG, LONG, JSON.stringify({ answer: 'Your quote is on its way. You will see it in My requests.' })], corpus: [REFUND] });
   const r = await supportReply(s.deps, { channel: 'whatsapp', message: 'where is my quote?', lang: 'en', audience: 'customer' }, () => Promise.resolve('Thanks. Our team will reply soon.'));
-  assertEquals(r.path, 'fallback');
-  assertEquals(r.reply, 'Thanks. Our team will reply soon.');
-  assertMatch(r.reason ?? '', /^readability: /);
+  assertEquals(r.reply, 'Your quote is on its way. You will see it in My requests.');
+  assertMatch(r.reason ?? '', /^direct: readability: /);
 });
 
 Deno.test('1013/7: an Arabic customer who gets an English reply is rewritten into Arabic', async () => {
@@ -110,4 +113,36 @@ Deno.test('1013/7: a plain reply is not rewritten (no second model call)', async
   const r = await supportReply(s.deps, { channel: 'widget', message: 'q', lang: 'en', audience: 'customer' }, () => Promise.resolve(null));
   assertEquals(r.rewritten, false);
   assertEquals(s.calls.filter((c) => c.phase === 'synthesise').length, 1);
+});
+
+// ── the widget sends only CHECKED text (review of #1330, 12 Oct 2026) ─────────────────────────────
+// prevented by: these tests. think() returns 'answered' even when the independent check did not run or disagreed;
+// on the widget such a reply must never be sent (nor cached by site_assistant): the caller's road answers.
+const SHORT = JSON.stringify({ answer: 'The reveal fee is 3% of the quote you choose. No card fee is added.', reasoning: ['s1: FAQ 30'], cited: [], confidence: 0.8, route: 'customer_support' });
+Deno.test('widget: a reply the check did not run on goes to the fallback, not to the visitor', async () => {
+  const s = stub({ gate: { allowed: true }, synth: [SHORT], corpus: [REFUND], verify: null });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'how much is the reveal fee?', lang: 'en', audience: 'visitor' }, () => Promise.resolve('canned'));
+  assertEquals(r.path, 'fallback');
+  assertMatch(String(r.reason), /unchecked/);
+});
+Deno.test('widget: a reply the check disagreed with goes to the fallback, even after its correction', async () => {
+  const s = stub({ gate: { allowed: true }, synth: [SHORT, SHORT], corpus: [REFUND], verify: JSON.stringify({ verdict: 'disagree', problems: ['fee wrong'] }) });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'how much is the reveal fee?', lang: 'en', audience: 'visitor' }, () => Promise.resolve('canned'));
+  assertEquals(r.path, 'fallback');
+});
+Deno.test('widget: an agreed reply goes out, marked agreed, and the trade choice rides on the same call', async () => {
+  const s = stub({ gate: { allowed: true }, synth: [JSON.stringify({ ...JSON.parse(SHORT), price_trade: 'gypsum-ceilings' })], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'what does a gypsum ceiling cost?', lang: 'en', audience: 'visitor', priceTrades: ['gypsum-ceilings'] }, () => Promise.resolve('canned'));
+  assertEquals(r.path, 'reasoned');
+  assertEquals(r.verified, 'agreed');
+  assertEquals(r.priceTrade, 'gypsum-ceilings');
+  assertEquals(s.calls.filter((c) => c.phase === 'decompose').length, 0);
+});
+Deno.test('widget: the plain-language rewrite runs BEFORE the check, so the reviewer reads the text that is sent', async () => {
+  const s = stub({ gate: { allowed: true }, synth: [LONG, JSON.stringify({ answer: 'We have your request. Our team will reply within 2 working days.' })], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'where is my quote?', lang: 'en', audience: 'customer' }, () => Promise.resolve('canned'));
+  assertEquals(r.reply, 'We have your request. Our team will reply within 2 working days.');
+  const order = s.calls.map((c) => c.phase);
+  assert(order.lastIndexOf('synthesise') < order.indexOf('verify'));
+  assertMatch(s.calls.find((c) => c.phase === 'verify')!.input, /reply within 2 working days/);
 });
