@@ -10,7 +10,7 @@ import {
   applyCorrections, fromMissing, generatedSaid, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
   type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
-import { choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
+import { QR_HELD_NOTICE, choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
 import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_documents.ts';
@@ -157,7 +157,7 @@ const pdfModel = () => Promise.resolve(PDF_TERMS);
 function harness(inq = inquiry()) {
   const mem = memoryReviewRepo(() => new Date('2026-09-15T10:00:00Z'));
   const submitted: Record<string, unknown>[] = [];
-  const written: string[] = []; const noModel = { on: false };
+  const written: string[] = []; const noModel = { on: false }; const holds: string[] = [];
   const deps: ReviewDeps = {
     inquiry: (id) => Promise.resolve(id === inq.id ? inq : null),
     scan(data, filename, mime) {
@@ -172,6 +172,7 @@ function harness(inq = inquiry()) {
     // THE MODEL, faked (rulings 1195-1197): it writes the engineer's message from what the review decided (here: the
     // facts themselves, so the assertions below read what it was told), and reads the supplier's next step from their
     // words the way a model does. Every text it wrote is kept: a test proves each engineer message is one of them.
+    hold: (v) => { holds.push(v.reviewId); return Promise.resolve(); },
     voice: (v) => {
       const t = '[sales engineer] ' + v.situation; written.push(t);
       const m = String(v.supplierMessage || ''); const ids = (v.actions || []).map((x) => x.id);
@@ -181,7 +182,7 @@ function harness(inq = inquiry()) {
       return Promise.resolve(noModel.on ? { text: '', action: null } : { text: t, action });
     },
   };
-  return { mem, deps, submitted, written, noModel, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
+  return { mem, deps, submitted, written, noModel, holds, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
 }
 const ok = (v: unknown): ThreadView => { assert((v as ThreadView).ok, JSON.stringify(v)); return v as ThreadView; };
 
@@ -626,10 +627,14 @@ Deno.test('1195-1197: no engineer message in the quotation chat is added unless 
     const turn = async (f: () => Promise<unknown>) => {
       const before = h.mem.messages.length; const wroteBefore = h.written.length;
       await f();
-      const fresh = h.mem.messages.slice(before).filter((m) => m.role === 'sales_engineer' && m.kind !== 'submitted');
+      const all = h.mem.messages.slice(before).filter((m) => m.role === 'sales_engineer' && m.kind !== 'submitted');
+      const fresh = all.filter((m) => m.body !== QR_HELD_NOTICE);
       const wroteNow = h.written.slice(wroteBefore);
       for (const m of fresh) assert(wroteNow.includes(String(m.body)), 'an engineer message no model wrote this turn: ' + String(m.body).slice(0, 80));
-      if (noModelRun) assertEquals(fresh.length, 0, 'with no model, a conversation message was still added');
+      if (noModelRun) {
+        assertEquals(fresh.length, 0, 'with no model, a conversation message was still added');
+        assert(all.length > 0, 'with no model the supplier was left silent: the held notice must be added');
+      }
     };
     await turn(() => start(h.mem.repo, h.deps, h.ctx, INQ_ID));
     await turn(() => upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
@@ -641,8 +646,9 @@ Deno.test('1195-1197: no engineer message in the quotation chat is added unless 
       assertEquals(h.submitted.length, 1, 'the model read "submit" and the state machine submitted');
       assert(h.mem.messages.some((m) => m.kind === 'submitted'), 'the receipt (a notification) is still sent');
     } else {
-      // no model: nobody read "generate"/"submit" from words, so nothing was submitted on a guess
+      // no model: nobody read "generate"/"submit" from words, so nothing was submitted on a guess; every turn was queued
       assertEquals(h.submitted.length, 0);
+      assert(h.holds.length >= 4, 'each unwritten turn is queued for the model: ' + h.holds.length);
     }
   }
 });

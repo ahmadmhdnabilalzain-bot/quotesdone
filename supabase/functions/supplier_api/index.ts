@@ -491,11 +491,28 @@ const handle = async (req: Request): Promise<Response> => {
           const r = await aiReply(defaultDeps(admin, 'supplier_api'), {
             seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
             message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
-            facts: v.situation, actions: v.actions,
+            facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id),
             rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
           });
           return { text: r.reply, action: r.action ?? null };
+        },
+        // No model answer: the turn waits in sales_engineer's queue; fn_reason_apply_supplier_api__quote_review_unwritten posts
+        // the replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
+        hold: async (v) => {
+          const subject = { channel: 'portal', review_id: v.reviewId, supplier_id: Number(sup.id) };
+          const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);
+          await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'supplier_api.quote_review_unwritten', p_question: q,
+            p_request: { seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', subject, research: false,
+              question: 'Write the sales engineer's next message in this supplier's quotation thread, in English. They were told we received their message.
+
+WHAT THE REVIEW DECIDED (facts):
+' + v.situation.slice(0, 3000) + '
+
+THEIR MESSAGE:
+' + q,
+              context: { audience: 'supplier', language: 'en' } },
+            p_plan: {}, p_subject: subject, p_reason: v.why, p_dedupe_key: 'qr_unwritten:' + v.reviewId + ':' + q.slice(0, 40) });
         } });
       return J(out.json, out.status);
     }

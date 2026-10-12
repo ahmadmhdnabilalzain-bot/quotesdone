@@ -72,6 +72,9 @@ export type MenuDeps = {
   /** THE WORDS (rulings 1195-1197): a model writes every conversation reply in this turn from `situation` (what code
    *  decided) — wa_inbound/model_says.ts. '' when no model answered: then nothing conversational is sent. */
   write(r: { situation: string; lang: Lang; audience: Audience; message: string }): Promise<string>;
+  /** No model answer: the HELD NOTICE (a fixed receipt, a notification) is sent and the turn is queued for a model
+   *  retry, escalated to customer_support after 15 minutes (model_says.ts holdUnwritten). Never silence. */
+  held(r: { situation: string; lang: Lang; audience: Audience; route: string }): Promise<{ notice: string; sent: boolean; err: string | null }>;
   record(row: { inbound: string; reply: string; lang: Lang; sent: boolean; route: string; await: string | null;
                 send_error: string | null; extra: Record<string, unknown> }): Promise<void>;
 };
@@ -106,8 +109,9 @@ async function talk(d: MenuDeps, inp: MenuInput, lang: Lang, route: string, situ
                     extra: Record<string, unknown>): Promise<boolean> {
   const text = await d.write({ situation, lang, audience: inp.audience, message: String(inp.body || '').trim() });
   if (!text) {
-    await d.record({ inbound: String(inp.body || '').trim(), reply: '', lang, sent: false, route, await: awaitNext,
-                     send_error: 'no_model_reply', extra: { ...extra, no_model_reply: true, autoreply_enabled: await d.autoreplyEnabled() } });
+    const h = await d.held({ situation, lang, audience: inp.audience, route });
+    await d.record({ inbound: String(inp.body || '').trim(), reply: h.notice, lang, sent: h.sent, route, await: awaitNext,
+                     send_error: h.err, extra: { ...extra, held_notice: true, autoreply_enabled: await d.autoreplyEnabled() } });
     return false;
   }
   await reply(d, inp, lang, route, text, awaitNext, { ...extra, model_written: true });
@@ -139,8 +143,9 @@ async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContex
       + ', and if they asked something, start answering it.'))
       + '\nOne or two short sentences only. Our standing introduction and an interactive list of options (new request, follow a request, suppliers, a question, report a problem, talk to a person) are sent right after your words, so do not introduce the company or list the options.' });
   if (!line) {
-    await d.record({ inbound: String(inp.body || '').trim(), reply: '', lang, sent: false, route, await: null,
-                     send_error: 'no_model_reply', extra: { ...more, no_model_reply: true, autoreply_enabled: await d.autoreplyEnabled() } });
+    const h = await d.held({ situation: lead ?? 'They greeted us or asked for the menu.', lang, audience: ctx.audience, route });
+    await d.record({ inbound: String(inp.body || '').trim(), reply: h.notice, lang, sent: h.sent, route, await: null,
+                     send_error: h.err, extra: { ...more, held_notice: true, autoreply_enabled: await d.autoreplyEnabled() } });
     return;
   }
   line = line.replace(/\s*\n+\s*/g, ' '); // a Content variable carries no line break

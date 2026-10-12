@@ -7,6 +7,7 @@
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, type MenuMeaning, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
 import { type Figures, isFiguresCommand } from './founder_queries.ts';
+import { HELD_NOTICE } from './model_says.ts';
 import { coverageReply, groupedTrades, type Trade } from './coverage.ts';
 import {
   type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, type Lang, MENU_BUTTON, sorryLead,
@@ -125,6 +126,8 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
   // prove a sent conversation reply is one of them (rulings 1195-1197). o.noModel: no model answers.
   const written: string[] = [];
   const d: MenuDeps = {
+    // the held notice (model_says.ts HELD_NOTICE), sent as index.ts sends it
+    held: (r) => { const notice = HELD_NOTICE[r.audience === 'supplier' ? 'en' : r.lang]; sent.push({ to: FROM, body: notice }); return Promise.resolve({ notice, sent: true, err: null }); },
     write: (r) => { if (o.noModel) return Promise.resolve(''); const t = r.situation; written.push(t); return Promise.resolve(t); },
     meaning: (text, awaitingProblem, offerMenu) => {
       meanings.push([text, awaitingProblem]);
@@ -805,17 +808,24 @@ Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote
     h.rows.forEach((row, i) => {
       if (NOTIFICATION_ROUTES.has(String(row.route))) return;
       const extra = row.extra as Record<string, unknown>;
-      if (!row.sent) { assert(!row.reply || extra.no_model_reply !== true, name); return; }
+      if (extra.held_notice === true) {
+        // no model: the person still hears from us — the fixed receipt, never an answer
+        assert(Object.values(HELD_NOTICE).includes(String(row.reply)), name + ': a held turn sent something other than the held notice');
+        return;
+      }
+      if (!row.sent) return;
       conversational++;
       const body = String(row.reply);
       assert(h.written.some((w) => body === w || body.startsWith(ONE_LINE(w))), name + ' #' + i + ': sent text no model wrote this turn: ' + body.slice(0, 80));
     });
     if (h.written.length === 0) {
-      // no model answered: only notifications may have gone out
+      // no model answered: only notifications and the held notice went out, and the person was not left silent
       for (const s of h.sent) {
         const row = h.rows.find((r) => r.reply === s.body);
-        assert(row && NOTIFICATION_ROUTES.has(String(row.route)), name + ': with no model a conversation reply was still sent: ' + s.body.slice(0, 80));
+        assert(row && (NOTIFICATION_ROUTES.has(String(row.route)) || (row.extra as Record<string, unknown>).held_notice === true),
+          name + ': with no model a conversation reply was still sent: ' + s.body.slice(0, 80));
       }
+      assert(h.sent.length > 0, name + ': with no model the person was left silent');
     }
   }
   assert(conversational >= 15, 'the scenarios really sent conversation replies: ' + conversational);
