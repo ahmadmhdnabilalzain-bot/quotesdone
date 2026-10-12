@@ -504,13 +504,13 @@ const handle = async (req: Request): Promise<Response> => {
           const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);
           await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'supplier_api.quote_review_unwritten', p_question: q,
             p_request: { seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', subject, research: false,
-              question: 'Write the sales engineer's next message in this supplier's quotation thread, in English. They were told we received their message.
+              question: `Write the sales engineer's next message in this supplier's quotation thread, in English. They were told we received their message.
 
 WHAT THE REVIEW DECIDED (facts):
-' + v.situation.slice(0, 3000) + '
+${v.situation.slice(0, 3000)}
 
 THEIR MESSAGE:
-' + q,
+${q}`,
               context: { audience: 'supplier', language: 'en' } },
             p_plan: {}, p_subject: subject, p_reason: v.why, p_dedupe_key: 'qr_unwritten:' + v.reviewId + ':' + q.slice(0, 40) });
         } });

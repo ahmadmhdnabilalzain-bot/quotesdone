@@ -22,7 +22,7 @@ const A = (answer: string) => JSON.stringify({ answer });
 
 Deno.test('the routine result reaches the model as facts and the model writes the reply', async () => {
   const s = stub([A('Done: your quotation for the ZZ DEMO job is now AED 9,000.')]);
-  const r = await modelSays(s.deps, { audience: 'supplier', lang: 'ar', message: 'make it 9000', situation: 'pricing routine: {"ok":true,"old":10000,"new":9000}',
+  const r = await modelSays(s.deps, { audience: 'supplier', lang: 'ar', message: 'make it 9000', situation: 'They asked to change their quotation price to AED 9000. pricing routine: {"ok":true,"old":10000,"new":9000}',
     subject: { fixture: true, phone: '+971500000021' } });
   assertEquals(r.text, 'Done: your quotation for the ZZ DEMO job is now AED 9,000.');
   assert(s.calls[0].system.includes('"new":9000'), 'the routine result is in the facts');

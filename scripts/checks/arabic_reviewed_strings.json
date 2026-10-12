@@ -62,6 +62,9 @@
   "f1acdc868e08",
   "fdce93c05d49"
  ],
+ "knowledge/brief/uae_regulations/services_and_general_trades.md": [
+  "52a0b1d6e84b"
+ ],
  "messages/ar.json": [
   "02bd35ced3c1",
   "031f4b936523",
@@ -5527,7 +5530,6 @@
   "022c0e841ed6",
   "047b6da45a18",
   "06338a5c4b64",
-  "0681db1a83a2",
   "369b9a738647",
   "3757e4fbb5e1",
   "383d04ced24b",
@@ -5553,7 +5555,6 @@
   "a844ae93d451",
   "c3731f8fd32a",
   "d1e1bf0448b1",
-  "de62a9134e25",
   "e1814f15aded",
   "eb86d8fc0c02",
   "f4e468bb2a84",
@@ -6242,8 +6243,8 @@
  "supabase/functions/supplier_api/quote_review_flow.ts": [
   "0c4b45efc9bf",
   "265323a0e5fd",
-  "b05b260309e0",
-  "ebcf51ab9588"
+  "2b249861ae60",
+  "6fbb7fb79755"
  ],
  "supabase/functions/supplier_api/quote_review.ts": [
   "036d8e480b96",
@@ -6403,17 +6404,16 @@
   "cdda50dc07b3"
  ],
  "supabase/functions/wa_inbound/index.ts": [
-  "0c779ad88625",
-  "26aade657b40",
-  "4061420fc991",
   "5cbb277245b5",
   "61e5bb9d6ede",
-  "6c8d4e17edaa",
+  "75e7c95e9ceb",
   "7fea49861151",
-  "a543b7484225",
-  "b2a7e76366cb",
   "c09183a62789",
-  "e687fbf0ba76"
+  "caa8dfdaf4f5",
+  "cb974acf7755"
+ ],
+ "supabase/functions/wa_inbound/menu_flow.ts": [
+  "dd8eecf60984"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
   "027ef5367e8d",
@@ -6470,6 +6470,9 @@
   "fbc23836418d",
   "fe741877988e"
  ],
+ "supabase/functions/wa_inbound/model_says.ts": [
+  "036a6e41b969"
+ ],
  "supabase/functions/wa_template_setup/index.ts": [
   "06650a058c0a",
   "08c4943939dc",
@@ -6484,8 +6487,5 @@
   "a5cba62f3cdc",
   "d7028cd29b51",
   "d9a9b884d813"
- ],
- "knowledge/brief/uae_regulations/services_and_general_trades.md": [
-  "52a0b1d6e84b"
  ]
 }
