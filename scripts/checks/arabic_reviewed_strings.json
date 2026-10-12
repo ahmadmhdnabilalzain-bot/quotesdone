@@ -2524,6 +2524,12 @@
  "scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql": [
   "67e0d864b486"
  ],
+ "scripts/sql/the_sales_engineer_files_every_hedge_correction_and_rewrite_as_a_knowledge_gap.sql": [
+  "3f500a9ad425",
+  "4363a0cd5152",
+  "ac4fab6bcef4",
+  "d73b6729305e"
+ ],
  "scripts/sql/the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql": [
   "70b5a40fe07a",
   "859798d5f8bb",
@@ -5495,6 +5501,9 @@
   "80525653a9e7",
   "ce534deaa8f7"
  ],
+ "supabase/functions/_shared/brief.generated.ts": [
+  "bc5896d2a7f9"
+ ],
  "supabase/functions/_shared/cad_file_redact.ts": [
   "214e2a66c5bf"
  ],
@@ -5964,7 +5973,8 @@
   "4e2156827796"
  ],
  "supabase/functions/_shared/trade_resolve.ts": [
-  "a1150629315a"
+  "a1150629315a",
+  "bdab39592e4e"
  ],
  "supabase/functions/_shared/unsubscribe_mailbox.ts": [
   "fe749a06f354"
