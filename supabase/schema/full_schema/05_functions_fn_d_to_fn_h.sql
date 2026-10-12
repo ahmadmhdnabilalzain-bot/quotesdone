@@ -5,21 +5,21 @@ CREATE OR REPLACE FUNCTION public.fn_dbx_category(p_lead_id bigint)
  SET search_path TO 'public', 'pg_catalog'
 AS $function$
   select public.fn_dbx_safe(coalesce(
-    (select c.name from public.lead_category lc
+    (select c.slug from public.lead_category lc
        join public.catalog_supplier_categories c on c.slug = lc.slug
       where lc.lead_id = p_lead_id and lc.is_primary
       order by lc.score desc nulls last limit 1),
-    (select c.name from public.lead_category lc
+    (select c.slug from public.lead_category lc
        join public.catalog_supplier_categories c on c.slug = lc.slug
       where lc.lead_id = p_lead_id
       order by lc.score desc nulls last limit 1),
-    (select c.name from public.leads l
+    (select c.slug from public.leads l
        join public.catalog_supplier_categories c
          on c.slug = btrim(split_part(coalesce(l.categories,''),',',1))
          or lower(c.name) = lower(btrim(split_part(coalesce(l.categories,''),',',1)))
          or c.slug = btrim(coalesce(l.sector,''))
       where l.id = p_lead_id limit 1),
-    'Uncategorized'));
+    'uncategorized'));
 $function$
 
 

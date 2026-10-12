@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-12T09:32:44.227Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-12T11:03:23.383Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -185,6 +185,9 @@ CREATE SEQUENCE IF NOT EXISTS public.seat_case_memory_miss_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_knowledge_eval_question_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_knowledge_exam_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.self_review_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.signup_purge_dropbox_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.signup_purge_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.signup_purge_object_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_alternative_offer_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_backlog_id_seq;
@@ -211,7 +214,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (709) =====
+-- ===== TABLES (712) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -8274,6 +8277,36 @@ CREATE TABLE IF NOT EXISTS public.service_implication (
   active boolean DEFAULT true NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.signup_purge (
+  id bigint DEFAULT nextval('signup_purge_id_seq'::regclass) NOT NULL,
+  kind text NOT NULL,
+  subject_ref text NOT NULL,
+  started_at timestamp with time zone,
+  purged_at timestamp with time zone DEFAULT now() NOT NULL,
+  missing text[] NOT NULL,
+  counts jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.signup_purge_dropbox (
+  id bigint DEFAULT nextval('signup_purge_dropbox_id_seq'::regclass) NOT NULL,
+  purge_id bigint NOT NULL,
+  doc_backup_id bigint NOT NULL,
+  dropbox_file text NOT NULL,
+  listed_at timestamp with time zone DEFAULT now() NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  done_at timestamp with time zone,
+  error text
+);
+
+CREATE TABLE IF NOT EXISTS public.signup_purge_object (
+  id bigint DEFAULT nextval('signup_purge_object_id_seq'::regclass) NOT NULL,
+  purge_id bigint NOT NULL,
+  bucket text NOT NULL,
+  path text NOT NULL,
+  done_at timestamp with time zone,
+  error text
+);
+
 CREATE TABLE IF NOT EXISTS public.simulations (
   id bigint DEFAULT nextval('simulations_id_seq'::regclass) NOT NULL,
   scenario jsonb,
@@ -10384,6 +10417,9 @@ ALTER TABLE public.security_kpi_snapshots ADD CONSTRAINT security_kpi_snapshots_
 ALTER TABLE public.self_review ADD CONSTRAINT self_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY (slug);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
+ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_pkey PRIMARY KEY (id);
+ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_pkey PRIMARY KEY (id);
+ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_pkey PRIMARY KEY (id);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
 ALTER TABLE public.sms_messages ADD CONSTRAINT sms_messages_pkey PRIMARY KEY (id);
@@ -10600,6 +10636,8 @@ ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_kind_subje
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_question_norm_key UNIQUE (question_norm);
 ALTER TABLE public.seat_case_memory ADD CONSTRAINT seat_case_memory_source_uq UNIQUE (source_table, source_id);
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_seat_pack_lang_question_key UNIQUE (seat, pack, lang, question);
+ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_doc_backup_id_key UNIQUE (doc_backup_id);
+ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_bucket_path_key UNIQUE (bucket, path);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_state_hash_key UNIQUE (state_hash);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_token_hash_key UNIQUE (token_hash);
 ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_user_id_key UNIQUE (platform, user_id);
@@ -11431,6 +11469,7 @@ ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_c
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_itself CHECK ((from_code <> ((implies_trade || '.'::text) || implies_code)));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_en_check CHECK ((btrim(reason_en) <> ''::text));
+ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_kind_check CHECK ((kind = ANY (ARRAY['customer'::text, 'supplier_self_registered'::text, 'supplier_invited_lead'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_order CHECK (((completed_at IS NULL) OR (started_at IS NOT NULL)));
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_platform_check CHECK ((platform = ANY (ARRAY['youtube'::text, 'linkedin'::text])));
@@ -11874,6 +11913,8 @@ ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES reasoning_knowledge_candidate(id);
 ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
+ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES social_conversation(id);
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_in_reply_to_fkey FOREIGN KEY (in_reply_to) REFERENCES social_message(id);
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
