@@ -69,6 +69,15 @@ test('every active model class has a seat and runs its route (pending model file
   assert.match(v, /^PROBE OK /, v);
 });
 
+// 12 Oct 2026: luna's failure breaker opened at 14:46:56 UTC (five empty completions) while a PR ran this check, and
+// the probe reported 11 review-route "drifts" over an unchanged model_policy. A breaker open for minutes is the
+// router working, not a change to the matrix: tripping luna's and Gemini's breakers here must still give PROBE OK.
+test('a failure breaker open for minutes is not matrix drift', { skip: !token() }, async () => {
+  const v = await run(replay() + `\n;\nupdate public.llm_route_health set open_until = now() + interval '5 minutes',
+    opened_reason = 'zz probe: empty_completion trip', opened_class = 'empty_completion' where model_id in ('openai/gpt-6-luna', 'google/gemini-3.8-flash');\n` + probe());
+  assert.match(v, /^PROBE OK /, v);
+});
+
 test('a new class with no seat in the matrix fails the probe', { skip: !token() }, async () => {
   const v = await run(replay() + `\n;\ninsert into public.model_policy (task_class, tier, model_primary, model_fallback, max_tokens, active)
     values ('zz_probe_unmapped_class', 'medium', 'openai/gpt-6-luna', 'google/gemini-3.8-flash', 500, true);\n` + probe());
