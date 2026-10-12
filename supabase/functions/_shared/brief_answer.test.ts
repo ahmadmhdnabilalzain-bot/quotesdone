@@ -69,6 +69,23 @@ Deno.test('a reveal fee stated without "no card fee, no VAT" is rewritten after 
   assert(/no card fee/.test((g.bodies[1].input as { content: string }[]).at(-1)!.content));
 });
 
+// prevented by: this test (live photo test, 13 Oct 2026). A reply cut off by the output limit is never shown as finished:
+// the unfinished tail is held back and the model writes the whole answer again; a truncated retry is never used.
+Deno.test('a cut-off stream is rewritten, and a truncated answer is never used', async () => {
+  const cut = new Response(new ReadableStream({ start(c) {
+    c.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({ choices: [{ delta: { content: 'I can see an old plan. There are no dimensions or' } }] }) + '\n\n'));
+    c.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({ choices: [{ delta: { content: '' }, finish_reason: 'length' }] }) + '\n\n'));
+    c.close();
+  } }), { headers: { 'content-type': 'text/event-stream' } });
+  const shown: string[] = [];
+  const g = gateway([cut, json({ content: 'I can see an old plan without dimensions. Please send them.' })]);
+  const a = await answerFromBrief(C, (t) => shown.push(t), g.f);
+  assertEquals(shown, ['I can see an old plan. ']);
+  assertEquals(a.reply, 'I can see an old plan without dimensions. Please send them.');
+  const g2 = gateway([json({ error: 'x' }, 502), json({ content: 'Half an ans', truncated: true }), json({ content: 'A whole answer.' })]);
+  assertEquals((await answerFromBrief(C, () => {}, g2.f)).reply, 'A whole answer.');
+});
+
 // prevented by: this test. A rate-limited sender is not retried on other models; the caller shows its notice.
 Deno.test('a rate-limited sender stops at once', async () => {
   const g = gateway([json({ ok: false, error: 'rate_limited' }, 429)]);
