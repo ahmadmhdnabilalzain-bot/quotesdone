@@ -18,7 +18,7 @@ const OUT = arg('--out'); if (!OUT) throw new Error('--out <dir> is required (us
 const TAG = arg('--tag', 'briefqa' + new Date().toISOString().slice(5, 10).replace('-', ''));
 const CAP = Number(arg('--cap', 3));
 const MODELS = (arg('--models', 'openai/gpt-6-luna,anthropic/claude-haiku-5.5,anthropic/claude-sonnet-5.5,anthropic/claude-opus-5.5')).split(',');
-const JUDGE = 'google/gemini-3.8-flash';
+const JUDGE = arg('--judge', 'google/gemini-3.8-flash'); // a model never judges itself: pass --judge when gemini is a candidate
 const MAX = Number(arg('--max', 2000)); // 900 truncated Sonnet 18/30 and Opus 10/30 on 12 Oct
 const JUDGE_FULL = process.argv.includes('--judge-full'); // judge sees the digests too, not only company.md
 mkdirSync(OUT, { recursive: true });
@@ -62,7 +62,7 @@ const JUDGE_ONLY = process.argv.includes('--judge-only'); // re-judge saved answ
 const answers = JUDGE_ONLY ? JSON.parse(readFileSync(join(OUT, 'answers.json'), 'utf8')) : {};
 try {
   for (const m of JUDGE_ONLY ? [] : MODELS) {
-    const cache = m.startsWith('anthropic/');
+    const cache = m.startsWith('anthropic/') || m.startsWith('google/'); // explicit cache_control; OpenAI caches the stable prefix by itself
     answers[m] = {};
     // first call alone writes the cache; the rest read it (3 lanes, inside the 5-minute TTL)
     answers[m][questions[0].id] = await call(m, SYSTEM, questions[0].q, { cache });
