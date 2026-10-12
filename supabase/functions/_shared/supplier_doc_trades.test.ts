@@ -84,3 +84,29 @@ Deno.test('evidence an older reader took from alias words is kept as a record bu
   assertEquals(merged[0].reason, WORD_READ);
   assertEquals(proposedFrom(merged), []);
 });
+
+// 7 Oct 2026 (sales_engineer, accuracy suite ledger 1162).
+import { withoutCredentialLines } from './supplier_doc_trades.ts';
+import { proposeByMeaning } from './service_meaning.ts';
+Deno.test('a licence proposes trades from its activities line only, never from the company name', async () => {
+  // the text a photo of the licence yields (photo_text): the same path a scan's model-read activities take
+  const ev = await readDocForTrades({ path: 'l', name: 'l.jpg', kind: 'licence', photo_text: 'Company Name: ZZ DEMO Hvac Plumbing LLC\nActivities: Electrical, Aluminium' }, deps());
+  assertEquals(codes(ev.trades), ['aluminium', 'electrical'], JSON.stringify(ev));
+  const none = await readDocForTrades({ path: 'l', name: 'l.jpg', kind: 'licence', photo_text: 'Company Name: ZZ DEMO Hvac LLC' }, deps());
+  assertEquals([none.trades.length, none.reason], [0, 'no activities line could be read on the licence']);
+});
+Deno.test('a certificate the company holds is a credential, not a service; a certification body keeps its line', () => {
+  assertEquals(withoutCredentialLines('Plumbing works\nCertifications\n- ISO 9001:2015 quality management\nHVAC'), 'Plumbing works\nHVAC');
+  assertEquals(withoutCredentialLines('ISO 9001:2015 certification services for contractors'), 'ISO 9001:2015 certification services for contractors');
+});
+Deno.test('a trade named in general is accepted by its trade name; a word that names ANOTHER trade decides nothing', () => {
+  const S: MeaningService[] = [
+    { trade_code: 'plumbing', code: 'maintenance', label_en: 'Plumbing maintenance contracts', label_ar: '', aliases: [], vec: [1, 0] },
+    { trade_code: 'non_ferrous_metals', code: 'aluminium_sheet', label_en: 'Aluminium sheet', label_ar: '', aliases: [], vec: [0, 1] },
+  ];
+  const labels = { plumbing: 'Plumbing & sanitary', aluminium: 'Aluminium & cladding', non_ferrous_metals: 'Aluminium, copper & non-ferrous metals', lighting_fixtures: 'Lighting fixtures' };
+  const p = proposeByMeaning([{ text: 'Plumbing works', vec: [0.95, 0.05], space: 'gte' }], [S[0]], { tradeLabels: labels });
+  assertEquals(p.map((x) => [x.trade, x.because]), [['plumbing', 'trade_word']]);
+  assertEquals(proposeByMeaning([{ text: 'Aluminium works', vec: [0.05, 0.95], space: 'gte' }], S, { tradeLabels: labels }), []);
+  assertEquals(proposeByMeaning([{ text: 'Plumbing works', vec: [0.95, 0.05], space: 'gte' }], [S[0]]).length, 0, 'opt-in: the Services tab is unchanged');
+});
