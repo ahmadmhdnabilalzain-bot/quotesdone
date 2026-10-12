@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "How is flexible packaging usually ordered in the UAE, by reel, weight or pieces?",
-      "q_ar": "كيف يُطلب التغليف المرن والأغشية البلاستيكية في الإمارات عادةً، بالبكرة أم بالوزن أم بالقطعة؟",
+      "q_ar": "التغليف المرن في الإمارات شلون ينطلب عادةً، بالرول ولا بالوزن ولا بالحبة؟",
       "expected_entry_ids": [
         "flexible_packaging:uae-market-sizes"
       ],

@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which machinery spare parts makers and stockists are active in the UAE?",
-      "q_ar": "ما الشركات المصنعة وتجار قطع غيار الآلات النشطون في الإمارات؟",
+      "q_ar": "منو مصنعين وموزعين قطع غيار المكائن الموجودين في الإمارات؟",
       "expected_entry_ids": [
         "machinery_spare_parts:uae-market-brands"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "For refrigerated warehousing, do they charge per stacked load each day, or per chilled lorry?",
-      "q_ar": "للتخزين المبرد، هل يحاسبون عن كل حمولة مكدّسة يومياً أم عن كل شاحنة مبرّدة؟",
+      "q_ar": "المخازن المبردة، يحاسبون على كل طبلية باليوم ولا على كل شاحنة مبردة؟",
       "expected_entry_ids": [
         "cold_chain_logistics:uae-market-sizes"
       ],

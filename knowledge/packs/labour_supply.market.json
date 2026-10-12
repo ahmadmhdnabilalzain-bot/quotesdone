@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Is hired workforce billed hourly, daily, or by the month for each person?",
-      "q_ar": "هل تُحاسَب العمالة المستأجرة بالساعة أم يومياً أم شهرياً لكل عامل؟",
+      "q_ar": "العمالة المستأجرة تنحسب بالساعة ولا باليوم ولا بالشهر على كل عامل؟",
       "expected_entry_ids": [
         "labour_supply:uae-market-sizes"
       ],

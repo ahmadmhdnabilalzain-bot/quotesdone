@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which rock-boring and stone-crushing kit can pits purchase locally?",
-      "q_ar": "ما معدات حفر الصخور وتكسير الأحجار التي تشتريها المحاجر محلياً؟",
+      "q_ar": "شو معدات الحفر في الصخر وتكسير الحجر اللي تقدر الكسارات والمحاجر تشتريها محلياً؟",
       "expected_entry_ids": [
         "mining_quarry_supplies:uae-market-products"
       ],

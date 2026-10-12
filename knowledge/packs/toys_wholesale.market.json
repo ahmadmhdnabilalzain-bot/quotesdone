@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which kids' playthings categories do bulk traders around here keep?",
-      "q_ar": "ما فئات ألعاب الأطفال التي يحتفظ بها تجار الجملة هنا؟",
+      "q_ar": "شو أصناف ألعاب الأطفال اللي يكون عند تجار الجملة هنا؟",
       "expected_entry_ids": [
         "toys_wholesale:uae-market-products"
       ],

@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Do rolling elements and drive straps come with a price each, per matched kit, or by the maker's listing dimensions?",
-      "q_ar": "هل تُسعَّر عناصر الدحرجة وسيور الإدارة بالقطعة أم بالطقم المتطابق أم حسب مقاسات كتالوج الصانع؟",
+      "q_ar": "الرولمانات والسيور، تنباع بالحبة ولا كطقم متكامل ولا حسب مقاسات كتالوج الشركة المصنعة؟",
       "expected_entry_ids": [
         "bearings_power_transmission:uae-market-sizes"
       ],

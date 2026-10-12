@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "How do MEP contractors here price a job, per point or per square foot?",
-      "q_ar": "كيف يسعّر مقاولو الكهروميكانيك هنا العمل، لكل نقطة أم بالقدم المربع؟",
+      "q_ar": "مقاولين الـ MEP هنا شلون يسعرون الشغل، على النقطة ولا على القدم المربع؟",
       "expected_entry_ids": [
         "mep_general:uae-market-sizes"
       ],

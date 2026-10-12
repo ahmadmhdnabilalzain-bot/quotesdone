@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which kinds of bitumen and refined petroleum products can buyers obtain locally in the UAE?",
-      "q_ar": "ما أنواع البيتومين والمنتجات البترولية المكررة التي يمكن للمشترين الحصول عليها محليًا في الإمارات؟",
+      "q_ar": "أي أنواع من البيتومين والمنتجات البترولية المكررة يقدر المشتري يحصلها محلياً في الإمارات؟",
       "expected_entry_ids": [
         "bitumen_petroleum_products:uae-market-products"
       ],

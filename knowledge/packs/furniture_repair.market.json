@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Do people fixing couches and cabinets quote for each piece or by number of places to sit?",
-      "q_ar": "هل يسعّر مصلحو الأرائك والخزائن بالقطعة أم بعدد المقاعد؟",
+      "q_ar": "اللي يصلحون الكنب والكبتات يسعّرون على كل قطعة ولا حسب عدد المقاعد؟",
       "expected_entry_ids": [
         "furniture_repair:uae-market-sizes"
       ],

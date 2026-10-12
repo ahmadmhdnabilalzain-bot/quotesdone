@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What demolition and strip-out services do contractors in the UAE typically provide?",
-      "q_ar": "ما خدمات الهدم والإزالة التي يقدمها المقاولون في الإمارات عادةً؟",
+      "q_ar": "شو خدمات الهدم والتكسير وإزالة التشطيبات اللي يقدمها المقاولين في الإمارات عادةً؟",
       "expected_entry_ids": [
         "demolition_works:uae-market-products"
       ],

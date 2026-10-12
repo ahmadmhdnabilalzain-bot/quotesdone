@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which pumping units, like borehole types, are on offer around town?",
-      "q_ar": "ما وحدات الضخ، مثل مضخات الآبار، المعروضة في المدينة؟",
+      "q_ar": "شو أنواع المضخات المتوفرة هنا، مثل مضخات الآبار؟",
       "expected_entry_ids": [
         "industrial_pumps:uae-market-products"
       ],

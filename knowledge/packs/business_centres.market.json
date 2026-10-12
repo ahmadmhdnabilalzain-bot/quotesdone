@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "Beyond renting one seat, which workspace arrangements exist around town: shared spots, a mailing-only setup, or my own closed room?",
-      "q_ar": "بعيداً عن استئجار مقعد واحد، ما ترتيبات مساحات العمل المتاحة: أماكن مشتركة، أو عنوان بريدي فقط، أو غرفة مغلقة خاصة بي؟",
+      "q_ar": "غير تأجير مكتب لشخص واحد، شو الخيارات الموجودة في السوق: مكان مشترك، ولا عنوان بريدي بس، ولا مكتب مسكّر خاص فيني؟",
       "expected_entry_ids": [
         "business_centres:uae-market-products"
       ],

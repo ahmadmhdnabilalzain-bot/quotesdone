@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "What packaging machinery is available from suppliers and agents in the UAE?",
-      "q_ar": "ما آلات التعبئة والتغليف المتوفرة لدى الموردين والوكلاء في الإمارات؟",
+      "q_ar": "شو آلات التعبئة والتغليف المتوفرة عند الموردين والوكلاء في الإمارات؟",
       "expected_entry_ids": [
         "packaging_machinery:uae-market-products"
       ],

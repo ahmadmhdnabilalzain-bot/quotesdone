@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Can I have poured-metal moulded pieces, pressure-cast items or hammered components produced locally?",
-      "q_ar": "هل يمكنني تصنيع قطع معدنية مصبوبة أو مسبوكة بالضغط أو مطروقة محلياً؟",
+      "q_ar": "أقدر أصنّع محلياً قطع مصبوبة بالقوالب أو قطع دايكاست أو قطع مطروقة؟",
       "expected_entry_ids": [
         "castings_forgings:uae-market-products",
         "castings_forgings:uae-market-brands"

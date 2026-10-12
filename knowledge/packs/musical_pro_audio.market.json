@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which instruments, mixers and speakers can a concert hall or nightclub purchase around town nowadays, honestly?",
-      "q_ar": "ما الآلات الموسيقية والمازجات والسماعات التي يمكن لقاعة حفلات أو نادٍ ليلي شراؤها في المدينة حالياً؟",
+      "q_ar": "بصراحة، أي آلات موسيقية وميكسرات وسماعات تقدر قاعة حفلات أو نايت كلوب تشتريها هنا هالأيام؟",
       "expected_entry_ids": [
         "musical_pro_audio:uae-market-products"
       ],

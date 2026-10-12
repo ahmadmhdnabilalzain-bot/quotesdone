@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which history checks on applicants and discreet enquiries can agencies around here realistically carry out?",
-      "q_ar": "ما فحوص السوابق للمتقدمين والتحريات السرية التي تنفذها الوكالات هنا فعلياً؟",
+      "q_ar": "أي فحوصات لسجل المتقدمين للوظائف وتحريات سرية تقدر المكاتب هنا تسويها فعلياً؟",
       "expected_entry_ids": [
         "investigation_screening:uae-market-products"
       ],

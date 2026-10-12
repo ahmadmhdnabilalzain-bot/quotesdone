@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Is clinical refuse pickup billed by kilo, by drum, or for each visit?",
-      "q_ar": "هل يُحاسَب جمع النفايات الطبية بالكيلو أم بالبرميل أم بكل زيارة؟",
+      "q_ar": "جمع النفايات الطبية يتحاسب بالكيلو ولا بالبرميل ولا على كل زيارة؟",
       "expected_entry_ids": [
         "hazardous_waste:uae-market-sizes"
       ],

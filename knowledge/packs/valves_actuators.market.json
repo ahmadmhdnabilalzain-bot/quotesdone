@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What valves and actuators are commonly stocked by industrial suppliers in the UAE?",
-      "q_ar": "ما الصمامات والمشغلات المتوفرة عادةً لدى الموردين الصناعيين في الإمارات؟",
+      "q_ar": "شو المحابس والمشغلات (الأكتشويتر) اللي عادةً تكون متوفرة عند الموردين الصناعيين في الإمارات؟",
       "expected_entry_ids": [
         "valves_actuators:uae-market-products"
       ],

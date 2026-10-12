@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "For groundwork and structural jobs, is pricing by area, by volume of concrete, or one agreed overall figure?",
-      "q_ar": "لأعمال الأساسات والإنشاءات، هل يكون التسعير بالمساحة أم بحجم الخرسانة أم بمبلغ إجمالي متفق عليه؟",
+      "q_ar": "في أعمال الحفر والإنشاءات، التسعير يكون بالمساحة ولا بكمية الخرسانة ولا مبلغ مقطوع متفق عليه للشغل كله؟",
       "expected_entry_ids": [
         "civil_works:uae-market-sizes"
       ],

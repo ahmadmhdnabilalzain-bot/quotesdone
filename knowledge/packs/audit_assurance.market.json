@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which audit firms operate here, Big Four only or local ones too?",
-      "q_ar": "ما شركات التدقيق العاملة هنا، الأربع الكبرى فقط أم شركات محلية أيضاً؟",
+      "q_ar": "مكاتب التدقيق الموجودة هنا، بس الشركات الأربع الكبار ولا في مكاتب محلية بعد؟",
       "expected_entry_ids": [
         "audit_assurance:uae-market-brands"
       ],

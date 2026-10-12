@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What translation and interpretation help do providers in the UAE typically offer?",
-      "q_ar": "ما المساعدة في الترجمة التحريرية والفورية التي يقدمها المزودون في الإمارات عادةً؟",
+      "q_ar": "شو خدمات الترجمة التحريرية والفورية اللي يقدمها المزودين في الإمارات عادةً؟",
       "expected_entry_ids": [
         "translation_interpretation:uae-market-products"
       ],

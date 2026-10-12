@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "What capacities and batch volumes do rigid plastic container suppliers in the UAE offer?",
-      "q_ar": "ما السعات وأحجام الدفعات التي يوفرها موردو العبوات البلاستيكية الصلبة في الإمارات؟",
+      "q_ar": "شو السعات وكميات الطلب اللي يوفرها موردين العبوات البلاستيك الصلبة في الإمارات؟",
       "expected_entry_ids": [
         "rigid_plastic_packaging:uae-market-sizes",
         "rigid_plastic_packaging:uae-market-products"

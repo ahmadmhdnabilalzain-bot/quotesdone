@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Are programs licensed by person, by machine, or through a plan renewed each twelve months?",
-      "q_ar": "هل تُرخَّص البرامج حسب الشخص أم الجهاز أم بخطة تُجدَّد كل اثني عشر شهراً؟",
+      "q_ar": "البرامج ترخيصها يكون على كل شخص، ولا كل جهاز، ولا باشتراك يتجدد كل سنة؟",
       "expected_entry_ids": [
         "software_licensing:uae-market-sizes",
         "software_licensing:uae-market-products"

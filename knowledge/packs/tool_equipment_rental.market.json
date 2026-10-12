@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "For hiring kit, is it by daily, weekly, or monthly rates, and do they ask for a security payment?",
-      "q_ar": "لاستئجار المعدات، هل الأسعار يومية أم أسبوعية أم شهرية، وهل يطلبون مبلغ تأمين؟",
+      "q_ar": "تأجير العدة يكون بسعر يومي ولا أسبوعي ولا شهري، وهل يطلبون تأمين؟",
       "expected_entry_ids": [
         "tool_equipment_rental:uae-market-sizes"
       ],

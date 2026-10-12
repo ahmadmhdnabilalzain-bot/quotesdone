@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "How is scaffolding rental usually costed in the UAE, by area, weight or rental period?",
-      "q_ar": "كيف تُحتسب تكلفة تأجير السقالات في الإمارات عادةً، بالمساحة أم بالوزن أم بمدة الإيجار؟",
+      "q_ar": "إيجار السقالات في الإمارات شلون ينحسب عادةً، بالمساحة ولا بالوزن ولا بمدة الإيجار؟",
       "expected_entry_ids": [
         "scaffolding:uae-market-sizes"
       ],

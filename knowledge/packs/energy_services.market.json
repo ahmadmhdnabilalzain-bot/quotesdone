@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "Do efficiency firms bill a set price for assessments, or take a share of money saved on bills?",
-      "q_ar": "هل تفرض شركات كفاءة الطاقة سعراً ثابتاً للتقييمات أم تأخذ حصة من المبالغ الموفرة في الفواتير؟",
+      "q_ar": "شركات توفير الطاقة تحاسب سعر ثابت على التدقيق، ولا تاخذ نسبة من التوفير في الفواتير؟",
       "expected_entry_ids": [
         "energy_services:uae-market-sizes"
       ],

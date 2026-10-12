@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which AV, IT and low current solutions do UAE installers commonly supply?",
-      "q_ar": "ما حلول الصوت والصورة وتقنية المعلومات والتيار الخفيف التي يوردها المركّبون في الإمارات عادةً؟",
+      "q_ar": "شو حلول الصوت والصورة والآي تي والتيار الخفيف اللي يوردها المركبين في الإمارات عادةً؟",
       "expected_entry_ids": [
         "av_it:uae-market-products"
       ],

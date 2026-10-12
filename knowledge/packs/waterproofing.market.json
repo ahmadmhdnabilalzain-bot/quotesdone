@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "How do contractors in the UAE usually cost waterproofing and insulation jobs?",
-      "q_ar": "كيف يحتسب المقاولون في الإمارات تكلفة أعمال العزل المائي والحراري عادةً؟",
+      "q_ar": "المقاولين في الإمارات شلون يسعرون أعمال العزل المائي والحراري عادةً؟",
       "expected_entry_ids": [
         "waterproofing:uae-market-sizes"
       ],

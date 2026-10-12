@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "How do debt collection and credit report agencies in the UAE charge, a share of recoveries or a flat rate?",
-      "q_ar": "كيف تتقاضى وكالات تحصيل الديون والتقارير الائتمانية في الإمارات أجرها، بنسبة من المبالغ المحصلة أم بسعر موحد؟",
+      "q_ar": "شركات تحصيل الديون والتقارير الائتمانية في الإمارات شلون تحاسب، نسبة من المبالغ المحصلة ولا سعر ثابت؟",
       "expected_entry_ids": [
         "debt_collection:uae-market-sizes"
       ],

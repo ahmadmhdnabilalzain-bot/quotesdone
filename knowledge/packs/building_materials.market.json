@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "How do merchants charge for cement powder, gravel fill and concrete bricks: by sack, weight or lorry?",
-      "q_ar": "كيف يسعّر التجار مسحوق الإسمنت والحصى والطوب الخرساني: بالكيس أم بالوزن أم بالشاحنة؟",
+      "q_ar": "التجار كيف يحاسبون على الإسمنت والصبيص والطابوق الإسمنتي: بالكيس ولا بالوزن ولا بالتريلة؟",
       "expected_entry_ids": [
         "building_materials:uae-market-sizes"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which checkout tills and store tech do local shops rely on?",
-      "q_ar": "ما أجهزة الكاشير وتقنيات المتاجر التي تعتمد عليها المحلات المحلية؟",
+      "q_ar": "شو أجهزة الكاشير وتقنيات المحلات اللي تعتمد عليها المحلات هنا؟",
       "expected_entry_ids": [
         "pos_retail:uae-market-products"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What do employer-of-record and pay processing firms charge for each person, roughly, every few weeks?",
-      "q_ar": "كم تتقاضى شركات صاحب العمل المسجّل ومعالجة الرواتب عن كل موظف تقريباً بشكل دوري؟",
+      "q_ar": "شركات التوظيف نيابةً عن صاحب العمل (EOR) ومعالجة الرواتب كم تاخذ تقريباً عن كل موظف كل كم أسبوع؟",
       "expected_entry_ids": [
         "hr_outsourcing:uae-market-sizes"
       ],

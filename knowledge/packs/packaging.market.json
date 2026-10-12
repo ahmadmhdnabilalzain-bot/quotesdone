@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which packaging and printing material makers and stockists operate in the UAE?",
-      "q_ar": "ما الشركات المصنعة وتجار مواد التغليف والطباعة العاملون في الإمارات؟",
+      "q_ar": "منو مصنعين وموزعين مواد التغليف والطباعة الموجودين في الإمارات؟",
       "expected_entry_ids": [
         "packaging:uae-market-brands"
       ],

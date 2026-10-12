@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What else can an ad agency do for my company beyond producing commercials, realistically, around town?",
-      "q_ar": "ماذا يمكن لوكالة إعلان أن تقدّم لشركتي غير إنتاج الإعلانات فعلياً في المدينة؟",
+      "q_ar": "شو غير تصوير الإعلانات تقدر وكالة الإعلان تسوي لشركتي، بشكل واقعي، هنا؟",
       "expected_entry_ids": [
         "marketing_advertising:uae-market-products"
       ],

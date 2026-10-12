@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What electrical products and works can buyers source from suppliers and contractors in the UAE?",
-      "q_ar": "ما المنتجات والأعمال الكهربائية التي يمكن للمشترين الحصول عليها من الموردين والمقاولين في الإمارات؟",
+      "q_ar": "شو المنتجات والأعمال الكهربائية اللي يقدر المشتري يحصلها من الموردين والمقاولين في الإمارات؟",
       "expected_entry_ids": [
         "electrical:uae-market-products"
       ],

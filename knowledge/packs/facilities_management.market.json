@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "How are facilities management agreements in the UAE usually structured and billed?",
-      "q_ar": "كيف تُهيكل اتفاقيات إدارة المرافق في الإمارات وتُحتسب تكلفتها عادةً؟",
+      "q_ar": "عقود إدارة المرافق في الإمارات شلون تكون مهيكلة عادةً وشلون تنحسب؟",
       "expected_entry_ids": [
         "facilities_management:uae-market-sizes"
       ],

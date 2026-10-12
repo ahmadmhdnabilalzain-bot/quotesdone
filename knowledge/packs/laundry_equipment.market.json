@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "For a wash house, which drum capacities in kilograms are common in machines around here?",
-      "q_ar": "لمغسلة، ما سعات الأحواض بالكيلوغرام الشائعة في الآلات هنا؟",
+      "q_ar": "لمغسلة، أي سعات حلة بالكيلو هي المنتشرة في الغسالات هنا؟",
       "expected_entry_ids": [
         "laundry_equipment:uae-market-sizes"
       ],

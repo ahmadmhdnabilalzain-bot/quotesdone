@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What fire fighting and life safety solutions do UAE installers and suppliers provide?",
-      "q_ar": "ما حلول مكافحة الحريق والسلامة التي يقدمها المركّبون والموردون في الإمارات؟",
+      "q_ar": "شو حلول مكافحة الحريق وأنظمة السلامة اللي يوفرها المركّبين والموردين في الإمارات؟",
       "expected_entry_ids": [
         "fire_fighting:uae-market-products"
       ],

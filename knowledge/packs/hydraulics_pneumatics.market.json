@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What hydraulic and pneumatic parts and systems are available from UAE suppliers?",
-      "q_ar": "ما قطع وأنظمة الهيدروليك والهواء المضغوط المتوفرة لدى الموردين في الإمارات؟",
+      "q_ar": "شو قطع وأنظمة الهيدروليك والنيوماتيك المتوفرة عند الموردين في الإمارات؟",
       "expected_entry_ids": [
         "hydraulics_pneumatics:uae-market-products"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How do dockside workshops bill boat fixes: by time on the slipway, or a figure for everything?",
-      "q_ar": "كيف تحاسب ورش الأحواض على إصلاح القوارب: بمدة البقاء على المزلق أم بمبلغ للعمل كاملاً؟",
+      "q_ar": "ورش الأحواض كيف تحاسب على تصليح القوارب: حسب المدة على المزلقان، ولا مبلغ واحد للشغل كله؟",
       "expected_entry_ids": [
         "shipbuilding_repair:uae-market-sizes"
       ],

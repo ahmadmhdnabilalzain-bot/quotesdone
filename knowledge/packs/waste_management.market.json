@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "How is a rubbish skip costed around town: by its capacity or by each pickup?",
-      "q_ar": "كيف تُسعَّر حاوية النفايات في المدينة: بسعتها أم بكل عملية جمع؟",
+      "q_ar": "حاوية الزبالة كيف تتسعر هنا: حسب حجمها ولا على كل رفعة؟",
       "expected_entry_ids": [
         "waste_management:uae-market-sizes"
       ],

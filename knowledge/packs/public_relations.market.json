@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Do press agencies work on ongoing monthly deals or for each campaign?",
-      "q_ar": "هل تعمل وكالات العلاقات الإعلامية بعقود شهرية مستمرة أم لكل حملة؟",
+      "q_ar": "وكالات الإعلام تشتغل باتفاقات شهرية مستمرة ولا على كل حملة؟",
       "expected_entry_ids": [
         "public_relations:uae-market-sizes"
       ],

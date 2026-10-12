@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "What security systems do suppliers and installers in the UAE typically provide?",
-      "q_ar": "ما الأنظمة الأمنية التي يقدمها الموردون والمركّبون في الإمارات عادةً؟",
+      "q_ar": "شو الأنظمة الأمنية اللي يوفرها الموردين والمركّبين في الإمارات عادةً؟",
       "expected_entry_ids": [
         "security_systems:uae-market-products"
       ],

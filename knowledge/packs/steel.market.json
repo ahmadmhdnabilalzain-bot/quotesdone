@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which fabricating jobs in iron and alloys can workshops here take on?",
-      "q_ar": "ما أعمال التصنيع بالحديد والسبائك التي تستطيع الورش هنا تنفيذها؟",
+      "q_ar": "أي شغل تصنيع حديد ومعادن تقدر الورش هنا تاخذه؟",
       "expected_entry_ids": [
         "steel:uae-market-products"
       ],

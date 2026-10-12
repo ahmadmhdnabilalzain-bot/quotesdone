@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What oilfield and industrial supplies can companies source from stockists in the UAE?",
-      "q_ar": "ما مستلزمات حقول النفط والصناعة التي يمكن للشركات الحصول عليها من التجار في الإمارات؟",
+      "q_ar": "شو مستلزمات حقول النفط والمستلزمات الصناعية اللي تقدر الشركات تحصلها من الموزعين في الإمارات؟",
       "expected_entry_ids": [
         "oilfield:uae-market-products"
       ],

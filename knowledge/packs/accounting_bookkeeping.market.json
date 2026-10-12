@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "How do UAE accounting and bookkeeping firms usually charge, a recurring retainer or per invoice processed?",
-      "q_ar": "كيف تتقاضى شركات المحاسبة ومسك الدفاتر في الإمارات أجرها عادةً، باشتراك دوري أم لكل فاتورة تتم معالجتها؟",
+      "q_ar": "مكاتب المحاسبة ومسك الدفاتر في الإمارات شلون تحاسب عادةً، اشتراك شهري ثابت ولا على كل فاتورة يتم إدخالها؟",
       "expected_entry_ids": [
         "accounting_bookkeeping:uae-market-sizes"
       ],

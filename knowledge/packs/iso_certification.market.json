@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which ISO and product certification bodies are active in the UAE market?",
-      "q_ar": "ما جهات منح شهادات الأيزو والمنتجات العاملة في السوق الإماراتي؟",
+      "q_ar": "شو جهات شهادات الأيزو وشهادات المنتجات النشطة في سوق الإمارات؟",
       "expected_entry_ids": [
         "iso_certification:uae-market-brands"
       ],

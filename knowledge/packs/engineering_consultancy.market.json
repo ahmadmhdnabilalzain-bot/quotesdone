@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What work do engineering consultancy and architecture firms in the UAE typically take on?",
-      "q_ar": "ما الأعمال التي تتولاها مكاتب الاستشارات الهندسية والعمارة في الإمارات عادةً؟",
+      "q_ar": "شو نوع الشغل اللي تاخذه عادةً مكاتب الاستشارات الهندسية والمعمارية في الإمارات؟",
       "expected_entry_ids": [
         "engineering_consultancy:uae-market-products"
       ],

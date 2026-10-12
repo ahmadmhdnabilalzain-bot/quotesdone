@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "Are warehouse shelf setups costed per section, per slot, or per tier around here?",
-      "q_ar": "هل تُسعَّر رفوف المستودعات بالقسم أم بالموضع أم بالمستوى هنا؟",
+      "q_ar": "رفوف المستودعات هنا تتسعر على كل قسم ولا على كل خانة ولا على كل دور؟",
       "expected_entry_ids": [
         "racking_storage:uae-market-sizes"
       ],

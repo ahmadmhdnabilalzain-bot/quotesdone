@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which seating and fixed fittings can nearby makers produce for a new hospitality project?",
-      "q_ar": "ما المقاعد والتجهيزات الثابتة التي يستطيع المصنّعون القريبون إنتاجها لمشروع ضيافة جديد؟",
+      "q_ar": "أي جلسات وتجهيزات ثابتة يقدر المصنعين القريبين يصنعونها لمشروع فندقي جديد؟",
       "expected_entry_ids": [
         "hotel_furniture:uae-market-products"
       ],

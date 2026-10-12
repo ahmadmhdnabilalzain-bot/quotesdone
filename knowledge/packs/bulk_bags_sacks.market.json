@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "Which polypropylene carriers and big one-tonne FIBCs are manufactured or on offer locally?",
-      "q_ar": "ما أكياس البولي بروبيلين والأكياس الكبيرة سعة طن التي تُصنع أو تُعرض محلياً؟",
+      "q_ar": "شو أكياس البولي بروبلين والجامبو باق (طن) اللي تنصنع أو تتوفر محلياً؟",
       "expected_entry_ids": [
         "bulk_bags_sacks:uae-market-products",
         "bulk_bags_sacks:uae-market-brands"

@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "How do contractors in the UAE usually cost utility network and pipeline works?",
-      "q_ar": "كيف يحتسب المقاولون في الإمارات تكلفة أعمال شبكات المرافق وخطوط الأنابيب عادةً؟",
+      "q_ar": "المقاولين في الإمارات شلون يسعرون عادةً أعمال شبكات المرافق وخطوط الأنابيب؟",
       "expected_entry_ids": [
         "infrastructure_utilities:uae-market-sizes"
       ],

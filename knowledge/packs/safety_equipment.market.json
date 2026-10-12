@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What safety equipment and PPE can companies buy from suppliers in the UAE?",
-      "q_ar": "ما معدات السلامة والوقاية الشخصية التي يمكن للشركات شراؤها من الموردين في الإمارات؟",
+      "q_ar": "شو معدات السلامة ومعدات الوقاية الشخصية PPE اللي تقدر الشركات تشتريها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "safety_equipment:uae-market-products"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which stores and provisions for seagoing crews can be obtained from nearby harbours?",
-      "q_ar": "ما المؤن والمخازن لطواقم البحر التي يمكن الحصول عليها من الموانئ القريبة؟",
+      "q_ar": "أي مؤن وتموين لطواقم السفن ممكن أحصلها من الموانئ القريبة؟",
       "expected_entry_ids": [
         "marine:uae-market-products"
       ],

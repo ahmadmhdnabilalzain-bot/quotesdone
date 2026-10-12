@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which pupil workstations, seats and laboratory fittings can classrooms find nearby?",
-      "q_ar": "ما محطات عمل الطلاب والمقاعد وتجهيزات المختبرات التي يمكن للفصول الدراسية إيجادها بالقرب منها؟",
+      "q_ar": "أي طاولات وكراسي طلاب وتجهيزات مختبرات تقدر الفصول تلقاها قريب؟",
       "expected_entry_ids": [
         "school_furniture:uae-market-products"
       ],

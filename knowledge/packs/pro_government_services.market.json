@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Do visa and paperwork agents charge for each errand or a flat sum every month?",
-      "q_ar": "هل يحاسب مندوبو التأشيرات والمعاملات على كل معاملة أم بمبلغ ثابت كل شهر؟",
+      "q_ar": "مندوبين التأشيرات والمعاملات يحاسبون على كل معاملة ولا مبلغ ثابت كل شهر؟",
       "expected_entry_ids": [
         "pro_government_services:uae-market-sizes"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How do steel stockists in the UAE usually trade, by weight or by bar count?",
-      "q_ar": "كيف يبيع تجار الحديد والصلب في الإمارات عادةً، بالوزن أم بعدد القضبان؟",
+      "q_ar": "تجار الحديد في الإمارات شلون يبيعون عادةً، بالوزن ولا بعدد الأعواد؟",
       "expected_entry_ids": [
         "steel_stock:uae-market-sizes"
       ],

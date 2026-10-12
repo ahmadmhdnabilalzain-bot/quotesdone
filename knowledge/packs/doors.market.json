@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Are entrance leaves and glazed openings priced each, or by area, around here?",
-      "q_ar": "هل تُسعَّر الأبواب والفتحات الزجاجية بالقطعة أم بالمساحة هنا؟",
+      "q_ar": "الأبواب والشبابيك الزجاج هنا، تتسعر بالحبة ولا بالمتر المربع؟",
       "expected_entry_ids": [
         "doors:uae-market-sizes"
       ],

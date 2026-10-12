@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What retail shelving and display fixtures do suppliers in the UAE offer to shops?",
-      "q_ar": "ما الرفوف ووحدات العرض التي يقدمها الموردون في الإمارات لمتاجر التجزئة؟",
+      "q_ar": "شو رفوف ووحدات العرض اللي يقدمها الموردين في الإمارات للمحلات؟",
       "expected_entry_ids": [
         "retail_shelving:uae-market-products"
       ],

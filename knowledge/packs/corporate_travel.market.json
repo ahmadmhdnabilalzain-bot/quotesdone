@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How do business trip agents bill firms around here: a set amount for each ticket, or a margin added?",
-      "q_ar": "كيف يحاسب وكلاء رحلات العمل الشركات هنا: مبلغ ثابت لكل تذكرة أم هامش مضاف؟",
+      "q_ar": "وكالات سفر رحلات العمل هنا شلون تحاسب الشركات: مبلغ ثابت على كل تذكرة ولا نسبة فوق السعر؟",
       "expected_entry_ids": [
         "corporate_travel:uae-market-sizes"
       ],

@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What sort of school reading and classroom stuff do distributors around here keep on hand?",
-      "q_ar": "ما نوع الكتب المدرسية ومستلزمات الفصول التي يحتفظ بها الموزعون هنا؟",
+      "q_ar": "شو نوع كتب القراءة للمدارس والوسائل الصفية اللي يكون عند الموزعين هنا في المخزون؟",
       "expected_entry_ids": [
         "books_educational:uae-market-products"
       ],

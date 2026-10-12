@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What industrial and construction chemicals are readily available from suppliers in the UAE?",
-      "q_ar": "ما الكيماويات الصناعية والإنشائية المتوفرة بسهولة لدى الموردين في الإمارات؟",
+      "q_ar": "شو الكيماويات الصناعية وكيماويات البناء المتوفرة بسهولة عند الموردين في الإمارات؟",
       "expected_entry_ids": [
         "chemicals:uae-market-products"
       ],

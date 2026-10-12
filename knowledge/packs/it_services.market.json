@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "How do IT and network services providers in the UAE usually bill, per seat, per site or a recurring subscription?",
-      "q_ar": "كيف يحاسب مزودو خدمات تقنية المعلومات والشبكات في الإمارات عادةً، لكل مقعد أم لكل موقع أم باشتراك متكرر؟",
+      "q_ar": "مزودين خدمات تقنية المعلومات والشبكات في الإمارات كيف يحاسبون عادةً، على كل مستخدم ولا كل موقع ولا اشتراك متكرر؟",
       "expected_entry_ids": [
         "it_services:uae-market-sizes"
       ],

@@ -71,7 +71,7 @@
   "eval": [
     {
       "q_en": "Which web and online promotion bundles do agencies around here typically put together?",
-      "q_ar": "ما باقات الترويج عبر الإنترنت والويب التي تجمعها الوكالات هنا عادةً؟",
+      "q_ar": "شو باقات المواقع والتسويق أونلاين اللي عادةً تجهزها الوكالات هنا؟",
       "expected_entry_ids": [
         "digital_marketing:uae-market-products"
       ],

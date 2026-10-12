@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which backyard fountains and paddling setups can builders here create for a home?",
-      "q_ar": "ما النوافير في الفناء الخلفي وأحواض الخوض التي يمكن للبنّائين هنا تنفيذها لمنزل؟",
+      "q_ar": "أي نوافير ومسابح صغيرة للحوش يقدر المقاولين هنا يسوونها لبيت؟",
       "expected_entry_ids": [
         "swimming_pools:uae-market-products"
       ],

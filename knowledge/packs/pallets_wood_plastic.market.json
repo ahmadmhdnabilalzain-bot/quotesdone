@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What kinds of timber and plastic pallets can businesses source in the UAE?",
-      "q_ar": "ما أنواع الطبليات الخشبية والبلاستيكية التي يمكن للشركات الحصول عليها في الإمارات؟",
+      "q_ar": "شو أنواع الطبليات الخشب والبلاستيك اللي تقدر الشركات توفرها في الإمارات؟",
       "expected_entry_ids": [
         "pallets_wood_plastic:uae-market-products"
       ],

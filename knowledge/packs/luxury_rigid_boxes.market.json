@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What batch volumes and finishes do luxury gift packaging suppliers in the UAE usually accept?",
-      "q_ar": "ما أحجام الدفعات والتشطيبات التي يقبلها موردو علب الهدايا والتغليف الفاخر في الإمارات عادةً؟",
+      "q_ar": "شو كميات الطلب والتشطيبات اللي يقبلها عادةً موردين علب الهدايا الفاخرة في الإمارات؟",
       "expected_entry_ids": [
         "luxury_rigid_boxes:uae-market-sizes"
       ],

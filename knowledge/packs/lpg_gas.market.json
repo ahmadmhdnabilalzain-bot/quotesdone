@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "How are cooking fuel bottles and bigger supplies charged around town: per refill or by kilo?",
-      "q_ar": "كيف تُحاسَب أسطوانات غاز الطهي والإمدادات الأكبر في المدينة: بكل تعبئة أم بالكيلو؟",
+      "q_ar": "سلندرات غاز الطبخ والتوريد الأكبر كيف تتحاسب هنا: على كل تعبئة ولا بالكيلو؟",
       "expected_entry_ids": [
         "lpg_gas:uae-market-sizes"
       ],

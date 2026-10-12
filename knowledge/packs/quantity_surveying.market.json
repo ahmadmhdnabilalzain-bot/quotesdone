@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What do QS practices and estimators offer to clients around here?",
-      "q_ar": "ماذا تقدم مكاتب مساحي الكميات والمقدّرون للعملاء هنا؟",
+      "q_ar": "شو اللي تقدمه مكاتب حساب الكميات والمقدّرين للعملاء هنا؟",
       "expected_entry_ids": [
         "quantity_surveying:uae-market-products"
       ],

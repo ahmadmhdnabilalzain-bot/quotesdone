@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "Do machine repair shops charge hourly, per callout, or under an AMC?",
-      "q_ar": "هل تحاسب ورش إصلاح الآلات بالساعة أم لكل زيارة أم بعقد صيانة سنوي؟",
+      "q_ar": "ورش تصليح المكائن تحاسب بالساعة ولا على كل زيارة ولا بعقد صيانة سنوي AMC؟",
       "expected_entry_ids": [
         "machinery_repair:uae-market-sizes"
       ],

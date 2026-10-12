@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which plane bits and fix-up help can be found inside the country, without importing everything?",
-      "q_ar": "ما قطع الطائرات وخدمات إصلاحها التي يمكن إيجادها داخل الدولة دون استيراد كل شيء؟",
+      "q_ar": "أي قطع طيارات وخدمات صيانة وإصلاح ممكن ألقاها داخل الدولة بدون ما أستورد كل شي من برا؟",
       "expected_entry_ids": [
         "aircraft_parts_mro:uae-market-products"
       ],

@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What legal support do attorneys and legal consultancies in the UAE typically offer businesses?",
-      "q_ar": "ما الدعم القانوني الذي يقدمه المحامون والمستشارون القانونيون في الإمارات للشركات عادةً؟",
+      "q_ar": "شو الدعم القانوني اللي يقدمه المحامين ومكاتب الاستشارات القانونية في الإمارات للشركات عادةً؟",
       "expected_entry_ids": [
         "legal_services:uae-market-products"
       ],

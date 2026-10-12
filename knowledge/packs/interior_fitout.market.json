@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What interior fit-out jobs do contractors in the UAE usually take on for retail and commercial spaces?",
-      "q_ar": "ما أعمال التشطيبات والتجهيزات الداخلية التي يتولاها المقاولون في الإمارات للمساحات التجارية ومحلات التجزئة عادةً؟",
+      "q_ar": "شو أعمال الفيت آوت الداخلي اللي ياخذها المقاولين في الإمارات عادةً للمحلات والمساحات التجارية؟",
       "expected_entry_ids": [
         "interior_fitout:uae-market-products"
       ],

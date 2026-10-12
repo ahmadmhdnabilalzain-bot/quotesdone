@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which polymer tubing types and connectors are common here?",
-      "q_ar": "ما أنواع الأنابيب البوليمرية ووصلاتها الشائعة هنا؟",
+      "q_ar": "شو أنواع البايبات البلاستيك والوصلات المنتشرة هنا؟",
       "expected_entry_ids": [
         "plastics_pipes:uae-market-products"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Is kids' outdoor kit costed by each item, or as one whole finished zone?",
-      "q_ar": "هل تُسعَّر ألعاب الأطفال الخارجية بالقطعة أم كمنطقة متكاملة جاهزة؟",
+      "q_ar": "ألعاب الأطفال الخارجية تتسعر على كل قطعة، ولا كمنطقة كاملة جاهزة؟",
       "expected_entry_ids": [
         "playground_equipment:uae-market-sizes"
       ],

@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What types of air compressors can businesses buy or rent from suppliers in the UAE?",
-      "q_ar": "ما أنواع ضواغط الهواء التي يمكن للشركات شراؤها أو استئجارها من الموردين في الإمارات؟",
+      "q_ar": "شو أنواع الكمبروسرات اللي تقدر الشركات تشتريها أو تستأجرها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "air_compressors:uae-market-products"
       ],

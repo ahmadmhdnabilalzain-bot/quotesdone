@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "How do commercial laundry and linen hire providers in the UAE usually charge, by weight or per article?",
-      "q_ar": "كيف تحاسب المغاسل التجارية ومزودو تأجير البياضات في الإمارات عادةً، بالوزن أم لكل قطعة؟",
+      "q_ar": "شركات المغاسل التجارية وتأجير البياضات في الإمارات شلون تحاسب عادةً، بالكيلو ولا بالقطعة؟",
       "expected_entry_ids": [
         "laundry_services:uae-market-sizes"
       ],

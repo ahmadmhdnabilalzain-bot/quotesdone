@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How is event equipment and AV rental usually charged in the UAE, per event or by rental duration?",
-      "q_ar": "كيف يُحتسب تأجير معدات الفعاليات والصوت والصورة في الإمارات عادةً، لكل فعالية أم حسب مدة التأجير؟",
+      "q_ar": "تأجير معدات الفعاليات والصوت والصورة كيف يتحاسب عادةً في الإمارات، على الفعالية ولا حسب مدة الإيجار؟",
       "expected_entry_ids": [
         "event_equipment_rental:uae-market-sizes"
       ],

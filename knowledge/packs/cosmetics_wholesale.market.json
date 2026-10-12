@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which face creams and makeup lines can bulk distributors nearby provide to shops?",
-      "q_ar": "ما كريمات الوجه وخطوط المكياج التي يستطيع موزعو الجملة القريبون توفيرها للمتاجر؟",
+      "q_ar": "أي ماركات كريمات الوجه والمكياج يقدر موزعين الجملة القريبين يوفرونها للمحلات؟",
       "expected_entry_ids": [
         "cosmetics_wholesale:uae-market-products",
         "cosmetics_wholesale:uae-market-brands"

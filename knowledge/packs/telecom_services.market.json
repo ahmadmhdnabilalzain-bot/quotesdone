@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which telecom equipment makers and carriers are present in the UAE market?",
-      "q_ar": "ما الشركات المصنعة لمعدات الاتصالات وشركات النقل الموجودة في السوق الإماراتي؟",
+      "q_ar": "منو مصنعين معدات الاتصالات والمشغلين الموجودين في سوق الإمارات؟",
       "expected_entry_ids": [
         "telecom_services:uae-market-brands",
         "telecom_services:uae-market-products"

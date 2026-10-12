@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Are watchmen billed hourly, by duty period, or per post each month?",
-      "q_ar": "هل يُحاسَب الحراس بالساعة أم بالمناوبة أم لكل موقع شهرياً؟",
+      "q_ar": "الحراس ينحسبون بالساعة ولا بالشفت ولا على كل نقطة حراسة بالشهر؟",
       "expected_entry_ids": [
         "security_guarding:uae-market-sizes"
       ],

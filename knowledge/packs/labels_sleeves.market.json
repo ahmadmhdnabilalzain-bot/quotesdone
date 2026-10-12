@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "How are labels and shrink sleeves usually ordered in the UAE, by reel or in bulk quantities?",
-      "q_ar": "كيف تُطلب الملصقات والأغلفة الانكماشية في الإمارات عادةً، بالبكرة أم بكميات كبيرة؟",
+      "q_ar": "الليبلات والشرنك سليف في الإمارات شلون تنطلب عادةً، بالرول ولا بكميات كبيرة؟",
       "expected_entry_ids": [
         "labels_sleeves:uae-market-sizes"
       ],

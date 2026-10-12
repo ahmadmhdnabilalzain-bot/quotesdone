@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What capacities and order quantities do glass bottle and jar suppliers in the UAE offer?",
-      "q_ar": "ما السعات والكميات التي يوفرها موردو القوارير والمرطبانات الزجاجية في الإمارات؟",
+      "q_ar": "شو الأحجام وكميات الطلب اللي يوفرها موردين القوارير والمرطبانات الزجاج في الإمارات؟",
       "expected_entry_ids": [
         "glass_containers:uae-market-sizes"
       ],

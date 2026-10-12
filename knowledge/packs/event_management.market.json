@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What can event management firms in the UAE organise for company functions?",
-      "q_ar": "ما الذي يمكن لشركات تنظيم الفعاليات في الإمارات تنظيمه لمناسبات الشركات؟",
+      "q_ar": "شو تقدر شركات تنظيم الفعاليات في الإمارات تنظم لمناسبات الشركات؟",
       "expected_entry_ids": [
         "event_management:uae-market-products"
       ],

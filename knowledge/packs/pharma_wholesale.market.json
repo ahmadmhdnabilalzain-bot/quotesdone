@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "Which pharmacy stock can authorised distributors around here realistically provide to chemists?",
-      "q_ar": "ما مخزون الصيدليات الذي يستطيع الموزعون المرخصون هنا توفيره للصيدليات فعلياً؟",
+      "q_ar": "شو الأدوية والمنتجات اللي يقدر الموزعين المعتمدين هنا يوفرونها للصيدليات بشكل واقعي؟",
       "expected_entry_ids": [
         "pharma_wholesale:uae-market-products"
       ],

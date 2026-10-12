@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What vehicles can companies buy through fleet sales from dealers in the UAE?",
-      "q_ar": "ما السيارات التي يمكن للشركات شراؤها عبر مبيعات الأساطيل من الوكلاء في الإمارات؟",
+      "q_ar": "شو السيارات اللي تقدر الشركات تشتريها عن طريق مبيعات الأساطيل من الوكالات في الإمارات؟",
       "expected_entry_ids": [
         "vehicles_fleet:uae-market-products"
       ],

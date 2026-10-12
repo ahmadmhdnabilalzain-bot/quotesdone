@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Do wastewater suction trucks bill by journey or by the volume removed?",
-      "q_ar": "هل تحاسب شاحنات شفط مياه الصرف بالرحلة أم بالكمية المسحوبة؟",
+      "q_ar": "تناكر شفط مياه الصرف تحاسب على النقلة ولا على الكمية اللي تنشفط؟",
       "expected_entry_ids": [
         "sewage_tanker:uae-market-sizes"
       ],

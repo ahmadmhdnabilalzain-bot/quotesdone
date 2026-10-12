@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Are photocopiers on a plan paid every few weeks, or billed by each sheet run?",
-      "q_ar": "هل تُؤجَّر آلات التصوير بخطة دورية أم تُحاسَب بكل ورقة مطبوعة؟",
+      "q_ar": "آلات التصوير تكون على خطة تدفعها كل كم أسبوع، ولا تتحاسب على كل ورقة تنطبع؟",
       "expected_entry_ids": [
         "office_equipment:uae-market-sizes"
       ],

@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "Which clinical apparatus and healthcare kit can be purchased locally?",
-      "q_ar": "ما الأجهزة السريرية ومستلزمات الرعاية الصحية التي يمكن شراؤها محلياً؟",
+      "q_ar": "أي أجهزة ومستلزمات طبية ممكن أشتريها محلياً؟",
       "expected_entry_ids": [
         "medical_equipment:uae-market-products"
       ],

@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What fencing, shade and tensile structure options do UAE suppliers typically offer?",
-      "q_ar": "ما خيارات الأسوار والمظلات والهياكل الشدية التي يقدمها الموردون في الإمارات عادةً؟",
+      "q_ar": "شو خيارات الأسوار والمظلات والهياكل الشدية اللي يقدمها الموردين في الإمارات عادةً؟",
       "expected_entry_ids": [
         "fencing_shades:uae-market-products"
       ],

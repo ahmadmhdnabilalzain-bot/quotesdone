@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "How are mannequins and visual merchandising items usually sold or rented in the UAE?",
-      "q_ar": "كيف تُباع أو تُؤجّر عارضات الأزياء وتجهيزات العرض المرئي في الإمارات عادةً؟",
+      "q_ar": "المانيكانات وتجهيزات العرض كيف تنباع أو تتأجر عادةً في الإمارات؟",
       "expected_entry_ids": [
         "mannequins_visual_merchandising:uae-market-sizes"
       ],

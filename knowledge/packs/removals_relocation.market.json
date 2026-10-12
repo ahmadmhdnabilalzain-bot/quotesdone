@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Do house moving firms bill by number of bedrooms, by load, or by lorry?",
-      "q_ar": "هل تحاسب شركات نقل الأثاث المنزلي بعدد غرف النوم أم بالحمولة أم بالشاحنة؟",
+      "q_ar": "شركات نقل العفش تحاسب حسب عدد الغرف ولا الحمولة ولا على الشاحنة؟",
       "expected_entry_ids": [
         "removals_relocation:uae-market-sizes"
       ],

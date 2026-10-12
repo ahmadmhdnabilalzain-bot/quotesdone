@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What export crating and industrial packing options do firms in the UAE provide?",
-      "q_ar": "ما خيارات صناديق التصدير والتغليف الصناعي التي توفرها الشركات في الإمارات؟",
+      "q_ar": "شو خيارات صناديق التصدير والتغليف الصناعي اللي تقدمها الشركات في الإمارات؟",
       "expected_entry_ids": [
         "industrial_crating:uae-market-products"
       ],

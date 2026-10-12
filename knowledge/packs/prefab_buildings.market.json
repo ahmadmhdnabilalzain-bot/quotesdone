@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Are portable site cabins sold by footprint dimensions, and how are they costed?",
-      "q_ar": "هل تُباع الكبائن المتنقلة للمواقع حسب أبعاد المساحة، وكيف تُسعَّر؟",
+      "q_ar": "الكرفانات والبورتا كابن للمواقع، تنباع حسب مقاسات المساحة؟ وشلون تتسعر؟",
       "expected_entry_ids": [
         "prefab_buildings:uae-market-sizes"
       ],

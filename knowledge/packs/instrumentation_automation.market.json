@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which programmable controllers, sensors and automation gear can I find locally?",
-      "q_ar": "ما وحدات التحكم المبرمجة وأجهزة الاستشعار ومعدات الأتمتة التي أجدها محلياً؟",
+      "q_ar": "شو الـ PLC والحساسات ومعدات الأتمتة اللي أقدر ألقاها محلياً؟",
       "expected_entry_ids": [
         "instrumentation_automation:uae-market-products"
       ],

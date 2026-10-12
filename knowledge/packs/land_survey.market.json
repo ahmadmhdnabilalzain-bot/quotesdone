@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which kinds of measuring, ashore or underwater, can firms here perform?",
-      "q_ar": "ما أنواع القياس، على الشاطئ أو تحت الماء، التي تستطيع الشركات هنا إجراءها؟",
+      "q_ar": "شو أنواع المسح والقياس، على البر أو تحت الماي، اللي تقدر تسويها الشركات هنا؟",
       "expected_entry_ids": [
         "land_survey:uae-market-products"
       ],

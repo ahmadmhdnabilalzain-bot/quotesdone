@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Step-inside freezers, water coolers for plant, glass-front fridges: what's offered locally?",
-      "q_ar": "غرف التجميد التي يُدخل إليها، ومبردات المياه للمصانع، والثلاجات ذات الواجهة الزجاجية: ما المعروض محلياً؟",
+      "q_ar": "غرف تجميد، تشيلرات ماي للمصانع، ثلاجات بواجهة زجاج: شو المتوفر محلياً؟",
       "expected_entry_ids": [
         "refrigeration_cold_rooms:uae-market-products"
       ],

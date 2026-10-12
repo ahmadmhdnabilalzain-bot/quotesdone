@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Are snack dispensers bought outright, hired, or placed on an income split?",
-      "q_ar": "هل تُشترى آلات البيع الذاتي نقداً أم تُستأجر أم توضع بنظام تقاسم الإيرادات؟",
+      "q_ar": "مكاين بيع السناكات، تنشرى كاش ولا تتأجر ولا تنحط بنظام تقاسم الدخل؟",
       "expected_entry_ids": [
         "vending_machines:uae-market-sizes"
       ],

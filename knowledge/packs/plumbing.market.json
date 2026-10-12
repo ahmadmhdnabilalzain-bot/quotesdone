@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What plumbing and sanitary supplies are commonly available from stockists in the UAE?",
-      "q_ar": "ما مستلزمات السباكة والأدوات الصحية المتوفرة عادةً لدى التجار في الإمارات؟",
+      "q_ar": "شو أدوات السباكة والأدوات الصحية المتوفرة عادةً عند المحلات في الإمارات؟",
       "expected_entry_ids": [
         "plumbing:uae-market-products"
       ],

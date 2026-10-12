@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "What scratchy pads, spinning cutters for metal and shiny-finish pastes might a small workshop pick up around town?",
-      "q_ar": "ما أنواع الوسائد الخشنة وأقراص القطع الدوّارة للمعادن ومعاجين التلميع التي يمكن لورشة صغيرة شراؤها محلياً؟",
+      "q_ar": "شو أنواع الليف الخشن وأقراص القص الدوارة للحديد ومعاجين التلميع اللي تقدر ورشة صغيرة تلقاها في السوق هنا؟",
       "expected_entry_ids": [
         "abrasives_surface_finishing:uae-market-products"
       ],

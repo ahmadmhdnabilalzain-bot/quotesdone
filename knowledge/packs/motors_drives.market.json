@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which motors, inverters and gentle-start units do dealers around town keep on shelves nowadays?",
-      "q_ar": "ما المحركات والعواكس ووحدات البدء الناعم التي يحتفظ بها الوكلاء في المدينة حالياً؟",
+      "q_ar": "شو الماطورات والانفرترات والسوفت ستارتر اللي يكون عند الوكلاء هنا في المخزن هالأيام؟",
       "expected_entry_ids": [
         "motors_drives:uae-market-products",
         "motors_drives:uae-market-sizes"

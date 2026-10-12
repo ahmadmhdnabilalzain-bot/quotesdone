@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which policies can a local insurance middleman arrange for my business?",
-      "q_ar": "ما وثائق التأمين التي يرتبها وسيط تأمين محلي لنشاطي التجاري؟",
+      "q_ar": "أي بوالص تأمين يقدر وسيط تأمين محلي يرتبها لشركتي؟",
       "expected_entry_ids": [
         "insurance_brokerage:uae-market-products"
       ],

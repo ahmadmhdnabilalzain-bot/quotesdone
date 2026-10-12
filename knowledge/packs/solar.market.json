@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Photovoltaic modules, converters, sun-powered boilers: which green kit can buyers find?",
-      "q_ar": "الألواح الكهروضوئية والعواكس والسخانات الشمسية: ما المعدات الخضراء التي يجدها المشترون؟",
+      "q_ar": "ألواح شمسية، انفرترات، سخانات شمسية: شو معدات الطاقة النظيفة اللي يقدر المشتري يلقاها؟",
       "expected_entry_ids": [
         "solar:uae-market-products"
       ],

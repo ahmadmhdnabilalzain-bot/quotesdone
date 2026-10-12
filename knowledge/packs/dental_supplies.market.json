@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "Which treatment seats, fillings and disposables for dentists are on offer locally?",
-      "q_ar": "ما كراسي العلاج ومواد الحشو والمستهلكات الخاصة بأطباء الأسنان المعروضة محلياً؟",
+      "q_ar": "شو كراسي العلاج والحشوات والمستهلكات لأطباء الأسنان المتوفرة محلياً؟",
       "expected_entry_ids": [
         "dental_supplies:uae-market-products"
       ],

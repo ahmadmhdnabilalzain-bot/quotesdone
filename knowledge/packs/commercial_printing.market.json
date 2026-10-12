@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What commercial and digital printing options can businesses get from print shops in the UAE?",
-      "q_ar": "ما خيارات الطباعة التجارية والرقمية التي يمكن للشركات الحصول عليها من المطابع في الإمارات؟",
+      "q_ar": "شو خيارات الطباعة التجارية والديجيتال اللي تقدر الشركات تاخذها من المطابع في الإمارات؟",
       "expected_entry_ids": [
         "commercial_printing:uae-market-products"
       ],

@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What real estate brokerage and property management help is offered to businesses in the UAE?",
-      "q_ar": "ما المساعدة في الوساطة العقارية وإدارة العقارات المقدمة للشركات في الإمارات؟",
+      "q_ar": "شو مساعدة الوساطة العقارية وإدارة العقارات المتوفرة للشركات في الإمارات؟",
       "expected_entry_ids": [
         "real_estate_services:uae-market-products"
       ],

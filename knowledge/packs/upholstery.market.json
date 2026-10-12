@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What upholstery and soft furnishing work can businesses get from workshops in the UAE?",
-      "q_ar": "ما أعمال التنجيد والمفروشات التي يمكن للشركات الحصول عليها من الورش في الإمارات؟",
+      "q_ar": "شو أعمال التنجيد والمفروشات اللي تقدر الشركات تاخذها من الورش في الإمارات؟",
       "expected_entry_ids": [
         "upholstery:uae-market-products"
       ],

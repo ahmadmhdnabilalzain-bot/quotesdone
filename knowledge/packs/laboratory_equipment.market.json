@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How are laboratory equipment and chemicals usually packaged and sold by UAE suppliers?",
-      "q_ar": "كيف يعبئ الموردون في الإمارات معدات ومواد المختبرات ويبيعونها عادةً؟",
+      "q_ar": "كيف تنباع معدات المختبرات والمواد الكيماوية عادةً عند الموردين في الإمارات، وبأي تغليف؟",
       "expected_entry_ids": [
         "laboratory_equipment:uae-market-sizes"
       ],

@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which household gadget categories, like fridges, can I purchase in bulk locally?",
-      "q_ar": "ما فئات الأجهزة المنزلية، كالثلاجات، التي يمكنني شراؤها بالجملة محلياً؟",
+      "q_ar": "أي فئات أجهزة منزلية، مثل الثلاجات، أقدر أشتريها جملة هنا محلياً؟",
       "expected_entry_ids": [
         "home_appliances:uae-market-products"
       ],

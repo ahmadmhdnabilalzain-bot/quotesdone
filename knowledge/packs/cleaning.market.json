@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Do UAE cleaning and facility services firms usually charge by the hour or a fixed periodic rate?",
-      "q_ar": "هل تتقاضى شركات التنظيف وخدمات المرافق في الإمارات أجرها عادةً بالساعة أم بسعر دوري ثابت؟",
+      "q_ar": "شركات التنظيف وخدمات المرافق في الإمارات تحاسب بالساعة عادةً ولا بسعر ثابت دوري؟",
       "expected_entry_ids": [
         "cleaning:uae-market-sizes"
       ],

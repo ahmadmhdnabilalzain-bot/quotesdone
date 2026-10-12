@@ -71,7 +71,7 @@
   "eval": [
     {
       "q_en": "How are medical consumables usually packed and sold by suppliers in the UAE, per pack or per case?",
-      "q_ar": "كيف يعبئ الموردون في الإمارات المستهلكات الطبية ويبيعونها عادةً، بالعبوة أم بالصندوق؟",
+      "q_ar": "المستهلكات الطبية في الإمارات شلون يغلفونها ويبيعونها الموردين عادةً، بالباكيت ولا بالكرتون؟",
       "expected_entry_ids": [
         "medical_consumables:uae-market-sizes"
       ],

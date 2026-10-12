@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which camera and footage jobs can studios here deliver?",
-      "q_ar": "ما أعمال التصوير واللقطات التي تستطيع الاستوديوهات هنا تنفيذها؟",
+      "q_ar": "أي شغل تصوير فوتو وفيديو تقدر الاستوديوهات هنا تسلمه؟",
       "expected_entry_ids": [
         "photo_video_production:uae-market-products"
       ],

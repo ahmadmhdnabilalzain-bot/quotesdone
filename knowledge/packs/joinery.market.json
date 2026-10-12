@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which bespoke carpentry can craftsmen here build for my place, such as cupboards and entrance leaves?",
-      "q_ar": "ما أعمال النجارة حسب الطلب التي يمكن للحرفيين هنا تنفيذها لمكاني، مثل الخزائن وأبواب المدخل؟",
+      "q_ar": "أي شغل نجارة تفصيل يقدر النجارين هنا يسوونه لمكاني، مثل الكبتات وأبواب المدخل؟",
       "expected_entry_ids": [
         "joinery:uae-market-products"
       ],

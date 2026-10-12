@@ -71,7 +71,7 @@
   "eval": [
     {
       "q_en": "Which aluminium and cladding solutions can companies find from local UAE suppliers?",
-      "q_ar": "ما حلول الألمنيوم والتكسية التي يمكن للشركات إيجادها لدى الموردين المحليين في الإمارات؟",
+      "q_ar": "شو حلول الألمنيوم والكلادينج اللي تقدر الشركات تحصلها من موردين محليين في الإمارات؟",
       "expected_entry_ids": [
         "aluminium:uae-market-products"
       ],

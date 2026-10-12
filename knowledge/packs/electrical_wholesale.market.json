@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "When buying sockets, switches and breakers in bulk, is it by case, pack or mixed lots?",
-      "q_ar": "عند شراء المقابس والمفاتيح والقواطع بالجملة، هل يكون ذلك بالكرتونة أم بالعبوة أم بدفعات مختلطة؟",
+      "q_ar": "لما أشتري أفياش ومفاتيح وقواطع بالجملة، يكون بالكرتون ولا بالباكيت ولا تشكيلة مخلوطة؟",
       "expected_entry_ids": [
         "electrical_wholesale:uae-market-sizes"
       ],

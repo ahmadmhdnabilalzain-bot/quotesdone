@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which ground stabilisation membranes and engineered cloths can I buy locally?",
-      "q_ar": "ما أغشية تثبيت التربة والأقمشة الهندسية التي يمكنني شراؤها محلياً؟",
+      "q_ar": "أي أغشية تثبيت التربة والأقمشة الهندسية أقدر أشتريها محلياً؟",
       "expected_entry_ids": [
         "industrial_textiles:uae-market-products"
       ],

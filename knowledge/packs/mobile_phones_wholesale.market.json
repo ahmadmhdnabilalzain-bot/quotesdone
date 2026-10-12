@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which handsets and add-ons can I purchase in volume around town?",
-      "q_ar": "ما الهواتف وملحقاتها التي يمكنني شراؤها بكميات في المدينة؟",
+      "q_ar": "أي موبايلات وإكسسوارات أقدر أشتريها بالجملة هنا في السوق؟",
       "expected_entry_ids": [
         "mobile_phones_wholesale:uae-market-products"
       ],

@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Is red metal or light metal bought by kilo or by bar around town, honestly?",
-      "q_ar": "هل يُشترى النحاس أو الألمنيوم بالكيلو أم بالقضيب في المدينة؟",
+      "q_ar": "النحاس أو الألمنيوم هنا ينباع بالكيلو ولا بالعود، بصراحة؟",
       "expected_entry_ids": [
         "non_ferrous_metals:uae-market-sizes"
       ],

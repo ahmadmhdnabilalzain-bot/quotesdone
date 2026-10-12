@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which garden and terrace seating survives the scorching local summer?",
-      "q_ar": "ما أثاث الحدائق والشرفات الذي يتحمّل صيف المنطقة الحارق؟",
+      "q_ar": "شو جلسات الحدائق والتراس اللي تتحمل حر الصيف هنا؟",
       "expected_entry_ids": [
         "outdoor_furniture:uae-market-products"
       ],

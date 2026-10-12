@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "How is diesel and fuel supply usually trucked and billed for businesses in the UAE?",
-      "q_ar": "كيف يُنقل الديزل والوقود بالشاحنات للشركات في الإمارات وكيف تُحتسب فواتيره عادةً؟",
+      "q_ar": "توريد الديزل والوقود للشركات في الإمارات شلون يتوصل بالتناكر عادةً وشلون ينحسب؟",
       "expected_entry_ids": [
         "fuel_diesel:uae-market-sizes",
         "fuel_diesel:uae-market-products"

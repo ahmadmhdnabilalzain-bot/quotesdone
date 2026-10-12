@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Ready-made booth or bespoke: which trade fair setups do builders around here offer?",
-      "q_ar": "جناح جاهز أم مصمم حسب الطلب: ما أنواع أجنحة المعارض التي يقدمها المنفذون هنا؟",
+      "q_ar": "بوث جاهز ولا تصميم خاص: شو أنواع أجنحة المعارض اللي يقدمها المنفذين هنا؟",
       "expected_entry_ids": [
         "exhibition_stands:uae-market-products"
       ],

@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What water treatment plant O&M and tank cleaning support can businesses arrange in the UAE?",
-      "q_ar": "ما دعم تشغيل محطات المعالجة وصيانتها وتنظيف الخزانات الذي يمكن للشركات ترتيبه في الإمارات؟",
+      "q_ar": "شو خدمات تشغيل وصيانة محطات معالجة المياه وتنظيف الخزانات اللي تقدر الشركات ترتبها في الإمارات؟",
       "expected_entry_ids": [
         "water_treatment_services:uae-market-products"
       ],

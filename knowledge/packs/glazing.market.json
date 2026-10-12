@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What glass and glazing solutions can buyers source from UAE suppliers?",
-      "q_ar": "ما حلول الزجاج والواجهات الزجاجية التي يمكن للمشترين الحصول عليها من الموردين في الإمارات؟",
+      "q_ar": "شو حلول الزجاج والواجهات الزجاجية اللي يقدر المشتري يوفرها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "glazing:uae-market-products"
       ],

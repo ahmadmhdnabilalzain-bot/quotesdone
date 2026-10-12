@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What paper bags and carrier bags do packaging suppliers in the UAE usually offer?",
-      "q_ar": "ما الأكياس الورقية وأكياس التسوق التي يقدمها موردو التغليف في الإمارات عادةً؟",
+      "q_ar": "شو الأكياس الورقية وأكياس التسوق اللي يوفرها موردين التغليف في الإمارات عادةً؟",
       "expected_entry_ids": [
         "paper_bags:uae-market-products"
       ],

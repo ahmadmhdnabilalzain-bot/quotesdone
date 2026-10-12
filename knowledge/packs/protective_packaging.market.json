@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "Which cushioning and padding for parcels is available locally for an online shop?",
-      "q_ar": "ما مواد التبطين والحشو للطرود المتوفرة محلياً لمتجر إلكتروني؟",
+      "q_ar": "شو مواد الحماية والتبطين للطرود المتوفرة محلياً لمتجر أونلاين؟",
       "expected_entry_ids": [
         "protective_packaging:uae-market-products"
       ],

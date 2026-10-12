@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "How is a lift for people costed around town: number of floors, weight carried, or how quick it goes?",
-      "q_ar": "كيف يُسعَّر مصعد الركاب في المدينة: بعدد الطوابق أم بالحمولة أم بسرعة الحركة؟",
+      "q_ar": "المصعد للركاب هنا شلون ينحسب سعره: على عدد الأدوار ولا الحمولة ولا السرعة؟",
       "expected_entry_ids": [
         "elevators:uae-market-sizes"
       ],

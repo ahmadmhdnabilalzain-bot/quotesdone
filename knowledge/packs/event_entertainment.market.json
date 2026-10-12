@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What kind of acts can I hire for a company evening around here?",
-      "q_ar": "ما نوع الفقرات الفنية التي يمكنني حجزها لأمسية شركة هنا؟",
+      "q_ar": "شو نوع الفقرات والفنانين اللي أقدر أحجزهم لحفلة شركة هنا؟",
       "expected_entry_ids": [
         "event_entertainment:uae-market-products"
       ],

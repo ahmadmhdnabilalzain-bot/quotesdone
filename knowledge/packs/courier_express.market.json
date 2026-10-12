@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "How do parcel firms around town work out what they charge: by kilograms, destination, or dimensions?",
-      "q_ar": "كيف تحسب شركات الطرود في المدينة رسومها: بالكيلوغرام أم بالوجهة أم بالأبعاد؟",
+      "q_ar": "شركات توصيل الطرود هنا شلون يحسبون السعر: بالكيلو ولا حسب الوجهة ولا حسب المقاسات؟",
       "expected_entry_ids": [
         "courier_express:uae-market-sizes"
       ],

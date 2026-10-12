@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Is a purification unit costed by its output in cubic metres daily?",
-      "q_ar": "هل تُسعَّر وحدة تنقية المياه حسب إنتاجها بالمتر المكعب يومياً؟",
+      "q_ar": "وحدة تنقية الماي تتسعر على حسب إنتاجها بالمتر المكعب في اليوم؟",
       "expected_entry_ids": [
         "water_treatment:uae-market-sizes"
       ],

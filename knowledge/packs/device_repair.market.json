@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What fixes can nearby technicians handle on notebooks and mobiles, like cracked glass or dead boards?",
-      "q_ar": "ما الإصلاحات التي يجريها الفنيون القريبون للحواسيب المحمولة والهواتف، مثل الزجاج المكسور أو اللوحات التالفة؟",
+      "q_ar": "شو التصليحات اللي يقدر يسويها الفنيين القريبين للابتوبات والموبايلات، مثل الشاشة المكسورة أو البورد الخربان؟",
       "expected_entry_ids": [
         "device_repair:uae-market-products"
       ],

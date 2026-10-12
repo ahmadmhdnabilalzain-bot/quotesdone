@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Setting up a farm locally, where would I find plant nutrients, crop starters and livestock rations?",
-      "q_ar": "أؤسس مزرعة محلياً، فأين أجد مغذيات النبات والبذور وأعلاف الماشية؟",
+      "q_ar": "أبي أفتح مزرعة هنا، وين ألقى أسمدة وبذور وشتلات وأعلاف للمواشي؟",
       "expected_entry_ids": [
         "agri_inputs:uae-market-products",
         "agri_inputs:uae-market-brands"

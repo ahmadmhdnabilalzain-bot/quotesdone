@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Do business advisers bill daily, by assignment, or through an ongoing monthly arrangement?",
-      "q_ar": "هل يحاسب المستشارون الإداريون باليوم أم بالمهمة أم باتفاق شهري مستمر؟",
+      "q_ar": "المستشارين في مجال الأعمال يحاسبون باليوم ولا على كل مهمة ولا باتفاق شهري مستمر؟",
       "expected_entry_ids": [
         "management_consultancy:uae-market-sizes"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How do UAE suppliers usually match cooling load and cost for HVAC and air conditioning equipment?",
-      "q_ar": "كيف يحدد الموردون في الإمارات حمل التبريد والتكلفة لمعدات التكييف والتهوية عادةً؟",
+      "q_ar": "الموردين في الإمارات شلون يطابقون حمل التبريد مع السعر عادةً لمعدات التكييف والتهوية؟",
       "expected_entry_ids": [
         "hvac:uae-market-sizes"
       ],

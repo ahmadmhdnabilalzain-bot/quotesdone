@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What painting and finishing products and services are available from UAE suppliers and contractors?",
-      "q_ar": "ما منتجات وخدمات الدهانات والتشطيبات المتوفرة لدى الموردين والمقاولين في الإمارات؟",
+      "q_ar": "شو منتجات وخدمات الصبغ والتشطيبات المتوفرة عند الموردين والمقاولين في الإمارات؟",
       "expected_entry_ids": [
         "painting:uae-market-products"
       ],

@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What façade access, BMU and rope access options can businesses arrange with firms in the UAE?",
-      "q_ar": "ما خيارات الوصول إلى الواجهات ووحدات صيانة المباني والعمل بالحبال التي يمكن للشركات ترتيبها في الإمارات؟",
+      "q_ar": "شو خيارات الوصول للواجهات ووحدات BMU والعمل بالحبال اللي تقدر الشركات ترتبها مع شركات في الإمارات؟",
       "expected_entry_ids": [
         "facade_access_maintenance:uae-market-products"
       ],

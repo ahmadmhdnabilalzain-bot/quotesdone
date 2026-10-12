@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "How is industrial insulation and corrosion protection work usually costed in the UAE, by area or lump sum?",
-      "q_ar": "كيف تُحتسب تكلفة أعمال العزل الصناعي والحماية من التآكل في الإمارات عادةً، بالمساحة أم بمبلغ مقطوع؟",
+      "q_ar": "شغل العزل الصناعي والحماية من الصدأ كيف يتسعر عادةً في الإمارات، بالمتر المربع ولا مبلغ مقطوع؟",
       "expected_entry_ids": [
         "corrosion_insulation:uae-market-sizes"
       ],

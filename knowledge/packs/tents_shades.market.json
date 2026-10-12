@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "How are tents, shades and canopies usually hired or sold in the UAE?",
-      "q_ar": "كيف تُستأجر أو تُباع الخيام والمظلات في الإمارات عادةً؟",
+      "q_ar": "الخيام والمظلات والكانوبي في الإمارات شلون تتأجر أو تنباع عادةً؟",
       "expected_entry_ids": [
         "tents_shades:uae-market-sizes"
       ],

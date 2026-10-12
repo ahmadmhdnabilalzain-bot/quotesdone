@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What's the usual minimum for branded giveaways and how is pricing tiered?",
-      "q_ar": "ما الحد الأدنى المعتاد للهدايا الدعائية وكيف تتدرج الأسعار؟",
+      "q_ar": "كم أقل كمية عادةً للهدايا الدعائية بالشعار، وكيف يتدرج السعر؟",
       "expected_entry_ids": [
         "promotional_gifts:uae-market-sizes"
       ],

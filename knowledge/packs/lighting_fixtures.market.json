@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "Which lamps and luminaires can I find locally nowadays: recessed, long bars, exterior, ornamental?",
-      "q_ar": "ما المصابيح ووحدات الإنارة التي أجدها محلياً حالياً: المدمجة، والخطية الطويلة، والخارجية، والزخرفية؟",
+      "q_ar": "أي لمبات ووحدات إنارة أقدر ألقاها محلياً هالأيام: سبوت مدفون، لاينر طويل، خارجي، ديكور؟",
       "expected_entry_ids": [
         "lighting_fixtures:uae-market-products"
       ],

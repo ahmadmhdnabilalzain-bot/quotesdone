@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What services do HSE consultancies in the UAE typically offer to companies?",
-      "q_ar": "ما الخدمات التي تقدمها مكاتب استشارات الصحة والسلامة والبيئة في الإمارات للشركات عادةً؟",
+      "q_ar": "شو الخدمات اللي تقدمها استشارات الصحة والسلامة والبيئة (HSE) في الإمارات للشركات عادةً؟",
       "expected_entry_ids": [
         "hse_consultancy:uae-market-products"
       ],

@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What batteries and energy storage solutions can buyers find from suppliers in the UAE?",
-      "q_ar": "ما البطاريات وحلول تخزين الطاقة التي يمكن للمشترين إيجادها لدى الموردين في الإمارات؟",
+      "q_ar": "شو أنواع البطاريات وحلول تخزين الطاقة اللي يقدر المشتري يلقاها عند الموردين في الإمارات؟",
       "expected_entry_ids": [
         "batteries_storage:uae-market-products",
         "batteries_storage:uae-market-sizes"

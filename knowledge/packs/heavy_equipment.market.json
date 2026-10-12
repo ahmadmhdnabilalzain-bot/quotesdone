@@ -71,7 +71,7 @@
   "eval": [
     {
       "q_en": "How is heavy equipment rental usually charged in the UAE, hourly, daily or monthly?",
-      "q_ar": "كيف يُحتسب استئجار المعدات الثقيلة والآليات في الإمارات عادةً، بالساعة أم باليوم أم بالشهر؟",
+      "q_ar": "إيجار المعدات الثقيلة في الإمارات شلون ينحسب عادةً، بالساعة ولا باليوم ولا بالشهر؟",
       "expected_entry_ids": [
         "heavy_equipment:uae-market-sizes"
       ],

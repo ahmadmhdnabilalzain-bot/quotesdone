@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What upkeep and repair jobs can garages here carry out on company vans and cars?",
-      "q_ar": "ما أعمال الصيانة والإصلاح التي يمكن للورش هنا تنفيذها على سيارات الشركة وشاحناتها الصغيرة؟",
+      "q_ar": "شو أعمال الصيانة والتصليح اللي تقدر الكراجات هنا تسويها لفانات وسيارات الشركة؟",
       "expected_entry_ids": [
         "fleet_maintenance:uae-market-products"
       ],

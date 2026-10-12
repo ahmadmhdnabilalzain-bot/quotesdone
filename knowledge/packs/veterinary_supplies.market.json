@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which cattle feed, remedies for dogs and cats, and husbandry stuff are available locally nowadays?",
-      "q_ar": "ما أعلاف الماشية وأدوية الكلاب والقطط ومستلزمات تربية الحيوانات المتوفرة محلياً حالياً؟",
+      "q_ar": "أي أعلاف مواشي وأدوية كلاب وقطط ومستلزمات تربية متوفرة محلياً هالأيام؟",
       "expected_entry_ids": [
         "veterinary_supplies:uae-market-products"
       ],

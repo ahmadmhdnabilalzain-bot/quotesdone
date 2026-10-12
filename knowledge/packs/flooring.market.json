@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What flooring materials and installation options are available from suppliers in the UAE?",
-      "q_ar": "ما مواد الأرضيات وخيارات تركيبها المتوفرة لدى الموردين في الإمارات؟",
+      "q_ar": "شو مواد الأرضيات وخيارات التركيب المتوفرة عند الموردين في الإمارات؟",
       "expected_entry_ids": [
         "flooring:uae-market-products"
       ],

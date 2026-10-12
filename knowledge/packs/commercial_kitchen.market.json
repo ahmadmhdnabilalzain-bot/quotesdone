@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What commercial kitchen equipment do suppliers in the UAE typically offer to restaurants and hotels?",
-      "q_ar": "ما معدات المطابخ التجارية التي يقدمها الموردون في الإمارات عادةً للمطاعم والفنادق؟",
+      "q_ar": "شو معدات المطابخ التجارية اللي عادةً يوفرها الموردين في الإمارات للمطاعم والفنادق؟",
       "expected_entry_ids": [
         "commercial_kitchen:uae-market-products"
       ],

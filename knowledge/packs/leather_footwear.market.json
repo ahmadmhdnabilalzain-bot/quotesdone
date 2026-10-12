@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which hide accessories and footwear can I source from local vendors?",
-      "q_ar": "ما المنتجات الجلدية والأحذية التي يمكنني الحصول عليها من موردين محليين؟",
+      "q_ar": "أي إكسسوارات جلد وأحذية أقدر أحصلها من موردين محليين؟",
       "expected_entry_ids": [
         "leather_footwear:uae-market-products"
       ],

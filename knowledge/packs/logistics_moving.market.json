@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "How do logistics, moving and storage companies in the UAE usually charge for their services?",
-      "q_ar": "كيف تحتسب شركات النقل والتخزين والخدمات اللوجستية في الإمارات أسعار خدماتها عادةً؟",
+      "q_ar": "شركات اللوجستيات والنقل والتخزين في الإمارات شلون تحاسب على خدماتها عادةً؟",
       "expected_entry_ids": [
         "logistics_moving:uae-market-sizes"
       ],

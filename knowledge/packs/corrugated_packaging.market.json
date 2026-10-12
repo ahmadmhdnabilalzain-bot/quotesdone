@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What order quantities and box sizes do UAE corrugated carton suppliers usually accept?",
-      "q_ar": "ما الكميات وأحجام الصناديق التي يقبلها موردو الكرتون المموج في الإمارات عادةً؟",
+      "q_ar": "موردين الكراتين المموجة في الإمارات شو الكميات ومقاسات الكراتين اللي يقبلونها عادةً بالطلب؟",
       "expected_entry_ids": [
         "corrugated_packaging:uae-market-sizes"
       ],

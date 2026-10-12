@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Is agarwood and scent concentrate traded in bulk by the tola, by kilo or by flask?",
-      "q_ar": "هل يُتداول العود ومركّزات العطور بالجملة بالتولة أم بالكيلو أم بالقارورة؟",
+      "q_ar": "العود ودهن العطر ينباع جملة بالتولة ولا بالكيلو ولا بالقارورة؟",
       "expected_entry_ids": [
         "perfumes_wholesale:uae-market-sizes"
       ],

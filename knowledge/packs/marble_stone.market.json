@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which quarried slabs for floors or counters can I find in yards around town these days?",
-      "q_ar": "ما ألواح الحجر المستخرج للأرضيات أو أسطح المطابخ التي أجدها في الساحات بالمدينة هذه الأيام؟",
+      "q_ar": "شو ألواح الحجر الطبيعي للأرضيات أو الكاونترات اللي أقدر ألقاها في الساحات هنا هالأيام؟",
       "expected_entry_ids": [
         "marble_stone:uae-market-products"
       ],

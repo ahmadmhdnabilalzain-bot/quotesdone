@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Blacktop, paver bricks, edging stones: which street surfacing jobs are carried out around here?",
-      "q_ar": "الإسفلت وبلاط الإنترلوك وأحجار الحواف: ما أعمال رصف الطرق المنفذة هنا؟",
+      "q_ar": "زفت، إنترلوك، كيرب ستون: شو أعمال رصف الشوارع اللي تنفذ هنا؟",
       "expected_entry_ids": [
         "road_works:uae-market-products"
       ],

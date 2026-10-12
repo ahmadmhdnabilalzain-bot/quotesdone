@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which staff outfits and protective clothing can be tailored for my team locally?",
-      "q_ar": "ما الأزياء الموحدة للموظفين والملابس الواقية التي يمكن تفصيلها لفريقي محلياً؟",
+      "q_ar": "أي يونيفورمات للموظفين وملابس سلامة ممكن تتفصل لفريقي محلياً؟",
       "expected_entry_ids": [
         "uniforms_corporate_apparel:uae-market-products"
       ],

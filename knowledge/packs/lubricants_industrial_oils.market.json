@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What lubricants and industrial oils are commonly available from suppliers in the UAE?",
-      "q_ar": "ما الزيوت ومواد التشحيم الصناعية المتوفرة عادةً لدى الموردين في الإمارات؟",
+      "q_ar": "شو الزيوت ومواد التشحيم والزيوت الصناعية المتوفرة عادةً عند الموردين في الإمارات؟",
       "expected_entry_ids": [
         "lubricants_industrial_oils:uae-market-products"
       ],

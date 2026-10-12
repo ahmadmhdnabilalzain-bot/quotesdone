@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which 3D build methods and plastics can nearby print bureaus realistically handle for me these days?",
-      "q_ar": "ما أساليب التصنيع ثلاثي الأبعاد والمواد البلاستيكية التي تستطيع مكاتب الطباعة القريبة تنفيذها لي فعلياً هذه الأيام؟",
+      "q_ar": "أي طرق طباعة ثلاثية الأبعاد وأنواع بلاستيك تقدر مكاتب الطباعة القريبة تشتغل عليها لي فعلياً هالأيام؟",
       "expected_entry_ids": [
         "additive_manufacturing:uae-market-products"
       ],

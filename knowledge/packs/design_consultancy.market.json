@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How do UAE architectural and interior design firms charge, per square metre, share of build cost, or flat?",
-      "q_ar": "كيف تتقاضى مكاتب التصميم المعماري والداخلي في الإمارات أجرها عادةً، بالمتر المربع أم بنسبة من تكلفة البناء أم بمبلغ ثابت؟",
+      "q_ar": "مكاتب التصميم المعماري والديكور في الإمارات كيف تحاسب، بالمتر المربع ولا نسبة من تكلفة البناء ولا مبلغ ثابت؟",
       "expected_entry_ids": [
         "design_consultancy:uae-market-sizes"
       ],

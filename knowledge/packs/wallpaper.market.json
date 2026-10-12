@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Which ornamental wall coverings and photo prints are favourites here?",
-      "q_ar": "ما أغطية الجدران الزخرفية والمطبوعات الفوتوغرافية المفضلة هنا؟",
+      "q_ar": "شو ورق الجدران الديكوري والصور المطبوعة على الجدران الأكثر طلب هنا؟",
       "expected_entry_ids": [
         "wallpaper:uae-market-products"
       ],

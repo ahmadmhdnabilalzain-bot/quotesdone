@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "Which gadget and consumer tech categories can I purchase in large quantities from traders?",
-      "q_ar": "ما فئات الأجهزة والتقنيات الاستهلاكية التي يمكنني شراؤها بكميات كبيرة من التجار؟",
+      "q_ar": "أي فئات أجهزة وإلكترونيات استهلاكية أقدر أشتريها بكميات كبيرة من التجار؟",
       "expected_entry_ids": [
         "electronics_wholesale:uae-market-products"
       ],

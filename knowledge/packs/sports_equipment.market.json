@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How are athletic kits costed for clubs: by bundle, by twelve, or each?",
-      "q_ar": "كيف تُسعَّر الأدوات الرياضية للأندية: بالطقم أم بالدزينة أم بالقطعة؟",
+      "q_ar": "الأطقم الرياضية للأندية كيف تتسعر: بالطقم ولا بالدزينة ولا بالحبة؟",
       "expected_entry_ids": [
         "sports_equipment:uae-market-sizes"
       ],

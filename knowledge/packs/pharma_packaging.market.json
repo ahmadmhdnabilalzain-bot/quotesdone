@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What pharmaceutical packaging options can pharma manufacturers source locally in the UAE?",
-      "q_ar": "ما خيارات التغليف الدوائي التي يمكن لمصنعي الأدوية الحصول عليها محليًا في الإمارات؟",
+      "q_ar": "شو خيارات تغليف الأدوية اللي يقدر مصنعين الأدوية يحصلونها محلياً في الإمارات؟",
       "expected_entry_ids": [
         "pharma_packaging:uae-market-products"
       ],

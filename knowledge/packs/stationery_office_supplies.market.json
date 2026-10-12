@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How do stationery and office supplies companies in the UAE handle bulk purchases and dispatch?",
-      "q_ar": "كيف تتعامل شركات القرطاسية ومستلزمات المكاتب في الإمارات مع المشتريات بالجملة والشحن؟",
+      "q_ar": "شركات القرطاسية واللوازم المكتبية في الإمارات شلون تتعامل مع طلبات الجملة والتوصيل؟",
       "expected_entry_ids": [
         "stationery_office_supplies:uae-market-sizes"
       ],

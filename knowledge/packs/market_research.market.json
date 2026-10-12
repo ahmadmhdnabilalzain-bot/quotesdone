@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How do market research and survey firms in the UAE usually price their studies?",
-      "q_ar": "كيف تسعّر شركات أبحاث السوق والاستبيانات في الإمارات دراساتها عادةً؟",
+      "q_ar": "شركات أبحاث السوق والاستبيانات في الإمارات كيف تسعّر دراساتها عادةً؟",
       "expected_entry_ids": [
         "market_research:uae-market-sizes"
       ],

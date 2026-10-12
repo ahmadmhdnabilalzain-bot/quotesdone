@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Guest toiletries and bedding for guesthouses: costed each, by twelve, or by case?",
-      "q_ar": "مستلزمات النزلاء والمفروشات لدور الضيافة: هل تُسعَّر بالقطعة أم بالدزينة أم بالكرتونة؟",
+      "q_ar": "أدوات الاستحمام للضيوف والمفارش لبيوت الضيافة: تتسعر بالحبة ولا بالدرزن ولا بالكرتون؟",
       "expected_entry_ids": [
         "hospitality_supplies:uae-market-sizes"
       ],

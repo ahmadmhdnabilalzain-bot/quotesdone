@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "Which electric car charging points for houses and businesses can be fitted locally?",
-      "q_ar": "ما نقاط شحن السيارات الكهربائية للمنازل والشركات التي يمكن تركيبها محلياً؟",
+      "q_ar": "أي شواحن سيارات كهربائية للبيوت والشركات ممكن تتركب هنا محلياً؟",
       "expected_entry_ids": [
         "ev_charging:uae-market-products"
       ],

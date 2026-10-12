@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What kinds of paper and paperboard are available from mills and traders in the UAE?",
-      "q_ar": "ما أنواع الورق والكرتون الخام المتوفرة لدى المصانع والتجار في الإمارات؟",
+      "q_ar": "شو أنواع الورق والكرتون المتوفرة عند المصانع والتجار في الإمارات؟",
       "expected_entry_ids": [
         "paper_board:uae-market-products"
       ],

@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What gypsum, partition and ceiling materials are commonly available in the UAE market?",
-      "q_ar": "ما مواد الجبس والقواطع والأسقف المتوفرة عادةً في السوق الإماراتي؟",
+      "q_ar": "شو مواد الجبس والقواطع والأسقف المتوفرة عادةً في سوق الإمارات؟",
       "expected_entry_ids": [
         "gypsum:uae-market-products"
       ],

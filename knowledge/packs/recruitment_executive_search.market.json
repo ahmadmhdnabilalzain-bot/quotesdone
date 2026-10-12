@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "Do headhunters bill a share of the hire's yearly pay, or one flat amount?",
-      "q_ar": "هل يتقاضى صائدو الكفاءات نسبة من الراتب السنوي للموظف المعيَّن أم مبلغاً ثابتاً واحداً؟",
+      "q_ar": "شركات الهيد هنتنج تاخذ نسبة من راتب الموظف السنوي ولا مبلغ ثابت واحد؟",
       "expected_entry_ids": [
         "recruitment_executive_search:uae-market-sizes"
       ],

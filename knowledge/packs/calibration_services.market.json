@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which measuring tools and dials can nearby accredited checking labs verify for my business?",
-      "q_ar": "ما أدوات القياس والعدادات التي يمكن للمختبرات المعتمدة القريبة التحقق منها لنشاطي؟",
+      "q_ar": "أي أجهزة قياس وعدادات تقدر مختبرات المعايرة المعتمدة القريبة تفحصها لشركتي؟",
       "expected_entry_ids": [
         "calibration_services:uae-market-products"
       ],

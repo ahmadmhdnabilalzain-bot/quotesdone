@@ -56,7 +56,7 @@
   "eval": [
     {
       "q_en": "What fasteners and fixings are commonly stocked by suppliers in the UAE?",
-      "q_ar": "ما البراغي والمثبتات المتوفرة عادةً في مخزون الموردين في الإمارات؟",
+      "q_ar": "شو أنواع البراغي والمسامير والتثبيتات اللي عادةً تكون متوفرة عند الموردين في الإمارات؟",
       "expected_entry_ids": [
         "fasteners_fixings:uae-market-products"
       ],

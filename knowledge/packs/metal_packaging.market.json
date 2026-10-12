@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What metal cans, drums and cylinders can manufacturers source from suppliers in the UAE?",
-      "q_ar": "ما العلب والبراميل المعدنية التي يمكن للمصنّعين الحصول عليها من الموردين في الإمارات؟",
+      "q_ar": "شو العلب والبراميل والأسطوانات المعدنية اللي يقدر المصنعين يحصلونها من موردين في الإمارات؟",
       "expected_entry_ids": [
         "metal_packaging:uae-market-products"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which hairdressing seats, treatment couches and nail kit do wholesalers here sell?",
-      "q_ar": "ما مقاعد تصفيف الشعر وأرائك العلاجات وأدوات الأظافر التي يبيعها تجار الجملة هنا؟",
+      "q_ar": "أي كراسي حلاقة وأسرّة علاجات وأدوات أظافر يبيعها تجار الجملة هنا؟",
       "expected_entry_ids": [
         "salon_equipment:uae-market-products"
       ],

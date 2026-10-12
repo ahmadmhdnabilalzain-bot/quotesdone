@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What styles of curtains and blinds do UAE suppliers offer for commercial premises?",
-      "q_ar": "ما أشكال الستائر التي يقدمها الموردون في الإمارات للمنشآت التجارية؟",
+      "q_ar": "شو أنواع الستاير والبلايندز اللي يوفرها الموردين في الإمارات للمحلات والمكاتب التجارية؟",
       "expected_entry_ids": [
         "curtains_blinds:uae-market-products"
       ],

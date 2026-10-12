@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What tyres and vehicle batteries do suppliers in the UAE offer to fleet operators?",
-      "q_ar": "ما الإطارات والبطاريات التي يقدمها الموردون في الإمارات لمشغلي الأساطيل؟",
+      "q_ar": "شو التواير وبطاريات السيارات اللي يقدمها الموردين في الإمارات لشركات الأساطيل؟",
       "expected_entry_ids": [
         "tyres_batteries:uae-market-products"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What VAT and corporate tax advisory support do firms in the UAE typically offer?",
-      "q_ar": "ما دعم استشارات ضريبة القيمة المضافة وضريبة الشركات الذي تقدمه المكاتب في الإمارات عادةً؟",
+      "q_ar": "شو دعم استشارات ضريبة القيمة المضافة وضريبة الشركات اللي تقدمه المكاتب في الإمارات عادةً؟",
       "expected_entry_ids": [
         "tax_advisory:uae-market-products"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which course organisers and accrediting authorities hold recognition locally?",
-      "q_ar": "ما الجهات المنظمة للدورات وهيئات الاعتماد المعترف بها محلياً؟",
+      "q_ar": "أي جهات تنظيم الدورات وجهات الاعتماد معترف فيها هنا محلياً؟",
       "expected_entry_ids": [
         "corporate_training:uae-market-brands",
         "corporate_training:uae-market-products"

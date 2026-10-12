@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "How do general building contracting firms in the UAE usually price jobs, fixed total or remeasured?",
-      "q_ar": "كيف تسعّر شركات المقاولات العامة للمباني في الإمارات الأعمال عادةً، بمبلغ إجمالي ثابت أم بإعادة القياس؟",
+      "q_ar": "شركات المقاولات العامة للمباني في الإمارات شلون تسعر المشاريع عادةً، مبلغ إجمالي ثابت ولا بإعادة القياس؟",
       "expected_entry_ids": [
         "general_contracting:uae-market-sizes",
         "general_contracting:uae-market-products"

@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What rubber products and belts are available from factory suppliers in the UAE?",
-      "q_ar": "ما منتجات المطاط والسيور المتوفرة لدى موردي المصانع في الإمارات؟",
+      "q_ar": "شو منتجات المطاط والسيور المتوفرة عند موردين المصانع في الإمارات؟",
       "expected_entry_ids": [
         "rubber_products:uae-market-products"
       ],

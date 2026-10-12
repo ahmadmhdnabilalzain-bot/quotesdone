@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "How do metal merchants value old iron or copper: by kilo or by weight?",
-      "q_ar": "كيف يقيّم تجار المعادن الحديد أو النحاس القديم: بالكيلو أم بالوزن؟",
+      "q_ar": "تجار السكراب كيف يقيّمون الحديد أو النحاس القديم: بالكيلو ولا بالوزن؟",
       "expected_entry_ids": [
         "recycling_scrap:uae-market-sizes"
       ],

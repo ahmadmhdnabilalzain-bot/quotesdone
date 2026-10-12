@@ -59,7 +59,7 @@
   "eval": [
     {
       "q_en": "What vehicle rental and leasing options are available to businesses in the UAE?",
-      "q_ar": "ما خيارات تأجير السيارات والتأجير التمويلي المتاحة للمنشآت في الإمارات؟",
+      "q_ar": "شو خيارات تأجير السيارات والليسينج المتوفرة للشركات في الإمارات؟",
       "expected_entry_ids": [
         "vehicle_leasing:uae-market-products"
       ],

@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which insect and mouse jobs can exterminators around here handle for houses and offices nowadays?",
-      "q_ar": "ما أعمال مكافحة الحشرات والفئران التي تنفذها شركات المكافحة هنا للمنازل والمكاتب حالياً؟",
+      "q_ar": "شو شغل الحشرات والفيران اللي تقدر شركات المكافحة هنا تسويه للبيوت والمكاتب هالأيام؟",
       "expected_entry_ids": [
         "pest_control:uae-market-products"
       ],

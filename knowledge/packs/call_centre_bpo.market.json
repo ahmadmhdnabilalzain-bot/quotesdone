@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How do call centre and BPO providers in the UAE usually bill, per staff member or per call handled?",
-      "q_ar": "كيف تحاسب مراكز الاتصال وشركات تعهيد العمليات في الإمارات عملاءها عادةً، لكل موظف أم لكل مكالمة يتم التعامل معها؟",
+      "q_ar": "شركات الكول سنتر والـ BPO في الإمارات شلون تحاسب عادةً، على كل موظف ولا على كل مكالمة؟",
       "expected_entry_ids": [
         "call_centre_bpo:uae-market-sizes"
       ],

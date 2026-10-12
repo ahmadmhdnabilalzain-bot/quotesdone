@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "Are drinking machines leased monthly, and how are replacement jugs charged around town nowadays?",
-      "q_ar": "هل تُؤجَّر موزعات مياه الشرب شهرياً، وكيف تُحاسَب القوارير البديلة في المدينة حالياً؟",
+      "q_ar": "برادات المي تتأجر شهري؟ وكيف يحاسبون على قوارير التبديل هنا هالأيام؟",
       "expected_entry_ids": [
         "water_dispensers:uae-market-sizes"
       ],

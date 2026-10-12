@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "How are cables and wires typically quoted by UAE suppliers, per linear run or per full reel?",
-      "q_ar": "كيف يعرض الموردون في الإمارات أسعار الكابلات والأسلاك عادةً، حسب الطول المطلوب أم بالبكرة الكاملة؟",
+      "q_ar": "الموردين في الإمارات شلون يسعرون الكيابل والوايرات عادةً، بالمتر ولا بالرول كامل؟",
       "expected_entry_ids": [
         "cables_wires:uae-market-sizes",
         "cables_wires:uae-market-products"

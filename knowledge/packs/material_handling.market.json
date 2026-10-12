@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What forklifts and material handling machines can businesses buy or rent in the UAE?",
-      "q_ar": "ما الرافعات الشوكية وآلات المناولة التي يمكن للشركات شراؤها أو استئجارها في الإمارات؟",
+      "q_ar": "شو الرافعات الشوكية (الفوركلفت) ومعدات المناولة اللي تقدر الشركات تشتريها أو تستأجرها في الإمارات؟",
       "expected_entry_ids": [
         "material_handling:uae-market-products"
       ],

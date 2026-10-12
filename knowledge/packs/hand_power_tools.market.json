@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "What hand and power tools are readily available from industrial suppliers in the UAE?",
-      "q_ar": "ما العدد اليدوية والكهربائية المتوفرة بسهولة لدى الموردين الصناعيين في الإمارات؟",
+      "q_ar": "شو العدد اليدوية والكهربائية المتوفرة بسهولة عند موردين المعدات الصناعية في الإمارات؟",
       "expected_entry_ids": [
         "hand_power_tools:uae-market-products"
       ],

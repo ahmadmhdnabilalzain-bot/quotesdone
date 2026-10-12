@@ -68,7 +68,7 @@
   "eval": [
     {
       "q_en": "What signage and printing items can businesses order from suppliers in the UAE?",
-      "q_ar": "ما مواد اللافتات والطباعة التي يمكن للشركات طلبها من الموردين في الإمارات؟",
+      "q_ar": "شو اللوحات ومواد الطباعة اللي تقدر الشركات تطلبها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "signage:uae-market-products"
       ],

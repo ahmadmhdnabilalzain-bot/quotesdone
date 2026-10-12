@@ -65,7 +65,7 @@
   "eval": [
     {
       "q_en": "What generators and power equipment can businesses buy or hire in the UAE?",
-      "q_ar": "ما المولدات ومعدات الطاقة التي يمكن للشركات شراؤها أو استئجارها في الإمارات؟",
+      "q_ar": "شو المولدات ومعدات الطاقة اللي تقدر الشركات تشتريها أو تستأجرها في الإمارات؟",
       "expected_entry_ids": [
         "power_generators:uae-market-products"
       ],

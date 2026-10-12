@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "How do records storage and document management providers in the UAE usually bill, per carton or per period?",
-      "q_ar": "كيف يحاسب مزودو حفظ السجلات وإدارة المستندات في الإمارات عادةً، لكل كرتونة أم حسب المدة؟",
+      "q_ar": "مزودين حفظ السجلات وإدارة المستندات في الإمارات كيف يحاسبون عادةً، على الكرتون ولا على المدة؟",
       "expected_entry_ids": [
         "records_management:uae-market-sizes"
       ],

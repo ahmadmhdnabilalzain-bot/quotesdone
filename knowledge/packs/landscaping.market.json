@@ -62,7 +62,7 @@
   "eval": [
     {
       "q_en": "For gardens and pools, do contractors quote per square metre or per job?",
-      "q_ar": "للحدائق والمسابح، هل يسعّر المقاولون بالمتر المربع أم للمشروع؟",
+      "q_ar": "للحدائق والمسابح، المقاولين يسعّرون بالمتر المربع ولا على الشغلة كاملة؟",
       "expected_entry_ids": [
         "landscaping:uae-market-sizes"
       ],
