@@ -516,7 +516,7 @@ const COPY: Record<string, Entry> = {
   banned_title: s('Your account is suspended', 'حسابكم موقوف'),
   banned_detail: s('Suspended accounts are excluded from all matching. Contact us to resolve it.', 'الحسابات الموقوفة مستبعدة من جميع عمليات المطابقة. يُرجى التواصل معنا لمعالجة الأمر.'),
   licence_expired_title: s('Your account is paused — trade licence expired', 'حسابكم متوقف مؤقتًا — انتهت صلاحية الرخصة التجارية'),
-  licence_expired_detail: s((p) => `Your trade licence expired on ${p.date || 'an earlier date'}. Upload a valid copy and your account is restored automatically, usually within a day. There is no fee.`,
+  licence_expired_detail: s((p) => `Your trade licence expired on ${p.date || 'an earlier date'}. Upload a valid copy and your account is restored automatically at our daily document check once the new licence reads as in date, so within a day. If it cannot be read, we tell you what to upload again. There is no fee.`,
     (p) => `انتهت صلاحية رخصتكم التجارية في ${p.date || 'تاريخ سابق'}. ارفعوا نسخة سارية وسيُعاد تفعيل حسابكم تلقائيًا، خلال يوم واحد عادةً، ودون أي رسوم.`),
   insurance_expired_title: s('Your account is paused — insurance expired', 'حسابكم متوقف مؤقتًا — انتهت صلاحية التأمين'),
   insurance_expired_detail: s((p) => `Your insurance certificate expired on ${p.date || 'an earlier date'}. Upload a valid copy and your account is restored automatically. There is no fee.`,

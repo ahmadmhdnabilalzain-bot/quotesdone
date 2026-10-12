@@ -75,7 +75,7 @@ const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.webp,.dwg,.dxf';
 
 const T = {
   en: {
-    title: 'Catalog AI', lead: 'Upload your product catalog, price list, spreadsheet or drawing. We read it and build your product records.',
+    title: 'Product catalogue', lead: 'Upload your product catalog, price list, spreadsheet or drawing. We read it and build your product records.',
     formats: 'Price lists and spreadsheets (CSV, Excel), catalogs (PDF, images), and drawings as PDF or CAD (DWG/DXF).',
     choose: 'Choose a catalog file', working: 'Reading your catalog…',
     created: 'products added to your catalog', found: 'found in the document',

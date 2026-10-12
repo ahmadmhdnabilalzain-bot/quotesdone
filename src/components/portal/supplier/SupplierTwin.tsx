@@ -62,7 +62,7 @@ const T = {
     risk: 'Risk Level', quality: 'Quality', delivery: 'Delivery', response: 'Response',
     pricing: 'Pricing', overall: 'Overall', score: 'Supplier Intelligence Score',
     established: 'Established', employees: 'Employees', emirates: 'Emirates',
-    confidence: 'AI Confidence', map: 'Capability Map', documents: 'Documents',
+    confidence: 'Profile confidence', map: 'Capability Map', documents: 'Documents',
     notRated: 'not rated yet', estimate: 'estimated', perYear: 'units/year',
     verified: 'Verified Supplier', unverified: 'Not yet verified', demo: 'DEMO FIXTURE — not a real company',
     loading: 'Reading your company intelligence…', none: 'none on file', unknown: 'unknown',

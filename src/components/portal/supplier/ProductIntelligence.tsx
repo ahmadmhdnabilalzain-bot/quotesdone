@@ -52,7 +52,7 @@ const T = {
     compatible: 'Compatible Projects', certs: 'Certifications', catalogues: 'Catalogues',
     empty: 'No products yet. Upload a catalogue and it will be extracted here.',
     loading: 'Reading your catalogue…', leadTime: 'Lead time', days: 'days',
-    aiMatch: 'AI Match', noMatch: 'no opportunity to match against yet', source: 'Source',
+    aiMatch: 'Best match', noMatch: 'no opportunity to match against yet', source: 'Source',
   },
   ar: {
     title: 'ذكاء المنتجات', products: 'المنتجات', categories: 'الفئات',
@@ -173,7 +173,7 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
 
   return (
     <div className="space-y-4">
-      {/* Catalog AI — the only door that WRITES the product store from a file the supplier already has. */}
+      {/* Product catalogue — the only door that WRITES the product store from a file the supplier already has. */}
       <SupplierCatalogUpload token={token} lang={lang} onDone={() => setReload((n) => n + 1)} />
 
       {/* §7's "After" panel: the three counts the spec draws, over real rows. */}
