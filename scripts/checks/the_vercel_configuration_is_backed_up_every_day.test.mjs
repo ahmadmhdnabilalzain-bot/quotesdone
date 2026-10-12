@@ -3,6 +3,8 @@
 //   1. The env var names the daily step checks are exactly the names the site's code reads (src/: process.env.X),
 //      so a new variable cannot be added to the site without the check knowing it.
 //   2. The snapshot never carries a value: the env list is requested without decrypt and values are dropped.
+//      (Where it is filed, Company/Vercel/, is proved by the probe of the_vercel_configuration_is_backed_up_every_day.sql:
+//      this file reads the live database, so it never reads scripts/sql text: every_sql_replay_goes_through_safe_replay.)
 //   3. With a Supabase token (local runs), the live Vercel project is read and every needed name must be set
 //      in Vercel and have a recoverable source; measured 12 Oct 2026: CRON_SECRET and SITE_ERROR_INGEST_SECRET
 //      are read by the site, set nowhere in Vercel, and recoverable from nowhere.
@@ -34,7 +36,6 @@ test('the snapshot asks for no value and keeps none', () => {
   assert.ok(!/decrypt/i.test(tick), 'the env list is never requested decrypted');
   const s = read('supabase/functions/_shared/vercel_snapshot.ts');
   assert.match(s, /key: String\(e\.key\), targets: .*type: String\(e\.type/, 'only key, targets and type are copied from an env entry');
-  assert.match(read('scripts/sql/the_vercel_configuration_is_backed_up_every_day.sql'), /'\/QuotesDone Backup\/Company\/Vercel\/'/, 'filed under Company/Vercel/ in Dropbox');
 });
 
 const tokenFile = join(homedir(), '.supabase', 'access-token');
