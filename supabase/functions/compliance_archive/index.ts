@@ -31,7 +31,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { observe } from '../_shared/observe.ts';
-import { certFields, certLang, certificate, noAcceptanceRunStatus, supplierEvidence, type Lang } from './certificate.ts';
+import { certFields, certLang, certificate, isRegisterRow, noAcceptanceRunStatus, supplierEvidence, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -76,9 +76,9 @@ async function renderCert(fields: Record<string, string>, kind: string, hash: st
 async function buildRegister(): Promise<{ count: number; url: string | null; bytes: Uint8Array | null }> {
   // 12 Oct 2026 (founder audit against the 9 Sep spec): the register lists CUSTOMERS, and a sign-up is a customer only
   // once the terms are accepted (ruling 1181), with the IP, the accepted version and the time, beside the link.
-  const { data } = await admin.from('customers').select('full_name,date_of_birth,phone,email,signed_terms_path,created_at,email_verified,tos_ip,tos_version,tos_accepted_at')
-    .not('tos_accepted_at', 'is', null).order('created_at', { ascending: true });
-  const rows = (data || []);
+  const { data } = await admin.from('customers').select('full_name,date_of_birth,phone,email,signed_terms_path,created_at,email_verified,tos_ip,tos_version,tos_accepted_at,is_demo')
+    .not('tos_accepted_at', 'is', null).eq('is_demo', false).order('created_at', { ascending: true });
+  const rows = (data || []).filter(isRegisterRow);
   const paths = rows.map((c: any) => c.signed_terms_path).filter(Boolean) as string[];
   const urlByPath: Record<string, string> = {};
   if (paths.length) { try { const { data: su } = await admin.storage.from(BUCKET).createSignedUrls(paths, TENYRS); for (const it of (su || [])) { if (it.path && it.signedUrl) urlByPath[it.path] = it.signedUrl; } } catch (_e) { } }
