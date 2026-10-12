@@ -2017,3 +2017,6 @@ scripts/sql/an_installation_included_quote_line_counts_as_the_labour_stated.sql
 scripts/sql/every_matched_supplier_is_invited_with_no_count_cap.sql
 scripts/sql/the_arabic_reveal_fee_question_reaches_its_own_mirror.sql
 scripts/sql/a_new_licence_whose_expiry_is_unread_is_held_never_approved_probe.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
