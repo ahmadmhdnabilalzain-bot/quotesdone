@@ -1,0 +1,1 @@
+Applies at merge with PR #1305 (release operator): CREATE OR REPLACE of a live routine, ACL preserved. Moves to MANIFEST.txt when applied; then regenerate the schema mirror.

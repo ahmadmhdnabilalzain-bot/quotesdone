@@ -1,0 +1,1 @@
+Applies at merge, with the resilience_ping deploy that makes marketing and itlater detached kicks (release operator). Moves to MANIFEST.txt when applied.
