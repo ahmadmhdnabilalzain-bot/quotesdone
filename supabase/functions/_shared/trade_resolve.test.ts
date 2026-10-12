@@ -108,6 +108,44 @@ Deno.test('exact candidates are lines and list items of a few words, once', () =
   assert(!c.some((p) => p.startsWith('We are a leading')), 'a sentence is not a code candidate');
 });
 
+// 12 Oct 2026 (sales_engineer): an Arabic licence activity names its trade by the trade's own Arabic name, exactly.
+// The table rows are production's taxonomy_trade (label_ar) as read that day; pest_control shares مكافحة with fire
+// fighting. The activities are scripts/e2e/document_intake_corpus.mjs ACT_AR with their trades (not imported: that
+// module needs node's sharp).
+import { arabicNameHeads, tradesByArabicName } from './trade_resolve.ts';
+Deno.test('an Arabic work clause names a trade by its own Arabic name; a company name and a trading clause name none', () => {
+  const ar: Record<string, string> = {
+    aluminium: 'الألمنيوم والتكسية', non_ferrous_metals: 'الألمنيوم والنحاس والمعادن غير الحديدية', electrical: 'الأعمال الكهربائية',
+    elevators: 'المصاعد والسلالم المتحركة', fire_fighting: 'مكافحة الحريق وأنظمة السلامة', pest_control: 'مكافحة الحشرات والقوارض',
+    flooring: 'الأرضيات', glazing: 'الزجاج والواجهات الزجاجية', hvac: 'التكييف والتهوية', joinery: 'النجارة والأعمال الخشبية',
+    landscaping: 'تنسيق الحدائق والمسابح', painting: 'الدهانات والتشطيبات', plumbing: 'السباكة والأدوات الصحية', waterproofing: 'العزل المائي والحراري', thermal_insulation: 'العزل الحراري والصوتي',
+  };
+  const en = { aluminium: 'Aluminium & cladding', non_ferrous_metals: 'Aluminium, copper & non-ferrous metals' };
+  const heads = arabicNameHeads(ar, en);
+  const of = (s: string) => tradesByArabicName(s, heads).map((x) => x.code);
+  assertEquals(of('أعمال الألمنيوم'), ['aluminium']);
+  assertEquals(of('فالكون الألمنيوم ذ.م.م'), [], 'a company name names no work');
+  assertEquals(of('تجارة الألمنيوم والنحاس'), [], 'trading is not contracting');
+  // a word of a LATER part of a name decides nothing (review of #1312): أدوات, أنظمة, التشطيبات
+  assertEquals(of('تركيب أدوات المطبخ'), [], 'not plumbing');
+  assertEquals(of('تركيب أنظمة الأمن'), [], 'not fire fighting');
+  assertEquals(of('أعمال التشطيبات الداخلية'), [], 'not painting');
+  assertEquals(of('أعمال الأدوات الصحية'), ['plumbing'], 'a whole later part does');
+  // nor does the first word of a longer FIRST part (review of #1312, second round)
+  assertEquals(of('أعمال تنسيق المشاريع'), [], 'not landscaping');
+  assertEquals(of('مقاولات تنسيق المواقع'), [], 'not landscaping');
+  assertEquals(of('أعمال تنسيق المشاريع والحدائق'), [], 'the name\'s words must stand together');
+  const ACT_AR: [string, string | null][] = [
+    ['مقاولات أعمال الألمنيوم', 'aluminium'], ['مقاولات التركيبات الكهربائية', 'electrical'], ['تركيب التمديدات الصحية والسباكة', 'plumbing'],
+    ['تركيب أنظمة التكييف والتهوية', 'hvac'], ['أعمال تبليط الأرضيات والجدران', 'flooring'], ['أعمال النجارة', 'joinery'],
+    // none, exactly: 'الدهان' is not the name 'الدهانات', and 'عزل' heads three trades' names (waterproofing,
+    // thermal and corrosion insulation) - reached by the trade's Arabic name, not by folding here
+    ['مقاولات أعمال الدهان', null], ['أعمال عزل المباني ضد الماء', null], ['أعمال تنسيق الحدائق', 'landscaping'],
+    ['أعمال الزجاج', 'glazing'], ['تركيب وصيانة المصاعد والسلالم المتحركة', 'elevators'], ['تركيب معدات مكافحة الحريق', 'fire_fighting'],
+    ['تجارة عامة', null], ['استيراد وتصدير', null],
+  ];
+  for (const [act, trade] of ACT_AR) assertEquals(of(act), trade ? [trade] : [], act);
+});
 // 12 Oct 2026 (sales_engineer, accuracy suite): a company's NAME line proposes no trade by any path. Measured live:
 // "Legal Name: ZZ DEMO Falcon Cleaning LLC" -> cleaning, its label -> legal_services (0.82), "... Glazing LLC" -> glazing (0.821).
 Deno.test('a name or contact line is read by no path; the work line beside it still is', async () => {
