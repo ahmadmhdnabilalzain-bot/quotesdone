@@ -187,8 +187,8 @@ export function deliveryOf(value: string): { value: string; days: number | null;
   const dt = s.match(DATE_FMT); if (dt) return { value: s.slice(0, 120), days: null, date: dt[1] };
   return null;
 }
-const MONTH_NO: [RegExp, number][] = [[/^jan|^يناير/, 1], [/^feb|^فبراير/, 2], [/^mar|^مارس/, 3], [/^apr|^أبريل|^ابريل/, 4], [/^may|^مايو/, 5], [/^jun|^يونيو/, 6],
-  [/^jul|^يوليو/, 7], [/^aug|^أغسطس|^اغسطس/, 8], [/^sep|^سبتمبر/, 9], [/^oct|^أكتوبر|^اكتوبر/, 10], [/^nov|^نوفمبر/, 11], [/^dec|^ديسمبر/, 12]];
+const MONTH_NO: [RegExp, number][] = [[/^jan|^\u064a\u0646\u0627\u064a\u0631/, 1], [/^feb|^\u0641\u0628\u0631\u0627\u064a\u0631/, 2], [/^mar|^\u0645\u0627\u0631\u0633/, 3], [/^apr|^\u0623\u0628\u0631\u064a\u0644|^\u0627\u0628\u0631\u064a\u0644/, 4], [/^may|^\u0645\u0627\u064a\u0648/, 5], [/^jun|^\u064a\u0648\u0646\u064a\u0648/, 6],
+  [/^jul|^\u064a\u0648\u0644\u064a\u0648/, 7], [/^aug|^\u0623\u063a\u0633\u0637\u0633|^\u0627\u063a\u0633\u0637\u0633/, 8], [/^sep|^\u0633\u0628\u062a\u0645\u0628\u0631/, 9], [/^oct|^\u0623\u0643\u062a\u0648\u0628\u0631|^\u0627\u0643\u062a\u0648\u0628\u0631/, 10], [/^nov|^\u0646\u0648\u0641\u0645\u0628\u0631/, 11], [/^dec|^\u062f\u064a\u0633\u0645\u0628\u0631/, 12]];
 const monthNo = (m: string) => MONTH_NO.find(([r]) => r.test(m.toLowerCase()))?.[1] ?? 0;
 /** A stated date as a UTC day (numeric dates are read day-first, as written in the UAE); null when it cannot be read. */
 function dateOf(s: string, now: Date): Date | null {
