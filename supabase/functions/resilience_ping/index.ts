@@ -23,10 +23,11 @@ import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_MAX_ROWS } from '../_shared/think.ts';
+import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
+import { envCoverage as vercelEnvCoverage, snapshot as vercelSnapshot } from '../_shared/vercel_snapshot.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -631,6 +632,37 @@ async function dropboxVerifyTick(): Promise<unknown> {
 // the reading itself; if the call never got that far (timeout, a 5xx from our own function), this
 // records it as an internal failure so a silent probe is still a finding. Only the verdict comes back:
 // this endpoint is public.
+// THE VERCEL CONFIGURATION, ONCE A DAY (it_engineer, 12 Oct 2026; the_vercel_configuration_is_backed_up_every_day.sql).
+// Read only: the project, its domains, its env var NAMES (never decrypted, and vercel_snapshot.ts drops every value
+// again) and its crons. The JSON goes to the private backups bucket and is filed for Dropbox under Company/Vercel/.
+// The env vars the site reads are the names in the site's own code (src/: process.env.*), listed here.
+const SITE_ENV_NAMES = ['CRON_SECRET', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SITE_ERROR_INGEST_SECRET', 'SUPABASE_SERVICE_ROLE_KEY'];
+async function vercelSnapshotTick(): Promise<unknown> {
+  try {
+    const [token, pid, team] = await Promise.all([sec('vercel_token'), sec('vercel_project_id'), sec('vercel_team_id')]);
+    if (!token || !pid) return { ok: false, error: 'vercel_token or vercel_project_id is not in app_secrets' };
+    const q = team ? `?teamId=${encodeURIComponent(team)}` : '';
+    const get = async (p: string) => {
+      const r = await fetch('https://api.vercel.com' + p + q, { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('vercel ' + p.split('/').slice(0, 3).join('/') + ' ' + r.status);
+      return await r.json();
+    };
+    const [project, domains, env] = await Promise.all([get(`/v9/projects/${pid}`), get(`/v9/projects/${pid}/domains`), get(`/v10/projects/${pid}/env`)]);
+    const day = new Date().toISOString().slice(0, 10);
+    const snap = vercelSnapshot(project, domains, env, new Date().toISOString());
+    const { data: keys } = await admin.from('app_secrets').select('key');
+    const cov = vercelEnvCoverage(SITE_ENV_NAMES, snap.env, (keys || []).map((k: { key: string }) => k.key));
+    const path = `engineering/vercel/${day}.json`;
+    const up = await admin.storage.from('backups').upload(path, new TextEncoder().encode(JSON.stringify({ ...snap, env_sources: cov.sources }, null, 1)),
+      { contentType: 'application/json', upsert: true });
+    if (up.error) return { ok: false, error: 'backups upload ' + up.error.message };
+    const summary = { domains: snap.domains.length, env_names: snap.env.length, missing_in_vercel: cov.missing_in_vercel, no_recoverable_source: cov.no_recoverable_source };
+    const { error } = await admin.rpc('fn_vercel_snapshot_filed', { p_path: path, p_summary: summary });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, path, ...summary };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) }; }
+}
+
 async function dropboxHealthTick(): Promise<unknown> {
   try {
     const { data: due, error } = await admin.rpc('fn_it_dropbox_health_due');
@@ -1227,9 +1259,9 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   await step('review_independence', async () => rpc('fn_it_review_independence_watch'));
   // Questions a seat could not reason about under the hold are reasoned the moment it lifts
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
-  // returns nothing and no model is asked, so this step costs one gate read. Since 7 Oct (ledger 1175) a tick claims 10
-  // at a time, concurrently, up to REPLAY_MAX_ROWS within REPLAY_BUDGET_MS: the backlog clears in about an hour.
-  await step('reasoning_held', async () => replayHeld(admin, 10, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
+  // returns nothing and no model is asked, so this step costs one gate read. Since 7 Oct (ledger 1175) a tick claims REPLAY_CLAIM
+  // at a time, concurrently, up to REPLAY_MAX_ROWS within REPLAY_BUDGET_MS, a slice that fits every tick (12 Oct).
+  await step('reasoning_held', async () => replayHeld(admin, REPLAY_CLAIM, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
     { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS }));
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
@@ -1512,6 +1544,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   backup: { run: backupTick },
   backupVerify: { run: dropboxVerifyTick },
   dropboxHealth: { run: dropboxHealthTick },
+  vercelSnapshot: { run: vercelSnapshotTick },
   tableExport: { run: tableExportTick },
   backupPrune: { run: backupPruneTick },
   weekly: { run: accountantWeeklyTick },

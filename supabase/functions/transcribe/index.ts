@@ -43,6 +43,9 @@ Deno.serve(siteCors(observe('transcribe', async (req) => {
 
     const content = [ { type: 'text', text: PROMPT }, { type: 'input_audio', input_audio: { data: b64, format } } ];
     let text: string | null = null; let lastErr = ''; let unreadable = false;
+    // RULING 1177 (12 Oct 2026): an unreadable answer is asked once more before the user is asked to record again;
+    // the gateway itself falls to the route's second model on a provider failure.
+    for (let attempt = 1; attempt <= 2 && text === null; attempt++) { unreadable = false;
     try {
       const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'transcribe', temperature: 0, max: 1024, response_format: { type: 'json_object' }, input: [{ role: 'user', content }] }) });
       const j = await r.json();
@@ -55,8 +58,9 @@ Deno.serve(siteCors(observe('transcribe', async (req) => {
         if (read) text = read.text; else unreadable = true;
       }
     } catch (e) { lastErr = String((e as Error)?.message || e); }
+    }
     // Not the structured answer (a truncated or malformed reply): no guess, the user is simply asked to record again.
-    if (unreadable) return J({ ok: false, error: 'transcription_unreadable', text: '', message: 'We could not read that recording clearly. Please record it again.' }, 200);
+    if (unreadable) return J({ ok: false, error: 'transcription_unreadable', text: '', message: String(body.lang || '').toLowerCase().startsWith('ar') ? 'تعذّرت علينا قراءة هذا التسجيل بوضوح. يُرجى تسجيله مرة أخرى في مكان أهدأ.' : 'We could not read that recording clearly. Please record it again, somewhere quieter.' }, 200);
     if (text === null) return J({ error: 'transcription_failed', detail: lastErr }, 502);
     return J({ ok: true, text });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
@@ -903,7 +904,8 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'sheet', file_b64: b64, mime, filename: name, hint }) });
         jd = await r.json();
       } catch (_e) { /* answered below as boq_unreadable */ }
-      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'boq_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
+      // Ruling 1177: an unreadable file is answered with a clearer-copy request in the customer's own language.
+      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'boq_unreadable'), detail: String(jd?.detail || '').slice(0, 200), message: clearerCopyAsk('customer', documentLocale(body.lang, cust.locale), name) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_SHEET);
       return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
     }
@@ -934,7 +936,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         if (job) return J({ ok: true, boq: null, kind: 'dxf', needs: 'cad_conversion', drawing_file_path: p, drawing_file_name: name, drawing_redacted_paths: [], stored: true, note: 'cad_queued', cad_job_id: job });
       }
       if (jd?.error === DRAWING_FORMAT_ERROR) return J(drawingFormatRefused(), 415);
-      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
+      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200), message: clearerCopyAsk('customer', documentLocale(body.lang, cust.locale), name) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
       // A DXF's take-off carries the file's own names (layers, blocks, title block): cad_identity takes them
       // out before the customer's portal holds the BOQ it will send (22 Sep 2026). The CAD FILE is never
