@@ -1461,6 +1461,7 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   cred_ops_phone_diag
 --   cred_ops_wa_replay
 --   cred_ops_wa_template_setup
+--   cred_site_error_ingest
 --   cron_down_last_alert
 --   customer_terms_label
 --   customer_terms_version
