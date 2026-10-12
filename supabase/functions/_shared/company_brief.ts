@@ -175,12 +175,16 @@ export function policyProblems(text: string): string[] {
 // ── a stated 3% fee says what is NOT added (zero tolerance; coordinator, 12-13 Oct 2026; review of #1356) ──
 // Checked on the WHOLE reply. It applies when a SENTENCE states a 3% fee: a 3% figure (3%, ٣٪, "three percent", "ثلاثة
 // بالمئة") together with a fee word, and none of the words of a quote's own terms or the non-response charge (a 3%
-// discount, retention, advance, slope, interest, refund ...). Then the reply must NEGATE the card fee and the VAT in so
+// discount, retention, advance, slope, interest, the non-response charge ...). Then the reply must NEGATE the card fee and the VAT in so
 // many words: "no card fee", "without card fees", "not charged a card fee", "لا يُضاف أي مبلغ عند الدفع بالبطاقة",
 // "بدون رسوم بطاقة"; "no VAT", "VAT is not charged", "لا تُفرض ضريبة". A negation elsewhere in the sentence does not
 // count ("the VAT certificate is not required", "never share your card details"). Missing either: the model rewrites.
 const FEE_SENTENCE = /\bfees?\b|\bcharges?\b|\bcommission\b|رسوم|رسم|عمولة/i;
-const NOT_THE_FEE = /discount|retention|advance|deposit|down ?payment|slope|gradient|\bfall\b|tolerance|interest|penalty|non-?response|refund|خصم|تخفيض|محتجز|احتجاز|دفعة مقدمة|ميل|انحدار|فائدة|غرامة|عدم الاستجابة|استرداد|المسترد|يُرد|يرد/i;
+// Whole words only (review of #1356): "ميل" must not match inside العميل, التحميل or جميل. Arabic terms may carry ال.
+// A refund is NOT an exemption: "the 3% reveal fee is refunded if ..." still states the fee and must say no card fee / VAT.
+const NOT_THE_FEE_EN = /\b(?:discounts?|retentions?|advances?|deposits?|down ?payments?|slopes?|gradients?|falls?|tolerances?|interest|penalt(?:y|ies)|non-?response)\b/i;
+const NOT_THE_FEE_AR = /(?<![\p{L}])(?:ال)?(?:خصم|تخفيض|احتجاز|محتجز|ميل|انحدار|فائدة|غرامة)(?![\p{L}])|عدم الاستجابة|دفعة مقدمة/u;
+const NOT_THE_FEE = { test: (t: string) => NOT_THE_FEE_EN.test(t) || NOT_THE_FEE_AR.test(t) };
 const CARD_NEG = /\b(?:no|without|zero|not\s+(?:charged\s+)?(?:an?|any))\s+(?:extra\s+|additional\s+)?(?:credit\s+|debit\s+)?card\s*(?:payment\s+|processing\s+)?(?:fees?|surcharges?|charges?)\b|\bcard\s*(?:payment\s+|processing\s+)?(?:fees?|surcharges?|charges?)\s+(?:is|are)\s+(?:not|never)\b|\bnothing\s+(?:is\s+)?added\s+for\s+(?:paying\s+(?:by|with)\s+)?(?:a\s+)?card\b|بدون\s+رسوم\s+(?:على\s+)?(?:الدفع\s+)?(?:ب|عبر\s+)?(?:ال)?بطاقة|لا\s+رسوم\s+(?:على\s+)?(?:الدفع\s+)?(?:ب|عبر\s+)?(?:ال)?بطاقة|لا\s+(?:تُضاف|تضاف|يُضاف|يضاف)\s+(?:أي\s+)?(?:رسوم|مبلغ)[^.،؛]{0,25}بطاقة/i;
 const VAT_NEG = /\b(?:no|without|zero)\s+VAT\b|\bVAT\s+(?:is|are)\s+not\s+(?:charged|added|applied|payable)\b|\bnot\s+(?:charged|subject\s+to)\s+VAT\b|\bno\s+value[- ]added\s+tax\b|لا\s+(?:تُفرض|تفرض|تُضاف|تضاف|تُطبق|تطبق)\s+(?:أي\s+)?ضريبة|(?:بدون|دون)\s+ضريبة|لا\s+ضريبة|غير\s+خاضع(?:ة)?\s+(?:ل)?(?:ل)?ضريبة/i;
 const sentencesOf = (t: string) => t.split(/(?<=[.!?؟\n؛;])\s*/);

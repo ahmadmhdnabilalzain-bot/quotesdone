@@ -141,6 +141,10 @@ Deno.test('a stated reveal fee must say no card fee and no VAT; a reply without 
   assertEquals(revealFeeIncomplete('Lay the screed to a 3% slope toward the drain.'), []);
   assertEquals(revealFeeIncomplete('A supplier that ignores a paid reveal owes the 3% fee refunded to the customer, an AED 500 admin fee and 12% interest.'), []);
   assertEquals(revealFeeIncomplete('خصم 3٪ على عرض السعر من المورد.'), []);
+  // whole words only: "ميل" inside العميل does not exempt a reveal-fee sentence; a refund is no exemption (review of #1356)
+  assertEquals(revealFeeIncomplete('رسوم الكشف 3% يدفعها العميل.').length, 2);
+  assertEquals(revealFeeIncomplete('The 3% reveal fee is refunded if the supplier does not respond.').length, 2);
+  assertEquals(revealFeeIncomplete('تطبيق ميل بنسبة 3٪ للتصريف ضمن رسوم العمل.'), [], 'a 3% slope (ميل) is still exempt as a whole word');
   // the negation must be OF the card fee / the VAT, not anywhere in the sentence
   assertEquals(revealFeeIncomplete('The reveal fee is 3%. The VAT certificate is not required. Never share your card details.').length, 2);
   assertEquals(revealFeeIncomplete('رسوم الكشف 3٪ من قيمة العرض، ولا يُضاف أي مبلغ عند الدفع بالبطاقة، ولا تُفرض ضريبة القيمة المضافة على رسوم الكشف.'), []);
