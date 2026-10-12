@@ -2695,7 +2695,7 @@
     {
      "file": "supabase/functions/_shared/supplier_doc_trades.ts",
      "must_contain": [
-      "await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only })",
+      "await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names })",
       "await liveTradeDeps(admin)"
      ],
      "must_not_contain": [
