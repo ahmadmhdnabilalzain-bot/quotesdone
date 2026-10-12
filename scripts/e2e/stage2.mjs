@@ -339,7 +339,7 @@ async function realRun(pre) {
         const inq = (await read(`select id, status, trades, lang, emirate from public.inquiries where customer_id=${q(cu.customerId)} order by created_at desc limit 1`))[0];
         if (inq) { run.ids.inquiries.add(String(inq.id)); fx.inq[`${cu.cfg.label}:${trade}`] = { ...inq, cu, trade }; }
         const route = (await costSince(w0)).map((r) => `${r.task_class}:${r.model_used}`).join(' ');
-        A(`${cu.cfg.label} ${cu.cfg.locale} ${trade} in ${cu.cfg.emirate}: interview reached ready and became a request`, it.status === 'ready' && !!inq, `turns=${it.turns} readiness=${it.readiness} missing=${it.missing.join('|')} inquiry=${inq?.id} status=${inq?.status}`, route);
+        A(`${cu.cfg.label} ${cu.cfg.locale} ${trade} in ${cu.cfg.emirate}: interview reached ready and became a request`, it.status === 'ready' && !!inq, `intake=${it.status} turns=${it.turns} readiness=${it.readiness} missing=${it.missing.join('|')} inquiry=${inq?.id} status=${inq?.status}`, route);
         if (inq) save(`customers/${cu.cfg.label}_${cu.cfg.locale}_${safe(cu.cfg.emirate)}/inquiry_${trade}/inquiry.json`, { fact_sheet: sheet.values, intake: it, inquiry: inq });
       }
       // Projects (the customer portal "projects" tab): create, link a request, read, update, unlink.
