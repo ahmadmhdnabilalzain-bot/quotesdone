@@ -164,7 +164,12 @@ const SUPPLIER_TERMS = /\b(?:suppliers?|quot(?:e|es|ed|ation|ations)|prices?|dis
 // "The service fee includes VAT, like the quoted price" must still be caught).
 const SUPPLIER_FEE = /\bsupplier'?s?'?\s+(?:own\s+)?(?:fees?|charges?|commission|surcharges?)\b|(?:رسوم|عمولة)\s+(?:ال)?مورد/gi;
 const OUR_FEE = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\b3\s?%|٣\s?٪|\bfees?\b|\bcommission\b|\bplatform\b|الكشف|رسوم|عمولة|المنصة/i;
-const aboutSupplierOnly = (s: string) => SUPPLIER_TERMS.test(s) && !OUR_FEE.test(s.replace(SUPPLIER_FEE, ' '));
+// A sentence whose subject is the supplier or its quote, with none of OUR markers, is the supplier's: its bare fee word
+// ("The supplier charges a 5% installation fee plus VAT") is the supplier's fee (review of #1356). "quoted" is not a subject.
+const SUPPLIER_SUBJECT = /\bsuppliers?\b|\bquot(?:e|es|ation|ations)\b|المورد/i;
+const OUR_MARK = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\bplatform\b|\b3\s?%|٣\s?٪|الكشف|المنصة|رسومنا|عمولتنا/i;
+const aboutSupplierOnly = (s: string) =>
+  (SUPPLIER_SUBJECT.test(s) && !OUR_MARK.test(s)) || (SUPPLIER_TERMS.test(s) && !OUR_FEE.test(s.replace(SUPPLIER_FEE, ' ')));
 const CLAIMS: { problem: string; re: RegExp; unless?: RegExp | ((s: string) => boolean) }[] = [
   { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|رسوم (?:على )?(?:الدفع (?:ب|عبر )?)?البطاقة|رسوم البطاقة/i, unless: aboutSupplierOnly },
   { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?؟]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?؟]*\bVAT\b|ضريبة القيمة المضافة/i, unless: aboutSupplierOnly },

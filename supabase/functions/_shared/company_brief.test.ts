@@ -186,6 +186,8 @@ Deno.test('a supplier quotation stands as stated; only our 3% fee carries the no
   // a bare fee word is OUR fee unless it is tied to the supplier (review of #1356)
   for (const s of ['The service fee includes VAT, like the quoted price.', 'رسوم المنصة تشمل ضريبة القيمة المضافة على السعر']) assertEquals(policyProblems(s).length, 1, s);
   assertEquals(policyProblems('The supplier\'s fee includes VAT, as quoted.'), []);
+  assertEquals(policyProblems('The supplier charges a 5% installation fee plus VAT.'), []);
+  assertEquals(policyProblems('يفرض المورد رسوم تركيب 5% بالإضافة إلى ضريبة القيمة المضافة.'), []);
   assertEquals(policyProblems('رسوم المورد تشمل ضريبة القيمة المضافة حسب عرض السعر.'), []);
   // عرض meaning "show" does not make a sentence about the supplier
   assertEquals(policyProblems('سنعرض لك ضريبة القيمة المضافة على الرسوم.').length, 1);
