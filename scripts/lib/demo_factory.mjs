@@ -434,7 +434,9 @@ const capabilityInsert = (leadId, p) => `insert into public.supplier_capabilitie
  * Both modes end approved WITH the founder's mandatory six (completeMandatorySix): since #698 the
  * database refuses an approval with anything missing, so the supplier is inserted undecided and the
  * sales engineer's verification approves it. The one exception is a caller that brings its own
- * documents (scripts/e2e/fixtures.mjs): it passes opts.approval ('pending'), the row is inserted with
+  // opts.coverage_emirates: the e2e funnel's demo suppliers serve every emirate its customers ask in (stage2 run f4294be8: a
+  // Dubai-only profile left 6 of 8 requests in other emirates with nobody to match).
+  const profile = { ...(opts.profile || capabilityProfile(trade, variant, opts.variants ?? 1)), ...(opts.coverage_emirates ? { coverage_emirates: opts.coverage_emirates } : {}) };
  * that status and no documents, and completing it is the caller's job. Use makeLicenceGatedSupplier()
  * when you want a supplier the six refuse.
  */
