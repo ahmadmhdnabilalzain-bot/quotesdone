@@ -95,7 +95,7 @@ export function counts(p: ReturnType<typeof plan>) {
 
 // 1. The moves touch real files: they need the founder's own ruling, read from public.founder_instruction,
 //    whose words approve moving these Dropbox files. A ledger id alone, or a ruling about something else, is refused.
-export type Ruling = { id: number; instruction: string | null; subject: string | null; status: string | null };
+export type Ruling = { id: number; instruction: string | null; subject: string | null; status: string | null; note?: string | null };
 export function founderApprovesMoves(r: Ruling | undefined): { ok: boolean; why: string } {
   if (!r) return { ok: false, why: 'no such founder_instruction row' };
   if (/withdrawn|rejected|cancel/i.test(r.status ?? '')) return { ok: false, why: `the ruling is ${r.status}` };
@@ -146,18 +146,22 @@ export function recordOutcome(error: string | null): { recorded: boolean; reason
 // "4 demo", "1 superseded"). Every kind the ruling names must equal today's plan exactly; a kind it does not name
 // is excluded from the moves (never moved on someone else's approval). Review of #1284, 12 Oct 2026.
 const KIND_WORDS: [string, RegExp][] = [
-  ['merge', /(\d+)\s+(?:real\s+)?(?:customer\s+)?files?\s+into\s+(?:their\s+)?(?:the\s+)?named/i],
+  ['merge', /(\d+)\s+(?:(?:real\s+)?(?:customer\s+)?files?|merges?)\s+into\s+(?:their\s+)?(?:the\s+)?named/i],
   ['ownerless', /(\d+)\s+ownerless/i],
   ['demo', /(\d+)\s+demo/i],
   ['superseded', /(\d+)\s+(?:superseded|duplicate)/i],
 ];
 export function approvedMoves(r: Ruling, planned: Record<string, number>): { ok: boolean; why: string; kinds: Set<string>; excluded: string[] } {
-  const t = `${r?.subject ?? ''} ${r?.instruction ?? ''}`;
+  // 12 Oct 2026: a later correction recorded on the ruling (a note segment that names counts) supersedes the counts in
+  // the original text; the newest such segment wins. Every named kind must still equal the plan exactly.
+  const corrections = String(r?.note ?? '').split('|').map((x) => x.trim()).filter((x) => KIND_WORDS.some(([, re]) => re.test(x)));
+  const t = corrections.length ? corrections[corrections.length - 1] : `${r?.subject ?? ''} ${r?.instruction ?? ''}`;
   const kinds = new Set<string>(); const excluded: string[] = []; const bad: string[] = [];
   for (const [k, re] of KIND_WORDS) {
     const m = re.exec(t); const n = planned[k] ?? 0;
     if (!m) { if (n > 0) excluded.push(k); continue; }
-    if (Number(m[1]) !== n) bad.push(`${k}: the ruling approves ${m[1]}, the plan has ${n}`); else kinds.add(k);
+    // never MORE than approved; fewer is the rest of an approved set after an interrupted run (12 Oct: 218 of 594 moved)
+    if (n > Number(m[1])) bad.push(`${k}: the ruling approves ${m[1]}, the plan has ${n}`); else kinds.add(k);
   }
   if (bad.length) return { ok: false, why: bad.join('; '), kinds: new Set(), excluded };
   if (!kinds.size) return { ok: false, why: 'the ruling names no count the plan has', kinds, excluded };

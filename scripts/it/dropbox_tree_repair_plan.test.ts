@@ -98,8 +98,17 @@ Deno.test('review 12 Oct: the ruling must name today\'s counts; an unnamed kind 
   const r = { id: 1180, subject: 'backup', status: 'open', instruction: 'Dropbox housekeeping approved: move the 5 real customer files into their named folders, 421 ownerless + 4 demo to _archive.' };
   const a = approvedMoves(r, { merge: 2, ownerless: 594, demo: 4, superseded: 1, record: 14, collisions: 0 });
   assertEquals(a.ok, false);                                                 // today's plan is not what 1180 approved
-  assertEquals(a.why, 'merge: the ruling approves 5, the plan has 2; ownerless: the ruling approves 421, the plan has 594');
+  assertEquals(a.why, 'ownerless: the ruling approves 421, the plan has 594');   // fewer merges is a subset; more ownerless is not
   const b = approvedMoves(r, { merge: 5, ownerless: 421, demo: 4, superseded: 1, record: 14, collisions: 0 });
   assertEquals([b.ok, [...b.kinds].sort(), b.excluded], [true, ['demo', 'merge', 'ownerless'], ['superseded']]);   // certificates excluded
   assertEquals(approvedMoves({ id: 2, subject: null, status: 'open', instruction: 'yes, approve the Dropbox moves' }, { merge: 2, ownerless: 0, demo: 0, superseded: 0, record: 0, collisions: 0 }).ok, false);
+});
+
+Deno.test('12 Oct: a correction in the ruling note supersedes its counts; never more than approved', () => {
+  const r = { id: 1180, subject: null, status: 'open', instruction: 'move the 5 real customer files into their named folders, 421 ownerless + 4 demo to _archive.',
+    note: 'RECON: still open | 12 Oct: covers the corrected plan - 2 merges into named folders, 594 ownerless + 4 demo to _archive, 1 duplicate T&C archived' };
+  const a = approvedMoves(r, { merge: 2, ownerless: 594, demo: 4, superseded: 1, record: 0, collisions: 0 });
+  assertEquals([a.ok, [...a.kinds].sort()], [true, ['demo', 'merge', 'ownerless', 'superseded']]);
+  assertEquals(approvedMoves(r, { merge: 2, ownerless: 376, demo: 4, superseded: 1, record: 0, collisions: 0 }).ok, true);    // the rest after an interrupted run
+  assertEquals(approvedMoves(r, { merge: 3, ownerless: 594, demo: 4, superseded: 1, record: 0, collisions: 0 }).ok, false);   // one more than approved
 });
