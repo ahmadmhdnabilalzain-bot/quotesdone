@@ -151,7 +151,7 @@ export function exactCandidates(lines: string[]): string[] {
 //               the names the document's own name fields print: wherever one occurs in a line it is cut out, with or
 //               without its legal suffix, and the rest of the line is still read ("ZZ DEMO Falcon Cleaning provides
 //               painting works" keeps "provides painting works"). Nothing similar is guessed: only the exact name.
-const LEGAL_SUFFIX = /[\s,.\-]*(?:l\.?\s?l\.?\s?c\.?|fz[\s-]?llc|fze|fzco|est\.?|establishment|ذ\s?\.?\s?م\s?\.?\s?م\.?)\s*$/iu;
+const LEGAL_SUFFIX = /[\s,.\-]*(?:l\.?\s?l\.?\s?c\.?|fz[\s-]?llc|fze|fzco|est\.?|establishment|\u0630\s?\.?\s?\u0645\s?\.?\s?\u0645\.?)\s*$/iu;
 const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const NAME_FIELD = new RegExp('^\\s*(?:' + NAME_LABELS.map(escRe).join('|') + ')(?![\\p{L}])\\s*[:：\\-]?', 'iu');
 export const isNameField = (line: string): boolean => NAME_FIELD.test(line);
@@ -168,6 +168,17 @@ export function nameForms(names: (string | null | undefined)[]): string[] {
     }
   }
   return [...out].sort((a, b) => b.length - a.length);
+}
+// THE DOCUMENT'S TITLE (12 Oct 2026, sandbox run 1c94fa6a S21). A profile headed "ZZ DEMO Falcon Cleaning - Company
+// Profile" proposed cleaning for three suppliers whose own names are different (Palm Glass, ...): the known names above
+// are the SUPPLIER's, so a profile printing another name kept it. The title layout is exact: "<name> - Company Profile"
+// or "Company Profile - <name>" (separator - – — | :). The line names the company, and that name is cut wherever else
+// the document prints it, like a known name.
+const PROFILE_TITLE = [/^(.*\p{L}.*?)\s*[-–—|:]\s*company\s+profile\s*$/iu, /^company\s+profile\s*[-–—|:]\s*(.*\p{L}.*)$/iu];
+/** The company name a "<name> - Company Profile" title line prints; null for any other line. */
+export function profileTitleName(line: string): string | null {
+  for (const re of PROFILE_TITLE) { const m = re.exec(line.trim()); if (m) return m[1].trim(); }
+  return null;
 }
 const EDGE = /^[\s\-–—:|,.]+|[\s\-–—:|,.]+$/g;
 /** The line with every known name cut out; null when it is a name field, or nothing but a name was on it. */
@@ -191,8 +202,10 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
   // (LLC, FZE, FZCO, ذ.م.م), an e-mail, a web address or a phone number (catalogue_read.isNameOrReachLine) - never on a
   // bare "mobile" or an address word, which work lines carry ("Mobile crane hire", "Office fit-out, 3 floors").
   // A name printed WITHOUT a suffix is cut out by its layout and by the known names (withoutNames, above).
-  const forms = nameForms(opts.names ?? []);
-  const lines = [...new Set(textLines(text).filter((l) => !isNameOrReachLine(l))
+  const all = textLines(text);
+  const titled = all.map(profileTitleName).filter((n): n is string => !!n);
+  const forms = nameForms([...(opts.names ?? []), ...titled]);
+  const lines = [...new Set(all.filter((l) => !isNameOrReachLine(l) && !profileTitleName(l))
     .map((l) => withoutNames(l, forms)).filter((l): l is string => !!l && l.length >= 2))];
   const hits = new Map<string, TradeHit>();
   const add = (h: TradeHit) => {

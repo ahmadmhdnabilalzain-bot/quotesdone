@@ -1325,6 +1325,13 @@
   "fd666cd4a8ef",
   "fe93b75ba546"
  ],
+ "scripts/sql/the_arabic_reveal_fee_question_reaches_its_own_mirror.sql": [
+  "62c0fb48c803",
+  "74e7333ac370",
+  "845ebf488235",
+  "ba8ee4bbe1b8",
+  "e6d120aeb324"
+ ],
  "scripts/sql/the_calendar_resend_waits_on_real_edits_not_on_a_held_posts_dry_run_probe.sql": [
   "f03ed6d53816"
  ],
@@ -5104,7 +5111,6 @@
   "4ef43061dd49",
   "50f3e1384d16",
   "5283cb9957a9",
-  "52e7c937ed18",
   "53f7a15a0773",
   "5599ba65143f",
   "57a9304a06cc",
@@ -5189,7 +5195,6 @@
   "c336e0135404",
   "c5010faf90c2",
   "c66836318b5a",
-  "c89285eb576d",
   "c9abcfc325f6",
   "ca0f4b621133",
   "caa47f02fb2b",

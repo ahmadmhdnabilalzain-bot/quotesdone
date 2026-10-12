@@ -271,7 +271,7 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
       // matching — with routing.fallback = true and no exception, no alert and no stuck row, while
       // decision_policy.use_capability_matching said true the whole time.
       // sales_engineer's `match` action runs public.fn_match_capability and honours
-      // decision_policy's fanout ceiling, per-trade cap and relevance floor. persist:false because
+      // decision_policy's relevance floor, and invites every supplier left (no count cap: any number may quote). persist:false because
       // the write happens below, where the landed/refused split decides who is emailed.
       const secret = await getSecret('cred_fn_customer_api');
       // The Authorization header is NOT optional and its absence is what the old call looked like.

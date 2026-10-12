@@ -73,8 +73,18 @@ test('every active model class has a seat and runs its route (pending model file
 // the probe reported 11 review-route "drifts" over an unchanged model_policy. A breaker open for minutes is the
 // router working, not a change to the matrix: tripping luna's and Gemini's breakers here must still give PROBE OK.
 test('a failure breaker open for minutes is not matrix drift', { skip: !token() }, async () => {
-  const v = await run(replay() + `\n;\nupdate public.llm_route_health set open_until = now() + interval '5 minutes',
-    opened_reason = 'zz probe: empty_completion trip', opened_class = 'empty_completion' where model_id in ('openai/gpt-6-luna', 'google/gemini-3.8-flash');\n` + probe());
+  // A named probe that raises (a_sandbox_success_never_lifts_the_model_hold.test.mjs): the trip runs in the same
+  // aborted transaction as the matrix probe, which always raises, and fails loudly if it tripped nothing.
+  const trip = `do $trip$ declare n int; begin
+  perform set_config('app.change_reason', 'probe:every_model_class_is_on_the_founders_matrix', true);
+  update public.llm_route_health set open_until = now() + interval '5 minutes',
+    opened_reason = 'zz probe: empty_completion trip', opened_class = 'empty_completion'
+   where model_id in ('openai/gpt-6-luna', 'google/gemini-3.8-flash');
+  get diagnostics n = row_count;
+  perform set_config('app.change_reason', '', true);
+  if n <> 2 then raise exception 'CHK<<PROBE FAILED: the breaker trip touched % routes, not 2>>', n; end if;
+end $trip$;`;
+  const v = await run(replay() + '\n;\n' + trip + '\n' + probe());
   assert.match(v, /^PROBE OK /, v);
 });
 
