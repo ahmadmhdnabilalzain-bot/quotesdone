@@ -11,6 +11,10 @@ const stub = {
     fn_spec_offer_whatsapp_reply: { handled: true, ok: false, error: 'unknown_option', options: 2 },
   },
   secrets: { wa_autoreply_enabled: 'true' },
+  // The reply is the model's (rulings 1195-1197): the gateway is stubbed to answer, so a reply exists to be captured.
+  handle: (_req: Request, u: URL) => u.pathname.startsWith('/functions/v1/')
+    ? new Response(JSON.stringify({ content: JSON.stringify({ answer: 'ZZ DEMO model reply: please reply 1 or 2, or NO.' }), model: 'stub/model' }), { headers: { 'content-type': 'application/json' } })
+    : undefined,
 };
 
 Deno.test('wa_inbound reply: a fixture number makes zero requests to twilio.com, and the capture is stored', async () => {

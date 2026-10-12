@@ -114,14 +114,18 @@ type Sent = { to: string; body: string; content?: Content };
 const READ: Record<string, MenuMeaning | MenuId> = { 'Follow up my request': 'qd_follow', 'Report a problem': 'qd_problem', 'Hi': 'greeting', 'Hello': 'greeting', 'hello': 'greeting', 'menu': 'greeting', 'MENU': 'greeting', 'السلام عليكم': 'salam' };
 function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>; contentFails?: boolean; faq?: string | null;
                       enabled?: boolean; history?: Turn[]; weWrote?: boolean; held?: boolean; appended?: boolean; gapOk?: boolean;
-                      reasoningHeld?: boolean;
+                      reasoningHeld?: boolean; noModel?: boolean;
                       /** The reasoned INTENT think() would return (reasoned_channels.ts); null = held. Default 'none'. */
                       meaning?: string | null } = {}) {
   const sent: Sent[] = []; const rows: Array<Record<string, unknown>> = []; const cases: string[] = []; const notified: string[] = []; const closed: string[] = []; const gaps: string[] = [];
   const history: Turn[] = [...(o.history || [])];
   const meanings: Array<[string, boolean]> = []; const offered: boolean[] = [];
   const reasoned: string[] = []; const queued: string[] = [];
+  // THE MODEL, faked: it writes the reply from the situation; every text it wrote this turn is kept, so a test can
+  // prove a sent conversation reply is one of them (rulings 1195-1197). o.noModel: no model answers.
+  const written: string[] = [];
   const d: MenuDeps = {
+    write: (r) => { if (o.noModel) return Promise.resolve(''); const t = r.situation; written.push(t); return Promise.resolve(t); },
     meaning: (text, awaitingProblem, offerMenu) => {
       meanings.push([text, awaitingProblem]);
       offered.push(offerMenu);
@@ -154,7 +158,7 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
       return Promise.resolve();
     },
   };
-  return { d, sent, rows, cases, notified, closed, gaps, meanings, offered, reasoned, queued };
+  return { d, sent, rows, cases, notified, closed, gaps, meanings, offered, reasoned, queued, written };
 }
 const msg = (body: string, audience: Audience = 'unknown', extra: Partial<MenuInput> = {}): MenuInput => ({ from: FROM, body, audience, ...extra });
 
@@ -211,7 +215,8 @@ Deno.test('first "Hi" from an unknown number: English welcome signed QuotesDone,
   assertEquals(r.route, 'menu_welcome');
   assertEquals(h.sent.length, 1);
   assertEquals(h.sent[0].content?.sid, 'HX' + '0'.repeat(32));
-  assertEquals(h.sent[0].content!.variables['1'], 'Good day, and thank you for contacting QuotesDone.');
+  // The {{1}} line is the model's (rulings 1195-1197), written for this turn; one line, as a Content variable must be.
+  assertEquals(h.sent[0].content!.variables['1'], h.written[0].replace(/\s*\n+\s*/g, ' '));
   assert(!h.sent[0].content!.variables['1'].includes('\n'), 'a Content variable carries no line break');
   assertMatch(h.rows[0].reply as string, /Kind regards,\nQuotesDone Customer Support$/);
 });
@@ -221,7 +226,8 @@ Deno.test('first "السلام عليكم": Arabic welcome that returns the sala
   await menuTurn(h.d, msg('السلام عليكم'));
   assertEquals(h.sent.length, 1);
   assertEquals(h.sent[0].content, undefined);
-  assertMatch(h.sent[0].body, /^وعليكم السلام ورحمة الله وبركاته/);
+  assertMatch(h.written[0], /returning the salam/); // the model is told to return the salam; the words are its own
+  assert(h.sent[0].body.startsWith(h.written[0].replace(/\s*\n+\s*/g, ' ')));
   assertMatch(h.sent[0].body, /1\. طلب عرض سعر جديد/);
   assertMatch(h.sent[0].body, /فريق خدمة العملاء في QuotesDone/);
   assertEquals(h.rows[0].lang, 'ar');
@@ -230,7 +236,8 @@ Deno.test('first "السلام عليكم": Arabic welcome that returns the sala
 Deno.test('a confirmed customer is greeted by name; a supplier sees "My supplier account"', async () => {
   const c = harness({ ctx: { audience: 'customer', name: 'ZZ DEMO Customer' }, sids: { menu_en_general: 'HX' + '1'.repeat(32) } });
   await menuTurn(c.d, msg('hello', 'customer'));
-  assertEquals(c.sent[0].content?.variables['1'], 'Good day ZZ DEMO Customer, and thank you for contacting QuotesDone.');
+  assertMatch(c.written[0], /ZZ DEMO Customer/);
+  assertEquals(c.sent[0].content?.variables['1'], c.written[0].replace(/\s*\n+\s*/g, ' '));
   assertEquals(contentKey('en', 'customer'), 'menu_en_general');
 
   const s = harness({ ctx: { audience: 'supplier', name: 'ZZ DEMO Trading LLC', approved: false } });
@@ -308,7 +315,7 @@ Deno.test('follow-up: an unknown number is told plainly nothing is registered on
   // fn_wa_menu_context lists requests only for a CONFIRMED customer number; the reply trusts that.
   const h = harness({ ctx: { audience: 'unknown', requests: [] }, history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
   await menuTurn(h.d, msg('Follow up my request'));
-  assertMatch(h.sent[0].body, /^There is no request registered under this mobile number \(or its email\)/);
+  assertMatch(h.sent[0].body, /There is no request registered under this mobile number \(or its email\)/);
   assertMatch(h.sent[0].body, /https:\/\/quotesdone\.com\/me\?new=1/);
   assert(!h.sent[0].body.includes('9'));
 });
@@ -366,7 +373,8 @@ Deno.test('first contact with a real question: left to the handlers first, then 
   assertEquals((await menuTurn(h.d, msg('Is posting a job free?'))).handled, false);
   assertEquals(h.sent.length, 0);
   assertEquals(await welcomeFirstContact(h.d, msg('Is posting a job free?')), true);
-  assertEquals(h.sent.map((s) => s.body.slice(0, 22)), ['Posting a job is free.', h.sent[1].body.slice(0, 22)]);
+  assertEquals(h.sent[0].body, h.written[0]);
+  assert(h.written[0].includes('Posting a job is free.'));
   assertEquals(h.rows.map((r) => r.route), ['menu_first_answer', 'menu_welcome']);
 });
 
@@ -395,20 +403,21 @@ Deno.test('an explicit hello after one of our notices still gets the welcome', a
   assertEquals(h.sent.length, 1);
 });
 
-Deno.test('in wa_inbound the first-contact welcome runs only after every handler that could claim the message', async () => {
+// 1195-1197: the stored first-contact welcome is gone; the composed (model-written) reply is the one that must come last.
+Deno.test('in wa_inbound the composed reply runs only after every handler that could claim the message', async () => {
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  const at = src.indexOf('await welcomeFirstContact(');
+  const at = src.indexOf('await say(situation)');
   assert(at > 0);
   for (const handler of ["admin.rpc('fn_supplier_apply_change'", "admin.rpc('fn_wa_route'", 'if (media.length) {', "if (audience === 'founder') {"]) {
     const h = src.indexOf(handler);
-    assert(h > 0 && h < at, handler + ' must come before the first-contact welcome');
+    assert(h > 0 && h < at, handler + ' must come before the composed reply');
   }
 });
 
 Deno.test('later free text: a confident FAQ answer is sent; with none, the menu is offered again', async () => {
   const yes = harness({ faq: 'Suppliers pay no commission.', history: [{ route: 'menu_qd_general', await: 'question', lang: 'en' }] });
   assertEquals(await answerFromFaq(yes.d, msg('do suppliers pay commission')), true);
-  assertMatch(yes.sent[0].body, /Suppliers pay no commission\.\n\nReply MENU/);
+  assertMatch(yes.sent[0].body, /Suppliers pay no commission\.[\s\S]*reply MENU/);
   const no = harness({ history: [{ route: 'faq_answer', await: null, lang: 'en' }] });
   assertEquals((await menuTurn(no.d, msg('blah blah'))).handled, false);
   assertEquals(await answerFromFaq(no.d, msg('blah blah')), false);
@@ -540,7 +549,7 @@ Deno.test('271: the founder\'s exact message after the menu gets the grouped cov
   assertEquals((await menuTurn(h.d, msg('What sectors you cover', 'founder'))).handled, false); // not a menu choice
   assertEquals(await answerFromFaq(h.d, msg('What sectors you cover', 'founder')), true);
   const body = h.sent[0].body;
-  assertMatch(body, /^We match quotation requests to verified UAE suppliers in these trades:/);
+  assertMatch(body, /We match quotation requests to verified UAE suppliers in these trades:/);
   // Twelve group headings leave less room than five did: every trade is either named or counted in its
   // group ("and N more"), and every group that has a trade is there — nothing is dropped.
   accountsForEveryTrade(body, 'en');
@@ -551,7 +560,7 @@ Deno.test('271: the founder\'s exact message after the menu gets the grouped cov
   assert(!/• MEP: |• Fit-out & finishes|• Services & tech/.test(body), 'none of the five retired groups');
   assertMatch(body, /only to suppliers of that exact trade\. New trades are welcome: https:\/\/quotesdone\.com\/supplier/);
   assertMatch(body, /Request a quotation: https:\/\/quotesdone\.com\/me\?new=1/);
-  assert(body.length <= 1500, 'fits one WhatsApp message: ' + body.length);
+  assert(body.length <= 1700, 'fits one WhatsApp message: ' + body.length);
   assert(!INTERNAL.test(body), 'internal wording: ' + body.match(INTERNAL));
   assertEquals(h.rows[0].route, 'faq_answer');
   assertEquals(h.gaps.length, 0);
@@ -630,8 +639,8 @@ Deno.test('an unknown question gets the courteous fallback and the menu, is file
     await unanswered(h.d, msg(body, 'founder'), 'no_grounded_answer');
     assertEquals(h.gaps, ['no_grounded_answer:' + body]);
     const sent = h.sent[0].body;
-    assertMatch(sent, lang === 'ar' ? /^شكرًا لسؤالكم\. لا تتوفر لديّ إجابة مؤكدة عنه حتى الآن، وأفضّل ألا أجيب دون تحقق، لذا سجّلته لدى فريقنا\./
-                                    : /^Thank you for your question\. I do not have a confirmed answer to it yet and would rather not guess, so I have recorded it for our team\./);
+    assert(h.written[0].includes('recorded for the team') && h.written[0].includes('Talk to a person')); // told; the words are the model's
+    assert(sent.startsWith(h.written[0].replace(/\s*\n+\s*/g, ' ')));
     assertMatch(sent, lang === 'ar' ? /التحدث إلى أحد الموظفين/ : /Talk to a person/); // the way to a real reply is on the menu
     assert(!INTERNAL.test(sent), 'internal wording: ' + sent.match(INTERNAL));
     assertEquals(h.rows[0].route, 'menu_reoffer');
@@ -640,7 +649,7 @@ Deno.test('an unknown question gets the courteous fallback and the menu, is file
   // If the question could not be filed, the reply does not say it was.
   const f = harness({ gapOk: false });
   await unanswered(f.d, msg('what is your opinion of the new metro line'), 'no_grounded_answer');
-  assert(!/recorded it/.test(f.sent[0].body));
+  assert(!/recorded/.test(f.written[0]));
 });
 
 Deno.test('no reply text the menu, the options, the cases or the coverage answer can send carries internal wording', () => {
@@ -765,4 +774,49 @@ Deno.test('777: the figures are read in exactly one place, behind the command wo
   const sizeAt = flow.indexOf("(await d.intent(body)) === 'size'");
   assert(sizeAt > 0 && sizeAt < flow.indexOf('// 1. The message after "Report a problem"'));
   assert(src.indexOf('menuTurn(menuDeps, menuIn)') < src.indexOf("if (audience === 'founder') {\n      const question"));
+});
+
+// RULINGS 1195/1196/1197 (12 Oct 2026): every CONVERSATION reply is written by a model in that turn. This fails the
+// moment any menu path sends text the fake model did not write in the same turn. Notifications are the only exception,
+// and they are named: a case-reference receipt, the founder's close confirmations and his FIGURES report.
+const NOTIFICATION_ROUTES = new Set(['menu_case', 'founder_close_case', 'founder_close_human', 'founder_figures']);
+const ONE_LINE = (t: string) => t.replace(/\s*\n+\s*/g, ' ');
+Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote it in this turn; with no model, nothing is sent', async () => {
+  const menuShown = [{ route: 'menu_welcome', await: null, lang: 'en' as Lang }];
+  const turns: Array<[string, () => Promise<unknown>, ReturnType<typeof harness>]> = [];
+  const add = (name: string, o: Parameters<typeof harness>[0], run: (h: ReturnType<typeof harness>) => Promise<unknown>) => {
+    const h = harness(o); turns.push([name, () => run(h), h]);
+  };
+  for (const noModel of [false, true]) {
+    add('hi', { noModel }, (h) => menuTurn(h.d, msg('Hi')));
+    add('salam', { noModel }, (h) => menuTurn(h.d, msg('السلام عليكم')));
+    for (const id of MENU_IDS) add('option ' + id, { noModel, history: menuShown }, (h) => menuTurn(h.d, msg('', 'customer', { listId: id })));
+    add('size', { noModel, meaning: 'size' }, (h) => menuTurn(h.d, msg('how many suppliers do you have')));
+    add('faq', { noModel, faq: 'Posting a job is free.' }, (h) => answerFromFaq(h.d, msg('is it free')));
+    add('first contact', { noModel, faq: 'Posting a job is free.' }, (h) => welcomeFirstContact(h.d, msg('is it free')));
+    add('after general question', { noModel, faq: 'Posting a job is free.', history: [{ route: 'menu_qd_general', await: 'question', lang: 'en' }] }, (h) => menuTurn(h.d, msg('is it free')));
+    add('unanswered', { noModel }, (h) => unanswered(h.d, msg('what about the metro'), 'no_grounded_answer'));
+    add('founder unanswered', { noModel, ctx: { audience: 'founder' } }, (h) => founderUnanswered(h.d, msg('anything', 'founder'), 'no_grounded_answer'));
+    add('reoffer', { noModel }, (h) => reofferMenu(h.d, msg('blah'), 'Their message was unclear.'));
+  }
+  let conversational = 0;
+  for (const [name, run, h] of turns) {
+    await run();
+    h.rows.forEach((row, i) => {
+      if (NOTIFICATION_ROUTES.has(String(row.route))) return;
+      const extra = row.extra as Record<string, unknown>;
+      if (!row.sent) { assert(!row.reply || extra.no_model_reply !== true, name); return; }
+      conversational++;
+      const body = String(row.reply);
+      assert(h.written.some((w) => body === w || body.startsWith(ONE_LINE(w))), name + ' #' + i + ': sent text no model wrote this turn: ' + body.slice(0, 80));
+    });
+    if (h.written.length === 0) {
+      // no model answered: only notifications may have gone out
+      for (const s of h.sent) {
+        const row = h.rows.find((r) => r.reply === s.body);
+        assert(row && NOTIFICATION_ROUTES.has(String(row.route)), name + ': with no model a conversation reply was still sent: ' + s.body.slice(0, 80));
+      }
+    }
+  }
+  assert(conversational >= 15, 'the scenarios really sent conversation replies: ' + conversational);
 });
