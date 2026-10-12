@@ -20,6 +20,10 @@ Deno.test('a table export, a probe, a sandbox, an archive, a folder or anything 
 
 Deno.test('the demo purge deletes only a frozen, reviewed path (or inside one) and the probe roots', async () => {
   const { demoPurgeDeleteAllowed, DEMO_PURGE_PATHS } = await import('./purge.ts');
+  // every case below runs against the REAL frozen list the edge function ships, never a test-only list
+  const shipped = JSON.parse(await Deno.readTextFile(new URL('./demo_purge_paths.json', import.meta.url))).paths;
+  assertEquals([...DEMO_PURGE_PATHS], shipped);
+  assertEquals(shipped.length, 73);
   for (const p of DEMO_PURGE_PATHS) {
     assertEquals(demoPurgeDeleteAllowed(p), true, p);
     assertEquals(demoPurgeDeleteAllowed(p + '/Inquiries/x.pdf'), true, p + '/...');
@@ -41,6 +45,19 @@ Deno.test('the demo purge deletes only a frozen, reviewed path (or inside one) a
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Ahmad Nabil Al Zain (dbb4e36f)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/TIWNKLE SHARMA (ca038493)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12', '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12',   // never a whole set
+    // held for the founder, or a row matches (release review of 45c56ba)
+    '/QuotesDone Backup/Customers/ahmad test', '/QuotesDone Backup/Customers/ahmad test 2',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad (27cbbc0a)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test (70f15bc3)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test 2 (a6d900ab)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmadsw (84a808ec)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Bara Al Zain (d38c4fac)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Other/dj zaino (30354)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Customer (1a1bdf46)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Customer (71e96257)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Customer (7aa42658)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Customer (a9d8c1bd)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Storage', '/QuotesDone Backup/_archive/ownerless-2026-10-12/Storage/drawing-files/x.pdf',
     '/QuotesDone Backup/Customers/ahmad test 3', '/QuotesDone Backup/Customers/ahmad test 2x',    // a prefix is not the folder
     '/QuotesDone Backup/Customers', '/QuotesDone Backup/_archive', '/QuotesDone Backup/_sandbox',
     '/QuotesDone Backup/Customers/ahmad test/../ahmad alzain/a.pdf', '/QuotesDone Backup//Customers/ahmad test',
