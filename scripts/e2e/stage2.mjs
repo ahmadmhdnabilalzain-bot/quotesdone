@@ -512,13 +512,22 @@ async function realRun(pre) {
       if (!sk.startsWith('sk_test_')) throw new Error('REFUSED: the Stripe key is not a TEST key');
       const top = need((await read(`select id, quote_amount::float a, supplier_id from public.quotes where inquiry_id=${q(inq.id)} and status='submitted' order by quote_amount limit 1`))[0], 'no submitted quote on the aluminium request (S07), so there is nothing to reveal');
       const ct = async (pm) => (await (await fetch('https://api.stripe.com/v1/test_helpers/confirmation_tokens', { method: 'POST', headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: `payment_method=${pm}` })).json()).id;
-      const quote = await call('stripe_checkout', cu.jwt, { action: 'element_quote', quote_id: top.id });
-      const fee = Number(quote.json?.total_fils) / 100;
-      A('the reveal price is 3% of the quote with no card surcharge', Math.abs(fee - top.a * 0.03) < 0.01, `quote ${top.a} -> charge ${fee}`);
-      const bad = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: await ct('pm_card_chargeDeclined'), expected_total_fils: quote.json?.total_fils });
+      // element_quote prices the card actually used, so it needs that card's ConfirmationToken (the
+      // contract since 14 Sep 2026, stripe_checkout/index.ts element_quote). Run 4 sent none: HTTP 400
+      // bad_confirmation_token, total_fils undefined, and element_pay then compared against NaN and
+      // answered 'repriced' before Stripe ever saw the declined card. Each card is quoted on its own token.
+      const quoteFor = async (pm) => { const t = await ct(pm); const r = await call('stripe_checkout', cu.jwt, { action: 'element_quote', quote_id: top.id, confirmation_token: t }); return { t, r }; };
+      const qBad = await quoteFor('pm_card_chargeDeclined'), qGood = await quoteFor('pm_card_visa');
+      for (const [label, x] of [['declined', qBad], ['visa', qGood]]) {
+        const fee = Number(x.r.json?.total_fils) / 100;
+        A(`the reveal price is 3% of the final ex-VAT quote with no card surcharge (${label} card)`, x.r.status === 200 && Math.abs(fee - top.a * 0.03) < 0.01 && Number(x.r.json?.processing_fee) === 0 && Math.abs(Number(x.r.json?.base_fee) - top.a * 0.03) < 0.01, `HTTP ${x.r.status} quote ${top.a} -> charge ${fee} processing ${x.r.json?.processing_fee} basis ${x.r.json?.fee_basis}`);
+      }
+      const bad = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: qBad.t, expected_total_fils: qBad.r.json?.total_fils });
       const tx0 = (await read(`select count(*)::int n from public.transactions where quote_id=${q(top.id)} and fee_status='paid'`))[0].n;
-      A('a declined TEST card is refused and reveals nothing', bad.json?.ok === false && tx0 === 0, JSON.stringify(bad.json).slice(0, 200));
-      const good = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: await ct('pm_card_visa'), expected_total_fils: quote.json?.total_fils });
+      // Refused BY THE CARD: status 'failed' (Stripe declined, invoice voided), never 'repriced' (Stripe not reached).
+      A('a declined TEST card is refused and reveals nothing', bad.json?.ok === false && bad.json?.status === 'failed' && tx0 === 0, JSON.stringify(bad.json).slice(0, 200));
+      const good = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: qGood.t, expected_total_fils: qGood.r.json?.total_fils });
+      A('the paid TEST card is charged exactly the total it was quoted', good.json?.status === 'succeeded' && good.json?.total_fils === qGood.r.json?.total_fils, JSON.stringify(good.json).slice(0, 200));
       const tx = (await read(`select * from public.transactions where quote_id=${q(top.id)}`))[0];
       if (tx) run.ids.transactions.add(String(tx.id));
       A('a paid TEST card reveals: transaction paid, invoice recorded', tx?.fee_status === 'paid' && tx.stripe_invoice_id, `fee_status=${tx?.fee_status} invoice=${tx?.stripe_invoice_number} total=${tx?.total_charged} processing=${tx?.processing_fee}`);
@@ -566,9 +575,12 @@ async function realRun(pre) {
       save('chats/assistant_transcripts.json', chats); fx.chats = chats;
       const { inq, top } = fx.revealed || {};
       if (inq) {
-        const rq = await call('messages_api', inq.cu.jwt, { action: 'request_chat', quote_id: top.id });
-        const s = await call('messages_api', inq.cu.jwt, { action: 'send', quote_id: top.id, body: 'ZZ DEMO: when can you visit the site?' });
-        const th = await call('messages_api', inq.cu.jwt, { action: 'thread', quote_id: top.id });
+        // messages_api keys a thread on (inquiry_id, supplier_id), not quote_id: run 4's 400 was
+        // 'missing inquiry_id/supplier_id', which a paid reveal alone would not have cured.
+        const key = { inquiry_id: inq.id, supplier_id: top.supplier_id };
+        const rq = await call('messages_api', inq.cu.jwt, { action: 'request_chat', ...key });
+        const s = await call('messages_api', inq.cu.jwt, { action: 'send', ...key, body: 'ZZ DEMO: when can you visit the site?' });
+        const th = await call('messages_api', inq.cu.jwt, { action: 'thread', ...key });
         save('chats/customer_supplier_thread.json', th.json);
         A('post-reveal customer-supplier chat stores the message', rq.status === 200 && s.status === 200, `send HTTP ${s.status}`);
       }
@@ -582,7 +594,7 @@ async function realRun(pre) {
       A('a signed unsubscribe link suppresses the address', r.ok && s?.reason === 'unsubscribe', `HTTP ${r.status} reason=${s?.reason}`);
       const { inq, top } = fx.revealed || {};
       if (inq) {
-        const rt = await call('customer_api', inq.cu.jwt, { action: 'rate_supplier', quote_id: top.id, stars: 5, comment: 'ZZ DEMO rating' });
+        const rt = await call('customer_api', inq.cu.jwt, { action: 'rate_supplier', quote_id: top.id, rating: 5, comment: 'ZZ DEMO rating, five stars' }); // field is `rating` (rating_input.ts); `stars` was 400 rating_out_of_range
         A('the customer can rate the revealed supplier', rt.status === 200, `HTTP ${rt.status}`);
       }
     },
