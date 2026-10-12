@@ -31,6 +31,7 @@ import { splitPhrases } from './service_rewrite.ts';
 import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
 import { serviceVocab, tradeArNameVocab, tradeLabelVocab } from './service_vocabulary.ts';
 import { isNameOrReachLine, saysInstallWork, supplyOnlyOf } from './catalogue_read.ts';
+import { NAME_LABELS } from './document_expiry.ts';
 
 export type TradeHit = {
   code: string;
@@ -142,18 +143,57 @@ export function exactCandidates(lines: string[]): string[] {
   return [...out];
 }
 
+// A NAME PRINTED WITHOUT A LEGAL SUFFIX (12 Oct 2026, unsuffixed-names). isNameOrReachLine knows a name only by its
+// suffix, so "ZZ DEMO Falcon Cleaning" still proposed cleaning. A name is known two more ways, both exact:
+//   the LAYOUT  a line that is a labelled name field ("Company Name:", "Trade Name:", "الاسم التجاري:" - the labels
+//               document_expiry reads the licence's name by) is a name, whatever follows the label;
+//   the NAMES   the supplier's registered company name, the licence's legal name (read by code or by the model) and
+//               the names the document's own name fields print: wherever one occurs in a line it is cut out, with or
+//               without its legal suffix, and the rest of the line is still read ("ZZ DEMO Falcon Cleaning provides
+//               painting works" keeps "provides painting works"). Nothing similar is guessed: only the exact name.
+const LEGAL_SUFFIX = /[\s,.\-]*(?:l\.?\s?l\.?\s?c\.?|fz[\s-]?llc|fze|fzco|est\.?|establishment|ذ\s?\.?\s?م\s?\.?\s?م\.?)\s*$/iu;
+const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const NAME_FIELD = new RegExp('^\\s*(?:' + NAME_LABELS.map(escRe).join('|') + ')(?![\\p{L}])\\s*[:：\\-]?', 'iu');
+export const isNameField = (line: string): boolean => NAME_FIELD.test(line);
+/** Each name as printed and without its legal suffix; a form shorter than five characters is not used. */
+export function nameForms(names: (string | null | undefined)[]): string[] {
+  const out = new Set<string>();
+  for (const n of names) {
+    let f = String(n ?? '').replace(/\s+/g, ' ').trim();
+    while (f) {
+      if (f.length >= 5 && /\p{L}{2}/u.test(f)) out.add(f.toLowerCase());
+      const cut = f.replace(LEGAL_SUFFIX, '').trim();
+      if (cut === f) break;
+      f = cut;
+    }
+  }
+  return [...out].sort((a, b) => b.length - a.length);
+}
+const EDGE = /^[\s\-–—:|,.]+|[\s\-–—:|,.]+$/g;
+/** The line with every known name cut out; null when it is a name field, or nothing but a name was on it. */
+export function withoutNames(line: string, forms: string[]): string | null {
+  if (isNameField(line)) return null;
+  let l = line;
+  for (const f of forms) l = l.replace(new RegExp('(?<![\\p{L}\\p{N}])' + escRe(f).replace(/ /g, '\\s+') + '(?![\\p{L}\\p{N}])', 'giu'), ' ');
+  if (l === line) return line;
+  l = l.replace(/\s+/g, ' ').replace(EDGE, '').trim();
+  return /\p{L}{2}/u.test(l) ? l : null;
+}
+
 const lineHolding = (lines: string[], phrase: string) => (lines.find((l) => l.includes(phrase)) ?? phrase).slice(0, 180);
 
 /** Both paths over one text. Never throws: a path that could not run says so in its state. */
-export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: { supplyOnly?: boolean } = {}): Promise<TradeRead> {
+export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: { supplyOnly?: boolean; names?: (string | null | undefined)[] } = {}): Promise<TradeRead> {
   // A NAME OR CONTACT LINE PROPOSES NOTHING, by any path (12 Oct 2026, accuracy suite). "Legal Name: ZZ DEMO Falcon
   // Cleaning LLC" was proposed cleaning (head_word), its "Legal Name" label legal_services (meaning 0.82), and
   // "... Falcon Glazing LLC" glazing (0.821): a company's name says who it is, never what it does, and a wrong trade
   // sends a request to the wrong supplier. The line is dropped before both paths when it carries a legal-entity suffix
   // (LLC, FZE, FZCO, ذ.م.م), an e-mail, a web address or a phone number (catalogue_read.isNameOrReachLine) - never on a
   // bare "mobile" or an address word, which work lines carry ("Mobile crane hire", "Office fit-out, 3 floors").
-  // ponytail: a name printed without a legal suffix ("Legal Name: ZZ DEMO Falcon Glazing") is not caught here.
-  const lines = textLines(text).filter((l) => !isNameOrReachLine(l));
+  // A name printed WITHOUT a suffix is cut out by its layout and by the known names (withoutNames, above).
+  const forms = nameForms(opts.names ?? []);
+  const lines = [...new Set(textLines(text).filter((l) => !isNameOrReachLine(l))
+    .map((l) => withoutNames(l, forms)).filter((l): l is string => !!l && l.length >= 2))];
   const hits = new Map<string, TradeHit>();
   const add = (h: TradeHit) => {
     const cur = hits.get(h.code);

@@ -35,7 +35,7 @@ for (const d of truth.docs) {
     : { legal_name_en: await DX.readLicenceName(bytes, d.mime), expiry_date: (await DX.readExpiry(bytes, d.mime))?.expiry ?? null };
   deps.budget.left = budget0;   // one process_docs call per supplier: each document starts with the full meaning budget
   const kind: DocKind = d.kind === 'licence' ? 'licence' : d.kind === 'catalogue' ? 'catalogue' : 'profile';
-  const ev = await readDocForTrades({ path: `corpus/${d.file}`, name: d.file, kind, bytes, mime: d.mime }, deps);
+  const ev = await readDocForTrades({ path: `corpus/${d.file}`, name: d.file, kind, bytes, mime: d.mime, names: [d.registered_name ?? null] }, deps);
   out.push({ id: d.id, text_chars: text?.length ?? 0, code,
     trades: { status: ev.status, reason: ev.reason ?? null, codes: [...new Set((ev.trades || []).map((t) => t.code))].sort(),
               hits: (ev.trades || []).map((t) => ({ code: t.code, via: t.via, phrases: t.phrases, snippet: t.snippet, similarity: t.similarity ?? null })),

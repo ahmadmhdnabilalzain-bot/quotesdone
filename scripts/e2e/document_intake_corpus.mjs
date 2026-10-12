@@ -388,6 +388,15 @@ export async function buildCorpus(outDir) {
     writeFileSync(join(outDir, `${d.id}.${ext}`), bytes);
     Object.assign(d, { file: `${d.id}.${ext}`, mime, kind: 'profile', authority: 'n/a', format: fmt, registered_name: name, truth: { trades: [...trades].sort(), brands }, text_layer: fmt !== 'png' });
   }
+  // A NAME PRINTED WITHOUT A LEGAL SUFFIX (12 Oct 2026): every name here holds a trade word ("Cleaning", "Floor",
+  // "التنظيف") and none is the company's trade; only the services list is. The registered name carries the suffix the
+  // profile leaves off; "Trade Name" and the Arabic trade name are known only by their labels.
+  { const name = 'ZZ DEMO Falcon Cleaning';
+    const lines = [`${name} - Company Profile`, 'Trade Name: ZZ DEMO Horizon Floor', 'الاسم التجاري: زد زد ديمو الأفق للتنظيف', 'About us',
+      `${name} is a UAE contractor established in 2012, serving Dubai and Sharjah.`, 'Our services', `- ${PROFILE_SERVICE.painting}`,
+      '(QuotesDone synthetic fixture - not a real company)'];
+    save('profile_docx_unsuffixed_name', docx(lines), 'docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      { kind: 'profile', authority: 'n/a', format: 'docx', registered_name: `${name} LLC`, truth: { trades: ['painting'], brands: [] }, text_layer: true }); }
   save('catalogue_pdf', demoPdfPages([[['ZZ DEMO Reem Building Supplies - Product Catalogue 2026', 14], ['Section 1: Aluminium Works', 12], ['- Thermal break aluminium windows, series TB-60', 10],
     ['- Sliding door systems, series SL-90', 10], ['Section 2: Glazing Works', 12], ['- Double glazed units 6+12+6 mm', 10], ['Warehouse: Al Quoz Industrial Area 3, Dubai', 9],
     ['(QuotesDone synthetic fixture - not a real company)', 8]]]), 'pdf', 'application/pdf', { kind: 'catalogue', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Reem Building Supplies LLC', truth: { trades: ['aluminium', 'glazing'] }, text_layer: true });
