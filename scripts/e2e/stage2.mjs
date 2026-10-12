@@ -295,10 +295,6 @@ async function realRun(pre) {
       for (const [trade, label] of all) {
         const s = await makeDemoSupplier(run, { trade, label, activity: TRADES[trade].name });
         fx.suppliers.push(s); run.ids.leads.add(String(s.leadId));
-        // Requests go to seven emirates (CUSTOMERS); a supplier that limits its emirates is matched only there, and the
-        // factory profile covers Dubai only, so run f4294be8 matched 6 of 8 requests to nobody. Every run supplier covers the UAE.
-        await write(`update public.leads set service_emirates = ${`ARRAY[${EMIRATES.map(q).join(',')}]::text[]`} where id = ${Number(s.leadId)};
-            update public.supplier_capabilities set coverage_emirates = ${`ARRAY[${EMIRATES.map(q).join(',')}]::text[]`} where supplier_id = ${Number(s.leadId)}`, 'S01 coverage: all emirates');
         const r = s.row;
         A(`${label} ${trade}: mandatory six, approved, own licence ${r.trade_license_no}`, r.is_demo && r.approval_status === 'approved' && r.missing?.length === 0 && /^ZZDEMO-/.test(r.trade_license_no || ''), `approval=${r.approval_status} missing=${JSON.stringify(r.missing)}`);
         const dir = `suppliers/${safe(label === 'A2' || label === 'A3' || label === 'A4' ? 'aluminium_' + label : trade)}`;
@@ -371,7 +367,7 @@ async function realRun(pre) {
     },
     S06: async () => {
       for (const [k, inq] of Object.entries(fx.inq)) {
-        const m = await read(`select m.supplier_id, l.is_demo, coalesce(c.trades, c.proposed_trades) trades from public.inquiry_matches m join public.leads l on l.id=m.supplier_id left join public.supplier_capabilities c on c.supplier_id=l.id where m.inquiry_id=${q(inq.id)}`);
+        const m = await read(`select m.supplier_id, l.is_demo, c.trades from public.inquiry_matches m join public.leads l on l.id=m.supplier_id left join public.supplier_capabilities c on c.supplier_id=l.id where m.inquiry_id=${q(inq.id)}`);
         if (inq.trade === UNMATCHED_TRADE) {
           const st = (await read(`select status from public.inquiries where id=${q(inq.id)}`))[0]?.status;
           A(`${k}: a trade with no supplier HOLDS, no nearest match`, m.length === 0, `matches=${m.length} status=${st}`);

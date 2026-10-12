@@ -434,7 +434,9 @@ export async function makeSupplier(run, opts = {}) {
   if (!t) throw new Error(`unknown trade ${trade}`);
   const mode = opts.mode || 'sql';
   const variant = opts.variant ?? 0;
-  const profile = opts.profile || capabilityProfile(trade, variant, opts.variants ?? 1);
+  // opts.coverage_emirates: the e2e funnel's demo suppliers serve every emirate its customers ask in (stage2 run f4294be8: a
+  // Dubai-only profile left 6 of 8 requests in other emirates with nobody to match).
+  const profile = { ...(opts.profile || capabilityProfile(trade, variant, opts.variants ?? 1)), ...(opts.coverage_emirates ? { coverage_emirates: opts.coverage_emirates } : {}) };
   const email = opts.email || runEmail(run, 'sup');
   const companyName = opts.company_name || `QD Demo ${t.name} ${run.tag.slice(0, 4)}-${run.seq}`;
   const emirate = opts.emirate || profile.coverage_emirates[0] || 'Dubai';
