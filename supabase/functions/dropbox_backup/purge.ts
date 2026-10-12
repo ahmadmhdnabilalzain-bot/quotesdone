@@ -17,7 +17,7 @@ export function signupPurgeDeleteAllowed(path: string): boolean {
 // copy of a demo entity and each whole demo folder. A path is allowed only when the marker is IN THE PATH: an entity
 // folder (or anything inside it) named ZZ DEMO / __selftest__ / QD DEMO, or anything under the _sandbox / _selftest
 // probe roots. Never the root, a table export, _archive, or a folder without the marker.
-const DEMO_ENTITY = /^(Customers|Suppliers\/[^/]+)\/(ZZ ?DEMO|__selftest__|QD DEMO)[^/]*(\/.+)?$/i;
+const DEMO_ENTITY = /^(Customers|Suppliers\/[^/]+)\/(ZZ ?DEMO(?![a-z])|__selftest__|QD DEMO(?![a-z]))[^/]*(\/.+)?$/i;   // a word: never "ZZ Demolition"
 const DEMO_ROOT = /^_(sandbox|selftest)\/[^/]+(\/.+)?$/;
 export function demoPurgeDeleteAllowed(path: string): boolean {
   if (!path.startsWith(ROOT) || path.includes('//') || path.includes('\\')) return false;

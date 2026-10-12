@@ -81,6 +81,25 @@ revoke execute on function public.fn_quote_is_demo(uuid) from public, anon, auth
 revoke execute on function public.fn_transaction_is_demo(uuid) from public, anon, authenticated;
 revoke execute on function public.fn_party_is_demo(text, text) from public, anon, authenticated;
 
+-- ── 1b. the name marker is a WORD (release review of #1348): 'ZZ Demolition LLC' is a real company, never demo.
+-- Measured 12 Oct 2026: 0 leads, 0 customers, 0 social_conversation rows change value. Each ALTER rewrites its table
+-- (leads ~20k rows) under a 3 s lock timeout, so a busy table fails this file instead of queueing sign-ins behind it.
+set local lock_timeout = '3s';
+alter table public.leads alter column is_demo set expression as (
+  public.fn_is_demo_email(email) or public.fn_is_demo_email(claimed_by) or public.fn_is_demo_phone(phone)
+  or 'qd_demo' = any(coalesce(tags, '{}'::text[]))
+  or coalesce(company_name, '') ~* '^ZZ DEMO([^a-z]|$)'
+  or coalesce(company_name, '') like 'QD Demo %'
+  or coalesce(source, '') = any(array['demo_factory', 'qd_demo_fixture'])
+);
+alter table public.customers alter column is_demo set expression as (
+  public.fn_is_demo_email(email) or public.fn_is_demo_phone(phone) or public.fn_is_demo_phone(whatsapp_phone)
+  or coalesce(full_name, '') ~* '^ZZ DEMO([^a-z]|$)'
+);
+alter table public.social_conversation alter column is_demo set expression as (
+  user_id ~* '^ZZDEMO([^a-z]|$)' or coalesce(handle, '') ~* '^ZZ DEMO([^a-z]|$)'
+);
+
 -- ── 2. the queues the purge hands storage and Dropbox to ─────────────────────────────────────────────────
 alter table public.signup_purge drop constraint if exists signup_purge_kind_check;
 alter table public.signup_purge add constraint signup_purge_kind_check
@@ -95,25 +114,38 @@ create or replace function public.fn_demo_purge_walk(p_rel regclass, p_where tex
  security definer
  set search_path to 'public', 'pg_temp'
 as $fn$
-declare f record; v_n bigint; v_key text := p_rel::text;
+declare f record; v_n bigint; v_key text := p_rel::text; v_k text;
 begin
   if p_depth > 8 then raise exception 'demo purge: foreign-key chain deeper than 8 at %', p_rel; end if;
+  -- every child, cascading ones included, is walked here, so the plan names each table the purge touches
   for f in
-    select c.conrelid::regclass child, a.attname col, pa.attname pcol
+    select c.conrelid::regclass child, a.attname col, pa.attname pcol, c.confdeltype del
       from pg_constraint c
       join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
       join pg_attribute pa on pa.attrelid = c.confrelid and pa.attnum = c.confkey[1]
      where c.contype = 'f' and c.confrelid = p_rel and c.conrelid <> p_rel and cardinality(c.conkey) = 1
-       and c.confdeltype <> 'c'          -- a cascading child goes with its parent
   loop
-    p_counts := public.fn_demo_purge_walk(f.child,
-      format('%I in (select %I from %s where %s)', f.col, f.pcol, p_rel, p_where), p_depth + 1, p_counts);
+    if f.del = 'n' then
+      -- a SET NULL reference is unlinked, never deleted: that row is not the demo entity's own
+      execute format('update %s set %I = null where %I in (select %I from %s where %s)', f.child, f.col, f.col, f.pcol, p_rel, p_where);
+      get diagnostics v_n = row_count;
+      v_k := f.child::text || ' (unlinked ' || f.col || ')';
+      p_counts := jsonb_set(p_counts, '{touched}', coalesce(p_counts->'touched', '{}'::jsonb)
+                    || jsonb_build_object(v_k, coalesce((p_counts->'touched'->>v_k)::bigint, 0) + v_n));
+    else
+      p_counts := public.fn_demo_purge_walk(f.child,
+        format('%I in (select %I from %s where %s)', f.col, f.pcol, p_rel, p_where), p_depth + 1, p_counts);
+    end if;
   end loop;
   execute format('delete from %s where %s', p_rel, p_where);
   get diagnostics v_n = row_count;
-  if v_n > 0 then
-    p_counts := p_counts || jsonb_build_object(v_key, coalesce((p_counts->>v_key)::bigint, 0) + v_n);
+  -- the books are never purged: a demo row that reached a ledger table is reversed by the accountant first
+  if v_n > 0 and regexp_replace(v_key, '^.*[.]', '') ~ '^(gl_|ledger|journal|supplier_dues|accountant_issued|reveal_invoices|refund|stripe_|payout|bank_|cash_|finance_)' then
+    raise exception 'DEMO PURGE REFUSED: % demo row(s) reached the ledger table %; the accountant reverses them first', v_n, v_key
+      using errcode = 'QD197';
   end if;
+  p_counts := jsonb_set(p_counts, '{touched}', coalesce(p_counts->'touched', '{}'::jsonb)
+                || jsonb_build_object(v_key, coalesce((p_counts->'touched'->>v_key)::bigint, 0) + v_n));
   return p_counts;
 end $fn$;
 revoke execute on function public.fn_demo_purge_walk(regclass, text, integer, jsonb) from public, anon, authenticated;
@@ -144,7 +176,7 @@ declare
   v_before jsonb := public.fn_demo_purge_real_counts(); v_after jsonb;
   c jsonb := '{}'::jsonb; v_pid bigint; v_obj int; v_dbx int; v_rec int; r record;
   EM constant text := '@([a-z0-9_-]+[.])*(example[.](com|net|org)|test|example|invalid|localhost)([^a-z0-9._-]|$)';
-  FOLDER constant text := '^/QuotesDone Backup/(Customers|Suppliers/[^/]+)/(ZZ ?DEMO|__selftest__|QD DEMO)[^/]*$';
+  FOLDER constant text := '^/QuotesDone Backup/(Customers|Suppliers/[^/]+)/(ZZ ?DEMO([^a-z/][^/]*)?|__selftest__[^/]*|QD DEMO([^a-z/][^/]*)?)$';
 begin
   -- the demo id sets: markers only
   create temp table _dc on commit drop as select id from public.customers where is_demo;
@@ -188,7 +220,7 @@ begin
       or (o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) in (select id::text from _dl))
       or (o.bucket_id = 'agent-docs' and exists (select 1 from _di where o.name like '%QD-' || upper(left(_di.id::text, 8)) || '-CMP%'))
       or (o.bucket_id not in ('brand', 'site', 'demo-assets', 'social-media', 'kb-import-assets', 'backups')
-          and o.name ~* '(^|/)(zz[ _-]?demo|__selftest__|_selftest/)')
+          and o.name ~* '(^|/)(zz[ _-]?demo([^a-z]|$)|__selftest__|_selftest/)')
   on conflict (bucket, path) do nothing;
   get diagnostics v_obj = row_count;
 
@@ -679,15 +711,19 @@ begin
   return jsonb_build_object('score_rows_refreshed', v_refreshed, 'scored', v_scored, 'dropped_unmeasured', v_null);
 end $function$;
 
--- VERDICT (reads only; the plan rolls its own purge back inside a savepoint, so nothing it does survives).
-with p as (select public.fn_demo_purge(false) v)
+-- VERDICT (reads only: predicates and pg_proc. Applying this file never runs the purge, not even rolled back: it would lock auth.users).
 select case
-  when (select v->>'mode' from p) = 'plan' and (select v ? 'real_counts_unchanged' from p)
+  when to_regproc('public.fn_demo_purge') is not null and to_regproc('public.fn_demo_purge_verify') is not null
+   and public.fn_party_is_demo('unknown', 'qd-x@example.invalid')
+   and 'ZZ Demolition LLC' !~* '^ZZ DEMO([^a-z]|$)' and 'ZZ DEMO — x' ~* '^ZZ DEMO([^a-z]|$)'
+   and (select count(*) from pg_attrdef d join pg_attribute t on t.attrelid = d.adrelid and t.attnum = d.adnum
+         where t.attname = 'is_demo' and d.adrelid in ('public.leads'::regclass, 'public.customers'::regclass, 'public.social_conversation'::regclass)
+           and pg_get_expr(d.adbin, d.adrelid) like '%([^a-z]|$)%') = 3
    and not public.fn_customer_is_demo(gen_random_uuid()) and not public.fn_supplier_is_demo(-1)
    and not public.fn_party_is_demo('customer', 'not-a-uuid') and not public.fn_party_is_demo('unknown', '1')
    and (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and prosrc ~ 'is_demo'
           and proname in ('fn_support_case_idle_close', 'fn_ceo_pricing_monitor', 'fn_accountant_ubo_rescreen',
                           'fn_sales_engineer_comparison_kpi', 'fn_sales_engineer_supplier_onboarding',
                           'fn_marketing_reputation', 'fn_sales_engineer_supplier_performance')) = 7
-  then 'PROBE OK: the purge plans and rolls back, the predicates answer, the seven duties carry them. plan: ' || (select v::text from p)
-  else 'PROBE FAILED: ' || coalesce((select v::text from p), 'no plan') end as verdict;
+  then 'PROBE OK: the predicates answer and the seven duties carry them (the purge plan runs only in the _probe file, never at apply)'
+  else 'PROBE FAILED: a predicate or a duty routine is not what this file defines' end as verdict;

@@ -21,8 +21,8 @@ show('BEFORE (demo rows left, open queue items)', before);
 
 if (VERIFY) {
   const plan = await one('select public.fn_demo_purge(false)');
-  const META = new Set(['mode', 'demo_ids', 'purge_id', 'real_counts_unchanged', 'storage_objects_listed', 'dropbox_listed']);
-  const rows = Object.entries(plan).filter(([k, v]) => !META.has(k) && Number(v) > 0);
+  const touched = plan.touched || {};
+  const rows = Object.entries(touched).filter(([, v]) => Number(v) > 0);
   const left = Object.entries(before).filter(([, v]) => Number(v) > 0);
   show('a purge now would still remove', Object.fromEntries(rows));
   if (rows.length || left.length) { console.log('\nVERIFY-ZERO: NOT ZERO'); process.exit(1); }

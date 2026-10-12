@@ -28,6 +28,7 @@ Deno.test('the demo purge deletes only a path whose name carries the demo marker
   for (const p of ['/QuotesDone Backup/Customers/QA Test Customer (58371fbd)', '/QuotesDone Backup/Customers/ahmad alzain',
     '/QuotesDone Backup/Customers', '/QuotesDone Backup/_sandbox', '/QuotesDone Backup/_archive/ZZ DEMO x',
     '/QuotesDone Backup/Company/Database Exports/ZZ DEMO.json', '/QuotesDone Backup/Customers/ZZ DEMO x/../../Company',
-    '/QuotesDone Backup//Customers/ZZ DEMO x', '/elsewhere/Customers/ZZ DEMO x', '/QuotesDone Backup/Customers/Ann ZZ DEMO'])
+    '/QuotesDone Backup//Customers/ZZ DEMO x', '/elsewhere/Customers/ZZ DEMO x', '/QuotesDone Backup/Customers/Ann ZZ DEMO', '/QuotesDone Backup/Suppliers/Uncategorized/ZZ Demolition LLC (77)',
+    '/QuotesDone Backup/Customers/ZZDemolition (1a2b3c4d)/a.pdf'])
     assertEquals(demoPurgeDeleteAllowed(p), false, p);
 });
