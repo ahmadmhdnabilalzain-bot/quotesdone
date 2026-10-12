@@ -930,10 +930,21 @@ async function handleInbound(req: Request): Promise<Response> {
           // Whether it is a request or a supplier document is NOT guessed here from words (founder_instruction 886-903).
           // A CAP (review of #1289): a stranger must not be able to make us pay for vision reads at will. ONE file per
           // message and at most UNKNOWN_READS_PER_DAY reads per number per 24 h; past that the file is acknowledged, not read.
+          // THE SLOT IS CLAIMED BEFORE THE READ (re-review of #1289): messages arriving together each insert a claim row
+          // first, then count the claims at or before their own id. Every concurrent message sees the others' claims,
+          // so no more than the cap ever reach the model. A failed claim reads nothing.
           const since = new Date(Date.now() - 86_400_000).toISOString();
-          const { count: readToday } = await admin.from('wa_messages').select('id', { count: 'exact', head: true })
-            .eq('wa_from', From).gte('created_at', since).eq('meta->>unknown_read', 'true');
-          const budget = Math.max(0, UNKNOWN_READS_PER_DAY - (readToday ?? UNKNOWN_READS_PER_DAY));
+          let budget = 0;
+          if (media.length) {
+            const { data: claim } = await admin.from('wa_messages').insert(waRow(receivedAt, { wa_from: From, wa_to: '', profile_name: Profile,
+              inbound: '', reply: '', lang: 'en', escalated: false, sent: false,
+              meta: { route: 'media_read_claim', unknown_read: true, message_sid: MessageSid || null } })).select('id').maybeSingle();
+            if (claim?.id) {
+              const { count: rank } = await admin.from('wa_messages').select('id', { count: 'exact', head: true })
+                .eq('wa_from', From).gte('created_at', since).eq('meta->>unknown_read', 'true').lte('id', claim.id);
+              budget = rank != null && rank <= UNKNOWN_READS_PER_DAY ? 1 : 0;
+            }
+          }
           if (!budget) results.push('not read: daily read cap for a number with no account');
           for (const m of media.slice(0, Math.min(1, budget))) {
             const got = await fetchTwilioMedia(m.url, internalCaller);
@@ -978,7 +989,7 @@ async function handleInbound(req: Request): Promise<Response> {
             // The read text is kept in its OWN field, marked as untrusted data, never mixed into what the sender typed.
             inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
             meta: { enabled, audience, route: 'media_in', media_count: media.length, lead_id: leadId,
-                    ...(readText ? { unknown_read: true, attachment_text_untrusted: readText.slice(0, 4000) } : {}),
+                    ...(readText ? { attachment_text_untrusted: readText.slice(0, 4000) } : {}),   // the read was counted by its claim row
                     results, send_error: sendErr || null, provenance_verified: true,
                     message_sid: MessageSid || null },
           });

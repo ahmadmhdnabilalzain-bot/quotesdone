@@ -75,3 +75,9 @@ test('read text from a stranger is fenced as untrusted data where it is stored',
   assert.match(code('wa_inbound/index.ts'), /inbound: \(Body \|\| '\(no caption\)'\)\.slice\(0, 2000\)/);
   assert.ok(code('inbound_email/index.ts').includes('+ untrustedBlock(seen.text'), 'inbound_email fences the read text');
 });
+test('wa_inbound claims the read slot BEFORE the read, and ranks itself among the claims', () => {
+  const s = code('wa_inbound/index.ts');
+  const iClaim = s.indexOf("route: 'media_read_claim', unknown_read: true"), iRead = s.indexOf("readEveryAttachment(sc.result.bytes, 'whatsapp-file'");
+  assert.ok(iClaim > 0 && iRead > iClaim, 'the claim row must be written before the vision read');
+  assert.match(s, /\.lte\('id', claim\.id\)/);
+});
