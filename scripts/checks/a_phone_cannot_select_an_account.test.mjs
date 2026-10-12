@@ -260,10 +260,15 @@ for (const [label, project] of Object.entries(PROJECTS)) {
 //      that ever leaks is identifiable on sight rather than looking like a customer;
 //   3. the removal is ASSERTED, not assumed. `finally` deletes them and the test then counts back
 //      to zero, so a leak fails this check instead of hiding inside it.
-test('two accounts on one number are refused, not guessed', async (t) => {
+// SINCE #1362 A PHONE MATCHES ONLY A ROW WHOSE PHONE AND EMAIL ARE BOTH VERIFIED (13 Oct 2026). The fixtures
+// below set both flags where a row must count, and leave them false where it must not. SHARED is a reserved
+// fixture number, so a number that resolves to one account answers 200 fixture_number (the step just before
+// Twilio) and is never texted; 404 means nobody resolved, 409 means two did.
+const SHARED_EMAILS = ['zz-demo-shared-a@example.invalid', 'zz-demo-shared-b@example.invalid'];
+const sharedFixture = async (t, rows, expect) => {
   if (!mgmtToken) { t.skip('no management token'); return; }
   const project = PROJECTS.production;
-  const cleanup = () => q(project, `delete from public.customers where email in ('zz-demo-shared-a@example.invalid','zz-demo-shared-b@example.invalid')`);
+  const cleanup = () => q(project, `delete from public.customers where email in ('${SHARED_EMAILS.join("','")}')`);
 
   await cleanup();
   // NAMED, NOT COUNTED (22 Sep 2026). A run reported this number "carried by a real customers row" twice and
@@ -278,30 +283,46 @@ test('two accounts on one number are refused, not guessed', async (t) => {
     + 'row was created seconds ago it is a concurrent run of this check, not a customer; otherwise this check would '
     + 'be inserting fixtures alongside live data and asserting against a mix of the two. Pick another fixture number.');
   try {
-    await q(project, `insert into public.customers (full_name, email, phone) values
-      ('ZZ DEMO - shared handset A','zz-demo-shared-a@example.invalid','${SHARED}'),
-      ('ZZ DEMO - shared handset B','zz-demo-shared-b@example.invalid','${SHARED}')`);
-
-    const rows = await q(project, `select count(*) n from public.customers where phone = '${SHARED}'`);
-    assert.equal(Number(rows[0].n), 2, 'the fixture did not create two accounts on one number, so the guard below would not be under test');
+    const values = rows.map((verified, i) => `('ZZ DEMO - shared handset ${'AB'[i]}','${SHARED_EMAILS[i]}','${SHARED}',${verified},${verified})`);
+    await q(project, `insert into public.customers (full_name, email, phone, phone_verified, email_verified) values ${values.join(',')}`);
+    const seeded = await q(project, `select count(*)::int n from public.customers where phone = '${SHARED}'`);
+    assert.equal(Number(seeded[0].n), rows.length, 'the fixture rows were not all created, so the case below would not be under test');
 
     const { status, body } = await send(project, 'customer', SHARED);
-    assert.notEqual(status, 503, 'Twilio is not configured on staging, so this check cannot tell a refusal from an outage');
-    assert.equal(status, 409, `expected 409 for a number on two accounts, got ${status} ${JSON.stringify(body)}`);
-    assert.equal(body.ambiguous, true, `expected ambiguous:true, got ${JSON.stringify(body)}`);
-    assert.match(String(body.error || ''), /sign in with your email/i, 'the refusal must tell the caller what to do instead');
+    assert.notEqual(status, 503, 'SMS sign-in is not configured, so this check cannot tell a refusal from an outage');
+    expect(status, body);
   } finally {
     await cleanup();
     // ASSERTED, NOT ASSUMED. A delete that matched nothing returns 200 exactly like one that
     // matched two rows, and this is the only place in the estate that puts a fixture next to live
     // customer data. If it ever leaks, this line is what says so.
     const left = await q(project, `select count(*)::int n from public.customers
-       where email in ('zz-demo-shared-a@example.invalid','zz-demo-shared-b@example.invalid')
-          or phone = '${SHARED}'`);
+       where email in ('${SHARED_EMAILS.join("','")}') or phone = '${SHARED}'`);
     assert.equal(Number(left[0].n), 0,
-      'the ambiguity fixtures were not removed — there is demo data on the live project right now');
+      'the shared-number fixtures were not removed — there is demo data on the live project right now');
   }
-});
+};
+
+test('two verified accounts on one number are refused, not guessed', (t) => sharedFixture(t, [true, true], (status, body) => {
+  assert.equal(status, 409, `expected 409 for a number on two accounts, got ${status} ${JSON.stringify(body)}`);
+  assert.equal(body.ambiguous, true, `expected ambiguous:true, got ${JSON.stringify(body)}`);
+  assert.match(String(body.error || ''), /sign in with your email/i, 'the refusal must tell the caller what to do instead');
+}));
+
+test('one verified and one unverified account on a number resolve to the verified one', (t) => sharedFixture(t, [true, false], (status, body) => {
+  assert.equal(status, 200, `the unverified row must not make the number ambiguous; got ${status} ${JSON.stringify(body)}`);
+  assert.equal(body.code, 'fixture_number', `expected the resolved number to reach the pre-Twilio fixture step, got ${JSON.stringify(body)}`);
+}));
+
+test('a fully verified account on a number reaches the code step (live positive control)', (t) => sharedFixture(t, [true], (status, body) => {
+  assert.equal(status, 200, `a verified owner must resolve; got ${status} ${JSON.stringify(body)}`);
+  assert.equal(body.code, 'fixture_number', `expected the pre-Twilio fixture step, got ${JSON.stringify(body)}`);
+}));
+
+test('an unverified account on a number resolves to nobody', (t) => sharedFixture(t, [false], (status, body) => {
+  assert.equal(status, 404, `an unverified phone must not select an account; got ${status} ${JSON.stringify(body)}`);
+  assert.equal(body.code, 'no_account_for_number', JSON.stringify(body));
+}));
 
 // The schema half of the same rule: email is unique, phone is deliberately not, and the reason is
 // recorded on the column so the next session does not "fix" the missing phone index.
