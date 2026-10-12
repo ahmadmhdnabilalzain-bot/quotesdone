@@ -42,6 +42,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "facilities_management:comprehensive-vs-labour-only-maintenance",
+      "topic": "Comprehensive vs non-comprehensive maintenance contracts",
+      "kind": "glossary",
+      "body_en": "A comprehensive (all-inclusive) maintenance contract fixes an annual fee covering labour, parts and consumables; it transfers most financial risk to the contractor and gives the client high budget predictability. A labour-only (non-comprehensive) contract covers technician time but leaves the client responsible for spare parts. Labour-only models lower the initial contract fee but expose the budget to high spare-parts costs, and contractor parts markups can quickly erode those savings, particularly in MEP-heavy facilities. Before signing a labour-only contract, request a full breakdown of parts pricing schedules, since uncontrolled markups are the most common source of overruns in that model. Not established here: semi-comprehensive variants, typical exclusions and per-incident parts caps.",
+      "body_ar": "عقد الصيانة الشامل يحدد رسماً سنوياً ثابتاً يغطي العمالة وقطع الغيار والمواد الاستهلاكية؛ وينقل معظم المخاطر المالية إلى المقاول ويمنح العميل قدرة عالية على التنبؤ بالميزانية. أما العقد غير الشامل (العمالة فقط) فيغطي وقت الفنيين ويترك قطع الغيار على عاتق العميل. تخفض نماذج العمالة فقط رسم العقد الأولي لكنها تعرّض الميزانية لتكاليف مرتفعة لقطع الغيار، وقد تمحو هوامش الربح التي يضيفها المقاول على القطع تلك الوفورات بسرعة، ولا سيما في المرافق كثيفة الأنظمة الكهروميكانيكية (MEP). وقبل توقيع عقد عمالة فقط، اطلب تفصيلاً كاملاً لجداول أسعار قطع الغيار، إذ إن الهوامش غير المضبوطة هي المصدر الأكثر شيوعاً لتجاوز الميزانية في هذا النموذج. غير مثبت هنا: الصيغ شبه الشاملة، والاستثناءات المعتادة، وسقوف قطع الغيار لكل عطل.",
+      "sources": [
+        "https://mpulsesoftware.com/blog/cmms/types-of-facility-maintenance-contracts-explained/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "facilities_management:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the difference between a comprehensive and a non-comprehensive FM contract?",
+      "q_ar": "ما الفرق بين عقد إدارة المرافق الشامل وغير الشامل؟",
+      "expected_entry_ids": [
+        "facilities_management:comprehensive-vs-labour-only-maintenance"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither defines comprehensive vs non-comprehensive FM contracts; missing: FM contract types entry). facilities_management:comprehensive-vs-labour-only-maintenance was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from facilities_management.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "facilities_management:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "facilities_management:comprehensive-vs-labour-only-maintenance"
+    ]
   }
 }

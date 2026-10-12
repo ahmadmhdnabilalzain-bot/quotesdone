@@ -42,6 +42,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "non_ferrous_metals:aluminium-lme-plus-premium-pricing",
+      "topic": "Aluminium pricing: LME benchmark plus regional premium",
+      "kind": "buyer_guidance",
+      "body_en": "Primary aluminium is priced off the London Metal Exchange (LME) benchmark, but the physical price a buyer pays adds a regional premium plus freight, tariffs and other costs, so the same metal can cost very different amounts by region. Named regional premiums include the Rotterdam duty-paid premium (Europe), the US Midwest duty-paid premium and the MJP premium (Japan). AL Circle reported that the H1 2026 average LME price of USD 3,386/t became USD 5,792/t in the US Midwest once a USD 2,406/t premium was added, and that Strait of Hormuz tensions raised freight and insurance costs for Gulf-to-Europe shipments. When comparing sheet quotes, ask which LME date or average and which premium the price is based on, and what is added for rolling, alloy, temper, size and delivery. Not established here: the specific pricing formula UAE traders use for sheet.",
+      "body_ar": "يُسعَّر الألومنيوم الأولي استناداً إلى السعر المرجعي لبورصة لندن للمعادن، لكن السعر الفعلي الذي يدفعه المشتري يضيف علاوة إقليمية إلى جانب الشحن والرسوم الجمركية وتكاليف أخرى، لذا قد يختلف سعر المعدن نفسه كثيراً بين المناطق. ومن العلاوات الإقليمية المسمّاة: علاوة روتردام المدفوعة الرسوم (أوروبا)، وعلاوة الغرب الأوسط الأمريكي المدفوعة الرسوم، وعلاوة MJP (اليابان). وأفادت AL Circle بأن متوسط سعر البورصة في النصف الأول من 2026 البالغ 3,386 دولاراً للطن أصبح 5,792 دولاراً للطن في الغرب الأوسط الأمريكي بعد إضافة علاوة قدرها 2,406 دولارات للطن، وأن توترات مضيق هرمز رفعت تكاليف الشحن والتأمين للشحنات من الخليج إلى أوروبا. عند مقارنة عروض الصفائح، اسأل عن تاريخ أو متوسط سعر البورصة والعلاوة المعتمدين، وما يُضاف مقابل الدرفلة والسبيكة والمعالجة والمقاس والتوصيل. غير مثبت هنا: معادلة التسعير المحددة التي يستخدمها تجار الصفائح في الإمارات.",
+      "sources": [
+        "https://www.alcircle.com/news/eu-canada-and-asia-aluminium-prices-why-3-386-t-benchmark-can-cost-5-792-t-read-how-regional-premiums-reshaped-markets-120919"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "non_ferrous_metals:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is aluminium sheet priced by UAE traders?",
+      "q_ar": "كيف يسعّر التجار في الإمارات ألواح الألمنيوم؟",
+      "expected_entry_ids": [
+        "non_ferrous_metals:aluminium-lme-plus-premium-pricing"
+      ],
+      "why": "No entry of this pack answered it (No entry covers LME-plus-premium aluminium pricing; missing). non_ferrous_metals:aluminium-lme-plus-premium-pricing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from non_ferrous_metals.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "non_ferrous_metals:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "non_ferrous_metals:aluminium-lme-plus-premium-pricing"
+    ]
   }
 }

@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "management_consultancy:fee-structures",
+      "topic": "Consulting pricing models",
+      "kind": "commercial_terms",
+      "body_en": "Consulting firms commonly price strategy work in one of these ways. (1) Fixed price: the firm commits to a specific project or outcome for a predetermined fee. (2) Retainer: the client buys a set number of hours, with the fee pre-set and pre-billed against a set period or a fixed volume of work. (3) Tiered or package pricing: a fixed fee for a defined scope, with extra charges for customisations or add-ons. (4) Value-based pricing: fees tied to the business impact the engagement creates rather than hours or deliverables. (5) Performance- or outcome-based pricing: fees tied to measurable outcomes such as revenue growth, cost savings or operational improvements. (6) Hybrid: a base retainer for ongoing advice plus a performance bonus tied to results. Time and materials is also used. When comparing bids, check that scope, deliverables, consultant days, expenses and payment milestones are on the same basis. Not established here: UAE rate levels.",
+      "body_ar": "تسعّر شركات الاستشارات مشاريع الاستراتيجية عادةً بإحدى الطرق التالية. (1) السعر الثابت: تلتزم الشركة بتنفيذ مشروع أو نتيجة محددة مقابل رسوم محددة مسبقاً. (2) الاتفاق الدوري (Retainer): يشتري العميل عدداً محدداً من الساعات، وتكون الرسوم محددة مسبقاً وتُفوتر مقدماً عن فترة محددة أو حجم عمل ثابت. (3) التسعير المتدرج أو بالباقات: رسوم ثابتة لنطاق محدد، مع رسوم إضافية لأي تخصيص أو إضافات. (4) التسعير القائم على القيمة: ترتبط الرسوم بالأثر التجاري الذي يحققه المشروع بدلاً من الساعات أو المخرجات. (5) التسعير القائم على الأداء أو النتائج: ترتبط الرسوم بنتائج قابلة للقياس مثل نمو الإيرادات أو خفض التكاليف أو تحسين العمليات. (6) النموذج المختلط: اتفاق دوري أساسي للاستشارات المستمرة مع مكافأة أداء مرتبطة بالنتائج. ويُستخدم كذلك نموذج الوقت والمواد. عند مقارنة العروض تحقق من أن النطاق والمخرجات وعدد أيام الاستشاريين والمصاريف ومراحل الدفع على أساس واحد. غير ثابت هنا: مستويات الأسعار في الإمارات.",
+      "sources": [
+        "https://www.deltek.com/en/blog/consulting-pricing-models"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "management_consultancy:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How are management consultancy fees usually structured for a strategy project?",
+      "q_ar": "كيف تُنظم عادةً أتعاب الاستشارات الإدارية لمشروع استراتيجي؟",
+      "expected_entry_ids": [
+        "management_consultancy:fee-structures"
+      ],
+      "why": "No entry of this pack answered it (Spec-checklist lists 'fee basis' only; no explanation of consulting fee structures; missing). management_consultancy:fee-structures was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from management_consultancy.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "management_consultancy:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "management_consultancy:fee-structures"
+    ]
   }
 }

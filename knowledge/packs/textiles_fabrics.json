@@ -43,6 +43,17 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "textiles_fabrics:kandura-fabric-consumption",
+      "topic": "Fabric consumption per kandura",
+      "kind": "spec_checklist",
+      "body_en": "Not established here. No source could be opened that states the fabric consumption of one kandura. Consumption depends on the wearer's size, the fabric width, the style and any allowance for shrinkage. Ask the tailor or factory for its consumption per size, and confirm the fabric width, weight (GSM) and fibre content.",
+      "body_ar": "غير ثابت هنا. لم يُعثر على مصدر أمكن فتحه يذكر كمية القماش اللازمة لكندورة واحدة. وتعتمد الكمية على مقاس مرتديها وعرض القماش والطراز وأي هامش للانكماش. اطلب من الخياط أو المصنع كمية الاستهلاك لكل مقاس، وتأكد من عرض القماش ووزنه (GSM) ونوع أليافه.",
+      "sources": [],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -59,6 +70,15 @@
       "expected_entry_ids": [
         "textiles_fabrics:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How many metres of fabric are needed for one kandura?",
+      "q_ar": "كم متراً من القماش تحتاج الكندورة الواحدة؟",
+      "expected_entry_ids": [
+        "textiles_fabrics:kandura-fabric-consumption"
+      ],
+      "why": "No entry of this pack answered it (No entry gives fabric metres per kandura; missing). textiles_fabrics:kandura-fabric-consumption was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from textiles_fabrics.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +95,9 @@
       "textiles_fabrics:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "textiles_fabrics:kandura-fabric-consumption"
+    ]
   }
 }

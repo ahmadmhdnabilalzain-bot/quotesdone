@@ -54,6 +54,15 @@
       "expected_entry_ids": [
         "quantity_surveying:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which measurement standard is used for BOQs in UAE building projects?",
+      "q_ar": "ما معيار القياس المستخدم لجداول الكميات في مشاريع المباني في الإمارات؟",
+      "expected_entry_ids": [
+        "quantity_surveying:uae-standards-and-approvals"
+      ],
+      "why": "The standards entry says POMI, NRM or CESMM are used and chosen by contract, not by law.",
+      "origin": "real buyer question, moved from quantity_surveying.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

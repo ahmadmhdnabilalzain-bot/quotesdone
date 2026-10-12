@@ -8,8 +8,8 @@
       "id": "industrial_gases:uae-market-products",
       "topic": "Industrial gases: products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "Industrial gases in the UAE: oxygen (industrial and medical USP/EP grade), nitrogen (industrial, food-grade, high purity 5.0), argon and argon mixes for welding (Ar/CO2 82/18, Ar/O2), carbon dioxide (industrial, beverage-grade supply is out of scope here), acetylene, hydrogen, helium (balloons, leak testing, MRI), specialty and calibration gas mixtures, refrigerant gases (R410A, R32, R134a, R407C, R22 phase-out), nitrous oxide (medical), and LPG (see lpg trade). Supply modes: cylinders (40-50 L water capacity, 150-200 bar; cylinder bundles/MCPs), liquid bulk in cryogenic tanks (VIE) with telemetry, on-site generation (PSA/membrane nitrogen and oxygen generators), and pipeline supply to large industrial users. Medical gases need DoH/DHA/MOHAP-compliant supply; cylinders follow ISO 9809 and colour coding per ISO 32 / EN 1089-3.",
-      "body_ar": "الغازات الصناعية في الإمارات: الأكسجين (صناعي وطبي بدرجة USP/EP)، والنيتروجين (صناعي وغذائي وعالي النقاوة 5.0)، والأرجون وخلطاته للحام (أرجون/ثاني أكسيد الكربون 82/18، وأرجون/أكسجين)، وثاني أكسيد الكربون الصناعي، والأسيتيلين، والهيدروجين، والهيليوم (البالونات، وكشف التسرب، والرنين المغناطيسي)، وخلطات الغازات الخاصة والمعايرة، وغازات التبريد (R410A وR32 وR134a وR407C، مع التخلص التدريجي من R22)، وأكسيد النيتروز (طبي)، والغاز المسال. أنماط التوريد: الأسطوانات (سعة مائية 40-50 لتراً، 150-200 بار؛ وحزم الأسطوانات)، والسائل السائب في خزانات التبريد العميق مع القياس عن بعد، والتوليد في الموقع (مولدات النيتروجين والأكسجين بتقنية PSA/الأغشية)، والتوريد بالأنابيب للمستخدمين الصناعيين الكبار. وتحتاج الغازات الطبية توريداً متوافقاً مع الجهات الصحية؛ والأسطوانات وفق ISO 9809 وترميز الألوان وفق ISO 32 وEN 1089-3.",
+      "body_en": "This entry covers the industrial gases sold in the UAE, such as oxygen, nitrogen, argon, CO2, refrigerants and specialty mixes, supplied in cylinders, liquid bulk, on-site generators or pipeline. Industrial gases in the UAE: oxygen (industrial and medical USP/EP grade), nitrogen (industrial, food-grade, high purity 5.0), argon and argon mixes for welding (Ar/CO2 82/18, Ar/O2), carbon dioxide (industrial, beverage-grade supply is out of scope here), acetylene, hydrogen, helium (balloons, leak testing, MRI), specialty and calibration gas mixtures, refrigerant gases (R410A, R32, R134a, R407C, R22 phase-out), nitrous oxide (medical), and LPG (see lpg trade). Supply modes: cylinders (40-50 L water capacity, 150-200 bar; cylinder bundles/MCPs), liquid bulk in cryogenic tanks (VIE) with telemetry, on-site generation (PSA/membrane nitrogen and oxygen generators), and pipeline supply to large industrial users. Medical gases need DoH/DHA/MOHAP-compliant supply; cylinders follow ISO 9809 and colour coding per ISO 32 / EN 1089-3.",
+      "body_ar": "يغطي هذا البند الغازات الصناعية المباعة في الإمارات، مثل الأكسجين والنيتروجين والأرجون وثاني أكسيد الكربون وغازات التبريد والخلائط الخاصة، وتورَّد في أسطوانات أو سائلة بكميات كبيرة أو بمولدات في الموقع أو عبر خطوط أنابيب. الغازات الصناعية في الإمارات: الأكسجين (صناعي وطبي بدرجة USP/EP)، والنيتروجين (صناعي وغذائي وعالي النقاوة 5.0)، والأرجون وخلطاته للحام (أرجون/ثاني أكسيد الكربون 82/18، وأرجون/أكسجين)، وثاني أكسيد الكربون الصناعي، والأسيتيلين، والهيدروجين، والهيليوم (البالونات، وكشف التسرب، والرنين المغناطيسي)، وخلطات الغازات الخاصة والمعايرة، وغازات التبريد (R410A وR32 وR134a وR407C، مع التخلص التدريجي من R22)، وأكسيد النيتروز (طبي)، والغاز المسال. أنماط التوريد: الأسطوانات (سعة مائية 40-50 لتراً، 150-200 بار؛ وحزم الأسطوانات)، والسائل السائب في خزانات التبريد العميق مع القياس عن بعد، والتوليد في الموقع (مولدات النيتروجين والأكسجين بتقنية PSA/الأغشية)، والتوريد بالأنابيب للمستخدمين الصناعيين الكبار. وتحتاج الغازات الطبية توريداً متوافقاً مع الجهات الصحية؛ والأسطوانات وفق ISO 9809 وترميز الألوان وفق ISO 32 وEN 1089-3.",
       "sources": [
         "https://www.gulfcryo.com/",
         "https://www.marknteladvisors.com/research-library/uae-industrial-gases-market.html",
@@ -26,8 +26,8 @@
       "id": "industrial_gases:uae-market-brands",
       "topic": "Industrial gases: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Suppliers and brands: Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, Air Products, Linde, ADNOC Gas, Brothers Gas, Honeywell, Chemours, Daikin, Arkema, Atlas Copco, Parker, Inmatec. The first seven supply gases in the UAE, and Gulf Cryo is headquartered in Dubai. Honeywell, Chemours, Daikin and Arkema are refrigerant brands, and Atlas Copco, Parker and Inmatec make on-site generators. HFC refrigerant imports need MOCCAE registration, a licence and annual reporting.",
-      "body_ar": "الموردون والعلامات: Gulf Cryo، Emirates Industrial Gases، Dubai Industrial Gases، Air Products، Linde، ADNOC Gas، Brothers Gas، Honeywell، Chemours، Daikin، Arkema، Atlas Copco، Parker، Inmatec. والسبعة الأوائل موردو غازات في الإمارات، ومقر Gulf Cryo في دبي؛ وHoneywell وChemours وDaikin وArkema علامات غازات تبريد؛ وAtlas Copco وParker وInmatec لمولدات الموقع. ويحتاج استيراد غازات التبريد HFC تسجيلاً لدى وزارة التغير المناخي والبيئة وترخيصاً وتقارير سنوية.",
+      "body_en": "This entry lists industrial gas suppliers in the UAE, such as Gulf Cryo, Emirates Industrial Gases and Linde, plus refrigerant brands and on-site generator makers. Suppliers and brands: Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, Air Products, Linde, ADNOC Gas, Brothers Gas, Honeywell, Chemours, Daikin, Arkema, Atlas Copco, Parker, Inmatec. The first seven supply gases in the UAE, and Gulf Cryo is headquartered in Dubai. Honeywell, Chemours, Daikin and Arkema are refrigerant brands, and Atlas Copco, Parker and Inmatec make on-site generators. HFC refrigerant imports need MOCCAE registration, a licence and annual reporting.",
+      "body_ar": "يسرد هذا البند موردي الغازات الصناعية في الإمارات، مثل Gulf Cryo وEmirates Industrial Gases وLinde، إضافة إلى علامات غازات التبريد وصانعي المولدات في الموقع. الموردون والعلامات: Gulf Cryo، Emirates Industrial Gases، Dubai Industrial Gases، Air Products، Linde، ADNOC Gas، Brothers Gas، Honeywell، Chemours، Daikin، Arkema، Atlas Copco، Parker، Inmatec. والسبعة الأوائل موردو غازات في الإمارات، ومقر Gulf Cryo في دبي؛ وHoneywell وChemours وDaikin وArkema علامات غازات تبريد؛ وAtlas Copco وParker وInmatec لمولدات الموقع. ويحتاج استيراد غازات التبريد HFC تسجيلاً لدى وزارة التغير المناخي والبيئة وترخيصاً وتقارير سنوية.",
       "sources": [
         "https://www.gulfcryo.com/",
         "https://www.marknteladvisors.com/research-library/uae-industrial-gases-market.html",
@@ -44,8 +44,8 @@
       "id": "industrial_gases:uae-market-sizes",
       "topic": "Industrial gases: typical sizes, units and how it is quoted in the UAE",
       "kind": "uae_market_sizes",
-      "body_en": "Cylinder gas is priced per refill by gas and cylinder size (e.g. 6 m3 oxygen, 50 L argon) plus monthly cylinder rental or a deposit, and delivery charges; bulk liquid per m3 or per kg with tank rental per month on multi-year contracts; generators sold per unit or on a gas-as-a-service monthly fee. Refrigerants per cylinder (e.g. 11.3 kg R410A, 13.6 kg R134a). Purity grade and certificate of analysis are stated per delivery for specialty gases.",
-      "body_ar": "يُسعّر غاز الأسطوانات بالتعبئة حسب الغاز وحجم الأسطوانة (مثل 6 م3 أكسجين، و50 لتراً أرجون) مع إيجار شهري للأسطوانة أو تأمين، ورسوم توصيل؛ والسائل السائب بالمتر المكعب أو الكيلوغرام مع إيجار الخزان شهرياً بعقود متعددة السنوات؛ والمولدات بالوحدة أو برسوم شهرية كخدمة. وغازات التبريد بالأسطوانة (مثل 11.3 كغ R410A و13.6 كغ R134a). وتُذكر درجة النقاوة وشهادة التحليل لكل توريد للغازات الخاصة.",
+      "body_en": "This entry explains how gases are priced: cylinder refills by gas and size plus rental or deposit, bulk liquid per m3 or kg with tank rental, generators per unit or monthly fee, refrigerants per cylinder. Cylinder gas is priced per refill by gas and cylinder size (e.g. 6 m3 oxygen, 50 L argon) plus monthly cylinder rental or a deposit, and delivery charges; bulk liquid per m3 or per kg with tank rental per month on multi-year contracts; generators sold per unit or on a gas-as-a-service monthly fee. Refrigerants per cylinder (e.g. 11.3 kg R410A, 13.6 kg R134a). Purity grade and certificate of analysis are stated per delivery for specialty gases.",
+      "body_ar": "يشرح هذا البند كيف تُسعّر الغازات: تعبئة الأسطوانة حسب الغاز والحجم مع الإيجار أو التأمين، والسائل بالجملة لكل متر مكعب أو كيلوغرام مع إيجار الخزان، والمولدات لكل وحدة أو برسوم شهرية، وغازات التبريد لكل أسطوانة. يُسعّر غاز الأسطوانات بالتعبئة حسب الغاز وحجم الأسطوانة (مثل 6 م3 أكسجين، و50 لتراً أرجون) مع إيجار شهري للأسطوانة أو تأمين، ورسوم توصيل؛ والسائل السائب بالمتر المكعب أو الكيلوغرام مع إيجار الخزان شهرياً بعقود متعددة السنوات؛ والمولدات بالوحدة أو برسوم شهرية كخدمة. وغازات التبريد بالأسطوانة (مثل 11.3 كغ R410A و13.6 كغ R134a). وتُذكر درجة النقاوة وشهادة التحليل لكل توريد للغازات الخاصة.",
       "sources": [
         "https://www.gulfcryo.com/",
         "https://www.marknteladvisors.com/research-library/uae-industrial-gases-market.html",
@@ -61,11 +61,15 @@
   ],
   "eval": [
     {
-      "q_en": "Which shielding gas is used for MIG welding carbon steel?",
-      "q_ar": "ما غاز الحماية المستخدم للحام MIG للفولاذ الكربوني؟",
+      "q_en": "Which bottled factory gas supplies, brought to my premises, can I realistically arrange?",
+      "q_ar": "ما إمدادات غازات المصانع المعبأة في أسطوانات التي يمكنني ترتيب توصيلها إلى منشأتي؟",
       "expected_entry_ids": [
         "industrial_gases:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the cylinder and bulk industrial gases delivered to customer sites.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143,
+      "word_overlap_after_enrichment": 0.143
     }
   ],
   "verified": {

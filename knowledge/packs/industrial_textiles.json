@@ -45,6 +45,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "industrial_textiles:landfill-hdpe-geomembrane-thickness",
+      "topic": "HDPE geomembrane thickness for landfill liners",
+      "kind": "technical_reference",
+      "body_en": "A geomembrane manufacturer (AGRU) states that many European countries have set 100 mil (about 2.5 mm) as the minimum thickness for polyethylene landfill liners, and cites 60 mil (about 1.5 mm) as the minimum HDPE liner thickness for new municipal solid waste landfills under the US federal rule, which is given here only as a reference point, not as UAE law. In tenders, state the liner material (HDPE), nominal thickness, texture (smooth or textured), the governing specification, and the seaming and testing requirements. Not established here: the minimum liner thickness set by UAE environmental authorities or emirate waste regulators; confirm it with the project's permitting authority.",
+      "body_ar": "تذكر شركة AGRU المصنّعة للأغشية الأرضية أن كثيراً من الدول الأوروبية حددت 100 ميل (نحو 2.5 مم) حداً أدنى لسماكة بطانات البولي إيثيلين في مكبّات النفايات، وتشير إلى 60 ميل (نحو 1.5 مم) حداً أدنى لسماكة بطانة HDPE في مكبّات النفايات الصلبة البلدية الجديدة وفق القاعدة الاتحادية الأمريكية، وتُذكر هنا كنقطة مرجعية فقط وليست قانوناً إماراتياً. في المناقصات، حدّد مادة البطانة (HDPE) والسماكة الاسمية والملمس (أملس أو محبّب) والمواصفة الحاكمة ومتطلبات اللحام والاختبار. غير مثبت هنا: الحد الأدنى لسماكة البطانة الذي تحدده الجهات البيئية الإماراتية أو جهات تنظيم النفايات في الإمارات؛ يُرجى تأكيده مع الجهة المانحة لتصريح المشروع.",
+      "sources": [
+        "https://agruamerica.com/landfill-liner-thickness/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -61,6 +74,15 @@
       "expected_entry_ids": [
         "industrial_textiles:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What geomembrane thickness is used to line a landfill cell?",
+      "q_ar": "ما سماكة الغشاء الجيوتقني المستخدمة لتبطين خلية مكب؟",
+      "expected_entry_ids": [
+        "industrial_textiles:landfill-hdpe-geomembrane-thickness"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry covers HDPE geomembrane landfill liner thickness (for example 1.5-2.0 mm)). industrial_textiles:landfill-hdpe-geomembrane-thickness was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from industrial_textiles.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -77,6 +99,9 @@
       "industrial_textiles:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "industrial_textiles:landfill-hdpe-geomembrane-thickness"
+    ]
   }
 }

@@ -40,6 +40,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "machinery_spare_parts:genuine-part-verification",
+      "topic": "Verifying genuine OEM spare parts",
+      "kind": "buyer_guidance",
+      "body_en": "Counterfeit spare parts are a recognised risk. Where the manufacturer offers it, authentication can be done by scanning the packaging with a smartphone: some brands embed invisible cryptographic signatures in packaging artwork that a scan can verify at factories, distributors, repair shops and dealerships. Aftermarket parts are a legitimate market channel; the risk is counterfeits infiltrating it. Not established here: a checklist covering authorised dealers, part-number checks against the OEM catalogue, invoices and warranty terms, UAE seizure figures, or any UAE government register for verifying individual parts.",
+      "body_ar": "تُعدّ قطع الغيار المقلّدة خطراً معروفاً. وحيث تتيح الشركة المصنّعة ذلك، يمكن التحقق من الأصالة بمسح العبوة بالهاتف الذكي: إذ تُضمِّن بعض العلامات التجارية تواقيع تشفيرية غير مرئية في تصميم العبوة يمكن التحقق منها بالمسح لدى المصانع والموزعين وورش الإصلاح والوكلاء. وقطع الغيار البديلة (غير الأصلية) قناة سوقية مشروعة؛ والخطر هو تسلّل القطع المقلّدة إليها. لم يُثبت هنا: قائمة تحقق تشمل الوكلاء المعتمدين، ومطابقة رقم القطعة مع كتالوج الشركة المصنّعة، والفواتير وشروط الضمان، وأرقام المضبوطات في الإمارات، أو أي سجل حكومي إماراتي للتحقق من القطع الفردية.",
+      "sources": [
+        "https://ennoventure.com/blogs/how-to-find-a-counterfeit-fake-spare-part/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "machinery_spare_parts:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How do I know a spare part is genuine?",
+      "q_ar": "كيف أعرف أن قطعة الغيار أصلية؟",
+      "expected_entry_ids": [
+        "machinery_spare_parts:genuine-part-verification"
+      ],
+      "why": "No entry of this pack answered it (no entry explains how to verify a genuine part; the checklist only lists OEM/genuine/aftermarket as a field). machinery_spare_parts:genuine-part-verification was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from machinery_spare_parts.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "machinery_spare_parts:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "machinery_spare_parts:genuine-part-verification"
+    ]
   }
 }

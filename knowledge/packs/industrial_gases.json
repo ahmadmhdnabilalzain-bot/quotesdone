@@ -44,6 +44,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "industrial_gases:mag-shielding-gas-carbon-steel",
+      "topic": "MAG shielding gases for carbon steel",
+      "kind": "product_selection",
+      "body_en": "For MAG (commonly called MIG) welding of carbon and low-alloy steels, a standard shielding gas is ISO 14175 group M21, for example M21 ArC20: argon with 20% carbon dioxide. Air Products recommends this mix for spray transfer, which gives less spatter than short-arc transfer; it can be used on stainless steel only with flux-cored wire. It is supplied, for example, in a 47 litre steel cylinder at 200 bar. A quote request should state the ISO 14175 designation, cylinder size and pressure, and quantity. Not established here: UAE cylinder pricing and the properties of pure CO2 shielding.",
+      "body_ar": "في لحام MAG (المعروف شائعاً باسم MIG) للفولاذ الكربوني والفولاذ منخفض السبائك، يُستخدم غاز حماية قياسي من المجموعة M21 وفق المواصفة ISO 14175، مثل M21 ArC20: أرغون مع 20% ثاني أكسيد الكربون. وتوصي شركة Air Products بهذا الخليط لنمط الانتقال الرذاذي الذي ينتج تطايراً أقل من نمط القوس القصير، ولا يُستخدم على الفولاذ المقاوم للصدأ إلا مع سلك ذي قلب مساعد للصهر. ويُورَّد مثلاً في أسطوانة فولاذية سعة 47 لتراً بضغط 200 بار. ينبغي أن يحدد طلب عرض السعر تسمية ISO 14175 وحجم الأسطوانة وضغطها والكمية. لم يُثبت هنا: أسعار الأسطوانات في الإمارات وخصائص الحماية بثاني أكسيد الكربون النقي.",
+      "sources": [
+        "https://shop.airproducts.com/emea/ie/en-US/products/14768"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +73,15 @@
       "expected_entry_ids": [
         "industrial_gases:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which shielding gas is used for MIG welding carbon steel?",
+      "q_ar": "ما غاز الحماية المستخدم للحام MIG للفولاذ الكربوني؟",
+      "expected_entry_ids": [
+        "industrial_gases:mag-shielding-gas-carbon-steel"
+      ],
+      "why": "No entry of this pack answered it (no entry on MIG shielding gas (Ar/CO2 mixes or CO2) for carbon steel). industrial_gases:mag-shielding-gas-carbon-steel was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from industrial_gases.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +98,9 @@
       "industrial_gases:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "industrial_gases:mag-shielding-gas-carbon-steel"
+    ]
   }
 }

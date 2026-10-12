@@ -43,6 +43,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "valves_actuators:butterfly-valves-chilled-water",
+      "topic": "Resilient-seated butterfly valves for chilled water",
+      "kind": "technical_guidance",
+      "body_en": "EN 593 is the European standard for industrial butterfly valves with metallic bodies. It covers all pipe-end connections, for example wafer, lug, flanged, butt-welding and threaded ends, in sizes from DN 20 to DN 4000 (DN 750 and DN 1050 only for Class 150 and 300), at PN 2.5, 6, 10, 16, 25, 40, 63, 100 and 160, or Class 150, 300, 600 and 900. When specifying a valve for chilled water, state body, seat and disc materials, end type, pressure rating and operator. Not established here: which body, seat and end type suit building chilled water, and UAE approval lists.",
+      "body_ar": "المعيار EN 593 هو المعيار الأوروبي للصمامات الفراشية الصناعية ذات الأجسام المعدنية. ويشمل جميع أنواع توصيلات أطراف الأنابيب، مثل الصمامات الرقاقية (Wafer) وذات العروات (Lug) والمشفهة واللحام التناكبي والأطراف الملولبة، بأقطار من DN 20 إلى DN 4000 (القطران DN 750 وDN 1050 للفئتين Class 150 و300 فقط)، وبضغوط PN 2.5 و6 و10 و16 و25 و40 و63 و100 و160، أو الفئات Class 150 و300 و600 و900. عند تحديد صمام لمياه التبريد، اذكر مواد الجسم والمقعد والقرص، ونوع الأطراف، وتصنيف الضغط، ووسيلة التشغيل. غير ثابت هنا: أي جسم ومقعد ونوع أطراف يناسب مياه التبريد في المباني، وقوائم الاعتماد في الإمارات.",
+      "sources": [
+        "https://genorma.com/en/standards/en-593-2026"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "valves_actuators:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which butterfly valve suits chilled water in a building?",
+      "q_ar": "ما صمام الفراشة المناسب للمياه المبردة في مبنى؟",
+      "expected_entry_ids": [
+        "valves_actuators:butterfly-valves-chilled-water"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry recommends a butterfly valve type (EN 593 wafer/lug, ductile iron, EPDM seat) for chilled water; spec-checklist only lists fields). valves_actuators:butterfly-valves-chilled-water was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from valves_actuators.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +97,9 @@
       "valves_actuators:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "valves_actuators:butterfly-valves-chilled-water"
+    ]
   }
 }

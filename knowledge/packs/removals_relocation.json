@@ -55,6 +55,15 @@
       "expected_entry_ids": [
         "removals_relocation:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How do movers estimate the price of an international move from Dubai?",
+      "q_ar": "كيف تقدر شركات النقل سعر الانتقال الدولي من دبي؟",
+      "expected_entry_ids": [
+        "removals_relocation:spec-checklist"
+      ],
+      "why": "The checklist lists what a mover prices on: inventory volume in m3, origin/destination, packing scope, insurance and storage.",
+      "origin": "real buyer question, moved from removals_relocation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -44,6 +44,21 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "infrastructure_utilities:pipe-ring-stiffness-sn-classes",
+      "topic": "Ring stiffness classes (SN) for buried thermoplastic pipes",
+      "kind": "spec_explainer",
+      "body_en": "SN is the ring stiffness class of a buried plastic sewer pipe; higher SN numbers support greater ground loads. For thermoplastic pipes, ISO 9969 determines ring stiffness by compressing a length of pipe between two parallel flat plates and calculating stiffness from the force needed to deflect it by 0.03 of its nominal diameter. Manufacturers offer classes such as SN 2, SN 4 and SN 8 (Finolex) and SN 8 and SN 16 (Fraenkische PP sewer pipe). Not established here: the units behind the SN number and therefore what SN 5000 specifically denotes, and which SN each UAE drainage authority mandates.",
+      "body_ar": "يشير الرمز SN إلى فئة الصلابة الحلقية لأنبوب الصرف البلاستيكي المدفون؛ وكلما ارتفع رقم SN تحمّل الأنبوب أحمالاً أرضية أكبر. وفي الأنابيب اللدنة بالحرارة، تحدد المواصفة ISO 9969 الصلابة الحلقية بضغط مقطع من الأنبوب بين لوحين مستويين متوازيين وحساب الصلابة من القوة اللازمة لإحداث انحراف بمقدار 0.03 من قطره الاسمي. ويعرض المصنعون فئات مثل SN 2 وSN 4 وSN 8 (Finolex)، وSN 8 وSN 16 (أنابيب الصرف من البولي بروبيلين لدى Fraenkische). غير مثبت هنا: الوحدات التي يُعبَّر بها رقم SN، وبالتالي المعنى المحدد لـ SN 5000، وفئة SN التي تفرضها كل هيئة صرف صحي في الإمارات.",
+      "sources": [
+        "https://committee.iso.org/es/sites/isoorg/contents/data/standard/01/78/17876.html",
+        "https://finolexpipes.com/sewerage-pipes/underground-sewerage-pipes",
+        "https://www.fraenkische.com/en/glossary-item/kanalrohr"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -60,6 +75,15 @@
       "expected_entry_ids": [
         "infrastructure_utilities:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What does SN 5000 mean on a sewer pipe?",
+      "q_ar": "ماذا يعني SN 5000 على أنبوب صرف صحي؟",
+      "expected_entry_ids": [
+        "infrastructure_utilities:pipe-ring-stiffness-sn-classes"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains SN ring-stiffness classes for sewer pipes; missing: pipe stiffness class (SN) explainer). infrastructure_utilities:pipe-ring-stiffness-sn-classes was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from infrastructure_utilities.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +100,9 @@
       "infrastructure_utilities:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "infrastructure_utilities:pipe-ring-stiffness-sn-classes"
+    ]
   }
 }

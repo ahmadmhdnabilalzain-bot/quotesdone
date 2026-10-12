@@ -864,6 +864,15 @@
         "electrical:busduct-vs-cable-risers",
         "electrical:copper-vs-aluminium-conductors"
       ]
+    },
+    {
+      "q_en": "What socket type is used in the UAE?",
+      "q_ar": "ما نوع المقابس المستخدم في الإمارات؟",
+      "expected_entry_ids": [
+        "electrical:wiring-accessories"
+      ],
+      "why": "states the UAE uses British-style 13 A three-rectangular-pin BS 1363 sockets.",
+      "origin": "real buyer question, moved from electrical.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

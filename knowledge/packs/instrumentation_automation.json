@@ -44,6 +44,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "instrumentation_automation:electromagnetic-flowmeters-for-effluent",
+      "topic": "Electromagnetic flowmeters for treated effluent and wastewater",
+      "kind": "product_guide",
+      "body_en": "Electromagnetic (inductive) flowmeters are used for water and wastewater in sewage treatment plants and other contaminated liquids, so they suit treated sewage effluent. They have no moving parts, making them low-maintenance and durable. Inline (full-bore) meters suit fluids from 5 µS/cm conductivity, come in nominal diameters up to DN2000 (on request) and give high precision by using the entire flow profile; insertion meters need 20 µS/cm or higher, go up to DN400 and suit contaminated and aggressive media. Avoid pressure drops in the installation: they can cause cavitation and gas bubbles that produce errors and damage the meter. Not established here: accuracy figures, and any UAE authority requirement naming a meter type for TSE.",
+      "body_ar": "تُستخدم مقاييس التدفق الكهرومغناطيسية (الحثّية) للمياه ومياه الصرف في محطات معالجة الصرف الصحي ولغيرها من السوائل الملوّثة، ولذلك تناسب مياه الصرف المعالجة. لا تحتوي على أجزاء متحركة، ما يجعلها قليلة الصيانة ومتينة. المقاييس المدمجة في الخط (كاملة المقطع) تناسب السوائل ابتداءً من موصلية 5 ميكروسيمنز/سم، وتتوفر بأقطار اسمية حتى DN2000 (عند الطلب)، وتوفر دقة عالية باستخدام كامل مقطع التدفق؛ أما المقاييس الإدخالية فتحتاج إلى 20 ميكروسيمنز/سم أو أكثر، وتصل إلى DN400، وتناسب الوسائط الملوّثة والعدوانية. تجنّب انخفاضات الضغط في التركيب، إذ قد تسبب التكهف وفقاعات الغاز التي تؤدي إلى أخطاء في القراءة وتلف المقياس. لم يثبت هنا: أرقام الدقة، ولا أي اشتراط من جهة رسمية في الدولة يحدد نوع المقياس لمياه الصرف المعالجة.",
+      "sources": [
+        "https://www.burkert.com/en/products/sensors-transmitters-and-controllers/flow/electromagnetic-flowmeter-emf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +73,15 @@
       "expected_entry_ids": [
         "instrumentation_automation:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which flow meter suits treated sewage effluent?",
+      "q_ar": "ما مقياس التدفق المناسب لمياه الصرف المعالجة؟",
+      "expected_entry_ids": [
+        "instrumentation_automation:electromagnetic-flowmeters-for-effluent"
+      ],
+      "why": "No entry of this pack answered it (Generic pack; nothing on flow meter selection for TSE (e.g. electromagnetic); missing). instrumentation_automation:electromagnetic-flowmeters-for-effluent was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from instrumentation_automation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +98,9 @@
       "instrumentation_automation:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "instrumentation_automation:electromagnetic-flowmeters-for-effluent"
+    ]
   }
 }

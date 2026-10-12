@@ -8,8 +8,8 @@
       "id": "flexible_packaging:uae-market-products",
       "topic": "Flexible packaging & films: products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "Flexible packaging and films in the UAE: stretch film (cast LLDPE, hand and machine grades, 17-30 microns, pre-stretched), shrink film (LDPE/POF), PE bags and liners, poly mailers, BOPP, PET, CPP and metallised films, laminated pouches (stand-up, zipper, spouted, retort) and rollstock for non-food products (detergents, chemicals, pet food, personal care), agricultural films (greenhouse, mulch), bubble films, and protective films. Printing: rotogravure and flexographic up to 8-10 colours. The UAE is phasing out single-use plastic bags (a federal ban on single-use plastic bags has applied since 1 January 2024; the later phases for other items were not checked), which affects carrier bags but not industrial films. Buyers specify structure (e.g. PET12/AL9/PE80), thickness, width, core, print colours, and barrier properties.",
-      "body_ar": "التغليف المرن والأفلام في الإمارات: أفلام التغليف المطاطية (LLDPE مصبوب، يدوي وآلي، 17-30 ميكرون، مسبق التمدد)، وأفلام الانكماش (LDPE/POF)، وأكياس وبطانات البولي إيثيلين، وأكياس الشحن، وأفلام BOPP وPET وCPP والمعدنة، والأكياس المصفحة (الواقفة، بسحاب، بفوهة، المعقمة) واللفائف للمنتجات غير الغذائية (المنظفات والكيماويات وطعام الحيوانات الأليفة والعناية الشخصية)، والأفلام الزراعية (البيوت المحمية والتغطية)، وأفلام الفقاعات، والأفلام الواقية. الطباعة: روتوغرافور وفلكسو حتى 8-10 ألوان. وتتخلص الإمارات تدريجياً من الأكياس البلاستيكية أحادية الاستخدام (يسري حظر اتحادي على الأكياس البلاستيكية أحادية الاستخدام منذ 1 يناير 2024؛ ولم يُتحقق من المراحل اللاحقة لبنود أخرى)، ما يؤثر على أكياس التسوق دون الأفلام الصناعية. يحدد المشتري التركيب (مثل PET12/AL9/PE80) والسماكة والعرض والقلب وألوان الطباعة وخصائص العزل.",
+      "body_en": "Flexible packaging in the UAE: stretch and shrink film, PE bags and liners, mailers, BOPP, PET and CPP films, laminated pouches, agricultural, bubble and protective films, printed up to 8-10 colours. Flexible packaging and films in the UAE: stretch film (cast LLDPE, hand and machine grades, 17-30 microns, pre-stretched), shrink film (LDPE/POF), PE bags and liners, poly mailers, BOPP, PET, CPP and metallised films, laminated pouches (stand-up, zipper, spouted, retort) and rollstock for non-food products (detergents, chemicals, pet food, personal care), agricultural films (greenhouse, mulch), bubble films, and protective films. Printing: rotogravure and flexographic up to 8-10 colours. The UAE is phasing out single-use plastic bags (a federal ban on single-use plastic bags has applied since 1 January 2024; the later phases for other items were not checked), which affects carrier bags but not industrial films. Buyers specify structure (e.g. PET12/AL9/PE80), thickness, width, core, print colours, and barrier properties.",
+      "body_ar": "التغليف المرن في الإمارات: أفلام التمدد والانكماش وأكياس وبطانات البولي إيثيلين وأكياس الشحن وأفلام BOPP وPET وCPP والأكياس المصفحة والأفلام الزراعية والفقاعية والواقية، مطبوعة بما يصل إلى 8-10 ألوان. التغليف المرن والأفلام في الإمارات: أفلام التغليف المطاطية (LLDPE مصبوب، يدوي وآلي، 17-30 ميكرون، مسبق التمدد)، وأفلام الانكماش (LDPE/POF)، وأكياس وبطانات البولي إيثيلين، وأكياس الشحن، وأفلام BOPP وPET وCPP والمعدنة، والأكياس المصفحة (الواقفة، بسحاب، بفوهة، المعقمة) واللفائف للمنتجات غير الغذائية (المنظفات والكيماويات وطعام الحيوانات الأليفة والعناية الشخصية)، والأفلام الزراعية (البيوت المحمية والتغطية)، وأفلام الفقاعات، والأفلام الواقية. الطباعة: روتوغرافور وفلكسو حتى 8-10 ألوان. وتتخلص الإمارات تدريجياً من الأكياس البلاستيكية أحادية الاستخدام (يسري حظر اتحادي على الأكياس البلاستيكية أحادية الاستخدام منذ 1 يناير 2024؛ ولم يُتحقق من المراحل اللاحقة لبنود أخرى)، ما يؤثر على أكياس التسوق دون الأفلام الصناعية. يحدد المشتري التركيب (مثل PET12/AL9/PE80) والسماكة والعرض والقلب وألوان الطباعة وخصائص العزل.",
       "sources": [
         "https://www.ti-films.com",
         "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
@@ -24,8 +24,8 @@
       "id": "flexible_packaging:uae-market-brands",
       "topic": "Flexible packaging & films: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Producers and resin sources: Taghleef Industries, Cosmoplast, Falcon Pack, Borouge, SABIC. Taghleef, based in Dubai, makes BOPP and CPP films, and there are many PE film extruders in Sharjah, Ajman and Umm Al Quwain that were not checked by name. Origins: UAE, Saudi Arabia, Oman, India, China.",
-      "body_ar": "المنتجون ومصادر الراتنج: Taghleef Industries، Cosmoplast، Falcon Pack، Borouge، SABIC. وتصنع Taghleef، ومقرها دبي، أفلام BOPP وCPP، وتوجد مصانع بثق أفلام بولي إيثيلين كثيرة في الشارقة وعجمان وأم القيوين لم يُتحقق منها بالاسم. المنشأ: الإمارات، السعودية، عُمان، الهند، الصين.",
+      "body_en": "Flexible packaging producers and resin sources in the UAE, such as Taghleef Industries, Cosmoplast, Falcon Pack, Borouge and SABIC, plus PE film extruders in Sharjah, Ajman and Umm Al Quwain. Producers and resin sources: Taghleef Industries, Cosmoplast, Falcon Pack, Borouge, SABIC. Taghleef, based in Dubai, makes BOPP and CPP films, and there are many PE film extruders in Sharjah, Ajman and Umm Al Quwain that were not checked by name. Origins: UAE, Saudi Arabia, Oman, India, China.",
+      "body_ar": "منتجو التغليف المرن ومصادر الراتنج في الإمارات، مثل Taghleef Industries وكوزموبلاست وفالكون باك وبروج وسابك، إضافة إلى مصانع بثق أفلام البولي إيثيلين في الشارقة وعجمان وأم القيوين. المنتجون ومصادر الراتنج: Taghleef Industries، Cosmoplast، Falcon Pack، Borouge، SABIC. وتصنع Taghleef، ومقرها دبي، أفلام BOPP وCPP، وتوجد مصانع بثق أفلام بولي إيثيلين كثيرة في الشارقة وعجمان وأم القيوين لم يُتحقق منها بالاسم. المنشأ: الإمارات، السعودية، عُمان، الهند، الصين.",
       "sources": [
         "https://www.ti-films.com",
         "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
@@ -40,8 +40,8 @@
       "id": "flexible_packaging:uae-market-sizes",
       "topic": "Flexible packaging & films: typical sizes, units and how it is quoted in the UAE",
       "kind": "uae_market_sizes",
-      "body_en": "Stretch film sold per roll (e.g. 500 mm x 23 micron, 2.5-3 kg hand rolls; 16-17 kg machine rolls) or per kg; printed laminates per kg or per 1,000 pouches with cylinder/plate charges; MOQ often 300-500 kg per design. Quotes state structure, microns, width, core ID (76 mm), print colours and lead time (2-4 weeks).",
-      "body_ar": "تُباع أفلام التغليف المطاطية باللفة (مثل 500 مم × 23 ميكرون، ولفائف يدوية 2.5-3 كغ؛ ولفائف آلية 16-17 كغ) أو بالكيلوغرام؛ والمصفحات المطبوعة بالكيلوغرام أو لكل 1,000 كيس مع رسوم الأسطوانات/الأكليشيهات؛ والحد الأدنى غالباً 300-500 كغ لكل تصميم. وتذكر العروض التركيب والسماكة والعرض وقطر القلب الداخلي (76 مم) وألوان الطباعة ومدة التنفيذ (2-4 أسابيع).",
+      "body_en": "How flexible packaging is priced in the UAE: stretch film per roll or kg, printed laminates per kg or per 1,000 pouches plus cylinder charges, with MOQs of 300-500 kg per design. Stretch film sold per roll (e.g. 500 mm x 23 micron, 2.5-3 kg hand rolls; 16-17 kg machine rolls) or per kg; printed laminates per kg or per 1,000 pouches with cylinder/plate charges; MOQ often 300-500 kg per design. Quotes state structure, microns, width, core ID (76 mm), print colours and lead time (2-4 weeks).",
+      "body_ar": "كيف يُسعَّر التغليف المرن في الإمارات: فيلم التمدد باللفة أو الكيلوغرام، والرقائق المطبوعة بالكيلوغرام أو لكل 1,000 كيس مع رسوم الأسطوانات، بحد أدنى للطلب 300-500 كغ لكل تصميم. تُباع أفلام التغليف المطاطية باللفة (مثل 500 مم × 23 ميكرون، ولفائف يدوية 2.5-3 كغ؛ ولفائف آلية 16-17 كغ) أو بالكيلوغرام؛ والمصفحات المطبوعة بالكيلوغرام أو لكل 1,000 كيس مع رسوم الأسطوانات/الأكليشيهات؛ والحد الأدنى غالباً 300-500 كغ لكل تصميم. وتذكر العروض التركيب والسماكة والعرض وقطر القلب الداخلي (76 مم) وألوان الطباعة ومدة التنفيذ (2-4 أسابيع).",
       "sources": [
         "https://www.ti-films.com",
         "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "What thickness of stretch film should I use for pallets?",
-      "q_ar": "ما سماكة فيلم التغليف المطاطي المناسبة للمنصات؟",
+      "q_en": "How is flexible packaging usually ordered in the UAE, by reel, weight or pieces?",
+      "q_ar": "كيف يُطلب التغليف المرن والأغشية البلاستيكية في الإمارات عادةً، بالبكرة أم بالوزن أم بالقطعة؟",
       "expected_entry_ids": [
         "flexible_packaging:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry states how stretch film and pouches are priced (per kg, per roll, per 1,000 pcs).",
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

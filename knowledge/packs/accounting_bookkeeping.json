@@ -40,6 +40,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "accounting_bookkeeping:fta-tax-agent-and-vat-return-fees",
+      "topic": "FTA tax agent registration and VAT return fees",
+      "kind": "regulatory_process",
+      "body_en": "In the UAE a tax agent is registered with the Federal Tax Authority (FTA), which keeps a tax agent register. Gulf News reported the FTA's requirements for applicants: a bachelor's or master's degree in tax, accounting or law (or another bachelor's plus a tax certification from an internationally recognised tax institute); at least three years of relevant, recent experience; Arabic and English proficiency; passing the FTA tax agent examination; a medical fitness certificate; professional liability insurance; working through a legally licensed entity; and good conduct with no convictions for dishonesty. Ask the firm for the name of its registered tax agent and check it against the FTA register. Not established here: how firms price VAT return filing (no fee source was opened), and the current FTA registration fees.",
+      "body_ar": "في الإمارات يُسجَّل الوكيل الضريبي لدى الهيئة الاتحادية للضرائب التي تحتفظ بسجل للوكلاء الضريبيين. وقد نشرت صحيفة غلف نيوز متطلبات الهيئة للمتقدمين: درجة بكالوريوس أو ماجستير في الضرائب أو المحاسبة أو القانون (أو بكالوريوس في تخصص آخر مع شهادة ضريبية من معهد ضرائب معترف به دولياً)؛ وخبرة حديثة ذات صلة لا تقل عن ثلاث سنوات؛ وإجادة اللغتين العربية والإنجليزية؛ واجتياز امتحان الوكيل الضريبي لدى الهيئة؛ وشهادة لياقة طبية؛ وتأمين ضد مسؤولية الأخطاء المهنية؛ ومزاولة العمل من خلال كيان مرخّص قانونياً؛ وحسن السيرة دون إدانات بجرائم مخلّة بالأمانة. اطلب من المكتب اسم وكيله الضريبي المسجّل وتحقّق منه في سجل الهيئة. غير مثبت هنا: كيفية تسعير المكاتب لتقديم إقرارات ضريبة القيمة المضافة (لم يُفتح أي مصدر للرسوم)، ورسوم التسجيل الحالية لدى الهيئة.",
+      "sources": [
+        "https://gulfnews.com/business/economy/vat/fta-opens-registration-for-tax-agents-1.2130436"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "accounting_bookkeeping:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Is the firm an FTA-registered tax agent, and how are VAT returns priced?",
+      "q_ar": "هل الشركة وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب، وكيف تُسعّر إقرارات ضريبة القيمة المضافة؟",
+      "expected_entry_ids": [
+        "accounting_bookkeeping:fta-tax-agent-and-vat-return-fees"
+      ],
+      "why": "No entry of this pack answered it (No entry covers FTA tax-agent registration or VAT-return pricing; missing a tax-agent/fee-model entry). accounting_bookkeeping:fta-tax-agent-and-vat-return-fees was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from accounting_bookkeeping.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "accounting_bookkeeping:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "accounting_bookkeeping:fta-tax-agent-and-vat-return-fees"
+    ]
   }
 }

@@ -42,6 +42,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "lubricants_industrial_oils:heavy-duty-diesel-oil-categories",
+      "topic": "Heavy-duty diesel engine oil categories",
+      "kind": "standard_reference",
+      "body_en": "Heavy-duty diesel engine oils are specified by API 'C' categories and ACEA 'E' sequences, plus OEM approvals. API CK-4 (effective 1 December 2016, replacing CJ-4) is for engines needing HTHS viscosity of at least 3.5 cP, is built to work with older as well as newer engines, and suits fuel up to 500 ppm sulphur. API FA-4 (HTHS 2.9-3.2 cP) targets 2017-model engines meeting stricter greenhouse-gas limits, needs fuel below 15 ppm sulphur, and lacks CK-4's backward compatibility. ACEA's current heavy-duty sequences are E4, E7, E8 and E11; from May 2022 E8 replaced E6 and E11 replaced E9, with HTHS of at least 3.5 mPa.s and ash capped at 1%. For a mixed or older fleet, CK-4 is the backward-compatible choice; the governing rule is the engine maker's approval list.",
+      "body_ar": "تُحدَّد زيوت محركات الديزل الثقيلة وفق فئات API من النوع 'C' وتسلسلات ACEA من النوع 'E'، إضافة إلى اعتمادات الشركات المصنّعة للمحركات. فئة API CK-4 (سارية منذ 1 ديسمبر 2016 بديلًا عن CJ-4) مخصصة للمحركات التي تتطلب لزوجة HTHS لا تقل عن 3.5 سنتيبواز، وصُممت لتعمل مع المحركات القديمة والحديثة، وتلائم وقودًا يحتوي حتى 500 جزء في المليون من الكبريت. أما فئة API FA-4 (لزوجة HTHS بين 2.9 و3.2 سنتيبواز) فتستهدف محركات طراز 2017 الخاضعة لحدود أشد لانبعاثات الغازات الدفيئة، وتتطلب وقودًا يقل كبريته عن 15 جزءًا في المليون، ولا تتمتع بالتوافق العكسي الذي تتمتع به CK-4. التسلسلات الحالية لـACEA للخدمة الشاقة هي E4 وE7 وE8 وE11؛ ومنذ مايو 2022 حلّت E8 محل E6 وE11 محل E9، مع لزوجة HTHS لا تقل عن 3.5 ملي باسكال·ثانية وحد أقصى للرماد 1%. للأسطول المختلط أو القديم، تُعد CK-4 الخيار المتوافق عكسيًا؛ والمرجع الحاكم دائمًا هو قائمة اعتمادات صانع المحرك.",
+      "sources": [
+        "https://us.championlubes.com/en-us/news/effective-from-dec-1st-2016-new-api-heavy-duty-specifications-ck-4-and-fa-4",
+        "https://oilspecifications.org/articles/introducing-acea-e8-e11"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +72,15 @@
       "expected_entry_ids": [
         "lubricants_industrial_oils:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which engine oil specification should a heavy diesel fleet use?",
+      "q_ar": "ما مواصفة زيت المحرك المناسبة لأسطول ديزل ثقيل؟",
+      "expected_entry_ids": [
+        "lubricants_industrial_oils:heavy-duty-diesel-oil-categories"
+      ],
+      "why": "No entry of this pack answered it (No entry covers diesel engine oil specs (API CK-4, ACEA E-classes); missing). lubricants_industrial_oils:heavy-duty-diesel-oil-categories was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from lubricants_industrial_oils.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +97,9 @@
       "lubricants_industrial_oils:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "lubricants_industrial_oils:heavy-duty-diesel-oil-categories"
+    ]
   }
 }

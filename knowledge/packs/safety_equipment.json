@@ -1,471 +1,480 @@
 {
- "trade": "safety_equipment",
- "entries": [
-  {
-   "id": "safety_equipment:en-vs-ansi",
-   "topic": "EN (European) vs ANSI/ISEA (US) PPE standards",
-   "kind": "comparison",
-   "body_en": "PPE sold in the UAE is usually certified either to European EN/ISO standards (CE marking under EU Regulation 2016/425, or UKCA for Great Britain) or to US standards issued by ANSI/ISEA, with respirators certified by NIOSH. Both systems are credible but they test differently, so ratings are not directly interchangeable. Examples: safety footwear is EN ISO 20345 (classes SB, S1, S1P, S3 and so on) versus ASTM F2413; eye protection is EN 166 versus ANSI Z87.1; hard hats are EN 397 versus ANSI Z89.1 Type I/II and Class G/E/C; high-visibility clothing is EN ISO 20471 versus ANSI/ISEA 107; respirators are EN 149 FFP1/FFP2/FFP3 versus NIOSH N95/N99/N100 and P-series; cut-resistant gloves are EN 388 versus ANSI/ISEA 105. The deciding factor is what the project's HSE plan, the client specification or the regulator requires: many UAE oil and gas, government and international-contractor sites specify EN, while US-owned operators often specify ANSI. A buyer should state the required standard explicitly and ask for the certificate and test report, not just a marking on the box.",
-   "body_ar": "تُعتمد معدات الوقاية الشخصية المباعة في الإمارات عادةً وفق المعايير الأوروبية EN/ISO (علامة CE بموجب لائحة الاتحاد الأوروبي 2016/425، أو UKCA لبريطانيا) أو وفق المعايير الأمريكية الصادرة عن ANSI/ISEA، مع اعتماد أجهزة التنفس من NIOSH. كلا النظامين موثوق لكن طرق الاختبار مختلفة، فالتصنيفات ليست متبادلة مباشرة. أمثلة: أحذية السلامة وفق EN ISO 20345 (فئات SB وS1 وS1P وS3 وغيرها) مقابل ASTM F2413، وحماية العين EN 166 مقابل ANSI Z87.1، والخوذ EN 397 مقابل ANSI Z89.1 بالنوعين I/II والفئات G/E/C، والملابس عالية الوضوح EN ISO 20471 مقابل ANSI/ISEA 107، وأجهزة التنفس EN 149 بفئات FFP1/FFP2/FFP3 مقابل NIOSH N95/N99/N100 وسلسلة P، وقفازات مقاومة القطع EN 388 مقابل ANSI/ISEA 105. والعامل الحاسم هو ما تشترطه خطة الصحة والسلامة للمشروع أو مواصفة العميل أو الجهة الرقابية: فكثير من مواقع النفط والغاز والحكومة والمقاولين الدوليين في الإمارات تشترط EN، بينما يشترط المشغلون الأمريكيون غالباً ANSI. على المشتري تحديد المعيار المطلوب صراحة وطلب الشهادة وتقرير الاختبار، لا مجرد علامة على العلبة.",
-   "sources": [
-    "https://www.satra.com/spotlight/article.php?id=561",
-    "https://www.uvex-safety.co.uk/en/knowledge/safety-standards/safety-footwear/guide-to-en-iso-203452022/",
-    "https://skanwear.com/blogs/ppe-standards/en-166",
-    "https://www.hexarmor.com/posts/understanding-safety-helmet-standards",
-    "https://begoodtex.com/blog/what-is-en-20471/",
-    "https://en.wikipedia.org/wiki/European_respirator_standards",
-    "https://www.satra.com/spotlight/article.php?id=488",
-    "https://wwwn.cdc.gov/niosh-cel/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:footwear-classes",
-   "topic": "Safety footwear classes: SB, S1, S1P, S2, S3, S5 (EN ISO 20345)",
-   "kind": "standard",
-   "body_en": "EN ISO 20345 defines safety footwear with a toe cap tested to 200 joules impact and 15 kN compression. On top of the basic SB requirements, class codes add properties: S1 adds a closed seat region, antistatic properties and heel energy absorption; S2 adds resistance to water penetration of the upper; S3 adds a penetration-resistant midsole (protection against nails) and a cleated outsole; S1P is S1 plus penetration resistance; S4 and S5 are the equivalents for all-rubber or all-polymer moulded boots, with S5 including penetration resistance. The 2022 revision of the standard added S6 and S7 codes (S2 and S3 with whole-footwear water resistance) and distinguishes penetration-resistant inserts: P for metal, PL for non-metallic tested with a 4.5 mm nail, and PS for non-metallic tested with a thinner 3.0 mm nail (the stricter test). Additional markings include SRA/SRB/SRC slip resistance (the 2022 edition changed slip marking so that SR denotes the extra glycerine test), HRO heat-resistant outsole, CI cold insulation, HI heat insulation, WR water resistance and M metatarsal protection. For UAE construction sites S3 is the usual minimum; for dry indoor warehousing S1P may suit; for hot surfaces such as asphalt or refineries, HRO is important.",
-   "body_ar": "يحدد معيار EN ISO 20345 أحذية السلامة بمقدمة واقية مختبرة لصدمة 200 جول وضغط 15 كيلو نيوتن. وفوق متطلبات SB الأساسية تضيف رموز الفئات خصائص: S1 تضيف منطقة كعب مغلقة وخاصية مضادة للكهرباء الساكنة وامتصاص طاقة الكعب؛ وS2 تضيف مقاومة نفاذ الماء للجزء العلوي؛ وS3 تضيف نعلاً أوسط مقاوماً للاختراق (ضد المسامير) ونعلاً خارجياً مضلعاً؛ وS1P هي S1 مع مقاومة الاختراق؛ وS4 وS5 مقابلها للأحذية المصبوبة بالكامل من المطاط أو البوليمر، وتشمل S5 مقاومة الاختراق. وأضاف إصدار 2022 رمزي S6 وS7 (S2 وS3 مع مقاومة الحذاء كله للماء)، ويميز أنواع النعل الأوسط (PS غير المعدني الذي يحمي من مسمار أرفع، وP الفولاذي). ومن العلامات الإضافية مقاومة الانزلاق SRA/SRB/SRC (وقد غيّر إصدار 2022 العلامة بحيث تعني SR اختبار الجلسرين الإضافي)، وHRO نعل مقاوم للحرارة، وCI عزل للبرودة، وHI عزل للحرارة، وWR مقاومة الماء، وM حماية مشط القدم. في مواقع البناء بالإمارات تُعد S3 الحد الأدنى المعتاد، وفي المستودعات الداخلية الجافة قد تناسب S1P، وعلى الأسطح الساخنة كالإسفلت والمصافي تُعد HRO مهمة.",
-   "sources": [
-    "https://www.uvex-safety.co.uk/en/knowledge/safety-standards/safety-footwear/guide-to-en-iso-203452022/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:respirators",
-   "topic": "Respiratory protection: FFP vs N95, half-mask, full-face, PAPR and SCBA",
-   "kind": "comparison",
-   "body_en": "Respiratory protective equipment is chosen by hazard, concentration and oxygen level. Disposable filtering facepieces are rated under EN 149 as FFP1, FFP2 and FFP3 (increasing filtration and lower leakage) or under NIOSH as N95, N99, N100 (not oil-resistant), R-series and P-series (oil-resistant). FFP2 is broadly comparable to N95 and FFP3 approaches N99, but they are separate certifications. Reusable half-masks (EN 140) and full-face masks (EN 136) take replaceable filters: particle filters P1/P2/P3 (EN 143) and gas/vapour cartridges (EN 14387) coded by colour and type, for example A (brown) organic vapours, B (grey) inorganic gases, E (yellow) acid gases, K (green) ammonia. Full face masks also protect the eyes. Powered air-purifying respirators (PAPR) blow filtered air and suit long shifts and bearded users. Air-purifying respirators must never be used in oxygen-deficient or immediately dangerous atmospheres, such as confined spaces or H2S releases in oilfield work; there, self-contained breathing apparatus (SCBA, EN 137) or airline systems are required. Tight-fitting masks need a face-fit test for each wearer. The buyer must state the contaminant, its form and concentration.",
-   "body_ar": "تُختار معدات حماية الجهاز التنفسي حسب الخطر والتركيز ومستوى الأكسجين. الكمامات المرشِّحة أحادية الاستخدام تُصنَّف وفق EN 149 إلى FFP1 وFFP2 وFFP3 (ترشيح متزايد وتسرب أقل) أو وفق NIOSH إلى N95 وN99 وN100 (غير مقاومة للزيوت) وسلسلتي R وP (مقاومة للزيوت). وFFP2 تقارب N95 عموماً وFFP3 تقترب من N99، لكنها شهادات منفصلة. وتأخذ أقنعة نصف الوجه القابلة لإعادة الاستخدام (EN 140) وأقنعة الوجه الكامل (EN 136) مرشحات قابلة للاستبدال: مرشحات الجسيمات P1/P2/P3 (EN 143) وخراطيش الغازات والأبخرة (EN 14387) المرمزة باللون والنوع، مثل A (بني) للأبخرة العضوية، وB (رمادي) للغازات غير العضوية، وE (أصفر) للغازات الحمضية، وK (أخضر) للأمونيا. وتحمي أقنعة الوجه الكامل العينين أيضاً. وتضخ أجهزة التنفس المزودة بمروحة (PAPR) هواءً مرشحاً وتناسب النوبات الطويلة وأصحاب اللحى. ولا يجوز أبداً استخدام أجهزة تنقية الهواء في أجواء ناقصة الأكسجين أو خطرة فوراً، كالأماكن المحصورة أو تسرب كبريتيد الهيدروجين في أعمال حقول النفط، إذ يلزم جهاز تنفس ذاتي (SCBA وفق EN 137) أو نظام خط هواء. وتحتاج الأقنعة المحكمة اختبار ملاءمة الوجه لكل مستخدم. وعلى المشتري تحديد الملوث وشكله وتركيزه.",
-   "sources": [
-    "https://en.wikipedia.org/wiki/European_respirator_standards",
-    "https://wwwn.cdc.gov/niosh-cel/",
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:hard-hats",
-   "topic": "Industrial helmets: EN 397 vs EN 12492 vs ANSI Z89.1 types and classes",
-   "kind": "comparison",
-   "body_en": "A standard industrial safety helmet under EN 397 protects against falling objects striking the top of the head, with optional markings for very low temperature (minus 20 or minus 30), very high temperature (+150 C), electrical insulation to 440 V AC, lateral deformation (LD) and molten metal splash (MM). EN 12492 is the mountaineering standard, often used for work at height and rope access because it requires a chinstrap that keeps the helmet on during a fall. EN 14052 covers high-performance helmets with better side-impact protection, and EN 50365 covers electrically insulating helmets for work up to 1000 V AC. Under ANSI/ISEA Z89.1, Type I protects the top only and Type II protects top and sides; Class G is general (tested to 2,200 V), Class E is electrical (20,000 V) and Class C conductive (no electrical protection). In the UAE heat, ventilated helmets are popular but ventilation holes remove electrical protection, so they are not suitable for electrical work. Helmet shells degrade with UV; manufacturers state service life from the moulding date, and the buyer should check the date stamp inside the shell on delivery. Colour coding by role is set by site rules, not by the standard.",
-   "body_ar": "تحمي خوذة السلامة الصناعية القياسية وفق EN 397 من سقوط الأجسام على أعلى الرأس، مع علامات اختيارية للبرودة الشديدة (سالب 20 أو سالب 30) والحرارة العالية (+150 مئوية) والعزل الكهربائي حتى 440 فولت متردد والتشوه الجانبي (LD) ورذاذ المعدن المنصهر (MM). ومعيار EN 12492 خاص بتسلق الجبال، ويُستخدم كثيراً للعمل على المرتفعات والوصول بالحبال لأنه يشترط حزام ذقن يبقي الخوذة أثناء السقوط. ويغطي EN 14052 الخوذ عالية الأداء بحماية جانبية أفضل، ويغطي EN 50365 الخوذ العازلة كهربائياً للعمل حتى 1000 فولت متردد. ووفق ANSI/ISEA Z89.1 يحمي النوع I أعلى الرأس فقط، والنوع II الأعلى والجوانب؛ والفئة G عامة (مختبرة حتى 2200 فولت)، والفئة E كهربائية (20000 فولت)، والفئة C موصلة (دون حماية كهربائية). وفي حرارة الإمارات تنتشر الخوذ المهواة، لكن فتحات التهوية تلغي الحماية الكهربائية فلا تناسب الأعمال الكهربائية. وتتدهور قشرة الخوذة بالأشعة فوق البنفسجية، ويحدد المصنعون عمر الخدمة من تاريخ الصب، وعلى المشتري فحص ختم التاريخ داخل القشرة عند الاستلام. وترميز الألوان حسب الدور تحدده قواعد الموقع لا المعيار.",
-   "sources": [
-    "https://www.hexarmor.com/posts/understanding-safety-helmet-standards"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:eye-face",
-   "topic": "Eye and face protection: EN 166 markings vs ANSI Z87.1",
-   "kind": "standard",
-   "body_en": "EN 166 is the basic European standard for eye protectors, with further standards for specific filters: EN 169 welding filters, EN 170 ultraviolet, EN 172 sunglare for industrial use, and EN 175 welding helmets and shields. The frame and lens markings tell the user what the product does: optical class 1, 2 or 3 (1 is best for continuous wear); mechanical strength S (increased robustness), F (low-energy impact, 45 m/s), B (medium energy, 120 m/s, goggles and face shields only) and A (high energy, 190 m/s, face shields only); field of use 3 (liquid droplets and splashes), 4 (large dust particles), 5 (gas and fine dust), 8 (short-circuit electric arc) and 9 (molten metal and hot solids); K anti-scratch and N anti-fog. Spectacles cannot carry B or 3/4/5 ratings; goggles are needed for chemical splash and dust. ANSI Z87.1 uses Z87 for basic impact and Z87+ for high impact, with D3 (droplet and splash), D4 (dust), D5 (fine dust) and W welding shade markings. In the UAE sun, outdoor workers benefit from tinted lenses marked for sunglare (5-x or UV 2-x per the applicable part) but tinted lenses must not be used indoors or at night.",
-   "body_ar": "معيار EN 166 هو المعيار الأوروبي الأساسي لواقيات العين، مع معايير إضافية لمرشحات محددة: EN 169 لمرشحات اللحام، وEN 170 للأشعة فوق البنفسجية، وEN 172 لوهج الشمس في الاستخدام الصناعي، وEN 175 لخوذ ودروع اللحام. وتخبر علامات الإطار والعدسة المستخدم بوظيفة المنتج: الفئة البصرية 1 أو 2 أو 3 (الفئة 1 الأفضل للارتداء المستمر)؛ والمتانة الميكانيكية S (متانة معززة) وF (صدمة منخفضة الطاقة 45 م/ث) وB (متوسطة 120 م/ث للنظارات المحكمة ودروع الوجه فقط) وA (عالية 190 م/ث لدروع الوجه فقط)؛ ومجال الاستخدام 3 (القطرات والرذاذ السائل) و4 (جسيمات الغبار الكبيرة) و5 (الغاز والغبار الناعم) و8 (قوس الدائرة القصيرة) و9 (المعدن المنصهر والمواد الصلبة الساخنة)؛ وK مقاومة الخدش وN مقاومة الضباب. ولا يمكن للنظارات العادية حمل تصنيف B أو 3/4/5، فتلزم النظارات المحكمة لرذاذ المواد الكيميائية والغبار. ويستخدم ANSI Z87.1 علامة Z87 للصدمة الأساسية وZ87+ للصدمة العالية، مع D3 للقطرات والرذاذ وD4 للغبار وD5 للغبار الناعم وW لدرجة ظل اللحام. وتحت شمس الإمارات يستفيد العاملون في الخارج من العدسات الملونة المعلَّمة لوهج الشمس، لكن لا يجوز استخدامها في الداخل أو ليلاً.",
-   "sources": [
-    "https://skanwear.com/blogs/ppe-standards/en-166"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:gloves-en388",
-   "topic": "Protective gloves: EN 388 mechanical ratings, EN 374 chemical, EN 407 heat",
-   "kind": "standard",
-   "body_en": "Gloves are rated per hazard, and one glove rarely covers all. EN 388 (mechanical) shows a pictogram with a code such as 4X43D: abrasion (0 to 4), coup-test cut (1 to 5, or X if not applicable because the blade blunts on high-cut materials), tear (0 to 4), puncture (0 to 4), then the ISO 13997 TDM cut level A to F, which is now the preferred cut rating, and optional P for impact protection. ANSI/ISEA 105 uses cut levels A1 to A9 from a different test. EN ISO 374-1 covers chemical protection: Type A, B or C depending on how many test chemicals (identified by letters) the glove resists for a set breakthrough time; EN ISO 374-5 covers micro-organisms and viruses. EN 407 covers heat and fire (burning behaviour, contact heat, convective heat, radiant heat, molten metal splashes), EN 12477 covers welding gloves, EN 511 cold, and EN 60903 electrical insulating gloves by class 00 to 4. The buyer must state the task and hazard, required cut level, chemicals handled with concentration, grip conditions (oily, wet), dexterity needs and sizes; nitrile-coated gloves differ greatly from leather riggers or butyl chemical gloves.",
-   "body_ar": "تُصنَّف القفازات حسب الخطر، ونادراً ما يغطي قفاز واحد كل المخاطر. يعرض معيار EN 388 (الميكانيكي) رمزاً مصوراً مع رمز مثل 4X43D: التآكل (0 إلى 4)، والقطع باختبار الشفرة الدوارة (1 إلى 5، أو X إن لم ينطبق لأن الشفرة تتلم على المواد عالية المقاومة)، والتمزق (0 إلى 4)، والثقب (0 إلى 4)، ثم مستوى القطع وفق ISO 13997 من A إلى F وهو التصنيف المفضل حالياً، وP اختيارياً لحماية الصدمات. ويستخدم ANSI/ISEA 105 مستويات قطع A1 إلى A9 من اختبار مختلف. ويغطي EN ISO 374-1 الحماية الكيميائية: النوع A أو B أو C حسب عدد المواد الكيميائية المختبرة (المعرفة بحروف) التي يقاومها القفاز لزمن اختراق محدد؛ ويغطي EN ISO 374-5 الكائنات الدقيقة والفيروسات. ويغطي EN 407 الحرارة والنار (سلوك الاحتراق والحرارة بالتلامس والحمل والإشعاع ورذاذ المعدن المنصهر)، وEN 12477 قفازات اللحام، وEN 511 البرودة، وEN 60903 القفازات العازلة كهربائياً بالفئات 00 إلى 4. على المشتري تحديد المهمة والخطر ومستوى القطع المطلوب والمواد الكيميائية وتركيزها وظروف القبض (زيت، بلل) والحاجة للمهارة والمقاسات، فالقفازات المطلية بالنتريل تختلف كثيراً عن القفازات الجلدية أو قفازات البيوتيل الكيميائية.",
-   "sources": [
-    "https://www.satra.com/spotlight/article.php?id=488"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:hi-vis",
-   "topic": "High-visibility clothing: EN ISO 20471 classes vs ANSI/ISEA 107",
-   "kind": "standard",
-   "body_en": "High-visibility clothing makes workers conspicuous to drivers and plant operators. EN ISO 20471 defines three classes by the minimum area of fluorescent background material and retroreflective tape: Class 3 gives the most coverage (for example a long-sleeve jacket or coverall, required for high-speed road work), Class 2 an intermediate level (vests, typical on construction sites) and Class 1 the least. Permitted fluorescent colours are yellow, orange and red. ANSI/ISEA 107 uses Type O (off-road), Type R (roadway) and Type P (public safety) with performance classes 1, 2, 3 and supplemental items. In the UAE, the heat drives buyers toward lightweight mesh vests, which is acceptable if the product is certified in that form, but many cheap vests are not certified at all or lose fluorescence after washing and sunlight. Specification points: required standard and class, garment type, colour (site or client rules often assign colours by role), size range, whether logos are to be printed (printing over the fluorescent area can reduce the certified area), flame-retardant or anti-static needs in oil and gas areas (combined with EN ISO 11612 or EN 1149), and the number of washes the certificate is valid for.",
-   "body_ar": "تجعل الملابس عالية الوضوح العمال ظاهرين للسائقين ومشغلي المعدات. يحدد معيار EN ISO 20471 ثلاث فئات حسب أدنى مساحة للمادة الفلورية الخلفية والشريط العاكس: الفئة 3 أوسع تغطية (مثل سترة بأكمام طويلة أو أفرول، مطلوبة لأعمال الطرق السريعة)، والفئة 2 مستوى متوسط (السترات، المعتادة في مواقع البناء)، والفئة 1 الأقل. والألوان الفلورية المسموحة الأصفر والبرتقالي والأحمر. ويستخدم ANSI/ISEA 107 النوع O (خارج الطرق) والنوع R (الطرق) والنوع P (السلامة العامة) مع فئات أداء 1 و2 و3 وعناصر تكميلية. وفي الإمارات تدفع الحرارة المشترين نحو السترات الشبكية الخفيفة، وهذا مقبول إن كان المنتج معتمداً بهذا الشكل، لكن كثيراً من السترات الرخيصة غير معتمدة أصلاً أو تفقد لونها الفلوري بعد الغسل والشمس. نقاط المواصفة: المعيار والفئة المطلوبان، ونوع الملبس، واللون (فقواعد الموقع أو العميل تحدد الألوان حسب الدور)، ونطاق المقاسات، وطباعة الشعارات (فالطباعة فوق المساحة الفلورية قد تقلل المساحة المعتمدة)، والحاجة لمقاومة اللهب أو مضاد الكهرباء الساكنة في مناطق النفط والغاز (مع EN ISO 11612 أو EN 1149)، وعدد الغسلات التي تبقى الشهادة سارية لها.",
-   "sources": [
-    "https://begoodtex.com/blog/what-is-en-20471/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:fr-coveralls",
-   "topic": "Flame-resistant and arc-flash coveralls: EN ISO 11612, IEC 61482, NFPA 2112/70E",
-   "kind": "standard",
-   "body_en": "In oil and gas, petrochemical and electrical work, ordinary cotton-polyester coveralls can melt or ignite, so flame-resistant (FR) garments are specified. EN ISO 11612 covers protection against heat and flame, with letter codes A1/A2 (limited flame spread), B (convective heat), C (radiant heat), D (molten aluminium), E (molten iron) and F (contact heat), each with a performance level. EN ISO 11611 covers welding (Class 1 and 2). EN 1149-5 adds electrostatic dissipation for explosive atmospheres. For electrical arc flash, IEC 61482-2 uses either the box test (APC 1 or 2) or the open-arc test giving an ATPV or ELIM value in cal/cm2; in the US system NFPA 70E defines PPE categories 1 to 4 by minimum arc rating, and NFPA 2112 covers flash-fire garments for the petroleum industry. Fabric types differ: inherently FR fibres (aramid blends) keep their protection for life, while FR-treated cotton relies on a chemical finish that must be laundered correctly. In the UAE heat, fabric weight and breathability strongly affect compliance by workers. Buyers must state the hazard assessment result: flash fire, arc rating needed, molten metal, or chemical splash.",
-   "body_ar": "في النفط والغاز والبتروكيماويات والأعمال الكهربائية قد تذوب الأفرولات القطنية-البوليستر العادية أو تشتعل، لذا تُشترط ملابس مقاومة للهب. يغطي EN ISO 11612 الحماية من الحرارة واللهب برموز حرفية A1/A2 (انتشار محدود للهب) وB (الحرارة بالحمل) وC (الحرارة الإشعاعية) وD (الألمنيوم المنصهر) وE (الحديد المنصهر) وF (الحرارة بالتلامس)، ولكل منها مستوى أداء. ويغطي EN ISO 11611 اللحام (الفئتان 1 و2). ويضيف EN 1149-5 تبديد الشحنات الساكنة للأجواء القابلة للانفجار. ولوميض القوس الكهربائي يستخدم IEC 61482-2 إما اختبار الصندوق (الفئة 1 أو 2) أو اختبار القوس المفتوح الذي يعطي قيمة ATPV أو ELIM بالسعر لكل سم مربع؛ وفي النظام الأمريكي يحدد NFPA 70E فئات الحماية 1 إلى 4 حسب أدنى تصنيف قوس، ويغطي NFPA 2112 ملابس الحريق الوميضي لصناعة البترول. وتختلف الأقمشة: الألياف المقاومة للهب بطبيعتها (خلطات الأراميد) تحتفظ بالحماية طوال عمرها، بينما يعتمد القطن المعالج على طبقة كيميائية يجب غسلها بشكل صحيح. وفي حرارة الإمارات يؤثر وزن القماش وتهويته كثيراً على التزام العمال. وعلى المشتري تحديد نتيجة تقييم المخاطر: حريق وميضي، أو تصنيف القوس المطلوب، أو المعدن المنصهر، أو الرذاذ الكيميائي.",
-   "sources": [
-    "https://skanwear.com/blogs/ppe-standards/en-iso-11612",
-    "https://skanwear.com/blogs/ppe-standards/iec-61482"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:fall-protection",
-   "topic": "Fall protection: harnesses, lanyards, anchors and SRLs (EN 361/355/795, ANSI Z359)",
-   "kind": "product",
-   "body_en": "Work at height is a leading cause of fatal injuries on UAE construction sites, and fall arrest equipment is a system whose components must be compatible. The full-body harness (EN 361, ANSI Z359.11) distributes arrest forces; a work-positioning belt (EN 358) is not a fall-arrest device. Connecting elements include energy-absorbing lanyards (EN 355), self-retracting lifelines or SRLs (EN 360, ANSI Z359.14), guided type fall arresters on rigid or flexible lines (EN 353-1/-2), and connectors or karabiners (EN 362). Anchor devices are covered by EN 795 types A to E (structural anchors, tripods, horizontal lifelines, rails, deadweights), and horizontal lifeline systems should be engineered. Clearance is critical: a two-metre lanyard with energy absorber needs substantial free fall clearance below the anchor, often more than five metres, so on low heights an SRL is required. Rescue planning is mandatory because suspension trauma can occur within minutes. Harnesses and lanyards need a documented pre-use check and a periodic inspection by a competent person (commonly every six months), and must be withdrawn after any fall. Buyers should specify user weight range, task, anchor type and heat or welding exposure.",
-   "body_ar": "العمل على المرتفعات من الأسباب الرئيسية للإصابات القاتلة في مواقع البناء بالإمارات، ومعدات منع السقوط نظام يجب أن تتوافق مكوناته. يوزع الحزام الكامل للجسم (EN 361 وANSI Z359.11) قوى الإيقاف، أما حزام تحديد وضع العمل (EN 358) فليس جهاز منع سقوط. وتشمل عناصر الربط الحبال الواصلة بممتص صدمات (EN 355)، وخطوط الحياة ذاتية الارتداد SRL (EN 360 وANSI Z359.14)، ومانعات السقوط المنزلقة على خطوط صلبة أو مرنة (EN 353-1/-2)، والموصلات أو الكارابينات (EN 362). وتغطي نقاط الإرساء معيار EN 795 بأنواعه A إلى E (المراسي الإنشائية والحوامل الثلاثية وخطوط الحياة الأفقية والقضبان والأثقال)، ويجب أن تُصمَّم أنظمة خطوط الحياة الأفقية هندسياً. والخلوص حاسم: فحبل بطول مترين مع ممتص صدمات يحتاج مسافة سقوط حر كبيرة تحت نقطة الإرساء، غالباً أكثر من خمسة أمتار، لذا يلزم SRL في الارتفاعات المنخفضة. وخطة الإنقاذ إلزامية لأن صدمة التعليق قد تحدث خلال دقائق. وتحتاج الأحزمة والحبال فحصاً موثقاً قبل الاستخدام وفحصاً دورياً من شخص كفء (عادةً كل ستة أشهر)، ويجب سحبها بعد أي سقوط. على المشتري تحديد نطاق وزن المستخدم والمهمة ونوع نقطة الإرساء والتعرض للحرارة أو اللحام.",
-   "sources": [
-    "https://www.marine-ropes.com/en-gb/post/energy-absorbing-lanyards-en355-shock-packs-fall-clearance",
-    "https://www.satra.com/spotlight/article.php?id=561"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:hearing",
-   "topic": "Hearing protection: SNR vs NRR, earplugs vs earmuffs",
-   "kind": "comparison",
-   "body_en": "Hearing protectors are rated differently in each system. Under EN 352 (parts 1 to 3 for earmuffs, earplugs and helmet-mounted muffs) the attenuation is given as SNR (single number rating) plus H, M, L values for high, medium and low frequencies. The US system uses NRR (noise reduction rating) under ANSI S3.19 or the newer S12.6. An SNR and an NRR of the same number do not mean the same real-world protection, and both overstate field performance, so safety practitioners derate them. The aim is to bring the ear exposure below the action level, not as low as possible: over-protection isolates workers from alarms and speech. Foam earplugs give high attenuation if rolled and inserted properly but are often inserted badly; pre-moulded and banded plugs are easier; earmuffs are consistent and easy to check but hot in the UAE climate and conflict with safety glasses. Helmet-mounted muffs must be compatible with the chosen helmet model. For very high noise (for example compressor stations), double protection may be needed. The buyer should give measured noise levels in dB(A), exposure hours, whether communication or radio integration is needed, and hygiene conditions.",
-   "body_ar": "تُصنَّف واقيات السمع بشكل مختلف في كل نظام. وفق EN 352 (الأجزاء 1 إلى 3 لأغطية الأذن والسدادات والأغطية المثبتة على الخوذة) يُعطى التوهين كقيمة SNR (تصنيف برقم واحد) مع قيم H وM وL للترددات العالية والمتوسطة والمنخفضة. ويستخدم النظام الأمريكي NRR (معدل خفض الضوضاء) وفق ANSI S3.19 أو الأحدث S12.6. ولا يعني SNR وNRR بالرقم نفسه الحماية الفعلية نفسها، وكلاهما يبالغ في الأداء الميداني، لذا يخفضهما ممارسو السلامة. والهدف خفض تعرض الأذن تحت مستوى الإجراء لا إلى أدنى حد ممكن، فالحماية الزائدة تعزل العمال عن الإنذارات والكلام. والسدادات الإسفنجية تعطي توهيناً عالياً إن لُفّت وأُدخلت جيداً لكنها كثيراً ما تُدخل بشكل سيئ؛ والسدادات المشكلة مسبقاً وذات الطوق أسهل؛ وأغطية الأذن ثابتة الأداء وسهلة المراقبة لكنها حارة في مناخ الإمارات وتتعارض مع نظارات السلامة. ويجب أن تتوافق الأغطية المثبتة على الخوذة مع طراز الخوذة المختار. وفي الضوضاء العالية جداً (مثل محطات الضواغط) قد تلزم حماية مزدوجة. على المشتري تقديم مستويات الضوضاء المقاسة بالديسيبل A وساعات التعرض والحاجة للاتصال أو دمج اللاسلكي وظروف النظافة.",
-   "sources": [
-    "https://www.earpieceonline.co.uk/blog/post/p-understanding-snr-nrr-en-hearing-protection-rating-standards"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:gas-detectors",
-   "topic": "Portable gas detectors: single-gas vs multi-gas, H2S and LEL",
-   "kind": "product",
-   "body_en": "Portable gas detectors protect workers in confined spaces, oilfield and process areas. Single-gas personal monitors usually detect H2S or CO and are often disposable two-year units; multi-gas detectors commonly monitor four gases: oxygen, flammables as percent LEL (lower explosive limit), H2S and CO, with options for SO2, NO2, NH3, VOCs via PID and others. Catalytic bead sensors for LEL can be poisoned by silicones and need oxygen, while infrared LEL sensors do not poison but do not detect hydrogen. For confined-space entry, a pump version allows remote sampling before entry. Instruments used in hazardous areas must be certified intrinsically safe for the zone and gas group (ATEX, IECEx or UL/CSA), and in UAE oil and gas the operator's standards usually specify IECEx or ATEX. Alarm set-points follow the company's occupational exposure limits and the site's rules. Daily bump testing and periodic calibration with certified gas are essential, so the buyer should plan calibration gas, a docking station and a service contract. Specify the gases and ranges, hazardous area classification, diffusion or pump, data logging, alarm types (audible, vibrating, visual) and battery life for the shift length.",
-   "body_ar": "تحمي أجهزة كشف الغاز المحمولة العمال في الأماكن المحصورة وحقول النفط ومناطق المعالجة. تكشف أجهزة الغاز الواحد الشخصية عادةً كبريتيد الهيدروجين أو أول أكسيد الكربون، وكثيراً ما تكون وحدات تُستهلك خلال سنتين؛ وتراقب أجهزة الغازات المتعددة عادةً أربعة غازات: الأكسجين، والغازات القابلة للاشتعال كنسبة من الحد الأدنى للانفجار LEL، وكبريتيد الهيدروجين، وأول أكسيد الكربون، مع خيارات لثاني أكسيد الكبريت وثاني أكسيد النيتروجين والأمونيا والمركبات العضوية المتطايرة عبر حساس PID وغيرها. وحساسات الخرز الحفزي لقياس LEL قد تتسمم بالسيليكون وتحتاج أكسجين، بينما حساسات الأشعة تحت الحمراء لا تتسمم لكنها لا تكشف الهيدروجين. وللدخول إلى الأماكن المحصورة يتيح الجهاز ذو المضخة أخذ عينات عن بعد قبل الدخول. ويجب أن تكون الأجهزة المستخدمة في المناطق الخطرة معتمدة كآمنة جوهرياً للمنطقة ومجموعة الغاز (ATEX أو IECEx أو UL/CSA)، وفي نفط وغاز الإمارات تشترط معايير المشغل غالباً IECEx أو ATEX. وتتبع نقاط ضبط الإنذار حدود التعرض المهني للشركة وقواعد الموقع. واختبار التعريض اليومي والمعايرة الدورية بغاز معتمد أساسيان، فعلى المشتري التخطيط لغاز المعايرة ومحطة الإرساء وعقد الخدمة. حدّد الغازات والنطاقات وتصنيف المنطقة الخطرة والانتشار أو المضخة وتسجيل البيانات وأنواع الإنذار ومدة البطارية لطول النوبة.",
-   "sources": [
-    "https://www.indsci.com/en/blog/combustible-gas-detection-infrared-or-catalytic-bead-sensors"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:oshad-dm-rules",
-   "topic": "UAE PPE rules: federal regulation, Abu Dhabi ADOSH-SF CoP 2.0, Dubai construction code, MoIAT/ECAS",
-   "kind": "authority_approval",
-   "body_en": "Several layers of UAE law govern PPE. At federal level, the implementing regulation of Federal Decree-Law No. 33 of 2021 on labour relations requires the employer to supply necessary protective equipment at no cost to the worker. The product itself falls under Cabinet Decision No. 3 of 2016 on the UAE Regulation for Personal Protective Equipment. Under that regulation, the former ESMA, whose standards and conformity work now sits with the Ministry of Industry and Advanced Technology (MoIAT), recognises the listed international standards and accepts products carrying the Emirates Quality Mark or another mark it approves. In 2021 MoIAT added a national PPE system covering face masks, protective and medical gloves, eye shields and medical clothing. Registered products in that system may not be sold without a MoIAT (ECAS) conformity certificate. In Abu Dhabi, the occupational safety framework now published by the Abu Dhabi Public Health Centre as ADOSH-SF (formerly OSHAD-SF) contains Code of Practice 2.0 on PPE, version 4.0 of July 2024. It applies to every employer in the emirate. The employer must choose PPE from a risk assessment, only after higher controls have been considered, and the PPE must meet the federal regulation. Workers must be trained and pass a competency check, with training records kept. Issued PPE must be inspected, stored and replaced at the employer's cost. Where respirators are needed, a written respiratory protection programme is required (see safety_equipment:respiratory-programme). Where two regulators differ, the stricter rule applies. In Dubai, the Dubai Municipality Code of Construction Safety Practice (2024 edition) has a dedicated PPE chapter for construction sites. Free zones and operators such as ADNOC add their own HSE specifications. A supplier should therefore ask three things: which emirate and regulator apply, which client HSE specification applies, and whether the item needs an ECAS or EQM certificate to be sold in the UAE.",
-   "body_ar": "تحكم معدات الوقاية الشخصية في الإمارات عدة مستويات من التشريعات. فعلى المستوى الاتحادي، تُلزم اللائحة التنفيذية للمرسوم بقانون اتحادي رقم 33 لسنة 2021 بشأن تنظيم علاقات العمل صاحبَ العمل بتوفير معدات الوقاية اللازمة دون أي تكلفة على العامل. أما المنتج نفسه فيخضع لقرار مجلس الوزراء رقم 3 لسنة 2016 بشأن اللائحة الإماراتية لمعدات الوقاية الشخصية، التي تعترف بموجبها هيئة الإمارات للمواصفات والمقاييس سابقاً، وقد انتقلت اختصاصاتها في المواصفات وتقييم المطابقة إلى وزارة الصناعة والتكنولوجيا المتقدمة، بالمواصفات الدولية المدرجة وتقبل المنتجات الحاملة لعلامة الجودة الإماراتية أو علامة أخرى معتمدة منها. وفي عام 2021 أضافت الوزارة منظومة وطنية لمعدات الوقاية تشمل الكمامات والقفازات الواقية والطبية وواقيات العين والملابس الطبية، ولا يجوز بيع المنتجات المسجلة فيها دون شهادة مطابقة من الوزارة (ECAS). وفي أبوظبي، يتضمن إطار السلامة المهنية الذي ينشره مركز أبوظبي للصحة العامة باسم ADOSH-SF (أوشاد سابقاً) مدونة الممارسة 2.0 لمعدات الوقاية الشخصية، الإصدار 4.0 بتاريخ يوليو 2024، وتنطبق على جميع أصحاب العمل في الإمارة. ويختار صاحب العمل المعدات بناءً على تقييم المخاطر وبعد دراسة وسائل التحكم الأعلى، ويجب أن تستوفي المعدات اللائحة الاتحادية. ويُدرَّب العمال ويجتازون اختبار كفاءة مع الاحتفاظ بسجلات التدريب، وتُفحص المعدات المصروفة وتُخزَّن وتُستبدل على نفقة صاحب العمل. وحيثما لزمت أجهزة التنفس يُشترط برنامج مكتوب للحماية التنفسية (انظر safety_equipment:respiratory-programme). وعند اختلاف جهتين تنظيميتين يُطبَّق الاشتراط الأشد. وفي دبي، تتضمن مدونة ممارسات السلامة في البناء الصادرة عن بلدية دبي (إصدار 2024) فصلاً مخصصاً لمعدات الوقاية في مواقع البناء. وتضيف المناطق الحرة والمشغّلون مثل أدنوك مواصفاتهم الخاصة للصحة والسلامة والبيئة. لذا يسأل المورد ثلاثة أسئلة: ما الإمارة والجهة التنظيمية المختصة، وما مواصفة الصحة والسلامة لدى العميل، وهل يحتاج الصنف شهادة ECAS أو علامة الجودة الإماراتية لبيعه في الدولة.",
-   "sources": [
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf",
-    "https://www.moiat.gov.ae/en/media-center/news/2021/05/24/moiat-develops-state-of-the-art-national-system---protective-equipment",
-    "https://www.lexismiddleeast.com/regulatory/Dubai/DubaiMunicipality_Code_of_Construction_Safety_Practice/en"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:heat-stress",
-   "topic": "Heat stress PPE and the UAE midday work ban",
-   "kind": "product",
-   "body_en": "Heat is the main occupational hazard of the UAE summer, and there are two sets of rules to follow. The first is federal. MoHRE's midday break prohibits work under direct sun in open areas from 12:30 to 15:00 every day between 15 June and 15 September; 2026 is the 22nd year it has applied. Some work is exempt where stopping is not possible, such as asphalt laying and concrete pours, urgent repairs to water, power and traffic networks, and work carrying a government permit. During the break the employer must still provide shaded rest areas, fans or other cooling, drinking water with rehydration supplements, and first aid. The second is Abu Dhabi's ADOSH-SF Code of Practice on Safety in the Heat, which asks for more than the break. The employer needs a written heat stress programme and must use the Thermal Work Limit (TWL) method to set work-rest cycles and the amount of water workers should drink. Workers need training in a language they understand, including guidance to drink at least two litres every two to three hours and to watch for dehydration using urine-colour charts. Shaded work areas and cooled or air-conditioned rest shelters must be provided. Each worker must have a personal water container of at least one litre, and shared cups and bottles are not allowed. Refillable coolers must be cleaned and refilled daily, with the fill date written on a tape seal. Clothing should be lightweight, light-coloured and loose unless machinery makes that unsafe. Products a supplier may be asked for include cooling vests, neck coolers, helmet sun shades and neck flaps, breathable coveralls, sunglare-rated eyewear, one-litre personal bottles, electrolyte sachets, water coolers and WBGT or TWL meters. PPE itself adds heat: FR coveralls, chemical suits and respirators raise body temperature, so protection and heat load must be balanced. A cooling product must never cancel an FR or hi-vis requirement.",
-   "body_ar": "الحرارة هي الخطر المهني الأبرز في صيف الإمارات، وهناك مجموعتان من القواعد الواجب اتباعها. الأولى اتحادية: يحظر قرار وزارة الموارد البشرية والتوطين بشأن استراحة الظهيرة العملَ تحت أشعة الشمس المباشرة وفي الأماكن المكشوفة من الساعة 12:30 حتى 3:00 عصراً يومياً بين 15 يونيو و15 سبتمبر، وعام 2026 هو العام الثاني والعشرون لتطبيقه. وتُستثنى أعمال لا يمكن إيقافها، مثل رصف الأسفلت وصب الخرسانة، والإصلاحات العاجلة لشبكات المياه والكهرباء والمرور، والأعمال الحاصلة على تصريح حكومي. وخلال الاستراحة يظل صاحب العمل ملزماً بتوفير أماكن راحة مظللة ومراوح أو وسائل تبريد أخرى ومياه شرب مع مكملات ترطيب وإسعافات أولية. والثانية مدونة ممارسة السلامة في الحرارة ضمن إطار ADOSH-SF في أبوظبي، وتطلب أكثر من الاستراحة. فعلى صاحب العمل إعداد برنامج مكتوب للإجهاد الحراري، واستخدام طريقة حد العمل الحراري (TWL) لتحديد دورات العمل والراحة وكمية الماء الواجب شربها. ويُدرَّب العمال بلغة يفهمونها، ومن ذلك الإرشاد إلى شرب لترين على الأقل كل ساعتين إلى ثلاث، ومراقبة الجفاف بلوحات لون البول. ويجب توفير مناطق عمل مظللة واستراحات مبردة أو مكيفة. ويجب أن يكون لكل عامل وعاء ماء شخصي سعته لتر على الأقل، ويُمنع استخدام الأكواب والقوارير المشتركة. وتُنظَّف مبردات المياه القابلة لإعادة التعبئة وتُعاد تعبئتها يومياً، مع كتابة تاريخ التعبئة على شريط الإغلاق. وتكون الملابس خفيفة وفاتحة اللون وفضفاضة ما لم تجعل الآلات ذلك خطراً. ومن المنتجات التي قد تُطلب من المورد: سترات التبريد، ومبردات الرقبة، ومظلات الخوذ وواقيات الرقبة، والأفرولات جيدة التهوية، والنظارات المصنفة لوهج الشمس، وقوارير شخصية سعة لتر، وأكياس الأملاح، ومبردات المياه، وأجهزة قياس WBGT أو TWL. ومعدات الوقاية نفسها تضيف حملاً حرارياً، فالأفرولات المقاومة للهب وبدلات المواد الكيميائية وأجهزة التنفس ترفع حرارة الجسم، فلا بد من الموازنة بين الحماية والحمل الحراري. ولا يجوز أن يُلغي منتج التبريد اشتراطاً لمقاومة اللهب أو للوضوح العالي.",
-   "sources": [
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/11---Safety-in-the-Heat-v31-English.pdf",
-    "https://gulfbusiness.com/en/2026/uae/uaes-annual-midday-break-returns-what-workers-and-employers-need-to-know/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:chemical-suits",
-   "topic": "Chemical protective clothing types 1 to 6",
-   "kind": "standard",
-   "body_en": "European chemical protective clothing is classified by type according to the challenge it resists. Type 1 is gas-tight (EN 943), including suits with SCBA inside or outside; Type 2 is non-gas-tight with positive pressure air supply; Type 3 is liquid-tight against pressurised jets (EN 14605); Type 4 is spray-tight (EN 14605); Type 5 protects against hazardous dry particles (EN ISO 13982-1); and Type 6 offers limited protection against light liquid splashes (EN 13034). Disposable coveralls are often marked Type 5/6, which is suitable for dusts, insulation fibres, paints and light splashes but not for chemical jets. Additional marks cover protection against infective agents (EN 14126), radioactive particulate contamination (EN 1073-2) and antistatic properties (EN 1149-5). The type rating describes the garment's construction and seams; the permeation resistance of the fabric to specific chemicals is a separate dataset, and the buyer must check the manufacturer's permeation data for the actual chemical and exposure time. For the UAE climate, heat stress in Type 3 and 4 suits is severe, so work durations must be limited. Specify chemicals, exposure form, duration, and compatible gloves, boots and respirator.",
-   "body_ar": "تُصنَّف الملابس الواقية من المواد الكيميائية الأوروبية حسب النوع وفق التحدي الذي تقاومه. النوع 1 محكم ضد الغاز (EN 943) ويشمل البدلات مع جهاز تنفس ذاتي داخلها أو خارجها؛ والنوع 2 غير محكم ضد الغاز مع إمداد هواء بضغط موجب؛ والنوع 3 محكم ضد السوائل تجاه النفاثات المضغوطة (EN 14605)؛ والنوع 4 محكم ضد الرذاذ (EN 14605)؛ والنوع 5 يحمي من الجسيمات الجافة الخطرة (EN ISO 13982-1)؛ والنوع 6 يوفر حماية محدودة من الرذاذ السائل الخفيف (EN 13034). وكثيراً ما تحمل الأفرولات أحادية الاستخدام علامة النوع 5/6، وهي مناسبة للغبار وألياف العزل والدهانات والرذاذ الخفيف لا لنفاثات المواد الكيميائية. وتغطي علامات إضافية الحماية من العوامل المعدية (EN 14126) والتلوث بالجسيمات المشعة (EN 1073-2) والخاصية المضادة للكهرباء الساكنة (EN 1149-5). ويصف تصنيف النوع بنية الملبس ودرزاته، أما مقاومة القماش لنفاذ مواد كيميائية محددة فبيانات منفصلة، ويجب على المشتري مراجعة بيانات النفاذ من المصنع للمادة الفعلية وزمن التعرض. وفي مناخ الإمارات يكون الإجهاد الحراري في بدلات النوعين 3 و4 شديداً فيجب تحديد مدد العمل. حدّد المواد الكيميائية وشكل التعرض ومدته والقفازات والأحذية وجهاز التنفس المتوافقة.",
-   "sources": [
-    "https://www.uvex-safety.com/blog/shedding-some-light-on-standards-and-guidelines-for-chemical-protection-suits/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:spec-ppe-order",
-   "topic": "Spec checklist: ordering PPE for a project",
-   "kind": "spec_checklist",
-   "body_en": "A PPE order is quotable only when each line states the item, the standard, the rating and the size mix. For each item the buyer should give: the item type (for example S3 SRC safety shoe, FFP2 valveless respirator, EN 397 helmet with 440 V marking); the required standard system (EN/ISO, ANSI/ISEA or NIOSH, or both) and any client or regulator specification that applies (for example ADNOC, OSHAD, Dubai Municipality); the performance level (cut level, SNR, class, arc rating); materials or features (composite toe, metal-free, FR, anti-static, ventilated); colour and branding or logo printing; size breakdown by quantity (shoes by EU size, gloves by size 7 to 11, coveralls by chest size); packaging and labelling (individual packing, Arabic labels if required); quantity and delivery schedule (call-off orders are common); required documents (EU type-examination certificate, declaration of conformity, test reports, certificate of origin); and shelf-life or manufacturing date limits for items that age, such as helmets, respirators and harnesses. Where a brand or model is specified by the client, state whether equivalents are acceptable and who approves them.",
-   "body_ar": "لا يمكن تسعير طلب معدات الوقاية إلا إذا حدد كل بند الصنف والمعيار والتصنيف وتوزيع المقاسات. ولكل صنف يجب أن يذكر المشتري: نوع الصنف (مثل حذاء سلامة S3 SRC، أو كمامة FFP2 بلا صمام، أو خوذة EN 397 بعلامة 440 فولت)؛ ونظام المعيار المطلوب (EN/ISO أو ANSI/ISEA أو NIOSH أو كليهما) وأي مواصفة للعميل أو الجهة الرقابية (مثل أدنوك أو أوشاد أو بلدية دبي)؛ ومستوى الأداء (مستوى القطع، أو SNR، أو الفئة، أو تصنيف القوس)؛ والمواد أو الخصائص (مقدمة مركبة، خالٍ من المعدن، مقاوم للهب، مضاد للكهرباء الساكنة، مهوى)؛ واللون والعلامة أو طباعة الشعار؛ وتوزيع المقاسات بالكميات (الأحذية بالمقاس الأوروبي، والقفازات من 7 إلى 11، والأفرولات بمقاس الصدر)؛ والتغليف والملصقات (تغليف فردي، ملصقات عربية إن لزم)؛ والكمية وجدول التسليم (طلبات السحب شائعة)؛ والوثائق المطلوبة (شهادة فحص النوع الأوروبية، إعلان المطابقة، تقارير الاختبار، شهادة المنشأ)؛ وحدود تاريخ التصنيع أو الصلاحية للأصناف التي تتقادم كالخوذ وأجهزة التنفس والأحزمة. وإذا حدد العميل علامة أو طرازاً فيجب ذكر هل البدائل المكافئة مقبولة ومن يعتمدها.",
-   "sources": [
-    "https://www.satra.com/spotlight/article.php?id=561",
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf",
-    "https://www.moiat.gov.ae/en/media-center/news/2021/05/24/moiat-develops-state-of-the-art-national-system---protective-equipment"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23",
-   "required_specs": [
-    "item type",
-    "standard system (EN/ANSI/NIOSH)",
-    "client/regulator specification",
-    "performance level/class",
-    "materials and features",
-    "colour and logo printing",
-    "size breakdown with quantities",
-    "packaging and labelling",
-    "delivery schedule / call-off",
-    "certificates and documents required",
-    "manufacturing date / shelf-life limits",
-    "brand/model and equivalents policy"
-   ]
-  },
-  {
-   "id": "safety_equipment:certificate-check",
-   "topic": "How to verify PPE certificates (CE module B/C2/D, NIOSH TC numbers)",
-   "kind": "standard",
-   "body_en": "Fake or misapplied certification is common in the PPE trade. Under EU Regulation 2016/425, PPE is classified into Category I (minimal risks, self-declared), Category II (intermediate risks, EU type-examination by a notified body, module B) and Category III (risks of death or irreversible harm such as respirators, fall arrest, chemical suits and some gloves), which additionally needs ongoing surveillance under module C2 or D, shown by the notified body's four-digit number next to the CE mark. The buyer should obtain the EU type-examination certificate and the EU declaration of conformity, confirm the product model on the certificate matches the product supplied, check the certificate has not expired (they are typically valid up to five years), and verify the notified body on the EU NANDO database. For NIOSH-approved respirators, the approval (TC) number printed on the product can be checked on NIOSH's Certified Equipment List, and NIOSH publishes warnings about counterfeit respirators. For ANSI products, manufacturers self-declare compliance to most ISEA standards, so third-party test reports are the better evidence. A photocopied certificate naming a different manufacturer or a trading company only is a red flag.",
-   "body_ar": "الشهادات المزورة أو المستخدمة في غير موضعها شائعة في تجارة معدات الوقاية. بموجب لائحة الاتحاد الأوروبي 2016/425 تُصنَّف المعدات في الفئة I (مخاطر بسيطة، إعلان ذاتي)، والفئة II (مخاطر متوسطة، فحص نوع أوروبي من جهة مخطرة، الوحدة B)، والفئة III (مخاطر الوفاة أو الضرر الدائم مثل أجهزة التنفس ومنع السقوط وبدلات المواد الكيميائية وبعض القفازات)، وتحتاج إضافةً إلى رقابة مستمرة وفق الوحدة C2 أو D، ويظهر ذلك برقم الجهة المخطرة المكون من أربعة أرقام بجانب علامة CE. على المشتري الحصول على شهادة فحص النوع الأوروبية وإعلان المطابقة الأوروبي، والتأكد من أن طراز المنتج في الشهادة يطابق المنتج المورد، والتحقق من عدم انتهاء الشهادة (عادةً صالحة حتى خمس سنوات)، والتحقق من الجهة المخطرة في قاعدة بيانات NANDO الأوروبية. ولأجهزة التنفس المعتمدة من NIOSH يمكن التحقق من رقم الاعتماد TC المطبوع على المنتج في قائمة المعدات المعتمدة لدى NIOSH، التي تنشر أيضاً تحذيرات عن الأجهزة المقلدة. أما منتجات ANSI فيعلن المصنعون مطابقتها ذاتياً لمعظم معايير ISEA، فتقارير الاختبار من طرف ثالث دليل أفضل. والشهادة المصورة التي تسمي مصنعاً مختلفاً أو شركة تجارية فقط علامة تحذير.",
-   "sources": [
-    "https://www.satra.com/spotlight/article.php?id=561",
-    "https://wwwn.cdc.gov/niosh-cel/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:inspection-lifespan",
-   "topic": "PPE inspection, storage and replacement intervals",
-   "kind": "warranty",
-   "body_en": "PPE does not last forever, and suppliers' warranties usually cover manufacturing defects only, not wear or degradation from UV and heat. Helmets: manufacturers commonly state a service life from the moulding date (often in the range of three to five years for thermoplastic shells, check each manufacturer), shortened by UV exposure, impacts and chemicals; any helmet that took a significant blow must be replaced. Harnesses and lanyards: pre-use check every time, detailed periodic inspection by a competent person, withdrawal after arresting a fall, and a maximum life stated by the manufacturer. Respirator filters: replaced per breakthrough or breathing resistance, and disposable FFP masks are single-shift items unless marked R (reusable). Gas cartridges have a shelf life and must be replaced by a change-out schedule. Gas detectors: sensor life is typically two to three years and bump tests are daily. Safety shoes: replaced when the toe cap is exposed or damaged, the sole is worn or the upper is broken. Buyers should store PPE out of direct sun (UAE containers and site stores become very hot), keep records of issue and inspection, and ask suppliers for the manufacturing date and recommended life of each batch.",
-   "body_ar": "معدات الوقاية لا تدوم إلى الأبد، وضمانات الموردين تغطي عادةً عيوب التصنيع فقط لا التآكل أو التدهور من الأشعة والحرارة. الخوذ: يحدد المصنعون عادةً عمر خدمة من تاريخ الصب (غالباً ثلاث إلى خمس سنوات لقشور اللدائن الحرارية، ويُتحقق من كل مصنع)، ويقصر بالأشعة والصدمات والمواد الكيميائية، وأي خوذة تعرضت لضربة كبيرة يجب استبدالها. الأحزمة والحبال: فحص قبل كل استخدام، وفحص دوري مفصل من شخص كفء، وسحبها بعد إيقاف سقوط، وعمر أقصى يحدده المصنع. مرشحات أجهزة التنفس: تُستبدل عند الاختراق أو ارتفاع مقاومة التنفس، والكمامات FFP أحادية الاستخدام لنوبة واحدة ما لم تحمل علامة R (قابلة لإعادة الاستخدام). وخراطيش الغاز لها عمر تخزين ويجب استبدالها وفق جدول. أجهزة كشف الغاز: عمر الحساس عادةً سنتان إلى ثلاث، واختبار التعريض يومي. أحذية السلامة: تُستبدل عند انكشاف المقدمة أو تلفها أو تآكل النعل أو تمزق الجزء العلوي. وعلى المشتري تخزين المعدات بعيداً عن الشمس المباشرة (فالحاويات ومخازن المواقع في الإمارات تصبح شديدة الحرارة)، وحفظ سجلات الصرف والفحص، وطلب تاريخ التصنيع والعمر الموصى به لكل دفعة من الموردين.",
-   "sources": [
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf",
-    "https://www.marine-ropes.com/en-gb/post/energy-absorbing-lanyards-en355-shock-packs-fall-clearance"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:red-flags",
-   "topic": "Red flags in PPE supplier quotes",
-   "kind": "quote_red_flag",
-   "body_en": "Warning signs in PPE quotes include: the quote says \"CE certified\" or \"ANSI approved\" without naming the standard, the class or the notified body; certificates are provided but name a different manufacturer, a different model or have expired; respirators are quoted as \"N95 equivalent\" or \"KN95\" when the site requires EN 149 FFP2 or NIOSH N95 (KN95 is a Chinese standard, GB 2626, and is not interchangeable without client acceptance); \"S3\" shoes lack the penetration-resistant midsole marking or the correct size range; fall-arrest equipment is offered as loose components from different makers without compatibility confirmation; hi-vis vests are uncertified printed polyester; gloves are described as \"cut resistant\" without an EN 388 or ANSI cut level; gas detectors are offered without calibration gas, certificates of calibration or hazardous-area certification. Prices far below market for Category III items suggest counterfeit goods. Long lead times hidden as \"subject to availability\" for large quantities of specific sizes are also common. Any quote missing standards, classes, sizes or documents should be held and clarified before an order is placed, because non-compliant PPE is rejected at site inspection.",
-   "body_ar": "من علامات التحذير في عروض معدات الوقاية: أن يقول العرض معتمد CE أو معتمد ANSI دون تسمية المعيار أو الفئة أو الجهة المخطرة؛ أو أن تُقدَّم شهادات تسمي مصنعاً أو طرازاً مختلفاً أو منتهية الصلاحية؛ أو أن تُعرض أجهزة التنفس على أنها مكافئة لـ N95 أو KN95 بينما يشترط الموقع EN 149 FFP2 أو NIOSH N95 (فمعيار KN95 صيني GB 2626 ولا يُستبدل دون قبول العميل)؛ أو أن تخلو أحذية S3 من علامة النعل الأوسط المقاوم للاختراق أو نطاق المقاسات الصحيح؛ أو أن تُعرض معدات منع السقوط كمكونات منفصلة من صانعين مختلفين دون تأكيد التوافق؛ أو أن تكون سترات الوضوح العالي من بوليستر مطبوع غير معتمد؛ أو أن توصف القفازات بأنها مقاومة للقطع دون مستوى قطع وفق EN 388 أو ANSI؛ أو أن تُعرض أجهزة كشف الغاز دون غاز معايرة أو شهادات معايرة أو اعتماد للمناطق الخطرة. والأسعار الأقل كثيراً من السوق لأصناف الفئة III توحي بسلع مقلدة. وشائع أيضاً إخفاء مدد توريد طويلة تحت عبارة حسب التوفر لكميات كبيرة من مقاسات محددة. وأي عرض يخلو من المعايير أو الفئات أو المقاسات أو الوثائق يُعلَّق ويُوضَّح قبل الطلب، لأن المعدات غير المطابقة تُرفض في تفتيش الموقع.",
-   "sources": [
-    "https://www.satra.com/spotlight/article.php?id=561",
-    "https://wwwn.cdc.gov/niosh-cel/",
-    "https://www.satra.com/spotlight/article.php?id=488"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:buyer-mistakes",
-   "topic": "Common buyer mistakes when procuring PPE",
-   "kind": "buyer_mistake",
-   "body_en": "Buyers often choose PPE by price and appearance rather than by the hazard assessment, so a warehouse buys S3 boots that are too hot and heavy, while a steel fabrication shop buys general gloves that fail on sharp edges. Another frequent error is ordering a single size set: incorrect sizes lead to workers not wearing the PPE at all, and female workers are frequently given men's sizes. Respirators are purchased without face-fit testing, so tight-fitting masks leak. Harnesses are bought without planning anchor points, clearance and rescue. Mixed standards are ordered unintentionally, for example ANSI glasses on a site that audits to EN. Buyers forget the UAE heat: non-breathable garments and non-ventilated helmets reduce compliance, and PPE stored in hot containers degrades. Consumables such as filters, earplugs, calibration gas and replacement lenses are left out of the budget. Finally, buyers do not ask for manufacturing dates, and receive helmets or harnesses already well into their service life. Linking each PPE line to a documented hazard, a standard and a size breakdown avoids most of these mistakes.",
-   "body_ar": "كثيراً ما يختار المشترون معدات الوقاية بالسعر والمظهر لا بتقييم المخاطر، فيشتري مستودع أحذية S3 حارة وثقيلة، بينما يشتري مصنع تشكيل حديد قفازات عامة تفشل أمام الحواف الحادة. ومن الأخطاء المتكررة طلب مجموعة مقاسات واحدة، فالمقاسات الخاطئة تجعل العمال لا يرتدون المعدات أصلاً، وكثيراً ما تُعطى العاملات مقاسات رجالية. وتُشترى أجهزة التنفس دون اختبار ملاءمة الوجه فتتسرب الأقنعة المحكمة. وتُشترى الأحزمة دون تخطيط نقاط الإرساء والخلوص والإنقاذ. وتُطلب معايير مختلطة دون قصد، كنظارات ANSI في موقع يُدقَّق وفق EN. وينسى المشترون حرارة الإمارات: فالملابس غير المهواة والخوذ غير المهواة تقلل الالتزام، والمعدات المخزنة في حاويات حارة تتدهور. وتُستبعد المستهلكات مثل المرشحات والسدادات وغاز المعايرة والعدسات البديلة من الميزانية. وأخيراً لا يطلب المشترون تواريخ التصنيع فيستلمون خوذاً أو أحزمة قضت جزءاً كبيراً من عمرها. وربط كل بند بخطر موثق ومعيار وتوزيع مقاسات يتجنب معظم هذه الأخطاء.",
-   "sources": [
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:price-drivers",
-   "topic": "Price drivers for PPE",
-   "kind": "price_driver",
-   "body_en": "PPE prices vary widely for items that look similar, driven by certification level, materials and brand. Category III items (respirators, fall arrest, chemical suits) cost more because of notified-body surveillance and testing. For footwear, drivers are the class (S3 more than S1P), toe cap material (composite and metal-free usually cost more than steel), outsole compound (nitrile rubber HRO versus PU), waterproof membranes and brand. For gloves, cut-resistant yarns (HPPE, aramid, steel-fibre blends), coatings and higher EN 388 levels raise cost, as do chemical-rated polymers. For FR and arc-flash garments, inherent fibres such as aramid blends cost far more than FR-treated cotton, and higher arc ratings require heavier or multilayer fabrics. Gas detectors are driven by the number and type of sensors (PID and IR cost more), hazardous-area certification, data logging and service contracts. Custom colours, logo printing, reflective tape upgrades and individual packaging add unit cost and minimum order quantities. Exchange rates for European-made products and freight for bulky items such as helmets also matter. Comparing unit prices is only meaningful when standard, class and materials are identical.",
-   "body_ar": "تتفاوت أسعار معدات الوقاية كثيراً لأصناف متشابهة المظهر، بسبب مستوى الاعتماد والمواد والعلامة. أصناف الفئة III (أجهزة التنفس ومنع السقوط وبدلات المواد الكيميائية) أغلى بسبب رقابة الجهة المخطرة والاختبارات. وفي الأحذية تتحدد التكلفة بالفئة (S3 أغلى من S1P)، ومادة المقدمة (المركبة والخالية من المعدن أغلى عادةً من الفولاذ)، ومادة النعل الخارجي (مطاط النتريل HRO مقابل البولي يوريثان)، والأغشية المقاومة للماء، والعلامة. وفي القفازات ترفع الخيوط المقاومة للقطع (HPPE والأراميد وخلطات الألياف الفولاذية) والطلاءات ومستويات EN 388 الأعلى التكلفة، وكذلك البوليمرات المصنفة كيميائياً. وفي الملابس المقاومة للهب والقوس تكلف الألياف المقاومة بطبيعتها كخلطات الأراميد أكثر بكثير من القطن المعالج، وتتطلب تصنيفات القوس الأعلى أقمشة أثقل أو متعددة الطبقات. وتتحدد أسعار أجهزة كشف الغاز بعدد الحساسات ونوعها (PID والأشعة تحت الحمراء أغلى) واعتماد المناطق الخطرة وتسجيل البيانات وعقود الخدمة. وتضيف الألوان الخاصة وطباعة الشعار وترقية الشريط العاكس والتغليف الفردي تكلفة للوحدة وحداً أدنى للطلب. وتؤثر أيضاً أسعار الصرف للمنتجات الأوروبية والشحن للأصناف كبيرة الحجم كالخوذ. ولا تكون مقارنة أسعار الوحدة ذات معنى إلا إذا تطابقت المعايير والفئات والمواد.",
-   "sources": [
-    "https://www.satra.com/spotlight/article.php?id=561"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:lead-times",
-   "topic": "Lead times for PPE in the UAE",
-   "kind": "lead_time",
-   "body_en": "Standard PPE in common sizes (general gloves, FFP2 masks, EN 397 helmets, hi-vis vests, popular safety shoe models) is usually held in stock by UAE distributors in Dubai and Sharjah, including in Jebel Ali free zone, and can often be delivered within days. Lead times grow for large project quantities of one model and size, custom colours, logo printing (typically adding one to several weeks for printing and approval of samples), specialised items (arc-flash suits of a specific rating, gas-tight Type 1 suits, specific harness configurations, custom prescription safety glasses) and brands not stocked locally, which may need factory production and shipping from Europe, the US or Asia, commonly several weeks. Gas detectors with specific sensor combinations and calibration stations may also be factory-built. During global demand spikes, such as the pandemic for respirators, lead times can extend for months, so critical items should be held as buffer stock. These are general patterns, not guaranteed durations; buyers should ask each supplier to confirm stock per size and to state lead time in writing, and should plan call-off deliveries for large projects rather than one delivery.",
-   "body_ar": "تحتفظ الموزعون في دبي والشارقة، بما في ذلك المنطقة الحرة لجبل علي، عادةً بمخزون من معدات الوقاية القياسية بالمقاسات الشائعة (القفازات العامة وكمامات FFP2 وخوذ EN 397 وسترات الوضوح العالي وطرازات أحذية السلامة الشائعة)، ويمكن التسليم غالباً خلال أيام. وتطول المدد لكميات المشاريع الكبيرة من طراز ومقاس واحد، والألوان الخاصة، وطباعة الشعارات (تضيف عادةً أسبوعاً إلى عدة أسابيع للطباعة واعتماد العينات)، والأصناف المتخصصة (بدلات القوس بتصنيف محدد، وبدلات النوع 1 المحكمة ضد الغاز، وتكوينات أحزمة معينة، ونظارات سلامة طبية مخصصة)، والعلامات غير المتوفرة محلياً التي قد تحتاج إنتاجاً وشحناً من أوروبا أو الولايات المتحدة أو آسيا، غالباً عدة أسابيع. وقد تُصنع أجهزة كشف الغاز بتركيبات حساسات محددة ومحطات المعايرة في المصنع. وفي فترات ارتفاع الطلب العالمي، كالجائحة بالنسبة لأجهزة التنفس، قد تمتد المدد لأشهر، فيجب الاحتفاظ بمخزون احتياطي للأصناف الحرجة. هذه أنماط عامة لا مدد مضمونة؛ وعلى المشتري أن يطلب من كل مورد تأكيد المخزون لكل مقاس وذكر مدة التوريد كتابياً، وأن يخطط لتسليمات على دفعات للمشاريع الكبيرة بدلاً من تسليم واحد.",
-   "sources": [],
-   "confidence": "low",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:confined-space-kit",
-   "topic": "Confined space entry and rescue equipment",
-   "kind": "product",
-   "body_en": "Confined spaces such as tanks, vessels, manholes, sewers, pits and ship holds are common in UAE utilities, oil and gas and marine work, and fatalities there often involve would-be rescuers. The equipment set normally includes a calibrated multi-gas detector with pump and sampling hose for pre-entry testing; forced ventilation (air movers or blowers, explosion-proof where flammables may be present) with ducting; a tripod or davit arm with a winch and self-retracting lifeline with rescue retrieval (EN 795 type B tripods, EN 1496 rescue lifting devices); full-body harnesses with front or shoulder attachment points for vertical retrieval; respiratory protection chosen for the atmosphere, often SCBA or airline sets with escape bottles, and emergency escape breathing devices (EEBD); intrinsically safe lighting and radios; and communication equipment. A permit-to-work system, trained attendants and a rescue plan are mandatory under OSHAD and the operator's HSE rules. Specification points: space type and entry opening diameter, depth, atmosphere hazards, number of entrants, hazardous area zone, and whether a rescue team service is required alongside the equipment.",
-   "body_ar": "الأماكن المحصورة مثل الخزانات والأوعية وغرف التفتيش والمجاري والحفر وعنابر السفن شائعة في أعمال المرافق والنفط والغاز والبحرية في الإمارات، وكثيراً ما تشمل الوفيات فيها من يحاولون الإنقاذ. وتضم مجموعة المعدات عادةً جهاز كشف غازات متعدد معايراً بمضخة وخرطوم أخذ عينات للاختبار قبل الدخول؛ وتهوية قسرية (نافخات أو مراوح مقاومة للانفجار حيث قد توجد مواد قابلة للاشتعال) مع مجارٍ؛ وحاملاً ثلاثياً أو ذراع رفع مع ونش وخط حياة ذاتي الارتداد مع خاصية الاسترجاع للإنقاذ (حوامل ثلاثية EN 795 نوع B وأجهزة رفع الإنقاذ EN 1496)؛ وأحزمة كاملة بنقاط تثبيت أمامية أو على الكتفين للاسترجاع العمودي؛ وحماية تنفسية تُختار حسب الجو، غالباً أجهزة تنفس ذاتية أو خط هواء مع قوارير هروب، وأجهزة تنفس للهروب في الطوارئ EEBD؛ وإضاءة ولاسلكي آمن جوهرياً؛ ومعدات اتصال. ونظام تصاريح العمل والمراقبون المدربون وخطة الإنقاذ إلزامية وفق أوشاد وقواعد المشغل. نقاط المواصفة: نوع المكان وقطر فتحة الدخول، والعمق، ومخاطر الجو، وعدد الداخلين، ومنطقة الخطر، وهل تلزم خدمة فريق إنقاذ مع المعدات.",
-   "sources": [
-    "https://www.indsci.com/en/blog/combustible-gas-detection-infrared-or-catalytic-bead-sensors",
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:scba",
-   "topic": "Self-contained breathing apparatus (SCBA) and escape sets",
-   "kind": "product",
-   "body_en": "SCBA provides breathing air from a cylinder carried by the user and is required where the atmosphere is immediately dangerous to life or health, oxygen deficient, or of unknown composition, for example firefighting, H2S emergencies and confined space rescue. Open-circuit positive-pressure SCBA under EN 137 (Type 2 for firefighting) or NIOSH/NFPA 1981 in the US system is the norm. Cylinders are steel or composite (lighter, with a limited service life stated by the manufacturer and periodic hydrostatic testing) at 200 or 300 bar, with durations commonly quoted as about 30 to 60 minutes, although real duration depends on workload. Emergency escape breathing devices (EEBD) and escape sets give 10 to 15 minutes for evacuation only. Airline (supplied-air) respirators with an escape cylinder allow long work periods fed from a compressor or cylinder bank. Air quality must meet a breathing-air standard (for example EN 12021). Buyers should specify the application, standard, cylinder material and pressure, duration, mask size, voice communication and telemetry needs, and include cylinder refilling, compressor, testing and a maintenance contract, because SCBA requires regular servicing by trained technicians.",
-   "body_ar": "يوفر جهاز التنفس الذاتي هواء التنفس من أسطوانة يحملها المستخدم، ويُشترط حيث يكون الجو خطراً فورياً على الحياة أو ناقص الأكسجين أو مجهول التركيب، مثل مكافحة الحرائق وطوارئ كبريتيد الهيدروجين وإنقاذ الأماكن المحصورة. والمعتاد جهاز الدائرة المفتوحة بضغط موجب وفق EN 137 (النوع 2 لمكافحة الحرائق) أو NIOSH/NFPA 1981 في النظام الأمريكي. والأسطوانات من الفولاذ أو المواد المركبة (أخف، بعمر خدمة محدد من المصنع واختبار هيدروستاتيكي دوري) بضغط 200 أو 300 بار، وتُذكر مددها عادةً بنحو 30 إلى 60 دقيقة، لكن المدة الفعلية تعتمد على الجهد. وتعطي أجهزة الهروب EEBD ومجموعات الهروب 10 إلى 15 دقيقة للإخلاء فقط. وأجهزة التنفس بخط الهواء مع أسطوانة هروب تتيح فترات عمل طويلة من ضاغط أو مجموعة أسطوانات. ويجب أن تستوفي جودة الهواء معيار هواء التنفس (مثل EN 12021). على المشتري تحديد الاستخدام والمعيار ومادة الأسطوانة وضغطها والمدة ومقاس القناع والحاجة للاتصال الصوتي والقياس عن بعد، وإدراج تعبئة الأسطوانات والضاغط والاختبار وعقد الصيانة، لأن هذه الأجهزة تحتاج صيانة منتظمة من فنيين مدربين.",
-   "sources": [
-    "https://en.wikipedia.org/wiki/Self-contained_breathing_apparatus",
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:first-aid-eyewash",
-   "topic": "First aid kits, emergency showers and eyewash stations",
-   "kind": "product",
-   "body_en": "Workplace first aid provision in the UAE is set by the employer's risk assessment, labour regulations and, in Abu Dhabi, OSHAD's code of practice on first aid, which sets requirements for trained first aiders and kit contents based on workforce size and risk. Kits should be sized to the number of workers, stocked with in-date consumables and checked regularly; burns dressings and heat-illness supplies are important locally. Where corrosive or hazardous chemicals are handled, emergency showers and eyewash stations are required; ANSI/ISEA Z358.1 is the widely used reference, calling for tepid flushing fluid for 15 minutes, placement within about 10 seconds of travel from the hazard, and weekly activation. EN 15154 is the European equivalent. In the UAE, the tepid-water requirement is a real challenge because exposed pipes deliver very hot water in summer; solutions include buried or insulated supply, tank units with cooling, or thermostatic mixing, and portable self-contained eyewash units need fluid replacement per manufacturer. Specify the hazard, flow type (plumbed or self-contained), combination unit or separate, freeze or heat protection, and alarm or signage needs.",
-   "body_ar": "يُحدد توفير الإسعافات الأولية في أماكن العمل بالإمارات بتقييم المخاطر لدى صاحب العمل وأنظمة العمل، وفي أبوظبي بمدونة ممارسة أوشاد للإسعافات الأولية التي تحدد متطلبات المسعفين المدربين ومحتويات الحقائب حسب حجم القوى العاملة والمخاطر. ويجب أن تُحجَّم الحقائب حسب عدد العمال، وأن تُزوَّد بمستهلكات سارية الصلاحية وتُفحص بانتظام، ولضمادات الحروق ومستلزمات أمراض الحرارة أهمية محلية. وحيث تُتداول مواد كيميائية أكّالة أو خطرة تلزم دشات الطوارئ ومحطات غسل العين؛ ومعيار ANSI/ISEA Z358.1 هو المرجع الشائع، ويشترط سائل غسل فاتراً لمدة 15 دقيقة، وموقعاً على بعد نحو 10 ثوانٍ سيراً من مصدر الخطر، وتشغيلاً أسبوعياً. ومعيار EN 15154 هو المكافئ الأوروبي. وفي الإمارات يمثل شرط الماء الفاتر تحدياً حقيقياً لأن الأنابيب المكشوفة توصل ماءً شديد الحرارة صيفاً؛ ومن الحلول التغذية المدفونة أو المعزولة، أو وحدات بخزان وتبريد، أو الخلط الحراري، وتحتاج وحدات غسل العين المحمولة المستقلة استبدال السائل حسب المصنع. حدّد الخطر ونوع التغذية (موصولة أو مستقلة) والوحدة المركبة أو المنفصلة والحماية من الحرارة ومتطلبات الإنذار أو اللوحات.",
-   "sources": [
-    "https://www.hawsco.com/blog/ansi-z358-1-faq-what-is-the-weekly-test-vs-the-annual-test/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:site-safety-signage-barriers",
-   "topic": "Site safety consumables: barriers, signage, lockout-tagout and fire blankets",
-   "kind": "product",
-   "body_en": "Beyond personal equipment, safety suppliers also quote collective protection and site consumables. Barricades include plastic water-filled barriers for traffic management, steel crowd barriers, retractable belt barriers and hard barricades around excavations, which must be strong enough to stop falls, not just mark them; warning tape only marks. Safety signs should follow ISO 7010 graphical symbols and colours (red prohibition and fire equipment, blue mandatory, yellow warning, green safe condition), with Arabic and English text as required by UAE authorities and sites; photoluminescent exit and fire-equipment signs are subject to Civil Defence requirements. Lockout-tagout (LOTO) kits contain padlocks with unique keys, hasps, breaker and valve lockouts and danger tags; the programme matters as much as the hardware. Traffic management items include cones, delineators, flashing lights and signage per the road authority's temporary traffic management manual (for example RTA in Dubai). Other items are spill kits sized by litres absorbed and type (universal, oil-only, chemical), fire blankets to EN 1869, and first aid signage. Specify standard, language, material (UV-stable for outdoor use in the UAE), sizes, quantities and mounting method.",
-   "body_ar": "إلى جانب المعدات الشخصية، يسعّر موردو السلامة الحماية الجماعية ومستهلكات الموقع. تشمل الحواجز الحواجز البلاستيكية المملوءة بالماء لإدارة المرور، وحواجز الحشود الفولاذية، والحواجز ذات الأحزمة القابلة للسحب، والحواجز الصلبة حول الحفريات التي يجب أن تكون قوية بما يكفي لمنع السقوط لا مجرد التنبيه؛ فشريط التحذير يُنبّه فقط. ويجب أن تتبع لوحات السلامة الرموز والألوان وفق ISO 7010 (الأحمر للمنع ومعدات الحريق، والأزرق للإلزام، والأصفر للتحذير، والأخضر لحالة الأمان)، مع نص عربي وإنجليزي كما تشترط جهات الإمارات والمواقع، وتخضع لوحات المخارج ومعدات الحريق المضيئة ذاتياً لمتطلبات الدفاع المدني. وتضم مجموعات القفل والتعليق أقفالاً بمفاتيح فريدة ومشابك وأقفال قواطع وصمامات وبطاقات خطر، والبرنامج بأهمية الأدوات نفسها. وتشمل مستلزمات إدارة المرور الأقماع والعلامات الإرشادية والأضواء الوامضة واللوحات وفق دليل إدارة المرور المؤقتة لجهة الطرق (مثل هيئة الطرق والمواصلات في دبي). ومن الأصناف الأخرى مجموعات الانسكاب حسب لترات الامتصاص والنوع (عامة، زيوت فقط، كيميائية)، وبطانيات الحريق وفق EN 1869، ولوحات الإسعاف. حدّد المعيار واللغة والمادة (مستقرة ضد الأشعة للاستخدام الخارجي في الإمارات) والمقاسات والكميات وطريقة التثبيت.",
-   "sources": [
-    "https://www.clarionsafety.com/iso-7010-symbol-safety-signs"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "safety_equipment:respiratory-programme",
-   "topic": "Respiratory protection programme and breathing-air quality under ADOSH-SF CoP 2.0",
-   "kind": "standard",
-   "body_en": "In Abu Dhabi, respirators are only half the order. ADOSH-SF Code of Practice 2.0 requires any employer whose risk assessment calls for respirators to run a written respiratory protection programme. The programme covers every worker who must wear one, and it has to include respirator selection, medical evaluation, fit testing for tight-fitting masks, and schedules for cleaning, disinfecting, storing, inspecting, repairing and discarding equipment. A competent person must administer it, and its effectiveness must be evaluated every year. Respirators, training and medical evaluations are provided free to the worker. If exposure is below the threshold limit value and workers use disposable filtering facepieces voluntarily, a written programme is not needed. Filter change-out must follow a schedule based on the manufacturer's data, how the mask is used and its effective life. Respirators must be stored away from sunlight, heat, dust, moisture and chemicals in a way that does not distort the facepiece, which in the UAE rules out hot containers and vehicle dashboards. Routine-use respirators are inspected before each use, and emergency respirators at least monthly and before and after use. Repairs may only use the manufacturer's approved parts. For supplied-air systems and SCBA filling, the code sets breathing-air quality: oxygen 19.5 to 23.5 percent, condensed hydrocarbons no more than 5 mg/m3, carbon monoxide no more than 10 ppm, carbon dioxide no more than 1,000 ppm, no noticeable odour and no toxic contaminants. It also requires breathing-air couplings that cannot be connected to other gas lines. When quoting, a supplier should therefore offer more than masks: fit-test kits or a fit-test service, replacement filters with a change-out schedule, storage cases, spare parts from the original maker, and for air systems, compressor filtration and air-quality test certificates.",
-   "body_ar": "في أبوظبي، أجهزة التنفس ليست سوى نصف الطلب. فمدونة الممارسة 2.0 ضمن إطار ADOSH-SF تُلزم كل صاحب عمل يقتضي تقييمُ المخاطر لديه استخدامَ أجهزة التنفس بتشغيل برنامج مكتوب للحماية التنفسية. ويشمل البرنامج كل عامل مطلوب منه ارتداؤها، ويجب أن يتضمن اختيار الجهاز والتقييم الطبي واختبار الملاءمة للأقنعة المحكمة، وجداول التنظيف والتعقيم والتخزين والفحص والإصلاح والإتلاف. ويتولى إدارته شخص كفء، وتُقيَّم فعاليته سنوياً. وتُقدَّم الأجهزة والتدريب والتقييم الطبي للعامل مجاناً. وإذا كان التعرض دون القيمة الحدية واستخدم العمال الكمامات الترشيحية أحادية الاستخدام طوعاً، فلا يُشترط برنامج مكتوب. ويُستبدل الفلتر وفق جدول يستند إلى بيانات المصنع وطريقة استخدام القناع وعمره الفعلي. وتُخزَّن الأجهزة بعيداً عن الشمس والحرارة والغبار والرطوبة والكيماويات وبطريقة لا تُشوّه القناع، وهذا في الإمارات يستبعد الحاويات الحارة ولوحات قيادة المركبات. وتُفحص أجهزة الاستخدام الروتيني قبل كل استخدام، وأجهزة الطوارئ شهرياً على الأقل وقبل الاستخدام وبعده. ولا تُستخدم في الإصلاح إلا قطع الغيار المعتمدة من المصنع. أما لأنظمة الهواء المزوَّد وتعبئة أجهزة التنفس الذاتي، فتحدد المدونة جودة هواء التنفس: أكسجين بين 19.5 و23.5%، وهيدروكربونات مكثفة لا تتجاوز 5 ملغ/م3، وأول أكسيد الكربون لا يتجاوز 10 أجزاء في المليون، وثاني أكسيد الكربون لا يتجاوز 1,000 جزء في المليون، وخلوّه من الروائح الملحوظة والملوثات السامة. وتشترط كذلك وصلات لهواء التنفس لا يمكن توصيلها بخطوط غازات أخرى. لذا ينبغي للمورد عند التسعير أن يعرض أكثر من الأقنعة: أدوات أو خدمة اختبار الملاءمة، وفلاتر بديلة مع جدول استبدال، وحقائب تخزين، وقطع غيار من المصنع الأصلي، ولأنظمة الهواء ترشيح الضاغط وشهادات فحص جودة الهواء.",
-   "sources": [
-    "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  }
- ],
- "eval": [
-  {
-   "q_en": "What is the difference between S1P and S3 safety shoes, and which do I need on a construction site?",
-   "q_ar": "ما الفرق بين أحذية السلامة S1P وS3، وأيهما أحتاج في موقع بناء؟",
-   "expected_entry_ids": [
-    "safety_equipment:footwear-classes"
-   ]
-  },
-  {
-   "q_en": "Is FFP2 the same as N95? Our client wants NIOSH but the supplier offers KN95.",
-   "q_ar": "هل FFP2 هي نفسها N95؟ العميل يريد NIOSH والمورد يعرض KN95.",
-   "expected_entry_ids": [
-    "safety_equipment:respirators",
-    "safety_equipment:red-flags",
-    "safety_equipment:en-vs-ansi"
-   ]
-  },
-  {
-   "q_en": "Which helmet should electricians use, and can they use a vented helmet?",
-   "q_ar": "أي خوذة يجب أن يستخدمها الكهربائيون، وهل يمكنهم استخدام خوذة مهواة؟",
-   "expected_entry_ids": [
-    "safety_equipment:hard-hats"
-   ]
-  },
-  {
-   "q_en": "What does 4X43D on a glove mean?",
-   "q_ar": "ماذا يعني الرمز 4X43D على القفاز؟",
-   "expected_entry_ids": [
-    "safety_equipment:gloves-en388"
-   ]
-  },
-  {
-   "q_en": "We need coveralls for an ADNOC site with flash fire risk, what should we ask for?",
-   "q_ar": "نحتاج أفرولات لموقع أدنوك فيه خطر حريق وميضي، ماذا نطلب؟",
-   "expected_entry_ids": [
-    "safety_equipment:fr-coveralls",
-    "safety_equipment:oshad-dm-rules"
-   ]
-  },
-  {
-   "q_en": "How can I check that the CE certificate for these harnesses is genuine?",
-   "q_ar": "كيف أتحقق من أن شهادة CE لهذه الأحزمة حقيقية؟",
-   "expected_entry_ids": [
-    "safety_equipment:certificate-check",
-    "safety_equipment:fall-protection"
-   ]
-  },
-  {
-   "q_en": "What information do you need to quote PPE for 300 workers?",
-   "q_ar": "ما المعلومات التي تحتاجونها لتسعير معدات وقاية لـ 300 عامل؟",
-   "expected_entry_ids": [
-    "safety_equipment:spec-ppe-order"
-   ]
-  },
-  {
-   "q_en": "Can a half-mask with filters be used to enter a tank with H2S?",
-   "q_ar": "هل يمكن استخدام قناع نصف وجه بمرشحات لدخول خزان فيه كبريتيد الهيدروجين؟",
-   "expected_entry_ids": [
-    "safety_equipment:respirators",
-    "safety_equipment:scba",
-    "safety_equipment:confined-space-kit"
-   ]
-  },
-  {
-   "q_en": "Our workers do not wear earmuffs because of heat, what alternatives are there?",
-   "q_ar": "عمالنا لا يرتدون أغطية الأذن بسبب الحرارة، ما البدائل؟",
-   "expected_entry_ids": [
-    "safety_equipment:hearing",
-    "safety_equipment:heat-stress"
-   ]
-  },
-  {
-   "q_en": "How often must helmets and harnesses be replaced?",
-   "q_ar": "كل كم يجب استبدال الخوذ والأحزمة؟",
-   "expected_entry_ids": [
-    "safety_equipment:inspection-lifespan"
-   ]
-  },
-  {
-   "q_en": "Do we need a written respiratory programme in Abu Dhabi if workers only wear FFP2 masks voluntarily?",
-   "q_ar": "هل نحتاج برنامجاً مكتوباً للحماية التنفسية في أبوظبي إذا كان العمال يرتدون كمامات FFP2 طوعاً فقط؟",
-   "expected_entry_ids": [
-    "safety_equipment:respiratory-programme"
-   ]
-  },
-  {
-   "q_en": "What are the midday break dates and what must we provide to workers in Abu Dhabi summer?",
-   "q_ar": "ما مواعيد استراحة الظهيرة وما الذي يجب توفيره للعمال في صيف أبوظبي؟",
-   "expected_entry_ids": [
-    "safety_equipment:heat-stress"
-   ]
-  },
-  {
-   "q_en": "Do face masks and gloves need an ECAS certificate to be sold in the UAE?",
-   "q_ar": "هل تحتاج الكمامات والقفازات إلى شهادة ECAS لبيعها في الإمارات؟",
-   "expected_entry_ids": [
-    "safety_equipment:oshad-dm-rules",
-    "safety_equipment:certificate-check"
-   ]
-  }
- ],
- "verified": {
-  "fetched_urls": 22,
-  "claims_checked": 142,
-  "corrected": [
-   "safety_equipment:oshad-dm-rules",
-   "safety_equipment:heat-stress",
-   "safety_equipment:footwear-classes"
+  "trade": "safety_equipment",
+  "entries": [
+    {
+      "id": "safety_equipment:en-vs-ansi",
+      "topic": "EN (European) vs ANSI/ISEA (US) PPE standards",
+      "kind": "comparison",
+      "body_en": "PPE sold in the UAE is usually certified either to European EN/ISO standards (CE marking under EU Regulation 2016/425, or UKCA for Great Britain) or to US standards issued by ANSI/ISEA, with respirators certified by NIOSH. Both systems are credible but they test differently, so ratings are not directly interchangeable. Examples: safety footwear is EN ISO 20345 (classes SB, S1, S1P, S3 and so on) versus ASTM F2413; eye protection is EN 166 versus ANSI Z87.1; hard hats are EN 397 versus ANSI Z89.1 Type I/II and Class G/E/C; high-visibility clothing is EN ISO 20471 versus ANSI/ISEA 107; respirators are EN 149 FFP1/FFP2/FFP3 versus NIOSH N95/N99/N100 and P-series; cut-resistant gloves are EN 388 versus ANSI/ISEA 105. The deciding factor is what the project's HSE plan, the client specification or the regulator requires: many UAE oil and gas, government and international-contractor sites specify EN, while US-owned operators often specify ANSI. A buyer should state the required standard explicitly and ask for the certificate and test report, not just a marking on the box.",
+      "body_ar": "تُعتمد معدات الوقاية الشخصية المباعة في الإمارات عادةً وفق المعايير الأوروبية EN/ISO (علامة CE بموجب لائحة الاتحاد الأوروبي 2016/425، أو UKCA لبريطانيا) أو وفق المعايير الأمريكية الصادرة عن ANSI/ISEA، مع اعتماد أجهزة التنفس من NIOSH. كلا النظامين موثوق لكن طرق الاختبار مختلفة، فالتصنيفات ليست متبادلة مباشرة. أمثلة: أحذية السلامة وفق EN ISO 20345 (فئات SB وS1 وS1P وS3 وغيرها) مقابل ASTM F2413، وحماية العين EN 166 مقابل ANSI Z87.1، والخوذ EN 397 مقابل ANSI Z89.1 بالنوعين I/II والفئات G/E/C، والملابس عالية الوضوح EN ISO 20471 مقابل ANSI/ISEA 107، وأجهزة التنفس EN 149 بفئات FFP1/FFP2/FFP3 مقابل NIOSH N95/N99/N100 وسلسلة P، وقفازات مقاومة القطع EN 388 مقابل ANSI/ISEA 105. والعامل الحاسم هو ما تشترطه خطة الصحة والسلامة للمشروع أو مواصفة العميل أو الجهة الرقابية: فكثير من مواقع النفط والغاز والحكومة والمقاولين الدوليين في الإمارات تشترط EN، بينما يشترط المشغلون الأمريكيون غالباً ANSI. على المشتري تحديد المعيار المطلوب صراحة وطلب الشهادة وتقرير الاختبار، لا مجرد علامة على العلبة.",
+      "sources": [
+        "https://www.satra.com/spotlight/article.php?id=561",
+        "https://www.uvex-safety.co.uk/en/knowledge/safety-standards/safety-footwear/guide-to-en-iso-203452022/",
+        "https://skanwear.com/blogs/ppe-standards/en-166",
+        "https://www.hexarmor.com/posts/understanding-safety-helmet-standards",
+        "https://begoodtex.com/blog/what-is-en-20471/",
+        "https://en.wikipedia.org/wiki/European_respirator_standards",
+        "https://www.satra.com/spotlight/article.php?id=488",
+        "https://wwwn.cdc.gov/niosh-cel/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:footwear-classes",
+      "topic": "Safety footwear classes: SB, S1, S1P, S2, S3, S5 (EN ISO 20345)",
+      "kind": "standard",
+      "body_en": "EN ISO 20345 defines safety footwear with a toe cap tested to 200 joules impact and 15 kN compression. On top of the basic SB requirements, class codes add properties: S1 adds a closed seat region, antistatic properties and heel energy absorption; S2 adds resistance to water penetration of the upper; S3 adds a penetration-resistant midsole (protection against nails) and a cleated outsole; S1P is S1 plus penetration resistance; S4 and S5 are the equivalents for all-rubber or all-polymer moulded boots, with S5 including penetration resistance. The 2022 revision of the standard added S6 and S7 codes (S2 and S3 with whole-footwear water resistance) and distinguishes penetration-resistant inserts: P for metal, PL for non-metallic tested with a 4.5 mm nail, and PS for non-metallic tested with a thinner 3.0 mm nail (the stricter test). Additional markings include SRA/SRB/SRC slip resistance (the 2022 edition changed slip marking so that SR denotes the extra glycerine test), HRO heat-resistant outsole, CI cold insulation, HI heat insulation, WR water resistance and M metatarsal protection. For UAE construction sites S3 is the usual minimum; for dry indoor warehousing S1P may suit; for hot surfaces such as asphalt or refineries, HRO is important.",
+      "body_ar": "يحدد معيار EN ISO 20345 أحذية السلامة بمقدمة واقية مختبرة لصدمة 200 جول وضغط 15 كيلو نيوتن. وفوق متطلبات SB الأساسية تضيف رموز الفئات خصائص: S1 تضيف منطقة كعب مغلقة وخاصية مضادة للكهرباء الساكنة وامتصاص طاقة الكعب؛ وS2 تضيف مقاومة نفاذ الماء للجزء العلوي؛ وS3 تضيف نعلاً أوسط مقاوماً للاختراق (ضد المسامير) ونعلاً خارجياً مضلعاً؛ وS1P هي S1 مع مقاومة الاختراق؛ وS4 وS5 مقابلها للأحذية المصبوبة بالكامل من المطاط أو البوليمر، وتشمل S5 مقاومة الاختراق. وأضاف إصدار 2022 رمزي S6 وS7 (S2 وS3 مع مقاومة الحذاء كله للماء)، ويميز أنواع النعل الأوسط (PS غير المعدني الذي يحمي من مسمار أرفع، وP الفولاذي). ومن العلامات الإضافية مقاومة الانزلاق SRA/SRB/SRC (وقد غيّر إصدار 2022 العلامة بحيث تعني SR اختبار الجلسرين الإضافي)، وHRO نعل مقاوم للحرارة، وCI عزل للبرودة، وHI عزل للحرارة، وWR مقاومة الماء، وM حماية مشط القدم. في مواقع البناء بالإمارات تُعد S3 الحد الأدنى المعتاد، وفي المستودعات الداخلية الجافة قد تناسب S1P، وعلى الأسطح الساخنة كالإسفلت والمصافي تُعد HRO مهمة.",
+      "sources": [
+        "https://www.uvex-safety.co.uk/en/knowledge/safety-standards/safety-footwear/guide-to-en-iso-203452022/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:respirators",
+      "topic": "Respiratory protection: FFP vs N95, half-mask, full-face, PAPR and SCBA",
+      "kind": "comparison",
+      "body_en": "Respiratory protective equipment is chosen by hazard, concentration and oxygen level. Disposable filtering facepieces are rated under EN 149 as FFP1, FFP2 and FFP3 (increasing filtration and lower leakage) or under NIOSH as N95, N99, N100 (not oil-resistant), R-series and P-series (oil-resistant). FFP2 is broadly comparable to N95 and FFP3 approaches N99, but they are separate certifications. Reusable half-masks (EN 140) and full-face masks (EN 136) take replaceable filters: particle filters P1/P2/P3 (EN 143) and gas/vapour cartridges (EN 14387) coded by colour and type, for example A (brown) organic vapours, B (grey) inorganic gases, E (yellow) acid gases, K (green) ammonia. Full face masks also protect the eyes. Powered air-purifying respirators (PAPR) blow filtered air and suit long shifts and bearded users. Air-purifying respirators must never be used in oxygen-deficient or immediately dangerous atmospheres, such as confined spaces or H2S releases in oilfield work; there, self-contained breathing apparatus (SCBA, EN 137) or airline systems are required. Tight-fitting masks need a face-fit test for each wearer. The buyer must state the contaminant, its form and concentration.",
+      "body_ar": "تُختار معدات حماية الجهاز التنفسي حسب الخطر والتركيز ومستوى الأكسجين. الكمامات المرشِّحة أحادية الاستخدام تُصنَّف وفق EN 149 إلى FFP1 وFFP2 وFFP3 (ترشيح متزايد وتسرب أقل) أو وفق NIOSH إلى N95 وN99 وN100 (غير مقاومة للزيوت) وسلسلتي R وP (مقاومة للزيوت). وFFP2 تقارب N95 عموماً وFFP3 تقترب من N99، لكنها شهادات منفصلة. وتأخذ أقنعة نصف الوجه القابلة لإعادة الاستخدام (EN 140) وأقنعة الوجه الكامل (EN 136) مرشحات قابلة للاستبدال: مرشحات الجسيمات P1/P2/P3 (EN 143) وخراطيش الغازات والأبخرة (EN 14387) المرمزة باللون والنوع، مثل A (بني) للأبخرة العضوية، وB (رمادي) للغازات غير العضوية، وE (أصفر) للغازات الحمضية، وK (أخضر) للأمونيا. وتحمي أقنعة الوجه الكامل العينين أيضاً. وتضخ أجهزة التنفس المزودة بمروحة (PAPR) هواءً مرشحاً وتناسب النوبات الطويلة وأصحاب اللحى. ولا يجوز أبداً استخدام أجهزة تنقية الهواء في أجواء ناقصة الأكسجين أو خطرة فوراً، كالأماكن المحصورة أو تسرب كبريتيد الهيدروجين في أعمال حقول النفط، إذ يلزم جهاز تنفس ذاتي (SCBA وفق EN 137) أو نظام خط هواء. وتحتاج الأقنعة المحكمة اختبار ملاءمة الوجه لكل مستخدم. وعلى المشتري تحديد الملوث وشكله وتركيزه.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/European_respirator_standards",
+        "https://wwwn.cdc.gov/niosh-cel/",
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:hard-hats",
+      "topic": "Industrial helmets: EN 397 vs EN 12492 vs ANSI Z89.1 types and classes",
+      "kind": "comparison",
+      "body_en": "A standard industrial safety helmet under EN 397 protects against falling objects striking the top of the head, with optional markings for very low temperature (minus 20 or minus 30), very high temperature (+150 C), electrical insulation to 440 V AC, lateral deformation (LD) and molten metal splash (MM). EN 12492 is the mountaineering standard, often used for work at height and rope access because it requires a chinstrap that keeps the helmet on during a fall. EN 14052 covers high-performance helmets with better side-impact protection, and EN 50365 covers electrically insulating helmets for work up to 1000 V AC. Under ANSI/ISEA Z89.1, Type I protects the top only and Type II protects top and sides; Class G is general (tested to 2,200 V), Class E is electrical (20,000 V) and Class C conductive (no electrical protection). In the UAE heat, ventilated helmets are popular but ventilation holes remove electrical protection, so they are not suitable for electrical work. Helmet shells degrade with UV; manufacturers state service life from the moulding date, and the buyer should check the date stamp inside the shell on delivery. Colour coding by role is set by site rules, not by the standard.",
+      "body_ar": "تحمي خوذة السلامة الصناعية القياسية وفق EN 397 من سقوط الأجسام على أعلى الرأس، مع علامات اختيارية للبرودة الشديدة (سالب 20 أو سالب 30) والحرارة العالية (+150 مئوية) والعزل الكهربائي حتى 440 فولت متردد والتشوه الجانبي (LD) ورذاذ المعدن المنصهر (MM). ومعيار EN 12492 خاص بتسلق الجبال، ويُستخدم كثيراً للعمل على المرتفعات والوصول بالحبال لأنه يشترط حزام ذقن يبقي الخوذة أثناء السقوط. ويغطي EN 14052 الخوذ عالية الأداء بحماية جانبية أفضل، ويغطي EN 50365 الخوذ العازلة كهربائياً للعمل حتى 1000 فولت متردد. ووفق ANSI/ISEA Z89.1 يحمي النوع I أعلى الرأس فقط، والنوع II الأعلى والجوانب؛ والفئة G عامة (مختبرة حتى 2200 فولت)، والفئة E كهربائية (20000 فولت)، والفئة C موصلة (دون حماية كهربائية). وفي حرارة الإمارات تنتشر الخوذ المهواة، لكن فتحات التهوية تلغي الحماية الكهربائية فلا تناسب الأعمال الكهربائية. وتتدهور قشرة الخوذة بالأشعة فوق البنفسجية، ويحدد المصنعون عمر الخدمة من تاريخ الصب، وعلى المشتري فحص ختم التاريخ داخل القشرة عند الاستلام. وترميز الألوان حسب الدور تحدده قواعد الموقع لا المعيار.",
+      "sources": [
+        "https://www.hexarmor.com/posts/understanding-safety-helmet-standards"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:eye-face",
+      "topic": "Eye and face protection: EN 166 markings vs ANSI Z87.1",
+      "kind": "standard",
+      "body_en": "EN 166 is the basic European standard for eye protectors, with further standards for specific filters: EN 169 welding filters, EN 170 ultraviolet, EN 172 sunglare for industrial use, and EN 175 welding helmets and shields. The frame and lens markings tell the user what the product does: optical class 1, 2 or 3 (1 is best for continuous wear); mechanical strength S (increased robustness), F (low-energy impact, 45 m/s), B (medium energy, 120 m/s, goggles and face shields only) and A (high energy, 190 m/s, face shields only); field of use 3 (liquid droplets and splashes), 4 (large dust particles), 5 (gas and fine dust), 8 (short-circuit electric arc) and 9 (molten metal and hot solids); K anti-scratch and N anti-fog. Spectacles cannot carry B or 3/4/5 ratings; goggles are needed for chemical splash and dust. ANSI Z87.1 uses Z87 for basic impact and Z87+ for high impact, with D3 (droplet and splash), D4 (dust), D5 (fine dust) and W welding shade markings. In the UAE sun, outdoor workers benefit from tinted lenses marked for sunglare (5-x or UV 2-x per the applicable part) but tinted lenses must not be used indoors or at night.",
+      "body_ar": "معيار EN 166 هو المعيار الأوروبي الأساسي لواقيات العين، مع معايير إضافية لمرشحات محددة: EN 169 لمرشحات اللحام، وEN 170 للأشعة فوق البنفسجية، وEN 172 لوهج الشمس في الاستخدام الصناعي، وEN 175 لخوذ ودروع اللحام. وتخبر علامات الإطار والعدسة المستخدم بوظيفة المنتج: الفئة البصرية 1 أو 2 أو 3 (الفئة 1 الأفضل للارتداء المستمر)؛ والمتانة الميكانيكية S (متانة معززة) وF (صدمة منخفضة الطاقة 45 م/ث) وB (متوسطة 120 م/ث للنظارات المحكمة ودروع الوجه فقط) وA (عالية 190 م/ث لدروع الوجه فقط)؛ ومجال الاستخدام 3 (القطرات والرذاذ السائل) و4 (جسيمات الغبار الكبيرة) و5 (الغاز والغبار الناعم) و8 (قوس الدائرة القصيرة) و9 (المعدن المنصهر والمواد الصلبة الساخنة)؛ وK مقاومة الخدش وN مقاومة الضباب. ولا يمكن للنظارات العادية حمل تصنيف B أو 3/4/5، فتلزم النظارات المحكمة لرذاذ المواد الكيميائية والغبار. ويستخدم ANSI Z87.1 علامة Z87 للصدمة الأساسية وZ87+ للصدمة العالية، مع D3 للقطرات والرذاذ وD4 للغبار وD5 للغبار الناعم وW لدرجة ظل اللحام. وتحت شمس الإمارات يستفيد العاملون في الخارج من العدسات الملونة المعلَّمة لوهج الشمس، لكن لا يجوز استخدامها في الداخل أو ليلاً.",
+      "sources": [
+        "https://skanwear.com/blogs/ppe-standards/en-166"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:gloves-en388",
+      "topic": "Protective gloves: EN 388 mechanical ratings, EN 374 chemical, EN 407 heat",
+      "kind": "standard",
+      "body_en": "Gloves are rated per hazard, and one glove rarely covers all. EN 388 (mechanical) shows a pictogram with a code such as 4X43D: abrasion (0 to 4), coup-test cut (1 to 5, or X if not applicable because the blade blunts on high-cut materials), tear (0 to 4), puncture (0 to 4), then the ISO 13997 TDM cut level A to F, which is now the preferred cut rating, and optional P for impact protection. ANSI/ISEA 105 uses cut levels A1 to A9 from a different test. EN ISO 374-1 covers chemical protection: Type A, B or C depending on how many test chemicals (identified by letters) the glove resists for a set breakthrough time; EN ISO 374-5 covers micro-organisms and viruses. EN 407 covers heat and fire (burning behaviour, contact heat, convective heat, radiant heat, molten metal splashes), EN 12477 covers welding gloves, EN 511 cold, and EN 60903 electrical insulating gloves by class 00 to 4. The buyer must state the task and hazard, required cut level, chemicals handled with concentration, grip conditions (oily, wet), dexterity needs and sizes; nitrile-coated gloves differ greatly from leather riggers or butyl chemical gloves.",
+      "body_ar": "تُصنَّف القفازات حسب الخطر، ونادراً ما يغطي قفاز واحد كل المخاطر. يعرض معيار EN 388 (الميكانيكي) رمزاً مصوراً مع رمز مثل 4X43D: التآكل (0 إلى 4)، والقطع باختبار الشفرة الدوارة (1 إلى 5، أو X إن لم ينطبق لأن الشفرة تتلم على المواد عالية المقاومة)، والتمزق (0 إلى 4)، والثقب (0 إلى 4)، ثم مستوى القطع وفق ISO 13997 من A إلى F وهو التصنيف المفضل حالياً، وP اختيارياً لحماية الصدمات. ويستخدم ANSI/ISEA 105 مستويات قطع A1 إلى A9 من اختبار مختلف. ويغطي EN ISO 374-1 الحماية الكيميائية: النوع A أو B أو C حسب عدد المواد الكيميائية المختبرة (المعرفة بحروف) التي يقاومها القفاز لزمن اختراق محدد؛ ويغطي EN ISO 374-5 الكائنات الدقيقة والفيروسات. ويغطي EN 407 الحرارة والنار (سلوك الاحتراق والحرارة بالتلامس والحمل والإشعاع ورذاذ المعدن المنصهر)، وEN 12477 قفازات اللحام، وEN 511 البرودة، وEN 60903 القفازات العازلة كهربائياً بالفئات 00 إلى 4. على المشتري تحديد المهمة والخطر ومستوى القطع المطلوب والمواد الكيميائية وتركيزها وظروف القبض (زيت، بلل) والحاجة للمهارة والمقاسات، فالقفازات المطلية بالنتريل تختلف كثيراً عن القفازات الجلدية أو قفازات البيوتيل الكيميائية.",
+      "sources": [
+        "https://www.satra.com/spotlight/article.php?id=488"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:hi-vis",
+      "topic": "High-visibility clothing: EN ISO 20471 classes vs ANSI/ISEA 107",
+      "kind": "standard",
+      "body_en": "High-visibility clothing makes workers conspicuous to drivers and plant operators. EN ISO 20471 defines three classes by the minimum area of fluorescent background material and retroreflective tape: Class 3 gives the most coverage (for example a long-sleeve jacket or coverall, required for high-speed road work), Class 2 an intermediate level (vests, typical on construction sites) and Class 1 the least. Permitted fluorescent colours are yellow, orange and red. ANSI/ISEA 107 uses Type O (off-road), Type R (roadway) and Type P (public safety) with performance classes 1, 2, 3 and supplemental items. In the UAE, the heat drives buyers toward lightweight mesh vests, which is acceptable if the product is certified in that form, but many cheap vests are not certified at all or lose fluorescence after washing and sunlight. Specification points: required standard and class, garment type, colour (site or client rules often assign colours by role), size range, whether logos are to be printed (printing over the fluorescent area can reduce the certified area), flame-retardant or anti-static needs in oil and gas areas (combined with EN ISO 11612 or EN 1149), and the number of washes the certificate is valid for.",
+      "body_ar": "تجعل الملابس عالية الوضوح العمال ظاهرين للسائقين ومشغلي المعدات. يحدد معيار EN ISO 20471 ثلاث فئات حسب أدنى مساحة للمادة الفلورية الخلفية والشريط العاكس: الفئة 3 أوسع تغطية (مثل سترة بأكمام طويلة أو أفرول، مطلوبة لأعمال الطرق السريعة)، والفئة 2 مستوى متوسط (السترات، المعتادة في مواقع البناء)، والفئة 1 الأقل. والألوان الفلورية المسموحة الأصفر والبرتقالي والأحمر. ويستخدم ANSI/ISEA 107 النوع O (خارج الطرق) والنوع R (الطرق) والنوع P (السلامة العامة) مع فئات أداء 1 و2 و3 وعناصر تكميلية. وفي الإمارات تدفع الحرارة المشترين نحو السترات الشبكية الخفيفة، وهذا مقبول إن كان المنتج معتمداً بهذا الشكل، لكن كثيراً من السترات الرخيصة غير معتمدة أصلاً أو تفقد لونها الفلوري بعد الغسل والشمس. نقاط المواصفة: المعيار والفئة المطلوبان، ونوع الملبس، واللون (فقواعد الموقع أو العميل تحدد الألوان حسب الدور)، ونطاق المقاسات، وطباعة الشعارات (فالطباعة فوق المساحة الفلورية قد تقلل المساحة المعتمدة)، والحاجة لمقاومة اللهب أو مضاد الكهرباء الساكنة في مناطق النفط والغاز (مع EN ISO 11612 أو EN 1149)، وعدد الغسلات التي تبقى الشهادة سارية لها.",
+      "sources": [
+        "https://begoodtex.com/blog/what-is-en-20471/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:fr-coveralls",
+      "topic": "Flame-resistant and arc-flash coveralls: EN ISO 11612, IEC 61482, NFPA 2112/70E",
+      "kind": "standard",
+      "body_en": "In oil and gas, petrochemical and electrical work, ordinary cotton-polyester coveralls can melt or ignite, so flame-resistant (FR) garments are specified. EN ISO 11612 covers protection against heat and flame, with letter codes A1/A2 (limited flame spread), B (convective heat), C (radiant heat), D (molten aluminium), E (molten iron) and F (contact heat), each with a performance level. EN ISO 11611 covers welding (Class 1 and 2). EN 1149-5 adds electrostatic dissipation for explosive atmospheres. For electrical arc flash, IEC 61482-2 uses either the box test (APC 1 or 2) or the open-arc test giving an ATPV or ELIM value in cal/cm2; in the US system NFPA 70E defines PPE categories 1 to 4 by minimum arc rating, and NFPA 2112 covers flash-fire garments for the petroleum industry. Fabric types differ: inherently FR fibres (aramid blends) keep their protection for life, while FR-treated cotton relies on a chemical finish that must be laundered correctly. In the UAE heat, fabric weight and breathability strongly affect compliance by workers. Buyers must state the hazard assessment result: flash fire, arc rating needed, molten metal, or chemical splash.",
+      "body_ar": "في النفط والغاز والبتروكيماويات والأعمال الكهربائية قد تذوب الأفرولات القطنية-البوليستر العادية أو تشتعل، لذا تُشترط ملابس مقاومة للهب. يغطي EN ISO 11612 الحماية من الحرارة واللهب برموز حرفية A1/A2 (انتشار محدود للهب) وB (الحرارة بالحمل) وC (الحرارة الإشعاعية) وD (الألمنيوم المنصهر) وE (الحديد المنصهر) وF (الحرارة بالتلامس)، ولكل منها مستوى أداء. ويغطي EN ISO 11611 اللحام (الفئتان 1 و2). ويضيف EN 1149-5 تبديد الشحنات الساكنة للأجواء القابلة للانفجار. ولوميض القوس الكهربائي يستخدم IEC 61482-2 إما اختبار الصندوق (الفئة 1 أو 2) أو اختبار القوس المفتوح الذي يعطي قيمة ATPV أو ELIM بالسعر لكل سم مربع؛ وفي النظام الأمريكي يحدد NFPA 70E فئات الحماية 1 إلى 4 حسب أدنى تصنيف قوس، ويغطي NFPA 2112 ملابس الحريق الوميضي لصناعة البترول. وتختلف الأقمشة: الألياف المقاومة للهب بطبيعتها (خلطات الأراميد) تحتفظ بالحماية طوال عمرها، بينما يعتمد القطن المعالج على طبقة كيميائية يجب غسلها بشكل صحيح. وفي حرارة الإمارات يؤثر وزن القماش وتهويته كثيراً على التزام العمال. وعلى المشتري تحديد نتيجة تقييم المخاطر: حريق وميضي، أو تصنيف القوس المطلوب، أو المعدن المنصهر، أو الرذاذ الكيميائي.",
+      "sources": [
+        "https://skanwear.com/blogs/ppe-standards/en-iso-11612",
+        "https://skanwear.com/blogs/ppe-standards/iec-61482"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:fall-protection",
+      "topic": "Fall protection: harnesses, lanyards, anchors and SRLs (EN 361/355/795, ANSI Z359)",
+      "kind": "product",
+      "body_en": "Work at height is a leading cause of fatal injuries on UAE construction sites, and fall arrest equipment is a system whose components must be compatible. The full-body harness (EN 361, ANSI Z359.11) distributes arrest forces; a work-positioning belt (EN 358) is not a fall-arrest device. Connecting elements include energy-absorbing lanyards (EN 355), self-retracting lifelines or SRLs (EN 360, ANSI Z359.14), guided type fall arresters on rigid or flexible lines (EN 353-1/-2), and connectors or karabiners (EN 362). Anchor devices are covered by EN 795 types A to E (structural anchors, tripods, horizontal lifelines, rails, deadweights), and horizontal lifeline systems should be engineered. Clearance is critical: a two-metre lanyard with energy absorber needs substantial free fall clearance below the anchor, often more than five metres, so on low heights an SRL is required. Rescue planning is mandatory because suspension trauma can occur within minutes. Harnesses and lanyards need a documented pre-use check and a periodic inspection by a competent person (commonly every six months), and must be withdrawn after any fall. Buyers should specify user weight range, task, anchor type and heat or welding exposure.",
+      "body_ar": "العمل على المرتفعات من الأسباب الرئيسية للإصابات القاتلة في مواقع البناء بالإمارات، ومعدات منع السقوط نظام يجب أن تتوافق مكوناته. يوزع الحزام الكامل للجسم (EN 361 وANSI Z359.11) قوى الإيقاف، أما حزام تحديد وضع العمل (EN 358) فليس جهاز منع سقوط. وتشمل عناصر الربط الحبال الواصلة بممتص صدمات (EN 355)، وخطوط الحياة ذاتية الارتداد SRL (EN 360 وANSI Z359.14)، ومانعات السقوط المنزلقة على خطوط صلبة أو مرنة (EN 353-1/-2)، والموصلات أو الكارابينات (EN 362). وتغطي نقاط الإرساء معيار EN 795 بأنواعه A إلى E (المراسي الإنشائية والحوامل الثلاثية وخطوط الحياة الأفقية والقضبان والأثقال)، ويجب أن تُصمَّم أنظمة خطوط الحياة الأفقية هندسياً. والخلوص حاسم: فحبل بطول مترين مع ممتص صدمات يحتاج مسافة سقوط حر كبيرة تحت نقطة الإرساء، غالباً أكثر من خمسة أمتار، لذا يلزم SRL في الارتفاعات المنخفضة. وخطة الإنقاذ إلزامية لأن صدمة التعليق قد تحدث خلال دقائق. وتحتاج الأحزمة والحبال فحصاً موثقاً قبل الاستخدام وفحصاً دورياً من شخص كفء (عادةً كل ستة أشهر)، ويجب سحبها بعد أي سقوط. على المشتري تحديد نطاق وزن المستخدم والمهمة ونوع نقطة الإرساء والتعرض للحرارة أو اللحام.",
+      "sources": [
+        "https://www.marine-ropes.com/en-gb/post/energy-absorbing-lanyards-en355-shock-packs-fall-clearance",
+        "https://www.satra.com/spotlight/article.php?id=561"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:hearing",
+      "topic": "Hearing protection: SNR vs NRR, earplugs vs earmuffs",
+      "kind": "comparison",
+      "body_en": "Hearing protectors are rated differently in each system. Under EN 352 (parts 1 to 3 for earmuffs, earplugs and helmet-mounted muffs) the attenuation is given as SNR (single number rating) plus H, M, L values for high, medium and low frequencies. The US system uses NRR (noise reduction rating) under ANSI S3.19 or the newer S12.6. An SNR and an NRR of the same number do not mean the same real-world protection, and both overstate field performance, so safety practitioners derate them. The aim is to bring the ear exposure below the action level, not as low as possible: over-protection isolates workers from alarms and speech. Foam earplugs give high attenuation if rolled and inserted properly but are often inserted badly; pre-moulded and banded plugs are easier; earmuffs are consistent and easy to check but hot in the UAE climate and conflict with safety glasses. Helmet-mounted muffs must be compatible with the chosen helmet model. For very high noise (for example compressor stations), double protection may be needed. The buyer should give measured noise levels in dB(A), exposure hours, whether communication or radio integration is needed, and hygiene conditions.",
+      "body_ar": "تُصنَّف واقيات السمع بشكل مختلف في كل نظام. وفق EN 352 (الأجزاء 1 إلى 3 لأغطية الأذن والسدادات والأغطية المثبتة على الخوذة) يُعطى التوهين كقيمة SNR (تصنيف برقم واحد) مع قيم H وM وL للترددات العالية والمتوسطة والمنخفضة. ويستخدم النظام الأمريكي NRR (معدل خفض الضوضاء) وفق ANSI S3.19 أو الأحدث S12.6. ولا يعني SNR وNRR بالرقم نفسه الحماية الفعلية نفسها، وكلاهما يبالغ في الأداء الميداني، لذا يخفضهما ممارسو السلامة. والهدف خفض تعرض الأذن تحت مستوى الإجراء لا إلى أدنى حد ممكن، فالحماية الزائدة تعزل العمال عن الإنذارات والكلام. والسدادات الإسفنجية تعطي توهيناً عالياً إن لُفّت وأُدخلت جيداً لكنها كثيراً ما تُدخل بشكل سيئ؛ والسدادات المشكلة مسبقاً وذات الطوق أسهل؛ وأغطية الأذن ثابتة الأداء وسهلة المراقبة لكنها حارة في مناخ الإمارات وتتعارض مع نظارات السلامة. ويجب أن تتوافق الأغطية المثبتة على الخوذة مع طراز الخوذة المختار. وفي الضوضاء العالية جداً (مثل محطات الضواغط) قد تلزم حماية مزدوجة. على المشتري تقديم مستويات الضوضاء المقاسة بالديسيبل A وساعات التعرض والحاجة للاتصال أو دمج اللاسلكي وظروف النظافة.",
+      "sources": [
+        "https://www.earpieceonline.co.uk/blog/post/p-understanding-snr-nrr-en-hearing-protection-rating-standards"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:gas-detectors",
+      "topic": "Portable gas detectors: single-gas vs multi-gas, H2S and LEL",
+      "kind": "product",
+      "body_en": "Portable gas detectors protect workers in confined spaces, oilfield and process areas. Single-gas personal monitors usually detect H2S or CO and are often disposable two-year units; multi-gas detectors commonly monitor four gases: oxygen, flammables as percent LEL (lower explosive limit), H2S and CO, with options for SO2, NO2, NH3, VOCs via PID and others. Catalytic bead sensors for LEL can be poisoned by silicones and need oxygen, while infrared LEL sensors do not poison but do not detect hydrogen. For confined-space entry, a pump version allows remote sampling before entry. Instruments used in hazardous areas must be certified intrinsically safe for the zone and gas group (ATEX, IECEx or UL/CSA), and in UAE oil and gas the operator's standards usually specify IECEx or ATEX. Alarm set-points follow the company's occupational exposure limits and the site's rules. Daily bump testing and periodic calibration with certified gas are essential, so the buyer should plan calibration gas, a docking station and a service contract. Specify the gases and ranges, hazardous area classification, diffusion or pump, data logging, alarm types (audible, vibrating, visual) and battery life for the shift length.",
+      "body_ar": "تحمي أجهزة كشف الغاز المحمولة العمال في الأماكن المحصورة وحقول النفط ومناطق المعالجة. تكشف أجهزة الغاز الواحد الشخصية عادةً كبريتيد الهيدروجين أو أول أكسيد الكربون، وكثيراً ما تكون وحدات تُستهلك خلال سنتين؛ وتراقب أجهزة الغازات المتعددة عادةً أربعة غازات: الأكسجين، والغازات القابلة للاشتعال كنسبة من الحد الأدنى للانفجار LEL، وكبريتيد الهيدروجين، وأول أكسيد الكربون، مع خيارات لثاني أكسيد الكبريت وثاني أكسيد النيتروجين والأمونيا والمركبات العضوية المتطايرة عبر حساس PID وغيرها. وحساسات الخرز الحفزي لقياس LEL قد تتسمم بالسيليكون وتحتاج أكسجين، بينما حساسات الأشعة تحت الحمراء لا تتسمم لكنها لا تكشف الهيدروجين. وللدخول إلى الأماكن المحصورة يتيح الجهاز ذو المضخة أخذ عينات عن بعد قبل الدخول. ويجب أن تكون الأجهزة المستخدمة في المناطق الخطرة معتمدة كآمنة جوهرياً للمنطقة ومجموعة الغاز (ATEX أو IECEx أو UL/CSA)، وفي نفط وغاز الإمارات تشترط معايير المشغل غالباً IECEx أو ATEX. وتتبع نقاط ضبط الإنذار حدود التعرض المهني للشركة وقواعد الموقع. واختبار التعريض اليومي والمعايرة الدورية بغاز معتمد أساسيان، فعلى المشتري التخطيط لغاز المعايرة ومحطة الإرساء وعقد الخدمة. حدّد الغازات والنطاقات وتصنيف المنطقة الخطرة والانتشار أو المضخة وتسجيل البيانات وأنواع الإنذار ومدة البطارية لطول النوبة.",
+      "sources": [
+        "https://www.indsci.com/en/blog/combustible-gas-detection-infrared-or-catalytic-bead-sensors"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:oshad-dm-rules",
+      "topic": "UAE PPE rules: federal regulation, Abu Dhabi ADOSH-SF CoP 2.0, Dubai construction code, MoIAT/ECAS",
+      "kind": "authority_approval",
+      "body_en": "Several layers of UAE law govern PPE. At federal level, the implementing regulation of Federal Decree-Law No. 33 of 2021 on labour relations requires the employer to supply necessary protective equipment at no cost to the worker. The product itself falls under Cabinet Decision No. 3 of 2016 on the UAE Regulation for Personal Protective Equipment. Under that regulation, the former ESMA, whose standards and conformity work now sits with the Ministry of Industry and Advanced Technology (MoIAT), recognises the listed international standards and accepts products carrying the Emirates Quality Mark or another mark it approves. In 2021 MoIAT added a national PPE system covering face masks, protective and medical gloves, eye shields and medical clothing. Registered products in that system may not be sold without a MoIAT (ECAS) conformity certificate. In Abu Dhabi, the occupational safety framework now published by the Abu Dhabi Public Health Centre as ADOSH-SF (formerly OSHAD-SF) contains Code of Practice 2.0 on PPE, version 4.0 of July 2024. It applies to every employer in the emirate. The employer must choose PPE from a risk assessment, only after higher controls have been considered, and the PPE must meet the federal regulation. Workers must be trained and pass a competency check, with training records kept. Issued PPE must be inspected, stored and replaced at the employer's cost. Where respirators are needed, a written respiratory protection programme is required (see safety_equipment:respiratory-programme). Where two regulators differ, the stricter rule applies. In Dubai, the Dubai Municipality Code of Construction Safety Practice (2024 edition) has a dedicated PPE chapter for construction sites. Free zones and operators such as ADNOC add their own HSE specifications. A supplier should therefore ask three things: which emirate and regulator apply, which client HSE specification applies, and whether the item needs an ECAS or EQM certificate to be sold in the UAE.",
+      "body_ar": "تحكم معدات الوقاية الشخصية في الإمارات عدة مستويات من التشريعات. فعلى المستوى الاتحادي، تُلزم اللائحة التنفيذية للمرسوم بقانون اتحادي رقم 33 لسنة 2021 بشأن تنظيم علاقات العمل صاحبَ العمل بتوفير معدات الوقاية اللازمة دون أي تكلفة على العامل. أما المنتج نفسه فيخضع لقرار مجلس الوزراء رقم 3 لسنة 2016 بشأن اللائحة الإماراتية لمعدات الوقاية الشخصية، التي تعترف بموجبها هيئة الإمارات للمواصفات والمقاييس سابقاً، وقد انتقلت اختصاصاتها في المواصفات وتقييم المطابقة إلى وزارة الصناعة والتكنولوجيا المتقدمة، بالمواصفات الدولية المدرجة وتقبل المنتجات الحاملة لعلامة الجودة الإماراتية أو علامة أخرى معتمدة منها. وفي عام 2021 أضافت الوزارة منظومة وطنية لمعدات الوقاية تشمل الكمامات والقفازات الواقية والطبية وواقيات العين والملابس الطبية، ولا يجوز بيع المنتجات المسجلة فيها دون شهادة مطابقة من الوزارة (ECAS). وفي أبوظبي، يتضمن إطار السلامة المهنية الذي ينشره مركز أبوظبي للصحة العامة باسم ADOSH-SF (أوشاد سابقاً) مدونة الممارسة 2.0 لمعدات الوقاية الشخصية، الإصدار 4.0 بتاريخ يوليو 2024، وتنطبق على جميع أصحاب العمل في الإمارة. ويختار صاحب العمل المعدات بناءً على تقييم المخاطر وبعد دراسة وسائل التحكم الأعلى، ويجب أن تستوفي المعدات اللائحة الاتحادية. ويُدرَّب العمال ويجتازون اختبار كفاءة مع الاحتفاظ بسجلات التدريب، وتُفحص المعدات المصروفة وتُخزَّن وتُستبدل على نفقة صاحب العمل. وحيثما لزمت أجهزة التنفس يُشترط برنامج مكتوب للحماية التنفسية (انظر safety_equipment:respiratory-programme). وعند اختلاف جهتين تنظيميتين يُطبَّق الاشتراط الأشد. وفي دبي، تتضمن مدونة ممارسات السلامة في البناء الصادرة عن بلدية دبي (إصدار 2024) فصلاً مخصصاً لمعدات الوقاية في مواقع البناء. وتضيف المناطق الحرة والمشغّلون مثل أدنوك مواصفاتهم الخاصة للصحة والسلامة والبيئة. لذا يسأل المورد ثلاثة أسئلة: ما الإمارة والجهة التنظيمية المختصة، وما مواصفة الصحة والسلامة لدى العميل، وهل يحتاج الصنف شهادة ECAS أو علامة الجودة الإماراتية لبيعه في الدولة.",
+      "sources": [
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf",
+        "https://www.moiat.gov.ae/en/media-center/news/2021/05/24/moiat-develops-state-of-the-art-national-system---protective-equipment",
+        "https://www.lexismiddleeast.com/regulatory/Dubai/DubaiMunicipality_Code_of_Construction_Safety_Practice/en"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:heat-stress",
+      "topic": "Heat stress PPE and the UAE midday work ban",
+      "kind": "product",
+      "body_en": "Heat is the main occupational hazard of the UAE summer, and there are two sets of rules to follow. The first is federal. MoHRE's midday break prohibits work under direct sun in open areas from 12:30 to 15:00 every day between 15 June and 15 September; 2026 is the 22nd year it has applied. Some work is exempt where stopping is not possible, such as asphalt laying and concrete pours, urgent repairs to water, power and traffic networks, and work carrying a government permit. During the break the employer must still provide shaded rest areas, fans or other cooling, drinking water with rehydration supplements, and first aid. The second is Abu Dhabi's ADOSH-SF Code of Practice on Safety in the Heat, which asks for more than the break. The employer needs a written heat stress programme and must use the Thermal Work Limit (TWL) method to set work-rest cycles and the amount of water workers should drink. Workers need training in a language they understand, including guidance to drink at least two litres every two to three hours and to watch for dehydration using urine-colour charts. Shaded work areas and cooled or air-conditioned rest shelters must be provided. Each worker must have a personal water container of at least one litre, and shared cups and bottles are not allowed. Refillable coolers must be cleaned and refilled daily, with the fill date written on a tape seal. Clothing should be lightweight, light-coloured and loose unless machinery makes that unsafe. Products a supplier may be asked for include cooling vests, neck coolers, helmet sun shades and neck flaps, breathable coveralls, sunglare-rated eyewear, one-litre personal bottles, electrolyte sachets, water coolers and WBGT or TWL meters. PPE itself adds heat: FR coveralls, chemical suits and respirators raise body temperature, so protection and heat load must be balanced. A cooling product must never cancel an FR or hi-vis requirement.",
+      "body_ar": "الحرارة هي الخطر المهني الأبرز في صيف الإمارات، وهناك مجموعتان من القواعد الواجب اتباعها. الأولى اتحادية: يحظر قرار وزارة الموارد البشرية والتوطين بشأن استراحة الظهيرة العملَ تحت أشعة الشمس المباشرة وفي الأماكن المكشوفة من الساعة 12:30 حتى 3:00 عصراً يومياً بين 15 يونيو و15 سبتمبر، وعام 2026 هو العام الثاني والعشرون لتطبيقه. وتُستثنى أعمال لا يمكن إيقافها، مثل رصف الأسفلت وصب الخرسانة، والإصلاحات العاجلة لشبكات المياه والكهرباء والمرور، والأعمال الحاصلة على تصريح حكومي. وخلال الاستراحة يظل صاحب العمل ملزماً بتوفير أماكن راحة مظللة ومراوح أو وسائل تبريد أخرى ومياه شرب مع مكملات ترطيب وإسعافات أولية. والثانية مدونة ممارسة السلامة في الحرارة ضمن إطار ADOSH-SF في أبوظبي، وتطلب أكثر من الاستراحة. فعلى صاحب العمل إعداد برنامج مكتوب للإجهاد الحراري، واستخدام طريقة حد العمل الحراري (TWL) لتحديد دورات العمل والراحة وكمية الماء الواجب شربها. ويُدرَّب العمال بلغة يفهمونها، ومن ذلك الإرشاد إلى شرب لترين على الأقل كل ساعتين إلى ثلاث، ومراقبة الجفاف بلوحات لون البول. ويجب توفير مناطق عمل مظللة واستراحات مبردة أو مكيفة. ويجب أن يكون لكل عامل وعاء ماء شخصي سعته لتر على الأقل، ويُمنع استخدام الأكواب والقوارير المشتركة. وتُنظَّف مبردات المياه القابلة لإعادة التعبئة وتُعاد تعبئتها يومياً، مع كتابة تاريخ التعبئة على شريط الإغلاق. وتكون الملابس خفيفة وفاتحة اللون وفضفاضة ما لم تجعل الآلات ذلك خطراً. ومن المنتجات التي قد تُطلب من المورد: سترات التبريد، ومبردات الرقبة، ومظلات الخوذ وواقيات الرقبة، والأفرولات جيدة التهوية، والنظارات المصنفة لوهج الشمس، وقوارير شخصية سعة لتر، وأكياس الأملاح، ومبردات المياه، وأجهزة قياس WBGT أو TWL. ومعدات الوقاية نفسها تضيف حملاً حرارياً، فالأفرولات المقاومة للهب وبدلات المواد الكيميائية وأجهزة التنفس ترفع حرارة الجسم، فلا بد من الموازنة بين الحماية والحمل الحراري. ولا يجوز أن يُلغي منتج التبريد اشتراطاً لمقاومة اللهب أو للوضوح العالي.",
+      "sources": [
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/11---Safety-in-the-Heat-v31-English.pdf",
+        "https://gulfbusiness.com/en/2026/uae/uaes-annual-midday-break-returns-what-workers-and-employers-need-to-know/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:chemical-suits",
+      "topic": "Chemical protective clothing types 1 to 6",
+      "kind": "standard",
+      "body_en": "European chemical protective clothing is classified by type according to the challenge it resists. Type 1 is gas-tight (EN 943), including suits with SCBA inside or outside; Type 2 is non-gas-tight with positive pressure air supply; Type 3 is liquid-tight against pressurised jets (EN 14605); Type 4 is spray-tight (EN 14605); Type 5 protects against hazardous dry particles (EN ISO 13982-1); and Type 6 offers limited protection against light liquid splashes (EN 13034). Disposable coveralls are often marked Type 5/6, which is suitable for dusts, insulation fibres, paints and light splashes but not for chemical jets. Additional marks cover protection against infective agents (EN 14126), radioactive particulate contamination (EN 1073-2) and antistatic properties (EN 1149-5). The type rating describes the garment's construction and seams; the permeation resistance of the fabric to specific chemicals is a separate dataset, and the buyer must check the manufacturer's permeation data for the actual chemical and exposure time. For the UAE climate, heat stress in Type 3 and 4 suits is severe, so work durations must be limited. Specify chemicals, exposure form, duration, and compatible gloves, boots and respirator.",
+      "body_ar": "تُصنَّف الملابس الواقية من المواد الكيميائية الأوروبية حسب النوع وفق التحدي الذي تقاومه. النوع 1 محكم ضد الغاز (EN 943) ويشمل البدلات مع جهاز تنفس ذاتي داخلها أو خارجها؛ والنوع 2 غير محكم ضد الغاز مع إمداد هواء بضغط موجب؛ والنوع 3 محكم ضد السوائل تجاه النفاثات المضغوطة (EN 14605)؛ والنوع 4 محكم ضد الرذاذ (EN 14605)؛ والنوع 5 يحمي من الجسيمات الجافة الخطرة (EN ISO 13982-1)؛ والنوع 6 يوفر حماية محدودة من الرذاذ السائل الخفيف (EN 13034). وكثيراً ما تحمل الأفرولات أحادية الاستخدام علامة النوع 5/6، وهي مناسبة للغبار وألياف العزل والدهانات والرذاذ الخفيف لا لنفاثات المواد الكيميائية. وتغطي علامات إضافية الحماية من العوامل المعدية (EN 14126) والتلوث بالجسيمات المشعة (EN 1073-2) والخاصية المضادة للكهرباء الساكنة (EN 1149-5). ويصف تصنيف النوع بنية الملبس ودرزاته، أما مقاومة القماش لنفاذ مواد كيميائية محددة فبيانات منفصلة، ويجب على المشتري مراجعة بيانات النفاذ من المصنع للمادة الفعلية وزمن التعرض. وفي مناخ الإمارات يكون الإجهاد الحراري في بدلات النوعين 3 و4 شديداً فيجب تحديد مدد العمل. حدّد المواد الكيميائية وشكل التعرض ومدته والقفازات والأحذية وجهاز التنفس المتوافقة.",
+      "sources": [
+        "https://www.uvex-safety.com/blog/shedding-some-light-on-standards-and-guidelines-for-chemical-protection-suits/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:spec-ppe-order",
+      "topic": "Spec checklist: ordering PPE for a project",
+      "kind": "spec_checklist",
+      "body_en": "A PPE order is quotable only when each line states the item, the standard, the rating and the size mix. For each item the buyer should give: the item type (for example S3 SRC safety shoe, FFP2 valveless respirator, EN 397 helmet with 440 V marking); the required standard system (EN/ISO, ANSI/ISEA or NIOSH, or both) and any client or regulator specification that applies (for example ADNOC, OSHAD, Dubai Municipality); the performance level (cut level, SNR, class, arc rating); materials or features (composite toe, metal-free, FR, anti-static, ventilated); colour and branding or logo printing; size breakdown by quantity (shoes by EU size, gloves by size 7 to 11, coveralls by chest size); packaging and labelling (individual packing, Arabic labels if required); quantity and delivery schedule (call-off orders are common); required documents (EU type-examination certificate, declaration of conformity, test reports, certificate of origin); and shelf-life or manufacturing date limits for items that age, such as helmets, respirators and harnesses. Where a brand or model is specified by the client, state whether equivalents are acceptable and who approves them.",
+      "body_ar": "لا يمكن تسعير طلب معدات الوقاية إلا إذا حدد كل بند الصنف والمعيار والتصنيف وتوزيع المقاسات. ولكل صنف يجب أن يذكر المشتري: نوع الصنف (مثل حذاء سلامة S3 SRC، أو كمامة FFP2 بلا صمام، أو خوذة EN 397 بعلامة 440 فولت)؛ ونظام المعيار المطلوب (EN/ISO أو ANSI/ISEA أو NIOSH أو كليهما) وأي مواصفة للعميل أو الجهة الرقابية (مثل أدنوك أو أوشاد أو بلدية دبي)؛ ومستوى الأداء (مستوى القطع، أو SNR، أو الفئة، أو تصنيف القوس)؛ والمواد أو الخصائص (مقدمة مركبة، خالٍ من المعدن، مقاوم للهب، مضاد للكهرباء الساكنة، مهوى)؛ واللون والعلامة أو طباعة الشعار؛ وتوزيع المقاسات بالكميات (الأحذية بالمقاس الأوروبي، والقفازات من 7 إلى 11، والأفرولات بمقاس الصدر)؛ والتغليف والملصقات (تغليف فردي، ملصقات عربية إن لزم)؛ والكمية وجدول التسليم (طلبات السحب شائعة)؛ والوثائق المطلوبة (شهادة فحص النوع الأوروبية، إعلان المطابقة، تقارير الاختبار، شهادة المنشأ)؛ وحدود تاريخ التصنيع أو الصلاحية للأصناف التي تتقادم كالخوذ وأجهزة التنفس والأحزمة. وإذا حدد العميل علامة أو طرازاً فيجب ذكر هل البدائل المكافئة مقبولة ومن يعتمدها.",
+      "sources": [
+        "https://www.satra.com/spotlight/article.php?id=561",
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf",
+        "https://www.moiat.gov.ae/en/media-center/news/2021/05/24/moiat-develops-state-of-the-art-national-system---protective-equipment"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "item type",
+        "standard system (EN/ANSI/NIOSH)",
+        "client/regulator specification",
+        "performance level/class",
+        "materials and features",
+        "colour and logo printing",
+        "size breakdown with quantities",
+        "packaging and labelling",
+        "delivery schedule / call-off",
+        "certificates and documents required",
+        "manufacturing date / shelf-life limits",
+        "brand/model and equivalents policy"
+      ]
+    },
+    {
+      "id": "safety_equipment:certificate-check",
+      "topic": "How to verify PPE certificates (CE module B/C2/D, NIOSH TC numbers)",
+      "kind": "standard",
+      "body_en": "Fake or misapplied certification is common in the PPE trade. Under EU Regulation 2016/425, PPE is classified into Category I (minimal risks, self-declared), Category II (intermediate risks, EU type-examination by a notified body, module B) and Category III (risks of death or irreversible harm such as respirators, fall arrest, chemical suits and some gloves), which additionally needs ongoing surveillance under module C2 or D, shown by the notified body's four-digit number next to the CE mark. The buyer should obtain the EU type-examination certificate and the EU declaration of conformity, confirm the product model on the certificate matches the product supplied, check the certificate has not expired (they are typically valid up to five years), and verify the notified body on the EU NANDO database. For NIOSH-approved respirators, the approval (TC) number printed on the product can be checked on NIOSH's Certified Equipment List, and NIOSH publishes warnings about counterfeit respirators. For ANSI products, manufacturers self-declare compliance to most ISEA standards, so third-party test reports are the better evidence. A photocopied certificate naming a different manufacturer or a trading company only is a red flag.",
+      "body_ar": "الشهادات المزورة أو المستخدمة في غير موضعها شائعة في تجارة معدات الوقاية. بموجب لائحة الاتحاد الأوروبي 2016/425 تُصنَّف المعدات في الفئة I (مخاطر بسيطة، إعلان ذاتي)، والفئة II (مخاطر متوسطة، فحص نوع أوروبي من جهة مخطرة، الوحدة B)، والفئة III (مخاطر الوفاة أو الضرر الدائم مثل أجهزة التنفس ومنع السقوط وبدلات المواد الكيميائية وبعض القفازات)، وتحتاج إضافةً إلى رقابة مستمرة وفق الوحدة C2 أو D، ويظهر ذلك برقم الجهة المخطرة المكون من أربعة أرقام بجانب علامة CE. على المشتري الحصول على شهادة فحص النوع الأوروبية وإعلان المطابقة الأوروبي، والتأكد من أن طراز المنتج في الشهادة يطابق المنتج المورد، والتحقق من عدم انتهاء الشهادة (عادةً صالحة حتى خمس سنوات)، والتحقق من الجهة المخطرة في قاعدة بيانات NANDO الأوروبية. ولأجهزة التنفس المعتمدة من NIOSH يمكن التحقق من رقم الاعتماد TC المطبوع على المنتج في قائمة المعدات المعتمدة لدى NIOSH، التي تنشر أيضاً تحذيرات عن الأجهزة المقلدة. أما منتجات ANSI فيعلن المصنعون مطابقتها ذاتياً لمعظم معايير ISEA، فتقارير الاختبار من طرف ثالث دليل أفضل. والشهادة المصورة التي تسمي مصنعاً مختلفاً أو شركة تجارية فقط علامة تحذير.",
+      "sources": [
+        "https://www.satra.com/spotlight/article.php?id=561",
+        "https://wwwn.cdc.gov/niosh-cel/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:inspection-lifespan",
+      "topic": "PPE inspection, storage and replacement intervals",
+      "kind": "warranty",
+      "body_en": "PPE does not last forever, and suppliers' warranties usually cover manufacturing defects only, not wear or degradation from UV and heat. Helmets: manufacturers commonly state a service life from the moulding date (often in the range of three to five years for thermoplastic shells, check each manufacturer), shortened by UV exposure, impacts and chemicals; any helmet that took a significant blow must be replaced. Harnesses and lanyards: pre-use check every time, detailed periodic inspection by a competent person, withdrawal after arresting a fall, and a maximum life stated by the manufacturer. Respirator filters: replaced per breakthrough or breathing resistance, and disposable FFP masks are single-shift items unless marked R (reusable). Gas cartridges have a shelf life and must be replaced by a change-out schedule. Gas detectors: sensor life is typically two to three years and bump tests are daily. Safety shoes: replaced when the toe cap is exposed or damaged, the sole is worn or the upper is broken. Buyers should store PPE out of direct sun (UAE containers and site stores become very hot), keep records of issue and inspection, and ask suppliers for the manufacturing date and recommended life of each batch.",
+      "body_ar": "معدات الوقاية لا تدوم إلى الأبد، وضمانات الموردين تغطي عادةً عيوب التصنيع فقط لا التآكل أو التدهور من الأشعة والحرارة. الخوذ: يحدد المصنعون عادةً عمر خدمة من تاريخ الصب (غالباً ثلاث إلى خمس سنوات لقشور اللدائن الحرارية، ويُتحقق من كل مصنع)، ويقصر بالأشعة والصدمات والمواد الكيميائية، وأي خوذة تعرضت لضربة كبيرة يجب استبدالها. الأحزمة والحبال: فحص قبل كل استخدام، وفحص دوري مفصل من شخص كفء، وسحبها بعد إيقاف سقوط، وعمر أقصى يحدده المصنع. مرشحات أجهزة التنفس: تُستبدل عند الاختراق أو ارتفاع مقاومة التنفس، والكمامات FFP أحادية الاستخدام لنوبة واحدة ما لم تحمل علامة R (قابلة لإعادة الاستخدام). وخراطيش الغاز لها عمر تخزين ويجب استبدالها وفق جدول. أجهزة كشف الغاز: عمر الحساس عادةً سنتان إلى ثلاث، واختبار التعريض يومي. أحذية السلامة: تُستبدل عند انكشاف المقدمة أو تلفها أو تآكل النعل أو تمزق الجزء العلوي. وعلى المشتري تخزين المعدات بعيداً عن الشمس المباشرة (فالحاويات ومخازن المواقع في الإمارات تصبح شديدة الحرارة)، وحفظ سجلات الصرف والفحص، وطلب تاريخ التصنيع والعمر الموصى به لكل دفعة من الموردين.",
+      "sources": [
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf",
+        "https://www.marine-ropes.com/en-gb/post/energy-absorbing-lanyards-en355-shock-packs-fall-clearance"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:red-flags",
+      "topic": "Red flags in PPE supplier quotes",
+      "kind": "quote_red_flag",
+      "body_en": "Warning signs in PPE quotes include: the quote says \"CE certified\" or \"ANSI approved\" without naming the standard, the class or the notified body; certificates are provided but name a different manufacturer, a different model or have expired; respirators are quoted as \"N95 equivalent\" or \"KN95\" when the site requires EN 149 FFP2 or NIOSH N95 (KN95 is a Chinese standard, GB 2626, and is not interchangeable without client acceptance); \"S3\" shoes lack the penetration-resistant midsole marking or the correct size range; fall-arrest equipment is offered as loose components from different makers without compatibility confirmation; hi-vis vests are uncertified printed polyester; gloves are described as \"cut resistant\" without an EN 388 or ANSI cut level; gas detectors are offered without calibration gas, certificates of calibration or hazardous-area certification. Prices far below market for Category III items suggest counterfeit goods. Long lead times hidden as \"subject to availability\" for large quantities of specific sizes are also common. Any quote missing standards, classes, sizes or documents should be held and clarified before an order is placed, because non-compliant PPE is rejected at site inspection.",
+      "body_ar": "من علامات التحذير في عروض معدات الوقاية: أن يقول العرض معتمد CE أو معتمد ANSI دون تسمية المعيار أو الفئة أو الجهة المخطرة؛ أو أن تُقدَّم شهادات تسمي مصنعاً أو طرازاً مختلفاً أو منتهية الصلاحية؛ أو أن تُعرض أجهزة التنفس على أنها مكافئة لـ N95 أو KN95 بينما يشترط الموقع EN 149 FFP2 أو NIOSH N95 (فمعيار KN95 صيني GB 2626 ولا يُستبدل دون قبول العميل)؛ أو أن تخلو أحذية S3 من علامة النعل الأوسط المقاوم للاختراق أو نطاق المقاسات الصحيح؛ أو أن تُعرض معدات منع السقوط كمكونات منفصلة من صانعين مختلفين دون تأكيد التوافق؛ أو أن تكون سترات الوضوح العالي من بوليستر مطبوع غير معتمد؛ أو أن توصف القفازات بأنها مقاومة للقطع دون مستوى قطع وفق EN 388 أو ANSI؛ أو أن تُعرض أجهزة كشف الغاز دون غاز معايرة أو شهادات معايرة أو اعتماد للمناطق الخطرة. والأسعار الأقل كثيراً من السوق لأصناف الفئة III توحي بسلع مقلدة. وشائع أيضاً إخفاء مدد توريد طويلة تحت عبارة حسب التوفر لكميات كبيرة من مقاسات محددة. وأي عرض يخلو من المعايير أو الفئات أو المقاسات أو الوثائق يُعلَّق ويُوضَّح قبل الطلب، لأن المعدات غير المطابقة تُرفض في تفتيش الموقع.",
+      "sources": [
+        "https://www.satra.com/spotlight/article.php?id=561",
+        "https://wwwn.cdc.gov/niosh-cel/",
+        "https://www.satra.com/spotlight/article.php?id=488"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:buyer-mistakes",
+      "topic": "Common buyer mistakes when procuring PPE",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often choose PPE by price and appearance rather than by the hazard assessment, so a warehouse buys S3 boots that are too hot and heavy, while a steel fabrication shop buys general gloves that fail on sharp edges. Another frequent error is ordering a single size set: incorrect sizes lead to workers not wearing the PPE at all, and female workers are frequently given men's sizes. Respirators are purchased without face-fit testing, so tight-fitting masks leak. Harnesses are bought without planning anchor points, clearance and rescue. Mixed standards are ordered unintentionally, for example ANSI glasses on a site that audits to EN. Buyers forget the UAE heat: non-breathable garments and non-ventilated helmets reduce compliance, and PPE stored in hot containers degrades. Consumables such as filters, earplugs, calibration gas and replacement lenses are left out of the budget. Finally, buyers do not ask for manufacturing dates, and receive helmets or harnesses already well into their service life. Linking each PPE line to a documented hazard, a standard and a size breakdown avoids most of these mistakes.",
+      "body_ar": "كثيراً ما يختار المشترون معدات الوقاية بالسعر والمظهر لا بتقييم المخاطر، فيشتري مستودع أحذية S3 حارة وثقيلة، بينما يشتري مصنع تشكيل حديد قفازات عامة تفشل أمام الحواف الحادة. ومن الأخطاء المتكررة طلب مجموعة مقاسات واحدة، فالمقاسات الخاطئة تجعل العمال لا يرتدون المعدات أصلاً، وكثيراً ما تُعطى العاملات مقاسات رجالية. وتُشترى أجهزة التنفس دون اختبار ملاءمة الوجه فتتسرب الأقنعة المحكمة. وتُشترى الأحزمة دون تخطيط نقاط الإرساء والخلوص والإنقاذ. وتُطلب معايير مختلطة دون قصد، كنظارات ANSI في موقع يُدقَّق وفق EN. وينسى المشترون حرارة الإمارات: فالملابس غير المهواة والخوذ غير المهواة تقلل الالتزام، والمعدات المخزنة في حاويات حارة تتدهور. وتُستبعد المستهلكات مثل المرشحات والسدادات وغاز المعايرة والعدسات البديلة من الميزانية. وأخيراً لا يطلب المشترون تواريخ التصنيع فيستلمون خوذاً أو أحزمة قضت جزءاً كبيراً من عمرها. وربط كل بند بخطر موثق ومعيار وتوزيع مقاسات يتجنب معظم هذه الأخطاء.",
+      "sources": [
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:price-drivers",
+      "topic": "Price drivers for PPE",
+      "kind": "price_driver",
+      "body_en": "PPE prices vary widely for items that look similar, driven by certification level, materials and brand. Category III items (respirators, fall arrest, chemical suits) cost more because of notified-body surveillance and testing. For footwear, drivers are the class (S3 more than S1P), toe cap material (composite and metal-free usually cost more than steel), outsole compound (nitrile rubber HRO versus PU), waterproof membranes and brand. For gloves, cut-resistant yarns (HPPE, aramid, steel-fibre blends), coatings and higher EN 388 levels raise cost, as do chemical-rated polymers. For FR and arc-flash garments, inherent fibres such as aramid blends cost far more than FR-treated cotton, and higher arc ratings require heavier or multilayer fabrics. Gas detectors are driven by the number and type of sensors (PID and IR cost more), hazardous-area certification, data logging and service contracts. Custom colours, logo printing, reflective tape upgrades and individual packaging add unit cost and minimum order quantities. Exchange rates for European-made products and freight for bulky items such as helmets also matter. Comparing unit prices is only meaningful when standard, class and materials are identical.",
+      "body_ar": "تتفاوت أسعار معدات الوقاية كثيراً لأصناف متشابهة المظهر، بسبب مستوى الاعتماد والمواد والعلامة. أصناف الفئة III (أجهزة التنفس ومنع السقوط وبدلات المواد الكيميائية) أغلى بسبب رقابة الجهة المخطرة والاختبارات. وفي الأحذية تتحدد التكلفة بالفئة (S3 أغلى من S1P)، ومادة المقدمة (المركبة والخالية من المعدن أغلى عادةً من الفولاذ)، ومادة النعل الخارجي (مطاط النتريل HRO مقابل البولي يوريثان)، والأغشية المقاومة للماء، والعلامة. وفي القفازات ترفع الخيوط المقاومة للقطع (HPPE والأراميد وخلطات الألياف الفولاذية) والطلاءات ومستويات EN 388 الأعلى التكلفة، وكذلك البوليمرات المصنفة كيميائياً. وفي الملابس المقاومة للهب والقوس تكلف الألياف المقاومة بطبيعتها كخلطات الأراميد أكثر بكثير من القطن المعالج، وتتطلب تصنيفات القوس الأعلى أقمشة أثقل أو متعددة الطبقات. وتتحدد أسعار أجهزة كشف الغاز بعدد الحساسات ونوعها (PID والأشعة تحت الحمراء أغلى) واعتماد المناطق الخطرة وتسجيل البيانات وعقود الخدمة. وتضيف الألوان الخاصة وطباعة الشعار وترقية الشريط العاكس والتغليف الفردي تكلفة للوحدة وحداً أدنى للطلب. وتؤثر أيضاً أسعار الصرف للمنتجات الأوروبية والشحن للأصناف كبيرة الحجم كالخوذ. ولا تكون مقارنة أسعار الوحدة ذات معنى إلا إذا تطابقت المعايير والفئات والمواد.",
+      "sources": [
+        "https://www.satra.com/spotlight/article.php?id=561"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:lead-times",
+      "topic": "Lead times for PPE in the UAE",
+      "kind": "lead_time",
+      "body_en": "Standard PPE in common sizes (general gloves, FFP2 masks, EN 397 helmets, hi-vis vests, popular safety shoe models) is usually held in stock by UAE distributors in Dubai and Sharjah, including in Jebel Ali free zone, and can often be delivered within days. Lead times grow for large project quantities of one model and size, custom colours, logo printing (typically adding one to several weeks for printing and approval of samples), specialised items (arc-flash suits of a specific rating, gas-tight Type 1 suits, specific harness configurations, custom prescription safety glasses) and brands not stocked locally, which may need factory production and shipping from Europe, the US or Asia, commonly several weeks. Gas detectors with specific sensor combinations and calibration stations may also be factory-built. During global demand spikes, such as the pandemic for respirators, lead times can extend for months, so critical items should be held as buffer stock. These are general patterns, not guaranteed durations; buyers should ask each supplier to confirm stock per size and to state lead time in writing, and should plan call-off deliveries for large projects rather than one delivery.",
+      "body_ar": "تحتفظ الموزعون في دبي والشارقة، بما في ذلك المنطقة الحرة لجبل علي، عادةً بمخزون من معدات الوقاية القياسية بالمقاسات الشائعة (القفازات العامة وكمامات FFP2 وخوذ EN 397 وسترات الوضوح العالي وطرازات أحذية السلامة الشائعة)، ويمكن التسليم غالباً خلال أيام. وتطول المدد لكميات المشاريع الكبيرة من طراز ومقاس واحد، والألوان الخاصة، وطباعة الشعارات (تضيف عادةً أسبوعاً إلى عدة أسابيع للطباعة واعتماد العينات)، والأصناف المتخصصة (بدلات القوس بتصنيف محدد، وبدلات النوع 1 المحكمة ضد الغاز، وتكوينات أحزمة معينة، ونظارات سلامة طبية مخصصة)، والعلامات غير المتوفرة محلياً التي قد تحتاج إنتاجاً وشحناً من أوروبا أو الولايات المتحدة أو آسيا، غالباً عدة أسابيع. وقد تُصنع أجهزة كشف الغاز بتركيبات حساسات محددة ومحطات المعايرة في المصنع. وفي فترات ارتفاع الطلب العالمي، كالجائحة بالنسبة لأجهزة التنفس، قد تمتد المدد لأشهر، فيجب الاحتفاظ بمخزون احتياطي للأصناف الحرجة. هذه أنماط عامة لا مدد مضمونة؛ وعلى المشتري أن يطلب من كل مورد تأكيد المخزون لكل مقاس وذكر مدة التوريد كتابياً، وأن يخطط لتسليمات على دفعات للمشاريع الكبيرة بدلاً من تسليم واحد.",
+      "sources": [],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:confined-space-kit",
+      "topic": "Confined space entry and rescue equipment",
+      "kind": "product",
+      "body_en": "Confined spaces such as tanks, vessels, manholes, sewers, pits and ship holds are common in UAE utilities, oil and gas and marine work, and fatalities there often involve would-be rescuers. The equipment set normally includes a calibrated multi-gas detector with pump and sampling hose for pre-entry testing; forced ventilation (air movers or blowers, explosion-proof where flammables may be present) with ducting; a tripod or davit arm with a winch and self-retracting lifeline with rescue retrieval (EN 795 type B tripods, EN 1496 rescue lifting devices); full-body harnesses with front or shoulder attachment points for vertical retrieval; respiratory protection chosen for the atmosphere, often SCBA or airline sets with escape bottles, and emergency escape breathing devices (EEBD); intrinsically safe lighting and radios; and communication equipment. A permit-to-work system, trained attendants and a rescue plan are mandatory under OSHAD and the operator's HSE rules. Specification points: space type and entry opening diameter, depth, atmosphere hazards, number of entrants, hazardous area zone, and whether a rescue team service is required alongside the equipment.",
+      "body_ar": "الأماكن المحصورة مثل الخزانات والأوعية وغرف التفتيش والمجاري والحفر وعنابر السفن شائعة في أعمال المرافق والنفط والغاز والبحرية في الإمارات، وكثيراً ما تشمل الوفيات فيها من يحاولون الإنقاذ. وتضم مجموعة المعدات عادةً جهاز كشف غازات متعدد معايراً بمضخة وخرطوم أخذ عينات للاختبار قبل الدخول؛ وتهوية قسرية (نافخات أو مراوح مقاومة للانفجار حيث قد توجد مواد قابلة للاشتعال) مع مجارٍ؛ وحاملاً ثلاثياً أو ذراع رفع مع ونش وخط حياة ذاتي الارتداد مع خاصية الاسترجاع للإنقاذ (حوامل ثلاثية EN 795 نوع B وأجهزة رفع الإنقاذ EN 1496)؛ وأحزمة كاملة بنقاط تثبيت أمامية أو على الكتفين للاسترجاع العمودي؛ وحماية تنفسية تُختار حسب الجو، غالباً أجهزة تنفس ذاتية أو خط هواء مع قوارير هروب، وأجهزة تنفس للهروب في الطوارئ EEBD؛ وإضاءة ولاسلكي آمن جوهرياً؛ ومعدات اتصال. ونظام تصاريح العمل والمراقبون المدربون وخطة الإنقاذ إلزامية وفق أوشاد وقواعد المشغل. نقاط المواصفة: نوع المكان وقطر فتحة الدخول، والعمق، ومخاطر الجو، وعدد الداخلين، ومنطقة الخطر، وهل تلزم خدمة فريق إنقاذ مع المعدات.",
+      "sources": [
+        "https://www.indsci.com/en/blog/combustible-gas-detection-infrared-or-catalytic-bead-sensors",
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:scba",
+      "topic": "Self-contained breathing apparatus (SCBA) and escape sets",
+      "kind": "product",
+      "body_en": "SCBA provides breathing air from a cylinder carried by the user and is required where the atmosphere is immediately dangerous to life or health, oxygen deficient, or of unknown composition, for example firefighting, H2S emergencies and confined space rescue. Open-circuit positive-pressure SCBA under EN 137 (Type 2 for firefighting) or NIOSH/NFPA 1981 in the US system is the norm. Cylinders are steel or composite (lighter, with a limited service life stated by the manufacturer and periodic hydrostatic testing) at 200 or 300 bar, with durations commonly quoted as about 30 to 60 minutes, although real duration depends on workload. Emergency escape breathing devices (EEBD) and escape sets give 10 to 15 minutes for evacuation only. Airline (supplied-air) respirators with an escape cylinder allow long work periods fed from a compressor or cylinder bank. Air quality must meet a breathing-air standard (for example EN 12021). Buyers should specify the application, standard, cylinder material and pressure, duration, mask size, voice communication and telemetry needs, and include cylinder refilling, compressor, testing and a maintenance contract, because SCBA requires regular servicing by trained technicians.",
+      "body_ar": "يوفر جهاز التنفس الذاتي هواء التنفس من أسطوانة يحملها المستخدم، ويُشترط حيث يكون الجو خطراً فورياً على الحياة أو ناقص الأكسجين أو مجهول التركيب، مثل مكافحة الحرائق وطوارئ كبريتيد الهيدروجين وإنقاذ الأماكن المحصورة. والمعتاد جهاز الدائرة المفتوحة بضغط موجب وفق EN 137 (النوع 2 لمكافحة الحرائق) أو NIOSH/NFPA 1981 في النظام الأمريكي. والأسطوانات من الفولاذ أو المواد المركبة (أخف، بعمر خدمة محدد من المصنع واختبار هيدروستاتيكي دوري) بضغط 200 أو 300 بار، وتُذكر مددها عادةً بنحو 30 إلى 60 دقيقة، لكن المدة الفعلية تعتمد على الجهد. وتعطي أجهزة الهروب EEBD ومجموعات الهروب 10 إلى 15 دقيقة للإخلاء فقط. وأجهزة التنفس بخط الهواء مع أسطوانة هروب تتيح فترات عمل طويلة من ضاغط أو مجموعة أسطوانات. ويجب أن تستوفي جودة الهواء معيار هواء التنفس (مثل EN 12021). على المشتري تحديد الاستخدام والمعيار ومادة الأسطوانة وضغطها والمدة ومقاس القناع والحاجة للاتصال الصوتي والقياس عن بعد، وإدراج تعبئة الأسطوانات والضاغط والاختبار وعقد الصيانة، لأن هذه الأجهزة تحتاج صيانة منتظمة من فنيين مدربين.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Self-contained_breathing_apparatus",
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:first-aid-eyewash",
+      "topic": "First aid kits, emergency showers and eyewash stations",
+      "kind": "product",
+      "body_en": "Workplace first aid provision in the UAE is set by the employer's risk assessment, labour regulations and, in Abu Dhabi, OSHAD's code of practice on first aid, which sets requirements for trained first aiders and kit contents based on workforce size and risk. Kits should be sized to the number of workers, stocked with in-date consumables and checked regularly; burns dressings and heat-illness supplies are important locally. Where corrosive or hazardous chemicals are handled, emergency showers and eyewash stations are required; ANSI/ISEA Z358.1 is the widely used reference, calling for tepid flushing fluid for 15 minutes, placement within about 10 seconds of travel from the hazard, and weekly activation. EN 15154 is the European equivalent. In the UAE, the tepid-water requirement is a real challenge because exposed pipes deliver very hot water in summer; solutions include buried or insulated supply, tank units with cooling, or thermostatic mixing, and portable self-contained eyewash units need fluid replacement per manufacturer. Specify the hazard, flow type (plumbed or self-contained), combination unit or separate, freeze or heat protection, and alarm or signage needs.",
+      "body_ar": "يُحدد توفير الإسعافات الأولية في أماكن العمل بالإمارات بتقييم المخاطر لدى صاحب العمل وأنظمة العمل، وفي أبوظبي بمدونة ممارسة أوشاد للإسعافات الأولية التي تحدد متطلبات المسعفين المدربين ومحتويات الحقائب حسب حجم القوى العاملة والمخاطر. ويجب أن تُحجَّم الحقائب حسب عدد العمال، وأن تُزوَّد بمستهلكات سارية الصلاحية وتُفحص بانتظام، ولضمادات الحروق ومستلزمات أمراض الحرارة أهمية محلية. وحيث تُتداول مواد كيميائية أكّالة أو خطرة تلزم دشات الطوارئ ومحطات غسل العين؛ ومعيار ANSI/ISEA Z358.1 هو المرجع الشائع، ويشترط سائل غسل فاتراً لمدة 15 دقيقة، وموقعاً على بعد نحو 10 ثوانٍ سيراً من مصدر الخطر، وتشغيلاً أسبوعياً. ومعيار EN 15154 هو المكافئ الأوروبي. وفي الإمارات يمثل شرط الماء الفاتر تحدياً حقيقياً لأن الأنابيب المكشوفة توصل ماءً شديد الحرارة صيفاً؛ ومن الحلول التغذية المدفونة أو المعزولة، أو وحدات بخزان وتبريد، أو الخلط الحراري، وتحتاج وحدات غسل العين المحمولة المستقلة استبدال السائل حسب المصنع. حدّد الخطر ونوع التغذية (موصولة أو مستقلة) والوحدة المركبة أو المنفصلة والحماية من الحرارة ومتطلبات الإنذار أو اللوحات.",
+      "sources": [
+        "https://www.hawsco.com/blog/ansi-z358-1-faq-what-is-the-weekly-test-vs-the-annual-test/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:site-safety-signage-barriers",
+      "topic": "Site safety consumables: barriers, signage, lockout-tagout and fire blankets",
+      "kind": "product",
+      "body_en": "Beyond personal equipment, safety suppliers also quote collective protection and site consumables. Barricades include plastic water-filled barriers for traffic management, steel crowd barriers, retractable belt barriers and hard barricades around excavations, which must be strong enough to stop falls, not just mark them; warning tape only marks. Safety signs should follow ISO 7010 graphical symbols and colours (red prohibition and fire equipment, blue mandatory, yellow warning, green safe condition), with Arabic and English text as required by UAE authorities and sites; photoluminescent exit and fire-equipment signs are subject to Civil Defence requirements. Lockout-tagout (LOTO) kits contain padlocks with unique keys, hasps, breaker and valve lockouts and danger tags; the programme matters as much as the hardware. Traffic management items include cones, delineators, flashing lights and signage per the road authority's temporary traffic management manual (for example RTA in Dubai). Other items are spill kits sized by litres absorbed and type (universal, oil-only, chemical), fire blankets to EN 1869, and first aid signage. Specify standard, language, material (UV-stable for outdoor use in the UAE), sizes, quantities and mounting method.",
+      "body_ar": "إلى جانب المعدات الشخصية، يسعّر موردو السلامة الحماية الجماعية ومستهلكات الموقع. تشمل الحواجز الحواجز البلاستيكية المملوءة بالماء لإدارة المرور، وحواجز الحشود الفولاذية، والحواجز ذات الأحزمة القابلة للسحب، والحواجز الصلبة حول الحفريات التي يجب أن تكون قوية بما يكفي لمنع السقوط لا مجرد التنبيه؛ فشريط التحذير يُنبّه فقط. ويجب أن تتبع لوحات السلامة الرموز والألوان وفق ISO 7010 (الأحمر للمنع ومعدات الحريق، والأزرق للإلزام، والأصفر للتحذير، والأخضر لحالة الأمان)، مع نص عربي وإنجليزي كما تشترط جهات الإمارات والمواقع، وتخضع لوحات المخارج ومعدات الحريق المضيئة ذاتياً لمتطلبات الدفاع المدني. وتضم مجموعات القفل والتعليق أقفالاً بمفاتيح فريدة ومشابك وأقفال قواطع وصمامات وبطاقات خطر، والبرنامج بأهمية الأدوات نفسها. وتشمل مستلزمات إدارة المرور الأقماع والعلامات الإرشادية والأضواء الوامضة واللوحات وفق دليل إدارة المرور المؤقتة لجهة الطرق (مثل هيئة الطرق والمواصلات في دبي). ومن الأصناف الأخرى مجموعات الانسكاب حسب لترات الامتصاص والنوع (عامة، زيوت فقط، كيميائية)، وبطانيات الحريق وفق EN 1869، ولوحات الإسعاف. حدّد المعيار واللغة والمادة (مستقرة ضد الأشعة للاستخدام الخارجي في الإمارات) والمقاسات والكميات وطريقة التثبيت.",
+      "sources": [
+        "https://www.clarionsafety.com/iso-7010-symbol-safety-signs"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "safety_equipment:respiratory-programme",
+      "topic": "Respiratory protection programme and breathing-air quality under ADOSH-SF CoP 2.0",
+      "kind": "standard",
+      "body_en": "In Abu Dhabi, respirators are only half the order. ADOSH-SF Code of Practice 2.0 requires any employer whose risk assessment calls for respirators to run a written respiratory protection programme. The programme covers every worker who must wear one, and it has to include respirator selection, medical evaluation, fit testing for tight-fitting masks, and schedules for cleaning, disinfecting, storing, inspecting, repairing and discarding equipment. A competent person must administer it, and its effectiveness must be evaluated every year. Respirators, training and medical evaluations are provided free to the worker. If exposure is below the threshold limit value and workers use disposable filtering facepieces voluntarily, a written programme is not needed. Filter change-out must follow a schedule based on the manufacturer's data, how the mask is used and its effective life. Respirators must be stored away from sunlight, heat, dust, moisture and chemicals in a way that does not distort the facepiece, which in the UAE rules out hot containers and vehicle dashboards. Routine-use respirators are inspected before each use, and emergency respirators at least monthly and before and after use. Repairs may only use the manufacturer's approved parts. For supplied-air systems and SCBA filling, the code sets breathing-air quality: oxygen 19.5 to 23.5 percent, condensed hydrocarbons no more than 5 mg/m3, carbon monoxide no more than 10 ppm, carbon dioxide no more than 1,000 ppm, no noticeable odour and no toxic contaminants. It also requires breathing-air couplings that cannot be connected to other gas lines. When quoting, a supplier should therefore offer more than masks: fit-test kits or a fit-test service, replacement filters with a change-out schedule, storage cases, spare parts from the original maker, and for air systems, compressor filtration and air-quality test certificates.",
+      "body_ar": "في أبوظبي، أجهزة التنفس ليست سوى نصف الطلب. فمدونة الممارسة 2.0 ضمن إطار ADOSH-SF تُلزم كل صاحب عمل يقتضي تقييمُ المخاطر لديه استخدامَ أجهزة التنفس بتشغيل برنامج مكتوب للحماية التنفسية. ويشمل البرنامج كل عامل مطلوب منه ارتداؤها، ويجب أن يتضمن اختيار الجهاز والتقييم الطبي واختبار الملاءمة للأقنعة المحكمة، وجداول التنظيف والتعقيم والتخزين والفحص والإصلاح والإتلاف. ويتولى إدارته شخص كفء، وتُقيَّم فعاليته سنوياً. وتُقدَّم الأجهزة والتدريب والتقييم الطبي للعامل مجاناً. وإذا كان التعرض دون القيمة الحدية واستخدم العمال الكمامات الترشيحية أحادية الاستخدام طوعاً، فلا يُشترط برنامج مكتوب. ويُستبدل الفلتر وفق جدول يستند إلى بيانات المصنع وطريقة استخدام القناع وعمره الفعلي. وتُخزَّن الأجهزة بعيداً عن الشمس والحرارة والغبار والرطوبة والكيماويات وبطريقة لا تُشوّه القناع، وهذا في الإمارات يستبعد الحاويات الحارة ولوحات قيادة المركبات. وتُفحص أجهزة الاستخدام الروتيني قبل كل استخدام، وأجهزة الطوارئ شهرياً على الأقل وقبل الاستخدام وبعده. ولا تُستخدم في الإصلاح إلا قطع الغيار المعتمدة من المصنع. أما لأنظمة الهواء المزوَّد وتعبئة أجهزة التنفس الذاتي، فتحدد المدونة جودة هواء التنفس: أكسجين بين 19.5 و23.5%، وهيدروكربونات مكثفة لا تتجاوز 5 ملغ/م3، وأول أكسيد الكربون لا يتجاوز 10 أجزاء في المليون، وثاني أكسيد الكربون لا يتجاوز 1,000 جزء في المليون، وخلوّه من الروائح الملحوظة والملوثات السامة. وتشترط كذلك وصلات لهواء التنفس لا يمكن توصيلها بخطوط غازات أخرى. لذا ينبغي للمورد عند التسعير أن يعرض أكثر من الأقنعة: أدوات أو خدمة اختبار الملاءمة، وفلاتر بديلة مع جدول استبدال، وحقائب تخزين، وقطع غيار من المصنع الأصلي، ولأنظمة الهواء ترشيح الضاغط وشهادات فحص جودة الهواء.",
+      "sources": [
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    }
   ],
-  "removed": [],
-  "still_unverified": [
-   "safety_equipment:lead-times",
-   "safety_equipment:price-drivers",
-   "safety_equipment:hi-vis",
-   "safety_equipment:fall-protection",
-   "safety_equipment:confined-space-kit",
-   "safety_equipment:first-aid-eyewash",
-   "safety_equipment:inspection-lifespan"
-  ]
- }
+  "eval": [
+    {
+      "q_en": "What is the difference between S1P and S3 safety shoes, and which do I need on a construction site?",
+      "q_ar": "ما الفرق بين أحذية السلامة S1P وS3، وأيهما أحتاج في موقع بناء؟",
+      "expected_entry_ids": [
+        "safety_equipment:footwear-classes"
+      ]
+    },
+    {
+      "q_en": "Is FFP2 the same as N95? Our client wants NIOSH but the supplier offers KN95.",
+      "q_ar": "هل FFP2 هي نفسها N95؟ العميل يريد NIOSH والمورد يعرض KN95.",
+      "expected_entry_ids": [
+        "safety_equipment:respirators",
+        "safety_equipment:red-flags",
+        "safety_equipment:en-vs-ansi"
+      ]
+    },
+    {
+      "q_en": "Which helmet should electricians use, and can they use a vented helmet?",
+      "q_ar": "أي خوذة يجب أن يستخدمها الكهربائيون، وهل يمكنهم استخدام خوذة مهواة؟",
+      "expected_entry_ids": [
+        "safety_equipment:hard-hats"
+      ]
+    },
+    {
+      "q_en": "What does 4X43D on a glove mean?",
+      "q_ar": "ماذا يعني الرمز 4X43D على القفاز؟",
+      "expected_entry_ids": [
+        "safety_equipment:gloves-en388"
+      ]
+    },
+    {
+      "q_en": "We need coveralls for an ADNOC site with flash fire risk, what should we ask for?",
+      "q_ar": "نحتاج أفرولات لموقع أدنوك فيه خطر حريق وميضي، ماذا نطلب؟",
+      "expected_entry_ids": [
+        "safety_equipment:fr-coveralls",
+        "safety_equipment:oshad-dm-rules"
+      ]
+    },
+    {
+      "q_en": "How can I check that the CE certificate for these harnesses is genuine?",
+      "q_ar": "كيف أتحقق من أن شهادة CE لهذه الأحزمة حقيقية؟",
+      "expected_entry_ids": [
+        "safety_equipment:certificate-check",
+        "safety_equipment:fall-protection"
+      ]
+    },
+    {
+      "q_en": "What information do you need to quote PPE for 300 workers?",
+      "q_ar": "ما المعلومات التي تحتاجونها لتسعير معدات وقاية لـ 300 عامل؟",
+      "expected_entry_ids": [
+        "safety_equipment:spec-ppe-order"
+      ]
+    },
+    {
+      "q_en": "Can a half-mask with filters be used to enter a tank with H2S?",
+      "q_ar": "هل يمكن استخدام قناع نصف وجه بمرشحات لدخول خزان فيه كبريتيد الهيدروجين؟",
+      "expected_entry_ids": [
+        "safety_equipment:respirators",
+        "safety_equipment:scba",
+        "safety_equipment:confined-space-kit"
+      ]
+    },
+    {
+      "q_en": "Our workers do not wear earmuffs because of heat, what alternatives are there?",
+      "q_ar": "عمالنا لا يرتدون أغطية الأذن بسبب الحرارة، ما البدائل؟",
+      "expected_entry_ids": [
+        "safety_equipment:hearing",
+        "safety_equipment:heat-stress"
+      ]
+    },
+    {
+      "q_en": "How often must helmets and harnesses be replaced?",
+      "q_ar": "كل كم يجب استبدال الخوذ والأحزمة؟",
+      "expected_entry_ids": [
+        "safety_equipment:inspection-lifespan"
+      ]
+    },
+    {
+      "q_en": "Do we need a written respiratory programme in Abu Dhabi if workers only wear FFP2 masks voluntarily?",
+      "q_ar": "هل نحتاج برنامجاً مكتوباً للحماية التنفسية في أبوظبي إذا كان العمال يرتدون كمامات FFP2 طوعاً فقط؟",
+      "expected_entry_ids": [
+        "safety_equipment:respiratory-programme"
+      ]
+    },
+    {
+      "q_en": "What are the midday break dates and what must we provide to workers in Abu Dhabi summer?",
+      "q_ar": "ما مواعيد استراحة الظهيرة وما الذي يجب توفيره للعمال في صيف أبوظبي؟",
+      "expected_entry_ids": [
+        "safety_equipment:heat-stress"
+      ]
+    },
+    {
+      "q_en": "Do face masks and gloves need an ECAS certificate to be sold in the UAE?",
+      "q_ar": "هل تحتاج الكمامات والقفازات إلى شهادة ECAS لبيعها في الإمارات؟",
+      "expected_entry_ids": [
+        "safety_equipment:oshad-dm-rules",
+        "safety_equipment:certificate-check"
+      ]
+    },
+    {
+      "q_en": "What respirator class protects against fine dust during concrete cutting?",
+      "q_ar": "ما فئة قناع التنفس التي تحمي من الغبار الدقيق أثناء قطع الخرسانة؟",
+      "expected_entry_ids": [
+        "safety_equipment:respirators"
+      ],
+      "why": "Covers FFP classes vs N95 and mask types, which is the protection-class choice for fine silica dust.",
+      "origin": "real buyer question, moved from safety_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    }
+  ],
+  "verified": {
+    "fetched_urls": 22,
+    "claims_checked": 142,
+    "corrected": [
+      "safety_equipment:oshad-dm-rules",
+      "safety_equipment:heat-stress",
+      "safety_equipment:footwear-classes"
+    ],
+    "removed": [],
+    "still_unverified": [
+      "safety_equipment:lead-times",
+      "safety_equipment:price-drivers",
+      "safety_equipment:hi-vis",
+      "safety_equipment:fall-protection",
+      "safety_equipment:confined-space-kit",
+      "safety_equipment:first-aid-eyewash",
+      "safety_equipment:inspection-lifespan"
+    ]
+  }
 }

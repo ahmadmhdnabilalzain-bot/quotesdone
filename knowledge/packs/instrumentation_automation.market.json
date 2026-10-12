@@ -8,8 +8,8 @@
       "id": "instrumentation_automation:uae-market-products",
       "topic": "Instrumentation & automation (PLC): products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "Instrumentation and automation (PLC) in the UAE: PLCs and PACs, DCS for process plants, SCADA and HMI, VFDs (see motors and drives), field instruments (pressure and differential pressure transmitters, temperature RTDs/thermocouples and transmitters, flow meters: electromagnetic, Coriolis, ultrasonic, vortex, turbine; level: radar, ultrasonic, guided wave, DP; analysers: pH, conductivity, chlorine, gas detectors), control valves and positioners, gauges and switches, safety instrumented systems (IEC 61511/SIL), industrial networking (Profinet, Modbus, EtherNet/IP, HART, Foundation Fieldbus), and hazardous-area equipment (ATEX/IECEx, Zone 1/2). Oil and gas work follows ADNOC/owner vendor lists. Buyers specify range, accuracy, process connection, wetted materials, output (4-20 mA HART), and area classification.",
-      "body_ar": "الأجهزة والأتمتة في الإمارات: وحدات التحكم المنطقي المبرمجة PLC وPAC، وأنظمة التحكم الموزع DCS لمحطات المعالجة، وSCADA وواجهات HMI، ومحولات التردد، والأجهزة الحقلية (مرسلات الضغط والضغط التفاضلي، ومجسات الحرارة RTD والمزدوجات الحرارية ومرسلاتها، ومقاييس التدفق الكهرومغناطيسية وكوريوليس وفوق الصوتية والدوامية والتوربينية؛ ومقاييس المنسوب بالرادار وفوق الصوتية والموجة الموجهة والضغط التفاضلي؛ والمحللات: الحموضة، والموصلية، والكلور، وكواشف الغاز)، وصمامات التحكم والموضعات، والمقاييس والمفاتيح، وأنظمة الأجهزة الآمنة (IEC 61511/SIL)، والشبكات الصناعية (Profinet وModbus وEtherNet/IP وHART وFoundation Fieldbus)، ومعدات المناطق الخطرة (ATEX/IECEx، المنطقة 1/2). وتتبع أعمال النفط والغاز قوائم موردي أدنوك/المالك. يحدد المشتري النطاق والدقة ووصلة العملية والمواد الملامسة والخرج (4-20 مللي أمبير HART) وتصنيف المنطقة.",
+      "body_en": "This entry covers instrumentation and automation sold in the UAE: PLCs, DCS, SCADA and HMI, field instruments, analysers, control valves, safety systems, industrial networking and hazardous-area equipment. Instrumentation and automation (PLC) in the UAE: PLCs and PACs, DCS for process plants, SCADA and HMI, VFDs (see motors and drives), field instruments (pressure and differential pressure transmitters, temperature RTDs/thermocouples and transmitters, flow meters: electromagnetic, Coriolis, ultrasonic, vortex, turbine; level: radar, ultrasonic, guided wave, DP; analysers: pH, conductivity, chlorine, gas detectors), control valves and positioners, gauges and switches, safety instrumented systems (IEC 61511/SIL), industrial networking (Profinet, Modbus, EtherNet/IP, HART, Foundation Fieldbus), and hazardous-area equipment (ATEX/IECEx, Zone 1/2). Oil and gas work follows ADNOC/owner vendor lists. Buyers specify range, accuracy, process connection, wetted materials, output (4-20 mA HART), and area classification.",
+      "body_ar": "يغطي هذا البند أجهزة القياس والأتمتة المباعة في الإمارات: وحدات PLC وأنظمة DCS وSCADA وواجهات HMI والأجهزة الميدانية والمحللات وصمامات التحكم وأنظمة السلامة والشبكات الصناعية ومعدات المناطق الخطرة. الأجهزة والأتمتة في الإمارات: وحدات التحكم المنطقي المبرمجة PLC وPAC، وأنظمة التحكم الموزع DCS لمحطات المعالجة، وSCADA وواجهات HMI، ومحولات التردد، والأجهزة الحقلية (مرسلات الضغط والضغط التفاضلي، ومجسات الحرارة RTD والمزدوجات الحرارية ومرسلاتها، ومقاييس التدفق الكهرومغناطيسية وكوريوليس وفوق الصوتية والدوامية والتوربينية؛ ومقاييس المنسوب بالرادار وفوق الصوتية والموجة الموجهة والضغط التفاضلي؛ والمحللات: الحموضة، والموصلية، والكلور، وكواشف الغاز)، وصمامات التحكم والموضعات، والمقاييس والمفاتيح، وأنظمة الأجهزة الآمنة (IEC 61511/SIL)، والشبكات الصناعية (Profinet وModbus وEtherNet/IP وHART وFoundation Fieldbus)، ومعدات المناطق الخطرة (ATEX/IECEx، المنطقة 1/2). وتتبع أعمال النفط والغاز قوائم موردي أدنوك/المالك. يحدد المشتري النطاق والدقة ووصلة العملية والمواد الملامسة والخرج (4-20 مللي أمبير HART) وتصنيف المنطقة.",
       "sources": [
         "https://www.ae.endress.com/en",
         "https://www.iec.ch",
@@ -24,8 +24,8 @@
       "id": "instrumentation_automation:uae-market-brands",
       "topic": "Instrumentation & automation (PLC): makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Brands in the market: Siemens, Rockwell Automation, Schneider Electric, ABB, Emerson, Honeywell, Yokogawa, Endress+Hauser, Krohne, Vega, WIKA, Omron, Mitsubishi Electric, Delta, Phoenix Contact, Pepperl+Fuchs, Dräger, MSA. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).",
-      "body_ar": "العلامات في السوق: Siemens، Rockwell Automation، Schneider Electric، ABB، Emerson، Honeywell، Yokogawa، Endress+Hauser، Krohne، Vega، WIKA، Omron، Mitsubishi Electric، Delta، Phoenix Contact، Pepperl+Fuchs، Dräger، MSA. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).",
+      "body_en": "This entry lists the automation and instrument brands in the UAE market, such as Siemens, Rockwell Automation, ABB, Emerson and Endress+Hauser, and where distributors and integrators are. Brands in the market: Siemens, Rockwell Automation, Schneider Electric, ABB, Emerson, Honeywell, Yokogawa, Endress+Hauser, Krohne, Vega, WIKA, Omron, Mitsubishi Electric, Delta, Phoenix Contact, Pepperl+Fuchs, Dräger, MSA. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).",
+      "body_ar": "يسرد هذا البند علامات الأتمتة وأجهزة القياس في سوق الإمارات، مثل Siemens وRockwell Automation وABB وEmerson وEndress+Hauser، وأماكن الموزعين ومكاملي الأنظمة. العلامات في السوق: Siemens، Rockwell Automation، Schneider Electric، ABB، Emerson، Honeywell، Yokogawa، Endress+Hauser، Krohne، Vega، WIKA، Omron، Mitsubishi Electric، Delta، Phoenix Contact، Pepperl+Fuchs، Dräger، MSA. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).",
       "sources": [
         "https://www.ae.endress.com/en",
         "https://www.iec.ch",
@@ -40,8 +40,8 @@
       "id": "instrumentation_automation:uae-market-sizes",
       "topic": "Instrumentation & automation (PLC): typical sizes, units and how it is quoted in the UAE",
       "kind": "uae_market_sizes",
-      "body_en": "Instruments are priced per tag (each configured instrument) from a datasheet; PLC systems per I/O count and panel with engineering hours, FAT/SAT and documentation; SCADA per licence tag count. Calibration certificates per instrument. Lead times for configured instruments 4-12 weeks. Integrators charge engineering per man-day; AMC per year.",
-      "body_ar": "تُسعّر الأجهزة بالرمز (كل جهاز مهيأ) من ورقة البيانات؛ وأنظمة PLC حسب عدد نقاط الإدخال/الإخراج واللوحة مع ساعات الهندسة واختبارات القبول في المصنع والموقع والتوثيق؛ وSCADA حسب عدد نقاط الترخيص. وشهادات المعايرة لكل جهاز. ومدة توريد الأجهزة المهيأة 4-12 أسبوعاً. ويتقاضى المكاملون الهندسة باليوم؛ وعقد صيانة سنوي.",
+      "body_en": "This entry explains how instrumentation is priced: instruments per tag, PLC systems per I/O count with engineering hours, SCADA per licence tag count, calibration per instrument, and integrators per man-day. Instruments are priced per tag (each configured instrument) from a datasheet; PLC systems per I/O count and panel with engineering hours, FAT/SAT and documentation; SCADA per licence tag count. Calibration certificates per instrument. Lead times for configured instruments 4-12 weeks. Integrators charge engineering per man-day; AMC per year.",
+      "body_ar": "يشرح هذا البند كيف تُسعّر أجهزة القياس: الأجهزة لكل وسم، وأنظمة PLC حسب عدد نقاط الإدخال والإخراج مع ساعات الهندسة، وSCADA حسب عدد وسوم الترخيص، والمعايرة لكل جهاز، ومكاملو الأنظمة لكل يوم عمل. تُسعّر الأجهزة بالرمز (كل جهاز مهيأ) من ورقة البيانات؛ وأنظمة PLC حسب عدد نقاط الإدخال/الإخراج واللوحة مع ساعات الهندسة واختبارات القبول في المصنع والموقع والتوثيق؛ وSCADA حسب عدد نقاط الترخيص. وشهادات المعايرة لكل جهاز. ومدة توريد الأجهزة المهيأة 4-12 أسبوعاً. ويتقاضى المكاملون الهندسة باليوم؛ وعقد صيانة سنوي.",
       "sources": [
         "https://www.ae.endress.com/en",
         "https://www.iec.ch",
@@ -55,11 +55,15 @@
   ],
   "eval": [
     {
-      "q_en": "Which flow meter suits treated sewage effluent?",
-      "q_ar": "ما مقياس التدفق المناسب لمياه الصرف المعالجة؟",
+      "q_en": "Which programmable controllers, sensors and automation gear can I find locally?",
+      "q_ar": "ما وحدات التحكم المبرمجة وأجهزة الاستشعار ومعدات الأتمتة التي أجدها محلياً؟",
       "expected_entry_ids": [
         "instrumentation_automation:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists PLCs, sensors/transmitters and automation equipment sold.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167,
+      "word_overlap_after_enrichment": 0.167
     }
   ],
   "verified": {

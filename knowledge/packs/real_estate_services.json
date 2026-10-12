@@ -30,7 +30,7 @@
       "id": "real_estate_services:uae-standards-and-approvals",
       "topic": "Real estate services - UAE standards, authorities and approvals",
       "kind": "standard",
-      "body_en": "In Dubai the Dubai Land Department (DLD) licenses real estate brokers through RERA and publishes a public list of licensed brokers; the buyer can check a broker against that list. Other emirates have their own land departments. What the cited sources do not establish: The DLD page read does not state commission rates or broker card requirements; those must be agreed in the contract and not guessed.",
+      "body_en": "Who regulates property brokers in the UAE and how to check one: in Dubai, brokers are licensed by the Dubai Land Department through RERA, and other emirates have their own land departments. In Dubai the Dubai Land Department (DLD) licenses real estate brokers through RERA and publishes a public list of licensed brokers; the buyer can check a broker against that list. Other emirates have their own land departments. What the cited sources do not establish: The DLD page read does not state commission rates or broker card requirements; those must be agreed in the contract and not guessed.",
       "body_ar": "في دبي ترخص دائرة الأراضي والأملاك الوسطاء العقاريين عبر مؤسسة التنظيم العقاري وتنشر قائمة عامة بالوسطاء المرخصين يمكن للمشتري التحقق منها. ولكل إمارة أخرى دائرة أراضٍ خاصة بها. ما لا تثبته المصادر المذكورة: صفحة دائرة الأراضي المقروءة لا تذكر نسب العمولة ولا متطلبات بطاقة الوسيط؛ يجب الاتفاق عليها في العقد وعدم تخمينها.",
       "source_note": "The DLD page read does not state commission rates or broker card requirements; those must be agreed in the contract and not guessed.",
       "sources": [
@@ -54,6 +54,15 @@
       "expected_entry_ids": [
         "real_estate_services:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What forms and permits must a Dubai broker have before advertising my property?",
+      "q_ar": "ما النماذج والتصاريح التي يجب أن يحصل عليها الوسيط في دبي قبل الإعلان عن عقاري؟",
+      "expected_entry_ids": [
+        "real_estate_services:uae-standards-and-approvals"
+      ],
+      "why": "States DLD licenses brokers through RERA with a public broker list; partial only, as it does not cover Form A or the Trakheesi advertising permit, which are missing.",
+      "origin": "real buyer question, moved from real_estate_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

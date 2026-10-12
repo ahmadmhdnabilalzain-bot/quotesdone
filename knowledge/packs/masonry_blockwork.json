@@ -47,6 +47,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "masonry_blockwork:thermal-block-wall-u-value",
+      "topic": "Thermal blocks and Dubai wall U-value",
+      "kind": "regulatory_requirement",
+      "body_en": "A thermal block is a prefabricated masonry block with an insulation layer in its mid-plane, used so that the wall reaches a low U-value. Dubai legislation introduced in 2001 and 2003 prescribes minimum insulation levels for external walls and roofs, with a maximum wall U-value of 0.57 W/m2K, and peer-reviewed research on Dubai villas reports that the usual way of meeting this is the mid-plane insulated prefabricated block. A known weakness is that the reinforced concrete frame typically remains uninsulated, introducing significant thermal bridges, so detailing at the frame matters. Buyers should ask for the block's tested thermal performance or wall U-value certificate and its Dubai Municipality product approval. Not established here: the insulation material, Abu Dhabi (Estidama) limits, and whether later Dubai green building rules tightened the 0.57 limit.",
+      "body_ar": "البلوك الحراري هو بلوك بناء مسبق الصنع تتوسطه طبقة عازلة في مستواه الأوسط، ويُستخدم لكي يحقق الجدار قيمة انتقال حراري (U-value) منخفضة. وقد حددت تشريعات دبي الصادرة عامي 2001 و2003 حدوداً دنيا للعزل للجدران الخارجية والأسقف، بحد أقصى لقيمة U للجدار يبلغ 0.57 واط/م²·كلفن، وتفيد أبحاث محكّمة عن الفلل في دبي بأن الطريقة المعتادة لتحقيق ذلك هي البلوك مسبق الصنع المعزول في مستواه الأوسط. ومن نقاط الضعف المعروفة أن الهيكل الخرساني المسلح يبقى عادةً دون عزل، ما يُحدث جسوراً حرارية كبيرة، لذا تهم تفاصيل المعالجة عند الهيكل. وينبغي للمشتري طلب نتائج الأداء الحراري المختبرة للبلوك أو شهادة قيمة U للجدار واعتماد المنتج من بلدية دبي. لم يُثبت هنا: نوع المادة العازلة، وحدود أبوظبي (استدامة)، وما إذا كانت قواعد المباني الخضراء اللاحقة في دبي قد شدّدت حد 0.57.",
+      "sources": [
+        "https://pureportal.coventry.ac.uk/en/publications/wall-insulation-measures-for-residential-villas-in-dubai-a-case-s/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -63,6 +76,15 @@
       "expected_entry_ids": [
         "masonry_blockwork:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is a thermal block and why is it required in Dubai?",
+      "q_ar": "ما هو الطابوق الحراري ولماذا هو مطلوب في دبي؟",
+      "expected_entry_ids": [
+        "masonry_blockwork:thermal-block-wall-u-value"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains thermal blocks or the Dubai wall thermal insulation (U-value) requirement; missing: thermal block / green building envelope entry). masonry_blockwork:thermal-block-wall-u-value was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from masonry_blockwork.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -78,6 +100,9 @@
       "masonry_blockwork:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "masonry_blockwork:thermal-block-wall-u-value"
+    ]
   }
 }

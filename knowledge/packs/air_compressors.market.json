@@ -8,8 +8,8 @@
       "id": "air_compressors:uae-market-products",
       "topic": "Air compressors: products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "Air compressors in the UAE: oil-injected rotary screw compressors (fixed and variable speed drive, 5.5-500 kW, 7-13 bar) for factories and workshops, oil-free screw and scroll compressors (ISO 8573-1 Class 0) for food packaging, pharma, electronics and hospitals, reciprocating piston compressors for small workshops and garages, portable diesel compressors (tow-behind, 185-1,600 cfm) for construction and blasting, high-pressure boosters, and air treatment (refrigerated and desiccant dryers, filters, receivers, condensate drains, piping in aluminium such as Transair). Hot UAE ambient needs compressors rated for 46-50 C and good ventilation; specs: FAD (free air delivery) in m3/min or cfm at pressure, kW, pressure dew point, ISO 8573-1 air quality class, noise dB(A), energy (specific power kW per m3/min).",
-      "body_ar": "ضواغط الهواء في الإمارات: الضواغط اللولبية المحقونة بالزيت (ثابتة ومتغيرة السرعة، 5.5-500 كيلوواط، 7-13 بار) للمصانع والورش، والضواغط اللولبية واللفافية الخالية من الزيت (الفئة 0 وفق ISO 8573-1) لتغليف الأغذية والأدوية والإلكترونيات والمستشفيات، والضواغط الترددية المكبسية للورش الصغيرة والكراجات، والضواغط الديزل المتنقلة (مقطورة، 185-1,600 قدم مكعب/دقيقة) للبناء والسفع، ومعززات الضغط العالي، ومعالجة الهواء (المجففات بالتبريد والامتصاص، والفلاتر، والخزانات، وتصريف المكثفات، والأنابيب الألمنيوم). وتحتاج حرارة الإمارات ضواغط مصنفة لـ46-50 مئوية وتهوية جيدة؛ المواصفات: تدفق الهواء الحر بالمتر المكعب/دقيقة أو قدم مكعب/دقيقة عند ضغط محدد، والكيلوواط، ونقطة الندى تحت الضغط، وفئة جودة الهواء، والضوضاء، والقدرة النوعية.",
+      "body_en": "This entry covers the air compressor range in the UAE, from oil-injected and oil-free screw compressors to piston and portable diesel units and air treatment, and the specs buyers state. Air compressors in the UAE: oil-injected rotary screw compressors (fixed and variable speed drive, 5.5-500 kW, 7-13 bar) for factories and workshops, oil-free screw and scroll compressors (ISO 8573-1 Class 0) for food packaging, pharma, electronics and hospitals, reciprocating piston compressors for small workshops and garages, portable diesel compressors (tow-behind, 185-1,600 cfm) for construction and blasting, high-pressure boosters, and air treatment (refrigerated and desiccant dryers, filters, receivers, condensate drains, piping in aluminium such as Transair). Hot UAE ambient needs compressors rated for 46-50 C and good ventilation; specs: FAD (free air delivery) in m3/min or cfm at pressure, kW, pressure dew point, ISO 8573-1 air quality class, noise dB(A), energy (specific power kW per m3/min).",
+      "body_ar": "يغطي هذا البند تشكيلة ضواغط الهواء في الإمارات، من الضواغط اللولبية المحقونة بالزيت والخالية من الزيت إلى الضواغط المكبسية والديزل المتنقلة ومعالجة الهواء، والمواصفات التي يذكرها المشترون. ضواغط الهواء في الإمارات: الضواغط اللولبية المحقونة بالزيت (ثابتة ومتغيرة السرعة، 5.5-500 كيلوواط، 7-13 بار) للمصانع والورش، والضواغط اللولبية واللفافية الخالية من الزيت (الفئة 0 وفق ISO 8573-1) لتغليف الأغذية والأدوية والإلكترونيات والمستشفيات، والضواغط الترددية المكبسية للورش الصغيرة والكراجات، والضواغط الديزل المتنقلة (مقطورة، 185-1,600 قدم مكعب/دقيقة) للبناء والسفع، ومعززات الضغط العالي، ومعالجة الهواء (المجففات بالتبريد والامتصاص، والفلاتر، والخزانات، وتصريف المكثفات، والأنابيب الألمنيوم). وتحتاج حرارة الإمارات ضواغط مصنفة لـ46-50 مئوية وتهوية جيدة؛ المواصفات: تدفق الهواء الحر بالمتر المكعب/دقيقة أو قدم مكعب/دقيقة عند ضغط محدد، والكيلوواط، ونقطة الندى تحت الضغط، وفئة جودة الهواء، والضوضاء، والقدرة النوعية.",
       "sources": [
         "https://www.atlascopco.com/en-ae",
         "https://www.iso.org",
@@ -24,8 +24,8 @@
       "id": "air_compressors:uae-market-brands",
       "topic": "Air compressors: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Brands in the market: Atlas Copco, Ingersoll Rand, Kaeser, Sullair, Boge, ELGi, Kirloskar, Chicago Pneumatic, Fusheng, Hitachi, Doosan Portable Power, Airman, Kaishan. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.",
-      "body_ar": "العلامات في السوق: Atlas Copco، Ingersoll Rand، Kaeser، Sullair، Boge، ELGi، Kirloskar، Chicago Pneumatic، Fusheng، Hitachi، Doosan Portable Power، Airman، Kaishan. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.",
+      "body_en": "This entry lists the compressor brands in the UAE market, such as Atlas Copco, Ingersoll Rand, Kaeser and ELGi, and where distributors and service centres cluster. Brands in the market: Atlas Copco, Ingersoll Rand, Kaeser, Sullair, Boge, ELGi, Kirloskar, Chicago Pneumatic, Fusheng, Hitachi, Doosan Portable Power, Airman, Kaishan. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.",
+      "body_ar": "يسرد هذا البند علامات الضواغط في سوق الإمارات، مثل Atlas Copco وIngersoll Rand وKaeser وELGi، وأماكن تركز الموزعين ومراكز الخدمة. العلامات في السوق: Atlas Copco، Ingersoll Rand، Kaeser، Sullair، Boge، ELGi، Kirloskar، Chicago Pneumatic، Fusheng، Hitachi، Doosan Portable Power، Airman، Kaishan. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.",
       "sources": [
         "https://www.atlascopco.com/en-ae",
         "https://www.iso.org",
@@ -40,8 +40,8 @@
       "id": "air_compressors:uae-market-sizes",
       "topic": "Air compressors: typical sizes, units and how it is quoted in the UAE",
       "kind": "uae_market_sizes",
-      "body_en": "Priced per unit by kW and FAD; dryers and filters per unit by flow; receivers by litre (500, 1,000, 2,000 L) with pressure vessel certification. Portable compressor rental per day/week/month by cfm. Service contracts per year by running hours (service every 2,000-4,000 hours), with parts kits priced separately. Warranty 1-2 years (extended airend warranties with service plans).",
-      "body_ar": "يُسعّر بالوحدة حسب الكيلوواط والتدفق؛ والمجففات والفلاتر بالوحدة حسب التدفق؛ والخزانات باللتر (500 و1,000 و2,000 لتر) مع شهادة أوعية الضغط. وتأجير الضواغط المتنقلة يومياً/أسبوعياً/شهرياً حسب القدم المكعب/دقيقة. وعقود الخدمة سنوياً حسب ساعات التشغيل (خدمة كل 2,000-4,000 ساعة) مع أطقم القطع مسعرة منفصلة. والضمان 1-2 سنة (ضمانات ممددة لوحدة الضغط مع خطط الخدمة).",
+      "body_en": "This entry explains how compressors are priced: per unit by kW and air delivery, receivers by litre, portable rental per day to month, and service contracts by running hours. Priced per unit by kW and FAD; dryers and filters per unit by flow; receivers by litre (500, 1,000, 2,000 L) with pressure vessel certification. Portable compressor rental per day/week/month by cfm. Service contracts per year by running hours (service every 2,000-4,000 hours), with parts kits priced separately. Warranty 1-2 years (extended airend warranties with service plans).",
+      "body_ar": "يوضح هذا البند كيفية تسعير الضواغط: للوحدة حسب القدرة بالكيلوواط وتدفق الهواء، والخزانات حسب اللتر، وتأجير الوحدات المتنقلة باليوم حتى الشهر، وعقود الصيانة حسب ساعات التشغيل. يُسعّر بالوحدة حسب الكيلوواط والتدفق؛ والمجففات والفلاتر بالوحدة حسب التدفق؛ والخزانات باللتر (500 و1,000 و2,000 لتر) مع شهادة أوعية الضغط. وتأجير الضواغط المتنقلة يومياً/أسبوعياً/شهرياً حسب القدم المكعب/دقيقة. وعقود الخدمة سنوياً حسب ساعات التشغيل (خدمة كل 2,000-4,000 ساعة) مع أطقم القطع مسعرة منفصلة. والضمان 1-2 سنة (ضمانات ممددة لوحدة الضغط مع خطط الخدمة).",
       "sources": [
         "https://www.atlascopco.com/en-ae",
         "https://www.iso.org",
@@ -55,11 +55,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do I need an oil-free compressor for a pharmaceutical line?",
-      "q_ar": "هل أحتاج ضاغطاً خالياً من الزيت لخط أدوية؟",
+      "q_en": "What types of air compressors can businesses buy or rent from suppliers in the UAE?",
+      "q_ar": "ما أنواع ضواغط الهواء التي يمكن للشركات شراؤها أو استئجارها من الموردين في الإمارات؟",
       "expected_entry_ids": [
         "air_compressors:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists screw, oil-free, scroll and portable compressor types used in the UAE.",
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

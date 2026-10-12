@@ -42,6 +42,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "flooring:healthcare-vinyl-homogeneous-welded",
+      "topic": "Vinyl sheet for clinical areas",
+      "kind": "spec_reference",
+      "body_en": "Clinical areas use homogeneous vinyl sheet: a single colour-through wear layer, 2 mm thick, supplied in 2 m wide rolls. Every seam is heat-welded with a matching rod into one continuous waterproof skin, and the sheet is turned 100-150 mm up the wall over a cove former (quarter-round fillet), removing the 90-degree floor-wall corner. Zone variants: conductive or static-dissipative seamless floor for operating theatres (e.g. conductive vinyl over a copper earthing grid), R10 anti-slip finish for wards, R11 anti-slip floor for toilets, sluice rooms and scrub areas, and chemical-grade vinyl or epoxy/PU resin for labs. Source is an Indian hospital guide. Not established: product standard, or a Dubai (DHA) clause prescribing vinyl type; check the project's health-facility design guideline.",
+      "body_ar": "تُستخدم في المناطق السريرية أرضيات الفينيل المتجانس على شكل لفائف: طبقة اهتراء واحدة ذات لون متجانس عبر السماكة، بسماكة 2 مم، وتورَّد في لفائف بعرض 2 م. تُلحم جميع الوصلات حراريًا بقضيب لحام مطابق لتشكّل غشاءً متصلًا مانعًا لتسرب الماء، وتُرفع اللفائف على الجدار بارتفاع 100-150 مم فوق قالب زاوية (حشوة ربع دائرية)، فتزول الزاوية القائمة بين الأرضية والجدار. المتغيرات حسب المنطقة: أرضية متصلة موصلة أو مبددة للكهرباء الساكنة لغرف العمليات (مثل الفينيل الموصل فوق شبكة تأريض نحاسية)، وتشطيب مضاد للانزلاق R10 للأجنحة، وأرضية مضادة للانزلاق R11 لدورات المياه وغرف التنظيف ومناطق التعقيم، وفينيل مقاوم للكيماويات أو راتنج إيبوكسي/بولي يوريثان للمختبرات. المصدر دليل لمستشفيات في الهند. غير مثبت: المواصفة القياسية للمنتج، أو بند لدى هيئة الصحة بدبي يحدد نوع الفينيل؛ راجع دليل تصميم المنشآت الصحية المعتمد للمشروع.",
+      "sources": [
+        "https://www.studiomatrx.org/guides/hospital-flooring-india"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "flooring:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which vinyl flooring is suitable for a clinic in Dubai?",
+      "q_ar": "ما أرضيات الفينيل المناسبة لعيادة في دبي؟",
+      "expected_entry_ids": [
+        "flooring:healthcare-vinyl-homogeneous-welded"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry covers homogeneous/heterogeneous vinyl, welded seams or infection-control suitability for clinics). flooring:healthcare-vinyl-homogeneous-welded was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from flooring.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "flooring:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "flooring:healthcare-vinyl-homogeneous-welded"
+    ]
   }
 }

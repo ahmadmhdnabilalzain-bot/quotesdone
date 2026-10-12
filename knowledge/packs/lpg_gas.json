@@ -42,6 +42,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "lpg_gas:cylinder-sizes-commercial",
+      "topic": "LPG cylinder formats for commercial kitchens",
+      "kind": "product_range",
+      "body_en": "Gas-cylinder trading in Dubai covers LPG cylinders of 5 kg, 11 kg, 22 kg, 44 kg and 50 kg. The 5 kg size is for household cooking. Restaurants, kitchens and caterers use 11 kg, 22 kg and 44 kg cylinders. The 44 kg and 50 kg sizes serve commercial heating and industrial use. Emirates Gas, ADNOC Distribution and Emarat are named among the leading LPG distributors in Dubai. Traders must operate under Dubai Civil Defence safety protocols, and the activity needs Supreme Council of Energy approval before the trade licence is issued. Not established here: specifications or thresholds for bulk tanks or central gas systems, or when a kitchen must move from cylinders to a central system; the local Civil Defence code and the gas contractor decide those.",
+      "body_ar": "تشمل تجارة أسطوانات الغاز في دبي أسطوانات غاز البترول المسال (LPG) بأحجام 5 كغ و11 كغ و22 كغ و44 كغ و50 كغ. حجم 5 كغ مخصص للطهي المنزلي. وتستخدم المطاعم والمطابخ وشركات التموين أسطوانات 11 كغ و22 كغ و44 كغ. أما حجما 44 كغ و50 كغ فيخدمان التدفئة التجارية والاستخدام الصناعي. وتُذكر شركات الإمارات للغاز وأدنوك للتوزيع وإمارات ضمن أبرز موزعي غاز البترول المسال في دبي. ويجب على التجار العمل وفق بروتوكولات السلامة الصادرة عن الدفاع المدني في دبي، ويتطلب النشاط موافقة المجلس الأعلى للطاقة قبل إصدار الرخصة التجارية. غير ثابت هنا: مواصفات الخزانات السائبة أو أنظمة الغاز المركزية وحدودها، أو متى يجب على المطبخ الانتقال من الأسطوانات إلى نظام مركزي؛ ويحدد ذلك كود الدفاع المدني المحلي ومقاول الغاز.",
+      "sources": [
+        "https://www.meydanfz.ae/activity-hub/setup-gas-cylinders-trading-business-in-dubai-uae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "lpg_gas:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What LPG cylinder sizes are available for a restaurant in the UAE?",
+      "q_ar": "ما أحجام أسطوانات الغاز المسال المتاحة لمطعم في الإمارات؟",
+      "expected_entry_ids": [
+        "lpg_gas:cylinder-sizes-commercial"
+      ],
+      "why": "No entry of this pack answered it (no entry lists LPG cylinder sizes or commercial bulk options). lpg_gas:cylinder-sizes-commercial was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from lpg_gas.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "lpg_gas:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "lpg_gas:cylinder-sizes-commercial"
+    ]
   }
 }
