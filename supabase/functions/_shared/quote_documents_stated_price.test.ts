@@ -15,8 +15,9 @@ import { renderPdf } from '../pdf_native/render.ts';
 import * as F from './quote_documents.fixture.ts';
 
 type Lang = 'en' | 'ar';
-const BRAND = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/';
-async function fetchBytes(p: string) { try { const r = await fetch(BRAND + p); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; } catch { return null; } }
+// The brand fonts from the repo's fixtures (as customer_api/arabic_documents.test.ts): no network, no project ref.
+const BRAND = new URL('../pdf_native/fixtures/brand/', import.meta.url);
+const fetchBytes = async (p: string) => /\.ttf$/.test(p) ? await Deno.readFile(new URL(p, BRAND)) : null;
 const INQ = { id: 'zzd3m0dd-1207-4f00-9a00-000000001207', rfq_no: 'ZZ1207', category: 'gypsum', summary: 'ZZ DEMO: gypsum partition for an office in Business Bay, 20 sqm.', emirate: 'Dubai' };
 const ITEMS: Item[] = [{ desc: 'Gypsum board partition, 12.5mm board, 75mm metal stud', qty: '20', unit: 'sqm', unit_price: 100, amount: 2000, specs: { board_thickness: '12.5 mm', stud: '75 mm metal' } }];
 // The supplier stated: subtotal 2,000; special discount 15% (AED 300); net 1,700; VAT 5% AED 85; total 1,785.
