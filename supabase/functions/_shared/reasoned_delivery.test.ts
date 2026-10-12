@@ -224,8 +224,7 @@ function replayRig(o: { stored?: Partial<Record<SocialPlatform, Record<string, u
   const store = (tokenFor: (ev: CommentEvent) => Promise<string | null>): Store => ({
     insertInbound: () => Promise.resolve(1), release: () => Promise.resolve(), threadAllowed: () => Promise.resolve(true),
     record: () => Promise.resolve(), handoff: () => Promise.resolve(null), switchOn: () => Promise.resolve(true),
-    library: () => Promise.resolve('Thank you for the kind words.'), deterministic: () => Promise.resolve({ kind: 'unknown', key: 'unknown', text: '' }),
-    draft: () => Promise.resolve(null),
+    write: () => Promise.resolve('Thank you for the kind words.'),
     async reply(ev, text) { const t = await tokenFor(ev); return t ? await call(f, replyRequest(ev, text, t)) : { ok: false, error: 'no credential for ' + ev.platform }; },
     async hide() { return { ok: false, error: 'not in this test' }; },
   });
