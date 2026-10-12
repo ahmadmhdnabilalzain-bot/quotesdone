@@ -7903,17 +7903,23 @@ begin
       'next_decision', new.decision, 'generation', new.generation, 'round', new.round));
     perform set_config('qd.handoff_closer', '', true);
   end loop;
-  for h in select a.id from public.agent_actions a
-            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.decision_owed'
-              and a.detail->>'item_key' = new.item_key loop
-    perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('decided_by', 'ceo', 'decision', new.decision,
-      'round_id', new.id, 'reasons', left(new.reasons, 2000)));
-  end loop;
+  -- an owed decision is answered here and closed by the seat that owed it (z61), after it re-verifies
+  update public.agent_actions a
+     set detail = a.detail || jsonb_build_object(
+           'ceo_decided', jsonb_build_object('decided_by', 'ceo', 'decision', new.decision, 'round_id', new.id,
+                                             'reasons', left(new.reasons, 2000)),
+           'awaiting', coalesce(a.detail->>'from', 'the originating seat') || ' re-verifies the CEO''s decision')
+   where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.decision_owed'
+     and a.detail->>'item_key' = new.item_key;
   if new.decision in ('approved', 'replaced', 'withdrawn') then
+    -- the return: the seat's handler (fn_seat_takes_the_ceo_decision) re-verifies and closes what it owed
     perform public.fn_seat_handoff('ceo', new.originator_seat, 'ceo.decision_closed', 'ceo_decision_round', new.id::text,
       jsonb_build_object('round_id', new.id, 'path', new.path, 'item_key', new.item_key, 'decision', new.decision,
                          'reasons', left(new.reasons, 3000), 'generation', new.generation, 'round', new.round,
                          'version', new.version, 'source_table', new.source_table, 'source_id', new.source_id));
+  elsif new.decision = 'rejected' then
+    -- the return is the ceo.revise fn_ceo_decide opened for this round; the seat re-verifies against the ledger
+    perform public.fn_seat_verifies_the_ceo_decision_it_owed(new.originator_seat, new.item_key);
   end if;
   return null;
 end $function$

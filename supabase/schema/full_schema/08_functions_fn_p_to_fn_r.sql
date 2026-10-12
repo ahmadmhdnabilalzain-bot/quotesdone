@@ -1976,7 +1976,7 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__decision_owed(p_id bigint
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.reasoning_held_question; v_choice text; v_hid bigint; v_review jsonb; v jsonb; x record;
+declare r public.reasoning_held_question; v_choice text; v_hid bigint; v_review jsonb; v jsonb; x record; v_from text;
 begin
   v_choice := public.fn_ambition_choice(p_id, p_result);
   select * into r from public.reasoning_held_question where id = p_id;
@@ -1984,8 +1984,6 @@ begin
   -- A REFUND IS RE-MEASURED FIRST: one whose checks now pass is approved, which settles what was owed, so a
   -- payable refund is never declined on a stale reading.
   if split_part(r.subject->>'item_key', ':', 1) = 'refunds' then
-    -- a remediation whose checks now pass is closed first (as fn_ceo_refund_loop_sweep would on its next run);
-    -- closing the last one re-runs the review through fn_ceo_refund_loop_advance
     for x in select a.id, a.detail from public.agent_actions a
               where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'refund.remediate'
                 and a.detail->>'refund_id' = split_part(r.subject->>'item_key', ':', 2) order by a.id loop
@@ -1997,16 +1995,26 @@ begin
     end loop;
     v_review := public.fn_ceo_refund_review(split_part(r.subject->>'item_key', ':', 2)::bigint, 'ceo_decision_owed');
   end if;
-  -- a stale answer changes nothing: the item moved on (a new round, an approval) and settled what was owed
-  if not exists (select 1 from public.agent_actions a where a.id = v_hid and a.status = 'pending') then
+  -- CHANGED: a stale answer changes nothing. The item moved on (a new round, an approval) and the CEO's decision is
+  -- recorded on the owed handoff ('ceo_decided'), which now waits only for its seat to re-verify and close it.
+  if not exists (select 1 from public.agent_actions a where a.id = v_hid and a.status = 'pending'
+                   and not (a.detail ? 'ceo_decided') and not (a.detail ? 'ceo_nothing_to_close')) then
     return jsonb_build_object('applied', true, 'already', 'the owed decision was settled by the item''s next round', 'review', v_review);
   end if;
   v := public.fn_ceo_decision_close(r.subject->>'item_key', case v_choice when 'replace' then 'replaced' else 'withdrawn' end,
     coalesce(p_result->>'answer', ''), jsonb_build_object('held_id', p_id, 'model', p_result->>'model', 'fields', public.fn_ambition_fields(p_result)));
-  -- nothing is left to decide (the item closed or the refund left 'requested' another way): the owed conversation
-  -- ends with that fact instead of waiting for ever. An item under review stays owed; its review turn settles it.
+  -- CHANGED: nothing is left to decide (the item closed or the refund left 'requested' another way). The CEO's
+  -- answer is recorded and delivered back as ceo.decision_closed; the seat that owed it re-verifies and closes it.
+  -- An item under review stays owed; its review turn settles it.
   if not coalesce((v->>'ok')::boolean, false) and coalesce(v->>'reason', '') !~ 'under review' then
-    perform public.fn_seat_handoff_complete(v_hid, jsonb_build_object('decided_by', 'ceo', 'nothing_to_close', v->>'reason', 'held_id', p_id));
+    update public.agent_actions
+       set detail = detail || jsonb_build_object('ceo_nothing_to_close', jsonb_build_object('decided_by', 'ceo', 'reason', v->>'reason', 'held_id', p_id),
+                                                 'awaiting', coalesce(detail->>'from', 'the originating seat') || ' re-verifies the CEO''s answer')
+     where id = v_hid
+    returning detail->>'from' into v_from;
+    perform public.fn_seat_handoff('ceo', v_from, 'ceo.decision_closed', 'agent_actions', 'owed:' || v_hid,
+      jsonb_build_object('item_key', r.subject->>'item_key', 'decision', 'nothing_to_close', 'reasons', left(v->>'reason', 3000),
+                         'owed_handoff_id', v_hid, 'held_id', p_id));
   end if;
   return v || jsonb_build_object('review', v_review);
 end $function$
