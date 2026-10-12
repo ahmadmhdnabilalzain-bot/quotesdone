@@ -12,7 +12,9 @@
 // licence spread 21.5..48.2 / ink 0.0118..0.232, the lowest being the two Arabic-only licences
 // (lic_ajman_ded_ar_png 21.5 / 0.0118, lic_fujairah_ded_ar_jpg 21.8 / 0.0123). Blank = spread under 8 OR ink
 // under 0.3%: a 2.7x margin under the faintest real licence's spread and 3.9x under its ink.
-import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
+// The decoder is imagescript 1.2.17's own PNG/JPEG wasm, VENDORED and embedded (vendor/imagescript_1_2_17): nothing
+// is fetched from deno.land at import or on a cold start, and the tests run with no network.
+import { decodeImage, type Rgba } from './vendor/imagescript_1_2_17/decode.ts';
 import { imageDims } from './licence_extract.ts';
 
 export const MIN_SPREAD = 8;
@@ -22,15 +24,15 @@ const bytesOf = (b64: string) => Uint8Array.from(atob(String(b64).replace(/^data
 
 /** { spread, ink } of one page, or null when code cannot decode it (never judged blank on a guess). */
 export async function pageInk(b64: string): Promise<{ spread: number; ink: number } | null> {
-  let img: Image;
-  try { const d = await Image.decode(bytesOf(b64)); if (!(d instanceof Image)) return null; img = d; } catch { return null; }
-  // A sampled grid of at most ~250 x 250 points keeps a 3000 px photo inside the edge CPU budget.
+  let img: Rgba;
+  try { img = decodeImage(bytesOf(b64)); } catch { return null; }
+  // A sampled grid of at most ~250 x 250 points keeps the measuring itself cheap.
   const step = Math.max(1, Math.floor(Math.max(img.width, img.height) / 250));
   const lum: number[] = [];
-  for (let y = 1; y <= img.height; y += step) {
-    for (let x = 1; x <= img.width; x += step) {
-      const [r, g, b] = Image.colorToRGB(img.getPixelAt(x, y));
-      lum.push(0.299 * r + 0.587 * g + 0.114 * b);
+  for (let y = 0; y < img.height; y += step) {
+    for (let x = 0; x < img.width; x += step) {
+      const i = (y * img.width + x) * 4;
+      lum.push(0.299 * img.rgba[i] + 0.587 * img.rgba[i + 1] + 0.114 * img.rgba[i + 2]);
     }
   }
   if (!lum.length) return null;
