@@ -65,14 +65,17 @@ async function domFacts(page) {
     const text = document.body?.innerText || '';
     const de = document.documentElement;
     const overflowX = Math.max(de.scrollWidth, document.body.scrollWidth) - window.innerWidth;
-    const wide = [];
+    // THE CAUSE, NOT ITS ANCESTORS (run 1be65ab2, supplier Insights 39 px): the first five offenders in document
+    // order were the header's rows and buttons, which only stick out because something deeper is wide. Report the
+    // LEAVES — offenders with no offending descendant — with their text, so the element to fix is named.
+    const off = [];
     if (overflowX > 2) for (const el of document.querySelectorAll('body *')) {
       const r = el.getBoundingClientRect();
-      if (vis(el) && (r.right > window.innerWidth + 2 || r.left < -2) && getComputedStyle(el).position !== 'fixed') {
-        wide.push((el.tagName + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : '')).slice(0, 60));
-        if (wide.length > 4) break;
-      }
+      if (vis(el) && (r.right > window.innerWidth + 2 || r.left < -2) && getComputedStyle(el).position !== 'fixed') off.push(el);
     }
+    const wide = off.filter((el) => !off.some((o) => o !== el && el.contains(o))).slice(0, 5).map((el) =>
+      (el.tagName + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ').slice(0, 3).join('.') : '')).slice(0, 80)
+      + ` "${(el.textContent || '').trim().slice(0, 30)}" ${Math.round(el.getBoundingClientRect().right - window.innerWidth)}px`);
     const keys = [...new Set((text.match(/\bmessages\.[\w.]+/g) || []).concat(text.match(/\b[a-z]+(?:\.[a-z_]+){2,}\b/g) || []).filter((k) => /^messages\.|_|\./.test(k) && !/\.(com|ae|ai|invalid|pdf|png|jpg)$/.test(k)))].slice(0, 10);
     // Language share over visible words (brand + common tokens removed).
     const words = text.replace(/QuotesDone|WhatsApp|AED|PDF|UAE|DET|TDRA|Stripe|Google|LLC|FZ|https?:\S+|\S+@\S+/g, ' ').split(/\s+/).filter((w) => w.length > 2);
@@ -409,17 +412,33 @@ async function customerJourney(browser, w, lang, view) {
       const before = await nInq();
       const box = await openNewRequest(page, lang);
       const sendBtn = page.getByRole('button', { name: lang === 'ar' ? /أرسل إلى الموردين/ : /send to suppliers/i }).first();
-      const answers = lang === 'ar'
-        ? ['ZZ DEMO: دهان داخلي لشقة غرفتين في دبي مارينا، 120 متر مربع جدران، لونان، دهان جوتن مطفي، خلال أسبوعين، الميزانية 6000 درهم', 'لست متأكدًا، اقترحوا الأنسب', 'نعم، هذا كل شيء']
-        : ['ZZ DEMO: interior repaint of a two-bedroom apartment in Dubai Marina, 120 m2 of walls, two colours, Jotun matt emulsion, within two weeks, budget AED 6,000', 'Not sure, please suggest the usual', 'Yes, that is everything'];
-      for (let i = 0; i < 6 && !(await sendBtn.isVisible().catch(() => false)); i++) {
-        if (await box.isEnabled().catch(() => false)) { await box.fill(answers[Math.min(i, answers.length - 1)]); await box.press('Enter'); }
-        await sendBtn.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
-      }
+      // RUN 1be65ab2 (12 Oct 2026): every turn came back status 'held' ("our sales engineer is reviewing it to identify
+      // the right trade") because a fixture identity is never sent to a paid model (think.ts fixture_no_spend), so
+      // tradeOf cannot reason the trade and the intake holds — by design. The walk then typed "Yes, that is everything"
+      // into a held intake four times. Now: answer what the intake ASKED from the shared fact sheet (the keys in its
+      // response), and when it holds, do what the sales engineer does when the hold lifts — set the reasoned trade on
+      // this demo draft (category_by 'reasoning', which inquiry_intake honours) — and continue the interview.
+      const { factSheet } = await import('../lib/fact_sheet.mjs');
+      const sheet = factSheet('painting', { lang });
+      let last = null;
+      const onResp = async (res) => { if (/inquiry_intake/.test(res.url()) && res.request().method() === 'POST') last = await res.json().catch(() => last); };
+      page.on('response', onResp);
+      try {
+        for (let i = 0; i < 10 && !(await sendBtn.isVisible().catch(() => false)); i++) {
+          if (last?.status === 'held' && last.intake_id) {
+            await write(`update public.inquiry_intake set category = 'painting', status = 'needs_info',
+                           brief = coalesce(brief, '{}'::jsonb) || '{"category_by":"reasoning"}'::jsonb
+                         where id = ${sq(last.intake_id)} and email = ${sq(w.email)} and email like '%@example.invalid'`, 'walk: sales engineer sets the held demo intake\'s trade');
+          }
+          const text = i === 0 ? 'ZZ DEMO: ' + sheet.opening : sheet.answerFor(last);
+          if (await box.isEnabled().catch(() => false)) { last = null; await box.fill(text); await box.press('Enter'); }
+          await sendBtn.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
+        }
+      } finally { page.off('response', onResp); }
       if (!(await sendBtn.isVisible().catch(() => false))) {
         const created = (await nInq()) - before;
         verdict = created === 0
-          ? ['SKIP', `the intake did not reach "Send to suppliers" in 6 turns, so create_inquiry was never called; no request created while terms behind (current ${cur})`]
+          ? ['SKIP', `the intake did not reach "Send to suppliers" in 10 turns (last intake status ${last?.status}), so create_inquiry was never called; no request created while terms behind (current ${cur})`]
           : [false, `LEGAL: ${created} request(s) created while terms were a version behind, without re-acceptance`];
       } else {
         await sendBtn.click(); await page.waitForTimeout(6000);
