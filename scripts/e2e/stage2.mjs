@@ -181,6 +181,19 @@ async function cleanupLearning(tag, ids, window) {
   const cached = (ids.leads || []).length ? await read(`select bucket, path from public.supplier_document_cache where supplier_id::text in (${lst(ids.leads)}) and bucket is not null and path is not null`) : [];
   if (cached.length) { const { SERVICE } = await keys(); for (const c of cached) await fetch(`${BASE}/storage/v1/object/${c.bucket}/${c.path}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } }).catch(() => {}); }
   await del('supplier_document_cache', `delete from public.supplier_document_cache where supplier_id::text in (${lst(ids.leads)})`);
+  // Run 71b75b60, the first run with released quotes and a real comparison, left the comparison cache (2 rows) and 6 rendered
+  // PDFs named only by the run's ids (agent-docs compare/<inquiry>/..., quote-files quotes/<lead>/<inquiry>/regenerated/...).
+  // Removed by the run's own UUIDs anywhere in the name, and by its numeric lead ids only inside the lead-keyed folders.
+  await del('qd_compare_cache', `delete from public.qd_compare_cache where inquiry_id::text in (${lst(ids.inquiries)})`);
+  {
+    const uu = [...(ids.customers || []), ...(ids.inquiries || []), ...(ids.quotes || [])].map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
+    const ld = (ids.leads || []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    const conds = [...uu.map((u) => `name like ${q('%' + u + '%')}`),
+      ...ld.flatMap((n) => ['quotes', 'supplier', 'licenses', 'profiles', 'catalogs'].map((f) => `name like ${q('%' + f + '/' + n + '/%')}`))];
+    const objs = conds.length ? await read(`select bucket_id b, name n from storage.objects where ${conds.join(' or ')}`) : [];
+    if (objs.length) { const { SERVICE } = await keys(); for (const o of objs) await fetch(`${BASE}/storage/v1/object/${o.b}/${o.n}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } }).catch(() => {}); }
+    out.storage_by_id = objs.length;
+  }
   const hasCol = (await read(`select count(*)::int n from information_schema.columns where table_schema='public' and table_name='ai_cost_log' and column_name='e2e_run_tag'`))[0].n;
   if (hasCol) await del('ai_cost_log', `delete from public.ai_cost_log where e2e_run_tag = ${q(tag)}`);
   else out.ai_cost_log = 'PENDING: ai_cost_log.e2e_run_tag is not applied yet (--run refuses until it is)';
@@ -939,15 +952,15 @@ async function realRun(pre) {
         const { pdfFactsFromBytes } = await import('./pdf_facts.mjs');
         const p = join(OUT, `customers/${alu.cu.cfg.label}_${alu.cu.cfg.locale}_${safe(alu.cu.cfg.emirate)}/inquiry_aluminium/comparison_en.pdf`);
         const txt = existsSync(p) ? String((await pdfFactsFromBytes(readFileSync(p)).catch(() => ({})))?.text || '') : '';
-        const quotes = await read(`select q.quote_amount::float a, l.company_name s from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status in ('submitted','accepted') order by 1`);
-        samples.push({ what: 'comparison report (EN)', q: `Compare these quotes for aluminium works, cheapest first: ${JSON.stringify(quotes)}`, a: txt.slice(0, 6000), producer: 'anthropic/claude-opus-5.5', lang: 'en' });
+        const quotes = await read(`select q.quote_amount::float a, l.company_name s, q.price_ex_vat::float ex_vat, q.validity, q.warranty, q.lead_time, q.payment_terms, q.exclusions, q.terms_spec, (select jsonb_agg(to_jsonb(li) - 'quote_id') from public.quote_items li where li.quote_id::text = q.id::text) lines from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status in ('submitted','accepted') order by 1`);
+        samples.push({ what: 'comparison report (EN)', q: `Compare these quotes for aluminium works, cheapest first. These are the stored quotes the report was built from (supplier names may appear masked in the report); anything in the report that these rows support is NOT invented: ${JSON.stringify(quotes)}`, a: txt.slice(0, 6000), producer: 'anthropic/claude-opus-5.5', lang: 'en' });
       }
       const judged = [];
       for (const s of samples) {
         const task_class = fam(s.producer) === 'anthropic' ? 'internal_judgement' : 'ceo__internal_judgement';
         const w0 = await costWatermark();
         const r = await call('ai_gateway', null, { __secret: (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value, fn: 'stage2_quality_judge', task_class, subject: { email: fx.customers[0].email }, max_tokens: 400,
-          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of the chosen quote (calculated before VAT, no cap) to reveal that supplier, with no card surcharge; a customer finds quotes under My requests (طلباتي) then the request; a supplier revises a quote from Inquiries received, Quote, Submit quote, and a new submission replaces the earlier one until the customer chooses). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
+          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of the chosen supplier’s final quoted price after any discount, excluding VAT (ruling 1208; e.g. 3% of AED 1,700 = AED 51), no cap, to reveal that supplier; no card fee and no VAT is added on top of that 3% (QuotesDone is not VAT-registered); a supplier’s own discount and VAT are shown exactly as the supplier quoted them (ruling 1207); a customer finds quotes under My requests (طلباتي) then the request; a supplier revises a quote from the job in the supplier portal (Inquiries received, the job, then send the revised quotation: "Send your quotation to the sales engineer", "Or type it into the quote form", "Attach a revised file", "Submit to Job <n>"), and a new submission replaces the earlier one until the customer chooses; when signed in, the assistant may name the user’s own requests and quotes, which are facts of the account, not inventions). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
                      { role: 'user', content: `QUESTION / INPUT:\n${s.q}\n\nANSWER:\n${s.a || '(empty)'}` }] }, 120000);
         const used = (await costSince(w0)).map((x) => x.model_used).filter(Boolean);
         let v = null; try { v = JSON.parse(String(r.json?.content || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch { v = null; }
