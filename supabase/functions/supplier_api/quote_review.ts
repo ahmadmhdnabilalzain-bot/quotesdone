@@ -435,7 +435,7 @@ const TYPE_IT_EN = 'Or type it here instead: one line per item — description, 
 const TYPE_IT_AR = 'أو اكتبوه هنا بدلًا من ذلك: سطر لكل بند — الوصف والكمية والوحدة والسعر — ثم الإجمالي. '
   + 'أقرأ الأسطر المكتوبة تمامًا كما أقرأ الملف، والمراجعة هي نفسها.';
 export const unreadableSaid = (kind: string): Said => kind === 'image'
-  ? { en: 'That is a photo or a scan, and I read quotations by their text. Please attach the quotation as a PDF with text, an Excel or Word file, or a CSV. ' + TYPE_IT_EN, ar: 'هذا الملف صورة أو مسح ضوئي، بينما أقرأ العروض من نصّها. يُرجى إرفاق العرض بصيغة PDF نصية، أو ملف Excel أو Word أو CSV. ' + TYPE_IT_AR }
+  ? { en: 'I could not read that photo or scan clearly, even with a second look. Please send a clearer copy — a sharp photo of the whole page, or the quotation as a PDF, Excel, Word or CSV file — and I will read it as soon as it arrives. ' + TYPE_IT_EN, ar: 'تعذّر عليّ قراءة هذه الصورة أو المسح الضوئي بوضوح حتى بعد محاولة ثانية. يُرجى إرسال نسخة أوضح — صورة واضحة للصفحة كاملة، أو العرض بصيغة PDF أو Excel أو Word أو CSV — وسأقرؤها فور وصولها. ' + TYPE_IT_AR }
   : { en: 'I could not find a priced list or a total in that file. Please attach the quotation with its line items and total — a PDF with text, an Excel or Word file, or a CSV. ' + TYPE_IT_EN, ar: 'لم أجد في هذا الملف بنودًا مسعّرة ولا إجماليًا. يُرجى إرفاق العرض ببنوده وإجماليه بصيغة PDF نصية، أو ملف Excel أو Word أو CSV. ' + TYPE_IT_AR };
 /** The typed lines themselves carried no priced item: the same answer, without asking for a file. */
 export const typedUnreadableSaid = (): Said => ({

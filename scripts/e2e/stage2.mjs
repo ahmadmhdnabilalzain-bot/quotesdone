@@ -25,7 +25,7 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, randomBytes } from 'node:crypto';
 import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
-import { internalCred, newRun, teardown, makeLicenceGatedSupplier, runIntake, quotePayload, TRADES, EMIRATES, q, keys } from '../lib/demo_factory.mjs';
+import { internalCred, newRun, teardown, makeLicenceGatedSupplier, runIntake, factSheet, quotePayload, TRADES, EMIRATES, q, keys } from '../lib/demo_factory.mjs';
 import { demoPdf } from '../lib/demo_pdf.mjs';
 import { buildInventory, classify, summarise } from './stage2_coverage.mjs';
 import { liveDuties, probeDuty } from './stage2_duties.mjs';
@@ -33,7 +33,12 @@ import { liveDuties, probeDuty } from './stage2_duties.mjs';
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const MODE = ['--dry-run', '--run', '--cleanup-only', '--verify-clean'].find((m) => argv.includes(m));
-if (!MODE) { console.error('usage: --dry-run | --run | --cleanup-only --tag <t> | --verify-clean --tag <t>'); process.exit(2); }
+if (!MODE) { console.error('usage: --dry-run | --run [--keep] | --cleanup-only --tag <t> | --verify-clean --tag <t>'); process.exit(2); }
+// --keep (with --run): the founder's browser walk reuses this run's demo data. The models are switched off
+// and the rehearsal window is CLOSED exactly as in a normal run; only the demo rows and the tag are kept.
+// Remove them later with --cleanup-only --tag <t>.
+const KEEP = argv.includes('--keep');
+if (KEEP && MODE !== '--run') { console.error('REFUSED: --keep only applies to --run'); process.exit(2); }
 // USD 4 per rehearsal window (review of #1230). The DATABASE enforces it: fn_kernel_paid_provider_gate
 // refuses every further call tagged with this run once ai_cost_log holds cap_usd of them. The script
 // checks it as well, between and after scenarios. rehearsal_window_cap_is_small allows at most USD 15.
@@ -238,6 +243,13 @@ async function costSince(from, to) {
   return read(`select task_class, model_used, ok, coalesce(cost_aed,0)::float aed from public.ai_cost_log where id > ${from}${to ? ` and id <= ${to}` : ''} and e2e_run_tag = ${q(RUN_TAG)}`);
 }
 
+// A scenario that cannot run because an EARLIER one produced nothing to work on is SKIPPED with the
+// reason, not crashed: 7 Oct 2026 (run fe7ba9c4) S07, S09, S10 and S11 all died on 'inq.id of
+// undefined' after S04's interviews never reached ready, which buried the one real failure under four
+// false ones.
+export class Skip extends Error {}
+const need = (v, reason) => { if (!v) throw new Skip(reason); return v; };
+
 async function realRun(pre) {
   const run = await openRun({});
   RUN_TAG = run.tag;
@@ -274,12 +286,12 @@ async function realRun(pre) {
       }
     },
     S02: async () => {
-      const g = await makeLicenceGatedSupplier(run, { trade: 'steel', license_doc_path: fx.suppliers[0].row.license_doc_path });
+      const g = await makeLicenceGatedSupplier(run, { trade: 'steel', unreadable_upload: true });
       run.ids.leads.add(String(g.leadId));
       const r = await call('supplier_api', fx.suppliers[0].jwt, { action: 'process_docs' });
       const row = (await read(`select licence_legal_name, approval_status, licence_gate_reason from public.leads where id=${Number(fx.suppliers[0].leadId)}`))[0];
       A('process_docs reads the licence and records the legal name', r.status === 200 && !!row.licence_legal_name, `HTTP ${r.status} name=${row.licence_legal_name} gate=${row.licence_gate_reason}`);
-      A('a supplier whose licence is not readable is held at the gate, not approved', g.approval_status !== 'approved', `approval=${g.approval_status} reason=${g.licence_gate_reason}`);
+      A('an approved supplier who uploads an unreadable licence is held as licence_unreadable', g.approval_status === 'pending' && g.licence_gate_reason === 'licence_unreadable', `approval=${g.approval_status} reason=${g.licence_gate_reason}`);
     },
     S03: async () => {
       for (const c of CUSTOMERS) {
@@ -295,16 +307,21 @@ async function realRun(pre) {
       plan.push({ cu: fx.customers[9], trade: UNMATCHED_TRADE });
       for (const { cu, trade } of plan) {
         const t = TRADES[trade]; const ar = cu.cfg.locale === 'ar';
-        const answers = ar
-          ? [`نحتاج ${t.name} لفيلا في ${cu.cfg.emirate}: البند الأول ${t.products[0]} عدد 20، البند الثاني ${t.products[1]} عدد 10.`, 'المقاسات: غير متأكد، أرجو اقتراح المقاس القياسي.', 'التوريد والتركيب، خلال ستة أسابيع.', 'المواصفات: غير متأكد من العلامة التجارية، درجة تجارية قياسية.']
-          : [`${t.name} for a villa in ${cu.cfg.emirate}. Line 1: ${t.products[0]} x 20. Line 2: ${t.products[1]} x 10. Line 3: ${t.products[2]} x 5.`, 'Sizes: line 1 is 1200 x 1500 mm; for lines 2 and 3 I am not sure, please advise the standard.', 'Supply and install, within six weeks, ground and first floor.', `Brand: ${t.brands?.[0] || 'not sure'}; grade: not sure, standard commercial.`];
+        // A FACT SHEET per customer (scripts/lib/demo_factory.mjs factSheet): the opening states the
+        // element, lines with sizes and quantities and the location; every later turn answers the keys
+        // the intake asked for. C3 answers the material question "not sure" on purpose.
+        const sheet = factSheet(trade, { lang: ar ? 'ar' : 'en', emirate: cu.cfg.emirate, notSure: cu.cfg.label === 'C3' });
+        const answers = [sheet.opening];
         const w0 = await costWatermark();
-        const it = await runIntake(cu, answers);
-        const inq = (await read(`select id, status, trades, locale, emirate from public.inquiries where customer_id=${q(cu.customerId)} order by created_at desc limit 1`))[0];
+        const it = await runIntake(cu, answers, 14, sheet);
+        // The customer confirms before anything goes to suppliers: ready enables "Send to suppliers",
+        // and the harness presses it exactly as the portal does (customer_api create_inquiry).
+        if (it.status === 'ready') { const sent = await call('customer_api', cu.jwt, { action: 'create_inquiry', intake_id: it.intakeId, text: answers[0], lang: cu.cfg.locale }); it.sent = sent.status; }
+        const inq = (await read(`select id, status, trades, lang, emirate from public.inquiries where customer_id=${q(cu.customerId)} order by created_at desc limit 1`))[0];
         if (inq) { run.ids.inquiries.add(String(inq.id)); fx.inq[`${cu.cfg.label}:${trade}`] = { ...inq, cu, trade }; }
         const route = (await costSince(w0)).map((r) => `${r.task_class}:${r.model_used}`).join(' ');
         A(`${cu.cfg.label} ${cu.cfg.locale} ${trade} in ${cu.cfg.emirate}: interview reached ready and became a request`, it.status === 'ready' && !!inq, `turns=${it.turns} readiness=${it.readiness} missing=${it.missing.join('|')} inquiry=${inq?.id} status=${inq?.status}`, route);
-        if (inq) save(`customers/${cu.cfg.label}_${cu.cfg.locale}_${safe(cu.cfg.emirate)}/inquiry_${trade}/inquiry.json`, { answers, intake: it, inquiry: inq });
+        if (inq) save(`customers/${cu.cfg.label}_${cu.cfg.locale}_${safe(cu.cfg.emirate)}/inquiry_${trade}/inquiry.json`, { fact_sheet: sheet.values, intake: it, inquiry: inq });
       }
       // Projects (the customer portal "projects" tab): create, link a request, read, update, unlink.
       const cu = fx.customers[0]; const inq = Object.values(fx.inq).find((x) => x.cu === cu);
@@ -339,7 +356,7 @@ async function realRun(pre) {
       }
     },
     S07: async () => {
-      const inq = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
+      const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const al = fx.suppliers.filter((s) => s.trade === 'aluminium');
       const amounts = [118500, 124900, 131000, 142000];
       for (let i = 0; i < al.length; i++) {
@@ -371,7 +388,7 @@ async function realRun(pre) {
       }
     },
     S09: async () => {
-      const inq = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
+      const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const dir = `customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium`;
       for (const lang of ['en', 'ar']) {
         const w0 = await costWatermark();
@@ -387,11 +404,11 @@ async function realRun(pre) {
       }
     },
     S10: async () => {
-      const inq = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
+      const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const cu = inq.cu;
       const sk = (await read(`select value from public.app_secrets where key='stripe_secret_key_test'`))[0].value;
       if (!sk.startsWith('sk_test_')) throw new Error('REFUSED: the Stripe key is not a TEST key');
-      const top = (await read(`select id, quote_amount::float a, supplier_id from public.quotes where inquiry_id=${q(inq.id)} and status='submitted' order by quote_amount limit 1`))[0];
+      const top = need((await read(`select id, quote_amount::float a, supplier_id from public.quotes where inquiry_id=${q(inq.id)} and status='submitted' order by quote_amount limit 1`))[0], 'no submitted quote on the aluminium request (S07), so there is nothing to reveal');
       const ct = async (pm) => (await (await fetch('https://api.stripe.com/v1/test_helpers/confirmation_tokens', { method: 'POST', headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: `payment_method=${pm}` })).json()).id;
       const quote = await call('stripe_checkout', cu.jwt, { action: 'element_quote', quote_id: top.id });
       const fee = Number(quote.json?.total_fils) / 100;
@@ -413,7 +430,7 @@ async function realRun(pre) {
       fx.revealed = { tx, top, inq };
     },
     S11: async () => {
-      const { tx, inq } = fx.revealed || {};
+      const { tx, inq } = need(fx.revealed?.tx && fx.revealed, 'no paid reveal (S10), so there is no transaction to refund');
       const w0 = await costWatermark();
       const r = await call('customer_api', inq.cu.jwt, { action: 'request_refund', transaction_id: tx.id, reason_code: 'supplier_unresponsive', reason_note: 'ZZ DEMO refund path' });
       const rf = (await read(`select r.id, r.status, c.state, c.decision, c.decision_rationale from public.refunds r left join public.refund_case c on c.refund_id=r.id where r.transaction_id=${q(tx.id)}`))[0];
@@ -479,7 +496,7 @@ async function realRun(pre) {
       A('suppliers receive English only', sup.length > 0 && sup.every((x) => !/[\u0600-\u06FF]/.test(x.subject || '') && !/[\u0600-\u06FF]{8,}/.test(x.body || '')), `${sup.length} notices`);
     },
     S16: async () => {
-      const { launch, signedInPage, SITE } = await import('./browser.mjs');
+      const { launch, signedInPage, openPortal, portalUrl, SITE } = await import('./browser.mjs');
       const items = classify(await buildInventory(REPO, read)).filter((i) => i.kind === 'route' && !/\[|\/u\/|\.txt|\.xml|\/api\//.test(i.id));
       const browser = await launch();
       try {
@@ -490,11 +507,21 @@ async function realRun(pre) {
           A(`page ${it.id} renders`, r.status() === 200 && errs.length === 0, `HTTP ${r.status()} console errors ${errs.length}`);
         }
         for (const [who, lang] of [[fx.customers[0], 'en'], [fx.customers[1], 'ar'], [fx.suppliers[0], 'en'], [fx.suppliers[0], 'ar']]) {
-          const p = await signedInPage(browser, who, { lang });
-          const tabs = await p.$$eval('nav [data-nav-id], nav button[id]', (els) => els.map((e) => e.getAttribute('data-nav-id') || e.id)).catch(() => []);
+          // signedInPage returns { ctx, page, ... } (browser.mjs), not a page; the run of 7 Oct died on p.$$eval.
+          // signedInPage never navigates (the 7 Oct run read about:blank); openPortal goes to the portal and
+          // waits for its nav. Tabs carry data-nav-id (SupplierPortal main tabs, PortalShell NavButton).
+          const { ctx, page: p, calls } = await signedInPage(browser, who, { lang });
+          await openPortal(p, portalUrl(who.kind, lang), calls);
+          const tabs = [...new Set(await p.locator('nav [data-nav-id]:visible').evaluateAll((els) => els.map((e) => e.getAttribute('data-nav-id'))).catch(() => []))];
           A(`${who.kind} ${lang}: portal tabs found`, tabs.length > 0, tabs.join(','));
-          for (const t of tabs) { await p.click(`[data-nav-id="${t}"], #${t}`).catch(() => {}); await p.waitForTimeout(800); }
-          await p.context().close();
+          const opened = [];
+          for (const t of tabs) {
+            const b = p.locator(`nav [data-nav-id="${t}"]:visible`).first();
+            await b.click().catch(() => {}); await p.waitForTimeout(800);
+            if ((await b.getAttribute('aria-current').catch(() => null)) === 'page') opened.push(t);
+          }
+          A(`${who.kind} ${lang}: every portal tab opens`, tabs.length > 0 && opened.length === tabs.length, `opened ${opened.length} of ${tabs.length}: ${tabs.filter((t) => !opened.includes(t)).join(',') || 'all'}`);
+          await ctx.close();
         }
       } finally { await browser.close(); }
     },
@@ -541,24 +568,26 @@ async function realRun(pre) {
       }
       const st = await twilio('wa_status', { MessageSid: `SMzzdemo${tag}`, MessageStatus: 'delivered', To: 'whatsapp:' + phone });
       A('wa_status: a Twilio-signed delivery receipt is accepted', tw && st.status < 300, `HTTP ${st.status} ${st.text}`);
-      const svix = async (slug, secretKey, payload) => {
+      const svix = async (slug, secretKey, payload, qs = '') => {
         const secret = await sec(secretKey); const body = JSON.stringify(payload);
         const id = 'msg_zzdemo' + tag + randomBytes(3).toString('hex'), ts = String(Math.floor(Date.now() / 1000));
         const key = Buffer.from(String(secret || '').replace(/^whsec_/, ''), 'base64');
         const sig = 'v1,' + createHmac('sha256', key).update(`${id}.${ts}.${body}`).digest('base64');
-        const r = await fetch(`${BASE}/functions/v1/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': sig, 'x-qd-e2e-run': tag, 'x-qd-e2e-secret': await internalCred() }, body });
+        const r = await fetch(`${BASE}/functions/v1/${slug}${qs}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': sig, 'x-qd-e2e-run': tag, 'x-qd-e2e-secret': await internalCred() }, body });
         return { status: r.status, text: (await r.text()).slice(0, 200), secret: !!secret };
       };
       const em = `ZZ DEMO ${tag} inbound email`;
       const ri = await svix('resend_inbound', 'resend_inbound_signing_secret', { type: 'email.received', created_at: new Date().toISOString(),
-        data: { from: fx.customers[2].email, to: ['support@mail.quotesdone.com'], subject: em, text: em + ': where is my quote?' } });
+        data: { from: fx.customers[2].email, to: ['support@mail.quotesdone.com'], subject: em, text: em + ': where is my quote?' } },
+        '?s=' + encodeURIComponent(await sec('resend_inbound_token') || ''));
       await new Promise((ok) => setTimeout(ok, 4000));
       const hi = await hits(em);
       save('chats/resend_inbound.json', { sent: em, response: ri, stored_in: hi });
       A('resend_inbound: a Svix-signed email from a demo address is accepted and stored', ri.secret && ri.status < 300 && hi.length > 0, `HTTP ${ri.status} stored in ${hi.join(', ') || 'nothing'}`);
-      const rw = await svix('resend_webhook', 'resend_webhook_signing_secret', { type: 'email.delivered', created_at: new Date().toISOString(), data: { email_id: `zzdemo-${tag}`, to: [fx.customers[2].email] } });
+      const rw = await svix('resend_webhook', 'resend_webhook_signing_secret', { type: 'email.delivered', created_at: new Date().toISOString(), data: { email_id: `zzdemo-${tag}`, to: [fx.customers[2].email] } },
+        '?key=' + encodeURIComponent(await sec('resend_webhook_key') || ''));
       A('resend_webhook: a Svix-signed delivery event is accepted', rw.secret && rw.status < 300, `HTTP ${rw.status} ${rw.text}`);
-      const ib = await call('inbound_email', null, { __secret: await sec('inbound_secret'), from: fx.customers[3].email, subject: `ZZ DEMO ${tag} inbound_email`, text: `ZZ DEMO ${tag} inbound_email body` });
+      const ib = await call('inbound_email', null, { __secret: await sec('inbound_webhook_secret'), from: fx.customers[3].email, subject: `ZZ DEMO ${tag} inbound_email`, text: `ZZ DEMO ${tag} inbound_email body` });
       A('inbound_email: an authenticated inbound email from a demo address is accepted', ib.status > 0 && ib.status < 300, `HTTP ${ib.status} ${ib.text}`);
     },
     S20: async () => {
@@ -602,13 +631,18 @@ async function realRun(pre) {
     const est = estimate(s, pre.pr).usd;
     if (spentUsd + est > CAP_USD) { aborted = `${s.key} would take the spend from USD ${spentUsd.toFixed(3)} past the cap of ${CAP_USD} (estimate ${est.toFixed(3)})`; A('spend cap', false, aborted); break; }
     const w0 = await costWatermark();
-    try { await bodies[s.key](); } catch (e) { A('scenario crashed', false, String(e.stack || e.message).split('\n').slice(0, 3).join(' | ')); }
+    let skipped = null;
+    try { await bodies[s.key](); } catch (e) {
+      if (e instanceof Skip) { skipped = e.message; log(`SKIP [${s.key}] ${e.message}`); }
+      else A('scenario crashed', false, String(e.stack || e.message).split('\n').slice(0, 3).join(' | '));
+    }
     const rows = await costSince(w0);
     const usd = rows.reduce((a, r) => a + r.aed, 0) / AED_PER_USD; spentUsd += usd;
     // matrix v2 per step: every model call the scenario caused used its class's primary or fallback.
     const off = rows.filter((r) => { const p = pre.pr.pol[r.task_class]; return p && r.model_used && ![p.model_primary, p.model_fallback].includes(r.model_used); });
     A(`model routes follow matrix v2 (${rows.length} calls)`, off.length === 0, off.map((r) => `${r.task_class}:${r.model_used}`).join(' ') || 'all on primary or fallback', [...new Set(rows.map((r) => r.model_used))].join(','));
-    scenarioRows.push({ key: s.key, measured_usd: usd, calls: rows.length, result: steps.filter((x) => x.scenario === s.key).every((x) => x.ok) ? 'PASS' : 'FAIL' });
+    const own = steps.filter((x) => x.scenario === s.key && !x.name.startsWith('model routes follow'));
+    scenarioRows.push({ key: s.key, measured_usd: usd, calls: rows.length, result: skipped && own.every((x) => x.ok) ? 'SKIP' : steps.filter((x) => x.scenario === s.key).every((x) => x.ok) ? 'PASS' : 'FAIL', ...(skipped ? { skipped } : {}) });
     persist();
     log(`     ${s.key}: USD ${usd.toFixed(4)} (${rows.length} calls), running total USD ${spentUsd.toFixed(4)} of ${CAP_USD}`);
     if (spentUsd > CAP_USD) { aborted = `HARD ABORT: measured spend USD ${spentUsd.toFixed(3)} > cap ${CAP_USD}`; A('spend cap', false, aborted); break; }
@@ -629,7 +663,23 @@ async function cleanupAll(tag, manifest) {
   // run's unique marker. The tag is 8 random hex characters; no real row contains 'qd-<tag>-' or
   // 'ZZ DEMO <tag>'. Up to three passes, because a child row can block its parent's delete.
   const swept = {};
-  const mk = (x) => [`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`].map((m) => `${x}::text like ${q('%' + m + '%')}`).join(' or ');
+  // The last marker is ai_gateway's blocked-call line in agent_runs / os_audit_log, which names the tag only
+  // inside fn_ai_subject_is_fixture's phrase; the exact phrase with the tag cannot match another run's row.
+  const mk = (x) => [`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`, `an identity of harness run ${tag} (opened in rehearsal_window)`]
+    .map((m) => `${x}::text like ${q('%' + m.replace(/[\\%_]/g, '\\$&') + '%')}`).join(' or ');
+  // SUPPORT CASES FIRST (tag b12d9559 left 30 rows, 7 Oct 2026): support_case carries no run marker of its own,
+  // only customer_profile_id, so the profile (which carries the run's email) was refused by the FK. Delete the
+  // run's cases, and their children, through the run's profiles before the sweep reaches the profiles.
+  try {
+    const cases = `(select c.case_id from public.support_case c join public.support_customer_profile p on p.id = c.customer_profile_id where ${mk('p')})`;
+    const r = await write(`with
+      f as (delete from public.feedback where case_id in ${cases} or profile_id in (select id from public.support_customer_profile p where ${mk('p')}) returning 1),
+      i as (delete from public.support_document_intake where case_id in ${cases} returning 1),
+      n as (delete from public.support_notification where case_id in ${cases} returning 1),
+      c as (delete from public.support_case where case_id in ${cases} and not exists (select 1 from public.refund_case rc where rc.case_id = support_case.case_id) returning 1)
+      select (select count(*) from c)::int n`, 'stage2 support cases');
+    swept.support_case = r?.[0]?.n ?? 0;
+  } catch (e) { swept.support_case = 'ERROR ' + String(e.message).slice(0, 100); }
   let v = await verifyClean(tag, manifest?.ids || {});
   for (let pass = 0; pass < 3 && v.found.length; pass++) {
     for (const f of v.found) {
@@ -702,8 +752,13 @@ finally {
   if (RUN_TAG) {
     await write(`update public.rehearsal_window set models_allowed = false where run_tag = ${q('qd_run:' + RUN_TAG)}`, 'stage2 window: models off').catch(() => {});
     const mp = join(OUT, 'run_manifest.json');
-    try { clean = await cleanupAll(RUN_TAG, existsSync(mp) ? JSON.parse(readFileSync(mp, 'utf8')) : null); }
-    catch (e) { clean = { error: String(e.message), verify: { clean: false } }; }
+    if (KEEP) {
+      try { await closeRun(newRun({ tag: RUN_TAG, quiet: true }), { keep: true }); clean = { kept: true, tag: RUN_TAG, verify: { clean: true, kept: true } }; }
+      catch (e) { clean = { kept: true, error: String(e.message), verify: { clean: false } }; }
+    } else {
+      try { clean = await cleanupAll(RUN_TAG, existsSync(mp) ? JSON.parse(readFileSync(mp, 'utf8')) : null); }
+      catch (e) { clean = { error: String(e.message), verify: { clean: false } }; }
+    }
     save(`cleanup_${RUN_TAG}.json`, clean);
   }
 }
@@ -714,5 +769,5 @@ writeIndex({ scenarios: scen.map((s) => ({ ...s, ...(res.scenarioRows.find((r) =
   spend: { estimate_usd: estUsd, measured_usd: res.spentUsd }, mode: res.aborted ? 'run (ABORTED: ' + res.aborted + ')' : 'run', tag: res.tag,
   steps: [...res.steps, { scenario: 'cleanup', name: '0 rows of this run remain in every registry table, storage and auth', ok: !!clean.verify?.clean, detail: JSON.stringify(clean.verify).slice(0, 400) }] });
 const fails = res.steps.filter((s) => !s.ok).length;
-log(`\nSTAGE 2 ${fails ? fails + ' FAILED' : 'all passed'} · spend USD ${res.spentUsd.toFixed(3)} · cleanup ${clean.verify?.clean ? 'verified clean' : 'NOT CLEAN - run --cleanup-only --tag ' + res.tag} · ${join(OUT, 'INDEX.html')}`);
+log(`\nSTAGE 2 ${fails ? fails + ' FAILED' : 'all passed'} · spend USD ${res.spentUsd.toFixed(3)} · cleanup ${clean.kept ? 'KEPT (--keep): window closed, demo data and tag ' + res.tag + ' kept; remove with --cleanup-only --tag ' + res.tag : clean.verify?.clean ? 'verified clean' : 'NOT CLEAN - run --cleanup-only --tag ' + res.tag} · ${join(OUT, 'INDEX.html')}`);
 process.exit(fails || !clean.verify?.clean ? 1 : 0);

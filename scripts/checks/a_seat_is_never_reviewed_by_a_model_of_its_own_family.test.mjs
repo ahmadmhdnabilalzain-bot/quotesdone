@@ -242,7 +242,9 @@ begin
     'monitor_marketing', (select jsonb_build_object('reviews', x->'evidence'->'reviews', 'approvals', x->'evidence'->'approvals') from jsonb_array_elements(v) x where x->>'item' = 'rubber_stamp:ceo:marketing'));
 
   -- UNHEALTHY OTHER FAMILY: Opus's breaker tripped by a real failure class -> no fallback to Sol
-  update public.llm_route_health set opened_class = 'provider_error' where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');  -- every family but the author's (third-family last resort, #880; the two retired models are inactive)
+  -- Ledger 1175 (7 Oct 2026): no founder hold, so a trip is a real breaker: opened_class AND a cooldown in minutes.
+  perform set_config('app.change_reason', 'probe:a_seat_is_never_reviewed_by_a_model_of_its_own_family', true);
+  update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '15 minutes' where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');  -- every family but the author's (third-family last resort, #880; the two retired models are inactive)
   v := public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo');
   o := o || jsonb_build_object('tripped_route', concat_ws(':', v->>'use_llm', v->>'no_independent_reviewer', coalesce(v->>'model', 'none')));
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO tripped', v_ev, v_pr, c_sol, null, null, null, true);
@@ -252,7 +254,7 @@ begin
 
   -- NO PAIR CEILING (24 Sep 2026, founder_instruction 987): marketing -> ceo has spent AED 60 this month (a rolled-back
   -- row, above the old AED 50 cap) and the review is still NOT held for spend
-  update public.llm_route_health set opened_class = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');
+  update public.llm_route_health set opened_class = null, open_until = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');
   insert into public.ai_cost_log (fn, dept_key, agent_key, task_class, model_used, cost_aed, ok)
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
@@ -262,6 +264,7 @@ begin
     'no_ceil_why', public.fn_seat_deliberation_budget('accountant', 'ceo')->>'why', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
   -- A DEMO NEVER REACHES call_model, even with the hold lifted (inside this rolled-back transaction only)
   delete from public.ai_cost_log where task_class = 'seat_deliberation_blind' and agent_key = 'ceo' and cost_aed = 60;
+  perform set_config('app.change_reason', 'probe:a_seat_is_never_reviewed_by_a_model_of_its_own_family', true);  -- the founder-hold guard admits an aborted probe by name
   update public.llm_route_health set open_until = null;
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO no hold', v_ev, v_pr, c_sol, null, null, null, true);
   o := o || jsonb_build_object('demo_unheld', (select left(why, 32) from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'));

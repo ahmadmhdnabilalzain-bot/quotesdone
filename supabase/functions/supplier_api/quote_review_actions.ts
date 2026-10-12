@@ -14,6 +14,7 @@
 //
 // The caller (index.ts) resolves the supplier from the session and supplies the repository and the
 // upload gate, so this module holds no client and no credential of its own.
+import { envGatewayVision } from '../_shared/read_every_attachment.ts';
 import { jobNo, type BoqRow, type Lang, type SafeInquiry } from './quote_review.ts';
 import * as flow from './quote_review_flow.ts';
 import { SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
@@ -126,7 +127,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
       return o.scan(b64, filename, mime);
     },
     read: (bytes, name, mime) => flow.readQuotationFile(bytes, name, mime, [String(sup.company_name || '')].filter((s) => s.length >= 3),
-      o.readTerms),
+      o.readTerms, envGatewayVision({ subject: { supplier_id: Number(sup.id), email } })),
     submit: (p) => self(p),
     quotePdf: async (quoteId, l) => { const r = await self({ action: 'quote_pdf', quote_id: quoteId, lang: l }); return { url: r.json?.url ?? null, ref: r.json?.ref ?? null }; },
     now: () => new Date(),

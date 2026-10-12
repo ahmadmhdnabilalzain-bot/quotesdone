@@ -1,4 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { envGatewayVision, b64Bytes } from '../_shared/read_every_attachment.ts';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
+import { readQuotationFile } from './quote_review_flow.ts';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms } from '../_shared/anonymise.ts';
 import { asLocale, SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
@@ -21,7 +24,7 @@ import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { licenceModelPayload, licenceNameFromModel, readExpiry, readLicenceName } from '../_shared/document_expiry.ts';
+import { licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -615,6 +618,20 @@ const handle = async (req: Request): Promise<Response> => {
     }
 
     if (action === 'process_docs') {
+      // FOUNDER RULING 1177 (7 Oct 2026): "it should always read". A model read that fails (a 5xx, a truncated or
+      // unparseable answer) is asked once more before the document counts as unread; the gateway already falls back
+      // to the route's second model inside each call (model_policy.document_extraction).
+      const extract = async (body: Record<string, unknown>) => {
+        let jd: any = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120_000) });
+            jd = await r.json().catch(() => null);
+            if (jd?.ok) return jd;
+          } catch (e) { jd = { error: String((e as Error)?.message || e) }; }
+        }
+        return jd;
+      };
       const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const secret = await secretVal('cred_fn_supplier_api');
@@ -676,6 +693,14 @@ const handle = async (req: Request): Promise<Response> => {
       // A NEW licence replaces the old name even when nothing is read: a stale name must never match for a new
       // document. null = not read, and the review then holds the registration (licence_name_unread).
       if (licBytes?.bytes) upd.licence_legal_name = codeName;
+      // EVERY LABELLED FIELD, BY CODE (7 Oct 2026, accuracy suite ledger 1162). Until today the licence number, the
+      // authority and the emirate were written only from the model, whose switch is off, so a text licence's number
+      // was never recorded. Code's reading is written first; the model below fills only what code left unread.
+      let codeFields: Partial<LicenceFields> = {};
+      if (licBytes?.bytes) { try { codeFields = await readLicenceFields(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeFields = {}; } }
+      if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
+      if (codeFields.authority) upd.license_authority = codeFields.authority;
+      if (codeFields.emirate) upd.emirate = codeFields.emirate;
       // The supplier reads this note in the portal, so it is written in both languages the
       // registration speaks (the estate's rule: a document message is English and fully Arabic).
       const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
@@ -700,12 +725,20 @@ const handle = async (req: Request): Promise<Response> => {
       // flag the portal uses (app_secrets.document_expiry_ai). With the flag off nothing is asked
       // of a gateway that cannot answer, and nothing above depends on it.
       // A scan the code could not name is sent from storage when the portal did not resend it (24 Sep 2026).
-      const modelDoc = licenceModelPayload({ ...lic, images: licImgs }, licBytes?.bytes ? { bytes: licBytes.bytes, mime: licBytes.mime || 'application/pdf' } : null, codeName);
+      // The model is asked when code left the name, the number OR the expiry unread (licenceNeedsModel), not only the name.
+      const modelDoc = licenceModelPayload({ ...lic, images: licImgs }, licBytes?.bytes ? { bytes: licBytes.bytes, mime: licBytes.mime || 'application/pdf' } : null,
+        licBytes?.bytes && licenceNeedsModel({ ...codeFields, legal_name_en: codeName, expiry_date: codeFields.expiry_date }) ? null : codeName);
       if (modelDoc && await flagOn('document_expiry_ai')) {
-        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc }) }); const jd = await r.json();
+        try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
           if (jd?.ok && jd.doc) { const d = jd.doc;
-            if (d.license_number) upd.trade_license_no = d.license_number;
-            if (d.license_authority) upd.license_authority = d.license_authority;
+            if (d.license_number && !codeFields.licence_no) upd.trade_license_no = d.license_number;
+            if (d.license_authority && !codeFields.authority) upd.license_authority = d.license_authority;
+            // A scan's activities, read by the model, are read for trades exactly as a text licence's are (exact code
+            // or meaning, supplier_doc_trades), and only when code read no activities line itself.
+            if (!codeFields.activities?.length && Array.isArray(d.activities) && d.activities.length) {
+              const q = readQueue.find((x) => x.kind === 'licence');
+              if (q) q.photo_text = 'Activities: ' + d.activities.map((a: unknown) => String(a)).join(', ');
+            }
             if (d.city) upd.license_city = d.city;
             // CODE FIRST, AND THE MODEL DOES NOT OVERRULE IT (founder: "code first, LLM only where
             // code can't"). When the document itself printed a date beside an expiry keyword, that
@@ -716,7 +749,7 @@ const handle = async (req: Request): Promise<Response> => {
                 if (String(d.expiry_date) !== codeExpiry) out.license_expiry_model_differs = { code: codeExpiry, model: d.expiry_date };
               } else upd.license_expiry = d.expiry_date;
             }
-            if (d.emirate) upd.emirate = d.emirate;
+            if (d.emirate && !codeFields.emirate) upd.emirate = d.emirate;
             if (d.trn) upd.trn = d.trn;
             upd.doc_extracted_at = new Date().toISOString();
             // 24 Sep 2026: the licence name is RECORDED, never copied over the registered name. Copying it
@@ -753,6 +786,9 @@ const handle = async (req: Request): Promise<Response> => {
         if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
         readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
+        // A PHOTO-ONLY PROFILE IS READ TOO (ruling 1177): code has no text to read in a picture, so the picture goes to
+        // the vision model (profile mode) like the page images the portal sends; its services are then read for trades.
+        if (/^image\//i.test(s.mime)) profImgs.push({ b64: btoa(Array.from(s.bytes, (c) => String.fromCharCode(c)).join('')), mime: s.mime });
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
       const cats = Array.isArray(body.catalogs) ? body.catalogs.slice(0, 5) : []; const catPaths: string[] = [];
@@ -783,7 +819,7 @@ const handle = async (req: Request): Promise<Response> => {
         upd.catalog_doc_paths = [...existingCat, ...catPaths.filter((p) => !existingCat.includes(p))].slice(0, 20);
       }
       if (profImgs.length) {
-        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', images: profImgs.slice(0, 10) }) }); const jd = await r.json();
+        try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', images: profImgs.slice(0, 10) });
           if (jd?.ok && jd.profile) { const pf = jd.profile;
             if (pf.summary) upd.capability_summary = pf.summary;
             // DOCUMENTS LEAD (spec, 29 Jul 2026). This line used to read
@@ -794,6 +830,9 @@ const handle = async (req: Request): Promise<Response> => {
             // The supplier's own words are not lost - they are preserved as the declared value
             // and cross-checked immediately below.
             if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); upd.services = xServices.join(', '); }
+            // The services the model read off a picture are read for trades exactly as a text profile's lines are.
+            const pq = readQueue.find((x) => x.kind === 'profile' && x.mime && /^image\//i.test(x.mime));
+            if (pq && xServices.length) pq.photo_text = xServices.join('\n');
             if (Array.isArray(pf.products) && pf.products.length && !sup.products) upd.products = pf.products.join(', ');
             if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) upd.service_emirates = pf.emirates;
             out.profile = { summary: pf.summary, sectors: pf.sectors, confidence: pf.confidence };
@@ -1516,7 +1555,14 @@ const handle = async (req: Request): Promise<Response> => {
       try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed', detail: String((e as Error)?.message || e) }, 502); }
       // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
       // the code tells the portal to say "fill in the form", which is a complete way to quote.
-      if (!jd?.ok) return J({ error: jd?.error || 'Could not read the quotation. Please fill the form instead.', code: 'quote_read_failed', detail: jd?.detail || null }, 502);
+      // RULING 1177 (12 Oct 2026): 'fill the form instead' was the answer to every quotation quote_extract could not price.
+      // The original now goes through the read-every-attachment helper (the vision model transcribes it, the quotation
+      // parser prices it, one more asking); only when that fails too is the supplier asked for a clearer copy, in English.
+      if (!jd?.ok && orig.b64) {
+        const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
+        if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
+      }
+      if (!jd?.ok) return J({ error: jd?.error || 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation')), detail: jd?.detail || null }, 502);
       // WHO READ IT (founder instruction ~891). The model quote_extract read this quotation with, kept per supplier and
       // inquiry so the quote submitted from it carries its author and quote_compare can be routed to another family.
       const readBy = typeof jd.extracted_by_model === 'string' && jd.extracted_by_model ? jd.extracted_by_model : 'unknown';

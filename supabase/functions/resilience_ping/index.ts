@@ -3,10 +3,16 @@
 // HTTP-invoked edge function, it keeps working even if the Supabase pg_cron scheduler has stopped.
 // If the previous heartbeat is over 45 minutes old (fn_cron_liveness), it pages the founder through
 // fn_notify_founder (kind platform_down, one delivery a day) and drains the outbox so the page leaves now.
-// Public + secretless by design (returns only liveness, counts and the names of failing steps) so any
-// external monitor can wire it with just the URL.
+// AUTHENTICATED SINCE 6 OCT 2026 (pre-launch security pass, M2). It used to be public and secretless,
+// so ANY caller could run the whole sweep: the outbox and WhatsApp drains, execute_refunds, the
+// sanctions sweep and the steps that call a model, as often as it liked. Now an unauthenticated call
+// gets a liveness answer and nothing runs; the sweep runs only for the service key (the Vercel cron
+// route src/app/api/resilience-ping, and the GitHub daily cross-check, which reads the key through the
+// management API) or an internal credential in x-qd-internal (requireInternal). Unauthenticated calls
+// are rate limited per IP. See tickCaller() below.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { embedLine } from '../_shared/gte_embed.ts';
 import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
@@ -23,10 +29,11 @@ import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { defaultDeps, replayHeld } from '../_shared/think.ts';
+import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
+import { envCoverage as vercelEnvCoverage, snapshot as vercelSnapshot } from '../_shared/vercel_snapshot.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -631,6 +638,37 @@ async function dropboxVerifyTick(): Promise<unknown> {
 // the reading itself; if the call never got that far (timeout, a 5xx from our own function), this
 // records it as an internal failure so a silent probe is still a finding. Only the verdict comes back:
 // this endpoint is public.
+// THE VERCEL CONFIGURATION, ONCE A DAY (it_engineer, 12 Oct 2026; the_vercel_configuration_is_backed_up_every_day.sql).
+// Read only: the project, its domains, its env var NAMES (never decrypted, and vercel_snapshot.ts drops every value
+// again) and its crons. The JSON goes to the private backups bucket and is filed for Dropbox under Company/Vercel/.
+// The env vars the site reads are the names in the site's own code (src/: process.env.*), listed here.
+const SITE_ENV_NAMES = ['CRON_SECRET', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SITE_ERROR_INGEST_SECRET', 'SUPABASE_SERVICE_ROLE_KEY'];
+async function vercelSnapshotTick(): Promise<unknown> {
+  try {
+    const [token, pid, team] = await Promise.all([sec('vercel_token'), sec('vercel_project_id'), sec('vercel_team_id')]);
+    if (!token || !pid) return { ok: false, error: 'vercel_token or vercel_project_id is not in app_secrets' };
+    const q = team ? `?teamId=${encodeURIComponent(team)}` : '';
+    const get = async (p: string) => {
+      const r = await fetch('https://api.vercel.com' + p + q, { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('vercel ' + p.split('/').slice(0, 3).join('/') + ' ' + r.status);
+      return await r.json();
+    };
+    const [project, domains, env] = await Promise.all([get(`/v9/projects/${pid}`), get(`/v9/projects/${pid}/domains`), get(`/v10/projects/${pid}/env`)]);
+    const day = new Date().toISOString().slice(0, 10);
+    const snap = vercelSnapshot(project, domains, env, new Date().toISOString());
+    const { data: keys } = await admin.from('app_secrets').select('key');
+    const cov = vercelEnvCoverage(SITE_ENV_NAMES, snap.env, (keys || []).map((k: { key: string }) => k.key));
+    const path = `engineering/vercel/${day}.json`;
+    const up = await admin.storage.from('backups').upload(path, new TextEncoder().encode(JSON.stringify({ ...snap, env_sources: cov.sources }, null, 1)),
+      { contentType: 'application/json', upsert: true });
+    if (up.error) return { ok: false, error: 'backups upload ' + up.error.message };
+    const summary = { domains: snap.domains.length, env_names: snap.env.length, missing_in_vercel: cov.missing_in_vercel, no_recoverable_source: cov.no_recoverable_source };
+    const { error } = await admin.rpc('fn_vercel_snapshot_filed', { p_path: path, p_summary: summary });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, path, ...summary };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) }; }
+}
+
 async function dropboxHealthTick(): Promise<unknown> {
   try {
     const { data: due, error } = await admin.rpc('fn_it_dropbox_health_due');
@@ -1227,8 +1265,10 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   await step('review_independence', async () => rpc('fn_it_review_independence_watch'));
   // Questions a seat could not reason about under the hold are reasoned the moment it lifts
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
-  // returns nothing and no model is asked, so this step costs one gate read.
-  await step('reasoning_held', async () => replayHeld(admin, 3, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin))));
+  // returns nothing and no model is asked, so this step costs one gate read. Since 7 Oct (ledger 1175) a tick claims REPLAY_CLAIM
+  // at a time, concurrently, up to REPLAY_MAX_ROWS within REPLAY_BUDGET_MS, a slice that fits every tick (12 Oct).
+  await step('reasoning_held', async () => replayHeld(admin, REPLAY_CLAIM, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
+    { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS }));
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).
@@ -1510,6 +1550,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   backup: { run: backupTick },
   backupVerify: { run: dropboxVerifyTick },
   dropboxHealth: { run: dropboxHealthTick },
+  vercelSnapshot: { run: vercelSnapshotTick },
   tableExport: { run: tableExportTick },
   backupPrune: { run: backupPruneTick },
   weekly: { run: accountantWeeklyTick },
@@ -1636,8 +1677,49 @@ async function tickPlan(): Promise<{ run: string[]; deferred: string[]; starved:
   } catch (e) { return { run: DECLARED_ORDER, deferred: [], starved: [], error: String((e as Error)?.message || e) }; }
 }
 
-Deno.serve(observe('resilience_ping', async (req) => {
+// WHO MAY RUN THE SWEEP. The service key as a Bearer token (compared in constant time against this
+// function's own env), or an internal credential in x-qd-internal. Anything else is a liveness check.
+function sameSecret(a: string, b: string): boolean {
+  if (!a || !b || a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+async function tickCaller(req: Request): Promise<boolean> {
+  const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (sameSecret(bearer, SERVICE_KEY)) return true;
+  // The scheduler's copy of the key may be the other format of the same project's secret key (a legacy
+  // JWT here, an sb_secret_ key in Vercel, or the reverse). Ask the project itself: only a service key
+  // can read app_secrets, which grants nothing to anon or authenticated.
+  if (bearer.length >= 40) {
+    try {
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL')! + '/rest/v1/app_secrets?select=key&limit=0', { headers: { apikey: bearer, Authorization: 'Bearer ' + bearer } });
+      await r.body?.cancel();
+      if (r.ok) return true;
+    } catch (_e) { /* an unreachable check is not a pass */ }
+  }
+  const internal = req.headers.get('x-qd-internal');
+  if (!internal) return false;
+  return (await requireInternal(admin, internal, 'resilience_ping', 'resilience_ping header')).ok;
+}
+// Liveness for an anonymous monitor: one rate-limit row and a fixed answer. No step, no drain, no read.
+// The limiter failing refuses (429), the same fail-closed rule as login_otp.
+async function liveness(req: Request): Promise<Response> {
+  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+  let allowed = false;
+  try { const { data, error } = await admin.rpc('rl_check', { p_key: 'resilience_ping_anon:' + ip, p_limit: 60, p_seconds: 3600 }); allowed = !error && data !== false; } catch (_e) { allowed = false; }
+  if (!allowed) return J({ ok: false, error: 'rate_limited' }, 429);
+  return J({ ok: true, live: true, sweep: 'not_run', why: 'the sweep runs only for an authenticated scheduler' });
+}
+
+// The liveness answer is decided OUTSIDE observe() on purpose: observe writes an fn:resilience_ping run
+// row, and fn_cron_liveness and the scheduler-health readers take that row as proof a tick ran. An
+// outsider pinging the URL must never make a dead scheduler look alive.
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
+  return (await tickCaller(req)) ? sweep(req) : liveness(req);
+});
+const sweep = observe('resilience_ping', async (req: Request) => {
   try {
     const t0 = Date.now();
     // Fired now, awaited last: nothing below depends on the portal being warm, so the five pings
@@ -1712,4 +1794,4 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, failing: failed, heartbeat, tick, ...results, warm });
     return J({ ok: true, healthy: false, newest_run_age_min: ageMin, page, failing: failed, heartbeat, tick, ...results, warm });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
-}));
+});

@@ -8,6 +8,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { exactCandidates, textLines, tradesOfText, type TradeResolveDeps } from './trade_resolve.ts';
 import type { MeaningService } from './service_meaning.ts';
+import { meaningClauses } from './service_meaning.ts';
 import FIXTURES from './trade_words.fixtures.json' with { type: 'json' };
 
 // fn_trade_code, and fn_taxonomy_trades_for over a slice of production (29 Sep 2026): codes resolve to themselves,
@@ -46,7 +47,11 @@ Deno.test('words alone decide nothing: no fixture sentence resolves by the exact
   for (const f of FIXTURES as { text: string; codes: string[] }[]) {
     const r = await tradesOfText(f.text, noMeaning);
     assertEquals(codes(r), [], `"${f.text}" named a trade by its words`);
-    assertEquals(r.meaning, 'embedding_unavailable');
+    // 7 Oct 2026: a fixture whose every clause is one word is not read by meaning at all (a single word is a code or nothing), so its
+    // state is nothing_to_read; every longer one still reports that the embedding could not be read.
+    const one = (s: string) => s.trim().split(/\s+/).length < 2;
+    const oneWordEach = f.text.split(/\n/).every((l) => !one(l) && meaningClauses(l).every(one));
+    assertEquals(r.meaning, oneWordEach ? 'nothing_to_read' : 'embedding_unavailable', f.text);
   }
   // the sentence trade_words.ts read as plumbing because two aliases occur in it
   assertEquals(codes(await tradesOfText('Activities: Plumbing works and drainage maintenance', noMeaning)), []);

@@ -145,33 +145,8 @@ export const AUTHORITY = {
   security_systems: 'sira',
 };
 
-export const TRADES = {
-  aluminium: { name: 'Aluminium & Cladding', products: ['aluminium windows', 'aluminium doors', 'curtain walling', 'cladding', 'louvres', 'powder coated profiles', 'thermal break profiles', 'sliding systems'], brands: ['Technal', 'Schueco', 'Alumil'] },
-  av_it: { name: 'AV & IT Systems', products: ['structured cabling', 'av distribution', 'projectors', 'led video wall', 'conference room av', 'pa system', 'network switches', 'cctv cabling'], brands: ['Crestron', 'Extron', 'Bosch'] },
-  civil_works: { name: 'Civil Works', products: ['concrete works', 'blockwork', 'plastering', 'excavation', 'shoring', 'screed', 'rebar fixing', 'formwork'], brands: ['Doka', 'Peri'] },
-  cleaning: { name: 'Cleaning Services', products: ['deep cleaning', 'facade cleaning', 'post construction cleaning', 'disinfection', 'housekeeping', 'carpet cleaning', 'pest control', 'waste removal'], brands: ['Karcher', 'Diversey'] },
-  doors: { name: 'Doors & Windows', products: ['wooden doors', 'fire rated doors', 'automatic sliding doors', 'upvc windows', 'aluminium windows', 'glass doors', 'door hardware', 'roller shutters'], brands: ['Assa Abloy', 'Dorma', 'Hormann'] },
-  electrical: { name: 'Electrical', products: ['db panels', 'cable trays', 'lv panels', 'light fittings', 'wiring accessories', 'earthing system', 'diesel generator', 'busbar trunking'], brands: ['Schneider', 'ABB', 'Legrand'] },
-  elevators: { name: 'Elevators & Escalators', products: ['passenger lift', 'service lift', 'escalator', 'dumbwaiter', 'platform lift', 'lift modernisation', 'lift amc', 'travelator'], brands: ['Otis', 'Kone', 'Schindler'] },
-  fire_fighting: { name: 'Fire Fighting', products: ['fire alarm panel', 'sprinkler system', 'fm200 system', 'fire extinguisher', 'smoke detector', 'hose reel', 'fire pump', 'emergency lighting'], brands: ['Notifier', 'Tyco', 'Honeywell'] },
-  flooring: { name: 'Flooring', products: ['porcelain tiles', 'vinyl flooring', 'epoxy flooring', 'marble flooring', 'parquet', 'carpet tiles', 'raised access floor', 'skirting'], brands: ['Tarkett', 'RAK Ceramics', 'Interface'] },
-  glazing: { name: 'Glass & Glazing', products: ['double glazed units', 'tempered glass', 'laminated glass', 'glass partitions', 'shower screens', 'mirrors', 'frameless glass', 'spider glazing'], brands: ['Guardian', 'Saint-Gobain', 'Emirates Glass'] },
-  gypsum: { name: 'Gypsum & Ceilings', products: ['gypsum board partitions', 'false ceiling', 'acoustic ceiling', 'drywall', 'bulkheads', 'gypsum cornice', 'metal stud framing', 'access panels'], brands: ['Knauf', 'Gyproc', 'Armstrong'] },
-  hvac: { name: 'HVAC', products: ['fan coil unit', 'air handling unit', 'ducting', 'vrf system', 'split ac', 'chiller', 'ventilation fans', 'duct insulation'], brands: ['Daikin', 'Carrier', 'Trane'] },
-  interior_fitout: { name: 'Interior Fit-Out', products: ['fit out works', 'joinery fitout', 'partitions', 'ceiling works', 'painting works', 'flooring works', 'mep fitout', 'turnkey fitout'], brands: ['Vitra', 'Herman Miller'] },
-  joinery: { name: 'Joinery & Carpentry', products: ['kitchen cabinets', 'wardrobes', 'reception desk', 'wall panelling', 'joinery doors', 'veneer works', 'solid surface counters', 'custom furniture'], brands: ['Blum', 'Hettich', 'Egger'] },
-  landscaping: { name: 'Landscaping & Pools', products: ['soft landscaping', 'hard landscaping', 'irrigation system', 'swimming pool', 'water features', 'pergola', 'artificial grass', 'outdoor lighting'], brands: ['Hunter', 'Rain Bird', 'Pentair'] },
-  mep_general: { name: 'MEP (combined)', products: ['mep works', 'plumbing works', 'electrical works', 'hvac works', 'fire fighting works', 'drainage', 'bms', 'elv systems'], brands: ['Schneider', 'Siemens'] },
-  painting: { name: 'Painting & Finishes', products: ['interior painting', 'exterior painting', 'decorative finishes', 'epoxy paint', 'texture coating', 'waterproof paint', 'spray painting', 'wood coating'], brands: ['Jotun', 'Dulux', 'National Paints'] },
-  plumbing: { name: 'Plumbing & Sanitary', products: ['sanitary ware', 'ppr pipes', 'drainage pipes', 'water heater', 'booster pumps', 'water tank', 'upvc pipes', 'valves and fittings'], brands: ['Grohe', 'Geberit', 'Duravit'] },
-  scaffolding: { name: 'Scaffolding & Access', products: ['scaffolding rental', 'cuplock scaffolding', 'mobile tower', 'shoring props', 'safety nets', 'ladder access', 'formwork panels', 'edge protection'], brands: ['Layher', 'Doka'] },
-  security_systems: { name: 'Security Systems', products: ['cctv cameras', 'access control', 'video intercom', 'road barriers', 'turnstiles', 'intruder alarm', 'nvr recorder', 'sira compliant cctv'], brands: ['Hikvision', 'Axis', 'Dahua'] },
-  signage: { name: 'Signage & Printing', products: ['acrylic signage', 'led signage', '3d letters', 'vinyl printing', 'banners', 'wayfinding signage', 'digital printing', 'pylon sign'], brands: ['3M', 'Avery Dennison'] },
-  steel: { name: 'Steel Fabrication', products: ['structural steel', 'steel fabrication', 'handrails', 'steel staircase', 'gates', 'mezzanine floor', 'ms fabrication', 'ss railing'], brands: ['Emirates Steel', 'Conares'] },
-  upholstery: { name: 'Upholstery & Soft Furnishing', products: ['sofa upholstery', 'curtains', 'blinds', 'cushions', 'headboards', 'fabric supply', 'majlis seating', 'loose furniture'], brands: ['Kvadrat', 'Silent Gliss'] },
-  wallpaper: { name: 'Wall Finishes', products: ['wallpaper supply', 'wall panels', '3d wall panels', 'wall murals', 'fabric wall covering', 'acoustic wall panels', 'wall cladding', 'decorative film'], brands: ['Vescom', 'Omexco'] },
-  waterproofing: { name: 'Waterproofing & Insulation', products: ['bituminous membrane', 'liquid waterproofing', 'pu coating', 'basement tanking', 'roof waterproofing', 'wet area waterproofing', 'thermal insulation', 'vapour barrier'], brands: ['Sika', 'Fosroc', 'BASF'] },
-};
+import { TRADE_DEFS as TRADES } from './trade_defs.mjs';
+export { TRADES };
 export const TRADE_CODES = Object.keys(TRADES);
 
 export const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain'];
@@ -637,14 +612,34 @@ async function completeMandatorySix(run, sups) {
  * opens the 14-day window in the same statement. This is the exception-window fixture. (Until 7 Sep the
  * refusal came from fn_supplier_licence_gate, dropped that day; the six gate is what refuses now.)
  * The real licence object it replaced is still named by its documents row, so teardown removes it.
+ * opts.unreadable_upload: instead the supplier uploads an unreadable licence through supplier_api process_docs
+ * (the real path) - the licence_unreadable case. The direct write stays only for the missing-object case, which
+ * the product refuses to produce (process_docs answers document_not_found).
  */
 export async function makeLicenceGatedSupplier(run, opts = {}) {
-  const s = await makeSupplier(run, { ...opts, capability: opts.capability !== false });
-  await mgmtFixture(REF,
+  // ZZ DEMO naming (demo-fixture convention). Without a name this supplier fell to makeSupplier's
+  // "QD Demo <trade>" default: stage-2 S02 left "QD Demo Steel Fabrication" (sup13) on 7 Oct 2026.
+  const name = opts.company_name || `ZZ DEMO licence-gated ${(TRADES[opts.trade || 'aluminium'] || {}).name || 'supplier'} ${run.tag}`;
+  const s = await makeSupplier(run, { ...opts, company_name: name, capability: opts.capability !== false });
+  if (opts.unreadable_upload) {
+    // THE PRODUCT PATH (stage-2 S02, 7 Oct 2026). The supplier uploads a new licence through supplier_api
+    // process_docs, exactly as the portal does: a valid image with no text layer, so code reads no name and
+    // process_docs writes licence_legal_name = null itself. Whatever re-gates him (z20 -> the sales engineer's
+    // verification) must do it from that write; a direct UPDATE here hid that nothing re-ran the review.
+    // Zero model calls while app_secrets.document_expiry_ai is unset (measured 7 Oct 2026: absent).
+    const PNG_1PX = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const r = await call('supplier_api', s.jwt, { action: 'process_docs',
+      license: { original_b64: PNG_1PX, mime: 'image/png', filename: 'zz_demo_unreadable_licence.png' } });
+    if (r.status !== 200) throw new Error(`process_docs licence upload failed: HTTP ${r.status} ${r.text}`);
+  } else await mgmtFixture(REF,
     `update public.leads
         set license_doc_path = ${q(opts.license_doc_path || `supplier-docs/demo/${run.tag}/licence.pdf`)},
             trade_license_no = ${q(opts.trade_license_no ?? null)},
-            license_expiry   = ${opts.license_expiry ? q(opts.license_expiry) : 'null'}
+            license_expiry   = ${opts.license_expiry ? q(opts.license_expiry) : 'null'},
+            -- a NEW licence nobody has read: the product nulls the name exactly so (supplier_api
+            -- "a new licence replaces the old name even when nothing is read"); a stale read name
+            -- here made the gate look passed (stage-2 S02, 7 Oct 2026)
+            licence_legal_name = ${opts.licence_legal_name ? q(opts.licence_legal_name) : 'null'}
       where id = ${num(s.leadId)}`, 'open licence gate');
   const row = (await mgmtRead(REF,
     `select approval_status, licence_gate_reason from public.leads where id=${num(s.leadId)}`))[0];
@@ -844,23 +839,35 @@ export const DEFAULT_INTAKE_ANSWERS = (t, emirate) => [
 ];
 
 /** The adaptive intake loop. Each turn answers whatever the server still says is missing. */
-export async function runIntake(cust, answers, maxTurns = 10) {
-  let intakeId = null, status = null, readiness = 0, missing = [], turns = 0;
+// The fact sheet lives in ./fact_sheet.mjs (importable without a management token, so its test runs in CI).
+export { factSheet } from './fact_sheet.mjs';
+
+/**
+ * Drive inquiry_intake. `answers` are the scripted turns; after them a `sheet` (factSheet) answers
+ * what was asked. Without a sheet the old filler stays, for callers that script every turn.
+ */
+export async function runIntake(cust, answers, maxTurns = 10, sheet = null) {
+  let intakeId = null, status = null, readiness = 0, missing = [], turns = 0, last = null;
+  const log = [];
   for (let i = 0; i < maxTurns; i++) {
     const answer = i < answers.length ? answers[i]
+      : sheet ? sheet.answerFor(last)
       : `Details: ${missing.slice(0, 6).map((m) => `${m}: standard specification, please assume typical values`).join('; ') || 'please proceed with typical values'}.`;
     const r = await call('inquiry_intake', cust.jwt,
       intakeId ? { intake_id: intakeId, text: answer, email: cust.email }
                : { text: answer, email: cust.email });
     turns++;
     if (r.status !== 200) { status = `HTTP ${r.status} ${r.text}`; break; }
+    last = r.json;
     intakeId = r.json?.intake_id ?? r.json?.id ?? intakeId;
     status = r.json?.status ?? null;
-    readiness = Number(r.json?.readiness ?? 0);
+    // readiness is an object {filled, required, score}; the number is readiness_score.
+    readiness = Number(r.json?.readiness_score ?? r.json?.readiness?.score ?? 0);
     missing = Array.isArray(r.json?.missing) ? r.json.missing.map(String) : [];
+    log.push({ turn: turns, answer, asked_key: r.json?.next_question?.key ?? null, missing_keys: r.json?.required_gate?.missing_keys ?? null, status });
     if (status === 'ready') break;
   }
-  return { intakeId, status, readiness, missing, turns };
+  return { intakeId, status, readiness, missing, turns, log };
 }
 
 // ---- quotes ----------------------------------------------------------------------------------

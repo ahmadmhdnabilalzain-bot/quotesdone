@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-06T19:10:19.245Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-12T09:32:44.227Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (708) =====
+-- ===== TABLES (709) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4530,6 +4530,22 @@ CREATE TABLE IF NOT EXISTS public.kb_chunk_quarantine (
 );
 
 CREATE TABLE IF NOT EXISTS public.kb_chunks (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  source_kind text NOT NULL,
+  source_id text,
+  category text,
+  title text,
+  content text NOT NULL,
+  citation text,
+  effective_date date,
+  fts tsvector GENERATED ALWAYS AS (to_tsvector('english'::regconfig, ((COALESCE(title, ''::text) || ' '::text) || COALESCE(content, ''::text)))) STORED,
+  created_at timestamp with time zone DEFAULT now(),
+  embedding_gte vector(384),
+  category_norm text GENERATED ALWAYS AS (NULLIF(regexp_replace(lower(COALESCE(category, ''::text)), '^cat:'::text, ''::text), ''::text)) STORED,
+  embed_claimed_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.kb_chunks_old (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   source_kind text NOT NULL,
   source_id text,
@@ -10103,6 +10119,7 @@ ALTER TABLE public.kb_category_aliases ADD CONSTRAINT kb_category_aliases_pkey P
 ALTER TABLE public.kb_category_stats ADD CONSTRAINT kb_category_stats_pkey PRIMARY KEY (category, source_kind);
 ALTER TABLE public.kb_chunk_quarantine ADD CONSTRAINT kb_chunk_quarantine_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_chunks ADD CONSTRAINT kb_chunks_pkey PRIMARY KEY (id);
+ALTER TABLE public.kb_chunks_old ADD CONSTRAINT kb_chunks_old_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_chunks_swap_log ADD CONSTRAINT kb_chunks_swap_log_pkey PRIMARY KEY (seq);
 ALTER TABLE public.kb_citation_jurisdiction ADD CONSTRAINT kb_citation_jurisdiction_pkey PRIMARY KEY (citation_md5);
 ALTER TABLE public.kb_embed_inflight ADD CONSTRAINT kb_embed_inflight_pkey PRIMARY KEY (request_id);
@@ -12205,17 +12222,29 @@ CREATE INDEX ix_sec_audit_tbl ON public.security_audit_log USING btree (table_na
 CREATE INDEX ix_workflow_run_correlation ON public.workflow_run USING btree (correlation_id);
 CREATE INDEX ix_workflow_run_status ON public.workflow_run USING btree (status, next_attempt_at);
 CREATE INDEX kb_chunks_cat_id_idx ON public.kb_chunks USING btree (category) INCLUDE (id);
+CREATE INDEX kb_chunks_cat_id_idx_old ON public.kb_chunks_old USING btree (category) INCLUDE (id);
 CREATE INDEX kb_chunks_category_norm_idx ON public.kb_chunks USING btree (category_norm);
+CREATE INDEX kb_chunks_category_norm_idx_old ON public.kb_chunks_old USING btree (category_norm);
 CREATE UNIQUE INDEX kb_chunks_company_faq_source_id ON public.kb_chunks USING btree (source_id) WHERE (source_kind = 'company_faq'::text);
+CREATE UNIQUE INDEX kb_chunks_company_faq_source_id_old ON public.kb_chunks_old USING btree (source_id) WHERE (source_kind = 'company_faq'::text);
 CREATE INDEX kb_chunks_created_at_desc_idx ON public.kb_chunks USING btree (created_at DESC);
+CREATE INDEX kb_chunks_created_at_desc_idx_old ON public.kb_chunks_old USING btree (created_at DESC);
 CREATE INDEX kb_chunks_emb_hnsw ON public.kb_chunks USING hnsw (embedding_gte vector_cosine_ops);
+CREATE INDEX kb_chunks_emb_hnsw_old ON public.kb_chunks_old USING hnsw (embedding_gte vector_cosine_ops);
 CREATE INDEX kb_chunks_fts ON public.kb_chunks USING gin (fts);
+CREATE INDEX kb_chunks_fts_old ON public.kb_chunks_old USING gin (fts);
 CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx ON public.kb_chunks USING btree (source_id) WHERE (source_kind = 'qd_kb_pack'::text);
+CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx_old ON public.kb_chunks_old USING btree (source_id) WHERE (source_kind = 'qd_kb_pack'::text);
 CREATE INDEX kb_chunks_source_id_idx ON public.kb_chunks USING btree (source_id);
+CREATE INDEX kb_chunks_source_id_idx_old ON public.kb_chunks_old USING btree (source_id);
 CREATE INDEX kb_chunks_source_kind_idx ON public.kb_chunks USING btree (source_kind);
+CREATE INDEX kb_chunks_source_kind_idx_old ON public.kb_chunks_old USING btree (source_kind);
 CREATE INDEX kb_chunks_unembedded_cat_created_idx ON public.kb_chunks USING btree (category, created_at) WHERE (embedding_gte IS NULL);
+CREATE INDEX kb_chunks_unembedded_cat_created_idx_old ON public.kb_chunks_old USING btree (category, created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_chunks_unembedded_created_idx ON public.kb_chunks USING btree (created_at) WHERE (embedding_gte IS NULL);
+CREATE INDEX kb_chunks_unembedded_created_idx_old ON public.kb_chunks_old USING btree (created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_chunks_unembedded_kind_created_idx ON public.kb_chunks USING btree (source_kind, created_at) WHERE (embedding_gte IS NULL);
+CREATE INDEX kb_chunks_unembedded_kind_created_idx_old ON public.kb_chunks_old USING btree (source_kind, created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_embed_inflight_chunk_idx ON public.kb_embed_inflight USING btree (chunk_id);
 CREATE INDEX kb_op_alias_lang_idx ON public.kb_operational_alias USING btree (language, negative);
 CREATE INDEX kb_op_alias_norm_idx ON public.kb_operational_alias USING btree (alias_norm);

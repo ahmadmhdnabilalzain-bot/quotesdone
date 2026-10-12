@@ -1,4 +1,5 @@
 import { siteCors } from '../_shared/site_origins.ts';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 // supplier_portal v5 — advanced supplier dashboard API. Supplier-authed (own leads row via claimed_by).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
@@ -532,11 +533,11 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
               const jd = await r.json();
               if (jd?.ok && jd.found_expiry && jd.cert?.expiry_date) read[kindStr] = { kind: kindStr, expiry: String(jd.cert.expiry_date), source: 'ai', needs_confirm: true, typed };
             } catch (_e) { /* the honest 'unread' note below */ }
-            if (!read[kindStr]) read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true };
-          } else read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true };
+            if (!read[kindStr]) read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
+          } else read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && !(aiOn && INBOUND_SECRET)) {
-          read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true };
+          read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && aiOn && INBOUND_SECRET) {
           try {
@@ -556,7 +557,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
               upd.doc_extracted_at = new Date().toISOString();
             }
           } catch (_e) { /* fall back to the typed value below */ }
-          if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true };
+          if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
         // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
         // a date - including when NO document was attached at all, since the extraction block requires

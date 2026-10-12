@@ -391,6 +391,7 @@ export function PortalShell({
     return (
       <button
         type="button"
+        data-nav-id={item.id}
         onClick={() => go(item.id)}
         aria-current={active ? 'page' : undefined}
         style={{ order: rankOf(item.id, order) }}
