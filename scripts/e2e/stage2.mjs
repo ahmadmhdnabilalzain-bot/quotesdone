@@ -52,8 +52,8 @@ process.env.QD_FIXTURES = '1';
 
 // ---- the matrix ------------------------------------------------------------------------------------
 // Ten different trades, one supplier each, in rotating emirates; plus three more aluminium suppliers.
-// The aluminium request invites as many of the four as decision_policy.match_max_fanout_per_trade allows
-// (3 today), and S07 proves the one left out is refused. elevators has NO demo
+// The aluminium request invites all four (any number may quote) and collects four quotes, so the
+// comparison has a top 3 and "the rest". elevators has NO demo
 // supplier: its request must HOLD, never be routed to a nearest trade (exact trade match or none).
 export const SUPPLIER_TRADES = ['aluminium', 'electrical', 'plumbing', 'hvac', 'flooring', 'joinery', 'glazing', 'painting', 'waterproofing', 'landscaping'];
 export const EXTRA_ALUMINIUM = ['A2', 'A3', 'A4'];
@@ -70,7 +70,7 @@ export const SCENARIOS = [
   { key: 'S04', title: 'Inquiries through the sales-engineer interview: EN + AR, exact specs and "not sure", multiple lines, several emirates', calls: [['inquiry_qualification_conversation', 60, 3000, 500], ['category_classification', 10, 1000, 100]] },
   { key: 'S05', title: 'Drawing / photo / BOQ inquiries: analysed, redacted, no identity reaches a supplier', calls: [['drawing_and_boq_analysis', 4, 8000, 2000], ['redaction_detection', 4, 3000, 500], ['identity_redaction_verify', 4, 4000, 300], ['drawing_boq_confirm', 2, 4000, 500]] },
   { key: 'S06', title: 'Matching: each request reaches only its exact-trade demo supplier; the unmatched trade holds', calls: [['rfq_routing', 11, 3000, 800]] },
-  { key: 'S07', title: 'Quotes from every supplier the request invited (per-trade cap read from decision_policy), the uninvited refused, incomplete quote held with notes, revision releases it, PDF extraction', calls: [['json_extraction', 8, 6000, 1500], ['procurement_reasoning', 8, 4000, 800]] },
+  { key: 'S07', title: 'Quotes: every capable supplier invited (4 on the aluminium request, no count cap) and quoting, incomplete quote held with notes, revision releases it, PDF extraction', calls: [['json_extraction', 8, 6000, 1500], ['procurement_reasoning', 8, 4000, 800]] },
   { key: 'S08', title: 'Spec questions answered by the customer incl. "not sure" (spec offer / missing specs)', calls: [['sales_engineer_reasoning', 6, 3000, 600]] },
   { key: 'S09', title: 'Comparison report on the Opus route: top 3 + every other quote listed, EN and AR', calls: [['quote_comparison', 2, 20000, 6000], ['translation', 4, 6000, 6000]] },
   { key: 'S10', title: 'Reveal with Stripe TEST: declined card refused, paid card reveals at 3% with no card surcharge, invoice + receipt, both parties notified (customer in AR, supplier in EN)', calls: [['customer_communication', 4, 1500, 400], ['supplier_communication', 4, 1500, 400]] },
@@ -388,21 +388,18 @@ async function realRun(pre) {
     S07: async () => {
       const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const al = fx.suppliers.filter((s) => s.trade === 'aluminium');
-      // WHO WAS INVITED IS READ, NOT ASSUMED (run 1c94fa6a, 12 Oct 2026). The harness quoted from all four
-      // aluminium suppliers and A4 got 404 "no inquiry_matches row": the sales engineer's matcher
-      // (supabase/functions/sales_engineer/index.ts, the per-trade loop) takes at most
-      // decision_policy.match_max_fanout_per_trade suppliers per trade - 3 today, a founder dial - so on a
-      // one-trade request the 4th capable supplier is correctly never invited. The run now quotes from the
-      // invited suppliers, and proves the dial on the ones it left out: an uninvited supplier is refused.
-      const cap = Number((await read(`select value from public.decision_policy where key='match_max_fanout_per_trade'`))[0]?.value);
+      // EVERY CAPABLE SUPPLIER IS INVITED (founder ruling 24 Sep 2026: any number may quote; top 3 is only the
+      // report). Run 1c94fa6a: A4 got 404 because the matcher then stopped each trade at 3; that cap is gone
+      // (scripts/checks/every_matched_supplier_is_invited.test.mjs), so all four aluminium suppliers must be invited
+      // and quote. Who was invited is still READ from inquiry_matches, never assumed.
       const invitedIds = new Set((await read(`select supplier_id from public.inquiry_matches where inquiry_id=${q(inq.id)}`)).map((r) => Number(r.supplier_id)));
       const inv = al.filter((s) => invitedIds.has(Number(s.leadId)));
       const out = al.filter((s) => !invitedIds.has(Number(s.leadId)));
-      A(`the aluminium request invites min(${al.length} capable, per-trade cap ${cap}) aluminium suppliers`, Number.isFinite(cap) && inv.length === Math.min(al.length, cap),
+      A(`the aluminium request invites every one of its ${al.length} capable aluminium suppliers (no count cap)`, inv.length === al.length,
         `invited ${inv.map((s) => s.row.company_name).join(', ')}; not invited ${out.map((s) => s.row.company_name).join(', ') || 'none'}`);
       for (const s of out) {
         const r = await call('supplier_api', s.jwt, quotePayload(inq.id, 150000, 'ZZ DEMO uninvited quote'));
-        A(`${s.row.company_name} was not invited (per-trade cap ${cap}), so its quote is refused`, r.status === 404, `HTTP ${r.status}`);
+        A(`${s.row.company_name} was not invited, so its quote is refused`, r.status === 404, `HTTP ${r.status}`);
       }
       need(inv.length >= 2, `only ${inv.length} aluminium supplier(s) invited, so there is no complete quote beside the incomplete one`);
       // The LAST invited supplier sends the incomplete quote (no warranty, validity or lead time); the others a full form.
