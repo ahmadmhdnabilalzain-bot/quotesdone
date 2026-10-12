@@ -17,9 +17,14 @@ const OUT = join(ROOT, 'supabase/functions/_shared/brief.generated.ts');
 
 export function compileBrief() {
   const regs = readdirSync(join(DIR, 'uae_regulations')).filter((f) => f.endsWith('.md')).sort();
+  // conversation_style.md + conversation/<trade_group>.md: the sales_engineer's conversation method and per-trade
+  // playbooks (rulings 1195-1200: adaptive, expert follow-up questions). Same cached block, always included.
+  const convo = readdirSync(join(DIR, 'conversation')).filter((f) => f.endsWith('.md')).sort();
   const parts = [
     ['company.md', readFileSync(join(DIR, 'company.md'), 'utf8')],
+    ['conversation_style.md', readFileSync(join(DIR, 'conversation_style.md'), 'utf8')],
     ...regs.map((f) => [`uae_regulations/${f}`, readFileSync(join(DIR, 'uae_regulations', f), 'utf8')]),
+    ...convo.map((f) => [`conversation/${f}`, readFileSync(join(DIR, 'conversation', f), 'utf8')]),
   ];
   const text = parts
     .map(([name, body]) => `<<<FILE knowledge/brief/${name}>>>\n${body.replace(/\r\n/g, '\n').trim()}\n<<<END>>>`)
@@ -35,6 +40,7 @@ export function renderModule(b) {
     `export const BRIEF_VERSION = ${JSON.stringify(b.sha.slice(0, 12))};\n` +
     `export const BRIEF_FILES: string[] = ${JSON.stringify(b.files)};\n` +
     `export const BRIEF_APPROX_TOKENS = ${b.approxTokens};\n` +
+    `export const CONVERSATION_STYLE: string = ${JSON.stringify(readFileSync(join(DIR, 'conversation_style.md'), 'utf8').replace(/\r\n/g, '\n').trim())};\n` +
     `export const BRIEF_TEXT: string = ${JSON.stringify(b.text)};\n`;
 }
 
