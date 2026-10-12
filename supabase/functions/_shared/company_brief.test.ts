@@ -1,6 +1,23 @@
 // The company brief and the figure check (company_brief.ts). No network.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { briefNumbers, composeBrief, FAQ_CAP, moneyFiguresNotInBrief, takeSentences } from './company_brief.ts';
+import { briefNumbers, companyBrief, composeBrief, FAQ_CAP, moneyFiguresNotInBrief, policyProblems, takeSentences } from './company_brief.ts';
+
+// prevented by: this test (review of #1330). A false policy sentence with no number goes back to the model too.
+Deno.test('policy claims: an affirmed card fee, VAT on the fee, a refund promise or a liability admission is named; a denial passes', () => {
+  for (const bad of ['A card fee is added at checkout.', 'VAT applies on the reveal fee.', 'We will refund you in full today.',
+    'QuotesDone is liable for the quality of the work.', 'تُضاف رسوم البطاقة عند الدفع.', 'تُفرض ضريبة القيمة المضافة على رسوم الكشف.'])
+    assertEquals(policyProblems(bad).length, 1, bad);
+  for (const ok of ['No card fee is ever added.', 'There is no VAT on the reveal fee.', 'If the supplier does not respond, you are refunded everything you paid.',
+    'لا تُضاف رسوم على الدفع بالبطاقة.', 'Comparing quotes is free.'])
+    assertEquals(policyProblems(ok), [], ok);
+});
+
+Deno.test('the brief cache is keyed on content: same-length facts never share a brief', async () => {
+  const rpc = () => Promise.resolve({ data: { block: 'CO' }, error: null });
+  const a = await companyBrief(rpc, [], 'FACTS A', 'en', [], 1);
+  const b = await companyBrief(rpc, [], 'FACTS B', 'en', [], 2);
+  assert(a.includes('FACTS A') && b.includes('FACTS B'));
+});
 
 const COMPANY = 'REVEAL FEE: the CUSTOMER pays 3.00% of the selected quotation value. Supplier registration is free for the first 1000, then AED 1000/year. AED 500 administrative fee; 12% per annum.';
 

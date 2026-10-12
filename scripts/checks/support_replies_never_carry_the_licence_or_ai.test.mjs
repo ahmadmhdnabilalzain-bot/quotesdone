@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { guardSupportReply, replyViolations, safeReply } from '../../supabase/functions/_shared/support_reply_guard.ts';
+import { guardSupportReply, replyViolations } from '../../supabase/functions/_shared/support_reply_guard.ts';
 
 const src = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 // Built from parts so this file never holds the number it forbids.
@@ -36,13 +36,16 @@ test('"AI" becomes "smart" in both scripts; Dubai and "said" are untouched', () 
   assert.deepEqual(replyViolations('We serve Dubai and Abu Dhabi.'), []);
 });
 
-test('an internal error or prompt wording replaces the whole reply, in the right language', () => {
+// 12 Oct 2026 (rulings 1195/1196, review of #1330): no canned replacement. A refused reply sends nothing from here;
+// callers check replyViolations() first and the model rewrites (_shared/ai_reply.ts).
+test('an internal error or prompt wording refuses the whole reply: nothing is sent, no canned line replaces it', () => {
   for (const bad of ['Sorry, ai_gateway returned circuit_open', 'TypeError: x is undefined at run (index.ts:4:2)',
                      'fn_support_corpus_search failed', 'Per the AUDIENCE RULES I cannot say']) {
     const g = guardSupportReply(bad, 'en');
-    assert.equal(g.text, safeReply('en'), bad);
+    assert.equal(g.text, '', bad);
+    assert.ok(g.violations.length, bad);
   }
-  assert.equal(guardSupportReply('supabase error', 'ar').text, safeReply('ar'));
+  assert.equal(guardSupportReply('supabase error', 'ar').text, '');
 });
 
 test('a clean reply passes unchanged', () => {
@@ -50,10 +53,6 @@ test('a clean reply passes unchanged', () => {
   assert.deepEqual(guardSupportReply(ok, 'en'), { text: ok, violations: [] });
 });
 
-test('the safe replies themselves pass the guard', () => {
-  assert.deepEqual(replyViolations(safeReply('en')), []);
-  assert.deepEqual(replyViolations(safeReply('ar')), []);
-});
 
 test('both support channels call the guard, and neither prompt carries the number', () => {
   for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts']) {
@@ -80,9 +79,5 @@ test('a supplier\'s own licence number in an upload confirmation survives', () =
   assert.equal(guardSupportReply(t, 'en').text, t);
 });
 
-test('an Arabic corpus answer is not closed with an English line', () => {
-  const s = src('supabase/functions/site_assistant/index.ts');
-  const i = s.indexOf('chosen?.content');
-  assert.ok(i > 0);
-  assert.match(s.slice(i, i + 900), /ar(?:Reply|Chosen)?\s*\?/, 'the corpus-answer suffix must pick its language');
-});
+// RETIRED 12 Oct 2026 (rulings 1195/1196): 'an Arabic corpus answer is not closed with an English line'. Its subject,
+// the widget's quoted-passage answer with a code-written closing line, was removed; the model writes every reply.

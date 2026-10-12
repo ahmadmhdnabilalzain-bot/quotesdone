@@ -69,14 +69,15 @@ Deno.test('no model answers at all: no text, never the caller canned line', asyn
   assertEquals(r.reply, '');
 });
 
-Deno.test('the composed reply passes the outgoing guard; an unknown route is not trusted', async () => {
+// prevented by: this test (review of #1330). A reply the guard refuses is rewritten BY A MODEL, never patched by code.
+Deno.test('a composed reply the guard refuses is rewritten by a model; an unknown route is not trusted', async () => {
   const bad = JSON.stringify({ answer: 'Our AI matches you with suppliers anonymously.', reasoning: ['s1: how it works'], cited: [], confidence: 0.7, route: 'hr' });
-  const s = stub({ synth: [bad] });
+  const s = stub({ synth: [bad, JSON.stringify({ answer: 'Our Smart Engine matches you with suppliers anonymously.' })] });
   const r = await supportReply(s.deps, { channel: 'email', message: 'how does it work', lang: 'en', audience: 'customer' }, () => Promise.resolve(null));
   assertEquals(r.path, 'reasoned');
-  assert(!/\bAI\b/.test(r.reply), r.reply);
+  assertEquals(r.reply, 'Our Smart Engine matches you with suppliers anonymously.');
   assertEquals(r.seat, null);
-  assertEquals(r.grounded, false, 'no topic knowledge and nothing cited: the widget files this as a knowledge gap');
+  assertMatch(r.reason ?? '', /^direct: guard: ai_word/);
 });
 
 // ── the plain-language gate (founder instruction 1013 item 7) ──────────────────────────────────────

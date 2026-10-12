@@ -8,7 +8,7 @@
 //   - Code writes no reply text. If no model answers, the reply is '' and the caller sends nothing.
 // Suppliers are always answered in English; everyone else in their language.
 // prevented by: _shared/ai_reply.test.ts
-import { briefNumbers, companyBrief, moneyFiguresNotInBrief } from './company_brief.ts';
+import { briefNumbers, companyBrief, moneyFiguresNotInBrief, policyProblems } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { taskClassFor, type Seat, type ThinkDeps, type Turn } from './think.ts';
 
@@ -42,7 +42,7 @@ const parse = (s: string | null | undefined): string => String(json(s).answer ??
 
 /** What is wrong with a reply: a money figure the brief does not state, or a reply-guard rule it breaks. */
 export function replyProblems(text: string, known: Set<string>): string[] {
-  return [...moneyFiguresNotInBrief(text, known).map((n) => 'the figure ' + n + ' (the brief states no such fee, price or rate)'),
+  return [...moneyFiguresNotInBrief(text, known).map((n) => 'the figure ' + n + ' (the brief states no such fee, price or rate)'), ...policyProblems(text),
     ...replyViolations(text).map((v) => 'it breaks the reply rule "' + v + '"')];
 }
 
