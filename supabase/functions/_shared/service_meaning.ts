@@ -56,7 +56,7 @@ export type MeaningService = ServiceTerm & { vec: Vec | null; vec_ml?: Vec | nul
 export type MeaningLine = { text: string; vec: Vec | null; space?: Space };
 export type MeaningProposal = {
   key: string; trade: string; label_en: string; label_ar: string; similarity: number;
-  because: 'head_word' | 'alias' | 'trade_word'; word: string | null; lines: string[];
+  because: 'head_word' | 'alias' | 'trade_word' | 'trade_code'; word: string | null; lines: string[];
 };
 
 // Calibrated 21 Sep 2026 on gte-small (numbers above and in service_meaning.test.ts).
@@ -189,7 +189,7 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
   opts: { stated?: string[]; supplyOnly?: boolean; floor?: number; mlFloor?: number; tradeLabels?: Record<string, string> } = {}): MeaningProposal[] {
   const stated = new Set(opts.stated || []);
   const eligible = services.filter((s) => !(opts.supplyOnly && isInstallWork(s)));
-  type Cand = { s: MeaningService; sim: number; line: string; because: 'head_word' | 'alias' | 'trade_word' | null; word: string | null };
+  type Cand = { s: MeaningService; sim: number; line: string; because: 'head_word' | 'alias' | 'trade_word' | 'trade_code' | null; word: string | null };
   const byKey = new Map<string, Cand[]>();
   for (const line of lines.slice(0, MEANING_MAX_LINES)) {
     if (!line.vec) continue;
@@ -232,6 +232,27 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
       if (because && word && Object.keys(opts.tradeLabels).some((code) => code !== s.trade_code && parts(code).some((x) => x.length === 1 && x[0] === word))) return { because: null, word: null };
       return { because, word };
     };
+    // A WORD THAT IS A TRADE'S CODE (12 Oct 2026, accuracy suite: 0 of 9 aluminium suppliers reached). "Aluminium Works
+    // Contracting" shortlists maintenance contracts and general contracting (0.864, 0.860), and "Aluminium works" the
+    // non_ferrous_metals sheet service - and "aluminium" is a whole part of BOTH trade names, so the guard above refused
+    // it for either. But "aluminium" is not just a name word: it IS the live code of one trade. A line holding a trade's
+    // own code names that trade exactly, provided the line also MEANS that trade: one of its services clears the floor
+    // (measured on the live vectors: the activity lines 0.836-0.884; "Legal Name: ZZ DEMO Falcon Aluminium LLC" 0.796,
+    // refused). Both the code identity and the meaning are required; neither proposes on its own.
+    // ponytail: one-word codes only, English only; an Arabic line or a US spelling ("aluminum") is not a code.
+    if (!ml && opts.tradeLabels) {
+      for (const code of Object.keys(opts.tradeLabels)) {
+        const cw = contentWords(code.replace(/_/g, ' '));
+        if (cw.length !== 1 || !words.has(cw[0])) continue;
+        const own = ranked.filter(([, s]) => s.trade_code === code)[0];
+        if (!own || own[0] < floor) continue;
+        const key = `${own[1].trade_code}.${own[1].code}`;
+        if (stated.has(key)) continue;
+        const list = byKey.get(key) || [];
+        list.push({ s: own[1], sim: own[0], line: line.text, because: 'trade_code', word: cw[0] });
+        byKey.set(key, list);
+      }
+    }
     const pick = shortlist.find(([, s]) => judgeOf(s).because) ?? shortlist[0];
     if (!pick) continue;
     const [sim, best] = pick;
@@ -244,7 +265,7 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
   }
   const out: MeaningProposal[] = [];
   for (const [key, cands] of byKey) {
-    const worded = cands.find((c) => c.because);
+    const worded = cands.find((c) => c.because && c.because !== 'trade_code') ?? cands.find((c) => c.because);
     const because = worded?.because;
     if (!worded || !because) continue;   // a nearest neighbour is never accepted, however many lines find it
     out.push({
