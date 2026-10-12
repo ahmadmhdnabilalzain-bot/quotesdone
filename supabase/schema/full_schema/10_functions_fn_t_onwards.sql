@@ -1784,6 +1784,178 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_unfinished_signup_purge(p_apply boolean DEFAULT false, p_limit integer DEFAULT 20, p_only_email text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c record; v_id bigint; v_n int; v_out jsonb := '[]'::jsonb; v_cnt jsonb; v_auth uuid; v_email text; v_keep boolean;
+  n_done int := 0; n_held int := 0;
+begin
+  -- ── customers ──
+  for c in
+    select cu.id, lower(cu.email) email, cu.phone,
+           least(cu.created_at, coalesce((select min(u.created_at) from auth.users u where lower(u.email) = lower(cu.email)), cu.created_at)) started,
+           array_remove(array[case when not coalesce(cu.email_verified, false) then 'email' end,
+                               case when not coalesce(cu.phone_verified, false) then 'mobile' end,
+                               case when cu.tos_accepted_at is null then 'terms' end,
+                               case when cu.tos_ip is null then 'terms_ip' end], null) missing,
+           public.fn_signup_customer_held(cu.id) busy
+      from public.customers cu
+     where (p_only_email is null and not coalesce(cu.is_demo, false)) or lower(cu.email) = lower(p_only_email)
+  loop
+    continue when cardinality(c.missing) = 0;                       -- complete: never touched
+    continue when c.started > now() - interval '30 minutes';        -- still inside its 30 minutes
+    if c.busy then n_held := n_held + 1; v_out := v_out || jsonb_build_object('kind', 'customer', 'held', 'has a request, a sale, an upload, a draft, a signature or a conversation', 'missing', c.missing); continue; end if;
+    exit when n_done >= greatest(1, least(coalesce(p_limit, 20), 200));
+    if not p_apply then
+      n_done := n_done + 1; v_out := v_out || jsonb_build_object('kind', 'customer', 'missing', c.missing, 'started', c.started); continue;
+    end if;
+    insert into public.signup_purge (kind, subject_ref, started_at, missing)
+    values ('customer', encode(sha256(convert_to(coalesce(c.email, c.id::text), 'UTF8')), 'hex'), c.started, c.missing) returning id into v_id;
+    -- the partial uploads: what storage still holds for this sign-up (removed through the storage API)
+    insert into public.signup_purge_object (purge_id, bucket, path)
+    select v_id, x.bucket, x.path from (
+      select 'signed-terms' bucket, cu.signed_terms_path path from public.customers cu where cu.id = c.id and cu.signed_terms_path is not null
+      union select o.bucket_id, o.name from storage.objects o where o.bucket_id = 'drawing-files' and o.name like 'drawings/' || c.id || '/%'
+      union select d.bucket, d.path from public.doc_backups d where d.entity = 'customer' and d.entity_id = c.id::text and d.bucket is not null and d.path is not null
+    ) x where x.path is not null on conflict do nothing;
+    -- the backups: Dropbox copies and records go too (dropbox_backup deletes the listed copies)
+    v_cnt := public.fn_signup_purge_backups(v_id, 'customer', c.id::text);
+    v_keep := public.fn_signup_email_kept_elsewhere(c.email, 'customer');
+    if not v_keep then
+      -- by e-mail only (the mobile was never verified), and only when no other account of this e-mail stays
+      delete from public.notifications n where lower(n.to_email) = c.email;
+      get diagnostics v_n = row_count; v_cnt := v_cnt || jsonb_build_object('outbox', v_n);
+      delete from public.email_verifications e where lower(e.email) = c.email;
+      get diagnostics v_n = row_count; v_cnt := v_cnt || jsonb_build_object('email_otp', v_n);
+      delete from public.phone_verifications p where lower(p.email) = c.email;
+      get diagnostics v_n = row_count; v_cnt := v_cnt || jsonb_build_object('phone_otp', v_n);
+    else
+      v_cnt := v_cnt || jsonb_build_object('outbox', 0, 'email_otp', 0, 'phone_otp', 0, 'login', 'kept: another account of this e-mail is complete or held');
+    end if;
+    delete from public.inquiry_intake ii where ii.customer_id = c.id or lower(ii.email) = c.email;
+    delete from public.drawing_redaction_runs r where r.customer_id = c.id or lower(r.owner_email) = c.email;
+    delete from public.customer_preference p where p.customer_id = c.id;
+    delete from public.customer_layout l where l.customer_id = c.id;
+    delete from public.company_event e where e.entity_type = 'customer' and e.entity_id = c.id::text;
+    delete from public.customers cu where cu.id = c.id;               -- customer_phone_otps and company_review_ask cascade
+    -- the login is kept while another account of this e-mail is complete or held
+    if not v_keep then
+      delete from auth.users u where lower(u.email) = c.email;        -- sessions, identities and refresh tokens cascade
+      get diagnostics v_n = row_count;
+    else v_n := 0; end if;
+    v_cnt := v_cnt || jsonb_build_object('auth_users', v_n);
+    update public.signup_purge set counts = v_cnt || jsonb_build_object('objects', (select count(*) from public.signup_purge_object where purge_id = v_id)) where id = v_id;
+    n_done := n_done + 1; v_out := v_out || jsonb_build_object('kind', 'customer', 'purge_id', v_id, 'missing', c.missing, 'counts', v_cnt);
+  end loop;
+
+  -- ── suppliers (a claimed company whose owner's sign-up is unfinished) ──
+  for c in
+    select l.id, lower(l.claimed_by) email, l.source,
+           (l.invited_at is not null or l.invite_status is not null or coalesce(l.source, '') <> 'self_registered') invited,
+           least(coalesce(l.portal_updated_at, l.created_at, now()), coalesce((select min(u.created_at) from auth.users u where lower(u.email) = lower(l.claimed_by)), now())) started,
+           array_remove(array[case when not coalesce(l.owner_email_verified, false) then 'email' end,
+                               case when not coalesce(l.owner_phone_verified, false) then 'mobile' end,
+                               case when l.accepted_terms_at is null then 'terms' end,
+                               case when l.accepted_terms_ip is null then 'terms_ip' end], null) missing,
+           public.fn_signup_supplier_held(l.id) busy
+      from public.leads l
+     where l.claimed_by is not null
+       and ((p_only_email is null and not coalesce(l.is_demo, false)) or lower(l.claimed_by) = lower(p_only_email))
+  loop
+    continue when cardinality(c.missing) = 0;
+    continue when c.started > now() - interval '30 minutes';
+    if c.busy then n_held := n_held + 1; v_out := v_out || jsonb_build_object('kind', 'supplier', 'held', 'has a quote, a sale, a match, an upload, a signature or a conversation', 'missing', c.missing); continue; end if;
+    exit when n_done >= greatest(1, least(coalesce(p_limit, 20), 200));
+    if not p_apply then
+      n_done := n_done + 1; v_out := v_out || jsonb_build_object('kind', case when c.invited then 'supplier_invited_lead' else 'supplier_self_registered' end, 'missing', c.missing, 'started', c.started); continue;
+    end if;
+    insert into public.signup_purge (kind, subject_ref, started_at, missing)
+    values (case when c.invited then 'supplier_invited_lead' else 'supplier_self_registered' end,
+            encode(sha256(convert_to(coalesce(c.email, c.id::text), 'UTF8')), 'hex'), c.started, c.missing) returning id into v_id;
+    v_email := c.email;
+    v_keep := public.fn_signup_email_kept_elsewhere(v_email, 'supplier', c.id);
+    v_cnt := '{}'::jsonb;
+    if not v_keep then
+      delete from public.email_verifications e where lower(e.email) = v_email;
+      delete from public.phone_verifications p where lower(p.email) = v_email;
+      -- an invited lead's mail is the campaign's (its invitation and follow-ups): never deleted; a self-registered
+      -- company's mail to this address is the sign-up's own
+      if not c.invited then
+        delete from public.notifications n where lower(n.to_email) = v_email;
+        get diagnostics v_n = row_count; v_cnt := jsonb_build_object('outbox', v_n);
+      else v_cnt := jsonb_build_object('outbox', 0, 'outbox_kept', 'campaign mail of an invited lead'); end if;
+    else
+      v_cnt := jsonb_build_object('outbox', 0, 'login', 'kept: another account of this e-mail is complete or held');
+    end if;
+    if c.invited then
+      -- campaign data stays: the lead goes back to the pool, unclaimed, with nothing of the sign-up on it
+      update public.leads l set claimed = false, claimed_by = null, owner_email_verified = false, owner_phone_verified = false,
+             owner_dob = null, accepted_terms_at = null, accepted_terms_version = null, accepted_terms_ip = null,
+             accepted_terms_sha256 = null, accepted_terms_user_agent = null, signed_terms_path = null, portal_updated_at = now()
+       where l.id = c.id;
+      v_cnt := v_cnt || jsonb_build_object('lead', 'returned to the invited pool');
+      -- what the sign-up uploaded or produced goes, as for any unfinished sign-up (policy 1.6 "deleted in full")
+      insert into public.signup_purge_object (purge_id, bucket, path)
+      select v_id, o.bucket_id, o.name from storage.objects o where o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) = c.id::text
+      on conflict do nothing;
+      v_cnt := v_cnt || public.fn_signup_purge_backups(v_id, 'supplier', c.id::text);
+      update public.leads l set license_doc_path = null, egr_doc_path = null, insurance_doc_path = null, vat_doc_path = null,
+             iso_doc_path = null, manufacturer_auth_doc_path = null, company_profile_doc_path = null, catalog_doc_paths = null
+       where l.id = c.id;
+    else
+      insert into public.signup_purge_object (purge_id, bucket, path)
+      select v_id, d.bucket, d.path from public.doc_backups d
+       where d.entity = 'supplier' and d.entity_id = c.id::text and d.bucket is not null and d.path is not null
+      union select v_id, o.bucket_id, o.name from storage.objects o where o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) = c.id::text
+      on conflict do nothing;
+      v_cnt := v_cnt || public.fn_signup_purge_backups(v_id, 'supplier', c.id::text);
+      begin
+        delete from public.leads l where l.id = c.id;
+        v_cnt := v_cnt || jsonb_build_object('lead', 'removed');
+      exception when foreign_key_violation then
+        -- something else already points at the company: it is unclaimed instead, and the purge says so
+        update public.leads l set claimed = false, claimed_by = null, owner_email_verified = false, owner_phone_verified = false,
+               owner_dob = null, accepted_terms_at = null, accepted_terms_version = null, accepted_terms_ip = null,
+               accepted_terms_sha256 = null, accepted_terms_user_agent = null, signed_terms_path = null, portal_updated_at = now()
+         where l.id = c.id;
+        v_cnt := v_cnt || jsonb_build_object('lead', 'unclaimed (still referenced: ' || left(sqlerrm, 120) || ')');
+      end;
+    end if;
+    if not v_keep then
+      delete from auth.users u where lower(u.email) = v_email;
+      get diagnostics v_n = row_count;
+    else v_n := 0; end if;
+    v_cnt := v_cnt || jsonb_build_object('auth_users', v_n);
+    update public.signup_purge set counts = v_cnt where id = v_id;
+    n_done := n_done + 1; v_out := v_out || jsonb_build_object('kind', 'supplier', 'purge_id', v_id, 'missing', c.missing, 'counts', v_cnt);
+  end loop;
+
+  -- the customer register is rebuilt from the table when a customer row went (audit 12 Oct: it listed 7 for 6)
+  if p_apply and p_only_email is null and exists (select 1 from jsonb_array_elements(v_out) i where i->>'kind' = 'customer' and i ? 'purge_id') then
+    begin
+      perform net.http_post('https://' || public.qd_project_ref() || '.supabase.co/functions/v1/compliance_archive',
+        jsonb_build_object('__secret', (select value from public.app_secrets where key = 'cred_db_internal'), 'action', 'register'),
+        '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+    exception when others then null;    -- the register is rebuilt again at the next registration
+    end;
+  end if;
+  if p_apply and n_done > 0 and p_only_email is null then
+    -- counts only: no name, no e-mail, no file (the coordinator, 12 Oct 2026)
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, decided_at, decided_by)
+    values ('it_engineer', 'signup_purge', 'done', 'low', 'Unfinished sign-ups removed (founder ruling 1181)',
+            jsonb_build_object('removed', n_done, 'held', n_held,
+              'customers', (select count(*) from jsonb_array_elements(v_out) i where i->>'kind' = 'customer' and i ? 'purge_id'),
+              'suppliers', (select count(*) from jsonb_array_elements(v_out) i where i->>'kind' = 'supplier' and i ? 'purge_id')),
+            now(), 'it_engineer');
+  end if;
+  return jsonb_build_object('apply', p_apply, 'removed', n_done, 'held', n_held, 'items', v_out);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_usd_to_aed()
  RETURNS numeric
  LANGUAGE sql

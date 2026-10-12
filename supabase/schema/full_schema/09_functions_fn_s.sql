@@ -5365,6 +5365,86 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_signup_customer_held(p_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.inquiries i where i.customer_id = cu.id)
+      or exists (select 1 from public.transactions t where t.customer_id = cu.id)
+      or exists (select 1 from public.po_orders p where p.customer_id = cu.id)
+      or cu.signed_terms_path is not null
+      or exists (select 1 from public.inquiry_intake ii where ii.customer_id = cu.id or lower(ii.email) = lower(cu.email))
+      or exists (select 1 from public.messages m where m.customer_id = cu.id)
+      or exists (select 1 from public.assistant_logs a where a.audience = 'customer:' || cu.id::text)
+      or exists (select 1 from public.inbound_messages im where lower(im.from_email) = lower(cu.email))
+      or exists (select 1 from public.contact_messages cm where lower(cm.email) = lower(cu.email))
+      or exists (select 1 from public.complaint_tickets ct where lower(ct.email) = lower(cu.email))
+    from public.customers cu where cu.id = p_id;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_signup_email_kept_elsewhere(p_email text, p_role text, p_except_lead bigint DEFAULT NULL::bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.leads l where lower(l.claimed_by) = lower(p_email)
+                   and (p_role = 'customer' or l.id is distinct from p_except_lead)
+                   and ((coalesce(l.owner_email_verified, false) and coalesce(l.owner_phone_verified, false)
+                         and l.accepted_terms_at is not null and l.accepted_terms_ip is not null)
+                        or public.fn_signup_supplier_held(l.id)
+                        -- a sign-up in the other role still inside its own 30 minutes keeps the login too
+                        or least(coalesce(l.portal_updated_at, l.created_at, now()), now()) > now() - interval '30 minutes'))
+      or (p_role <> 'customer' and exists (select 1 from public.customers c where lower(c.email) = lower(p_email)
+                   and ((coalesce(c.email_verified, false) and coalesce(c.phone_verified, false)
+                         and c.tos_accepted_at is not null and c.tos_ip is not null)
+                        or public.fn_signup_customer_held(c.id)
+                        or c.created_at > now() - interval '30 minutes')));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_signup_purge_backups(p_purge_id bigint, p_entity text, p_entity_id text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_listed int;
+begin
+  if p_entity not in ('customer', 'supplier') then raise exception 'fn_signup_purge_backups: customer or supplier only'; end if;
+  -- EVERY record of the entity, whatever its status: a copy that never reached Dropbox answers not_found and its
+  -- record still goes; nothing is stranded and nothing is orphaned (release review, round 4)
+  insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
+  select p_purge_id, d.id, d.dropbox_path from public.doc_backups d
+   where d.entity = p_entity and d.entity_id = p_entity_id and d.dropbox_path is not null
+  on conflict (doc_backup_id) do nothing;
+  get diagnostics v_listed = row_count;
+  update public.doc_backups d set status = 'signup_purge_pending', claimed_at = null, claimed_by = null,
+         error = 'unfinished sign-up removed (signup_purge ' || p_purge_id || '): Dropbox copy and record to be deleted'
+   where d.entity = p_entity and d.entity_id = p_entity_id;
+  return jsonb_build_object('records_listed', v_listed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_signup_supplier_held(p_id bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.quotes q where q.supplier_id = l.id)
+      or exists (select 1 from public.transactions t where t.supplier_id = l.id)
+      or exists (select 1 from public.inquiry_matches im where im.supplier_id = l.id)
+      or l.signed_terms_path is not null
+      or exists (select 1 from public.messages m where m.supplier_id = l.id)
+      or exists (select 1 from public.inbound_messages i2 where i2.lead_id = l.id or lower(i2.from_email) = lower(l.claimed_by))
+    from public.leads l where l.id = p_id;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_smoke()
  RETURNS jsonb
  LANGUAGE plpgsql
