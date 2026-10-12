@@ -624,3 +624,6 @@ begin
     'ms', round(extract(epoch from (clock_timestamp() - v_t0)) * 1000));
 end
 $function$;
+
+select case when position('lock_not_available' in pg_get_functiondef('public.fn_org_task_consume_tick(integer,bigint,boolean)'::regprocedure)) > 0
+            then 'PROBE OK' else 'PROBE FAILED: fn_org_task_consume_tick has no lock-timeout guard on its settle' end as verdict;

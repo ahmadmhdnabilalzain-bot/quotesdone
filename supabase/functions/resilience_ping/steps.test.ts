@@ -141,4 +141,6 @@ Deno.test('detachedItems reads a nested map per entry and a flat result as the s
   eq(nested.map((i) => i.item), ["usage", "x"], "nested items");
   eq(detachedItems("marketing", { ok: false, error: "Signal timed out." }, false)[0].item, "marketing", "flat item");
   eq(detachedItems("marketing", { status: 200, ok: true }, false).length, 0, "passing");
+  // a nested run that hit the cap or threw is one failing item, never an empty list that closes findings
+  eq(detachedItems("itlater", { ok: false, error: "detached itlater passed its 120000 ms limit" }, true).map((i) => i.item), ["itlater"], "nested timeout");
 });

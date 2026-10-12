@@ -74,3 +74,6 @@ begin
   end if;
   return v_out;
 end $fn$;
+
+select case when position('v_handoff := public.fn_seat_handoff(' in pg_get_functiondef('public.fn_marketing_reviews_tick(timestamptz)'::regprocedure)) > 0
+            then 'PROBE OK' else 'PROBE FAILED: fn_marketing_reviews_tick still files the handoff inside its UPDATE' end as verdict;
