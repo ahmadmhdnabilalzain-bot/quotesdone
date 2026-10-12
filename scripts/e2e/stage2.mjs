@@ -426,7 +426,9 @@ async function realRun(pre) {
       const walk = async (s, qid) => {
         const form = await call('supplier_api', s.jwt, { action: 'spec_hold', quote_id: qid });
         const sch = form.json?.schema || {};
-        const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
+        // price_ex_vat is a NUMBER (validateTerm): the quote's own amount, as its supplier would confirm it (run 1be65ab2 sent 'standard').
+        const amt = (await read(`select coalesce(price_ex_vat, quote_amount)::float a from public.quotes where id=${q(qid)}`))[0]?.a;
+        const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, m.attr === 'price_ex_vat' ? String(amt) : TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
           lines: Object.fromEntries((sch.lines || []).map((l) => [l.line_no, Object.fromEntries(l.fields.filter((f) => f.missing).map((f) => [f.attr, f.options?.length ? (f.options[0].value ?? f.options[0]) : f.type === 'number' ? 6 : 'standard']))])) };
         const fill = await call('supplier_api', s.jwt, { action: 'spec_fill', quote_id: qid, values });
         const appr = await call('supplier_api', s.jwt, { action: 'spec_approve', quote_id: qid, confirm: true });
