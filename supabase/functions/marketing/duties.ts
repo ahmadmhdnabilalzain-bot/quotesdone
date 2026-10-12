@@ -17,6 +17,7 @@ import { makeLlmRich } from '../_shared/llm.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { type Deps, runStep, type Step } from '../_shared/marketing_judgement.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import { EMIRATES, sourceLeads, type Trade } from './lead_sourcing.ts';
 import { call, linkedinComments, processComment, tiktokComments, unhideRequest, youtubeComments, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
 import { commentClass } from '../_shared/reasoned_social.ts';
 import { accessToken, type SocialPlatform } from '../_shared/marketing_social_oauth.ts';
@@ -729,4 +730,29 @@ export const DUTIES: Duty[] = [
     },
   },
   profileText, trendWatch, geoAudit, reviews, blogArticle,
+  {
+    // Founder rulings 1184/1186 (12 Oct 2026): find NEW complete supplier leads every day, fewest-supplier trades
+    // first (./lead_sourcing.ts; recorded, deduped, suppressed, promoted and reported to the CEO by
+    // fn_lead_sourcing_record in scripts/sql/the_marketing_seat_finds_new_complete_supplier_leads_every_day.sql).
+    // Once per Dubai day; bounded to LEAD_SOURCING_QUERIES Serper calls (~USD 0.006/day at the Starter list price).
+    name: 'lead_sourcing',
+    owner_seat: 'marketing',
+    run: async (ctx) => {
+      const key = Deno.env.get('SERPER_API_KEY');
+      if (!key) throw new Skip('no SERPER_API_KEY edge secret');
+      const today = new Date(ctx.now.getTime() + 4 * 3600_000).toISOString().slice(0, 10);   // Dubai day
+      const { data: ran } = await ctx.admin.from('lead_sourcing_run').select('id').eq('kind', 'daily').eq('run_day', today).limit(1);
+      if (ran && ran.length) return { due: false, reason: 'sourced today' };
+      const emirate = EMIRATES[Math.floor(ctx.now.getTime() / 86400_000) % EMIRATES.length];   // one emirate a day, in turn
+      const { data: trades, error } = await ctx.admin.rpc('fn_lead_sourcing_priority', { p_emirate: emirate, p_limit: 3 });
+      if (error) throw new Error('fn_lead_sourcing_priority: ' + error.message);
+      const r = await sourceLeads({ serperKey: key, trades: trades || [], emirate, pagesPerQuery: 2, maxSites: 15, deadlineMs: 60_000 });
+      const { data, error: e2 } = await ctx.admin.rpc('fn_lead_sourcing_record', {
+        p_run: { kind: 'daily', emirate, trades: (trades || []).map((t: Trade) => t.code), queries: r.queries, serper_credits: r.serper_credits,
+          places: r.places, sites_crawled: r.sites_crawled, pages_fetched: r.pages_fetched, robots_refused: r.robots_refused, errors: r.errors.slice(0, 20) },
+        p_prospects: r.prospects });
+      if (e2) throw new Error('fn_lead_sourcing_record: ' + e2.message);
+      return { due: true, emirate, ...(data as Record<string, unknown>) };
+    },
+  },
 ];
