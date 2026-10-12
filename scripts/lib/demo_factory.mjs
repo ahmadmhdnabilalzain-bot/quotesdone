@@ -868,6 +868,14 @@ export async function runIntake(cust, answers, maxTurns = 10, sheet = null) {
     missing = Array.isArray(r.json?.missing) ? r.json.missing.map(String) : [];
     log.push({ turn: turns, answer, asked_key: r.json?.next_question?.key ?? null, missing_keys: r.json?.required_gate?.missing_keys ?? null, status });
     if (status === 'ready') break;
+    // A HELD TURN ENDS THE INTERVIEW AND SAYS WHY (12 Oct 2026, run 1c94fa6a). 'held' means no model could
+    // read the trade; re-asking 13 more times only repeated it, and the result read "readiness 0" with the
+    // gateway's HTTP status (a 502 from a spent OpenRouter key) nowhere in it.
+    if (status === 'held') {
+      const f = r.json?.llm_failure;
+      status = `held (${r.json?.held_reason ?? 'held'}${f ? `; gateway HTTP ${f.http} ${f.error} ${f.detail}` : ''})`;
+      break;
+    }
   }
   return { intakeId, status, readiness, missing, turns, log };
 }

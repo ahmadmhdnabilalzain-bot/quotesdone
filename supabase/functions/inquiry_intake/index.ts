@@ -36,7 +36,9 @@ function sanitizeInput(text: string): string { return String(text || '').replace
 
 // `subject` is the verified session email: ai_gateway answers our own ZZ DEMO / @example.invalid harness
 // with a no-cost stub instead of a paid call (founder instruction 705, _shared/spend_guards.ts).
-async function llm(messages: any[], subject: { email?: string; customer_id?: string | null } = {}): Promise<string | null> {
+// Why the gateway call failed; filled by llm() into the caller's own object, so concurrent requests in one isolate never share it.
+type LlmFailure = { http: number; error: string; detail: string };
+async function llm(messages: any[], subject: { email?: string; customer_id?: string | null } = {}, fail: { v: LlmFailure | null } = { v: null }): Promise<string | null> {
   // THE HOLD IS ASKED BEFORE THE GATEWAY IS CALLED (22 Sep 2026, SEATS-08/CP-14). Under the
   // founder's OpenRouter hold every route in llm_route_health is open until 2126, so this call
   // could only ever come back empty — 592 pointless gateway round trips in 72 h, each logged
@@ -49,8 +51,13 @@ async function llm(messages: any[], subject: { email?: string; customer_id?: str
   {
     try {
       const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'inquiry_intake', subject, sys, input, response_format: { type: 'json_object' }, max: 4000, temperature: 0.1 }) });
-      if (!r.ok) return null; const jd = await r.json(); const c = jd?.content; if (c) return c;
-    } catch (_e) { /* fall through to null */ }
+      // A FAILED TURN SAYS WHY (12 Oct 2026, sales_engineer). Sandbox run 1c94fa6a: the OpenRouter key hit
+      // its $200 total limit at 16:39 UTC, every gateway call came back 502, and this function turned each
+      // into a 'held' turn with readiness 0 and no reason, so C6-C10 read as 14 turns of nothing.
+      if (!r.ok) { const jd = await r.json().catch(() => ({})); fail.v = { http: r.status, error: String(jd?.error ?? ''), detail: String(jd?.detail ?? jd?.why ?? '').slice(0, 300) }; return null; }
+      const jd = await r.json(); const c = jd?.content; if (c) return c;
+      fail.v = { http: r.status, error: 'empty_content', detail: '' };
+    } catch (e) { fail.v = { http: 0, error: 'fetch_failed', detail: String((e as Error)?.message || e).slice(0, 300) }; }
   }
   return null;
 }
@@ -346,7 +353,8 @@ Only include \"questions\" when status is needs_info or rejected. ALWAYS return 
 ${requirementsContract(category)} Keep questions concise so the whole JSON stays complete.`;
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
-    const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null });
+    const llmFail: { v: LlmFailure | null } = { v: null };
+    const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null }, llmFail);
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
@@ -386,9 +394,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
           : 'Thank you — we have your request and our sales engineer is reviewing it now to identify exactly the right trade. We will continue with you here as soon as that is done; there is no need to type anything again.';
         turns.push({ role: 'assistant', text: heldMsg, agent: ACTOR });
         await admin.from('inquiry_intake').update({ status: 'held', raw_input: allText.slice(0, 4000), turns, updated_at: new Date().toISOString() }).eq('id', draft.id);
-        await logRun('ok', { model_held: 1, intake_held: 1 }, 'the trade could not be reasoned (' + (t.result.reason ?? 'held') + '), so the intake is held for review rather than guessed from keywords');
+        await logRun('ok', { model_held: 1, intake_held: 1, llm_http: llmFail.v?.http ?? null, llm_error: llmFail.v?.error ?? null }, 'the trade could not be reasoned (' + (t.result.reason ?? 'held') + '), so the intake is held for review rather than guessed from keywords' + (llmFail.v ? '; gateway HTTP ' + llmFail.v.http + ' ' + llmFail.v.error + ' ' + llmFail.v.detail : ''));
         return J({ ok: true, intake_id: draft.id, status: 'held', category: null, trades: [], assistant_message: heldMsg, questions: [], next_question: null,
-                   readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, agent: ACTOR });
+                   readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, // The gateway's reason goes back only to our own harness subject; a customer never sees upstream detail.
+                   ...(email.endsWith('@example.invalid') ? { held_reason: t.result.reason ?? 'held', llm_failure: llmFail.v } : {}), agent: ACTOR });
       }
     }
 
