@@ -193,7 +193,9 @@ const dbxCred = async () => (await read(`select value from public.app_secrets wh
 async function verifyClean(tag, ids = {}) {
   const tables = (await read(`select r.table_name t from public.table_export_registry r
       join information_schema.tables i on i.table_schema='public' and i.table_name=r.table_name and i.table_type='BASE TABLE'
-      where r.table_name <> 'rehearsal_window' order by 1`)).map((r) => r.t);  // the window row is the kept record that a rehearsal ran
+      where r.table_name not in ('rehearsal_window', 'routine_change_log') order by 1`)).map((r) => r.t);
+  // rehearsal_window: the kept record that a rehearsal ran. routine_change_log: the DDL audit of applied SQL, whose COMMENTS may
+  // cite a run tag as evidence (run 1c94fa6a: #1337's quote-quality fix named it). Neither is demo data; neither may be deleted.
   const cols = await read(`select table_name t, column_name c from information_schema.columns where table_schema='public'
       and column_name ~ '^(inquiry_id|quote_id|lead_id|supplier_id|supplier_lead_id|customer_id|transaction_id|refund_id)$'`);
   const idSet = [...(ids.inquiries || []), ...(ids.quotes || []), ...(ids.leads || []), ...(ids.customers || []), ...(ids.transactions || []), ...(ids.refunds || [])].map(String);
@@ -911,7 +913,7 @@ async function realRun(pre) {
         const task_class = fam(s.producer) === 'anthropic' ? 'internal_judgement' : 'ceo__internal_judgement';
         const w0 = await costWatermark();
         const r = await call('ai_gateway', null, { __secret: (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value, fn: 'stage2_quality_judge', task_class, subject: { email: fx.customers[0].email }, max_tokens: 400,
-          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of a quote to reveal that supplier; no card surcharge). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
+          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of the chosen quote (calculated before VAT, no cap) to reveal that supplier, with no card surcharge; a customer finds quotes under My requests (طلباتي) then the request; a supplier revises a quote from Inquiries received, Quote, Submit quote, and a new submission replaces the earlier one until the customer chooses). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
                      { role: 'user', content: `QUESTION / INPUT:\n${s.q}\n\nANSWER:\n${s.a || '(empty)'}` }] }, 120000);
         const used = (await costSince(w0)).map((x) => x.model_used).filter(Boolean);
         let v = null; try { v = JSON.parse(String(r.json?.content || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch { v = null; }
