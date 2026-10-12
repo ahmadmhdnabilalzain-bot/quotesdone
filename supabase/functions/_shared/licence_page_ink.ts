@@ -13,6 +13,7 @@
 // (lic_ajman_ded_ar_png 21.5 / 0.0118, lic_fujairah_ded_ar_jpg 21.8 / 0.0123). Blank = spread under 8 OR ink
 // under 0.3%: a 2.7x margin under the faintest real licence's spread and 3.9x under its ink.
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
+import { imageDims } from './licence_extract.ts';
 
 export const MIN_SPREAD = 8;
 export const MIN_INK = 0.003;
@@ -41,11 +42,24 @@ export async function pageInk(b64: string): Promise<{ spread: number; ink: numbe
   return { spread, ink };
 }
 
-/** true = every page decoded and none carries print; false = at least one page is printed; null = not measurable. */
+// CPU BUDGET. An edge function has a hard CPU cap that no request deadline bounds (#686 died on 546 "CPU time
+// exceeded", silently skipping every path after it). Decoding is the cost, so the budget is enforced BEFORE
+// decoding, from the header's own size: at most MAX_PAGES pages, none above MAX_PIXELS, and no new decode once
+// BUDGET_MS of decoding has been spent. A page outside the budget is NOT JUDGED (never "blank"): pagesBlank
+// then answers null, no ink is proven, and a 'low' read without its number in a text layer is held for a person.
+export const MAX_PAGES = 2;
+export const MAX_PIXELS = 12_000_000; // a 3000 x 4000 phone photo; ~0.5 s to decode (drawing_redact, 2600 px)
+export const BUDGET_MS = 800;
+
+/** true = every page decoded and none carries print; false = at least one page is printed; null = not judged
+ * (a page undecodable or outside the CPU budget). */
 export async function pagesBlank(pages: string[]): Promise<boolean | null> {
   if (!pages.length) return null;
-  let anyUnknown = false;
-  for (const p of pages) {
+  let anyUnknown = pages.length > MAX_PAGES;
+  const t0 = performance.now();
+  for (const p of pages.slice(0, MAX_PAGES)) {
+    const d = imageDims(p);
+    if (!d || d.w * d.h > MAX_PIXELS || performance.now() - t0 > BUDGET_MS) { anyUnknown = true; continue; }
     const m = await pageInk(p);
     if (!m) { anyUnknown = true; continue; }
     if (m.spread >= MIN_SPREAD && m.ink >= MIN_INK) return false;

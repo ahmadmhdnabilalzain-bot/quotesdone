@@ -38,6 +38,20 @@ Deno.test('a printed page is not blank, and one printed page among blanks is eno
   assertEquals(await pagesBlank([await whitePng(), p]), false);
 });
 
+Deno.test('10 pages of 3000 px: at most MAX_PAGES (2) decoded inside the budget, the rest not judged, never blank', async () => {
+  // a noisy near-blank 3000 x 3000 JPEG: the worst case to decode (no long runs to compress), and blank
+  const big = new Image(3000, 3000);
+  for (let y = 1; y <= 3000; y++) for (let x = 1; x <= 3000; x++) { const v = 200 + ((x * 7 + y * 13) % 9) - 4; big.setPixelAt(x, y, Image.rgbToColor(v, v, v)); }
+  const page = b64(await big.encodeJPEG(90));
+  const t0 = performance.now();
+  const r = await pagesBlank(Array(10).fill(page));
+  const ms = performance.now() - t0;
+  assertEquals(r, null);                          // 2 white pages decoded, 8 not judged -> not "blank"
+  assertEquals(ms < 2000, true, `took ${Math.round(ms)} ms`);
+  const huge = new Image(5000, 4000); huge.fill(0xffffffff);
+  assertEquals(await pagesBlank([b64(await huge.encode(1))]), null); // over MAX_PIXELS: never decoded
+});
+
 Deno.test('a page code cannot decode is never judged blank', async () => {
   assertEquals(await pagesBlank([btoa('not an image')]), null);
   assertEquals(await pagesBlank([]), null);
