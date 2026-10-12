@@ -107,7 +107,8 @@ const INSTALL_EN = ['install', 'installs', 'installed', 'installing', 'installer
   // 7 Oct 2026 (accuracy suite, ledger 1162): "Plumbing works", "Electrical works" are how a profile and a licence
   // name execution work; without the word, the line was compared with supply services only (hoses & fittings).
   'works'];
-const INSTALL_AR = ['تركيب', 'تركيبات', 'مقاولات', 'مقاول', 'تمديد', 'تمديدات', 'تنفيذ', 'صيانة', 'تصليح'];
+// 12 Oct 2026: 'أعمال' is the Arabic of 'works' above - how an Arabic licence names execution work ("أعمال الزجاج").
+const INSTALL_AR = ['تركيب', 'تركيبات', 'مقاولات', 'مقاول', 'تمديد', 'تمديدات', 'تنفيذ', 'صيانة', 'تصليح', 'أعمال'];
 
 const wordRe = (w: string) => new RegExp('(?<![\\p{L}\\p{N}])' + w.replace(/[-\s]+/g, '[\\s-]+') + '(?![\\p{L}\\p{N}])', 'iu');
 const SUPPLY_RE = [...SUPPLY_EN.map(wordRe), ...SUPPLY_AR.map((w) => termPattern(w)).filter((r): r is RegExp => !!r)];

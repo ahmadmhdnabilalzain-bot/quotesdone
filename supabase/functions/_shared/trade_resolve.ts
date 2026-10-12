@@ -29,11 +29,13 @@
 import { MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning, type MeaningService } from './service_meaning.ts';
 import { splitPhrases } from './service_rewrite.ts';
 import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
-import { serviceVocab, tradeLabelVocab } from './service_vocabulary.ts';
+import { serviceVocab, tradeArNameVocab, tradeLabelVocab } from './service_vocabulary.ts';
+import { contentWords } from './service_meaning.ts';
+import { saysInstallWork, supplyOnlyOf } from './catalogue_read.ts';
 
 export type TradeHit = {
   code: string;
-  via: 'exact_code' | 'meaning';
+  via: 'exact_code' | 'exact_name' | 'meaning';
   /** what named it: the exact phrase, or the service the line means (its English label, lower case) */
   phrases: string[];
   /** the supplier's own line it was found on */
@@ -57,7 +59,64 @@ export type TradeResolveDeps = {
   budget: { left: number };
   /** taxonomy_trade code -> its English label: lets meaning accept a line naming a trade in general (service_meaning.proposeByMeaning). */
   tradeLabels?: Record<string, string>;
+  /** taxonomy_trade code -> its Arabic name (label_ar): the exact-name path for an Arabic work clause. */
+  tradeNamesAr?: Record<string, string>;
 };
+
+// ── THE TRADE'S OWN ARABIC NAME (12 Oct 2026, sales_engineer) ─────────────────────────────────────────────────────
+// A UAE licence often prints its activities in Arabic only. Meaning cannot confirm them: on the e5 vectors the
+// activity "أعمال الألمنيوم" scores 0.868, the company name "فالكون الألمنيوم ذ.م.م" 0.850 and the metal trader
+// "تجارة الألمنيوم والنحاس" 0.862 (ML_FLOOR 0.83) - no separation. So an Arabic clause is read by NAME, exactly:
+//   * the clause is WORK (catalogue_read's own install/contracting words: أعمال، مقاولات، تركيب ...) and not
+//     supply-only - a company name and a trading clause ("تجارة ...") name no work and propose nothing;
+//   * it holds the HEAD of a part of a trade's own Arabic name (taxonomy_trade.label_ar: the first word of each part
+//     that is not itself a work word - "الأعمال الكهربائية" -> كهربائية; "السباكة والأدوات الصحية" -> سباكة, أدوات);
+//   * a head two trades' names share decides nothing - unless one of them puts its CODE at that part of its English
+//     name ("Aluminium & cladding" / "الألمنيوم والتكسية"): الألمنيوم is the aluminium trade, not non_ferrous_metals
+//     ("الألمنيوم والنحاس والمعادن غير الحديدية").
+// Words fold like contentWords (letters, ال), and a feminine plural ات folds on both sides (الدهانات / الدهان).
+// ponytail: Arabic clauses only, and only by the names in the table; a supplier's word the table's name lacks is
+// reached by correcting the trade's Arabic name, never by a list here.
+const arFold = (w: string) => w.replace(/(?<=\p{L}{3})ات$/u, '');
+const arWords = (s: string) => contentWords(s).map(arFold);
+const AR_PART = /[،,&()/]|\s+و\s*|\s+(?=وال)/;
+const isArabic = (s: string) => /[؀-ۿ]/.test(s);
+
+/** Arabic head word -> the ONE trade it names (see above). */
+export function arabicNameHeads(labelsAr: Record<string, string>, labelsEn: Record<string, string> = {}): Map<string, string> {
+  const claims = new Map<string, Set<string>>(), codeOf = new Map<string, string>();
+  for (const [code, ar] of Object.entries(labelsAr)) {
+    const arParts = String(ar ?? '').split(AR_PART).map((p) => arWords(p.replace(/^و(?=ال)/, '')).filter((w) => !saysInstallWork(w)));
+    const enParts = String(labelsEn[code] ?? '').split(/[&,()/]| and /).map((p) => contentWords(p));
+    const cw = contentWords(code.replace(/_/g, ' '));
+    arParts.forEach((p, i) => {
+      if (!p.length) return;
+      const h = p[0];
+      // the head alone, and the whole part (when longer): "مكافحة الحريق" - مكافحة is shared with pest control,
+      // the whole part is fire fighting's alone
+      for (const k of p.length > 1 ? [h, p.join(' ')] : [h]) {
+        if (!claims.has(k)) claims.set(k, new Set());
+        claims.get(k)!.add(code);
+      }
+      if (cw.length === 1 && enParts.length === arParts.length && enParts[i]?.length === 1 && enParts[i][0] === cw[0]) codeOf.set(h, code);
+    });
+  }
+  const out = new Map<string, string>();
+  for (const [h, codes] of claims) {
+    if (codes.size === 1) out.set(h, [...codes][0]);
+    else if (codeOf.has(h)) out.set(h, codeOf.get(h)!);
+  }
+  return out;
+}
+
+/** The trades an Arabic WORK clause names by a trade's own Arabic name; [] for anything else. */
+export function tradesByArabicName(clause: string, heads: Map<string, string>): { code: string; word: string }[] {
+  if (!isArabic(clause) || !saysInstallWork(clause) || supplyOnlyOf(clause).supply_only) return [];
+  const seen = new Map<string, string>();
+  const words = new Set(arWords(clause));
+  for (const [k, c] of heads) if (!seen.has(c) && k.split(' ').every((w) => words.has(w))) seen.set(c, k);
+  return [...seen].map(([code, word]) => ({ code, word }));
+}
 
 // A code or slug is a few words at most ("engineering and architectural consultancies" is the longest slug).
 export const EXACT_MAX_WORDS = 5;
@@ -106,6 +165,14 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
     }
   }
 
+  // 1b. an Arabic work clause, by the trade's own Arabic name (exact; see tradesByArabicName)
+  if (deps.tradeNamesAr) {
+    const heads = arabicNameHeads(deps.tradeNamesAr, deps.tradeLabels);
+    for (const l of lines) for (const clause of l.split(/[،,;|]+/)) {
+      for (const { code, word } of tradesByArabicName(clause, heads)) add({ code, via: 'exact_name', phrases: [word], snippet: l.slice(0, 180) });
+    }
+  }
+
   // 2. meaning, over the stored service vectors
   let meaning: MeaningState = 'nothing_to_read';
   if (lines.some((l) => l.length >= 3)) {
@@ -144,7 +211,7 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
 export async function liveTradeDeps(admin: any, caller = 'supplier_doc_trades'): Promise<TradeResolveDeps> {
   return {
     services: await serviceVocab(admin), embed: remoteEmbedder(admin, caller), budget: { left: MEANING_MAX_LINES },
-    tradeLabels: await tradeLabelVocab(admin),
+    tradeLabels: await tradeLabelVocab(admin), tradeNamesAr: await tradeArNameVocab(admin),
     normTrades: async (phrases) => {
       const { data: m, error: e } = await admin.rpc('fn_norm_trades_many', { p_texts: phrases.slice(0, EXACT_MAX_PHRASES) });
       return e || !m || typeof m !== 'object' ? null : m as Record<string, string[]>;
