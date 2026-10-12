@@ -89,6 +89,37 @@ Deno.test('figure check: numbers in words and unit-less fees next to fee words a
   assertEquals(moneyFiguresNotInBrief('The reveal fee is 5 on the quote you choose.', k), ['a fee of 5']);
   assertEquals(moneyFiguresNotInBrief('The admin fee is 500.', k), []);
 });
+// prevented by: these tests (independent review of #1330). Tens, hundreds and thousands in words, EN and AR, and the
+// subscription / price / cost words, are all read as figures.
+Deno.test('figure check: tens, hundreds and thousands written in words are read', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('The fee is thirty percent.', k), ['30%']);
+  assertEquals(moneyFiguresNotInBrief('It costs fifty dirhams.', k), ['AED 50']);
+  assertEquals(moneyFiguresNotInBrief('Registration is two thousand dirhams a year.', k), ['AED 2000']);
+  assertEquals(moneyFiguresNotInBrief('Registration is one thousand dirhams a year.', k), []);
+  assertEquals(moneyFiguresNotInBrief('The admin fee is five hundred dirhams.', k), []);
+  assertEquals(moneyFiguresNotInBrief('Registration is two thousand five hundred dirhams.', k), ['AED 2500']);
+  assertEquals(moneyFiguresNotInBrief('رسوم التسجيل ألف درهم سنويًا.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم التسجيل ألفا درهم.', k).length, 0, 'an unknown spelling is not invented into a figure');
+  assertEquals(moneyFiguresNotInBrief('الرسوم ثلاثين بالمئة.', k), ['30%']);
+  assertEquals(moneyFiguresNotInBrief('الفائدة اثنا عشر بالمئة سنويًا.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم إدارية قدرها خمسمائة درهم.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم قدرها ثلاثة آلاف درهم.', k), ['AED 3000']);
+  assertEquals(moneyFiguresNotInBrief('غرامة خمسة وعشرون درهمًا.', k), ['AED 25']);
+  assertEquals(moneyFiguresNotInBrief('رسوم قدرها ألفين درهم.', k), ['AED 2000']);
+  assertEquals(moneyFiguresNotInBrief('رسوم قدرها مئة درهم.', k), ['AED 100']);
+  assertEquals(moneyFiguresNotInBrief('The cost is one million two hundred thousand dirhams.', k), ['AED 1200000']);
+  assertEquals(moneyFiguresNotInBrief('التكلفة مليونان درهم.', k), ['AED 2000000']);
+});
+Deno.test('figure check: subscription, price and cost words carry a unit-less fee figure', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('The subscription is 1,200 a year.', k), ['a fee of 1200']);
+  assertEquals(moneyFiguresNotInBrief('The subscription is 1,000 a year.', k), []);
+  assertEquals(moneyFiguresNotInBrief('The price is 90 per sqm.', k), ['a fee of 90']);
+  assertEquals(moneyFiguresNotInBrief('قيمة الاشتراك 1,200 سنويًا.', k), ['a fee of 1200']);
+  assertEquals(moneyFiguresNotInBrief('تكلفة 750 للمتر.', k), ['a fee of 750']);
+});
+
 Deno.test('figure check: "AED 1,000 - 5 working days" is not a range; a range with units on both sides is', () => {
   const k = briefNumbers(BRIEF2);
   assertEquals(moneyFiguresNotInBrief('Registration is AED 1,000 - 5 working days to verify.', k), []);

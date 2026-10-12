@@ -69,20 +69,49 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: '
 // thousands mark ٬ is dropped. Numbers written in words (one…twenty, half; واحد…عشرون, نصف) are read as digits for the
 // check only — the reply itself is never changed.
 const DIGITS = '٠١٢٣٤٥٦٧٨٩', PERSIAN = '۰۱۲۳۴۵۶۷۸۹';
-const WORDS_EN: Record<string, string> = { half: '0.5', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8',
-  nine: '9', ten: '10', eleven: '11', twelve: '12', thirteen: '13', fourteen: '14', fifteen: '15', sixteen: '16', seventeen: '17', eighteen: '18',
-  nineteen: '19', twenty: '20' };
-// Each entry is the digit, then the Arabic words for it (longest first, so "خمسة عشر" is read before "خمسة").
-const WORDS_AR: [RegExp, string][] = ([
-  ['0.5', 'نصف'], ['1', 'واحد(?:ة)'], ['1', 'واحد'], ['2', 'اثنان|اثنين|اثنتان|اثنتين'], ['3', 'ثلاثة|ثلاث'], ['4', 'أربعة|أربع|اربعة|اربع'],
-  ['5', 'خمسة|خمس'], ['6', 'ستة|ست'], ['7', 'سبعة|سبع'], ['8', 'ثمانية|ثماني|ثمان'], ['9', 'تسعة|تسع'], ['10', 'عشرة|عشر'],
-  ['11', 'أحد عشر|احدى عشرة|إحدى عشرة'], ['12', 'اثنا عشر|اثني عشر|اثنتا عشرة'], ['15', 'خمسة عشر|خمس عشرة'], ['20', 'عشرون|عشرين'],
-] as [string, string][]).sort((x, y) => y[1].length - x[1].length).map(([n, w]) => [new RegExp('(?<![\\p{L}])(?:' + w + ')(?![\\p{L}])', 'gu'), n]);
+// Number words, read as one number per run of words ("two thousand five hundred", "خمسة وعشرون", "ثلاثة آلاف"):
+// units and teens and tens ADD, hundred/thousand MULTIPLY what came before (review of #1330). "half" alone is 0.5.
+const EN_UNITS: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+  twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+const EN_SCALE: Record<string, number> = { hundred: 100, thousand: 1000, million: 1000000 };
+// Each entry is the value, then its Arabic spellings.
+const AR_UNITS: [number, string[]][] = [
+  [1, ['واحد', 'واحدة', 'أحد', 'إحدى', 'احدى']], [2, ['اثنان', 'اثنين', 'اثنتان', 'اثنتين', 'اثنا', 'اثني', 'اثنتا']],
+  [3, ['ثلاثة', 'ثلاث']], [4, ['أربعة', 'أربع', 'اربعة', 'اربع']], [5, ['خمسة', 'خمس']], [6, ['ستة', 'ست']], [7, ['سبعة', 'سبع']],
+  [8, ['ثمانية', 'ثماني', 'ثمان']], [9, ['تسعة', 'تسع']], [10, ['عشرة', 'عشر']],
+  [20, ['عشرون', 'عشرين']], [30, ['ثلاثون', 'ثلاثين']], [40, ['أربعون', 'أربعين', 'اربعون', 'اربعين']], [50, ['خمسون', 'خمسين']],
+  [60, ['ستون', 'ستين']], [70, ['سبعون', 'سبعين']], [80, ['ثمانون', 'ثمانين']], [90, ['تسعون', 'تسعين']],
+  [200, ['مئتان', 'مئتين', 'مائتان', 'مائتين']], [2000, ['ألفان', 'ألفين', 'الفان', 'الفين']], [2000000, ['مليونان', 'مليونين']],
+];
+const AR_SCALE: [number, string[]][] = [[100, ['مئة', 'مائة']], [1000, ['ألف', 'الف', 'آلاف', 'الاف']], [1000000, ['مليون', 'ملايين']]];
+const AR_VALUE = new Map<string, number>(AR_UNITS.flatMap(([n, ws]) => ws.map((w) => [w, n] as [string, number])));
+const AR_MULT = new Map<string, number>(AR_SCALE.flatMap(([n, ws]) => ws.map((w) => [w, n] as [string, number])));
+// "ثلاثمئة", "خمسمائة": a unit written into the hundred
+for (const [n, ws] of AR_UNITS) if (n < 10) for (const w of ws) for (const h of ['مئة', 'مائة']) AR_VALUE.set(w + h, n * 100);
+const evalWords = (tokens: { add?: number; mult?: number }[]): number => {
+  let total = 0, current = 0;
+  for (const t of tokens) {
+    if (t.add !== undefined) current += t.add;
+    else if (t.mult === 100) current = (current || 1) * 100;
+    else if (t.mult) { total += (current || 1) * t.mult; current = 0; }   // thousand, million
+  }
+  return total + current;
+};
+const EN_WORD = '(?:' + [...Object.keys(EN_UNITS), ...Object.keys(EN_SCALE)].join('|') + ')';
+const EN_RUN = new RegExp('\\b' + EN_WORD + '(?:(?:\\s+|-)(?:and\\s+)?' + EN_WORD + ')*\\b', 'gi');
+const AR_WORDS = [...AR_VALUE.keys(), ...AR_MULT.keys()].sort((x, y) => y.length - x.length).join('|');
+const AR_RUN = new RegExp('(?<![\\p{L}])(?:' + AR_WORDS + ')(?:\\s+(?:و)?(?:' + AR_WORDS + '))*(?![\\p{L}])', 'gu');
+const wordsToDigits = (t: string) => t
+  .replace(/\bhalf\b/gi, '0.5')
+  .replace(EN_RUN, (run) => String(evalWords(run.toLowerCase().split(/[\s-]+/).filter((w) => w !== 'and')
+    .map((w) => w in EN_SCALE ? { mult: EN_SCALE[w] } : { add: EN_UNITS[w] }))))
+  .replace(/(?<![\p{L}])نصف(?![\p{L}])/gu, '0.5')
+  .replace(AR_RUN, (run) => String(evalWords(run.split(/\s+/).map((w) => w.replace(/^و(?=.)/, (m) => (AR_VALUE.has(w) || AR_MULT.has(w)) ? m : ''))
+    .map((w) => AR_MULT.has(w) ? { mult: AR_MULT.get(w)! } : { add: AR_VALUE.get(w) ?? 0 }))));
 const toWestern = (s: string) => {
-  let t = s.replace(/[٠-٩]/g, (d) => String(DIGITS.indexOf(d))).replace(/[۰-۹]/g, (d) => String(PERSIAN.indexOf(d))).replace(/٫/g, '.').replace(/٬/g, '');
-  t = t.replace(/\b(half|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/gi, (w) => WORDS_EN[w.toLowerCase()]);
-  for (const [re, n] of WORDS_AR) t = t.replace(re, n);
-  return t;
+  const t = s.replace(/[٠-٩]/g, (d) => String(DIGITS.indexOf(d))).replace(/[۰-۹]/g, (d) => String(PERSIAN.indexOf(d))).replace(/٫/g, '.').replace(/٬/g, '');
+  return wordsToDigits(t);
 };
 const num = (s: string) => String(Number(s.replace(/,/g, '')));
 // A range end must be a money figure too: "AED 1,000 - 5 working days" is NOT a range (the 5 counts days).
@@ -91,7 +120,7 @@ const N = '(\\d[\\d,]*(?:\\.\\d+)?)';
 const TO = '\\s*(?:to|-|–|—|إلى|الى)\\s*';
 const AED_U = '(?:(?:uae\\s+)?(?:aed|dhs?|dirhams?)\\b|درهم|دراهم|د\\.\\s?إ|د\\.\\s?ا)';
 const PCT_U = '(?:%|٪|percent\\b|per\\s?cent\\b|في المائة|بالمائة|في المئة|بالمئة)';
-const FEE_W = '(?:fees?|charges?|commission|surcharge|رسوم|رسم|عمولة)';
+const FEE_W = '(?:fees?|charges?|commission|surcharge|subscriptions?|prices?|costs?|رسوم|رسم|عمولة|اشتراك|سعر|تكلفة|كلفة)';
 const FIGURES: { kind: 'aed' | 'pct' | 'fee'; re: RegExp }[] = [
   { kind: 'aed', re: new RegExp(AED_U + '\\s*' + N + '(?:' + TO + N + NOT_MONEY + ')?', 'gi') },   // AED 35 / AED 35 to 70
   { kind: 'aed', re: new RegExp(N + '(?:' + TO + N + ')?\\s*' + AED_U, 'gi') },                      // 35 to 70 AED / 500 درهم

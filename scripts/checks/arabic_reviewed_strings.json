@@ -5521,26 +5521,34 @@
  ],
  "supabase/functions/_shared/company_brief.ts": [
   "022c0e841ed6",
+  "047b6da45a18",
   "06338a5c4b64",
   "0681db1a83a2",
   "369b9a738647",
   "383d04ced24b",
-  "4147558986cf",
-  "4b5b600a417e",
+  "423da6c459f6",
+  "4f9af0c682d4",
+  "53bbd3ac0b54",
   "55848652e127",
   "59678f3fa3ae",
   "598c323a04b9",
   "64dd150b65a8",
   "6a9d7851b56f",
   "6caad2b4900a",
+  "6e6810c5270d",
   "71f6af4086e2",
-  "7e535864f46f",
+  "74086c183c68",
   "805e49d04702",
+  "8ab976e8eb76",
   "9c3c80eb8969",
+  "a76e02f9d527",
+  "a844ae93d451",
+  "c3731f8fd32a",
+  "d1e1bf0448b1",
   "de62a9134e25",
-  "e08eb7e3abe9",
   "e1814f15aded",
-  "eecc90d7cab2"
+  "eb86d8fc0c02",
+  "f4e468bb2a84"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
   "7784a68c401d",
@@ -5947,8 +5955,7 @@
   "4e2156827796"
  ],
  "supabase/functions/_shared/trade_resolve.ts": [
-  "a1150629315a",
-  "bdab39592e4e"
+  "a1150629315a"
  ],
  "supabase/functions/_shared/unsubscribe_mailbox.ts": [
   "fe749a06f354"
