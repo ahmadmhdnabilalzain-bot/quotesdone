@@ -59,6 +59,12 @@ test('the purge\'s Dropbox list in SQL is exactly the frozen list the edge funct
   assert.deepEqual([...sqlPaths].sort(), [...json].sort());
 });
 
+test('the purge never deletes the data-request evidence (pdpl_requests, pdpl_operator_log)', () => {
+  const run = R(FILE).split('create or replace function public.fn_demo_purge_run()')[1] || '';
+  assert.ok(run, 'fn_demo_purge_run is defined');
+  assert.doesNotMatch(run.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n'), /'public\.pdpl_/, 'the purge lists a pdpl table');
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 

@@ -256,7 +256,9 @@ revoke execute on function public.fn_demo_purge_address(text) from public, anon,
 -- a rate-limit key holding one of the confirmed addresses verbatim
 create or replace function public.fn_demo_purge_key_has_confirmed(p_key text)
  returns boolean language sql stable set search_path to 'public', 'pg_temp'
-as $fn$ select exists (select 1 from unnest(public.fn_demo_purge_confirmed_logins()) a where position(a in lower(coalesce(p_key, ''))) > 0) $fn$;
+-- the address as a whole token only (release review of 5db8d56): 'x'||addr or addr||'.au' is another address
+as $fn$ select exists (select 1 from unnest(public.fn_demo_purge_confirmed_logins()) a
+  where lower(coalesce(p_key, '')) ~ ('(^|[^a-z0-9._%+-])' || regexp_replace(a, '([.+*?^$(){}|\[\]\\])', '\\\1', 'g') || '($|[^a-z0-9.-])')) $fn$;
 revoke execute on function public.fn_demo_purge_key_has_confirmed(text) from public, anon, authenticated;
 
 create or replace function public.fn_demo_purge_real_counts()
@@ -406,8 +408,7 @@ begin
     ('public.wa_answer_log', 'public.fn_is_demo_phone(from_phone)'),
     ('public.sms_messages', 'public.fn_is_demo_phone(sms_from) or public.fn_is_demo_phone(sms_to)'),
     ('public.email_suppressions', 'public.fn_demo_purge_address(email)'),
-    ('public.pdpl_requests', 'public.fn_demo_purge_address(email)'),
-    ('public.pdpl_operator_log', 'public.fn_demo_purge_address(email)'),
+    -- pdpl_requests and pdpl_operator_log are NEVER purged: they are the evidence a data request was handled
     ('public.rl_hits', 'k ~* ''' || EM || ''' or public.fn_demo_purge_key_has_confirmed(k)'),
     ('public.ai_rate_limit', 'bucket ~* ''' || EM || ''' or public.fn_demo_purge_key_has_confirmed(bucket)'),
     ('public.assistant_logs', 'user_agent ~* ''(qd-[a-z-]*probe|latency-probe)'''),
@@ -846,6 +847,12 @@ end $function$;
 select case
   when to_regproc('public.fn_demo_purge') is not null and to_regproc('public.fn_demo_purge_verify') is not null
    and public.fn_party_is_demo('unknown', 'qd-x@example.invalid')
+   and public.fn_demo_purge_key_has_confirmed('otp:ahmadmhdnabilalzain+qdprobe1@gmail.com')
+   and public.fn_demo_purge_key_has_confirmed('ahmadmhdnabilalzain+qdcust1@gmail.com')
+   and not public.fn_demo_purge_key_has_confirmed('otp:xahmadmhdnabilalzain+qdprobe1@gmail.com')
+   and not public.fn_demo_purge_key_has_confirmed('ahmadmhdnabilalzain+qdprobe1@gmail.com.au')
+   and not public.fn_demo_purge_key_has_confirmed('otp:ahmadmhdnabilalzain+qdprobe12@gmail.com')
+   and not public.fn_demo_purge_key_has_confirmed('ahmadmhdnabilalzain@gmail.com')
    and 'ZZ Demolition LLC' !~* '^ZZ DEMO([^a-z]|$)' and 'ZZ DEMO — x' ~* '^ZZ DEMO([^a-z]|$)'
    and (select count(*) from pg_attrdef d join pg_attribute t on t.attrelid = d.adrelid and t.attnum = d.adnum
          where t.attname = 'is_demo' and d.adrelid in ('public.leads'::regclass, 'public.customers'::regclass, 'public.social_conversation'::regclass)
