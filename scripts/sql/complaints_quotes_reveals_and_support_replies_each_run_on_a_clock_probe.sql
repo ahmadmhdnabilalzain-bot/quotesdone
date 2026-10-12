@@ -13,7 +13,7 @@ do $probe$
 declare
   f text[] := '{}';
   v_fn text; v_n int; v_n2 int; v_before bigint; v_ticket text; v jsonb; v_inq uuid; v_tx uuid; v_q uuid;
-  v_window numeric; v_left int; v_log bigint; v_lead bigint;
+  v_window numeric; v_left int; v_log bigint; v_lead bigint; v_chat0 int;
 begin
   -- ── structure ──
   foreach v_fn in array array['public.fn_seat_clocks_tick()', 'public.fn_complaint_clock_tick(boolean)',
@@ -175,17 +175,22 @@ begin
     end if;
 
     -- ── time to first reply: a finding while waiting, closed when answered ──
+    -- Measured by the tick's own over_sla count, never by the evidence ids: those keep only the 20 oldest,
+    -- so with 21 real questions waiting (11 Oct) the probe's newest id was dropped and this read as no finding.
+    v := public.fn_support_reply_watch_tick();
+    v_chat0 := coalesce((v->'chat'->>'over_sla')::int, 0);
     insert into public.assistant_logs (message, reply, answered, created_at, audience, path, seat)
     values ('ZZ DEMO clock probe question', null, false, now() - interval '30 hours', 'probe', '/probe', 'customer_support')
     returning id into v_log;
-    perform public.fn_support_reply_watch_tick();
-    if not exists (select 1 from public.it_engineer_finding where issue_key = 'support_reply_sla:chat' and closed_at is null
-                     and evidence->'ids' @> to_jsonb(v_log)) then
+    v := public.fn_support_reply_watch_tick();
+    if coalesce((v->'chat'->>'over_sla')::int, 0) <> v_chat0 + 1
+       or not exists (select 1 from public.it_engineer_finding where issue_key = 'support_reply_sla:chat' and closed_at is null
+                        and (evidence->>'waiting')::int = v_chat0 + 1) then
       f := f || text 'an unanswered chat question past the SLA raised no finding'; end if;
     delete from public.assistant_logs where id = v_log;
-    perform public.fn_support_reply_watch_tick();
-    if exists (select 1 from public.it_engineer_finding where issue_key = 'support_reply_sla:chat' and closed_at is null
-                 and evidence->'ids' @> to_jsonb(v_log)) then
+    v := public.fn_support_reply_watch_tick();
+    if coalesce((v->'chat'->>'over_sla')::int, 0) <> v_chat0
+       or (v_chat0 = 0 and exists (select 1 from public.it_engineer_finding where issue_key = 'support_reply_sla:chat' and closed_at is null)) then
       f := f || text 'the reply finding did not close once the channel was clear'; end if;
 
     -- ── nothing to a real address, nothing to the founder, and the whole step runs ──

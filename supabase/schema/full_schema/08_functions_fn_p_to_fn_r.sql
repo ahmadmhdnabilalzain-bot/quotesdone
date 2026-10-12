@@ -2942,12 +2942,25 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_delivered(p_id bigint, p_delive
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare v_n int; v_ids jsonb;
 begin
   update public.reasoning_held_question
      set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('delivery', p_delivery),
          status = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then 'applied' else status end,
          applied_at = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then now() else applied_at end
    where id = p_id;
+  if p_delivery->>'via' = 'held_for_review' then
+    select count(*), coalesce(jsonb_agg(id order by id desc) filter (where true), '[]'::jsonb)
+      into v_n, v_ids
+      from public.reasoning_held_question
+     where status <> 'applied' and result->'delivery'->>'via' = 'held_for_review';
+    perform public.fn_it_engineer_finding_upsert('reasoned_answer_held_for_review',
+      v_n || ' stale reasoned answer(s) are held for review before reaching a person',
+      'held-question replay (fn_reason_held_delivered)', 'customer_facing', v_n,
+      jsonb_build_object('waiting', v_n, 'ids', (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(v_ids) x limit 20) z),
+                         'owner_seat', 'customer_support', 'duty', 'reply_time'),
+      '{}'::text[], array['whether the person was answered on another channel since'], 'customer_support');
+  end if;
 end $function$
 
 
@@ -2983,7 +2996,7 @@ begin
            expires_at = case when h.attempts = 0 and h.surface not like 'site_assistant.%'
                              then now() + interval '14 days' else h.expires_at end
       from due where h.id = due.id
-    returning h.id, h.seat, h.surface, h.request, h.subject
+    returning h.id, h.seat, h.surface, h.request, h.subject, h.created_at
   )
   select coalesce(jsonb_agg(to_jsonb(claimed)), '[]'::jsonb) into v from claimed;
   return v;

@@ -1444,6 +1444,7 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   cred_fn_route_inquiry
 --   cred_fn_sales_engineer
 --   cred_fn_secretary_act
+--   cred_fn_site_assistant
 --   cred_fn_social_stage
 --   cred_fn_supplier_api
 --   cred_fn_supplier_portal
@@ -1453,6 +1454,7 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   cred_fn_to_pdf_native
 --   cred_fn_to_route_inquiry
 --   cred_fn_wa_docs
+--   cred_fn_wa_inbound
 --   cred_fn_wa_pdf
 --   cred_fn_workflow_dispatch
 --   cred_ops_doc_render

@@ -11283,6 +11283,14 @@ begin
   if not pg_try_advisory_xact_lock(hashtext('fn_backup_kick'))
      or exists (select 1 from public.agent_runs where agent = 'backup_kick' and status = 'ok'
                 and started_at > now() - interval '60 seconds') then
+    -- 7 Oct 2026: the scheduler's call is recorded, so its heartbeat sees that it ran (dropbox_kick, handoff
+    -- 130872). Only 'github_actions': the per-document trigger kicks debounce in bursts and nothing reads them.
+    if p_reason = 'github_actions' then
+      insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+      values ('backup_kick', 'skipped', jsonb_build_object('reason', p_reason, 'mode', p_mode, 'debounced', true),
+              left('dropbox_backup not kicked (' || p_mode || '): debounced, a kick in the last 60 seconds is still draining: ' || p_reason, 500),
+              now(), now());
+    end if;
     return jsonb_build_object('kicked', false, 'reason', 'debounced: a kick in the last 60 seconds is still draining');
   end if;
   select value into v_ref from public.app_secrets where key = 'project_ref';
