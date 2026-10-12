@@ -2,7 +2,7 @@
 // The vision model answered a 1x1 PNG with expiry 2023-03-14 and licence number 123456 (ai_cost_log 19449);
 // these replay that answer through the exact normaliser license_extract uses and assert nothing survives.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { imageDims, imagesTooSmallToRead, licenceFromGateway, normaliseLicence, placeholderLicenceNo, UNREADABLE_LICENCE } from './licence_extract.ts';
+import { imageDims, imagesTooSmallToRead, licenceFromGateway, lowReadProven, normaliseLicence, placeholderLicenceNo, UNREADABLE_LICENCE } from './licence_extract.ts';
 
 const blankImageAnswer = { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '123456',
   license_authority: 'Dubai Department of Economy and Tourism', emirate: 'Dubai', city: 'Dubai', issue_date: '2022-03-15',
@@ -70,4 +70,14 @@ Deno.test('a named, confident read keeps its fields but never a placeholder numb
 Deno.test('placeholder numbers are runs and repeats only', () => {
   for (const v of ['123456', '000000', '987654', '1111']) assertEquals(placeholderLicenceNo(v), true, v);
   for (const v of ['1633275', 'CN-1234567', '123', '']) assertEquals(placeholderLicenceNo(v), false, v);
+});
+
+Deno.test("a 'low' read is kept only with ink measured or its number in the text layer", () => {
+  const low = { confidence: 'low', unreadable: false, license_number: '20840' };
+  assertEquals(lowReadProven(low, true, null), true);                          // printed image page measured
+  assertEquals(lowReadProven(low, false, 'Licence No. 20840 Expiry 12/04/2027'), true);
+  assertEquals(lowReadProven({ ...low, license_number: 'CN-1234567' }, false, 'رقم الرخصة CN-1234567 الانتهاء'), true);
+  assertEquals(lowReadProven(low, false, 'Licence No. 208401'), false);        // not the same number
+  assertEquals(lowReadProven(low, false, null), false);                        // a scan PDF: nothing proven -> held
+  assertEquals(lowReadProven({ ...low, confidence: 'medium' }, false, null), true);
 });

@@ -109,6 +109,15 @@ jobs:
           deno test --no-lock --node-modules-dir=auto --allow-read=.
           --allow-net=deno.land
           supabase/functions/_shared/drawing_redact_page.check.ts
+      # 13 OCT 2026 — A BLANK LICENCE PAGE IS BLANK BY CODE, BEFORE ANY MODEL (#1373, rulings 1176/1177). The page-ink
+      # measure decodes with imagescript (codec .wasm from deno.land, as above), so it is its own step: a page-sized
+      # white PNG and a near-blank JPEG are blank, a printed page is not, an undecodable page is never blank, and
+      # 10 pages of 3000 px stay inside the CPU budget. The offline rules are in licence_extract.test.ts (npm test).
+      - name: A blank licence page is measured blank before the model
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=.
+          --allow-net=deno.land
+          supabase/functions/_shared/licence_page_ink.check.ts
       # 24 SEP 2026 — A SCANNED DRAWING IS REDACTED BY OCR OR HELD (founder instruction 579). The real engine
       # (tesseract.js 7.0.0 with the repository's own eng + ara data) on a synthetic ZZ DEMO scan: the title block
       # blacked out, rooms / dimensions / legend kept, a second OCR reads no identity, a title block read below

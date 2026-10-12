@@ -1,8 +1,11 @@
 // A blank page is blank by code's measurement, before any model is asked (13 Oct 2026, sales_engineer).
+// WHY A .check.ts: imagescript's Deno build fetches its codec .wasm from deno.land on import, which the `npm test`
+// Deno suite does not grant (the same reason as drawing_redact_page.check.ts). .github/workflows/checks.yml runs it
+// as its own step with --allow-net=deno.land. The offline half (lowReadProven, the image-size guard) is in
+// licence_extract.test.ts.
 import { assertEquals } from 'jsr:@std/assert@1';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { pageInk, pagesBlank } from './licence_page_ink.ts';
-import { lowReadProven } from './licence_extract.ts';
 
 const b64 = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
 const W = 1240, H = 1754; // A4 at 150 dpi
@@ -55,14 +58,4 @@ Deno.test('10 pages of 3000 px: at most MAX_PAGES (2) decoded inside the budget,
 Deno.test('a page code cannot decode is never judged blank', async () => {
   assertEquals(await pagesBlank([btoa('not an image')]), null);
   assertEquals(await pagesBlank([]), null);
-});
-
-Deno.test("a 'low' read is kept only with ink measured or its number in the text layer", () => {
-  const low = { confidence: 'low', unreadable: false, license_number: '20840' };
-  assertEquals(lowReadProven(low, true, null), true);                          // printed image page measured
-  assertEquals(lowReadProven(low, false, 'Licence No. 20840 Expiry 12/04/2027'), true);
-  assertEquals(lowReadProven({ ...low, license_number: 'CN-1234567' }, false, 'رقم الرخصة CN-1234567 الانتهاء'), true);
-  assertEquals(lowReadProven(low, false, 'Licence No. 208401'), false);        // not the same number
-  assertEquals(lowReadProven(low, false, null), false);                        // a scan PDF: nothing proven -> held
-  assertEquals(lowReadProven({ ...low, confidence: 'medium' }, false, null), true);
 });
