@@ -21,9 +21,18 @@ update public.company_faq
        embedding_gte = null, updated_at = now()
  where id = 609 and md5(answer) = 'f3d27a9ca9aa40c70674003674748cf3';
 
+-- ONE ARABIC TERM FOR THE REVEAL FEE (coordinator, 12 Oct 2026): 609 says "رسوم الكشف"; 610's answer still said
+-- "رسوم الاطلاع" twice. 610 now uses "رسوم الكشف" throughout, with the same facts (3%, no cap, paid once by the customer,
+-- shown in full before payment, no card fee, no VAT on the fee). md5-guarded on the answer as read on 12 Oct.
+update public.company_faq
+   set answer = 'رسوم الكشف هي 3٪ من قيمة عرض السعر الذي تختاره، دون حد أقصى. يدفعها العميل مرة واحدة لكشف هوية المورد الذي اختاره وبيانات التواصل معه. وهي الرسوم الأساسية للمنصة ويتحملها العميل، والموردون لا يدفعون أي عمولة. لا يُضاف أي مبلغ عند الدفع بالبطاقة، ويظهر المبلغ كاملًا قبل الدفع. لا تُفرض ضريبة القيمة المضافة على رسوم الكشف.',
+       embedding_gte = null, updated_at = now()
+ where id = 610 and md5(answer) = '7eb032be1f1481bcf27e4bbab5b005eb';
+
 select case
   when (select question from public.company_faq where id = 610) <> 'ما هي رسوم الكشف البالغة 3٪؟' then 'PROBE FAILED: 610 question not updated (edited since 12 Oct?)'
   when (select answer from public.company_faq where id = 609) !~ 'ضريبة القيمة المضافة' then 'PROBE FAILED: 609 answer not updated (edited since 12 Oct?)'
+  when (select count(*) from public.company_faq where id in (609, 610) and answer ~ 'رسوم الاطلاع') > 0 then 'PROBE FAILED: a reveal-fee row still says رسوم الاطلاع'
   when (select s.src || ':' || s.src_id from public.fn_support_corpus_search('ما هي رسوم الكشف؟', true, 1) s limit 1) <> 'faq:610'
     then 'PROBE FAILED: the Arabic reveal-fee question does not reach faq:610'
   else 'PROBE OK'
