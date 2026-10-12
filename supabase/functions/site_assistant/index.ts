@@ -34,6 +34,7 @@ import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts
 import { supportReply, type Channel } from '../_shared/support_reply.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { embedLine } from '../_shared/gte_embed.ts';
+import { replyBesidePrice } from './reply_beside_price.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -419,7 +420,13 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // UNDER THE HOLD A VISITOR'S PRICE QUESTION CANNOT BE REASONED (D5, 30 Sep 2026): priceGuidanceFor embeds, reads
     // every trade and then asks think(), which holds, so it always ended {reason:'held'} after 1.2-1.4 s (measured).
     // An anonymous visitor is never answered later, so nothing is lost by not asking. A signed-in party still asks.
-    if (reasoningOpen || who) try {
+    // IT RUNS BESIDE THE REPLY, NOT BEFORE IT (12 Oct 2026, customer_support; sandbox run f4294be8 S13). The price
+    // reasoning is two model calls (7-13 s measured) and it ran to completion before the reply's own four began, so a
+    // visitor asking "How much does it cost to reveal a supplier?" — our fee, not a trade price — waited 37-44 s, and
+    // in f4294be8 the worker died at 33 s with WORKER_RESOURCE_LIMIT. The reply is now composed while the price is
+    // reasoned (reply_beside_price.ts).
+    // prevented by: site_assistant/reply_beside_price.test.ts
+    const pPrice = (async () => { if (reasoningOpen || who) try {
       // Which trade (if any) the visitor asks the price of is REASONED (think(), reasoned_suppliers.ts;
       // founder_instruction 886-903). Held: no price block, and the visitor is answered from the FAQ and corpus.
       const pg: any = await priceGuidanceFor(defaultDeps(admin, 'site_assistant'), message, 6, audience === 'unknown' ? 'visitor' : audience, who ? 'acct:' + who.email : 'ip:' + ip);
@@ -437,8 +444,18 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     } catch (_e) {
       // Same reasoning as the pack above: a price lookup failing must not take the widget down.
       priceCtx = '';
-    }
+    } return priceCtx; })();
 
+    const ch = ['whatsapp', 'email', 'portal'].includes(String(b.channel)) ? b.channel as Channel : 'widget';
+    const compose = (price: string) => supportReply(defaultDeps(admin, 'site_assistant'), {
+      channel: ch, message, lang: langOf(message, uiLang), audience: audience === 'unknown' ? 'visitor' : audience,
+      seat: seatForSurface === 'sales_engineer' ? 'sales_engineer' : 'customer_support', passages: packRows,
+      conversation: history.map((h: any) => ({ role: h.role === 'assistant' ? 'seat' : (audience === 'supplier' ? 'supplier' : 'customer'), text: h.content })),
+      profile: live ?? undefined,
+      facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', price, timelineBlock].filter(Boolean).join('\n\n'),
+    }, () => Promise.resolve(null));
+    const besides = reasoningOpen ? replyBesidePrice(pPrice, compose) : null;
+    await pPrice.catch(() => '');
     lap('price');
     const ctx = [packCtx, priceCtx].filter(Boolean).join('\n\n');
 
@@ -446,15 +463,9 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // The retrieved pack is the narrowed topic; the company block, the published facts, the price bands and
     // the caller's own record are the facts. Only when no model can answer does the road below run.
 
-    if (reasoningOpen) {
-      const ch = ['whatsapp', 'email', 'portal'].includes(String(b.channel)) ? b.channel as Channel : 'widget';
-      const sr = await supportReply(defaultDeps(admin, 'site_assistant'), {
-        channel: ch, message, lang: langOf(message, uiLang), audience: audience === 'unknown' ? 'visitor' : audience,
-        seat: seatForSurface === 'sales_engineer' ? 'sales_engineer' : 'customer_support', passages: packRows,
-        conversation: history.map((h: any) => ({ role: h.role === 'assistant' ? 'seat' : (audience === 'supplier' ? 'supplier' : 'customer'), text: h.content })),
-        profile: live ?? undefined,
-        facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', priceCtx, timelineBlock].filter(Boolean).join('\n\n'),
-      }, () => Promise.resolve(null));
+    if (besides) {
+      const sr = (await besides).reply;
+      lap('reply');
       if (sr.path === 'reasoned' && sr.reply) {
         const fx = await fileEffects({ grounded: sr.grounded, answered: true, refusal: 'reasoned_without_company_knowledge' });
         try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
