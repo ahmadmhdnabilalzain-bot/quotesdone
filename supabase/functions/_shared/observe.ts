@@ -39,7 +39,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 // The sandbox run tag (ledger 1119) lives in its own module: llm_hold.ts needs it too, and llm_hold.ts is
 // imported by node tests that cannot load this file's jsr: import.
-import { E2E_RUN, resolveE2eRun } from './e2e_run.ts';
+import { E2E_RUN, resolveE2eRun, resolveE2eRunByIdentity } from './e2e_run.ts';
 export { e2eRunTag } from './e2e_run.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -232,7 +232,12 @@ export function observe(
     let res: Response;
     try {
       // A sandbox tag is honoured only with proof the caller is internal (_shared/e2e_run.ts).
-      const run = req.headers.has('x-qd-e2e-run') ? await resolveE2eRun(req.headers, envOr('SUPABASE_SERVICE_ROLE_KEY'), internalSecret) : null;
+      const run = (req.headers.has('x-qd-e2e-run') ? await resolveE2eRun(req.headers, envOr('SUPABASE_SERVICE_ROLE_KEY'), internalSecret) : null)
+        // ...or the run's own signed-in identity, verified by the auth server (run 1be65ab2: a browser cannot send the secret).
+        ?? await resolveE2eRunByIdentity(req.headers,
+          async (jwt) => { const a = admin(); if (!a) return null; const { data, error } = await a.auth.getUser(jwt); return error ? null : (data?.user ?? null); },
+          async (tag) => { const a = admin(); if (!a) return false; const { data, error } = await a.rpc('fn_e2e_run_tag_open', { p_tag: tag }); return !error && data === true; },
+          internalSecret);
       res = await E2E_RUN.run(run, () => handler(req));
     } catch (e) {
       const msg = String((e as Error)?.message || e);

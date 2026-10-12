@@ -246,7 +246,10 @@ export async function mkAuthUser(run, email) {
   const c = await fetch(`${BASE}/auth/v1/admin/users`, {
     method: 'POST',
     headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, email_confirm: true }),
+    // app_metadata.e2e_run: only the service role can set it, and _shared/e2e_run.ts lets a browser session
+    // reason inside its run's open window ONLY when it is present and matches (review of #1361).
+    body: JSON.stringify({ email, password, email_confirm: true,
+      ...(/^qd-([a-z0-9]{4,16})-/.test(email) ? { app_metadata: { e2e_run: email.match(/^qd-([a-z0-9]{4,16})-/)[1] } } : {}) }),
   });
   const cu = await c.json();
   if (!cu.id) throw new Error(`auth create failed for ${email}: ${JSON.stringify(cu).slice(0, 200)}`);

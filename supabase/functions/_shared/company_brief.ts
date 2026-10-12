@@ -155,9 +155,26 @@ export function moneyFiguresNotInBrief(text: string, known: Set<string>): string
 // every refund is the CEO's decision, the platform is not a party to the work). A sentence that AFFIRMS one of these
 // goes back to the model for a rewrite; a sentence that denies it ("no card fee is added") passes.
 const NEG = /\b(no|not|never|without|nor|isn'?t|aren'?t|won'?t|doesn'?t|don'?t)\b|لا |ليس|ليست|بدون|دون|لن |غير /i;
-const CLAIMS: { problem: string; re: RegExp; unless?: RegExp }[] = [
-  { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|رسوم (?:على )?(?:الدفع (?:ب|عبر )?)?البطاقة|رسوم البطاقة/i },
-  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?؟]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?؟]*\bVAT\b|ضريبة القيمة المضافة/i },
+// Ruling 1207 (13 Oct 2026): a supplier's quotation may state anything (a discount, VAT included or +5% VAT, a card
+// surcharge, any terms) and is shown as stated. The no-card-fee / no-VAT rule is about OUR 3% fee only, so a sentence
+// about the supplier's price or terms that does not also speak of our fee is never contradicted by these two claims.
+// عرض alone also means show/display, so only its quotation forms count (review of #1356).
+const SUPPLIER_TERMS = /\b(?:suppliers?|quot(?:e|es|ed|ation|ations)|prices?|discount(?:ed)?)\b|\u0627\u0644\u0645\u0648\u0631\u062F|\u0639\u0631\u0636 (?:\u0627\u0644)?\u0633\u0639\u0631|\u0639\u0631\u0648\u0636 (?:\u0627\u0644)?\u0623\u0633\u0639\u0627\u0631|(?:\u0627\u0644)?\u0633\u0639\u0631|\u062E\u0635\u0645/i;
+// Any fee word that is not tied to the supplier ("supplier's fee", رسوم المورد) is about OUR fee (review of #1356:
+// "The service fee includes VAT, like the quoted price" must still be caught).
+const SUPPLIER_FEE = /\bsupplier'?s?'?\s+(?:own\s+)?(?:fees?|charges?|commission|surcharges?)\b|(?:\u0631\u0633\u0648\u0645|\u0639\u0645\u0648\u0644\u0629)\s+(?:\u0627\u0644)?\u0645\u0648\u0631\u062F/gi;
+const OUR_FEE = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\b3\s?%|\u0663\s?\u066A|\bfees?\b|\bcommission\b|\bplatform\b|\u0627\u0644\u0643\u0634\u0641|\u0631\u0633\u0648\u0645|\u0639\u0645\u0648\u0644\u0629|\u0627\u0644\u0645\u0646\u0635\u0629/i;
+// A sentence whose subject is the supplier or its quote, with none of OUR markers, is the supplier's: its bare fee word
+// ("The supplier charges a 5% installation fee plus VAT") is the supplier's fee (review of #1356). "quoted" is not a subject.
+// Only a sentence that BEGINS with the supplier (an Arabic verb may come first: يفرض المورد) has it as subject; a
+// supplier or quote mentioned later ("To unlock a quote you pay a fee plus VAT") does not shield a claim (review of #1356).
+const SUPPLIER_SUBJECT = /^\s*(?:the\s+)?suppliers?(?:'s?)?\b|^\s*(?:\S+\s+)?\u0627\u0644\u0645\u0648\u0631\u062F/i;
+const OUR_MARK = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\bplatform\b|\byou\s+pay\b|\b3\s?%|\u0663\s?\u066A|\u0627\u0644\u0643\u0634\u0641|\u0627\u0644\u0645\u0646\u0635\u0629|\u0631\u0633\u0648\u0645\u0646\u0627|\u0639\u0645\u0648\u0644\u062A\u0646\u0627|\u062A\u062F\u0641\u0639/i;
+const aboutSupplierOnly = (s: string) =>
+  (SUPPLIER_SUBJECT.test(s) && !OUR_MARK.test(s)) || (SUPPLIER_TERMS.test(s) && !OUR_FEE.test(s.replace(SUPPLIER_FEE, ' ')));
+const CLAIMS: { problem: string; re: RegExp; unless?: RegExp | ((s: string) => boolean) }[] = [
+  { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|\u0631\u0633\u0648\u0645 (?:\u0639\u0644\u0649 )?(?:\u0627\u0644\u062F\u0641\u0639 (?:\u0628|\u0639\u0628\u0631 )?)?\u0627\u0644\u0628\u0637\u0627\u0642\u0629|\u0631\u0633\u0648\u0645 \u0627\u0644\u0628\u0637\u0627\u0642\u0629/i, unless: aboutSupplierOnly },
+  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?\u061F]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?\u061F]*\bVAT\b|\u0636\u0631\u064A\u0628\u0629 \u0627\u0644\u0642\u064A\u0645\u0629 \u0627\u0644\u0645\u0636\u0627\u0641\u0629/i, unless: aboutSupplierOnly },
   { problem: 'it promises a refund (every refund is the CEO\'s decision)', re: /\b(?:we|we'?ll|we will|you will|you'?ll)\b[^.!?؟]*\b(?:refund|get your money back|be refunded)|سن(?:عيد|رد) (?:لك|إليك|لكم)? ?(?:المبلغ|أموالك|رسوم)|ستسترد|سيتم (?:رد|استرداد)/i,
     // the published non-response rule is conditional ("if the supplier does not respond, you are refunded"): that is policy, not a promise
     unless: /\b(?:if|when|unless)\b|إذا|إن |في حال|عند /i },
@@ -167,8 +184,42 @@ const CLAIMS: { problem: string; re: RegExp; unless?: RegExp }[] = [
 export function policyProblems(text: string): string[] {
   const out: string[] = [];
   for (const sentence of String(text || '').split(/(?<=[.!?؟\n])\s*/)) {
-    for (const c of CLAIMS) if (c.re.test(sentence) && !NEG.test(sentence) && !(c.unless?.test(sentence)) && !out.includes(c.problem)) out.push(c.problem);
+    // NEG counts only in the clause that holds the claim ("Suppliers pay no fee and you pay a fee with VAT" is caught);
+    // a claim that spans clauses falls back to the whole sentence (review of #1356).
+    const clauses = sentence.split(/[,;\u060C\u061B]|\b(?:and|but|while)\b|\u0644\u0643\u0646/i);
+    const holding = (re: RegExp) => clauses.filter((k) => re.test(k));
+    const affirmed = (re: RegExp) => { const h = holding(re); return h.length ? h.some((k) => !NEG.test(k)) : re.test(sentence) && !NEG.test(sentence); };
+    for (const c of CLAIMS) if (affirmed(c.re) && !(typeof c.unless === 'function' ? c.unless(sentence) : c.unless?.test(sentence)) && !out.includes(c.problem)) out.push(c.problem);
   }
+  return out;
+}
+
+// ── a stated 3% fee says what is NOT added (zero tolerance; coordinator, 12-13 Oct 2026; review of #1356) ──
+// Checked on the WHOLE reply. It applies when a SENTENCE states a 3% fee: a 3% figure (3%, ٣٪, "three percent", "ثلاثة
+// بالمئة") together with a fee word, and none of the words of a quote's own terms or the non-response charge (a 3%
+// discount, retention, advance, slope, interest, the non-response charge ...). Then the reply must NEGATE the card fee and the VAT in so
+// many words: "no card fee", "without card fees", "not charged a card fee", "لا يُضاف أي مبلغ عند الدفع بالبطاقة",
+// "بدون رسوم بطاقة"; "no VAT", "VAT is not charged", "لا تُفرض ضريبة". A negation elsewhere in the sentence does not
+// count ("the VAT certificate is not required", "never share your card details"). Missing either: the model rewrites.
+const FEE_SENTENCE = /\bfees?\b|\bcharges?\b|\bcommission\b|رسوم|رسم|عمولة/i;
+// Whole words only (review of #1356): "ميل" must not match inside العميل, التحميل or جميل. Arabic terms may carry ال.
+// A refund is NOT an exemption: "the 3% reveal fee is refunded if ..." still states the fee and must say no card fee / VAT.
+const NOT_THE_FEE_EN = /\b(?:discounts?|retentions?|advances?|deposits?|down ?payments?|slopes?|gradients?|falls?|tolerances?|interest|penalt(?:y|ies)|non-?response)\b/i;
+const NOT_THE_FEE_AR = /(?<![\p{L}])(?:ال)?(?:خصم|تخفيض|احتجاز|محتجز|ميل|انحدار|فائدة|غرامة)(?![\p{L}])|عدم الاستجابة|دفعة مقدمة/u;
+const NOT_THE_FEE = { test: (t: string) => NOT_THE_FEE_EN.test(t) || NOT_THE_FEE_AR.test(t) };
+const CARD_NEG = /\b(?:no|without|zero|not\s+(?:charged\s+)?(?:an?|any))\s+(?:extra\s+|additional\s+)?(?:credit\s+|debit\s+)?card\s*(?:payment\s+|processing\s+)?(?:fees?|surcharges?|charges?)\b|\bcard\s*(?:payment\s+|processing\s+)?(?:fees?|surcharges?|charges?)\s+(?:is|are)\s+(?:not|never)\b|\bnothing\s+(?:is\s+)?added\s+for\s+(?:paying\s+(?:by|with)\s+)?(?:a\s+)?card\b|بدون\s+رسوم\s+(?:على\s+)?(?:الدفع\s+)?(?:ب|عبر\s+)?(?:ال)?بطاقة|لا\s+رسوم\s+(?:على\s+)?(?:الدفع\s+)?(?:ب|عبر\s+)?(?:ال)?بطاقة|لا\s+(?:تُضاف|تضاف|يُضاف|يضاف)\s+(?:أي\s+)?(?:رسوم|مبلغ)[^.،؛]{0,25}بطاقة/i;
+const VAT_NEG = /\b(?:no|without|zero)\s+VAT\b|\bVAT\s+(?:is|are)\s+not\s+(?:charged|added|applied|payable)\b|\bnot\s+(?:charged|subject\s+to)\s+VAT\b|\bno\s+value[- ]added\s+tax\b|لا\s+(?:تُفرض|تفرض|تُضاف|تضاف|تُطبق|تطبق)\s+(?:أي\s+)?ضريبة|(?:بدون|دون)\s+ضريبة|لا\s+ضريبة|غير\s+خاضع(?:ة)?\s+(?:ل)?(?:ل)?ضريبة/i;
+const sentencesOf = (t: string) => t.split(/(?<=[.!?؟\n؛;])\s*/);
+/** Does this sentence state a 3% fee (not a quote's discount, a slope, interest or the non-response charge)? */
+export function statesThreePercentFee(sentence: string): boolean {
+  return figuresOf(sentence).includes('pct:3') && FEE_SENTENCE.test(sentence) && !NOT_THE_FEE.test(sentence);
+}
+export function revealFeeIncomplete(text: string): string[] {
+  const t = String(text || '');
+  if (!sentencesOf(t).some(statesThreePercentFee)) return [];
+  const out: string[] = [];
+  if (!CARD_NEG.test(t)) out.push('it states the 3% fee without saying, in so many words, that no card fee is added');
+  if (!VAT_NEG.test(t)) out.push('it states the 3% fee without saying, in so many words, that no VAT is charged on it');
   return out;
 }
 

@@ -24,25 +24,25 @@ const req = { seat: 'customer_support' as const, channel: 'email', audience: 'cu
 // prevented by: this test. The brief is given, the model writes the reply, a wrong figure is rewritten BY THE MODEL,
 // and when no model answers the reply is '' — code never supplies text.
 Deno.test('the model writes the reply from the brief', async () => {
-  const s = stub([A('The reveal fee is 3% of the quote you choose, and no card fee is added.')]);
+  const s = stub([A('The reveal fee is 3% of the quote you choose; no card fee is added and no VAT is charged on it.')]);
   const r = await aiReply(s.deps, req);
-  assertEquals(r.reply, 'The reveal fee is 3% of the quote you choose, and no card fee is added.');
+  assertEquals(r.reply, 'The reveal fee is 3% of the quote you choose; no card fee is added and no VAT is charged on it.');
   assert(s.calls[0].system.includes(COMPANY), 'the company brief is in the system prompt');
 });
 Deno.test('a figure the brief does not state is rewritten by the model', async () => {
-  const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%.')]);
+  const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
   const r = await aiReply(s.deps, req);
-  assertEquals(r.reply, 'The reveal fee is 3%.');
+  assertEquals(r.reply, 'The reveal fee is 3%, with no card fee and no VAT.');
   assert(s.calls[1].input.includes('the figure 5'));
 });
 Deno.test('a reply that names our machinery is rewritten, never replaced with a canned line', async () => {
-  const s = stub([A('Sorry, circuit_open from openrouter.'), A('The reveal fee is 3%.')]);
-  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%.');
+  const s = stub([A('Sorry, circuit_open from openrouter.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
+  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
 });
 Deno.test('the model ladder: route, then another family; nothing answers -> no text', async () => {
-  const s1 = stub([null, A('The reveal fee is 3%.')]);
+  const s1 = stub([null, A('The reveal fee is 3%, with no card fee and no VAT.')]);
   const r1 = await aiReply(s1.deps, req);
-  assertEquals(r1.reply, 'The reveal fee is 3%.');
+  assertEquals(r1.reply, 'The reveal fee is 3%, with no card fee and no VAT.');
   assert('counterpartModel' in s1.calls[1].o);
   const r2 = await aiReply(stub([null, null]).deps, req);
   assertEquals(r2.reply, '');
@@ -65,8 +65,8 @@ Deno.test('another party identity or an unpublished contact is rewritten; the pu
   assert(s.calls[1].input.includes("reveals another party's identity") && s.calls[1].input.includes('contact or licence details'));
 });
 Deno.test('a deferral is rewritten (903)', async () => {
-  const s = stub([A("I'll check and get back to you."), A('The reveal fee is 3%.')]);
-  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%.');
+  const s = stub([A("I'll check and get back to you."), A('The reveal fee is 3%, with no card fee and no VAT.')]);
+  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
 });
 Deno.test('at most 4 model calls per reply, then no text', async () => {
   const s = stub([A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.')]);

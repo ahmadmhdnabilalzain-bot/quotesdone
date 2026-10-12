@@ -120,6 +120,38 @@ Deno.test('figure check: subscription, price and cost words carry a unit-less fe
   assertEquals(moneyFiguresNotInBrief('تكلفة 750 للمتر.', k), ['a fee of 750']);
 });
 
+// prevented by: this test (zero tolerance, 12 Oct 2026). A stated reveal fee also says no card fee and no VAT.
+Deno.test('a stated reveal fee must say no card fee and no VAT; a reply without the fee is not asked to', async () => {
+  const { revealFeeIncomplete } = await import('./company_brief.ts');
+  assertEquals(revealFeeIncomplete('The reveal fee is 3% of the quote. No card fee is added and no VAT is charged on it.'), []);
+  assertEquals(revealFeeIncomplete('The reveal fee is 3% of the quote.').length, 2);
+  assertEquals(revealFeeIncomplete('The reveal fee is 3%. No card fee is added.'), ['it states the 3% fee without saying, in so many words, that no VAT is charged on it']);
+  // the bare words are not enough: the card and the VAT must each be NEGATED
+  assertEquals(revealFeeIncomplete('The reveal fee is 3%. You can pay by card. VAT rules apply in the UAE.').length, 2);
+  assertEquals(revealFeeIncomplete('The fee is 3% and it is not charged a card fee; there is no VAT on the fee.'), []);
+  assertEquals(revealFeeIncomplete('Pay 3% without card fees. No VAT is charged on it.'), []);
+  assertEquals(revealFeeIncomplete('رسوم 3٪ بدون رسوم بطاقة، ولا ضريبة قيمة مضافة على الرسوم.'), []);
+  assertEquals(revealFeeIncomplete('رسوم 3٪ وتدفع بالبطاقة، وتطبق الضريبة.').length, 2);
+  // ANY 3% FEE statement triggers it, with or without the word "reveal"
+  assertEquals(revealFeeIncomplete('Our fee is 3% of the chosen quote.').length, 2);
+  assertEquals(revealFeeIncomplete('تدفعون رسومًا قدرها ثلاثة بالمئة من قيمة العرض المختار.').length, 2);
+  // ...but not a quote's own 3% terms, a 3% slope, or the non-response charge (review of #1356)
+  assertEquals(revealFeeIncomplete('The supplier offers a 3% discount on the quote.'), []);
+  assertEquals(revealFeeIncomplete('Their quote holds a 3% retention charge until handover.'), []);
+  assertEquals(revealFeeIncomplete('Lay the screed to a 3% slope toward the drain.'), []);
+  assertEquals(revealFeeIncomplete('A supplier that ignores a paid reveal owes the 3% fee refunded to the customer, an AED 500 admin fee and 12% interest.'), []);
+  assertEquals(revealFeeIncomplete('خصم 3٪ على عرض السعر من المورد.'), []);
+  // whole words only: "ميل" inside العميل does not exempt a reveal-fee sentence; a refund is no exemption (review of #1356)
+  assertEquals(revealFeeIncomplete('رسوم الكشف 3% يدفعها العميل.').length, 2);
+  assertEquals(revealFeeIncomplete('The 3% reveal fee is refunded if the supplier does not respond.').length, 2);
+  assertEquals(revealFeeIncomplete('تطبيق ميل بنسبة 3٪ للتصريف ضمن رسوم العمل.'), [], 'a 3% slope (ميل) is still exempt as a whole word');
+  // the negation must be OF the card fee / the VAT, not anywhere in the sentence
+  assertEquals(revealFeeIncomplete('The reveal fee is 3%. The VAT certificate is not required. Never share your card details.').length, 2);
+  assertEquals(revealFeeIncomplete('رسوم الكشف 3٪ من قيمة العرض، ولا يُضاف أي مبلغ عند الدفع بالبطاقة، ولا تُفرض ضريبة القيمة المضافة على رسوم الكشف.'), []);
+  assertEquals(revealFeeIncomplete('رسوم الكشف ثلاثة بالمئة من قيمة العرض.').length, 2);
+  assertEquals(revealFeeIncomplete('Verification takes up to 3 working days.'), []);
+});
+
 Deno.test('figure check: "AED 1,000 - 5 working days" is not a range; a range with units on both sides is', () => {
   const k = briefNumbers(BRIEF2);
   assertEquals(moneyFiguresNotInBrief('Registration is AED 1,000 - 5 working days to verify.', k), []);
@@ -131,4 +163,36 @@ Deno.test('sentences come off the front of the stream whole, the unfinished tail
   assertEquals(done, ['The fee is 3%. ', 'Comparing is free! ']);
   assertEquals(rest, 'Suppliers pa');
   assertEquals(takeSentences('نعم، هويتك مخفية؟ ثم').done, ['نعم، هويتك مخفية؟ ']);
+});
+
+// prevented by: this test (ruling 1207, 13 Oct 2026). A supplier's quotation is shown as stated: its discount, "VAT
+// included", "+5% VAT" or card surcharge is never contradicted, and the no-card-fee / no-VAT line is never forced onto
+// it. The line still belongs to OUR 3% fee, computed on the final quoted price.
+Deno.test('a supplier quotation stands as stated; only our 3% fee carries the no card fee / no VAT line', async () => {
+  const { revealFeeIncomplete } = await import('./company_brief.ts');
+  for (const s of [
+    'The supplier quoted AED 2,000, after discount AED 1,700, VAT included.',
+    'The supplier\'s price is AED 1,700 +5% VAT.',
+    'The supplier\'s quotation adds a card surcharge for card payments.',
+    'عرض المورد 2,000 درهم، وبعد الخصم 1,700 درهم شاملة ضريبة القيمة المضافة.',
+  ]) {
+    assertEquals(policyProblems(s), [], s);
+    assertEquals(revealFeeIncomplete(s), [], s);
+  }
+  const both = 'The supplier quoted AED 1,700 +5% VAT; QuotesDone is not responsible for the quotation details. Our 3% reveal fee is 3% of AED 1,700, with no card fee and no VAT.';
+  assertEquals([policyProblems(both), revealFeeIncomplete(both)], [[], []]);
+  // our own fee is never exempt: VAT on the reveal fee is still caught, and a bare 3% fee still needs the line
+  assert(policyProblems('VAT is added to the reveal fee.').length === 1);
+  // a bare fee word is OUR fee unless it is tied to the supplier (review of #1356)
+  for (const s of ['The service fee includes VAT, like the quoted price.', 'رسوم المنصة تشمل ضريبة القيمة المضافة على السعر']) assertEquals(policyProblems(s).length, 1, s);
+  assertEquals(policyProblems('The supplier\'s fee includes VAT, as quoted.'), []);
+  assertEquals(policyProblems('The supplier charges a 5% installation fee plus VAT.'), []);
+  // a supplier or quote mentioned mid-sentence shields nothing, and a "no" in another clause does not deny the claim
+  for (const s of ['Suppliers pay no fee and you pay a fee with VAT.', 'To unlock a quote you pay a fee plus VAT.', 'When the supplier accepts, you pay a card fee.'])
+    assert(policyProblems(s).length >= 1, s);
+  assertEquals(policyProblems('يفرض المورد رسوم تركيب 5% بالإضافة إلى ضريبة القيمة المضافة.'), []);
+  assertEquals(policyProblems('رسوم المورد تشمل ضريبة القيمة المضافة حسب عرض السعر.'), []);
+  // عرض meaning "show" does not make a sentence about the supplier
+  assertEquals(policyProblems('سنعرض لك ضريبة القيمة المضافة على الرسوم.').length, 1);
+  assertEquals(revealFeeIncomplete('The supplier quoted AED 1,700. Our 3% reveal fee is AED 51.').length, 2);
 });

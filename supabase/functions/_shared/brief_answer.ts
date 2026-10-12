@@ -9,7 +9,7 @@
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
 // prevented by: _shared/brief_answer.test.ts
 import { withImages } from './chat_images.ts';
-import { briefNumbers, moneyFiguresNotInBrief, policyProblems, takeSentences } from './company_brief.ts';
+import { briefNumbers, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 
 export type Msg = { role: 'user' | 'assistant'; content: string };
 export interface BriefCall {
@@ -35,7 +35,8 @@ const body = (c: BriefCall, extra: Record<string, unknown>) => JSON.stringify({
 async function once(f: Fetch, c: BriefCall, extra: Record<string, unknown>): Promise<{ text: string; model: string | null; error?: string }> {
   try {
     const r = await f(c.gateway, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body(c, extra) });
-    const j = await r.json().catch(() => null) as { content?: string; model?: string; error?: string; outcome?: string } | null;
+    const j = await r.json().catch(() => null) as { content?: string; model?: string; error?: string; outcome?: string; truncated?: boolean } | null;
+    if (j?.truncated) return { text: '', model: j?.model ?? null, error: 'truncated at the output limit' };   // a cut-off answer is never used
     const text = typeof j?.content === 'string' ? j.content.trim() : '';
     return text ? { text, model: j?.model ?? null } : { text: '', model: null, error: String(j?.error || j?.outcome || ('HTTP ' + r.status)) };
   } catch (e) { return { text: '', model: null, error: String((e as Error)?.message || e) }; }
@@ -53,7 +54,7 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
   }
   const model = r.headers.get('x-qd-model');
   const rd = r.body.getReader(); const dec = new TextDecoder();
-  let sse = '', pending = '', shown = '';
+  let sse = '', pending = '', shown = '', finish = '';
   const check = (s: string) => { const bad = problems(c, s, known); if (!bad.length) { shown += s; emit(s); } return bad; };
   for (;;) {
     const { done, value } = await rd.read();
@@ -66,7 +67,7 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
       const data = line.slice(5).trim();
       if (data === '[DONE]') continue;
       let delta = '';
-      try { delta = String(JSON.parse(data)?.choices?.[0]?.delta?.content ?? ''); } catch (_e) { delta = ''; }
+      try { const j = JSON.parse(data); delta = String(j?.choices?.[0]?.delta?.content ?? ''); finish = String(j?.choices?.[0]?.finish_reason ?? '') || finish; } catch (_e) { delta = ''; }
       if (!delta) continue;
       pending += delta;
       const { done: sentences, rest } = takeSentences(pending);
@@ -77,7 +78,13 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
       }
     }
   }
+  // A CUT-OFF ANSWER IS NEVER SHOWN AS FINISHED (live photo test, 13 Oct 2026: an Arabic reply ended mid-sentence at the
+  // output limit). The unfinished tail is held back, and the model writes the whole answer again, shorter.
+  if (finish === 'length') return { text: (shown + pending).trim(), model, bad: ['it was cut off by the length limit; write the whole answer again, complete and shorter'] };
   if (pending.trim()) { const bad = check(pending); if (bad.length) return { text: shown + pending, model, bad }; }
+  // the whole reply: a stated reveal fee must also say no card fee and no VAT (checked once the reply is complete)
+  const whole = revealFeeIncomplete(shown);
+  if (shown.trim() && whole.length) return { text: shown.trim(), model, bad: whole };
   return shown.trim() ? { text: shown.trim(), model, bad: [] } : { text: '', model, bad: [], error: 'empty stream' };
 }
 
@@ -105,7 +112,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
         { role: 'user', content: `Your answer has these problems: ${bad.join('; ')}. Write the whole answer again, exact and direct, correcting them: use only figures the company brief states (where it gives none, explain without a number) and follow every rule in your instructions.` }] }, {});
       attempts.push('rewrite:' + (fix.error ? 'failed ' + fix.error : 'ok'));
       if (!fix.text) break;
-      draft = fix.text; model = fix.model; bad = problems(c, draft, known);
+      draft = fix.text; model = fix.model; bad = [...problems(c, draft, known), ...revealFeeIncomplete(draft)];
       if (!bad.length) return { reply: draft, model, attempts, rewrites, streamed: false };
     }
   }
@@ -114,7 +121,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   for (const extra of [{}, { counterpart_model: model || 'openai/gpt-6-luna' }]) {
     const a = await once(f, c, extra);
     attempts.push((('counterpart_model' in extra) ? 'third:' : 'retry:') + (a.error ? 'failed ' + a.error : 'ok'));
-    if (a.text && !problems(c, a.text, known).length) return { reply: a.text, model: a.model, attempts, rewrites, streamed: false };
+    if (a.text && ![...problems(c, a.text, known), ...revealFeeIncomplete(a.text)].length) return { reply: a.text, model: a.model, attempts, rewrites, streamed: false };
   }
   return { reply: '', model: null, attempts, rewrites, streamed: false, error: 'no model produced an answer that passes the figure check' };
 }

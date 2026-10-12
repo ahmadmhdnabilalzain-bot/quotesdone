@@ -5529,8 +5529,10 @@
   "06338a5c4b64",
   "0681db1a83a2",
   "369b9a738647",
+  "3757e4fbb5e1",
   "383d04ced24b",
   "423da6c459f6",
+  "4ec7fa5ea3db",
   "4f9af0c682d4",
   "53bbd3ac0b54",
   "55848652e127",
@@ -5544,7 +5546,9 @@
   "74086c183c68",
   "805e49d04702",
   "8ab976e8eb76",
+  "9c25828a3641",
   "9c3c80eb8969",
+  "9cda9590caa0",
   "a76e02f9d527",
   "a844ae93d451",
   "c3731f8fd32a",
@@ -5552,7 +5556,8 @@
   "de62a9134e25",
   "e1814f15aded",
   "eb86d8fc0c02",
-  "f4e468bb2a84"
+  "f4e468bb2a84",
+  "fe4e3d803c47"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
   "7784a68c401d",
@@ -6199,7 +6204,8 @@
  ],
  "supabase/functions/site_assistant/index.ts": [
   "0e0329c97c49",
-  "244053c77971"
+  "244053c77971",
+  "9a03685e2791"
  ],
  "supabase/functions/site_assistant/stream_reply.ts": [
   "aeb58bdf5c4d"
@@ -6478,5 +6484,8 @@
   "a5cba62f3cdc",
   "d7028cd29b51",
   "d9a9b884d813"
+ ],
+ "knowledge/brief/uae_regulations/services_and_general_trades.md": [
+  "52a0b1d6e84b"
  ]
 }
