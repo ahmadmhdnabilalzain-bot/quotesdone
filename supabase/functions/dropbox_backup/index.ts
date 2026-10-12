@@ -44,6 +44,7 @@ import { AuthUnavailable, DropboxClient, isAuthStop, refreshAccessToken, TokenCa
 import { drainClaim } from './drain.ts';
 import { uploadFile, type ReadChunk, type UploadState } from './upload.ts';
 import { backupRow, dbxMeta, verifyUploaded } from './row.ts';
+import { archivePath } from './archive.ts';
 import { compareListing, dailyRoots, fileSlices, listTree, type Expected } from './listing.ts';
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 import { classifyDropboxFailure, isTransientDbError } from './health.ts';
@@ -325,6 +326,45 @@ async function prune() {
   return { claimed: rows.length, result: data };
 }
 
+// it_engineer (founder ruling 1181): what fn_unfinished_signup_purge left. A doc_backups row in
+// 'archive_pending' is MOVED in Dropbox to _archive/unfinished-signups/ (hash and size checked after, never
+// deleted); a row whose file never reached Dropbox is closed as archived with nothing to move. Each
+// signup_purge_object is removed from storage through the storage API (a database delete would orphan it).
+async function archiveUnfinishedSignups(dbx: DropboxClient) {
+  const out = { archived: 0, nothing_to_move: 0, archive_failed: 0, storage_removed: 0, storage_failed: 0 };
+  const { data: rows } = await admin.from('doc_backups').select('id,dropbox_path').eq('status', 'archive_pending').order('id').limit(25);
+  for (const r of rows || []) {
+    if (Date.now() >= DEADLINE) break;
+    try {
+      const to = archivePath(String(r.dropbox_path), new Date());
+      const pre = await dbxMeta(dbx, r.dropbox_path);
+      if (pre.missing) {
+        await admin.from('doc_backups').update({ status: 'archived', error: 'unfinished sign-up: no Dropbox copy existed, nothing to move' }).eq('id', r.id);
+        out.nothing_to_move++; continue;
+      }
+      const mv = await dbx.call('api', 'files/move_v2', { from_path: r.dropbox_path, to_path: to, autorename: false, allow_ownership_transfer: false });
+      const mt = await mv.text();
+      if (!mv.ok && !(mv.status === 409 && mt.includes('to/conflict'))) throw new Error('move_v2 ' + mv.status + ' ' + mt.slice(0, 120));
+      const post = await dbxMeta(dbx, to);
+      if (post.missing || post.content_hash !== pre.content_hash || post.size !== pre.size) throw new Error('the archived copy does not match the original (hash or size)');
+      await admin.from('doc_backups').update({ status: 'archived', dropbox_path: to, verified_at: new Date().toISOString(),
+        error: 'unfinished sign-up: Dropbox copy moved to _archive (founder ruling 1181)' }).eq('id', r.id);
+      out.archived++;
+    } catch (e) {
+      out.archive_failed++;
+      await admin.from('doc_backups').update({ error: 'archive failed, retried next run: ' + errText(e).slice(0, 200) }).eq('id', r.id);
+    }
+  }
+  const { data: objs } = await admin.from('signup_purge_object').select('id,bucket,path').is('done_at', null).order('id').limit(50);
+  for (const o of objs || []) {
+    const { error } = await admin.storage.from(o.bucket).remove([o.path]);
+    if (error) { out.storage_failed++; await admin.from('signup_purge_object').update({ error: error.message.slice(0, 200) }).eq('id', o.id); continue; }
+    await admin.from('signup_purge_object').update({ done_at: new Date().toISOString(), error: null }).eq('id', o.id);
+    out.storage_removed++;
+  }
+  return out;
+}
+
 Deno.serve(observe('dropbox_backup', async (req) => {
   // deno-lint-ignore no-explicit-any
   let body: Record<string, any> = {}; let authed = false;
@@ -394,6 +434,9 @@ Deno.serve(observe('dropbox_backup', async (req) => {
       }
       if (!isAuthStop(e)) throw e;     // 'no_dropbox_auth' falls through: the first row fails loudly as before
     }
+    // an unfinished sign-up's files (founder ruling 1181): Dropbox copies to _archive, storage objects removed
+    let unfinished: Record<string, number> | null = null;
+    if (!chain) { try { unfinished = await archiveUnfinishedSignups(dbx); } catch (e) { console.error('unfinished sign-up archive failed:', errText(e)); } }
     const run = `dropbox_backup:${T0}:${crypto.randomUUID().slice(0, 8)}`;
     const { data: rows, error: qerr } = await admin.rpc('fn_doc_backups_next', { p_limit: limit, p_run: run });
     if (qerr) throw new Error('fn_doc_backups_next: ' + qerr.message);
@@ -432,7 +475,7 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     });
     const { failed, released, authUnavailable, notes: errNotes } = d;
     const processed = claimed.length;
-    const counts = { enqueued, backfilled, processed, done, failed, resumed, released, chain, refreshes: dbx.refreshes, token_reused: dbx.tokens.reused,
+    const counts = { enqueued, backfilled, unfinished, processed, done, failed, resumed, released, chain, refreshes: dbx.refreshes, token_reused: dbx.tokens.reused,
       ...(authUnavailable ? { token_unavailable: classifyDropboxFailure(authUnavailable) } : {}), reason: body.reason ?? null };
     if (processed || enqueued || backfilled || failed) {
       if (failed) await logRun('error', counts, 'Dropbox backup finished with ' + failed + ' failed document(s) out of ' + processed + '; the IT engineer classifies and fixes them. ' + errNotes.join(' | '));
