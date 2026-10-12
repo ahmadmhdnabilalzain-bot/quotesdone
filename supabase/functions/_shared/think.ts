@@ -49,10 +49,11 @@ import { recallCases } from './case_recall.ts';
 import { e2eRunTag } from './e2e_run.ts';
 import { rehearsalLetsFixtureThrough } from './spend_guards.ts';
 import { gteReads } from './ml_embed_recipe.ts';
+import { applyRanking, CACHE_TTL_MIN, MAX_OUT, RERANK_K, RERANK_SYSTEM, RERANK_TOP, rerankInput } from './knowledge_rerank.ts';
 
 export const SEATS = ['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] as const;
 export type Seat = typeof SEATS[number];
-export type Phase = 'decompose' | 'synthesise' | 'verify' | 'research';
+export type Phase = 'decompose' | 'synthesise' | 'verify' | 'research' | 'rerank';
 
 export interface Turn { role: 'customer' | 'supplier' | 'visitor' | 'founder' | 'seat'; text: string }
 export interface ThinkContext {
@@ -115,7 +116,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; cacheTtlMin?: number }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -447,16 +448,27 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     // area exactly and ranks only that trade's entries / that area's rows plus the seat's general ones. Each is sent
     // only when known, so a call without them is the call it always was.
     const area = { ...(trade ? { p_trade: trade } : {}), ...(kind ? { p_kind: kind } : {}), ...(ctx.area ? { p_area: ctx.area } : {}) };
-    const { data, error } = await deps.rpc(rt.retrieve, rt === ROUTINES.ml
-      ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6, ...area }
+    // The multilingual path asks for up to 20 candidates and a cheap matrix model re-orders them by meaning
+    // (_shared/knowledge_rerank.ts); the step keeps as many rows as the fused call always gave (k 6: up to 12).
+    const ml = rt === ROUTINES.ml;
+    const { data, error } = await deps.rpc(rt.retrieve, ml
+      ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: RERANK_K, ...area }
       : { p_seat: req.seat, p_embedding: vec(v), p_k: 6, ...area });
-    const rows = !error && Array.isArray(data) ? data : [];
+    let rows = !error && Array.isArray(data) ? data : [];
+    let reranked = false;
+    if (ml && rows.length > RERANK_TOP) {
+      const rr = await deps.llm('rerank', RERANK_SYSTEM, rerankInput(s.query, rows), { taskClass: taskClassFor('rerank', 'internal', deciding), seat: req.seat, max: MAX_OUT, cacheTtlMin: CACHE_TTL_MIN })
+        .catch(() => ({ content: null }) as LlmReply);
+      const a = applyRanking(rows, rr.content);
+      rows = a.order; reranked = a.reranked;
+    }
+    if (ml) rows = rows.slice(0, 12);
     for (const r of rows) {
       const id = `${r.source}:${r.id}`;
       if (!sources.some((x) => x.id === id)) sources.push({ id, kind: String(r.source), title: String(r.title ?? ''), excerpt: String(r.excerpt ?? '').slice(0, 1200), citation: r.citation ?? null, similarity: Number(r.similarity), trust: r.trust === 'pending_review' ? 'pending_review' : 'reviewed' });
     }
     const best = rows.reduce((m: number, r: { similarity?: number }) => Math.max(m, Number(r.similarity) || 0), 0);
-    steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: error ? 'failed' : 'done', detail: { rows: rows.length, best: Math.round(best * 1000) / 1000, space: rt.retrieve === ROUTINES.ml.retrieve ? 'ml' : 'gte', error: error?.message } });
+    steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: error ? 'failed' : 'done', detail: { rows: rows.length, best: Math.round(best * 1000) / 1000, space: rt.retrieve === ROUTINES.ml.retrieve ? 'ml' : 'gte', reranked, error: error?.message } });
     if (best < rt.floor) thin.push(s);
   }
   const doResearch = (req.research ?? !deciding) && thin.length > 0 && deps.search && deps.read;
@@ -546,7 +558,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2 });
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: phase === 'rerank' ? 15_000 : 45_000, cacheTtlMin: o.cacheTtlMin ?? 0, json: true, temperature: phase === 'verify' || phase === 'rerank' ? 0 : 0.2 });
       const r = await call(system, input, o.max ?? 900, '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
