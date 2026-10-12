@@ -159,22 +159,22 @@ const NEG = /\b(no|not|never|without|nor|isn'?t|aren'?t|won'?t|doesn'?t|don'?t)\
 // surcharge, any terms) and is shown as stated. The no-card-fee / no-VAT rule is about OUR 3% fee only, so a sentence
 // about the supplier's price or terms that does not also speak of our fee is never contradicted by these two claims.
 // عرض alone also means show/display, so only its quotation forms count (review of #1356).
-const SUPPLIER_TERMS = /\b(?:suppliers?|quot(?:e|es|ed|ation|ations)|prices?|discount(?:ed)?)\b|المورد|عرض (?:ال)?سعر|عروض (?:ال)?أسعار|(?:ال)?سعر|خصم/i;
+const SUPPLIER_TERMS = /\b(?:suppliers?|quot(?:e|es|ed|ation|ations)|prices?|discount(?:ed)?)\b|\u0627\u0644\u0645\u0648\u0631\u062F|\u0639\u0631\u0636 (?:\u0627\u0644)?\u0633\u0639\u0631|\u0639\u0631\u0648\u0636 (?:\u0627\u0644)?\u0623\u0633\u0639\u0627\u0631|(?:\u0627\u0644)?\u0633\u0639\u0631|\u062E\u0635\u0645/i;
 // Any fee word that is not tied to the supplier ("supplier's fee", رسوم المورد) is about OUR fee (review of #1356:
 // "The service fee includes VAT, like the quoted price" must still be caught).
-const SUPPLIER_FEE = /\bsupplier'?s?'?\s+(?:own\s+)?(?:fees?|charges?|commission|surcharges?)\b|(?:رسوم|عمولة)\s+(?:ال)?مورد/gi;
-const OUR_FEE = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\b3\s?%|٣\s?٪|\bfees?\b|\bcommission\b|\bplatform\b|الكشف|رسوم|عمولة|المنصة/i;
+const SUPPLIER_FEE = /\bsupplier'?s?'?\s+(?:own\s+)?(?:fees?|charges?|commission|surcharges?)\b|(?:\u0631\u0633\u0648\u0645|\u0639\u0645\u0648\u0644\u0629)\s+(?:\u0627\u0644)?\u0645\u0648\u0631\u062F/gi;
+const OUR_FEE = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\b3\s?%|\u0663\s?\u066A|\bfees?\b|\bcommission\b|\bplatform\b|\u0627\u0644\u0643\u0634\u0641|\u0631\u0633\u0648\u0645|\u0639\u0645\u0648\u0644\u0629|\u0627\u0644\u0645\u0646\u0635\u0629/i;
 // A sentence whose subject is the supplier or its quote, with none of OUR markers, is the supplier's: its bare fee word
 // ("The supplier charges a 5% installation fee plus VAT") is the supplier's fee (review of #1356). "quoted" is not a subject.
 // Only a sentence that BEGINS with the supplier (an Arabic verb may come first: يفرض المورد) has it as subject; a
 // supplier or quote mentioned later ("To unlock a quote you pay a fee plus VAT") does not shield a claim (review of #1356).
-const SUPPLIER_SUBJECT = /^\s*(?:the\s+)?suppliers?(?:'s?)?\b|^\s*(?:\S+\s+)?المورد/i;
-const OUR_MARK = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\bplatform\b|\byou\s+pay\b|\b3\s?%|٣\s?٪|الكشف|المنصة|رسومنا|عمولتنا|تدفع/i;
+const SUPPLIER_SUBJECT = /^\s*(?:the\s+)?suppliers?(?:'s?)?\b|^\s*(?:\S+\s+)?\u0627\u0644\u0645\u0648\u0631\u062F/i;
+const OUR_MARK = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\bplatform\b|\byou\s+pay\b|\b3\s?%|\u0663\s?\u066A|\u0627\u0644\u0643\u0634\u0641|\u0627\u0644\u0645\u0646\u0635\u0629|\u0631\u0633\u0648\u0645\u0646\u0627|\u0639\u0645\u0648\u0644\u062A\u0646\u0627|\u062A\u062F\u0641\u0639/i;
 const aboutSupplierOnly = (s: string) =>
   (SUPPLIER_SUBJECT.test(s) && !OUR_MARK.test(s)) || (SUPPLIER_TERMS.test(s) && !OUR_FEE.test(s.replace(SUPPLIER_FEE, ' ')));
 const CLAIMS: { problem: string; re: RegExp; unless?: RegExp | ((s: string) => boolean) }[] = [
-  { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|رسوم (?:على )?(?:الدفع (?:ب|عبر )?)?البطاقة|رسوم البطاقة/i, unless: aboutSupplierOnly },
-  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?؟]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?؟]*\bVAT\b|ضريبة القيمة المضافة/i, unless: aboutSupplierOnly },
+  { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|\u0631\u0633\u0648\u0645 (?:\u0639\u0644\u0649 )?(?:\u0627\u0644\u062F\u0641\u0639 (?:\u0628|\u0639\u0628\u0631 )?)?\u0627\u0644\u0628\u0637\u0627\u0642\u0629|\u0631\u0633\u0648\u0645 \u0627\u0644\u0628\u0637\u0627\u0642\u0629/i, unless: aboutSupplierOnly },
+  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?\u061F]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?\u061F]*\bVAT\b|\u0636\u0631\u064A\u0628\u0629 \u0627\u0644\u0642\u064A\u0645\u0629 \u0627\u0644\u0645\u0636\u0627\u0641\u0629/i, unless: aboutSupplierOnly },
   { problem: 'it promises a refund (every refund is the CEO\'s decision)', re: /\b(?:we|we'?ll|we will|you will|you'?ll)\b[^.!?؟]*\b(?:refund|get your money back|be refunded)|سن(?:عيد|رد) (?:لك|إليك|لكم)? ?(?:المبلغ|أموالك|رسوم)|ستسترد|سيتم (?:رد|استرداد)/i,
     // the published non-response rule is conditional ("if the supplier does not respond, you are refunded"): that is policy, not a promise
     unless: /\b(?:if|when|unless)\b|إذا|إن |في حال|عند /i },
@@ -186,7 +186,7 @@ export function policyProblems(text: string): string[] {
   for (const sentence of String(text || '').split(/(?<=[.!?؟\n])\s*/)) {
     // NEG counts only in the clause that holds the claim ("Suppliers pay no fee and you pay a fee with VAT" is caught);
     // a claim that spans clauses falls back to the whole sentence (review of #1356).
-    const clauses = sentence.split(/[,;،؛]|\b(?:and|but|while)\b|لكن/i);
+    const clauses = sentence.split(/[,;\u060C\u061B]|\b(?:and|but|while)\b|\u0644\u0643\u0646/i);
     const holding = (re: RegExp) => clauses.filter((k) => re.test(k));
     const affirmed = (re: RegExp) => { const h = holding(re); return h.length ? h.some((k) => !NEG.test(k)) : re.test(sentence) && !NEG.test(sentence); };
     for (const c of CLAIMS) if (affirmed(c.re) && !(typeof c.unless === 'function' ? c.unless(sentence) : c.unless?.test(sentence)) && !out.includes(c.problem)) out.push(c.problem);
