@@ -50,6 +50,7 @@ export interface Prospect {
   phone_e164: string | null; phone_kind: string | null; email: string | null; email_status: string | null;
   contact_name: string | null; contact_title: string | null; place_id: string | null; query: string;
   field_sources: Record<string, string>;   // field -> source URL (PDPL)
+  model_answer?: string | null;            // the model's answer about the contact, verbatim (lead_prospect.model_answer)
 }
 
 // ── PURE HELPERS (tested in lead_sourcing.test.ts) ────────────────────────────────────────────────────
@@ -280,7 +281,7 @@ export async function sourceLeads(o: SourceOptions): Promise<SourceResult> {
     if (o.askModel && texts.length && Date.now() < stopAt && modelLeft()) {
       out.model_calls++;   // the model also judges the pattern's candidate: a candidate it does not confirm is dropped
       const reply = await o.askModel(contactPrompt(p.company_name, texts, candidate)).catch(() => ({ content: null, cost_usd: 0 }));
-      out.llm_cost_usd += reply.cost_usd; answer = reply.content;
+      out.llm_cost_usd += reply.cost_usd; answer = reply.content; p.model_answer = answer;
       const got = acceptContact(answer, texts);
       if (got) person = { name: got.name, title: got.title, src: got.url + ' (read by model)' };
     }
@@ -315,36 +316,37 @@ export async function sourceLeads(o: SourceOptions): Promise<SourceResult> {
 }
 
 // ── ONE BATCH (the marketing function's 'lead_sourcing' action; pg_cron lead_sourcing_batch, every 10 minutes) ──
-// One (trade, emirate) cell per batch, fewest suppliers first. A batch runs only while ALL THREE day limits hold
-// (fn_lead_sourcing_today: the lead quota, the Serper USD cap and the model USD cap, all app_secrets settings), and is
-// itself capped at the day's REMAINING budget, so a run of batches that promote nothing cannot spend past the cap.
+// One (trade, emirate) cell per batch, fewest suppliers first. Before it spends anything the batch RESERVES its budget
+// (fn_lead_sourcing_begin: under an advisory lock, one reservation at a time, never more than the day has left of the
+// lead quota, the Serper USD cap and the model USD cap). The reservation counts as spent until the batch records its
+// real spend, so a batch killed at the 150 s cap, or a failed record call, can never let the day overspend.
 // 110 s of work, inside the edge's 150 s cap with room to record. The day before is reported to the CEO.
 export const BATCH_DEADLINE_MS = 110_000;
-type Today = { quota: number; promoted: number; serper_cap_usd: number; serper_usd: number; llm_cap_usd: number; llm_usd: number;
-  usd_per_credit: number; stop: string | null };
+export const BATCH_SERPER_CREDITS = 80;   // the pilot's busiest batch spent 22
+export const BATCH_LLM_USD = 0.1;         // the pilot spent ~USD 0.001 a model call, ~21 calls in its busiest batch
 // deno-lint-ignore no-explicit-any
 export async function runLeadBatch(admin: any, askModel: AskModel): Promise<Record<string, unknown>> {
   const key = Deno.env.get('SERPER_API_KEY');
   if (!key) return { ok: false, error: 'no SERPER_API_KEY edge secret' };
   const report = await admin.rpc('fn_lead_sourcing_daily_report');
-  const today = await admin.rpc('fn_lead_sourcing_today');
-  if (today.error) return { ok: false, error: 'fn_lead_sourcing_today: ' + today.error.message };
-  const t = today.data as Today;
-  if (t.stop) return { ok: true, due: false, ...t };
   const cells = await admin.rpc('fn_lead_sourcing_next_cells', { p_limit: 1 });
   if (cells.error || !cells.data?.length) return { ok: false, error: 'fn_lead_sourcing_next_cells: ' + (cells.error?.message ?? 'no cell') };
   const cell = cells.data[0] as Trade & { emirate: string };
+  const begun = await admin.rpc('fn_lead_sourcing_begin', { p_emirate: cell.emirate, p_trades: [cell.code],
+    p_serper_credits: BATCH_SERPER_CREDITS, p_llm_usd: BATCH_LLM_USD });
+  if (begun.error) return { ok: false, error: 'fn_lead_sourcing_begin: ' + begun.error.message };
+  const b = begun.data as { run_id?: number; serper_credits: number; llm_usd: number; usd_per_credit: number; stop?: string };
+  if (!b.run_id) return { ok: true, due: false, ...b };
   const startedAt = new Date().toISOString();
   const r = await sourceLeads({ serperKey: key, trades: [cell], emirate: cell.emirate, pagesPerQuery: 3, maxSites: 40,
-    deadlineMs: BATCH_DEADLINE_MS, askModel,
-    maxSerperCredits: Math.floor((t.serper_cap_usd - t.serper_usd) / t.usd_per_credit), maxLlmUsd: t.llm_cap_usd - t.llm_usd });
+    deadlineMs: BATCH_DEADLINE_MS, askModel, maxSerperCredits: b.serper_credits, maxLlmUsd: b.llm_usd });
   const rec = await admin.rpc('fn_lead_sourcing_record', {
-    p_run: { kind: 'batch', emirate: cell.emirate, trades: [cell.code], started_at: startedAt, queries: r.queries,
-      serper_credits: r.serper_credits, usd_per_credit: t.usd_per_credit, places: r.places, sites_crawled: r.sites_crawled,
+    p_run: { run_id: b.run_id, kind: 'batch', emirate: cell.emirate, trades: [cell.code], started_at: startedAt, queries: r.queries,
+      serper_credits: r.serper_credits, usd_per_credit: b.usd_per_credit, places: r.places, sites_crawled: r.sites_crawled,
       pages_fetched: r.pages_fetched, robots_refused: r.robots_refused, model_calls: r.model_calls, llm_cost_usd: r.llm_cost_usd,
       linkedin_queries: r.linkedin_queries, errors: r.errors.slice(0, 20) },
     p_prospects: r.prospects });
-  if (rec.error) return { ok: false, error: 'fn_lead_sourcing_record: ' + rec.error.message };
+  if (rec.error) return { ok: false, error: 'fn_lead_sourcing_record: ' + rec.error.message + ' (the reservation stays counted)' };
   return { ok: true, due: true, cell: `${cell.code}@${cell.emirate}`, ...(rec.data as Record<string, unknown>),
     report: report.error ? report.error.message : report.data };
 }

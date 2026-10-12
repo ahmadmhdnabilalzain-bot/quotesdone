@@ -37,6 +37,12 @@
 create table if not exists public.lead_sourcing_run (
   id              bigserial primary key,
   kind            text not null check (kind in ('batch', 'pilot', 'probe')),
+  -- 'reserved': the batch's budget, written BEFORE it spends (fn_lead_sourcing_begin) and replaced by its 'done' row
+  -- when fn_lead_sourcing_record lands. A batch killed at the 150 s cap, or whose record call fails, leaves its
+  -- reservation behind, and the day counts it as spent (release review of #1304).
+  status          text not null default 'done' check (status in ('reserved', 'done')),
+  reserved_serper_credits numeric not null default 0,
+  reserved_llm_usd numeric not null default 0,
   started_at      timestamptz not null default now(),
   run_day         date not null default (now() at time zone 'Asia/Dubai')::date,
   emirate         text not null,
@@ -82,7 +88,8 @@ create table if not exists public.lead_prospect (
   collected_at     timestamptz not null default now(),
   status           text not null check (status in ('complete', 'incomplete', 'duplicate', 'suppressed', 'promoted')),
   status_reason    text,
-  promoted_lead_id bigint references public.leads(id) on delete set null
+  promoted_lead_id bigint references public.leads(id) on delete set null,
+  model_answer     text            -- the model's own answer about the contact, verbatim: every model output lands in a table
 );
 create index if not exists lead_prospect_run_idx on public.lead_prospect (run_id);
 create index if not exists lead_prospect_domain_idx on public.lead_prospect (domain);
@@ -97,6 +104,13 @@ do $rls$ begin
   end if;
 end $rls$;
 revoke all on public.lead_sourcing_run, public.lead_prospect from anon, authenticated;
+-- At most one reservation at a time: a manual call during a cron batch cannot spend the same remaining budget.
+create unique index if not exists lead_sourcing_one_reservation on public.lead_sourcing_run ((true)) where status = 'reserved';
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('lead_sourcing_run', true, 'marketing', 'Each supplier lead sourcing batch: what it searched, what it spent (Serper and model), what it found.', 'marketing'),
+  ('lead_prospect', true, 'marketing', 'Every company the lead sourcing found, each field with its source and collected_at (UAE PDPL), and what became of it.', 'marketing')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;
 
 -- ── 3. PRIORITY: the (trade, emirate) cells with the fewest suppliers first ───────────────────────────
 -- Every active trade is in scope except food and beverage (founder, via the release coordinator, 12 Oct 2026; on
@@ -141,8 +155,9 @@ returns jsonb language sql stable security definer set search_path to 'public', 
       coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_daily_serper_usd'), 0) serper_cap,
       coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_daily_llm_usd'), 0) llm_cap,
       coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_usd_per_credit'), 0.001) per_credit),
-  d as (select coalesce(sum(promoted), 0) promoted, coalesce(sum(serper_credits * usd_per_credit), 0) serper_usd,
-               coalesce(sum(llm_cost_usd), 0) llm_usd
+  d as (select coalesce(sum(promoted), 0) promoted,
+               coalesce(sum(greatest(serper_credits, reserved_serper_credits) * usd_per_credit), 0) serper_usd,
+               coalesce(sum(greatest(llm_cost_usd, reserved_llm_usd)), 0) llm_usd
           from public.lead_sourcing_run where kind = 'batch' and run_day = (now() at time zone 'Asia/Dubai')::date)
   select jsonb_build_object('day', (now() at time zone 'Asia/Dubai')::date, 'quota', s.quota, 'promoted', d.promoted,
            'serper_cap_usd', s.serper_cap, 'serper_usd', round(d.serper_usd, 4), 'llm_cap_usd', s.llm_cap, 'llm_usd', round(d.llm_usd, 4),
@@ -153,6 +168,32 @@ returns jsonb language sql stable security definer set search_path to 'public', 
     from s, d;
 $fn$;
 revoke execute on function public.fn_lead_sourcing_today() from public, anon, authenticated;
+
+-- A batch RESERVES its budget before it spends: under an advisory lock, only when no other reservation is open (a
+-- reservation older than 10 minutes belongs to a dead batch: it stays counted and is closed as 'done' with its
+-- reservation as its spend), and never more than the day has left. Returns the batch's caps, or why it may not run.
+create or replace function public.fn_lead_sourcing_begin(p_emirate text, p_trades text[], p_serper_credits numeric, p_llm_usd numeric)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare t jsonb; v_credits numeric; v_llm numeric; v_id bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('lead_sourcing_budget'));
+  update public.lead_sourcing_run set status = 'done', serper_credits = greatest(serper_credits, reserved_serper_credits),
+         llm_cost_usd = greatest(llm_cost_usd, reserved_llm_usd), errors = errors || '["reservation of a batch that never recorded"]'::jsonb
+   where status = 'reserved' and started_at < now() - interval '10 minutes';
+  if exists (select 1 from public.lead_sourcing_run where status = 'reserved') then
+    return jsonb_build_object('stop', 'another batch holds the budget');
+  end if;
+  t := public.fn_lead_sourcing_today();
+  if t->>'stop' is not null then return t; end if;
+  v_credits := least(p_serper_credits, floor(((t->>'serper_cap_usd')::numeric - (t->>'serper_usd')::numeric) / (t->>'usd_per_credit')::numeric));
+  v_llm := least(p_llm_usd, (t->>'llm_cap_usd')::numeric - (t->>'llm_usd')::numeric);
+  if v_credits <= 0 or v_llm < 0 then return t || jsonb_build_object('stop', 'budget left is below one call'); end if;
+  insert into public.lead_sourcing_run (kind, status, emirate, trades, usd_per_credit, reserved_serper_credits, reserved_llm_usd)
+  values ('batch', 'reserved', p_emirate, p_trades, (t->>'usd_per_credit')::numeric, v_credits, v_llm)
+  returning id into v_id;
+  return jsonb_build_object('run_id', v_id, 'serper_credits', v_credits, 'llm_usd', v_llm, 'usd_per_credit', (t->>'usd_per_credit')::numeric);
+end $fn$;
+revoke execute on function public.fn_lead_sourcing_begin(text, text[], numeric, numeric) from public, anon, authenticated;
 
 -- ── 4. RECORD, DEDUPE, SUPPRESS, PROMOTE, REPORT ──────────────────────────────────────────────────
 create or replace function public.fn_lead_sourcing_record(p_run jsonb, p_prospects jsonb)
@@ -172,6 +213,10 @@ begin
           coalesce((p_run->>'started_at')::timestamptz, now()), coalesce((p_run->>'model_calls')::int, 0),
           coalesce((p_run->>'linkedin_queries')::int, 0), coalesce((p_run->>'llm_cost_usd')::numeric, 0))
   returning * into v_run;
+  -- the batch's reservation is replaced by this row, in the same transaction
+  if p_run ? 'run_id' then
+    delete from public.lead_sourcing_run where id = (p_run->>'run_id')::bigint and status = 'reserved';
+  end if;
   v_demo := v_run.kind = 'probe';
 
   for p in select * from jsonb_array_elements(coalesce(p_prospects, '[]'::jsonb)) loop
@@ -231,11 +276,11 @@ begin
 
     insert into public.lead_prospect (run_id, company_name, trade_code, emirate, website, domain, phone_e164, phone_kind, email,
                                       email_status, contact_name, contact_title, place_id, query, field_sources, status,
-                                      status_reason, promoted_lead_id)
+                                      status_reason, promoted_lead_id, model_answer)
     values (v_run.id, v_name, nullif(p->>'trade_code', ''), nullif(p->>'emirate', ''), nullif(p->>'website', ''), v_dom, v_phone,
             nullif(p->>'phone_kind', ''), v_email, nullif(p->>'email_status', ''), nullif(p->>'contact_name', ''),
             nullif(p->>'contact_title', ''), nullif(p->>'place_id', ''), p->>'query', coalesce(p->'field_sources', '{}'::jsonb),
-            v_status, v_reason, v_lead);
+            v_status, v_reason, v_lead, nullif(p->>'model_answer', ''));
   end loop;
 
   update public.lead_sourcing_run r set
@@ -361,6 +406,17 @@ begin
   if v_bad is null and not exists (select 1 from public.leads where id = v_lead and is_demo and source = 'marketing_sourcing') then
     v_bad := 'the promoted lead is not a demo marketing_sourcing row'; end if;
 
+  -- the reservation: a second batch cannot take the budget while the first holds it, and the reservation counts as spent
+  if v_bad is null and not exists (select 1 from public.lead_sourcing_run where status = 'reserved') then
+    v := public.fn_lead_sourcing_begin('Dubai', array['aluminium'], 5, 0.01);
+    if v->>'run_id' is not null then
+      if public.fn_lead_sourcing_begin('Dubai', array['aluminium'], 5, 0.01)->>'stop' is distinct from 'another batch holds the budget' then
+        v_bad := 'a second batch took the budget while the first held it'; end if;
+      if v_bad is null and (public.fn_lead_sourcing_today()->>'serper_usd')::numeric < 0.005 then
+        v_bad := 'the reservation is not counted as spent'; end if;
+      delete from public.lead_sourcing_run where id = (v->>'run_id')::bigint;
+    end if;
+  end if;
   delete from public.leads where id = v_lead;
   delete from public.lead_sourcing_run where id = v_run;   -- cascades to its prospects
   if v_bad is null and (select count(*) from public.leads where not coalesce(is_demo, false)) <> v_leads_before then

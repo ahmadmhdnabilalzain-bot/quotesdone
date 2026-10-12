@@ -20,10 +20,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { signedInUser } from '../_shared/signed_in_user.ts';
-import { DUTIES } from './duties.ts';
+import { DUTIES, marketingAsk } from './duties.ts';
 import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { recallCases } from '../_shared/case_recall.ts';
-import { makeLlmRich } from '../_shared/llm.ts';
 import { runLeadBatch } from './lead_sourcing.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -150,12 +149,7 @@ Deno.serve(observe('marketing', async (req) => {
     // pg_cron lead_sourcing_batch -> fn_lead_sourcing_kick, every 10 minutes, on its OWN schedule (never the
     // resilience tick). 202 at once; the batch runs in the background under the 150 s cap and logs its own row.
     if (caller.kind !== 'marketing') return J({ error: 'lead sourcing runs under the seat credential only' }, 403);
-    const llm = makeLlmRich(undefined, { fn: 'marketing', taskClass: 'routine_employee_reasoning', dept: 'marketing',
-      agent: 'marketing', max: 300, timeoutMs: 25000, temperature: 0, json: true });
-    const batch = runLeadBatch(admin, async (prompt) => {
-      const x = await llm('', '', 300, '', { messages: [{ role: 'user', content: prompt }] });
-      return { content: x.content, cost_usd: x.cost_usd ?? 0 };   // the gateway's own charge, summed per batch against the cap
-    })
+    const batch = runLeadBatch(admin, marketingAsk(admin))   // the seat's own model client (duties.ts), cost per call
       .then((r) => run('lead_sourcing', r.ok === false ? 'error' : 'ok', r, r.ok === false ? String(r.error) : undefined))
       .catch((e) => run('lead_sourcing', 'error', {}, String((e as Error)?.message || e)));
     // deno-lint-ignore no-explicit-any
