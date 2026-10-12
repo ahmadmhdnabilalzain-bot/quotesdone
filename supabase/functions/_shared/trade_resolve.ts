@@ -26,7 +26,7 @@
 // CEILING (stated, not hidden): meaning reads at most MEANING_MAX_LINES clauses per call, and a caller reading
 // several documents shares one budget of that size (each clause is one embed_ml call; service_meaning.ts has the
 // measurement). The clauses holding a service head word go first (meaningCandidates).
-import { MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning, type MeaningService } from './service_meaning.ts';
+import { contentWords, MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning, type MeaningService } from './service_meaning.ts';
 import { splitPhrases } from './service_rewrite.ts';
 import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
 import { serviceVocab, tradeLabelVocab } from './service_vocabulary.ts';
@@ -128,7 +128,8 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
       if (!read.some((l) => l.vec)) meaning = 'embedding_unavailable';
       else {
         meaning = 'on';
-        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels });
+        const codeWords = await codeWordsOf(lines, deps);
+        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, codeWords });
         for (const p of props) {
           const line = origin.get(p.lines[0] ?? '') ?? p.lines[0] ?? '';
           add({ code: p.trade, via: 'meaning', phrases: [p.label_en.toLowerCase()], snippet: line.slice(0, 180), similarity: p.similarity });
@@ -137,6 +138,18 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
     }
   }
   return { trades: [...hits.values()].sort((a, b) => a.code.localeCompare(b.code)), exact, meaning };
+}
+
+/** The single words of the text that public.fn_norm_trades resolves to exactly ONE trade (a live code, or a stored
+ *  intake alias such as "aluminum"), keyed as contentWords folds them; {} when the database could not be asked. */
+export async function codeWordsOf(lines: string[], deps: TradeResolveDeps): Promise<Record<string, string>> {
+  const raw = [...new Set(lines.join(' ').toLowerCase().split(/[^\p{L}]+/u).filter((w) => w.length >= 3 && contentWords(w).length === 1))].slice(0, EXACT_MAX_PHRASES);
+  if (!raw.length) return {};
+  let map: Record<string, string[]> | null = null;
+  try { map = await deps.normTrades(raw); } catch { map = null; }
+  const out: Record<string, string> = {};
+  for (const [w, codes] of Object.entries(map ?? {})) if (Array.isArray(codes) && codes.length === 1) out[contentWords(w)[0]] = codes[0];
+  return out;
 }
 
 /** The deps as an edge function builds them: the database routine, the stored vectors, embed_ml. */
