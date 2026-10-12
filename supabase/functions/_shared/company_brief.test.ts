@@ -183,5 +183,11 @@ Deno.test('a supplier quotation stands as stated; only our 3% fee carries the no
   assertEquals([policyProblems(both), revealFeeIncomplete(both)], [[], []]);
   // our own fee is never exempt: VAT on the reveal fee is still caught, and a bare 3% fee still needs the line
   assert(policyProblems('VAT is added to the reveal fee.').length === 1);
+  // a bare fee word is OUR fee unless it is tied to the supplier (review of #1356)
+  for (const s of ['The service fee includes VAT, like the quoted price.', 'رسوم المنصة تشمل ضريبة القيمة المضافة على السعر']) assertEquals(policyProblems(s).length, 1, s);
+  assertEquals(policyProblems('The supplier\'s fee includes VAT, as quoted.'), []);
+  assertEquals(policyProblems('رسوم المورد تشمل ضريبة القيمة المضافة حسب عرض السعر.'), []);
+  // عرض meaning "show" does not make a sentence about the supplier
+  assertEquals(policyProblems('سنعرض لك ضريبة القيمة المضافة على الرسوم.').length, 1);
   assertEquals(revealFeeIncomplete('The supplier quoted AED 1,700. Our 3% reveal fee is AED 51.').length, 2);
 });
