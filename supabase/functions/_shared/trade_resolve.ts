@@ -69,10 +69,10 @@ export type TradeResolveDeps = {
 // "تجارة الألمنيوم والنحاس" 0.862 (ML_FLOOR 0.83) - no separation. So an Arabic clause is read by NAME, exactly:
 //   * the clause is WORK (catalogue_read's own install/contracting words: أعمال، مقاولات، تركيب ...) and not
 //     supply-only - a company name and a trading clause ("تجارة ...") name no work and propose nothing;
-//   * it holds the trade's own Arabic name exactly (taxonomy_trade.label_ar, work words left out): the WHOLE of a
-//     part of several words, or the head of the FIRST part - the trade's leading name ("الأعمال الكهربائية" ->
-//     كهربائية; "السباكة والأدوات الصحية" -> سباكة, or "أدوات صحية" whole). A word of a later part never decides
-//     alone: "تركيب أدوات المطبخ" is not plumbing, "أعمال التشطيبات الداخلية" is not painting (review of #1312);
+//   * it holds a WHOLE part of the trade's own Arabic name (taxonomy_trade.label_ar, work words left out): the first
+//     part whole, one word or several ("الأعمال الكهربائية" -> كهربائية; "تنسيق الحدائق" both words), or a later
+//     part of several words whole ("أدوات صحية"). No single word of a longer part decides: "أعمال تنسيق المشاريع" is
+//     not landscaping, "تركيب أدوات المطبخ" not plumbing, "أعمال التشطيبات الداخلية" not painting (review of #1312);
 //   * a name two trades share decides nothing - unless one of them puts its CODE at that part of its English
 //     name ("Aluminium & cladding" / "الألمنيوم والتكسية"): الألمنيوم is the aluminium trade, not non_ferrous_metals
 //     ("الألمنيوم والنحاس والمعادن غير الحديدية").
@@ -92,12 +92,12 @@ export function arabicNameHeads(labelsAr: Record<string, string>, labelsEn: Reco
     const cw = contentWords(code.replace(/_/g, ' '));
     arParts.forEach((p, i) => {
       if (!p.length) return;
-      // A WHOLE part names the trade; the head alone only of the FIRST part (the trade's own leading name). A word
-      // of a later part never decides alone: "تركيب أدوات المطبخ" is not plumbing ("السباكة والأدوات الصحية"),
-      // "أعمال التشطيبات الداخلية" is not painting ("الدهانات والتشطيبات" names finishing only second).
+      // The trade is named only by a WHOLE part of its name: the first part (one word or several - "تنسيق الحدائق",
+      // never "تنسيق" alone: "أعمال تنسيق المشاريع" is not landscaping), or a later part of several words. A word of a
+      // later part never decides alone: "تركيب أدوات المطبخ" is not plumbing, "أعمال التشطيبات الداخلية" is not painting.
       const whole = p.join(' ');
       // A one-word later part is a single word of the name, so it decides nothing either ("التشطيبات").
-      for (const k of new Set(i === 0 ? [p[0], whole] : p.length > 1 ? [whole] : [])) {
+      for (const k of new Set(i === 0 || p.length > 1 ? [whole] : [])) {
         if (!claims.has(k)) claims.set(k, new Set());
         claims.get(k)!.add(code);
       }

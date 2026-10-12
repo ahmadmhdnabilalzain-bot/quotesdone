@@ -128,6 +128,9 @@ Deno.test('an Arabic work clause names a trade by its own Arabic name; a company
   assertEquals(of('تركيب أنظمة الأمن'), [], 'not fire fighting');
   assertEquals(of('أعمال التشطيبات الداخلية'), [], 'not painting');
   assertEquals(of('أعمال الأدوات الصحية'), ['plumbing'], 'a whole later part does');
+  // nor does the first word of a longer FIRST part (review of #1312, second round)
+  assertEquals(of('أعمال تنسيق المشاريع'), [], 'not landscaping');
+  assertEquals(of('مقاولات تنسيق المواقع'), [], 'not landscaping');
   const ACT_AR: [string, string | null][] = [
     ['مقاولات أعمال الألمنيوم', 'aluminium'], ['مقاولات التركيبات الكهربائية', 'electrical'], ['تركيب التمديدات الصحية والسباكة', 'plumbing'],
     ['تركيب أنظمة التكييف والتهوية', 'hvac'], ['أعمال تبليط الأرضيات والجدران', 'flooring'], ['أعمال النجارة', 'joinery'],
