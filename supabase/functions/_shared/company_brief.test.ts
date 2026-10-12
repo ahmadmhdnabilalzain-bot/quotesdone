@@ -120,6 +120,17 @@ Deno.test('figure check: subscription, price and cost words carry a unit-less fe
   assertEquals(moneyFiguresNotInBrief('تكلفة 750 للمتر.', k), ['a fee of 750']);
 });
 
+// prevented by: this test (zero tolerance, 12 Oct 2026). A stated reveal fee also says no card fee and no VAT.
+Deno.test('a stated reveal fee must say no card fee and no VAT; a reply without the fee is not asked to', async () => {
+  const { revealFeeIncomplete } = await import('./company_brief.ts');
+  assertEquals(revealFeeIncomplete('The reveal fee is 3% of the quote. No card fee is added and no VAT is charged on it.'), []);
+  assertEquals(revealFeeIncomplete('The reveal fee is 3% of the quote.').length, 2);
+  assertEquals(revealFeeIncomplete('The reveal fee is 3%. No card fee is added.'), ['it states the reveal fee without saying that no VAT is charged on it']);
+  assertEquals(revealFeeIncomplete('رسوم الكشف 3٪ من قيمة العرض، ولا يُضاف أي مبلغ عند الدفع بالبطاقة، ولا تُفرض ضريبة القيمة المضافة على رسوم الكشف.'), []);
+  assertEquals(revealFeeIncomplete('رسوم الكشف ثلاثة بالمئة من قيمة العرض.').length, 2);
+  assertEquals(revealFeeIncomplete('Verification takes up to 3 working days.'), []);
+});
+
 Deno.test('figure check: "AED 1,000 - 5 working days" is not a range; a range with units on both sides is', () => {
   const k = briefNumbers(BRIEF2);
   assertEquals(moneyFiguresNotInBrief('Registration is AED 1,000 - 5 working days to verify.', k), []);
