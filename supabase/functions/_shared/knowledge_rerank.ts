@@ -19,7 +19,7 @@
 export const RERANK_K = 10;            // fn_reason_retrieve_ml p_k: up to 2 x k = 20 candidates
 export const RERANK_TOP = 5;           // the model returns this many, best first
 export const EXCERPT = 300;            // characters of each candidate's text the model reads
-export const MAX_OUT = 60;             // output-token cap per call: {"ranking":[n,n,n,n,n]} needs ~20
+export const MAX_OUT = 400;            // output-token cap per call: the reply needs ~20, but at 60 the reasoning route returned empty completions (measured 12 Oct, 14 of 14 on luna) and tripped the shared breaker
 export const CACHE_TTL_MIN = 10080;    // a week: the knowledge changes by load, the question text repeats
 
 export const RERANK_SYSTEM = 'You rank knowledge entries for a UAE B2B procurement marketplace. You get a buyer question ' +

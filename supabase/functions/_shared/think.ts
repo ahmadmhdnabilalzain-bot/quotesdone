@@ -558,7 +558,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: phase === 'rerank' ? 15_000 : 45_000, cacheTtlMin: o.cacheTtlMin ?? 0, json: true, temperature: phase === 'verify' || phase === 'rerank' ? 0 : 0.2 });
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: phase === 'rerank' ? 15_000 : 45_000, cacheTtlMin: o.cacheTtlMin ?? 0, cacheExactOnly: phase === 'rerank', json: true, temperature: phase === 'verify' || phase === 'rerank' ? 0 : 0.2 });
       const r = await call(system, input, o.max ?? 900, '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },

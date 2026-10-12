@@ -160,7 +160,7 @@ interface Body {
   input?: string | Msg[];
   messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
   max?: number; temperature?: number; confidence?: number;
-  cache_ttl_min?: number; try_faq?: boolean; faq_text?: string;
+  cache_ttl_min?: number; cache_exact_only?: boolean; try_faq?: boolean; faq_text?: string;
   rate_key?: string; rate_limit?: number; rate_window_s?: number;
   stream?: boolean; dry_run?: boolean; escalate?: boolean;
   client_timeout_ms?: number;             // how long the caller will actually wait; the gateway finishes inside it
@@ -454,7 +454,9 @@ async function handle(req: Request): Promise<Response> {
         model, String(maxTok), sysStable, sys, JSON.stringify(convo),
         JSON.stringify(body.plugins ?? null), JSON.stringify(body.response_format ?? null),
       ].join(' '));
-      promptEmb = await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800));
+      // cache_exact_only: a caller whose prompt differs only past the embedded prefix (the knowledge rerank: same long
+      // system prompt, different candidate list) must never take a semantic hit. No embedding = exact key only, both ways.
+      if (body.cache_exact_only !== true) promptEmb = await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800));
       const { data: hit } = await admin.rpc('fn_llm_cache_lookup', {
         p_key: cacheKey, p_embedding: promptEmb,
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
