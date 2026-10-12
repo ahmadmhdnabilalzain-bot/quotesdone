@@ -33,6 +33,7 @@
 //
 // Written against a repository interface, like line_specs/workflow.ts, so the whole conversation runs
 // in memory in the test — no database, no network, and no way to reach a real supplier.
+import { readEveryAttachment, type Vision } from '../_shared/read_every_attachment.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, quoteText, type Proposal } from '../quote_extract/quote_from_document.ts';
 import type { QuoteTermKey } from '../_shared/reasoned_suppliers.ts';
@@ -139,8 +140,17 @@ const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice',
 // terms stay empty and the review asks the supplier for them — never a label guess.
 // ---------------------------------------------------------------------------------------------
 export async function readQuotationFile(bytes: Uint8Array, filename: string, mime: string, supplierTerms: string[] = [],
-  readTerms?: (text: string) => Promise<Partial<Record<QuoteTermKey, string>> | null>): Promise<FileRead> {
+  readTerms?: (text: string) => Promise<Partial<Record<QuoteTermKey, string>> | null>, vision?: Vision | null): Promise<FileRead> {
   const rd = await readDocument(bytes, filename, mime);
+  if (!rd.ok && rd.error !== 'unreadable_document') return { proposal: null, text: '', kind: 'refused' };
+  // RULING 1177 (12 Oct 2026): a photo or a scan of a quotation is READ — the vision model transcribes it (one more
+  // asking, the gateway's second model) and the transcription goes through the SAME parser as typed lines. Before,
+  // a scan got 'image' and a request for a text PDF. Unreadable only when both askings fail.
+  if (vision && (!rd.ok || (!rd.text.trim() && !rd.tables.length && !rd.children.length))) {
+    const a = await readEveryAttachment(bytes, filename, mime, vision);
+    if (a.status === 'read' && a.by === 'model') return readQuotationFile(new TextEncoder().encode(a.text), 'quotation.txt', 'text/plain', supplierTerms, readTerms, null);
+    return { proposal: null, text: '', kind: rd.ok ? rd.kind : 'image' };
+  }
   if (!rd.ok) return { proposal: null, text: '', kind: 'refused' };
   const texts: string[] = [];
   // deno-lint-ignore no-explicit-any

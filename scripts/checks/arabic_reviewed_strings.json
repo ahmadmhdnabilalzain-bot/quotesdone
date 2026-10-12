@@ -490,6 +490,13 @@
   "5b783224f4d2",
   "fc3b6977c5b6"
  ],
+ "scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql": [
+  "014ff0cd3cb4",
+  "157e9ef57506",
+  "64d677e419b0",
+  "b4df49975269",
+  "dc9917268801"
+ ],
  "scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_before_the_customer_sees_it.sql": [
   "12572be91239",
   "15bd385ae25c",
@@ -554,21 +561,18 @@
   "d2f51ce60d95",
   "e0c574ae3528"
  ],
+ "scripts/sql/a_web_search_is_capped_names_no_private_party_and_tells_the_founder_only_of_his_account.sql": [
+  "9e03b148b744",
+  "d40621091456"
+ ],
+ "scripts/sql/a_whatsapp_request_for_a_person_is_escalated_never_left_waiting.sql": [
+  "58c1fcf37910"
+ ],
  "scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql": [
   "f1b2f677e087"
  ],
  "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql": [
   "3cbc1543d65e"
- ],
- "scripts/sql/a_web_search_is_capped_names_no_private_party_and_tells_the_founder_only_of_his_account.sql": [
-  "9e03b148b744",
-  "d40621091456"
- ],
- "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english_probe.sql": [
-  "2c34b688d18c",
-  "6e8f5d8a80f0",
-  "a428e819f9a6",
-  "cf76d5fb9275"
  ],
  "scripts/sql/an_arabic_spec_answer_reaches_suppliers_only_in_english.sql": [
   "036eb5e90eaa",
@@ -1323,6 +1327,19 @@
  ],
  "scripts/sql/the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql": [
   "d4da55db16ad"
+ ],
+ "scripts/sql/the_ladder_notices_quote_the_clause_33_the_supplier_signed_not_the_v12_figures.sql": [
+  "1412493dad3a",
+  "3039920eee7e",
+  "4ae3a0485360",
+  "5a5ba8e2fb00",
+  "5e01ea37101f",
+  "68d176d5ac02",
+  "9af216d0be0d",
+  "9b18f22750e4",
+  "b5a5f52a6894",
+  "e10ef6ab25d0",
+  "e68a1001aebd"
  ],
  "scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql": [
   "e3377772a818"
@@ -2481,9 +2498,6 @@
   "f7982e5b1c22",
   "fca452be09ee"
  ],
- "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
-  "ac6c63ab5f9f"
- ],
  "scripts/sql/the_registered_language_follows_every_message_until_the_reveal.sql": [
   "34d5d7e54ec8",
   "9d231fc92d97"
@@ -2596,6 +2610,44 @@
   "df41819eedaa",
   "e5b97c22b0a2",
   "f38622845c37"
+ ],
+ "scripts/sql/the_terms_of_6_october_2026_say_quotesdone_is_an_intermediary_not_a_party.sql": [
+  "0323f92c845d",
+  "076b6d5ad3ac",
+  "083e8276f79e",
+  "0ae572b45180",
+  "31799a1dacb4",
+  "31fb5fdaefb2",
+  "347954a3e357",
+  "3540d39928d8",
+  "3a8ecb488816",
+  "48175a54e663",
+  "50c21c1fd012",
+  "56b5c7595316",
+  "66cdbd243f65",
+  "6ee550bf08c6",
+  "74db16d12837",
+  "832c92fb3975",
+  "88bb24dfb897",
+  "8c92b3e38b32",
+  "9fcba2406792",
+  "9ff28a224a3d",
+  "a56dbf495b14",
+  "aaaf4fb2adf3",
+  "aed9d55060dd",
+  "af68e7f40dcb",
+  "afc34aee5102",
+  "c086f100b7da",
+  "c8861ca62e11",
+  "c945142d1ff3",
+  "d8571810ff3d",
+  "d8f5c71bf9df",
+  "d9a4353cc86d",
+  "df41819eedaa",
+  "e5b97c22b0a2",
+  "e88c52b925fc",
+  "f38622845c37",
+  "fa8603f50563"
  ],
  "scripts/sql/the_tools_the_maintenance_runs_on_are_not_dead_code.sql": [
   "2b28d0a6d8d3",
@@ -2850,6 +2902,7 @@
   "29faf6c4d3d2",
   "2a0a6a601687",
   "2a6a3970ce25",
+  "2b24f3b49cbb",
   "2ca7a81a8f8f",
   "2e12fc21277c",
   "31a801eee967",
@@ -2979,6 +3032,7 @@
   "bb44969905d2",
   "bba16777842a",
   "bc6affc679ed",
+  "bc8c5d7ef013",
   "bd55a7eb1750",
   "bead649ee009",
   "bf41ed4abd8e",
@@ -3032,6 +3086,7 @@
   "ef4f41b972a1",
   "efa91f65ffc9",
   "f1624f88a2ac",
+  "f3635fc2a79c",
   "f39622327efe",
   "f4088118692b",
   "f41e8ce0f533",
@@ -3927,6 +3982,43 @@
   "e7431c9efac1",
   "f55f65260a70"
  ],
+ "src/components/portal/privacy.ts": [
+  "06f1e4a4eb1b",
+  "0b07d221cc47",
+  "0b7b7fb03bcb",
+  "10691e9e9363",
+  "20ed60e4f6c5",
+  "2624741206a8",
+  "335eb47d1e27",
+  "3e33c3bbc708",
+  "4e67a3815fca",
+  "4f0ea01c3053",
+  "523793aa5d17",
+  "65bdfcb38c93",
+  "678745d35012",
+  "75a0a2b16129",
+  "7ce5da4a9781",
+  "814b6884b27b",
+  "82477c18caa9",
+  "91f97d277c0c",
+  "94f57590bc07",
+  "9e8bba13b5a2",
+  "a1fdd677959b",
+  "a6dedc5aa9cd",
+  "aab7cac94917",
+  "ab20b327f9e6",
+  "ac0bab6daad2",
+  "b2bfbbc19b26",
+  "c5d928c5bd46",
+  "c7af765d1499",
+  "c7ce6c9d6bc3",
+  "c7f0b214a16f",
+  "e69ec0e99b88",
+  "ec3237953502",
+  "f087b6c1947c",
+  "f3bca98df1ef",
+  "f4af3cfa4e86"
+ ],
  "src/components/portal/projects/strings.ts": [
   "02d46cddf149",
   "04131b45c264",
@@ -4285,6 +4377,7 @@
   "1e8177c4c34a",
   "1ecf96f46a97",
   "1ee241c991ed",
+  "20b0f21e755c",
   "20bef765f403",
   "213f0062499f",
   "2165c1829ca3",
@@ -4326,6 +4419,7 @@
   "3224b5fc6eb6",
   "337117dcd74f",
   "34643f93088b",
+  "36569d1e3a10",
   "366efa0f5923",
   "36deefc43e34",
   "374560f57a05",
@@ -4376,7 +4470,6 @@
   "596377a4e142",
   "598ed715a1e2",
   "59c9a95379b9",
-  "5b0ed52584d7",
   "5b7035f7e911",
   "5cdc5d0faf58",
   "5e88bb40b671",
@@ -4522,6 +4615,7 @@
   "c0e8bb347b84",
   "c1771d508500",
   "c18cde1fcbb6",
+  "c29027890beb",
   "c4c9f796ec7e",
   "c4ca5fc21f86",
   "c54553ee7787",
@@ -4947,6 +5041,7 @@
   "086144a9d119",
   "09c62c85e0f3",
   "0c9a4a9aaf31",
+  "1033ec029504",
   "10d61059a6bb",
   "1125b13e7138",
   "153f7d6d7e82",
@@ -4965,6 +5060,7 @@
   "25102aac0f41",
   "25859aedc72c",
   "25d98321b173",
+  "262dbc8ca5bc",
   "2a3428474f37",
   "2a9a5b68e62f",
   "2d1b3f9dd21e",
@@ -4985,6 +5081,7 @@
   "444653723f1a",
   "448c7a1eb876",
   "478f3fd957c6",
+  "496e569ffae9",
   "49b83d887375",
   "49fd06863521",
   "4baf7b1bfea2",
@@ -5053,6 +5150,7 @@
   "9e7644e4de9a",
   "9ec43f377b2e",
   "9f047b633034",
+  "9fbbe69df406",
   "9ff553b0f985",
   "a1cae16ee668",
   "a315afcd2099",
@@ -5061,6 +5159,7 @@
   "a5ad82fc33e3",
   "a8a5aa5aae32",
   "a963ee0ae88b",
+  "ab7393af4c20",
   "abb8b40659d3",
   "acc60178bc8f",
   "ad34a32b50c4",
@@ -5074,7 +5173,6 @@
   "b7ce8dfa74d8",
   "b7fac52b3806",
   "b8d847277b35",
-  "c146992d411c",
   "c2c305a5d90c",
   "c336e0135404",
   "c5010faf90c2",
@@ -5113,6 +5211,7 @@
   "fab082d190e8",
   "fbc845db1a7e",
   "fd3788506791",
+  "fd4d1114538b",
   "fd9cfbba2824",
   "fe4f54bad0fc"
  ],
@@ -5395,6 +5494,9 @@
   "dd5485195143",
   "f5abebf3196f"
  ],
+ "supabase/functions/_shared/clearer_copy.ts": [
+  "d73b7070b4bf"
+ ],
  "supabase/functions/_shared/code_email.ts": [
   "90499fad847d",
   "dc67015343c6"
@@ -5407,10 +5509,25 @@
   "9c9347b8a06d",
   "c607dba157a1"
  ],
+ "supabase/functions/_shared/customer_terms.ts": [
+  "bb6521bace53"
+ ],
  "supabase/functions/_shared/document_expiry.ts": [
+  "02d636db7e4d",
+  "13c74e96e847",
+  "241f89d952b5",
+  "3eb3f87a4eff",
+  "53b0f3a5760a",
+  "5e25f72d8739",
+  "5e2d7be9d702",
+  "8e4b315bec52",
+  "96afe0afc59c",
+  "9f3e073253f3",
   "a26139843907",
-  "cbb176539761",
-  "fbe144d11ac6"
+  "a55eed84e8ff",
+  "a851e616d0b9",
+  "b539face70fe",
+  "cbb176539761"
  ],
  "supabase/functions/_shared/drawing_format.ts": [
   "939055a3b61f"
@@ -5649,8 +5766,8 @@
   "fb124abd6131"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
-  "0ace90eb0853",
-  "5839dc1b25d3"
+  "2eeb132406ba",
+  "bc769b49e75d"
  ],
  "supabase/functions/_shared/supplier_charge_documents.ts": [
   "028bd4e1bdc6",
@@ -5794,6 +5911,9 @@
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
  ],
+ "supabase/functions/_shared/trade_resolve.ts": [
+  "a1150629315a"
+ ],
  "supabase/functions/_shared/unsubscribe_mailbox.ts": [
   "fe749a06f354"
  ],
@@ -5821,7 +5941,7 @@
   "9cdbdd59f936",
   "b8de66d56bf9",
   "be83129b9a88",
-  "cc83c7932429",
+  "d21dcd5b9c19",
   "e00773da115b",
   "e13e073561a2",
   "f5175202b419",
@@ -5938,6 +6058,11 @@
   "ea439701f386",
   "f34c9e970613",
   "f4eafa4902c9"
+ ],
+ "supabase/functions/inquiry_intake/slots.ts": [
+  "19ec4c74cecf",
+  "490772e6319e",
+  "c31b542ceaec"
  ],
  "supabase/functions/marketing_channels/index.ts": [
   "b2a80e50ec94"
@@ -6140,7 +6265,7 @@
   "7185718057a2",
   "735265dee221",
   "748e71d05992",
-  "754922b40436",
+  "76ca96fbf314",
   "773a74f4d0d2",
   "77e0c6227ddf",
   "78783969b14d",
@@ -6213,6 +6338,9 @@
   "afa6fc3ea96a",
   "c393ed6907b8"
  ],
+ "supabase/functions/transcribe/index.ts": [
+  "e6000ddeb9a0"
+ ],
  "supabase/functions/voice_otp/twiml.ts": [
   "2106a8f82cd2",
   "ee21e997c5f4"
@@ -6245,7 +6373,9 @@
   "5cbb277245b5",
   "61e5bb9d6ede",
   "6c8d4e17edaa",
+  "7fea49861151",
   "a543b7484225",
+  "b2a7e76366cb",
   "c09183a62789",
   "e687fbf0ba76"
  ],

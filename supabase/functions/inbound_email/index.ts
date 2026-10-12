@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { sanitizeUpload, SAFE_IMAGE } from '../_shared/attachment.ts';
+import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
+import { readEveryAttachment, envGatewayVision, untrustedBlock } from '../_shared/read_every_attachment.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. These images are forwarded to a model and
 // can reach a person; a refused one is counted in attachmentsRefused exactly as a bad shape is.
 import { sanitizeAndScan } from '../_shared/malware.ts';
@@ -10,6 +11,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-webhook-secret' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
+const fromEmailOf = (b: Record<string, unknown>) => { const e = String(b.from || b.sender || '').toLowerCase().trim(); return e ? { email: e } : null; };
 
 const FREE = new Set(['gmail.com','googlemail.com','yahoo.com','ymail.com','yahoo.co.uk','hotmail.com','hotmail.co.uk','outlook.com','live.com','msn.com','icloud.com','me.com','mac.com','aol.com','mail.com','gmx.com','gmx.net','protonmail.com','proton.me','yandex.com','zoho.com','rediffmail.com','hotmail.fr','outlook.sa']);
 
@@ -51,7 +53,7 @@ Deno.serve(observe('inbound_email', async (req) => {
     const fromEmail = String(body.from || body.sender || '').toLowerCase().trim();
     const fromName = String(body.from_name || '').trim();
     const subject = String(body.subject || '');
-    const text = String(body.text || body.body || '');
+    let text = String(body.text || body.body || '');
     const atts = Array.isArray(body.attachments) ? body.attachments : [];
     // AUDIT 9.1 (3 Aug 2026): this trusted the SENDER'S declared mime — anyone who could send mail
     // to this address could post arbitrary bytes to the model by labelling them "image/png". The
@@ -64,7 +66,7 @@ Deno.serve(observe('inbound_email', async (req) => {
     for (const a of atts as { mime?: string; content_type?: string; data?: string }[]) {
       if (!a?.data) continue;
       const sc = await sanitizeAndScan({ input: a.data, declaredMime: a.mime || a.content_type || null,
-                                         allow: SAFE_IMAGE, maxBytes: 10 * 1024 * 1024,
+                                         allow: SAFE_UPLOAD, maxBytes: 10 * 1024 * 1024,
                                          scan: { source: 'inbound_email.image', subject: String(body.from || ''), filename: null } });
       if (!sc.ok) { attachmentsRefused++; continue; }
       const san = sc.result;
@@ -73,6 +75,13 @@ Deno.serve(observe('inbound_email', async (req) => {
         bin += String.fromCharCode(...san.bytes.subarray(i, i + 0x8000));
       }
       images.push({ mime: san.mime, data: btoa(bin) });
+      // RULING 1177 (12 Oct 2026): every attachment is READ — code first (a PDF's text layer), then the vision model.
+      // It was sanitised and counted and its words were never looked at; they now travel with the message text, so the
+      // stored message and the sector reasoning see what the sender attached. Unreadable ones are named, not dropped.
+      const seen = await readEveryAttachment(san.bytes, 'attachment-' + images.length, san.mime, envGatewayVision({ subject: fromEmailOf(body) }));
+      text += seen.status === 'read'
+        ? '\n\n' + untrustedBlock(seen.text.slice(0, 6000))
+        : `\n\n[attachment ${images.length} could not be read: ${String(seen.reason || seen.status).slice(0, 80)}]`;
     }
     if (!fromEmail) return J({ error: 'missing from' }, 400);
     const dom = domainOf(fromEmail);

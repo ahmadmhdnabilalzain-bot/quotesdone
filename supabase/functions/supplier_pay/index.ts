@@ -21,7 +21,7 @@
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { siteReturnBase } from '../_shared/site_origins.ts';
+import { siteReturnBase, siteCors } from '../_shared/site_origins.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 // WHO IS CALLING, ANSWERED WITHOUT LYING (audit 22 Sep 2026, finding SP-N-08). This function called
 // admin.auth.getUser directly, so the ~35 s auth outages measured on 18 and 21 Sep — documented in
@@ -51,7 +51,7 @@ type Outstanding = { owed_aed: number; interest_aed: number; unpaid_principal_ae
 // the map is per request (never module state: two suppliers' requests share one isolate)
 function owed(d: any, out: Record<string, Outstanding>): number { return Math.round(Number(out[String(d.id)]?.owed_aed || 0) * 100) / 100; }
 
-Deno.serve(observe('supplier_pay', async (req) => {
+Deno.serve(siteCors(observe('supplier_pay', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
   // what needs exercising. See warmPortal() in resilience_ping/index.ts.
@@ -234,4 +234,4 @@ Deno.serve(observe('supplier_pay', async (req) => {
     await logRun('error', { unhandled_exception: 1 }, 'supplier_pay threw: ' + m.slice(0, 200));
     return J({ error: m }, 500);
   }
-}));
+})));

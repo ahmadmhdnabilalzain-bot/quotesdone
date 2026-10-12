@@ -998,6 +998,38 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_doc_backups_sandbox_next(p_tag text, p_limit integer, p_run text)
+ RETURNS SETOF doc_backups
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if coalesce(p_tag, '') !~ '^[A-Za-z0-9-]{6,40}$' then raise exception 'fn_doc_backups_sandbox_next: bad tag %', p_tag; end if;
+  if coalesce(btrim(p_run), '') = '' then raise exception 'fn_doc_backups_sandbox_next: p_run is required'; end if;
+  update public.doc_backups d set status = 'pending', claimed_at = null, claimed_by = null,
+         error = left('claim by ' || coalesce(d.claimed_by, '?') || ' expired after 10 minutes; requeued', 300)
+   where d.entity = 'zz_demo' and d.dedupe_key like 'SBX:' || p_tag || ':%'
+     and d.status = 'processing' and d.claimed_at < now() - interval '10 minutes';
+  update public.doc_backups d set status = 'pending', error = null
+   where d.entity = 'zz_demo' and d.dedupe_key like 'SBX:' || p_tag || ':%' and d.status = 'waiting_source'
+     and exists (select 1 from storage.objects o where o.bucket_id = d.bucket and o.name = d.path);
+  return query
+    with c as (
+      select d.id from public.doc_backups d
+       where d.entity = 'zz_demo' and d.dedupe_key like 'SBX:' || p_tag || ':%'
+         and d.status in ('pending', 'error') and d.attempts < 5
+         and (d.status = 'pending' or d.last_attempt_at is null
+              or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.attempts, 8)))
+       order by (d.upload_state is not null) desc, d.id
+       limit greatest(1, least(coalesce(p_limit, 8), 25))
+       for update skip locked)
+    update public.doc_backups d set status = 'processing', claimed_at = now(), claimed_by = p_run
+      from c where d.id = c.id
+    returning d.*;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_doc_final_notice(p_days integer DEFAULT 7)
  RETURNS json
  LANGUAGE plpgsql
@@ -1181,6 +1213,32 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_dropbox_files_refresh(p_root text, p_rows jsonb, p_stamp timestamp with time zone, p_final boolean)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_up integer := 0; v_rm integer := 0;
+begin
+  if coalesce(p_root, '') !~ '^/QuotesDone Backup/[^/]' or p_stamp is null then
+    raise exception 'fn_dropbox_files_refresh: a root under /QuotesDone Backup/ and the walk stamp are required';
+  end if;
+  insert into public.dropbox_files (dropbox_id, path, name, is_folder, size, content_hash, server_modified, synced_at)
+  select r->>'id', r->>'path', r->>'name', false, (r->>'size')::bigint, r->>'hash', (r->>'modified')::timestamptz, p_stamp
+    from jsonb_array_elements(coalesce(p_rows, '[]'::jsonb)) r
+   where coalesce(r->>'id', '') <> '' and starts_with(lower(r->>'path'), lower(p_root) || '/')
+  on conflict (dropbox_id) do update set path = excluded.path, name = excluded.name, size = excluded.size,
+        content_hash = excluded.content_hash, server_modified = excluded.server_modified, synced_at = excluded.synced_at;
+  get diagnostics v_up = row_count;
+  if p_final then
+    delete from public.dropbox_files f where starts_with(lower(f.path), lower(p_root) || '/') and f.synced_at < p_stamp;
+    get diagnostics v_rm = row_count;
+  end if;
+  return jsonb_build_object('upserted', v_up, 'removed', v_rm);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dropbox_list(p_prefix text DEFAULT ''::text)
  RETURNS jsonb
  LANGUAGE sql
@@ -1313,6 +1371,33 @@ AS $function$
       'it_engineer.dr_review'])
       then 'security'
     else 'routine' end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_e2e_run_tag_current()
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return coalesce(nullif(current_setting('app.e2e_run_tag', true), ''),
+                  case when nullif(current_setting('request.jwt.claims', true), '')::json ->> 'role' = 'service_role'
+                       then nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-qd-e2e-run', '') end);
+exception when others then
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_e2e_run_tag_open(p_tag text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_tag ~ '^[a-z0-9]{4,16}$' and exists (
+    select 1 from public.rehearsal_window w
+     where w.run_tag = 'qd_run:' || p_tag and w.ended_at is null and w.models_allowed and w.expires_at > now())
 $function$
 
 
@@ -1518,6 +1603,46 @@ begin
   end loop;
   return jsonb_build_object('ok', true, 'reason', 'sendable');
 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text, p_type text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_e text; v_pat record; v_dom text;
+begin
+  v_e := lower(btrim(coalesce(p_email, '')));
+  if v_e = '' then return jsonb_build_object('ok', false, 'reason', 'no address'); end if;
+  if v_e !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$' then
+    return jsonb_build_object('ok', false, 'reason', 'not a valid address shape');
+  end if;
+  if exists (select 1 from public.email_suppressions s where lower(s.email) = v_e
+               and (lower(btrim(coalesce(s.reason, ''))) <> 'unsubscribe' or public.fn_email_type_is_marketing(p_type))) then
+    return jsonb_build_object('ok', false, 'reason', 'suppressed');
+  end if;
+  v_dom := split_part(v_e, '@', 2);
+  if exists (select 1 from public.email_domain_mx m
+              where m.domain = v_dom and m.has_mx = false and m.kind in ('nxdomain', 'no_records')) then
+    return jsonb_build_object('ok', false, 'reason', 'domain does not accept mail');
+  end if;
+  for v_pat in select pattern, reason from public.email_block_pattern where active loop
+    if v_e ~ v_pat.pattern then return jsonb_build_object('ok', false, 'reason', v_pat.reason); end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'reason', 'sendable');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_type_is_marketing(p_type text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_type is null or p_type = any (public.fn_opt_out_types())
+      or p_type ~* '(invite|nudge|newsletter|marketing|promo|winback|activation)';
 $function$
 
 
@@ -2161,7 +2286,9 @@ begin
       end as base,
       to_char(v.occurred_at at time zone 'Asia/Dubai','YYYY-MM-DD HH24MI') || ' ' || v.direction || ' ' || v.channel || ' - '
         || public.fn_dbx_safe(left(coalesce(nullif(btrim(v.subject),''),'(no subject)'),80)) || ' #' || v.source_id || '.pdf' as fname) x
-  where not v.is_demo
+  -- a tagged sandbox run (fn_backup_sandbox_enqueue) lets its own demo messages through; trg_doc_backups_admit
+  -- files them under _sandbox/<tag>/ and drops every other demo row exactly as before
+  where (not v.is_demo or coalesce(current_setting('qd.backup_sandbox', true), '') <> '')
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
@@ -2217,6 +2344,55 @@ begin
          'storage', 'ACCT:year_end:' || p.year || ':' || (f->>'name')
   from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
   where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo'
+  on conflict do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  -- ============ CUSTOMER DOCUMENTS (7 OCT 2026, sales_engineer) ============
+  -- Founder gate, ledger 1162: "no issue in the Dropbox backup of supplier/customer documents and the
+  -- folder workflow and organisation". Measured 7 Oct 2026: 386 files that belong to a customer, an
+  -- inquiry, a quote or a supplier were filed by the STORAGE SWEEP under Storage/<bucket>/<path>, outside
+  -- the entity -> type -> date tree (quote-files 274, agent-docs 92, drawing-files 33 ...). The documents
+  -- of a request are filed under that request, in the customer's folder:
+  --   Quotes/   the supplier's quotation as uploaded, and the quotation PDF the customer downloaded
+  --   Payment/  every reveal invoice and receipt (agent-docs/reveal_invoice/<sale id8>/)
+  --   Reports/  the comparison report and the request brief (agent-docs/compare|brief/<inquiry id>/,
+  --             the folders customer_api writes since this change)
+  -- A file already queued by any rule (the sweep included) is skipped on (bucket, path), so nothing is
+  -- filed twice and nothing already in Dropbox is moved. The folder of the request is the one its
+  -- Inquiry Summary was filed in (trg_doc_backups_admit), so a status change never splits it.
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'inquiry', i.id::text, x.doc_type, x.bucket, x.path, regexp_replace(x.path,'^.*/',''),
+         '/QuotesDone Backup/Customers/'||public.fn_dbx_safe(coalesce(c.full_name,'Customer'))||' ('||left(c.id::text,8)||')/Inquiries/'
+           || to_char(i.created_at,'YYYY-MM-DD')||' '||left(i.id::text,8)||' - '||public.fn_dbx_safe(coalesce(i.status,'inquiry'))
+           || '/' || x.folder || '/' || public.fn_dbx_safe(x.fname),
+         'storage', x.dkey
+  from (
+    select q.inquiry_id, 'Supplier quotation' as doc_type, 'quote-files' as bucket, q.original_file_path as path, 'Quotes' as folder,
+           to_char(q.created_at at time zone 'Asia/Dubai','YYYY-MM-DD') || ' Quote ' || left(q.id::text,8) || ' - '
+             || coalesce(nullif(btrim(q.original_file_name),''), regexp_replace(q.original_file_path,'^.*/','')) as fname,
+           'Q:' || q.id || ':original:' || q.original_file_path as dkey
+      from public.quotes q
+     where length(coalesce(q.original_file_path,'')) > 0
+    union all
+    select q.inquiry_id, 'Quotation PDF', p.bucket, p.path, 'Quotes',
+           'Quote ' || left(q.id::text,8) || ' (' || upper(coalesce(p.lang,'')) || ') - ' || regexp_replace(p.path,'^.*/',''),
+           'QPDF:' || p.bucket || ':' || p.path
+      from public.quote_pdf_cache p join public.quotes q on q.id = p.quote_id
+     where length(coalesce(p.path,'')) > 0 and p.bucket is not null
+    union all
+    select t.inquiry_id, 'Reveal invoice or receipt', o.bucket_id, o.name, 'Payment', regexp_replace(o.name,'^.*/',''),
+           'RCPT:' || o.bucket_id || ':' || o.name
+      from storage.objects o join public.transactions t on left(t.id::text,8) = split_part(o.name,'/',2)
+     where o.bucket_id = 'agent-docs' and o.name like 'reveal\_invoice/%' and t.inquiry_id is not null
+    union all
+    select i2.id, case split_part(o.name,'/',1) when 'compare' then 'Comparison report' else 'Request brief' end,
+           o.bucket_id, o.name, 'Reports', regexp_replace(o.name,'^.*/',''), 'IDOC:' || o.bucket_id || ':' || o.name
+      from storage.objects o join public.inquiries i2 on i2.id::text = split_part(o.name,'/',2)
+     where o.bucket_id = 'agent-docs' and (o.name like 'compare/%' or o.name like 'brief/%')
+  ) x
+  join public.inquiries i on i.id = x.inquiry_id
+  join public.customers c on c.id = i.customer_id
+  where not exists (select 1 from public.doc_backups d where d.bucket = x.bucket and d.path = x.path)
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
@@ -3949,6 +4125,14 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_founder_hold_change_allowed()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select coalesce(current_setting('app.change_reason', true), '') ~ '^(founder:[0-9]+|probe:[a-z0-9_]+)' $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_founder_instruction_needs_evidence()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -4891,6 +5075,18 @@ begin
 
   return new;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_handoff_is_late(p_detail jsonb, p_created_at timestamp with time zone, p_window interval, p_at timestamp with time zone DEFAULT now())
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when p_detail ? 'replied_at'
+              then coalesce((p_detail->>'due_at')::timestamptz, p_created_at + p_window) < p_at
+              else p_created_at + p_window < p_at end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_handoff_summary(p_detail jsonb, p_agent text, p_target_table text, p_target_id text, p_title text DEFAULT NULL::text, p_recommendation text DEFAULT NULL::text, p_self_id bigint DEFAULT NULL::bigint)

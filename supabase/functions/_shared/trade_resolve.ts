@@ -29,7 +29,7 @@
 import { MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning, type MeaningService } from './service_meaning.ts';
 import { splitPhrases } from './service_rewrite.ts';
 import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
-import { serviceVocab } from './service_vocabulary.ts';
+import { serviceVocab, tradeLabelVocab } from './service_vocabulary.ts';
 
 export type TradeHit = {
   code: string;
@@ -55,6 +55,8 @@ export type TradeResolveDeps = {
   embed: Embedder;
   /** Lines meaning may still read in this request, shared by every text read with these deps. */
   budget: { left: number };
+  /** taxonomy_trade code -> its English label: lets meaning accept a line naming a trade in general (service_meaning.proposeByMeaning). */
+  tradeLabels?: Record<string, string>;
 };
 
 // A code or slug is a few words at most ("engineering and architectural consultancies" is the longest slug).
@@ -109,7 +111,14 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
   if (lines.some((l) => l.length >= 3)) {
     // Each line clause by clause; the evidence is the supplier's whole line.
     const origin = new Map<string, string>();
-    for (const l of lines) for (const c of meaningClauses(l)) if (!origin.has(c)) origin.set(c, l);
+    // A ONE-word piece split off a longer line is not read by meaning (7 Oct 2026, accuracy suite ledger 1162): "Glass
+    // and Glazing Works" splits into "Glass", whose nearest service is "cosmetic & perfume glass" with its head word in
+    // it, and a glazing contractor was proposed for glass containers; "أعمال تبليط الأرضيات والجدران" splits into
+    // "الجدران" (walls) and a tiling contractor was proposed for wallpaper. The piece only qualifies its neighbour; the
+    // exact path above has already put it to fn_norm_trades ("glass" -> glazing). A line that IS one word (a catalogue
+    // heading "UPS") is still read by meaning, as before.
+    const oneWord = (s: string) => s.trim().split(/\s+/).length < 2;
+    for (const l of lines) for (const c of meaningClauses(l)) if (!origin.has(c) && !(oneWord(c) && !oneWord(l.replace(/[\/|:;,،.\-]+/g, ' ')))) origin.set(c, l);
     if (!deps.services.some((s) => s.vec || s.vec_ml)) meaning = 'service_vectors_missing';
     else if (deps.budget.left <= 0) meaning = 'budget_spent';
     else if (origin.size) {
@@ -119,7 +128,7 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
       if (!read.some((l) => l.vec)) meaning = 'embedding_unavailable';
       else {
         meaning = 'on';
-        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly });
+        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels });
         for (const p of props) {
           const line = origin.get(p.lines[0] ?? '') ?? p.lines[0] ?? '';
           add({ code: p.trade, via: 'meaning', phrases: [p.label_en.toLowerCase()], snippet: line.slice(0, 180), similarity: p.similarity });
@@ -135,6 +144,7 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
 export async function liveTradeDeps(admin: any, caller = 'supplier_doc_trades'): Promise<TradeResolveDeps> {
   return {
     services: await serviceVocab(admin), embed: remoteEmbedder(admin, caller), budget: { left: MEANING_MAX_LINES },
+    tradeLabels: await tradeLabelVocab(admin),
     normTrades: async (phrases) => {
       const { data: m, error: e } = await admin.rpc('fn_norm_trades_many', { p_texts: phrases.slice(0, EXACT_MAX_PHRASES) });
       return e || !m || typeof m !== 'object' ? null : m as Record<string, string[]>;

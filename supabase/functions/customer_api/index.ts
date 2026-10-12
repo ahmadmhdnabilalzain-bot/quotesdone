@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
@@ -23,8 +24,11 @@ import { storedAt } from '../_shared/stored_at.ts';
 import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, jobNoOf, isCurrentDoc, arCategory, arEmirate, enCategory, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
+import { clientIp } from '../_shared/supplier_terms.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
+import { currentCustomerTermsVersion, needsReacceptance, customerTermsRecord, REACCEPT_MESSAGE } from '../_shared/customer_terms.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
-import { portalLink } from '../_shared/site_origins.ts';
+import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
@@ -675,7 +679,8 @@ async function buildBriefPdf(inq: any, lang: string) {
     'هذا ملخّص الطلب كما ترسله QuotesDone إلى المورّدين المطابقين، دون الإفصاح عن هوية العميل؛ فلا يتضمّن اسمه ولا اسم شركته ولا بيانات التواصل معه. يقدّم المورّدون عروضهم استنادًا إلى نطاق العمل وحده، ولا تُتبادل بيانات التواصل إلا بعد أن يكشف العميل عن العرض الذي يختاره.') });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص الطلب للمورّدين'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true } }) });
+    // filed under the request in Dropbox (fn_enqueue_doc_backups: CUSTOMER DOCUMENTS reads agent-docs/brief/<inquiry id>/)
+    body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص الطلب للمورّدين'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true }, folder: 'brief/' + inq.id }) });
   const j = await r.json();
   return { j, ref };
 }
@@ -718,7 +723,8 @@ async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, __secret: secret }) });
+    // filed under the request in Dropbox (fn_enqueue_doc_backups: CUSTOMER DOCUMENTS reads agent-docs/compare/<inquiry id>/)
+    body: JSON.stringify({ ...body, __secret: secret, folder: 'compare/' + inq.id }) });
   const j = await r.json();
   return { j, ref };
 }
@@ -798,7 +804,7 @@ async function resolveRedactedPaths(custId: string, authUserId: string, drawing:
   return { paths };
 }
 
-Deno.serve(observe('customer_api', async (req) => {
+Deno.serve(siteCors(observe('customer_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
@@ -840,7 +846,28 @@ Deno.serve(observe('customer_api', async (req) => {
     const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
-    if (action === 'me') return J({ customer: cust });
+    // RE-ACCEPTANCE OF A NEW TERMS VERSION (6 Oct 2026, release review of #1240). Recorded the same way as sign-up
+    // (_shared/customer_terms.ts: version, time, IP, SHA of the pinned text) and the signed certificate re-issued.
+    const recordTermsAcceptance = async (): Promise<boolean> => {
+      const rec = await customerTermsRecord(getSecret, clientIp(req));
+      if (!rec || !cust?.id) return false;
+      const { tos_sha256, ...base } = rec;
+      const { error } = await admin.from('customers').update(base).eq('id', cust.id);
+      if (error) return false;
+      // A separate write, so a database without the column yet cannot fail the acceptance itself.
+      await admin.from('customers').update({ tos_sha256 }).eq('id', cust.id).then(() => null, () => null);
+      try {
+        const s = await getSecret('cred_fn_customer_api');
+        timedFetch(`${SUPABASE_URL}/functions/v1/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: s, action: 'sign', kind: 'customer', email }) }).catch(() => { /* best effort */ });
+      } catch (_e) { /* never blocks the customer */ }
+      return true;
+    };
+    if (action === 'me') return J({ customer: cust, terms_current_version: await currentCustomerTermsVersion(getSecret) });
+    if (action === 'accept_terms') {
+      if (!cust?.tos_accepted_at) return J({ error: 'finish_signup_first', code: 'finish_signup_first' }, 400);
+      const ok = await recordTermsAcceptance();
+      return ok ? J({ ok: true, version: await currentCustomerTermsVersion(getSecret) }) : J({ error: 'could not record the acceptance', code: 'terms_not_recorded' }, 500);
+    }
 
     // ATTACH A BOQ (founder, 14 Sep 2026: "describe a job / drop a drawing is fine but add attach a
     // BOQ also"). A spreadsheet BOQ (xlsx / xls / csv). drawing_boq mode 'sheet' sniffs it by its
@@ -877,7 +904,8 @@ Deno.serve(observe('customer_api', async (req) => {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'sheet', file_b64: b64, mime, filename: name, hint }) });
         jd = await r.json();
       } catch (_e) { /* answered below as boq_unreadable */ }
-      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'boq_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
+      // Ruling 1177: an unreadable file is answered with a clearer-copy request in the customer's own language.
+      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'boq_unreadable'), detail: String(jd?.detail || '').slice(0, 200), message: clearerCopyAsk('customer', documentLocale(body.lang, cust.locale), name) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_SHEET);
       return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
     }
@@ -908,7 +936,7 @@ Deno.serve(observe('customer_api', async (req) => {
         if (job) return J({ ok: true, boq: null, kind: 'dxf', needs: 'cad_conversion', drawing_file_path: p, drawing_file_name: name, drawing_redacted_paths: [], stored: true, note: 'cad_queued', cad_job_id: job });
       }
       if (jd?.error === DRAWING_FORMAT_ERROR) return J(drawingFormatRefused(), 415);
-      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
+      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200), message: clearerCopyAsk('customer', documentLocale(body.lang, cust.locale), name) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
       // A DXF's take-off carries the file's own names (layers, blocks, title block): cad_identity takes them
       // out before the customer's portal holds the BOQ it will send (22 Sep 2026). The CAD FILE is never
@@ -1192,6 +1220,16 @@ Deno.serve(observe('customer_api', async (req) => {
       // customer's ability to trade away for an operational fault of ours. It is repaired in the
       // background instead, so the evidence still lands and the gap stays visible.
       // (Enforced by the account-rule gate above since 14 Sep 2026.)
+      // A NEWER TERMS VERSION IS ACCEPTED INLINE, NEVER A WALL (release review of #1240): an older acceptance stands
+      // until this, the customer's next request. The composer shows the current Terms with a checkbox and resends
+      // with accept_terms_version; nothing else about the request changes. 409, with the message in both languages.
+      {
+        const curV = await currentCustomerTermsVersion(getSecret);
+        if (needsReacceptance(cust, curV)) {
+          if (body.accept_terms_version !== curV) return J({ error: 'terms_reaccept', code: 'terms_reaccept', version: curV, message: REACCEPT_MESSAGE.en, message_ar: REACCEPT_MESSAGE.ar }, 409);
+          if (!(await recordTermsAcceptance())) return J({ error: 'could not record the acceptance', code: 'terms_not_recorded' }, 500);
+        }
+      }
       if (!cust.signed_terms_path) {
         // Fire-and-forget repair. Never awaited: create_inquiry must not inherit the latency or
         // the failure mode of a PDF render and a Dropbox round-trip.
@@ -2279,4 +2317,4 @@ Deno.serve(observe('customer_api', async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));

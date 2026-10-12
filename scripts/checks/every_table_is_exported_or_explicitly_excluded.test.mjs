@@ -36,6 +36,15 @@ const REGISTRY_FILE = 'scripts/sql/the_daily_export_reads_a_registry_every_pull_
 // backlog was the admitted gap (178 tables); it is 0 and stays 0, so it is no category at all any more.
 const FROZEN_CEILING = { no_writer: 244 };
 
+// Tables a driver creates and drops at RUN time, never in a SQL file, so the mirror has them only while they exist. Their
+// registry rows (exported = false) must be present for that time, so they may name a table the mirror lacks. Nothing
+// else is exempt: they still need a row, and an exported row is still refused. Remove an entry when its rows go
+// (kb_chunks: runbook docs/runbooks/kb_chunks_rewrite.md step 8 deletes them).
+export const RUNTIME_TABLES = new Map([
+  ['kb_chunks_new', 'scripts/kb/kb_chunks_copy_swap.mjs prepare creates it; the swap renames it to kb_chunks'],
+  ['kb_chunks_old', 'scripts/kb/kb_chunks_copy_swap.mjs swap leaves it; runbook step 8 drops it'],
+]);
+
 const stripComments = (sql) => sql.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 export const createdIn = (sql) => [...stripComments(sql).matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?public\."?([a-z0-9_]+)"?\s*\(/gi)].map((m) => m[1].toLowerCase());
 
@@ -78,7 +87,7 @@ test('every public table is exported every day or excluded with a reason', () =>
 });
 
 test('every registry row names a real table, an exclusion names a known category with a reason, frozen ones only shrink', () => {
-  const gone = [...REG.keys()].filter((t) => !TABLES.has(t));
+  const gone = [...REG.keys()].filter((t) => !TABLES.has(t) && !(RUNTIME_TABLES.has(t) && !REG.get(t).exported));
   assert.deepEqual(gone, [], 'registry rows for tables that no longer exist - the daily export fails on them; set exported = false or drop the row');
   const bad = [...REG.values()].filter((r) => !r.exported && !EXCLUSION_CATEGORIES.includes(r.category)).map((r) => `${r.table}: ${r.category} (${r.file})`);
   assert.deepEqual(bad, [], `an exclusion is one of ${EXCLUSION_CATEGORIES.join(', ')}; "backlog" is gone for good`);

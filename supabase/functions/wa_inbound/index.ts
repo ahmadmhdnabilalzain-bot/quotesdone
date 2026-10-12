@@ -17,6 +17,10 @@
 //      nothing recorded that it had arrived. The same journey by EMAIL has worked for weeks. This
 //      is that path, reused rather than reinvented: same bucket, same sanitiser, same extractor,
 //      same columns, same audit row.
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
+import { readEveryAttachment, envGatewayVision, untrustedBlock } from '../_shared/read_every_attachment.ts';
+/** Files read per 24 h for a number with no account (review of #1289: a stranger cannot spend at will). */
+const UNKNOWN_READS_PER_DAY = 3;
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
@@ -916,11 +920,50 @@ async function handleInbound(req: Request): Promise<Response> {
 
       const docWork = (async () => {
         const enabled = (await sec('wa_autoreply_enabled')) === 'true';
-        let reply = ''; const results: string[] = [];
+        let reply = ''; const results: string[] = []; let readText = '';
 
         if (!leadId) {
-          // Not a supplier we can find. Never silently discard it, and never guess whose it is.
-          reply = 'Thanks — I can see you have sent a file, but this number is not linked to a supplier account yet, so I cannot file it against a company. Register or sign in at https://quotesdone.com/suppliers and upload it there, and it will be read automatically.';
+          // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
+          // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
+          // conversation turn, so the next message on this chat is answered knowing what was sent. The reply says it was
+          // read and gives both doors: a customer's request goes in at the request page, a supplier registers.
+          // Whether it is a request or a supplier document is NOT guessed here from words (founder_instruction 886-903).
+          // A CAP (review of #1289): a stranger must not be able to make us pay for vision reads at will. ONE file per
+          // message and at most UNKNOWN_READS_PER_DAY reads per number per 24 h; past that the file is acknowledged, not read.
+          // THE SLOT IS CLAIMED BEFORE THE READ (re-review of #1289): messages arriving together each insert a claim row
+          // first, then count the claims at or before their own id. Every concurrent message sees the others' claims,
+          // so no more than the cap ever reach the model. A failed claim reads nothing.
+          const since = new Date(Date.now() - 86_400_000).toISOString();
+          let budget = 0;
+          if (media.length) {
+            const { data: claim } = await admin.from('wa_messages').insert(waRow(receivedAt, { wa_from: From, wa_to: '', profile_name: Profile,
+              inbound: '', reply: '', lang: 'en', escalated: false, sent: false,
+              meta: { route: 'media_read_claim', unknown_read: true, message_sid: MessageSid || null } })).select('id').maybeSingle();
+            if (claim?.id) {
+              const { count: rank } = await admin.from('wa_messages').select('id', { count: 'exact', head: true })
+                .eq('wa_from', From).gte('created_at', since).eq('meta->>unknown_read', 'true').lte('id', claim.id);
+              budget = rank != null && rank <= UNKNOWN_READS_PER_DAY ? 1 : 0;
+            }
+          }
+          if (!budget) results.push('not read: daily read cap for a number with no account');
+          for (const m of media.slice(0, Math.min(1, budget))) {
+            const got = await fetchTwilioMedia(m.url, internalCaller);
+            if (!got.bytes) { results.push('not downloaded'); continue; }
+            const sc = await sanitizeAndScan({ input: got.bytes, declaredMime: got.mime || m.mime, filename: 'whatsapp-file', allow: SAFE_UPLOAD,
+              scan: { source: 'wa_inbound.unknown_sender_doc', subject: From, filename: 'whatsapp-file', bucket: null } });
+            if (!sc.ok) { results.push('refused: ' + sc.body.error); continue; }
+            const seen = await readEveryAttachment(sc.result.bytes, 'whatsapp-file', sc.result.mime, envGatewayVision({ subject: { phone: From } }));
+            results.push(seen.status === 'read' ? 'read by ' + seen.by : 'unreadable: ' + String(seen.reason || seen.status).slice(0, 60));
+            if (seen.status === 'read') readText += untrustedBlock(seen.text.slice(0, 3000));
+          }
+          const ar = /[؀-ۿ]/.test(Body + readText) && !/[A-Za-z]{4}/.test(Body);
+          reply = readText
+            ? (ar
+              ? 'شكرًا، قرأنا الملف الذي أرسلتموه. إن كان طلب أسعار فيُرجى تقديمه عبر https://quotesdone.com لنرسله إلى الموردين المناسبين، وإن كنتم موردًا فيُرجى التسجيل عبر https://quotesdone.com/suppliers ليُحفظ في ملف شركتكم.'
+              : 'Thanks — we have read the file you sent. If it is a request for quotes, please submit it at https://quotesdone.com and we will send it to the right suppliers; if you are a supplier, register at https://quotesdone.com/suppliers and it will be filed against your company.')
+            : (results.some((r) => r.startsWith('unreadable'))
+              ? clearerCopyAsk(ar ? 'customer' : 'supplier', ar ? 'ar' : 'en', 'the file')
+              : 'Thanks — I can see you have sent a file, but it could not be opened. Please send it again as a PDF or a clear photo.');
         } else {
           for (const m of media.slice(0, 3)) {
             const r = await handleSupplierDoc(leadId, m.url, m.mime, From, internalCaller);
@@ -931,7 +974,9 @@ async function handleInbound(req: Request): Promise<Response> {
           reply = anyApplied
             ? 'Got it — your trade licence is on file and I have updated your record (' + results.filter((r) => r.startsWith('updated:')).map((r) => r.replace('updated: ', '')).join('; ') + '). You can check it any time at https://quotesdone.com/suppliers.'
             : anyOk
-              ? 'Thanks — the document is saved against your account, but I could not read the details off it confidently, so nothing on your record was changed. If the licence number or expiry is wrong on your profile, please correct it at https://quotesdone.com/suppliers.'
+              // Ruling 1177 (12 Oct 2026): a file both the code and the model could not read is answered with a clearer-copy
+              // request (suppliers: always English); the copy sent back on this chat is read by this same path on arrival.
+              ? 'Thanks — the document is saved against your account, but I could not read the details off it confidently, so nothing on your record was changed. ' + clearerCopyAsk('supplier', 'en', 'the document')
               : 'Sorry — I could not accept that file (' + results[0].replace('not stored — ', '') + '). Please send the trade licence as a PDF or a clear photo, or upload it at https://quotesdone.com/suppliers.';
         }
 
@@ -941,8 +986,10 @@ async function handleInbound(req: Request): Promise<Response> {
         try {
           await waInsert(receivedAt, {
             wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+            // The read text is kept in its OWN field, marked as untrusted data, never mixed into what the sender typed.
             inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
             meta: { enabled, audience, route: 'media_in', media_count: media.length, lead_id: leadId,
+                    ...(readText ? { attachment_text_untrusted: readText.slice(0, 4000) } : {}),   // the read was counted by its claim row
                     results, send_error: sendErr || null, provenance_verified: true,
                     message_sid: MessageSid || null },
           });
@@ -950,7 +997,7 @@ async function handleInbound(req: Request): Promise<Response> {
         await logRun(leadId && results.every((r) => r.startsWith('not stored')) ? 'error' : 'ok',
           { audience, route: 'media_in', media: media.length, lead_id: leadId, sent },
           leadId ? ('WhatsApp document from lead ' + leadId + ': ' + results.join(' | '))
-                 : 'WhatsApp document from a number with no supplier account; nothing was filed and the sender was told why');
+                 : ('WhatsApp file from a number with no account: ' + results.join(' | ') + '; nothing was filed against a company'));
       })();
 
       const erDoc = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;

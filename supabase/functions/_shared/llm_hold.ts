@@ -1,3 +1,4 @@
+import { e2eRunTag } from './e2e_run.ts';
 // llm_hold — "is the founder's OpenRouter hold on right now?", asked BEFORE the gateway is called.
 //
 // THE HOLD IS A ROW, NOT A FLAG (measured 22 Sep 2026 against production): all 8 rows of
@@ -45,12 +46,15 @@ let _cached: { at: number; held: boolean } | null = null;
 
 /** Is the OpenRouter hold on? Never throws: an unreadable gate answers false and the gateway decides. */
 export async function modelHeld(admin: Admin, ttlMs = 60_000): Promise<boolean> {
-  if (_cached && Date.now() - _cached.at < ttlMs) return _cached.held;
+  // A SANDBOX RUN IS ASKED FRESH AND NEVER CACHED (ledger 1119). Its answer depends on its own window,
+  // so it must neither read a real request's cached answer nor leave its own for one.
+  const tagged = !!e2eRunTag();
+  if (!tagged && _cached && Date.now() - _cached.at < ttlMs) return _cached.held;
   try {
     const { data, error } = await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL });
     if (error) return false;
     const held = heldFromGate(data as GateAnswer);
-    _cached = { at: Date.now(), held };
+    if (!tagged) _cached = { at: Date.now(), held };
     return held;
   } catch (_e) { return false; }
 }

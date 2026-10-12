@@ -17,6 +17,7 @@
 // reads; and the fetch is the portal's shared call() rather than a second copy.
 import React, { useEffect, useState } from 'react';
 import { call } from './api';
+import { PrivacyControls } from '../PrivacyControls';
 import { firstRead } from './tabPrefetch';
 import { WhatsAppChoice } from '../WhatsAppChoice';
 import type { WaState } from '../whatsappChoiceText';
@@ -225,6 +226,8 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
           ? <><Ltr>{date(lang, s.accepted_terms_at)}</Ltr>{s.accepted_terms_version ? <> · <bdi dir="ltr">v{String(s.accepted_terms_version).replace(/^v/i, '')}</bdi></> : null}</>
           : t(lang, 'never')}</Fact>
       </section>
+      {/* Suppliers are English only on every channel (standing rule), whatever the interface language. */}
+      <PrivacyControls token={token} lang="en" />
     </div>
   );
 }

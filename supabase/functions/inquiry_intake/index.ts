@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // inquiry_intake — conversational intake agent. Detects category, asks category-specific clarifying
 // questions (driven by category_specs checklists + AI), rejects junk, and emits a supplier-ready
 // structured brief with a readiness score. Also detects multiple trades, urgency, budget/timeline
@@ -9,6 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn } from './slots.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -54,7 +56,7 @@ async function llm(messages: any[], subject: { email?: string; customer_id?: str
 }
 function parseJson(s: string): any { try { return JSON.parse(s); } catch (_e) {} const m = String(s || '').match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch (_e2) {} } return null; }
 
-Deno.serve(observe('inquiry_intake', async (req) => {
+Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -319,12 +321,14 @@ Return STRICT JSON only, no prose, with this shape:
   \"urgency\": \"emergency\" | \"urgent\" | \"normal\",
   \"status\": \"rejected\" | \"needs_info\" | \"ready\",
   \"assistant_message\": \"<1-2 sentence reply to the customer>\",
+  \"claims_ready\": <true if assistant_message tells the customer the request is ready, complete or about to be shared; else false>,
   \"already_provided\": [\"<fact the customer has already given>\"],
   \"questions\": [\"<q1>\", \"<q2>\"],
   \"readiness\": <0-100>,
   \"missing\": [\"<field>\"],
   \"plausibility\": { \"budget_ok\": true, \"timeline_ok\": true, \"note\": \"\" },
   \"provenance\": { \"<field>\": \"stated\" | \"inferred\" },
+  \"requirements\": { \"<key>\": <value> },
   \"brief\": {
     \"summary\": \"<one-line summary>\",
     \"category\": \"<slug>\",
@@ -337,7 +341,9 @@ Return STRICT JSON only, no prose, with this shape:
     \"details\": { }
   }
 }
-Only include \"questions\" when status is needs_info or rejected. Only include a full \"brief\" when status is ready (for other statuses set brief to null). Keep questions concise so the whole JSON stays complete.`;
+Only include \"questions\" when status is needs_info or rejected. ALWAYS return \"brief\" (never null, on every status): \"brief\".\"details\" holds every checklist item the customer has stated ANYWHERE in the conversation so far, under its canonical key (rule 3b) — including on the very first message — because the request's state is built from it; the summary fields may be left empty until status is ready. Never tell the customer the request is ready, complete or about to be shared unless status is \"ready\".
+\"requirements\" holds, on every status, each of these that the customer has ANSWERED anywhere in the conversation (omit a key they have not addressed; never guess one), as exactly one of the values listed:
+${requirementsContract(category)} Keep questions concise so the whole JSON stays complete.`;
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
     const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null });
@@ -384,6 +390,23 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         return J({ ok: true, intake_id: draft.id, status: 'held', category: null, trades: [], assistant_message: heldMsg, questions: [], next_question: null,
                    readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, agent: ACTOR });
       }
+    }
+
+    // THE MODEL EXTRACTS, THE ROW DECIDES (7 Oct 2026, sales_engineer; ./slots.ts says what was measured).
+    // Slots the model read this turn are merged with the ones earlier turns captured; status and missing
+    // are derived from them, and a sentence written for a status the row does not hold is replaced.
+    let slotDetails: Record<string, string> | null = null;
+    const slotLang = ar ? 'ar' : 'en';
+    // Turn 1 has no stored trade, so the checklist is empty until the model names one: load the model's
+    // trade's checklist here, or what the first message states is read against nothing and lost.
+    if (out && llmParseOk && !checklist.length && out.category && validSlugs.includes(String(out.category))) {
+      const { data: cs1 } = await admin.from('category_specs').select('fields').eq('category', String(out.category)).maybeSingle();
+      if (Array.isArray(cs1?.fields)) checklist = cs1.fields;
+    }
+    if (out && llmParseOk && checklist.length && out.status !== 'rejected') {
+      const prevDet = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
+      const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
+      slotDetails = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0)).details;
     }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
@@ -516,6 +539,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       const b = (out.brief && typeof out.brief === 'object') ? out.brief : {};
       const det = (b.details && typeof b.details === 'object') ? b.details : {};
       if (!b.details || typeof b.details !== 'object') b.details = det;
+      if (slotDetails) for (const [k, v] of Object.entries(slotDetails)) if (det[k] === undefined) det[k] = v;
       const isAbsent = (f: any) => { const v = b[f.key] ?? det[f.key]; return v === undefined || v === null || String(v).trim() === ''; };
       // EXACT SPEC BY REASONING (23 Sep 2026, founder_instruction 886-903). fn_rfq_required_check used to
       // count a required spec as answered when a 4-letter token of any of its option labels appeared
@@ -541,6 +565,9 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         out.missing = absent.map((f: any) => String(f.question || f.key));
         out.questions = absent.slice(0, 4).map((f: any) => String(f.question || f.key));
         out.readiness = Math.min(Number(out.readiness) || 0, 80);
+        // The model (or the slots) said 'ready' and the canonical gate did not agree: the reply is the state's.
+        out.assistant_message = replyFromState('needs_info', out.questions[0] || null, slotLang);
+        slotDetails = { ...(slotDetails || {}), ...Object.fromEntries(Object.entries(det).filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '').map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])) };
         // The brief exists but is not canonical; say which keys were wanted so the next turn can
         // ask for them by name instead of re-asking the whole checklist.
         requiredGate = { category, missing_keys: absent.map((f: any) => String(f.key)) };
@@ -559,6 +586,9 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     const reqLang = ar ? 'ar' : 'en';
     const prevBrief: any = (draft.brief && typeof draft.brief === 'object') ? draft.brief : {};
     let reqAnswers: Answers = (prevBrief.req_answers && typeof prevBrief.req_answers === 'object') ? prevBrief.req_answers : {};
+    // What the model read of the four answers anywhere in the conversation (./slots.ts); an answer the
+    // customer already gave on an earlier turn stands.
+    if (out && llmParseOk && category) reqAnswers = { ...requirementsFromModel(category, out.requirements), ...reqAnswers };
     let reqAsked: string | null = null;
     // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
     // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
@@ -700,7 +730,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
     const briefToSave = brief
       ? { ...brief, req_answers: reqAnswers, ...drawingState }
-      : { details: interview ? interview.details : (prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
+      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
@@ -718,6 +748,11 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       else readinessFields = { filled: readinessFields.filled, required: readinessFields.required + reqTotal };
     }
     const remainingQuestions: string[] = status === 'ready' ? [] : Array.from(new Set([...(Array.isArray(out.missing) ? out.missing.map((m: any) => String(m)) : []), ...reqRemaining])).slice(0, 12);
+    // The reply is final only here (the canonical gate, the four questions and the drawing check all
+    // rewrite it after the assistant turn was pushed). Save the CORRECTED reply, so a false "ready" is
+    // neither kept in the history nor fed back to the model next turn (review of #1277).
+    for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; break; }
+    stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [] });
     const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
     if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0 }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the customer was told their request was accepted but the brief was never persisted, so the RFQ cannot be dispatched and this looks like the customer simply never finished intake.'); }
 
@@ -728,4 +763,4 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
 
     return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], next_question: nextQuestion, readiness: { filled: readinessFields.filled, required: readinessFields.required, score: Number(out.readiness) || 0 }, readiness_score: Number(out.readiness) || 0, missing: out.missing || [], brief, remaining_questions: remainingQuestions, agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+})));

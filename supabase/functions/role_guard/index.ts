@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // role_guard v2 - one identity per role. Tells the client if an email/phone already belongs to the
 // OTHER role, before any OTP code is sent.
 //
@@ -26,8 +27,6 @@ import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
-function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }
-function toE164(p: string): string { let d = String(p || '').replace(/[^\d+]/g, ''); if (d.startsWith('+')) { const n = d.slice(1).replace(/\D/g, ''); return n.length >= 8 ? '+' + n : ''; } d = d.replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('971')) return '+' + d; if (d.startsWith('0')) return '+971' + d.slice(1); if (d.length === 9 && d.startsWith('5')) return '+971' + d; if (d.length >= 8) return '+' + d; return ''; }
 const T0 = Date.now();
 
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -43,7 +42,7 @@ async function rl(key: string, limit: number, seconds: number): Promise<boolean>
   catch (_e) { return true; } // limiter unavailable must not block genuine sign-ups
 }
 
-Deno.serve(observe('role_guard', async (req) => {
+Deno.serve(siteCors(observe('role_guard', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const b = await req.json().catch(() => ({} as any));
@@ -62,25 +61,16 @@ Deno.serve(observe('role_guard', async (req) => {
       return J({ ok: true, kind, conflict: null });
     }
 
-    let isSup = false, isCust = false;
-    if (emailOk(idRaw)) {
-      const email = idRaw.toLowerCase();
-      const { data: s } = await admin.from('leads').select('id').eq('claimed_by', email).limit(1);
-      const { data: c } = await admin.from('customers').select('id').eq('email', email).limit(1);
-      isSup = !!(s && s.length); isCust = !!(c && c.length);
-    } else {
-      const e164 = toE164(idRaw); if (e164) { const last9 = e164.slice(-9);
-        const { data: s } = await admin.from('leads').select('id').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(1);
-        const { data: c } = await admin.from('customers').select('id').ilike('phone', '%' + last9).limit(1);
-        isSup = !!(s && s.length); isCust = !!(c && c.length);
-      }
-    }
-
-    // Only the cross-role conflict is disclosed. `belongsTo` is deliberately NOT returned - see header.
-    const conflict = (kind === 'customer' && isSup && !isCust) ? 'supplier' : ((kind === 'supplier' && isCust && !isSup) ? 'customer' : null);
-    return J({ ok: true, kind, conflict });
+    // THE SAME ANSWER FOR EVERY IDENTIFIER (pre-launch security pass, 6 Oct 2026, M3). Even with
+    // belongsTo gone, `conflict` still told an anonymous caller that an address or phone was registered
+    // in the OTHER role, and the per-IP cap is beaten by spreading requests across addresses. The
+    // cross-role refusal now happens in login_otp AFTER the code is verified (code role_conflict), where
+    // only the mailbox owner can see it, so this endpoint looks nothing up and answers alike for every
+    // identifier. It stays deployed, rate limited, so a portal page cached before this change still
+    // gets a well-formed answer.
+    return J({ ok: true, kind, conflict: null });
   } catch (e) {
     await logRun('error', { unhandled_exception: 1 }, 'role_guard threw an unhandled exception: ' + String((e as Error)?.message || e).slice(0, 200) + ' - the sign-up flow could not check for a cross-role conflict, so a person may be allowed to register in both roles.');
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));

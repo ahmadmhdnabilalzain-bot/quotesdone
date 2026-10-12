@@ -103,7 +103,10 @@ const SUPPLY_EN = ['importer', 'importers', 'importing', 'import', 'imports', 'e
 const SUPPLY_AR = ['مستورد', 'استيراد', 'مصدر', 'تصدير', 'تاجر جملة', 'تجار جملة', 'بالجملة', 'بيع بالجملة', 'موزع', 'موزعون', 'موزعين', 'وكيل', 'وكلاء', 'تجارة عامة', 'للتجارة', 'تجارة'];
 const INSTALL_EN = ['install', 'installs', 'installed', 'installing', 'installer', 'installers', 'installation', 'installations', 'contracting',
   'contractor', 'contractors', 'fit-out', 'fitout', 'fit out', 'commissioning', 'erection', 'maintenance', 'servicing', 'repair', 'repairs',
-  'integrator', 'integrators', 'amc'];
+  'integrator', 'integrators', 'amc',
+  // 7 Oct 2026 (accuracy suite, ledger 1162): "Plumbing works", "Electrical works" are how a profile and a licence
+  // name execution work; without the word, the line was compared with supply services only (hoses & fittings).
+  'works'];
 const INSTALL_AR = ['تركيب', 'تركيبات', 'مقاولات', 'مقاول', 'تمديد', 'تمديدات', 'تنفيذ', 'صيانة', 'تصليح'];
 
 const wordRe = (w: string) => new RegExp('(?<![\\p{L}\\p{N}])' + w.replace(/[-\s]+/g, '[\\s-]+') + '(?![\\p{L}\\p{N}])', 'iu');
