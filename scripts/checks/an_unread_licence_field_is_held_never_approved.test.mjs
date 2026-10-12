@@ -65,3 +65,14 @@ test('process_docs reads every labelled field by code, asks the model (with one 
   assert.match(api, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/, 'a failed model read is not retried');
   assert.match(api, /if \(\/\^image\\\/\/i\.test\(s\.mime\)\) profImgs\.push\(/, 'a photo-only profile is not sent to the model');
 });
+
+// Browser walk f4294be8 (12 Oct 2026, it_engineer): a clean text licence uploaded on the supplier portal's own
+// Documents tab was held as licence_number_unread - that path read the name and expiry by code but left the
+// number to the held model. Every upload path that writes a licence must read its number by code.
+test('every licence upload path reads the licence number by code, not only by the model', () => {
+  for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts']) {
+    const src = R(f);
+    assert.match(src, /codeFields = await readLicenceFields\(/, f + ' does not read the licence fields by code');
+    assert.ok(src.includes('if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;'), f + ' does not write the number code read');
+  }
+});

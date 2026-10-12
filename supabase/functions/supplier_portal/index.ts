@@ -21,7 +21,7 @@ import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
 // instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
-import { licenceNameFromModel, readExpiry, readLicenceName, type ExpiryRead } from '../_shared/document_expiry.ts';
+import { licenceNameFromModel, readExpiry, readLicenceFields, readLicenceName, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
@@ -518,6 +518,15 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           let codeName: string | null = null;
           try { codeName = await readLicenceName(stored.bytes, stored.mime); } catch (_e) { codeName = null; }
           upd.licence_legal_name = codeName;
+          // THE LICENCE NUMBER, AUTHORITY AND EMIRATE BY CODE TOO (browser walk f4294be8, 12 Oct 2026, it_engineer).
+          // supplier_api has read every labelled field by code since 7 Oct; this tab still left the number to the
+          // (held) model, so a licence uploaded here kept trade_license_no NULL and fn_sales_engineer_verifies_supplier
+          // held a clean text licence as licence_number_unread. Same reader as supplier_api; the model fills only gaps.
+          let codeFields: Partial<LicenceFields> = {};
+          try { codeFields = await readLicenceFields(stored.bytes, stored.mime); } catch (_e) { codeFields = {}; }
+          if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
+          if (codeFields.authority) upd.license_authority = codeFields.authority;
+          if (codeFields.emirate) upd.emirate = codeFields.emirate;
         }
         if (kindStr === 'license' && docRead) {
           upd.license_expiry = docRead.expiry; licExpiryFromDoc = true; upd.doc_extracted_at = new Date().toISOString();
@@ -550,8 +559,8 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
             if (jd?.ok && jd.doc) {
               const d = jd.doc;
               if (d.expiry_date) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
-              if (d.license_number) upd.trade_license_no = d.license_number;
-              if (d.license_authority) upd.license_authority = d.license_authority;
+              if (d.license_number && !upd.trade_license_no) upd.trade_license_no = d.license_number;
+              if (d.license_authority && !upd.license_authority) upd.license_authority = d.license_authority;
               if (d.city) upd.license_city = d.city;
               if (!upd.licence_legal_name) { const n = licenceNameFromModel(d); if (n) upd.licence_legal_name = n; }
               upd.doc_extracted_at = new Date().toISOString();

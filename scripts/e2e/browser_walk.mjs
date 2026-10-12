@@ -59,7 +59,9 @@ const THIRD_PARTY = /googletagmanager|google-analytics|doubleclick|facebook|clar
 /** DOM facts a person would notice: overflow, raw keys, wrong language, unnamed controls. */
 async function domFacts(page) {
   return page.evaluate(() => {
-    const vis = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+    // A closed <details> keeps its content laid out (content-visibility), so rect > 0 and innerText '' - the supplier
+    // portal's Account and bell menus read as 3 unnamed controls and as overflow (walk f4294be8). Not on screen: skipped.
+    const vis = (el) => { if (el.closest('details:not([open]) > :not(summary)')) return false; const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
     const text = document.body?.innerText || '';
     const de = document.documentElement;
     const overflowX = Math.max(de.scrollWidth, document.body.scrollWidth) - window.innerWidth;
@@ -256,35 +258,69 @@ export async function demoSessionFactory(email) {
   };
 }
 
+/** customers.locale for a demo customer: the language the portal must render once signed in. */
+async function registeredLocale(email) {
+  const { read } = await import('./fixtures.mjs');
+  const l = (await read(`select locale from public.customers where email = ${sq(email)} and is_demo`))[0]?.locale;
+  return l === 'ar' ? 'ar' : 'en';
+}
+
 /** Walk every tab a portal offers: click each nav item, screenshot, judge. */
-async function walkPortal(browser, who, view, lang) {
+export async function walkPortal(browser, who, view, lang) {
   const J = `${who.kind}_${who.label}_${view}_${lang}`;
   const dir = join(OUT, who.kind + 's', `${who.label}_${view}_${lang}`);
   mkdirSync(dir, { recursive: true });
   const rep = new Report(J);
-  const { ctx, page, consoleErrors } = await signedInPage(browser, who, { lang, viewport: 'desktop' });
-  // signedInPage owns the session injection; our viewport + video ride on a fresh page in that context is not possible,
-  // so re-create with the same init by resizing for mobile.
-  if (view === 'mobile') await page.setViewportSize(VIEWS.mobile.viewport);
+  // A real phone (isMobile, touch), not a desktop window resized: signedInPage owns both (walk f4294be8 resized).
+  const { ctx, page } = await signedInPage(browser, who, { lang, viewport: view });
   const bag = instrument(page);
   const base = SITE + (lang === 'ar' ? '/ar' : '') + (who.kind === 'customer' ? '/me' : '/portal');
-  let r = await visit(page, bag, base, join(dir, '00_landing.png'), { lang, audience: who.kind });
+  // THE ACCOUNT'S LANGUAGE DECIDES ONCE SIGNED IN, NOT THE URL (founder 14 Sep 2026, src/lib/documentLocale.ts adoptLocale):
+  // an English-registered customer opening /ar/me is moved to /me in English, an Arabic one on /me to /ar/me. Walk
+  // f4294be8 judged C1 on /ar/me as Arabic and reported the product doing exactly that as "not RTL". Judge the
+  // registered language, and check the URL followed it. Suppliers are English only.
+  const want = who.kind === 'customer' ? await registeredLocale(who.email) : 'en';
+  let r = await visit(page, bag, base, join(dir, '00_landing.png'), { lang: want, audience: who.kind });
+  if (who.kind === 'customer') {
+    await page.waitForFunction((w) => document.documentElement.lang === w, want, { timeout: 15000 }).catch(() => {});
+    r.url = page.url();
+    const onAr = /^\/ar(\/|$)/.test(new URL(page.url()).pathname);
+    if (onAr !== (want === 'ar')) { r.status = 'FAIL'; r.issues.unshift({ sev: 'high', what: `registered language ${want} but the URL stayed ${new URL(page.url()).pathname}` }); }
+    if (want !== lang) r.note = `opened ${base}; account registered ${want}, so judged as ${want}`;
+  }
   rep.add({ journey: J, step: 'landing', ...r });
   console.log(`${r.status} ${J} landing ${r.ms}ms ${r.issues.map((i) => i.what.slice(0, 80)).join(' ; ')}`);
-  const navSel = view === 'mobile' ? 'nav a, nav button, button[aria-controls="qd-nav-more"]' : 'nav a, nav button';
-  const labels = [...new Set((await page.locator(navSel).allInnerTexts().catch(() => [])).map((s) => s.trim()).filter(Boolean))].slice(0, 20);
+  // NAV ITEMS A PERSON CAN PRESS (walk f4294be8): allInnerTexts also returned the hidden sidebar (md:hidden / display:none
+  // on a phone) and the desktop-hidden phone tab bar, so "More" was pressed on desktop and "Overview" on a phone matched
+  // the hidden sidebar button first; each waited out its timeout and that wait was reported as a 5.3 s / 35 s "slow load".
+  // Labels come from visible items, plus the phone's "More" sheet; a label is pressed where it is visible, opening the
+  // sheet only when it lives there; the supplier portal has no sheet, so nothing waits on one.
+  const navSel = 'nav a:visible, nav button:visible';
+  const more = page.locator('button[aria-controls="qd-nav-more"]:visible');
+  // While the sheet is open its backdrop (fixed, inset-0) lies over the tab bar, so a tap on "More" lands on the backdrop,
+  // which closes the sheet - the same result for a person. A pointer click from the walk is refused as intercepted, so the
+  // toggle is dispatched instead.
+  const openSheet = async (open) => { if (await more.count() && (await more.getAttribute('aria-expanded')) !== String(open)) { await more.dispatchEvent('click'); await page.waitForTimeout(300); } };
+  const textsNow = async () => (await page.locator(navSel).allInnerTexts().catch(() => [])).map((s) => s.trim().split('\n')[0].trim()).filter(Boolean);
+  let labelsAll = await textsNow();
+  // Only the sheet's section rows: its language, theme and sign-out buttons are not tabs (pressing the language one
+  // re-registers the account's language).
+  if (await more.count()) { await openSheet(true); labelsAll = labelsAll.concat((await page.locator('#qd-nav-more [role=group] button:visible').allInnerTexts()).map((x) => x.trim()).filter(Boolean)); await openSheet(false); }
+  const moreLabel = (await more.count()) ? (await more.innerText()).trim() : null;
+  const labels = [...new Set(labelsAll)].filter((l) => l !== moreLabel).slice(0, 20);
   let i = 1;
   for (const label of labels) {
     bag.console.length = 0; bag.failed.length = 0;
+    const byLabel = () => page.locator(navSel).filter({ hasText: new RegExp('^\\s*' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\s|$)') }).first();
+    await openSheet(false);
+    if (!(await byLabel().count())) await openSheet(true);
     const t0 = Date.now();
-    if (view === 'mobile') await page.locator('button[aria-controls="qd-nav-more"]').first().click().catch(() => {});
-    const el = page.locator(navSel).filter({ hasText: label }).first();
-    const clicked = await el.click({ timeout: 5000 }).then(() => true).catch(() => false);
+    const clicked = await byLabel().click({ timeout: 5000 }).then(() => true).catch(() => false);
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
     const f = await domFacts(page);
     const file = join(dir, String(i++).padStart(2, '0') + '_' + slug(label) + '.png');
     await page.screenshot({ path: file, fullPage: true }).catch(() => {});
-    r = judge(f, { lang, audience: who.kind, ms: Date.now() - t0, bag, url: page.url() });
+    r = judge(f, { lang: want, audience: who.kind, ms: Date.now() - t0, bag, url: page.url() });
     if (!clicked) { r.status = 'FAIL'; r.issues.unshift({ sev: 'high', what: `nav item "${label}" could not be pressed` }); }
     rep.add({ journey: J, step: 'tab: ' + label, ...r, shot: file });
     console.log(`${r.status} ${J} tab:${label} ${r.issues.map((x) => x.what.slice(0, 80)).join(' ; ')}`);
@@ -324,6 +360,17 @@ async function jstep(rep, J, page, dir, name, fn) {
   console.log(`${status} ${J} ${name} — ${detail.slice(0, 160)}`);
 }
 
+/** THE REQUEST BOX IS BEHIND "New request" (walk f4294be8): the dashboard has no textarea, so the terms step's fill
+ *  waited 30 s and the drawing step found no file input. Press the button a customer presses, then return the box. */
+export async function openNewRequest(page, lang) {
+  const box = page.locator('#qd-intake-input');
+  if (!(await box.isVisible().catch(() => false))) {
+    await page.getByRole('button', { name: lang === 'ar' ? /طلب جديد/ : /new request/i }).first().click({ timeout: 10000 });
+    await box.waitFor({ state: 'visible', timeout: 20000 });
+  }
+  return box;
+}
+
 async function customerJourney(browser, w, lang, view) {
   const { read, write } = await import('./fixtures.mjs');
   const { demoOfficePlanPng } = await import('../lib/demo_pdf.mjs');
@@ -345,7 +392,7 @@ async function customerJourney(browser, w, lang, view) {
     try {
       await write(`update public.customers set tos_version = 'v1' where email = ${sq(w.email)} and is_demo`, 'walk: terms one version behind (demo only)');
       await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(3000);
-      const box = page.locator('textarea:visible').first();
+      const box = await openNewRequest(page, lang);
       await box.fill(lang === 'ar' ? 'ZZ DEMO: أحتاج دهان شقة غرفتين في دبي' : 'ZZ DEMO: paint a two-bedroom apartment in Dubai');
       await box.press('Enter'); await page.waitForTimeout(6000);
       const alert = page.locator('[role=alert]').filter({ has: page.locator('input[type=checkbox]') }).first();
@@ -368,6 +415,7 @@ async function customerJourney(browser, w, lang, view) {
   // 2. Drawing/photo upload on a new request (spec questions incl. "not sure" follow in the chat).
   await jstep(rep, J, page, dir, 'new request: drawing upload + spec answer "not sure"', async () => {
     const png = join(dir, 'zz_demo_plan.png'); writeFileSync(png, demoOfficePlanPng());
+    await openNewRequest(page, lang);
     const input = page.locator('input[type=file]').first();
     if (!(await input.count())) return [false, 'no file input on the new-request screen'];
     await input.setInputFiles(png); await page.waitForTimeout(15000);
