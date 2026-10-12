@@ -55,3 +55,28 @@ Deno.test('suppliers are answered in English; an action is picked from the list 
   const r2 = await aiReply(stub([A('Done.', 'bogus')]).deps, { ...req, actions: [{ id: 'escalate', meaning: 'x' }] });
   assertEquals(r2.action, null);
 });
+
+// prevented by: these tests (#1335's needs, 12 Oct 2026). Identity before a reveal, deferrals, the call cap, the
+// escalation flag and the sender's rate bucket.
+Deno.test('another party identity or an unpublished contact is rewritten; the published contact passes', async () => {
+  const s = stub([A('The supplier is Al Noor Contracting, call 050 123 4567.'), A('Your supplier stays anonymous until you reveal them. Call us on +971 50 931 9355.')]);
+  const r = await aiReply(s.deps, { ...req, forbidden: ['Al Noor Contracting'] });
+  assertEquals(r.reply, 'Your supplier stays anonymous until you reveal them. Call us on +971 50 931 9355.');
+  assert(s.calls[1].input.includes("reveals another party's identity") && s.calls[1].input.includes('contact or licence details'));
+});
+Deno.test('a deferral is rewritten (903)', async () => {
+  const s = stub([A("I'll check and get back to you."), A('The reveal fee is 3%.')]);
+  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%.');
+});
+Deno.test('at most 4 model calls per reply, then no text', async () => {
+  const s = stub([A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.')]);
+  const r = await aiReply(s.deps, req);
+  assertEquals(r.reply, '');
+  assertEquals(s.calls.length, 4);
+});
+Deno.test('escalate and the rate bucket ride on the same call', async () => {
+  const s = stub([JSON.stringify({ answer: 'Your refund request is now with our management team.', escalate: true })]);
+  const r = await aiReply(s.deps, { ...req, askEscalate: true, rateKey: 'wa:+971500000001' });
+  assertEquals(r.escalate, true);
+  assertEquals(s.calls[0].o.rateKey, 'wa:+971500000001');
+});
