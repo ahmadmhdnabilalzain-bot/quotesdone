@@ -58,3 +58,10 @@ Deno.test('the caller rule (reply guard) is part of the check', async () => {
   const a = await answerFromBrief({ ...C, check: (t) => /\bAI\b/.test(t) ? ['it says AI'] : [] }, () => {}, g.f);
   assertEquals(a.reply, 'Our Smart Engine answers that.');
 });
+
+// prevented by: this test. A rate-limited sender is not retried on other models; the caller shows its notice.
+Deno.test('a rate-limited sender stops at once', async () => {
+  const g = gateway([json({ ok: false, error: 'rate_limited' }, 429)]);
+  const a = await answerFromBrief(C, () => {}, g.f);
+  assertEquals([a.reply, a.error, g.bodies.length], ['', 'rate_limited', 1]);
+});

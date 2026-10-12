@@ -64,23 +64,42 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: '
   return brief;
 }
 
-// ── the figure check ────────────────────────────────────────────────────────────────────────────
-const AR_DIGITS = /[٠-٩]/g;
-const toWestern = (s: string) => s.replace(AR_DIGITS, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
-const num = (s: string) => String(Number(s.replace(/[,٬]/g, '')));
-// A figure is its NUMBER AND ITS UNIT (review of #1330): "5%" is checked against the percentages the brief states, and
-// "AED 5" against its dirham amounts — a 5 in a phone number, an hour or an AED price never lets a 5% through.
-// A range keeps its unit on both ends: "AED 35 to 70" and "من 35 إلى 70 درهم" state aed:35 AND aed:70.
+// ── the figure check ── (number AND unit; review of #1330, twice)
+// Digits: Arabic-Indic ٠-٩ and Persian ۰-۹ become Western; the Arabic decimal mark ٫ becomes "." and the Arabic
+// thousands mark ٬ is dropped. Numbers written in words (one…twenty, half; واحد…عشرون, نصف) are read as digits for the
+// check only — the reply itself is never changed.
+const DIGITS = '٠١٢٣٤٥٦٧٨٩', PERSIAN = '۰۱۲۳۴۵۶۷۸۹';
+const WORDS_EN: Record<string, string> = { half: '0.5', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8',
+  nine: '9', ten: '10', eleven: '11', twelve: '12', thirteen: '13', fourteen: '14', fifteen: '15', sixteen: '16', seventeen: '17', eighteen: '18',
+  nineteen: '19', twenty: '20' };
+// Each entry is the digit, then the Arabic words for it (longest first, so "خمسة عشر" is read before "خمسة").
+const WORDS_AR: [RegExp, string][] = ([
+  ['0.5', 'نصف'], ['1', 'واحد(?:ة)'], ['1', 'واحد'], ['2', 'اثنان|اثنين|اثنتان|اثنتين'], ['3', 'ثلاثة|ثلاث'], ['4', 'أربعة|أربع|اربعة|اربع'],
+  ['5', 'خمسة|خمس'], ['6', 'ستة|ست'], ['7', 'سبعة|سبع'], ['8', 'ثمانية|ثماني|ثمان'], ['9', 'تسعة|تسع'], ['10', 'عشرة|عشر'],
+  ['11', 'أحد عشر|احدى عشرة|إحدى عشرة'], ['12', 'اثنا عشر|اثني عشر|اثنتا عشرة'], ['15', 'خمسة عشر|خمس عشرة'], ['20', 'عشرون|عشرين'],
+] as [string, string][]).sort((x, y) => y[1].length - x[1].length).map(([n, w]) => [new RegExp('(?<![\\p{L}])(?:' + w + ')(?![\\p{L}])', 'gu'), n]);
+const toWestern = (s: string) => {
+  let t = s.replace(/[٠-٩]/g, (d) => String(DIGITS.indexOf(d))).replace(/[۰-۹]/g, (d) => String(PERSIAN.indexOf(d))).replace(/٫/g, '.').replace(/٬/g, '');
+  t = t.replace(/\b(half|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/gi, (w) => WORDS_EN[w.toLowerCase()]);
+  for (const [re, n] of WORDS_AR) t = t.replace(re, n);
+  return t;
+};
+const num = (s: string) => String(Number(s.replace(/,/g, '')));
+// A range end must be a money figure too: "AED 1,000 - 5 working days" is NOT a range (the 5 counts days).
+const NOT_MONEY = '(?!\\s*(?:working|business|calendar|days?|hours?|weeks?|months?|years?|mins?|minutes?|mm|cm|m\\b|kg|sqm|يوم|أيام|ايام|ساعة|ساعات|أسبوع|أسابيع|شهر|أشهر|سنة|سنوات))';
 const N = '(\\d[\\d,]*(?:\\.\\d+)?)';
 const TO = '\\s*(?:to|-|–|—|إلى|الى)\\s*';
-const AED_U = '(?:aed|dhs?|dirhams?|درهم|دراهم)';
-const PCT_U = '(?:%|٪|percent|per cent|في المائة|بالمائة)';
-const FIGURES: { kind: 'aed' | 'pct'; re: RegExp }[] = [
-  { kind: 'aed', re: new RegExp(AED_U + '\\s*' + N + '(?:' + TO + N + ')?', 'gi') },          // AED 35 / AED 35 to 70
-  { kind: 'aed', re: new RegExp(N + '(?:' + TO + N + ')?\\s*' + AED_U, 'gi') },               // 35 to 70 AED / 500 درهم
-  { kind: 'pct', re: new RegExp(N + '(?:' + TO + N + ')?\\s*' + PCT_U, 'gi') },               // 3% / 10-12 %
+const AED_U = '(?:(?:uae\\s+)?(?:aed|dhs?|dirhams?)\\b|درهم|دراهم|د\\.\\s?إ|د\\.\\s?ا)';
+const PCT_U = '(?:%|٪|percent\\b|per\\s?cent\\b|في المائة|بالمائة|في المئة|بالمئة)';
+const FEE_W = '(?:fees?|charges?|commission|surcharge|رسوم|رسم|عمولة)';
+const FIGURES: { kind: 'aed' | 'pct' | 'fee'; re: RegExp }[] = [
+  { kind: 'aed', re: new RegExp(AED_U + '\\s*' + N + '(?:' + TO + N + NOT_MONEY + ')?', 'gi') },   // AED 35 / AED 35 to 70
+  { kind: 'aed', re: new RegExp(N + '(?:' + TO + N + ')?\\s*' + AED_U, 'gi') },                      // 35 to 70 AED / 500 درهم
+  { kind: 'pct', re: new RegExp(N + '(?:' + TO + N + ')?\\s*' + PCT_U, 'gi') },                      // 3% / 10-12 % / خمسة بالمئة
+  // a unit-less figure stated as a fee: "the fee is 5", "رسوم قدرها 5" — it must be one the brief states in AED or %
+  { kind: 'fee', re: new RegExp(FEE_W + '\\s+(?:is|are|of|=|:|هي|قدرها|بنسبة|تبلغ|بقيمة)?\\s*' + N + '(?![\\d.,])(?!\\s*' + AED_U + ')(?!\\s*' + PCT_U + ')' + NOT_MONEY, 'gi') },
 ];
-/** Every money or rate figure in a text, as "aed:<n>" / "pct:<n>", normalised (1,000 -> 1000; 3.00 -> 3; Arabic digits). */
+/** Every money or rate figure in a text, as "aed:<n>", "pct:<n>" or "fee:<n>" (a fee with no unit), normalised. */
 export function figuresOf(text: string): string[] {
   const t = toWestern(String(text || ''));
   const out: string[] = [];
@@ -91,9 +110,14 @@ export function figuresOf(text: string): string[] {
 export function briefNumbers(brief: string): Set<string> {
   return new Set(figuresOf(brief));
 }
-/** The money/rate figures in a reply that the brief does not state WITH THAT UNIT. Empty = the reply may go out as written. */
+/** The money/rate figures in a reply that the brief does not state WITH THAT UNIT (a unit-less fee figure must be a
+ *  dirham amount or a percentage the brief states). Empty = the reply may go out as written. */
 export function moneyFiguresNotInBrief(text: string, known: Set<string>): string[] {
-  return figuresOf(text).filter((k) => !known.has(k)).map((k) => k.startsWith('pct:') ? k.slice(4) + '%' : 'AED ' + k.slice(4));
+  return figuresOf(text).filter((k) => {
+    if (!k.startsWith('fee:')) return !known.has(k);
+    const n = k.slice(4);
+    return !known.has('aed:' + n) && !known.has('pct:' + n);
+  }).map((k) => k.startsWith('pct:') ? k.slice(4) + '%' : k.startsWith('aed:') ? 'AED ' + k.slice(4) : 'a fee of ' + k.slice(4));
 }
 
 // ── the policy-claim check: false statements that carry no number ─────────────────────────────────
