@@ -84,9 +84,17 @@ revoke execute on function public.fn_party_is_demo(text, text) from public, anon
 -- ── 1b. the name marker is a WORD (release review of #1348): 'ZZ Demolition LLC' is a real company, never demo.
 -- Measured 12 Oct 2026: 0 leads, 0 customers, 0 social_conversation rows change value. Each ALTER rewrites its table
 -- (leads ~20k rows) under a 3 s lock timeout, so a busy table fails this file instead of queueing sign-ins behind it.
+--
+-- A SOURCED COMPANY IS NEVER DEMO BY ITS PHONE (coordinator, 13 Oct 2026). Lead 143027 "Assurance Corps Co.", a real
+-- company from the lead-sourcing pilot (source marketing_sourcing, info@assurancecorps.com), read is_demo = true for
+-- one reason only: fn_lead_sourcing_record stored phone_e164 '+971500000000', which falls in the reserved fixture
+-- block +971 50 000 00xx. Its e-mail, name, tags and source carry no marker. A fixture number on a sourced lead is a
+-- bad phone, not a demo company: the phone rule no longer applies to source 'marketing_sourcing' (the number itself
+-- stays refused by every Twilio path through isDemoPhone). Measured: 32 sourced leads, 1 flagged, now 0.
 set local lock_timeout = '3s';
 alter table public.leads alter column is_demo set expression as (
-  public.fn_is_demo_email(email) or public.fn_is_demo_email(claimed_by) or public.fn_is_demo_phone(phone)
+  public.fn_is_demo_email(email) or public.fn_is_demo_email(claimed_by)
+  or (public.fn_is_demo_phone(phone) and coalesce(source, '') <> 'marketing_sourcing')
   or 'qd_demo' = any(coalesce(tags, '{}'::text[]))
   or coalesce(company_name, '') ~* '^ZZ DEMO([^a-z]|$)'
   or coalesce(company_name, '') like 'QD Demo %'
@@ -207,6 +215,8 @@ as $fn$
 declare f record; v_n bigint; v_key text := p_rel::text; v_k text;
 begin
   if p_depth > 8 then raise exception 'demo purge: foreign-key chain deeper than 8 at %', p_rel; end if;
+  -- the data-request evidence is never walked into, by any route (release review of 2953dbf)
+  if regexp_replace(v_key, '^.*[.]', '') ~* '^pdpl_' then raise exception 'DEMO PURGE REFUSED: % is data-request evidence', v_key using errcode = 'QD196'; end if;
   -- every child, cascading ones included, is walked here, so the plan names each table the purge touches
   for f in
     select c.conrelid::regclass child, a.attname col, pa.attname pcol, c.confdeltype del
@@ -247,6 +257,12 @@ create or replace function public.fn_demo_purge_confirmed_logins()
  returns text[] language sql immutable set search_path to 'pg_catalog', 'pg_temp'
 as $fn$ select array['ahmadmhdnabilalzain+qdprobe1@gmail.com', 'ahmadmhdnabilalzain+qdcust1@gmail.com']::text[] $fn$;
 revoke execute on function public.fn_demo_purge_confirmed_logins() from public, anon, authenticated;
+
+-- real companies the purge must never touch, whatever a flag says (coordinator, 13 Oct 2026)
+create or replace function public.fn_demo_purge_kept_leads()
+ returns bigint[] language sql immutable set search_path to 'pg_catalog', 'pg_temp'
+as $fn$ select array[143027]::bigint[] $fn$;
+revoke execute on function public.fn_demo_purge_kept_leads() from public, anon, authenticated;
 
 -- an address column is purged when it is a reserved test address OR exactly one of the confirmed logins (never a pattern)
 create or replace function public.fn_demo_purge_address(p_email text)
@@ -290,7 +306,8 @@ declare
 begin
   -- the demo id sets: markers only
   create temp table _dc on commit drop as select id from public.customers where is_demo;
-  create temp table _dl on commit drop as select id from public.leads where is_demo;
+  -- 143027 (Assurance Corps Co., a real sourced company) is never a demo id, whatever its flag reads
+  create temp table _dl on commit drop as select id from public.leads where is_demo and id <> all(public.fn_demo_purge_kept_leads());
   create temp table _di on commit drop as select id from public.inquiries i where public.fn_inquiry_is_demo(i.id);
   create temp table _dq on commit drop as select id from public.quotes where inquiry_id in (select id from _di) or supplier_id in (select id from _dl);
   create temp table _dt on commit drop as select id from public.transactions
@@ -847,6 +864,8 @@ end $function$;
 select case
   when to_regproc('public.fn_demo_purge') is not null and to_regproc('public.fn_demo_purge_verify') is not null
    and public.fn_party_is_demo('unknown', 'qd-x@example.invalid')
+   and not coalesce((select is_demo from public.leads where id = 143027), false)
+   and 143027 = any(public.fn_demo_purge_kept_leads())
    and public.fn_demo_purge_key_has_confirmed('otp:ahmadmhdnabilalzain+qdprobe1@gmail.com')
    and public.fn_demo_purge_key_has_confirmed('ahmadmhdnabilalzain+qdcust1@gmail.com')
    and not public.fn_demo_purge_key_has_confirmed('otp:xahmadmhdnabilalzain+qdprobe1@gmail.com')

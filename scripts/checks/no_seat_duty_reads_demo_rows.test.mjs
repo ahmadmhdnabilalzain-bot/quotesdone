@@ -59,10 +59,42 @@ test('the purge\'s Dropbox list in SQL is exactly the frozen list the edge funct
   assert.deepEqual([...sqlPaths].sort(), [...json].sort());
 });
 
+// THE DATA-REQUEST EVIDENCE IS NEVER PURGED (release review of 2953dbf): any mention of a pdpl_ table in the code of the
+// purge (quoted, schema-qualified or not, or built at run time) fails; the walk may name it only to refuse it (QD196).
+const codeOf = (body) => body.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+export function pdplInPurge(runBody) { return /pdpl_/i.test(codeOf(runBody)); }
+export function pdplInWalkOtherThanRefusal(walkBody) {
+  return codeOf(walkBody).split('\n').some((l) => /pdpl_/i.test(l) && !(/raise exception/i.test(l) && /QD196/.test(l)));
+}
+function fnBody(sql, name) {
+  const at = sql.indexOf(`create or replace function public.${name}(`);
+  assert.ok(at >= 0, name + ' is defined');
+  const from = sql.indexOf('$fn$', at);
+  return sql.slice(from + 4, sql.indexOf('$fn$', from + 4));
+}
+
+test('the pdpl rule catches every form: a plain delete, an unqualified name, a dynamic format()', () => {
+  assert.equal(pdplInPurge('  delete from public.pdpl_requests where true;'), true);
+  assert.equal(pdplInPurge('  delete from pdpl_operator_log where email = x;'), true);
+  assert.equal(pdplInPurge("  execute format('delete from %I', 'PDPL_requests');"), true);
+  assert.equal(pdplInPurge("  -- pdpl_requests is never purged\n  select 1;"), false);
+  assert.equal(pdplInWalkOtherThanRefusal("  if k ~* '^pdpl_' then raise exception 'x' using errcode = 'QD196'; end if;"), false);
+  assert.equal(pdplInWalkOtherThanRefusal("  execute format('delete from %s', 'pdpl_requests');"), true);
+});
+
 test('the purge never deletes the data-request evidence (pdpl_requests, pdpl_operator_log)', () => {
-  const run = R(FILE).split('create or replace function public.fn_demo_purge_run()')[1] || '';
-  assert.ok(run, 'fn_demo_purge_run is defined');
-  assert.doesNotMatch(run.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n'), /'public\.pdpl_/, 'the purge lists a pdpl table');
+  const sql = R(FILE);
+  assert.equal(pdplInPurge(fnBody(sql, 'fn_demo_purge_run')), false, 'fn_demo_purge_run names a pdpl table');
+  assert.equal(pdplInPurge(fnBody(sql, 'fn_demo_purge')), false, 'fn_demo_purge names a pdpl table');
+  assert.equal(pdplInWalkOtherThanRefusal(fnBody(sql, 'fn_demo_purge_walk')), false, 'fn_demo_purge_walk names a pdpl table other than to refuse it');
+  assert.match(codeOf(fnBody(sql, 'fn_demo_purge_walk')), /pdpl_.*QD196/i, 'the walk refuses a pdpl table it reaches by a foreign key');
+});
+
+test('lead 143027 (Assurance Corps Co., a real sourced company) is never demo and never purged', () => {
+  const sql = codeOf(R(FILE));
+  assert.match(sql, /fn_is_demo_phone\(phone\) and coalesce\(source, ''\) <> 'marketing_sourcing'/, 'a sourced lead can still be flagged demo by its phone');
+  assert.match(sql, /fn_demo_purge_kept_leads\(\)[\s\S]*?array\[143027\]/, '143027 is not on the kept list');
+  assert.match(sql, /id <> all\(public\.fn_demo_purge_kept_leads\(\)\)/, 'the purge does not exclude the kept leads');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
