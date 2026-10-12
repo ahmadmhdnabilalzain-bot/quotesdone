@@ -68,20 +68,32 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: '
 const AR_DIGITS = /[٠-٩]/g;
 const toWestern = (s: string) => s.replace(AR_DIGITS, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
 const num = (s: string) => String(Number(s.replace(/[,٬]/g, '')));
-/** Every number in the brief, normalised (1,000 -> 1000; 3.00 -> 3; Arabic digits -> Western). */
-export function briefNumbers(brief: string): Set<string> {
-  return new Set((toWestern(brief).match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map(num));
-}
-// A money or rate figure: a number next to %, AED, Dhs, dirham(s) or درهم, either side.
-const MONEY = /(?:(?:aed|dhs?|درهم|دراهم)\s*(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?)\s*(?:%|٪|percent|في المائة|بالمائة|aed|dhs?|dirhams?|درهم|دراهم))/gi;
-/** The money/rate figures in a reply that the brief does not state. Empty = the reply may go out as written. */
-export function moneyFiguresNotInBrief(text: string, known: Set<string>): string[] {
+// A figure is its NUMBER AND ITS UNIT (review of #1330): "5%" is checked against the percentages the brief states, and
+// "AED 5" against its dirham amounts — a 5 in a phone number, an hour or an AED price never lets a 5% through.
+// A range keeps its unit on both ends: "AED 35 to 70" and "من 35 إلى 70 درهم" state aed:35 AND aed:70.
+const N = '(\\d[\\d,]*(?:\\.\\d+)?)';
+const TO = '\\s*(?:to|-|–|—|إلى|الى)\\s*';
+const AED_U = '(?:aed|dhs?|dirhams?|درهم|دراهم)';
+const PCT_U = '(?:%|٪|percent|per cent|في المائة|بالمائة)';
+const FIGURES: { kind: 'aed' | 'pct'; re: RegExp }[] = [
+  { kind: 'aed', re: new RegExp(AED_U + '\\s*' + N + '(?:' + TO + N + ')?', 'gi') },          // AED 35 / AED 35 to 70
+  { kind: 'aed', re: new RegExp(N + '(?:' + TO + N + ')?\\s*' + AED_U, 'gi') },               // 35 to 70 AED / 500 درهم
+  { kind: 'pct', re: new RegExp(N + '(?:' + TO + N + ')?\\s*' + PCT_U, 'gi') },               // 3% / 10-12 %
+];
+/** Every money or rate figure in a text, as "aed:<n>" / "pct:<n>", normalised (1,000 -> 1000; 3.00 -> 3; Arabic digits). */
+export function figuresOf(text: string): string[] {
+  const t = toWestern(String(text || ''));
   const out: string[] = [];
-  for (const m of toWestern(text).matchAll(MONEY)) {
-    const n = num(m[1] ?? m[2]);
-    if (!known.has(n) && !out.includes(n)) out.push(n);
-  }
+  for (const f of FIGURES) for (const m of t.matchAll(f.re)) for (const n of [m[1], m[2]]) if (n) { const k = f.kind + ':' + num(n); if (!out.includes(k)) out.push(k); }
   return out;
+}
+/** The figures the brief states, each with its unit. */
+export function briefNumbers(brief: string): Set<string> {
+  return new Set(figuresOf(brief));
+}
+/** The money/rate figures in a reply that the brief does not state WITH THAT UNIT. Empty = the reply may go out as written. */
+export function moneyFiguresNotInBrief(text: string, known: Set<string>): string[] {
+  return figuresOf(text).filter((k) => !known.has(k)).map((k) => k.startsWith('pct:') ? k.slice(4) + '%' : 'AED ' + k.slice(4));
 }
 
 // ── the policy-claim check: false statements that carry no number ─────────────────────────────────
