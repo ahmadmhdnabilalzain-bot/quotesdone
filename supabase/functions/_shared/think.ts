@@ -86,6 +86,10 @@ export interface ThinkRequest {
   // A caller that answers a customer or visitor (support_reply.ts only) may accept a short, clear refusal of a
   // manipulation or an out-of-scope ask as the answer. Off for every other caller: their drafts keep the evasion check.
   allowDecline?: boolean;
+  // A caller's last-mile rewrite of the draft (support_reply.ts: the plain-language gate). When the independent
+  // check runs it starts BESIDE it on the same draft, and is kept only when the reviewer did not reject that draft;
+  // null keeps the draft. Without the check it is not run here, and the caller applies it after (12 Oct 2026).
+  polish?: (answer: string) => Promise<string | null>;
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -497,6 +501,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   let verified: ThinkResult['verified'] = { status: 'not_needed', by: null, notes: '' };
   let confidence = Math.max(0, Math.min(1, Number(draft.confidence) || 0));
   if (req.stakes === 'high' || (!deciding && plan.high_stakes === true)) {
+    const pPolish = !deciding && req.polish ? req.polish(String(draft.answer ?? '')).catch(() => null) : null;
     const v = await deps.llm('verify', VERIFY_PROMPT, JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
       { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: 600 });
     const vj = parseJson<{ verdict?: string; problems?: string[] }>(v.content);
@@ -515,6 +520,9 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
       confidence = Math.min(confidence, 0.5);
     }
     steps.push({ id: 'verify', kind: 'verify', goal: 'independent check of a high-stakes answer', status: 'done', detail: verified });
+    // The rewrite ran on the draft the reviewer read; a corrected draft is a different text, so it is not taken then.
+    const polished = pPolish ? await pPolish : null;
+    if (polished && verified.status !== 'disagreed') { draft = { ...draft, answer: polished }; steps.push({ id: 'polish', kind: 'synthesise', goal: "the caller's rewrite, beside the check", status: 'done' }); }
   }
 
   // Research that was cited goes back as pending knowledge, so the next question is answered from knowledge.
