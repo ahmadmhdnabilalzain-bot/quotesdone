@@ -79,6 +79,7 @@ on:
 env:
   # STAGING_REF is gone with the staging branch it named (deleted 15 Aug 2026). One project, one ref.
   PRODUCTION_REF: htdblwldjkcgjvmqkbeh
+  DENO_NO_PACKAGE_JSON: "1"   # see checks.yml: deno never resolves the app's package.json (12 Oct 2026)
 
 jobs:
   deploy:
