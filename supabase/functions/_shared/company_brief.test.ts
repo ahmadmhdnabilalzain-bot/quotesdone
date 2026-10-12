@@ -12,6 +12,17 @@ Deno.test('policy claims: an affirmed card fee, VAT on the fee, a refund promise
     assertEquals(policyProblems(ok), [], ok);
 });
 
+// prevented by: this test. The published price guide (fn_price_brief) rides in the brief, so its ranges pass the
+// figure check and an unpublished price still does not.
+Deno.test('the published price guide is in the brief and its figures pass; an unpublished price does not', async () => {
+  const rpc = (fn: string) => Promise.resolve({ data: fn === 'fn_price_brief' ? '## PUBLISHED PRICE GUIDE\n- gypsum: Gypsum false ceiling: AED 35 to 70 per sqm' : { block: 'CO' }, error: null });
+  const b = await companyBrief(rpc, [], 'FACTS P', 'en', [], 10);
+  assert(b.includes('Gypsum false ceiling: AED 35 to 70'));
+  const known = briefNumbers(b);
+  assertEquals(moneyFiguresNotInBrief('A gypsum ceiling runs about AED 35 to 70 per square metre.', known), []);
+  assertEquals(moneyFiguresNotInBrief('A gypsum ceiling runs about AED 45 per square metre.', known), ['45']);
+});
+
 Deno.test('the brief cache is keyed on content: same-length facts never share a brief', async () => {
   const rpc = () => Promise.resolve({ data: { block: 'CO' }, error: null });
   const a = await companyBrief(rpc, [], 'FACTS A', 'en', [], 1);
