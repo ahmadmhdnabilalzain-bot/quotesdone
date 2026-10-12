@@ -34,8 +34,11 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+// A LOCAL RUN NEVER WRITES TO PRODUCTION BY DEFAULT (13 Oct 2026). The token file is read only with an explicit
+// QD_LIVE_CHECK=1; otherwise only SUPABASE_ACCESS_TOKEN (set by CI on purpose) makes these cases live.
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
-  || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
+  || (process.env.QD_LIVE_CHECK === '1' && existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
+const NO_TOKEN = 'live check off: set SUPABASE_ACCESS_TOKEN, or QD_LIVE_CHECK=1 to use the local token file';
 
 // ONE PROJECT since 15 Aug 2026. This used to loop over { production, staging }; staging was
 // deleted, and left in place every assertion below would have run twice — once for real, once
@@ -91,7 +94,7 @@ after(async () => {
   if (!mgmtToken) return;
   await closeWindows(); // node:test runs after() when a test fails too
 });
-test('the live login_otp calls run inside a rehearsal window of their own', { skip: mgmtToken ? false : 'no management token' }, () => {
+test('the live login_otp calls run inside a rehearsal window of their own', { skip: mgmtToken ? false : NO_TOKEN }, () => {
   assert.ok(windowId != null, 'no rehearsal window was opened, so every refusal below reads as a customer turned away');
 });
 
@@ -105,7 +108,7 @@ const send = async (project, user_kind, identifier) => {
 
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`an unknown number resolves to nobody for every kind on ${label}`, async (t) => {
-    if (!mgmtToken) { t.skip('no management token'); return; }
+    if (!mgmtToken) { t.skip(NO_TOKEN); return; }
     // "Unknown" must be measured, not assumed: if any account carries the number, a 200 below would
     // be production answering correctly, and the check would be blaming it for its own fixture.
     // Ids, the column that matched and the demo marker, so a transient harness row is told from a customer.
@@ -140,7 +143,7 @@ for (const [label, project] of Object.entries(PROJECTS)) {
 // the ~20 server-side lookups could key on.
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`a mobile number cannot create an account on ${label}`, async (t) => {
-    if (!mgmtToken) { t.skip('no management token'); return; }
+    if (!mgmtToken) { t.skip(NO_TOKEN); return; }
     const { status, body } = await fetch(`https://${project}.supabase.co/functions/v1/login_otp`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'send', user_kind: 'customer', identifier: UNKNOWN, allow_signup: true }),
@@ -218,7 +221,7 @@ async function signOut(project, s) {
 // This asserts the count does not move when an authenticated non-customer reads the endpoint.
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`customer_api does not manufacture an account on ${label}`, async (t) => {
-    if (!mgmtToken) { t.skip('no management token'); return; }
+    if (!mgmtToken) { t.skip(NO_TOKEN); return; }
 
     const admins = await q(project, `select value from app_secrets where key='admin_emails'`);
     const qaEmail = assertQaIdentity(QA_IDENTITY, admins[0]?.value);
@@ -266,7 +269,7 @@ for (const [label, project] of Object.entries(PROJECTS)) {
 // Twilio) and is never texted; 404 means nobody resolved, 409 means two did.
 const SHARED_EMAILS = ['zz-demo-shared-a@example.invalid', 'zz-demo-shared-b@example.invalid'];
 const sharedFixture = async (t, rows, expect) => {
-  if (!mgmtToken) { t.skip('no management token'); return; }
+  if (!mgmtToken) { t.skip(NO_TOKEN); return; }
   const project = PROJECTS.production;
   const cleanup = () => q(project, `delete from public.customers where email in ('${SHARED_EMAILS.join("','")}')`);
 
@@ -328,7 +331,7 @@ test('an unverified account on a number resolves to nobody', (t) => sharedFixtur
 // recorded on the column so the next session does not "fix" the missing phone index.
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`email is unique and phone is deliberately not on ${label}`, async (t) => {
-    if (!mgmtToken) { t.skip('no management token'); return; }
+    if (!mgmtToken) { t.skip(NO_TOKEN); return; }
     const idx = await q(project, `select indexname from pg_indexes where schemaname='public'
       and indexname in ('customers_email_lower_uidx','leads_claimed_by_lower_uidx')`);
     const names = idx.map((r) => r.indexname).sort();
