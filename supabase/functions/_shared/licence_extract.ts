@@ -54,17 +54,38 @@ export function licenceExtractRequest(payload: { images?: any[]; file_b64?: stri
     input: [{ role: 'user', content: documentContent('Read the attached UAE trade licence (all pages) and return the extraction JSON.', payload.images || [], payload) }] };
 }
 
-/** The model's object -> the licence doc every caller reads. */
+/** A licence number a model makes up when it sees none: one digit repeated, or a straight run (123456, 654321). */
+export function placeholderLicenceNo(v: unknown): boolean {
+  const t = String(v ?? '').trim();
+  if (!/^\d{4,}$/.test(t)) return false;
+  if (/^(\d)\1+$/.test(t)) return true;
+  return '01234567890123456789'.includes(t) || '98765432109876543210'.includes(t);
+}
+
+/** The model's object -> the licence doc every caller reads.
+ *
+ * NOTHING UNGROUNDED IS A READING (12 Oct 2026, stage-2 run 3 S02, sales_engineer). A 1x1 PNG went to the
+ * vision model and came back with expiry 2023-03-14 and licence number 123456 (ai_cost_log 19449, lead 143063);
+ * supplier_api wrote both and the review held the supplier as licence_expired off a date no document printed.
+ * Every UAE licence prints the licensee's name, so a read with no name in either language, or one the model
+ * itself calls 'low', saw no licence: it yields NO fields at all (unreadable: true) and callers write nothing.
+ * A placeholder number (123456, 000000) is dropped even from an otherwise named read. */
 export function normaliseLicence(ai: Record<string, unknown>) {
   const s = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
+  const named = /\p{L}{2}/u.test(s(ai.legal_name, 200)) || /\p{L}{2}/u.test(s(ai.legal_name_ar, 200));
+  if (!named || String(ai.confidence) === 'low') {
+    return { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '', license_authority: '', emirate: '',
+             city: '', issue_date: null as string | null, expiry_date: null as string | null, activities: [] as string[], trn: '',
+             confidence: 'low', unreadable: true };
+  }
   const emirate = normEmirate(ai.emirate || ai.city);
   return {
     legal_name: s(ai.legal_name, 200), legal_name_ar: s(ai.legal_name_ar, 200), trade_name: s(ai.trade_name, 200), legal_form: s(ai.legal_form, 120),
-    license_number: s(ai.license_number, 60), license_authority: s(ai.license_authority, 160), emirate,
+    license_number: placeholderLicenceNo(ai.license_number) ? '' : s(ai.license_number, 60), license_authority: s(ai.license_authority, 160), emirate,
     city: s(ai.city || ai.emirate, 80) || emirate, issue_date: normDate(ai.issue_date), expiry_date: normDate(ai.expiry_date),
     activities: Array.isArray(ai.activities) ? ai.activities.map((x) => String(x).slice(0, 120)).slice(0, 20) : [],
     trn: String(ai.trn || '').replace(/\D/g, '').slice(0, 15),
-    confidence: ['low', 'medium', 'high'].includes(String(ai.confidence)) ? String(ai.confidence) : 'low',
+    confidence: ['low', 'medium', 'high'].includes(String(ai.confidence)) ? String(ai.confidence) : 'low', unreadable: false,
   };
 }
 
