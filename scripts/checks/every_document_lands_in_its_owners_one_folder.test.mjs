@@ -46,6 +46,14 @@ test('the admit trigger files every later document beside the entity\'s first', 
   }
 });
 
+test('the customer and supplier folder is the NAMED one, never a placeholder opened before the name was known', () => {
+  // 12 Oct 2026 review of #1284: 5 files would have been merged INTO "Customer (<id8>)" because the first file of
+  // 2 customers was filed before the name was saved; the trigger must not anchor on such a folder.
+  const t = canonicalBody('trg_doc_backups_admit');
+  assert.ok(t.includes(String.raw`v_anchor !~ '/Customer \([0-9a-f]{8}\)/$'`), 'a "Customer (<id8>)" first folder must not decide the customer folder');
+  assert.ok(t.includes(String.raw`v_anchor !~ ('/Supplier \(' || v_id || '\)/$')`), 'a "Supplier (<id>)" first folder must not decide the supplier folder');
+});
+
 test('demo rows are dropped unless a tagged sandbox run admits its own, under _sandbox/<tag>/', () => {
   const t = canonicalBody('trg_doc_backups_admit');
   assert.match(t, /return null;/, 'the trigger must still refuse demo rows');

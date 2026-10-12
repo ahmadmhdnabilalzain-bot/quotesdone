@@ -78,7 +78,9 @@ begin
   if v_id is not null then
     select substring(d.dropbox_path from '^(' || v_root || '/Suppliers/[^/]+/[^/]* \(' || v_id || '\)/)') into v_anchor
       from public.doc_backups d where d.dedupe_key = v_kp || 'S:' || v_id || ':details';
-    if v_anchor is not null then
+    -- 12 Oct 2026 (review): a first folder opened before the name was known reads 'Supplier (<id>)'
+    -- (fn_enqueue_doc_backups writes coalesce(company_name, 'Supplier')); it never wins over the name.
+    if v_anchor is not null and v_anchor !~ ('/Supplier \(' || v_id || '\)/$') then
       new.dropbox_path := v_anchor || substring(new.dropbox_path from '^' || v_root || '/Suppliers/[^/]+/[^/]* \(' || v_id || '\)/(.*)$');
     end if;
   elsif new.dropbox_path ~ ('^' || v_root || '/Customers/[^/]+/') then
@@ -87,9 +89,14 @@ begin
       when new.entity = 'inquiry' and new.entity_id ~ v_uuid then
         (select i.customer_id::text from public.inquiries i where i.id = new.entity_id::uuid) end;
     if v_cust is not null then
+      -- 12 Oct 2026 (review): the CUSTOMER folder is the NAMED one. A customer whose first file was filed
+      -- before the name was saved sits in 'Customer (<id8>)' (coalesce(full_name, 'Customer')); anchoring
+      -- on that put every later file there and lost the name. The first folder wins only when it carries
+      -- a name; otherwise the current name does. (Files already in a 'Customer (<id8>)' folder are refiled
+      -- under the name by scripts/it/dropbox_tree_repair.ts, held for the founder's OK.)
       select substring(d.dropbox_path from '^(' || v_root || '/Customers/[^/]+/)') into v_anchor
         from public.doc_backups d where d.dedupe_key = v_kp || 'C:' || v_cust || ':details';
-      if v_anchor is not null then
+      if v_anchor is not null and v_anchor !~ '/Customer \([0-9a-f]{8}\)/$' then
         new.dropbox_path := v_anchor || substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/(.*)$');
       end if;
       v_inq8 := substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/\d{4}-\d{2}-\d{2} ([0-9a-f]{8})[^/]*/');
@@ -98,10 +105,13 @@ begin
           (select i.id::text from public.inquiries i
             where i.customer_id = v_cust::uuid and left(i.id::text, 8) = v_inq8 order by i.created_at limit 1) end;
         v_anchor := null;
-        select substring(d.dropbox_path from '^(' || v_root || '/Customers/[^/]+/Inquiries/[^/]+/)') into v_anchor
+        -- the request's own subfolder (date, id, first status) comes from its first file; the customer
+        -- folder above it is the one decided just above (the named one)
+        select substring(d.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/([^/]+)/') into v_anchor
           from public.doc_backups d where d.dedupe_key = v_kp || 'I:' || v_inq || ':summary';
         if v_anchor is not null then
-          new.dropbox_path := v_anchor || substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/[^/]+/(.*)$');
+          new.dropbox_path := substring(new.dropbox_path from '^(' || v_root || '/Customers/[^/]+/Inquiries/)') || v_anchor || '/'
+            || substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/[^/]+/(.*)$');
         end if;
       end if;
     end if;
@@ -602,6 +612,13 @@ begin
   values ('company', 'probe', 'probe', 'generated', 'probe', 'probe', '/QuotesDone Backup/Suppliers/Cat B/Probe Co Renamed (999999991)/Correspondence/x.pdf', 'PROBE1162:s2')
   returning dropbox_path into v_p;
   if v_p <> '/QuotesDone Backup/Suppliers/Cat A/Probe Co (999999991)/Correspondence/x.pdf' then v_fail := v_fail || ' supplier:' || v_p; end if;
+  -- a customer whose first folder was opened before the name was known: a later file goes to the NAMED folder
+  insert into public.doc_backups(entity, entity_id, doc_type, source, gen_kind, gen_ref, dropbox_path, dedupe_key)
+  values ('customer', '99999999-0000-4000-8000-000000001162', 'probe', 'generated', 'probe', 'probe', '/QuotesDone Backup/Customers/Customer (99999999)/Customer Details.pdf', 'C:99999999-0000-4000-8000-000000001162:details');
+  insert into public.doc_backups(entity, entity_id, doc_type, source, gen_kind, gen_ref, dropbox_path, dedupe_key)
+  values ('customer', '99999999-0000-4000-8000-000000001162', 'probe', 'generated', 'probe', 'probe', '/QuotesDone Backup/Customers/Probe Named (99999999)/Correspondence/y.pdf', 'PROBE1162:c2')
+  returning dropbox_path into v_p;
+  if v_p <> '/QuotesDone Backup/Customers/Probe Named (99999999)/Correspondence/y.pdf' then v_fail := v_fail || ' customer_named:' || v_p; end if;
   -- a demo row is dropped outside a sandbox
   insert into public.doc_backups(entity, entity_id, doc_type, source, gen_kind, gen_ref, dropbox_path, dedupe_key)
   values ('company', 'probe', 'probe', 'generated', 'probe', 'probe', '/QuotesDone Backup/Company/ZZ DEMO probe.pdf', 'PROBE1162:demo');
@@ -627,10 +644,10 @@ begin
   v_r := clock_timestamp()::text;
   perform public.fn_enqueue_doc_backups();
   if clock_timestamp() - v_r::timestamptz > interval '6 seconds' then v_fail := v_fail || ' enqueue_slow'; end if;
-  delete from public.doc_backups where dedupe_key in ('S:999999991:details', 'PROBE1162:s2', 'PROBE1162:demo', 'PROBE1162:other')
+  delete from public.doc_backups where dedupe_key in ('S:999999991:details', 'C:99999999-0000-4000-8000-000000001162:details', 'PROBE1162:c2', 'PROBE1162:s2', 'PROBE1162:demo', 'PROBE1162:other')
      or dedupe_key like 'SBX:probe-onefolder-%';
   select count(*) into v_after from public.doc_backups where dedupe_key not like 'PROBE1162:%' and dedupe_key not like 'SBX:probe-onefolder-%';
-  if exists (select 1 from public.doc_backups where dedupe_key like 'PROBE1162:%' or dedupe_key = 'S:999999991:details' or dedupe_key like 'SBX:probe-onefolder-%') then
+  if exists (select 1 from public.doc_backups where dedupe_key like 'PROBE1162:%' or dedupe_key in ('S:999999991:details', 'C:99999999-0000-4000-8000-000000001162:details') or dedupe_key like 'SBX:probe-onefolder-%') then
     v_fail := v_fail || ' probe_rows_left';
   end if;
   if v_after < v_before then v_fail := v_fail || ' real_rows_fell'; end if;
