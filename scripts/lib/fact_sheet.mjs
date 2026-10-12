@@ -19,9 +19,9 @@ const SLOT_OF = {
   location: 'location', location_floor: 'location',
   area_sqm: 'area', area: 'area', property_area: 'area', areas: 'purpose', application_area: 'purpose', safety_context: 'purpose',
   scope: 'scope', scope_mode: 'scope', supply_install: 'scope',
-  new_mod: 'new_or_replace', new_or_replace: 'new_or_replace', issue: 'new_or_replace', removal_levelling: 'new_or_replace',
+  new_mod: 'new_or_replace', new_or_replace: 'new_or_replace', issue: 'leak', removal_levelling: 'new_or_replace',
   timeline: 'timeline', supply_phase: 'supply_phase', surface_prep: 'surface_prep', design: 'design',
-  system_finish: 'material', glazing: 'material', glazing_performance: 'material', finish: 'material', aluminium_system: 'material',
+  system_finish: 'material', glazing: 'material', glazing_performance: 'material', finish: 'finish', aluminium_system: 'material',
   carcass_material: 'material', brand_tier: 'material', brand: 'material', color_finish: 'material', thickness_wear: 'material',
 };
 // The sales engineer's tap-to-answer questions accept an option VALUE (parseRequirementAnswer matches
@@ -50,6 +50,8 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
     surface_prep: 'جدران مدهونة سابقًا بحالة جيدة مع إصلاح شقوق بسيطة',
     stops: '4 وقفات (أرضي + 3)', capacity: '8 أشخاص، 630 كغ', design: 'التصميم جاهز',
     material: notSure ? 'لست متأكداً' : 'درجة تجارية قياسية من علامة معروفة',
+    leak: 'لا يوجد تسرب حالياً، العمل وقائي',
+    finish: 'لامينيت / ميلامين',
   } : {
     element: `${t.name}: ${p0}, ${p1} and ${p2}`,
     lines: `Line 1: ${p0} x 20, 1200 x 1500 mm each; Line 2: ${p1} x 10, 900 x 2100 mm each; Line 3: ${p2} x 5, 3000 x 2400 mm each`,
@@ -64,6 +66,11 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
     surface_prep: 'Previously painted walls in fair condition, minor crack repair',
     stops: '4 stops (G+3)', capacity: '8 persons, 630 kg', design: 'Design is ready',
     material: notSure ? 'Not sure' : `Standard commercial grade, ${t.brands?.[0] || 'a known brand'}`,
+    // Run f4294be8 (12 Oct 2026): the sheet had no fact for waterproofing `issue` (leak now or
+    // preventive) nor joinery `finish`; it answered them with new_or_replace and the brand-grade
+    // material, which do not say either, and C9/C6 were asked 13 times. Each now has its own fact.
+    leak: 'No leak at the moment, this is preventive',
+    finish: 'Laminate / melamine',
   };
   const whole = () => Object.entries(v).map(([k, x]) => `${k}: ${x}`).join('. ') + '.';
   return {

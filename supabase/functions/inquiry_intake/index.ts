@@ -10,7 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn } from './slots.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey } from './slots.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -396,6 +396,8 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // Slots the model read this turn are merged with the ones earlier turns captured; status and missing
     // are derived from them, and a sentence written for a status the row does not hold is replaced.
     let slotDetails: Record<string, string> | null = null;
+    let slotMissingKeys: string[] = [];
+    let slotExhausted: string[] = [];
     const slotLang = ar ? 'ar' : 'en';
     // Turn 1 has no stored trade, so the checklist is empty until the model names one: load the model's
     // trade's checklist here, or what the first message states is read against nothing and lost.
@@ -406,7 +408,8 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     if (out && llmParseOk && checklist.length && out.status !== 'rejected') {
       const prevDet = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
       const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
-      slotDetails = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0)).details;
+      const settled = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns));
+      slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
     }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
@@ -508,7 +511,17 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // previous turn stored; with neither it is 'general' — no trade, never the nearest one.
     if (!cat || (!validSlugs.includes(cat) && cat !== 'general')) { cat = (validSlugs.includes(String(draft.category)) ? draft.category : null) || 'general'; }
     category = cat;
-    let status = ['rejected', 'needs_info', 'ready'].includes(out.status) ? out.status : 'needs_info';
+    let status = ['rejected', 'needs_info', 'ready', 'held'].includes(out.status) ? out.status : 'needs_info';
+    // HELD FOR SPECS (slots.ts MAX_OPEN_TURNS): only questions the customer has not answered in three turns are
+    // left. The request is not ready and goes to no supplier; the sales engineer gets the same handoff the
+    // not-sure path opens (kind spec.not_sure, registered), subject this intake. One per intake (fn_seat_handoff).
+    if (status === 'held' && slotExhausted.length) {
+      const { error: hErr } = await admin.rpc('fn_seat_handoff', { p_from: 'customer_support', p_to: 'sales_engineer', p_type: 'spec.not_sure',
+        p_subject_table: 'inquiry_intake', p_subject_id: String(draft.id),
+        p_payload: { intake_id: draft.id, customer_id: cust?.id || null, not_sure: slotExhausted, category,
+          waiting_for: 'sales_engineer to help the customer settle these specs; asked three times without an answer' } });
+      if (hErr) await logRun('error', { spec_handoff_failed: 1 }, 'intake held for unanswered specs but the sales_engineer handoff failed: ' + hErr.message);
+    }
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
     turns.push({ role: 'assistant', text: out.assistant_message || '', agent: ACTOR });
 
@@ -752,7 +765,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // rewrite it after the assistant turn was pushed). Save the CORRECTED reply, so a false "ready" is
     // neither kept in the history nor fed back to the model next turn (review of #1277).
     for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; break; }
-    stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [] });
+    stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: status === 'ready' ? [] : (requiredGate ? requiredGate.missing_keys : slotMissingKeys) });
     const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
     if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0 }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the customer was told their request was accepted but the brief was never persisted, so the RFQ cannot be dispatched and this looks like the customer simply never finished intake.'); }
 

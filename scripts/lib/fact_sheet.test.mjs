@@ -34,6 +34,19 @@ test('the sales engineer questions get option values; material is the first opti
   assert.equal(factSheet('plumbing', { notSure: true }).answerFor({ next_question: { key: 'material.pipes', options: ['PPR'] } }), 'Not sure');
 });
 
+// Run f4294be8 (12 Oct 2026): the test above passed while `issue` was answered with "Replacement of
+// existing items" and `finish` with "Standard commercial grade" - an answer existed, it did not answer
+// the question, and C9/C6 were asked 13 times. The answer must carry the fact asked for.
+test('waterproofing issue says leak or preventive; joinery finish names a finish, in both languages', () => {
+  const ask = (trade, lang, k) => factSheet(trade, { lang }).answerFor({ required_gate: { missing_keys: [k] } });
+  assert.match(ask('waterproofing', 'en', 'issue'), /^issue: No leak .*preventive/);
+  assert.match(ask('waterproofing', 'ar', 'issue'), /^issue: لا يوجد تسرب.*وقائي/);
+  assert.match(ask('joinery', 'en', 'finish'), /^finish: Laminate/);
+  assert.match(ask('joinery', 'ar', 'finish'), /^finish: لامينيت/);
+  const whole = factSheet('waterproofing', {}).answerFor({ missing: ['Is there a leak now, or is this to prevent one?'] });
+  assert.match(whole, /leak: No leak/, 'a question text gets the whole sheet, and the sheet carries the leak fact');
+});
+
 test('a question text, never a key, gets the whole sheet, not filler', () => {
   const a = factSheet('aluminium', { emirate: 'Ajman' }).answerFor({ missing: ['Any preference for the glass? Tap one.'] });
   assert.match(a, /location: Villa in Ajman/);
