@@ -6195,7 +6195,8 @@
  ],
  "supabase/functions/site_assistant/index.ts": [
   "0e0329c97c49",
-  "244053c77971"
+  "244053c77971",
+  "72e210163600"
  ],
  "supabase/functions/site_assistant/stream_reply.ts": [
   "aeb58bdf5c4d"
