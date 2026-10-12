@@ -28,7 +28,7 @@ import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
-import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
+import { MATCH_ALL, relevanceFloorApplies } from '../_shared/supplier_capability.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { noExactSpec, offerMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
@@ -757,19 +757,17 @@ Deno.serve(observe('sales_engineer', async (req) => {
       const emirate = matchEmirate(src.emirate);
       const projectType = String(src.scope_type ?? '').trim() || null;
 
-      // THE FANOUT CEILING IS READ, NOT COMPILED IN. decision_policy holds match_max_fanout = 5,
-      // match_max_fanout_per_trade = 3 and match_relevance_floor = 35 (measured 9 Sep 2026). The
-      // keyword fallback this replaces hard-coded p_limit: 8, which CONTRADICTED the ceiling of 5
-      // and had done so on every inquiry it ever handled. The configured 5 wins here; 8 was never
-      // policy, it was a literal.
+      // THE RELEVANCE FLOOR IS READ, NOT COMPILED IN (decision_policy.match_relevance_floor = 35, measured 9 Sep 2026).
       const { data: polRows } = await admin.from('decision_policy').select('key,value')
-        .in('key', ['match_max_fanout', 'match_max_fanout_per_trade', 'match_relevance_floor']);
+        .in('key', ['match_relevance_floor']);
       const pol = Object.fromEntries((polRows || []).map((r: { key: string; value: unknown }) => [r.key, Number(r.value)]));
-      const maxFanout = Number.isFinite(pol.match_max_fanout) ? pol.match_max_fanout : 5;
-      const perTrade = Number.isFinite(pol.match_max_fanout_per_trade) ? pol.match_max_fanout_per_trade : 3;
+      // EVERY MATCHED SUPPLIER IS INVITED (founder ruling 24 Sep 2026: ANY number of suppliers may quote; "top 3" is
+      // only the comparison report's recommendation). The per-trade cap of 3 and the ceiling of 5 left a 4th capable
+      // supplier uninvited (sandbox run 1c94fa6a S07). No count caps the invitation; the SQL gates and the relevance
+      // floor decide who is matched. match_max_fanout / _per_trade are no longer read.
       const floor = Number.isFinite(pol.match_relevance_floor) ? pol.match_relevance_floor : 35;
 
-      const policy = { max_fanout: maxFanout, max_fanout_per_trade: perTrade, relevance_floor: floor };
+      const policy = { max_fanout: null, max_fanout_per_trade: null, relevance_floor: floor };
       // HAVE WE MATCHED THIS KIND OF JOB BEFORE, AND HOW DID IT END? (23 Sep 2026.) By meaning, within
       // the same trade only (the exact-trade rule), never this inquiry itself. Evidence in the answer;
       // it does not change the SQL gates — a precedent informs the seat, it does not pick suppliers.
@@ -839,9 +837,8 @@ Deno.serve(observe('sales_engineer', async (req) => {
       askedFor.services = serviceKeys;
       askedFor.services_read = servicesRead;
 
-      // Headroom, then trim. Asking fn_match_capability for exactly 5 would let one over-represented
-      // trade fill the list before the per-trade cap could spread it.
-      const headroom = Math.min(60, Math.max(maxFanout, trades.length * perTrade * 2));
+      // Every gated candidate, not a top N (fn_match_capability applies `limit greatest(1, p_limit)`).
+      const headroom = MATCH_ALL;
       const { data: rowsRaw, error: matchErr } = await admin.rpc('fn_match_capability', {
         p_trades: trades, p_need: need, p_products: products, p_brands: brands,
         p_project_type: projectType, p_value: value, p_emirate: emirate, p_limit: headroom,
@@ -865,20 +862,10 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // aluminium request invited nobody (smoke run 34888342875: 0/3 matched). The #658 check calls
       // the SQL directly and never met this floor. With no product named there is no relevance to
       // measure; the exact trade already is the relevance test ("either exact match or no match"),
-      // so the floor gates only when products were asked for. Fanout and per-trade caps still apply.
+      // so the floor gates only when products were asked for. No count cap applies after it.
       const aboveFloor = relevanceFloorApplies(products) ? rows.filter((r) => Number(r.score) >= floor) : rows;
 
-      const usedByTrade = new Map<string, number>();
-      const picked: Array<Record<string, unknown>> = [];
-      for (const r of aboveFloor) {
-        if (picked.length >= maxFanout) break;
-        const shared = arr(r.trades).filter((t) => trades.includes(t));
-        // Every trade this supplier would be picked FOR is already full. Taking it anyway is the
-        // padding the grant names.
-        if (shared.length && shared.every((t) => (usedByTrade.get(t) || 0) >= perTrade)) continue;
-        for (const t of shared) usedByTrade.set(t, (usedByTrade.get(t) || 0) + 1);
-        picked.push(r);
-      }
+      const picked = aboveFloor;
 
       const matched = picked.map((r) => ({
         supplier_id: Number(r.supplier_id),
@@ -952,7 +939,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         candidates: rows.length, above_floor: aboveFloor.length,
         matched, persisted, gap,
         grant: { grant: may.grant, limit: may.limit },
-        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor, per-trade cap and fanout ceiling. No model was called and no supplier was added to reach a count.',
+        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor; every supplier left is invited, with no count cap. No model was called and no supplier was added to reach a count.',
       });
     }
 
