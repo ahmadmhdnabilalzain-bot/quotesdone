@@ -187,7 +187,7 @@ export async function pdfText(bytes: Uint8Array): Promise<string | null> {
 const LEGAL_NAME_LABELS = ['legal name', 'company name', 'name of company', 'name of the company', 'establishment name', 'name of establishment',
   'الاسم القانوني', 'اسم الشركة', 'اسم المؤسسة'];
 const TRADE_NAME_LABELS = ['trade name', 'trading name', 'الاسم التجاري'];
-const NAME_LABELS = [...LEGAL_NAME_LABELS, ...TRADE_NAME_LABELS];
+export const NAME_LABELS = [...LEGAL_NAME_LABELS, ...TRADE_NAME_LABELS];
 export function licenceNameFromText(text: string): string | null {
   for (const label of NAME_LABELS) {
     const re = new RegExp('^[ \\t]*' + label + '[ \\t]*[:：\\-]?[ \\t]*(.+)$', 'im');

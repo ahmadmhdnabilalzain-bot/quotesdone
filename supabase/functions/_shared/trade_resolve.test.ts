@@ -6,7 +6,7 @@
 // codes and slugs. scripts/checks/a_suppliers_documents_name_trades_by_exact_code_or_meaning_never_by_words.test.mjs
 // runs the real routine and the real gte-small model on ZZ DEMO documents.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { exactCandidates, textLines, tradesOfText, type TradeResolveDeps } from './trade_resolve.ts';
+import { exactCandidates, nameForms, textLines, tradesOfText, withoutNames, type TradeResolveDeps } from './trade_resolve.ts';
 import type { MeaningService } from './service_meaning.ts';
 import { meaningClauses } from './service_meaning.ts';
 import { isNameOrReachLine } from './catalogue_read.ts';
@@ -166,4 +166,26 @@ Deno.test('a name or contact line is read by no path; the work line beside it st
     assertEquals(isNameOrReachLine(l), false, l);
   for (const l of ['Tel: +971 4 123 4567', 'sales@zzdemo.example.invalid', 'www.zzdemo.example.invalid', 'ZZ DEMO Falcon FZE', 'فالكون للألمنيوم ذ.م.م', 'Call 04 123 4567'])
     assertEquals(isNameOrReachLine(l), true, l);
+});
+// 12 Oct 2026 (sales_engineer, unsuffixed-names): a name printed WITHOUT a legal suffix is known by the licence layout
+// (its labelled name fields) and by the supplier's known names, exactly; the activity line beside it still proposes.
+Deno.test('an unsuffixed name line proposes nothing; the work line beside it still does', async () => {
+  const asked: string[] = [];
+  const deps: TradeResolveDeps = {
+    normTrades: async (p) => { asked.push(...p); return Object.fromEntries(p.filter((x) => /clean|floor|التنظيف/i.test(x)).map((x) => [x, ['cleaning']])); },
+    services: [{ trade_code: 'cleaning', code: 'office', label_en: 'Office cleaning', label_ar: '', aliases: [], vec: [1, 0] }],
+    embed: async (t) => { asked.push(t); return [1, 0]; },
+    budget: { left: 40 },
+  };
+  const nameLines = ['ZZ DEMO Falcon Cleaning', 'ZZ DEMO Falcon Cleaning - Company Profile', 'Trade Name: Horizon Floor',
+    'الاسم التجاري: زد زد ديمو الأفق للتنظيف', 'Company Name : ZZ DEMO Pearl Cleaning'];
+  const opts = { names: ['ZZ DEMO Falcon Cleaning LLC'] };
+  const r = await tradesOfText(nameLines.join('\n'), deps, opts);
+  assertEquals([r.trades, asked.filter((a) => /falcon|horizon|pearl|الأفق|trade name|company name/i.test(a))], [[], []]);
+  const w = await tradesOfText([...nameLines, 'ZZ DEMO Falcon Cleaning provides office cleaning works'].join('\n'), { ...deps, budget: { left: 40 } }, opts);
+  assertEquals(w.trades.map((t) => t.code), ['cleaning'], 'the work line is still read');
+  assert(w.trades[0].snippet.startsWith('provides office cleaning'), w.trades[0].snippet);
+  // exact only: a name that merely resembles the company's is not cut
+  assertEquals(withoutNames('Falcon cleaning works', nameForms(['ZZ DEMO Falcon Cleaning LLC'])), 'Falcon cleaning works');
+  assertEquals(nameForms(['ZZ DEMO Falcon Cleaning L.L.C.', 'Ab', null]), ['zz demo falcon cleaning l.l.c.', 'zz demo falcon cleaning']);
 });

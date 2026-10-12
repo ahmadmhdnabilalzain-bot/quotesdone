@@ -46,7 +46,9 @@ export type DocKind = 'licence' | 'profile' | 'catalogue';
 // `photo_text` is the text the supplier's own browser recognised in a photo or a scanned page
 // (tesseract.js, the same self-hosted OCR the customer side uses). It is untrusted words like any other
 // upload, read through the same path, and the evidence says it came from a photo.
-export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string };
+export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string;
+  /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
+  names?: (string | null)[] };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
   status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable';
@@ -94,13 +96,17 @@ export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Prom
     // licence was read, so the company's NAME line proposed trades: "Company Name: ZZ DEMO Horizon Floor LLC" ->
     // floor cleaners and mezzanine floors, on 4 of 22 text licences of scripts/e2e/document_intake_corpus.mjs. Only
     // the labelled activities line is read now; a licence whose activities could not be read proposes nothing.
+    // A NAME IS NEVER A TRADE (12 Oct 2026): the supplier's known names and the names this document's own name fields
+    // print are cut out of every line by trade_resolve.withoutNames, printed with or without a legal suffix.
+    const F = licenceFieldsFromText(text);
+    const names = [...(doc.names ?? []), F.legal_name_en, F.legal_name_ar, F.trade_name];
     if (doc.kind === 'licence') {
-      const acts = licenceFieldsFromText(text).activities;
+      const acts = F.activities;
       if (!acts?.length) return { ...base, status: 'read', format, source, reason: 'no activities line could be read on the licence', trades: [] };
       text = acts.join('\n');
     } else text = withoutCredentialLines(text);
     const c = doc.kind === 'catalogue' ? catalogueText(text) : null;
-    const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only });
+    const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
     return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
   };
   const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true }) : null);
@@ -141,6 +147,10 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     if (!docs.length) return { ok: true, proposed_trades: [], docs: [] };
     // One set of deps for every document of this call: the vectors are read once, and meaning's line budget is shared.
     const d0 = deps ?? await liveTradeDeps(admin);
+    // The names on the supplier's row after the upload's own write: the registered name and the licence's legal name
+    // (code's reading, or the model's where code read none). Read once; a failed read only means fewer names.
+    const { data: who } = await admin.from('leads').select('company_name,licence_legal_name').eq('id', supplierId).maybeSingle();
+    const known = [who?.company_name ?? null, who?.licence_legal_name ?? null];
     const fresh: DocEvidence[] = [];
     for (const d of docs) {
       let bytes = d.bytes;
@@ -148,7 +158,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
         const { data: blob } = await admin.storage.from('supplier-docs').download(d.path);
         if (blob) bytes = new Uint8Array(await blob.arrayBuffer());
       }
-      fresh.push(await readDocForTrades({ ...d, bytes }, d0));
+      fresh.push(await readDocForTrades({ ...d, bytes, names: [...known, ...(d.names ?? [])] }, d0));
     }
     const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
