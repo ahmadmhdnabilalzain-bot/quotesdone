@@ -1,1 +1,0 @@
-Committed, not applied: no apply before merge. The release operator applies it at merge, together with the sales_engineer edge function deploy from the same PR. After that, this note is deleted and the file is appended to the END of MANIFEST.txt. Seat: sales_engineer.
