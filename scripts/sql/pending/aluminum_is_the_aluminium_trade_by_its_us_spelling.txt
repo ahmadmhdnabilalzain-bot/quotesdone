@@ -1,0 +1,4 @@
+Pending: apply at merge of #1311 (release operator). Adds the intake alias 'aluminum' -> aluminium so that
+public.fn_norm_trades resolves the US spelling; until it is applied, "Aluminum Works Contracting" proposes nothing by
+the code-word path (the shipped code reads the alias through fn_norm_trades_many). On apply: delete this note and
+append the .sql to the END of scripts/sql/MANIFEST.txt in the same commit.

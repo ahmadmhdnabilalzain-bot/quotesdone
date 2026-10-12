@@ -112,7 +112,9 @@ Deno.test('a trade named in general is accepted by its trade name; a word that n
 });
 // 12 Oct 2026 (sales_engineer, accuracy suite: 0 of 9 aluminium suppliers reached). The live shape: the line's three
 // nearest services belong to other trades, "aluminium" is a whole part of two trade NAMES, and is the CODE of one.
-Deno.test('a line holding a trade\'s own code names that trade when it also means one of its services', () => {
+// codeWords are what fn_norm_trades resolves to ONE trade (trade_resolve.codeWordsOf): the codes, and the stored alias
+// 'aluminum' (scripts/sql/aluminum_is_the_aluminium_trade_by_its_us_spelling.sql).
+Deno.test('a work line holding a word the database resolves to one trade names it when it also means one of its services', () => {
   const v = (a: number, b: number, c: number) => [a, b, c];
   const S: MeaningService[] = [
     { trade_code: 'machinery_repair', code: 'pm', label_en: 'Preventive maintenance contracts', label_ar: '', aliases: [], vec: v(1, 0, 0) },
@@ -120,15 +122,20 @@ Deno.test('a line holding a trade\'s own code names that trade when it also mean
     { trade_code: 'general_contracting', code: 'bc', label_en: 'Building construction', label_ar: '', aliases: [], vec: v(0.98, 0.2, 0) },
     { trade_code: 'non_ferrous_metals', code: 'aluminium_sheet', label_en: 'Aluminium sheet & profiles', label_ar: '', aliases: [], vec: v(0.9, 0, 0.44) },
     { trade_code: 'aluminium', code: 'windows_doors', label_en: 'Aluminium windows & doors', label_ar: '', aliases: [], vec: v(0.85, 0, 0.53) },
+    { trade_code: 'glazing', code: 'facades', label_en: 'Glass façades', label_ar: '', aliases: [], vec: v(0.6, 0.8, 0) },
   ];
-  const labels = { aluminium: 'Aluminium & cladding', non_ferrous_metals: 'Aluminium, copper & non-ferrous metals', general_contracting: 'General contracting', machinery_repair: 'Machinery repair' };
-  const line = (text: string, vec: number[]) => proposeByMeaning([{ text, vec, space: 'gte' }], S, { tradeLabels: labels }).map((x) => [x.trade, x.because]);
+  const labels = { aluminium: 'Aluminium & cladding', non_ferrous_metals: 'Aluminium, copper & non-ferrous metals', general_contracting: 'General contracting', machinery_repair: 'Machinery repair', glazing: 'Glass & glazing' };
+  const codeWords = { aluminium: 'aluminium', aluminum: 'aluminium', glazing: 'glazing' };
+  const line = (text: string, vec: number[]) => proposeByMeaning([{ text, vec, space: 'gte' }], S, { tradeLabels: labels, codeWords }).map((x) => [x.trade, x.because]);
   assertEquals(line('Aluminium Works Contracting', v(0.97, 0, 0.24)), [['aluminium', 'trade_code']]);
-  // the code alone is not enough: a company name holding it, far from every aluminium service, proposes nothing
-  assertEquals(line('Legal Name: ZZ DEMO Falcon Aluminium LLC', v(0.5, 0.86, 0)), []);
-  // the US spelling is the same trade's own name
-  assertEquals(line('Aluminum Works Contracting', v(0.97, 0, 0.24)), [['aluminium', 'trade_code']]);
+  assertEquals(line('Aluminum Works Contracting', v(0.97, 0, 0.24)), [['aluminium', 'trade_code']], 'the stored US-spelling alias');
+  // a company name and a trader name no work. Measured live: "Legal Name: ZZ DEMO Falcon Glazing LLC" reached a
+  // glazing service at 0.821, above the floor - the floor alone would have accepted it; the work gate refuses it.
+  assertEquals(line('Legal Name: ZZ DEMO Falcon Glazing LLC', v(0.6, 0.8, 0)).filter(([, b]) => b === 'trade_code'), []);
+  assertEquals(line('Aluminium Trading LLC', v(0.97, 0, 0.24)), []);
+  // without the database's words nothing is matched by word
+  assertEquals(proposeByMeaning([{ text: 'Aluminium Works Contracting', vec: v(0.97, 0, 0.24), space: 'gte' }], S, { tradeLabels: labels }).length, 0);
   // an Arabic line is not confirmed by this rule: the e5 space scores names and metal traders as high as activities
   const ar = S.map((s) => ({ ...s, vec_ml: s.vec }));
-  assertEquals(proposeByMeaning([{ text: 'أعمال الألمنيوم', vec: v(0.97, 0, 0.24), space: 'ml' }], ar, { tradeLabels: labels }).map((x) => x.because), []);
+  assertEquals(proposeByMeaning([{ text: 'أعمال الألمنيوم', vec: v(0.97, 0, 0.24), space: 'ml' }], ar, { tradeLabels: labels, codeWords }).length, 0);
 });
