@@ -41,7 +41,7 @@ export const ROUTE_SEATS: { id: Seat; meaning: string }[] = [
 ];
 
 const FORMAT: Record<Channel, string> = {
-  widget: 'Plain text for a chat window (no markdown), under about 70 words.',
+  widget: 'Plain text for a chat window (no markdown), under about 70 words. Keep the JSON short: at most two brief reasoning items, nothing else extra.',
   whatsapp: 'Plain text for WhatsApp (no markdown), under about 90 words; each phone number, email or link on its own line.',
   email: 'Plain text for an e-mail body, without a greeting or a sign-off (they are added).',
   portal: 'Plain text for the portal chat (no markdown), under about 120 words; the person is signed in.',
@@ -59,6 +59,7 @@ export interface SupportReplyRequest {
   facts?: string;                 // the company block / published facts the channel already reads live
   dedupeKey?: string;
   subject?: Record<string, unknown>;
+  priceTrades?: string[];         // widget: the published trades; the answering call says which one (if any) is asked the price of
 }
 export interface SupportReply {
   reply: string;
@@ -70,6 +71,8 @@ export interface SupportReply {
   readability?: Readability;      // the plain-language gate's verdict on the reply that went out (1013 item 7)
   rewritten?: boolean;            // the composed reply failed the gate and was rewritten once
   grounded: boolean;              // company knowledge was found for this message, or the reply cited a source
+  verified?: string | null;       // the independent check's verdict on the reply that went out ('agreed' on every widget reply)
+  priceTrade?: string | null;     // the published trade the visitor asks the price of, chosen in the answering call (widget)
 }
 
 /** The composed reply, or the caller's deterministic road when no model can answer. Never throws. */
@@ -97,6 +100,20 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       const { data } = await deps.rpc('fn_support_corpus_search', { p_query: req.message, p_public: req.channel !== 'portal', p_limit: 5 });
       passages = Array.isArray(data) ? data.map((r: { content?: string; citation?: string }) => ({ content: String(r.content || ''), citation: r.citation ?? null })) : [];
     }
+    // THE WIDGET'S REPLY IS CHECKED, AND ONLY CHECKED TEXT LEAVES (12 Oct 2026). The independent check runs on every widget
+    // answer; a reply the reviewer did not AGREE with (not run, or disagreed and redrafted) is never sent or cached: the
+    // caller's road answers instead. The plain-language rewrite happens before the check (think.polish), never after.
+    const checked = req.channel === 'widget';
+    const plain = async (text: string): Promise<string | null> => {
+      const g0 = guardSupportReply(text.trim(), req.lang);
+      const rd0 = checkReadability(g0.text, req.lang);
+      if (rd0.ok) return null;
+      const rw = await deps.llm('synthesise', rewritePrompt(req.lang), JSON.stringify({ reply: g0.text, problems: rd0.issues }),
+        { taskClass: taskClassFor('synthesise', req.audience, false, req.lang), seat: req.seat ?? 'customer_support', max: 600 });
+      let a = '';
+      try { a = String(JSON.parse(String(rw.content ?? '').replace(/^```(json)?|```$/g, '').trim())?.answer ?? ''); } catch (_e) { a = ''; }
+      return a.trim() || null;
+    };
     const r = await think(deps, {
       seat: req.seat ?? 'customer_support', surface: `support_reply.${req.channel}`, route: ROUTE_SEATS,
       question: `Reply to this ${req.audience} message to QuotesDone as its ${req.seat ?? 'customer_support'} seat, in ${req.lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}. ${FORMAT[req.channel]} `
@@ -108,14 +125,20 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       // THE WIDGET HANDS OVER ITS PLAN (12 Oct 2026, customer_support): it has already searched the corpus for this
       // message (the passages above), so the planning call — 5-9 s of a 20-30 s reply, measured — is skipped, and the
       // independent check runs on EVERY widget answer instead of only when a planner called it high-stakes.
-      ...(req.channel === 'widget' ? { plan: { steps: [{ id: 's1', goal: 'answer the visitor from company knowledge', query: req.message.slice(0, 500) }] }, stakes: 'high' as const } : {}),
+      // Its plain-language rewrite runs BEFORE that check, so the checked text is the text sent; and which published
+      // trade (if any) they ask the price of is chosen in the same answering call, not by a second chain (546, #1327).
+      ...(checked ? { plan: { steps: [{ id: 's1', goal: 'answer the visitor from company knowledge', query: req.message.slice(0, 500) }] }, stakes: 'high' as const, polish: plain,
+        ...(req.priceTrades?.length ? { ask: { key: 'price_trade', options: [...req.priceTrades.map((t) => ({ id: t, meaning: `they ask what ${t.replace(/-/g, ' ')} work or material costs` })),
+          { id: 'none', meaning: 'they do not ask the price of one of these trades (platform fees, how it works, anything else)' }] } } : {}) } : {}),
       // a short refusal of a manipulation or an out-of-scope ask may be the reply here, and nowhere else (think.ts)
       allowDecline: true,
     });
     if (r.status !== 'answered' || !r.answer.trim()) return await fall(r.reason || 'not_answered');
+    if (checked && r.verified?.status !== 'agreed') return await fall('unchecked: the independent check ' + (r.verified?.status ?? 'did not run'));
     let g = guardSupportReply(r.answer.trim(), req.lang);
     let rd = checkReadability(g.text, req.lang);
-    let rewritten = false;
+    let rewritten = r.steps.some((s) => s.id === 'polish');
+    if (!rd.ok && checked) return await fall('readability: ' + rd.issues.join(' '));
     if (!rd.ok) {
       // THE PLAIN-LANGUAGE GATE (1013 item 7): one rewrite through the reasoning path; if that still fails,
       // the approved canned answer goes out instead of a reply the customer cannot read.
@@ -131,6 +154,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       if (!rewritten) return await fall('readability: ' + rd.issues.join(' '));
     }
     return await logged({ reply: g.text, path: 'reasoned', seat: (r.route as Seat | null) ?? null, model: r.model ?? null, violations: g.violations, readability: rd, rewritten,
+      verified: r.verified?.status ?? null, priceTrade: r.extra && r.extra !== 'none' ? r.extra : null,
       grounded: passages.length > 0 || r.sources.length > 0 });
   } catch (e) {
     return await fall('error: ' + String((e as Error)?.message || e).slice(0, 200));

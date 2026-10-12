@@ -23,7 +23,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, pickFaq, type FaqRow, type QuestionType } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { capabilityStatement } from '../_shared/size_question.ts';
-import { defaultDeps } from '../_shared/think.ts';
+import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { widgetMeaning } from '../_shared/reasoned_channels.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
@@ -142,6 +142,17 @@ async function identify(req: Request): Promise<{ email: string; audience: 'custo
 // WHERE THE TIME GOES (E2E stage 1, D5, 30 Sep 2026: 7-14 s for ready-made answers). Every phase is stamped and
 // the stamps ride on the observe row (counts.ms), so the next slow reply names its own slow step.
 type Timer = Record<string, number>;
+// PER-STAGE TIMINGS (12 Oct 2026): every model call, embedding and RPC a chain makes adds its ms to the run's stamps
+// (e.g. reply.llm.synthesise, reply.llm.verify, price.embed, reply.rpc.fn_reason_retrieve_ml), so the observe row says
+// where a slow answer spent its time. Sums, plus a count per stage (".n").
+function timed(d: ThinkDeps, T: Timer, tag: string): ThinkDeps {
+  const add = (k: string, t0: number) => { T[k] = (T[k] ?? 0) + Date.now() - t0; T[k + '.n'] = (T[k + '.n'] ?? 0) + 1; };
+  return { ...d,
+    llm: async (p, s, i, o) => { const t0 = Date.now(); try { return await d.llm(p, s, i, o); } finally { add(`${tag}.llm.${p}`, t0); } },
+    embed: async (t, sp) => { const t0 = Date.now(); try { return await d.embed(t, sp); } finally { add(`${tag}.embed`, t0); } },
+    rpc: async (f, a) => { const t0 = Date.now(); try { return await d.rpc(f, a); } finally { add(`${tag}.rpc.${f}`, t0); } },
+  };
+}
 const plain = observe('site_assistant', async (req) => {
   const T: Timer = {}; const t0 = Date.now();
   const res = await handle(req, T);
@@ -447,10 +458,19 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // UNDER THE HOLD A VISITOR'S PRICE QUESTION CANNOT BE REASONED (D5, 30 Sep 2026): priceGuidanceFor embeds, reads
     // every trade and then asks think(), which holds, so it always ended {reason:'held'} after 1.2-1.4 s (measured).
     // An anonymous visitor is never answered later, so nothing is lost by not asking. A signed-in party still asks.
-    if (reasoningOpen || who) try {
+    // While reasoning is open the trade is chosen INSIDE the answering call (support_reply priceTrades, below): one chain
+    // per request, never a price chain beside or before it (546, #1327). The old separate reasoning stays only for a
+    // signed-in party under the hold, as before.
+    const bandsFor = (pg: any) => {
+      priceBands = pg || null;
+      if (pg && pg.ok) priceCtx = 'PRICE GUIDANCE (published UAE ranges held by QuotesDone, for the trade "' + pg.trade + '"):\n' + JSON.stringify(pg);
+      else if (pg && pg.reason === 'trade_has_a_recorded_gap') priceCtx = 'PRICE GUIDANCE: QuotesDone publishes NO price range for the trade "' + pg.trade
+        + '". Say that plainly if they asked what it costs, do not estimate one, and offer to put the job out to suppliers for real quotes.';
+    };
+    if (!reasoningOpen && who) try {
       // Which trade (if any) the visitor asks the price of is REASONED (think(), reasoned_suppliers.ts;
       // founder_instruction 886-903). Held: no price block, and the visitor is answered from the FAQ and corpus.
-      const pg: any = await priceGuidanceFor(defaultDeps(admin, 'site_assistant'), message, 6, audience === 'unknown' ? 'visitor' : audience, who ? 'acct:' + who.email : 'ip:' + ip);
+      const pg: any = await priceGuidanceFor(timed(defaultDeps(admin, 'site_assistant'), T, 'price'), message, 6, audience === 'unknown' ? 'visitor' : audience, who ? 'acct:' + who.email : 'ip:' + ip);
       priceBands = pg || null;
       if (pg && pg.ok) {
         priceCtx = 'PRICE GUIDANCE (published UAE ranges held by QuotesDone, for the trade "'
@@ -476,15 +496,25 @@ async function handle(req: Request, T: Timer): Promise<Response> {
 
     if (reasoningOpen) {
       const ch = ['whatsapp', 'email', 'portal'].includes(String(b.channel)) ? b.channel as Channel : 'widget';
-      const sr = await supportReply(defaultDeps(admin, 'site_assistant'), {
+      let trades: string[] = [];
+      try { const { data } = await admin.rpc('fn_price_guidance', { p_trade: null, p_limit: 6 }); trades = Array.isArray((data as any)?.trades) ? (data as any).trades.map(String) : []; } catch (_e) { trades = []; }
+      const compose = (withTrades: boolean) => supportReply(timed(defaultDeps(admin, 'site_assistant'), T, 'reply'), {
         channel: ch, message, lang: langOf(message, uiLang), audience: audience === 'unknown' ? 'visitor' : audience,
         seat: seatForSurface === 'sales_engineer' ? 'sales_engineer' : 'customer_support', passages: packRows,
         conversation: history.map((h: any) => ({ role: h.role === 'assistant' ? 'seat' : (audience === 'supplier' ? 'supplier' : 'customer'), text: h.content })),
-        profile: live ?? undefined,
+        profile: live ?? undefined, priceTrades: withTrades ? trades : undefined,
         facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', priceCtx, timelineBlock].filter(Boolean).join('\n\n'),
       }, () => Promise.resolve(null));
+      let sr = await compose(trades.length > 0);
+      // A real trade-price question: the bands are read (one RPC) and the reply is composed once more WITH them.
+      if (sr.path === 'reasoned' && sr.priceTrade) {
+        try { const { data } = await admin.rpc('fn_price_guidance', { p_trade: sr.priceTrade, p_limit: 6 }); bandsFor(data); } catch (_e) { /* no bands: the first reply stands */ }
+        if (priceCtx) sr = await compose(false);
+      }
+      lap('reply');
       if (sr.path === 'reasoned' && sr.reply) {
-        if (cacheK) await storeReply(rpc, cacheK, sr.reply, sr.model ?? null);
+        // Only a reply the independent check AGREED with is cached (support_reply.ts already refuses any other on the widget).
+        if (cacheK && ch === 'widget' && sr.verified === 'agreed') await storeReply(rpc, cacheK, sr.reply, sr.model ?? null);
         const fx = await fileEffects({ grounded: sr.grounded, answered: true, refusal: 'reasoned_without_company_knowledge' });
         try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
         return J({ reply: sr.reply, scope: live ? audience : 'public', routed: 'reasoned', routed_seat: sr.seat });

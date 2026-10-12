@@ -1,14 +1,14 @@
-// THE WIDGET'S STREAM CONTRACT (customer_support, 12 Oct 2026). The reply chain is ~6 model calls (33-66 s measured),
-// and the visitor stared at "Typing…" for all of it. A caller that sends `Accept: application/x-ndjson` now gets one
-// JSON object per line:
-//   {"t":"status","text":…}   at once, before any read or model call: an honest "looking into it", in their language
-//   {"t":"delta","text":…}    the reply, a few words at a time
+// THE WIDGET'S STREAM CONTRACT (customer_support, 12 Oct 2026). A caller that sends `Accept: application/x-ndjson`
+// gets one JSON object per line:
+//   {"t":"status","text":…}   at once, before any read or model call: a fixed placeholder ("looking into it") in their
+//                               language. It is an acknowledgement, NOT the answer, and is measured separately from it.
+//   {"t":"delta","text":…}    the answer, a few words at a time, sent the moment the approved reply exists
 //   {"t":"done", …}           the same object the plain JSON response carries (reply, scope, routed, …)
-// WHAT IS NEVER STREAMED: a draft. The deltas are cut from the FINAL reply — after think()'s independent check, the
-// plain-language gate and guardSupportReply — so the visitor can never read text the check would have rejected. The
-// first visible words are the status line, which is fixed text and carries no claim.
+// WHAT IS NEVER STREAMED: a draft. On the widget the plain-language rewrite runs BEFORE the independent check, and
+// support_reply.ts sends a reply only when that check AGREED (not run or disagreed: the deterministic road answers
+// instead). The deltas are cut from that final, guarded text, so the visitor never reads words the check did not pass.
 // Any caller without that Accept header gets the JSON response exactly as before.
-// prevented by: site_assistant/stream_reply.test.ts
+// prevented by: site_assistant/stream_reply.test.ts, _shared/support_reply.test.ts (unchecked replies fall back)
 export const STATUS = {
   en: 'Looking into that for you…',
   ar: 'لحظة من فضلك، أتحقق من ذلك…',

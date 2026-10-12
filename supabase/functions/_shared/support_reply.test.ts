@@ -3,7 +3,7 @@ import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
 import { supportReply } from './support_reply.ts';
 
-function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unknown[] }) {
+function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unknown[]; verify?: string | null }) {
   const calls: { phase: Phase; system: string; input: string }[] = []; const rpcs: string[] = [];
   const synth = [...(o.synth ?? [])];
   const deps: ThinkDeps = {
@@ -12,7 +12,7 @@ function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unkno
       calls.push({ phase, system, input });
       if (phase === 'decompose') return Promise.resolve({ content: JSON.stringify({ steps: [{ id: 's1', goal: 'the rule', query: 'non-response refund rule' }], facts: [], high_stakes: false }), model: 'stub' });
       // the widget's answers are always independently checked now (12 Oct 2026): the reviewer agrees here
-      if (phase === 'verify') return Promise.resolve({ content: JSON.stringify({ verdict: 'agree', problems: [] }), model: 'stub/other' });
+      if (phase === 'verify') return Promise.resolve({ content: o.verify === undefined ? JSON.stringify({ verdict: 'agree', problems: [] }) : o.verify, model: 'stub/other' });
       const n = synth.shift();
       return Promise.resolve(typeof n === 'string' ? { content: n, model: 'stub/qwen' } : (n ?? { content: null, error: 'circuit_open' }));
     },
@@ -112,4 +112,36 @@ Deno.test('1013/7: a plain reply is not rewritten (no second model call)', async
   const r = await supportReply(s.deps, { channel: 'widget', message: 'q', lang: 'en', audience: 'customer' }, () => Promise.resolve(null));
   assertEquals(r.rewritten, false);
   assertEquals(s.calls.filter((c) => c.phase === 'synthesise').length, 1);
+});
+
+// ── the widget sends only CHECKED text (review of #1330, 12 Oct 2026) ─────────────────────────────
+// prevented by: these tests. think() returns 'answered' even when the independent check did not run or disagreed;
+// on the widget such a reply must never be sent (nor cached by site_assistant): the caller's road answers.
+const SHORT = JSON.stringify({ answer: 'The reveal fee is 3% of the quote you choose. No card fee is added.', reasoning: ['s1: FAQ 30'], cited: [], confidence: 0.8, route: 'customer_support' });
+Deno.test('widget: a reply the check did not run on goes to the fallback, not to the visitor', async () => {
+  const s = stub({ gate: { allowed: true }, synth: [SHORT], corpus: [REFUND], verify: null });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'how much is the reveal fee?', lang: 'en', audience: 'visitor' }, () => Promise.resolve('canned'));
+  assertEquals(r.path, 'fallback');
+  assertMatch(String(r.reason), /unchecked/);
+});
+Deno.test('widget: a reply the check disagreed with goes to the fallback, even after its correction', async () => {
+  const s = stub({ gate: { allowed: true }, synth: [SHORT, SHORT], corpus: [REFUND], verify: JSON.stringify({ verdict: 'disagree', problems: ['fee wrong'] }) });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'how much is the reveal fee?', lang: 'en', audience: 'visitor' }, () => Promise.resolve('canned'));
+  assertEquals(r.path, 'fallback');
+});
+Deno.test('widget: an agreed reply goes out, marked agreed, and the trade choice rides on the same call', async () => {
+  const s = stub({ gate: { allowed: true }, synth: [JSON.stringify({ ...JSON.parse(SHORT), price_trade: 'gypsum-ceilings' })], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'what does a gypsum ceiling cost?', lang: 'en', audience: 'visitor', priceTrades: ['gypsum-ceilings'] }, () => Promise.resolve('canned'));
+  assertEquals(r.path, 'reasoned');
+  assertEquals(r.verified, 'agreed');
+  assertEquals(r.priceTrade, 'gypsum-ceilings');
+  assertEquals(s.calls.filter((c) => c.phase === 'decompose').length, 0);
+});
+Deno.test('widget: the plain-language rewrite runs BEFORE the check, so the reviewer reads the text that is sent', async () => {
+  const s = stub({ gate: { allowed: true }, synth: [LONG, JSON.stringify({ answer: 'We have your request. Our team will reply within 2 working days.' })], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'where is my quote?', lang: 'en', audience: 'customer' }, () => Promise.resolve('canned'));
+  assertEquals(r.reply, 'We have your request. Our team will reply within 2 working days.');
+  const order = s.calls.map((c) => c.phase);
+  assert(order.lastIndexOf('synthesise') < order.indexOf('verify'));
+  assertMatch(s.calls.find((c) => c.phase === 'verify')!.input, /reply within 2 working days/);
 });
