@@ -1,0 +1,3 @@
+A PROBE, so it is never applied at all: it raises at the end and rolls back every row it writes. It is run
+after an_approved_supplier_who_swaps_in_an_unreadable_licence_is_held_again.sql is applied, and must print PROBE OK. This note therefore stays for the life of the file. Seat: sales_engineer.
+printf: warning: ignoring excess arguments, starting with ';'
