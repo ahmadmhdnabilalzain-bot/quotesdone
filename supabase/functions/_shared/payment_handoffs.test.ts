@@ -85,5 +85,5 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
     assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || (h.type === 'social.lead' && h.to === 'sales_engineer'), JSON.stringify(h));
   }
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing').map((h) => h.type + '>' + h.to).sort(),
-    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
+    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
 });
