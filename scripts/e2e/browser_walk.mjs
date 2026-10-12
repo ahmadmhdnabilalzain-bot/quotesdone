@@ -362,7 +362,7 @@ async function jstep(rep, J, page, dir, name, fn) {
 
 /** THE REQUEST BOX IS BEHIND "New request" (walk f4294be8): the dashboard has no textarea, so the terms step's fill
  *  waited 30 s and the drawing step found no file input. Press the button a customer presses, then return the box. */
-export export async function openNewRequest(page, lang) {
+export async function openNewRequest(page, lang) {
   const box = page.locator('#qd-intake-input');
   if (!(await box.isVisible().catch(() => false))) {
     await page.getByRole('button', { name: lang === 'ar' ? /طلب جديد/ : /new request/i }).first().click({ timeout: 10000 });

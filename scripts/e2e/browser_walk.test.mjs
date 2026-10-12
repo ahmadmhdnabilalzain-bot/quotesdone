@@ -13,6 +13,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const SRC = readFileSync(new URL('./browser_walk.mjs', import.meta.url), 'utf8');
 
+// The other cases read the walk as text, so they would pass over a file that does not parse (#1321 shipped
+// `export export` once). This one makes node parse it.
+test('the walk parses', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const r = spawnSync(process.execPath, ['--check', fileURLToPath(new URL('./browser_walk.mjs', import.meta.url))], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+});
+
 test('a signed-in customer portal is judged in the registered language, and the URL must follow it', () => {
   assert.match(SRC, /const want = who\.kind === 'customer' \? await registeredLocale\(who\.email\) : 'en';/);
   assert.match(SRC, /judge\(f, \{ lang: want, audience: who\.kind/);
