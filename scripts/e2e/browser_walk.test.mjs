@@ -41,7 +41,9 @@ test('content of a closed <details> is not on screen', () => {
 
 test('the journey opens "New request" before it types or attaches', () => {
   const fill = SRC.indexOf('const box = await openNewRequest(page, lang);');
-  const attach = SRC.indexOf("await openNewRequest(page, lang);\n    const input = page.locator('input[type=file]')");
-  assert.ok(fill > 0 && attach > 0);
+  // Run 71b75b60: the attach step opens New request, then takes the COMPOSER's own file input (not the page's first).
+  const attach = SRC.search(/const box = await openNewRequest\(page, lang\);\n(?:\s*\/\/[^\n]*\n)*\s*const input = box\.locator\([^\n]*\)\.locator\('input\[type=file\]'\)/);
+  assert.ok(fill > 0 && attach > 0 && attach !== fill);
+  assert.doesNotMatch(SRC, /const input = page\.locator\('input\[type=file\]'\)\.first\(\)/, 'never the first file input anywhere on the page');
   assert.doesNotMatch(SRC, /page\.locator\('textarea:visible'\)\.first\(\);\n\s+await box\.fill/);
 });
