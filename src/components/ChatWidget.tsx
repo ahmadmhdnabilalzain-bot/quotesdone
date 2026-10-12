@@ -1,4 +1,5 @@
 'use client';
+import { photoToDataUrl } from '@/lib/chatPhoto';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
@@ -57,16 +58,7 @@ export function ChatWidget() {
   // the server's cap (_shared/chat_images.ts), and sent with the next message. One at a time.
   const [photo, setPhoto] = useState('');
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const pickPhoto = async (f: File | undefined) => {
-    if (!f || !f.type.startsWith('image/')) return;
-    const img = await createImageBitmap(f).catch(() => null);
-    if (!img) return;
-    const k = Math.min(1, 1280 / Math.max(img.width, img.height));
-    const c = document.createElement('canvas');
-    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-    c.getContext('2d')?.drawImage(img, 0, 0, c.width, c.height);
-    setPhoto(c.toDataURL('image/jpeg', 0.8));
-  };
+  const pickPhoto = async (f: File | undefined) => { const d = await photoToDataUrl(f); if (d) setPhoto(d); };
   const boxRef = useRef<HTMLDivElement | null>(null);
   const inpRef = useRef<HTMLInputElement | null>(null);
 

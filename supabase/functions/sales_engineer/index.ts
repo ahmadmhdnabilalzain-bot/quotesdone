@@ -37,6 +37,7 @@ import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
 import { reasonedOffers } from '../_shared/reasoned_matching.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
 import { langOf, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { acceptImages } from '../_shared/chat_images.ts';
 import { quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { supportReply } from '../_shared/support_reply.ts';
@@ -419,6 +420,8 @@ Deno.serve(observe('sales_engineer', async (req) => {
           channel: 'portal', message, lang, seat: 'sales_engineer', audience: 'customer',
           passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || ''), citation: String(x.corpus || '') + ':' + String(x.record_id || '') })),
           facts: ownQuote ? 'THEIR OWN QUOTE (scoped in SQL to this customer):\n' + ownQuote : undefined,
+          // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
+          images: acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
         }, () => Promise.resolve(null));
         if (sr.path === 'reasoned' && sr.reply) {
           try {
