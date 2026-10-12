@@ -48,7 +48,7 @@ async function call(model, system, user, { cache, max = 900 }) {
   if (!r.ok || !j.choices) throw new Error(`${model} HTTP ${r.status}: ${JSON.stringify(j).slice(0, 300)}`);
   const u = j.usage || {};
   spent += Number(u.cost || 0);
-  return { text: j.choices[0].message.content || '', ms: Date.now() - t0, cost: Number(u.cost || 0),
+  return { text: j.choices[0].message.content || '', finish: j.choices[0].finish_reason, ms: Date.now() - t0, cost: Number(u.cost || 0),
     prompt: u.prompt_tokens, completion: u.completion_tokens,
     cached_read: u.prompt_tokens_details?.cached_tokens ?? 0,
     cache_write: u.prompt_tokens_details?.cache_write_tokens ?? u.cache_creation_input_tokens ?? 0 };
@@ -56,9 +56,10 @@ async function call(model, system, user, { cache, max = 900 }) {
 
 await sql(`insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, cap_usd, expires_at)
   values ('qd_run:${TAG}', 'scripts/kb/brief_quality_test.mjs', 'cached-brief quality test, ledger 1198; models: ${MODELS.join(' ')}; judge ${JUDGE}', true, ${CAP}, now() + interval '2 hours')`);
-const answers = {};
+const JUDGE_ONLY = process.argv.includes('--judge-only'); // re-judge saved answers without buying them again
+const answers = JUDGE_ONLY ? JSON.parse(readFileSync(join(OUT, 'answers.json'), 'utf8')) : {};
 try {
-  for (const m of MODELS) {
+  for (const m of JUDGE_ONLY ? [] : MODELS) {
     const cache = m.startsWith('anthropic/');
     answers[m] = {};
     // first call alone writes the cache; the rest read it (3 lanes, inside the 5-minute TTL)
@@ -78,17 +79,25 @@ try {
     `The company brief below is the ground truth. For each candidate answer give a score 0-10 for: accuracy ` +
     `(no claim contradicting or going beyond the brief, no invented figures), helpfulness (directly answers, ` +
     `expert quality, actionable), language (same language as the question, natural, professional), and an overall ` +
-    `0-10. Reply ONLY with JSON: {"scores":{"<label>":{"accuracy":n,"helpfulness":n,"language":n,"overall":n,"note":"<=20 words"}}}\n\n` + brief.text;
+    `0-10. Use the answer letters as keys. Reply ONLY with JSON: {"scores":{"A":{"accuracy":n,"helpfulness":n,"language":n,"overall":n,"note":"<=20 words"},"B":{...}}}\n\n` +
+    // ponytail: the judge gets company.md only (~4.6k tokens). The first judged run used the full 29k brief and cost
+    // USD 0.84; regulation answers are judged on general expertise. Pass the digests too if the cap allows.
+    readFileSync(new URL('../../knowledge/brief/company.md', import.meta.url), 'utf8');
   const judged = {};
   for (let i = 0; i < questions.length; i += 3) {
     await Promise.all(questions.slice(i, i + 3).map(async (q) => {
       const order = [...MODELS].sort(() => Math.random() - 0.5);
       const labels = order.map((_, k) => String.fromCharCode(65 + k));
       const body = `QUESTION:\n${q.q}\n\n` + order.map((m, k) => `=== Answer ${labels[k]} ===\n${answers[m][q.id]?.text || '(no answer)'}`).join('\n\n');
-      const r = await call(JUDGE, JSYS, body, { cache: false, max: 1200 });
-      const m = r.text.match(/\{[\s\S]*\}/);
-      const parsed = m ? JSON.parse(m[0]) : { scores: {} };
-      judged[q.id] = { cost: r.cost, by_model: Object.fromEntries(order.map((mm, k) => [mm, parsed.scores?.[labels[k]] ?? null])) };
+      let r, parsed = null, cost = 0;
+      for (let t = 0; t < 2 && !parsed; t++) { // one retry: a judge reply that is not JSON is re-asked, never scored
+        r = await call(JUDGE, JSYS, body, { cache: false, max: 2000 }); cost += r.cost;
+        try { parsed = JSON.parse(r.text.match(/\{[\s\S]*\}/)[0]); } catch { parsed = null; }
+      }
+      parsed ??= { scores: {} }; r.cost = cost;
+      const sc = parsed.scores ?? parsed; // tolerate {A:..} or {scores:{'Answer A':..}}
+      const pick = (l) => sc[l] ?? sc['Answer ' + l] ?? sc['answer_' + l.toLowerCase()] ?? null;
+      judged[q.id] = { cost: r.cost, raw: r.text, by_model: Object.fromEntries(order.map((mm, k) => [mm, pick(labels[k])])) };
     }));
   }
   writeFileSync(join(OUT, 'judged.json'), JSON.stringify(judged, null, 1));
