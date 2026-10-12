@@ -25,9 +25,16 @@ const QUOTE = { id: 'zz-q-1207', quote_amount: 1700, price_ex_vat: 1700, gross_a
   payment_terms: '50% advance, 50% on completion', scope: 'Supply and install.', conditions: null, exclusions: 'Painting.', notes: 'Prices exclude 5% VAT; our TRN is 100123456700003.' };
 const dates = (lang: Lang) => lang === 'ar' ? { date_ar: '13 أكتوبر 2026' } : { date: '13 October 2026' };
 
-function quoteBody(lang: Lang) {
-  return F.reasoned((arTexts) => quoteDocument({ quote: QUOTE, inquiry: INQ, items: ITEMS, letter: 'A', lang, ...dates(lang), arTexts })).body;
+function quoteBody(lang: Lang, revealRate: number | null = 0.03) {
+  return F.reasoned((arTexts) => quoteDocument({ quote: QUOTE, inquiry: INQ, items: ITEMS, letter: 'A', lang, ...dates(lang), arTexts, revealRate })).body;
 }
+
+Deno.test('the fee line prints the rate it is given (pricing_config) and no rate when none was read', () => {
+  assertStringIncludes(JSON.stringify(quoteBody('en', 0.04)), 'Our fee: 4% of AED 1,700 = AED 68');
+  const s = JSON.stringify(quoteBody('en', null));
+  assert(!s.includes('Our fee: '), 'a fee figure was printed with no rate read');
+  assertStringIncludes(s, 'No card fee, no VAT on our fee.');
+});
 function compareBody(lang: Lang) {
   const lab = [
     { quote_id: 'zz-q-1207', label: 'Supplier A', price: 1700, gross_amount: 2000, discount_amount: 300, vat_treatment: 'exclusive', vat_amount: 85, lead_time: '2 weeks', warranty: '12 months', payment_terms: '50/50', validity: '30 days', itemised: true, completeness: { score: 90, passed: true, missing_mandatory: 0 } },

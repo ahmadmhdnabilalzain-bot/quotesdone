@@ -50,8 +50,6 @@ export const DOC_VERSION = 'v2.3';
 export const docName = (ref: string, kind: string, lang: Lang) => `${ref}-${DOC_VERSION}-${kind}-${lang}`;
 /** True only for a stored file rendered by the current layout. */
 export const isCurrentDoc = (path: unknown) => String(path ?? '').includes(`-${DOC_VERSION}-`);
-/** The published reveal rate (pricing_config.standard_reveal_rate): 3%, no promotion and no cap by constraint. */
-const FEE_RATE = 0.03;
 const PREPARED_BY = { en: 'Prepared by the QuotesDone sales engineer', ar: 'أعدّه مهندس مبيعات QuotesDone' };
 
 /** A, B … Z, AA, AB … — the anonymous label for the i-th live quote by ascending price. */
@@ -326,7 +324,10 @@ const hasSpecs = (it: Item) => !!((it.specs && Object.values(it.specs).some((v) 
 /** The pdf_native body for ONE quote in ONE language. Pure: the caller fetches the rows. */
 // requestUrl: the portal deep link back to this quote on its request (site_origins portalLink).
 /** `partyName`: the supplier's company name once the customer has paid to reveal it; the letter still names the reference. */
-export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts }) {
+export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts;
+  /** pricing_config.standard_reveal_rate, read by the caller (stated_price.ts readRevealRate) — the source public.reveal_fee()
+   * reads. Absent or not positive, the page prints no rate and no fee figure: a guessed rate is never printed. */
+  revealRate?: number | null }) {
   const { quote: q, inquiry: inq, letter, lang } = args;
   // A line that is itself VAT ("VAT 5%") is not scope; it never reaches the page.
   const items = (args.items || []).filter((it) => !VAT_RE.test(String(it.desc || '')));
@@ -402,7 +403,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   const diff = sum > 0 && exVat > 0 && Math.abs(sum - exVat) > 1 && !(discounted && Math.abs(sum - gross!) <= 1);
   blocks.push({ t: 'totals', rows: trows, note: diff ? T(`The line amounts add up to ${k.money(sum, true)}; the quoted total is ${k.money(exVat, true)}. The quoted total is the price this supplier offered.`, `مجموع مبالغ البنود ${k.money(sum, true)} بينما إجمالي العرض ${k.money(exVat, true)}. إجمالي العرض هو السعر الذي قدّمه هذا المورّد.`) : '' });
   blocks.push({ t: 'note', text: vatStated(q as PriceRow, lang) });
-  blocks.push({ t: 'note', text: feeBasisLine(exVat || null, FEE_RATE, lang) });
+  blocks.push({ t: 'note', text: feeBasisLine(exVat || null, args.revealRate ?? null, lang) });
   blocks.push({ t: 'callout', tone: 'gold', title: T('The supplier\'s quotation, as stated', 'عرض المورّد كما ذكره'), text: T(NOT_RESPONSIBLE.en, NOT_RESPONSIBLE.ar) });
 
   section('Completeness check', 'فحص اكتمال العرض');

@@ -30,7 +30,7 @@ import { currentCustomerTermsVersion, needsReacceptance, customerTermsRecord, RE
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
-import { feeBaseOf, feeBasisLine, priceStated, vatStated } from '../_shared/stated_price.ts';
+import { feeBaseOf, feeBasisLine, priceStated, readRevealRate, vatStated } from '../_shared/stated_price.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { arabicOf, arabicTextsFor, nativeArabic } from '../_shared/reasoned_governance.ts';
@@ -618,7 +618,10 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   const maskNames = partyName ? [] : await supplierIdentities([q.supplier_id]);
   // The Arabic of the supplier's own words is reasoned (decision point trade_glossary_ar); a line not yet
   // translated HOLDS the Arabic document — it is never printed half-translated.
-  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts }), { subject: { quote_id: q.id } });
+  // The fee line prints pricing_config's rate (the one reveal_fee() charges); unread, the PDF is refused, never guessed.
+  const revealRate = await readRevealRate(admin);
+  if (revealRate == null) return { j: { ok: false, error: 'reveal_rate_unread' }, ref: quoteRef(inq, letter) };
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts, revealRate }), { subject: { quote_id: q.id } });
   if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');

@@ -22,20 +22,20 @@ import { aed, figure } from './money.ts';
 import { normText } from './line_specs/model.ts';
 
 /** "after discount", "net total": the figure written after the discount. */
-export const AFTER_DISCOUNT = /after\s*(?:the\s*)?discount|net\s*(?:total|amount|price|value)|بعد\s*الخصم|الصافي|صافي/i;
+export const AFTER_DISCOUNT = /after\s*(?:the\s*)?discount|net\s*(?:total|amount|price|value)|\u0628\u0639\u062F\s*\u0627\u0644\u062E\u0635\u0645|\u0627\u0644\u0635\u0627\u0641\u064A|\u0635\u0627\u0641\u064A/i;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const pos = (v: unknown): number | null => { const n = Number(v); return v != null && v !== '' && Number.isFinite(n) && n > 0 ? n : null; };
 
 /** A discount written in words: "Discount 10%", "Less: special discount AED 300", "خصم 15%". The amount wins over a rate. */
 export function readDiscount(text: string): { amount: number | null; pct: number | null; label: string } | null {
   const t = normText(String(text || ''));
-  const m = t.match(/((?:special\s+|trade\s+|project\s+|cash\s+|early[\s-]payment\s+)?(?:discount|rebate)|خصم(?:\s+خاص)?)\s*(?:of\s*|بنسبة\s*|[:\-–]\s*)?(?:\(?\s*(\d+(?:\.\d+)?)\s*%\s*\)?)?\s*[:\-–=]?\s*(?:less\s*)?(?:AED|Dhs?\.?|درهم|د\.إ\.?)?\s*\(?-?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)?/i);
+  const m = t.match(/((?:special\s+|trade\s+|project\s+|cash\s+|early[\s-]payment\s+)?(?:discount|rebate)|\u062E\u0635\u0645(?:\s+\u062E\u0627\u0635)?)\s*(?:of\s*|\u0628\u0646\u0633\u0628\u0629\s*|[:\-–]\s*)?(?:\(?\s*(\d+(?:\.\d+)?)\s*%\s*\)?)?\s*[:\-–=]?\s*(?:less\s*)?(?:AED|Dhs?\.?|\u062F\u0631\u0647\u0645|\u062F\.\u0625\.?)?\s*\(?-?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)?/i);
   if (!m) return null;
   // A CONDITIONAL discount ("2% discount for payment within 7 days") is a payment term, not the quoted price: the
   // fee is never reduced on a condition the customer may not meet. It stays in the supplier's terms as written.
   const at = m.index ?? 0;
   const sentence = t.slice(Math.max(0, t.lastIndexOf('\n', at), t.lastIndexOf('. ', at)), (t.indexOf('.', at + m[0].length) + 1 || t.length));
-  if (/early[\s-]*payment|advance\s+payment|\bif\b|\bwithin\s+\d+\s*days|subject\s+to|\bfor\s+(?:payment|orders?\s+(?:above|over))|إذا|في حال|عند\s+الدفع|بشرط/i.test(sentence)) return null;
+  if (/early[\s-]*payment|advance\s+payment|\bif\b|\bwithin\s+\d+\s*days|subject\s+to|\bfor\s+(?:payment|orders?\s+(?:above|over))|\u0625\u0630\u0627|\u0641\u064A \u062D\u0627\u0644|\u0639\u0646\u062F\s+\u0627\u0644\u062F\u0641\u0639|\u0628\u0634\u0631\u0637/i.test(sentence)) return null;
   const pct = m[2] ? Number(m[2]) : null;
   const amount = m[3] ? Number(m[3].replace(/,/g, '')) : null;
   if (!(pct && pct > 0 && pct < 100) && !(amount && amount > 0)) return null;
@@ -87,7 +87,7 @@ export function statedPrice(i: {
   let total = pos(i.amount);
   // A discount written AFTER the total in the supplier's own text, with no after-discount figure, discounts that total.
   const tx = normText(String(i.text ?? ''));
-  const totalFirst = !!read && !AFTER_DISCOUNT.test(tx) && (() => { const a = tx.search(/\btotal\b|الإجمالي|المجموع/i); const d = tx.search(/discount|rebate|خصم/i); return a >= 0 && d > a; })();
+  const totalFirst = !!read && !AFTER_DISCOUNT.test(tx) && (() => { const a = tx.search(/\btotal\b|\u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A|\u0627\u0644\u0645\u062C\u0645\u0648\u0639/i); const d = tx.search(/discount|rebate|\u062E\u0635\u0645/i); return a >= 0 && d > a; })();
   if (total != null && (i.amount_is_gross || totalFirst || (gross != null && Math.abs(total - gross) <= 0.01 && !pos(i.vat_amount)))) {
     // The only total written is the price before the discount: the final total is that less the discount.
     if (gross == null) gross = total;
@@ -143,7 +143,7 @@ export function vatStated(q: PriceRow, lang: L): string {
 }
 
 /** "3% of AED 1,700 = AED 51; no card fee, no VAT on our fee" — beside our fee, the only place no-VAT is said. */
-export function feeBasisLine(base: number | null, rate: number, lang: L): string {
+export function feeBasisLine(base: number | null, rate: number | null, lang: L): string {
   const b = pos(base); const r = pos(rate);
   if (b == null || r == null) return lang === 'ar' ? 'لا رسوم بطاقة ولا ضريبة قيمة مضافة على رسومنا.' : 'No card fee, no VAT on our fee.';
   const pctTxt = `${r2(r * 100)}%`; const fee = Math.round(b * r * 100) / 100;
@@ -176,6 +176,16 @@ export function vatShort(q: PriceRow, lang: L): string {
 /** The quotes-row price columns for a stated price. quote_amount — what revealCharge reads — is the fee base
  * (ruling 1208); only when no ex-VAT figure is known (the quote is then held for its VAT basis) does it fall back to
  * the final total as stated, which is after the discount, never the gross. */
+/** pricing_config.standard_reveal_rate, the rate public.reveal_fee() reads. Null when it cannot be read: the quotation
+ * PDF is then refused, never printed with a guessed rate. */
+// deno-lint-ignore no-explicit-any
+export async function readRevealRate(admin: any): Promise<number | null> {
+  try {
+    const { data, error } = await admin.from('pricing_config').select('standard_reveal_rate').eq('id', 1).maybeSingle();
+    return error ? null : pos(data?.standard_reveal_rate);
+  } catch (_e) { return null; }
+}
+
 export function storedPrice(sp: StatedPrice, statedAmount: number | null) {
   return {
     quote_amount: sp.fee_base ?? sp.total_as_stated ?? statedAmount, price_ex_vat: sp.price_ex_vat, vat_treatment: sp.treatment, vat_amount: sp.vat_amount,

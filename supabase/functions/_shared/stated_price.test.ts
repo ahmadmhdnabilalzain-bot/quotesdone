@@ -2,6 +2,7 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 import { statedPrice, storedPrice, priceStated, vatStated, feeBasisLine, readDiscount, feeBaseOf, NOT_RESPONSIBLE } from './stated_price.ts';
 import { revealCharge } from './reveal_fee.ts';
+import { heldQuoteIds } from './reveal_guard.ts';
 
 Deno.test('discount + VAT: 2,000 less 300 = 1,700, VAT 85 -> fee on 1,700', () => {
   const p = statedPrice({ amount: 1785, subtotal: 2000, discount_amount: 300, vat_amount: 85, text: 'VAT 5%' });
@@ -28,7 +29,7 @@ Deno.test('discount only: the only total written is before the discount -> never
 Deno.test('readDiscount reads an amount, a rate, and Arabic', () => {
   assertEquals(readDiscount('Less: discount (15%)')?.pct, 15);
   assertEquals(readDiscount('Discount: AED 1,250.50')?.amount, 1250.5);
-  assertEquals(readDiscount('خصم 300 درهم')?.amount, 300);
+  assertEquals(readDiscount('\u062E\u0635\u0645 300 \u062F\u0631\u0647\u0645')?.amount, 300);
   assertEquals(readDiscount('no reduction offered'), null);
 });
 Deno.test('the customer reads "AED 2,000, after discount AED 1,700", the VAT as stated and the fee basis', () => {
@@ -51,4 +52,16 @@ Deno.test('storedPrice: quote_amount (the column revealCharge reads) is the afte
   // VAT basis not stated: held for it, and still never the gross
   const h = storedPrice(statedPrice({ amount: 2000, text: 'Total AED 2,000. Discount AED 300.' }), 2000);
   assertEquals([h.price_ex_vat, h.quote_amount], [null, 1700]);
+});
+Deno.test('a quote stored with no ex-VAT figure is HELD: never ranked, shown or revealable (reveal_guard -> assess.ts price_ex_vat)', () => {
+  // VAT-inclusive total, VAT amount not stated: no ex-VAT figure, quote_amount falls back to the total as stated.
+  const s = storedPrice(statedPrice({ amount: 2100, text: 'Total AED 2,100 inclusive of VAT' }), 2100);
+  assertEquals([s.price_ex_vat, s.quote_amount], [null, 2100]);
+  const q = { id: 'zz-held', lead_time: '21 days', warranty: '2 years on workmanship', scope: 'Supply and installation of wardrobes by our team',
+    terms_spec: { installation: { included: 'yes', detail: 'by our team', source: 'reasoned' }, warranty: { period: '2 years', coverage: 'workmanship', source: 'reasoned' } } };
+  const item = { line_no: 1, description: 'Wardrobes 18mm MR MDF, HPL finish', amount: 2000,
+    spec: { material: 'MR MDF', thickness_mm: '18', finish: 'HPL' }, spec_source: { material: 'reasoned', thickness_mm: 'reasoned', finish: 'reasoned' } };
+  assertEquals(heldQuoteIds([{ quote: { ...q, ...s }, items: [item] }], 'joinery', null).has('zz-held'), true);
+  // The control: the same quote with its ex-VAT price known is not held, so the hold above is the VAT basis.
+  assertEquals(heldQuoteIds([{ quote: { ...q, ...s, price_ex_vat: 2000, quote_amount: 2000 }, items: [item] }], 'joinery', null).has('zz-held'), false);
 });
