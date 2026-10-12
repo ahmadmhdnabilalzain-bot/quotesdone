@@ -28,7 +28,7 @@ const AR = /[؀-ۿ]/;
 
 const deps: ThinkDeps = {
   gate: () => Promise.resolve(null),
-  llm: async (_phase, system, input, o) => {
+  llm: async (_phase: string, system: string, input: string, o: Record<string, unknown> & { seat?: string; taskClass?: string; max?: number; subject?: Record<string, unknown>; counterpartModel?: string }) => {
     const r = await fetch(`${BASE}/functions/v1/ai_gateway`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SERVICE, 'x-qd-e2e-run': TAG, 'x-qd-e2e-secret': xcred },
@@ -40,7 +40,7 @@ const deps: ThinkDeps = {
     return { content: j?.content ?? null, model: j?.model ?? j?.model_used ?? null, error: j?.error ?? null };
   },
   embed: () => Promise.resolve(null),
-  rpc: async (f, args) => {
+  rpc: async (f: string, args?: Record<string, unknown>) => {
     const r = await fetch(`${BASE}/rest/v1/rpc/${f}`, { method: 'POST', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' }, body: JSON.stringify(args ?? {}) });
     return r.ok ? { data: await r.json().catch(() => null), error: null } : { data: null, error: { message: 'HTTP ' + r.status } };
   },
