@@ -463,6 +463,10 @@
           "why": "a card surcharge on the buyer (Cabinet Res. 66/2023 Art. 5(3))"
         },
         {
+          "re": "(?:إضافة إلى|و?تُضاف إليها|زائد) رسوم معالجة البطاقة",
+          "why": "a card surcharge on the buyer, in Arabic (12 Oct 2026: nine public Arabic FAQ mirrors said it and --probe read only the English wordings); rewrite by hand to: 3% of the selected quotation, nothing added for paying by card"
+        },
+        {
           "re": "(?:you (?:also )?pay|pays?|plus|charged?) (?:the |a )?card processing (?:fee|line)",
           "why": "a card surcharge on the buyer; rewrite by hand to the one wording"
         },
