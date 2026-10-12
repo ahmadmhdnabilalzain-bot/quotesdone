@@ -8,6 +8,7 @@
 //      then the same class unstreamed, then a third call routed as a counterpart of the model that failed (the gateway's
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
 // prevented by: _shared/brief_answer.test.ts
+import { withImages } from './chat_images.ts';
 import { briefNumbers, moneyFiguresNotInBrief, policyProblems, takeSentences } from './company_brief.ts';
 
 export type Msg = { role: 'user' | 'assistant'; content: string };
@@ -16,12 +17,17 @@ export interface BriefCall {
   brief: string; sys: string; input: Msg[]; max: number;
   rateKey?: string; rateLimit?: number; subject?: Record<string, unknown>;
   check?: (text: string) => string[];   // more rules around the words (the reply guard); each problem is named to the model
+  images?: string[];   // photos or drawings with the latest message (chat_images.acceptImages); the gateway routes to a vision model (ruling 1200)
 }
 export interface BriefAnswer { reply: string; model: string | null; attempts: string[]; rewrites: number; streamed: boolean; error?: string }
 type Fetch = typeof fetch;
 
+/** The latest user message carries the images as content parts; the rest of the conversation stays text. */
+const withLastImages = (input: Msg[], images?: string[]) => !images?.length || !input.length ? input
+  : [...input.slice(0, -1), { ...input[input.length - 1], content: withImages(input[input.length - 1].content, images) }];
+
 const body = (c: BriefCall, extra: Record<string, unknown>) => JSON.stringify({
-  __secret: c.secret, fn: c.fn, agent: c.agent, task_class: c.taskClass, sys_stable: c.brief, sys: c.sys, input: c.input,
+  __secret: c.secret, fn: c.fn, agent: c.agent, task_class: c.taskClass, sys_stable: c.brief, sys: c.sys, input: withLastImages(c.input, c.images),
   max: c.max, temperature: 0.3, cache_ttl_min: 0, try_faq: false, ...(c.subject ? { subject: c.subject } : {}),
   ...(c.rateKey ? { rate_key: c.rateKey, rate_limit: c.rateLimit, rate_window_s: 3600 } : {}), ...extra,
 });

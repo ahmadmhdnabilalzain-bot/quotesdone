@@ -29,6 +29,7 @@ export interface AiReplyRequest {
   actions?: { id: string; meaning: string }[];   // the next step the model picks in the same call (quote-review chat)
   askEscalate?: boolean;    // the model also says whether this is a complaint, dispute, legal/payment/refund matter or a person request
   forbidden?: string[];     // another party's identity before a reveal: names, phones, e-mails, licence numbers
+  images?: string[];        // photos or drawings the person sent (accepted by chat_images.acceptImages); the model uses them (ruling 1200)
 }
 export interface AiReply { reply: string; model: string | null; attempts: string[]; action?: string | null; escalate?: boolean; problems?: string[] }
 
@@ -92,7 +93,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const convo = (r.conversation ?? []).slice(-8).map((t) => `${t.role}: ${t.text}`).join('\n');
   const input = (convo ? 'CONVERSATION SO FAR:\n' + convo + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000);
   const taskClass = taskClassFor('synthesise', r.audience, false, replyLang);
-  const opts = { taskClass, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}) };
+  const opts = { taskClass, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
   const call = async (prompt: string, counterpartModel: string | null) => {

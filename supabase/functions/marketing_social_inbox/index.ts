@@ -43,6 +43,7 @@ import { observe } from '../_shared/observe.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
+import { logWithAttempts } from '../_shared/reply_attempts.ts';
 import { clip, handshake, maxLen, OUR_METADATA, parseEvents, pickPage, sendRequest, tokenExpired, verifySignature, withinWindow, type InboundEvent, type PageAccount } from './meta.ts';
 import { type CorpusRow, type Decision } from './reply.ts';
 import { defaultDeps } from '../_shared/think.ts';
@@ -143,10 +144,10 @@ async function reasonedHandoff(platform: string, messageId: string): Promise<{ o
   if (!withinWindow(ev.at)) return { ok: true, outcome: 'handed_to_human:outside_window' };
   const text = clip(await writeSocial(ev.text, ev.platform, ev.channel, true, { platform: ev.platform, message_id: ev.messageId }), maxLen(ev.platform, ev.channel));
   if (!text) return { ok: true, outcome: 'handed_to_human:no_model_reply' };
-  const { data: out, error } = await admin.from('social_message').insert({
+  const { data: out, error } = await logWithAttempts(admin, 'social_message', {
     conversation_id: conv.id, platform: ev.platform, channel: ev.channel, direction: 'out', author: 'seat',
     in_reply_to: m.id, body: text, reply_kind: 'handoff', reply_key: 'model', send_status: 'pending', occurred_at: new Date().toISOString(),
-  }).select('id').single();
+  }, { attempts: ATTEMPTS.get(String(ev.messageId)) ?? [] }, 'id') as { data: { id: number } | null; error: { message: string } | null };
   if (error || !out) return { ok: false, error: error?.message ?? 'no reply row' };
   await send(ev, out.id as number, text);
   return { ok: true, outcome: 'handed_to_human' };
@@ -154,10 +155,14 @@ async function reasonedHandoff(platform: string, messageId: string): Promise<{ o
 
 /** EVERY SOCIAL REPLY IS WRITTEN BY A MODEL (founder rulings 1195/1196, 12 Oct 2026): the library rows, the size statement,
  *  the FAQ-as-is and the passage quotes are no longer sent. '' when no model answered — then nothing is sent. */
+// The model attempts behind each reply, by inbound message id, kept on the reply row (reply_attempts).
+const ATTEMPTS = new Map<string, string[]>();
 async function writeSocial(text: string, platform: string, channel: string, person: boolean, subject: Record<string, unknown>, precedent?: string): Promise<string> {
   const a = await aiReply(defaultDeps(admin, 'marketing_social_inbox'), { seat: 'marketing', channel: platform + ' ' + channel, audience: 'visitor',
     lang: langOf(text), message: text.slice(0, 4000), subject, facts: precedent,
     rules: 'A short social-media reply, under about 60 words.' + (person ? ' They asked to speak to a person: say plainly that a member of the team will continue this conversation here, and answer whatever else they asked.' : '') });
+  if (ATTEMPTS.size > 500) ATTEMPTS.clear();   // per worker; only the reply being logged right now is read
+  ATTEMPTS.set(String(subject.message_id ?? ''), a.attempts);
   return a.reply;
 }
 
@@ -180,10 +185,10 @@ async function reasonedReply(platform: string, messageId: string, meaning: strin
     messageId, text: String(m.body || ''), at: new Date(m.occurred_at), parentId: null, echo: false, echoAppId: null, echoMetadata: null };
   const text = clip(await writeSocial(ev.text, ev.platform, ev.channel, false, { platform: ev.platform, message_id: ev.messageId }), maxLen(ev.platform, ev.channel));
   if (!text) return { ok: true, outcome: 'reasoned:no_model_reply' };
-  const { data: out, error } = await admin.from('social_message').insert({
+  const { data: out, error } = await logWithAttempts(admin, 'social_message', {
     conversation_id: conv.id, platform: ev.platform, channel: ev.channel, direction: 'out', author: 'seat',
     in_reply_to: m.id, body: text, reply_kind: 'knowledge', reply_key: 'model', send_status: 'pending', occurred_at: new Date().toISOString(),
-  }).select('id').single();
+  }, { attempts: ATTEMPTS.get(String(ev.messageId)) ?? [] }, 'id') as { data: { id: number } | null; error: { message: string } | null };
   if (error || !out) return { ok: false, error: error?.message ?? 'no reply row' };
   await send(ev, out.id as number, text);
   return { ok: true, outcome: 'answered:model' };
@@ -241,10 +246,10 @@ async function handle(ev: InboundEvent): Promise<string> {
   const text = clip(d.text, maxLen(ev.platform, ev.channel));
   if (!text) return await outcome('no_reply_text');
 
-  const { data: out, error: oErr } = await admin.from('social_message').insert({
+  const { data: out, error: oErr } = await logWithAttempts(admin, 'social_message', {
     conversation_id: conv.id, platform: ev.platform, channel: ev.channel, direction: 'out', author: 'seat',
     in_reply_to: inId, body: text, reply_kind: d.kind, reply_key: d.key, send_status: 'pending', occurred_at: new Date().toISOString(),
-  }).select('id').single();
+  }, { attempts: ATTEMPTS.get(String(ev.messageId)) ?? [] }, 'id') as { data: { id: number } | null; error: { message: string } | null };
   // A reply that names a supplier is refused by the database (ruling 1020, a06_names_no_supplier): nothing is sent, and
   // the inbound message is closed with that outcome instead of being retried into the same refusal.
   if (oErr && /ruling 1020/.test(oErr.message)) return await outcome('reply_names_a_supplier');
