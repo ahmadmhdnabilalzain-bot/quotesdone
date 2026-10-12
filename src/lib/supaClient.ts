@@ -44,9 +44,15 @@ export function supaClient(storageKey: string): AuthOnly {
 // the anon apikey, and the first row or null. A non-2xx rejects, as supabase-js's error did.
 export async function supaRpcMaybeOne(storageKey: string, fn: string, args: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   const { data } = await supaClient(storageKey).auth.getSession();
+  return supaRpcAs(data.session?.access_token ?? '', fn, args);
+}
+
+// The same call with a token the portal already holds (qd-cust-token / qd-sup-token), so a routine runs as
+// THAT portal's signed-in person and never as whichever session another storage key happens to hold.
+export async function supaRpcAs(token: string, fn: string, args: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   const r = await fetch(new URL('rest/v1/rpc/' + fn, SUPA_URL.replace(/\/?$/, '/')).href, {
     method: 'POST',
-    headers: { apikey: SUPA_ANON, Authorization: `Bearer ${data.session?.access_token ?? SUPA_ANON}`, 'Content-Type': 'application/json' },
+    headers: { apikey: SUPA_ANON, Authorization: `Bearer ${token || SUPA_ANON}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(args),
   });
   if (!r.ok) throw new Error(`[qd] rpc ${fn} answered ${r.status}`);
