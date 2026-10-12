@@ -418,7 +418,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // write 900 tokens, the gateway's cap; the JSON was truncated and the whole reply fell to "could not read your
   // account". The plan only narrows retrieval, so a model that wrote one still answers, from one step on the question.
   if ((!plan || !Array.isArray(plan.steps)) && String(d0.content ?? '').trim()) {
-    plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [] };
+    plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [], high_stakes: true };   // an unplanned answer is always cross-checked
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: 'unparseable plan; one-step plan used' });
   }
   if (!plan || !Array.isArray(plan.steps)) {

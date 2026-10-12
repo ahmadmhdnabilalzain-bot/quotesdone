@@ -384,6 +384,9 @@ Deno.test('a plan cut off at the output cap still answers, from a one-step plan 
   const r = await think(m.deps, { seat: 'customer_support', surface: 'support_reply.portal', question: 'أين أجد عروض الأسعار؟', context: { audience: 'customer', language: 'ar' } });
   assertEquals(r.status, 'answered');
   assert(r.steps.some((s) => s.kind === 'decompose' && s.detail === 'unparseable plan; one-step plan used'));
+  // the fallback plan is high-stakes, so the cross-family verify runs on it
+  assertEquals(m.calls.filter((c) => c.phase === 'verify').length, 1);
+  assertEquals(r.verified?.status, 'agreed');
   // a model that returned nothing at all is still not answered
   const none = mock({ replies: { decompose: [{ content: null, error: 'all_models_failed' }] } });
   const r2 = await think(none.deps, { seat: 'customer_support', surface: 'support_reply.portal', question: 'q', context: { audience: 'customer' } });

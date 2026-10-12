@@ -16,8 +16,9 @@ const TRUTH = 'QuotesDone is a UAE procurement marketplace. Customers post reque
   + 'the customer compares free and pays a reveal fee of 3% of the chosen quote value (ex-VAT, no cap, no card surcharge, no VAT charged: '
   + 'QuotesDone is not VAT-registered) to unlock that supplier; every request gets a top-3 comparison report. Customer portal (/me), buttons '
   + '"New request", "My requests" (Arabic "طلب جديد", "طلباتي"): "My requests" lists each request and the anonymous quotes received for it; '
-  + 'the assistant there reads the signed-in customer\'s own account. Supplier portal (/portal): "Inquiries received" > open the job > "Quote" > '
-  + 'upload the quotation file or enter it > "Submit quote"; submitting again replaces the earlier quote for that option, and a quote may carry '
+  + 'the assistant there reads the signed-in customer\'s own account. Supplier portal (/portal, English only): "Inquiries received" > open the job > '
+  + '"Send your quotation to the sales engineer" (attach the file; in an open review "Attach a revised file") > "Submit to Job <n>", or '
+  + '"Or type it into the quote form"; submitting again replaces the earlier quote for that option, and a quote may carry '
   + 'separate options; quotes are accepted until the customer selects a supplier (request Concluded). '
   + 'Published contact: +971 50 931 9355, management@quotesdone.com.';
 
