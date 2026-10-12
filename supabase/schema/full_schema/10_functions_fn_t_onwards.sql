@@ -1837,6 +1837,33 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_vercel_snapshot_filed(p_path text, p_summary jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_day text;
+begin
+  if coalesce(p_path, '') !~ '^engineering/vercel/\d{4}-\d{2}-\d{2}\.json$' then
+    raise exception 'fn_vercel_snapshot_filed: the snapshot lives at engineering/vercel/<YYYY-MM-DD>.json (got %)', p_path;
+  end if;
+  v_day := substring(p_path from '(\d{4}-\d{2}-\d{2})');
+  insert into public.doc_backups (entity, entity_id, doc_type, bucket, path, file_name, dropbox_path, source, dedupe_key)
+  values ('company', 'vercel:' || v_day, 'Vercel configuration', 'backups', p_path, v_day || ' vercel-project.json',
+          '/QuotesDone Backup/Company/Vercel/' || left(v_day, 7) || '/' || v_day || ' vercel-project.json', 'storage', 'VERCEL:' || v_day)
+  on conflict do nothing;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('it_engineer', case when coalesce(jsonb_array_length(p_summary->'no_recoverable_source'), 0) > 0 then 'warn' else 'ok' end,
+          jsonb_build_object('job', 'vercel_snapshot') || coalesce(p_summary, '{}'::jsonb),
+          left('Vercel configuration backed up (' || p_path || '): ' || coalesce(p_summary->>'domains', '?') || ' domains, '
+               || coalesce(p_summary->>'env_names', '?') || ' env var names; needed but not in Vercel: '
+               || coalesce(p_summary->>'missing_in_vercel', '[]') || '; no recoverable source: ' || coalesce(p_summary->>'no_recoverable_source', '[]') || '.', 500),
+          now(), now());
+  return jsonb_build_object('filed', p_path);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_verified_mobile(p_role text, p_customer uuid DEFAULT NULL::uuid, p_lead bigint DEFAULT NULL::bigint, p_email text DEFAULT NULL::text)
  RETURNS text
  LANGUAGE sql
@@ -7876,17 +7903,23 @@ begin
       'next_decision', new.decision, 'generation', new.generation, 'round', new.round));
     perform set_config('qd.handoff_closer', '', true);
   end loop;
-  for h in select a.id from public.agent_actions a
-            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.decision_owed'
-              and a.detail->>'item_key' = new.item_key loop
-    perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('decided_by', 'ceo', 'decision', new.decision,
-      'round_id', new.id, 'reasons', left(new.reasons, 2000)));
-  end loop;
+  -- an owed decision is answered here and closed by the seat that owed it (z61), after it re-verifies
+  update public.agent_actions a
+     set detail = a.detail || jsonb_build_object(
+           'ceo_decided', jsonb_build_object('decided_by', 'ceo', 'decision', new.decision, 'round_id', new.id,
+                                             'reasons', left(new.reasons, 2000)),
+           'awaiting', coalesce(a.detail->>'from', 'the originating seat') || ' re-verifies the CEO''s decision')
+   where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.decision_owed'
+     and a.detail->>'item_key' = new.item_key;
   if new.decision in ('approved', 'replaced', 'withdrawn') then
+    -- the return: the seat's handler (fn_seat_takes_the_ceo_decision) re-verifies and closes what it owed
     perform public.fn_seat_handoff('ceo', new.originator_seat, 'ceo.decision_closed', 'ceo_decision_round', new.id::text,
       jsonb_build_object('round_id', new.id, 'path', new.path, 'item_key', new.item_key, 'decision', new.decision,
                          'reasons', left(new.reasons, 3000), 'generation', new.generation, 'round', new.round,
                          'version', new.version, 'source_table', new.source_table, 'source_id', new.source_id));
+  elsif new.decision = 'rejected' then
+    -- the return is the ceo.revise fn_ceo_decide opened for this round; the seat re-verifies against the ledger
+    perform public.fn_seat_verifies_the_ceo_decision_it_owed(new.originator_seat, new.item_key);
   end if;
   return null;
 end $function$
