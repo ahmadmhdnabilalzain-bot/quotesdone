@@ -41,6 +41,7 @@ import { portalPassage, quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { supportReply } from '../_shared/support_reply.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
+import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -713,7 +714,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // TRADES. The customer's own words resolved through taxonomy_trade.aliases by
       // public.fn_norm_trades — the estate's normaliser, word-START anchored so 'sign' matches
       // "signage" and not "design". Reused, not re-written.
-      let trades = arr(src.trades);
+      // A single-trade request stores its trade in `category` only (12 Oct 2026, run f4294be8: 9 of 9
+      // matched nobody) — tradeSlugsOf tries that slug on its own before the brief is read.
+      let trades = tradeSlugsOf(src);
       // STORED TRADES ARE INTAKE SLUGS, THE MATCHER SPEAKS TAXONOMY CODES (14 Sep 2026). 39 of the 56
       // intake slugs are not taxonomy codes ('glass' is 'glazing', 'fitout' is 'interior_fitout' ...),
       // and passing them through made fn_match_capability answer zero for every request in those
@@ -751,7 +754,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         return Number.isFinite(n) && n > 0 ? n : null;
       };
       const value = num(src.expected_value) ?? num(src.budget);
-      const emirate = String(src.emirate ?? '').trim() || null;
+      const emirate = matchEmirate(src.emirate);
       const projectType = String(src.scope_type ?? '').trim() || null;
 
       // THE FANOUT CEILING IS READ, NOT COMPILED IN. decision_policy holds match_max_fanout = 5,

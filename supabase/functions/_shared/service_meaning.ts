@@ -47,7 +47,7 @@
 // adds is a proposal the supplier confirms, shown with the line that supports it.
 import { arNorm } from './alias_pattern.ts';
 import { isInstallWork, isStop, servicePattern, type ServiceTerm } from './service_rewrite.ts';
-import { saysInstallWork } from './catalogue_read.ts';
+import { saysInstallWork, supplyOnlyOf } from './catalogue_read.ts';
 
 export type Vec = number[];
 /** Which vector space a line is read in: gte-small (English) or the multilingual e5 (Arabic). */
@@ -56,7 +56,7 @@ export type MeaningService = ServiceTerm & { vec: Vec | null; vec_ml?: Vec | nul
 export type MeaningLine = { text: string; vec: Vec | null; space?: Space };
 export type MeaningProposal = {
   key: string; trade: string; label_en: string; label_ar: string; similarity: number;
-  because: 'head_word' | 'alias' | 'trade_word'; word: string | null; lines: string[];
+  because: 'head_word' | 'alias' | 'trade_word' | 'trade_code'; word: string | null; lines: string[];
 };
 
 // Calibrated 21 Sep 2026 on gte-small (numbers above and in service_meaning.test.ts).
@@ -186,10 +186,10 @@ export function corroborate(s: MeaningService, words: Set<string>, norm: string,
 
 /** The proposals, strongest first. `stated` are the keys already found exactly (never re-proposed). */
 export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[],
-  opts: { stated?: string[]; supplyOnly?: boolean; floor?: number; mlFloor?: number; tradeLabels?: Record<string, string> } = {}): MeaningProposal[] {
+  opts: { stated?: string[]; supplyOnly?: boolean; floor?: number; mlFloor?: number; tradeLabels?: Record<string, string>; codeWords?: Record<string, string> } = {}): MeaningProposal[] {
   const stated = new Set(opts.stated || []);
   const eligible = services.filter((s) => !(opts.supplyOnly && isInstallWork(s)));
-  type Cand = { s: MeaningService; sim: number; line: string; because: 'head_word' | 'alias' | 'trade_word' | null; word: string | null };
+  type Cand = { s: MeaningService; sim: number; line: string; because: 'head_word' | 'alias' | 'trade_word' | 'trade_code' | null; word: string | null };
   const byKey = new Map<string, Cand[]>();
   for (const line of lines.slice(0, MEANING_MAX_LINES)) {
     if (!line.vec) continue;
@@ -232,6 +232,36 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
       if (because && word && Object.keys(opts.tradeLabels).some((code) => code !== s.trade_code && parts(code).some((x) => x.length === 1 && x[0] === word))) return { because: null, word: null };
       return { because, word };
     };
+    // A WORD THE DATABASE RESOLVES TO ONE TRADE (12 Oct 2026, accuracy suite: 0 of 9 aluminium suppliers reached).
+    // THIS IS WORD-TO-TRADE MATCHING, under the founder's no-word-matching rule (ruling 890), on the same footing as the
+    // trade_word corroboration above: a word decides which trade, and the vector only confirms. It is confined so that
+    // it cannot fire on a name or a trader:
+    //   * the word is one public.fn_norm_trades resolves to exactly ONE trade (opts.codeWords, built by trade_resolve
+    //     from the line's own words: a live code "aluminium", or a stored intake alias such as "aluminum") - the
+    //     database's definition of exact, no list here;
+    //   * the line names WORK and is not supply-only (catalogue_read's own notion: works, contracting, installation);
+    //   * one of that trade's services clears the floor.
+    // Why: "Aluminium Works Contracting" shortlists maintenance and general contracting (0.864, 0.860), "Aluminium works"
+    // the non_ferrous_metals sheet service, and "aluminium" is a whole part of BOTH trade names, so trade_word refused it.
+    // Measured on the live vectors for every one-word code (12 Oct 2026): the floor alone does NOT separate a company
+    // name from an activity - "Legal Name: ZZ DEMO Falcon Glazing LLC" reached glazing at 0.821, and name lines of
+    // signage, upholstery and laundry and trader lines ("Flooring Trading LLC" 0.856) cleared it too. The work gate
+    // refuses all of them; the activity lines keep their trade.
+    // NOT ARABIC: the e5 space scores an Arabic name (0.850) and trader (0.862) as high as an activity (0.868).
+    const worksLine = !ml && opts.codeWords && saysInstallWork(line.text) && !supplyOnlyOf(line.text).supply_only;
+    if (worksLine) {
+      for (const word of words) {
+        const code = opts.codeWords![word];
+        if (!code) continue;
+        const own = ranked.filter(([, s]) => s.trade_code === code)[0];
+        if (!own || own[0] < floor) continue;
+        const key = `${own[1].trade_code}.${own[1].code}`;
+        if (stated.has(key)) continue;
+        const list = byKey.get(key) || [];
+        list.push({ s: own[1], sim: own[0], line: line.text, because: 'trade_code', word });
+        byKey.set(key, list);
+      }
+    }
     const pick = shortlist.find(([, s]) => judgeOf(s).because) ?? shortlist[0];
     if (!pick) continue;
     const [sim, best] = pick;
@@ -244,7 +274,7 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
   }
   const out: MeaningProposal[] = [];
   for (const [key, cands] of byKey) {
-    const worded = cands.find((c) => c.because);
+    const worded = cands.find((c) => c.because && c.because !== 'trade_code') ?? cands.find((c) => c.because);
     const because = worded?.because;
     if (!worded || !because) continue;   // a nearest neighbour is never accepted, however many lines find it
     out.push({
