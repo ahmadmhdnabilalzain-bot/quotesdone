@@ -1,5 +1,5 @@
 // deno test --no-lock supabase/functions/resilience_ping/steps.test.ts
-import { failureOf, runSteps } from './steps.ts';
+import { detachedItems, failureOf, runSteps } from './steps.ts';
 
 const eq = (a: unknown, b: unknown, m: string) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);

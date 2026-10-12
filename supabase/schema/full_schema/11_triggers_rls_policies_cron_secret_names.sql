@@ -160,7 +160,7 @@ CREATE TRIGGER z80_invite_same_day_brake AFTER UPDATE OF invite_status ON public
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER z40_leads_keep_the_public_name AFTER INSERT OR UPDATE OF company_name ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_leads_keep_the_public_name();
 CREATE TRIGGER z21_sign_supplier_on_acceptance AFTER UPDATE OF accepted_terms_at ON public.leads FOR EACH ROW WHEN (((new.accepted_terms_at IS NOT NULL) AND (new.accepted_terms_at IS DISTINCT FROM old.accepted_terms_at) AND (new.claimed_by IS NOT NULL) AND (NOT ((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL))))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER z20_leads_mandatory_item_landed_reverifies AFTER UPDATE OF company_name, phone, phone_e164, owner_phone_verified, owner_email_verified, license_doc_path, license_expiry, company_profile_doc_path, signed_terms_path, licence_legal_name ON public.leads FOR EACH ROW WHEN (((new.approval_status = ANY (ARRAY['action_required'::text, 'pending'::text])) AND (pg_trigger_depth() < 1))) EXECUTE FUNCTION fn_leads_mandatory_item_landed_reverifies();
+CREATE TRIGGER z20_leads_mandatory_item_landed_reverifies AFTER UPDATE OF company_name, phone, phone_e164, owner_phone_verified, owner_email_verified, license_doc_path, license_expiry, company_profile_doc_path, signed_terms_path, licence_legal_name ON public.leads FOR EACH ROW WHEN (((pg_trigger_depth() < 1) AND ((new.approval_status = ANY (ARRAY['action_required'::text, 'pending'::text])) OR ((new.approval_status = 'approved'::text) AND ((old.license_doc_path IS DISTINCT FROM new.license_doc_path) OR (old.licence_legal_name IS DISTINCT FROM new.licence_legal_name)))))) EXECUTE FUNCTION fn_leads_mandatory_item_landed_reverifies();
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER trg_sales_engineer_tells_the_supplier_he_is_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW WHEN ((new.approval_status = 'approved'::text)) EXECUTE FUNCTION fn_sales_engineer_tells_the_supplier_he_is_approved();
 CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
@@ -1444,6 +1444,7 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   cred_fn_route_inquiry
 --   cred_fn_sales_engineer
 --   cred_fn_secretary_act
+--   cred_fn_site_assistant
 --   cred_fn_social_stage
 --   cred_fn_supplier_api
 --   cred_fn_supplier_portal
@@ -1453,12 +1454,14 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   cred_fn_to_pdf_native
 --   cred_fn_to_route_inquiry
 --   cred_fn_wa_docs
+--   cred_fn_wa_inbound
 --   cred_fn_wa_pdf
 --   cred_fn_workflow_dispatch
 --   cred_ops_doc_render
 --   cred_ops_phone_diag
 --   cred_ops_wa_replay
 --   cred_ops_wa_template_setup
+--   cred_site_error_ingest
 --   cron_down_last_alert
 --   customer_terms_label
 --   customer_terms_version
