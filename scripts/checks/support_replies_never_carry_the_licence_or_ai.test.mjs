@@ -70,8 +70,8 @@ test('every WhatsApp send to a customer or supplier is guarded; only the founder
   // and the founder branch of the menu send.
   const bare = s.split('\n').filter((l) => /bidiSafe\(/.test(l) && !/function bidiSafe|return bidiSafe\(guardSupportReply/.test(l));
   assert.equal(bare.length, 2, 'unguarded bidiSafe sites:\n' + bare.join('\n'));
-  assert.ok(bare.every((l) => /founder|reply = bidiSafe\(reply\.slice\(0, 1200\)\)/.test(l)), bare.join('\n'));
-  assert.ok((s.match(/toContact\(/g) || []).length >= 7);
+  assert.ok(bare.every((l) => /founder|\? bidiSafe\(reply\.slice\(0, 1200\)\)/.test(l)), bare.join('\n'));
+  assert.ok((s.match(/toContact\(/g) || []).length >= 6); // 6 since 12 Oct 2026 (rulings 1195-1197): the hold-only stored-sentence road is gone
 });
 
 test('a supplier\'s own licence number in an upload confirmation survives', () => {
