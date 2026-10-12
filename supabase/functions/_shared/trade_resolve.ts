@@ -151,7 +151,7 @@ export function exactCandidates(lines: string[]): string[] {
 //               the names the document's own name fields print: wherever one occurs in a line it is cut out, with or
 //               without its legal suffix, and the rest of the line is still read ("ZZ DEMO Falcon Cleaning provides
 //               painting works" keeps "provides painting works"). Nothing similar is guessed: only the exact name.
-const LEGAL_SUFFIX = /[\s,.\-]*(?:l\.?\s?l\.?\s?c\.?|fz[\s-]?llc|fze|fzco|est\.?|establishment|ذ\s?\.?\s?م\s?\.?\s?م\.?)\s*$/iu;
+const LEGAL_SUFFIX = /[\s,.\-]*(?:l\.?\s?l\.?\s?c\.?|fz[\s-]?llc|fze|fzco|est\.?|establishment|\u0630\s?\.?\s?\u0645\s?\.?\s?\u0645\.?)\s*$/iu;
 const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const NAME_FIELD = new RegExp('^\\s*(?:' + NAME_LABELS.map(escRe).join('|') + ')(?![\\p{L}])\\s*[:：\\-]?', 'iu');
 export const isNameField = (line: string): boolean => NAME_FIELD.test(line);
