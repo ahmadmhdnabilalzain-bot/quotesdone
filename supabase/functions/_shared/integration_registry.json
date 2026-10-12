@@ -318,7 +318,9 @@
       "supplier_exception_days": "setting", "supplier_outreach_golive": "setting", "supplier_subscription_aed": "setting",
       "supplier_subscription_start": "setting", "supplier_subscription_term": "setting", "terms_sha256_customer": "setting",
       "terms_sha256_customer_version": "setting", "terms_sha256_supplier": "setting", "terms_sha256_supplier_version": "setting",
-      "uptime_last_autoheal": "state kept by a watcher", "voice_otp_last": "state kept by a watcher"
+      "uptime_last_autoheal": "state kept by a watcher", "voice_otp_last": "state kept by a watcher",
+      "document_expiry_ai": "setting (sales_engineer; founder rulings 1175/1177, on since 7 Oct 2026): when 'on', the vision model reads scanned licences for name and expiry",
+      "conversation_retention_mode": "setting (it_engineer; founder ruling 1126, PRs #1232/#1278): 'remove' lets the 5-year conversation retention job remove text; anything else is dry_run"
     }
   }
 }
