@@ -92,6 +92,12 @@ export interface ThinkRequest {
   // planner nobody judges the stakes, and the independent check then runs on every answer (12 Oct 2026). A decision
   // whose options are the whole of what it needs (priceQuestion: a trade from a given list) passes { steps: [] }.
   plan?: { steps: { id: string; goal: string; query: string }[] };
+  // A caller's last-mile rewrite (support_reply.ts: the plain-language gate). Runs on the draft BEFORE the independent
+  // check, so the checked text is the text sent; null keeps the draft. Only when the check runs.
+  polish?: (answer: string) => Promise<string | null>;
+  // One more choice made IN the answering call, so it costs no chain of its own (the widget: which published trade, if
+  // any, they ask the price of). Comes back as result.extra (null if not one of the ids).
+  ask?: { key: string; options: { id: string; meaning: string }[] };
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -111,6 +117,7 @@ export interface ThinkResult {
   held_id?: number | null;
   reason?: string;
   route?: string | null;
+  extra?: string | null;
 }
 
 export interface LlmReply { content: string | null; model?: string | null; error?: string | null; used_llm?: boolean }
@@ -423,14 +430,21 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // The space is asked once per run. If the multilingual embedder cannot answer, this run falls back to
   // gte-small and the gte routines: a slower-to-improve answer, never a vector put to the wrong space.
   let space: EmbedSpace = deps.space ? await deps.space().catch(() => 'gte' as EmbedSpace) : 'gte';
+  // One embedding per text per run (12 Oct 2026): a plan step whose query IS the question re-embedded it remotely,
+  // 1-3 s each on the widget path (measured per stage).
+  const memo = new Map<string, Promise<number[] | null>>();
+  const emb = (t: string, sp: EmbedSpace) => { const k = sp + '\u0001' + t; if (!memo.has(k)) memo.set(k, deps.embed(t, sp)); return memo.get(k)!; };
   const embedIn = async (t: string): Promise<{ v: number[] | null; r: typeof ROUTINES[EmbedSpace] }> => {
     if (space === 'ml') {
-      const v = await deps.embed(t, 'ml');
+      const v = await emb(t, 'ml');
       if (v) return { v, r: ROUTINES.ml };
       space = 'gte';
     }
-    return { v: await deps.embed(t, 'gte'), r: ROUTINES.gte };
+    return { v: await emb(t, 'gte'), r: ROUTINES.gte };
   };
+  // A caller's plan is known now: its step queries are embedded (remotely, in embed_ml — no work in this worker) while
+  // the question is, not after the recall (12 Oct 2026: 1.7-8 s of embedding in a row on the widget, measured per stage).
+  if (req.plan && space === 'ml') for (const s of req.plan.steps) emb(s.query, 'ml').catch(() => null);
   const q0 = await embedIn(req.question);
   const qVec = q0.v;
   // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
@@ -486,7 +500,9 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // e. SYNTHESISE, with the validator forcing re-passes
   const missing = facts.filter((f) => !f.value);
   const sourceIds = new Set(sources.map((s) => s.id));
-  const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true);
+  const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true)
+    + (req.ask && !deciding ? `
+Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '');
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
@@ -504,6 +520,12 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   let verified: ThinkResult['verified'] = { status: 'not_needed', by: null, notes: '' };
   let confidence = Math.max(0, Math.min(1, Number(draft.confidence) || 0));
   if (req.stakes === 'high' || (!deciding && plan.high_stakes === true)) {
+    // The caller's rewrite runs BEFORE the check, one after the other, so the text the reviewer reads is the text
+    // that goes out (12 Oct 2026: a rewrite after the check sent unchecked words; beside it, it killed the worker).
+    if (!deciding && req.polish) {
+      const p = await req.polish(String(draft.answer ?? '')).catch(() => null);
+      if (p) { draft = { ...draft, answer: p }; steps.push({ id: 'polish', kind: 'synthesise', goal: "the caller's rewrite, before the check", status: 'done' }); }
+    }
     const v = await deps.llm('verify', VERIFY_PROMPT, JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
       { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: 600 });
     const vj = parseJson<{ verdict?: string; problems?: string[] }>(v.content);
@@ -542,6 +564,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     missing_context: missing, sources: sources.filter((s) => (draft!.cited ?? []).includes(s.id)),
     confidence, asked_back: draft.asked_back ? String(draft.asked_back) : null, verified, model,
     route: req.route?.some((o) => o.id === String(draft!.route ?? '')) ? String(draft!.route) : null,
+    extra: req.ask?.options.some((o) => o.id === String((draft as unknown as Record<string, unknown>)[req.ask!.key] ?? '')) ? String((draft as unknown as Record<string, unknown>)[req.ask.key]) : null,
   };
 }
 
