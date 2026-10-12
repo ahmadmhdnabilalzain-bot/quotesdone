@@ -174,10 +174,14 @@ const aboutSupplierOnly = (s: string) =>
   (SUPPLIER_SUBJECT.test(s) && !OUR_MARK.test(s)) || (SUPPLIER_TERMS.test(s) && !OUR_FEE.test(s.replace(SUPPLIER_FEE, ' ')));
 // Ruling 1208: our fee is taken on the supplier's final price BEFORE / excluding VAT. A sentence giving that basis
 // states policy, not VAT on our fee (the Arabic alternatives are \u escapes, so this line is not an Arabic message).
-const FEE_BASIS_EX_VAT = /\b(?:before|excluding|ex)[\s-]VAT\b|\u0642\u0628\u0644 (?:\u0627\u0644)?\u0636\u0631\u064A\u0628\u0629|\u063A\u064A\u0631 \u0634\u0627\u0645\u0644/i;
+const FEE_BASIS_EX_VAT = /\b(?:before|excluding|ex)[\s-]VAT\b|\u0642\u0628\u0644 (?:\u0627\u0644)?\u0636\u0631\u064A\u0628\u0629|\u063A\u064A\u0631 \u0634\u0627\u0645\u0644/gi;
+// Exempt only when the fee-basis phrase is the SOLE VAT mention: strip it, and any VAT left ("and VAT is added to it")
+// is still a claim (review of #1364 at 2b2ac40).
+const feeBasisOnly = (s: string) => { FEE_BASIS_EX_VAT.lastIndex = 0; if (!FEE_BASIS_EX_VAT.test(s)) return false; FEE_BASIS_EX_VAT.lastIndex = 0;
+  return !/\bVAT\b|\u0636\u0631\u064A\u0628\u0629/i.test(s.replace(FEE_BASIS_EX_VAT, ' ')); };
 const CLAIMS: { problem: string; re: RegExp; unless?: RegExp | ((s: string) => boolean) }[] = [
   { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|\u0631\u0633\u0648\u0645 (?:\u0639\u0644\u0649 )?(?:\u0627\u0644\u062F\u0641\u0639 (?:\u0628|\u0639\u0628\u0631 )?)?\u0627\u0644\u0628\u0637\u0627\u0642\u0629|\u0631\u0633\u0648\u0645 \u0627\u0644\u0628\u0637\u0627\u0642\u0629/i, unless: aboutSupplierOnly },
-  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?\u061F]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?\u061F]*\bVAT\b|\u0636\u0631\u064A\u0628\u0629 \u0627\u0644\u0642\u064A\u0645\u0629 \u0627\u0644\u0645\u0636\u0627\u0641\u0629/i, unless: (s: string) => aboutSupplierOnly(s) || FEE_BASIS_EX_VAT.test(s) },
+  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?\u061F]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?\u061F]*\bVAT\b|\u0636\u0631\u064A\u0628\u0629 \u0627\u0644\u0642\u064A\u0645\u0629 \u0627\u0644\u0645\u0636\u0627\u0641\u0629/i, unless: (s: string) => aboutSupplierOnly(s) || feeBasisOnly(s) },
   { problem: 'it promises a refund (every refund is the CEO\'s decision)', re: /\b(?:we|we'?ll|we will|you will|you'?ll)\b[^.!?؟]*\b(?:refund|get your money back|be refunded)|سن(?:عيد|رد) (?:لك|إليك|لكم)? ?(?:المبلغ|أموالك|رسوم)|ستسترد|سيتم (?:رد|استرداد)/i,
     // the published non-response rule is conditional ("if the supplier does not respond, you are refunded"): that is policy, not a promise
     unless: /\b(?:if|when|unless)\b|إذا|إن |في حال|عند /i },

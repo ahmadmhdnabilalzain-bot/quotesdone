@@ -69,7 +69,7 @@ const VAT = /(vat|tax|ضريبة)/i;
 // `total_first`: the only total written came before the discount, so it is the price before the discount.
 type Disc = { amount: number; label: string; net: number | null; total_first: boolean };
 type Table = { lines: QuoteLine[]; totals: Record<string, number>; subtotal: number | null; vat: number | null; discount?: Disc | null };
-const DISCOUNT = /discount|rebate|خصم/i;
+const DISCOUNT = /discount|rebate|\u062E\u0635\u0645/i;
 function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null {
   for (let r = 0; r < Math.min(rows.length, 30); r++) {
     const cols: Partial<Record<Col, number>> = {};
