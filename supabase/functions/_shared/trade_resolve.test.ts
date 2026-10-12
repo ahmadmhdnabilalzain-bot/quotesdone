@@ -9,6 +9,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { exactCandidates, textLines, tradesOfText, type TradeResolveDeps } from './trade_resolve.ts';
 import type { MeaningService } from './service_meaning.ts';
 import { meaningClauses } from './service_meaning.ts';
+import { isNameOrReachLine } from './catalogue_read.ts';
 import FIXTURES from './trade_words.fixtures.json' with { type: 'json' };
 
 // fn_trade_code, and fn_taxonomy_trades_for over a slice of production (29 Sep 2026): codes resolve to themselves,
@@ -51,7 +52,9 @@ Deno.test('words alone decide nothing: no fixture sentence resolves by the exact
     // state is nothing_to_read; every longer one still reports that the embedding could not be read.
     const one = (s: string) => s.trim().split(/\s+/).length < 2;
     const oneWordEach = f.text.split(/\n/).every((l) => !one(l) && meaningClauses(l).every(one));
-    assertEquals(r.meaning, oneWordEach ? 'nothing_to_read' : 'embedding_unavailable', f.text);
+    // 12 Oct 2026: a fixture made only of name / contact lines is not read at all (isNameOrReachLine)
+    const contactOnly = f.text.split(/\n/).every((l) => isNameOrReachLine(l.trim()));
+    assertEquals(r.meaning, oneWordEach || contactOnly ? 'nothing_to_read' : 'embedding_unavailable', f.text);
   }
   // the sentence trade_words.ts read as plumbing because two aliases occur in it
   assertEquals(codes(await tradesOfText('Activities: Plumbing works and drainage maintenance', noMeaning)), []);
@@ -103,4 +106,26 @@ Deno.test('exact candidates are lines and list items of a few words, once', () =
   const c = exactCandidates(lines);
   for (const p of ['HVAC', 'Plumbing', 'Painting', 'Joinery']) assert(c.includes(p), p);
   assert(!c.some((p) => p.startsWith('We are a leading')), 'a sentence is not a code candidate');
+});
+
+// 12 Oct 2026 (sales_engineer, accuracy suite): a company's NAME line proposes no trade by any path. Measured live:
+// "Legal Name: ZZ DEMO Falcon Cleaning LLC" -> cleaning, its label -> legal_services (0.82), "... Glazing LLC" -> glazing (0.821).
+Deno.test('a name or contact line is read by no path; the work line beside it still is', async () => {
+  const asked: string[] = [];
+  const deps: TradeResolveDeps = {
+    normTrades: async (p) => { asked.push(...p); return Object.fromEntries(p.map((x) => [x, ['cleaning']])); },
+    services: [{ trade_code: 'cleaning', code: 'office', label_en: 'Office cleaning', label_ar: '', aliases: [], vec: [1, 0] }],
+    embed: async (t) => { asked.push(t); return [1, 0]; },
+    budget: { left: 40 },
+  };
+  const names = ['Legal Name: ZZ DEMO Falcon Cleaning LLC', 'Legal Name: ZZ DEMO Falcon Glazing LLC', 'ZZ DEMO Falcon Cleaning L.L.C - Company Profile'];
+  const r = await tradesOfText(names.join('\n'), deps);
+  assertEquals([r.trades, asked.filter((a) => /LLC|L\.L\.C/.test(a))], [[], []]);
+  const w = await tradesOfText([...names, 'Office cleaning works'].join('\n'), { ...deps, budget: { left: 40 } });
+  assertEquals(w.trades.map((t) => t.code), ['cleaning'], 'the work line is still read');
+  // #1313 review: work lines carrying "mobile", an address word or a number are NOT name lines
+  for (const l of ['Mobile crane hire', 'Office fit-out, 3 floors', 'Warehouse racking up to 12 m', '24/7 building maintenance', 'Road works phase 2', 'Double glazed units 6+12+6 mm'])
+    assertEquals(isNameOrReachLine(l), false, l);
+  for (const l of ['Tel: +971 4 123 4567', 'sales@zzdemo.example.invalid', 'www.zzdemo.example.invalid', 'ZZ DEMO Falcon FZE', 'فالكون للألمنيوم ذ.م.م', 'Call 04 123 4567'])
+    assertEquals(isNameOrReachLine(l), true, l);
 });
