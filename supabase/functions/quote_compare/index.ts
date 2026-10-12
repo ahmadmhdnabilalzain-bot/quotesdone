@@ -291,6 +291,16 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
       await logRun('ok', { compared: 0, technical_only: 1, quotes_seen: qs.length, lang }, 'Technical comparison for ' + qs.length + ' quotes served by code for the no-exact-spec sweep; no model was asked.');
       return J({ ok: true, technical_only: true, analysis: withRoster({}) });
     }
+    // THE MYSTERY SHOPPER'S COMPARISON NEEDS NO MODEL (13 Oct 2026, it_engineer, ruling 1209). The daily ZZ DEMO run
+    // (scripts/e2e/mystery_shopper.mjs) must never buy a model call, whether or not the founder's hold is on, so a
+    // caller who may see this comparison (the request's own customer, or an internal one: the gate above has already
+    // refused everyone else) may ask for the same deterministic ranking a model failure serves. It can only make the
+    // answer cheaper, never show anything the caller could not already see.
+    if (body.deterministic_only === true) {
+      const analysis = deterministicCompare(labelled as never, lang as 'en' | 'ar');
+      await logRun('ok', { compared: 1, deterministic_only: 1, quotes_seen: qs.length, top3: analysis.top3.length, lang }, 'Deterministic comparison of ' + qs.length + ' quotes served on request (deterministic_only); no model was asked.');
+      return J({ ok: true, deterministic_only: true, analysis: withRoster(analysis) });
+    }
     // A FAILED COMPARISON IS CACHED TOO (22 Sep 2026). The cache held successes only, "so the model
     // result wins the moment the model works again" - which also meant a failing input re-ran the
     // whole ladder on every mount of the compare card (CustomerPortal.tsx Comparison, deps
