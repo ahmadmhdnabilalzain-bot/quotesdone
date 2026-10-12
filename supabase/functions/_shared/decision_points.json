@@ -2709,7 +2709,8 @@
      "file": "supabase/functions/_shared/trade_resolve.ts",
      "must_contain": [
       "admin.rpc('fn_norm_trades_many'",
-      "proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels })"
+      "proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, codeWords })",
+      "await deps.normTrades(raw)"
      ],
      "must_not_contain": [
       "termPattern(",
