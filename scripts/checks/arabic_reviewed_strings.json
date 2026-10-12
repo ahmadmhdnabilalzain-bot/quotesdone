@@ -1179,6 +1179,18 @@
   "8b5f02c04a5e",
   "bf952d2e4384"
  ],
+ "scripts/sql/the_arabic_faq_adds_no_card_fee_and_states_the_v14_charge.sql": [
+  "072a4b401c40",
+  "36693156a7f7",
+  "55a8cea15846",
+  "5702352b1e4d",
+  "5b6a8b63dc06",
+  "8ab067be8b2b",
+  "c554ce6fb0e1",
+  "d10010693f15",
+  "e751cdb7dfba",
+  "ecfdd85c816d"
+ ],
  "scripts/sql/the_arabic_faq_answers_every_question_the_english_one_does.sql": [
   "007b25b6097d",
   "00ccae0e52ce",
