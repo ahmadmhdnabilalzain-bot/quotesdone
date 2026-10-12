@@ -155,9 +155,15 @@ export function moneyFiguresNotInBrief(text: string, known: Set<string>): string
 // every refund is the CEO's decision, the platform is not a party to the work). A sentence that AFFIRMS one of these
 // goes back to the model for a rewrite; a sentence that denies it ("no card fee is added") passes.
 const NEG = /\b(no|not|never|without|nor|isn'?t|aren'?t|won'?t|doesn'?t|don'?t)\b|لا |ليس|ليست|بدون|دون|لن |غير /i;
-const CLAIMS: { problem: string; re: RegExp; unless?: RegExp }[] = [
-  { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|رسوم (?:على )?(?:الدفع (?:ب|عبر )?)?البطاقة|رسوم البطاقة/i },
-  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?؟]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?؟]*\bVAT\b|ضريبة القيمة المضافة/i },
+// Ruling 1207 (13 Oct 2026): a supplier's quotation may state anything (a discount, VAT included or +5% VAT, a card
+// surcharge, any terms) and is shown as stated. The no-card-fee / no-VAT rule is about OUR 3% fee only, so a sentence
+// about the supplier's price or terms that does not also speak of our fee is never contradicted by these two claims.
+const SUPPLIER_TERMS = /\b(?:suppliers?|quot(?:e|es|ed|ation|ations)|prices?|discount(?:ed)?)\b|المورد|عرض|السعر|سعر|خصم/i;
+const OUR_FEE = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\b3\s?%|٣\s?٪|الكشف|رسومنا|عمولتنا/i;
+const aboutSupplierOnly = (s: string) => SUPPLIER_TERMS.test(s) && !OUR_FEE.test(s);
+const CLAIMS: { problem: string; re: RegExp; unless?: RegExp | ((s: string) => boolean) }[] = [
+  { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|رسوم (?:على )?(?:الدفع (?:ب|عبر )?)?البطاقة|رسوم البطاقة/i, unless: aboutSupplierOnly },
+  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?؟]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?؟]*\bVAT\b|ضريبة القيمة المضافة/i, unless: aboutSupplierOnly },
   { problem: 'it promises a refund (every refund is the CEO\'s decision)', re: /\b(?:we|we'?ll|we will|you will|you'?ll)\b[^.!?؟]*\b(?:refund|get your money back|be refunded)|سن(?:عيد|رد) (?:لك|إليك|لكم)? ?(?:المبلغ|أموالك|رسوم)|ستسترد|سيتم (?:رد|استرداد)/i,
     // the published non-response rule is conditional ("if the supplier does not respond, you are refunded"): that is policy, not a promise
     unless: /\b(?:if|when|unless)\b|إذا|إن |في حال|عند /i },
@@ -167,7 +173,7 @@ const CLAIMS: { problem: string; re: RegExp; unless?: RegExp }[] = [
 export function policyProblems(text: string): string[] {
   const out: string[] = [];
   for (const sentence of String(text || '').split(/(?<=[.!?؟\n])\s*/)) {
-    for (const c of CLAIMS) if (c.re.test(sentence) && !NEG.test(sentence) && !(c.unless?.test(sentence)) && !out.includes(c.problem)) out.push(c.problem);
+    for (const c of CLAIMS) if (c.re.test(sentence) && !NEG.test(sentence) && !(typeof c.unless === 'function' ? c.unless(sentence) : c.unless?.test(sentence)) && !out.includes(c.problem)) out.push(c.problem);
   }
   return out;
 }

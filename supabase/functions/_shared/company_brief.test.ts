@@ -164,3 +164,24 @@ Deno.test('sentences come off the front of the stream whole, the unfinished tail
   assertEquals(rest, 'Suppliers pa');
   assertEquals(takeSentences('نعم، هويتك مخفية؟ ثم').done, ['نعم، هويتك مخفية؟ ']);
 });
+
+// prevented by: this test (ruling 1207, 13 Oct 2026). A supplier's quotation is shown as stated: its discount, "VAT
+// included", "+5% VAT" or card surcharge is never contradicted, and the no-card-fee / no-VAT line is never forced onto
+// it. The line still belongs to OUR 3% fee, computed on the final quoted price.
+Deno.test('a supplier quotation stands as stated; only our 3% fee carries the no card fee / no VAT line', async () => {
+  const { revealFeeIncomplete } = await import('./company_brief.ts');
+  for (const s of [
+    'The supplier quoted AED 2,000, after discount AED 1,700, VAT included.',
+    'The supplier\'s price is AED 1,700 +5% VAT.',
+    'The supplier\'s quotation adds a card surcharge for card payments.',
+    'عرض المورد 2,000 درهم، وبعد الخصم 1,700 درهم شاملة ضريبة القيمة المضافة.',
+  ]) {
+    assertEquals(policyProblems(s), [], s);
+    assertEquals(revealFeeIncomplete(s), [], s);
+  }
+  const both = 'The supplier quoted AED 1,700 +5% VAT; QuotesDone is not responsible for the quotation details. Our 3% reveal fee is 3% of AED 1,700, with no card fee and no VAT.';
+  assertEquals([policyProblems(both), revealFeeIncomplete(both)], [[], []]);
+  // our own fee is never exempt: VAT on the reveal fee is still caught, and a bare 3% fee still needs the line
+  assert(policyProblems('VAT is added to the reveal fee.').length === 1);
+  assertEquals(revealFeeIncomplete('The supplier quoted AED 1,700. Our 3% reveal fee is AED 51.').length, 2);
+});
