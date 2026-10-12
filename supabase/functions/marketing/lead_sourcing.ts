@@ -5,8 +5,8 @@
 // list is ready when the current one is exhausted." 1186 supersedes the 10 Aug "no new leads" pause; Apify stays
 // cancelled (no purchase without a cost quote).
 //
-// THE PIPELINE, deterministic end to end (no model call: OpenRouter is the founder's one standing hold, and an
-// exact-trade rule needs no judgement):
+// THE PIPELINE. Code first; the model only where code cannot read (founder 1175, 7 Oct: OpenRouter is always on):
+// the contact name and title on a site's own pages, and whether that contact is real (see THE NAME below).
 //   1. SOURCE  Serper /places (SERPER_API_KEY, an edge secret) per trade x emirate, trades with the FEWEST
 //              suppliers first (fn_lead_sourcing_priority). An API, not a scrape of Google Maps.
 //   2. CRAWL   the company's OWN website only: robots.txt is read first and obeyed (a missing robots.txt allows,
@@ -137,18 +137,73 @@ export async function mxKind(domain: string): Promise<string> {
   } catch { return 'error'; }
 }
 
+// ── THE NAME: the model reads the pages, LinkedIn titles from public Google results fill the rest ──────
+// Pilot 12 Oct 2026: only 4 of 59 sites gave a person by pattern. A person on an about/team page, or the manager
+// named in trade-licence details a site publishes, is written in too many shapes for a pattern, so the model reads
+// them (founder 1175: OpenRouter always on; the routine class, gpt-6-luna, cost logged by ai_gateway in ai_cost_log under fn
+// 'marketing', class routine_employee_reasoning). What it may return is held to the page: the name must appear in the text it was given.
+export type AskModel = (prompt: string) => Promise<string | null>;
+export const MODEL_TEXT_CHARS = 10000;
+
+/** Readable text of a page (scripts, styles and tags out), for the model. */
+export function visibleText(html: string): string {
+  return html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<[^>]+>/g, '\n').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+}
+export function contactPrompt(company: string, pages: { url: string; text: string }[], candidate: { name: string; title: string } | null): string {
+  const body = pages.map((p) => `### ${p.url}\n${p.text}`).join('\n\n').slice(0, MODEL_TEXT_CHARS);
+  return `Company: ${company}\nBelow is text from the company's own website pages.\n` +
+    `Find ONE real person who runs or sells for this company (owner, managing director, general manager, director, sales or ` +
+    `procurement manager), including a manager or owner named in trade licence details on the page. ` +
+    (candidate ? `A pattern found "${candidate.name}" as "${candidate.title}": confirm it only if that is a real named person at this company. ` : '') +
+    `Placeholders (John Doe), testimonials from customers, page headings and staff of other companies are NOT real contacts.\n` +
+    `Answer with ONE JSON object only: {"name": string|null, "title": string|null, "real": boolean, "url": string|null} ` +
+    `where name is copied exactly as written on the page and url is the page it is on.\n\n${body}`;
+}
+/** Parse and hold the model to the page: a name that is not in the text it was shown is refused. */
+export function acceptContact(answer: string | null, pages: { url: string; text: string }[]): { name: string; title: string; url: string } | null {
+  if (!answer) return null;
+  let j: { name?: string | null; title?: string | null; real?: boolean; url?: string | null };
+  try { j = JSON.parse(answer.slice(answer.indexOf('{'), answer.lastIndexOf('}') + 1)); } catch { return null; }
+  const name = String(j.name || '').trim(); const title = String(j.title || '').trim();
+  if (!j.real || name.split(/\s+/).length < 2 || !title || name.length > 60 || title.length > 80) return null;
+  const has = (p: { text: string }) => p.text.toLowerCase().includes(name.toLowerCase());
+  const page = pages.find((p) => p.url === j.url && has(p)) ?? pages.find(has);
+  return page ? { name, title, url: page.url } : null;
+}
+/** "First Last - Sales Manager - Acme Trading LLC | LinkedIn" -> the person, only when the company and a title word match. */
+export function linkedinPerson(resultTitle: string, company: string): { name: string; title: string } | null {
+  // Pilot 12 Oct 2026: Google's titles carry RTL marks (U+200E/U+200F) and write "Title @ Company" as often as
+  // "Title at Company"; a long one ends in "...".
+  const clean = String(resultTitle || '').replace(/[‎‏]/g, '').replace(/\s*(\.\.\.|…)\s*$/, '').replace(/\s*\|\s*LinkedIn.*$/i, '');
+  const parts = clean.split(/\s+[-–]\s+/);
+  if (parts.length === 2 && /\s(at|@)\s?/i.test(parts[1])) parts.splice(1, 1, ...parts[1].split(/\s(?:at|@)\s?/i).slice(0, 2));
+  if (parts.length < 3) return null;
+  const [name, title, org] = parts;
+  const key = words(company).trim().split(' ').find((w) => w.length >= 4 && !/^(llc|trading|general|company|group|dubai|services?)$/.test(w));
+  if (!key || !words(org).includes(' ' + key + ' ')) return null;
+  if (!new RegExp(`\\b(${TITLES}|Head|Chief|President)\\b`, 'i').test(title)) return null;
+  if (name.split(/\s+/).length < 2 || /[|@]/.test(name)) return null;
+  const latin = name.replace(/[^\p{Script=Latin}\s.'-]/gu, '').replace(/\s+/g, ' ').trim();   // 'HANKUK LEE 님' in the pilot
+  return latin.split(' ').length >= 2 ? { name: latin, title: title.trim() } : null;
+}
+
+type SerperPath = 'places' | 'search';
+type SerperReply = { places?: Place[]; organic?: { title?: string; link?: string }[]; credits?: number };
 export interface SourceOptions {
   serperKey: string; trades: Trade[]; emirate: string; pagesPerQuery: number; maxSites: number; deadlineMs: number;
-  fetchSerper?: (body: unknown) => Promise<{ places?: Place[]; credits?: number }>;
+  fetchSerper?: (path: SerperPath, body: unknown) => Promise<SerperReply>;
+  askModel?: AskModel;
 }
 export interface SourceResult { prospects: Prospect[]; queries: number; serper_credits: number; places: number; sites_crawled: number;
-  pages_fetched: number; robots_refused: number; errors: string[] }
+  pages_fetched: number; robots_refused: number; model_calls: number; linkedin_queries: number; linkedin_titles: string[]; errors: string[] }
 
 export async function sourceLeads(o: SourceOptions): Promise<SourceResult> {
-  const started = Date.now();
-  const out: SourceResult = { prospects: [], queries: 0, serper_credits: 0, places: 0, sites_crawled: 0, pages_fetched: 0, robots_refused: 0, errors: [] };
-  const serper = o.fetchSerper ?? (async (body: unknown) => {
-    const r = await timedFetch('https://google.serper.dev/places', { method: 'POST',
+  const stopAt = Date.now() + o.deadlineMs;
+  const out: SourceResult = { prospects: [], queries: 0, serper_credits: 0, places: 0, sites_crawled: 0, pages_fetched: 0, robots_refused: 0,
+    model_calls: 0, linkedin_queries: 0, linkedin_titles: [], errors: [] };
+  const serper = o.fetchSerper ?? (async (path: SerperPath, body: unknown): Promise<SerperReply> => {
+    const r = await timedFetch('https://google.serper.dev/' + path, { method: 'POST',
       headers: { 'X-API-KEY': o.serperKey, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 20000);
     if (!r.ok) throw new Error('serper ' + r.status + ' ' + (await r.text()).slice(0, 120));
     return await r.json();
@@ -156,10 +211,10 @@ export async function sourceLeads(o: SourceOptions): Promise<SourceResult> {
   const seen = new Set<string>();
   for (const t of o.trades) {
     for (let page = 1; page <= o.pagesPerQuery; page++) {
-      if (Date.now() - started > o.deadlineMs) return out;
+      if (Date.now() > stopAt) return out;
       const query = `${t.label} supplier in ${o.emirate}, UAE`;
-      let res: { places?: Place[]; credits?: number };
-      try { res = await serper({ q: query, gl: 'ae', hl: 'en', page }); } catch (e) { out.errors.push(String(e).slice(0, 160)); break; }
+      let res: SerperReply;
+      try { res = await serper('places', { q: query, gl: 'ae', hl: 'en', page }); } catch (e) { out.errors.push(String(e).slice(0, 160)); break; }
       out.queries++; out.serper_credits += Number(res.credits ?? 1);
       const places = res.places || [];
       out.places += places.length;
@@ -179,48 +234,105 @@ export async function sourceLeads(o: SourceOptions): Promise<SourceResult> {
       if (places.length < 10) break;   // no further page
     }
   }
+
+  async function crawlSite(p: Prospect) {
+    const origin = new URL(p.website!).origin;
+    const robotsUrl = origin + '/robots.txt';
+    const rb = await safeFetch(robotsUrl, { timeoutMs: 8000, maxBytes: 200_000, headers: { 'User-Agent': USER_AGENT } });
+    // No robots.txt (404) allows; a robots.txt we could not read (refused, timeout, 5xx) is treated as a refusal.
+    let robots = robotsParser(robotsUrl, '');
+    if (rb.ok) robots = robotsParser(robotsUrl, dec.decode(rb.bytes));
+    else if (rb.error !== 'http_404' && rb.error !== 'http_410') { out.robots_refused++; return; }
+    out.sites_crawled++;
+    const texts: { url: string; text: string }[] = [];
+    let candidate: { name: string; title: string; url: string } | null = null;
+    for (const u of [origin + '/', ...CONTACT_PATHS.map((x) => origin + x)]) {
+      if (texts.length >= MAX_PAGES || Date.now() > stopAt) break;   // the deadline bounds each page, not only each site
+      if (robots.isAllowed(u, USER_AGENT) === false) { out.robots_refused++; continue; }
+      await sleep(PER_SITE_GAP_MS);
+      const r = await safeFetch(u, { timeoutMs: 10000, maxBytes: PAGE_BYTES, headers: { 'User-Agent': USER_AGENT } });
+      if (!r.ok || !/html/i.test(r.contentType)) continue;
+      out.pages_fetched++;
+      const html = dec.decode(r.bytes);
+      texts.push({ url: u, text: visibleText(html).slice(0, 4000) });
+      const c = extractContacts(html, p.domain);
+      if (!p.email && c.emails.length) { p.email = c.emails.find((e) => /^(sales|info|enquir|inquir|contact)/.test(e)) || c.emails[0]; p.field_sources.email = u; }
+      const mobile = c.phones.find((x) => x.kind === 'mobile');
+      if (mobile && p.phone_kind !== 'mobile') { p.phone_e164 = mobile.e164; p.phone_kind = 'mobile'; p.field_sources.phone_e164 = u; }
+      else if (!p.phone_e164 && c.phones[0]) { p.phone_e164 = c.phones[0].e164; p.phone_kind = c.phones[0].kind; p.field_sources.phone_e164 = u; }
+      if (!candidate && c.person) candidate = { ...c.person, url: u };
+    }
+    if (p.email) {
+      const kind = await mxKind(p.email.split('@')[1]);
+      p.email_status = kind === 'mx' || kind === 'a_implicit' ? 'mx_ok' : 'mx_' + kind;
+      p.field_sources.email_status = 'dns:cloudflare-dns.com ' + kind;
+    }
+    // Spend on a name only where the name is the last missing field: a model call or a search on a lead that can
+    // never be complete is money for nothing.
+    if (p.email_status !== 'mx_ok' || !p.phone_e164 || !p.emirate) return;
+    let person: { name: string; title: string; src: string } | null = null;
+    let answer: string | null = null;
+    if (o.askModel && texts.length && Date.now() < stopAt) {
+      out.model_calls++;   // the model also judges the pattern's candidate: a candidate it does not confirm is dropped
+      answer = await o.askModel(contactPrompt(p.company_name, texts, candidate)).catch(() => null);
+      const got = acceptContact(answer, texts);
+      if (got) person = { name: got.name, title: got.title, src: got.url + ' (read by model)' };
+    }
+    // No model answer at all (not a "not real" verdict): the pattern's candidate stands, as it did before the model.
+    if (!person && answer === null && candidate) person = { name: candidate.name, title: candidate.title, src: candidate.url };
+    if (!person && Date.now() < stopAt) {
+      // Public Google results only (Serper search). The LinkedIn page is never opened; the result TITLE is the source.
+      out.linkedin_queries++;
+      try {
+        const core = p.company_name.split(/[|,(]| - /)[0].replace(/\b(l\.?l\.?c|fze|fzco|fz-llc|est|co)\b\.?/gi, '').trim();
+        const res = await serper("search", { q: `site:linkedin.com/in "${core}"`, gl: "ae", num: 10 });
+        for (const r of (res.organic || []).slice(0, 2)) if (out.linkedin_titles.length < 40) out.linkedin_titles.push(String(r.title || ""));
+        out.serper_credits += Number(res.credits ?? 1);
+        for (const r of res.organic || []) {
+          const lp = linkedinPerson(String(r.title || ''), p.company_name);
+          if (lp) { person = { ...lp, src: 'serper:search google result title ' + (r.link || '') }; break; }
+        }
+      } catch (e) { out.errors.push('linkedin search: ' + String(e).slice(0, 100)); }
+    }
+    if (person) { p.contact_name = person.name; p.contact_title = person.title; p.field_sources.contact_name = person.src; p.field_sources.contact_title = person.src; }
+  }
+
   // Crawl only places that already carry a trade and a site: the rest can never become complete.
   const toCrawl = out.prospects.filter((p) => p.trade_code && p.domain).slice(0, o.maxSites);
-  const workers = Array.from({ length: 4 }, async (_, w) => {
-    for (let i = w; i < toCrawl.length; i += 4) {
-      if (Date.now() - started > o.deadlineMs) return;
-      await crawlSite(toCrawl[i], out, started + o.deadlineMs).catch((e) => out.errors.push(`${toCrawl[i].domain}: ${String(e).slice(0, 100)}`));
+  await Promise.all(Array.from({ length: 6 }, async (_, w) => {
+    for (let i = w; i < toCrawl.length; i += 6) {
+      if (Date.now() > stopAt) return;
+      await crawlSite(toCrawl[i]).catch((e) => out.errors.push(`${toCrawl[i].domain}: ${String(e).slice(0, 100)}`));
     }
-  });
-  await Promise.all(workers);
+  }));
   return out;
 }
 
-async function crawlSite(p: Prospect, out: SourceResult, stopAt: number) {
-  const origin = new URL(p.website!).origin;
-  const robotsUrl = origin + '/robots.txt';
-  const rb = await safeFetch(robotsUrl, { timeoutMs: 8000, maxBytes: 200_000, headers: { 'User-Agent': USER_AGENT } });
-  // No robots.txt (404) allows; a robots.txt we could not read (refused, timeout, 5xx) is treated as a refusal.
-  let robots = robotsParser(robotsUrl, '');
-  if (rb.ok) robots = robotsParser(robotsUrl, dec.decode(rb.bytes));
-  else if (rb.error !== 'http_404' && rb.error !== 'http_410') { out.robots_refused++; return; }
-  out.sites_crawled++;
-  const urls = [origin + '/', ...CONTACT_PATHS.map((x) => origin + x)];
-  let pages = 0;
-  for (const u of urls) {
-    if (pages >= MAX_PAGES || Date.now() > stopAt) break;   // the deadline bounds each page, not only each site
-    if (robots.isAllowed(u, USER_AGENT) === false) { out.robots_refused++; continue; }
-    await sleep(PER_SITE_GAP_MS);
-    const r = await safeFetch(u, { timeoutMs: 10000, maxBytes: PAGE_BYTES, headers: { 'User-Agent': USER_AGENT } });
-    if (!r.ok || !/html/i.test(r.contentType)) continue;
-    pages++; out.pages_fetched++;
-    const c = extractContacts(dec.decode(r.bytes), p.domain);
-    if (!p.email && c.emails.length) { p.email = c.emails.find((e) => /^(sales|info|enquir|inquir|contact)/.test(e)) || c.emails[0]; p.field_sources.email = u; }
-    const mobile = c.phones.find((x) => x.kind === 'mobile');
-    if (mobile && p.phone_kind !== 'mobile') { p.phone_e164 = mobile.e164; p.phone_kind = 'mobile'; p.field_sources.phone_e164 = u; }
-    else if (!p.phone_e164 && c.phones[0]) { p.phone_e164 = c.phones[0].e164; p.phone_kind = c.phones[0].kind; p.field_sources.phone_e164 = u; }
-    if (!p.contact_name && c.person) { p.contact_name = c.person.name; p.contact_title = c.person.title;
-      p.field_sources.contact_name = u; p.field_sources.contact_title = u; }
-    if (p.email && p.contact_name && p.phone_kind === 'mobile') break;
-  }
-  if (p.email) {
-    const kind = await mxKind(p.email.split('@')[1]);
-    p.email_status = kind === 'mx' || kind === 'a_implicit' ? 'mx_ok' : 'mx_' + kind;
-    p.field_sources.email_status = 'dns:cloudflare-dns.com ' + kind;
-  }
+// ── ONE BATCH (the marketing function's 'lead_sourcing' action; pg_cron lead_sourcing_batch, every 5 minutes) ──
+// One (trade, emirate) cell per batch, fewest suppliers first, until lead_sourcing_daily_quota new complete leads a
+// Dubai day. 110 s of work, inside the edge's 150 s cap with room to record. The day before is reported to the CEO.
+export const BATCH_DEADLINE_MS = 110_000;
+// deno-lint-ignore no-explicit-any
+export async function runLeadBatch(admin: any, askModel: AskModel): Promise<Record<string, unknown>> {
+  const key = Deno.env.get('SERPER_API_KEY');
+  if (!key) return { ok: false, error: 'no SERPER_API_KEY edge secret' };
+  const report = await admin.rpc('fn_lead_sourcing_daily_report');
+  const today = await admin.rpc('fn_lead_sourcing_today');
+  if (today.error) return { ok: false, error: 'fn_lead_sourcing_today: ' + today.error.message };
+  const t = today.data as { quota: number; promoted: number };
+  if (t.quota <= 0 || t.promoted >= t.quota) return { ok: true, due: false, ...t };
+  const cells = await admin.rpc('fn_lead_sourcing_next_cells', { p_limit: 1 });
+  if (cells.error || !cells.data?.length) return { ok: false, error: 'fn_lead_sourcing_next_cells: ' + (cells.error?.message ?? 'no cell') };
+  const cell = cells.data[0] as Trade & { emirate: string };
+  const startedAt = new Date().toISOString();
+  const r = await sourceLeads({ serperKey: key, trades: [cell], emirate: cell.emirate, pagesPerQuery: 3, maxSites: 40,
+    deadlineMs: BATCH_DEADLINE_MS, askModel });
+  const rec = await admin.rpc('fn_lead_sourcing_record', {
+    p_run: { kind: 'batch', emirate: cell.emirate, trades: [cell.code], started_at: startedAt, queries: r.queries,
+      serper_credits: r.serper_credits, places: r.places, sites_crawled: r.sites_crawled, pages_fetched: r.pages_fetched,
+      robots_refused: r.robots_refused, model_calls: r.model_calls, linkedin_queries: r.linkedin_queries, errors: r.errors.slice(0, 20) },
+    p_prospects: r.prospects });
+  if (rec.error) return { ok: false, error: 'fn_lead_sourcing_record: ' + rec.error.message };
+  return { ok: true, due: true, cell: `${cell.code}@${cell.emirate}`, ...(rec.data as Record<string, unknown>),
+    report: report.error ? report.error.message : report.data };
 }

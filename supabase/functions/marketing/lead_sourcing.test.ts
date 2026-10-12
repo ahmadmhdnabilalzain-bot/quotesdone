@@ -1,7 +1,7 @@
 // lead_sourcing.ts — the deterministic parts that decide whether a sourced company becomes a lead.
 //   deno test --allow-net=0 supabase/functions/marketing/lead_sourcing.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { businessEmail, emirateOf, extractContacts, isComplete, matchTrade, normalisePhone, type Prospect, SKIP_HOSTS, sourceLeads } from './lead_sourcing.ts';
+import { acceptContact, businessEmail, emirateOf, extractContacts, isComplete, linkedinPerson, matchTrade, normalisePhone, type Prospect, SKIP_HOSTS, sourceLeads } from './lead_sourcing.ts';
 
 const ALU = { code: 'aluminium', label: 'Aluminium & cladding', aliases: ['aluminium', 'aluminum', 'cladding', 'curtain wall'] };
 
@@ -62,7 +62,7 @@ Deno.test('complete means all eight fields and an MX-checked email', () => {
 
 Deno.test('sourcing: LinkedIn website is dropped, untraded places are not crawled, credits counted', async () => {
   const r = await sourceLeads({ serperKey: 'x', trades: [ALU], emirate: 'Dubai', pagesPerQuery: 1, maxSites: 0, deadlineMs: 5000,
-    fetchSerper: () => Promise.resolve({ credits: 3, places: [
+    fetchSerper: (_path) => Promise.resolve({ credits: 3, places: [
       { title: 'Acme Aluminium', category: 'Aluminium supplier', address: 'Dubai', website: 'https://www.linkedin.com/company/acme', phoneNumber: '04 331 2345', cid: '1' },
       { title: 'Star Glass', category: 'Glass shop', address: 'Dubai', website: 'https://star.ae', cid: '2' },
     ] }) });
@@ -72,3 +72,30 @@ Deno.test('sourcing: LinkedIn website is dropped, untraded places are not crawle
   assertEquals(r.prospects[1].trade_code, null);
   assertEquals(r.sites_crawled, 0);
 });
+
+Deno.test('the model is held to the page: a name not in the text is refused', () => {
+  const pages = [{ url: 'https://acme.ae/about', text: 'Founded by Rashid Al Mansoori, our Managing Director.' }];
+  assertEquals(acceptContact('{"name":"Rashid Al Mansoori","title":"Managing Director","real":true,"url":"https://acme.ae/about"}', pages),
+    { name: 'Rashid Al Mansoori', title: 'Managing Director', url: 'https://acme.ae/about' });
+  assertEquals(acceptContact('{"name":"Invented Person","title":"CEO","real":true,"url":"https://acme.ae/about"}', pages), null);
+  assertEquals(acceptContact('{"name":"Rashid Al Mansoori","title":"Managing Director","real":false}', pages), null);
+  assertEquals(acceptContact('not json', pages), null);
+});
+
+Deno.test('LinkedIn result titles: the person only when the company and a title word match', () => {
+  assertEquals(linkedinPerson('Pir Arkam - Founder & CEO - Proto21 3D Printing LLC | LinkedIn', 'Proto21 3D Printing LLC'),
+    { name: 'Pir Arkam', title: 'Founder & CEO' });
+  assertEquals(linkedinPerson('Jane Smith - Sales Manager - Other Company | LinkedIn', 'Proto21 3D Printing LLC'), null);
+  assertEquals(linkedinPerson('Proto21 3D Printing LLC | LinkedIn', 'Proto21 3D Printing LLC'), null);
+  assertEquals(linkedinPerson('Pir Arkam - Founder & CEO at Proto21 3D Printing | LinkedIn', 'Proto21 3D Printing LLC'), { name: 'Pir Arkam', title: 'Founder & CEO' });
+});
+
+Deno.test('LinkedIn titles as Google returned them in the 12 Oct pilot (RTL marks, "@", "...")', () => {
+  assertEquals(linkedinPerson('‏Ajil AR‏ - ‏Key account Manager @ Abradant International', 'Abradant International'),
+    { name: 'Ajil AR', title: 'Key account Manager' });
+  assertEquals(linkedinPerson('MD Jamsher Alam‏ - ‏Founder & CEO @Orbit3D | 3D Design', 'Orbit3D Printing Co. LLC'),
+    { name: 'MD Jamsher Alam', title: 'Founder & CEO' });
+  assertEquals(linkedinPerson('Rizwana Razak - ACCOUNTANT | SAP FICO | ZOHO BOOKS', 'Right Way Accounting & Auditing'), null);
+  assertEquals(linkedinPerson('Shibu Mathew - Administrator at AL YOUSUF GENERAL ...', 'AL YOUSUF GENERAL TRADING LLC'), null);   // not a title we accept
+});
+Deno.test('a non-Latin honorific is dropped from a LinkedIn name', () => { assertEquals(linkedinPerson('HANKUK LEE 님 - Chief Executive Officer - Layerlab', 'Layerlab 3D Printing'), { name: 'HANKUK LEE', title: 'Chief Executive Officer' }); });
