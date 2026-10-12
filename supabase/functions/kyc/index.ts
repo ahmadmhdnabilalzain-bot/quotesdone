@@ -502,9 +502,15 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       else {
         // 6 Oct 2026 (release review of #1240): the SHA of the accepted text is recorded, as for suppliers
         // (_shared/customer_terms.ts). Written separately so a database without the column cannot fail the acceptance.
-        await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
-        const rec = await customerTermsRecord(sec, ip);
-        if (rec && rec.tos_version === custV) await admin.from('customers').update({ tos_sha256: rec.tos_sha256 }).eq('email', email).then(() => null, () => null);
+        // ONE ACCEPTANCE PER VERSION (12 Oct 2026, founder audit): a second accept_terms for the version already
+        // on file (a double click, a retry: measured 51 s apart on 3 Oct) rewrote tos_accepted_at, and the later
+        // acceptance time made compliance_archive issue a SECOND certificate for one acceptance. The record is
+        // written only when this version is not yet accepted, exactly as for suppliers above.
+        if (!(cust as any)?.tos_accepted_at || (cust as any)?.tos_version !== custV) {
+          await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
+          const rec = await customerTermsRecord(sec, ip);
+          if (rec && rec.tos_version === custV) await admin.from('customers').update({ tos_sha256: rec.tos_sha256 }).eq('email', email).then(() => null, () => null);
+        }
       }
       // A CUSTOMER'S CERTIFICATE IS ISSUED AFTER THE ANSWER (it_engineer, 29 Sep 2026, finding
       // duty:latency_slo:kyc:error_budget). Every one of the 12 over-budget kyc runs in 30 days was an

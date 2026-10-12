@@ -1,0 +1,1 @@
+Committed, not applied: apply at merge with an_unfinished_sign_up_is_never_a_customer.sql (sales_engineer, founder audit 12 Oct 2026). node scripts/apply_sql.mjs scripts/sql/the_supplier_folder_is_the_category_slug.sql --apply --ddl must print PROBE OK; then delete this note and append the file to the END of MANIFEST.txt.
