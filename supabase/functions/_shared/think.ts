@@ -48,6 +48,7 @@ import { heldFromGate, HOLD_PROBE_MODEL, type GateAnswer } from './llm_hold.ts';
 import { recallCases } from './case_recall.ts';
 import { e2eRunTag } from './e2e_run.ts';
 import { rehearsalLetsFixtureThrough } from './spend_guards.ts';
+import { gteReads } from './ml_embed_recipe.ts';
 
 export const SEATS = ['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] as const;
 export type Seat = typeof SEATS[number];
@@ -439,8 +440,9 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     const { v, r: rt } = await embedIn(s.query);
     if (!v) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'failed', detail: 'embedding_unavailable' }); thin.push(s); continue; }
     // The multilingual search fuses both spaces (fn_reason_retrieve_ml), so it takes the gte-small vector too;
-    // without one it ranks by the multilingual space alone.
-    const vg = rt === ROUTINES.ml ? await deps.embed(s.query, 'gte') : null;
+    // without one it ranks by the multilingual space alone. An Arabic question gets none: gte-small is English-only
+    // and its vector for Arabic text pulled the fused ranking down (gteReads, _shared/ml_embed_recipe.ts).
+    const vg = rt === ROUTINES.ml && gteReads(s.query) ? await deps.embed(s.query, 'gte') : null;
     // The right area first (knowledge_lookup_goes_to_the_trade_first.sql): the routine resolves the trade and the
     // area exactly and ranks only that trade's entries / that area's rows plus the seat's general ones. Each is sent
     // only when known, so a call without them is the call it always was.

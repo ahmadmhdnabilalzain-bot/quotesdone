@@ -7,9 +7,10 @@
     {
       "id": "bearings_power_transmission:uae-market-products",
       "topic": "Bearings & power transmission: products, variants and grades sold in the UAE",
+      "topic_ar": "المحامل ونقل الحركة: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers the bearings and power transmission range in the UAE, from ball and roller bearings to belts, chains, couplings and gearboxes, and what buyers specify. Bearings and power transmission in the UAE: deep groove ball bearings (6000/6200/6300 series, 2RS/ZZ seals, C3 clearance), angular contact, cylindrical, spherical and taper roller bearings, thrust bearings, pillow block and flange units (UCP/UCF), linear bearings and guides, bushings, seals and O-rings, V-belts (classical A/B/C, wedge SPA/SPB/SPC, narrow), timing belts (HTD, T5/T10), roller chains (ISO 606, ANSI-standard sizes 40-160) and sprockets, pulleys (taper-lock), couplings (jaw, gear, tyre, disc), gearboxes and geared motors (helical, worm, bevel), and lubricants for bearings. Buyers specify bearing designation (ISO numbering), seal type, clearance, cage material, precision class, and for belts the profile and length.",
-      "body_ar": "يغطي هذا البند تشكيلة المحامل ونقل الحركة في الإمارات، من المحامل الكروية والأسطوانية إلى السيور والجنازير ووصلات الربط وصناديق التروس، وما يحدده المشترون. المحامل ونقل الحركة في الإمارات: المحامل الكروية ذات الأخدود العميق (السلاسل 6000/6200/6300، بسدادات 2RS/ZZ، وخلوص C3)، والمحامل ذات التماس الزاوي والأسطوانية والكروية والمخروطية، ومحامل الدفع، ووحدات الحوامل والفلنجات (UCP/UCF)، والمحامل والأدلة الخطية، والجلب، والسدادات والحلقات الدائرية، وسيور V (الكلاسيكية A/B/C والإسفينية SPA/SPB/SPC)، وسيور التوقيت (HTD وT5/T10)، والسلاسل الأسطوانية (ISO 606 والمقاسات 40-160) والتروس، والبكرات (Taper-lock)، والوصلات (الفكية والترسية والإطارية والقرصية)، وعلب التروس والمحركات المزودة بالتروس (الحلزونية والدودية والمخروطية)، وشحوم المحامل. يحدد المشتري رمز المحمل (ترقيم ISO) ونوع السداد والخلوص ومادة القفص ودرجة الدقة، وللسيور المقطع والطول.",
+      "body_ar": "تضم تشكيلة المحامل (الرولمانات) ونقل الحركة في الإمارات المحامل الكروية والأسطوانية وصولًا إلى السيور والجنازير والوصلات وصناديق التروس، مع ما يحدده المشترون في طلباتهم. يتوفر في السوق الإماراتي: رولمانات كروية ذات مجرى عميق (سلاسل 6000 و6200 و6300، بموانع تسريب 2RS أو ZZ، وخلوص C3)، ورولمانات تماس زاوي، ورولمانات أسطوانية وكروية مزدوجة ومخروطية، ورولمانات دفع (ثرست)، ووحدات بيلو بلوك وفلنجات (UCP/UCF)، ورولمانات ومجاري خطية، وجلب (بوشات)، وموانع تسريب (سيلات) وحلقات O-ring، وسيور V (الكلاسيكية A/B/C، والإسفينية SPA/SPB/SPC، والضيقة)، وسيور التوقيت (HTD وT5/T10)، وجنازير أسطوانية (ISO 606، ومقاسات ANSI من 40 إلى 160) مع التروس المسننة (السبروكت)، وبكرات (Taper-lock)، ووصلات (كبلنج) فكية وترسية وإطارية وقرصية، وصناديق تروس ومحركات بعلب تروس (حلزونية ودودية ومخروطية)، وشحوم ومواد تزييت للرولمانات. يحدد المشتري رمز الرولمان (ترقيم ISO)، ونوع مانع التسريب، والخلوص، ومادة القفص، ودرجة الدقة، وفي السيور المقطع والطول.",
       "sources": [
         "https://www.schaeffler.ae",
         "https://www.iso.org",
@@ -23,9 +24,10 @@
     {
       "id": "bearings_power_transmission:uae-market-brands",
       "topic": "Bearings & power transmission: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "المحامل ونقل الحركة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry lists the bearing, belt, chain and gearbox brands in the UAE market, such as SKF, Schaeffler, NSK and Gates, and where distribution clusters. Brands in the market: SKF, Schaeffler (FAG, INA), NSK, NTN, Koyo, Timken, NACHI, ZWZ, HRB, Gates, Optibelt, Continental, Bando, Mitsuboshi, Fenner, Tsubaki, Renold, Rexnord, iwis, SEW-Eurodrive, Bonfiglioli, Nord, Flender, Sumitomo. Which UAE distributor carries each brand was not checked. Distribution clusters in Deira (Naif, Al Ras), Sharjah Industrial Area, Al Quoz and Musaffah.",
-      "body_ar": "يسرد هذا البند علامات المحامل والسيور والجنازير وصناديق التروس في سوق الإمارات، مثل SKF وSchaeffler وNSK وGates، وأماكن تركز التوزيع. العلامات في السوق: SKF، Schaeffler (FAG, INA)، NSK، NTN، Koyo، Timken، NACHI، ZWZ، HRB، Gates، Optibelt، Continental، Bando، Mitsuboshi، Fenner، Tsubaki، Renold، Rexnord، iwis، SEW-Eurodrive، Bonfiglioli، Nord، Flender، Sumitomo. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع التوزيع في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح.",
+      "body_ar": "من أشهر ماركات الرولمانات والسيور والجنازير وعلب التروس في سوق الإمارات SKF وSchaeffler وNSK وGates، مع بيان أماكن تركز التوزيع. والماركات المتوفرة في السوق: SKF وSchaeffler (FAG وINA) وNSK وNTN وKoyo وTimken وNACHI وZWZ وHRB وGates وOptibelt وContinental وBando وMitsuboshi وFenner وTsubaki وRenold وRexnord وiwis وSEW-Eurodrive وBonfiglioli وNord وFlender وSumitomo. ولم نتحقق من الموزع المعتمد لكل ماركة في الإمارات. ويتركز التوزيع في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح.",
       "sources": [
         "https://www.schaeffler.ae",
         "https://www.iso.org",
@@ -39,9 +41,10 @@
     {
       "id": "bearings_power_transmission:uae-market-sizes",
       "topic": "Bearings & power transmission: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "المحامل ونقل الحركة: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how bearings and drives are sold and priced: bearings per piece by designation, belts by profile and length, chains per box, gearboxes per unit, at list minus discount. Bearings sold per piece by designation (e.g. 6205-2RS C3: 25 mm bore, 52 mm OD, 15 mm width); belts per piece by profile and length (e.g. SPB 2000); chains per 5 m or 10 ft box by pitch; gearboxes per unit by ratio and torque. Pricing is list minus discount; genuine versus copy price gaps are large. Quotes state brand, origin and authorised supply confirmation.",
-      "body_ar": "يوضح هذا البند كيفية بيع المحامل ونقل الحركة وتسعيرها: المحامل بالقطعة حسب الرمز، والسيور حسب المقطع والطول، والجنازير بالصندوق، وصناديق التروس بالوحدة، بسعر القائمة ناقص الخصم. تُباع المحامل بالقطعة حسب الرمز (مثل 6205-2RS C3: ثقب 25 مم، وقطر خارجي 52 مم، وعرض 15 مم)؛ والسيور بالقطعة حسب المقطع والطول (مثل SPB 2000)؛ والسلاسل بعلبة 5 م أو 10 أقدام حسب الخطوة؛ وعلب التروس بالوحدة حسب النسبة والعزم. والتسعير سعر القائمة ناقص خصم؛ والفجوة بين الأصلي والمقلد كبيرة. وتذكر العروض العلامة والمنشأ وتأكيد التوريد المعتمد.",
+      "body_ar": "تُباع المحامل وقطع نقل الحركة وتُسعَّر عادةً كالتالي: البيرنقات بالقطعة حسب رقمها، والسيور حسب المقطع والطول، والجنازير بالصندوق، وعلب التروس (الجيربوكس) بالوحدة، وكلها بسعر القائمة ناقص الخصم. يُباع البيرنق بالقطعة حسب رقمه (مثل 6205-2RS C3: قطر داخلي 25 مم، وقطر خارجي 52 مم، وعرض 15 مم)، والسير بالقطعة حسب المقطع والطول (مثل SPB 2000)، والجنزير بصندوق 5 م أو 10 أقدام حسب الخطوة (pitch)، والجيربوكس بالوحدة حسب نسبة التخفيض والعزم. التسعير بسعر القائمة ناقص الخصم، والفرق في السعر بين الأصلي والتقليد كبير. ويذكر عرض السعر الماركة وبلد المنشأ وتأكيد أن التوريد من وكيل معتمد.",
       "sources": [
         "https://www.schaeffler.ae",
         "https://www.iso.org",
@@ -56,7 +59,7 @@
   "eval": [
     {
       "q_en": "Do rolling elements and drive straps come with a price each, per matched kit, or by the maker's listing dimensions?",
-      "q_ar": "هل تُسعَّر عناصر الدحرجة وسيور الإدارة بالقطعة أم بالطقم المتطابق أم حسب مقاسات كتالوج الصانع؟",
+      "q_ar": "الرولمانات والسيور، تنباع بالحبة ولا كطقم متكامل ولا حسب مقاسات كتالوج الشركة المصنعة؟",
       "expected_entry_ids": [
         "bearings_power_transmission:uae-market-sizes"
       ],

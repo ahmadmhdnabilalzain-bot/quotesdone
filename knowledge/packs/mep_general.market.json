@@ -7,9 +7,10 @@
     {
       "id": "mep_general:uae-market-products",
       "topic": "MEP (combined): products, variants and grades sold in the UAE",
+      "topic_ar": "الأعمال الكهروميكانيكية المتكاملة (MEP): المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This covers combined MEP contracting in the UAE: design coordination, supply, installation and commissioning of HVAC, electrical, plumbing, fire, low current and BMS, with the required drawings and authority inspections. Combined MEP (mechanical, electrical, plumbing) contracting in the UAE covers design coordination, supply, installation, testing and commissioning of HVAC, electrical power and lighting, plumbing and drainage, fire fighting and alarm, low current (data, CCTV, access, PA), BMS, and sometimes gas and specialised systems (medical gas, kitchen extract). Deliverables include shop drawings, combined services/coordination drawings (BIM LOD 300-400 on larger projects), material submittals from approved vendor lists, method statements, testing and commissioning, authority inspections (DEWA/ADDC, Civil Defence, Dubai Municipality drainage), as-built drawings and O&M manuals. MEP is also the largest share of annual maintenance (hard FM) contracts. Buyers specify design responsibility (consultant design vs design-and-build), approved makes list, testing standards and handover documents.",
-      "body_ar": "يغطي هذا مقاولات الأعمال الكهروميكانيكية المتكاملة في الإمارات: تنسيق التصميم وتوريد وتركيب وتشغيل التكييف والكهرباء والسباكة والحريق والتيار المنخفض وأنظمة إدارة المباني، مع المخططات وتفتيشات الجهات المطلوبة. تشمل مقاولات الأعمال الكهروميكانيكية المجمعة (الميكانيكية والكهربائية والصحية) في الإمارات تنسيق التصميم والتوريد والتركيب والاختبار والتشغيل للتكييف، والقوى والإنارة، والتمديدات الصحية والصرف، ومكافحة الحريق وإنذاره، والتيار الخفيف (البيانات والكاميرات والتحكم بالدخول والنداء العام)، وأنظمة إدارة المباني، وأحياناً الغاز والأنظمة الخاصة (الغازات الطبية وشفط المطابخ). وتشمل المخرجات المخططات التنفيذية، ومخططات التنسيق المجمعة (BIM بمستوى 300-400 في المشاريع الكبيرة)، وتقديمات المواد من قوائم الموردين المعتمدين، وبيانات الطرق، والاختبار والتشغيل، وتفتيشات الجهات (هيئة الكهرباء، والدفاع المدني، وصرف بلدية دبي)، ومخططات ما بعد التنفيذ، وأدلة التشغيل والصيانة. كما تشكل الأعمال الكهروميكانيكية الحصة الأكبر من عقود الصيانة السنوية. يحدد المشتري مسؤولية التصميم (تصميم الاستشاري أو التصميم والتنفيذ)، وقائمة العلامات المعتمدة، ومعايير الاختبار، ووثائق التسليم.",
+      "body_ar": "تشمل مقاولات الأعمال الكهروميكانيكية المتكاملة (MEP) في الإمارات تنسيق التصميم وتوريد وتركيب وتشغيل أنظمة التكييف والكهرباء والسباكة والحريق والتيار الخفيف وأنظمة إدارة المباني (BMS)، مع المخططات المطلوبة وتفتيش الجهات المختصة. وتغطي مقاولات MEP (الميكانيكا والكهرباء والسباكة) تنسيق التصميم والتوريد والتركيب والاختبار والتشغيل لأنظمة التكييف HVAC، والقوى والإنارة، والسباكة والصرف، ومكافحة الحريق والإنذار، والتيار الخفيف (البيانات، وCCTV، والتحكم بالدخول، والإذاعة الداخلية PA)، وBMS، وأحيانًا الغاز والأنظمة التخصصية (الغازات الطبية، وشفط المطابخ). وتشمل المخرجات المطلوبة مخططات التنفيذ (شوب دروينج)، ومخططات تنسيق الخدمات المجمعة (BIM بمستوى LOD 300-400 في المشاريع الأكبر)، واعتمادات المواد من قوائم الموردين المعتمدين، وبيانات طريقة العمل (ميثود ستيتمنت)، والاختبار والتشغيل، وتفتيش الجهات (DEWA/ADDC، والدفاع المدني، وقسم الصرف في بلدية دبي)، والمخططات النهائية كما نُفّذت (As-built)، وكتيبات التشغيل والصيانة O&M. كما تمثل أعمال MEP الحصة الأكبر من عقود الصيانة السنوية (الصيانة الفنية Hard FM). ويحدد المشتري مسؤولية التصميم (تصميم الاستشاري أم التصميم والتنفيذ)، وقائمة الماركات المعتمدة، ومعايير الاختبار، ووثائق التسليم.",
       "sources": [
         "https://www.mepmiddleeast.com/business/2026-top-mep-contractors-middle-east",
         "https://www.dewa.gov.ae",
@@ -23,9 +24,10 @@
     {
       "id": "mep_general:uae-market-brands",
       "topic": "MEP (combined): makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الأعمال الكهروميكانيكية المتكاملة (MEP): الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This names MEP contractors in the UAE, from large firms such as Al Shirawi, Khansaheb MEP and Voltas to many mid-size and small contractors. MEP contractors run from large firms, such as Al Shirawi Electrical & Mechanical, Khansaheb MEP, Voltas, Transgulf Electro-Mechanical, ALEMCO, to many mid-size and SME contractors. The equipment brands are those of each trade. Contractors must hold utility and Civil Defence registrations for the relevant works.",
-      "body_ar": "يذكر هذا مقاولي الأعمال الكهروميكانيكية في الإمارات، من الشركات الكبيرة مثل الشيراوي وخان صاحب وفولتاس إلى كثير من المقاولين المتوسطين والصغار. يتراوح مقاولو الأعمال الكهروميكانيكية من شركات كبيرة مثل Al Shirawi Electrical & Mechanical، Khansaheb MEP، Voltas، Transgulf Electro-Mechanical، ALEMCO إلى مقاولين متوسطين وصغار كثيرين. وعلامات المعدات هي علامات كل مهنة. ويجب أن يحمل المقاولون تسجيلات هيئة الكهرباء والدفاع المدني للأعمال المعنية.",
+      "body_ar": "يتراوح مقاولو الأعمال الكهروميكانيكية (MEP) في الإمارات بين شركات كبيرة مثل الشيراوي وخانصاحب MEP وVoltas، وكثير من المقاولين المتوسطين والصغار. فمنهم شركات كبيرة مثل Al Shirawi Electrical & Mechanical وKhansaheb MEP وVoltas وTransgulf Electro-Mechanical وALEMCO، ومنهم كثير من المقاولين المتوسطين والصغار. وماركات المعدات هي ماركات كل تخصص على حدة. ويجب أن يكون المقاول مسجلًا لدى جهات الخدمات والدفاع المدني للأعمال المعنية.",
       "sources": [
         "https://www.mepmiddleeast.com/business/2026-top-mep-contractors-middle-east",
         "https://www.dewa.gov.ae",
@@ -39,9 +41,10 @@
     {
       "id": "mep_general:uae-market-sizes",
       "topic": "MEP (combined): typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الأعمال الكهروميكانيكية المتكاملة (MEP): المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This explains how MEP is priced: from a BOQ per discipline or as a lump sum, benchmarked as a share of construction cost, with maintenance contracts per year or per m2. MEP packages are priced from a BOQ per discipline (mechanical, electrical, plumbing, fire) or as a lump sum; benchmarks are often expressed as a percentage of total construction cost (commonly 25-40% for buildings, higher for hospitals and data centres) or cost per m2 of BUA. Maintenance contracts are per year per building or per m2, with PPM schedule, response times (SLA) and call-out rates. Payment terms mirror the main contract: advance, monthly valuations, retention 5-10%, 12-month defects liability.",
-      "body_ar": "يوضح هذا كيفية تسعير الأعمال الكهروميكانيكية: من جدول كميات لكل تخصص أو كمبلغ إجمالي، وتقاس كنسبة من تكلفة البناء، مع عقود صيانة سنوية أو لكل متر مربع. تُسعّر حزم الأعمال الكهروميكانيكية من جدول كميات لكل تخصص (ميكانيكي، كهربائي، صحي، حريق) أو بمبلغ مقطوع؛ وكثيراً ما يُعبّر عن المرجعية كنسبة من إجمالي تكلفة البناء (عادة 25-40% للمباني، وأعلى للمستشفيات ومراكز البيانات) أو كتكلفة للمتر المربع من المساحة المبنية. وعقود الصيانة سنوياً لكل مبنى أو بالمتر المربع، مع جدول الصيانة الوقائية وأوقات الاستجابة (اتفاقية مستوى الخدمة) وأسعار الاستدعاء. وتعكس شروط الدفع العقد الرئيسي: دفعة مقدمة، وتقييمات شهرية، ومحتجزات 5-10%، ومسؤولية عيوب 12 شهراً.",
+      "body_ar": "تُسعَّر أعمال MEP في الإمارات من جدول كميات (BOQ) لكل تخصص أو مقطوعية، وتُقارن كنسبة من تكلفة البناء، وعقود الصيانة سنوياً أو بالمتر المربع. فحزم MEP تُسعَّر من BOQ لكل تخصص (ميكانيك، كهرباء، سباكة، حريق) أو مقطوعية؛ وكثيراً ما تُعبَّر المعايير المرجعية كنسبة من إجمالي تكلفة البناء (عادة 25% إلى 40% للمباني، وأعلى للمستشفيات ومراكز البيانات) أو كتكلفة لكل متر مربع من المساحة المبنية (BUA). وعقود الصيانة سنوية لكل مبنى أو بالمتر المربع، مع جدول الصيانة الوقائية (PPM) وأزمنة الاستجابة (SLA) وأسعار الاستدعاء. وشروط الدفع تتبع العقد الرئيسي: دفعة مقدمة، ومستخلصات شهرية، ومحتجزات 5% إلى 10%، وفترة مسؤولية عن العيوب 12 شهراً.",
       "sources": [
         "https://www.mepmiddleeast.com/business/2026-top-mep-contractors-middle-east",
         "https://www.dewa.gov.ae",
@@ -56,7 +59,7 @@
   "eval": [
     {
       "q_en": "How do MEP contractors here price a job, per point or per square foot?",
-      "q_ar": "كيف يسعّر مقاولو الكهروميكانيك هنا العمل، لكل نقطة أم بالقدم المربع؟",
+      "q_ar": "مقاولين الـ MEP هنا شلون يسعرون الشغل، على النقطة ولا على القدم المربع؟",
       "expected_entry_ids": [
         "mep_general:uae-market-sizes"
       ],

@@ -4,9 +4,10 @@
     {
       "id": "facade_access_maintenance:spec-checklist",
       "topic": "Facade access and maintenance - what the buyer must state",
+      "topic_ar": "الوصول إلى الواجهات وصيانتها: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
       "body_en": "Each quoted service line for facade access and maintenance must state: building and facade area; access method; BMU or equipment inspection and certification; work scope and frequency; operator certification; method statement and risk assessment; working hours and permits; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الوصول إلى الواجهات وصيانتها: المبنى ومساحة الواجهة؛ طريقة الوصول؛ فحص واعتماد وحدة صيانة المبنى أو المعدات؛ نطاق العمل وتكراره؛ اعتماد المشغلين؛ بيان الطريقة وتقييم المخاطر؛ ساعات العمل والتصاريح؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_ar": "حتى يسعّر موردو الوصول إلى الواجهات وصيانتها العمل نفسه، يجب أن يذكر كل بند في عرض السعر: المبنى ومساحة الواجهة؛ طريقة الوصول إلى الواجهة؛ فحص واعتماد وحدة صيانة المبنى (BMU) أو المعدات؛ نطاق العمل وعدد مراته؛ شهادات المشغلين؛ بيان طريقة العمل وتقييم المخاطر؛ ساعات العمل والتصاريح؛ التراخيص التي يحملها المورد؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر كل معيار أو شهادة برقمه. أي بند ينقصه شيء من هذه المواصفات يُعلَّق ويُطلب من المورد استكماله؛ لا يُخمَّن شيء، ولا تُقارن العروض إلا إذا كانت على الأساس نفسه. هذه القائمة خاصة بفئة الوصول إلى الواجهات وصيانتها فقط.",
       "required_specs": [
         "building and facade area",
         "access method",
@@ -31,9 +32,10 @@
     {
       "id": "facade_access_maintenance:uae-standards-and-approvals",
       "topic": "Facade access and maintenance - UAE standards and approvals",
+      "topic_ar": "الوصول إلى الواجهات وصيانتها: الموافقات والمعايير والجهات في الإمارات",
       "kind": "standard",
       "body_en": "In Dubai, Dubai Municipality gives technical approval of construction materials and systems, certifies products through Dubai Central Laboratory and its factory assessment scheme, and requires compliance with the Dubai Building Code (Decree No. 45 of 2021) and the Al Sa'fat green building system. The provider must hold a valid UAE trade licence whose licensed activity covers this service, issued by the economic department of the emirate or by a free zone authority. The cited sources do not set a UAE-specific service standard, qualification level or rate for facade access and maintenance; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
-      "body_ar": "في دبي، تمنح بلدية دبي الاعتماد الفني لمواد وأنظمة البناء، وتعتمد المنتجات عبر مختبر دبي المركزي ونظام تقييم المصانع، وتشترط الامتثال لكود البناء في دبي (المرسوم رقم 45 لسنة 2021) ونظام السعفات للمباني الخضراء. يجب أن يحمل المزوّد رخصة تجارية إماراتية سارية يشمل نشاطها المرخّص هذه الخدمة، صادرة عن الدائرة الاقتصادية في الإمارة أو عن سلطة منطقة حرة. لا تحدد المصادر المذكورة معياراً أو مستوى تأهيل أو سعراً إماراتياً خاصاً بخدمة الوصول إلى الواجهات وصيانتها؛ يجب على المشتري ذكر المخرجات ومستويات الخدمة والمؤهلات صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "body_ar": "موافقات أعمال الواجهات في دبي: بلدية دبي تعطي الاعتماد الفني لمواد البناء وأنظمته، وتعتمد المنتجات عن طريق مختبر دبي المركزي ونظام تقييم المصانع، وتشترط الالتزام بكود البناء في دبي (المرسوم رقم 45 لسنة 2021) ونظام السعفات للمباني الخضراء. ويجب أن يحمل مزوّد خدمة الوصول إلى الواجهات وصيانتها رخصة تجارية إماراتية سارية يغطي نشاطها هذه الخدمة، صادرة عن الدائرة الاقتصادية في الإمارة أو عن سلطة منطقة حرة. المصادر المذكورة لا تحدد معياراً إماراتياً خاصاً بهذه الخدمة ولا مستوى تأهيل ولا سعراً؛ لذلك على المشتري أن يكتب المخرجات ومستوى الخدمة والمؤهلات صراحة، وأي بند لا يذكرها يُعلَّق.",
       "source_note": "The cited sources do not set a UAE-specific service standard, qualification level or rate for facade access and maintenance; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
       "sources": [
         "https://www.dm.gov.ae/municipality-business/",

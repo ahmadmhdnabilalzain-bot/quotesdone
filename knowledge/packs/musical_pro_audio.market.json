@@ -7,9 +7,10 @@
     {
       "id": "musical_pro_audio:uae-market-products",
       "topic": "Musical Instruments & Pro Audio: products, variants and grades sold in the UAE",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "Musical instruments and pro audio in the UAE span pianos, guitars, drums, Arabic instruments, PA speakers, mixers, wireless microphones, networked audio and voice alarm systems, specified by power, SPL, coverage and approvals. Musical instruments and pro audio sold in the UAE include acoustic and digital pianos, keyboards and synthesisers, guitars and basses, amplifiers, drums and electronic kits, oud, qanun, darbuka and other Arabic instruments, wind and string orchestral instruments, and professional audio: PA loudspeakers (passive and active, line arrays), subwoofers, power amplifiers, analogue and digital mixing consoles, wireless microphone systems (operating in UAE TDRA-permitted UHF bands), in-ear monitors, DSP and networked audio (Dante, AES67), background music and public address/voice alarm systems (EN 54-16/-24 for life-safety), studio monitors, audio interfaces and recording gear, and stage lighting. Buyers specify power (W RMS), SPL, coverage, IP rating for outdoor use, frequency band of wireless kit, and TDRA type approval for radio equipment. Voice evacuation systems in buildings must be Civil Defence approved.",
-      "body_ar": "يغطي هذا الآلات الموسيقية والصوتيات الاحترافية في الإمارات، من البيانو والجيتار والطبول والآلات العربية إلى مكبرات الصوت وأجهزة المزج والميكروفونات اللاسلكية وأنظمة النداء العام ومعدات الاستوديو. تشمل الآلات الموسيقية ومعدات الصوت الاحترافية المباعة في الإمارات البيانو الصوتي والرقمي، ولوحات المفاتيح والمُركِّبات الصوتية، والغيتارات وآلات الباص، ومضخمات الصوت، والطبول والأطقم الإلكترونية، والعود والقانون والدربكة وغيرها من الآلات العربية، وآلات النفخ والوتريات الأوركسترالية، والصوتيات الاحترافية: مكبرات الصوت (السلبية والنشطة، والمصفوفات الخطية)، ومضخمات الترددات المنخفضة، ومضخمات القدرة، وطاولات المزج التناظرية والرقمية، وأنظمة الميكروفونات اللاسلكية (العاملة في نطاقات UHF المسموح بها من هيئة تنظيم الاتصالات والحكومة الرقمية)، وأجهزة المراقبة داخل الأذن، ومعالجات الإشارة الرقمية والصوت الشبكي (Dante، AES67)، وأنظمة موسيقى الخلفية والنداء العام والإنذار الصوتي (EN 54-16/-24 لسلامة الأرواح)، وسماعات الاستوديو، وواجهات الصوت ومعدات التسجيل، وإضاءة المسرح. يحدد المشترون القدرة (واط RMS)، ومستوى ضغط الصوت، ومنطقة التغطية، ودرجة الحماية IP للاستخدام الخارجي، ونطاق تردد المعدات اللاسلكية، واعتماد النوع من هيئة تنظيم الاتصالات للأجهزة الراديوية. ويجب أن تكون أنظمة الإخلاء الصوتي في المباني معتمدة من الدفاع المدني.",
+      "body_ar": "تشمل الآلات الموسيقية والصوتيات الاحترافية في الإمارات البيانو والجيتار والطبول والآلات العربية، وسماعات أنظمة PA وأجهزة المكساج والميكروفونات اللاسلكية والصوتيات الشبكية وأنظمة الإنذار الصوتي، وتُحدَّد بالقدرة ومستوى ضغط الصوت SPL والتغطية والاعتمادات. تشمل الآلات الموسيقية ومعدات الصوت الاحترافية المباعة في الإمارات البيانو الصوتي والرقمي، ولوحات المفاتيح والمُركِّبات الصوتية، والغيتارات وآلات الباص، ومضخمات الصوت، والطبول والأطقم الإلكترونية، والعود والقانون والدربكة وغيرها من الآلات العربية، وآلات النفخ والوتريات الأوركسترالية، والصوتيات الاحترافية: مكبرات الصوت (السلبية والنشطة، والمصفوفات الخطية)، ومضخمات الترددات المنخفضة، ومضخمات القدرة، وطاولات المزج التناظرية والرقمية، وأنظمة الميكروفونات اللاسلكية (العاملة في نطاقات UHF المسموح بها من هيئة تنظيم الاتصالات والحكومة الرقمية)، وأجهزة المراقبة داخل الأذن، ومعالجات الإشارة الرقمية والصوت الشبكي (Dante، AES67)، وأنظمة موسيقى الخلفية والنداء العام والإنذار الصوتي (EN 54-16/-24 لسلامة الأرواح)، وسماعات الاستوديو، وواجهات الصوت ومعدات التسجيل، وإضاءة المسرح. يحدد المشترون القدرة (واط RMS)، ومستوى ضغط الصوت، ومنطقة التغطية، ودرجة الحماية IP للاستخدام الخارجي، ونطاق تردد المعدات اللاسلكية، واعتماد النوع من هيئة تنظيم الاتصالات للأجهزة الراديوية. ويجب أن تكون أنظمة الإخلاء الصوتي في المباني معتمدة من الدفاع المدني.",
       "sources": [
         "https://tdra.gov.ae/en/about/tdra-sectors/telecommunication/the-technology-development-affairs/type-approval",
         "https://www.thomsunmusic.com/about-us",
@@ -25,9 +26,10 @@
     {
       "id": "musical_pro_audio:uae-market-brands",
       "topic": "Musical Instruments & Pro Audio: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "Thomsun Music distributes Yamaha, Fender, Rode and Neumann in the UAE, and other brands on the market include Roland, Korg, Shure, Sennheiser, JBL, L-Acoustics and Allen & Heath. Confirmed distributor and brands: Thomsun Music, Yamaha, Fender, Rode, Neumann, Roland, Korg, Shure, Sennheiser, JBL, L-Acoustics, d&b audiotechnik, Allen & Heath. Thomsun distributes Yamaha, Fender, Rode and Neumann; the other brands' UAE distributors were not checked. Systems integrators handle installed sound.",
-      "body_ar": "يذكر هذا الموزع ثومسن ميوزك وعلامات الآلات والصوتيات مثل ياماها وفندر ورولاند وشور وجي بي إل، مع تولي مكاملي الأنظمة للأنظمة الصوتية المركبة. الموزع المؤكد والعلامات: Thomsun Music، Yamaha، Fender، Rode، Neumann، Roland، Korg، Shure، Sennheiser، JBL، L-Acoustics، d&b audiotechnik، Allen & Heath. وتوزع ثومسون ياماها وفندر وروود ونويمان؛ ولم يُتحقق من موزعي العلامات الأخرى في الإمارات. ويتولى مكاملو الأنظمة أنظمة الصوت المركبة.",
+      "body_ar": "توزِّع ثومسن ميوزك في الإمارات علامات Yamaha وFender وRode وNeumann، ومن العلامات الأخرى في السوق Roland وKorg وShure وSennheiser وJBL وL-Acoustics وAllen & Heath. الموزع المؤكد والعلامات: Thomsun Music، Yamaha، Fender، Rode، Neumann، Roland، Korg، Shure، Sennheiser، JBL، L-Acoustics، d&b audiotechnik، Allen & Heath. وتوزع ثومسون ياماها وفندر وروود ونويمان؛ ولم يُتحقق من موزعي العلامات الأخرى في الإمارات. ويتولى مكاملو الأنظمة أنظمة الصوت المركبة.",
       "sources": [
         "https://tdra.gov.ae/en/about/tdra-sectors/telecommunication/the-technology-development-affairs/type-approval",
         "https://www.thomsunmusic.com/about-us",
@@ -43,9 +45,10 @@
     {
       "id": "musical_pro_audio:uae-market-sizes",
       "topic": "Musical Instruments & Pro Audio: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "Instruments and audio gear are priced per unit, speakers per box or pair, cables per metre or reel, and installed sound systems as a lump sum with a BOQ. Instruments and audio equipment are priced per unit; loudspeakers per box or per pair; cables per metre or per reel (100 m). Installed sound systems are quoted as a lump sum with BOQ including design, installation, commissioning and training. Rental (see event equipment) is per day. Education bulk orders (school music rooms) are quoted per set.",
-      "body_ar": "يوضح هذا كيفية تسعير الآلات والصوتيات لكل وحدة، ومكبرات الصوت لكل صندوق أو زوج، والكابلات لكل متر أو بكرة، والأنظمة المركبة كمبلغ إجمالي. تُسعّر الآلات ومعدات الصوت لكل وحدة؛ ومكبرات الصوت لكل صندوق أو لكل زوج؛ والكابلات لكل متر أو لكل بكرة (100 م). وتُسعّر أنظمة الصوت المركبة كمبلغ مقطوع مع جدول كميات يشمل التصميم والتركيب والتشغيل والتدريب. ويكون الإيجار (انظر معدات الفعاليات) باليوم. وتُسعّر الطلبات التعليمية الكبيرة (غرف الموسيقى المدرسية) لكل طقم.",
+      "body_ar": "تُسعَّر الآلات ومعدات الصوت بالوحدة، والسماعات بالصندوق أو بالزوج، والكابلات بالمتر أو بالبكرة، أما أنظمة الصوت المركَّبة فبمبلغ مقطوع مع جدول كميات. تُسعّر الآلات ومعدات الصوت لكل وحدة؛ ومكبرات الصوت لكل صندوق أو لكل زوج؛ والكابلات لكل متر أو لكل بكرة (100 م). وتُسعّر أنظمة الصوت المركبة كمبلغ مقطوع مع جدول كميات يشمل التصميم والتركيب والتشغيل والتدريب. ويكون الإيجار (انظر معدات الفعاليات) باليوم. وتُسعّر الطلبات التعليمية الكبيرة (غرف الموسيقى المدرسية) لكل طقم.",
       "sources": [
         "https://tdra.gov.ae/en/about/tdra-sectors/telecommunication/the-technology-development-affairs/type-approval",
         "https://www.thomsunmusic.com/about-us",
@@ -62,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which instruments, mixers and speakers can a concert hall or nightclub purchase around town nowadays, honestly?",
-      "q_ar": "ما الآلات الموسيقية والمازجات والسماعات التي يمكن لقاعة حفلات أو نادٍ ليلي شراؤها في المدينة حالياً؟",
+      "q_ar": "بصراحة، أي آلات موسيقية وميكسرات وسماعات تقدر قاعة حفلات أو نايت كلوب تشتريها هنا هالأيام؟",
       "expected_entry_ids": [
         "musical_pro_audio:uae-market-products"
       ],

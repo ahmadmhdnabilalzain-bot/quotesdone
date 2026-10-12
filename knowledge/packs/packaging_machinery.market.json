@@ -7,9 +7,10 @@
     {
       "id": "packaging_machinery:uae-market-products",
       "topic": "Packaging machinery: products, variants and grades sold in the UAE",
+      "topic_ar": "آلات التعبئة والتغليف: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This covers the packaging machines sold in the UAE, from fillers, cappers and labellers to wrappers, coders and palletisers, and what buyers specify for speed, accuracy and power. Packaging machinery in the UAE (non-food and general industrial lines): filling machines (liquid piston, gravity, overflow, auger for powders, weigh fillers for granules), capping and crimping machines (including perfume crimpers), labelling machines (wrap-around, front/back, sleeve applicators with shrink tunnels), carton erectors, case packers and sealers, shrink wrappers and L-sealers, stretch wrappers (turntable and rotary arm), strapping machines, form-fill-seal machines (VFFS for powders and detergents), blister and cartoning machines for pharma, coding and marking (inkjet, thermal transfer, laser), palletisers, and bag sewing/closing machines. Buyers specify product type, container range, speed (units per minute or bags per hour), accuracy, changeover, power (380-415 V 50 Hz), CE conformity, and integration into a line.",
-      "body_ar": "يغطي هذا آلات التغليف المباعة في الإمارات، من آلات التعبئة والإغلاق ووضع الملصقات إلى آلات اللف والترميز ورص المنصات، وما يحدده المشترون للسرعة والدقة والطاقة. آلات التعبئة والتغليف في الإمارات (الخطوط غير الغذائية والصناعية العامة): آلات التعبئة (المكبسية للسوائل، وبالجاذبية، وبالفيض، وبالبريمة للمساحيق، والتعبئة بالوزن للحبيبات)، وآلات الإغلاق والكبس (ومنها كابسات العطور)، وآلات الملصقات (الملتفة والأمامية/الخلفية وتطبيق الأغلفة مع أنفاق الانكماش)، وآلات تشكيل الكراتين وتعبئة الصناديق وإغلاقها، وآلات التغليف الانكماشي، وآلات التغليف المطاطي (بالطاولة الدوارة والذراع الدوار)، وآلات الربط، وآلات التشكيل والتعبئة والإغلاق العمودية للمساحيق والمنظفات، وآلات البليستر والتعليب للأدوية، والترميز والوسم (نفث الحبر والنقل الحراري والليزر)، ومرتبات المنصات، وآلات خياطة الأكياس وإغلاقها. يحدد المشتري نوع المنتج ونطاق العبوات والسرعة (وحدة/دقيقة أو كيس/ساعة) والدقة وزمن التبديل والطاقة (380-415 فولت 50 هيرتز) ومطابقة CE والتكامل في الخط.",
+      "body_ar": "تشمل آلات التعبئة والتغليف المباعة في الإمارات آلات التعبئة والتغطية ووضع الملصقات، وصولًا إلى آلات اللف والترميز ورصّ الطبليات، مع ما يحدده المشترون للسرعة والدقة والقدرة الكهربائية. آلات التعبئة والتغليف في الإمارات (الخطوط غير الغذائية والصناعية العامة): آلات التعبئة (المكبسية للسوائل، وبالجاذبية، وبالفيض، وبالبريمة للمساحيق، والتعبئة بالوزن للحبيبات)، وآلات الإغلاق والكبس (ومنها كابسات العطور)، وآلات الملصقات (الملتفة والأمامية/الخلفية وتطبيق الأغلفة مع أنفاق الانكماش)، وآلات تشكيل الكراتين وتعبئة الصناديق وإغلاقها، وآلات التغليف الانكماشي، وآلات التغليف المطاطي (بالطاولة الدوارة والذراع الدوار)، وآلات الربط، وآلات التشكيل والتعبئة والإغلاق العمودية للمساحيق والمنظفات، وآلات البليستر والتعليب للأدوية، والترميز والوسم (نفث الحبر والنقل الحراري والليزر)، ومرتبات المنصات، وآلات خياطة الأكياس وإغلاقها. يحدد المشتري نوع المنتج ونطاق العبوات والسرعة (وحدة/دقيقة أو كيس/ساعة) والدقة وزمن التبديل والطاقة (380-415 فولت 50 هيرتز) ومطابقة CE والتكامل في الخط.",
       "sources": [
         "https://www.syntegon.com",
         "https://single-market-economy.ec.europa.eu",
@@ -22,9 +23,10 @@
     {
       "id": "packaging_machinery:uae-market-brands",
       "topic": "Packaging machinery: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "آلات التعبئة والتغليف: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This lists the packaging machinery brands sold in the UAE, such as Syntegon, IMA, Krones and Videojet, how agents sell them, and the main countries of origin. Brands: Syntegon, IMA, Krones, Sidel, ProMach, Robopac, Signode, Mosca, Videojet, Markem-Imaje, Domino, Herma, Fromm, Cyklop, Uhlmann, Marchesini, plus many Chinese, Indian, Turkish and Italian SME makers sold through agents in Sharjah, Dubai (DIP, JAFZA) and Abu Dhabi. The agents were not checked. Dubai exhibitions are common sourcing venues. Origins: Italy, Germany, China, India, Turkey, Taiwan.",
-      "body_ar": "يسرد هذا علامات آلات التغليف المباعة في الإمارات، مثل سينتيغون وإيما وكرونس وفيديوجيت، وكيف يبيعها الوكلاء، وبلدان المنشأ الرئيسية. العلامات: Syntegon، IMA، Krones، Sidel، ProMach، Robopac، Signode، Mosca، Videojet، Markem-Imaje، Domino، Herma، Fromm، Cyklop، Uhlmann، Marchesini، إضافة إلى مصنّعين صغار كثيرين صينيين وهنود وأتراك وإيطاليين عبر وكلاء في الشارقة ودبي (مجمع دبي للاستثمار والمنطقة الحرة لجبل علي) وأبوظبي، ولم يُتحقق من الوكلاء. ومعارض دبي أماكن شائعة للتوريد. المنشأ: إيطاليا، ألمانيا، الصين، الهند، تركيا، تايوان.",
+      "body_ar": "من ماركات آلات التعبئة والتغليف المباعة في الإمارات Syntegon وIMA وKrones وVideojet، مع بيان طريقة بيعها عبر الوكلاء وأهم دول المنشأ. العلامات: Syntegon، IMA، Krones، Sidel، ProMach، Robopac، Signode، Mosca، Videojet، Markem-Imaje، Domino، Herma، Fromm، Cyklop، Uhlmann، Marchesini، إضافة إلى مصنّعين صغار كثيرين صينيين وهنود وأتراك وإيطاليين عبر وكلاء في الشارقة ودبي (مجمع دبي للاستثمار والمنطقة الحرة لجبل علي) وأبوظبي، ولم يُتحقق من الوكلاء. ومعارض دبي أماكن شائعة للتوريد. المنشأ: إيطاليا، ألمانيا، الصين، الهند، تركيا، تايوان.",
       "sources": [
         "https://www.syntegon.com",
         "https://single-market-economy.ec.europa.eu",
@@ -37,9 +39,10 @@
     {
       "id": "packaging_machinery:uae-market-sizes",
       "topic": "Packaging machinery: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "آلات التعبئة والتغليف: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This explains how packaging machines are priced per unit or per line with change parts, testing, installation and spares, plus warranty, lead time and payment terms. Machines priced per unit or per line (EXW/CIF/installed) with change parts per container size, FAT/SAT, installation, training and spares kit; warranty typically 12 months. Lead time 6-20 weeks for built-to-order. Coders often sold with consumables contracts (ink/ribbon). Payment commonly 30-50% advance.",
-      "body_ar": "يشرح هذا كيف تُسعَّر آلات التغليف بالوحدة أو بخط الإنتاج مع قطع التبديل والاختبار والتركيب وقطع الغيار، إضافة إلى الضمان ومدة التوريد وشروط الدفع. تُسعّر الآلات بالوحدة أو بالخط (تسليم المصنع/CIF/مركبة) مع قطع التبديل لكل مقاس عبوة واختبارات القبول والتركيب والتدريب وطقم القطع؛ والضمان عادة 12 شهراً. ومدة التوريد 6-20 أسبوعاً للمصنعة حسب الطلب. وكثيراً ما تُباع آلات الترميز مع عقود مستهلكات (حبر/شريط). والدفع عادة 30-50% مقدماً.",
+      "body_ar": "تُسعَّر آلات التعبئة والتغليف بالوحدة أو لكل خط إنتاج شاملة قطع التغيير (change parts) والاختبار والتركيب وقطع الغيار، إضافة إلى الضمان ومدة التوريد وشروط الدفع. تُسعّر الآلات بالوحدة أو بالخط (تسليم المصنع/CIF/مركبة) مع قطع التبديل لكل مقاس عبوة واختبارات القبول والتركيب والتدريب وطقم القطع؛ والضمان عادة 12 شهراً. ومدة التوريد 6-20 أسبوعاً للمصنعة حسب الطلب. وكثيراً ما تُباع آلات الترميز مع عقود مستهلكات (حبر/شريط). والدفع عادة 30-50% مقدماً.",
       "sources": [
         "https://www.syntegon.com",
         "https://single-market-economy.ec.europa.eu",
@@ -53,7 +56,7 @@
   "eval": [
     {
       "q_en": "What packaging machinery is available from suppliers and agents in the UAE?",
-      "q_ar": "ما آلات التعبئة والتغليف المتوفرة لدى الموردين والوكلاء في الإمارات؟",
+      "q_ar": "شو آلات التعبئة والتغليف المتوفرة عند الموردين والوكلاء في الإمارات؟",
       "expected_entry_ids": [
         "packaging_machinery:uae-market-products"
       ],

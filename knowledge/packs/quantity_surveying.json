@@ -4,6 +4,7 @@
     {
       "id": "quantity_surveying:spec-checklist",
       "topic": "Quantity surveying - what the buyer must state",
+      "topic_ar": "مسح الكميات: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
       "body_en": "For quantity surveying quotes to be compared like-for-like, every quoted line (services) must state: (1) project type, size and stage; (2) services (cost plan, BOQ, tender, valuations, final account); (3) measurement method (POMI, NRM, CESMM); (4) drawings and information provided; (5) team qualifications (RICS or equivalent); (6) consultancy licence; (7) deliverables and format; (8) professional indemnity insurance; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the quantity_surveying trade.",
       "body_ar": "لكي تُقارن عروض مسح الكميات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المشروع وحجمه ومرحلته؛ (2) الخدمات (خطة التكلفة، وجدول الكميات، والمناقصة، والتقييمات، والحساب الختامي)؛ (3) طريقة القياس (POMI أو NRM أو CESMM)؛ (4) الرسومات والمعلومات المقدمة؛ (5) مؤهلات الفريق (RICS أو ما يعادلها)؛ (6) ترخيص الاستشارات؛ (7) المخرجات وصيغتها؛ (8) تأمين المسؤولية المهنية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة quantity_surveying فقط.",
@@ -29,9 +30,10 @@
     {
       "id": "quantity_surveying:uae-standards-and-approvals",
       "topic": "Quantity surveying - UAE standards, authorities and approvals",
+      "topic_ar": "مسح الكميات: الموافقات والمعايير وطرق القياس في الإمارات",
       "kind": "standard",
       "body_en": "Engineering and cost consultancy firms operate under an emirate trade licence and, where they act as registered consultants, under the emirate building authority (Dubai Municipality in Dubai). Measurement methods such as POMI, NRM or CESMM are chosen by contract, not by law. What the cited sources do not establish: The sources read do not make any measurement method mandatory; state the method in the request.",
-      "body_ar": "تعمل شركات الاستشارات الهندسية واستشارات التكلفة برخصة تجارية من الإمارة، وحين تعمل بصفة استشاري مسجل فتحت إشراف جهة البناء في الإمارة (بلدية دبي في دبي). وتُختار طرق القياس مثل POMI أو NRM أو CESMM بموجب العقد لا بموجب القانون. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تجعل أي طريقة قياس إلزامية؛ حدد الطريقة في الطلب.",
+      "body_ar": "مكاتب مسح الكميات والاستشارات الهندسية واستشارات التكلفة تعمل برخصة تجارية من الإمارة، وإذا عملت كاستشاري مسجل فهي تحت إشراف جهة البناء في الإمارة (بلدية دبي في دبي). أما طريقة قياس جداول الكميات، مثل POMI أو NRM أو CESMM، فيحددها العقد وليس القانون. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تجعل أي طريقة قياس إلزامية؛ اذكر طريقة القياس في الطلب.",
       "source_note": "The sources read do not make any measurement method mandatory; state the method in the request.",
       "sources": [
         "https://www.dm.gov.ae/"

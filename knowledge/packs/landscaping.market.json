@@ -7,9 +7,10 @@
     {
       "id": "landscaping:uae-market-products",
       "topic": "Landscaping & pools: products, variants and grades sold in the UAE",
+      "topic_ar": "تنسيق الحدائق والمسابح: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers landscaping in the UAE: softscape plants and turf, hardscape, irrigation, artificial grass, soil, lighting and maintenance contracts, and the water efficiency and planting rules. Landscaping in the UAE covers softscape (native and adapted plants such as ghaf, sidr, date palms, bougainvillea, and turf such as Paspalum and Bermuda), hardscape (interlock and stone paving, pergolas, planters, water features, boundary walls), irrigation systems (drip and bubbler for trees and shrubs, pop-up sprinklers for turf, controllers, filters, using treated sewage effluent where available), artificial grass, soil and growing media (sweet soil, compost, soil conditioners), lighting, and landscape maintenance contracts. Water efficiency rules apply: Dubai Municipality and Abu Dhabi Estidama favour native, low-water planting and restrict turf areas; municipal plant lists and palm health (red palm weevil) rules govern imports and planting.",
-      "body_ar": "يغطي هذا البند تنسيق الحدائق في الإمارات: النباتات والعشب، والأعمال الصلبة، والري، والعشب الصناعي، والتربة، والإنارة، وعقود الصيانة، وقواعد ترشيد المياه والزراعة. يشمل تنسيق الحدائق في الإمارات العناصر النباتية (النباتات المحلية والمتأقلمة مثل الغاف والسدر ونخيل التمر والجهنمية، والعشب مثل الباسبالوم والبرمودا)، والعناصر الصلبة (رصف الإنترلوك والحجر، والبرجولات، والأحواض، والنوافير، والأسوار)، وأنظمة الري (التنقيط والفقاعات للأشجار والشجيرات، والرشاشات المنبثقة للعشب، والمتحكمات، والفلاتر، باستخدام مياه الصرف المعالجة حيث تتوفر)، والعشب الصناعي، والتربة ووسائط الزراعة (التربة الحلوة، والسماد العضوي، ومحسنات التربة)، والإنارة، وعقود صيانة الحدائق. وتنطبق قواعد كفاءة المياه: تفضل بلدية دبي واستدامة أبوظبي الزراعة المحلية قليلة الاستهلاك للمياه وتقيّد مساحات العشب؛ وتنظم قوائم النباتات البلدية وقواعد صحة النخيل (سوسة النخيل الحمراء) الاستيراد والزراعة.",
+      "body_ar": "تشمل أعمال تنسيق الحدائق في الإمارات الزراعة والعشب الطبيعي، والأعمال الصلبة (hardscape)، والري، والعشب الصناعي، والتربة، والإنارة، وعقود الصيانة، مع اشتراطات ترشيد المياه والتشجير. يشمل تنسيق الحدائق في الإمارات العناصر النباتية (النباتات المحلية والمتأقلمة مثل الغاف والسدر ونخيل التمر والجهنمية، والعشب مثل الباسبالوم والبرمودا)، والعناصر الصلبة (رصف الإنترلوك والحجر، والبرجولات، والأحواض، والنوافير، والأسوار)، وأنظمة الري (التنقيط والفقاعات للأشجار والشجيرات، والرشاشات المنبثقة للعشب، والمتحكمات، والفلاتر، باستخدام مياه الصرف المعالجة حيث تتوفر)، والعشب الصناعي، والتربة ووسائط الزراعة (التربة الحلوة، والسماد العضوي، ومحسنات التربة)، والإنارة، وعقود صيانة الحدائق. وتنطبق قواعد كفاءة المياه: تفضل بلدية دبي واستدامة أبوظبي الزراعة المحلية قليلة الاستهلاك للمياه وتقيّد مساحات العشب؛ وتنظم قوائم النباتات البلدية وقواعد صحة النخيل (سوسة النخيل الحمراء) الاستيراد والزراعة.",
       "sources": [
         "https://www.thenationalnews.com/uae/environment/uae-s-native-flora-grown-in-plant-nursery-to-decorate-expo-2020-dubai-site-1.879362",
         "https://dubaisouthsetup.com/2025/05/15/uae-invasive-species-control-plan/",
@@ -24,9 +25,10 @@
     {
       "id": "landscaping:uae-market-brands",
       "topic": "Landscaping & pools: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "تنسيق الحدائق والمسابح: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry lists irrigation and artificial-grass brands such as Rain Bird, Hunter, Toro and Netafim, and where trees, palms and paving come from. Irrigation and artificial-grass brands: Rain Bird, Hunter, Toro, Netafim, Jain Irrigation, TenCate; their UAE distributors were not checked. Trees and shrubs come from nurseries in Al Warqa'a and Al Aweer (Dubai), Al Ain and Sharjah, palms from Al Ain, and specimen trees are imported from Thailand, Malaysia, Spain and Italy. Paving comes from local precast factories.",
-      "body_ar": "يسرد هذا البند علامات الري والعشب الصناعي مثل Rain Bird وHunter وToro وNetafim، ومن أين تأتي الأشجار والنخيل والبلاط. علامات الري والعشب الصناعي: Rain Bird، Hunter، Toro، Netafim، Jain Irrigation، TenCate، ولم يُتحقق من موزعيها في الإمارات. وتأتي الأشجار والشجيرات من مشاتل الورقاء والعوير (دبي) والعين والشارقة، والنخيل من العين، وتُستورد الأشجار المميزة من تايلاند وماليزيا وإسبانيا وإيطاليا. والرصف من مصانع مسبقة الصب محلية.",
+      "body_ar": "من علامات أنظمة الري والعشب الصناعي Rain Bird وHunter وToro وNetafim، مع بيان مصادر الأشجار والنخيل والبلاط. علامات الري والعشب الصناعي: Rain Bird، Hunter، Toro، Netafim، Jain Irrigation، TenCate، ولم يُتحقق من موزعيها في الإمارات. وتأتي الأشجار والشجيرات من مشاتل الورقاء والعوير (دبي) والعين والشارقة، والنخيل من العين، وتُستورد الأشجار المميزة من تايلاند وماليزيا وإسبانيا وإيطاليا. والرصف من مصانع مسبقة الصب محلية.",
       "sources": [
         "https://www.thenationalnews.com/uae/environment/uae-s-native-flora-grown-in-plant-nursery-to-decorate-expo-2020-dubai-site-1.879362",
         "https://dubaisouthsetup.com/2025/05/15/uae-invasive-species-control-plan/",
@@ -41,9 +43,10 @@
     {
       "id": "landscaping:uae-market-sizes",
       "topic": "Landscaping & pools: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "تنسيق الحدائق والمسابح: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how landscaping is priced: plants per piece by species and size, turf and artificial grass per m2, irrigation per m2 or point, hardscape per m2, and maintenance per month. Softscape is priced per plant by species and size (trees by height and trunk girth or container size, e.g. 2-3 m height, 25-45 litre pots; palms by clear trunk height; shrubs by pot size), turf per m2 (sod or seeded), artificial grass per m2 by pile height (25-40 mm) and density, irrigation per m2 of planted area or per point, hardscape per m2, and maintenance per month per site or per m2 per year. Plant warranty (replacement) periods, usually 6-12 months, must be stated.",
-      "body_ar": "يشرح هذا البند كيف يُسعّر تنسيق الحدائق: النباتات لكل قطعة حسب النوع والحجم، والعشب الطبيعي والصناعي لكل متر مربع، والري لكل متر مربع أو نقطة، والأعمال الصلبة لكل متر مربع، والصيانة شهرياً. تُسعّر النباتات بالقطعة حسب النوع والحجم (الأشجار حسب الارتفاع ومحيط الجذع أو حجم الوعاء، مثل ارتفاع 2-3 م وأوعية 25-45 لتراً؛ والنخيل حسب ارتفاع الجذع الصافي؛ والشجيرات حسب حجم الأصيص)، والعشب بالمتر المربع (مسطحات جاهزة أو بذور)، والعشب الصناعي بالمتر المربع حسب طول الوبر (25-40 مم) والكثافة، والري بالمتر المربع من المساحة المزروعة أو بالنقطة، والعناصر الصلبة بالمتر المربع، والصيانة شهرياً للموقع أو بالمتر المربع سنوياً. ويجب ذكر فترة ضمان النباتات (الاستبدال) وهي عادة 6-12 شهراً.",
+      "body_ar": "يُسعَّر تنسيق الحدائق كالتالي: النباتات بالحبة حسب النوع والحجم، والعشب الطبيعي والصناعي بالمتر المربع، والري بالمتر المربع أو بالنقطة، والأعمال الصلبة (hardscape) بالمتر المربع، والصيانة شهريًا. تُسعّر النباتات بالقطعة حسب النوع والحجم (الأشجار حسب الارتفاع ومحيط الجذع أو حجم الوعاء، مثل ارتفاع 2-3 م وأوعية 25-45 لتراً؛ والنخيل حسب ارتفاع الجذع الصافي؛ والشجيرات حسب حجم الأصيص)، والعشب بالمتر المربع (مسطحات جاهزة أو بذور)، والعشب الصناعي بالمتر المربع حسب طول الوبر (25-40 مم) والكثافة، والري بالمتر المربع من المساحة المزروعة أو بالنقطة، والعناصر الصلبة بالمتر المربع، والصيانة شهرياً للموقع أو بالمتر المربع سنوياً. ويجب ذكر فترة ضمان النباتات (الاستبدال) وهي عادة 6-12 شهراً.",
       "sources": [
         "https://www.thenationalnews.com/uae/environment/uae-s-native-flora-grown-in-plant-nursery-to-decorate-expo-2020-dubai-site-1.879362",
         "https://dubaisouthsetup.com/2025/05/15/uae-invasive-species-control-plan/",
@@ -59,7 +62,7 @@
   "eval": [
     {
       "q_en": "For gardens and pools, do contractors quote per square metre or per job?",
-      "q_ar": "للحدائق والمسابح، هل يسعّر المقاولون بالمتر المربع أم للمشروع؟",
+      "q_ar": "للحدائق والمسابح، المقاولين يسعّرون بالمتر المربع ولا على الشغلة كاملة؟",
       "expected_entry_ids": [
         "landscaping:uae-market-sizes"
       ],

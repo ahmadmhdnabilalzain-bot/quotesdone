@@ -7,9 +7,10 @@
     {
       "id": "security_guarding:uae-market-products",
       "topic": "Security guarding & cash services: products, variants and grades sold in the UAE",
+      "topic_ar": "الحراسة الأمنية ونقل الأموال: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers security guarding services in the UAE: manned, armed and patrol guarding, event security, close protection, control-room operators, cash-in-transit, K9 units and female guards, with SIRA and police licensing rules. Security guarding services in the UAE include manned guarding (static guards, patrol guards, supervisors), armed guarding for designated sites, event security and crowd management, VIP close protection, CCTV control-room operators, reception security, mobile patrols, cash-in-transit (specialised licence), K9 units, and female guards for segregated or retail areas. Buyers specify number of posts, shift pattern (8 or 12-hour, 24/7), guard grade and experience, language skills, uniforms and equipment (radios, guard tour systems, body cameras), and licensing. All private security companies and guards must be licensed: in Dubai by the Security Industry Regulatory Agency (SIRA), in Abu Dhabi by the Private Security Business Department of Abu Dhabi Police, and in other emirates by the Ministry of Interior / local police. Guards need SIRA or MOI training and certification; CCTV installations in Dubai must meet SIRA technical standards.",
-      "body_ar": "يغطي هذا البند خدمات الحراسة الأمنية في الإمارات: الحراسة الثابتة والمسلحة والدوريات، وأمن الفعاليات، والحماية الشخصية، ومشغلي غرف المراقبة، ونقل الأموال، والوحدات الكلبية، والحارسات، مع قواعد الترخيص من سيرا والشرطة. تشمل خدمات الحراسة الأمنية في الإمارات الحراسة البشرية (حراس ثابتون، وحراس دوريات، ومشرفون)، والحراسة المسلحة للمواقع المحددة، وأمن الفعاليات وإدارة الحشود، والحماية الشخصية لكبار الشخصيات، ومشغلي غرف مراقبة الكاميرات، وأمن الاستقبال، والدوريات المتنقلة، ونقل الأموال (برخصة متخصصة)، ووحدات الكلاب البوليسية، والحارسات للمناطق المخصصة أو محلات البيع بالتجزئة. يحدد المشترون عدد المواقع، ونمط المناوبة (8 أو 12 ساعة، على مدار الساعة)، ودرجة الحارس وخبرته، ومهاراته اللغوية، والزي والمعدات (أجهزة لاسلكي، وأنظمة جولات الحراسة، وكاميرات الجسم)، والترخيص. ويجب ترخيص جميع شركات الأمن الخاصة والحراس: في دبي من مؤسسة تنظيم الصناعة الأمنية (سيرا)، وفي أبوظبي من إدارة أعمال الأمن الخاص في شرطة أبوظبي، وفي الإمارات الأخرى من وزارة الداخلية أو الشرطة المحلية. ويحتاج الحراس إلى تدريب واعتماد من سيرا أو وزارة الداخلية؛ ويجب أن تستوفي تركيبات كاميرات المراقبة في دبي المعايير الفنية لسيرا.",
+      "body_ar": "تشمل خدمات الحراسة الأمنية في الإمارات الحراسة الثابتة والمسلحة والدوريات، وأمن الفعاليات، والحماية الشخصية، ومشغلي غرف التحكم، ونقل الأموال، ووحدات الكلاب البوليسية (K9)، والحارسات، مع قواعد الترخيص لدى SIRA والشرطة. تشمل خدمات الحراسة الأمنية في الإمارات الحراسة البشرية (حراس ثابتون، وحراس دوريات، ومشرفون)، والحراسة المسلحة للمواقع المحددة، وأمن الفعاليات وإدارة الحشود، والحماية الشخصية لكبار الشخصيات، ومشغلي غرف مراقبة الكاميرات، وأمن الاستقبال، والدوريات المتنقلة، ونقل الأموال (برخصة متخصصة)، ووحدات الكلاب البوليسية، والحارسات للمناطق المخصصة أو محلات البيع بالتجزئة. يحدد المشترون عدد المواقع، ونمط المناوبة (8 أو 12 ساعة، على مدار الساعة)، ودرجة الحارس وخبرته، ومهاراته اللغوية، والزي والمعدات (أجهزة لاسلكي، وأنظمة جولات الحراسة، وكاميرات الجسم)، والترخيص. ويجب ترخيص جميع شركات الأمن الخاصة والحراس: في دبي من مؤسسة تنظيم الصناعة الأمنية (سيرا)، وفي أبوظبي من إدارة أعمال الأمن الخاص في شرطة أبوظبي، وفي الإمارات الأخرى من وزارة الداخلية أو الشرطة المحلية. ويحتاج الحراس إلى تدريب واعتماد من سيرا أو وزارة الداخلية؛ ويجب أن تستوفي تركيبات كاميرات المراقبة في دبي المعايير الفنية لسيرا.",
       "sources": [
         "https://www.mebsfacility.com/blog/sira-certification-dubai-complete-guide-documents-how-to-apply",
         "https://transguardgroup.com/services/security-solutions/",
@@ -25,9 +26,10 @@
     {
       "id": "security_guarding:uae-market-brands",
       "topic": "Security guarding & cash services: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الحراسة الأمنية ونقل الأموال: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry names the large guarding companies Transguard Group and G4S and the common radio brands Motorola Solutions, Hytera and Kenwood. Confirmed large guarding companies and common radio brands: Transguard Group, G4S, Motorola Solutions, Hytera, Kenwood. The radio brands' local distributors were not checked. Many mid-size SIRA-licensed guarding companies also operate in Dubai.",
-      "body_ar": "يذكر هذا البند شركتي الحراسة الكبيرتين ترانسغارد وG4S وعلامات أجهزة اللاسلكي الشائعة موتورولا سوليوشنز وهايتيرا وكينوود. شركات الحراسة الكبيرة المؤكدة وعلامات اللاسلكي الشائعة: Transguard Group، G4S، Motorola Solutions، Hytera، Kenwood. ولم يُتحقق من الموزعين المحليين لعلامات اللاسلكي. كما تعمل في دبي شركات حراسة متوسطة كثيرة مرخصة من سيرا.",
+      "body_ar": "من كبرى شركات الحراسة Transguard Group وG4S، ومن ماركات أجهزة اللاسلكي الشائعة Motorola Solutions وHytera وKenwood. شركات الحراسة الكبيرة المؤكدة وعلامات اللاسلكي الشائعة: Transguard Group، G4S، Motorola Solutions، Hytera، Kenwood. ولم يُتحقق من الموزعين المحليين لعلامات اللاسلكي. كما تعمل في دبي شركات حراسة متوسطة كثيرة مرخصة من سيرا.",
       "sources": [
         "https://www.mebsfacility.com/blog/sira-certification-dubai-complete-guide-documents-how-to-apply",
         "https://transguardgroup.com/services/security-solutions/",
@@ -43,9 +45,10 @@
     {
       "id": "security_guarding:uae-market-sizes",
       "topic": "Security guarding & cash services: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الحراسة الأمنية ونقل الأموال: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how guarding is priced: per guard per month for a fixed shift or per guard per hour for events, with higher rates for supervisors, female and armed guards, and contract and notice terms. Guarding is priced per guard per month for a fixed shift (typically 12 hours x 26 or 30 days), or per guard per hour for events and short-term cover. Supervisors, female guards and armed guards carry higher rates. Contracts are usually 1-2 years with 30-90 days notice; event security is quoted per event with minimum hours (often 4-8). Equipment and vehicles for patrols are quoted per month.",
-      "body_ar": "يوضح هذا البند كيفية تسعير الحراسة: لكل حارس شهرياً لنوبة ثابتة أو لكل حارس بالساعة للفعاليات، مع أسعار أعلى للمشرفين والحارسات والحراس المسلحين، وشروط العقد والإشعار. تُسعّر الحراسة لكل حارس شهرياً لمناوبة ثابتة (عادةً 12 ساعة × 26 أو 30 يوماً)، أو لكل حارس بالساعة للفعاليات والتغطية قصيرة الأجل. ويكون سعر المشرفين والحارسات والحراس المسلحين أعلى. وعادةً ما تكون العقود لمدة سنة إلى سنتين مع إشعار من 30 إلى 90 يوماً؛ ويُسعّر أمن الفعاليات لكل فعالية بحد أدنى من الساعات (غالباً 4-8 ساعات). وتُسعّر معدات الدوريات ومركباتها شهرياً.",
+      "body_ar": "تُسعَّر الحراسة الأمنية لكل حارس شهريًا لوردية ثابتة أو لكل حارس بالساعة للفعاليات، بأسعار أعلى للمشرفين والحارسات والحراس المسلحين، مع شروط العقد وفترة الإشعار. تُسعّر الحراسة لكل حارس شهرياً لمناوبة ثابتة (عادةً 12 ساعة × 26 أو 30 يوماً)، أو لكل حارس بالساعة للفعاليات والتغطية قصيرة الأجل. ويكون سعر المشرفين والحارسات والحراس المسلحين أعلى. وعادةً ما تكون العقود لمدة سنة إلى سنتين مع إشعار من 30 إلى 90 يوماً؛ ويُسعّر أمن الفعاليات لكل فعالية بحد أدنى من الساعات (غالباً 4-8 ساعات). وتُسعّر معدات الدوريات ومركباتها شهرياً.",
       "sources": [
         "https://www.mebsfacility.com/blog/sira-certification-dubai-complete-guide-documents-how-to-apply",
         "https://transguardgroup.com/services/security-solutions/",
@@ -62,7 +65,7 @@
   "eval": [
     {
       "q_en": "Are watchmen billed hourly, by duty period, or per post each month?",
-      "q_ar": "هل يُحاسَب الحراس بالساعة أم بالمناوبة أم لكل موقع شهرياً؟",
+      "q_ar": "الحراس ينحسبون بالساعة ولا بالشفت ولا على كل نقطة حراسة بالشهر؟",
       "expected_entry_ids": [
         "security_guarding:uae-market-sizes"
       ],

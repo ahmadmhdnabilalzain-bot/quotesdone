@@ -7,9 +7,10 @@
     {
       "id": "veterinary_supplies:uae-market-products",
       "topic": "Animal & veterinary supplies: products, variants and grades sold in the UAE",
+      "topic_ar": "مستلزمات بيطرية وحيوانات: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers the veterinary supplies sold in the UAE, from medicines, vaccines and feed additives to pet food and clinic equipment, the regulators involved, and what buyers specify. Veterinary supplies sold in the UAE include veterinary medicines (antibiotics, antiparasitics, anti-inflammatories), vaccines for livestock, poultry, camels, horses and pets (cold chain 2-8 °C), feed additives and premixes, vitamins and minerals, disinfectants for farms, pet food and treats, pet accessories, veterinary clinic equipment (examination tables, anaesthesia machines, X-ray and ultrasound, surgical instruments, cages and kennels), equine products, camel-specific products, poultry equipment (drinkers, feeders), and diagnostic kits. In the UAE, veterinary medications fall under the Emirates Drug Establishment, the federal regulator for medical and pharmaceutical products, while MOCCAE provides veterinary product services such as licensing veterinary companies and warehouses and import permits, and in Abu Dhabi ADAFSA regulates veterinary practice and animal health; Dubai Municipality licenses veterinary clinics in Dubai. Buyers specify species, dosage form, withdrawal period for food animals, pack size and cold chain.",
-      "body_ar": "يغطي هذا البند المستلزمات البيطرية المباعة في الإمارات، من الأدوية واللقاحات وإضافات الأعلاف إلى أغذية الحيوانات الأليفة ومعدات العيادات، والجهات التنظيمية المعنية، وما يحدده المشترون. تشمل المستلزمات البيطرية المباعة في الإمارات الأدوية البيطرية (المضادات الحيوية، ومضادات الطفيليات، ومضادات الالتهاب)، ولقاحات الماشية والدواجن والإبل والخيول والحيوانات الأليفة (سلسلة تبريد 2-8 °م)، وإضافات الأعلاف والخلطات المسبقة، والفيتامينات والمعادن، ومطهرات المزارع، وأغذية الحيوانات الأليفة ومكافآتها، وإكسسوارات الحيوانات الأليفة، ومعدات العيادات البيطرية (طاولات الفحص، وأجهزة التخدير، والأشعة والموجات فوق الصوتية، والأدوات الجراحية، والأقفاص وبيوت الكلاب)، ومنتجات الخيول، ومنتجات خاصة بالإبل، ومعدات الدواجن (المشارب، والمعالف)، وأطقم التشخيص. في الإمارات، تخضع الأدوية البيطرية لمؤسسة الإمارات للدواء، الجهة الاتحادية المنظمة للمنتجات الطبية والدوائية، بينما تقدم وزارة التغير المناخي والبيئة خدمات المنتجات البيطرية مثل ترخيص الشركات والمستودعات البيطرية وتصاريح الاستيراد، وفي أبوظبي تنظم هيئة أبوظبي للزراعة والسلامة الغذائية الممارسة البيطرية وصحة الحيوان؛ وترخص بلدية دبي العيادات البيطرية في دبي. يحدد المشترون نوع الحيوان، وشكل الجرعة، وفترة السحب لحيوانات الغذاء، وحجم العبوة، وسلسلة التبريد.",
+      "body_ar": "تشمل المستلزمات البيطرية في السوق الإماراتي الأدوية واللقاحات وإضافات الأعلاف، وأغذية الحيوانات الأليفة ومعدات العيادات، مع الجهات الرقابية المعنية والمواصفات التي يحددها المشتري. تشمل المستلزمات البيطرية المباعة في الإمارات الأدوية البيطرية (المضادات الحيوية، ومضادات الطفيليات، ومضادات الالتهاب)، ولقاحات الماشية والدواجن والإبل والخيول والحيوانات الأليفة (سلسلة تبريد 2-8 °م)، وإضافات الأعلاف والخلطات المسبقة، والفيتامينات والمعادن، ومطهرات المزارع، وأغذية الحيوانات الأليفة ومكافآتها، وإكسسوارات الحيوانات الأليفة، ومعدات العيادات البيطرية (طاولات الفحص، وأجهزة التخدير، والأشعة والموجات فوق الصوتية، والأدوات الجراحية، والأقفاص وبيوت الكلاب)، ومنتجات الخيول، ومنتجات خاصة بالإبل، ومعدات الدواجن (المشارب، والمعالف)، وأطقم التشخيص. في الإمارات، تخضع الأدوية البيطرية لمؤسسة الإمارات للدواء، الجهة الاتحادية المنظمة للمنتجات الطبية والدوائية، بينما تقدم وزارة التغير المناخي والبيئة خدمات المنتجات البيطرية مثل ترخيص الشركات والمستودعات البيطرية وتصاريح الاستيراد، وفي أبوظبي تنظم هيئة أبوظبي للزراعة والسلامة الغذائية الممارسة البيطرية وصحة الحيوان؛ وترخص بلدية دبي العيادات البيطرية في دبي. يحدد المشترون نوع الحيوان، وشكل الجرعة، وفترة السحب لحيوانات الغذاء، وحجم العبوة، وسلسلة التبريد.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://www.wam.ae/en/article/hszr6ixu-moccae-provides-services-for-veterinary-products",
@@ -25,9 +26,10 @@
     {
       "id": "veterinary_supplies:uae-market-brands",
       "topic": "Animal & veterinary supplies: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "مستلزمات بيطرية وحيوانات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry lists the major animal health and pet food brands, such as Zoetis, Boehringer Ingelheim, MSD, Elanco and Royal Canin, and that imports go through MOCCAE-licensed veterinary warehouses. Major animal health and pet food brands: Zoetis, Boehringer Ingelheim Animal Health, MSD Animal Health, Elanco, Ceva, Virbac, Royal Canin, Hill's, Purina. Their UAE distributors were not checked; imports go through MOCCAE-licensed veterinary warehouses in Dubai, Sharjah, Al Ain and Abu Dhabi.",
-      "body_ar": "يسرد هذا البند العلامات الكبرى للصحة الحيوانية وأغذية الحيوانات الأليفة، مثل زوتيس وبورينجر إنجلهايم وإم إس دي وإيلانكو ورويال كانين، وأن الاستيراد يتم عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة. كبرى علامات صحة الحيوان وأغذية الحيوانات الأليفة: Zoetis، Boehringer Ingelheim Animal Health، MSD Animal Health، Elanco، Ceva، Virbac، Royal Canin، Hill's، Purina. ولم يُتحقق من موزعيها في الإمارات؛ وتمر الواردات عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة في دبي والشارقة والعين وأبوظبي.",
+      "body_ar": "من كبرى علامات الصحة الحيوانية وأغذية الحيوانات الأليفة Zoetis وBoehringer Ingelheim وMSD وElanco وRoyal Canin، ويتم الاستيراد عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة. كبرى علامات صحة الحيوان وأغذية الحيوانات الأليفة: Zoetis، Boehringer Ingelheim Animal Health، MSD Animal Health، Elanco، Ceva، Virbac، Royal Canin، Hill's، Purina. ولم يُتحقق من موزعيها في الإمارات؛ وتمر الواردات عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة في دبي والشارقة والعين وأبوظبي.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://www.wam.ae/en/article/hszr6ixu-moccae-provides-services-for-veterinary-products",
@@ -43,9 +45,10 @@
     {
       "id": "veterinary_supplies:uae-market-sizes",
       "topic": "Animal & veterinary supplies: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "مستلزمات بيطرية وحيوانات: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how veterinary supplies are priced in the UAE: medicines per vial, bottle or box, vaccines per dose-pack, feed additives per kg or bag, pet food per bag, equipment per unit. Medicines are priced per vial/bottle (e.g. 50, 100, 250 ml injectables), per tablet strip or box; vaccines per dose-pack (e.g. 1,000 or 2,500 doses for poultry, 10-50 doses for livestock); feed additives per kg or 25 kg bag; pet food per bag (1-15 kg) or carton. Farm contracts are priced per order with cold-chain delivery. Clinic equipment per unit.",
-      "body_ar": "يوضح هذا البند كيف تُسعَّر المستلزمات البيطرية في الإمارات: الأدوية بالقارورة أو الزجاجة أو العلبة، واللقاحات بعبوة الجرعات، وإضافات الأعلاف بالكيلوغرام أو الكيس، وأغذية الحيوانات بالكيس، والمعدات بالوحدة. تُسعّر الأدوية لكل قارورة/عبوة (مثل الحقن 50 و100 و250 مل)، أو لكل شريط أقراص أو علبة؛ واللقاحات لكل عبوة جرعات (مثل 1000 أو 2500 جرعة للدواجن، و10-50 جرعة للماشية)؛ وإضافات الأعلاف لكل كيلوغرام أو كيس 25 كغ؛ وأغذية الحيوانات الأليفة لكل كيس (1-15 كغ) أو كرتونة. وتُسعّر عقود المزارع لكل طلب مع توصيل بسلسلة التبريد. ومعدات العيادات لكل وحدة.",
+      "body_ar": "تُسعَّر المستلزمات البيطرية في الإمارات كالتالي: الأدوية بالفيال أو بالعبوة أو بالعلبة، واللقاحات بعبوة الجرعات، وإضافات الأعلاف بالكيلوغرام أو بالكيس، وأغذية الحيوانات الأليفة بالكيس، والمعدات بالوحدة. تُسعّر الأدوية لكل قارورة/عبوة (مثل الحقن 50 و100 و250 مل)، أو لكل شريط أقراص أو علبة؛ واللقاحات لكل عبوة جرعات (مثل 1000 أو 2500 جرعة للدواجن، و10-50 جرعة للماشية)؛ وإضافات الأعلاف لكل كيلوغرام أو كيس 25 كغ؛ وأغذية الحيوانات الأليفة لكل كيس (1-15 كغ) أو كرتونة. وتُسعّر عقود المزارع لكل طلب مع توصيل بسلسلة التبريد. ومعدات العيادات لكل وحدة.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://www.wam.ae/en/article/hszr6ixu-moccae-provides-services-for-veterinary-products",
@@ -62,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which cattle feed, remedies for dogs and cats, and husbandry stuff are available locally nowadays?",
-      "q_ar": "ما أعلاف الماشية وأدوية الكلاب والقطط ومستلزمات تربية الحيوانات المتوفرة محلياً حالياً؟",
+      "q_ar": "أي أعلاف مواشي وأدوية كلاب وقطط ومستلزمات تربية متوفرة محلياً هالأيام؟",
       "expected_entry_ids": [
         "veterinary_supplies:uae-market-products"
       ],

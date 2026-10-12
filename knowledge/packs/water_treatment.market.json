@@ -7,9 +7,10 @@
     {
       "id": "water_treatment:uae-market-products",
       "topic": "Water treatment & filtration: products, variants and grades sold in the UAE",
+      "topic_ar": "معالجة وفلترة المياه: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers water treatment equipment sold in the UAE, from domestic and industrial RO and softeners to filters, UV and packaged sewage treatment plants, and the specs buyers state. Water treatment and filtration equipment in the UAE: reverse osmosis (RO) systems from domestic under-sink units (50-100 GPD) to commercial and industrial RO (1-500 m3/day) and seawater RO (SWRO) desalination skids; water softeners (ion exchange), multimedia and activated carbon filters, cartridge and bag filters, UV sterilisers, ozone and chlorine dosing, whole-house filters for villas (sediment, carbon, softener), water coolers with filtration, ultrafiltration (UF) and membrane bioreactors (MBR) for grey-water and sewage treatment plants (STPs, packaged 10-1,000 m3/day), and effluent/process water treatment for industry. Drinking-water quality references: UAE.S GSO 149/1025 standards for drinking water, and Dubai Municipality and DEWA guidance on building tanks; STPs need municipality and environment approvals. Specs: capacity, feed water TDS, recovery %, permeate quality, membrane brand, energy use.",
-      "body_ar": "يغطي هذا البند معدات معالجة المياه المباعة في الإمارات، من أنظمة التناضح العكسي المنزلية والصناعية وأجهزة التيسير إلى الفلاتر والأشعة فوق البنفسجية ومحطات معالجة الصرف الجاهزة، والمواصفات التي يحددها المشترون. معدات معالجة وتنقية المياه في الإمارات: أنظمة التناضح العكسي من وحدات المنازل تحت المغسلة (50-100 جالون/يوم) إلى أنظمة التناضح العكسي التجارية والصناعية (1-500 م3/يوم) ووحدات تحلية مياه البحر، ومنقيات عسر المياه (التبادل الأيوني)، والفلاتر متعددة الوسائط والكربون النشط، وفلاتر الخراطيش والأكياس، والمعقمات بالأشعة فوق البنفسجية، والجرعات بالأوزون والكلور، وفلاتر المنزل الكامل للفلل (رواسب، كربون، منقي عسر)، ومبردات المياه بالفلترة، والترشيح الفائق والمفاعلات الحيوية الغشائية لمحطات المياه الرمادية ومعالجة الصرف (محطات مدمجة 10-1,000 م3/يوم)، ومعالجة مياه الصرف والعمليات للصناعة. مراجع جودة مياه الشرب: معايير المواصفات الإماراتية والخليجية لمياه الشرب، وإرشادات بلدية دبي وهيئة الكهرباء والمياه لخزانات المباني؛ وتحتاج محطات المعالجة اعتمادات البلدية والبيئة. المواصفات: السعة، وملوحة مياه التغذية، ونسبة الاسترداد، وجودة المياه المنتجة، وعلامة الأغشية، واستهلاك الطاقة.",
+      "body_ar": "تشمل معدات معالجة المياه في السوق الإماراتي أنظمة التناضح العكسي (RO) ومنقيات عسر الماء للمنازل والمصانع، والفلاتر وأجهزة التعقيم بالأشعة فوق البنفسجية (UV) ومحطات معالجة الصرف الجاهزة، مع المواصفات التي يحددها المشتري. معدات معالجة وتنقية المياه في الإمارات: أنظمة التناضح العكسي من وحدات المنازل تحت المغسلة (50-100 جالون/يوم) إلى أنظمة التناضح العكسي التجارية والصناعية (1-500 م3/يوم) ووحدات تحلية مياه البحر، ومنقيات عسر المياه (التبادل الأيوني)، والفلاتر متعددة الوسائط والكربون النشط، وفلاتر الخراطيش والأكياس، والمعقمات بالأشعة فوق البنفسجية، والجرعات بالأوزون والكلور، وفلاتر المنزل الكامل للفلل (رواسب، كربون، منقي عسر)، ومبردات المياه بالفلترة، والترشيح الفائق والمفاعلات الحيوية الغشائية لمحطات المياه الرمادية ومعالجة الصرف (محطات مدمجة 10-1,000 م3/يوم)، ومعالجة مياه الصرف والعمليات للصناعة. مراجع جودة مياه الشرب: معايير المواصفات الإماراتية والخليجية لمياه الشرب، وإرشادات بلدية دبي وهيئة الكهرباء والمياه لخزانات المباني؛ وتحتاج محطات المعالجة اعتمادات البلدية والبيئة. المواصفات: السعة، وملوحة مياه التغذية، ونسبة الاسترداد، وجودة المياه المنتجة، وعلامة الأغشية، واستهلاك الطاقة.",
       "sources": [
         "https://www.metito.com/",
         "https://www.gso.org.sa",
@@ -23,9 +24,10 @@
     {
       "id": "water_treatment:uae-market-brands",
       "topic": "Water treatment & filtration: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "معالجة وفلترة المياه: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry lists water treatment companies and brands in the UAE, such as the Dubai-headquartered Metito, DuPont (FilmTec), Toray, Pentair and Grundfos, and local system integrators. Companies and brands: Metito, DuPont (FilmTec), Toray, Hydranautics, LG Chem, Pentair, Grundfos, Danfoss, Culligan, Aquatech, Veolia, SUEZ, Kent, Brita, Kubota, Koch. Metito is a Dubai-headquartered water treatment company. The other brands' local distributors were not checked. Local system integrators, assemblers and packaged-STP builders are numerous in Dubai (Al Quoz, Deira), Sharjah and Abu Dhabi. Origins: US brands, Japan, Korea, Europe, India, China, and UAE assembly.",
-      "body_ar": "يسرد هذا البند شركات وعلامات معالجة المياه في الإمارات، مثل ميتيتو التي يقع مقرها في دبي ودوبونت (فيلمتك) وتوراي وبنتير وغروندفوس، ومُجمِّعي الأنظمة المحليين. الشركات والعلامات: Metito، DuPont (FilmTec)، Toray، Hydranautics، LG Chem، Pentair، Grundfos، Danfoss، Culligan، Aquatech، Veolia، SUEZ، Kent، Brita، Kubota، Koch. وMetito شركة معالجة مياه مقرها دبي، ولم يُتحقق من الموزعين المحليين للعلامات الأخرى. والمكاملون والمجمّعون وبناة محطات المعالجة المدمجة كثيرون في دبي (القوز وديرة) والشارقة وأبوظبي. المنشأ: علامات أمريكية، اليابان، كوريا، أوروبا، الهند، الصين، تجميع إماراتي.",
+      "body_ar": "من شركات وعلامات معالجة المياه في الإمارات ميتيتو ومقرها دبي وDuPont (FilmTec) وToray وPentair وGrundfos، إلى جانب مكاملي الأنظمة المحليين. الشركات والعلامات: Metito، DuPont (FilmTec)، Toray، Hydranautics، LG Chem، Pentair، Grundfos، Danfoss، Culligan، Aquatech، Veolia، SUEZ، Kent، Brita، Kubota، Koch. وMetito شركة معالجة مياه مقرها دبي، ولم يُتحقق من الموزعين المحليين للعلامات الأخرى. والمكاملون والمجمّعون وبناة محطات المعالجة المدمجة كثيرون في دبي (القوز وديرة) والشارقة وأبوظبي. المنشأ: علامات أمريكية، اليابان، كوريا، أوروبا، الهند، الصين، تجميع إماراتي.",
       "sources": [
         "https://www.metito.com/",
         "https://www.gso.org.sa",
@@ -39,9 +41,10 @@
     {
       "id": "water_treatment:uae-market-sizes",
       "topic": "Water treatment & filtration: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "معالجة وفلترة المياه: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how water treatment is sized and priced in the UAE: RO in GPD or m3/day, systems per unit with installation, industrial plants per m3/day, plus consumables, AMC and warranty. RO capacity is stated in gallons per day (GPD) for domestic units and m3/day for commercial and industrial; membranes are 4 inch or 8 inch x 40 inch elements. Systems are priced per unit with installation; industrial plants per m3/day capacity with civil works and commissioning separate. Consumables (cartridges, membranes, salt, chemicals) are recurring; AMC per year with monthly or quarterly service visits and water testing. Warranty 1-2 years on equipment; membranes typically replaced every 2-5 years.",
-      "body_ar": "يوضح هذا البند كيف تُقاس معدات معالجة المياه وتُسعَّر في الإمارات: التناضح العكسي بالغالون أو المتر المكعب يوميًا، والأنظمة بالوحدة مع التركيب، والمحطات الصناعية حسب السعة اليومية، إضافة إلى المستهلكات وعقود الصيانة السنوية والضمان. تُذكر سعة التناضح العكسي بالجالون يومياً للوحدات المنزلية وبالمتر المكعب يومياً للتجارية والصناعية؛ والأغشية عناصر 4 أو 8 إنش × 40 إنش. وتُسعّر الأنظمة بالوحدة مع التركيب؛ والمحطات الصناعية حسب السعة بالمتر المكعب يومياً مع الأعمال المدنية والتشغيل منفصلة. والمستهلكات (الخراطيش والأغشية والملح والكيماويات) متكررة؛ وعقد الصيانة سنوياً مع زيارات شهرية أو ربع سنوية وفحص المياه. والضمان 1-2 سنة على المعدات؛ وتُستبدل الأغشية عادة كل 2-5 سنوات.",
+      "body_ar": "تُقاس أنظمة التناضح العكسي (RO) في الإمارات بالجالون يوميًا (GPD) أو بالمتر المكعب يوميًا، وتُسعَّر الأنظمة بالوحدة مع التركيب، والمحطات الصناعية حسب المتر المكعب يوميًا، إضافة إلى المستهلكات وعقود الصيانة السنوية (AMC) والضمان. تُذكر سعة التناضح العكسي بالجالون يومياً للوحدات المنزلية وبالمتر المكعب يومياً للتجارية والصناعية؛ والأغشية عناصر 4 أو 8 إنش × 40 إنش. وتُسعّر الأنظمة بالوحدة مع التركيب؛ والمحطات الصناعية حسب السعة بالمتر المكعب يومياً مع الأعمال المدنية والتشغيل منفصلة. والمستهلكات (الخراطيش والأغشية والملح والكيماويات) متكررة؛ وعقد الصيانة سنوياً مع زيارات شهرية أو ربع سنوية وفحص المياه. والضمان 1-2 سنة على المعدات؛ وتُستبدل الأغشية عادة كل 2-5 سنوات.",
       "sources": [
         "https://www.metito.com/",
         "https://www.gso.org.sa",
@@ -56,7 +59,7 @@
   "eval": [
     {
       "q_en": "Is a purification unit costed by its output in cubic metres daily?",
-      "q_ar": "هل تُسعَّر وحدة تنقية المياه حسب إنتاجها بالمتر المكعب يومياً؟",
+      "q_ar": "وحدة تنقية الماي تتسعر على حسب إنتاجها بالمتر المكعب في اليوم؟",
       "expected_entry_ids": [
         "water_treatment:uae-market-sizes"
       ],

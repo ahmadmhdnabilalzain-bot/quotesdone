@@ -31,9 +31,10 @@
     {
       "id": "event_entertainment:uae-standards-and-approvals",
       "topic": "Event entertainment - UAE standards and approvals",
+      "topic_ar": "الترفيه في الفعاليات: الموافقات والتصاريح والمعايير في الإمارات",
       "kind": "standard",
       "body_en": "In Dubai, the Department of Economy and Tourism (DET) requires a permit for any entertainment, sport, charity, religious or business event, issued through its ePermits system, and event tickets must be sold through systems integrated with DET ticketing. The cited sources do not set a UAE-specific service standard, qualification level or rate for event entertainment; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
-      "body_ar": "في دبي، تشترط دائرة الاقتصاد والسياحة الحصول على تصريح لأي فعالية ترفيهية أو رياضية أو خيرية أو دينية أو تجارية عبر نظام التصاريح الإلكترونية، ويجب بيع تذاكر الفعاليات عبر أنظمة مرتبطة بنظام التذاكر لدى الدائرة. لا تحدد المصادر المذكورة معياراً أو مستوى تأهيل أو سعراً إماراتياً خاصاً بخدمة الترفيه في الفعاليات؛ يجب على المشتري ذكر المخرجات ومستويات الخدمة والمؤهلات صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "body_ar": "تصاريح الترفيه والفعاليات في دبي: أي فعالية ترفيهية أو رياضية أو خيرية أو دينية أو تجارية تحتاج تصريحاً من دائرة الاقتصاد والسياحة في دبي، ويُستخرج التصريح من نظام التصاريح الإلكترونية للدائرة، ويجب أن تُباع تذاكر الفعالية عبر أنظمة تذاكر مربوطة بنظام الدائرة. أما خدمة الترفيه نفسها، فالمصادر المذكورة لا تحدد لها معياراً إماراتياً خاصاً ولا مستوى تأهيل ولا سعراً؛ لذلك على المشتري أن يكتب بوضوح المطلوب تسليمه ومستوى الخدمة والمؤهلات، وأي بند لا يذكرها يُعلَّق.",
       "source_note": "The cited sources do not set a UAE-specific service standard, qualification level or rate for event entertainment; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
       "sources": [
         "https://www.dubaidet.gov.ae/en/our-services/for-consumers-and-students/apply-for-an-event-permit",

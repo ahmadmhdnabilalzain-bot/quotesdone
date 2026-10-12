@@ -7,9 +7,10 @@
     {
       "id": "pharma_packaging:uae-market-products",
       "topic": "Pharmaceutical packaging: products, variants and grades sold in the UAE",
+      "topic_ar": "التغليف الدوائي: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This covers the pharmaceutical packaging sold in the UAE, from blister films, vials and bottles to cartons, leaflets and cold-chain shippers, the labelling rules, and what buyers specify. Pharmaceutical packaging in the UAE: primary packaging — blister films (PVC, PVC/PVDC, PVC/PE/PVDC, cold-form Alu-Alu) and push-through lidding foil, glass vials and ampoules (Type I borosilicate), HDPE and PET bottles with child-resistant and tamper-evident closures, droppers, prefilled syringes, IV bags, tubes (aluminium and laminate), sachets and strip packs; secondary packaging — folding cartons with Braille, leaflets/patient information inserts in Arabic and English, labels with serialisation; tertiary — shipper cartons and temperature-controlled shippers (EPS, PU, VIP panels with gel packs). UAE regulation: MOHAP (now the Emirates Drug Establishment for registration) and DoH/DHA require Arabic/English labelling and the UAE track-and-trace (Tatmeen) GS1 DataMatrix serialisation on medicine packs. Buyers specify material, dimensions, barrier (WVTR), compliance (Ph. Eur./USP, DMF), and GMP of supplier (ISO 15378).",
-      "body_ar": "يغطي هذا التغليف الدوائي المباع في الإمارات، من أفلام البليستر والقوارير والعبوات إلى الكراتين والنشرات وحاويات سلسلة التبريد، وقواعد الملصقات، وما يحدده المشترون. تغليف الأدوية في الإمارات: التغليف الأولي — أفلام البليستر (PVC وPVC/PVDC وPVC/PE/PVDC والألمنيوم المشكل على البارد)، ورقائق الغطاء القابلة للضغط، والقوارير والأمبولات الزجاجية (بوروسيليكات النوع I)، والزجاجات من HDPE وPET بأغطية مقاومة للأطفال وكاشفة للعبث، والقطارات، والمحاقن المعبأة مسبقاً، وأكياس المحاليل الوريدية، والأنابيب (ألمنيوم ومصفحة)، والأكياس الصغيرة والشرائط؛ والتغليف الثانوي — العلب المطوية بطريقة برايل، ونشرات المريض بالعربية والإنجليزية، والملصقات مع الترقيم التسلسلي؛ والثالثي — كراتين الشحن والحاويات المضبوطة الحرارة (EPS وPU وألواح VIP مع أكياس الجل). التنظيم الإماراتي: تشترط الجهات الصحية الاتحادية ومؤسسة الإمارات للدواء ودائرة الصحة وهيئة الصحة ملصقات عربية/إنجليزية ونظام التتبع الإماراتي (تتمين) بترميز GS1 DataMatrix على عبوات الأدوية. يحدد المشتري المادة والأبعاد والعزل ومعدل نفاذ بخار الماء والامتثال والتصنيع الجيد لدى المورد (ISO 15378).",
+      "body_ar": "يشمل التغليف الدوائي في السوق الإماراتي أفلام البليستر والقوارير والعبوات، والكراتين والنشرات الداخلية وحاويات الشحن المبرد، مع اشتراطات الملصقات والمواصفات التي يحددها المشتري. تغليف الأدوية في الإمارات: التغليف الأولي — أفلام البليستر (PVC وPVC/PVDC وPVC/PE/PVDC والألمنيوم المشكل على البارد)، ورقائق الغطاء القابلة للضغط، والقوارير والأمبولات الزجاجية (بوروسيليكات النوع I)، والزجاجات من HDPE وPET بأغطية مقاومة للأطفال وكاشفة للعبث، والقطارات، والمحاقن المعبأة مسبقاً، وأكياس المحاليل الوريدية، والأنابيب (ألمنيوم ومصفحة)، والأكياس الصغيرة والشرائط؛ والتغليف الثانوي — العلب المطوية بطريقة برايل، ونشرات المريض بالعربية والإنجليزية، والملصقات مع الترقيم التسلسلي؛ والثالثي — كراتين الشحن والحاويات المضبوطة الحرارة (EPS وPU وألواح VIP مع أكياس الجل). التنظيم الإماراتي: تشترط الجهات الصحية الاتحادية ومؤسسة الإمارات للدواء ودائرة الصحة وهيئة الصحة ملصقات عربية/إنجليزية ونظام التتبع الإماراتي (تتمين) بترميز GS1 DataMatrix على عبوات الأدوية. يحدد المشتري المادة والأبعاد والعزل ومعدل نفاذ بخار الماء والامتثال والتصنيع الجيد لدى المورد (ISO 15378).",
       "sources": [
         "https://www.ede.gov.ae/en",
         "https://tatmeen.ae/",
@@ -26,9 +27,10 @@
     {
       "id": "pharma_packaging:uae-market-brands",
       "topic": "Pharmaceutical packaging: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "التغليف الدوائي: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This lists the pharma packaging brands for UAE buyers, such as Amcor, Schott and Gerresheimer, the UAE maker Julphar, local GMP printers, and the serialisation and registration rules. A local buyer and supplier brands: Julphar, Gulf Pharmaceutical Industries, Amcor, Constantia Flexibles, Huhtamaki, Klöckner Pentaplast, Bilcare, Uflex, Schott, Gerresheimer, Stevanato, SGD Pharma, Piramal, Berry Global, Aptar, Sofrigam, Peli BioThermal, Softbox, Va-Q-tec. Julphar (Gulf Pharmaceutical Industries) is a UAE manufacturer; the others are material and packaging brands whose UAE channels were not checked. Carton and leaflet printers with GMP operate in Sharjah, Dubai Science Park and KEZAD and were not checked by name. Medicine packs must carry Tatmeen serialisation, and registration is with the Emirates Drug Establishment.",
-      "body_ar": "يسرد هذا علامات التغليف الدوائي لمشتري الإمارات، مثل أمكور وشوت وغيرسهايمر، والمصنّع الإماراتي جلفار، والمطابع المحلية الملتزمة بممارسات التصنيع الجيد، وقواعد الترقيم التسلسلي والتسجيل. مشترٍ محلي وعلامات موردين: Julphar، Gulf Pharmaceutical Industries، Amcor، Constantia Flexibles، Huhtamaki، Klöckner Pentaplast، Bilcare، Uflex، Schott، Gerresheimer، Stevanato، SGD Pharma، Piramal، Berry Global، Aptar، Sofrigam، Peli BioThermal، Softbox، Va-Q-tec. وJulphar (الخليج للصناعات الدوائية) مصنع إماراتي، والبقية علامات مواد وتغليف لم يُتحقق من قنواتها في الإمارات. وتعمل مطابع علب ونشرات بمعايير التصنيع الجيد في الشارقة ودبي للعلوم وكيزاد، ولم يُتحقق منها بالاسم. ويجب أن تحمل عبوات الأدوية ترقيم نظام تتمين، والتسجيل لدى مؤسسة الإمارات للدواء.",
+      "body_ar": "من علامات التغليف الدوائي لمشتري الإمارات Amcor وSchott وGerresheimer، والمصنع الإماراتي جلفار، والمطابع المحلية الحاصلة على GMP، مع قواعد الترميز التسلسلي والتسجيل. مشترٍ محلي وعلامات موردين: Julphar، Gulf Pharmaceutical Industries، Amcor، Constantia Flexibles، Huhtamaki، Klöckner Pentaplast، Bilcare، Uflex، Schott، Gerresheimer، Stevanato، SGD Pharma، Piramal، Berry Global، Aptar، Sofrigam، Peli BioThermal، Softbox، Va-Q-tec. وJulphar (الخليج للصناعات الدوائية) مصنع إماراتي، والبقية علامات مواد وتغليف لم يُتحقق من قنواتها في الإمارات. وتعمل مطابع علب ونشرات بمعايير التصنيع الجيد في الشارقة ودبي للعلوم وكيزاد، ولم يُتحقق منها بالاسم. ويجب أن تحمل عبوات الأدوية ترقيم نظام تتمين، والتسجيل لدى مؤسسة الإمارات للدواء.",
       "sources": [
         "https://www.ede.gov.ae/en",
         "https://tatmeen.ae/",
@@ -45,9 +47,10 @@
     {
       "id": "pharma_packaging:uae-market-sizes",
       "topic": "Pharmaceutical packaging: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "التغليف الدوائي: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This explains how pharma packaging is priced per kg, roll, 1,000 pieces or unit by item, and why minimum orders and lead times are longer. Blister films per kg or per roll by width (e.g. 250 micron PVC); foils per kg; vials and bottles per 1,000; cartons and leaflets per 1,000 with artwork approval cycles; temperature-controlled shippers per unit by payload volume and duration (e.g. 2-8 C for 48-96 hours). MOQs and lead times are longer due to GMP and artwork validation (4-12 weeks).",
-      "body_ar": "يشرح هذا كيف يُسعَّر التغليف الدوائي بالكيلوغرام أو اللفة أو لكل 1,000 قطعة أو بالوحدة حسب الصنف، ولماذا تكون الحدود الدنيا للطلب ومدد التوريد أطول. أفلام البليستر بالكيلوغرام أو باللفة حسب العرض (مثل PVC بسماكة 250 ميكرون)؛ والرقائق بالكيلوغرام؛ والقوارير والزجاجات لكل 1,000؛ والعلب والنشرات لكل 1,000 مع دورات اعتماد التصميم؛ وحاويات التبريد بالوحدة حسب حجم الحمولة والمدة (مثل 2-8 مئوية لمدة 48-96 ساعة). والحدود الدنيا ومدد التوريد أطول بسبب التصنيع الجيد واعتماد التصاميم (4-12 أسبوعاً).",
+      "body_ar": "تُسعَّر مواد التغليف الدوائي بالكيلوغرام أو باللفة أو بالألف قطعة أو بالوحدة حسب الصنف، ويُشرح هنا سبب طول الحد الأدنى للطلب ومدد التسليم. أفلام البليستر بالكيلوغرام أو باللفة حسب العرض (مثل PVC بسماكة 250 ميكرون)؛ والرقائق بالكيلوغرام؛ والقوارير والزجاجات لكل 1,000؛ والعلب والنشرات لكل 1,000 مع دورات اعتماد التصميم؛ وحاويات التبريد بالوحدة حسب حجم الحمولة والمدة (مثل 2-8 مئوية لمدة 48-96 ساعة). والحدود الدنيا ومدد التوريد أطول بسبب التصنيع الجيد واعتماد التصاميم (4-12 أسبوعاً).",
       "sources": [
         "https://www.ede.gov.ae/en",
         "https://tatmeen.ae/",
@@ -65,7 +68,7 @@
   "eval": [
     {
       "q_en": "What pharmaceutical packaging options can pharma manufacturers source locally in the UAE?",
-      "q_ar": "ما خيارات التغليف الدوائي التي يمكن لمصنعي الأدوية الحصول عليها محليًا في الإمارات؟",
+      "q_ar": "شو خيارات تغليف الأدوية اللي يقدر مصنعين الأدوية يحصلونها محلياً في الإمارات؟",
       "expected_entry_ids": [
         "pharma_packaging:uae-market-products"
       ],

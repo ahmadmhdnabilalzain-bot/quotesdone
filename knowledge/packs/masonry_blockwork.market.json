@@ -7,9 +7,10 @@
     {
       "id": "masonry_blockwork:uae-market-products",
       "topic": "Masonry, blockwork & plastering: products, variants and grades sold in the UAE",
+      "topic_ar": "أعمال البناء بالطابوق واللياسة: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This covers masonry and plastering in the UAE, including hollow, solid, thermal and AAC blocks, lintels, mortar, internal plaster and external render, with the applicable block and thermal standards. Masonry, blockwork and plastering in the UAE: hollow and solid concrete blocks (load-bearing and non-load-bearing, compressive strength commonly 7-10 N/mm2 for hollow), thermal blocks with EPS inserts to meet Dubai's green building limit (external walls U-value at most 0.57 W/m2K; private villas may instead use 200 mm thermal blocks of at most 0.5 W/m2K), AAC (autoclaved aerated concrete) blocks, clay bricks (less common), GRC and precast elements, lintels and tie beams, mortar (site-mixed or factory dry mortar), wall ties, expansion joints, and plaster: internal cement plaster (about 12-15 mm), external cement render (15-20 mm, often with waterproofing additive and mesh at junctions), gypsum plaster for interiors, and textured external finishes. Standards: BS EN 771-3 for concrete blocks, Dubai Municipality block conformity and thermal requirements, and curing rules for hot weather.",
-      "body_ar": "يغطي هذا أعمال البناء بالطوب واللياسة في الإمارات، ومنها الطوب المفرغ والمصمت والحراري والخرساني الخلوي والأعتاب والمونة واللياسة الداخلية والخارجية، مع معايير الطوب والعزل الحراري المطبقة. أعمال البناء والطابوق واللياسة في الإمارات: الطابوق الخرساني المفرّغ والمصمت (الحامل وغير الحامل، بمقاومة ضغط شائعة 7-10 نيوتن/مم2 للمفرّغ)، والطابوق الحراري بحشوات EPS لتحقيق حد لوائح دبي للمباني الخضراء (قيمة U للجدران الخارجية 0.57 واط/م2.ك كحد أقصى؛ ويجوز للفلل الخاصة استخدام طابوق حراري 200 مم بقيمة 0.5 واط/م2.ك كحد أقصى)، وطابوق AAC (الخرسانة الخلوية المعالجة بالبخار)، والطوب الطيني (أقل شيوعاً)، وعناصر GRC ومسبقة الصب، والأعتاب والجسور الرابطة، والمونة (مخلوطة في الموقع أو جافة مصنعية)، وروابط الجدران، وفواصل التمدد، واللياسة: لياسة إسمنتية داخلية (نحو 12-15 مم)، ولياسة إسمنتية خارجية (15-20 مم، غالباً مع إضافة مانعة للتسرب وشبك عند الوصلات)، ولياسة الجبس للداخل، والتشطيبات الخارجية المحببة. المعايير: BS EN 771-3 للطابوق الخرساني، ومطابقة بلدية دبي للطابوق ومتطلباته الحرارية، وقواعد المعالجة في الطقس الحار.",
+      "body_ar": "تشمل أعمال البناء واللياسة في الإمارات البلوك المفرغ والمصمت والحراري وبلوك AAC، والأعتاب والمونة واللياسة الداخلية والخارجية، مع معايير البلوك والعزل الحراري المعمول بها. أعمال البناء والطابوق واللياسة في الإمارات: الطابوق الخرساني المفرّغ والمصمت (الحامل وغير الحامل، بمقاومة ضغط شائعة 7-10 نيوتن/مم2 للمفرّغ)، والطابوق الحراري بحشوات EPS لتحقيق حد لوائح دبي للمباني الخضراء (قيمة U للجدران الخارجية 0.57 واط/م2.ك كحد أقصى؛ ويجوز للفلل الخاصة استخدام طابوق حراري 200 مم بقيمة 0.5 واط/م2.ك كحد أقصى)، وطابوق AAC (الخرسانة الخلوية المعالجة بالبخار)، والطوب الطيني (أقل شيوعاً)، وعناصر GRC ومسبقة الصب، والأعتاب والجسور الرابطة، والمونة (مخلوطة في الموقع أو جافة مصنعية)، وروابط الجدران، وفواصل التمدد، واللياسة: لياسة إسمنتية داخلية (نحو 12-15 مم)، ولياسة إسمنتية خارجية (15-20 مم، غالباً مع إضافة مانعة للتسرب وشبك عند الوصلات)، ولياسة الجبس للداخل، والتشطيبات الخارجية المحببة. المعايير: BS EN 771-3 للطابوق الخرساني، ومطابقة بلدية دبي للطابوق ومتطلباته الحرارية، وقواعد المعالجة في الطقس الحار.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2018/01/05_ENG_DCL_LawsLegislation_EngineeringSection_GreenBuildingRegulation.pdf",
         "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
@@ -24,9 +25,10 @@
     {
       "id": "masonry_blockwork:uae-market-brands",
       "topic": "Masonry, blockwork & plastering: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "أعمال البناء بالطابوق واللياسة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This explains who supplies masonry: many local block factories such as Emirates Blocks, dry-mortar and plaster brands such as Weber, Mapei and Sika, and blockwork subcontractors. Blocks are made locally by many factories across Dubai, Sharjah, Ajman, Umm Al Quwain and Abu Dhabi; the one named here is Emirates Blocks (EMSTEEL), Weber, Mapei, Fosroc, Sika, Thomsit, the rest of the list being dry-mortar and plaster brands. AAC blocks come from local, Saudi and Omani producers. Labour is supplied by blockwork subcontractors. Origin is almost entirely UAE.",
-      "body_ar": "يوضح هذا موردي مواد البناء بالطوب: مصانع طوب محلية كثيرة مثل الإمارات للطابوق، وعلامات المونة الجافة واللياسة مثل ويبر ومابي وسيكا، ومقاولو الباطن للبناء. يُصنع الطابوق محلياً في مصانع كثيرة في دبي والشارقة وعجمان وأم القيوين وأبوظبي؛ والأسماء: Emirates Blocks (EMSTEEL)، Weber، Mapei، Fosroc، Sika، Thomsit، والبقية بعد الأول علامات مونة جافة ولياسة. ويأتي طابوق AAC من منتجين محليين وسعوديين وعُمانيين. ويوفر العمالة مقاولو الطابوق من الباطن. والمنشأ محلي بالكامل تقريباً.",
+      "body_ar": "يورّد مواد البناء بالطابوق كثير من مصانع الطابوق المحلية مثل Emirates Blocks، وعلامات المونة الجاهزة واللياسة مثل Weber وMapei وSika، إلى جانب مقاولي الباطن لأعمال الطابوق. يُصنع الطابوق محلياً في مصانع كثيرة في دبي والشارقة وعجمان وأم القيوين وأبوظبي؛ والأسماء: Emirates Blocks (EMSTEEL)، Weber، Mapei، Fosroc، Sika، Thomsit، والبقية بعد الأول علامات مونة جافة ولياسة. ويأتي طابوق AAC من منتجين محليين وسعوديين وعُمانيين. ويوفر العمالة مقاولو الطابوق من الباطن. والمنشأ محلي بالكامل تقريباً.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2018/01/05_ENG_DCL_LawsLegislation_EngineeringSection_GreenBuildingRegulation.pdf",
         "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
@@ -41,9 +43,10 @@
     {
       "id": "masonry_blockwork:uae-market-sizes",
       "topic": "Masonry, blockwork & plastering: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "أعمال البناء بالطابوق واللياسة: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This lists block sizes and thicknesses and explains pricing per block, blockwork and plaster per m2, and beads and mesh per linear metre. Blocks are 400 x 200 mm face with thickness 100, 150, 200, 250 or 300 mm (4-12 inch), priced per piece ex-factory or delivered; AAC blocks 600 x 200 mm. Blockwork is quoted per m2 of wall by thickness (including mortar, ties, lintels as separate items); plaster per m2 by internal/external and thickness; render per m2; beads and mesh per linear metre. Supply-only versus supply-and-lay must be stated, and wastage (about 3-5%).",
-      "body_ar": "يعرض هذا مقاسات الطوب وسماكاته، ويوضح التسعير لكل طوبة، وأعمال البناء واللياسة لكل متر مربع، والزوايا والشبك لكل متر طولي. مقاس وجه الطابوق 400 × 200 مم بسماكة 100 أو 150 أو 200 أو 250 أو 300 مم (4-12 إنش)، ويُسعّر بالقطعة من المصنع أو مع التوصيل؛ وطابوق AAC بمقاس 600 × 200 مم. ويُسعّر البناء بالمتر المربع من الجدار حسب السماكة (المونة والروابط، والأعتاب بنود مستقلة)؛ واللياسة بالمتر المربع حسب داخلي/خارجي والسماكة؛ والطلاء الخارجي بالمتر المربع؛ والزوايا والشبك بالمتر الطولي. ويجب ذكر التوريد فقط أو التوريد والبناء، ونسبة الهالك (نحو 3-5%).",
+      "body_ar": "تُذكر هنا مقاسات الطابوق وسماكاته، ويُسعَّر الطابوق بالحبة، وأعمال البناء واللياسة بالمتر المربع، والزوايا والشبك بالمتر الطولي. مقاس وجه الطابوق 400 × 200 مم بسماكة 100 أو 150 أو 200 أو 250 أو 300 مم (4-12 إنش)، ويُسعّر بالقطعة من المصنع أو مع التوصيل؛ وطابوق AAC بمقاس 600 × 200 مم. ويُسعّر البناء بالمتر المربع من الجدار حسب السماكة (المونة والروابط، والأعتاب بنود مستقلة)؛ واللياسة بالمتر المربع حسب داخلي/خارجي والسماكة؛ والطلاء الخارجي بالمتر المربع؛ والزوايا والشبك بالمتر الطولي. ويجب ذكر التوريد فقط أو التوريد والبناء، ونسبة الهالك (نحو 3-5%).",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2018/01/05_ENG_DCL_LawsLegislation_EngineeringSection_GreenBuildingRegulation.pdf",
         "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
@@ -59,7 +62,7 @@
   "eval": [
     {
       "q_en": "What masonry, blockwork and plastering services do contractors in the UAE provide?",
-      "q_ar": "ما خدمات البناء بالطابوق واللياسة التي يقدمها المقاولون في الإمارات؟",
+      "q_ar": "شو خدمات البناء بالطابوق والبلوك واللياسة اللي يقدمها المقاولين في الإمارات؟",
       "expected_entry_ids": [
         "masonry_blockwork:uae-market-products"
       ],

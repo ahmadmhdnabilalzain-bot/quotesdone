@@ -7,9 +7,10 @@
     {
       "id": "vehicle_leasing:uae-market-products",
       "topic": "Vehicle rental & leasing: products, variants and grades sold in the UAE",
+      "topic_ar": "تأجير السيارات والتأجير التمويلي: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers vehicle leasing in the UAE, from long-term corporate leases and short-term rental to lease-to-own, chauffeur and EV leasing, what full-maintenance leases include, and the RTA or ITC licence rules. Vehicle leasing in the UAE includes long-term corporate leasing (operating lease, 1-5 years) of sedans, SUVs, pickups, vans, buses and trucks, short-term rental (daily, weekly, monthly), lease-to-own/finance lease, chauffeur-driven leasing, equipment and heavy vehicle leasing (with or without operator), electric vehicle leasing, and subscription models. Full-maintenance leases typically include registration, insurance, maintenance, tyres, replacement vehicle and 24/7 roadside assistance; buyers specify vehicle make/model, annual mileage allowance (e.g. 20,000-40,000 km/year), lease term, branding, telematics, driver policy, and excess mileage/damage charges. UAE rules: rental and leasing companies need RTA (Dubai) or ITC (Abu Dhabi) car rental licences; vehicles must carry comprehensive insurance and valid registration (Mulkiya); traffic fines and Salik/Darb tolls are passed to the lessee; foreign licence holders may drive rentals under UAE traffic rules for their nationality.",
-      "body_ar": "يغطي هذا البند تأجير المركبات في الإمارات، من التأجير طويل الأجل للشركات والتأجير قصير الأجل إلى التأجير المنتهي بالتملك والتأجير مع سائق وتأجير السيارات الكهربائية، وما يشمله التأجير مع الصيانة الكاملة، وقواعد ترخيص هيئة الطرق والمواصلات أو مركز النقل المتكامل. يشمل تأجير المركبات في الإمارات التأجير طويل الأجل للشركات (التأجير التشغيلي، 1-5 سنوات) لسيارات السيدان، وسيارات الدفع الرباعي، والبيك أب، والشاحنات الصغيرة، والحافلات، والشاحنات، والتأجير قصير الأجل (يومي، وأسبوعي، وشهري)، والتأجير المنتهي بالتملك/التأجير التمويلي، والتأجير مع سائق، وتأجير المعدات والمركبات الثقيلة (مع المشغل أو بدونه)، وتأجير المركبات الكهربائية، ونماذج الاشتراك. وعادةً ما يشمل التأجير بالصيانة الكاملة التسجيل، والتأمين، والصيانة، والإطارات، والمركبة البديلة، والمساعدة على الطريق على مدار الساعة؛ ويحدد المشترون ماركة المركبة وطرازها، والمسافة المسموح بها سنوياً (مثل 20,000-40,000 كم/سنة)، ومدة التأجير، والعلامة التجارية على المركبة، والتتبع، وسياسة السائقين، ورسوم تجاوز المسافة/الأضرار. القواعد الإماراتية: تحتاج شركات التأجير إلى تراخيص تأجير السيارات من هيئة الطرق والمواصلات (دبي) أو مركز النقل المتكامل (أبوظبي)؛ ويجب أن تحمل المركبات تأميناً شاملاً وتسجيلاً سارياً (ملكية)؛ وتُحمّل المخالفات المرورية ورسوم سالك/درب على المستأجر؛ ويجوز لحاملي الرخص الأجنبية قيادة المركبات المستأجرة وفق قواعد المرور الإماراتية الخاصة بجنسياتهم.",
+      "body_ar": "يشمل تأجير السيارات في الإمارات عقود الإيجار طويلة الأجل للشركات والإيجار قصير الأجل، وصولًا إلى الإيجار المنتهي بالتملك وخدمة السائق وتأجير السيارات الكهربائية، مع ما تشمله عقود الإيجار بالصيانة الكاملة، وقواعد ترخيص RTA أو ITC. يشمل تأجير المركبات في الإمارات التأجير طويل الأجل للشركات (التأجير التشغيلي، 1-5 سنوات) لسيارات السيدان، وسيارات الدفع الرباعي، والبيك أب، والشاحنات الصغيرة، والحافلات، والشاحنات، والتأجير قصير الأجل (يومي، وأسبوعي، وشهري)، والتأجير المنتهي بالتملك/التأجير التمويلي، والتأجير مع سائق، وتأجير المعدات والمركبات الثقيلة (مع المشغل أو بدونه)، وتأجير المركبات الكهربائية، ونماذج الاشتراك. وعادةً ما يشمل التأجير بالصيانة الكاملة التسجيل، والتأمين، والصيانة، والإطارات، والمركبة البديلة، والمساعدة على الطريق على مدار الساعة؛ ويحدد المشترون ماركة المركبة وطرازها، والمسافة المسموح بها سنوياً (مثل 20,000-40,000 كم/سنة)، ومدة التأجير، والعلامة التجارية على المركبة، والتتبع، وسياسة السائقين، ورسوم تجاوز المسافة/الأضرار. القواعد الإماراتية: تحتاج شركات التأجير إلى تراخيص تأجير السيارات من هيئة الطرق والمواصلات (دبي) أو مركز النقل المتكامل (أبوظبي)؛ ويجب أن تحمل المركبات تأميناً شاملاً وتسجيلاً سارياً (ملكية)؛ وتُحمّل المخالفات المرورية ورسوم سالك/درب على المستأجر؛ ويجوز لحاملي الرخص الأجنبية قيادة المركبات المستأجرة وفق قواعد المرور الإماراتية الخاصة بجنسياتهم.",
       "sources": [
         "https://www.hertz.ae/en",
         "https://www.salik.ae",
@@ -23,9 +24,10 @@
     {
       "id": "vehicle_leasing:uae-market-brands",
       "topic": "Vehicle rental & leasing: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "تأجير السيارات والتأجير التمويلي: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry lists the rental and leasing brands in the UAE, such as Hertz UAE, Avis, Budget, Europcar, Sixt and Thrifty, and the advice to check the RTA or ITC rental licence. Confirmed UAE rental and leasing brand and other international brands: Hertz UAE, Avis, Budget, Europcar, Sixt, Thrifty. The other brands' UAE franchise operators were not checked; check the RTA or ITC rental licence.",
-      "body_ar": "يسرد هذا البند علامات تأجير المركبات في الإمارات، مثل هيرتز الإمارات وأفيس وبدجت ويوروبكار وسيكست وثريفتي، مع النصح بالتحقق من ترخيص التأجير لدى هيئة الطرق والمواصلات أو مركز النقل المتكامل. علامة التأجير المؤكدة في الإمارات وعلامات دولية أخرى: Hertz UAE، Avis، Budget، Europcar، Sixt، Thrifty. ولم يُتحقق من مشغلي امتياز العلامات الأخرى في الإمارات؛ ويجب التحقق من ترخيص التأجير لدى هيئة الطرق والمواصلات أو مركز النقل المتكامل.",
+      "body_ar": "من ماركات تأجير السيارات والتأجير طويل الأمد في الإمارات Hertz UAE وAvis وBudget وEuropcar وSixt وThrifty، ويُنصح بالتحقق من ترخيص التأجير لدى هيئة الطرق والمواصلات (RTA) أو مركز النقل المتكامل (ITC). علامة التأجير المؤكدة في الإمارات وعلامات دولية أخرى: Hertz UAE، Avis، Budget، Europcar، Sixt، Thrifty. ولم يُتحقق من مشغلي امتياز العلامات الأخرى في الإمارات؛ ويجب التحقق من ترخيص التأجير لدى هيئة الطرق والمواصلات أو مركز النقل المتكامل.",
       "sources": [
         "https://www.hertz.ae/en",
         "https://www.salik.ae",
@@ -39,9 +41,10 @@
     {
       "id": "vehicle_leasing:uae-market-sizes",
       "topic": "Vehicle rental & leasing: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "تأجير السيارات والتأجير التمويلي: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how vehicle leasing is priced in the UAE: long-term leases per vehicle per month with a mileage allowance, short-term rentals per day, week or month, plus deposits, excess km and tolls. Long-term leases priced per vehicle per month for a fixed term and mileage allowance, with excess km charged per km; short-term rentals per day/week/month with daily km limits (commonly 250 km/day) and security deposits (card block); chauffeur services per month or hour; trucks and equipment per month with or without driver/operator. Early termination fees apply. Salik tolls and fines are recharged with admin fees; VAT 5% applies.",
-      "body_ar": "يوضح هذا البند كيف يُسعَّر تأجير المركبات في الإمارات: التأجير طويل الأجل لكل مركبة شهريًا مع حد للمسافة المقطوعة، والتأجير قصير الأجل باليوم أو الأسبوع أو الشهر، إضافة إلى التأمين والكيلومترات الزائدة والتعرفة المرورية. يُسعّر التأجير طويل الأجل لكل مركبة شهرياً لمدة ثابتة ومسافة مسموحة، مع احتساب تجاوز الكيلومترات لكل كيلومتر؛ والتأجير قصير الأجل يومياً/أسبوعياً/شهرياً مع حدود يومية للكيلومترات (عادةً 250 كم/يوم) وتأمين (حجز على البطاقة)؛ وخدمات السائق شهرياً أو بالساعة؛ والشاحنات والمعدات شهرياً مع السائق/المشغل أو بدونه. وتُطبق رسوم الإنهاء المبكر. وتُعاد فوترة رسوم سالك والمخالفات مع رسوم إدارية؛ وتُطبق ضريبة القيمة المضافة 5%.",
+      "body_ar": "يُسعَّر تأجير السيارات في الإمارات كالتالي: الإيجار طويل الأمد لكل سيارة شهريًا مع حد مسموح للكيلومترات، والإيجار قصير الأمد باليوم أو الأسبوع أو الشهر، إضافة إلى التأمين المسترد والكيلومترات الزائدة ورسوم الطرق. يُسعّر التأجير طويل الأجل لكل مركبة شهرياً لمدة ثابتة ومسافة مسموحة، مع احتساب تجاوز الكيلومترات لكل كيلومتر؛ والتأجير قصير الأجل يومياً/أسبوعياً/شهرياً مع حدود يومية للكيلومترات (عادةً 250 كم/يوم) وتأمين (حجز على البطاقة)؛ وخدمات السائق شهرياً أو بالساعة؛ والشاحنات والمعدات شهرياً مع السائق/المشغل أو بدونه. وتُطبق رسوم الإنهاء المبكر. وتُعاد فوترة رسوم سالك والمخالفات مع رسوم إدارية؛ وتُطبق ضريبة القيمة المضافة 5%.",
       "sources": [
         "https://www.hertz.ae/en",
         "https://www.salik.ae",
@@ -56,7 +59,7 @@
   "eval": [
     {
       "q_en": "What vehicle rental and leasing options are available to businesses in the UAE?",
-      "q_ar": "ما خيارات تأجير السيارات والتأجير التمويلي المتاحة للمنشآت في الإمارات؟",
+      "q_ar": "شو خيارات تأجير السيارات والليسينج المتوفرة للشركات في الإمارات؟",
       "expected_entry_ids": [
         "vehicle_leasing:uae-market-products"
       ],

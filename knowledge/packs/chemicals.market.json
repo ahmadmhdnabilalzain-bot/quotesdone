@@ -7,9 +7,10 @@
     {
       "id": "chemicals:uae-market-products",
       "topic": "Industrial & Construction Chemicals: products, variants and grades sold in the UAE",
+      "topic_ar": "الكيماويات الصناعية والإنشائية: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers the industrial and construction chemicals sold in the UAE, from concrete admixtures, grouts and sealants to acids, solvents and water treatment chemicals, and how hazardous chemicals are regulated. Industrial and construction chemicals in the UAE: concrete admixtures (superplasticisers PCE-based to ASTM C494/EN 934-2, retarders for hot weather, accelerators, waterproofing admixtures, curing compounds), repair mortars, grouts (cementitious and epoxy), sealants, floor hardeners, bonding agents, and industrial chemicals: caustic soda (flakes and 48-50% lye), hydrochloric and sulphuric acid, sodium hypochlorite, solvents (xylene, toluene, acetone, IPA, MEK, white spirit), glycols (MEG, DEG, TEG), amines, water treatment chemicals (alum, PAC, antiscalants, biocides), oilfield chemicals, surfactants, resins and pigments. Hazardous chemicals are regulated: import permits and registration via MOCCAE and the emirate authorities; precursor and controlled chemicals need police/ministry permits; SDS in Arabic and English per GHS; storage needs Civil Defence approval.",
-      "body_ar": "يغطي هذا البند الكيماويات الصناعية وكيماويات البناء المباعة في الإمارات، من إضافات الخرسانة والجراوت ومواد الإحكام إلى الأحماض والمذيبات وكيماويات معالجة المياه، وكيفية تنظيم الكيماويات الخطرة. الكيماويات الصناعية وكيماويات البناء في الإمارات: إضافات الخرسانة (الملدنات الفائقة PCE وفق ASTM C494/EN 934-2، ومؤخرات الشك للطقس الحار، والمسرعات، والإضافات العازلة للماء، ومركبات المعالجة)، ومونة الإصلاح، والجراوت (الإسمنتي والإيبوكسي)، والمانعات، ومقسيات الأرضيات، ومواد الربط، والكيماويات الصناعية: الصودا الكاوية (رقائق ومحلول 48-50%)، وحمض الهيدروكلوريك والكبريتيك، وهيبوكلوريت الصوديوم، والمذيبات (الزيلين والتولوين والأسيتون والكحول الأيزوبروبيلي وMEK والتربنتين)، والجلايكولات (MEG وDEG وTEG)، والأمينات، وكيماويات معالجة المياه (الشب وPAC ومانعات الترسب والمبيدات الحيوية)، وكيماويات حقول النفط، والمواد الخافضة للتوتر السطحي، والراتنجات والأصباغ. والكيماويات الخطرة منظمة: تصاريح استيراد وتسجيل عبر وزارة التغير المناخي والبيئة وجهات الإمارات؛ وتحتاج السلائف والكيماويات المراقبة تصاريح من الشرطة/الوزارة؛ وصحائف بيانات السلامة بالعربية والإنجليزية وفق GHS؛ ويحتاج التخزين اعتماد الدفاع المدني.",
+      "body_ar": "تشمل الكيماويات الصناعية والإنشائية المباعة في الإمارات إضافات الخرسانة والجراوت ومواد الحشو (السيلانت)، وصولًا إلى الأحماض والمذيبات وكيماويات معالجة المياه، مع طريقة تنظيم تداول المواد الكيميائية الخطرة. الكيماويات الصناعية وكيماويات البناء في الإمارات: إضافات الخرسانة (الملدنات الفائقة PCE وفق ASTM C494/EN 934-2، ومؤخرات الشك للطقس الحار، والمسرعات، والإضافات العازلة للماء، ومركبات المعالجة)، ومونة الإصلاح، والجراوت (الإسمنتي والإيبوكسي)، والمانعات، ومقسيات الأرضيات، ومواد الربط، والكيماويات الصناعية: الصودا الكاوية (رقائق ومحلول 48-50%)، وحمض الهيدروكلوريك والكبريتيك، وهيبوكلوريت الصوديوم، والمذيبات (الزيلين والتولوين والأسيتون والكحول الأيزوبروبيلي وMEK والتربنتين)، والجلايكولات (MEG وDEG وTEG)، والأمينات، وكيماويات معالجة المياه (الشب وPAC ومانعات الترسب والمبيدات الحيوية)، وكيماويات حقول النفط، والمواد الخافضة للتوتر السطحي، والراتنجات والأصباغ. والكيماويات الخطرة منظمة: تصاريح استيراد وتسجيل عبر وزارة التغير المناخي والبيئة وجهات الإمارات؛ وتحتاج السلائف والكيماويات المراقبة تصاريح من الشرطة/الوزارة؛ وصحائف بيانات السلامة بالعربية والإنجليزية وفق GHS؛ ويحتاج التخزين اعتماد الدفاع المدني.",
       "sources": [
         "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
         "https://www.sika.com",
@@ -25,9 +26,10 @@
     {
       "id": "chemicals:uae-market-brands",
       "topic": "Industrial & Construction Chemicals: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الكيماويات الصناعية والإنشائية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry names the construction-chemical brands, regional producers and distributors in the UAE, such as Sika, Fosroc, Borouge and Brenntag, and where industrial chemicals are traded. Construction-chemical brands, regional producers and distributors: Sika, Master Builders Solutions, Fosroc, Mapei, Henkel, Pidilite, Borouge, Fertiglobe, SABIC, Brenntag, Univar. Fosroc is based in Dubai, and Borouge and Fertiglobe produce at Ruwais. Industrial chemicals are traded through distributors and traders in Sharjah (Hamriyah), Jebel Ali and Abu Dhabi. Except for Fosroc, which distributors hold each line locally was not checked. Origins: GCC, Europe, India, China.",
-      "body_ar": "يذكر هذا البند علامات كيماويات البناء والمنتجين الإقليميين والموزعين في الإمارات، مثل Sika وFosroc وبروج وBrenntag، وأماكن تداول الكيماويات الصناعية. علامات كيماويات البناء والمنتجون الإقليميون والموزعون: Sika، Master Builders Solutions، Fosroc، Mapei، Henkel، Pidilite، Borouge، Fertiglobe، SABIC، Brenntag، Univar. ومقر Fosroc في دبي، وتنتج Borouge وFertiglobe في الرويس. وتُتداول الكيماويات الصناعية عبر موزعين وتجار في الشارقة (الحمرية) وجبل علي وأبوظبي، ولم يُتحقق من الموزع المحلي لكل خط عدا Fosroc. المنشأ: الخليج، أوروبا، الهند، الصين.",
+      "body_ar": "من أبرز ماركات كيماويات البناء والمنتجين الإقليميين والموزعين في الإمارات Sika وFosroc وBorouge وBrenntag، مع بيان أماكن تداول الكيماويات الصناعية. علامات كيماويات البناء والمنتجون الإقليميون والموزعون: Sika، Master Builders Solutions، Fosroc، Mapei، Henkel، Pidilite، Borouge، Fertiglobe، SABIC، Brenntag، Univar. ومقر Fosroc في دبي، وتنتج Borouge وFertiglobe في الرويس. وتُتداول الكيماويات الصناعية عبر موزعين وتجار في الشارقة (الحمرية) وجبل علي وأبوظبي، ولم يُتحقق من الموزع المحلي لكل خط عدا Fosroc. المنشأ: الخليج، أوروبا، الهند، الصين.",
       "sources": [
         "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
         "https://www.sika.com",
@@ -43,9 +45,10 @@
     {
       "id": "chemicals:uae-market-sizes",
       "topic": "Industrial & Construction Chemicals: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الكيماويات الصناعية والإنشائية: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how chemicals are packed and priced: admixtures in pails, drums and IBCs, grouts in 25 kg bags, bulk per tonne, priced per litre, kg or tonne. Admixtures in 20-25 L pails, 200-210 L drums and 1,000 L IBCs, dosed per 100 kg cement; grouts and mortars in 25 kg bags; bulk chemicals per tonne in drums, IBCs, flexitanks or ISO tanks. Priced per litre, kg or tonne; hazardous delivery needs licensed transport. Quotes include TDS, SDS and CoA.",
-      "body_ar": "يوضح هذا البند كيفية تعبئة الكيماويات وتسعيرها: الإضافات في جرادل وبراميل وحاويات وسيطة، والجراوت في أكياس 25 كغ، والسائب بالطن، وتُسعَّر باللتر أو الكيلوغرام أو الطن. الإضافات في دلاء 20-25 لتراً، وبراميل 200-210 لترات، وحاويات 1,000 لتر، وتُجرّع لكل 100 كغ إسمنت؛ والجراوت والمونة في أكياس 25 كغ؛ والكيماويات السائبة بالطن في براميل أو حاويات أو خزانات مرنة أو خزانات ISO. والتسعير باللتر أو الكيلوغرام أو الطن؛ ويحتاج توصيل المواد الخطرة نقلاً مرخصاً. وتتضمن العروض نشرة البيانات الفنية وصحيفة السلامة وشهادة التحليل.",
+      "body_ar": "تُعبَّأ الكيماويات وتُسعَّر عادةً كالتالي: الإضافات الخرسانية في جالونات وبراميل وحاويات IBC، والجراوت بأكياس 25 كغ، والكميات السائبة بالطن، والسعر باللتر أو بالكيلوغرام أو بالطن. الإضافات في دلاء 20-25 لتراً، وبراميل 200-210 لترات، وحاويات 1,000 لتر، وتُجرّع لكل 100 كغ إسمنت؛ والجراوت والمونة في أكياس 25 كغ؛ والكيماويات السائبة بالطن في براميل أو حاويات أو خزانات مرنة أو خزانات ISO. والتسعير باللتر أو الكيلوغرام أو الطن؛ ويحتاج توصيل المواد الخطرة نقلاً مرخصاً. وتتضمن العروض نشرة البيانات الفنية وصحيفة السلامة وشهادة التحليل.",
       "sources": [
         "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
         "https://www.sika.com",
@@ -62,7 +65,7 @@
   "eval": [
     {
       "q_en": "What industrial and construction chemicals are readily available from suppliers in the UAE?",
-      "q_ar": "ما الكيماويات الصناعية والإنشائية المتوفرة بسهولة لدى الموردين في الإمارات؟",
+      "q_ar": "شو الكيماويات الصناعية وكيماويات البناء المتوفرة بسهولة عند الموردين في الإمارات؟",
       "expected_entry_ids": [
         "chemicals:uae-market-products"
       ],

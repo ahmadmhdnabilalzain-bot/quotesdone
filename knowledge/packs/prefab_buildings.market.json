@@ -7,9 +7,10 @@
     {
       "id": "prefab_buildings:uae-market-products",
       "topic": "Porta cabins & modular buildings: products, variants and grades sold in the UAE",
+      "topic_ar": "الكرفانات والمباني الجاهزة: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This covers the porta cabins and modular buildings sold in the UAE, from site offices and labour accommodation to modular schools, the construction types, and the accommodation rules. Porta cabins and modular buildings in the UAE: site offices, labour accommodation cabins, security cabins, toilet and shower blocks, prayer rooms, portable kitchens and canteens (structure only), stores, and permanent modular buildings (schools, clinics, villas). Construction types: steel frame with sandwich panels (PU or rock-wool core, 50-100 mm, rock wool where fire resistance is needed), container conversions (20 and 40 ft ISO containers), light-gauge steel framing, and precast/volumetric modular. Interiors: PVC or vinyl flooring on cement board, gypsum or PVC ceilings, split AC units, electrical to DEWA/ADDC wiring rules. Labour accommodation must follow MOHRE rules (Cabinet Resolution 13 of 2009 and Ministerial Decree 212 of 2014), the emirate's guidelines (in Dubai, the Municipality's Technical Guidelines for Ideal Labour Accommodation, covering space per worker, ventilation and sanitary ratios) and Civil Defence fire rules.",
-      "body_ar": "يغطي هذا الكبائن الجاهزة والمباني المعيارية المباعة في الإمارات، من مكاتب المواقع وسكن العمال إلى المدارس المعيارية، وأنواع الإنشاء، وقواعد السكن. الكبائن الجاهزة والمباني المسبقة الصنع في الإمارات: مكاتب المواقع، وكبائن سكن العمال، وكبائن الأمن، ووحدات الحمامات والدش، والمصليات، والمطابخ والمقاصف المتنقلة (الهيكل فقط)، والمخازن، والمباني المسبقة الصنع الدائمة (المدارس والعيادات والفلل). أنواع البناء: هيكل فولاذي مع ألواح ساندويتش (قلب بولي يوريثان أو صوف صخري 50-100 مم، والصوف الصخري حيث تلزم مقاومة الحريق)، وتحويل الحاويات (حاويات ISO مقاس 20 و40 قدماً)، والإطارات الفولاذية الخفيفة، والوحدات الحجمية مسبقة الصب. التشطيب الداخلي: أرضيات PVC أو فينيل على ألواح إسمنتية، وأسقف جبس أو PVC، ومكيفات سبليت، وتمديدات كهربائية وفق قواعد هيئة الكهرباء. ويجب أن يتبع سكن العمال قواعد وزارة الموارد البشرية والتوطين (قرار مجلس الوزراء 13 لسنة 2009 والقرار الوزاري 212 لسنة 2014)، وإرشادات الإمارة (في دبي: الإرشادات الفنية لسكن العمال المثالي الصادرة عن البلدية، وتشمل المساحة لكل عامل والتهوية ونسب المرافق الصحية)، وقواعد الدفاع المدني للحريق.",
+      "body_ar": "تشمل الكرفانات والمباني الجاهزة في الإمارات مكاتب المواقع وسكن العمال والمدارس الجاهزة، مع أنواع الإنشاء واشتراطات السكن. الكبائن الجاهزة والمباني المسبقة الصنع في الإمارات: مكاتب المواقع، وكبائن سكن العمال، وكبائن الأمن، ووحدات الحمامات والدش، والمصليات، والمطابخ والمقاصف المتنقلة (الهيكل فقط)، والمخازن، والمباني المسبقة الصنع الدائمة (المدارس والعيادات والفلل). أنواع البناء: هيكل فولاذي مع ألواح ساندويتش (قلب بولي يوريثان أو صوف صخري 50-100 مم، والصوف الصخري حيث تلزم مقاومة الحريق)، وتحويل الحاويات (حاويات ISO مقاس 20 و40 قدماً)، والإطارات الفولاذية الخفيفة، والوحدات الحجمية مسبقة الصب. التشطيب الداخلي: أرضيات PVC أو فينيل على ألواح إسمنتية، وأسقف جبس أو PVC، ومكيفات سبليت، وتمديدات كهربائية وفق قواعد هيئة الكهرباء. ويجب أن يتبع سكن العمال قواعد وزارة الموارد البشرية والتوطين (قرار مجلس الوزراء 13 لسنة 2009 والقرار الوزاري 212 لسنة 2014)، وإرشادات الإمارة (في دبي: الإرشادات الفنية لسكن العمال المثالي الصادرة عن البلدية، وتشمل المساحة لكل عامل والتهوية ونسب المرافق الصحية)، وقواعد الدفاع المدني للحريق.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/11/DM-HSD-GU128-LAM2_Technical-Guidelines-for-Ideal-Labour-Accommodation_V2.pdf",
         "https://www.karmod.com/en/blog/portable-cabins-dubai/",
@@ -24,9 +25,10 @@
     {
       "id": "prefab_buildings:uae-market-brands",
       "topic": "Porta cabins & modular buildings: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الكرفانات والمباني الجاهزة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This explains who supplies porta cabins in the UAE: mostly local manufacturers across the emirates, named makers such as Karmod and Al Bait Al Hadi, the panel brand Kingspan, and imports. Local manufacturers dominate, concentrated in Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah and Abu Dhabi (Musaffah, ICAD). Confirmed names: Karmod (SAIF Zone, Sharjah), Al Bait Al Hadi (HPI), Kingspan; the last is a panel brand. Local sandwich-panel lines and Chinese imports also supply panels. Several suppliers keep rental fleets of cabins. Origins are UAE manufacture plus some Turkish and Chinese flat-pack imports.",
-      "body_ar": "يوضح هذا من يورّد الكبائن الجاهزة في الإمارات: معظمهم مصنعون محليون في الإمارات، ومصنعون مسمّون مثل كارمود والبيت الهادي، وعلامة الألواح كينغسبان، والواردات. يهيمن المصنّعون المحليون المتركزون في الشارقة وعجمان وأم القيوين ورأس الخيمة وأبوظبي (مصفح وICAD). الأسماء المؤكدة: Karmod (SAIF Zone, Sharjah)، Al Bait Al Hadi (HPI)، Kingspan، والأخير علامة ألواح. وتورد خطوط ألواح ساندويتش محلية وواردات صينية الألواح أيضاً. ويحتفظ عدة موردين بأساطيل كبائن للتأجير. المنشأ: تصنيع محلي مع بعض الوحدات المسطحة المستوردة من تركيا والصين.",
+      "body_ar": "يورّد الكبائن الجاهزة (البورتا كابن) في الإمارات مصنعون محليون في الغالب، منهم Karmod والبيت الهادي، مع علامة الألواح Kingspan والواردات. يهيمن المصنّعون المحليون المتركزون في الشارقة وعجمان وأم القيوين ورأس الخيمة وأبوظبي (مصفح وICAD). الأسماء المؤكدة: Karmod (SAIF Zone, Sharjah)، Al Bait Al Hadi (HPI)، Kingspan، والأخير علامة ألواح. وتورد خطوط ألواح ساندويتش محلية وواردات صينية الألواح أيضاً. ويحتفظ عدة موردين بأساطيل كبائن للتأجير. المنشأ: تصنيع محلي مع بعض الوحدات المسطحة المستوردة من تركيا والصين.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/11/DM-HSD-GU128-LAM2_Technical-Guidelines-for-Ideal-Labour-Accommodation_V2.pdf",
         "https://www.karmod.com/en/blog/portable-cabins-dubai/",
@@ -41,9 +43,10 @@
     {
       "id": "prefab_buildings:uae-market-sizes",
       "topic": "Porta cabins & modular buildings: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الكرفانات والمباني الجاهزة: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This explains the standard porta cabin sizes, how cabins are priced per unit or per m2 to buy or rent per month, and what quotes should state. Standard cabin sizes follow container modules: 6 x 3 m (20 ft), 12 x 3 m (40 ft), and custom multiples; height about 2.6-3.0 m internal. Porta cabins are priced per unit by size and specification, or per m2 for larger modular buildings; rental per month per unit (minimum often 3-6 months) plus delivery and crane offloading. Quotes should state panel type and thickness, wall and roof U-values, floor loading, AC tonnage, electrical load, toilets included, and transportation permits for oversize loads.",
-      "body_ar": "يشرح هذا المقاسات القياسية للكبائن الجاهزة، وكيف تُسعَّر بالوحدة أو بالمتر المربع للشراء أو الإيجار الشهري، وما يجب أن تتضمنه العروض. تتبع مقاسات الكبائن القياسية وحدات الحاويات: 6 × 3 م (20 قدماً)، و12 × 3 م (40 قدماً)، ومضاعفات حسب الطلب؛ بارتفاع داخلي نحو 2.6-3.0 م. وتُسعّر الكبائن بالوحدة حسب المقاس والمواصفات، أو بالمتر المربع للمباني الكبيرة؛ والتأجير شهرياً للوحدة (بحد أدنى غالباً 3-6 أشهر) مع التوصيل والتنزيل بالرافعة. ويجب أن يذكر العرض نوع الألواح وسماكتها، وقيم U للجدران والسقف، وحمل الأرضية، وطنية التكييف، والحمل الكهربائي، والحمامات المشمولة، وتصاريح نقل الحمولات الكبيرة.",
+      "body_ar": "تُذكر هنا المقاسات القياسية للكرفانات (porta cabin)، وتُسعَّر بالوحدة أو بالمتر المربع للشراء أو بالإيجار الشهري، مع ما يجب أن يتضمنه العرض. تتبع مقاسات الكبائن القياسية وحدات الحاويات: 6 × 3 م (20 قدماً)، و12 × 3 م (40 قدماً)، ومضاعفات حسب الطلب؛ بارتفاع داخلي نحو 2.6-3.0 م. وتُسعّر الكبائن بالوحدة حسب المقاس والمواصفات، أو بالمتر المربع للمباني الكبيرة؛ والتأجير شهرياً للوحدة (بحد أدنى غالباً 3-6 أشهر) مع التوصيل والتنزيل بالرافعة. ويجب أن يذكر العرض نوع الألواح وسماكتها، وقيم U للجدران والسقف، وحمل الأرضية، وطنية التكييف، والحمل الكهربائي، والحمامات المشمولة، وتصاريح نقل الحمولات الكبيرة.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/11/DM-HSD-GU128-LAM2_Technical-Guidelines-for-Ideal-Labour-Accommodation_V2.pdf",
         "https://www.karmod.com/en/blog/portable-cabins-dubai/",
@@ -59,7 +62,7 @@
   "eval": [
     {
       "q_en": "Are portable site cabins sold by footprint dimensions, and how are they costed?",
-      "q_ar": "هل تُباع الكبائن المتنقلة للمواقع حسب أبعاد المساحة، وكيف تُسعَّر؟",
+      "q_ar": "الكرفانات والبورتا كابن للمواقع، تنباع حسب مقاسات المساحة؟ وشلون تتسعر؟",
       "expected_entry_ids": [
         "prefab_buildings:uae-market-sizes"
       ],

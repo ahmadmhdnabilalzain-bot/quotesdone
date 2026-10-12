@@ -7,9 +7,10 @@
     {
       "id": "electrical_wholesale:uae-market-products",
       "topic": "Electrical supplies (wholesale): products, variants and grades sold in the UAE",
+      "topic_ar": "المواد الكهربائية بالجملة: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers the electrical supplies stocked by UAE wholesalers, from wires, cables and accessories to circuit protection, boards, conduits, trays, glands, lighting and testers. Electrical supplies wholesale in the UAE stocks: building wires and cables, wiring accessories (BS 1363 sockets, switches, fused spurs, weatherproof IP55/IP66 outlets), circuit protection (MCB, RCCB, RCBO, MCCB, contactors, overload relays), distribution boards and enclosures, conduits and fittings (PVC and GI), cable trays and trunking, cable glands (brass, CW/BW types, ATEX for hazardous areas), lugs and terminals, lamps and luminaires, extension leads, industrial plugs and sockets (IEC 60309 CEE 16/32/63 A), meters, timers, contactors, earthing materials (copper-bonded rods, tapes), and tools and testers. Products for sale must carry ECAS/EQM conformity (MoIAT) where regulated, and be approved by the relevant utility for projects.",
-      "body_ar": "يغطي هذا البند المستلزمات الكهربائية التي يوفرها تجار الجملة في الإمارات، من الأسلاك والكابلات والملحقات إلى أجهزة حماية الدوائر واللوحات والمواسير والمسارات والجلب والإنارة وأجهزة الفحص. يخزن تجار الجملة الكهربائية في الإمارات: أسلاك وكابلات المباني، ولوازم التمديدات (مقابس BS 1363، والمفاتيح، والمخارج بالفيوز، والمخارج المقاومة للعوامل الجوية IP55/IP66)، وأجهزة حماية الدوائر (MCB وRCCB وRCBO وMCCB والكونتاكتورات ومرحلات الحمل الزائد)، ولوحات التوزيع والصناديق، والأنابيب والتجهيزات (PVC ومجلفنة)، وصواني الكابلات والمجاري، وجلاندات الكابلات (نحاسية، أنواع CW/BW، وATEX للمناطق الخطرة)، والأطراف والنهايات، والمصابيح ووحدات الإنارة، ووصلات التمديد، والمقابس الصناعية (IEC 60309 CEE بقدرة 16/32/63 أمبير)، والعدادات، والمؤقتات، ومواد التأريض (قضبان مكسوة بالنحاس، وأشرطة)، والأدوات وأجهزة الاختبار. ويجب أن تحمل المنتجات علامة المطابقة ECAS/EQM من وزارة الصناعة حيث تكون منظمة، وأن تكون معتمدة من الهيئة المعنية للمشاريع.",
+      "body_ar": "تشمل المواد الكهربائية لدى تجار الجملة في الإمارات الأسلاك والكيابل وملحقاتها، وأجهزة حماية الدوائر واللوحات والمواسير والترايات والجلندات والإنارة وأجهزة الفحص. ويوفر تجار الجملة: أسلاك وكيابل المباني، وملحقات التمديدات (أفياش BS 1363، والمفاتيح، ووحدات Fused spur، والأفياش المقاومة للعوامل الجوية IP55/IP66)، وأجهزة حماية الدوائر (MCB وRCCB وRCBO وMCCB، والكونتاكتورات، ومرحلات الحمل الزائد)، ولوحات التوزيع وصناديقها، والمواسير وملحقاتها (PVC وGI)، والترايات والترنكات، والجلندات (نحاس أصفر، بأنواع CW/BW، وATEX للمناطق الخطرة)، والكوابس والأطراف، واللمبات ووحدات الإنارة، وتوصيلات التمديد، والأفياش والمقابس الصناعية (IEC 60309 CEE بقدرات 16 و32 و63 أمبير)، والعدادات، والمؤقتات، والكونتاكتورات، ومواد التأريض (أعمدة مكسوة بالنحاس، وأشرطة)، والعدد وأجهزة الفحص. يجب أن تحمل المنتجات المعروضة للبيع شهادة مطابقة ECAS/EQM (وزارة الصناعة والتكنولوجيا المتقدمة) حيثما كانت خاضعة للتنظيم، وأن تكون معتمدة من شركة الكهرباء المختصة لاستخدامها في المشاريع.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://spectrum-me.com/electrical.html",
@@ -24,9 +25,10 @@
     {
       "id": "electrical_wholesale:uae-market-brands",
       "topic": "Electrical supplies (wholesale): makes, brands, distributors and origins in the UAE",
+      "topic_ar": "المواد الكهربائية بالجملة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry names electrical brands stocked in the UAE, such as Schneider Electric, ABB, Legrand, Ducab and Fluke, and where wholesalers cluster. Brands stocked: Schneider Electric, ABB, Siemens, Legrand, Hager, Eaton, MK, Crabtree, Clipsal, Havells, Signify, Ledvance, Opple, Ducab, Oman Cables, CMP, Hawke, OBO, Furse, Fluke, Megger, Kyoritsu, plus Chinese and Turkish value brands. Wholesalers cluster in Deira (the Naif Road area), Al Quoz, Sharjah Industrial Area and Musaffah, with Dragon Mart for retail. Which wholesaler carries each brand was not checked. Origins: Europe, Turkey, India, China, UAE.",
-      "body_ar": "يذكر هذا البند العلامات الكهربائية المتوفرة في الإمارات، مثل Schneider Electric وABB وLegrand وDucab وFluke، وأماكن تجمّع تجار الجملة. العلامات المخزنة: Schneider Electric، ABB، Siemens، Legrand، Hager، Eaton، MK، Crabtree، Clipsal، Havells، Signify، Ledvance، Opple، Ducab، Oman Cables، CMP، Hawke، OBO، Furse، Fluke، Megger، Kyoritsu، إضافة إلى علامات اقتصادية صينية وتركية. ويتجمع تجار الجملة في ديرة (منطقة شارع نايف) والقوز والمنطقة الصناعية بالشارقة ومصفح، ودراجون مارت للتجزئة، ولم يُتحقق من تاجر كل علامة. المنشأ: أوروبا، تركيا، الهند، الصين، الإمارات.",
+      "body_ar": "من العلامات الكهربائية المتوفرة في السوق الإماراتي Schneider Electric وABB وLegrand وDucab وFluke، مع بيان أماكن تجمع تجار الجملة. والعلامات المتوفرة: Schneider Electric وABB وSiemens وLegrand وHager وEaton وMK وCrabtree وClipsal وHavells وSignify وLedvance وOpple وDucab وOman Cables وCMP وHawke وOBO وFurse وFluke وMegger وKyoritsu، إضافة إلى علامات صينية وتركية اقتصادية. ويتجمع تجار الجملة في ديرة (منطقة شارع نايف) والقوز والمنطقة الصناعية بالشارقة ومصفح، ودراجون مارت للبيع بالتجزئة. ولم نتحقق من تاجر الجملة الذي يوفر كل علامة. وبلدان المنشأ: أوروبا وتركيا والهند والصين والإمارات.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://spectrum-me.com/electrical.html",
@@ -41,9 +43,10 @@
     {
       "id": "electrical_wholesale:uae-market-sizes",
       "topic": "Electrical supplies (wholesale): typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "المواد الكهربائية بالجملة: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how electrical supplies are sold, per piece, box, length or coil, at list price less a discount, with quote validity and contractor credit terms. Accessories are sold per piece or per box (10-20 pieces); MCBs per piece by rating (6-63 A) and curve (B/C/D) and poles; conduits in 3 m lengths (20, 25, 32 mm); trays in 3 m lengths by width; wires per 100 m coil. Trade pricing is list price less a discount percentage that depends on volume and customer category; project quotes are per item with brand and validity (often 7-30 days due to metal prices). Credit terms for contractors are commonly 30-90 days after account opening.",
-      "body_ar": "يوضح هذا البند كيفية بيع المستلزمات الكهربائية، بالقطعة أو العلبة أو الطول أو اللفة، بسعر القائمة مطروحًا منه خصم، مع مدة صلاحية العرض وشروط الائتمان للمقاولين. تُباع اللوازم بالقطعة أو بالعلبة (10-20 قطعة)؛ والقواطع MCB بالقطعة حسب التيار (6-63 أمبير) والمنحنى (B/C/D) وعدد الأقطاب؛ والأنابيب بأطوال 3 م (20 و25 و32 مم)؛ والصواني بأطوال 3 م حسب العرض؛ والأسلاك بلفة 100 م. ويكون التسعير التجاري سعر القائمة ناقص نسبة خصم تعتمد على الحجم وفئة العميل؛ وعروض المشاريع بالبند مع العلامة ومدة الصلاحية (غالباً 7-30 يوماً بسبب أسعار المعادن). وشروط الائتمان للمقاولين عادة 30-90 يوماً بعد فتح الحساب.",
+      "body_ar": "تُباع المواد الكهربائية بالجملة بالحبة أو بالعلبة أو بالطول أو باللفة، بسعر القائمة مطروحًا منه خصم، مع مدة صلاحية للعرض وتسهيلات دفع للمقاولين. تُباع الإكسسوارات الكهربائية بالحبة أو بالعلبة (10-20 حبة)، والقواطع الصغيرة (MCB) بالحبة حسب التيار (6-63 أمبير) والمنحنى (B/C/D) وعدد الأقطاب، والكوندويت بأطوال 3 م (20 و25 و32 مم)، والكيبل تراي بأطوال 3 م حسب العرض، والأسلاك بلفة 100 م. السعر التجاري هو سعر القائمة ناقص نسبة خصم تعتمد على الكمية وفئة العميل، وعروض المشاريع بالبند مع الماركة ومدة الصلاحية (غالبًا 7-30 يومًا بسبب تقلب أسعار المعادن). وتسهيلات الدفع للمقاولين عادةً 30-90 يومًا بعد فتح حساب.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://spectrum-me.com/electrical.html",
@@ -59,7 +62,7 @@
   "eval": [
     {
       "q_en": "When buying sockets, switches and breakers in bulk, is it by case, pack or mixed lots?",
-      "q_ar": "عند شراء المقابس والمفاتيح والقواطع بالجملة، هل يكون ذلك بالكرتونة أم بالعبوة أم بدفعات مختلطة؟",
+      "q_ar": "لما أشتري أفياش ومفاتيح وقواطع بالجملة، يكون بالكرتون ولا بالباكيت ولا تشكيلة مخلوطة؟",
       "expected_entry_ids": [
         "electrical_wholesale:uae-market-sizes"
       ],

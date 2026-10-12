@@ -7,9 +7,10 @@
     {
       "id": "upholstery:uae-market-products",
       "topic": "Upholstery & soft furnishing: products, variants and grades sold in the UAE",
+      "topic_ar": "التنجيد والمفروشات: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers the upholstery supplies and services in the UAE, from fabrics, leather and foam to springs and custom upholstery of sofas and majlis seating, and what buyers specify. Upholstery supplies and services in the UAE include upholstery fabrics (velvet, chenille, jacquard, linen blends, performance fabrics, outdoor acrylics), genuine and faux leather (PU, PVC, microfibre), foam (PU foam in densities 18-45 kg/m3, high-resilience HR foam, memory foam, fire-retardant CMHR foam), fibre wadding and dacron, webbing and springs (zig-zag/serpentine and pocket springs), fixings (staples, tacks, buttons), and custom upholstery of sofas, majlis seating, headboards, dining chairs, cushions, boat and car interiors, wall panels and acoustic upholstered panels. Buyers specify abrasion resistance (Martindale cycles, typically 20,000+ domestic, 40,000+ contract), colour fastness, fire performance (BS 5852 for contract seating; Civil Defence may request certificates for hotels and public buildings), foam density and hardness, and cleanability.",
-      "body_ar": "يغطي هذا البند مستلزمات وخدمات التنجيد في الإمارات، من الأقمشة والجلود والإسفنج إلى النوابض والتنجيد حسب الطلب للكنب وجلسات المجالس، وما يحدده المشترون. تشمل مستلزمات وخدمات التنجيد في الإمارات أقمشة التنجيد (مخمل، وشنيل، وجاكار، ومزيج الكتان، وأقمشة عالية الأداء، وأكريليك خارجي)، والجلد الطبيعي والصناعي (بولي يوريثان، وبولي فينيل كلوريد، وألياف دقيقة)، والإسفنج (إسفنج بولي يوريثان بكثافات 18-45 كغ/م3، وإسفنج عالي المرونة HR، وإسفنج الذاكرة، وإسفنج CMHR المقاوم للحريق)، وحشوات الألياف والداكرون، والأحزمة والنوابض (نوابض متعرجة ونوابض الجيب)، ومواد التثبيت (دبابيس، ومسامير، وأزرار)، والتنجيد حسب الطلب للأرائك وجلسات المجالس وألواح الأسرّة وكراسي الطعام والوسائد وداخليات القوارب والسيارات والألواح الجدارية والألواح الصوتية المنجدة. يحدد المشترون مقاومة الاحتكاك (دورات مارتنديل، عادةً 20,000 فأكثر للمنازل و40,000 فأكثر للمشاريع)، وثبات اللون، والأداء الناري (BS 5852 لمقاعد المشاريع؛ وقد يطلب الدفاع المدني شهادات للفنادق والمباني العامة)، وكثافة الإسفنج وصلابته، وسهولة التنظيف.",
+      "body_ar": "تشمل مستلزمات وخدمات التنجيد في الإمارات الأقمشة والجلود والإسفنج والسوست، والتنجيد حسب الطلب للكنب وجلسات المجالس، مع المواصفات التي يحددها المشتري عند الطلب. تشمل مستلزمات وخدمات التنجيد في الإمارات أقمشة التنجيد (مخمل، وشنيل، وجاكار، ومزيج الكتان، وأقمشة عالية الأداء، وأكريليك خارجي)، والجلد الطبيعي والصناعي (بولي يوريثان، وبولي فينيل كلوريد، وألياف دقيقة)، والإسفنج (إسفنج بولي يوريثان بكثافات 18-45 كغ/م3، وإسفنج عالي المرونة HR، وإسفنج الذاكرة، وإسفنج CMHR المقاوم للحريق)، وحشوات الألياف والداكرون، والأحزمة والنوابض (نوابض متعرجة ونوابض الجيب)، ومواد التثبيت (دبابيس، ومسامير، وأزرار)، والتنجيد حسب الطلب للأرائك وجلسات المجالس وألواح الأسرّة وكراسي الطعام والوسائد وداخليات القوارب والسيارات والألواح الجدارية والألواح الصوتية المنجدة. يحدد المشترون مقاومة الاحتكاك (دورات مارتنديل، عادةً 20,000 فأكثر للمنازل و40,000 فأكثر للمشاريع)، وثبات اللون، والأداء الناري (BS 5852 لمقاعد المشاريع؛ وقد يطلب الدفاع المدني شهادات للفنادق والمباني العامة)، وكثافة الإسفنج وصلابته، وسهولة التنظيف.",
       "sources": [
         "https://www.kothea.com/2026/04/05/martindale-rub-test-guide/",
         "https://www.bizuum.com/suppliers-businesses-companies/king-foam-factory/",
@@ -25,9 +26,10 @@
     {
       "id": "upholstery:uae-market-brands",
       "topic": "Upholstery & soft furnishing: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "التنجيد والمفروشات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry lists local foam makers and international upholstery fabric houses in the UAE, such as King Foam Factory, Romo and Sunbrella, and where upholstery workshops cluster. Confirmed local foam makers and international fabric houses: King Foam Factory (Ajman), ESW, Romo, Designers Guild, Kravet, Pierre Frey, Sunbrella. The fabric houses' UAE showrooms were not checked. Upholstery workshops cluster in Al Quoz, Ras Al Khor, Al Qusais, the Sharjah Industrial Areas, Ajman and Musaffah.",
-      "body_ar": "يسرد هذا البند صانعي الإسفنج المحليين ودور أقمشة التنجيد العالمية في الإمارات، مثل مصنع كينغ فوم ورومو وصنبريلا، والمناطق التي تتجمع فيها ورش التنجيد. مصنعو الإسفنج المحليون المؤكدون ودور الأقمشة الدولية: King Foam Factory (Ajman)، ESW، Romo، Designers Guild، Kravet، Pierre Frey، Sunbrella. ولم يُتحقق من صالات عرض دور الأقمشة في الإمارات. وتتجمع ورش التنجيد في القوز ورأس الخور والقصيص والمناطق الصناعية بالشارقة وعجمان ومصفح.",
+      "body_ar": "من مصانع الإسفنج المحلية ودور أقمشة التنجيد العالمية في الإمارات King Foam Factory وRomo وSunbrella، مع بيان أماكن تجمع ورش التنجيد. مصنعو الإسفنج المحليون المؤكدون ودور الأقمشة الدولية: King Foam Factory (Ajman)، ESW، Romo، Designers Guild، Kravet، Pierre Frey، Sunbrella. ولم يُتحقق من صالات عرض دور الأقمشة في الإمارات. وتتجمع ورش التنجيد في القوز ورأس الخور والقصيص والمناطق الصناعية بالشارقة وعجمان ومصفح.",
       "sources": [
         "https://www.kothea.com/2026/04/05/martindale-rub-test-guide/",
         "https://www.bizuum.com/suppliers-businesses-companies/king-foam-factory/",
@@ -43,9 +45,10 @@
     {
       "id": "upholstery:uae-market-sizes",
       "topic": "Upholstery & soft furnishing: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "التنجيد والمفروشات: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how upholstery materials and labour are priced in the UAE: fabric per metre, leather per sq ft or hide, foam per sheet, and labour per piece or seat. Fabric is priced per metre (widths 137-145 cm or 280-300 cm); leather per sq ft or per hide; foam per sheet (e.g. 2 x 1 m or 1.9 x 1.2 m at stated thickness) or per cubic metre/kg. Upholstery labour is quoted per piece (per seat, per chair, per linear metre of majlis seating) with fabric separate or included. Minimum job charges and pick-up/delivery fees are common.",
-      "body_ar": "يوضح هذا البند كيف تُسعَّر مواد التنجيد وأجوره في الإمارات: القماش بالمتر، والجلد بالقدم المربع أو الجلدة الكاملة، والإسفنج باللوح، والأجور بالقطعة أو المقعد. يُسعّر القماش لكل متر (العرض 137-145 سم أو 280-300 سم)؛ والجلد لكل قدم مربع أو لكل جلد كامل؛ والإسفنج لكل لوح (مثل 2 × 1 م أو 1.9 × 1.2 م بالسماكة المحددة) أو لكل متر مكعب/كيلوغرام. وتُسعّر عمالة التنجيد لكل قطعة (لكل مقعد، لكل كرسي، لكل متر طولي من جلسات المجلس) مع احتساب القماش بشكل منفصل أو ضمناً. ورسوم الحد الأدنى للعمل ورسوم الاستلام والتوصيل شائعة.",
+      "body_ar": "تُسعَّر مواد التنجيد وأجوره في الإمارات كالتالي: القماش بالمتر، والجلد بالقدم المربع أو بالجلد الكامل، والإسفنج باللوح، والمصنعية بالقطعة أو بالمقعد. يُسعّر القماش لكل متر (العرض 137-145 سم أو 280-300 سم)؛ والجلد لكل قدم مربع أو لكل جلد كامل؛ والإسفنج لكل لوح (مثل 2 × 1 م أو 1.9 × 1.2 م بالسماكة المحددة) أو لكل متر مكعب/كيلوغرام. وتُسعّر عمالة التنجيد لكل قطعة (لكل مقعد، لكل كرسي، لكل متر طولي من جلسات المجلس) مع احتساب القماش بشكل منفصل أو ضمناً. ورسوم الحد الأدنى للعمل ورسوم الاستلام والتوصيل شائعة.",
       "sources": [
         "https://www.kothea.com/2026/04/05/martindale-rub-test-guide/",
         "https://www.bizuum.com/suppliers-businesses-companies/king-foam-factory/",
@@ -62,7 +65,7 @@
   "eval": [
     {
       "q_en": "What upholstery and soft furnishing work can businesses get from workshops in the UAE?",
-      "q_ar": "ما أعمال التنجيد والمفروشات التي يمكن للشركات الحصول عليها من الورش في الإمارات؟",
+      "q_ar": "شو أعمال التنجيد والمفروشات اللي تقدر الشركات تاخذها من الورش في الإمارات؟",
       "expected_entry_ids": [
         "upholstery:uae-market-products"
       ],

@@ -7,9 +7,10 @@
     {
       "id": "hydraulics_pneumatics:uae-market-products",
       "topic": "Hydraulics & pneumatics: products, variants and grades sold in the UAE",
+      "topic_ar": "الأنظمة الهيدروليكية والهوائية: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This entry covers the hydraulic and pneumatic range sold in the UAE: pumps, cylinders, valves, power packs, hoses and fittings, pneumatic components, plus hose crimping and repair services. Hydraulics and pneumatics in the UAE: hydraulic pumps (gear, vane, axial piston), motors, cylinders (tie-rod and welded, ISO 6020/6022), directional and proportional valves (ISO 4401 CETOP sizes), power packs, accumulators, hydraulic hoses (EN 853 1SN/2SN, EN 856 4SP/4SH, SAE 100R series) and fittings (JIC, BSP, ORFS, DIN 24° metric), quick couplings, filters, hydraulic oils (ISO VG 32/46/68), and pneumatic cylinders (ISO 15552), valves, FRL units, push-in fittings, PU/nylon tubing, vacuum components. Services: hose crimping on demand, cylinder repair and re-chroming, pump repair. Buyers specify pressure rating (bar/psi), flow (l/min), port sizes and thread type, bore x stroke for cylinders, and fluid/temperature.",
-      "body_ar": "يغطي هذا البند تشكيلة المعدات الهيدروليكية والهوائية المباعة في الإمارات: المضخات والأسطوانات والصمامات ووحدات الطاقة والخراطيم والوصلات والمكونات الهوائية، إضافة إلى خدمات كبس الخراطيم والإصلاح. الهيدروليك والنيوماتيك في الإمارات: المضخات الهيدروليكية (الترسية والريشية والمكبسية المحورية)، والمحركات، والأسطوانات (بقضبان الربط والملحومة، ISO 6020/6022)، والصمامات الاتجاهية والتناسبية (مقاسات CETOP وفق ISO 4401)، ووحدات الطاقة، والمراكم، والخراطيم الهيدروليكية (EN 853 1SN/2SN، وEN 856 4SP/4SH، وسلسلة SAE 100R) والتجهيزات (JIC وBSP وORFS وDIN 24 درجة المترية)، والوصلات السريعة، والفلاتر، والزيوت الهيدروليكية (ISO VG 32/46/68)، والأسطوانات الهوائية (ISO 15552)، والصمامات، ووحدات FRL، والتجهيزات بالدفع، وأنابيب PU/النايلون، ومكونات التفريغ. الخدمات: كبس الخراطيم حسب الطلب، وإصلاح الأسطوانات وإعادة طلائها بالكروم، وإصلاح المضخات. يحدد المشتري الضغط المقنن (بار/psi)، والتدفق (لتر/دقيقة)، ومقاسات المنافذ ونوع السن، والقطر × المشوار للأسطوانات، والسائل/الحرارة.",
+      "body_ar": "تشمل المعدات الهيدروليكية والهوائية في السوق الإماراتي المضخات والأسطوانات والصمامات ووحدات الباور باك والهوزات والوصلات والمكونات الهوائية، إلى جانب خدمات كبس الهوزات والإصلاح. الهيدروليك والنيوماتيك في الإمارات: المضخات الهيدروليكية (الترسية والريشية والمكبسية المحورية)، والمحركات، والأسطوانات (بقضبان الربط والملحومة، ISO 6020/6022)، والصمامات الاتجاهية والتناسبية (مقاسات CETOP وفق ISO 4401)، ووحدات الطاقة، والمراكم، والخراطيم الهيدروليكية (EN 853 1SN/2SN، وEN 856 4SP/4SH، وسلسلة SAE 100R) والتجهيزات (JIC وBSP وORFS وDIN 24 درجة المترية)، والوصلات السريعة، والفلاتر، والزيوت الهيدروليكية (ISO VG 32/46/68)، والأسطوانات الهوائية (ISO 15552)، والصمامات، ووحدات FRL، والتجهيزات بالدفع، وأنابيب PU/النايلون، ومكونات التفريغ. الخدمات: كبس الخراطيم حسب الطلب، وإصلاح الأسطوانات وإعادة طلائها بالكروم، وإصلاح المضخات. يحدد المشتري الضغط المقنن (بار/psi)، والتدفق (لتر/دقيقة)، ومقاسات المنافذ ونوع السن، والقطر × المشوار للأسطوانات، والسائل/الحرارة.",
       "sources": [
         "https://www.boschrexroth.com/en/ae/",
         "https://www.cencenelec.eu",
@@ -23,9 +24,10 @@
     {
       "id": "hydraulics_pneumatics:uae-market-brands",
       "topic": "Hydraulics & pneumatics: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الأنظمة الهيدروليكية والهوائية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This entry lists the hydraulic and pneumatic brands in the UAE market, such as Bosch Rexroth, Parker Hannifin, SMC and Festo, and where distributors and workshops cluster. Brands in the market: Bosch Rexroth, Parker Hannifin, Danfoss, Kawasaki, Yuken, Atos, Hydac, Manuli, Gates, Alfagomma, SMC, Festo, Norgren, Camozzi. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.",
-      "body_ar": "يسرد هذا البند علامات المعدات الهيدروليكية والهوائية في سوق الإمارات، مثل Bosch Rexroth وParker Hannifin وSMC وFesto، وأماكن تجمع الموزعين والورش. العلامات في السوق: Bosch Rexroth، Parker Hannifin، Danfoss، Kawasaki، Yuken، Atos، Hydac، Manuli، Gates، Alfagomma، SMC، Festo، Norgren، Camozzi. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.",
+      "body_ar": "أبرز علامات المعدات الهيدروليكية والهوائية في سوق الإمارات Bosch Rexroth وParker Hannifin وSMC وFesto، مع بيان أماكن تجمع الموزعين والورش. العلامات في السوق: Bosch Rexroth، Parker Hannifin، Danfoss، Kawasaki، Yuken، Atos، Hydac، Manuli، Gates، Alfagomma، SMC، Festo، Norgren، Camozzi. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.",
       "sources": [
         "https://www.boschrexroth.com/en/ae/",
         "https://www.cencenelec.eu",
@@ -39,9 +41,10 @@
     {
       "id": "hydraulics_pneumatics:uae-market-sizes",
       "topic": "Hydraulics & pneumatics: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الأنظمة الهيدروليكية والهوائية: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This entry explains how hydraulic and pneumatic items are priced: hoses per metre, fittings and assemblies per piece, cylinders by bore and stroke, oil per pail or drum, and repairs after inspection. Hoses per metre by ID (1/4-2 inch) and spec, fittings per piece; made-up hose assemblies per piece; cylinders per unit by bore x stroke; valves per piece by CETOP size (NG6, NG10); oil per 20 L pail or 208 L drum. Repairs are quoted after inspection (strip-down fee) with parts and labour separately. Response time for breakdown crimping is often same day.",
-      "body_ar": "يشرح هذا البند كيف تُسعّر المعدات الهيدروليكية والهوائية: الخراطيم لكل متر، والوصلات والتجميعات لكل قطعة، والأسطوانات حسب القطر والشوط، والزيت لكل جالون أو برميل، والإصلاحات بعد الفحص. الخراطيم بالمتر حسب القطر الداخلي (1/4-2 إنش) والمواصفة، والتجهيزات بالقطعة؛ ومجموعات الخراطيم الجاهزة بالقطعة؛ والأسطوانات بالوحدة حسب القطر × المشوار؛ والصمامات بالقطعة حسب مقاس CETOP (NG6 وNG10)؛ والزيت بدلو 20 لتراً أو برميل 208 لترات. وتُسعّر الإصلاحات بعد الفحص (رسوم فك) مع القطع والعمالة منفصلة. وزمن الاستجابة لكبس الخراطيم عند الأعطال غالباً في اليوم نفسه.",
+      "body_ar": "تُسعَّر المواد الهيدروليكية والهوائية كالتالي: الخراطيم بالمتر، والوصلات والتجميعات بالقطعة، والأسطوانات حسب القطر الداخلي والشوط، والزيت بالسطل أو بالبرميل، والإصلاحات بعد الفحص. الخراطيم بالمتر حسب القطر الداخلي (1/4-2 إنش) والمواصفة، والتجهيزات بالقطعة؛ ومجموعات الخراطيم الجاهزة بالقطعة؛ والأسطوانات بالوحدة حسب القطر × المشوار؛ والصمامات بالقطعة حسب مقاس CETOP (NG6 وNG10)؛ والزيت بدلو 20 لتراً أو برميل 208 لترات. وتُسعّر الإصلاحات بعد الفحص (رسوم فك) مع القطع والعمالة منفصلة. وزمن الاستجابة لكبس الخراطيم عند الأعطال غالباً في اليوم نفسه.",
       "sources": [
         "https://www.boschrexroth.com/en/ae/",
         "https://www.cencenelec.eu",
@@ -56,7 +59,7 @@
   "eval": [
     {
       "q_en": "What hydraulic and pneumatic parts and systems are available from UAE suppliers?",
-      "q_ar": "ما قطع وأنظمة الهيدروليك والهواء المضغوط المتوفرة لدى الموردين في الإمارات؟",
+      "q_ar": "شو قطع وأنظمة الهيدروليك والنيوماتيك المتوفرة عند الموردين في الإمارات؟",
       "expected_entry_ids": [
         "hydraulics_pneumatics:uae-market-products"
       ],

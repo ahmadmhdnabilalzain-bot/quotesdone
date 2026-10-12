@@ -4,9 +4,10 @@
     {
       "id": "luxury_rigid_boxes:spec-checklist",
       "topic": "Luxury rigid boxes - what the buyer must state",
+      "topic_ar": "العلب الصلبة الفاخرة: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
       "body_en": "For luxury rigid boxes (trade code luxury_rigid_boxes only), every quoted line must state: Box style; Internal dimensions; Board grade and thickness; Wrapping paper or material; Printing and finishing; Insert material; Pre-production sample; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط العلب الصلبة الفاخرة (رمز النشاط luxury_rigid_boxes فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع العلبة؛ الأبعاد الداخلية؛ درجة الكرتون وسماكته؛ ورق أو مادة التغليف الخارجي؛ الطباعة والتشطيب؛ مادة الحشوة الداخلية؛ عينة ما قبل الإنتاج؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_ar": "عند طلب عروض أسعار للعلب الصلبة الفاخرة (علب الهدايا الكرتونية الفاخرة، رمز النشاط luxury_rigid_boxes فقط)، يجب أن يذكر كل بند: شكل العلبة؛ مقاساتها الداخلية؛ نوع الكرتون وسماكته؛ ورق أو خامة التغليف الخارجي؛ الطباعة والتشطيب؛ خامة الحشوة الداخلية؛ عينة قبل الإنتاج؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم ومكانه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض الموردين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
       "required_specs": [
         "Box style",
         "Internal dimensions",
@@ -32,6 +33,7 @@
     {
       "id": "luxury_rigid_boxes:uae-standards-and-approvals",
       "topic": "Luxury rigid boxes - UAE standards and approvals",
+      "topic_ar": "العلب الصلبة الفاخرة: المعايير والموافقات في الإمارات",
       "kind": "standard",
       "body_en": "Authorities and approvals relevant to luxury rigid boxes in the UAE: MoIAT (Ministry of Industry and Advanced Technology, which took over the former ESMA functions) lists products conformity certificates, national conformity marks, efficiency labels, UAE RoHS and Halal certification among its services, and separates regulated from non-regulated products. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for luxury rigid boxes. State the grade and the standard explicitly on each line.",
       "body_ar": "الجهات والموافقات ذات الصلة بنشاط العلب الصلبة الفاخرة في الإمارات: تدرج وزارة الصناعة والتكنولوجيا المتقدمة (التي تولت مهام هيئة الإمارات للمواصفات والمقاييس سابقاً) ضمن خدماتها شهادات مطابقة المنتجات، وعلامات المطابقة الوطنية، وملصقات الكفاءة، ونظام تقييد المواد الخطرة (UAE RoHS)، وشهادات الحلال، وتفرّق بين المنتجات الخاضعة للتنظيم وغير الخاضعة له. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط العلب الصلبة الفاخرة. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
@@ -45,9 +47,10 @@
     {
       "id": "luxury_rigid_boxes:moq-and-run-economics",
       "topic": "Order minimums for custom rigid boxes",
+      "topic_ar": "الحد الأدنى للطلب في العلب الصلبة المخصصة (علب الهدايا الفاخرة)",
       "kind": "pricing_basis",
       "body_en": "Custom rigid (set-up) boxes are made from solid greyboard wrapped in printed paper; one online platform specifies 1.9 mm board. That platform states a minimum order of 1,000 pieces for two-piece lid-and-base rigid boxes, while its price table starts from 30 pieces, and it offers sample packs before larger orders. Options such as magnetic closures, foil stamping, embossing or debossing and custom inserts are available from rigid box makers. A request should state internal dimensions, construction, board, wrap paper, print, finishes, insert and quantity per design. Not established here: typical minimums of UAE-based rigid box makers.",
-      "body_ar": "تُصنع العلب الصلبة المخصصة من الكرتون الرمادي المصمت المغلف بورق مطبوع؛ وتحدد إحدى المنصات الإلكترونية سماكة الكرتون بـ1.9 مم. وتذكر تلك المنصة حداً أدنى للطلب قدره 1,000 قطعة للعلب الصلبة المكونة من غطاء وقاعدة، بينما يبدأ جدول أسعارها من 30 قطعة، وتوفر عبوات عينات قبل الطلبات الأكبر. ويوفر صانعو العلب الصلبة خيارات مثل الإغلاق المغناطيسي والختم بالرقائق والنقش البارز أو الغائر والحشوات المخصصة. ينبغي أن يحدد الطلب الأبعاد الداخلية وطريقة التصنيع والكرتون وورق التغليف والطباعة والتشطيبات والحشوة والكمية لكل تصميم. لم يُثبت هنا: الحدود الدنيا المعتادة لدى صانعي العلب الصلبة في الإمارات.",
+      "body_ar": "الحد الأدنى لطلب العلب الصلبة المخصصة (علب الهدايا الفاخرة بتصميم خاص): تُصنع هذه العلب من كرتون رمادي مصمت مغلف بورق مطبوع، وإحدى المنصات الإلكترونية تحدد سماكة الكرتون بـ1.9 مم. وتذكر تلك المنصة حداً أدنى للطلب قدره 1,000 قطعة للعلبة الصلبة المكونة من غطاء وقاعدة، مع أن جدول أسعارها يبدأ من 30 قطعة، وتوفر عينات قبل الطلبات الكبيرة. ويقدم صانعو العلب الصلبة إضافات مثل الإغلاق المغناطيسي، والختم بالرقائق (الفويل)، والنقش البارز أو الغائر، والحشوات المخصصة. ينبغي أن يذكر الطلب المقاسات الداخلية، وطريقة التصنيع، والكرتون، وورق التغليف، والطباعة، والتشطيبات، والحشوة، والكمية لكل تصميم. غير ثابت هنا: الحد الأدنى المعتاد لدى مصانع العلب الصلبة في الإمارات.",
       "sources": [
         "https://packhelp.co.uk/rigid-box-with-lid",
         "https://www.vivopak.com.au/custom-boxes/box-styles-we-make/custom-rigid-boxes"

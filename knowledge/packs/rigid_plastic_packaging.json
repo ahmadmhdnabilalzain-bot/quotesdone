@@ -31,9 +31,10 @@
     {
       "id": "rigid_plastic_packaging:uae-standards-and-approvals",
       "topic": "Rigid plastic packaging - UAE standards, authorities and approvals",
+      "topic_ar": "عبوات البلاستيك الصلبة: المعايير والموافقات في الإمارات",
       "kind": "standard",
       "body_en": "Food-contact plastics must meet the applicable UAE/GSO food-contact standards available through MoIAT, and single-use plastic restrictions apply at federal and emirate level. What the cited sources do not establish: The sources read do not name the food-contact standard number; the buyer must state which standard applies.",
-      "body_ar": "يجب أن تطابق البلاستيكات الملامسة للغذاء المواصفات الإماراتية والخليجية المعنية المتاحة عبر وزارة الصناعة والتكنولوجيا المتقدمة، وتنطبق قيود البلاستيك أحادي الاستخدام على المستويين الاتحادي والمحلي. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تذكر رقم مواصفة ملامسة الغذاء؛ على المشتري أن يحدد المواصفة المطبقة.",
+      "body_ar": "عبوات البلاستيك الصلبة الملامسة للغذاء يجب أن تطابق المواصفات الإماراتية والخليجية الخاصة بملامسة الغذاء، المتاحة عن طريق وزارة الصناعة والتكنولوجيا المتقدمة، كما تنطبق قيود البلاستيك أحادي الاستخدام على المستوى الاتحادي ومستوى الإمارة. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تذكر رقم مواصفة ملامسة الغذاء؛ على المشتري أن يحدد المواصفة المطبقة.",
       "source_note": "The sources read do not name the food-contact standard number; the buyer must state which standard applies.",
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -45,9 +46,10 @@
     {
       "id": "rigid_plastic_packaging:custom-colour-jerry-can-moq",
       "topic": "Order minimums for coloured jerry cans",
+      "topic_ar": "الحد الأدنى لطلب الجراكن البلاستيكية الملونة",
       "kind": "moq",
       "body_en": "Stock HDPE jerry cans are extrusion blow-moulded and can be bought in small lots: ALPLA's catalogue lists a minimum order of 60 units for its 20 litre, 800 g jerry can. Not established here: the minimum order for a custom colour, which the catalogue does not state; buyers must ask the moulder.",
-      "body_ar": "تُصنع عبوات الجيركان من البولي إيثيلين عالي الكثافة (HDPE) بتقنية النفخ بالبثق، ويمكن شراء العبوات القياسية بكميات صغيرة: إذ يذكر كتالوج ALPLA حداً أدنى للطلب قدره 60 وحدة لعبوة الجيركان سعة 20 لتراً ووزن 800 غرام. لم يُثبت هنا: الحد الأدنى لطلب لون مخصص، إذ لا يذكره الكتالوج، وعلى المشتري الاستفسار من المصنّع.",
+      "body_ar": "الجراكن البلاستيكية القياسية من البولي إيثيلين عالي الكثافة (HDPE) تُصنع بالنفخ بالبثق، ويمكن شراؤها بكميات صغيرة: كتالوج ALPLA يذكر حداً أدنى للطلب قدره 60 وحدة لجركن سعة 20 لتراً ووزن 800 غرام. غير ثابت هنا: الحد الأدنى لطلب جركن بلون خاص، فالكتالوج لا يذكره، وعلى المشتري أن يسأل المصنع.",
       "sources": [
         "https://product-catalogue.alpla.com/product/20000-ml-jerry-can-800-g"
       ],

@@ -7,9 +7,10 @@
     {
       "id": "pest_control:uae-market-products",
       "topic": "Pest control: products, variants and grades sold in the UAE",
+      "topic_ar": "مكافحة الحشرات والقوارض: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "This covers the pest control services offered in the UAE, from general pest, termite and bird control to fumigation and IPM programmes, what buyers specify, and the approval rules. Pest control services in the UAE cover general pest control (cockroaches, ants, bed bugs, rodents, flies, mosquitoes), termite pre-construction soil treatment and post-construction baiting or injection, fumigation (phosphine for commodities and containers; methyl bromide is restricted under the Montreal Protocol with limited quarantine exemptions), bird control (spikes, nets, gel), snake and stray animal control, disinfection and sanitisation, and integrated pest management (IPM) programmes for food premises and hotels. Buyers specify pests, premises type, frequency (monthly, quarterly), treatment method (gel, spray, fogging, ULV, baiting), products used and their registration, safety data sheets, and service reports. In Dubai, pest control companies and their technicians must be approved by Dubai Municipality's Public Health Pests Control section, pesticides must be DM-registered, and food establishments must use approved contractors; Abu Dhabi uses ADAFSA and Tadweer rules, and other emirates their municipalities.",
-      "body_ar": "يغطي هذا خدمات مكافحة الآفات المقدمة في الإمارات، من مكافحة الآفات العامة والنمل الأبيض والطيور إلى التبخير وبرامج الإدارة المتكاملة، وما يحدده المشترون، وقواعد الاعتماد. تشمل خدمات مكافحة الآفات في الإمارات مكافحة الآفات العامة (الصراصير، والنمل، وبق الفراش، والقوارض، والذباب، والبعوض)، ومعالجة التربة ضد النمل الأبيض قبل البناء والطعوم أو الحقن بعد البناء، والتبخير (الفوسفين للسلع والحاويات؛ أما بروميد الميثيل فمقيد بموجب بروتوكول مونتريال مع استثناءات محدودة للحجر)، ومكافحة الطيور (أشواك، شباك، جل)، ومكافحة الثعابين والحيوانات الضالة، والتطهير والتعقيم، وبرامج الإدارة المتكاملة للآفات لمنشآت الأغذية والفنادق. يحدد المشترون الآفات، ونوع المنشأة، والتكرار (شهري، ربع سنوي)، وطريقة المعالجة (جل، رش، تضبيب، رذاذ متناهي الصغر، طعوم)، والمنتجات المستخدمة وتسجيلها، وصحائف بيانات السلامة، وتقارير الخدمة. في دبي، يجب أن تكون شركات مكافحة الآفات وفنيوها معتمدين من قسم مكافحة آفات الصحة العامة في بلدية دبي، ويجب أن تكون المبيدات مسجلة لدى البلدية، وعلى المنشآت الغذائية استخدام مقاولين معتمدين؛ وتطبق أبوظبي قواعد هيئة أبوظبي للزراعة والسلامة الغذائية ومركز إدارة النفايات (تدوير)، وتطبق الإمارات الأخرى قواعد بلدياتها.",
+      "body_ar": "تشمل خدمات مكافحة الحشرات في الإمارات المكافحة العامة ومكافحة النمل الأبيض والطيور، وصولًا إلى التبخير وبرامج المكافحة المتكاملة (IPM)، مع ما يحدده المشترون وقواعد الاعتماد المعمول بها. تشمل خدمات مكافحة الآفات في الإمارات مكافحة الآفات العامة (الصراصير، والنمل، وبق الفراش، والقوارض، والذباب، والبعوض)، ومعالجة التربة ضد النمل الأبيض قبل البناء والطعوم أو الحقن بعد البناء، والتبخير (الفوسفين للسلع والحاويات؛ أما بروميد الميثيل فمقيد بموجب بروتوكول مونتريال مع استثناءات محدودة للحجر)، ومكافحة الطيور (أشواك، شباك، جل)، ومكافحة الثعابين والحيوانات الضالة، والتطهير والتعقيم، وبرامج الإدارة المتكاملة للآفات لمنشآت الأغذية والفنادق. يحدد المشترون الآفات، ونوع المنشأة، والتكرار (شهري، ربع سنوي)، وطريقة المعالجة (جل، رش، تضبيب، رذاذ متناهي الصغر، طعوم)، والمنتجات المستخدمة وتسجيلها، وصحائف بيانات السلامة، وتقارير الخدمة. في دبي، يجب أن تكون شركات مكافحة الآفات وفنيوها معتمدين من قسم مكافحة آفات الصحة العامة في بلدية دبي، ويجب أن تكون المبيدات مسجلة لدى البلدية، وعلى المنشآت الغذائية استخدام مقاولين معتمدين؛ وتطبق أبوظبي قواعد هيئة أبوظبي للزراعة والسلامة الغذائية ومركز إدارة النفايات (تدوير)، وتطبق الإمارات الأخرى قواعد بلدياتها.",
       "sources": [
         "https://servicemarket.com/en/blog/using-a-dubai-municipality-approved-pest-control-company",
         "https://www.rentokil-boecker.com/ae/about/locations/dubai",
@@ -25,9 +26,10 @@
     {
       "id": "pest_control:uae-market-brands",
       "topic": "Pest control: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "مكافحة الحشرات والقوارض: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "This lists the pest control operators in the UAE, such as Rentokil Boecker and National Pest Control, the common product makers, and how to check a company's Dubai Municipality approval. Confirmed UAE operators and common product makers: Rentokil Boecker (Rentokil Initial), National Pest Control, Envu, BASF, Syngenta, Bell Laboratories. The product makers' local distributors were not checked. Around a hundred companies hold Dubai Municipality approval, and each company's approval list should be checked for fumigation or termite permits.",
-      "body_ar": "يسرد هذا شركات مكافحة الآفات في الإمارات، مثل رينتوكيل بوكر والوطنية لمكافحة الآفات، والشركات الشائعة المصنعة للمبيدات، وكيفية التحقق من اعتماد الشركة لدى بلدية دبي. المشغلون المؤكدون في الإمارات ومصنعو المنتجات الشائعة: Rentokil Boecker (Rentokil Initial)، National Pest Control، Envu، BASF، Syngenta، Bell Laboratories. ولم يُتحقق من الموزعين المحليين لمصنعي المنتجات. ويحمل نحو مئة شركة موافقة بلدية دبي، وينبغي التحقق من قائمة موافقات كل شركة بشأن تصاريح التبخير أو مكافحة النمل الأبيض.",
+      "body_ar": "من شركات مكافحة الحشرات في الإمارات Rentokil Boecker وNational Pest Control، إضافة إلى مصنعي المبيدات الشائعين وطريقة التحقق من اعتماد الشركة لدى بلدية دبي. المشغلون المؤكدون في الإمارات ومصنعو المنتجات الشائعة: Rentokil Boecker (Rentokil Initial)، National Pest Control، Envu، BASF، Syngenta، Bell Laboratories. ولم يُتحقق من الموزعين المحليين لمصنعي المنتجات. ويحمل نحو مئة شركة موافقة بلدية دبي، وينبغي التحقق من قائمة موافقات كل شركة بشأن تصاريح التبخير أو مكافحة النمل الأبيض.",
       "sources": [
         "https://servicemarket.com/en/blog/using-a-dubai-municipality-approved-pest-control-company",
         "https://www.rentokil-boecker.com/ae/about/locations/dubai",
@@ -43,9 +45,10 @@
     {
       "id": "pest_control:uae-market-sizes",
       "topic": "Pest control: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "مكافحة الحشرات والقوارض: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "This explains how pest control is priced: per visit by home size, per site per month or year for commercial contracts, and per m2, metre, container or m3 for special treatments. Residential jobs are priced per visit by apartment or villa size (studio, 1-5 bedrooms), often with a 30-90 day warranty. Commercial contracts are priced per site per month or per year with a fixed number of visits (typically 12 per year for food premises) plus emergency call-outs. Termite treatment is priced per m2 of slab or per linear metre; fumigation per container or per m3; bird control per m2 of netting or per linear metre of spikes.",
-      "body_ar": "يشرح هذا كيف تُسعَّر مكافحة الآفات: بالزيارة حسب حجم المسكن، وبالموقع شهرياً أو سنوياً للعقود التجارية، وبالمتر المربع أو المتر أو الحاوية أو المتر المكعب للمعالجات الخاصة. تُسعّر الأعمال السكنية لكل زيارة حسب حجم الشقة أو الفيلا (استوديو، من غرفة إلى 5 غرف)، وغالباً مع ضمان من 30 إلى 90 يوماً. وتُسعّر العقود التجارية لكل موقع شهرياً أو سنوياً بعدد زيارات محدد (عادةً 12 زيارة سنوياً لمنشآت الأغذية) إضافة إلى الاستدعاءات الطارئة. وتُسعّر معالجة النمل الأبيض لكل متر مربع من البلاطة أو لكل متر طولي؛ والتبخير لكل حاوية أو متر مكعب؛ ومكافحة الطيور لكل متر مربع من الشباك أو لكل متر طولي من الأشواك.",
+      "body_ar": "تُسعَّر مكافحة الحشرات كالتالي: لكل زيارة حسب حجم المسكن، ولكل موقع شهريًا أو سنويًا في العقود التجارية، وبالمتر المربع أو المتر أو الحاوية أو المتر المكعب للمعالجات الخاصة. تُسعّر الأعمال السكنية لكل زيارة حسب حجم الشقة أو الفيلا (استوديو، من غرفة إلى 5 غرف)، وغالباً مع ضمان من 30 إلى 90 يوماً. وتُسعّر العقود التجارية لكل موقع شهرياً أو سنوياً بعدد زيارات محدد (عادةً 12 زيارة سنوياً لمنشآت الأغذية) إضافة إلى الاستدعاءات الطارئة. وتُسعّر معالجة النمل الأبيض لكل متر مربع من البلاطة أو لكل متر طولي؛ والتبخير لكل حاوية أو متر مكعب؛ ومكافحة الطيور لكل متر مربع من الشباك أو لكل متر طولي من الأشواك.",
       "sources": [
         "https://servicemarket.com/en/blog/using-a-dubai-municipality-approved-pest-control-company",
         "https://www.rentokil-boecker.com/ae/about/locations/dubai",
@@ -62,7 +65,7 @@
   "eval": [
     {
       "q_en": "Which insect and mouse jobs can exterminators around here handle for houses and offices nowadays?",
-      "q_ar": "ما أعمال مكافحة الحشرات والفئران التي تنفذها شركات المكافحة هنا للمنازل والمكاتب حالياً؟",
+      "q_ar": "شو شغل الحشرات والفيران اللي تقدر شركات المكافحة هنا تسويه للبيوت والمكاتب هالأيام؟",
       "expected_entry_ids": [
         "pest_control:uae-market-products"
       ],

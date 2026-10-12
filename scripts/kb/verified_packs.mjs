@@ -8,7 +8,7 @@
 //
 // The source of truth is the repository copy: knowledge/packs/<trade>.json (and <trade>.market.json, the
 // UAE market file for that trade) and knowledge/seats/<seat>.json. Shape:
-//   { trade|seat, entries: [{id, topic, kind, body_en, body_ar, sources[], confidence, as_of,
+//   { trade|seat, entries: [{id, topic, topic_ar?, kind, body_en, body_ar, sources[], confidence, as_of,
 //     area?, required_specs?, gap_kind?, source_note?}], eval: [{q_en, q_ar, expected_entry_ids[]}], verified: {...} }
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -78,6 +78,7 @@ export function validate(pack, kind, code, sibling = new Set()) {
     ids.add(e.id);
     for (const f of ['topic', 'kind', 'body_en', 'body_ar', 'as_of']) if (typeof e[f] !== 'string' || !e[f].trim()) err.push(`${at}: ${f} missing`);
     if (typeof e.body_ar === 'string' && !AR.test(e.body_ar)) err.push(`${at}: body_ar is not Arabic`);
+    if (e.topic_ar !== undefined && (typeof e.topic_ar !== 'string' || !AR.test(e.topic_ar))) err.push(`${at}: topic_ar is not Arabic`);
     if (!Array.isArray(e.sources)) err.push(`${at}: sources must be an array`);
     if (!['high', 'medium', 'low'].includes(e.confidence)) err.push(`${at}: confidence ${e.confidence}`);
     if (e.verified !== undefined && typeof e.verified !== 'boolean') err.push(`${at}: verified must be true or false`);
@@ -145,6 +146,12 @@ export function rowsOf(p) {
   return p.pack.entries.flatMap((e) => ['en', 'ar'].map((lang) => {
     const record_id = lang === 'en' ? e.id : e.id + '@ar';
     const body = lang === 'en' ? e.body_en : e.body_ar;
+    // THE ARABIC ROW IS TITLED IN ARABIC when the entry carries topic_ar (6 Oct 2026, it_engineer). Measured: every
+    // '<id>@ar' row was embedded as an ENGLISH title over an Arabic body, so the one line naming the trade was in the
+    // language the Arabic question was not. The 205 market packs share one Arabic body template, and the multilingual
+    // model ranked another trade's Arabic twin first: ml-path Arabic recall@5 0.672, 134 of 412 (pack, seat) pairs at 0.
+    // Re-embedded with the Arabic title, the same rows and questions read 0.964 on the multilingual space alone.
+    const title = lang === 'ar' && e.topic_ar ? e.topic_ar : e.topic;
     const sources = (e.sources ?? []).map(url);
     // area: the seat's own subject area (founder instructions 889/893/894, 28 Sep 2026), so a lookup can narrow to
     // the right area before ranking by meaning. Optional: a pack without it loads exactly as before.
@@ -156,28 +163,28 @@ export function rowsOf(p) {
     const b = sha(body);
     let cols;
     if (table === 'support_knowledge') {
-      cols = { record_id, schema_version: 'verified_pack.v1', record_version: p.version, record_kind: 'verified_pack_entry', title: e.topic,
+      cols = { record_id, schema_version: 'verified_pack.v1', record_version: p.version, record_kind: 'verified_pack_entry', title,
         domain: e.kind, tags, language: lang, review_status: 'verified_sourced', content_origin: 'verified_pack', authority_effect: 'none',
         runtime_use: 'retrieval', runtime_index_eligible: eligible, contains_synthetic_example: false,
         requires_current_verification: e.confidence !== 'high', source_ids: sources, source_path: sources[0] ?? null,
         structured_data: sd, body, body_sha256: b, pack_id: p.pack_id, pack_version: p.version, imported_at: now };
     } else if (table === 'ceo_knowledge') {
       // ceo_knowledge has no pack_id; the pack is in tags ('pack:<id>') and in extra.
-      cols = { record_id, schema_version: 'verified_pack.v1', record_version: p.version, record_kind: 'verified_pack_entry', title: e.topic,
+      cols = { record_id, schema_version: 'verified_pack.v1', record_version: p.version, record_kind: 'verified_pack_entry', title,
         domain: e.kind, tags: [...tags, 'pack:' + p.pack_id], language: lang, company_scope: 'industry', review_status: 'verified_sourced',
         content_origin: 'verified_pack', authority_effect: 'none', runtime_use: 'retrieval', runtime_index_eligible: eligible,
         external_execution_enabled: false, contains_synthetic_example: false, requires_current_verification: e.confidence !== 'high',
         source_ids: sources, source_path: sources[0] ?? null, body, body_sha256: b, extra: { ...sd, pack_id: p.pack_id },
         pack_fingerprint: p.version, imported_at: now };
     } else {
-      cols = { record_id, record_type: 'verified_pack_entry', domain: e.kind, title: e.topic, content: body, structured_data: sd,
+      cols = { record_id, record_type: 'verified_pack_entry', domain: e.kind, title, content: body, structured_data: sd,
         source_ids: sources, epistemic_status: 'verified_pack_sourced', jurisdiction: 'AE', pack_id: p.pack_id, pack_version: p.version,
         body_sha256: b, runtime_index_eligible: eligible, authority_effect: 'none', tags, updated_at: now };
       if (table === 'sales_knowledge') Object.assign(cols, { record_version: p.version, content_sha256: b });
     }
     // The text embedded: title + newline + body, the recipe every other knowledge vector in this estate uses
     // (scripts/kb/embed_sales_knowledge.mjs); the gateway cuts it at 1,200 characters, as runtime does.
-    return { table, record_id, entry_id: e.id, lang, text: e.topic + '\n' + body, cols };
+    return { table, record_id, entry_id: e.id, lang, text: title + '\n' + body, cols };
   }));
 }
 

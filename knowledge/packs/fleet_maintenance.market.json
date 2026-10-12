@@ -7,9 +7,10 @@
     {
       "id": "fleet_maintenance:uae-market-products",
       "topic": "Fleet maintenance & vehicle workshops: products, variants and grades sold in the UAE",
+      "topic_ar": "صيانة الأساطيل وورش المركبات: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
       "body_en": "Fleet maintenance in the UAE: preventive servicing, mechanical, electrical and AC repairs, tyres, brakes, body and paint, heavy vehicle, bus and forklift maintenance, on-site servicing, vehicle testing preparation and fleet management outsourcing. Fleet maintenance services in the UAE include preventive maintenance (oil and filter services at OEM intervals, typically 5,000-15,000 km depending on oil grade and duty), mechanical and electrical repairs, AC servicing (critical in UAE heat), tyre management and rotation, brake and suspension work, diagnostics, body and paint repairs (accident repairs for insurance), heavy vehicle and truck maintenance (engines, transmissions, axles, hydraulics), bus fleet maintenance, forklift and equipment maintenance, mobile/on-site servicing, telematics-based maintenance scheduling, annual RTA/police vehicle testing preparation (Tasjeel, Shamil, ADNOC Vehicle Inspection centres), speed limiter and tachograph installation for heavy vehicles, and fleet management outsourcing. Buyers ask about workshop approvals (dealer-approved vs independent), parts policy (genuine vs OES), labour rates, turnaround and replacement vehicles, and service reporting. Workshops need emirate licences and municipality/Civil Defence approvals; waste oil disposal must go through licensed recyclers.",
-      "body_ar": "صيانة الأساطيل في الإمارات: الصيانة الوقائية والإصلاحات الميكانيكية والكهربائية وإصلاح التكييف والإطارات والفرامل وأعمال الهيكل والطلاء وصيانة المركبات الثقيلة والحافلات والرافعات الشوكية والخدمة في الموقع والتحضير لفحص المركبات والإسناد الخارجي لإدارة الأساطيل. تشمل خدمات صيانة الأساطيل في الإمارات الصيانة الوقائية (تغيير الزيت والفلاتر وفق فترات الشركة المصنعة، عادةً 5,000-15,000 كم حسب درجة الزيت ونوع الاستخدام)، والإصلاحات الميكانيكية والكهربائية، وصيانة التكييف (أساسية في حرارة الإمارات)، وإدارة الإطارات وتدويرها، وأعمال المكابح والتعليق، والتشخيص، وإصلاحات الهيكل والطلاء (إصلاحات الحوادث للتأمين)، وصيانة المركبات الثقيلة والشاحنات (المحركات، وناقلات الحركة، والمحاور، والهيدروليك)، وصيانة أساطيل الحافلات، وصيانة الرافعات الشوكية والمعدات، والخدمة المتنقلة/في الموقع، وجدولة الصيانة القائمة على التتبع، والتجهيز للفحص الفني السنوي لدى هيئة الطرق/الشرطة (مراكز تسجيل وشامل وفحص أدنوك للمركبات)، وتركيب محددات السرعة وأجهزة تسجيل السرعة للمركبات الثقيلة، والاستعانة الخارجية لإدارة الأساطيل. يسأل المشترون عن اعتمادات الورش (معتمدة من الوكيل مقابل مستقلة)، وسياسة القطع (أصلية مقابل علامة المورد الأصلي)، وأسعار العمالة، ومدة الإنجاز والمركبات البديلة، وتقارير الخدمة. وتحتاج الورش إلى تراخيص الإمارة وموافقات البلدية/الدفاع المدني؛ ويجب التخلص من الزيوت المستعملة عبر شركات إعادة تدوير مرخصة.",
+      "body_ar": "تشمل صيانة الأساطيل في الإمارات الصيانة الوقائية والإصلاحات الميكانيكية والكهربائية وإصلاح المكيفات، والإطارات والفرامل وأعمال السمكرة والصبغ، وصيانة المركبات الثقيلة والباصات والرافعات الشوكية، والخدمة في الموقع والتجهيز لفحص المركبات وإسناد إدارة الأسطول لجهة خارجية. تشمل خدمات صيانة الأساطيل في الإمارات الصيانة الوقائية (تغيير الزيت والفلاتر وفق فترات الشركة المصنعة، عادةً 5,000-15,000 كم حسب درجة الزيت ونوع الاستخدام)، والإصلاحات الميكانيكية والكهربائية، وصيانة التكييف (أساسية في حرارة الإمارات)، وإدارة الإطارات وتدويرها، وأعمال المكابح والتعليق، والتشخيص، وإصلاحات الهيكل والطلاء (إصلاحات الحوادث للتأمين)، وصيانة المركبات الثقيلة والشاحنات (المحركات، وناقلات الحركة، والمحاور، والهيدروليك)، وصيانة أساطيل الحافلات، وصيانة الرافعات الشوكية والمعدات، والخدمة المتنقلة/في الموقع، وجدولة الصيانة القائمة على التتبع، والتجهيز للفحص الفني السنوي لدى هيئة الطرق/الشرطة (مراكز تسجيل وشامل وفحص أدنوك للمركبات)، وتركيب محددات السرعة وأجهزة تسجيل السرعة للمركبات الثقيلة، والاستعانة الخارجية لإدارة الأساطيل. يسأل المشترون عن اعتمادات الورش (معتمدة من الوكيل مقابل مستقلة)، وسياسة القطع (أصلية مقابل علامة المورد الأصلي)، وأسعار العمالة، ومدة الإنجاز والمركبات البديلة، وتقارير الخدمة. وتحتاج الورش إلى تراخيص الإمارة وموافقات البلدية/الدفاع المدني؛ ويجب التخلص من الزيوت المستعملة عبر شركات إعادة تدوير مرخصة.",
       "sources": [
         "https://www.alfuttaim.com/en/our-brands/toyota/",
         "https://www.enoc.com",
@@ -24,9 +25,10 @@
     {
       "id": "fleet_maintenance:uae-market-brands",
       "topic": "Fleet maintenance & vehicle workshops: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "صيانة الأساطيل وورش المركبات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
       "body_en": "Fleet maintenance providers in the UAE, such as the Al-Futtaim Toyota dealer and the Bosch Car Service workshop network. Confirmed dealer and a workshop network brand: Al-Futtaim (Toyota), Bosch Car Service. Other dealer service centres, fuel-retailer chains and independent workshops were not checked.",
-      "body_ar": "مزودو صيانة الأساطيل في الإمارات، مثل وكيل تويوتا الفطيم وشبكة ورش Bosch Car Service. الوكيل المؤكد وعلامة شبكة ورش: Al-Futtaim (Toyota)، Bosch Car Service. ولم يُتحقق من مراكز خدمة الوكلاء الآخرين ولا سلاسل شركات الوقود ولا الورش المستقلة.",
+      "body_ar": "من مزودي صيانة الأساطيل في الإمارات الفطيم وكيل تويوتا، وشبكة ورش Bosch Car Service. الوكيل المؤكد وعلامة شبكة ورش: Al-Futtaim (Toyota)، Bosch Car Service. ولم يُتحقق من مراكز خدمة الوكلاء الآخرين ولا سلاسل شركات الوقود ولا الورش المستقلة.",
       "sources": [
         "https://www.alfuttaim.com/en/our-brands/toyota/",
         "https://www.enoc.com",
@@ -41,9 +43,10 @@
     {
       "id": "fleet_maintenance:uae-market-sizes",
       "topic": "Fleet maintenance & vehicle workshops: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "صيانة الأساطيل وورش المركبات: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
       "body_en": "How fleet maintenance is priced in the UAE: fixed service packages, labour hours plus parts, or monthly or annual contracts per vehicle, with heavy vehicles per job and call-out fees for on-site work. Priced per service (fixed-price service packages by vehicle type and interval), per labour hour plus parts for repairs, or as a monthly/annual maintenance contract per vehicle (with or without parts, often per km). Heavy vehicles are quoted per job or per engine hour. On-site servicing adds a call-out fee. Replacement vehicles are priced per day.",
-      "body_ar": "كيف تُسعَّر صيانة الأساطيل في الإمارات: باقات خدمة بسعر ثابت، أو ساعات عمل مع قطع الغيار، أو عقود شهرية أو سنوية لكل مركبة، مع تسعير المركبات الثقيلة لكل مهمة ورسوم استدعاء للخدمة في الموقع. تُسعّر لكل خدمة (باقات خدمة بسعر ثابت حسب نوع المركبة والفترة)، أو لكل ساعة عمل إضافة إلى القطع للإصلاحات، أو كعقد صيانة شهري/سنوي لكل مركبة (مع القطع أو بدونها، وغالباً لكل كيلومتر). وتُسعّر المركبات الثقيلة لكل عملية أو لكل ساعة تشغيل محرك. وتُضاف رسوم استدعاء للخدمة في الموقع. وتُسعّر المركبات البديلة يومياً.",
+      "body_ar": "تُسعَّر صيانة الأساطيل في الإمارات بباقات خدمة ثابتة، أو بساعات العمل مع قطع الغيار، أو بعقود شهرية أو سنوية لكل مركبة، والمركبات الثقيلة بالمهمة، مع رسوم استدعاء للعمل في الموقع. تُسعّر لكل خدمة (باقات خدمة بسعر ثابت حسب نوع المركبة والفترة)، أو لكل ساعة عمل إضافة إلى القطع للإصلاحات، أو كعقد صيانة شهري/سنوي لكل مركبة (مع القطع أو بدونها، وغالباً لكل كيلومتر). وتُسعّر المركبات الثقيلة لكل عملية أو لكل ساعة تشغيل محرك. وتُضاف رسوم استدعاء للخدمة في الموقع. وتُسعّر المركبات البديلة يومياً.",
       "sources": [
         "https://www.alfuttaim.com/en/our-brands/toyota/",
         "https://www.enoc.com",
@@ -59,7 +62,7 @@
   "eval": [
     {
       "q_en": "What upkeep and repair jobs can garages here carry out on company vans and cars?",
-      "q_ar": "ما أعمال الصيانة والإصلاح التي يمكن للورش هنا تنفيذها على سيارات الشركة وشاحناتها الصغيرة؟",
+      "q_ar": "شو أعمال الصيانة والتصليح اللي تقدر الكراجات هنا تسويها لفانات وسيارات الشركة؟",
       "expected_entry_ids": [
         "fleet_maintenance:uae-market-products"
       ],
