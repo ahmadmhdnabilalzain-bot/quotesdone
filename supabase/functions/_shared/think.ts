@@ -597,8 +597,13 @@ export type HeldRow = { id: number; seat: string; surface: string; request: Thin
 // Only status 'held' rows under 3 tries are claimed (fn_reason_held_due); expired/answered rows are never re-asked, and
 // the sweep before it closes what has expired. A STALE answer (question older than STALE_MS) is stored but never sent
 // to a person unreviewed: it goes to the owning seat as held_for_review instead of out on the channel.
-export const REPLAY_MAX_ROWS = 60;
-export const REPLAY_BUDGET_MS = 60_000;
+// 12 Oct 2026 (it_engineer, release operator): measured after #1287 on production, the replay rides the itlater step,
+// whose cost rose to ewma 84 s / last 119 s, so the tick plan deferred it on most ticks (5 deferrals in a row) and 6 of
+// 32 ticks ended 546 with 10 concurrent think() calls in flight. The held queue fell 253 -> 248 in eight hours.
+// A smaller slice that fits every tick drains faster than a large one that rarely runs.
+export const REPLAY_MAX_ROWS = 20;
+export const REPLAY_BUDGET_MS = 25_000;
+export const REPLAY_CLAIM = 5;
 export const REPLAY_STALE_MS = 24 * 3600_000;
 export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>,
   opts: { maxRows?: number; budgetMs?: number; staleMs?: number; now?: () => number } = {}): Promise<unknown> {
