@@ -57,6 +57,16 @@ export type DocEvidence = {
 };
 export const PHOTO_TEXT_MAX = 60_000;
 
+// WHAT THE VISION MODEL READ OFF A PICTURE IS READ FOR TRADES LIKE TEXT (ruling 1177, 12 Oct 2026). A licence or
+// profile with no text layer has its activities / services read by license_extract; they become the document's
+// photo_text, so they go through the same exact-code and meaning rules (Arabic exact names #1312, the licence's
+// activities line only #1313). One spelling for every upload path: supplier_api, supplier_portal and the suite.
+export function modelReadText(kind: DocKind, items: unknown): string | undefined {
+  const a = (Array.isArray(items) ? items : []).map((x) => String(x ?? '').trim()).filter(Boolean);
+  if (!a.length) return undefined;
+  return kind === 'licence' ? 'Activities: ' + a.join(', ') : a.join('\n');
+}
+
 /** Every word a read document holds: its text, its table cells, and its zip / email children. */
 export function allText(e: Extracted, depth = 0): string {
   const cells = e.tables.flatMap((t) => t.map((row) => row.filter((c) => c != null && c !== '').join(' ')));

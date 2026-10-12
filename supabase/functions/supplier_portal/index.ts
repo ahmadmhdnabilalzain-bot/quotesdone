@@ -14,7 +14,7 @@ import { readSupplierProfile } from '../_shared/reasoned_suppliers.ts';
 import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
-import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { buildInsightsSummary } from './insights_summary.ts';
 import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/sanctioned.ts';
@@ -528,6 +528,16 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           if (codeFields.authority) upd.license_authority = codeFields.authority;
           if (codeFields.emirate) upd.emirate = codeFields.emirate;
         }
+        // A PHOTO-ONLY COMPANY PROFILE IS READ TOO (ruling 1177), as supplier_api.process_docs reads it: the picture goes
+        // to license_extract's profile mode and the services it reads are read for trades through photo_text.
+        if (kindStr === 'profile' && stored && /^image\//i.test(stored.mime) && aiOn && INBOUND_SECRET) {
+          try {
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', images: [{ b64: String(it.original_b64), mime: stored.mime }] }) });
+            const jd = await r.json().catch(() => null);
+            const q = readQueue.find((x) => x.kind === 'profile');
+            if (q && jd?.ok) q.photo_text = modelReadText('profile', jd.profile?.services);
+          } catch (_e) { /* the document stays needs_ocr: never a false "no trades" */ }
+        }
         if (kindStr === 'license' && docRead) {
           upd.license_expiry = docRead.expiry; licExpiryFromDoc = true; upd.doc_extracted_at = new Date().toISOString();
           read.license = { kind: 'license', expiry: docRead.expiry, source: 'text', needs_confirm: false, typed: null };
@@ -563,6 +573,9 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
               if (d.license_authority && !upd.license_authority) upd.license_authority = d.license_authority;
               if (d.city) upd.license_city = d.city;
               if (!upd.licence_legal_name) { const n = licenceNameFromModel(d); if (n) upd.licence_legal_name = n; }
+              // The scan's activities, as the model read them, are read for trades like a text licence's (ruling 1177).
+              const q = readQueue.find((x) => x.kind === 'licence');
+              if (q) q.photo_text = modelReadText('licence', d.activities);
               upd.doc_extracted_at = new Date().toISOString();
             }
           } catch (_e) { /* fall back to the typed value below */ }

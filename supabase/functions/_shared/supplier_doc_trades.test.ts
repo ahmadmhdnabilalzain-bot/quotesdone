@@ -2,7 +2,7 @@
 // by an exact code or by meaning, never by the document's alias words (ruling 890, ledger 1054).
 // deno test --no-lock --node-modules-dir=auto supabase/functions/_shared/supplier_doc_trades.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { mergeEvidence, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import type { MeaningService } from './service_meaning.ts';
 import { makeDrawingPdf } from './pdf_measure.fixtures.ts';
 
@@ -138,4 +138,20 @@ Deno.test('a work line holding a word the database resolves to one trade names i
   // an Arabic line is not confirmed by this rule: the e5 space scores names and metal traders as high as activities
   const ar = S.map((s) => ({ ...s, vec_ml: s.vec }));
   assertEquals(proposeByMeaning([{ text: 'أعمال الألمنيوم', vec: v(0.97, 0, 0.24), space: 'ml' }], ar, { tradeLabels: labels, codeWords }).length, 0);
+});
+
+Deno.test('an image-only licence or profile: what the vision model read becomes trades (ruling 1177)', async () => {
+  // A scan with NO text layer. Without the model's reading it is needs_ocr; with it (the photo_text every upload path
+  // builds through modelReadText) the activities / services go through the same exact-code and meaning rules.
+  const scan = makeDrawingPdf([], '0.7 w 100 100 141.73 113.39 re S');
+  const lic = await readDocForTrades({ path: 'licenses/1/s.pdf', name: 's.pdf', kind: 'licence', bytes: scan, mime: 'application/pdf',
+    photo_text: modelReadText('licence', ['Electrical', 'Aluminium']) }, deps());
+  assertEquals([lic.status, lic.source, codes(lic.trades)], ['read', 'photo_text', ['aluminium', 'electrical']], JSON.stringify(lic));
+  const prof = await readDocForTrades({ path: 'profiles/1/s.pdf', name: 's.pdf', kind: 'profile', bytes: scan, mime: 'application/pdf',
+    photo_text: modelReadText('profile', ['Plumbing', 'HVAC']) }, deps());
+  assertEquals(codes(prof.trades), ['hvac', 'plumbing'], JSON.stringify(prof));
+  // nothing read -> nothing invented, and the scan stays needs_ocr rather than a false zero
+  assertEquals(modelReadText('licence', []), undefined);
+  const none = await readDocForTrades({ path: 'licenses/1/s.pdf', name: 's.pdf', kind: 'licence', bytes: scan, mime: 'application/pdf', photo_text: modelReadText('licence', null) }, deps());
+  assertEquals(none.status, 'needs_ocr');
 });
