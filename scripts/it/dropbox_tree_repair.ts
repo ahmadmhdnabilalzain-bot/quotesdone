@@ -12,7 +12,7 @@
 // Run by the release operator after merge. The plan, the before/after counts and every operation's result
 // are written to --out (default: the Desktop sandbox-evidence folder). No token or secret is printed.
 import { DropboxClient, memoryStore, refreshAccessToken, TokenCache } from '../../supabase/functions/dropbox_backup/dropbox.ts';
-import { capRecords, counts, founderApprovesMoves, plan, recordOutcome, recordStatement, ROOT, type Listed, type Row, type Ruling } from './dropbox_tree_repair_plan.ts';
+import { approvedMoves, capRecords, counts, founderApprovesMoves, plan, recordOutcome, recordStatement, ROOT, type Listed, type Row, type Ruling } from './dropbox_tree_repair_plan.ts';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const args = new Set(Deno.args);
@@ -35,11 +35,13 @@ async function sql<T = Record<string, unknown>>(query: string): Promise<T[]> {
 }
 const lit = (s: unknown) => s === null || s === undefined ? 'null' : `'${String(s).replace(/'/g, "''")}'`;
 // The moves touch real files: the founder's own ruling must exist AND approve them (review of #1284).
+let RULING: Ruling | undefined;
 if (MOVES) {
   const id = /^\d+$/.test(FOUNDER_OK ?? '') ? Number(FOUNDER_OK) : null;
   const r = id === null ? [] : await sql<Ruling>(`select id, instruction, subject, status from public.founder_instruction where id = ${id}`);
   const v = APPLY ? founderApprovesMoves(r[0]) : { ok: false, why: '--moves needs --apply' };
   if (!v.ok) { console.log(JSON.stringify({ ok: false, refused: 'moves touch real files: ' + v.why })); Deno.exit(2); }
+  RULING = r[0];
 }
 const sec = Object.fromEntries((await sql<{ key: string; value: string }>("select key, value from public.app_secrets where key in ('dropbox_refresh_token', 'dropbox_app_key', 'dropbox_app_secret')")).map((r) => [r.key, r.value]));
 const SERVICE = (await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmt } })).json()).find((k: { name: string }) => k.name === 'service_role')?.api_key ?? '';
@@ -96,6 +98,14 @@ const before = await measure();
 const report: Record<string, unknown> = { mode: !APPLY ? 'dry-run' : MOVES ? 'apply records + moves' : 'apply records', date: DATE,
   before: counts(before.plan) };
 if (before.plan.collisions.length) report.refused = 'two operations would land on one path';
+// The ruling approves COUNTS per kind (review of #1284): every kind it names must match today's plan exactly,
+// and a kind it does not name is not moved (reported as excluded).
+let MOVE_KINDS = new Set<string>();
+if (MOVES && !report.refused) {
+  const a = approvedMoves(RULING!, counts(before.plan));
+  if (!a.ok) { console.log(JSON.stringify({ ok: false, refused: 'the ruling does not approve the plan of today: ' + a.why, plan: counts(before.plan) })); Deno.exit(2); }
+  MOVE_KINDS = a.kinds; report.excluded_kinds = a.excluded;
+}
 Deno.mkdirSync(OUT, { recursive: true });
 Deno.writeTextFileSync(OUT + `dropbox_tree_repair_plan_${DATE}.json`, JSON.stringify(before.plan, null, 1));
 
@@ -118,10 +128,11 @@ if (APPLY && !report.refused) {
 
   if (MOVES) {
     const moved: unknown[] = [];
-    for (const m of before.plan.moves) {
+    for (const m of before.plan.moves.filter((x) => MOVE_KINDS.has(x.kind))) {
       const pre = await meta(m.from);
       if (!pre) { moved.push({ ...m, result: 'source not found, skipped' }); continue; }
-      if (m.hash && pre.hash !== m.hash) { moved.push({ ...m, result: 'stopped: Dropbox content differs from the record' }); break; }
+      if (!m.hash) { moved.push({ ...m, result: 'stopped: no recorded content_hash to check the file against' }); break; }
+      if (pre.hash !== m.hash) { moved.push({ ...m, result: 'stopped: Dropbox content differs from the record' }); break; }
       const r = await dbx.call('api', 'files/move_v2', { from_path: m.from, to_path: m.to, autorename: false, allow_ownership_transfer: false });
       if (!r.ok) { moved.push({ ...m, result: 'stopped: move_v2 ' + r.status }); await r.body?.cancel(); break; }
       await r.body?.cancel();
@@ -131,7 +142,12 @@ if (APPLY && !report.refused) {
         const sm = await fetch(`https://${REF}.supabase.co/storage/v1/object/move`, { method: 'POST', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
           body: JSON.stringify({ bucketId: m.storage.bucket, sourceKey: m.storage.from, destinationKey: m.storage.to }) });
         await sm.body?.cancel();
-        if (sm.ok) await sql(`update public.doc_backups set path = ${lit(m.storage.to)} where id = ${m.id}`);
+        if (!sm.ok) {
+          // the Dropbox copy moved; the storage object did not: the record keeps the Dropbox move, the run stops and says so
+          await sql(`update public.doc_backups set dropbox_path = ${lit(m.to)}, verified_at = now() where id = ${m.id}`);
+          moved.push({ ...m, result: 'stopped: Dropbox moved and verified, storage move failed ' + sm.status }); break;
+        }
+        await sql(`update public.doc_backups set path = ${lit(m.storage.to)} where id = ${m.id}`);
       }
       if (ok && m.id !== null) await sql(`update public.doc_backups set dropbox_path = ${lit(m.to)}, verified_at = now() where id = ${m.id}`);
       moved.push({ ...m, result: ok ? 'moved, hash verified' : 'stopped: hash or size differs after the move' });

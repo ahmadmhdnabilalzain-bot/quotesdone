@@ -92,3 +92,14 @@ Deno.test('a second certificate is archived in Dropbox and storage; the one the 
   assertEquals(p.moves.map((m) => [m.kind, m.id, m.to, m.storage?.to]), [['superseded', 20,
     R + '/_archive/superseded-tnc-2026-10-12/Storage/signed-terms/customers/1_Ann_TnC-Acceptance.pdf', 'archive/superseded/customers/1_Ann_TnC-Acceptance.pdf']]);
 });
+
+import { approvedMoves } from './dropbox_tree_repair_plan.ts';
+Deno.test('review 12 Oct: the ruling must name today\'s counts; an unnamed kind is never moved', () => {
+  const r = { id: 1180, subject: 'backup', status: 'open', instruction: 'Dropbox housekeeping approved: move the 5 real customer files into their named folders, 421 ownerless + 4 demo to _archive.' };
+  const a = approvedMoves(r, { merge: 2, ownerless: 594, demo: 4, superseded: 1, record: 14, collisions: 0 });
+  assertEquals(a.ok, false);                                                 // today's plan is not what 1180 approved
+  assertEquals(a.why, 'merge: the ruling approves 5, the plan has 2; ownerless: the ruling approves 421, the plan has 594');
+  const b = approvedMoves(r, { merge: 5, ownerless: 421, demo: 4, superseded: 1, record: 14, collisions: 0 });
+  assertEquals([b.ok, [...b.kinds].sort(), b.excluded], [true, ['demo', 'merge', 'ownerless'], ['superseded']]);   // certificates excluded
+  assertEquals(approvedMoves({ id: 2, subject: null, status: 'open', instruction: 'yes, approve the Dropbox moves' }, { merge: 2, ownerless: 0, demo: 0, superseded: 0, record: 0, collisions: 0 }).ok, false);
+});

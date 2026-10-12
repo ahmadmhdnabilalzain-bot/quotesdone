@@ -141,3 +141,25 @@ export function recordOutcome(error: string | null): { recorded: boolean; reason
   const m = /REC<<(.*?)>>/s.exec(error);
   return { recorded: false, reason: m ? m[1] : 'error: ' + error.slice(0, 160) };
 }
+
+// The ruling names the COUNT of each kind it approves, in its own words ("5 ... named folders", "421 ownerless",
+// "4 demo", "1 superseded"). Every kind the ruling names must equal today's plan exactly; a kind it does not name
+// is excluded from the moves (never moved on someone else's approval). Review of #1284, 12 Oct 2026.
+const KIND_WORDS: [string, RegExp][] = [
+  ['merge', /(\d+)\s+(?:real\s+)?(?:customer\s+)?files?\s+into\s+(?:their\s+)?(?:the\s+)?named/i],
+  ['ownerless', /(\d+)\s+ownerless/i],
+  ['demo', /(\d+)\s+demo/i],
+  ['superseded', /(\d+)\s+(?:superseded|duplicate)/i],
+];
+export function approvedMoves(r: Ruling, planned: Record<string, number>): { ok: boolean; why: string; kinds: Set<string>; excluded: string[] } {
+  const t = `${r?.subject ?? ''} ${r?.instruction ?? ''}`;
+  const kinds = new Set<string>(); const excluded: string[] = []; const bad: string[] = [];
+  for (const [k, re] of KIND_WORDS) {
+    const m = re.exec(t); const n = planned[k] ?? 0;
+    if (!m) { if (n > 0) excluded.push(k); continue; }
+    if (Number(m[1]) !== n) bad.push(`${k}: the ruling approves ${m[1]}, the plan has ${n}`); else kinds.add(k);
+  }
+  if (bad.length) return { ok: false, why: bad.join('; '), kinds: new Set(), excluded };
+  if (!kinds.size) return { ok: false, why: 'the ruling names no count the plan has', kinds, excluded };
+  return { ok: true, why: 'founder_instruction ' + r.id, kinds, excluded };
+}
