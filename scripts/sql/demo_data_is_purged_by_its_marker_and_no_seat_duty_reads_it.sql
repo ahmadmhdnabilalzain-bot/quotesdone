@@ -112,13 +112,21 @@ alter table public.signup_purge_dropbox alter column doc_backup_id drop not null
 create or replace function public.fn_demo_purge_dropbox_paths()
  returns text[] language sql immutable set search_path to 'pg_catalog', 'pg_temp'
 as $fn$ select array[
+  '/QuotesDone Backup/Customers/Ahmad Nabil Al Zain',
+  '/QuotesDone Backup/Customers/QA Journey Tester',
+  '/QuotesDone Backup/Customers/QA Portal Tester',
+  '/QuotesDone Backup/Customers/QA Test Customer',
+  '/QuotesDone Backup/Customers/QA Villa Owner',
+  '/QuotesDone Backup/Customers/ahmad test',
+  '/QuotesDone Backup/Customers/ahmad test 2',
+  '/QuotesDone Backup/Customers/qa.portal.testquotesdone.com',
   '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12/Suppliers/QD Demo Claimed Aluminium 0686',
   '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12/Suppliers/QD Demo Claimed Aluminium 1755',
   '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12/Suppliers/QD Demo Claimed Aluminium 1c4d',
   '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12/Suppliers/QD Demo Claimed Aluminium e236',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl A (ae8d1a34)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl B (05540815)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Ahmad Nabil Al Zain (dbb4e36f)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Ahmed Al Mansoori (301a941f)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Bara Al Zain (d38c4fac)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/DEMO — Sara Ahmed (657e47eb)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Fatima Rahman (d52e1f20)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/John Peterson (16b28330)',
@@ -136,11 +144,23 @@ as $fn$ select array[
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QuotesDone Test (191e9197)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Rajesh Kumar (83e4b5fb)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Sara Khalifa (8025bf05)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/younis (e0dee407)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ZZ DEMO - shared handset A (ccef2d0d)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ZZ DEMO - shared handset B (91eeccf8)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ZZ DEMO — section 8 probe customer A (6636916e)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ZZ DEMO — section 8 probe customer B (1bfe4f47)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl A (ae8d1a34)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl B (05540815)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad (27cbbc0a)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test (70f15bc3)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test 2 (a6d900ab)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmadsw (84a808ec)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Interior fit-out/DEMO — BlueBay Contracting (30298)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Interior fit-out/DEMO — Falcon Interiors LLC (30297)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Other/ZZ TEST Expiry Harness (delete me) (30371)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/MERIDIAN MEP CONTRACTING LLC (30466)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/ZZ DEMO — section 8 probe supplier A (40466)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/ZZ DEMO — section 8 probe supplier B (40467)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/شركة اختبار المورّد (30346)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/ac-duct-cleaning/QA PureDuct Cleaning (30328)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/ac-maintenance/QA CoolCare HVAC (30327)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/aluminium-glass/QA ClearView Aluminium & Glass (30329)',
@@ -149,42 +169,30 @@ as $fn$ select array[
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/cleaning/QA SparkleClean Services (30331)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/combined-mep/QD DEMO — Al Noor Technical Services LLC (30372)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/custom-furniture/QA Artisan Custom Furniture (30332)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/[QA] Gamma Electrical Works (30358)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/HARNESS_FIX Electrical (30348)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/HARNESS_FIX Electrical (30395)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/QA Volt Electrical Contracting (30325)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/VoltEdge Electrical Contracting LLC (30365)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Alpha Flooring LLC (30356)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Beta Floors & More (30357)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Regress Alpha Flooring (30359)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Regress Beta Floors (30360)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/[QA] Gamma Electrical Works (30358)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/Emirates Prestige Flooring LLC (30361)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/Prestige Floors Contracting LLC (30362)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/QA Flooring Test Co (30355)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/QA TerraFloor Solutions (30333)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/Skyline Surfaces Interiors LLC (30363)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Interior fit-out/DEMO — BlueBay Contracting (30298)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Interior fit-out/DEMO — Falcon Interiors LLC (30297)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/interior-design/[TEST] Falcon Fit-Out LLC (30296)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Alpha Flooring LLC (30356)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Beta Floors & More (30357)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Regress Alpha Flooring (30359)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Regress Beta Floors (30360)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/interior-design/HARNESS_FIX Fitout (30350)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/interior-design/[TEST] Falcon Fit-Out LLC (30296)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/joinery-kitchens/QA MasterWood Kitchens (30335)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/landscaping/HARNESS_FIX Landscaping (30351)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Other/ZZ TEST Expiry Harness (delete me) (30371)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/painting/QA ProCoat Painting (30334)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/plumbing/AquaFix Plumbing Services LLC (30364)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/plumbing/QA AquaFlow Plumbing Works (30326)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/swimming-pools/HARNESS_FIX Pools (30347)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/swimming-pools/HARNESS_FIX Pools (30394)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/tiling-marble/QA StonePro Tiling & Marble (30336)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/MERIDIAN MEP CONTRACTING LLC (30466)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/ZZ DEMO — section 8 probe supplier A (40466)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/ZZ DEMO — section 8 probe supplier B (40467)',
-  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/شركة اختبار المورّد (30346)',
-  '/QuotesDone Backup/Customers/QA Journey Tester',
-  '/QuotesDone Backup/Customers/QA Portal Tester',
-  '/QuotesDone Backup/Customers/QA Test Customer',
-  '/QuotesDone Backup/Customers/QA Villa Owner',
-  '/QuotesDone Backup/Customers/qa.portal.testquotesdone.com'
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/tiling-marble/QA StonePro Tiling & Marble (30336)'
 ]::text[] $fn$;
 revoke execute on function public.fn_demo_purge_dropbox_paths() from public, anon, authenticated;
 
@@ -232,6 +240,13 @@ end $fn$;
 revoke execute on function public.fn_demo_purge_walk(regclass, text, integer, jsonb) from public, anon, authenticated;
 
 -- the guarded count of everything that is NOT demo
+-- THE FOUNDER'S CONFIRMED TEST LOGINS (ruling 1210/1214, 13 Oct 2026): exact addresses, never a pattern. His real
+-- account (customer 0dc8c94f) is not among them and stays guarded.
+create or replace function public.fn_demo_purge_confirmed_logins()
+ returns text[] language sql immutable set search_path to 'pg_catalog', 'pg_temp'
+as $fn$ select array['ahmadmhdnabilalzain+qdprobe1@gmail.com', 'ahmadmhdnabilalzain+qdcust1@gmail.com']::text[] $fn$;
+revoke execute on function public.fn_demo_purge_confirmed_logins() from public, anon, authenticated;
+
 create or replace function public.fn_demo_purge_real_counts()
  returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp'
 as $fn$
@@ -242,6 +257,7 @@ as $fn$
     'quotes', (select count(*) from public.quotes q where not public.fn_quote_is_demo(q.id)),
     'transactions', (select count(*) from public.transactions t where not public.fn_transaction_is_demo(t.id)),
     'auth_users', (select count(*) from auth.users u where not public.fn_is_demo_email(u.email) and not public.fn_is_demo_phone(u.phone)
+                     and not lower(coalesce(u.email, '')) = any(public.fn_demo_purge_confirmed_logins())
                      and not exists (select 1 from public.customers c where c.id = u.id and c.is_demo)))
 $fn$;
 revoke execute on function public.fn_demo_purge_real_counts() from public, anon, authenticated;
@@ -266,7 +282,8 @@ begin
   create temp table _dt on commit drop as select id from public.transactions
     where customer_id in (select id from _dc) or supplier_id in (select id from _dl) or inquiry_id in (select id from _di) or quote_id in (select id from _dq);
   create temp table _du on commit drop as select id from auth.users u
-    where public.fn_is_demo_email(u.email) or public.fn_is_demo_phone(u.phone) or u.id in (select id from _dc);
+    where public.fn_is_demo_email(u.email) or public.fn_is_demo_phone(u.phone) or u.id in (select id from _dc)
+       or lower(coalesce(u.email, '')) = any(public.fn_demo_purge_confirmed_logins());
   create temp table _dk on commit drop as
     select id::text k from _dc union select id::text from _dl union select id::text from _di
     union select id::text from _dq union select id::text from _dt;
@@ -445,7 +462,8 @@ as $fn$
     'customers', (select count(*) from public.customers where is_demo),
     'leads', (select count(*) from public.leads where is_demo),
     'inquiries', (select count(*) from public.inquiries i where public.fn_inquiry_is_demo(i.id)),
-    'auth_users', (select count(*) from auth.users u where public.fn_is_demo_email(u.email) or public.fn_is_demo_phone(u.phone)),
+    'auth_users', (select count(*) from auth.users u where public.fn_is_demo_email(u.email) or public.fn_is_demo_phone(u.phone)
+                     or lower(coalesce(u.email, '')) = any(public.fn_demo_purge_confirmed_logins())),
     'notifications', (select count(*) from public.notifications where public.fn_is_demo_email(to_email) or public.fn_is_demo_phone(to_phone)),
     'ai_cost_log_tagged', (select count(*) from public.ai_cost_log where e2e_run_tag is not null),
     'rehearsal_windows', (select count(*) from public.rehearsal_window where run_tag like 'qd\_run:%'),

@@ -23,7 +23,7 @@ Deno.test('the demo purge deletes only a frozen, reviewed path (or inside one) a
   // every case below runs against the REAL frozen list the edge function ships, never a test-only list
   const shipped = JSON.parse(await Deno.readTextFile(new URL('./demo_purge_paths.json', import.meta.url))).paths;
   assertEquals([...DEMO_PURGE_PATHS], shipped);
-  assertEquals(shipped.length, 73);
+  assertEquals(shipped.length, 81);
   for (const p of DEMO_PURGE_PATHS) {
     assertEquals(demoPurgeDeleteAllowed(p), true, p);
     assertEquals(demoPurgeDeleteAllowed(p + '/Inquiries/x.pdf'), true, p + '/...');
@@ -38,21 +38,16 @@ Deno.test('the demo purge deletes only a frozen, reviewed path (or inside one) a
     '/QuotesDone Backup/Customers/ahmad alzain', '/QuotesDone Backup/Customers/Umarah Nabi (ba61fa16)',
     '/QuotesDone Backup/_archive/superseded-tnc-2026-10-12/Customers/Umarah Nabi (ba61fa16)',
     // held until the founder answers (coordinator, 13 Oct 2026): real-looking names, never on the list
-    '/QuotesDone Backup/Customers/Ahmad Nabil Al Zain', '/QuotesDone Backup/Customers/Ahmad Nabil Al Zain/Signed-Terms-Acceptance.pdf',
     '/QuotesDone Backup/Customers/TIWNKLE SHARMA', '/QuotesDone Backup/Customers/TIWNKLE SHARMA/Signed-Terms-Acceptance.pdf',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)/Customer Details.pdf',
-    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Ahmad Nabil Al Zain (dbb4e36f)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/TIWNKLE SHARMA (ca038493)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12', '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12',   // never a whole set
     // held for the founder, or a row matches (release review of 45c56ba)
-    '/QuotesDone Backup/Customers/ahmad test', '/QuotesDone Backup/Customers/ahmad test 2',
-    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad (27cbbc0a)',
-    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test (70f15bc3)',
-    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test 2 (a6d900ab)',
-    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmadsw (84a808ec)',
-    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Bara Al Zain (d38c4fac)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Other/dj zaino (30354)',
+    // kept by the founder (ruling 1210) or the coordinator: his real account, younis
+    '/QuotesDone Backup/Customers/ahmad alzain (0dc8c94f)', '/QuotesDone Backup/Customers/ahmad alzain (0dc8c94f)/Customer Details.pdf',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/younis (e0dee407)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Customer (1a1bdf46)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Customer (71e96257)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Customer (7aa42658)',
