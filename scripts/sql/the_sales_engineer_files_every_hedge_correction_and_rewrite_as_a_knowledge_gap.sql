@@ -12,8 +12,11 @@
 --
 -- THIS FILE:
 --   * adds kind/source/source_ref/excerpt/detector to sales_knowledge_gap (existing refusal rows keep kind 'refusal');
+--   * columns verified against the live schema 12 Oct 2026 (review of #1352): quote_review_messages.role is
+--     'sales_engineer' | 'supplier' (no 'assistant'), social_message.direction 'in' | 'out', guard_failures text[],
+--     wa_messages.meta jsonb, agent_chats.role 'assistant' | 'user'.
 --   * fn_knowledge_gap_sweep(p_hours, p_dry_run): code only, no model -- reads the last p_hours of
---       wa_messages (reply + inbound + meta.attempts), quote_review_messages (assistant body, issues),
+--       wa_messages (reply + inbound + meta.attempts), quote_review_messages (sales_engineer body, issues),
 --       social_message (outbound body, guard_failures) and agent_chats (cat:* and brief assistant turns),
 --     and files each hit once (question_norm = kind:source:ref is UNIQUE, so a re-run never doubles);
 --   * registers the daily seat duty sales_engineer.knowledge_gap_sweep.
@@ -22,6 +25,9 @@
 -- DOES NOT: score with a model (the existing judge is not called; phrases are enough to file, a human-grade read
 -- happens when Claude fills it), or touch the refusal path that already files gaps.
 
+-- review of #1352: a long export query held an AccessShareLock on this table on 12 Oct 2026 and the ALTER queued
+-- behind it until statement_timeout. Fail fast instead of blocking every reader queued behind the ALTER.
+set lock_timeout = '3s';
 alter table public.sales_knowledge_gap add column if not exists kind text not null default 'refusal';
 alter table public.sales_knowledge_gap add column if not exists source text;
 alter table public.sales_knowledge_gap add column if not exists source_ref text;
@@ -57,9 +63,9 @@ begin
       from public.wa_messages m where m.created_at >= v_from
     union all
     select 'quote_review_messages', m.id::text, null, m.body,
-           coalesce(case when m.role = 'assistant' then public.fn_knowledge_gap_kind(m.body, null) end,
-                    case when m.role <> 'assistant' then public.fn_knowledge_gap_kind(null, m.body) end,
-                    case when m.role = 'assistant' and jsonb_typeof(m.issues) = 'array' and jsonb_array_length(m.issues) > 0 then 'guard_rewrite' end)
+           coalesce(case when m.role <> 'supplier' then public.fn_knowledge_gap_kind(m.body, null) end,
+                    case when m.role = 'supplier' then public.fn_knowledge_gap_kind(null, m.body) end,
+                    case when m.role <> 'supplier' and jsonb_typeof(m.issues) = 'array' and jsonb_array_length(m.issues) > 0 then 'guard_rewrite' end)
       from public.quote_review_messages m where m.created_at >= v_from
     union all
     select 'social_message', m.id::text, null, m.body,
