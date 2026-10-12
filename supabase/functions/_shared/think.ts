@@ -86,6 +86,21 @@ export interface ThinkRequest {
   // A caller that answers a customer or visitor (support_reply.ts only) may accept a short, clear refusal of a
   // manipulation or an out-of-scope ask as the answer. Off for every other caller: their drafts keep the evasion check.
   allowDecline?: boolean;
+  // A caller that has ALREADY narrowed the knowledge for this exact message (the website widget: its own corpus search
+  // is the topic) may hand over the plan instead of asking a model for one. The decompose call is skipped; retrieval,
+  // synthesis and the validator run as always. Such a caller should also ask for stakes 'high', because without the
+  // planner nobody judges the stakes, and the independent check then runs on every answer (12 Oct 2026). A decision
+  // whose options are the whole of what it needs (priceQuestion: a trade from a given list) passes { steps: [] }.
+  plan?: { steps: { id: string; goal: string; query: string }[] };
+  // A caller's last-mile rewrite (support_reply.ts: the plain-language gate). Runs on the draft BEFORE the independent
+  // check, so the checked text is the text sent; null keeps the draft. Only when the check runs.
+  polish?: (answer: string) => Promise<string | null>;
+  // One more choice made IN the answering call, so it costs no chain of its own (the widget: which published trade, if
+  // any, they ask the price of). Comes back as result.extra (null if not one of the ids).
+  ask?: { key: string; options: { id: string; meaning: string }[] };
+  // Output ceilings for a caller whose reply is short (the widget: ~70 words). With a verify ceiling the reviewer is
+  // also told to return the strict JSON verdict only. A truncated output is a failed pass, never a fragment sent.
+  maxTokens?: { synthesise?: number; verify?: number };
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -105,6 +120,7 @@ export interface ThinkResult {
   held_id?: number | null;
   reason?: string;
   route?: string | null;
+  extra?: string | null;
 }
 
 export interface LlmReply { content: string | null; model?: string | null; error?: string | null; used_llm?: boolean }
@@ -115,7 +131,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[] }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -167,7 +183,7 @@ export function authoritative(url: string): boolean {
 // Deferral and refusal as the founder heard them from us (903). EN and AR. Only the shape of an
 // evasion is listed; a draft that ALSO carries substance (enough words beyond the deferral) passes
 // the phrase test, and is then judged by the other rules.
-const EVASION = [
+export const EVASION = [
   /\b(get|come) back to you\b/i, /\bi (will|'ll|need to|have to|must) (check|confirm|verify|find out|look into)\b/i,
   /\b(can ?not|can't|unable to|not able to|won't be able to) (answer|help|advise|say|provide|share|give)\b/i,
   /\bi (do not|don't) (know|have (that|this|the) information)\b/i, /\bno information (is )?available\b/i,
@@ -262,7 +278,7 @@ Return ONE JSON object:
  "high_stakes":<true if the answer states a legal or regulatory limit, money, or safety>,
  "trade":"<the ONE trade the question is about, as a lowercase taxonomy code (e.g. hvac, plumbing, glazing), or null when it is about no single trade>",
  "kind":"<what the question asks for, one of: ${ENTRY_KINDS.join(', ')}; or null>"}
-At most ${MAX_STEPS} steps. Fill a fact's value ONLY from what you were given; never guess it.`;
+At most ${MAX_STEPS} steps and 4 facts; keep every string short and in English (the whole object must fit in 600 tokens). Fill a fact's value ONLY from what you were given; never guess it.`;
 }
 
 export function synthesisPrompt(seat: Seat, audience: string, language: string, decision?: DecisionSpec, route?: { id: string; meaning: string }[], allowDecline = false): string {
@@ -391,10 +407,20 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const d0 = await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
-    JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
-    { taskClass: taskClassFor('decompose', audience, deciding), seat: req.seat, max: 900 });
-  const plan = parseJson<{ steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean; trade?: string | null; kind?: string | null }>(d0.content);
+  const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
+    : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
+      JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
+      { taskClass: taskClassFor('decompose', audience, deciding), seat: req.seat, max: 900 });
+  type Plan = { steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean; trade?: string | null; kind?: string | null };
+  let plan = parseJson<Plan>(d0.content);
+  // A PLAN CUT OFF AT THE OUTPUT CAP IS STILL A MODEL THAT ANSWERED (customer_support, 12 Oct 2026). Measured on
+  // production (ai_cost_log 17:30Z, 17:38Z): an Arabic portal question with the customer's profile made the planner
+  // write 900 tokens, the gateway's cap; the JSON was truncated and the whole reply fell to "could not read your
+  // account". The plan only narrows retrieval, so a model that wrote one still answers, from one step on the question.
+  if ((!plan || !Array.isArray(plan.steps)) && String(d0.content ?? '').trim()) {
+    plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [], high_stakes: true };   // an unplanned answer is always cross-checked
+    steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: 'unparseable plan; one-step plan used' });
+  }
   if (!plan || !Array.isArray(plan.steps)) {
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error ?? 'no plan' });
     return await hold(/circuit_open|open-circuit|founder_hold/.test(String(d0.error ?? '')) ? 'model_hold' : 'model_failed: decompose', {});
@@ -416,14 +442,21 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // The space is asked once per run. If the multilingual embedder cannot answer, this run falls back to
   // gte-small and the gte routines: a slower-to-improve answer, never a vector put to the wrong space.
   let space: EmbedSpace = deps.space ? await deps.space().catch(() => 'gte' as EmbedSpace) : 'gte';
+  // One embedding per text per run (12 Oct 2026): a plan step whose query IS the question re-embedded it remotely,
+  // 1-3 s each on the widget path (measured per stage).
+  const memo = new Map<string, Promise<number[] | null>>();
+  const emb = (t: string, sp: EmbedSpace) => { const k = sp + '\u0001' + t; if (!memo.has(k)) memo.set(k, deps.embed(t, sp)); return memo.get(k)!; };
   const embedIn = async (t: string): Promise<{ v: number[] | null; r: typeof ROUTINES[EmbedSpace] }> => {
     if (space === 'ml') {
-      const v = await deps.embed(t, 'ml');
+      const v = await emb(t, 'ml');
       if (v) return { v, r: ROUTINES.ml };
       space = 'gte';
     }
-    return { v: await deps.embed(t, 'gte'), r: ROUTINES.gte };
+    return { v: await emb(t, 'gte'), r: ROUTINES.gte };
   };
+  // A caller's plan is known now: its step queries are embedded (remotely, in embed_ml — no work in this worker) while
+  // the question is, not after the recall (12 Oct 2026: 1.7-8 s of embedding in a row on the widget, measured per stage).
+  if (req.plan && space === 'ml') for (const s of req.plan.steps) emb(s.query, 'ml').catch(() => null);
   const q0 = await embedIn(req.question);
   const qVec = q0.v;
   // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
@@ -479,12 +512,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // e. SYNTHESISE, with the validator forcing re-passes
   const missing = facts.filter((f) => !f.value);
   const sourceIds = new Set(sources.map((s) => s.id));
-  const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true);
+  const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true)
+    + (req.ask && !deciding ? `
+Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '');
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? 900 });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = 'no reply'; break; }
     refusal = refuse(draft, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true });
@@ -497,8 +532,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   let verified: ThinkResult['verified'] = { status: 'not_needed', by: null, notes: '' };
   let confidence = Math.max(0, Math.min(1, Number(draft.confidence) || 0));
   if (req.stakes === 'high' || (!deciding && plan.high_stakes === true)) {
-    const v = await deps.llm('verify', VERIFY_PROMPT, JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
-      { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: 600 });
+    // The caller's rewrite runs BEFORE the check, one after the other, so the text the reviewer reads is the text
+    // that goes out (12 Oct 2026: a rewrite after the check sent unchecked words; beside it, it killed the worker).
+    if (!deciding && req.polish) {
+      const p = await req.polish(String(draft.answer ?? '')).catch(() => null);
+      if (p) { draft = { ...draft, answer: p }; steps.push({ id: 'polish', kind: 'synthesise', goal: "the caller's rewrite, before the check", status: 'done' }); }
+    }
+    const v = await deps.llm('verify', VERIFY_PROMPT + (req.maxTokens?.verify ? '\nReturn ONLY that JSON object, no other text: "problems" is [] when you agree, else at most two short items.' : ''), JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
+      { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: req.maxTokens?.verify ?? 600 });
     const vj = parseJson<{ verdict?: string; problems?: string[] }>(v.content);
     if (!vj || !v.content) {
       verified = { status: 'not_run', by: v.model ?? null, notes: String(v.error ?? 'no independent reviewer answered') };
@@ -508,7 +549,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? 900 });
       const fixed = parseJson<Draft>(r.content);
       if (fixed && !refuse(fixed, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true })) { draft = fixed; model = r.model ?? model; }
       verified = { status: 'disagreed', by: v.model ?? null, notes: (vj.problems ?? []).join(' | ').slice(0, 1000) };
@@ -535,6 +576,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     missing_context: missing, sources: sources.filter((s) => (draft!.cited ?? []).includes(s.id)),
     confidence, asked_back: draft.asked_back ? String(draft.asked_back) : null, verified, model,
     route: req.route?.some((o) => o.id === String(draft!.route ?? '')) ? String(draft!.route) : null,
+    extra: req.ask?.options.some((o) => o.id === String((draft as unknown as Record<string, unknown>)[req.ask!.key] ?? '')) ? String((draft as unknown as Record<string, unknown>)[req.ask.key]) : null,
   };
 }
 
@@ -546,8 +588,10 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2 });
-      const r = await call(system, input, o.max ?? 900, '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2, ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
+      // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
+      const content = o.images?.length ? [{ role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] }] : input;
+      const r = await call(system, content as never, o.max ?? 900, '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {

@@ -24,8 +24,6 @@
 //     reviveHeldComments), so a skipped comment waits without a model call instead of being re-reasoned every sweep.
 // deliverReasoned is pure over its `io`, so reasoned_delivery.test.ts pins every branch.
 import type { HeldRow } from './think.ts';
-import { coverageReply, type Trade } from '../wa_inbound/coverage.ts';
-import { capabilityAnswer } from '../wa_inbound/founder_queries.ts';
 import type { ThinkResult } from './think.ts';
 import type { CommentEvent } from './marketing_social_comments.ts';
 import { composeMailReply } from './customer_mail.ts';
@@ -45,10 +43,9 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
-  /** fn_wa_answer with the reasoned intent: the database's answer for this sender, or null. */
-  waIntentReply(phone: string, question: string, intent: string): Promise<string | null>;
-  /** public.taxonomy_trade, active rows: the live trade list a coverage answer is built from. */
-  waTrades(): Promise<Trade[]>;
+  /** The reply to a held question, WRITTEN BY A MODEL now (aiReply: the company brief, the figure check, the model
+   *  ladder; rulings 1195/1196). null when no model answered — then nothing is sent. */
+  writeReply(question: string, lang: 'en' | 'ar', o?: { channel?: string; note?: string; subject?: Record<string, unknown> }): Promise<string | null>;
   /** A held DM's grounded reply, sent by marketing_social_inbox on the platform (reasoned_reply). */
   socialReply(subject: Record<string, unknown>, meaning: string): Promise<Sent>;
   /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
@@ -114,11 +111,11 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     const phone = String(subject.phone ?? '');
     if (!phone) return { delivered: false, via: 'none', detail: 'no phone on the held row' };
     const lang = isAr(question) ? 'ar' : 'en';
-    let text: string | null = null;
-    if (choice === 'size') text = capabilityAnswer(lang);
-    else if (choice?.startsWith('coverage:') || choice?.startsWith('trade:')) text = coverageReply(choice, await io.waTrades(), lang);
-    // A request for a person is delivered by wa_inbound.needs_a_person (its own held row), never twice.
-    else if (choice?.startsWith('intent:') && !['intent:contact_human', 'intent:greeting', 'intent:small_talk'].includes(choice)) text = await io.waIntentReply(phone, question, choice.slice(7));
+    // Whatever the reasoned meaning (size, coverage, a trade, an intent), the reply is WRITTEN BY A MODEL now — no capability
+    // statement, no trade-list sentence, no stored intent answer (rulings 1195/1196, 12 Oct 2026). A request for a person
+    // is delivered by wa_inbound.needs_a_person (its own held row), never twice; greetings and small talk owe nothing more.
+    const owed = !!choice && choice !== 'none' && !['intent:contact_human', 'intent:greeting', 'intent:small_talk'].includes(choice);
+    const text = owed ? await io.writeReply(question, lang, { channel: 'WhatsApp', subject }) : null;
     if (!text) return { delivered: false, via: 'none', detail: 'reasoned: ' + (choice ?? 'no choice') + ' — nothing more is owed; the courteous reply and the knowledge gap stand' };
     return await whatsapp(io, phone, question, text);
   }
@@ -173,7 +170,10 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
   if (row.surface === 'email_triage.needs_a_person') {
     if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person is needed; the reply already went' };
     if (!io.emailReply || !Number(subject.message_id)) return { delivered: false, via: 'none', detail: 'no e-mail sender or message id' };
-    const s = await io.emailReply(Number(subject.message_id), composeMailReply({ lang: isAr(question) ? 'ar' : 'en', person: true }), true);
+    const lang = isAr(question) ? 'ar' : 'en';
+    const body = await io.writeReply(question, lang, { channel: 'e-mail', subject, note: 'An e-mail body without a greeting or a sign-off (they are added). They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread.' });
+    if (!body) return { delivered: false, via: 'none', detail: 'no model answered; nothing was sent' };
+    const s = await io.emailReply(Number(subject.message_id), composeMailReply({ lang, answer: body }), true);
     return { delivered: s.ok, via: 'email', detail: s.err };
   }
   if (row.surface === 'email_triage.reply' && subject.channel === 'email') {
@@ -346,16 +346,12 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       const j = await r.json().catch(() => ({}));
       return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.error ?? r.status) };
     },
-    waIntentReply: async (phone, question, intent) => {
-      const { data } = await admin.rpc('fn_wa_answer', { p_from: phone, p_body: question.slice(0, 4000), p_intent: intent });
-      return (data as { matched?: boolean; reply?: string } | null)?.matched ? String(data.reply || '') || null : null;
-    },
-    waTrades: async () => {
-      // Each trade with its live group (#885), the same read wa_inbound makes; ungrouped if the groups are absent.
-      const grouped = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases,group:taxonomy_trade_group(code,label_en,label_ar,sort)').eq('active', true).order('sort').order('code');
-      if (!grouped.error) return (grouped.data || []) as unknown as Trade[];
-      const { data } = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases').eq('active', true).order('sort').order('code');
-      return (data || []) as Trade[];
+    writeReply: async (question, lang, o = {}) => {
+      const { aiReply } = await import('./ai_reply.ts');
+      const { defaultDeps } = await import('./think.ts');
+      const a = await aiReply(defaultDeps(admin, 'reasoned_delivery'), { seat: 'customer_support', channel: o.channel ?? 'WhatsApp', audience: 'customer', lang,
+        message: question, rules: o.note, subject: o.subject });
+      return a.reply || null;
     },
     socialReply: async (subject, meaning) => {
       const { timedFetch } = await import('./timed_fetch.ts');

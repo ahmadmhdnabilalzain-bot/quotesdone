@@ -38,7 +38,7 @@ export const DECISION_PATHS = [
   ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'assist', "admin.rpc('fn_sales_assist'"],
   ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'match', "admin.rpc('fn_match_capability'"],
   ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'spec_offer', "admin.rpc('fn_spec_offer_open'"],
-  ['supabase/functions/site_assistant/index.ts', 'customer_support', 'reply', 'const sys = `You are the QuotesDone website assistant.'],
+  ['supabase/functions/site_assistant/index.ts', 'customer_support', 'reply', 'const sys = `You are QuotesDone'],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'decide', "admin.from('ceo_approval').insert("],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'judgement', 'await llm('],
   ['supabase/functions/accountant/index.ts', 'accountant', 'assist', "admin.rpc('fn_accountant_assist'"],
@@ -46,9 +46,9 @@ export const DECISION_PATHS = [
   ['supabase/functions/it_engineer/index.ts', 'it_engineer', 'assist', "return J({ ok: true, seat: 'it_engineer', ...r"],
   ['supabase/functions/it_engineer/index.ts', 'it_engineer', 'triage', "return J({ ok: true, seat: 'it_engineer', issue_key"],
   ['supabase/functions/marketing/index.ts', 'marketing', 'assist', 'return error ? J('],
-  ['supabase/functions/marketing_social_inbox/index.ts', 'marketing', 'social_reply', 'const d = decide(ev.text'],
+  ['supabase/functions/marketing_social_inbox/index.ts', 'marketing', 'social_reply', 'const text = await writeSocial(ev.text'],
   // The comment answer is think() (socialReply) since #898; the recall still comes first and rides with the question.
-  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'await socialReply(defaultDeps(admin'],
+  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'const a = await aiReply(defaultDeps(admin'],
   ['supabase/functions/marketing_channels/index.ts', 'marketing', 'plan', "admin.rpc('fn_marketing_campaign_hash'"],
 ];
 export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
