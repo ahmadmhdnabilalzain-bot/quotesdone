@@ -52,20 +52,21 @@ Deno.test('the caller\'s own retrieval is the narrowed topic: no second corpus s
   assert(!s.rpcs.includes('fn_support_corpus_search'));
 });
 
-Deno.test('the founder\'s hold: no model call at all, the deterministic road answers, nothing is queued', async () => {
-  const s = stub({ gate: { allowed: false, rule: 'founder_hold' } });
+// Rulings 1195/1196 (12 Oct 2026): the caller's canned road is never sent. When the reasoned chain cannot answer, the
+// reply is still written by a model (aiReply); when no model answers, it is '' and nothing is sent.
+Deno.test('the chain cannot answer: a model writes the reply directly, the caller canned text is never sent', async () => {
+  const s = stub({ gate: { allowed: false, rule: 'founder_hold' }, synth: [JSON.stringify({ answer: 'Hello! How can we help with your job?' })] });
   const r = await supportReply(s.deps, { channel: 'whatsapp', message: 'hi', lang: 'en', audience: 'visitor' }, () => Promise.resolve('Thanks for your message.'));
-  assertEquals(r.path, 'fallback');
-  assertEquals(r.reply, 'Thanks for your message.');
-  assertEquals(s.calls.length, 0);
+  assertEquals(r.reply, 'Hello! How can we help with your job?');
+  assertEquals(r.path, 'reasoned');
   assert(!s.rpcs.includes('fn_reason_hold'), 'a reply already went out; a replay would send a second one');
 });
 
-Deno.test('the gateway down mid-reply: the fallback answers', async () => {
+Deno.test('no model answers at all: no text, never the caller canned line', async () => {
   const s = stub({ synth: [{ content: null, error: 'circuit_open' }] });
   const r = await supportReply(s.deps, { channel: 'portal', message: 'q', lang: 'ar', audience: 'customer', seat: 'sales_engineer' }, () => Promise.resolve('شكرًا لرسالتك.'));
   assertEquals(r.path, 'fallback');
-  assertEquals(r.reply, 'شكرًا لرسالتك.');
+  assertEquals(r.reply, '');
 });
 
 Deno.test('the composed reply passes the outgoing guard; an unknown route is not trusted', async () => {
@@ -91,12 +92,11 @@ Deno.test('1013/7: a jargon-heavy, one-long-sentence reply is rewritten through 
   assert(s.rpcs.includes('fn_support_reply_readability_log'), 'the score is logged for the monthly self-review');
 });
 
-Deno.test('1013/7: a rewrite that is still not plain sends the canned answer, never the unreadable one', async () => {
-  const s = stub({ synth: [LONG, LONG], corpus: [REFUND] });
+Deno.test('1013/7: a rewrite that is still not plain goes to a direct model reply, never the canned answer', async () => {
+  const s = stub({ synth: [LONG, LONG, JSON.stringify({ answer: 'Your quote is on its way. You will see it in My requests.' })], corpus: [REFUND] });
   const r = await supportReply(s.deps, { channel: 'whatsapp', message: 'where is my quote?', lang: 'en', audience: 'customer' }, () => Promise.resolve('Thanks. Our team will reply soon.'));
-  assertEquals(r.path, 'fallback');
-  assertEquals(r.reply, 'Thanks. Our team will reply soon.');
-  assertMatch(r.reason ?? '', /^readability: /);
+  assertEquals(r.reply, 'Your quote is on its way. You will see it in My requests.');
+  assertMatch(r.reason ?? '', /^direct: readability: /);
 });
 
 Deno.test('1013/7: an Arabic customer who gets an English reply is rewritten into Arabic', async () => {
