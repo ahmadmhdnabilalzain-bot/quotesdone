@@ -11,6 +11,8 @@ function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unkno
     llm: (phase, system, input) => {
       calls.push({ phase, system, input });
       if (phase === 'decompose') return Promise.resolve({ content: JSON.stringify({ steps: [{ id: 's1', goal: 'the rule', query: 'non-response refund rule' }], facts: [], high_stakes: false }), model: 'stub' });
+      // the widget's answers are always independently checked now (12 Oct 2026): the reviewer agrees here
+      if (phase === 'verify') return Promise.resolve({ content: JSON.stringify({ verdict: 'agree', problems: [] }), model: 'stub/other' });
       const n = synth.shift();
       return Promise.resolve(typeof n === 'string' ? { content: n, model: 'stub/qwen' } : (n ?? { content: null, error: 'circuit_open' }));
     },

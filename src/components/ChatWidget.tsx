@@ -50,6 +50,7 @@ export function ChatWidget() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [val, setVal] = useState('');
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
   const boxRef = useRef<HTMLDivElement | null>(null);
   const inpRef = useRef<HTMLInputElement | null>(null);
 
@@ -90,20 +91,43 @@ export function ChatWidget() {
     setVal('');
     const next = [...msgs, { role: 'user' as const, content: m }];
     setMsgs(next); setBusy(true);
+    const show = (content: string) => setMsgs([...next, { role: 'assistant', content }]);
     try {
       const r = await fetch(FN, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+        // THE ANSWER STREAMS (12 Oct 2026, site_assistant/stream_reply.ts): a status line at once, then the finished,
+        // checked reply a few words at a time. A server that does not stream answers JSON, read below as before.
+        headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
         // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
         // was unreachable code. useLocale() already knows; the value simply never left the browser.
         body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname, lang: locale, conv: conv.current })
       });
-      const j = await r.json();
-      setMsgs([...next, { role: 'assistant', content: (j && j.reply) || t.err }]);
+      if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
+        const rd = r.body.getReader(); const dec = new TextDecoder();
+        let buf = '', text = '', final = '';
+        for (;;) {
+          const { done, value } = await rd.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let k: number;
+          while ((k = buf.indexOf('\n')) >= 0) {
+            const line = buf.slice(0, k); buf = buf.slice(k + 1);
+            if (!line.trim()) continue;
+            const e = JSON.parse(line);
+            if (e.t === 'status') setStatus(e.text);
+            else if (e.t === 'delta') { text += e.text; setStatus(''); show(text); }
+            else if (e.t === 'done') final = e.reply || '';
+          }
+        }
+        show(final || text || t.err);
+      } else {
+        const j = await r.json();
+        show((j && j.reply) || t.err);
+      }
     } catch (_e) {
-      setMsgs([...next, { role: 'assistant', content: t.err }]);
-    } finally { setBusy(false); }
+      show(t.err);
+    } finally { setBusy(false); setStatus(''); }
   };
 
   const side = rtl ? { left: 18 } : { right: 18 };
@@ -148,7 +172,7 @@ export function ChatWidget() {
                 ))}
               </div>
             )}
-            {busy && <div dir="auto" style={{ ...bubble('assistant'), opacity: .7, fontStyle: 'italic' }}>{t.thinking}</div>}
+            {busy && msgs[msgs.length - 1]?.role === 'user' && <div dir="auto" style={{ ...bubble('assistant'), opacity: .7, fontStyle: 'italic' }}>{status || t.thinking}</div>}
           </div>
           <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid rgba(255,255,255,.10)' }}>
             <input ref={inpRef} dir="auto" value={val} onChange={(e) => setVal(e.target.value)}

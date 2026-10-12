@@ -105,6 +105,10 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       context: { audience: req.audience === 'visitor' ? 'visitor' : req.audience, language: req.lang, conversation: req.conversation, profile: req.profile,
         case: { channel: req.channel, topic_knowledge: passages.slice(0, 6).map((p) => (p.citation ? p.citation + '\n' : '') + p.content.slice(0, 1500)), facts: req.facts ? req.facts.slice(0, 6000) : null } },
       research: false, queueWhenHeld: false, dedupeKey: req.dedupeKey, subject: req.subject,
+      // THE WIDGET HANDS OVER ITS PLAN (12 Oct 2026, customer_support): it has already searched the corpus for this
+      // message (the passages above), so the planning call — 5-9 s of a 20-30 s reply, measured — is skipped, and the
+      // independent check runs on EVERY widget answer instead of only when a planner called it high-stakes.
+      ...(req.channel === 'widget' ? { plan: { steps: [{ id: 's1', goal: 'answer the visitor from company knowledge', query: req.message.slice(0, 500) }] }, stakes: 'high' as const } : {}),
       // a short refusal of a manipulation or an out-of-scope ask may be the reply here, and nowhere else (think.ts)
       allowDecline: true,
     });

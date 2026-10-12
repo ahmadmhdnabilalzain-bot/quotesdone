@@ -358,3 +358,18 @@ Deno.test('replayHeld fails closed: a row without created_at is held for review,
   const rec = m.rpcs.find(([f]) => f === 'fn_reason_held_delivered');
   assertEquals((rec?.[1] as { p_delivery: { via: string } }).p_delivery.via, 'held_for_review');
 });
+
+// prevented by: this test (customer_support, 12 Oct 2026). The widget hands think() its plan: no planning call is
+// bought, the step it gave is retrieved, and with stakes 'high' the independent check still runs on the answer.
+Deno.test('a caller-supplied plan skips the decompose call, keeps retrieval, and the check still runs', async () => {
+  const m = mock({ gate: { allowed: true }, retrieve: KB, replies: {
+    synthesise: [J({ answer: 'The reveal fee is 3% of the quote you choose.', reasoning: ['s1'], cited: ['kb_chunks:7'], confidence: 0.8 })],
+    verify: [J({ verdict: 'agree', problems: [] })],
+  } });
+  const r = await think(m.deps, { seat: 'customer_support', surface: 'support_reply.widget', question: 'How much is the reveal fee?', context: { audience: 'visitor' },
+    plan: { steps: [{ id: 's1', goal: 'answer from company knowledge', query: 'How much is the reveal fee?' }] }, stakes: 'high' });
+  assertEquals(r.status, 'answered');
+  assertEquals(m.calls.filter((c) => c.phase === 'decompose').length, 0);
+  assertEquals(r.steps.filter((s) => s.kind === 'retrieve' && s.status === 'done').length, 1);
+  assertEquals(r.verified?.status, 'agreed');
+});
