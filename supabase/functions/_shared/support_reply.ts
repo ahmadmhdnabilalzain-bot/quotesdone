@@ -100,7 +100,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
     const r = await think(deps, {
       seat: req.seat ?? 'customer_support', surface: `support_reply.${req.channel}`, route: ROUTE_SEATS,
       question: `Reply to this ${req.audience} message to QuotesDone as its ${req.seat ?? 'customer_support'} seat, in ${req.lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}. ${FORMAT[req.channel]} `
-        + 'Take every fee, rule and figure from the TOPIC KNOWLEDGE and FACTS in the context and nowhere else. Never promise a refund (management decides it), never name another customer or supplier, never state how many suppliers or customers we have, never say "AI" (say "Smart Engine"), never give a licence number. '
+        + 'Take every fee, rule and figure from the TOPIC KNOWLEDGE and FACTS in the context and nowhere else. When you state a fee, state with it what the facts say is and is not added on top of it (for example a card fee or VAT). Never promise a refund (management decides it), never name another customer or supplier, never state how many suppliers or customers we have, never say "AI" (say "Smart Engine"), never give a licence number. '
         + 'If the matter belongs to another seat, say you have passed it to that team and still answer what can be said.\n\nMESSAGE:\n' + req.message.slice(0, 4000),
       context: { audience: req.audience === 'visitor' ? 'visitor' : req.audience, language: req.lang, conversation: req.conversation, profile: req.profile,
         case: { channel: req.channel, topic_knowledge: passages.slice(0, 6).map((p) => (p.citation ? p.citation + '\n' : '') + p.content.slice(0, 1500)), facts: req.facts ? req.facts.slice(0, 6000) : null } },
