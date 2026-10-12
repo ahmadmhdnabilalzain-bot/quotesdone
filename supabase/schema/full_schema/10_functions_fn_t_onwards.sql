@@ -7291,6 +7291,27 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.pdpl_status_me()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with me as (select public.fn_pdpl_my_verified_email() as em)
+  select case when (select em from me) is null
+    then jsonb_build_object('ok', false, 'code', 'email_not_verified')
+    else jsonb_build_object('ok', true, 'requests', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'request_id', q.id, 'kind', q.kind, 'status', q.status, 'created_at', q.created_at,
+               'confirm_after', q.confirm_after,
+               'deferred', coalesce(q.outcome -> 'deferred', '[]'::jsonb),
+               'held', q.outcome -> 'held') order by q.created_at desc)
+        from public.pdpl_requests q, me
+       where q.email = me.em and q.status in ('received', 'cooling_off', 'held')), '[]'::jsonb))
+  end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.qd_project_ref()
  RETURNS text
  LANGUAGE plpgsql
@@ -8151,22 +8172,95 @@ CREATE OR REPLACE FUNCTION public.trg_doc_backups_admit()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare
+  v_tag text := nullif(btrim(coalesce(current_setting('qd.backup_sandbox', true), '')), '');
+  v_root text := '/QuotesDone Backup';
+  v_kp text := '';                -- the dedupe-key prefix of the rows this one is filed beside
+  v_sandbox boolean := false;
+  v_id text; v_cust text; v_inq8 text; v_inq text; v_anchor text;
+  v_uuid constant text := '^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$';
 begin
   new.dropbox_path := public.fn_dbx_path(new.dropbox_path);
   -- A rehearsal's documents are never queued: its fixtures are torn down minutes later, and a queued
-  -- row could never drain (fn_doc_backups_next leaves zz_demo rows to the probes). Measured: 662 such
-  -- rows piled up in one day (a_rehearsal_never_queues_a_backup.sql). A row a probe inserts as
-  -- 'zz_demo' itself is not caught here and is still admitted.
+  -- row could never drain (a_rehearsal_never_queues_a_backup.sql). A row a probe inserts as 'zz_demo'
+  -- itself is still admitted. 7 Oct 2026: an inquiry of a demo customer is demo too.
   if new.entity is distinct from 'zz_demo' and (
        coalesce(new.dropbox_path, '') ~* 'zz[ _-]?demo' or coalesce(new.path, '') ~* 'zz[ _-]?demo'
        or (new.entity = 'supplier' and exists (select 1 from public.leads l where l.id::text = new.entity_id and l.is_demo))
-       or (new.entity = 'customer' and exists (select 1 from public.customers c where c.id::text = new.entity_id and c.is_demo))) then
-    return null;
+       or (new.entity = 'customer' and exists (select 1 from public.customers c where c.id::text = new.entity_id and c.is_demo))
+       or (new.entity = 'inquiry' and new.entity_id ~ v_uuid and exists (
+             select 1 from public.inquiries i join public.customers c on c.id = i.customer_id
+              where i.id = new.entity_id::uuid and c.is_demo))) then
+    -- A TAGGED SANDBOX RUN (fn_backup_sandbox_enqueue sets qd.backup_sandbox for its own transaction)
+    -- admits the demo documents that carry its tag, re-rooted under _sandbox/<tag>/; every other demo
+    -- row is dropped exactly as before.
+    if v_tag is null or v_tag !~ '^[A-Za-z0-9-]{6,40}$'
+       or position(lower(v_tag) in lower(coalesce(new.dropbox_path, '') || ' ' || coalesce(new.path, ''))) = 0
+       or coalesce(new.dropbox_path, '') !~ '^/QuotesDone Backup/' then
+      return null;
+    end if;
+    v_sandbox := true;
+    v_kp := 'SBX:' || v_tag || ':';
+    v_root := '/QuotesDone Backup/_sandbox/' || v_tag;
+    new.dropbox_path := v_root || substr(new.dropbox_path, length('/QuotesDone Backup') + 1);
+    new.dedupe_key := v_kp || coalesce(new.dedupe_key, '');
   end if;
+
+  -- ONE FOLDER PER ENTITY. The first file of a supplier, a customer or a request decides its folder
+  -- (the Company Details, Customer Details and Inquiry Summary rows are queued for every entity and
+  -- never re-queued); every later file is filed beside it, whatever the name, category or status reads
+  -- now. Each anchor is one lookup on the unique dedupe key.
+  v_id := substring(new.dropbox_path from '^' || v_root || '/Suppliers/[^/]+/[^/]* \((\d+)\)/');
+  if v_id is not null then
+    select substring(d.dropbox_path from '^(' || v_root || '/Suppliers/[^/]+/[^/]* \(' || v_id || '\)/)') into v_anchor
+      from public.doc_backups d where d.dedupe_key = v_kp || 'S:' || v_id || ':details';
+    -- 12 Oct 2026 (review): a first folder opened before the name was known reads 'Supplier (<id>)'
+    -- (fn_enqueue_doc_backups writes coalesce(company_name, 'Supplier')); it never wins over the name.
+    if v_anchor is not null and v_anchor !~ ('/Supplier \(' || v_id || '\)/$') then
+      new.dropbox_path := v_anchor || substring(new.dropbox_path from '^' || v_root || '/Suppliers/[^/]+/[^/]* \(' || v_id || '\)/(.*)$');
+    end if;
+  elsif new.dropbox_path ~ ('^' || v_root || '/Customers/[^/]+/') then
+    v_cust := case
+      when new.entity = 'customer' then new.entity_id
+      when new.entity = 'inquiry' and new.entity_id ~ v_uuid then
+        (select i.customer_id::text from public.inquiries i where i.id = new.entity_id::uuid) end;
+    if v_cust is not null then
+      -- 12 Oct 2026 (review): the CUSTOMER folder is the NAMED one. A customer whose first file was filed
+      -- before the name was saved sits in 'Customer (<id8>)' (coalesce(full_name, 'Customer')); anchoring
+      -- on that put every later file there and lost the name. The first folder wins only when it carries
+      -- a name; otherwise the current name does. (Files already in a 'Customer (<id8>)' folder are refiled
+      -- under the name by scripts/it/dropbox_tree_repair.ts, held for the founder's OK.)
+      select substring(d.dropbox_path from '^(' || v_root || '/Customers/[^/]+/)') into v_anchor
+        from public.doc_backups d where d.dedupe_key = v_kp || 'C:' || v_cust || ':details';
+      if v_anchor is not null and v_anchor !~ '/Customer \([0-9a-f]{8}\)/$' then
+        new.dropbox_path := v_anchor || substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/(.*)$');
+      end if;
+      v_inq8 := substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/\d{4}-\d{2}-\d{2} ([0-9a-f]{8})[^/]*/');
+      if v_inq8 is not null and v_cust ~ v_uuid then
+        v_inq := case when new.entity = 'inquiry' then new.entity_id else
+          (select i.id::text from public.inquiries i
+            where i.customer_id = v_cust::uuid and left(i.id::text, 8) = v_inq8 order by i.created_at limit 1) end;
+        v_anchor := null;
+        -- the request's own subfolder (date, id, first status) comes from its first file; the customer
+        -- folder above it is the one decided just above (the named one)
+        select substring(d.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/([^/]+)/') into v_anchor
+          from public.doc_backups d where d.dedupe_key = v_kp || 'I:' || v_inq || ':summary';
+        if v_anchor is not null then
+          new.dropbox_path := substring(new.dropbox_path from '^(' || v_root || '/Customers/[^/]+/Inquiries/)') || v_anchor || '/'
+            || substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/[^/]+/(.*)$');
+        end if;
+      end if;
+    end if;
+  end if;
+
   if new.source = 'storage' and new.status = 'pending'
      and not exists (select 1 from storage.objects o where o.bucket_id = new.bucket and o.name = new.path) then
     new.status := 'waiting_source';
     new.error := left('waiting: storage holds no object at ' || coalesce(new.bucket, '?') || '/' || coalesce(new.path, '?'), 300);
+  end if;
+  if v_sandbox then
+    new.entity_id := new.entity || ':' || new.entity_id;
+    new.entity := 'zz_demo';
   end if;
   return new;
 end $function$

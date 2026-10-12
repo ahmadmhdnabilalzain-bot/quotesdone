@@ -8696,6 +8696,23 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_conversation_archive_pending_sandbox(p_tag text, p_limit integer DEFAULT 5)
+ RETURNS SETOF v_conversation_message
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select v.* from public.v_conversation_message v
+   where coalesce(p_tag, '') ~ '^[A-Za-z0-9-]{6,40}$'
+     and v.subject ilike '%' || p_tag || '%'
+     and v.is_demo
+     and not exists (select 1 from public.conversation_archive a
+                      where a.source_table = v.source_table and a.source_id = v.source_id)
+   order by v.occurred_at
+   limit greatest(1, least(coalesce(p_limit, 5), 25));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_conversation_archived(p_source_table text, p_source_id text, p_path text, p_bytes bigint)
  RETURNS jsonb
  LANGUAGE plpgsql

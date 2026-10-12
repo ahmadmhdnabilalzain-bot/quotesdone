@@ -1591,6 +1591,43 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_backup_listing_expected(p_root text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_array(d.id, d.dropbox_path, d.dropbox_content_hash, d.status) order by d.id), '[]'::jsonb)
+    from public.doc_backups d
+   where coalesce(p_root, '') ~ '^/QuotesDone Backup/[^/]'
+     and starts_with(lower(d.dropbox_path), lower(p_root) || '/')
+     and (d.entity = 'zz_demo') = starts_with(p_root, '/QuotesDone Backup/_sandbox/');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_listing_record(p_summary jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_bad integer := coalesce((p_summary->>'missing')::int, 0) + coalesce((p_summary->>'changed')::int, 0)
+                       + coalesce((p_summary->>'unlisted_roots')::int, 0);
+        v_status text;
+begin
+  v_status := case when v_bad > 0 then 'warn' else 'ok' end;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('it_engineer', v_status, jsonb_build_object('job', 'dropbox_listing_check') || coalesce(p_summary, '{}'::jsonb),
+          left('IT engineer Dropbox listing check: ' || coalesce(p_summary->>'expected', '0') || ' backed-up files expected, '
+               || coalesce(p_summary->>'listed', '0') || ' listed in Dropbox, ' || coalesce(p_summary->>'missing', '0') || ' missing ('
+               || coalesce(p_summary->>'confirmed_missing', '0') || ' confirmed one by one), ' || coalesce(p_summary->>'changed', '0')
+               || ' changed, ' || coalesce(p_summary->>'stray', '0') || ' in Dropbox with no record, '
+               || coalesce(p_summary->>'unlisted_roots', '0') || ' folder(s) not listed in time.', 500),
+          now(), now());
+  return jsonb_build_object('status', v_status);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_backup_recheck()
  RETURNS jsonb
  LANGUAGE plpgsql

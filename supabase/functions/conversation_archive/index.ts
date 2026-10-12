@@ -44,8 +44,12 @@ const addr = (v: unknown): string => { const s = Array.isArray(v) ? String(v[0] 
 // slices of the same oldest-first list (offset 0 takes rows 1-4, offset 4 rows 5-8 ...). A row that
 // is archived between two reads can shift a slice by one; the record is an upsert, so the worst case
 // is one message drawn twice, never one skipped.
-async function sweep(limit: number, offset = 0) {
-  const { data, error } = await admin.rpc('fn_conversation_archive_pending', { p_limit: offset + limit });
+// tag: a TAGGED SANDBOX RUN renders the ZZ DEMO messages carrying that tag in their subject
+// (fn_conversation_archive_pending_sandbox); the scheduled sweep never takes a demo message.
+async function sweep(limit: number, offset = 0, tag?: string) {
+  const { data, error } = tag
+    ? await admin.rpc('fn_conversation_archive_pending_sandbox', { p_tag: tag, p_limit: offset + limit })
+    : await admin.rpc('fn_conversation_archive_pending', { p_limit: offset + limit });
   if (error) return { ok: false, stage: 'pending', error: error.message };
   const rows = ((data || []) as ConversationRow[]).slice(offset);
   const identity = rows.length ? await docIdentity(admin) : undefined;
@@ -160,6 +164,11 @@ Deno.serve(observe('conversation_archive', async (req) => {
       const bf = await resendBackfill();
       const sw = await sweep(limit);
       return J({ backfill: bf, sweep: sw });
+    }
+    if (body.action === 'sandbox') {
+      const tag = String(body.tag || '');
+      if (!/^[A-Za-z0-9-]{6,40}$/.test(tag)) return J({ error: 'bad_tag' }, 400);
+      return J(await sweep(limit, 0, tag));
     }
     return J(await sweep(limit, offset));
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
