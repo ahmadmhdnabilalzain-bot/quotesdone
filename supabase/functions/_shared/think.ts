@@ -278,7 +278,7 @@ Return ONE JSON object:
  "high_stakes":<true if the answer states a legal or regulatory limit, money, or safety>,
  "trade":"<the ONE trade the question is about, as a lowercase taxonomy code (e.g. hvac, plumbing, glazing), or null when it is about no single trade>",
  "kind":"<what the question asks for, one of: ${ENTRY_KINDS.join(', ')}; or null>"}
-At most ${MAX_STEPS} steps. Fill a fact's value ONLY from what you were given; never guess it.`;
+At most ${MAX_STEPS} steps and 4 facts; keep every string short and in English (the whole object must fit in 600 tokens). Fill a fact's value ONLY from what you were given; never guess it.`;
 }
 
 export function synthesisPrompt(seat: Seat, audience: string, language: string, decision?: DecisionSpec, route?: { id: string; meaning: string }[], allowDecline = false): string {
@@ -411,7 +411,16 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
       JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
       { taskClass: taskClassFor('decompose', audience, deciding), seat: req.seat, max: 900 });
-  const plan = parseJson<{ steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean; trade?: string | null; kind?: string | null }>(d0.content);
+  type Plan = { steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean; trade?: string | null; kind?: string | null };
+  let plan = parseJson<Plan>(d0.content);
+  // A PLAN CUT OFF AT THE OUTPUT CAP IS STILL A MODEL THAT ANSWERED (customer_support, 12 Oct 2026). Measured on
+  // production (ai_cost_log 17:30Z, 17:38Z): an Arabic portal question with the customer's profile made the planner
+  // write 900 tokens, the gateway's cap; the JSON was truncated and the whole reply fell to "could not read your
+  // account". The plan only narrows retrieval, so a model that wrote one still answers, from one step on the question.
+  if ((!plan || !Array.isArray(plan.steps)) && String(d0.content ?? '').trim()) {
+    plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [] };
+    steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: 'unparseable plan; one-step plan used' });
+  }
   if (!plan || !Array.isArray(plan.steps)) {
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error ?? 'no plan' });
     return await hold(/circuit_open|open-circuit|founder_hold/.test(String(d0.error ?? '')) ? 'model_hold' : 'model_failed: decompose', {});
