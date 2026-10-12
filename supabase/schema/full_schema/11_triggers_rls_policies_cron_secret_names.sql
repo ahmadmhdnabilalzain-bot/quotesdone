@@ -709,6 +709,8 @@ ALTER TABLE public.knowledge_ml_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_module_standard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_vector_ml ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_category ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_prospect ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_sourcing_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_subcategory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_trade_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_trade_map ENABLE ROW LEVEL SECURITY;
@@ -1180,6 +1182,8 @@ CREATE POLICY kb_trim_plan_service_role_only ON public.kb_trim_plan AS PERMISSIV
 CREATE POLICY knowledge_ml_claim_service_role_only ON public.knowledge_ml_claim AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_ml_status_service_role_only ON public.knowledge_ml_status AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_vector_ml_service_role_only ON public.knowledge_vector_ml AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY lead_prospect_service_role_only ON public.lead_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY lead_sourcing_run_service_role_only ON public.lead_sourcing_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY lead_trade_class_service_role_only ON public.lead_trade_class AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY line_spec_reading_service_role_only ON public.line_spec_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1345,6 +1349,7 @@ select cron.schedule('inquiry_conversation_summary_daily','40 23 * * *',$CRON$se
 select cron.schedule('conversation_retention_daily','20 23 * * *',$CRON$select public.fn_conversation_retention_purge(500);$CRON$);
 select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_pdpl_tick();$CRON$);
 select cron.schedule('unfinished_signup_purge','*/5 * * * *',$CRON$select public.fn_unfinished_signup_purge(true)$CRON$);
+select cron.schedule('lead_sourcing_batch','*/10 * * * *',$CRON$select public.fn_lead_sourcing_kick();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1526,6 +1531,10 @@ select cron.schedule('unfinished_signup_purge','*/5 * * * *',$CRON$select public
 --   job_eligibility_note
 --   lead_reclassify_cost_estimate
 --   lead_reclassify_daily_cap
+--   lead_sourcing_daily_llm_usd
+--   lead_sourcing_daily_quota
+--   lead_sourcing_daily_serper_usd
+--   lead_sourcing_usd_per_credit
 --   marketing_golive
 --   marketing_publishing_enabled
 --   meta_access_token
