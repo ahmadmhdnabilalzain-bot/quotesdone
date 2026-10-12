@@ -121,7 +121,10 @@ async function roleConflict(kind: string, email: string): Promise<'supplier' | '
   return null;
 }
 async function uidByEmail(email: string): Promise<string | null> { try { const { data } = await admin.rpc('auth_uid_by_email', { p_email: email }); return (data as string) || null; } catch { return null; } }
-async function ensureUser(email: string) { let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
+// A USER IS CREATED OR CONFIRMED ONLY ON A PROVEN EMAIL (13 Oct 2026, security review). createUser sets
+// email_confirm: true, so the caller must say the address is proven; both callers reach here only after an
+// email code (verify) or a phone code on a row whose phone AND email are verified.
+async function ensureUser(email: string, emailProven: boolean) { if (!emailProven) return null; let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
 // SIGN-IN NEVER BORROWS THE SYSTEM'S DATABASE CLIENT (15 Sep 2026). verifyOtp stores the session
 // it gets back on the client it ran on, and supabase-js then sends that session's token on every
 // later database call from that client. This ran on `admin`, so from the first verify onwards the
@@ -137,10 +140,11 @@ async function ensureUser(email: string) { let uid = await uidByEmail(email); if
 // a supplier or customer session, and a third caller written next year inherits the refusal for
 // free. It is asked of public.sanctions_ban, not of leads.banned: a supplier banned for unpaid dues
 // must still be able to sign in and pay them.
-async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
+async function mintSession(email: string, emailProven: boolean): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
   try {
     if (await sanctionedEmail(admin, email)) return 'sanctioned';
-    await ensureUser(email);
+    if (!emailProven) return null;
+    await ensureUser(email, emailProven);
     const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
     const th = (data as any)?.properties?.hashed_token; if (!th) return null;
     const once = createClient(SB_URL, SB_SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -182,14 +186,18 @@ async function resolveAdminEmailByPhone(e164: string): Promise<string | null> {
 // see the comment on the column. The consequence of allowing it to repeat is that a phone may
 // only ever CONFIRM an identity, never SELECT one: if a number maps to more than one account we
 // refuse and ask for the email rather than guess which person is holding the handset.
+// A PHONE MATCHES ONLY A ROW WHOSE PHONE AND EMAIL ARE BOTH VERIFIED (13 Oct 2026, security review).
+// kyc save_customer stores an unverified number and a supplier claim keeps the scraped leads.phone, so
+// anyone could put a victim's number on their own account and capture or lock out the victim's phone
+// sign-in. otherRoleByPhone applies the same rule.
 type PhoneOwner = { email: string } | { ambiguous: true } | null;
 async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwner> {
   if (kind === 'admin') { const e = await resolveAdminEmailByPhone(e164); return e ? { email: e } : null; }
   const last9 = e164.replace(/\D/g, '').slice(-9);
   const col = kind === 'supplier' ? 'claimed_by' : 'email';
   const q = kind === 'supplier'
-    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(5)
-    : admin.from('customers').select('email').not('email', 'is', null).ilike('phone', '%' + last9).limit(5);
+    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).ilike('phone', '%' + last9).limit(5)
+    : admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).ilike('phone', '%' + last9).limit(5);
   const { data } = await q;
   const owners = [...new Set((data || []).map((r: any) => String(r[col] || '').trim().toLowerCase()).filter(Boolean))];
   if (owners.length > 1) return { ambiguous: true };
@@ -204,8 +212,8 @@ async function otherRoleByPhone(kind: string, e164: string): Promise<'supplier' 
   const last9 = e164.replace(/\D/g, '').slice(-9);
   if (last9.length < 9) return null;
   const { data } = kind === 'customer'
-    ? await admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(1)
-    : await admin.from('customers').select('email').not('email', 'is', null).ilike('phone', '%' + last9).limit(1);
+    ? await admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).ilike('phone', '%' + last9).limit(1)
+    : await admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).ilike('phone', '%' + last9).limit(1);
   return data && data.length ? (kind === 'customer' ? 'supplier' : 'customer') : null;
 }
 const ROLE_CONFLICT_MSG = { supplier: 'This mobile number is registered to a supplier account. Please use the Supplier portal to sign in.', customer: 'This mobile number is registered to a customer account. Please use the customer app to sign in.' };
@@ -499,7 +507,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
         // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
         // into the else and ran an UPDATE on leads.claimed_by for the admin address.
-        const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+        const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.', code: 'bad_mobile' }, 400);
@@ -528,7 +536,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.', code: 'no_account_for_number' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);
-      const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+      const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
       return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
     }
 
