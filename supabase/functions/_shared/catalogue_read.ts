@@ -52,7 +52,10 @@ const YES_NO = /(?<![\p{L}])(?:yes|no|n\/a|نعم|لا)(?![\p{L}])\s*$|(?<![\p{L
 const MODEL_LABEL = /\bmodel\s*(?:no|number|#)|رقم\s*الموديل|موديل\s*رقم/i;
 const CONTACT = /\b(?:tel|fax|mob|mobile|phone|p\.?\s?o\.?\s?box|e-?mail|l\.?l\.?c|fze|fzco|fz-llc|dmcc)\b|@|www\.|https?:|هاتف|فاكس|ص\s?\.?\s?ب|ذ\s?\.?\s?م\s?\.?\s?م|بريد/i;
 const ADDRESS = /\b(?:bldg|building|road|street|st|floor|shops?|office|warehouse|plot|area|zone)\b/i;
-const PERSON = /(?<![\p{L}])(?:we|our|ours|us|you|your|yours|they|their|i|it's|نحن|لدينا|نقدم|نقوم|نوفر|لكم|لك)(?![\p{L}])/iu;
+/** An address, phone, e-mail, web or legal-entity line ("ZZ DEMO Falcon Cleaning LLC"): it says who and where, never
+ *  what the company does. trade_resolve.tradesOfText drops it too (12 Oct 2026). */
+export const isContactLine = (line: string): boolean => CONTACT.test(line) || (/\d/.test(line) && ADDRESS.test(line));
+const PERSON =/(?<![\p{L}])(?:we|our|ours|us|you|your|yours|they|their|i|it's|نحن|لدينا|نقدم|نقوم|نوفر|لكم|لك)(?![\p{L}])/iu;
 const TYPE_CELL = /(?<![\p{L}])(?:type|النوع)\s+(.+?)(?=\s+(?:type|النوع|model|features?|functions?|capacity|sizes?|colou?r|speed|display|compatible|input|output|lens|package)\b|$)/giu;
 const TYPE_LABEL = /^(?:type|النوع)\s+\S/iu;   // a row that starts with a "Type" cell is a table row
 
@@ -88,7 +91,7 @@ export function catalogueLines(text: string): CatalogueLines {
   for (const raw of String(text ?? '').slice(0, CATALOGUE_MAX_TEXT).split(/\r?\n/)) {
     const line = raw.replace(/[\s]+/g, ' ').replace(/^[\s•·▪●◦*–—-]+/, '').trim();
     if (line.length < 2) continue;
-    if (CONTACT.test(line) || (/\d/.test(line) && ADDRESS.test(line))) { r.contact_rows++; continue; }
+    if (isContactLine(line)) { r.contact_rows++; continue; }
     if (isSpecRow(line)) { r.spec_rows++; r.types.push(...typeValues(line)); continue; }
     if (PERSON.test(line) || line.split(' ').length > MAX_HEADING_WORDS || /[.!?]\s+\S/.test(line)) { r.statements.push(line); continue; }
     r.headings.push(line);
