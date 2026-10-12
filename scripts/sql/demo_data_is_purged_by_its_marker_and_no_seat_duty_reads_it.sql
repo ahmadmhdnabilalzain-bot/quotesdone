@@ -151,6 +151,7 @@ as $fn$ select array[
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl A (ae8d1a34)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl B (05540815)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad (27cbbc0a)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test (70f15bc3)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test 2 (a6d900ab)',
   '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmadsw (84a808ec)',
@@ -246,6 +247,17 @@ create or replace function public.fn_demo_purge_confirmed_logins()
  returns text[] language sql immutable set search_path to 'pg_catalog', 'pg_temp'
 as $fn$ select array['ahmadmhdnabilalzain+qdprobe1@gmail.com', 'ahmadmhdnabilalzain+qdcust1@gmail.com']::text[] $fn$;
 revoke execute on function public.fn_demo_purge_confirmed_logins() from public, anon, authenticated;
+
+-- an address column is purged when it is a reserved test address OR exactly one of the confirmed logins (never a pattern)
+create or replace function public.fn_demo_purge_address(p_email text)
+ returns boolean language sql stable set search_path to 'public', 'pg_temp'
+as $fn$ select public.fn_is_demo_email(p_email) or lower(btrim(coalesce(p_email, ''))) = any(public.fn_demo_purge_confirmed_logins()) $fn$;
+revoke execute on function public.fn_demo_purge_address(text) from public, anon, authenticated;
+-- a rate-limit key holding one of the confirmed addresses verbatim
+create or replace function public.fn_demo_purge_key_has_confirmed(p_key text)
+ returns boolean language sql stable set search_path to 'public', 'pg_temp'
+as $fn$ select exists (select 1 from unnest(public.fn_demo_purge_confirmed_logins()) a where position(a in lower(coalesce(p_key, ''))) > 0) $fn$;
+revoke execute on function public.fn_demo_purge_key_has_confirmed(text) from public, anon, authenticated;
 
 create or replace function public.fn_demo_purge_real_counts()
  returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp'
@@ -375,16 +387,16 @@ begin
     ('public.doc_versions', 'entity_type in (''quote'',''rfq'',''inquiry'',''customer'',''lead'',''supplier'',''transaction'') and entity_id in (select k from _dk)'),
     ('public.documents', 'ref_table in (''inquiries'',''quotes'',''leads'',''customers'',''transactions'') and ref_id in (select k from _dk)'),
     ('public.quote_items', 'quote_id in (select id::text from _dq)'),
-    ('public.notifications', 'public.fn_is_demo_email(to_email) or public.fn_is_demo_phone(to_phone) or lead_id in (select id from _dl) or inquiry_id in (select id from _di) or quote_id in (select id from _dq)'),
-    ('public.email_verifications', 'public.fn_is_demo_email(email)'),
-    ('public.phone_verifications', 'public.fn_is_demo_email(email) or public.fn_is_demo_phone(phone)'),
-    ('public.inquiry_intake', 'customer_id in (select id from _dc) or public.fn_is_demo_email(email)'),
-    ('public.drawing_redaction_runs', 'customer_id in (select id from _dc) or public.fn_is_demo_email(owner_email)'),
-    ('public.cad_read_jobs', 'customer_id in (select id from _dc) or public.fn_is_demo_email(owner_email)'),
+    ('public.notifications', 'public.fn_demo_purge_address(to_email) or public.fn_is_demo_phone(to_phone) or lead_id in (select id from _dl) or inquiry_id in (select id from _di) or quote_id in (select id from _dq)'),
+    ('public.email_verifications', 'public.fn_demo_purge_address(email)'),
+    ('public.phone_verifications', 'public.fn_demo_purge_address(email) or public.fn_is_demo_phone(phone)'),
+    ('public.inquiry_intake', 'customer_id in (select id from _dc) or public.fn_demo_purge_address(email)'),
+    ('public.drawing_redaction_runs', 'customer_id in (select id from _dc) or public.fn_demo_purge_address(owner_email)'),
+    ('public.cad_read_jobs', 'customer_id in (select id from _dc) or public.fn_demo_purge_address(owner_email)'),
     ('public.support_case', 'public.fn_party_is_demo(party_kind, party_id)'),
-    ('public.support_customer_profile', 'customer_id in (select id from _dc) or lead_id in (select id from _dl) or public.fn_is_demo_email(email)'),
-    ('public.customer_support_duty_message', 'customer_id in (select id from _dc) or lead_id in (select id from _dl) or public.fn_is_demo_email(to_email)'),
-    ('public.quote_reviews', 'inquiry_id in (select id from _di) or supplier_id in (select id from _dl) or public.fn_is_demo_email(owner_email)'),
+    ('public.support_customer_profile', 'customer_id in (select id from _dc) or lead_id in (select id from _dl) or public.fn_demo_purge_address(email)'),
+    ('public.customer_support_duty_message', 'customer_id in (select id from _dc) or lead_id in (select id from _dl) or public.fn_demo_purge_address(to_email)'),
+    ('public.quote_reviews', 'inquiry_id in (select id from _di) or supplier_id in (select id from _dl) or public.fn_demo_purge_address(owner_email)'),
     ('public.quote_spec_hold', 'quote_id in (select id from _dq) or inquiry_id in (select id from _di) or supplier_id in (select id from _dl)'),
     ('public.supplier_score', 'lead_id in (select id from _dl)'),
     ('public.supplier_document_cache', 'supplier_id in (select id from _dl)'),
@@ -393,11 +405,11 @@ begin
     ('public.wa_inbound_seen', 'public.fn_is_demo_phone(wa_from)'),
     ('public.wa_answer_log', 'public.fn_is_demo_phone(from_phone)'),
     ('public.sms_messages', 'public.fn_is_demo_phone(sms_from) or public.fn_is_demo_phone(sms_to)'),
-    ('public.email_suppressions', 'public.fn_is_demo_email(email)'),
-    ('public.pdpl_requests', 'public.fn_is_demo_email(email)'),
-    ('public.pdpl_operator_log', 'public.fn_is_demo_email(email)'),
-    ('public.rl_hits', 'k ~* ''' || EM || ''''),
-    ('public.ai_rate_limit', 'bucket ~* ''' || EM || ''''),
+    ('public.email_suppressions', 'public.fn_demo_purge_address(email)'),
+    ('public.pdpl_requests', 'public.fn_demo_purge_address(email)'),
+    ('public.pdpl_operator_log', 'public.fn_demo_purge_address(email)'),
+    ('public.rl_hits', 'k ~* ''' || EM || ''' or public.fn_demo_purge_key_has_confirmed(k)'),
+    ('public.ai_rate_limit', 'bucket ~* ''' || EM || ''' or public.fn_demo_purge_key_has_confirmed(bucket)'),
     ('public.assistant_logs', 'user_agent ~* ''(qd-[a-z-]*probe|latency-probe)'''),
     ('public.ai_cost_log', 'e2e_run_tag is not null'),
     ('public.rehearsal_window', 'run_tag like ''qd\_run:%'''),
@@ -464,7 +476,9 @@ as $fn$
     'inquiries', (select count(*) from public.inquiries i where public.fn_inquiry_is_demo(i.id)),
     'auth_users', (select count(*) from auth.users u where public.fn_is_demo_email(u.email) or public.fn_is_demo_phone(u.phone)
                      or lower(coalesce(u.email, '')) = any(public.fn_demo_purge_confirmed_logins())),
-    'notifications', (select count(*) from public.notifications where public.fn_is_demo_email(to_email) or public.fn_is_demo_phone(to_phone)),
+    'notifications', (select count(*) from public.notifications where public.fn_demo_purge_address(to_email) or public.fn_is_demo_phone(to_phone)),
+    'confirmed_alias_leftovers', (select count(*) from public.email_verifications where public.fn_demo_purge_address(email))
+                               + (select count(*) from public.phone_verifications where public.fn_demo_purge_address(email)),
     'ai_cost_log_tagged', (select count(*) from public.ai_cost_log where e2e_run_tag is not null),
     'rehearsal_windows', (select count(*) from public.rehearsal_window where run_tag like 'qd\_run:%'),
     'doc_backups', (select count(*) from public.doc_backups where entity = 'zz_demo' or dedupe_key like 'SBX:%'),

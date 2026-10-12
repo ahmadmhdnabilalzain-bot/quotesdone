@@ -23,7 +23,7 @@ Deno.test('the demo purge deletes only a frozen, reviewed path (or inside one) a
   // every case below runs against the REAL frozen list the edge function ships, never a test-only list
   const shipped = JSON.parse(await Deno.readTextFile(new URL('./demo_purge_paths.json', import.meta.url))).paths;
   assertEquals([...DEMO_PURGE_PATHS], shipped);
-  assertEquals(shipped.length, 81);
+  assertEquals(shipped.length, 82);
   for (const p of DEMO_PURGE_PATHS) {
     assertEquals(demoPurgeDeleteAllowed(p), true, p);
     assertEquals(demoPurgeDeleteAllowed(p + '/Inquiries/x.pdf'), true, p + '/...');
@@ -39,8 +39,6 @@ Deno.test('the demo purge deletes only a frozen, reviewed path (or inside one) a
     '/QuotesDone Backup/_archive/superseded-tnc-2026-10-12/Customers/Umarah Nabi (ba61fa16)',
     // held until the founder answers (coordinator, 13 Oct 2026): real-looking names, never on the list
     '/QuotesDone Backup/Customers/TIWNKLE SHARMA', '/QuotesDone Backup/Customers/TIWNKLE SHARMA/Signed-Terms-Acceptance.pdf',
-    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)',
-    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)/Customer Details.pdf',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/TIWNKLE SHARMA (ca038493)',
     '/QuotesDone Backup/_archive/ownerless-2026-10-12', '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12',   // never a whole set
     // held for the founder, or a row matches (release review of 45c56ba)

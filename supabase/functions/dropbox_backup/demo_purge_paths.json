@@ -1,5 +1,5 @@
 {
-  "ruling": "founder ruling 1199 (12 Oct 2026): all test/demo data deleted once and for all. The ONLY Dropbox paths the demo purge may delete (each with everything inside it), besides the _sandbox/ and _selftest/ probe roots. Frozen 13 Oct 2026 from a live Dropbox walk; every path proved row by row: its id suffix and name match 0 customers, 0 leads and 0 auth.users (by id and by e-mail); the table is on PR #1348. The two _archive sets (#1284) are listed folder by folder, never whole (coordinator's instruction under ruling 1199, deliberately reversing the earlier \"never _archive\" rule for these two sets only). The founder confirmed as TEST (ruling 1210/1214): the ahmad, ahmad test, ahmad test 2, ahmadsw, Ahmad Nabil Al Zain and Bara Al Zain folders. Kept, never listed: his real account 0dc8c94f (\"ahmad alzain\", \"ahmad alzain (0dc8c94f)\"), ahmad alzain (95e4345e), dj zaino, TIWNKLE SHARMA, younis. Dropped: any path a row matches, and the Storage tree. _archive/superseded-tnc-2026-10-12 is never listed.",
+  "ruling": "founder ruling 1199 (12 Oct 2026): all test/demo data deleted once and for all. The ONLY Dropbox paths the demo purge may delete (each with everything inside it), besides the _sandbox/ and _selftest/ probe roots. Frozen 13 Oct 2026 from a live Dropbox walk; every path proved row by row: its id suffix and name match 0 customers, 0 leads and 0 auth.users (by id and by e-mail); the table is on PR #1348. The two _archive sets (#1284) are listed folder by folder, never whole (coordinator's instruction under ruling 1199, deliberately reversing the earlier \"never _archive\" rule for these two sets only). The founder confirmed as TEST (ruling 1210/1214): the ahmad, ahmad test, ahmad test 2, ahmadsw, Ahmad Nabil Al Zain and Bara Al Zain folders and the archived ahmad alzain (95e4345e) (ruling 1214). Kept, never listed: his real account 0dc8c94f (\"ahmad alzain\", \"ahmad alzain (0dc8c94f)\"), dj zaino, TIWNKLE SHARMA, younis. Dropped: any path a row matches, and the Storage tree. _archive/superseded-tnc-2026-10-12 is never listed.",
   "paths": [
     "/QuotesDone Backup/Customers/Ahmad Nabil Al Zain",
     "/QuotesDone Backup/Customers/QA Journey Tester",
@@ -40,6 +40,7 @@
     "/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl A (ae8d1a34)",
     "/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl B (05540815)",
     "/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad (27cbbc0a)",
+    "/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)",
     "/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test (70f15bc3)",
     "/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test 2 (a6d900ab)",
     "/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmadsw (84a808ec)",
