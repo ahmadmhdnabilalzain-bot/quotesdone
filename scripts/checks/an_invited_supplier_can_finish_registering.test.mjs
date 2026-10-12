@@ -53,3 +53,10 @@ test('a supplier who owes nothing does not trigger the whole-book interest recom
 test('the establishment card is not called a green-building certificate', () => {
   assert.doesNotMatch(SRC, /Emirates Green Building|المباني الخضراء/);
 });
+
+// 3. THE KYC RACE (run 71b75b60, en/mobile): Save pressed before the kyc state read resolved saw phoneVerified=false,
+//    refused "missing mobile" in 36 ms and sent nothing. Save stays disabled until that read has answered.
+test('Save waits for the kyc state read', () => {
+  assert.match(code, /\.finally\(\(\) => setKycRead\(true\)\)/);
+  assert.match(code, /disabled=\{busy \|\| uploading \|\| !kycRead\} onClick=\{save\}/);
+});
