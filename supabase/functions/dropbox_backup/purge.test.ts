@@ -33,6 +33,14 @@ Deno.test('the demo purge deletes only a frozen, reviewed path (or inside one) a
     '/QuotesDone Backup/Customers/ZZ DEMO Customer 1 (abcdef12)',          // a marker name alone is not on the list
     '/QuotesDone Backup/Customers/ahmad alzain', '/QuotesDone Backup/Customers/Umarah Nabi (ba61fa16)',
     '/QuotesDone Backup/_archive/superseded-tnc-2026-10-12/Customers/Umarah Nabi (ba61fa16)',
+    // held until the founder answers (coordinator, 13 Oct 2026): real-looking names, never on the list
+    '/QuotesDone Backup/Customers/Ahmad Nabil Al Zain', '/QuotesDone Backup/Customers/Ahmad Nabil Al Zain/Signed-Terms-Acceptance.pdf',
+    '/QuotesDone Backup/Customers/TIWNKLE SHARMA', '/QuotesDone Backup/Customers/TIWNKLE SHARMA/Signed-Terms-Acceptance.pdf',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)/Customer Details.pdf',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Ahmad Nabil Al Zain (dbb4e36f)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/TIWNKLE SHARMA (ca038493)',
+    '/QuotesDone Backup/_archive/ownerless-2026-10-12', '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12',   // never a whole set
     '/QuotesDone Backup/Customers/ahmad test 3', '/QuotesDone Backup/Customers/ahmad test 2x',    // a prefix is not the folder
     '/QuotesDone Backup/Customers', '/QuotesDone Backup/_archive', '/QuotesDone Backup/_sandbox',
     '/QuotesDone Backup/Customers/ahmad test/../ahmad alzain/a.pdf', '/QuotesDone Backup//Customers/ahmad test',
