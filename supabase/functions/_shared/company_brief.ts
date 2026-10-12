@@ -53,9 +53,13 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: '
   const key = lang + ':' + fnv1a([facts, ...blocks].join('\u0001'));
   const hit = cache.get(key);
   if (hit && now - hit.at < BRIEF_TTL_MS) return hit.brief;
-  let company = '';
-  try { const { data } = await rpc('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }); company = String((data as { block?: string } | null)?.block || ''); } catch (_e) { company = ''; }
-  const brief = composeBrief({ company, facts, faqs, lang, blocks });
+  // The company block and the PUBLISHED PRICE GUIDE (fn_price_brief: every price_benchmark range, read live), together.
+  // A failed read leaves that part out; the figure check then accepts none of its numbers, which is the safe side.
+  const read = async (fn: string, args: Record<string, unknown>) => { try { return (await rpc(fn, args)).data; } catch (_e) { return null; } };
+  const [cc, pb] = await Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})]);
+  const company = String((cc as { block?: string } | null)?.block || '');
+  const prices = typeof pb === 'string' ? pb : '';
+  const brief = composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks].filter(Boolean) });
   cache.set(key, { at: now, brief });
   return brief;
 }
