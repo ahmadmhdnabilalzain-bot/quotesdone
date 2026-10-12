@@ -79,6 +79,8 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { readFileSync } from 'node:fs';
+import { pendingNotes } from '../lib/pending_sql.mjs';
 
 // THE SKIP IS node:test's OWN, not a top-level process.exit(0). Exiting before any test registers
 // makes `node --test` report a file with ZERO tests, and a runner that reads that as success is how
@@ -122,7 +124,8 @@ const ANON_CEILING = 0;
 // with the whole Phase A-D programme. Both existed to let the FOUNDER approve something from his own
 // browser; the founder approves nothing now -- every approval is the CEO's -- so neither the routines
 // nor their grants have a caller left. What remains is the two customer-document routines.
-const AUTHENTICATED_CEILING = 5;
+const AUTHENTICATED_CEILING = 6;
+// 7 Oct 2026: 5 -> 6, pdpl_status_me (#1273): reads the caller's own open requests; same address rule.
 // 6 Oct 2026: 2 -> 5, the three PDPL self-service routines of #1237 (pdpl_request_me, pdpl_confirm_me,
 // pdpl_cancel_me). Reviewed per function below: each takes NO identity argument; the address is
 // fn_pdpl_my_verified_email(), i.e. auth.jwt() email AND that account's email_verified flag, so a signed-in
@@ -149,6 +152,8 @@ const AUTHENTICATED_BY_DESIGN = {
     'PDPL self-service: confirms the caller\'s own request with the emailed code; address from fn_pdpl_my_verified_email()',
   pdpl_cancel_me:
     'PDPL self-service: cancels the caller\'s own request inside the cooling-off; address from fn_pdpl_my_verified_email()',
+  pdpl_status_me:
+    'PDPL self-service: lists the caller\'s own open requests (state, date, holds; no code, no export); address from fn_pdpl_my_verified_email()',
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
@@ -239,20 +244,35 @@ test('no SECURITY DEFINER routine in public is anon-executable', { skip: SKIP },
   assert.equal(Number(totals.anon_exec), ANON_CEILING, `anon-executable count is ${totals.anon_exec}, not ${ANON_CEILING}`);
 });
 
+// A REVIEWED ROUTINE THAT IS COMMITTED BUT NOT YET APPLIED (7 Oct 2026, #1273). Its file waits in
+// scripts/sql/pending/ (pending_sql.mjs, the convention every check reads) and goes live at merge, so production
+// cannot hold it while its own PR runs. Such a name is excused from being PRESENT, and only that: it must be on
+// AUTHENTICATED_BY_DESIGN with its reason, declared by a pending file that is not a probe, and that file must revoke
+// it from anon. The moment it is live it is in `actual` and every rule below applies to it unchanged; a pending
+// name gives nothing to any other routine, and an unreviewed routine that opens is still a failure.
+const PENDING_REVIEWED = new Set([...pendingNotes()].filter(([, note]) => !/^\s*A PROBE\b/.test(note)).flatMap(([f]) => {
+  let t = ''; try { t = readFileSync(new URL('../../' + f, import.meta.url), 'utf8'); } catch { return []; }
+  return Object.keys(AUTHENTICATED_BY_DESIGN).filter((k) => t.includes(`function public.${k}(`)
+    && t.includes(`revoke execute on function public.${k}(`) && /from public, anon\b/.test(t.split(`revoke execute on function public.${k}(`)[1].split(';')[0]));
+}));
+
 test('exactly the customer-document and PDPL self-service routines are authenticated-executable', { skip: SKIP }, () => {
   // A count alone would stay green if one of the two closed while an unrelated routine opened, so
   // this compares the SET. Anything new here needs the same per-function review E4 did: who calls
   // it, with which client, and is it named in an RLS policy the querying role evaluates?
-  const expected = Object.keys(AUTHENTICATED_BY_DESIGN).sort();
   const actual = stillOpen.filter((r) => r.authed_can).map((r) => r.proname).sort();
+  const notYetLive = Object.keys(AUTHENTICATED_BY_DESIGN).filter((k) => PENDING_REVIEWED.has(k) && !actual.includes(k));
+  if (notYetLive.length) console.log(`      reviewed, pending, not yet live (excused from presence only): ${notYetLive.join(', ')}`);
+  const expected = Object.keys(AUTHENTICATED_BY_DESIGN).filter((k) => !notYetLive.includes(k)).sort();
   assert.deepEqual(actual, expected,
     'the authenticated-executable SECURITY DEFINER set has changed.\n'
     + `  expected: ${expected.join(', ')}\n  actual:   ${actual.join(', ') || '(none)'}\n`
     + Object.entries(AUTHENTICATED_BY_DESIGN).map(([k, v]) => `  ${k} — ${v}`).join('\n')
     + '\nA routine that DISAPPEARED from this set breaks the customer portal documents tab, and'
     + ' dropping fn_customer_document_refs makes the documents RLS policy raise instead of filter.');
-  assert.equal(Number(totals.authed_exec), AUTHENTICATED_CEILING,
-    `${totals.authed_exec} are authenticated-executable; by design it is ${AUTHENTICATED_CEILING}.`);
+  assert.equal(Number(totals.authed_exec), AUTHENTICATED_CEILING - notYetLive.length,
+    `${totals.authed_exec} are authenticated-executable; by design it is ${AUTHENTICATED_CEILING - notYetLive.length}`
+    + (notYetLive.length ? ` (${AUTHENTICATED_CEILING} once ${notYetLive.join(', ')} is applied)` : '') + '.');
 });
 
 // The bound on the 284 anon-executable SECURITY INVOKER routines. They run as their caller, so what
