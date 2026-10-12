@@ -16,7 +16,7 @@
 //   SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY QD_RUN_TAG QD_SUBJECT(json) QD_SECRET deno run -A … <corpus> <code.json> <out.json> <deployed|gateway>
 import * as DX from '../../supabase/functions/_shared/document_expiry.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { readDocForTrades } from '../../supabase/functions/_shared/supplier_doc_trades.ts';
+import { readDocForTrades, modelReadText } from '../../supabase/functions/_shared/supplier_doc_trades.ts';
 import { liveTradeDeps } from '../../supabase/functions/_shared/trade_resolve.ts';
 
 const [dir, codePath, outPath, via] = Deno.args;
@@ -78,7 +78,7 @@ for (const d of truth.docs) {
   if (via === 'gateway' && acts.length && !(c.activities || []).length) {
     deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy');
     deps.budget.left = 40;
-    const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'licence', bytes, mime: d.mime, photo_text: 'Activities: ' + acts.join(', ') }, deps);
+    const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'licence', bytes, mime: d.mime, photo_text: modelReadText('licence', acts) }, deps);
     model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();
   }
   out.push({ id: d.id, asked: true, status: res.status, ok: !!j?.ok, doc: j?.doc ?? null, model_trades, ...merge(c, j?.ok ? j.doc as Record<string, unknown> : null), error: j?.ok ? null : [j?.error, (j as { detail?: string })?.detail].filter(Boolean).join(': ').slice(0, 400) || JSON.stringify(j).slice(0, 200), ms: Date.now() - t0 });
@@ -102,7 +102,7 @@ for (const d of truth.docs) {
   if (services.length) {
     deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy');
     deps.budget.left = 40;
-    const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'profile', bytes, mime: d.mime, photo_text: services.join('\n') }, deps);
+    const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'profile', bytes, mime: d.mime, photo_text: modelReadText('profile', services) }, deps);
     model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();
   }
   out.push({ id: d.id, asked: true, ok: !!jd?.ok, profile: jd?.profile ?? null, error: jd?.ok ? null : String(jd?.error || 'no answer'), model_trades });

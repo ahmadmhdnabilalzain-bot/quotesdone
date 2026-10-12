@@ -23,7 +23,7 @@ import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
-import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
@@ -735,10 +735,8 @@ const handle = async (req: Request): Promise<Response> => {
             if (d.license_authority && !codeFields.authority) upd.license_authority = d.license_authority;
             // A scan's activities, read by the model, are read for trades exactly as a text licence's are (exact code
             // or meaning, supplier_doc_trades), and only when code read no activities line itself.
-            if (!codeFields.activities?.length && Array.isArray(d.activities) && d.activities.length) {
-              const q = readQueue.find((x) => x.kind === 'licence');
-              if (q) q.photo_text = 'Activities: ' + d.activities.map((a: unknown) => String(a)).join(', ');
-            }
+            const q = readQueue.find((x) => x.kind === 'licence');
+            if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', d.activities);
             if (d.city) upd.license_city = d.city;
             // CODE FIRST, AND THE MODEL DOES NOT OVERRULE IT (founder: "code first, LLM only where
             // code can't"). When the document itself printed a date beside an expiry keyword, that
@@ -832,7 +830,7 @@ const handle = async (req: Request): Promise<Response> => {
             if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); upd.services = xServices.join(', '); }
             // The services the model read off a picture are read for trades exactly as a text profile's lines are.
             const pq = readQueue.find((x) => x.kind === 'profile' && x.mime && /^image\//i.test(x.mime));
-            if (pq && xServices.length) pq.photo_text = xServices.join('\n');
+            if (pq) pq.photo_text = modelReadText('profile', xServices);
             if (Array.isArray(pf.products) && pf.products.length && !sup.products) upd.products = pf.products.join(', ');
             if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) upd.service_emirates = pf.emirates;
             out.profile = { summary: pf.summary, sectors: pf.sectors, confidence: pf.confidence };
