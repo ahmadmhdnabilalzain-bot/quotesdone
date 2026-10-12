@@ -2,7 +2,7 @@
 // The vision model answered a 1x1 PNG with expiry 2023-03-14 and licence number 123456 (ai_cost_log 19449);
 // these replay that answer through the exact normaliser license_extract uses and assert nothing survives.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { licenceFromGateway, normaliseLicence, placeholderLicenceNo } from './licence_extract.ts';
+import { imageDims, imagesTooSmallToRead, licenceFromGateway, normaliseLicence, placeholderLicenceNo, UNREADABLE_LICENCE } from './licence_extract.ts';
 
 const blankImageAnswer = { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '123456',
   license_authority: 'Dubai Department of Economy and Tourism', emirate: 'Dubai', city: 'Dubai', issue_date: '2022-03-15',
@@ -33,6 +33,26 @@ Deno.test("an Arabic-only licence read 'low' keeps its fields (number, expiry, A
 Deno.test("a 'low' read with only an English name, or with no name, is still unreadable", () => {
   assertNoFields(normaliseLicence({ ...arabicOnlyAnswer, legal_name: 'Invented Trading LLC', legal_name_ar: '' }));
   assertNoFields(normaliseLicence({ ...arabicOnlyAnswer, legal_name_ar: '' }));
+});
+
+// The run-3 fixture image: a 1x1 PNG. The guard decides on it BEFORE any model answer exists, so an invented
+// Arabic name, number and expiry from the model can never reach normaliseLicence for it.
+const PNG_1PX = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const pngHeader = (w: number, h: number) => { const u = new Uint8Array(24); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+  new DataView(u.buffer).setUint32(16, w); new DataView(u.buffer).setUint32(20, h); return btoa(String.fromCharCode(...u)); };
+
+Deno.test('the blank-image guard runs before the model: a 1x1 PNG is unreadable whatever a model would say', () => {
+  assertEquals(imageDims(PNG_1PX), { w: 1, h: 1 });
+  assertEquals(imagesTooSmallToRead([{ b64: PNG_1PX, mime: 'image/png' }], {}), true);
+  assertEquals(imagesTooSmallToRead([], { file_b64: PNG_1PX, mime: 'image/png' }), true);
+  assertNoFields(UNREADABLE_LICENCE());
+});
+
+Deno.test('the guard never blocks a page-sized image, a PDF, or an image whose size code cannot read', () => {
+  assertEquals(imagesTooSmallToRead([{ b64: pngHeader(1240, 1754) }], {}), false);
+  assertEquals(imagesTooSmallToRead([{ b64: PNG_1PX }, { b64: pngHeader(1240, 1754) }], {}), false);
+  assertEquals(imagesTooSmallToRead([], { file_b64: btoa('%PDF-1.7'), mime: 'application/pdf' }), false);
+  assertEquals(imagesTooSmallToRead([{ b64: btoa('GIF89a....') }], {}), false);
 });
 
 Deno.test('the gateway path answers ok with an unreadable doc for the blank-image reply', () => {

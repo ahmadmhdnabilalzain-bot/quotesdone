@@ -9,7 +9,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 // The licence request and its reading live in one module so the accuracy suite measures exactly this (7 Oct 2026).
-import { SYS_LICENSE, parseJson, normDate, normEmirate, documentContent, normaliseLicence } from '../_shared/licence_extract.ts';
+import { SYS_LICENSE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE } from '../_shared/licence_extract.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -60,6 +60,8 @@ Deno.serve(observe('license_extract', async (req) => {
     const mode = body.mode === 'profile' ? 'profile' : body.mode === 'cert' ? 'cert' : 'license';
     const images: any[] = Array.isArray(body.images) ? body.images : [];
     if (!images.length && !body.file_b64) return J({ error: 'no file' }, 400);
+    // The blank-image guard runs first, in code: no model is asked to read a page too small to hold print.
+    if (mode === 'license' && imagesTooSmallToRead(images, body)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_too_small' });
     const content = buildContent(mode, images, body);
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
     let ai: any = {};

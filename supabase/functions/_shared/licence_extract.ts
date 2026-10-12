@@ -62,6 +62,39 @@ export function placeholderLicenceNo(v: unknown): boolean {
   return '01234567890123456789'.includes(t) || '98765432109876543210'.includes(t);
 }
 
+/** Pixel size of a PNG or JPEG from its header, else null (unknown format: never judged). */
+export function imageDims(b64: string): { w: number; h: number } | null {
+  let u: Uint8Array;
+  try { u = Uint8Array.from(atob(String(b64).replace(/^data:[^;]+;base64,/, '').slice(0, 200_000)), (c) => c.charCodeAt(0)); } catch { return null; }
+  const be = (i: number, n: number) => { let v = 0; for (let k = 0; k < n; k++) v = v * 256 + u[i + k]; return v; };
+  if (u.length >= 24 && u[0] === 0x89 && u[1] === 0x50 && u[2] === 0x4e && u[3] === 0x47) return { w: be(16, 4), h: be(20, 4) };
+  if (u.length > 4 && u[0] === 0xff && u[1] === 0xd8) {
+    for (let i = 2; i + 9 < u.length;) {
+      if (u[i] !== 0xff) { i++; continue; }
+      const m = u[i + 1];
+      if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { w: be(i + 7, 2), h: be(i + 5, 2) };
+      i += 2 + be(i + 2, 2);
+    }
+  }
+  return null;
+}
+
+/** THE BLANK-IMAGE GUARD RUNS BEFORE THE MODEL (13 Oct 2026, review of the run-4 fix). Nothing in the model's
+ * answer can prove it read the image - a blank picture can come back 'low' with an invented Arabic name, a number
+ * and a date, and normaliseLicence would keep them. So code decides first: when every page sent is an image too
+ * small to carry legible print (under 200 px on either side - a 1x1 PNG, a thumbnail), the model is never asked
+ * and the licence is unreadable. A PDF, or an image whose size code cannot read, still goes to the model. */
+export const MIN_LICENCE_IMAGE_PX = 200;
+// deno-lint-ignore no-explicit-any
+export function imagesTooSmallToRead(images: any[], body: { file_b64?: string; mime?: string }): boolean {
+  const pages = images.length ? images.map((im) => String(im?.b64 || im || '')) : (/^image\//.test(String(body.mime || '')) && body.file_b64 ? [String(body.file_b64)] : []);
+  if (!pages.length) return false;
+  return pages.every((b) => { const d = imageDims(b); return !!d && (d.w < MIN_LICENCE_IMAGE_PX || d.h < MIN_LICENCE_IMAGE_PX); });
+}
+
+/** The doc a licence nobody could read yields: no fields at all. */
+export const UNREADABLE_LICENCE = () => normaliseLicence({});
+
 /** The model's object -> the licence doc every caller reads.
  *
  * NOTHING UNGROUNDED IS A READING (12 Oct 2026, stage-2 run 3 S02, sales_engineer). A 1x1 PNG went to the
