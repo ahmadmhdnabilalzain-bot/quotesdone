@@ -94,17 +94,28 @@ test('the run\'s own VERIFIED identity in its open window is let through; nothin
   const { resolveE2eRunByIdentity, runTagOfEmail } = await import('../../supabase/functions/_shared/e2e_run.ts');
   const jwt = (email) => 'h.' + Buffer.from(JSON.stringify({ email })).toString('base64url') + '.s';
   const OWN = 'qd-ab12cd34-cust1@example.invalid';
+  const U = (email, app, user) => ({ email, app_metadata: app, user_metadata: user });
+  const FLAGGED = U(OWN, { e2e_run: 'ab12cd34' });
   const ask = (claimed, verified, open = true, secret = 'S') => resolveE2eRunByIdentity(
-    new Headers({ authorization: 'Bearer ' + jwt(claimed) }), async () => verified, async (t) => open && t === 'ab12cd34', async () => secret);
-  assert.deepEqual(await ask(OWN, OWN), { tag: 'ab12cd34', secret: 'S' });
-  assert.equal(await ask(OWN, OWN, false), null, 'window closed or models off: nothing');
-  assert.equal(await ask(OWN, 'someone@gmail.com'), null, 'a forged payload the auth server does not confirm: nothing');
+    new Headers({ authorization: 'Bearer ' + jwt(claimed) }), async () => verified,
+    typeof open === 'function' ? open : async (t) => open && t === 'ab12cd34', async () => secret);
+  assert.deepEqual(await ask(OWN, FLAGGED), { tag: 'ab12cd34', secret: 'S' });
+  assert.equal(await ask(OWN, U(OWN, {})), null, 'self-signed-up with the right email but no flag: nothing');
+  assert.equal(await ask(OWN, U(OWN, {}, { e2e_run: 'ab12cd34' })), null, 'flag only in user-writable user_metadata: nothing');
+  assert.equal(await ask(OWN, U(OWN, { e2e_run: 'ffff0000' })), null, 'a flag for another run: nothing');
+  assert.equal(await ask(OWN, FLAGGED, false), null, 'window closed or models off: nothing');
+  assert.equal(await ask(OWN, FLAGGED, async () => { throw new Error('db down'); }), null, 'window lookup error: nothing');
+  assert.equal(await ask(OWN, FLAGGED, async () => 'true'), null, 'only a literal true opens it');
+  assert.equal(await resolveE2eRunByIdentity(new Headers({ authorization: 'Bearer ' + jwt(OWN) }), async () => { throw new Error('auth outage'); }, async () => true, async () => 'S'), null, 'auth outage: nothing');
+  assert.equal(await ask(OWN, U('someone@gmail.com', { e2e_run: 'ab12cd34' })), null, 'a forged payload the auth server does not confirm: nothing');
   assert.equal(await ask(OWN, null), null, 'an unverifiable token: nothing');
-  assert.equal(await ask('real@customer.ae', 'real@customer.ae'), null, 'a real customer: nothing');
-  assert.equal(await ask('qd-ab12cd34-x@gmail.com', 'qd-ab12cd34-x@gmail.com'), null, 'only the reserved example.invalid domain');
-  assert.equal(await ask(OWN, OWN, true, null), null, 'no internal secret configured: nothing');
-  assert.equal(await resolveE2eRunByIdentity(new Headers({ 'x-qd-e2e-run': 'ab12cd34' }), async () => OWN, async () => true, async () => 'S'), null,
+  assert.equal(await ask('real@customer.ae', U('real@customer.ae', { e2e_run: 'ab12cd34' })), null, 'a real customer: nothing');
+  assert.equal(await ask('qd-ab12cd34-x@gmail.com', U('qd-ab12cd34-x@gmail.com', { e2e_run: 'ab12cd34' })), null, 'only the reserved example.invalid domain');
+  assert.equal(await ask(OWN, FLAGGED, true, null), null, 'no internal secret configured: nothing');
+  assert.equal(await resolveE2eRunByIdentity(new Headers({ 'x-qd-e2e-run': 'ab12cd34' }), async () => FLAGGED, async () => true, async () => 'S'), null,
     'the tag header alone, with no signed-in identity: nothing');
+  const fac = readFileSync(new URL('../lib/demo_factory.mjs', import.meta.url), 'utf8');
+  assert.match(fac, /app_metadata: \{ e2e_run:/, 'the harness creates its users with the service-role-only flag');
   let calls = 0;
   await resolveE2eRunByIdentity(new Headers({ authorization: 'Bearer ' + jwt('real@customer.ae') }), async () => { calls++; return null; }, async () => true, async () => 'S');
   assert.equal(calls, 0, 'ordinary traffic never pays the auth round-trip');

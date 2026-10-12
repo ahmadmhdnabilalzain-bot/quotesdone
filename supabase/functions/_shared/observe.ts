@@ -235,7 +235,7 @@ export function observe(
       const run = (req.headers.has('x-qd-e2e-run') ? await resolveE2eRun(req.headers, envOr('SUPABASE_SERVICE_ROLE_KEY'), internalSecret) : null)
         // ...or the run's own signed-in identity, verified by the auth server (run 1be65ab2: a browser cannot send the secret).
         ?? await resolveE2eRunByIdentity(req.headers,
-          async (jwt) => { const a = admin(); if (!a) return null; const { data } = await a.auth.getUser(jwt); return data?.user?.email ?? null; },
+          async (jwt) => { const a = admin(); if (!a) return null; const { data, error } = await a.auth.getUser(jwt); return error ? null : (data?.user ?? null); },
           async (tag) => { const a = admin(); if (!a) return false; const { data, error } = await a.rpc('fn_e2e_run_tag_open', { p_tag: tag }); return !error && data === true; },
           internalSecret);
       res = await E2E_RUN.run(run, () => handler(req));

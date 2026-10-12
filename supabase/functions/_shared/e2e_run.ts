@@ -64,15 +64,21 @@ function claimedEmail(bearer: string): string | null {
     return JSON.parse(atob(p.replace(/-/g, '+').replace(/_/g, '/')))?.email ?? null;
   } catch { return null; }
 }
+// AN ADDRESS ANYONE CAN TYPE IS NOT PROOF (review of #1361). The user must ALSO carry app_metadata.e2e_run equal
+// to that tag: app_metadata is writable only by the service role, and the harness creates its users through the
+// admin API with it (scripts/lib/demo_factory.mjs mkAuthUser). user_metadata is user-writable and is never read.
+// Every lookup that throws or errs — the auth server included — fails closed.
+type AuthUser = { email?: string | null; app_metadata?: Record<string, unknown> | null } | null;
 export async function resolveE2eRunByIdentity(
-  headers: Headers, verifyEmail: (jwt: string) => Promise<string | null>,
+  headers: Headers, verifyUser: (jwt: string) => Promise<AuthUser>,
   isOpen: (tag: string) => Promise<boolean>, internalSecret: () => Promise<string | null>,
 ): Promise<Run | null> {
   const bearer = (headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!bearer || !runTagOfEmail(claimedEmail(bearer))) return null;
-  const email = await verifyEmail(bearer).catch(() => null);   // the auth server's answer, not the payload's
-  const tag = runTagOfEmail(email);
-  if (!tag || !(await isOpen(tag).catch(() => false))) return null;
+  const user = await verifyUser(bearer).catch(() => null);     // the auth server's answer, not the payload's
+  const tag = runTagOfEmail(user?.email);
+  if (!tag || user?.app_metadata?.e2e_run !== tag) return null;
+  if ((await isOpen(tag).catch(() => false)) !== true) return null;
   const secret = await internalSecret().catch(() => null);      // so the next hop can prove it too
   return secret ? { tag, secret } : null;
 }
