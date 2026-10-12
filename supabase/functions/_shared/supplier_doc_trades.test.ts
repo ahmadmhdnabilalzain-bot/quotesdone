@@ -126,4 +126,9 @@ Deno.test('a line holding a trade\'s own code names that trade when it also mean
   assertEquals(line('Aluminium Works Contracting', v(0.97, 0, 0.24)), [['aluminium', 'trade_code']]);
   // the code alone is not enough: a company name holding it, far from every aluminium service, proposes nothing
   assertEquals(line('Legal Name: ZZ DEMO Falcon Aluminium LLC', v(0.5, 0.86, 0)), []);
+  // the US spelling is the same trade's own name
+  assertEquals(line('Aluminum Works Contracting', v(0.97, 0, 0.24)), [['aluminium', 'trade_code']]);
+  // an Arabic line is not confirmed by this rule: the e5 space scores names and metal traders as high as activities
+  const ar = S.map((s) => ({ ...s, vec_ml: s.vec }));
+  assertEquals(proposeByMeaning([{ text: 'أعمال الألمنيوم', vec: v(0.97, 0, 0.24), space: 'ml' }], ar, { tradeLabels: labels }).map((x) => x.because), []);
 });

@@ -184,6 +184,13 @@ export function corroborate(s: MeaningService, words: Set<string>, norm: string,
   return alias ? { because: 'alias', word: alias } : { because: null, word: null };
 }
 
+/** The words that ARE a one-word trade code, by the trade's own English names: the code and its US spelling (-ium
+ *  written -um: aluminium -> aluminum). Empty for a code of more than one word. */
+export function codeNames(code: string): string[] {
+  const cw = contentWords(code.replace(/_/g, ' '));
+  return cw.length === 1 ? [...new Set([cw[0], cw[0].replace(/ium$/, 'um')])] : [];
+}
+
 /** The proposals, strongest first. `stated` are the keys already found exactly (never re-proposed). */
 export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[],
   opts: { stated?: string[]; supplyOnly?: boolean; floor?: number; mlFloor?: number; tradeLabels?: Record<string, string> } = {}): MeaningProposal[] {
@@ -239,17 +246,22 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
     // own code names that trade exactly, provided the line also MEANS that trade: one of its services clears the floor
     // (measured on the live vectors: the activity lines 0.836-0.884; "Legal Name: ZZ DEMO Falcon Aluminium LLC" 0.796,
     // refused). Both the code identity and the meaning are required; neither proposes on its own.
-    // ponytail: one-word codes only, English only; an Arabic line or a US spelling ("aluminum") is not a code.
+    // Its US spelling is the same name ("Aluminum Works Contracting": windows & doors 0.828, accepted).
+    // NOT ARABIC (measured 12 Oct 2026 on the e5 vectors, ML_FLOOR 0.83): the activity "أعمال الألمنيوم" reaches the
+    // aluminium services at 0.868, but a company name "فالكون الألمنيوم ذ.م.م" at 0.850 and "تجارة الألمنيوم والنحاس"
+    // (non-ferrous trading) at 0.862 - the multilingual space cannot tell an aluminium contractor from a name or a
+    // metal trader, so meaning cannot confirm an Arabic code word. That needs an exact-name path, not this rule.
+    // ponytail: one-word codes only.
     if (!ml && opts.tradeLabels) {
       for (const code of Object.keys(opts.tradeLabels)) {
-        const cw = contentWords(code.replace(/_/g, ' '));
-        if (cw.length !== 1 || !words.has(cw[0])) continue;
+        const word = codeNames(code).find((w) => words.has(w));
+        if (!word) continue;
         const own = ranked.filter(([, s]) => s.trade_code === code)[0];
         if (!own || own[0] < floor) continue;
         const key = `${own[1].trade_code}.${own[1].code}`;
         if (stated.has(key)) continue;
         const list = byKey.get(key) || [];
-        list.push({ s: own[1], sim: own[0], line: line.text, because: 'trade_code', word: cw[0] });
+        list.push({ s: own[1], sim: own[0], line: line.text, because: 'trade_code', word });
         byKey.set(key, list);
       }
     }
