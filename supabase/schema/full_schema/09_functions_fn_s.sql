@@ -4636,7 +4636,7 @@ CREATE OR REPLACE FUNCTION public.fn_seat_takes_the_ceo_decision(p_id bigint)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a public.agent_actions; d public.seat_deliberation; v_closed jsonb;
+declare a public.agent_actions; d public.seat_deliberation; v_closed jsonb; v_owed jsonb;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff';
   if not found then raise exception 'no handoff %', p_id; end if;
@@ -4649,7 +4649,6 @@ begin
       perform set_config('qd.handoff_closer', '', true);
     elsif d.id is not null and d.author_seat = a.agent and d.kind like 'high_stakes.%' and d.handoff_id is not null
           and exists (select 1 from public.agent_actions h where h.id = d.handoff_id and h.status = 'pending') then
-      -- the conversation is answered and closed by its author; the deliberation row stays for the gate to read
       perform set_config('qd.handoff_closer', a.agent, true);
       perform public.fn_seat_handoff_complete(d.handoff_id, jsonb_build_object('kind', 'deliberation.review', 'deliberation_id', d.id,
         'ceo_decision', a.detail->>'decision', 'reasons', left(a.detail->>'reasons', 2000), 'closed_by', a.agent));
@@ -4657,8 +4656,47 @@ begin
       v_closed := jsonb_build_object('handoff_closed', d.handoff_id, 'deliberation_kept_for_the_gate', d.id);
     end if;
   end if;
+  -- the seat that owed the CEO this decision re-verifies it against the ledger and closes its own question
+  if a.detail->>'item_key' is not null then
+    v_owed := public.fn_seat_verifies_the_ceo_decision_it_owed(a.agent, a.detail->>'item_key');
+  end if;
   return jsonb_build_object('read_by', a.agent, 'decision', a.detail->>'decision', 'item_key', a.detail->>'item_key',
-                            'reasons', left(a.detail->>'reasons', 600), 'deliberation_closed', v_closed);
+                            'reasons', left(a.detail->>'reasons', 600), 'deliberation_closed', v_closed, 'owed_closed', v_owed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_verifies_the_ceo_decision_it_owed(p_seat text, p_item_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare o record; r public.ceo_decision_round; v_closed bigint[] := '{}'; v_open bigint[] := '{}';
+begin
+  for o in select a.id, a.detail from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.decision_owed'
+              and a.detail->>'from' = p_seat and a.detail->>'item_key' = p_item_key
+            order by a.id loop
+    -- the CEO's answer, read from the ledger rather than from the notice: a round on this item, by this seat,
+    -- after the round the question was raised at
+    r := null;
+    select * into r from public.ceo_decision_round x
+     where x.item_key = p_item_key and x.originator_seat = p_seat
+       and (x.generation, x.round) > (coalesce((o.detail->>'generation')::int, 1), coalesce((o.detail->>'after_round')::int, 0))
+     order by x.generation desc, x.round desc limit 1;
+    if r.id is null and not (o.detail ? 'ceo_nothing_to_close') then
+      v_open := v_open || o.id;
+      continue;
+    end if;
+    perform set_config('qd.handoff_closer', p_seat, true);
+    perform public.fn_seat_handoff_complete(o.id, jsonb_build_object(
+      'verified_by', p_seat, 'checked_at', now(), 'round_id', r.id,
+      'decision', coalesce(r.decision, 'nothing_to_close'),
+      'reasons', left(coalesce(r.reasons, o.detail->'ceo_nothing_to_close'->>'reason'), 2000)));
+    perform set_config('qd.handoff_closer', '', true);
+    v_closed := v_closed || o.id;
+  end loop;
+  return jsonb_build_object('closed', to_jsonb(v_closed), 'still_owed', to_jsonb(v_open));
 end $function$
 
 
