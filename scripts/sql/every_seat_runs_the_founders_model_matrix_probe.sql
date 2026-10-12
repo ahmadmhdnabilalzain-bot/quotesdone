@@ -43,11 +43,11 @@ begin
   -- fn_ai_route_review_for skips a route whose failure breaker is open. At 14:46:56 UTC on 12 Oct, five empty
   -- completions opened luna's breaker (threshold 3, 300 s) while a PR ran this probe, and it reported 11 "drifts"
   -- (every review pair without luna) over a model_policy nobody had changed. A breaker that opens for minutes is
-  -- the router working; this probe asserts the configured matrix. So short failure breakers are closed here, in the
+  -- the router working; this probe asserts the configured matrix. So failure breakers open for under an hour are closed here, in the
   -- probe's own transaction, which always raises and rolls back: production's breakers are never touched. A founder
   -- hold (more than a year out) is left alone, so section 3 still sees it.
   update public.llm_route_health set open_until = null
-   where open_until is not null and open_until <= now() + interval '1 day'
+   where open_until is not null and open_until <= now() + interval '1 hour'
      and coalesce(opened_reason, '') not like 'HELD BY THE FOUNDER%';
 
   -- ── 1. ONE ROUTE PER FUNCTION, EVERY SEAT ─────────────────────────────────────────────────────────
