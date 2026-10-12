@@ -52,9 +52,14 @@ const YES_NO = /(?<![\p{L}])(?:yes|no|n\/a|نعم|لا)(?![\p{L}])\s*$|(?<![\p{L
 const MODEL_LABEL = /\bmodel\s*(?:no|number|#)|رقم\s*الموديل|موديل\s*رقم/i;
 const CONTACT = /\b(?:tel|fax|mob|mobile|phone|p\.?\s?o\.?\s?box|e-?mail|l\.?l\.?c|fze|fzco|fz-llc|dmcc)\b|@|www\.|https?:|هاتف|فاكس|ص\s?\.?\s?ب|ذ\s?\.?\s?م\s?\.?\s?م|بريد/i;
 const ADDRESS = /\b(?:bldg|building|road|street|st|floor|shops?|office|warehouse|plot|area|zone)\b/i;
-/** An address, phone, e-mail, web or legal-entity line ("ZZ DEMO Falcon Cleaning LLC"): it says who and where, never
- *  what the company does. trade_resolve.tradesOfText drops it too (12 Oct 2026). */
-export const isContactLine = (line: string): boolean => CONTACT.test(line) || (/\d/.test(line) && ADDRESS.test(line));
+const isContactLine = (line: string): boolean => CONTACT.test(line) || (/\d/.test(line) && ADDRESS.test(line));
+// A COMPANY'S NAME OR HOW TO REACH IT - never what it does (12 Oct 2026, trade_resolve.tradesOfText drops it before every
+// trade path). Narrower than the catalogue's contact rule on purpose (#1313 review): a bare "mobile" or "phone", or an
+// address word with a number, is a work line too ("Mobile crane hire", "Office fit-out, 3 floors", "Road works phase 2").
+// Only a legal-entity suffix, an e-mail, a web address or a phone number marks the line.
+const ENTITY = /(?<![\p{L}])(?:l\.?\s?l\.?\s?c|fze|fzco|fz-llc)(?![\p{L}])|ذ\s?\.?\s?م\s?\.?\s?م/iu;
+const REACH = /@|www\.|https?:|(?:\+|00)\d[\d\s-]{7,}\d|(?<!\d)0\d[\d\s-]{7,}\d/;
+export const isNameOrReachLine = (line: string): boolean => ENTITY.test(line) || REACH.test(line);
 const PERSON =/(?<![\p{L}])(?:we|our|ours|us|you|your|yours|they|their|i|it's|نحن|لدينا|نقدم|نقوم|نوفر|لكم|لك)(?![\p{L}])/iu;
 const TYPE_CELL = /(?<![\p{L}])(?:type|النوع)\s+(.+?)(?=\s+(?:type|النوع|model|features?|functions?|capacity|sizes?|colou?r|speed|display|compatible|input|output|lens|package)\b|$)/giu;
 const TYPE_LABEL = /^(?:type|النوع)\s+\S/iu;   // a row that starts with a "Type" cell is a table row

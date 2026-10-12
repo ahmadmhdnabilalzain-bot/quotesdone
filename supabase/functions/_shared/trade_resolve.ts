@@ -30,7 +30,7 @@ import { MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning,
 import { splitPhrases } from './service_rewrite.ts';
 import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
 import { serviceVocab, tradeLabelVocab } from './service_vocabulary.ts';
-import { isContactLine } from './catalogue_read.ts';
+import { isNameOrReachLine } from './catalogue_read.ts';
 
 export type TradeHit = {
   code: string;
@@ -88,10 +88,11 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
   // A NAME OR CONTACT LINE PROPOSES NOTHING, by any path (12 Oct 2026, accuracy suite). "Legal Name: ZZ DEMO Falcon
   // Cleaning LLC" was proposed cleaning (head_word), its "Legal Name" label legal_services (meaning 0.82), and
   // "... Falcon Glazing LLC" glazing (0.821): a company's name says who it is, never what it does, and a wrong trade
-  // sends a request to the wrong supplier. The line is dropped before both paths, by catalogue_read's own legal-entity
-  // and contact rule (LLC, FZE, FZCO, ذ.م.م, phone, e-mail, web, an address with a number).
+  // sends a request to the wrong supplier. The line is dropped before both paths when it carries a legal-entity suffix
+  // (LLC, FZE, FZCO, ذ.م.م), an e-mail, a web address or a phone number (catalogue_read.isNameOrReachLine) - never on a
+  // bare "mobile" or an address word, which work lines carry ("Mobile crane hire", "Office fit-out, 3 floors").
   // ponytail: a name printed without a legal suffix ("Legal Name: ZZ DEMO Falcon Glazing") is not caught here.
-  const lines = textLines(text).filter((l) => !isContactLine(l));
+  const lines = textLines(text).filter((l) => !isNameOrReachLine(l));
   const hits = new Map<string, TradeHit>();
   const add = (h: TradeHit) => {
     const cur = hits.get(h.code);
