@@ -9,7 +9,7 @@
 // Fails on the old code: there, a needs_info turn persisted `prevBrief.details || {}` and the model's
 // own status, missing and sentence, so every assertion on details, missing and the reply breaks.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, UNANSWERED } from './slots.ts';
+import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS } from './slots.ts';
 import type { SpecField } from './interview.ts';
 
 // production category_specs.fields for `aluminium`, required flags and keys as read on 7 Oct 2026
@@ -196,7 +196,7 @@ const WATERPROOFING: SpecField[] = [
 const C9_TURN = () => ({ category: 'waterproofing', status: 'needs_info', claims_ready: false, assistant_message: 'Is there an active leak, or is this a preventive replacement?', questions: ['Is there an active leak, or is this a preventive replacement?'],
   brief: { details: { area: 'Bedrooms; balconies; facade', area_sqm: '90.9', supply_install: 'Supply + application', location: 'Villa in Abu Dhabi' } as Record<string, string> } });
 
-Deno.test('C9: a key left open through MAX_OPEN_TURNS answered turns is settled, and the request goes ready', () => {
+Deno.test('C9: a key unanswered through MAX_OPEN_TURNS turns stops being asked and the request is HELD, never ready', () => {
   const turns: any[] = [];
   let prev: Record<string, string> = {};
   let out: any = null;
@@ -206,18 +206,29 @@ Deno.test('C9: a key left open through MAX_OPEN_TURNS answered turns is settled,
     const s = settleModelTurn(WATERPROOFING, prev, out, 'en', briefOf, openTurnsByKey(turns));
     prev = s.details;
     turns.push({ role: 'user', text: 'reply' }, { role: 'assistant', text: out.assistant_message, slots: { missing_keys: s.missingKeys } });
-    if (out.status === 'ready') break;
+    if (out.status !== 'needs_info') { assertEquals(s.exhausted, ['issue']); assertEquals(s.missingKeys, ['issue'], 'the spec stays missing'); break; }
     asked++;
   }
   assertEquals(asked, MAX_OPEN_TURNS, 'the same question is asked MAX_OPEN_TURNS times, not 13');
-  assertEquals(out.status, 'ready');
-  assertEquals(out.brief.details.issue, UNANSWERED.en, 'recorded as a supplier decision, not an invented fact');
-  assertEquals(out.provenance.issue, 'unanswered');
+  assertEquals(out.status, 'held', 'exact specs or the request is held: never released without the spec');
+  assertEquals(out.brief, null);
+  assertEquals(prev.issue, undefined, 'nothing is written under the unanswered key');
+  assertEquals(out.assistant_message, HELD_FOR_SPECS.en);
 });
 
-Deno.test('a key the customer answers is never settled as unanswered, whatever the count', () => {
+Deno.test('an exhausted key is not asked again while other keys are still asked', () => {
+  const out: any = C9_TURN(); delete out.brief.details.location;
+  const s = settleModelTurn(WATERPROOFING, {}, out, 'en', briefOf, { issue: MAX_OPEN_TURNS, location: 1 });
+  assertEquals(out.status, 'needs_info');
+  assertEquals(s.missingKeys, ['issue', 'location']);
+  assertEquals(out.questions, ['Location / area and emirate?'], 'the leak question is not repeated');
+  assert(!out.assistant_message.includes('leak'));
+});
+
+Deno.test('a key the customer answers is kept whatever the count', () => {
   const out: any = C9_TURN(); out.brief.details.issue = 'No leak, preventive';
   const s = settleModelTurn(WATERPROOFING, {}, out, 'en', briefOf, { issue: MAX_OPEN_TURNS + 5 });
   assertEquals(s.details.issue, 'No leak, preventive');
-  assertEquals(s.settledUnanswered, []);
+  assertEquals(s.exhausted, []);
+  assertEquals(out.status, 'ready');
 });

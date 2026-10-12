@@ -397,6 +397,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // are derived from them, and a sentence written for a status the row does not hold is replaced.
     let slotDetails: Record<string, string> | null = null;
     let slotMissingKeys: string[] = [];
+    let slotExhausted: string[] = [];
     const slotLang = ar ? 'ar' : 'en';
     // Turn 1 has no stored trade, so the checklist is empty until the model names one: load the model's
     // trade's checklist here, or what the first message states is read against nothing and lost.
@@ -408,7 +409,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       const prevDet = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
       const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
       const settled = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns));
-      slotDetails = settled.details; slotMissingKeys = settled.missingKeys;
+      slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
     }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
@@ -510,7 +511,17 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // previous turn stored; with neither it is 'general' — no trade, never the nearest one.
     if (!cat || (!validSlugs.includes(cat) && cat !== 'general')) { cat = (validSlugs.includes(String(draft.category)) ? draft.category : null) || 'general'; }
     category = cat;
-    let status = ['rejected', 'needs_info', 'ready'].includes(out.status) ? out.status : 'needs_info';
+    let status = ['rejected', 'needs_info', 'ready', 'held'].includes(out.status) ? out.status : 'needs_info';
+    // HELD FOR SPECS (slots.ts MAX_OPEN_TURNS): only questions the customer has not answered in three turns are
+    // left. The request is not ready and goes to no supplier; the sales engineer gets the same handoff the
+    // not-sure path opens (kind spec.not_sure, registered), subject this intake. One per intake (fn_seat_handoff).
+    if (status === 'held' && slotExhausted.length) {
+      const { error: hErr } = await admin.rpc('fn_seat_handoff', { p_from: 'customer_support', p_to: 'sales_engineer', p_type: 'spec.not_sure',
+        p_subject_table: 'inquiry_intake', p_subject_id: String(draft.id),
+        p_payload: { intake_id: draft.id, customer_id: cust?.id || null, not_sure: slotExhausted, category,
+          waiting_for: 'sales_engineer to help the customer settle these specs; asked three times without an answer' } });
+      if (hErr) await logRun('error', { spec_handoff_failed: 1 }, 'intake held for unanswered specs but the sales_engineer handoff failed: ' + hErr.message);
+    }
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
     turns.push({ role: 'assistant', text: out.assistant_message || '', agent: ACTOR });
 

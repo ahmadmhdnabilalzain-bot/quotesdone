@@ -30,7 +30,7 @@ import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type 
 const asText = (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).trim();
 const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]', 'null'].includes(asText(v));
 
-export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; settledUnanswered: string[] };
+export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; exhausted: string[]; held: boolean };
 
 // ── A QUESTION IS NOT ASKED FOREVER (12 Oct 2026, sales_engineer) ─────────────────────────────────
 // MEASURED. Stage-2 run f4294be8: C9 (waterproofing, EN) was asked "Is there a leak now, or is this to
@@ -38,13 +38,15 @@ export type SlotState = { details: Record<string, string>; missingKeys: string[]
 // customer replied every turn and no reply carried the fact, so the slot stayed open and the request
 // never reached ready (inquiry_intake 7abdcac0..., b99d73de..., 14 turns each). A real customer who
 // does not know, or answers in words the model does not file under the key, was trapped the same way.
-// Once a required key has stayed open through MAX_OPEN_TURNS answered turns it is SETTLED as
-// unanswered: recorded under its key as "not specified - supplier to advise" (the prompt's rule 5, a
-// supplier decision, never an invented fact), provenance 'unanswered', and the request can go ready.
+// Once a required key has stayed open through MAX_OPEN_TURNS answered turns it is EXHAUSTED: it is not
+// asked again, and it stays MISSING - nothing is written under its key, so the request is never ready
+// without the exact spec (founder rule: exact specs or the quote is held; review of #1319). The other
+// open keys are still asked. When only exhausted keys are left, the intake is HELD and handed to the
+// sales engineer (index.ts opens the spec.not_sure handoff, the same door the not-sure path uses).
 export const MAX_OPEN_TURNS = 3;
-export const UNANSWERED: Record<Lang, string> = {
-  en: 'Not specified by the customer - supplier to advise',
-  ar: 'لم يحدده العميل - يقترحه المورّد',
+export const HELD_FOR_SPECS: Record<Lang, string> = {
+  en: 'Thank you. A few specifications are still open, so our sales engineer will help you settle them before this goes to suppliers. We will continue with you here; there is no need to type anything again.',
+  ar: 'شكرًا لكم. ما زالت بعض المواصفات غير محددة، لذلك سيساعدكم مهندس المبيعات لدينا على تحديدها قبل إرسال الطلب إلى الموردين. سنكمل معكم هنا، ولا حاجة إلى إعادة كتابة أي شيء.',
 };
 
 /** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */
@@ -68,17 +70,15 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
   // A checklist key the model put at the top of the brief (brief.location) instead of under details.
   for (const k of keys) if (!(k in details) && filled(b[k])) details[k] = asText(b[k]);
   const required = orderFields(checklist).filter((o) => o.f.required && o.f.key);
-  const settledUnanswered: string[] = [];
-  for (const o of required) {
-    const k = String(o.f.key);
-    if (!(k in details) && (openTurns[k] || 0) >= MAX_OPEN_TURNS) { details[k] = UNANSWERED[lang] || UNANSWERED.en; settledUnanswered.push(k); }
-  }
   const open = required.filter((o) => !(String(o.f.key) in details));
+  const exhausted = open.map((o) => String(o.f.key)).filter((k) => (openTurns[k] || 0) >= MAX_OPEN_TURNS);
+  const askable = open.filter((o) => !exhausted.includes(String(o.f.key)));
   return {
-    details, settledUnanswered,
+    details, exhausted,
     missingKeys: open.map((o) => String(o.f.key)),
-    missing: open.map((o) => questionText(o.f, lang)),
+    missing: askable.map((o) => questionText(o.f, lang)),
     complete: open.length === 0,
+    held: open.length > 0 && askable.length === 0,
   };
 }
 
@@ -100,27 +100,31 @@ export function replyFromState(status: string, firstMissingQuestion: string | nu
  */
 export function settleModelTurn(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, out: any, lang: Lang, briefOf: (details: Record<string, string>) => any, openTurns: Record<string, number> = {}): SlotState {
   const sl = reconcileSlots(checklist, prevDetails, out, lang, openTurns);
-  if (sl.settledUnanswered.length) out.provenance = { ...(out.provenance && typeof out.provenance === 'object' ? out.provenance : {}), ...Object.fromEntries(sl.settledUnanswered.map((k) => [k, 'unanswered'])) };
   const modelStatus = out.status;
   const modelAsked = Array.isArray(out.questions) && out.questions.some((q: unknown) => String(q ?? '').trim() !== '');
   // claims_ready: the model's own structured flag saying its sentence tells the customer the request is
   // ready/complete/about to be shared. A missing flag is read as a claim (it cannot be shown false).
   const claimsReady = out.claims_ready !== false;
-  out.status = sl.complete ? 'ready' : 'needs_info';
+  out.status = sl.complete ? 'ready' : sl.held ? 'held' : 'needs_info';
   if (sl.complete) {
     const base = out.brief && typeof out.brief === 'object' ? out.brief : briefOf(sl.details);
     out.brief = { ...base, details: { ...(base.details || {}), ...sl.details } };
     out.missing = [];
+  } else if (sl.held) {
+    out.missing = []; out.questions = []; out.brief = null;
+    out.assistant_message = HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
+    return sl;
   } else {
     out.missing = sl.missing;
-    if (!Array.isArray(out.questions) || !out.questions.length) out.questions = sl.missing.slice(0, 1);
+    // An exhausted question is never asked again: the state's next askable question replaces the model's.
+    if (sl.exhausted.length || !Array.isArray(out.questions) || !out.questions.length) out.questions = sl.missing.slice(0, 1);
   }
   // The reply must agree with the row (review of #1277). READY: always the state's sentence, which tells
   // the customer to press Send to suppliers - the request goes nowhere until they confirm. NOT READY: the
   // model's sentence stands only when it wrote for needs_info, asked something, and flagged
   // claims_ready=false; anything else ("The request is ready to share with suppliers" beside needs_info,
   // run fe7ba9c4) is replaced by the state's next question. Structured fields only, no word matching.
-  if (out.status === 'ready' || modelStatus !== out.status || !modelAsked || claimsReady) out.assistant_message = replyFromState(out.status, sl.missing[0] || null, lang);
+  if (out.status === 'ready' || modelStatus !== out.status || !modelAsked || claimsReady || sl.exhausted.length) out.assistant_message = replyFromState(out.status, sl.missing[0] || null, lang);
   return sl;
 }
 
