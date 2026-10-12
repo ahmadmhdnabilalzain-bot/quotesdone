@@ -12,6 +12,7 @@ import { arDays } from '../_shared/ar_days.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
+import { aiReply } from '../_shared/ai_reply.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { CANONICAL_ORIGIN, siteReturnBase, siteCors } from '../_shared/site_origins.ts';
@@ -483,7 +484,19 @@ const handle = async (req: Request): Promise<Response> => {
       const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: SUPPLIER_LOCALE }, email, self, body, repo: supabaseReviewRepo(admin), scan,
         readTerms: async (text: string) => (await quoteTerms(defaultDeps(admin, 'supplier_api'), { text })).value,
         // The review reads the quotation the way the hold gate will (reasoned_matching.ts readQuote); held: nothing is read, every detail is asked.
-        readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id) });
+        readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id),
+        // THE ENGINEER'S WORDS (rulings 1195-1197): the model writes every chat message from what the review decided, and
+        // reads the supplier's next step (choose / submit) in the same call. Suppliers are always answered in English.
+        voice: async (v) => {
+          const r = await aiReply(defaultDeps(admin, 'supplier_api'), {
+            seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
+            message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
+            facts: v.situation, actions: v.actions,
+            rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
+            subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
+          });
+          return { text: r.reply, action: r.action ?? null };
+        } });
       return J(out.json, out.status);
     }
 

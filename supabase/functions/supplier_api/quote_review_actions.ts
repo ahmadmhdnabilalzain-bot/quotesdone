@@ -62,7 +62,7 @@ export function inquiryDocuments(i: Json): { job: string; documents: Json[]; boq
 
 export async function reviewAction(o: { sup: Supplier; email: string; self: Self; body: Json; repo: flow.ReviewRepo; scan: flow.ReviewDeps['scan'];
   /** The quotation's terms, reasoned (supplier_api passes reasoned_suppliers.ts quoteTerms). */
-  readTerms?: Parameters<typeof flow.readQuotationFile>[4]; readWorking?: flow.ReviewDeps['readWorking'] }): Promise<{ status: number; json: unknown }> {
+  readTerms?: Parameters<typeof flow.readQuotationFile>[4]; readWorking?: flow.ReviewDeps['readWorking']; voice: flow.ReviewDeps['voice'] }): Promise<{ status: number; json: unknown }> {
   const { sup, email, self, body, repo } = o;
   const action = String(body.action);
   const lang: Lang = SUPPLIER_LOCALE;   // suppliers are always written in English (founder, 28 Sep 2026)
@@ -132,6 +132,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
     quotePdf: async (quoteId, l) => { const r = await self({ action: 'quote_pdf', quote_id: quoteId, lang: l }); return { url: r.json?.url ?? null, ref: r.json?.ref ?? null }; },
     now: () => new Date(),
     readWorking: o.readWorking,
+    voice: o.voice,
   };
   const ctx: flow.Ctx = { supplierId: Number(sup.id), email, lang, companyName: sup.company_name ?? null };
   const id = String(body.inquiry_id || '');

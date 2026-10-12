@@ -157,6 +157,7 @@ const pdfModel = () => Promise.resolve(PDF_TERMS);
 function harness(inq = inquiry()) {
   const mem = memoryReviewRepo(() => new Date('2026-09-15T10:00:00Z'));
   const submitted: Record<string, unknown>[] = [];
+  const written: string[] = []; const noModel = { on: false };
   const deps: ReviewDeps = {
     inquiry: (id) => Promise.resolve(id === inq.id ? inq : null),
     scan(data, filename, mime) {
@@ -168,15 +169,26 @@ function harness(inq = inquiry()) {
     quotePdf: () => Promise.resolve({ url: 'https://example.invalid/q.pdf', ref: 'QD-3F2A9C1E-S' }),
     now: () => new Date('2026-09-15T10:00:00Z'),
     readWorking: (i, w) => Promise.resolve(readFixture(i, w)),
+    // THE MODEL, faked (rulings 1195-1197): it writes the engineer's message from what the review decided (here: the
+    // facts themselves, so the assertions below read what it was told), and reads the supplier's next step from their
+    // words the way a model does. Every text it wrote is kept: a test proves each engineer message is one of them.
+    voice: (v) => {
+      const t = '[sales engineer] ' + v.situation; written.push(t);
+      const m = String(v.supplierMessage || ''); const ids = (v.actions || []).map((x) => x.id);
+      const action = ids.includes('submit') && /submit/i.test(m) ? 'submit'
+        : ids.includes('generate') && /generat/i.test(m) ? 'generate'
+        : ids.includes('reupload') && /upload|new version/i.test(m) ? 'reupload' : null;
+      return Promise.resolve(noModel.on ? { text: '', action: null } : { text: t, action });
+    },
   };
-  return { mem, deps, submitted, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
+  return { mem, deps, submitted, written, noModel, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
 }
 const ok = (v: unknown): ThreadView => { assert((v as ThreadView).ok, JSON.stringify(v)); return v as ThreadView; };
 
 Deno.test('the conversation: incomplete file → points raised → answered in text → approved → generate → submitted', async () => {
-  const { mem, deps, submitted, ctx } = harness();
+  const { mem, deps, submitted, ctx, written } = harness();
   const t0 = ok(await start(mem.repo, deps, ctx, INQ_ID));
-  assertEquals(t0.state, 'open'); assertEquals(t0.messages.length, 1); assert(ARABIC.test(t0.messages[0].body_ar || ''));
+  assertEquals(t0.state, 'open'); assertEquals(t0.messages.length, 1); assert(written.includes(t0.messages[0].body_en!), 'the greeting is written by the model'); assertEquals(t0.messages[0].body_ar, null);
 
   const t1 = ok(await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'quote_incomplete.csv', mime: 'text/csv' }));
   assertEquals(t1.state, 'changes_requested');
@@ -186,7 +198,7 @@ Deno.test('the conversation: incomplete file → points raised → answered in t
 
   const t2 = ok(await message(mem.repo, deps, ctx, INQ_ID, 'validity 30 days. lead time 3 weeks. prices exclude VAT. warranty 2 years covering materials and workmanship'));
   assertEquals(t2.state, 'awaiting_choice', JSON.stringify(t2.open_requests));
-  assert(t2.messages.some((m) => /^Quotation approved for submission/.test(m.body_en || '')));
+  assert(t2.messages.some((m) => /Quotation approved for submission/.test(m.body_en || '')));
   assertEquals(t2.open_requests.map((q) => q.kind), ['choice']);
   assert(mem.requests.filter((q) => q.kind !== 'choice').every((q) => q.state === 'answered' && q.answered_message_id));
 
@@ -198,7 +210,7 @@ Deno.test('the conversation: incomplete file → points raised → answered in t
   const t2b = ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));
   assertEquals(t2b.state, 'ready_to_submit'); assert(t2b.can_submit);
   assertEquals(submitted.length, 0, 'the generated quotation was sent before the supplier saw it');
-  assert(t2b.messages.some((m) => /standardised QuotesDone quotation I have prepared/.test(m.body_en || '') && ARABIC.test(m.body_ar || '')),
+  assert(t2b.messages.some((m) => /standardised QuotesDone quotation I have prepared/.test(m.body_en || '')),
     'the generated quotation was not printed for the supplier');
 
   const t3 = ok(await submit(mem.repo, deps, ctx, INQ_ID));
@@ -305,7 +317,7 @@ Deno.test('a photo is answered, not guessed; a closed job refuses; another suppl
   // OCR, so a supplier whose quotation is a scan used to have nowhere to go but the quote form
   // outside this conversation — the door that skips the review entirely.
   assertMatch(t.messages.at(-1)!.body_en || '', /type it here instead/i);
-  assert(ARABIC.test(t.messages.at(-1)!.body_ar || ''));
+  assertEquals(t.messages.at(-1)!.body_ar, null); // suppliers are answered in English only (ruling 1008)
 
   const shut = harness(inquiry({ concluded: true }));
   assertEquals(((await start(shut.mem.repo, shut.deps, shut.ctx, INQ_ID)) as { code: string }).code, 'inquiry_closed');
@@ -602,3 +614,35 @@ Deno.test('Arabic acknowledgement: a stated period is read back in Arabic ("ال
   assertStringIncludes(said.en, 'validity 30 days');
 });
 
+
+// RULINGS 1195/1196/1197 (12 Oct 2026): every engineer message in the quotation chat is written by a model in the turn
+// it is added. Only the submission receipt is a notification. This drives both roads end to end and fails the moment
+// an engineer message is added that the (fake) model did not write in that same turn; with no model, the engineer
+// adds nothing but the receipt and the state machine still runs.
+// prevented by: this test (referenced from quote_review_flow.ts)
+Deno.test('1195-1197: no engineer message in the quotation chat is added unless a model wrote it in that turn', async () => {
+  for (const noModelRun of [false, true]) {
+    const h = harness(); h.noModel.on = noModelRun;
+    const turn = async (f: () => Promise<unknown>) => {
+      const before = h.mem.messages.length; const wroteBefore = h.written.length;
+      await f();
+      const fresh = h.mem.messages.slice(before).filter((m) => m.role === 'sales_engineer' && m.kind !== 'submitted');
+      const wroteNow = h.written.slice(wroteBefore);
+      for (const m of fresh) assert(wroteNow.includes(String(m.body)), 'an engineer message no model wrote this turn: ' + String(m.body).slice(0, 80));
+      if (noModelRun) assertEquals(fresh.length, 0, 'with no model, a conversation message was still added');
+    };
+    await turn(() => start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    await turn(() => upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+    await turn(() => message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'what does VAT basis mean here?'));
+    await turn(() => message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'validity 30 days. lead time 3 weeks. prices exclude VAT. warranty 2 years covering materials and workmanship'));
+    await turn(() => message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'please generate it for me'));
+    await turn(() => message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'looks right, submit'));
+    if (!noModelRun) {
+      assertEquals(h.submitted.length, 1, 'the model read "submit" and the state machine submitted');
+      assert(h.mem.messages.some((m) => m.kind === 'submitted'), 'the receipt (a notification) is still sent');
+    } else {
+      // no model: nobody read "generate"/"submit" from words, so nothing was submitted on a guess
+      assertEquals(h.submitted.length, 0);
+    }
+  }
+});
