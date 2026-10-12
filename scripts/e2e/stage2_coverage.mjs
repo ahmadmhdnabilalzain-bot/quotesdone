@@ -90,6 +90,9 @@ export const TESTED = [
   ['notice', /^(new_inquiry|rfq_no_supplier)$/, 'S06'],
   ['notice', /^(quote_received|job_awarded_other|spec_offer_accepted|clarification_answered|supplier_ack|supplier_registered|supplier_approved|doc_received|supplier_doc_applied)$/, 'S15'],
   ['notice', /^(support_reply|contact_message)$/, 'S14'],
+  ['notice', /^quote_spec_(hold|regenerated|released)$/, 'S07'],          // hold -> spec_fill -> spec_approve, each notice asserted
+  ['action', /^customer_api\.accept_terms$|^compliance_archive\.(sign|register)$/, 'S22'],   // version, IP, hash, letterhead certificate, register without fixtures
+  ['action', /^dropbox_backup\.sandbox(_verify|_cleanup)?$/, 'S23'],       // the run's own _sandbox/<tag> tree: upload, listing vs records, removal
   ['notice', /^marketing_/, 'S17'],
   ['action', /^project_api\./, 'S04'],
   ['action', /^ai_gateway/, 'S04'],                          // every model call: the route is asserted against matrix v2 per scenario

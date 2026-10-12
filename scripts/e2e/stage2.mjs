@@ -24,8 +24,8 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, randomBytes } from 'node:crypto';
-import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
-import { internalCred, newRun, teardown, makeLicenceGatedSupplier, runIntake, factSheet, quotePayload, TRADES, EMIRATES, q, keys } from '../lib/demo_factory.mjs';
+import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call, demoEmail, waitFor } from './fixtures.mjs';
+import { internalCred, newRun, teardown, makeLicenceGatedSupplier, makeSupplier, demoMobile, runIntake, factSheet, quotePayload, TRADES, EMIRATES, q, keys } from '../lib/demo_factory.mjs';
 import { demoPdf } from '../lib/demo_pdf.mjs';
 import { buildInventory, classify, summarise } from './stage2_coverage.mjs';
 import { liveDuties, probeDuty } from './stage2_duties.mjs';
@@ -82,7 +82,14 @@ export const SCENARIOS = [
   { key: 'S18', title: "Every live duty (public.seat_duty + the resilience tick routines) run in an aborted transaction scoped to the run: no error, no non-demo row written, its effect on the run's demo rows recorded", calls: [] },
   { key: 'S19', title: 'Inbound channels with real provider signatures from demo senders: WhatsApp and SMS (Twilio-signed), email (Svix-signed Resend), delivery receipts; the message is stored', calls: [['wa_inbound', 2, 3000, 500], ['resend_inbound', 1, 3000, 500]] },
   { key: 'S20', title: 'Every remaining edge function answers a demo caller with a body (CEO and IT consoles read-only, intelligence, embeddings, error ingest, sanctions, onboarding, catalog)', calls: [['support_ai', 2, 2000, 300]] },
+  // ---- the founder's bar of 12 Oct 2026 (ledger 1121/1160/1164): every document READ, every copy FILED ----
+  { key: 'S21', title: 'Supplier documents through the REAL process_docs, one supplier per licence shape (text, two-column, scanned PDF, photo, rotated, bilingual, Arabic-only, multi-page, expired, another company\'s name, blank) + a company profile each (PDF, DOCX, PPTX, picture) + a catalogue: licence number, legal name and expiry exactly as printed, the name taken from the licence (1176), every attachment read (1177), the gate decides right', calls: [['document_extraction', 40, 6000, 600]] },
+  { key: 'S22', title: 'Signed terms: each customer\'s acceptance records version, IP and hash; the certificate PDF is on the letterhead with them; customer_api accept_terms re-records; the company register lists real customers only', calls: [] },
+  { key: 'S25', title: 'An unfinished sign-up is never a customer (1181): inside 30 minutes it stays, after 30 minutes the real purge removes the row, the auth user and the OTP rows; a complete sign-up of the same age is never touched', calls: [] },
+  { key: 'S26', title: 'Real-browser walk (#1270, Playwright on the live site) for this run\'s identities while the window is open: portal tabs EN + AR, uploads, request creation, quote viewing, Stripe TEST reveal, the your-data page, supplier registration with licence upload', calls: [['visitor_chat', 4, 3000, 500], ['inquiry_qualification_conversation', 8, 3000, 500]] },
   { key: 'S17', title: 'Marketing seat: blog draft -> CEO review -> founder FYI, social plan. Saved to the Desktop, NEVER published or posted', calls: [['marketing_article_draft', 1, 6000, 3000], ['ceo_article_review', 1, 6000, 1000], ['marketing_plan', 1, 4000, 2000]] },
+  { key: 'S23', title: 'Dropbox: every document of the run filed in its owner\'s ONE folder (supplier licence/profile, customer details, signed terms, inquiry files), each backup record verified by size and content hash, the listing matches the records', calls: [] },
+  { key: 'S24', title: 'AI answers judged by a model of ANOTHER family (chat, intake, comparison), and 0 messages from the run reached a real person on any channel', calls: [['ceo__internal_judgement', 6, 4000, 400], ['internal_judgement', 2, 8000, 400]] },
 ];
 
 const log = (...a) => console.log(...a);
@@ -134,7 +141,8 @@ function skeleton() {
 const save = (rel, data) => { const p = join(OUT, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, typeof data === 'string' || Buffer.isBuffer(data) ? data : JSON.stringify(data, null, 1)); return p; };
 async function download(bucket, path) {
   const { SERVICE } = await keys();
-  const r = await fetch(`${BASE}/storage/v1/object/${bucket}/${path}`, { headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } });
+  // cb: the storage CDN served a register 41 minutes stale after it was rewritten (12 Oct 2026); read the object as it is now.
+  const r = await fetch(`${BASE}/storage/v1/object/${bucket}/${path}?cb=${Date.now()}`, { headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } });
   return r.ok ? Buffer.from(await r.arrayBuffer()) : null;
 }
 
@@ -174,6 +182,7 @@ async function cleanupLearning(tag, ids, window) {
 // Every table in public.table_export_registry, searched for the run tag and for the run's own ids in
 // any column named like an inquiry / quote / lead / supplier / customer / transaction id; plus storage.
 // A table that cannot be scanned is reported UNVERIFIED, never counted as clean.
+const dbxCred = async () => (await read(`select value from public.app_secrets where key in ('cred_fn_resilience_ping','cred_fn_backup_kick') order by key limit 1`))[0]?.value;
 async function verifyClean(tag, ids = {}) {
   const tables = (await read(`select r.table_name t from public.table_export_registry r
       join information_schema.tables i on i.table_schema='public' and i.table_name=r.table_name and i.table_type='BASE TABLE'
@@ -196,8 +205,18 @@ async function verifyClean(tag, ids = {}) {
   }
   const storage = (await read(`select bucket_id, count(*)::int n from storage.objects where name like ${q('%' + tag + '%')} group by 1`));
   const auth = (await read(`select count(*)::int n from auth.users where email like ${q('qd-' + tag + '-%')}`))[0].n;
-  return { tables_scanned: tables.length - unverified.length, tables_in_registry: tables.length, found, unverified, storage, auth_users: auth,
-    clean: !found.length && !storage.length && !auth && !unverified.length };
+  // DROPBOX (final sandbox test, 12 Oct 2026): the run's _sandbox/<tag> tree, listed by the same check the daily
+  // duty runs, and the backup records keyed SBX:<tag>:. A listing that cannot be read is UNVERIFIED, not clean.
+  const sbx = (await read(`select count(*)::int n from public.doc_backups where dedupe_key like ${q('SBX:' + tag + ':%')}`))[0].n;
+  let dropbox = { listed: null, records: sbx };
+  try {
+    const v = await call('dropbox_backup', null, { __secret: await dbxCred(), op: 'sandbox_verify', tag }, 120000);
+    dropbox.listed = v.status === 200 && v.json?.summary ? Number(v.json.summary.listed ?? NaN) : null;
+    if (dropbox.listed == null || Number.isNaN(dropbox.listed)) dropbox.error = `HTTP ${v.status} ${v.text.slice(0, 160)}`;
+  } catch (e) { dropbox.error = String(e.message).slice(0, 160); }
+  if (dropbox.error) unverified.push({ table: 'dropbox:_sandbox/' + tag, error: dropbox.error });
+  return { tables_scanned: tables.length - unverified.length, tables_in_registry: tables.length, found, unverified, storage, auth_users: auth, dropbox,
+    clean: !found.length && !storage.length && !auth && !unverified.length && dropbox.listed === 0 && sbx === 0 };
 }
 
 // ---- preconditions (the dry run's whole job, and the real run's first step) -------------------------
@@ -369,9 +388,27 @@ async function realRun(pre) {
       const held = (await read(`select h.state, h.missing, h.note_en, h.quote_id from public.quote_spec_hold h join public.quotes x on x.id=h.quote_id where x.inquiry_id=${q(inq.id)} and x.supplier_id=${Number(al[3].leadId)}`))[0];
       A('the incomplete quote is HELD with notes naming what is missing', held?.state === 'open' && held.note_en, JSON.stringify(held).slice(0, 300));
       save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/held_quote_notes.json`, held || {});
-      const rev = await call('supplier_api', al[3].jwt, quotePayload(inq.id, 139000, 'ZZ DEMO revised quote with every field'));
-      const after = (await read(`select state from public.quote_spec_hold where quote_id=${q(held?.quote_id)}`))[0];
-      A('the revised quote releases or supersedes the hold', rev.status === 200 && after && after.state !== 'open', `HTTP ${rev.status} hold=${after?.state}`);
+      // The supplier's own door out of a hold (supplier portal "complete your quotation"): spec_hold shows
+      // the form, spec_fill answers every missing detail, the sales engineer regenerates the standard
+      // quotation and asks for approval, spec_approve releases it. Each step sends its own notice
+      // (quote_spec_hold / quote_spec_regenerated / quote_spec_released), asserted below in English.
+      const TERM = { delivery: '4 weeks from approval of shop drawings', warranty_period: '12 months', warranty_coverage: 'materials and workmanship',
+        installation_included: 'yes', installation_detail: 'supply and installation on site', validity: '30 days', lead_time: '4 weeks' };
+      const form = await call('supplier_api', al[3].jwt, { action: 'spec_hold', quote_id: held?.quote_id });
+      const sch = form.json?.schema || {};
+      const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
+        lines: Object.fromEntries((sch.lines || []).map((l) => [l.line_no, Object.fromEntries(l.fields.filter((f) => f.missing).map((f) => [f.attr, f.options?.length ? (f.options[0].value ?? f.options[0]) : f.type === 'number' ? 6 : 'standard']))])) };
+      const fill = await call('supplier_api', al[3].jwt, { action: 'spec_fill', quote_id: held?.quote_id, values });
+      A('spec_fill: every missing detail answered regenerates the standard quotation', fill.status === 200 && fill.json?.complete === true, `HTTP ${fill.status} ${JSON.stringify(fill.json).slice(0, 300)}`);
+      if (fill.json?.pdf_url) save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/regenerated_quote_${held?.quote_id}.pdf`, Buffer.from(await (await fetch(fill.json.pdf_url)).arrayBuffer()));
+      const appr = await call('supplier_api', al[3].jwt, { action: 'spec_approve', quote_id: held?.quote_id, confirm: true });
+      const after = (await read(`select state from public.quote_spec_hold where quote_id=${q(held?.quote_id)} order by id desc limit 1`))[0];
+      A('spec_approve releases the hold', appr.status === 200 && after?.state === 'released', `HTTP ${appr.status} hold=${after?.state} ${JSON.stringify(appr.json).slice(0, 200)}`);
+      const notes = await read(`select type, channel, subject, body from public.notifications where quote_id=${q(held?.quote_id)} and type like 'quote_spec_%'`);
+      for (const t of ['quote_spec_hold', 'quote_spec_regenerated', 'quote_spec_released']) {
+        const n = notes.filter((x) => x.type === t);
+        A(`notice ${t}: rendered to the supplier in English`, n.length > 0 && n.every((x) => x.subject && x.body && !/[؀-ۿ]{8,}/.test(x.body)), `${n.length} rows: ${n.map((x) => x.channel).join(',')}`);
+      }
       for (const qid of run.ids.quotes) {
         const pdf = await call('supplier_api', al[0].jwt, { action: 'quote_pdf', quote_id: qid });
         if (pdf.json?.url) { const b = Buffer.from(await (await fetch(pdf.json.url)).arrayBuffer()); save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/quote_${qid}.pdf`, b); }
@@ -461,7 +498,7 @@ async function realRun(pre) {
         const reply = String(r.json?.reply || r.json?.answer || r.json?.text || '');
         A(`${who} chat ${lang} answers in ${lang}`, r.status === 200 && reply && (lang === 'ar') === /[\u0600-\u06FF]/.test(reply), `${Date.now() - t} ms`, route);
       }
-      save('chats/assistant_transcripts.json', chats);
+      save('chats/assistant_transcripts.json', chats); fx.chats = chats;
       const { inq, top } = fx.revealed || {};
       if (inq) {
         const rq = await call('messages_api', inq.cu.jwt, { action: 'request_chat', quote_id: top.id });
@@ -616,6 +653,249 @@ async function realRun(pre) {
       A('stripe_setup_page renders', page.status < 500 && (await page.text()).length > 100, `HTTP ${page.status}`);
       save('functions/remaining_function_answers.json', res);
     },
+    // ---- S21: every supplier document READ through the real door ------------------------------------
+    // The corpus (document_intake_corpus.mjs, ledger 1162) carries the truth of every file. One ZZ DEMO
+    // supplier per licence SHAPE uploads it through supplier_api process_docs exactly as the portal does,
+    // with a company profile (rotating PDF / DOCX / PPTX / picture) and, for the first, a catalogue. What is
+    // asserted is what the supplier's ROW ends with, not what a reader module returns.
+    S21: async () => {
+      const { buildCorpus } = await import('./document_intake_corpus.mjs');
+      const { judge } = await import('./document_intake_score.mjs');
+      const cdir = join(OUT, 'documents', `stage2_${tag}`);
+      const docs = await buildCorpus(cdir);
+      const seen = new Set();
+      const lic = docs.filter((d) => d.kind === 'licence' && d.file && !d.start_approved && (/^lic_(expired|mismatch|blank)/.test(d.id) || !seen.has(d.format) && seen.add(d.format)));
+      const profiles = docs.filter((d) => d.kind === 'profile');
+      const catalogue = docs.find((d) => d.kind === 'catalogue');
+      const b64 = (d) => ({ original_b64: readFileSync(join(cdir, d.file)).toString('base64'), mime: d.mime, filename: `qd-${tag}-${d.file}` });
+      const norm = (s) => String(s ?? '').toLowerCase().replace(/&/g, ' and ').replace(/[.,،'’`()\-]/g, ' ').replace(/\s+/g, ' ').trim();
+      const unreadFamily = new Set(['licence_unreadable', 'licence_expiry_unread', 'licence_number_unread']);
+      const auto = (await read(`select coalesce(auto_approve_suppliers,false) a from public.pricing_config where id=1`))[0]?.a === true;
+      const results = [];
+      for (let i = 0; i < lic.length; i++) {
+        const d = lic[i]; const prof = profiles[i % profiles.length];
+        const email = demoEmail(run, 'sup');
+        const s = await makeSupplier(run, { trade: 'aluminium', email, company_name: d.registered_name, approval: 'pending' });
+        run.ids.leads.add(String(s.leadId)); fx.docSuppliers = [...(fx.docSuppliers || []), { leadId: s.leadId, doc: d.id }];
+        await write(`update public.leads set phone = ${q(demoMobile())}, contact_name = ${q('ZZ DEMO Contact ' + tag)}, owner_dob = '1985-06-01',
+            owner_email_verified = true, owner_phone_verified = true where id = ${Number(s.leadId)}`, 'S21 demo supplier contact');
+        await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
+        await call('kyc', s.jwt, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
+        const w0 = await costWatermark();
+        const body = { action: 'process_docs', license: b64(d), company_profile: b64(prof), ...(i === 0 && catalogue ? { catalogs: [b64(catalogue)] } : {}) };
+        const r = await call('supplier_api', s.jwt, body, 240000);
+        const route = (await costSince(w0)).map((x) => `${x.task_class}:${x.model_used}`).join(' ');
+        const settled = await waitFor(async () => { const x = (await read(`select approval_status, licence_gate_reason from public.leads where id=${Number(s.leadId)}`))[0]; return x && (x.approval_status !== 'pending' || x.licence_gate_reason) ? x : null; }, { timeoutMs: 45000 });
+        const row = (await read(`select l.company_name, l.trade_license_no, l.licence_legal_name, l.license_expiry::text license_expiry, l.license_authority, l.approval_status, l.licence_gate_reason,
+            l.license_doc_path, l.company_profile_doc_path, l.catalog_doc_paths, c.proposed_trades, c.source_docs
+            from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${Number(s.leadId)}`))[0];
+        const t = d.truth; const arOnly = String(d.format).startsWith('arabic_only');
+        const v = { licence_no: judge('licence_no', t.licence_no, row.trade_license_no),
+          legal_name: arOnly ? judge('legal_name_ar', t.legal_name_ar, row.licence_legal_name) : judge('legal_name_en', t.legal_name_en, row.licence_legal_name),
+          expiry: judge('expiry_date', t.expiry_date, row.license_expiry) };
+        const exp = d.expected, reason = row.licence_gate_reason || null, approved = row.approval_status === 'approved';
+        const clear = (x) => x === 'approved' || (!auto && x === 'pending');   // auto-approve off: complete and waiting is the right end
+        let gate;
+        if (exp === 'approve') gate = reason == null && clear(row.approval_status) ? 'correct' : unreadFamily.has(reason) ? 'held' : 'wrong';
+        else if (exp === 'name_autofilled') gate = reason == null && clear(row.approval_status) && norm(row.company_name) === norm(t.legal_name_en) ? 'correct' : 'wrong';
+        else if (exp === 'hold_name') gate = ['licence_unreadable', 'licence_name_mismatch'].includes(reason) && !approved ? 'correct' : approved ? 'UNSAFE' : 'wrong';
+        else gate = reason === exp ? 'correct' : approved ? 'UNSAFE' : 'wrong';
+        // A licence that must be READ (everything but the blank page/photo) may not come back with a critical field held.
+        const mustRead = !['licence_unreadable', 'reg_licence'].includes(exp);
+        const bad = Object.entries(v).filter(([f, x]) => x === 'wrong' || (mustRead && x === 'held' && !(arOnly && f === 'legal_name')));
+        A(`${d.id} (${d.format}, ${d.authority}): licence number, legal name and expiry read exactly`, r.status === 200 && bad.length === 0,
+          `HTTP ${r.status} no=${row.trade_license_no}/${t.licence_no} name=${row.licence_legal_name}/${arOnly ? t.legal_name_ar : t.legal_name_en} expiry=${row.license_expiry}/${t.expiry_date} ${JSON.stringify(v)}`, route);
+        A(`${d.id}: the gate decides ${exp}`, gate === 'correct', `${row.approval_status}${reason ? ' (' + reason + ')' : ''} company=${row.company_name} -> ${gate}`);
+        if (exp === 'name_autofilled') {
+          const act = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_name_from_licence' and (detail->>'lead_id')::text=${q(String(s.leadId))} or (kind='supplier_name_from_licence' and target_id::text=${q(String(s.leadId))})`).catch(() => [{ n: -1 }]))[0].n;
+          A(`${d.id}: the company name is taken from the licence and recorded (1176)`, norm(row.company_name) === norm(t.legal_name_en) && act !== 0, `company=${row.company_name} agent_actions=${act}`);
+        }
+        // 1177: every attachment read - each uploaded path has a reading on the supplier's row.
+        const docsRead = (row.source_docs?.docs || []);
+        const uploaded = [row.license_doc_path, row.company_profile_doc_path, ...(row.catalog_doc_paths || [])].filter(Boolean);
+        const unread = uploaded.filter((p) => !docsRead.some((x) => x.path === p && x.status && !/error|unread|failed/i.test(x.status)));
+        A(`${d.id}: every attachment read (licence + ${prof.format} profile${i === 0 ? ' + catalogue' : ''}) (1177)`, mustRead ? unread.length === 0 : unread.filter((p) => p !== row.license_doc_path).length === 0,
+          `${uploaded.length} uploaded, unread: ${unread.join(', ') || 'none'} · ${JSON.stringify(docsRead.map((x) => [String(x.path).split('/').pop(), x.status])).slice(0, 220)}`);
+        // Cross matching: what the profile does is proposed, and nothing it does not do.
+        const truthTrades = new Set([...(t.trades || []), ...(prof.truth.trades || []), ...(i === 0 && catalogue ? catalogue.truth.trades : [])]);
+        const prop = row.proposed_trades || [];
+        const wrong = prop.filter((x) => !truthTrades.has(x)), missing = (prof.truth.trades || []).filter((x) => !prop.includes(x));
+        A(`${d.id}: the profile's trades are proposed for matching, none it does not do`, wrong.length === 0 && missing.length === 0, `proposed ${JSON.stringify(prop)} truth ${JSON.stringify([...truthTrades])} wrong ${wrong} missing ${missing}`);
+        results.push({ doc: d.id, format: d.format, authority: d.authority, expected: exp, truth: t, row: { ...row, source_docs: undefined }, verdicts: v, gate, process_docs: r.json, route });
+      }
+      save('documents/stage2_document_reading.json', results);
+    },
+    // ---- S22: the signed terms and the company's customer register --------------------------------
+    S22: async () => {
+      const { pdfFactsFromBytes } = await import('./pdf_facts.mjs');
+      const cur = (await read(`select value from public.app_secrets where key='customer_terms_version'`))[0]?.value;
+      for (const cu of fx.customers) {
+        const row = await waitFor(async () => { const x = (await read(`select full_name, tos_version, tos_ip, tos_sha256, tos_accepted_at, signed_terms_path, signed_terms_at from public.customers where id=${q(cu.customerId)}`))[0]; return x?.signed_terms_path ? x : null; }, { timeoutMs: 60000 })
+          || (await read(`select full_name, tos_version, tos_ip, tos_sha256, tos_accepted_at, signed_terms_path, signed_terms_at from public.customers where id=${q(cu.customerId)}`))[0];
+        const dir = `customers/${cu.cfg.label}_${cu.cfg.locale}_${safe(cu.cfg.emirate)}`;
+        A(`${cu.cfg.label}: acceptance records the current version, the IP and the text hash`, row.tos_version === cur && !!row.tos_ip && /^[0-9a-f]{64}$/.test(row.tos_sha256 || ''), `version=${row.tos_version}/${cur} ip=${row.tos_ip} sha=${String(row.tos_sha256).slice(0, 12)}`);
+        const pdf = row.signed_terms_path ? await download('signed-terms', row.signed_terms_path) : null;
+        if (pdf) save(`${dir}/signed_terms_certificate.pdf`, pdf);
+        const f = pdf ? await pdfFactsFromBytes(pdf).catch(() => null) : null;
+        const txt = String(f?.text || '');
+        A(`${cu.cfg.label}: the signed certificate is on the letterhead and names the signer, IP and hash`, !!pdf && /QuotesDone/i.test(txt) && txt.includes(String(row.tos_ip)) && txt.includes(String(row.tos_sha256).slice(0, 16)) && (cu.cfg.locale === 'ar' || txt.includes(row.full_name)),
+          `${row.signed_terms_path} ${pdf ? pdf.length + ' bytes' : 'MISSING'} letterhead=${/QuotesDone/i.test(txt)} ip=${txt.includes(String(row.tos_ip))} hash=${txt.includes(String(row.tos_sha256).slice(0, 16))}`);
+      }
+      const c1 = fx.customers[0];
+      const at0 = (await read(`select tos_accepted_at from public.customers where id=${q(c1.customerId)}`))[0].tos_accepted_at;
+      const re = await call('customer_api', c1.jwt, { action: 'accept_terms' });
+      const at1 = (await read(`select tos_accepted_at, tos_version from public.customers where id=${q(c1.customerId)}`))[0];
+      A('customer_api accept_terms re-records the acceptance at the current version', re.status === 200 && re.json?.version === cur && at1.tos_version === cur && String(at1.tos_accepted_at) >= String(at0), `HTTP ${re.status} ${JSON.stringify(re.json)}`);
+      const cred = (await read(`select value from public.app_secrets where key in ('cred_fn_compliance_archive','cred_db_internal') order by key='cred_fn_compliance_archive' desc limit 1`))[0]?.value;
+      const reg = await call('compliance_archive', null, { __secret: cred, action: 'register' });
+      const bytes = await download('signed-terms', 'registers/customers-register.xlsx');
+      if (bytes) save('customers/customers-register.xlsx', bytes);
+      const { inflateRawSync } = await import('node:zlib');
+      // the sheet's text: every deflated or stored entry of the xlsx (a zip), concatenated
+      let sheetText = '';
+      if (bytes) for (let o = 0; o + 30 < bytes.length;) {
+        if (bytes.readUInt32LE(o) !== 0x04034b50) break;
+        const method = bytes.readUInt16LE(o + 8), csize = bytes.readUInt32LE(o + 18), nlen = bytes.readUInt16LE(o + 26), xlen = bytes.readUInt16LE(o + 28);
+        const data = bytes.subarray(o + 30 + nlen + xlen, o + 30 + nlen + xlen + csize);
+        try { sheetText += (method === 8 ? inflateRawSync(data) : data).toString('utf8'); } catch { /* not text */ }
+        o += 30 + nlen + xlen + csize;
+      }
+      const real = (await read(`select count(*)::int n from public.customers where tos_accepted_at is not null and not coalesce(is_demo,false) and email not like '%@example.invalid'`))[0].n;
+      const fixtures = (sheetText.match(/example\.invalid|ZZ DEMO/gi) || []).length;
+      A('the company customer register lists every real customer and no fixture (and its Dropbox copy is the same file)', reg.status === 200 && reg.json?.count === real && fixtures === 0 && reg.json?.dropbox_mirrored === true,
+        `HTTP ${reg.status} count=${reg.json?.count} real=${real} fixture mentions in the file=${fixtures} dropbox=${reg.json?.dropbox_mirrored}`);
+    },
+    // ---- S23: Dropbox, each owner's ONE folder ------------------------------------------------------
+    // fn_backup_sandbox_enqueue re-roots this run's demo rows under /QuotesDone Backup/_sandbox/<tag>/ with the
+    // same sub-tree production uses; op 'sandbox' uploads them with production's own backupRow (size + content
+    // hash read back); op 'sandbox_verify' lists the folder against the records.
+    S23: async () => {
+      const cred = (await read(`select value from public.app_secrets where key in ('cred_fn_resilience_ping','cred_fn_backup_kick') order by key limit 1`))[0]?.value;
+      const enq = await write(`select public.fn_backup_sandbox_enqueue(${q(tag)}) r`, 'stage2 dropbox sandbox enqueue');
+      let up = null;
+      for (let i = 0; i < 8; i++) {
+        up = await call('dropbox_backup', null, { __secret: cred, op: 'sandbox', tag }, 240000);
+        const left = (await read(`select count(*)::int n from public.doc_backups where dedupe_key like ${q('SBX:' + tag + ':%')} and status <> 'done'`))[0].n;
+        if (!left) break;
+      }
+      const rows = await read(`select id, entity_id, doc_type, bucket, path, dropbox_path, status, verified_at, dropbox_content_hash, bytes, dropbox_size from public.doc_backups where dedupe_key like ${q('SBX:' + tag + ':%')} order by dropbox_path`);
+      save('dropbox/backup_records.json', rows);
+      A('every document of the run has a backup record, uploaded and verified by size and content hash', rows.length > 0 && rows.every((x) => x.status === 'done' && x.verified_at && x.dropbox_content_hash),
+        `${rows.length} records · ${rows.filter((x) => x.status !== 'done').map((x) => x.status + ':' + x.path).join(' ').slice(0, 300) || 'all done'} · enqueue ${JSON.stringify(enq?.[0]?.r).slice(0, 120)} · last upload HTTP ${up?.status}`);
+      const root = `/QuotesDone Backup/_sandbox/${tag}/`;
+      const folderOf = (p) => p.slice(0, p.lastIndexOf('/'));
+      // Suppliers: the licence and profile of every supplier in the run (S01 and S21) are in Suppliers/<category>/<name> (<id>)/, one folder each.
+      for (const leadId of [...fx.suppliers.map((s) => s.leadId), ...(fx.docSuppliers || []).map((s) => s.leadId)]) {
+        const l = (await read(`select license_doc_path, company_profile_doc_path, company_name from public.leads where id=${Number(leadId)}`))[0];
+        const mine = rows.filter((x) => x.dropbox_path.includes(`(${leadId})/`));
+        const files = [l.license_doc_path, l.company_profile_doc_path].filter(Boolean);
+        const filed = files.filter((p) => rows.some((x) => x.path === p && x.dropbox_path.startsWith(root + 'Suppliers/') && x.dropbox_path.includes(`(${leadId})/`)));
+        const folders = new Set(mine.map((x) => folderOf(x.dropbox_path)));
+        A(`supplier ${leadId}: licence and profile filed in its ONE folder`, filed.length === files.length && folders.size === 1, `${filed.length}/${files.length} filed · folders ${[...folders].map((f) => f.replace(root, '')).join(' | ')}`);
+      }
+      // Customers: details, signed terms and every inquiry under Customers/<name> (<id8>)/.
+      for (const cu of fx.customers) {
+        const id8 = String(cu.customerId).slice(0, 8);
+        const mine = rows.filter((x) => x.dropbox_path.startsWith(root + 'Customers/') && x.dropbox_path.includes(`(${id8})/`));
+        const tops = new Set(mine.map((x) => x.dropbox_path.replace(root + 'Customers/', '').split('/')[0]));
+        const terms = mine.some((x) => /Signed Terms/i.test(x.dropbox_path));
+        const inqs = Object.values(fx.inq).filter((x) => x.cu === cu);
+        const inqOk = inqs.every((x) => !rows.some((r) => r.dropbox_path.includes(String(x.id).slice(0, 8)) && !r.dropbox_path.includes(`(${id8})/Inquiries/`)));
+        A(`customer ${cu.cfg.label}: details and signed terms in its ONE folder, inquiry files under it`, mine.length > 0 && tops.size === 1 && terms && inqOk, `${mine.length} files · folders ${[...tops].join(' | ')} · signed terms ${terms} · inquiries ${inqs.length} ok=${inqOk}`);
+      }
+      const ver = await call('dropbox_backup', null, { __secret: cred, op: 'sandbox_verify', tag }, 240000);
+      save('dropbox/dropbox_listing_verify.json', ver.json || ver.text);
+      const sm = ver.json?.summary || {};
+      A('the Dropbox listing matches the backup records (0 missing, 0 changed, 0 stray)', ver.status === 200 && sm.expected > 0 && !sm.missing && !sm.changed && !sm.stray, `HTTP ${ver.status} ${JSON.stringify(sm)}`);
+    },
+    // ---- S25: the 30-minute purge of an unfinished sign-up ----------------------------------------
+    // fn_unfinished_signup_purge leaves is_demo rows to their harness unless it is pointed at ONE e-mail
+    // (p_only_email), so it is pointed at this run's own sign-ups, one at a time, exactly as the job runs it.
+    S25: async () => {
+      const { createHash } = await import('node:crypto');
+      const half = await makeDemoCustomer(run, { label: 'Unfinished', locale: 'en', stopBeforeWhatsApp: true });
+      run.ids.customers.add(String(half.customerId));
+      const full = fx.customers[2];
+      const purge = async (email) => (await write(`select public.fn_unfinished_signup_purge(true, 5, ${q(email)}) r`, 'stage2 S25 purge (this run only)'))?.[0]?.r;
+      const exists = async (cu) => (await read(`select (select count(*) from public.customers where id=${q(cu.customerId)})::int c, (select count(*) from auth.users where lower(email)=lower(${q(cu.email)}))::int u,
+          (select count(*) from public.login_otp where lower(email)=lower(${q(cu.email)}))::int o`).catch(async () => read(`select (select count(*) from public.customers where id=${q(cu.customerId)})::int c, (select count(*) from auth.users where lower(email)=lower(${q(cu.email)}))::int u, 0 o`)))[0];
+      const r0 = await purge(half.email); const e0 = await exists(half);
+      A('inside its 30 minutes an unfinished sign-up stays', e0.c === 1 && e0.u === 1, `${JSON.stringify(r0).slice(0, 200)} row=${e0.c} auth=${e0.u}`);
+      for (const cu of [half, full]) await write(`update public.customers set created_at = now() - interval '31 minutes' where id=${q(cu.customerId)};
+          update auth.users set created_at = now() - interval '31 minutes' where lower(email)=lower(${q(cu.email)})`, 'stage2 S25 age the run\'s own sign-ups');
+      const r1 = await purge(half.email); const e1 = await exists(half);
+      A('after 30 minutes the purge removes the row, the auth user and the OTP rows', e1.c === 0 && e1.u === 0 && e1.o === 0, `${JSON.stringify(r1).slice(0, 300)} row=${e1.c} auth=${e1.u} otp=${e1.o}`);
+      const r2 = await purge(full.email); const e2 = await exists(full);
+      A('a complete sign-up of the same age is never touched', e2.c === 1 && e2.u === 1, `${JSON.stringify(r2).slice(0, 200)} row=${e2.c} auth=${e2.u}`);
+      // the purge keeps only that a purge happened (a hash, no identity); this run's record is removed with the run.
+      const ref = createHash('sha256').update(half.email.toLowerCase()).digest('hex');
+      await write(`delete from public.signup_purge where subject_ref = ${q(ref)}`, 'stage2 S25 purge record of the run');
+      save('customers/unfinished_signup_purge.json', { before_30_min: r0, after_30_min: r1, complete_same_age: r2 });
+    },
+    // ---- S26: the real-browser walk while the window is open ---------------------------------------
+    S26: async () => {
+      const { spawnSync } = await import('node:child_process');
+      const alu = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
+      const en = alu?.cu?.cfg.locale === 'en' ? alu.cu : fx.customers.find((c) => c.cfg.locale === 'en');
+      const ar = fx.customers.find((c) => c.cfg.locale === 'ar');
+      const su = fx.suppliers[0];
+      const who = (c, k, l) => ({ kind: k, email: c.email, label: l });
+      const ids = { tag, customer: who(en, 'customer', en.cfg.label), customerAr: who(ar, 'customer', ar.cfg.label), supplier: who(su, 'supplier', 'AL'),
+        walk: [who(en, 'customer', en.cfg.label), who(ar, 'customer', ar.cfg.label), who(su, 'supplier', 'AL')] };
+      const idsPath = save('browser/ids.json', ids);
+      const bout = join(OUT, 'browser');
+      for (const mode of ['portals', 'journeys']) {
+        const r = spawnSync(process.execPath, [join(REPO, 'scripts/e2e/browser_walk.mjs'), mode, idsPath], { encoding: 'utf8', timeout: 45 * 60000, cwd: REPO, env: { ...process.env, QD_WALK_OUT: bout, QD_FIXTURES: '1' } });
+        save(`browser/${mode}.log`, (r.stdout || '') + (r.stderr || ''));
+        A(`browser walk ${mode} ran to the end`, r.status === 0 && !/SKIP (journeys|portals)/.test(r.stdout || ''), `exit ${r.status} ${(r.stdout || '').split('\n').filter((l) => /SKIP|FAIL/.test(l)).slice(0, 4).join(' | ')}`);
+      }
+      spawnSync(process.execPath, [join(REPO, 'scripts/e2e/browser_walk.mjs'), 'index'], { encoding: 'utf8', cwd: REPO, env: { ...process.env, QD_WALK_OUT: bout } });
+      const { readdirSync } = await import('node:fs');
+      for (const f of readdirSync(bout).filter((x) => x.endsWith('.json') && x !== 'ids.json' && !x.startsWith('public'))) {
+        const st = JSON.parse(readFileSync(join(bout, f), 'utf8'));
+        if (!Array.isArray(st)) continue;
+        const bad = st.filter((s) => s.status !== 'PASS');
+        A(`browser: ${f.replace('.json', '')} (${st.length} steps)`, st.length > 0 && bad.length === 0, bad.map((s) => `${s.step}: ${s.status} ${(s.issues || []).map((i) => i.what).join('; ')}`).join(' | ').slice(0, 400) || 'all PASS');
+      }
+    },
+    // ---- S24: answers judged by another family; nothing reached a real person -----------------------
+    S24: async () => {
+      const fam = (m) => String(m || '').split('/')[0];
+      const samples = (fx.chats || []).map((c) => ({ what: `${c.who} chat (${c.lang})`, q: c.msg, a: String(c.reply?.reply || c.reply?.answer || c.reply?.text || ''), producer: (c.route || '').split(' ').map((x) => x.split(':')[1]).filter(Boolean)[0] || 'openai/gpt-6-luna', lang: c.lang }));
+      const alu = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
+      if (alu) {
+        const { pdfFactsFromBytes } = await import('./pdf_facts.mjs');
+        const p = join(OUT, `customers/${alu.cu.cfg.label}_${alu.cu.cfg.locale}_${safe(alu.cu.cfg.emirate)}/inquiry_aluminium/comparison_en.pdf`);
+        const txt = existsSync(p) ? String((await pdfFactsFromBytes(readFileSync(p)).catch(() => ({})))?.text || '') : '';
+        const quotes = await read(`select q.quote_amount::float a, l.company_name s from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status in ('submitted','accepted') order by 1`);
+        samples.push({ what: 'comparison report (EN)', q: `Compare these quotes for aluminium works, cheapest first: ${JSON.stringify(quotes)}`, a: txt.slice(0, 6000), producer: 'anthropic/claude-opus-5.5', lang: 'en' });
+      }
+      const judged = [];
+      for (const s of samples) {
+        const task_class = fam(s.producer) === 'anthropic' ? 'internal_judgement' : 'ceo__internal_judgement';
+        const w0 = await costWatermark();
+        const r = await call('ai_gateway', null, { __secret: await internalCred(), fn: 'stage2_quality_judge', task_class, subject: { email: fx.customers[0].email }, max_tokens: 400,
+          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of a quote to reveal that supplier; no card surcharge). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
+                     { role: 'user', content: `QUESTION / INPUT:\n${s.q}\n\nANSWER:\n${s.a || '(empty)'}` }] }, 120000);
+        const used = (await costSince(w0)).map((x) => x.model_used).filter(Boolean);
+        let v = null; try { v = JSON.parse(String(r.json?.content || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch { v = null; }
+        judged.push({ ...s, judge_task: task_class, judge_model: used.join(','), verdict: v, raw: r.json?.content || r.text });
+        A(`${s.what}: judged ${v?.score ?? '?'}/5 by ${used.join(',') || 'NO MODEL'} (producer ${s.producer})`, !!s.a && v && v.score >= 4 && used.length > 0 && used.every((m) => fam(m) !== fam(s.producer)), JSON.stringify(v?.issues || r.json || r.text).slice(0, 300), used.join(','));
+      }
+      save('chats/quality_judgement.json', judged);
+      // 0 messages to real people: every notification the run caused, on any channel, went to a demo address or was captured.
+      const ids = [...run.ids.inquiries, ...run.ids.quotes].map(q).join(',') || 'null';
+      const leads = [...run.ids.leads].map(Number).join(',') || 'null';
+      const out = await read(`select id, channel, status, to_email, to_phone, type from public.notifications n
+          where n.created_at >= ${q(window.from)} and (n.inquiry_id::text in (${ids}) or n.quote_id::text in (${ids}) or n.lead_id in (${leads})
+             or n.to_email like ${q('qd-' + tag + '-%')} or coalesce(n.subject,'') || coalesce(n.body,'') like ${q('%' + tag + '%')})`);
+      const realAddr = out.filter((n) => (n.to_email && !/@example\.invalid$/i.test(n.to_email)) || (n.to_phone && !/^\+?9715000000\d{2}$/.test(String(n.to_phone).replace(/[^\d+]/g, ''))));
+      const delivered = out.filter((n) => ['sent', 'delivered', 'queued', 'pending'].includes(n.status));
+      save('notifications/real_recipient_audit.json', { notices: out.length, real_address: realAddr, delivered });
+      fx.noticeAudit = { out: out.length, delivered: delivered.length };
+      A('0 messages from the run reached a real person (email, WhatsApp, SMS)', out.length > 0 && delivered.length === 0 && realAddr.every((n) => !['sent', 'delivered'].includes(n.status)),
+        `${out.length} notices · real-looking addresses ${realAddr.length} (${[...new Set(realAddr.map((n) => n.status))].join(',') || '-'}) · delivered/queued ${delivered.length}`);
+    },
     S17: async () => {
       const w0 = await costWatermark();
       const r = await call('marketing', null, { action: 'article_draft', dry_run: true, demo_tag: tag, publish: false });
@@ -657,6 +937,18 @@ async function cleanupAll(tag, manifest) {
   const run = newRun({ tag, quiet: true });
   run.ids = { inquiries: new Set(manifest?.ids?.inquiries || []), quotes: new Set(manifest?.ids?.quotes || []), leads: new Set(manifest?.ids?.leads || []), customers: new Set(manifest?.ids?.customers || []), storage: [] };
   const learning = await cleanupLearning(tag, manifest?.ids || {}, manifest?.window);
+  // DROPBOX first, while its records still say what was filed: the run's _sandbox/<tag> folder (the path is built
+  // by dropbox_backup from the tag, never taken from here), then its SBX:<tag>: records and generated copies.
+  const dropbox = {};
+  try {
+    const c = await call('dropbox_backup', null, { __secret: await dbxCred(), op: 'sandbox_cleanup', tag }, 120000);
+    dropbox.folder = { status: c.status, folder_gone: c.json?.folder_gone === true };
+    const gen = await read(`select bucket, path from public.doc_backups where dedupe_key like ${q('SBX:' + tag + ':%')} and source = 'generated' and bucket is not null and path is not null`);
+    const { SERVICE } = await keys();
+    for (const g of gen) await fetch(`${BASE}/storage/v1/object/${g.bucket}/${g.path}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } }).catch(() => {});
+    const r = await write(`with d as (delete from public.doc_backups where dedupe_key like ${q('SBX:' + tag + ':%')} returning 1) select count(*)::int n from d`, 'stage2 dropbox sandbox records');
+    dropbox.records_removed = r?.[0]?.n ?? 0; dropbox.generated_removed = gen.length;
+  } catch (e) { dropbox.error = String(e.message).slice(0, 200); }
   const closed = await closeRun(run, {});
   // THE SWEEP: whatever teardown never knew (conversation rows from the signed inbound messages, seat
   // notes, error-ingest rows) is found by verifyClean and removed only where the row itself carries the
@@ -690,7 +982,7 @@ async function cleanupAll(tag, manifest) {
     }
     v = await verifyClean(tag, manifest?.ids || {});
   }
-  return { learning, removed: closed.removed?.summary, swept, leftovers: closed.leftovers, verify: v };
+  return { learning, removed: closed.removed?.summary, swept, dropbox, leftovers: closed.leftovers, verify: v };
 }
 
 // ---- main ---------------------------------------------------------------------------------------------
