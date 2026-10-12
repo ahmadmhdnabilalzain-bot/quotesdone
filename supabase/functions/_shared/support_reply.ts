@@ -128,6 +128,8 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       // Its plain-language rewrite runs BEFORE that check, so the checked text is the text sent; and which published
       // trade (if any) they ask the price of is chosen in the same answering call, not by a second chain (546, #1327).
       ...(checked ? { plan: { steps: [{ id: 's1', goal: 'answer the visitor from company knowledge', query: req.message.slice(0, 500) }] }, stakes: 'high' as const, polish: plain,
+        // short outputs on the fastest cross-family pair (writer and reviewer routed by task class; 12 Oct 2026)
+        maxTokens: { synthesise: 600, verify: 300 },
         ...(req.priceTrades?.length ? { ask: { key: 'price_trade', options: [...req.priceTrades.map((t) => ({ id: t, meaning: `they ask what ${t.replace(/-/g, ' ')} work or material costs` })),
           { id: 'none', meaning: 'they do not ask the price of one of these trades (platform fees, how it works, anything else)' }] } } : {}) } : {}),
       // a short refusal of a manipulation or an out-of-scope ask may be the reply here, and nowhere else (think.ts)

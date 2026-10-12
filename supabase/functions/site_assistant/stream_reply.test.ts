@@ -10,7 +10,7 @@ async function lines(s: ReadableStream<Uint8Array>) {
 Deno.test('the status line leaves before the reply exists, and no reply text rides on it', async () => {
   let release!: (v: Record<string, unknown>) => void;
   const payload = new Promise<Record<string, unknown>>((r) => { release = r; });
-  const reader = streamReply(STATUS.en, payload).getReader();
+  const reader = streamReply(STATUS.en, () => payload).getReader();
   const first = JSON.parse(new TextDecoder().decode((await reader.read()).value!));
   assertEquals(first, { t: 'status', text: STATUS.en });   // nothing from a draft: the payload has not resolved
   release({ reply: 'Approved answer.', routed: 'reasoned' });
@@ -21,7 +21,7 @@ Deno.test('the status line leaves before the reply exists, and no reply text rid
 
 Deno.test('the deltas join back to exactly the final reply, and done carries the same payload as the JSON path', async () => {
   const reply = 'The reveal fee is 3% of the quote.\nNo card fee is added, and no VAT.  كل شيء واضح';
-  const out = await lines(streamReply(STATUS.ar, Promise.resolve({ reply, scope: 'public', routed: 'reasoned' })));
+  const out = await lines(streamReply(STATUS.ar, () => Promise.resolve({ reply, scope: 'public', routed: 'reasoned' })));
   assertEquals(out[0].t, 'status');
   assertEquals(out.filter((e) => e.t === 'delta').map((e) => e.text).join(''), reply);
   assertEquals(out.at(-1), { t: 'done', reply, scope: 'public', routed: 'reasoned' });
@@ -29,11 +29,21 @@ Deno.test('the deltas join back to exactly the final reply, and done carries the
 });
 
 Deno.test('a failed payload still ends the stream with done and no delta', async () => {
-  const out = await lines(streamReply(STATUS.en, Promise.reject(new Error('boom'))));
+  const out = await lines(streamReply(STATUS.en, () => Promise.reject(new Error('boom'))));
   assertEquals(out.map((e) => e.t), ['status', 'done']);
   assertEquals(out[1].error, 'boom');
 });
 
 Deno.test('pieces never lose or add a character', () => {
   for (const t of ['', '  lead', 'one', 'a b c d e f g h i', 'x\n\ny  z ']) assertEquals(pieces(t).join(''), t.trim() ? t : '');
+});
+
+// prevented by: this test. Sentences emitted while the model writes go out at once; the final text is not sent twice,
+// and when the final reply differs (the model rewrote it) a reset precedes it so the widget shows only that text.
+Deno.test('live sentences stream as written; a rewritten final reply is preceded by reset', async () => {
+  const same = await lines(streamReply(STATUS.en, async (emit) => { emit('One. '); emit('Two.'); return { reply: 'One. Two.' }; }));
+  assertEquals(same.map((e) => e.t), ['status', 'delta', 'delta', 'done']);
+  const fixed = await lines(streamReply(STATUS.en, async (emit) => { emit('One. '); return { reply: 'Better one.' }; }));
+  assertEquals(fixed.map((e) => e.t), ['status', 'delta', 'reset', 'delta', 'done']);
+  assertEquals(fixed.at(-1).reply, 'Better one.');
 });
