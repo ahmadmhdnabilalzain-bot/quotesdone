@@ -53,6 +53,12 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
+          cache: npm
+      # 12 Oct 2026: node_modules comes from package-lock.json. Until today it came, unnoticed, from deno resolving
+      # package.json with --node-modules-dir=auto (unlocked, so a fresh registry read every run); with
+      # DENO_NO_PACKAGE_JSON set that stopped, and nocheck_files_have_no_redeclarations could not import typescript.
+      - name: Install the locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       # 4 Aug 2026. `npm test` now runs the Deno suite as well as the Node checks, because
       # supabase/functions/_shared/attachment.test.ts had never executed once: the runner globbed
       # *.test.mjs and `deno test` appeared in no workflow. run.mjs fails HARD when deno is absent
