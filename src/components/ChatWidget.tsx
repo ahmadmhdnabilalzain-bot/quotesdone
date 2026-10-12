@@ -116,6 +116,7 @@ export function ChatWidget() {
             if (!line.trim()) continue;
             const e = JSON.parse(line);
             if (e.t === 'status') setStatus(e.text);
+            else if (e.t === 'reset') text = '';
             else if (e.t === 'delta') { text += e.text; setStatus(''); show(text); }
             else if (e.t === 'done') final = e.reply || '';
           }

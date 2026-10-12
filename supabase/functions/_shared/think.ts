@@ -98,6 +98,9 @@ export interface ThinkRequest {
   // One more choice made IN the answering call, so it costs no chain of its own (the widget: which published trade, if
   // any, they ask the price of). Comes back as result.extra (null if not one of the ids).
   ask?: { key: string; options: { id: string; meaning: string }[] };
+  // Output ceilings for a caller whose reply is short (the widget: ~70 words). With a verify ceiling the reviewer is
+  // also told to return the strict JSON verdict only. A truncated output is a failed pass, never a fragment sent.
+  maxTokens?: { synthesise?: number; verify?: number };
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -180,7 +183,7 @@ export function authoritative(url: string): boolean {
 // Deferral and refusal as the founder heard them from us (903). EN and AR. Only the shape of an
 // evasion is listed; a draft that ALSO carries substance (enough words beyond the deferral) passes
 // the phrase test, and is then judged by the other rules.
-const EVASION = [
+export const EVASION = [
   /\b(get|come) back to you\b/i, /\bi (will|'ll|need to|have to|must) (check|confirm|verify|find out|look into)\b/i,
   /\b(can ?not|can't|unable to|not able to|won't be able to) (answer|help|advise|say|provide|share|give)\b/i,
   /\bi (do not|don't) (know|have (that|this|the) information)\b/i, /\bno information (is )?available\b/i,
@@ -507,7 +510,7 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? 900 });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = 'no reply'; break; }
     refusal = refuse(draft, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true });
@@ -526,8 +529,8 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
       const p = await req.polish(String(draft.answer ?? '')).catch(() => null);
       if (p) { draft = { ...draft, answer: p }; steps.push({ id: 'polish', kind: 'synthesise', goal: "the caller's rewrite, before the check", status: 'done' }); }
     }
-    const v = await deps.llm('verify', VERIFY_PROMPT, JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
-      { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: 600 });
+    const v = await deps.llm('verify', VERIFY_PROMPT + (req.maxTokens?.verify ? '\nReturn ONLY that JSON object, no other text: "problems" is [] when you agree, else at most two short items.' : ''), JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
+      { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: req.maxTokens?.verify ?? 600 });
     const vj = parseJson<{ verdict?: string; problems?: string[] }>(v.content);
     if (!vj || !v.content) {
       verified = { status: 'not_run', by: v.model ?? null, notes: String(v.error ?? 'no independent reviewer answered') };
@@ -537,7 +540,7 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? 900 });
       const fixed = parseJson<Draft>(r.content);
       if (fixed && !refuse(fixed, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true })) { draft = fixed; model = r.model ?? model; }
       verified = { status: 'disagreed', by: v.model ?? null, notes: (vj.problems ?? []).join(' | ').slice(0, 1000) };

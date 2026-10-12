@@ -1,17 +1,16 @@
-// THE WIDGET'S STREAM CONTRACT (customer_support, 12 Oct 2026). A caller that sends `Accept: application/x-ndjson`
-// gets one JSON object per line:
-//   {"t":"status","text":…}   at once, before any read or model call: a fixed placeholder ("looking into it") in their
-//                               language. It is an acknowledgement, NOT the answer, and is measured separately from it.
-//   {"t":"delta","text":…}    the answer, a few words at a time, sent the moment the approved reply exists
-//   {"t":"done", …}           the same object the plain JSON response carries (reply, scope, routed, …)
-// WHAT IS NEVER STREAMED: a draft. On the widget the plain-language rewrite runs BEFORE the independent check, and
-// support_reply.ts sends a reply only when that check AGREED (not run or disagreed: the deterministic road answers
-// instead). The deltas are cut from that final, guarded text, so the visitor never reads words the check did not pass.
+// THE WIDGET'S STREAM CONTRACT (customer_support, 12 Oct 2026; founder rulings 1195/1196). A caller that sends
+// `Accept: application/x-ndjson` gets one JSON object per line:
+//   {"t":"status","text":…}   at once: a UI status line ("writing your answer"), NOT a reply and never counted as one.
+//   {"t":"delta","text":…}    each sentence of the model's answer the moment it is written and has passed the figure
+//                               check and the reply guard (brief_answer.ts). Unchecked words are never sent.
+//   {"t":"reset"}             the model rewrote its answer (a figure or rule failed): drop what was shown; the
+//                               rewritten answer follows as deltas.
+//   {"t":"done", …}           the same object the plain JSON response carries; done.reply is the final text.
 // Any caller without that Accept header gets the JSON response exactly as before.
-// prevented by: site_assistant/stream_reply.test.ts, _shared/support_reply.test.ts (unchecked replies fall back)
+// prevented by: site_assistant/stream_reply.test.ts, _shared/brief_answer.test.ts
 export const STATUS = {
-  en: 'Looking into that for you…',
-  ar: 'لحظة من فضلك، أتحقق من ذلك…',
+  en: 'Writing your answer…',
+  ar: 'جارٍ كتابة الإجابة…',
 } as const;
 
 /** The reply in pieces of a few words, whitespace kept, so the pieces join back to exactly the reply. */
@@ -24,16 +23,23 @@ export function pieces(text: string, words = 4): string[] {
   return out;
 }
 
-/** Status now; the deltas and `done` once the finished payload resolves. A failed payload still ends the stream. */
-export function streamReply(status: string, payload: Promise<Record<string, unknown>>): ReadableStream<Uint8Array> {
+/** Status now; checked sentences as the answer is written (emit); then `done`. A reply that was not emitted live (a
+ *  rewrite, a retry on another model) is sent in pieces before done, and done.reply is always the final text, so the
+ *  widget shows exactly what was approved. A failed run still ends the stream. */
+export function streamReply(status: string, run: (emit: (text: string) => void) => Promise<Record<string, unknown>>): ReadableStream<Uint8Array> {
   const enc = new TextEncoder();
   const line = (o: unknown) => enc.encode(JSON.stringify(o) + '\n');
   return new ReadableStream({
     async start(c) {
       c.enqueue(line({ t: 'status', text: status }));
+      let live = '';
+      const emit = (text: string) => { if (text) { live += text; c.enqueue(line({ t: 'delta', text })); } };
       let done: Record<string, unknown>;
-      try { done = await payload; } catch (e) { done = { error: String((e as Error)?.message || e).slice(0, 300) }; }
-      if (typeof done.reply === 'string') for (const p of pieces(done.reply)) c.enqueue(line({ t: 'delta', text: p }));
+      try { done = await run(emit); } catch (e) { done = { error: String((e as Error)?.message || e).slice(0, 300) }; }
+      if (typeof done.reply === 'string' && done.reply !== live.trim()) {
+        if (live) c.enqueue(line({ t: 'reset' }));
+        for (const p of pieces(done.reply)) c.enqueue(line({ t: 'delta', text: p }));
+      }
       c.enqueue(line({ t: 'done', ...done }));
       c.close();
     },
