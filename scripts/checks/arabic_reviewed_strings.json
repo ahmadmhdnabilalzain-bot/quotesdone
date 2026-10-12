@@ -1325,6 +1325,12 @@
   "fd666cd4a8ef",
   "fe93b75ba546"
  ],
+ "scripts/sql/the_arabic_faq_names_the_reveal_fee_one_way.sql": [
+  "1bb3ac4bbda9",
+  "bf86846de019",
+  "dc868a0c0d49",
+  "e676bf7ea7b5"
+ ],
  "scripts/sql/the_arabic_reveal_fee_question_reaches_its_own_mirror.sql": [
   "62c0fb48c803",
   "74e7333ac370",
