@@ -5494,11 +5494,9 @@
   "0a3a4456e635",
   "216a5ef21bd0",
   "22529ab4133f",
-  "28c42f5909d0",
   "4cecb18cc3b6",
   "59fbbc9fc3a7",
   "63c61322f7a8",
-  "69adab83d339",
   "6b16f970b8f4",
   "706e098d55b5",
   "782757b7918c",
@@ -5508,7 +5506,6 @@
   "cf3c018291ef",
   "d4ac37286024",
   "da98c1583a6a",
-  "dd5485195143",
   "f5abebf3196f"
  ],
  "supabase/functions/_shared/clearer_copy.ts": [
@@ -5518,13 +5515,23 @@
   "90499fad847d",
   "dc67015343c6"
  ],
+ "supabase/functions/_shared/company_brief.ts": [
+  "06338a5c4b64",
+  "0681db1a83a2",
+  "0701752ec003",
+  "32dd66cc2b36",
+  "59678f3fa3ae",
+  "6caad2b4900a",
+  "71f6af4086e2",
+  "805e49d04702",
+  "aabd5f9e1b5d",
+  "de62a9134e25",
+  "defecda84b8d",
+  "e1814f15aded"
+ ],
  "supabase/functions/_shared/customer_mail.ts": [
-  "4253a24f0090",
-  "586f6f44a448",
-  "6aa95d8fabfb",
   "7784a68c401d",
-  "9c9347b8a06d",
-  "c607dba157a1"
+  "9c9347b8a06d"
  ],
  "supabase/functions/_shared/customer_terms.ts": [
   "bb6521bace53"
@@ -5919,8 +5926,6 @@
   "84a6acf814f6"
  ],
  "supabase/functions/_shared/support_reply_guard.ts": [
-  "1c124ac36381",
-  "24c91058ee6f",
   "29e16cbb341d",
   "622dc4a7b5b1",
   "713903274b9b"
@@ -5929,7 +5934,8 @@
   "4e2156827796"
  ],
  "supabase/functions/_shared/trade_resolve.ts": [
-  "a1150629315a"
+  "a1150629315a",
+  "bdab39592e4e"
  ],
  "supabase/functions/_shared/unsubscribe_mailbox.ts": [
   "fe749a06f354"
@@ -6168,29 +6174,11 @@
   "4cd3834955bb"
  ],
  "supabase/functions/site_assistant/index.ts": [
-  "0271a1f4c66d",
   "0e0329c97c49",
-  "32f673f57030",
-  "35a1a42cc34d",
-  "488eec99c14e",
-  "4c6a9cec02c0",
-  "524c3be9b432",
-  "5915ebe1b5c8",
-  "5e40435fb3ce",
-  "5f72d41e3fd6",
-  "88fc3314de43",
-  "89008c118194",
-  "9a84f622dd82",
-  "9ce520c3750e",
-  "ad996ed439d2",
-  "af3e20773443",
-  "c183c419054d",
-  "c4356c2c80ac",
-  "c94d66d845db",
-  "d13175d02298",
-  "dbd6352d03bc",
-  "f34fd00dad6c",
-  "f40cee86aeb4"
+  "244053c77971"
+ ],
+ "supabase/functions/site_assistant/stream_reply.ts": [
+  "aeb58bdf5c4d"
  ],
  "supabase/functions/stripe_checkout/index.ts": [
   "1317c3d3a9ac",
