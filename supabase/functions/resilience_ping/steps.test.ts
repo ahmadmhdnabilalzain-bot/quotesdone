@@ -1,5 +1,5 @@
 // deno test --no-lock supabase/functions/resilience_ping/steps.test.ts
-import { failureOf, runSteps } from './steps.ts';
+import { detachedItems, failureOf, runSteps } from './steps.ts';
 
 const eq = (a: unknown, b: unknown, m: string) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
@@ -132,4 +132,13 @@ Deno.test('a never-resolving step started past the deadline is abandoned, not wa
   eq(failing.length, 1, 'the abandoned step is a failure, not a silent pass');
   if (!String(failing[0].error).includes('abandoned')) throw new Error('unexpected error text: ' + failing[0].error);
   eq((results.hangs as { ok?: boolean })?.ok, false, 'the result records the abandonment');
+});
+
+// The detached runs (12 Oct 2026): a failing sub-step of a nested runner is one item under its own key, a
+// passing one is none, and a flat runner's own failure is keyed by the step's name.
+Deno.test('detachedItems reads a nested map per entry and a flat result as the step itself', () => {
+  const nested = detachedItems('itlater', { renewal: { ok: true }, usage: { ok: false, error: 'boom' }, x: { status: 500 } }, true);
+  eq(nested.map((i) => i.item), ["usage", "x"], "nested items");
+  eq(detachedItems("marketing", { ok: false, error: "Signal timed out." }, false)[0].item, "marketing", "flat item");
+  eq(detachedItems("marketing", { status: 200, ok: true }, false).length, 0, "passing");
 });

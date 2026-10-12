@@ -14,7 +14,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { embedLine } from '../_shared/gte_embed.ts';
-import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
+import { carriedFailures, detachedItems, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
@@ -575,7 +575,7 @@ async function marketingTick(): Promise<unknown> {
     if (!secret) return { ok: false, error: 'cred_fn_marketing is not in app_secrets' };
     const r = await fetch(FN + '/marketing', {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-      body: JSON.stringify({ __secret: secret, action: 'duties' }), signal: AbortSignal.timeout(55000),
+      body: JSON.stringify({ __secret: secret, action: 'duties' }), signal: AbortSignal.timeout(DETACHED_MS),
     });
     // deno-lint-ignore no-explicit-any
     const j = await r.json().catch(() => null) as any;
@@ -1568,7 +1568,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   learningDistil: { run: learningDistilTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
-  marketing: { run: marketingTick },
+  marketing: { run: () => kickDetached('marketing') },
   marketingChannels: { run: marketingChannelsTick },
   supportCampaignList: { run: supportCampaignListTick },
   whatsapp: { run: whatsappTick },
@@ -1576,7 +1576,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   itduties: { run: itDutiesTick },
   itintegrations: { run: itIntegrationsTick },
   itscheduled: { run: itScheduledTick },
-  itlater: { run: itLaterDutiesTick, nested: true },
+  itlater: { run: () => kickDetached('itlater') },
   specoffer: { run: specOfferTick },
   marketingOutreach: { run: marketingOutreachTick },
   supplierOutreach: { run: supplierOutreachTick },
@@ -1598,6 +1598,43 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   // 07:17Z. A conversation without its PDF is lost work, not tidiness.
   archive: { run: archiveTick, always: true },
 };
+
+// THE TWO SLOW STEPS RUN DETACHED, IN THEIR OWN INVOCATION (12 Oct 2026, it_engineer).
+// Measured on production that morning: `marketing` (ewma 54.5 s) timed out at its 55 s fetch on every run
+// from 03:46 UTC - the marketing seat's twelve duties had grown from ~46 s to past 55 s, so the tick
+// aborted the wait and recorded "Signal timed out." - and `itlater` cost 52-75 s inline. The plan admits
+// its stalest step whatever it costs, so whichever of the two was stalest took most of the 70 s budget and
+// `seatDuties` (6 s) was deferred tick after tick: the sales engineer's 15- and 30-minute duties did not
+// start from 09:15 to 10:35 UTC.
+// Now the tick only KICKS them: one authenticated POST to this same function with {detached: <name>}, which
+// answers 202 at once and does the work under EdgeRuntime.waitUntil, with its own wall clock and its own
+// timeout (DETACHED_MS) instead of the tick's. The tick's cost for each is the kick (~1 s), so neither can
+// starve another step again, and whatever the marketing seat adds to its duties (lead sourcing, #1304)
+// never runs inside the tick. The detached run settles its own failures as IT findings under duty
+// detached_<name>, one per failing sub-step, closed when it passes. A detached call never writes the
+// fn:resilience_ping observe row, so it can never make a dead scheduler look alive.
+const DETACHED_MS = 140_000;
+const DETACHED: Record<string, { run: () => Promise<unknown>; nested?: boolean }> = {
+  marketing: { run: marketingTick },
+  itlater: { run: itLaterDutiesTick, nested: true },
+};
+async function kickDetached(name: string): Promise<unknown> {
+  try {
+    const r = await timedFetch(FN + '/resilience_ping', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY }, body: JSON.stringify({ detached: name }),
+    }, 15_000);
+    const j = await r.json().catch(() => null) as { started?: boolean } | null;
+    return r.ok && j?.started === true ? { ok: true, started: true }
+      : { ok: false, error: httpHopError('resilience_ping detached ' + name, r.status, j) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+async function runDetached(name: string): Promise<void> {
+  const d = DETACHED[name];
+  let out: unknown;
+  try { out = await d.run(); } catch (e) { out = { ok: false, error: String((e as Error)?.message || e) }; }
+  try { await admin.rpc('fn_it_duty_settle', { p_duty: 'detached_' + name, p_items: detachedItems(name, out, !!d.nested) }); }
+  catch (_e) { /* the next run settles again; a failed settle must not throw out of waitUntil */ }
+}
 
 // THE FALLBACK ORDER, used only when fn_resilience_tick_plan cannot be reached. A watchdog that stops
 // watching because its scheduler is unavailable is worse than one that schedules badly, so the tick
@@ -1717,7 +1754,19 @@ async function liveness(req: Request): Promise<Response> {
 // outsider pinging the URL must never make a dead scheduler look alive.
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
-  return (await tickCaller(req)) ? sweep(req) : liveness(req);
+  if (!(await tickCaller(req))) return liveness(req);
+  const body = await req.clone().json().catch(() => null) as { detached?: unknown } | null;
+  const name = typeof body?.detached === 'string' ? body.detached : '';
+  if (name) {
+    if (!(name in DETACHED)) return J({ ok: false, error: 'no detached step ' + name }, 400);
+    const work = runDetached(name);
+    // deno-lint-ignore no-explicit-any
+    const rt = (globalThis as any).EdgeRuntime;
+    if (typeof rt?.waitUntil === 'function') { rt.waitUntil(work); return J({ ok: true, started: true, detached: name }, 202); }
+    await work;
+    return J({ ok: true, started: true, detached: name });
+  }
+  return sweep(req);
 });
 const sweep = observe('resilience_ping', async (req: Request) => {
   try {
