@@ -9485,7 +9485,7 @@ begin
     count(*) filter (where coalesce(unit_price,0)>0 and coalesce(qty,0)>0),
     count(*) filter (where coalesce(brand,'')<>'' and coalesce(model,'')<>''),
     count(*) filter (where coalesce(specification,'')<>''),
-    count(*) filter (where coalesce(labour,0)>0 or coalesce(install,0)>0)
+    count(*) filter (where labour is not null or install is not null)
     into n, priced, branded, spec_n, laboured
     from public.quote_items where quote_id = NEW.id::text;
 
