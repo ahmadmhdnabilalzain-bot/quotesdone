@@ -314,6 +314,9 @@ async function realRun(pre) {
         const answers = [sheet.opening];
         const w0 = await costWatermark();
         const it = await runIntake(cu, answers, 14, sheet);
+        // The customer confirms before anything goes to suppliers: ready enables "Send to suppliers",
+        // and the harness presses it exactly as the portal does (customer_api create_inquiry).
+        if (it.status === 'ready') { const sent = await call('customer_api', cu.jwt, { action: 'create_inquiry', intake_id: it.intakeId, text: answers[0], lang: cu.cfg.locale }); it.sent = sent.status; }
         const inq = (await read(`select id, status, trades, lang, emirate from public.inquiries where customer_id=${q(cu.customerId)} order by created_at desc limit 1`))[0];
         if (inq) { run.ids.inquiries.add(String(inq.id)); fx.inq[`${cu.cfg.label}:${trade}`] = { ...inq, cu, trade }; }
         const route = (await costSince(w0)).map((r) => `${r.task_class}:${r.model_used}`).join(' ');

@@ -21,8 +21,10 @@ function body(name) {
   for (const f of order) {
     if (!existsSync(join(REPO, f))) continue;
     const t = code(readFileSync(join(REPO, f), 'utf8'));
-    const re = new RegExp(String.raw`create or replace function public\.${name}\([\s\S]*?\$fn\$([\s\S]*?)\$fn\$`, 'gi');
-    for (const m of t.matchAll(re)) last = m[1];
+    // Any dollar tag, matched to its own close (12 Oct 2026): a body copied from pg_get_functiondef is quoted
+    // $function$, and a lazy `$fn$` match ran on into the NEXT routine's $fn$ body and asserted on that instead.
+    const re = new RegExp(String.raw`create or replace function public\.${name}\([^$]*?\$(\w*)\$([\s\S]*?)\$\1\$`, 'gi');
+    for (const m of t.matchAll(re)) last = m[2];
   }
   assert.ok(last, `${name} is defined somewhere`);
   return last;
