@@ -173,6 +173,13 @@ async function cleanupLearning(tag, ids, window) {
   await del('reasoning_knowledge_candidate', `delete from public.reasoning_knowledge_candidate where ${W} and ${m('question||coalesce(finding,\'\')')}`);
   await del('sales_knowledge_gap', `delete from public.sales_knowledge_gap where ${W.replace(/created_at/g, 'first_asked_at')} and ${m('question')}`);
   await del('email_suppressions', `delete from public.email_suppressions where email like ${q('qd-' + tag + '-%@example.invalid')}`);
+  // ROWS AND FILES KEYED BY ID ONLY (no FK, no text marker), found by verify-clean's id scan after the sweep:
+  // supplier_score (run f4294be8: 23 rows) and supplier_document_cache with its rendered PDF in agent-docs
+  // (run 4cf353a2: 1 row, 1 object the tag-only storage scan could not see). The run's own lead ids, nothing else.
+  await del('supplier_score', `delete from public.supplier_score where lead_id::text in (${lst(ids.leads)})`);
+  const cached = (ids.leads || []).length ? await read(`select bucket, path from public.supplier_document_cache where supplier_id::text in (${lst(ids.leads)}) and bucket is not null and path is not null`) : [];
+  if (cached.length) { const { SERVICE } = await keys(); for (const c of cached) await fetch(`${BASE}/storage/v1/object/${c.bucket}/${c.path}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } }).catch(() => {}); }
+  await del('supplier_document_cache', `delete from public.supplier_document_cache where supplier_id::text in (${lst(ids.leads)})`);
   const hasCol = (await read(`select count(*)::int n from information_schema.columns where table_schema='public' and table_name='ai_cost_log' and column_name='e2e_run_tag'`))[0].n;
   if (hasCol) await del('ai_cost_log', `delete from public.ai_cost_log where e2e_run_tag = ${q(tag)}`);
   else out.ai_cost_log = 'PENDING: ai_cost_log.e2e_run_tag is not applied yet (--run refuses until it is)';
@@ -203,7 +210,10 @@ async function verifyClean(tag, ids = {}) {
       catch (e) { unverified.push({ table: t, error: String(e.message).slice(0, 100) }); }
     } }
   }
-  const storage = (await read(`select bucket_id, count(*)::int n from storage.objects where name like ${q('%' + tag + '%')} group by 1`));
+  // Objects are named by tag OR by the run's own ids (agent-docs/supplier/<lead id>/..., customer and inquiry uuids):
+  // run 4cf353a2 left a cached quotation PDF that a tag-only scan reported as storage 0.
+  const idLike = [...(ids.leads || []).map((x) => `%/${Number(x)}/%`), ...[...(ids.customers || []), ...(ids.inquiries || []), ...(ids.quotes || [])].map((x) => `%${String(x)}%`)];
+  const storage = (await read(`select bucket_id, count(*)::int n from storage.objects where name like ${q('%' + tag + '%')}${idLike.map((p) => ` or name like ${q(p)}`).join('')} group by 1`));
   const auth = (await read(`select count(*)::int n from auth.users where email like ${q('qd-' + tag + '-%')}`))[0].n;
   // DROPBOX (final sandbox test, 12 Oct 2026): the run's _sandbox/<tag> tree, listed by the same check the daily
   // duty runs, and the backup records keyed SBX:<tag>:. A listing that cannot be read is UNVERIFIED, not clean.
