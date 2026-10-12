@@ -125,7 +125,16 @@ Deno.test('a stated reveal fee must say no card fee and no VAT; a reply without 
   const { revealFeeIncomplete } = await import('./company_brief.ts');
   assertEquals(revealFeeIncomplete('The reveal fee is 3% of the quote. No card fee is added and no VAT is charged on it.'), []);
   assertEquals(revealFeeIncomplete('The reveal fee is 3% of the quote.').length, 2);
-  assertEquals(revealFeeIncomplete('The reveal fee is 3%. No card fee is added.'), ['it states the reveal fee without saying that no VAT is charged on it']);
+  assertEquals(revealFeeIncomplete('The reveal fee is 3%. No card fee is added.'), ['it states the 3% fee without saying, in so many words, that no VAT is charged on it']);
+  // the bare words are not enough: the card and the VAT must each be NEGATED
+  assertEquals(revealFeeIncomplete('The reveal fee is 3%. You can pay by card. VAT rules apply in the UAE.').length, 2);
+  assertEquals(revealFeeIncomplete('The fee is 3% and it is not charged a card fee; there is no VAT on the fee.'), []);
+  assertEquals(revealFeeIncomplete('Pay 3% without card fees. No VAT is charged on it.'), []);
+  assertEquals(revealFeeIncomplete('رسوم 3٪ بدون رسوم بطاقة، ولا ضريبة قيمة مضافة على الرسوم.'), []);
+  assertEquals(revealFeeIncomplete('رسوم 3٪ وتدفع بالبطاقة، وتطبق الضريبة.').length, 2);
+  // ANY 3% fee statement triggers it, with or without the word "reveal"
+  assertEquals(revealFeeIncomplete('Customers pay 3% of the chosen quote.').length, 2);
+  assertEquals(revealFeeIncomplete('تدفع ثلاثة بالمئة من قيمة العرض المختار.').length, 2);
   assertEquals(revealFeeIncomplete('رسوم الكشف 3٪ من قيمة العرض، ولا يُضاف أي مبلغ عند الدفع بالبطاقة، ولا تُفرض ضريبة القيمة المضافة على رسوم الكشف.'), []);
   assertEquals(revealFeeIncomplete('رسوم الكشف ثلاثة بالمئة من قيمة العرض.').length, 2);
   assertEquals(revealFeeIncomplete('Verification takes up to 3 working days.'), []);
