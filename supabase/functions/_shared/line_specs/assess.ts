@@ -205,6 +205,8 @@ const TERM_LABEL: Record<string, [string, string, MissingItem['type']]> = {
   installation_detail: ['Installation scope or timeline', 'نطاق التركيب أو مدته', 'text'],
   warranty_period: ['Warranty period', 'مدة الضمان', 'text'],
   warranty_coverage: ['What the warranty covers', 'ما يغطيه الضمان', 'text'],
+  // Asked by the hold desk (workflow.ts deskAssess), because the release review (quote_review.ts rule 7) asks it.
+  validity: ['How long your prices are valid (e.g. 30 days, or 30 Nov 2026)', 'مدة صلاحية أسعاركم (مثل 30 يومًا أو 30 نوفمبر 2026)', 'text'],
   price_ex_vat: ['Total price excluding VAT', 'السعر الإجمالي غير شامل ضريبة القيمة المضافة', 'number'],
 };
 export const termItem = (attr: string, label?: [string, string]): MissingItem => {
@@ -345,7 +347,7 @@ export function validateTerm(attr: string, raw: unknown): { ok: true; value: str
   if (!v || !hasSubstance(v)) return { ok: false, code: 'vague' };
   if (v.length > 200) return { ok: false, code: 'too_long' };
   if (attr === 'price_ex_vat') { const n = Number(v.replace(/[^\d.]/g, '')); return n > 0 && /\d/.test(v) ? { ok: true, value: String(Math.round(n * 100) / 100) } : { ok: false, code: 'not_a_number' }; }
-  if (attr === 'delivery') return deliveryOf(v) ? { ok: true, value: v } : { ok: false, code: 'not_concrete' };
+  if (attr === 'delivery' || attr === 'validity') return deliveryOf(v) ? { ok: true, value: v } : { ok: false, code: 'not_concrete' };
   if (attr === 'warranty_period') return warrantyPeriod(v).period ? { ok: true, value: v } : { ok: false, code: 'not_concrete' };
   if (attr === 'installation_detail' || attr === 'warranty_coverage' || attr.startsWith('component:')) return v.length >= 2 ? { ok: true, value: v } : { ok: false, code: 'vague' };
   return { ok: false, code: 'unknown_attribute' };

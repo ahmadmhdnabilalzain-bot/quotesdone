@@ -78,7 +78,7 @@ test('the tag alone gets a public caller nothing: it needs the service role or t
   assert.equal(await ask({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': 'internal-secret-abd' }), null, 'a wrong secret is ignored');
   assert.equal(await ask({ 'x-qd-e2e-run': 'AB;drop', 'x-qd-e2e-secret': SECRET }), null, 'a malformed tag is ignored');
   assert.deepEqual(await ask({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': SECRET }), { tag: 'ab12cd34', secret: SECRET });
-  assert.deepEqual(await ask({ 'x-qd-e2e-run': 'ab12cd34', authorization: 'Bearer ' + SK }), { tag: 'ab12cd34', secret: null });
+  assert.deepEqual(await ask({ 'x-qd-e2e-run': 'ab12cd34', authorization: 'Bearer ' + SK }), { tag: 'ab12cd34', secret: SECRET }, 'the service-role hop carries the secret on, so a next hop with no bearer can prove it (run 4 S09)');
   assert.equal(await resolveE2eRun(new Headers({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': 'x' }), null, async () => null), null, 'no secret configured: nothing passes');
   // the database applies the same rule to a header that reaches PostgREST directly
   assert.match(sql, /->> 'role' = 'service_role'\s+then nullif\(nullif\(current_setting\('request\.headers', true\)/);

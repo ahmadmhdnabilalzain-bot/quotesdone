@@ -498,8 +498,11 @@ async function realRun(pre) {
         const opus = rows.filter((x) => x.task_class === 'quote_comparison');
         if (r.json?.url) save(`${dir}/comparison_${lang}.pdf`, Buffer.from(await (await fetch(r.json.url)).arrayBuffer()));
         const csv = await call('customer_api', inq.cu.jwt, { action: 'compare_csv', inquiry_id: inq.id, lang });
-        save(`${dir}/comparison_${lang}.csv`, csv.body || '');
-        const lines = String(csv.body || '').trim().split('\n').length - 1;
+        // compare_csv answers JSON {csv}; the quotes are its COLUMNS (head = "Compare", Supplier A, B, ...), not
+        // its rows. Run 4 counted the lines of the JSON body (1) and read 3 listed quotes as 0.
+        const csvText = String(csv.json?.csv || '');
+        save(`${dir}/comparison_${lang}.csv`, csvText || csv.body || '');
+        const lines = csvText ? csvText.replace(/^﻿/, '').split(/\r?\n/)[0].split(',').length - 1 : 0;
         A(`comparison ${lang}: report produced on the Opus route`, r.status === 200 && opus.length > 0 && opus.every((x) => x.model_used === 'anthropic/claude-opus-5.5'), `HTTP ${r.status} routes=${rows.map((x) => x.task_class + ':' + x.model_used).join(' ')}`, opus.map((x) => x.model_used).join(','));
         // Every live quote, not a fixed 4: the request has as many as it invited (S07), and "the rest" exists only past 3.
         A(`comparison ${lang}: every live quote listed (top 3 + the rest)`, live >= 2 && lines >= live, `${lines} quote lines in the CSV, ${live} submitted quotes`);

@@ -38,7 +38,10 @@ export async function resolveE2eRun(
   const tag = headers.get('x-qd-e2e-run') || '';
   if (!TAG.test(tag)) return null;
   const bearer = (headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (serviceKey && same(bearer, serviceKey)) return { tag, secret: null };
+  // The service-role hop carries the internal secret on (stage-2 run 4, 13 Oct 2026): customer_api reaches
+  // quote_compare with the service bearer, and quote_compare calls ai_gateway with NO bearer, so the tag reached
+  // the gateway unproven and the comparison was refused fixture_no_spend - the Opus route was never asked.
+  if (serviceKey && same(bearer, serviceKey)) return { tag, secret: await internalSecret().catch(() => null) };
   const presented = headers.get('x-qd-e2e-secret') || '';
   if (!presented) return null;
   const expected = await internalSecret().catch(() => null);
