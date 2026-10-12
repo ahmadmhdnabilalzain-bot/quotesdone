@@ -1,0 +1,4 @@
+Committed, not applied: a data change applied at merge (rule: never apply before merge). Moves when the release
+operator runs `node scripts/apply_sql.mjs scripts/sql/the_arabic_reveal_fee_question_reaches_its_own_mirror.sql --apply`,
+reads the PROBE OK verdict, then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt in the
+same commit. Afterwards scripts/checks/arabic_reaches_the_same_answer_as_english.test.mjs passes its Arabic-pair test.
