@@ -497,8 +497,8 @@ const handle = async (req: Request): Promise<Response> => {
           });
           return { text: r.reply, action: r.action ?? null };
         },
-        // No model answer: the turn waits in sales_engineer's queue; fn_reason_apply_supplier_api__quote_review_unwritten posts
-        // the replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
+        // No model answer: the turn waits in sales_engineer's queue; reasoned_delivery.ts posts the GUARDED (aiReply)
+        // replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
         hold: async (v) => {
           const subject = { channel: 'portal', review_id: v.reviewId, supplier_id: Number(sup.id) };
           const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);

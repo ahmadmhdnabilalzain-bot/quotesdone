@@ -5,10 +5,9 @@
 --   1. fn_reason_held_escalate: such a turn still held after 15 MINUTES (not 48 hours) goes to its seat
 --      (customer_support / sales_engineer) as a held_question action; the WhatsApp customer is then told a person has
 --      it (the existing holding notice). Every other surface keeps its 48 hours.
---   2. fn_reason_apply_supplier_api__quote_review_unwritten: the replayed answer is posted into the supplier's
---      quotation thread (WhatsApp answers are delivered by reasoned_delivery.ts already). A thread that has since been
---      submitted or closed is never written to.
--- CREATE OR REPLACE keeps fn_reason_held_escalate's ACL. The apply routine is NEW: revoked in this file.
+--   2. The replayed answer is NOT applied by a routine: reasoned_delivery.ts hands think()'s answer to aiReply as a draft
+--      to check, and only aiReply's guarded text is sent on WhatsApp or posted into the quotation thread.
+-- CREATE OR REPLACE keeps fn_reason_held_escalate's ACL; nothing new is created.
 -- Applied at merge (release operator), never before.
 
 create or replace function public.fn_reason_held_escalate(p_limit integer default 20)
@@ -55,36 +54,8 @@ begin
   return v;
 end $function$;
 
-create or replace function public.fn_reason_apply_supplier_api__quote_review_unwritten(p_id bigint, p_result jsonb)
- returns jsonb
- language plpgsql
- security definer
- set search_path to 'public', 'pg_temp'
-as $function$
-declare v_review uuid; v_answer text := btrim(coalesce(p_result ->> 'answer', '')); v_msg uuid;
-begin
-  select (h.subject ->> 'review_id')::uuid into v_review
-    from public.reasoning_held_question h
-   where h.id = p_id and h.subject ->> 'review_id' ~ '^[0-9a-fA-F-]{36}$';
-  if v_review is null or v_answer = '' then
-    return jsonb_build_object('posted', false, 'why', case when v_review is null then 'no review on the held turn' else 'empty answer' end);
-  end if;
-  insert into public.quote_review_messages (review_id, role, kind, body, body_ar, attachments, issues)
-  select r.id, 'sales_engineer', 'text', left(v_answer, 4000), null, '[]'::jsonb, null
-    from public.quote_reviews r
-   where r.id = v_review and r.status not in ('submitted', 'closed')
-  returning id into v_msg;
-  return jsonb_build_object('posted', v_msg is not null, 'message_id', v_msg, 'review_id', v_review);
-end $function$;
-
-revoke execute on function public.fn_reason_apply_supplier_api__quote_review_unwritten(bigint, jsonb) from public, anon, authenticated;
-
--- Verdict row (the file defines routines, so it never raises): both routines are live and say what they must.
+-- Verdict row (the file defines a routine, so it never raises).
 select case
   when position('wa_inbound.unwritten_reply' in pg_get_functiondef('public.fn_reason_held_escalate(integer)'::regprocedure)) = 0
     then 'PROBE FAILED: fn_reason_held_escalate does not carry the 15-minute rule'
-  when to_regprocedure('public.fn_reason_apply_supplier_api__quote_review_unwritten(bigint,jsonb)') is null
-    then 'PROBE FAILED: the quotation-thread apply routine is missing'
-  when has_function_privilege('anon', 'public.fn_reason_apply_supplier_api__quote_review_unwritten(bigint,jsonb)', 'execute')
-    then 'PROBE FAILED: anon can execute the apply routine'
   else 'PROBE OK' end as verdict;
