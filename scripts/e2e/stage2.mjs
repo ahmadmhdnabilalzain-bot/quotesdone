@@ -51,8 +51,9 @@ const OUT = val('--out') || process.env.QD_STAGE2_OUT || 'C:\\Users\\Opera\\Desk
 process.env.QD_FIXTURES = '1';
 
 // ---- the matrix ------------------------------------------------------------------------------------
-// Ten different trades, one supplier each, in rotating emirates; plus three more aluminium suppliers so
-// the aluminium request collects four quotes (top-3 report + the full list). elevators has NO demo
+// Ten different trades, one supplier each, in rotating emirates; plus three more aluminium suppliers.
+// The aluminium request invites as many of the four as decision_policy.match_max_fanout_per_trade allows
+// (3 today), and S07 proves the one left out is refused. elevators has NO demo
 // supplier: its request must HOLD, never be routed to a nearest trade (exact trade match or none).
 export const SUPPLIER_TRADES = ['aluminium', 'electrical', 'plumbing', 'hvac', 'flooring', 'joinery', 'glazing', 'painting', 'waterproofing', 'landscaping'];
 export const EXTRA_ALUMINIUM = ['A2', 'A3', 'A4'];
@@ -69,7 +70,7 @@ export const SCENARIOS = [
   { key: 'S04', title: 'Inquiries through the sales-engineer interview: EN + AR, exact specs and "not sure", multiple lines, several emirates', calls: [['inquiry_qualification_conversation', 60, 3000, 500], ['category_classification', 10, 1000, 100]] },
   { key: 'S05', title: 'Drawing / photo / BOQ inquiries: analysed, redacted, no identity reaches a supplier', calls: [['drawing_and_boq_analysis', 4, 8000, 2000], ['redaction_detection', 4, 3000, 500], ['identity_redaction_verify', 4, 4000, 300], ['drawing_boq_confirm', 2, 4000, 500]] },
   { key: 'S06', title: 'Matching: each request reaches only its exact-trade demo supplier; the unmatched trade holds', calls: [['rfq_routing', 11, 3000, 800]] },
-  { key: 'S07', title: 'Quotes: 4 on one request, incomplete quote held with notes, revision releases it, PDF extraction', calls: [['json_extraction', 8, 6000, 1500], ['procurement_reasoning', 8, 4000, 800]] },
+  { key: 'S07', title: 'Quotes from every supplier the request invited (per-trade cap read from decision_policy), the uninvited refused, incomplete quote held with notes, revision releases it, PDF extraction', calls: [['json_extraction', 8, 6000, 1500], ['procurement_reasoning', 8, 4000, 800]] },
   { key: 'S08', title: 'Spec questions answered by the customer incl. "not sure" (spec offer / missing specs)', calls: [['sales_engineer_reasoning', 6, 3000, 600]] },
   { key: 'S09', title: 'Comparison report on the Opus route: top 3 + every other quote listed, EN and AR', calls: [['quote_comparison', 2, 20000, 6000], ['translation', 4, 6000, 6000]] },
   { key: 'S10', title: 'Reveal with Stripe TEST: declined card refused, paid card reveals at 3% with no card surcharge, invoice + receipt, both parties notified (customer in AR, supplier in EN)', calls: [['customer_communication', 4, 1500, 400], ['supplier_communication', 4, 1500, 400]] },
@@ -377,35 +378,67 @@ async function realRun(pre) {
     S07: async () => {
       const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const al = fx.suppliers.filter((s) => s.trade === 'aluminium');
-      const amounts = [118500, 124900, 131000, 142000];
-      for (let i = 0; i < al.length; i++) {
-        const body = quotePayload(inq.id, amounts[i], `ZZ DEMO quote ${i + 1}`, i === 3 ? { overrides: { warranty: '', validity: '', lead_time: '' } } : {});
-        const r = await call('supplier_api', al[i].jwt, body);
-        const row = (await read(`select id, status from public.quotes where inquiry_id=${q(inq.id)} and supplier_id=${Number(al[i].leadId)} order by created_at desc limit 1`))[0];
-        if (row) run.ids.quotes.add(String(row.id));
-        A(`quote ${i + 1} from ${al[i].row.company_name}`, r.status === 200 && row, `HTTP ${r.status} status=${row?.status}`);
+      // WHO WAS INVITED IS READ, NOT ASSUMED (run 1c94fa6a, 12 Oct 2026). The harness quoted from all four
+      // aluminium suppliers and A4 got 404 "no inquiry_matches row": the sales engineer's matcher
+      // (supabase/functions/sales_engineer/index.ts, the per-trade loop) takes at most
+      // decision_policy.match_max_fanout_per_trade suppliers per trade - 3 today, a founder dial - so on a
+      // one-trade request the 4th capable supplier is correctly never invited. The run now quotes from the
+      // invited suppliers, and proves the dial on the ones it left out: an uninvited supplier is refused.
+      const cap = Number((await read(`select value from public.decision_policy where key='match_max_fanout_per_trade'`))[0]?.value);
+      const invitedIds = new Set((await read(`select supplier_id from public.inquiry_matches where inquiry_id=${q(inq.id)}`)).map((r) => Number(r.supplier_id)));
+      const inv = al.filter((s) => invitedIds.has(Number(s.leadId)));
+      const out = al.filter((s) => !invitedIds.has(Number(s.leadId)));
+      A(`the aluminium request invites min(${al.length} capable, per-trade cap ${cap}) aluminium suppliers`, Number.isFinite(cap) && inv.length === Math.min(al.length, cap),
+        `invited ${inv.map((s) => s.row.company_name).join(', ')}; not invited ${out.map((s) => s.row.company_name).join(', ') || 'none'}`);
+      for (const s of out) {
+        const r = await call('supplier_api', s.jwt, quotePayload(inq.id, 150000, 'ZZ DEMO uninvited quote'));
+        A(`${s.row.company_name} was not invited (per-trade cap ${cap}), so its quote is refused`, r.status === 404, `HTTP ${r.status}`);
       }
-      // run f4294be8: every submit_quote answered 404 (no supplier was matched), and the hold steps below then crashed on
-      // nothing. The four FAILs above already carry the cause; the rest of S07 is skipped with it, never crashed.
+      need(inv.length >= 2, `only ${inv.length} aluminium supplier(s) invited, so there is no complete quote beside the incomplete one`);
+      // The LAST invited supplier sends the incomplete quote (no warranty, validity or lead time); the others a full form.
+      const inc = inv[inv.length - 1];
+      const amounts = [118500, 124900, 131000, 142000, 149500];
+      const qidOf = {};
+      for (let i = 0; i < inv.length; i++) {
+        const body = quotePayload(inq.id, amounts[i % amounts.length], `ZZ DEMO quote ${i + 1}`, inv[i] === inc ? { overrides: { warranty: '', validity: '', lead_time: '' } } : {});
+        const r = await call('supplier_api', inv[i].jwt, body);
+        const row = (await read(`select id, status from public.quotes where inquiry_id=${q(inq.id)} and supplier_id=${Number(inv[i].leadId)} order by created_at desc limit 1`))[0];
+        if (row) { run.ids.quotes.add(String(row.id)); qidOf[inv[i].leadId] = row.id; }
+        A(`quote ${i + 1} from ${inv[i].row.company_name}`, r.status === 200 && row, `HTTP ${r.status} status=${row?.status}`);
+      }
       need(run.ids.quotes.size, 'no quote was accepted on the aluminium request (submit_quote failed above), so there is no hold to walk');
-      const held = (await read(`select h.state, h.missing, h.note_en, h.quote_id from public.quote_spec_hold h join public.quotes x on x.id=h.quote_id where x.inquiry_id=${q(inq.id)} and x.supplier_id=${Number(al[3].leadId)}`))[0];
-      A('the incomplete quote is HELD with notes naming what is missing', held?.state === 'open' && held.note_en, String(JSON.stringify(held ?? null)).slice(0, 300));
-      save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/held_quote_notes.json`, held || {});
+      const holdOf = async (s) => (await read(`select h.state, h.missing, h.note_en, h.quote_id from public.quote_spec_hold h join public.quotes x on x.id=h.quote_id where x.inquiry_id=${q(inq.id)} and x.supplier_id=${Number(s.leadId)} order by h.id desc limit 1`))[0];
       // The supplier's own door out of a hold (supplier portal "complete your quotation"): spec_hold shows
       // the form, spec_fill answers every missing detail, the sales engineer regenerates the standard
       // quotation and asks for approval, spec_approve releases it. Each step sends its own notice
       // (quote_spec_hold / quote_spec_regenerated / quote_spec_released), asserted below in English.
       const TERM = { delivery: '4 weeks from approval of shop drawings', warranty_period: '12 months', warranty_coverage: 'materials and workmanship',
         installation_included: 'yes', installation_detail: 'supply and installation on site', validity: '30 days', lead_time: '4 weeks' };
-      const form = await call('supplier_api', al[3].jwt, { action: 'spec_hold', quote_id: held?.quote_id });
-      const sch = form.json?.schema || {};
-      const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
-        lines: Object.fromEntries((sch.lines || []).map((l) => [l.line_no, Object.fromEntries(l.fields.filter((f) => f.missing).map((f) => [f.attr, f.options?.length ? (f.options[0].value ?? f.options[0]) : f.type === 'number' ? 6 : 'standard']))])) };
-      const fill = await call('supplier_api', al[3].jwt, { action: 'spec_fill', quote_id: held?.quote_id, values });
+      const walk = async (s, qid) => {
+        const form = await call('supplier_api', s.jwt, { action: 'spec_hold', quote_id: qid });
+        const sch = form.json?.schema || {};
+        const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
+          lines: Object.fromEntries((sch.lines || []).map((l) => [l.line_no, Object.fromEntries(l.fields.filter((f) => f.missing).map((f) => [f.attr, f.options?.length ? (f.options[0].value ?? f.options[0]) : f.type === 'number' ? 6 : 'standard']))])) };
+        const fill = await call('supplier_api', s.jwt, { action: 'spec_fill', quote_id: qid, values });
+        const appr = await call('supplier_api', s.jwt, { action: 'spec_approve', quote_id: qid, confirm: true });
+        const after = (await read(`select state from public.quote_spec_hold where quote_id=${q(qid)} order by id desc limit 1`))[0];
+        return { fill, appr, after };
+      };
+      // A "complete" form quote still names no glass type, profile system or VAT basis, and the exact-specs
+      // rule rightly holds it too (run 1c94fa6a: all three held). Its supplier completes it through the same
+      // door, so the comparison and the reveal have submitted quotes to work on.
+      for (const s of inv.filter((x) => x !== inc)) {
+        const h = await holdOf(s);
+        if (h?.state !== 'open') { A(`${s.row.company_name}: the full quote is not held`, true, `hold=${h?.state ?? 'none'}`); continue; }
+        const w = await walk(s, h.quote_id);
+        A(`${s.row.company_name}: the specs the hold names are completed and the quote released`, w.fill.json?.complete === true && w.after?.state === 'released', `fill HTTP ${w.fill.status} approve HTTP ${w.appr.status} hold=${w.after?.state}`);
+      }
+      const held = await holdOf(inc);
+      A('the incomplete quote is HELD with notes naming what is missing', held?.state === 'open' && held.note_en, String(JSON.stringify(held ?? null)).slice(0, 300));
+      save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/held_quote_notes.json`, held || {});
+      const { fill, appr, after } = await walk(inc, held?.quote_id);
       A('spec_fill: every missing detail answered regenerates the standard quotation', fill.status === 200 && fill.json?.complete === true, `HTTP ${fill.status} ${JSON.stringify(fill.json).slice(0, 300)}`);
       if (fill.json?.pdf_url) save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/regenerated_quote_${held?.quote_id}.pdf`, Buffer.from(await (await fetch(fill.json.pdf_url)).arrayBuffer()));
-      const appr = await call('supplier_api', al[3].jwt, { action: 'spec_approve', quote_id: held?.quote_id, confirm: true });
-      const after = (await read(`select state from public.quote_spec_hold where quote_id=${q(held?.quote_id)} order by id desc limit 1`))[0];
       A('spec_approve releases the hold', appr.status === 200 && after?.state === 'released', `HTTP ${appr.status} hold=${after?.state} ${JSON.stringify(appr.json).slice(0, 200)}`);
       const notes = await read(`select type, channel, subject, body from public.notifications where quote_id=${q(held?.quote_id)} and type like 'quote_spec_%'`);
       for (const t of ['quote_spec_hold', 'quote_spec_regenerated', 'quote_spec_released']) {
@@ -413,7 +446,7 @@ async function realRun(pre) {
         A(`notice ${t}: rendered to the supplier in English`, n.length > 0 && n.every((x) => x.subject && x.body && !/[؀-ۿ]{8,}/.test(x.body)), `${n.length} rows: ${n.map((x) => x.channel).join(',')}`);
       }
       for (const qid of run.ids.quotes) {
-        const pdf = await call('supplier_api', al[0].jwt, { action: 'quote_pdf', quote_id: qid });
+        const pdf = await call('supplier_api', inv[0].jwt, { action: 'quote_pdf', quote_id: qid });
         if (pdf.json?.url) { const b = Buffer.from(await (await fetch(pdf.json.url)).arrayBuffer()); save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/quote_${qid}.pdf`, b); }
       }
     },
@@ -446,6 +479,7 @@ async function realRun(pre) {
     S09: async () => {
       const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const dir = `customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium`;
+      const live = Number((await read(`select count(*) n from public.quotes where inquiry_id=${q(inq.id)} and status='submitted'`))[0]?.n || 0);
       for (const lang of ['en', 'ar']) {
         const w0 = await costWatermark();
         const r = await call('customer_api', inq.cu.jwt, { action: 'compare_pdf', inquiry_id: inq.id, lang }, 240000);
@@ -456,7 +490,8 @@ async function realRun(pre) {
         save(`${dir}/comparison_${lang}.csv`, csv.body || '');
         const lines = String(csv.body || '').trim().split('\n').length - 1;
         A(`comparison ${lang}: report produced on the Opus route`, r.status === 200 && opus.length > 0 && opus.every((x) => x.model_used === 'anthropic/claude-opus-5.5'), `HTTP ${r.status} routes=${rows.map((x) => x.task_class + ':' + x.model_used).join(' ')}`, opus.map((x) => x.model_used).join(','));
-        A(`comparison ${lang}: every live quote listed (top 3 + the rest)`, lines >= 4, `${lines} quote lines in the CSV`);
+        // Every live quote, not a fixed 4: the request has as many as it invited (S07), and "the rest" exists only past 3.
+        A(`comparison ${lang}: every live quote listed (top 3 + the rest)`, live >= 2 && lines >= live, `${lines} quote lines in the CSV, ${live} submitted quotes`);
       }
     },
     S10: async () => {
