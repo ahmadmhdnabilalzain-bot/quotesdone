@@ -14,7 +14,9 @@
 
 export const ROOT = '/QuotesDone Backup';
 export type Row = { id: number; entity: string; entity_id: string; dropbox_path: string; dropbox_content_hash: string | null;
-  dedupe_key: string; status: string; owner_exists: boolean | null };
+  dedupe_key: string; status: string; owner_exists: boolean | null;
+  // the customer's NAMED folder today ('/QuotesDone Backup/Customers/<name> (<id8>)/'), null when no name is on file
+  named_folder?: string | null };
 export type Listed = { p: string; h: string; s: number; m?: string };
 export type Move = { kind: 'merge' | 'ownerless' | 'demo'; id: number | null; from: string; to: string; hash: string | null };
 export type Record_ = { kind: 'record'; path: string; hash: string; size: number; modified: string | null; entity: string; entity_ref: string };
@@ -36,22 +38,25 @@ export function plan(rows: Row[], listed: Listed[], date: string) {
   const moves: Move[] = []; const records: Record_[] = [];
   for (const r of rows) {
     if (r.status !== 'done' || r.entity === 'zz_demo') continue;
-    // B: an owned file in Storage/ whose owner is gone
-    if (r.dropbox_path.startsWith(ROOT + '/Storage/') && ['supplier', 'customer', 'inquiry', 'quote'].includes(r.entity) && r.owner_exists === false) {
+    // B: an owned file whose owner row is gone (a torn-down fixture, a deleted account), in Storage/ or in
+    // the entity tree itself (12 Oct audit: 4 "Customer (<id8>)" folders of customers who no longer exist)
+    if (/^\/QuotesDone Backup\/(Storage|Customers|Suppliers)\//.test(r.dropbox_path) &&['supplier', 'customer', 'inquiry', 'quote'].includes(r.entity) && r.owner_exists === false) {
       moves.push({ kind: 'ownerless', id: r.id, from: r.dropbox_path, to: `${ROOT}/_archive/ownerless-${date}/${after(r.dropbox_path)}`, hash: r.dropbox_content_hash });
       continue;
     }
-    // A: a second folder of a request or a customer
-    if (!r.dropbox_path.startsWith(ROOT + '/Customers/')) continue;
+    // A: one folder per customer, and it is the NAMED one (review of #1284, 12 Oct 2026: the first folder of
+    // 2 customers was opened as "Customer (<id8>)" before the name was saved; the files move to the name,
+    // never into the placeholder). A request's own subfolder is the one its Inquiry Summary opened.
+    if (!r.dropbox_path.startsWith(ROOT + '/Customers/') || !r.named_folder) continue;
+    if (r.entity !== 'customer' && r.entity !== 'inquiry') continue;
+    const own = anchorPrefix(r.dropbox_path, 'customer');
+    if (!own) continue;
+    let to = r.named_folder + r.dropbox_path.slice(own.length);
     if (r.entity === 'inquiry' && /\/Inquiries\//.test(r.dropbox_path)) {
-      const pre = anchorPrefix(byKey.get(`I:${r.entity_id}:summary`)?.dropbox_path, 'inquiry');
-      const own = anchorPrefix(r.dropbox_path, 'inquiry');
-      if (pre && own && own !== pre) moves.push({ kind: 'merge', id: r.id, from: r.dropbox_path, to: pre + r.dropbox_path.slice(own.length), hash: r.dropbox_content_hash });
-    } else if (r.entity === 'customer') {
-      const pre = anchorPrefix(byKey.get(`C:${r.entity_id}:details`)?.dropbox_path, 'customer');
-      const own = anchorPrefix(r.dropbox_path, 'customer');
-      if (pre && own && own !== pre) moves.push({ kind: 'merge', id: r.id, from: r.dropbox_path, to: pre + r.dropbox_path.slice(own.length), hash: r.dropbox_content_hash });
+      const sub = /\/Inquiries\/([^/]+)\//.exec(byKey.get(`I:${r.entity_id}:summary`)?.dropbox_path ?? '')?.[1];
+      if (sub) to = to.replace(/\/Inquiries\/[^/]+\//, `/Inquiries/${sub}/`);
     }
+    if (to !== r.dropbox_path) moves.push({ kind: 'merge', id: r.id, from: r.dropbox_path, to, hash: r.dropbox_content_hash });
   }
   // C and D: files in the entity tree that no row names
   const known = new Set(rows.map((r) => key(r.dropbox_path)));

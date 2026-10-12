@@ -68,7 +68,12 @@ const readRows = () => sql<Row>(`
            when 'supplier' then exists (select 1 from public.leads l where l.id::text = d.entity_id)
            when 'customer' then exists (select 1 from public.customers c where c.id::text = d.entity_id)
            when 'inquiry'  then exists (select 1 from public.inquiries i where i.id::text = d.entity_id)
-           when 'quote'    then exists (select 1 from public.quotes q where q.id::text = d.entity_id) end as owner_exists
+           when 'quote'    then exists (select 1 from public.quotes q where q.id::text = d.entity_id) end as owner_exists,
+         (select '/QuotesDone Backup/Customers/' || public.fn_dbx_safe(c.full_name) || ' (' || left(c.id::text, 8) || ')/'
+            from public.customers c
+           where coalesce(btrim(c.full_name), '') <> ''
+             and c.id::text = case d.entity when 'customer' then d.entity_id
+                                when 'inquiry' then (select i.customer_id::text from public.inquiries i where i.id::text = d.entity_id) end) as named_folder
     from public.doc_backups d where d.dropbox_path is not null`);
 const measure = async () => {
   const rows = await readRows();

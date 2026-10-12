@@ -6,18 +6,22 @@ const R = '/QuotesDone Backup';
 const row = (o: Partial<Row>): Row => ({ id: 0, entity: 'company', entity_id: '', dropbox_path: '', dropbox_content_hash: 'h', dedupe_key: '', status: 'done', owner_exists: true, ...o });
 const C = 'aaaaaaaa-1111-2222-3333-444444444444', I = 'bbbbbbbb-1111-2222-3333-444444444444';
 
-Deno.test('a file in a second folder moves into the folder the entity first opened', () => {
+Deno.test('review 12 Oct: files move INTO the named customer folder, never into "Customer (<id8>)"', () => {
+  const N = R + '/Customers/Ann Lee (aaaaaaaa)/';
   const rows = [
-    row({ id: 1, entity: 'customer', entity_id: C, dedupe_key: `C:${C}:details`, dropbox_path: `${R}/Customers/Ann (aaaaaaaa)/Customer Details.pdf` }),
-    row({ id: 2, entity: 'customer', entity_id: C, dedupe_key: 'CONV:x:1', dropbox_path: `${R}/Customers/Ann B (aaaaaaaa)/Correspondence/a.pdf` }),
-    row({ id: 3, entity: 'inquiry', entity_id: I, dedupe_key: `I:${I}:summary`, dropbox_path: `${R}/Customers/Ann (aaaaaaaa)/Inquiries/2026-10-01 bbbbbbbb - open/Inquiry Summary.pdf` }),
-    row({ id: 4, entity: 'inquiry', entity_id: I, dedupe_key: `I:${I}:drawing:x`, dropbox_path: `${R}/Customers/Ann (aaaaaaaa)/Inquiries/2026-10-01 bbbbbbbb - quoted/Drawing - d.pdf` }),
+    row({ id: 1, entity: 'customer', entity_id: C, named_folder: N, dedupe_key: 'C:' + C + ':details', dropbox_path: R + '/Customers/Customer (aaaaaaaa)/Customer Details.pdf' }),
+    row({ id: 2, entity: 'customer', entity_id: C, named_folder: N, dedupe_key: 'CONV:x:1', dropbox_path: N + 'Correspondence/a.pdf' }),
+    row({ id: 3, entity: 'inquiry', entity_id: I, named_folder: N, dedupe_key: 'I:' + I + ':summary', dropbox_path: R + '/Customers/Customer (aaaaaaaa)/Inquiries/2026-10-01 bbbbbbbb - open/Inquiry Summary.pdf' }),
+    row({ id: 4, entity: 'inquiry', entity_id: I, named_folder: N, dedupe_key: 'I:' + I + ':drawing:x', dropbox_path: N + 'Inquiries/2026-10-01 bbbbbbbb - quoted/Drawing - d.pdf' }),
+    row({ id: 5, entity: 'customer', entity_id: 'x', named_folder: null, dedupe_key: 'C:x:details', dropbox_path: R + '/Customers/Customer (cccccccc)/Customer Details.pdf' }),
   ];
   const p = plan(rows, [], '2026-10-07');
   assertEquals(p.moves.map((m) => [m.id, m.to]), [
-    [2, `${R}/Customers/Ann (aaaaaaaa)/Correspondence/a.pdf`],
-    [4, `${R}/Customers/Ann (aaaaaaaa)/Inquiries/2026-10-01 bbbbbbbb - open/Drawing - d.pdf`],
-  ]);
+    [1, N + 'Customer Details.pdf'],
+    [3, N + 'Inquiries/2026-10-01 bbbbbbbb - open/Inquiry Summary.pdf'],
+    [4, N + 'Inquiries/2026-10-01 bbbbbbbb - open/Drawing - d.pdf'],
+  ]);                                                    // no name on file (id 5): nothing moves
+  assertEquals(p.moves.some((m) => /\/Customer \([0-9a-f]{8}\)\//.test(m.to)), false);
 });
 
 Deno.test('an ownerless file in Storage/ is archived under its own path; an owned one is not touched', () => {
