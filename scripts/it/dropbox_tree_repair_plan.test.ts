@@ -43,7 +43,7 @@ Deno.test('an unrecorded demo file is archived; an unrecorded real file is only 
   const p = plan(rows, listed, '2026-10-07');
   assertEquals(p.moves.map((m) => [m.kind, m.to]), [['demo', `${R}/_archive/demo-leftovers-2026-10-07/Suppliers/Cat/ZZ DEMO Co (13)/Trade licence - b.pdf`]]);
   assertEquals(p.records.map((r) => [r.entity, r.entity_ref, r.path]), [['supplier', '12', `${R}/Suppliers/Cat/Real Co (12)/Insurance - c.pdf`], ['customer', 'cccccccc', `${R}/Customers/Bo (cccccccc)/x.pdf`]]);
-  assertEquals(counts(p), { merge: 0, ownerless: 0, demo: 1, record: 2, collisions: 0 });
+  assertEquals(counts(p), { merge: 0, ownerless: 0, demo: 1, superseded: 0, record: 2, collisions: 0 });
 });
 
 Deno.test('a demo row and an unfinished row are never planned', () => {
@@ -82,4 +82,13 @@ Deno.test('review 3: at most 50 records a run unless --max says otherwise', () =
   assertEquals([capRecords(r, 200).take.length, capRecords(r, 200).held], [120, 0]);
   assertEquals(capRecords(r, 0).take.length, 50);                  // a nonsense --max falls back to the cap
   assertEquals(capRecords(r.slice(0, 14)).held, 0);
+});
+
+Deno.test('a second certificate is archived in Dropbox and storage; the one the row names is never touched', () => {
+  const p = plan([
+    row({ id: 20, bucket: 'signed-terms', path: 'customers/1_Ann_TnC-Acceptance.pdf', superseded_tnc: true, dropbox_path: R + '/Storage/signed-terms/customers/1_Ann_TnC-Acceptance.pdf' }),
+    row({ id: 21, bucket: 'signed-terms', path: 'customers/2_Ann_TnC-Acceptance.pdf', superseded_tnc: false, dropbox_path: R + '/Customers/Ann (aaaaaaaa)/Signed Terms & Conditions - 2_Ann_TnC-Acceptance.pdf' }),
+  ], [], '2026-10-12');
+  assertEquals(p.moves.map((m) => [m.kind, m.id, m.to, m.storage?.to]), [['superseded', 20,
+    R + '/_archive/superseded-tnc-2026-10-12/Storage/signed-terms/customers/1_Ann_TnC-Acceptance.pdf', 'archive/superseded/customers/1_Ann_TnC-Acceptance.pdf']]);
 });

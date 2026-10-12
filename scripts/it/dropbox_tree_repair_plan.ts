@@ -16,9 +16,12 @@ export const ROOT = '/QuotesDone Backup';
 export type Row = { id: number; entity: string; entity_id: string; dropbox_path: string; dropbox_content_hash: string | null;
   dedupe_key: string; status: string; owner_exists: boolean | null;
   // the customer's NAMED folder today ('/QuotesDone Backup/Customers/<name> (<id8>)/'), null when no name is on file
-  named_folder?: string | null };
+  named_folder?: string | null;
+  // a signed-terms certificate in storage that no customers/leads row names any more (a second certificate)
+  superseded_tnc?: boolean; bucket?: string | null; path?: string | null };
 export type Listed = { p: string; h: string; s: number; m?: string };
-export type Move = { kind: 'merge' | 'ownerless' | 'demo'; id: number | null; from: string; to: string; hash: string | null };
+export type Move = { kind: 'merge' | 'ownerless' | 'demo' | 'superseded'; id: number | null; from: string; to: string; hash: string | null;
+  storage?: { bucket: string; from: string; to: string } };
 export type Record_ = { kind: 'record'; path: string; hash: string; size: number; modified: string | null; entity: string; entity_ref: string };
 
 export const DEMO_EVIDENCE = /zz[ _-]?demo|example\.invalid|\bqd[ _-]demo\b|qd_run:/i;
@@ -38,6 +41,13 @@ export function plan(rows: Row[], listed: Listed[], date: string) {
   const moves: Move[] = []; const records: Record_[] = [];
   for (const r of rows) {
     if (r.status !== 'done' || r.entity === 'zz_demo') continue;
+    // E: a second certificate for one acceptance (12 Oct audit: one customer has two, 52 s apart). The one the
+    // row names is kept; the other is archived, in Dropbox and in storage (signed-terms/archive/superseded/).
+    if (r.superseded_tnc && r.bucket === 'signed-terms' && r.path) {
+      moves.push({ kind: 'superseded', id: r.id, from: r.dropbox_path, to: `${ROOT}/_archive/superseded-tnc-${date}/${after(r.dropbox_path)}`, hash: r.dropbox_content_hash,
+        storage: { bucket: 'signed-terms', from: r.path, to: 'archive/superseded/' + r.path } });
+      continue;
+    }
     // B: an owned file whose owner row is gone (a torn-down fixture, a deleted account), in Storage/ or in
     // the entity tree itself (12 Oct audit: 4 "Customer (<id8>)" folders of customers who no longer exist)
     if (/^\/QuotesDone Backup\/(Storage|Customers|Suppliers)\//.test(r.dropbox_path) &&['supplier', 'customer', 'inquiry', 'quote'].includes(r.entity) && r.owner_exists === false) {
@@ -78,7 +88,7 @@ export function plan(rows: Row[], listed: Listed[], date: string) {
 
 export function counts(p: ReturnType<typeof plan>) {
   const by = (k: string) => p.moves.filter((m) => m.kind === k).length;
-  return { merge: by('merge'), ownerless: by('ownerless'), demo: by('demo'), record: p.records.length, collisions: p.collisions.length };
+  return { merge: by('merge'), ownerless: by('ownerless'), demo: by('demo'), superseded: by('superseded'), record: p.records.length, collisions: p.collisions.length };
 }
 
 // ── the guards of the runner (review of #1284) ──

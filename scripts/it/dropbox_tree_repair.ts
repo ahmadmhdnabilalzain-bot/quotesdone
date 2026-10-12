@@ -42,6 +42,7 @@ if (MOVES) {
   if (!v.ok) { console.log(JSON.stringify({ ok: false, refused: 'moves touch real files: ' + v.why })); Deno.exit(2); }
 }
 const sec = Object.fromEntries((await sql<{ key: string; value: string }>("select key, value from public.app_secrets where key in ('dropbox_refresh_token', 'dropbox_app_key', 'dropbox_app_secret')")).map((r) => [r.key, r.value]));
+const SERVICE = (await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmt } })).json()).find((k: { name: string }) => k.name === 'service_role')?.api_key ?? '';
 const dbx = new DropboxClient(new TokenCache(memoryStore(), () => refreshAccessToken(sec.dropbox_refresh_token, sec.dropbox_app_key, sec.dropbox_app_secret)));
 
 async function list(root: string): Promise<Listed[]> {
@@ -69,6 +70,16 @@ const readRows = () => sql<Row>(`
            when 'customer' then exists (select 1 from public.customers c where c.id::text = d.entity_id)
            when 'inquiry'  then exists (select 1 from public.inquiries i where i.id::text = d.entity_id)
            when 'quote'    then exists (select 1 from public.quotes q where q.id::text = d.entity_id) end as owner_exists,
+         d.bucket, d.path,
+         (d.bucket = 'signed-terms' and d.path ~ '^(customers|suppliers)/' and d.status = 'done'
+           and not exists (select 1 from public.customers c where c.signed_terms_path = d.path)
+           and not exists (select 1 from public.leads l where l.signed_terms_path = d.path)
+           and exists (select 1 from public.customers c where c.signed_terms_path is not null
+                         and split_part(c.signed_terms_path, '_', 2) <> '' and substr(d.path, strpos(d.path, '_')) = substr(c.signed_terms_path, strpos(c.signed_terms_path, '_'))
+                         -- the SAME acceptance only: issued within 10 minutes of the certificate the row names. A certificate of an
+                         -- EARLIER version is evidence of that acceptance and is kept (compliance_archive, 15 Sep 2026).
+                         and substring(d.path from '/([0-9]{13})_') is not null and substring(c.signed_terms_path from '/([0-9]{13})_') is not null
+                         and abs(substring(d.path from '/([0-9]{13})_')::bigint - substring(c.signed_terms_path from '/([0-9]{13})_')::bigint) < 600000)) as superseded_tnc,
          (select '/QuotesDone Backup/Customers/' || public.fn_dbx_safe(c.full_name) || ' (' || left(c.id::text, 8) || ')/'
             from public.customers c
            where coalesce(btrim(c.full_name), '') <> ''
@@ -116,6 +127,12 @@ if (APPLY && !report.refused) {
       await r.body?.cancel();
       const post = await meta(m.to);
       const ok = !!post && post.hash === pre.hash && post.size === pre.size && !(await meta(m.from));
+      if (ok && m.storage) {
+        const sm = await fetch(`https://${REF}.supabase.co/storage/v1/object/move`, { method: 'POST', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bucketId: m.storage.bucket, sourceKey: m.storage.from, destinationKey: m.storage.to }) });
+        await sm.body?.cancel();
+        if (sm.ok) await sql(`update public.doc_backups set path = ${lit(m.storage.to)} where id = ${m.id}`);
+      }
       if (ok && m.id !== null) await sql(`update public.doc_backups set dropbox_path = ${lit(m.to)}, verified_at = now() where id = ${m.id}`);
       moved.push({ ...m, result: ok ? 'moved, hash verified' : 'stopped: hash or size differs after the move' });
       if (!ok) break;
