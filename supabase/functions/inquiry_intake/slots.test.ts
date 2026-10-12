@@ -9,7 +9,7 @@
 // Fails on the old code: there, a needs_info turn persisted `prevBrief.details || {}` and the model's
 // own status, missing and sentence, so every assertion on details, missing and the reply breaks.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { settleModelTurn, replyFromState } from './slots.ts';
+import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, UNANSWERED } from './slots.ts';
 import type { SpecField } from './interview.ts';
 
 // production category_specs.fields for `aluminium`, required flags and keys as read on 7 Oct 2026
@@ -181,4 +181,43 @@ Deno.test('ready always tells the customer to press Send to suppliers — EN and
   const ar: any = { category: 'aluminium', status: 'ready', claims_ready: true, assistant_message: 'تم', brief: { details: full } };
   settleModelTurn(ALUMINIUM, {}, ar, 'ar', briefOf);
   assert(ar.assistant_message.includes('«أرسل إلى الموردين»'));
+});
+
+// ── run f4294be8 (12 Oct 2026): C9 was asked "Is there a leak now…" on 13 turns and never reached ready ──
+// production category_specs.fields for `waterproofing`, required keys as read on 12 Oct 2026
+const WATERPROOFING: SpecField[] = [
+  { key: 'area', required: true, question: 'Which area needs waterproofing?' },
+  { key: 'issue', required: true, question: 'Existing leak, or new / preventive?', question_plain_en: 'Is there a leak now, or is this to prevent one?', question_plain_ar: 'هل يوجد تسرب حالياً، أم هي وقاية من التسرب؟' },
+  { key: 'area_sqm', required: true, question: 'Approximate area (sqm)?' },
+  { key: 'supply_install', required: true, question: 'Supply + application, or application only?' },
+  { key: 'location', required: true, question: 'Location / area and emirate?' },
+];
+// Every turn the customer replies; the model extracts the other four keys and never `issue`.
+const C9_TURN = () => ({ category: 'waterproofing', status: 'needs_info', claims_ready: false, assistant_message: 'Is there an active leak, or is this a preventive replacement?', questions: ['Is there an active leak, or is this a preventive replacement?'],
+  brief: { details: { area: 'Bedrooms; balconies; facade', area_sqm: '90.9', supply_install: 'Supply + application', location: 'Villa in Abu Dhabi' } as Record<string, string> } });
+
+Deno.test('C9: a key left open through MAX_OPEN_TURNS answered turns is settled, and the request goes ready', () => {
+  const turns: any[] = [];
+  let prev: Record<string, string> = {};
+  let out: any = null;
+  let asked = 0;
+  for (let i = 0; i < 14; i++) {
+    out = C9_TURN();
+    const s = settleModelTurn(WATERPROOFING, prev, out, 'en', briefOf, openTurnsByKey(turns));
+    prev = s.details;
+    turns.push({ role: 'user', text: 'reply' }, { role: 'assistant', text: out.assistant_message, slots: { missing_keys: s.missingKeys } });
+    if (out.status === 'ready') break;
+    asked++;
+  }
+  assertEquals(asked, MAX_OPEN_TURNS, 'the same question is asked MAX_OPEN_TURNS times, not 13');
+  assertEquals(out.status, 'ready');
+  assertEquals(out.brief.details.issue, UNANSWERED.en, 'recorded as a supplier decision, not an invented fact');
+  assertEquals(out.provenance.issue, 'unanswered');
+});
+
+Deno.test('a key the customer answers is never settled as unanswered, whatever the count', () => {
+  const out: any = C9_TURN(); out.brief.details.issue = 'No leak, preventive';
+  const s = settleModelTurn(WATERPROOFING, {}, out, 'en', briefOf, { issue: MAX_OPEN_TURNS + 5 });
+  assertEquals(s.details.issue, 'No leak, preventive');
+  assertEquals(s.settledUnanswered, []);
 });

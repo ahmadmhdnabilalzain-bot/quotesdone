@@ -416,12 +416,28 @@ async function realRun(pre) {
     },
     S08: async () => {
       for (const inq of Object.values(fx.inq).slice(0, 4)) {
+        // Run f4294be8 (12 Oct 2026): "asked 0" on all four was CORRECT - each request's own hold check
+        // (fn_rfq_required_check) had missing=[] (every required key present, rfq_ready=true), and the
+        // harness then posted empty answers, which the product rightly refuses (nothing_to_add). What is
+        // asserted now is that the questions asked are exactly what the request's check finds missing;
+        // when there are some, the first is answered "not sure" through the not_sure path (a handoff to
+        // the sales engineer, never a fake answer) and the rest are answered; when there are none,
+        // nothing is asked and an empty answer is refused.
+        const chk = (await read(`select public.fn_rfq_required_check(i) c from public.inquiries i where i.id=${q(inq.id)}`))[0]?.c || {};
+        const want = (Array.isArray(chk.missing) ? chk.missing : []).map(String).sort();
         const ms = await call('customer_api', inq.cu.jwt, { action: 'missing_specs', inquiry_id: inq.id });
         const fields = Array.isArray(ms.json?.missing) ? ms.json.missing : [];
-        const answers = Object.fromEntries(fields.slice(0, 3).map((f, i) => [f.key || f, i === 0 ? 'not sure' : 'standard']));
-        const r = await call('customer_api', inq.cu.jwt, { action: 'add_missing_specs', inquiry_id: inq.id, answers });
-        save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_${inq.trade}/spec_qa.json`, { asked: ms.json, answered: answers, reply: r.json });
-        A(`${inq.trade}: spec questions asked and answered (incl. "not sure")`, ms.status === 200 && r.status === 200, `asked ${fields.length}, answered ${Object.keys(answers).length}`);
+        const asked = fields.map((f) => String(f.key || f)).sort();
+        const [unsure, ...rest] = asked;
+        const answers = Object.fromEntries(rest.map((k) => [k, 'Standard commercial grade, as per the drawings']));
+        const r = await call('customer_api', inq.cu.jwt, unsure
+          ? { action: 'add_missing_specs', inquiry_id: inq.id, answers, not_sure: [unsure] }
+          : { action: 'add_missing_specs', inquiry_id: inq.id, answers: {} });
+        save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_${inq.trade}/spec_qa.json`, { hold_check_missing: want, asked: ms.json, answered: answers, not_sure: unsure ? [unsure] : [], reply: r.json });
+        const sameAsCheck = ms.status === 200 && JSON.stringify(asked) === JSON.stringify(want);
+        const replyOk = unsure ? r.status === 200 && r.json?.ok !== false : r.json?.error === 'nothing_to_add';
+        A(`${inq.trade}: spec questions asked are what the request's hold check finds missing, and answered (incl. "not sure")`, sameAsCheck && replyOk,
+          `check missing ${want.length} [${want.join(',')}], asked ${asked.length}, answered ${rest.length}, not sure ${unsure ? 1 : 0}, reply HTTP ${r.status} ${r.json?.error || 'ok'}`);
       }
     },
     S09: async () => {

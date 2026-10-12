@@ -30,10 +30,35 @@ import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type 
 const asText = (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).trim();
 const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]', 'null'].includes(asText(v));
 
-export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean };
+export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; settledUnanswered: string[] };
+
+// ── A QUESTION IS NOT ASKED FOREVER (12 Oct 2026, sales_engineer) ─────────────────────────────────
+// MEASURED. Stage-2 run f4294be8: C9 (waterproofing, EN) was asked "Is there a leak now, or is this to
+// prevent one?" on 13 consecutive turns, and C6 (joinery, AR) the finish question the same way. Each
+// customer replied every turn and no reply carried the fact, so the slot stayed open and the request
+// never reached ready (inquiry_intake 7abdcac0..., b99d73de..., 14 turns each). A real customer who
+// does not know, or answers in words the model does not file under the key, was trapped the same way.
+// Once a required key has stayed open through MAX_OPEN_TURNS answered turns it is SETTLED as
+// unanswered: recorded under its key as "not specified - supplier to advise" (the prompt's rule 5, a
+// supplier decision, never an invented fact), provenance 'unanswered', and the request can go ready.
+export const MAX_OPEN_TURNS = 3;
+export const UNANSWERED: Record<Lang, string> = {
+  en: 'Not specified by the customer - supplier to advise',
+  ar: 'لم يحدده العميل - يقترحه المورّد',
+};
+
+/** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */
+export function openTurnsByKey(turns: any[]): Record<string, number> {
+  const n: Record<string, number> = {};
+  for (const t of turns || []) {
+    const ks = t && t.role === 'assistant' && t.slots && Array.isArray(t.slots.missing_keys) ? t.slots.missing_keys : [];
+    for (const k of ks) n[String(k)] = (n[String(k)] || 0) + 1;
+  }
+  return n;
+}
 
 /** Merge what the model extracted this turn into what earlier turns captured, then derive missing. */
-export function reconcileSlots(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, modelOut: any, lang: Lang): SlotState {
+export function reconcileSlots(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, modelOut: any, lang: Lang, openTurns: Record<string, number> = {}): SlotState {
   const details: Record<string, string> = {};
   for (const [k, v] of Object.entries(prevDetails || {})) if (filled(v)) details[k] = asText(v);
   const b = modelOut && typeof modelOut.brief === 'object' && modelOut.brief ? modelOut.brief : {};
@@ -43,9 +68,14 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
   // A checklist key the model put at the top of the brief (brief.location) instead of under details.
   for (const k of keys) if (!(k in details) && filled(b[k])) details[k] = asText(b[k]);
   const required = orderFields(checklist).filter((o) => o.f.required && o.f.key);
+  const settledUnanswered: string[] = [];
+  for (const o of required) {
+    const k = String(o.f.key);
+    if (!(k in details) && (openTurns[k] || 0) >= MAX_OPEN_TURNS) { details[k] = UNANSWERED[lang] || UNANSWERED.en; settledUnanswered.push(k); }
+  }
   const open = required.filter((o) => !(String(o.f.key) in details));
   return {
-    details,
+    details, settledUnanswered,
     missingKeys: open.map((o) => String(o.f.key)),
     missing: open.map((o) => questionText(o.f, lang)),
     complete: open.length === 0,
@@ -68,8 +98,9 @@ export function replyFromState(status: string, firstMissingQuestion: string | nu
  * row's, and the reply is rebuilt whenever the status differs from the one the model wrote it for.
  * `briefOf` builds a brief from the slots when the model sent none (index.ts passes buildBrief).
  */
-export function settleModelTurn(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, out: any, lang: Lang, briefOf: (details: Record<string, string>) => any): SlotState {
-  const sl = reconcileSlots(checklist, prevDetails, out, lang);
+export function settleModelTurn(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, out: any, lang: Lang, briefOf: (details: Record<string, string>) => any, openTurns: Record<string, number> = {}): SlotState {
+  const sl = reconcileSlots(checklist, prevDetails, out, lang, openTurns);
+  if (sl.settledUnanswered.length) out.provenance = { ...(out.provenance && typeof out.provenance === 'object' ? out.provenance : {}), ...Object.fromEntries(sl.settledUnanswered.map((k) => [k, 'unanswered'])) };
   const modelStatus = out.status;
   const modelAsked = Array.isArray(out.questions) && out.questions.some((q: unknown) => String(q ?? '').trim() !== '');
   // claims_ready: the model's own structured flag saying its sentence tells the customer the request is
@@ -148,7 +179,7 @@ export function requirementsFromModel(category: string | null, req: unknown, now
 // The run's transcripts showed what the assistant SAID each turn and only the final row, so nobody
 // could see that turn 1's slots were never stored. Each assistant turn now carries the state saved
 // with it.
-export type TurnSlots = { status: string; details: Record<string, unknown>; req_answers: Answers; missing: string[] };
+export type TurnSlots = { status: string; details: Record<string, unknown>; req_answers: Answers; missing: string[]; missing_keys?: string[] };
 export function stampTurn(turns: any[], snap: TurnSlots): void {
   for (let i = turns.length - 1; i >= 0; i--) {
     if (turns[i] && turns[i].role === 'assistant') { turns[i].slots = { ...snap, at: new Date().toISOString() }; return; }
