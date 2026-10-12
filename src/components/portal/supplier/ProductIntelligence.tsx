@@ -62,7 +62,7 @@ const T = {
     compatible: 'المشاريع المناسبة', certs: 'الشهادات', catalogues: 'الكتالوجات',
     empty: 'لا توجد منتجات بعد. ارفعوا كتالوجًا لتظهر هنا المنتجات المستخرجة منه.',
     loading: 'جارٍ قراءة الكتالوج…', leadTime: 'مدة التوريد', days: 'يوم',
-    aiMatch: 'المطابقة بالذكاء الاصطناعي', noMatch: 'لا توجد فرص مطابقة بعد', source: 'المصدر',
+    aiMatch: 'أفضل مطابقة', noMatch: 'لا توجد فرص مطابقة بعد', source: 'المصدر',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);

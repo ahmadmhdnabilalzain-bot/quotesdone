@@ -76,7 +76,7 @@ const T = {
     risk: 'مستوى المخاطر', quality: 'الجودة', delivery: 'التسليم', response: 'الاستجابة',
     pricing: 'التسعير', overall: 'الإجمالي', score: 'مؤشر تقييم المورّد',
     established: 'سنة التأسيس', employees: 'الموظفون', emirates: 'الإمارات',
-    confidence: 'ثقة الذكاء الاصطناعي', map: 'خريطة القدرات', documents: 'المستندات',
+    confidence: 'موثوقية الملف', map: 'خريطة القدرات', documents: 'المستندات',
     notRated: 'لم يُقيَّم بعد', estimate: 'تقديري', perYear: 'وحدة/سنة',
     verified: 'مورّد موثّق', unverified: 'غير موثّق بعد', demo: 'نموذج تجريبي — ليست شركة حقيقية',
     loading: 'جارٍ تحليل بيانات شركتكم…', none: 'لا يوجد', unknown: 'غير معروف',

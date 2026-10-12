@@ -87,7 +87,7 @@ const T = {
     supply_only: 'Your catalogue reads as supply only (importer, wholesaler or stockist). Confirm or correct this on the Services tab.',
   },
   ar: {
-    title: 'قراءة الكتالوج بالذكاء الاصطناعي', lead: 'ارفعوا كتالوج منتجاتكم أو قائمة الأسعار أو الجدول أو المخطط، ونتولى قراءته وإنشاء سجلات منتجاتكم.',
+    title: 'كتالوج المنتجات', lead: 'ارفعوا كتالوج منتجاتكم أو قائمة الأسعار أو الجدول أو المخطط، ونتولى قراءته وإنشاء سجلات منتجاتكم.',
     formats: 'قوائم الأسعار والجداول (CSV وExcel)، والكتالوجات (PDF والصور)، والمخططات بصيغة PDF أو CAD ‏(DWG/DXF).',
     choose: 'اختيار ملف الكتالوج', working: 'جارٍ قراءة الكتالوج…',
     created: 'منتج أُضيف إلى كتالوجكم', found: 'وُجد في المستند',
