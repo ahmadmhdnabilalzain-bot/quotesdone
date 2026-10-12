@@ -107,6 +107,25 @@ alter table public.signup_purge add constraint signup_purge_kind_check
 -- a whole demo entity folder has no backup record of its own
 alter table public.signup_purge_dropbox alter column doc_backup_id drop not null;
 
+-- THE FROZEN DROPBOX LIST (review of #1348): exactly supabase/functions/dropbox_backup/demo_purge_paths.json, which the
+-- coordinator read before any apply. scripts/checks/no_seat_duty_reads_demo_rows.test.mjs fails if the two differ.
+create or replace function public.fn_demo_purge_dropbox_paths()
+ returns text[] language sql immutable set search_path to 'pg_catalog', 'pg_temp'
+as $fn$ select array[
+  '/QuotesDone Backup/Customers/Ahmad Nabil Al Zain',
+  '/QuotesDone Backup/Customers/QA Journey Tester',
+  '/QuotesDone Backup/Customers/QA Portal Tester',
+  '/QuotesDone Backup/Customers/QA Test Customer',
+  '/QuotesDone Backup/Customers/QA Villa Owner',
+  '/QuotesDone Backup/Customers/TIWNKLE SHARMA',
+  '/QuotesDone Backup/Customers/ahmad test',
+  '/QuotesDone Backup/Customers/ahmad test 2',
+  '/QuotesDone Backup/Customers/qa.portal.testquotesdone.com',
+  '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12'
+]::text[] $fn$;
+revoke execute on function public.fn_demo_purge_dropbox_paths() from public, anon, authenticated;
+
 -- ── 3. the FK walk: delete (or count) the rows of p_rel matching p_where, every FK child first ───────────
 create or replace function public.fn_demo_purge_walk(p_rel regclass, p_where text, p_depth integer, p_counts jsonb)
  returns jsonb
@@ -176,9 +195,6 @@ declare
   v_before jsonb := public.fn_demo_purge_real_counts(); v_after jsonb;
   c jsonb := '{}'::jsonb; v_pid bigint; v_obj int; v_dbx int; v_rec int; r record;
   EM constant text := '@([a-z0-9_-]+[.])*(example[.](com|net|org)|test|example|invalid|localhost)([^a-z0-9._-]|$)';
-  -- a folder whose NAME says test, QA or demo (a word), checked below for a live owner (coordinator, ruling 1199)
-  TESTNAME constant text := '(^|[^a-z])(test|tester|testing|qa|demo)([^a-z]|$)';
-  FOLDER constant text := '^/QuotesDone Backup/(Customers|Suppliers/[^/]+)/(ZZ ?DEMO([^a-z/][^/]*)?|__selftest__[^/]*|QD DEMO([^a-z/][^/]*)?)$';
 begin
   -- the demo id sets: markers only
   create temp table _dc on commit drop as select id from public.customers where is_demo;
@@ -226,59 +242,51 @@ begin
   on conflict (bucket, path) do nothing;
   get diagnostics v_obj = row_count;
 
-  -- Dropbox: each demo backup copy, then each whole demo entity folder (marker in its name) and the probe roots
+  -- Dropbox (review of #1348, coordinator 13 Oct 2026): ONLY the frozen, reviewed list (fn_demo_purge_dropbox_paths,
+  -- the same paths as supabase/functions/dropbox_backup/demo_purge_paths.json) and the _sandbox/_selftest probe roots.
+  -- No name pattern decides. Each backup record whose copy lies inside a listed path goes with it; a demo entity's
+  -- copy anywhere else is NOT deleted from Dropbox and is named in the plan for a person to add to the list.
+  create temp table _fp on commit drop as select unnest(public.fn_demo_purge_dropbox_paths()) p;
   insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
   select v_pid, d.id, d.dropbox_path from public.doc_backups d
    where d.dropbox_path is not null
-     and ((d.entity in ('customer', 'supplier', 'inquiry', 'quote', 'transaction') and d.entity_id in (select k from _dk))
-          or d.entity = 'zz_demo' or d.dedupe_key like 'SBX:%')
+     and (exists (select 1 from _fp where d.dropbox_path = _fp.p or starts_with(d.dropbox_path, _fp.p || '/'))
+          or d.dropbox_path ~ '^/QuotesDone Backup/_(sandbox|selftest)/[^/]+/')
   on conflict (doc_backup_id) do nothing;
   get diagnostics v_dbx = row_count;
   insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
-  select distinct v_pid, null::bigint, f.p from (
-      select path p from public.dropbox_files where path ~* FOLDER
-      union select path from public.dropbox_files where path ~ '^/QuotesDone Backup/_(sandbox|selftest)/[^/]+$'
-      union select regexp_replace(dropbox_path, '^(/QuotesDone Backup/(Customers|Suppliers/[^/]+)/[^/]+)/.*$', '\1')
-        from public.doc_backups where dropbox_path is not null
-         and regexp_replace(dropbox_path, '^(/QuotesDone Backup/(Customers|Suppliers/[^/]+)/[^/]+)/.*$', '\1') ~* FOLDER
-      union select regexp_replace(dropbox_path, '^(/QuotesDone Backup/_(sandbox|selftest)/[^/]+)/.*$', '\1')
-        from public.doc_backups where dropbox_path ~ '^/QuotesDone Backup/_(sandbox|selftest)/[^/]+/') f
-   where not exists (select 1 from public.signup_purge_dropbox s where s.dropbox_file = f.p and s.done_at is null);
+  select v_pid, null, f.p from (
+      select p from _fp
+      union select substring(dropbox_path from '^(/QuotesDone Backup/_(?:sandbox|selftest)/[^/]+)/') from public.doc_backups
+       where dropbox_path ~ '^/QuotesDone Backup/_(sandbox|selftest)/[^/]+/'
+      union select path from public.dropbox_files where path ~ '^/QuotesDone Backup/_(sandbox|selftest)/[^/]+$') f
+   where f.p is not null
+     and not exists (select 1 from public.signup_purge_dropbox s where s.dropbox_file = f.p and s.done_at is null);
   get diagnostics v_rec = row_count;
   v_dbx := v_dbx + v_rec;
-  -- THE TEST-NAMED FOLDERS (coordinator, 13 Oct 2026): an entity folder whose name says test / QA / demo and whose
-  -- owner has no live row - no customer whose id starts with the folder's (xxxxxxxx) suffix or whose name is the
-  -- folder's name, and no supplier with that id or that company name. Listed by name in the plan before any apply.
-  create temp table _tf on commit drop as
-  select distinct f.p from (
-      select path p from public.dropbox_files where is_folder and path ~ '^/QuotesDone Backup/(Customers|Suppliers/[^/]+)/[^/]+$'
-      union select regexp_replace(dropbox_path, '^(/QuotesDone Backup/(Customers|Suppliers/[^/]+)/[^/]+)/.*$', '\1')
-        from public.doc_backups where dropbox_path ~ '^/QuotesDone Backup/(Customers|Suppliers/[^/]+)/[^/]+/') f
-  cross join lateral (select regexp_replace(f.p, '^.*/', '') n) x
-  cross join lateral (select substring(x.n from '\(([0-9a-f]{8}|[0-9]+)\)\s*$') sfx,
-                             lower(btrim(regexp_replace(x.n, '\s*\([^)]*\)\s*$', ''))) nm) y
-  where x.n ~* TESTNAME and f.p !~* FOLDER
-    and not exists (select 1 from public.customers c
-                     where (y.sfx is not null and left(c.id::text, 8) = y.sfx) or lower(btrim(c.full_name)) = y.nm)
-    and not exists (select 1 from public.leads l
-                     where (y.sfx ~ '^[0-9]+$' and l.id::text = y.sfx) or lower(btrim(l.company_name)) = y.nm);
-  insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
-  select v_pid, d.id, d.dropbox_path from public.doc_backups d join _tf on starts_with(d.dropbox_path, _tf.p || '/')
-  on conflict (doc_backup_id) do nothing;
-  get diagnostics v_rec = row_count;
-  v_dbx := v_dbx + v_rec;
-  insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
-  select v_pid, null, p from _tf
-   where not exists (select 1 from public.signup_purge_dropbox s where s.dropbox_file = _tf.p and s.done_at is null);
-  get diagnostics v_rec = row_count;
-  v_dbx := v_dbx + v_rec;
-  c := c || jsonb_build_object('dropbox_test_named_folders', coalesce((select jsonb_agg(p order by p) from _tf), '[]'::jsonb));
+  c := c || jsonb_build_object('dropbox_frozen_paths', (select jsonb_agg(p order by p) from _fp));
   -- a listed copy keeps its record until dropbox_backup has deleted the copy; a record with no copy goes now
   update public.doc_backups d set status = 'signup_purge_pending', claimed_at = null, claimed_by = null,
          error = 'demo data purged (founder ruling 1199): Dropbox copy and record to be deleted'
    where d.id in (select doc_backup_id from public.signup_purge_dropbox where purge_id = v_pid and doc_backup_id is not null);
-  c := public.fn_demo_purge_walk('public.doc_backups', format(
-         '((entity in (''customer'',''supplier'',''inquiry'',''quote'',''transaction'') and entity_id in (select k from _dk)) or entity = ''zz_demo'' or dedupe_key like ''SBX:%%'') and dropbox_path is null'), 0, c);
+  -- a demo record with no copy, or whose copy the live Dropbox listing (refreshed within 36 hours) no longer holds, has
+  -- nothing in Dropbox to delete: the record goes now. Without a fresh listing such a record is kept and named.
+  create temp table _dgone on commit drop as
+  select d.id from public.doc_backups d
+   where ((d.entity in ('customer', 'supplier', 'inquiry', 'quote', 'transaction') and d.entity_id in (select k from _dk))
+          or d.entity = 'zz_demo' or d.dedupe_key like 'SBX:%')
+     and d.id not in (select doc_backup_id from public.signup_purge_dropbox where purge_id = v_pid and doc_backup_id is not null)
+     and (d.dropbox_path is null
+          or ((select max(synced_at) from public.dropbox_files) > now() - interval '36 hours'
+              and not exists (select 1 from public.dropbox_files f where lower(f.path) = lower(d.dropbox_path)
+                                and f.synced_at > now() - interval '36 hours')));
+  c := c || jsonb_build_object('dropbox_demo_copies_still_in_dropbox_outside_the_list', coalesce((select jsonb_agg(d.dropbox_path order by d.dropbox_path)
+         from public.doc_backups d
+        where ((d.entity in ('customer', 'supplier', 'inquiry', 'quote', 'transaction') and d.entity_id in (select k from _dk))
+               or d.entity = 'zz_demo' or d.dedupe_key like 'SBX:%')
+          and d.id not in (select doc_backup_id from public.signup_purge_dropbox where purge_id = v_pid and doc_backup_id is not null)
+          and d.id not in (select id from _dgone)), '[]'::jsonb));
+  c := public.fn_demo_purge_walk('public.doc_backups', 'id in (select id from _dgone)', 0, c);
   c := c || jsonb_build_object('storage_objects_listed', v_obj, 'dropbox_listed', v_dbx, 'purge_id', v_pid);
 
   -- the id-keyed and identity-keyed rows, while the ids are still known

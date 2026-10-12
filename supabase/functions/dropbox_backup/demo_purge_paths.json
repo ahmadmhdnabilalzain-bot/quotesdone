@@ -1,0 +1,16 @@
+{
+  "ruling": "founder ruling 1199 (12 Oct 2026): all test/demo data deleted once and for all. The ONLY Dropbox paths the demo purge may delete (each with everything inside it), besides the _sandbox/ and _selftest/ probe roots. Frozen list, read by the coordinator before any apply; built 13 Oct 2026 from a live Dropbox listing (dropbox_files refreshed 12 Oct 20:47Z). Never a name pattern.",
+  "paths": [
+    "/QuotesDone Backup/Customers/Ahmad Nabil Al Zain",
+    "/QuotesDone Backup/Customers/QA Journey Tester",
+    "/QuotesDone Backup/Customers/QA Portal Tester",
+    "/QuotesDone Backup/Customers/QA Test Customer",
+    "/QuotesDone Backup/Customers/QA Villa Owner",
+    "/QuotesDone Backup/Customers/TIWNKLE SHARMA",
+    "/QuotesDone Backup/Customers/ahmad test",
+    "/QuotesDone Backup/Customers/ahmad test 2",
+    "/QuotesDone Backup/Customers/qa.portal.testquotesdone.com",
+    "/QuotesDone Backup/_archive/demo-leftovers-2026-10-12",
+    "/QuotesDone Backup/_archive/ownerless-2026-10-12"
+  ]
+}

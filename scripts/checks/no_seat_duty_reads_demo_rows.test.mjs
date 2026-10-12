@@ -51,6 +51,14 @@ for (const fn of ['fn_support_case_idle_close', 'fn_ceo_pricing_monitor', 'fn_ac
   });
 }
 
+test('the purge\'s Dropbox list in SQL is exactly the frozen list the edge function allows', () => {
+  const json = JSON.parse(R('supabase/functions/dropbox_backup/demo_purge_paths.json')).paths;
+  const m = /fn_demo_purge_dropbox_paths\(\)[\s\S]*?array\[([\s\S]*?)\]::text\[\]/.exec(R(FILE));
+  assert.ok(m, 'fn_demo_purge_dropbox_paths is defined with an array literal');
+  const sqlPaths = [...m[1].matchAll(/'((?:[^']|'')*)'/g)].map((x) => x[1].replace(/''/g, "'"));
+  assert.deepEqual([...sqlPaths].sort(), [...json].sort());
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 

@@ -18,18 +18,24 @@ Deno.test('a table export, a probe, a sandbox, an archive, a folder or anything 
     '/QuotesDone Backup/Customers/Ann/../../Company/Database Exports/x.json']) assertEquals(signupPurgeDeleteAllowed(p), false, p);
 });
 
-Deno.test('the demo purge deletes only a path whose name carries the demo marker', async () => {
-  const { demoPurgeDeleteAllowed } = await import('./purge.ts');
-  for (const p of ['/QuotesDone Backup/Customers/ZZ DEMO - shared handset A (ccef2d0d)',
-    '/QuotesDone Backup/Customers/ZZ DEMO Customer 85929fc6 (5fc48b40)/Customer Details.pdf',
-    '/QuotesDone Backup/Suppliers/Uncategorized/ZZ DEMO — section 8 probe supplier A (40466)',
-    '/QuotesDone Backup/Customers/__selftest__ctrl A (ae8d1a34)', '/QuotesDone Backup/Customers/QD DEMO Customer (cbfd972e)',
-    '/QuotesDone Backup/_sandbox/1c94fa6a', '/QuotesDone Backup/Customers/QA Test Customer (58371fbd)',
-    '/QuotesDone Backup/Customers/ahmad test (70f15bc3)/x.pdf', '/QuotesDone Backup/Customers/DEMO — Sara Ahmed (657e47eb)', '/QuotesDone Backup/Customers/qa.portal.testquotesdone.com', '/QuotesDone Backup/_selftest/auth_probe_1.txt']) assertEquals(demoPurgeDeleteAllowed(p), true, p);
-  for (const p of ['/QuotesDone Backup/Customers/Contest Trading (5)', '/QuotesDone Backup/Customers/ahmad alzain',
-    '/QuotesDone Backup/Customers', '/QuotesDone Backup/_sandbox', '/QuotesDone Backup/_archive/ZZ DEMO x',
-    '/QuotesDone Backup/Company/Database Exports/ZZ DEMO.json', '/QuotesDone Backup/Customers/ZZ DEMO x/../../Company',
-    '/QuotesDone Backup//Customers/ZZ DEMO x', '/elsewhere/Customers/ZZ DEMO x', '/QuotesDone Backup/Suppliers/Uncategorized/ZZ Demolition LLC (77)',
-    '/QuotesDone Backup/Customers/ZZDemolition (1a2b3c4d)/a.pdf'])
+Deno.test('the demo purge deletes only a frozen, reviewed path (or inside one) and the probe roots', async () => {
+  const { demoPurgeDeleteAllowed, DEMO_PURGE_PATHS } = await import('./purge.ts');
+  for (const p of DEMO_PURGE_PATHS) {
+    assertEquals(demoPurgeDeleteAllowed(p), true, p);
+    assertEquals(demoPurgeDeleteAllowed(p + '/Inquiries/x.pdf'), true, p + '/...');
+  }
+  for (const p of ['/QuotesDone Backup/_sandbox/1c94fa6a', '/QuotesDone Backup/_selftest/auth_probe_1.txt'])
+    assertEquals(demoPurgeDeleteAllowed(p), true, p);
+  // must never delete: real-looking or merely test-sounding names, the real customers, prefixes, the roots, other archives
+  for (const p of ['/QuotesDone Backup/Suppliers/interior-design/QA Interiors LLC (30001)', '/QuotesDone Backup/Suppliers/joinery-kitchens/Demo Kitchens (30002)',
+    '/QuotesDone Backup/Suppliers/Other/Al Test Trading (30003)', '/QuotesDone Backup/Customers/Contest Trading (5)',
+    '/QuotesDone Backup/Suppliers/Uncategorized/ZZ Demolition LLC (77)', '/QuotesDone Backup/Customers/Ann ZZ DEMO',
+    '/QuotesDone Backup/Customers/ZZ DEMO Customer 1 (abcdef12)',          // a marker name alone is not on the list
+    '/QuotesDone Backup/Customers/ahmad alzain', '/QuotesDone Backup/Customers/Umarah Nabi (ba61fa16)',
+    '/QuotesDone Backup/_archive/superseded-tnc-2026-10-12/Customers/Umarah Nabi (ba61fa16)',
+    '/QuotesDone Backup/Customers/ahmad test 3', '/QuotesDone Backup/Customers/ahmad test 2x',    // a prefix is not the folder
+    '/QuotesDone Backup/Customers', '/QuotesDone Backup/_archive', '/QuotesDone Backup/_sandbox',
+    '/QuotesDone Backup/Customers/ahmad test/../ahmad alzain/a.pdf', '/QuotesDone Backup//Customers/ahmad test',
+    '/elsewhere/Customers/ahmad test'])
     assertEquals(demoPurgeDeleteAllowed(p), false, p);
 });

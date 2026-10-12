@@ -13,18 +13,15 @@ export function signupPurgeDeleteAllowed(path: string): boolean {
   return /^(Customers|Suppliers|Storage|Company\/Correspondence|Finance)\/.+\/[^/]+$/.test(rest);
 }
 
-// THE DEMO PURGE (founder ruling 1199, 12 Oct 2026; it_engineer): fn_demo_purge lists, in the same queue, each Dropbox
-// copy of a demo entity and each whole demo folder. A path is allowed only when the marker is IN THE PATH: an entity
-// folder (or anything inside it) named ZZ DEMO / __selftest__ / QD DEMO, or anything under the _sandbox / _selftest
-// probe roots. Never the root, a table export, _archive, or a folder without the marker.
-const DEMO_ENTITY = /^(Customers|Suppliers\/[^/]+)\/(ZZ ?DEMO(?![a-z])|__selftest__|QD DEMO(?![a-z]))[^/]*(\/.+)?$/i;   // a word: never "ZZ Demolition"
-// an entity folder whose name says test / QA / demo as a word; fn_demo_purge lists one only when no live customer or
-// supplier owns it (coordinator, 13 Oct 2026). "Contest Trading" or "ZZ Demolition" never match.
-const TEST_ENTITY = /^(Customers|Suppliers\/[^/]+)\/([^/]*[^a-z/])?(test|tester|testing|qa|demo)(?![a-z])[^/]*(\/.+)?$/i;
-const DEMO_ROOT =/^_(sandbox|selftest)\/[^/]+(\/.+)?$/;
-export function demoPurgeDeleteAllowed(path: string): boolean {
+// THE DEMO PURGE (founder ruling 1199, 12 Oct 2026; it_engineer). fn_demo_purge lists Dropbox paths in the same queue;
+// one is deleted ONLY if it is a path in the frozen, reviewed demo_purge_paths.json (or inside one), or inside the
+// _sandbox/ or _selftest/ probe roots. No name pattern ever decides: "QA Interiors LLC" or "ZZ Demolition" is safe.
+import FROZEN from './demo_purge_paths.json' with { type: 'json' };
+const DEMO_ROOT = /^_(sandbox|selftest)\/[^/]+(\/.+)?$/;
+export const DEMO_PURGE_PATHS: readonly string[] = FROZEN.paths;
+export function demoPurgeDeleteAllowed(path: string, frozen: readonly string[] = DEMO_PURGE_PATHS): boolean {
   if (!path.startsWith(ROOT) || path.includes('//') || path.includes('\\')) return false;
   if (path.split('/').some((seg) => seg === '.' || seg === '..')) return false;
-  const rest = path.slice(ROOT.length);
-  return DEMO_ENTITY.test(rest) || DEMO_ROOT.test(rest) || TEST_ENTITY.test(rest);
+  if (DEMO_ROOT.test(path.slice(ROOT.length))) return true;
+  return frozen.some((p) => path === p || path.startsWith(p + '/'));
 }
