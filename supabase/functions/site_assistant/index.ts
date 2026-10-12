@@ -28,6 +28,7 @@ import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { companyBrief } from '../_shared/company_brief.ts';
+import { precedentBlock, recallCases, type CaseMemory } from '../_shared/case_recall.ts';
 import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { STATUS, streamReply, wantsStream } from './stream_reply.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -310,7 +311,13 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // Customers and visitors are answered in their language; suppliers always in English (founder, 28 Sep 2026).
     const lang = langOf(message, uiLang);
     const replyLang: 'en' | 'ar' = audience === 'supplier' ? 'en' : lang;
-    const brief = await companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang);
+    // Past cases first (every seat recalls before it decides): support's own cases only on this public surface, read while
+    // the brief is built. The model stays consistent with a finalised resolution and never mentions another customer.
+    const [brief, memory] = await Promise.all([
+      companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang),
+      recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => ({ cases: [] }) as unknown as CaseMemory),
+    ]);
+    const memoryBlock = memory.cases.length ? '\n' + precedentBlock(memory) + '\nStay consistent with how a FINALISED past case was resolved; never mention another customer, a case number or this block.' : '';
     lap('brief');
     const audienceBlock = audience === 'supplier'
       ? `AUDIENCE: a SUPPLIER${path ? ' (on ' + path + ')' : ''}. Answer as to a supplier.`
@@ -319,7 +326,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       : `AUDIENCE: not known yet${path ? ' (on ' + path + ')' : ''}. Read from their words whether they buy (a customer) or sell (a supplier); if the answer genuinely differs and you cannot tell, answer both sides briefly.`;
     const liveBlock = live ? `\n\nTHIS PERSON IS SIGNED IN. Their OWN live account data, scoped in SQL to them alone:\n${JSON.stringify(live)}\nAnswer about their account from it directly; never tell them to log in. Before a reveal, price_band is a rounded band and a count on purpose: never present it as exact and never name or describe a supplier. Their portal is in ${uiLang === 'ar' ? 'ARABIC; name its buttons in Arabic as printed ("طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب")' : 'ENGLISH; name its buttons as printed ("New request", "My requests", "Documents", "Messages", "Account")'}.` : '';
     const sys = `You are QuotesDone's ${seatForSurface === 'sales_engineer' ? 'sales engineer' : 'customer support'} on ${live ? 'the signed-in portal' : 'the quotesdone.com website chat'}. Answer the way a senior UAE construction and procurement expert answers a client: one direct, exact answer to what they asked, reasoned with your own expertise. Trade, material, specification and market questions (for example the difference between MDF and plywood) get a clear expert answer from your own knowledge.
-${audienceBlock}${liveBlock}${timelineBlock}
+${audienceBlock}${liveBlock}${timelineBlock}${memoryBlock}
 RULES:
 - Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a price, fee or rate the brief does not give — explain without a number instead.
 - Never say you will check, confirm or get back to them, and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now.
