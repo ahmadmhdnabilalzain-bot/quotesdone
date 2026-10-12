@@ -6640,7 +6640,6 @@ declare
   -- the top-3 rule: the comparison report is the top 3 (founder rule). A constant, not a setting.
   c_target constant int := 3;
   v_window numeric; v_lead numeric := public.fn_seat_clock_policy('rfq_short_sweep_hours_before_deadline', 8);
-  v_fanout int := coalesce(public.fn_seat_clock_policy('match_max_fanout', 5), 5)::int;
   r record; s record; l public.leads; v jsonb; v_codes text[]; v_need text; v_value numeric; v_new int;
   v_swept int := 0; v_invited int := 0; v_reminded int := 0; v_told int := 0; v_skipped jsonb := '[]'::jsonb;
 begin
@@ -6686,12 +6685,11 @@ begin
         v_value := coalesce(r.expected_value, nullif(regexp_replace(coalesce(r.budget, ''), '[^0-9.]', '', 'g'), '')::numeric);
         if v_value is not null and v_value <= 0 then v_value := null; end if;
         for s in select m.supplier_id, m.score, m.why
-                   from public.fn_match_capability(v_codes, v_need, '{}'::text[], '{}'::text[], r.scope_type, v_value, r.emirate, 60) m
+                   from public.fn_match_capability(v_codes, v_need, '{}'::text[], '{}'::text[], r.scope_type, v_value, r.emirate, 100000) m
                    join public.leads ld on ld.id = m.supplier_id
                   where not exists (select 1 from public.inquiry_matches x where x.inquiry_id = r.id and x.supplier_id = m.supplier_id)
                     and public.fn_seat_clock_lead_is_fixture(ld) = r.fixture
-                  order by m.score desc
-                  limit v_fanout loop
+                  order by m.score desc loop
           insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
           values (r.id, s.supplier_id, least(1, greatest(0, round(s.score / 100, 3))),
                   left('short-of-quotes sweep (fn_rfq_short_of_quotes_tick): ' || coalesce(s.why, ''), 400))
