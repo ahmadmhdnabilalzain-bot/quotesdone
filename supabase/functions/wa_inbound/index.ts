@@ -49,7 +49,7 @@ import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
-import { modelSays } from './model_says.ts';
+import { holdUnwritten, modelSays } from './model_says.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
@@ -502,11 +502,27 @@ async function handleInbound(req: Request): Promise<Response> {
     // Code decides what happened; the model writes what is said, in this turn (model_says.ts). '' = no model
     // answered: nothing conversational is sent, the turn is recorded unsent (send_error 'no_model_reply').
     // Every sendWa below that carries conversation text sends a `say` result (no_unwritten_send.test.ts).
-    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en') =>
-      (await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
-        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From } })).text;
+    // modelEscalate: the model's own reading that a person is needed (a complaint, a dispute, a request for one), OR-ed
+    // with fn_wa_route's needs_a_person, so a complaint the router misses still reaches a person (review of #1335).
+    let modelEscalate = false;
+    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en') => {
+      const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+        rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
+        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From } });
+      modelEscalate = modelEscalate || r.escalate;
+      return r.text;
+    };
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
     const say = (situation: string, lang?: 'en' | 'ar') => sayFor(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : audience === 'founder' ? 'founder' : 'visitor')(situation, lang);
+    // NOBODY IS LEFT SILENT (review of #1335). When no model wrote the reply, or the guard refused what it wrote, the
+    // person gets the HELD NOTICE — a fixed receipt, a notification under ruling 1197, not an answer — and the turn is
+    // filed in customer_support's reasoning queue (fn_reason_hold). resilience_ping replays it through the model and
+    // sends the written answer here (reasoned_delivery.ts); still unanswered after 15 minutes it is escalated to
+    // customer_support (fn_reason_held_escalate, scripts/sql/an_unwritten_conversation_reply_reaches_its_seat_in_fifteen_minutes.sql).
+    const heldTurn = (aud: 'customer' | 'supplier' | 'visitor' | 'founder', lang: 'en' | 'ar', situation: string, why: string) =>
+      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why,
+        enabled: async () => (await sec('wa_autoreply_enabled')) === 'true', send: (t) => sendWa(From, t),
+        rpc: async (f, a) => { const r = await admin.rpc(f, a); return { data: r.data, error: r.error }; } });
 
     // ---- AN ANSWER TO "NO SUPPLIER QUOTED YOUR EXACT SPEC" (14 Sep 2026, agent: customer_support) ----
     // Founder, 14 Sep 2026 (founder_instruction #321): when no supplier could quote the customer's exact
@@ -560,10 +576,12 @@ async function handleInbound(req: Request): Promise<Response> {
         }
         // The answer is already recorded by the routine; a missing offer row must not make it silent.
         if (!text) text = await sayC('Their answer to the alternatives we offered has been received and recorded.');
-        const replyS = text ? toContact(text.slice(0, 1200)) : '';
+        let replyS = text ? toContact(text.slice(0, 1200)) : '';
         const enabledS = (await sec('wa_autoreply_enabled')) === 'true';
         let sentS = false; let sendErrS: string | undefined = replyS ? undefined : 'no_model_reply';
         if (enabledS && replyS) { const r = await sendWa(From, replyS); sentS = r.ok; sendErrS = r.err; }
+        let heldS = false;
+        if (!replyS) { const h = await heldTurn('customer', lang, 'The no-exact-spec routine recorded their answer: ' + JSON.stringify(so), 'spec_offer_reply'); replyS = h.notice; sentS = h.sent; sendErrS = h.err ?? undefined; heldS = true; }
         if (so.ok === true && so.offer_id) {
           try { await admin.rpc('fn_spec_offer_mark', { p_offer: so.offer_id, p_action: 'answered', p_notification_ids: [] }); }
           catch (_e) { /* best effort: the answer itself is recorded */ }
@@ -572,7 +590,7 @@ async function handleInbound(req: Request): Promise<Response> {
           await waInsert(receivedAt, {
             wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
             inbound: Body, reply: replyS, lang, escalated: false, sent: sentS,
-            meta: { enabled: enabledS, audience: 'customer', route: 'spec_offer_reply', result: so, model_written: !notice && !!replyS, notification: notice,
+            meta: { enabled: enabledS, audience: 'customer', route: 'spec_offer_reply', result: so, model_written: !notice && !heldS, notification: notice, held_notice: heldS,
                     send_error: sendErrS || null, provenance_verified: true, message_sid: MessageSid || null },
           });
         } catch (_e) { /* the reply already went out */ }
@@ -717,6 +735,7 @@ async function handleInbound(req: Request): Promise<Response> {
       // A customer or supplier reply passes support_reply_guard.ts (FAQ rows can carry the licence number);
       // the founder's own command channel is not a customer surface and is left as it is.
       write: (r) => sayFor(r.audience === 'unknown' ? 'visitor' : r.audience)(r.situation, r.lang),
+      held: (r) => heldTurn(r.audience === 'unknown' ? 'visitor' : r.audience, r.lang, r.situation, r.route),
       send: (to: string, text: string, content?: Content) => {
         const guarded = content ? text : (audience === 'founder' ? bidiSafe(text.slice(0, 1500)) : toContact(text.slice(0, 1500)));
         // the guard refused it ('' — never a substitute text): nothing goes out
@@ -849,6 +868,7 @@ async function handleInbound(req: Request): Promise<Response> {
           const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
           let sentD = false; let sendErrD: string | undefined = reply ? undefined : 'no_model_reply';
           if (enabledD && reply) { const r = await sendWa(From, reply); sentD = r.ok; sendErrD = r.err; }
+          if (!reply) { const h = await heldTurn('founder', 'en', 'The settings routine result: ' + JSON.stringify(directive), 'founder_directive'); reply = h.notice; sentD = h.sent; sendErrD = h.err ?? undefined; }
           try {
             await waInsert(receivedAt, {
               wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
@@ -968,6 +988,7 @@ async function handleInbound(req: Request): Promise<Response> {
         reply = reply ? toContact(reply.slice(0, 1200)) : '';
         let sent = false; let sendErr: string | undefined = reply ? undefined : 'no_model_reply';
         if (enabled && reply) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
+        if (!reply) { const h = await heldTurn(leadId ? 'supplier' : 'visitor', /[؀-ۿ]/.test(Body) ? 'ar' : 'en', 'They sent a file. What the intake did: ' + results.join(' | '), 'media_in'); reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; }
         try {
           await waInsert(receivedAt, {
             wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
@@ -1028,10 +1049,11 @@ async function handleInbound(req: Request): Promise<Response> {
           if (applied) {
             // The routine decided (re-priced or refused); the model says it to the supplier, in English (1195-1197).
             const out = await sayFor('supplier')('They asked to change their quotation price to AED ' + String(parsed.amount) + '. The pricing routine result, to report accurately (applied or refused, old and new total, the reason):\n' + JSON.stringify(applied), 'en');
-            const replyD = out ? toContact(out.slice(0, 1200)) : '';
+            let replyD = out ? toContact(out.slice(0, 1200)) : '';
             const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
             let sentD = false; let sendErrD: string | undefined = replyD ? undefined : 'no_model_reply';
             if (enabledD && replyD) { const r = await sendWa(From, replyD); sentD = r.ok; sendErrD = r.err; }
+            if (!replyD) { const h = await heldTurn('supplier', 'en', 'The pricing routine result: ' + JSON.stringify(applied), 'supplier_directive'); replyD = h.notice; sentD = h.sent; sendErrD = h.err ?? undefined; }
             try {
               await waInsert(receivedAt, {
                 wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
@@ -1197,34 +1219,27 @@ async function handleInbound(req: Request): Promise<Response> {
       companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
     let reply = (await say(situation)).slice(0, 1200);
     const llmFailed = !reply;
-    const escalate = route?.needs_a_person === true;
+    const escalate = route?.needs_a_person === true || modelEscalate;
     const lang = /[؀-ۿ]/.test(reply || Body) ? 'ar' : 'en';
     const audienceFinal = audience;
     if (!reply) {
-      // No model answered. Nothing is sent (no canned text); the question is filed for the team and its meaning waits
-      // in customer_support's queue, so the reply is written the moment a model answers (reasoned_delivery.ts).
       try { await menuDeps.recordGap(Body, 'no_model_answer'); } catch (_e) { /* */ }
-      try { if (Body.trim() && (await menuDeps.intent(Body)) === null) await menuDeps.queueIntent(Body); } catch (_e) { /* */ }
-      await menuDeps.record({ inbound: Body, reply: '', lang, sent: false, route: 'no_model_reply', await: null, send_error: 'no_model_reply',
-        extra: { no_model_reply: true, autoreply_enabled: (await sec('wa_autoreply_enabled')) === 'true', asked_for_a_person: escalate } });
-      if (escalate) {
-        try { await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: 'wa:escalation:' + (MessageSid || From), p_severity: 'serious',
-          p_subject: 'A WhatsApp message needs a person and no model could word the reply', p_evidence: { from: From, message: Body.slice(0, 400) },
-          p_attempted: ['asked every model in the chain'], p_requested: 'Reply to them; the message is filed.' }); } catch (_e) { /* */ }
-      }
-      await logRun('error', { audience, route: 'no_model_reply', llm_failed: true }, 'no model answered: nothing conversational was sent; the question was filed and queued');
-      return TW(200);
     }
-    // The model's reply is checked before it is sent (support_reply_guard.ts): no licence number, no "AI",
-    // no internal error or prompt wording.
-    reply = toContact(reply);   // '' = the guard refused it (aiReply already rewrote twice): nothing is sent
+    // The model's reply is checked before it is sent (support_reply_guard.ts): '' = refused after aiReply's own rewrites.
+    if (reply) reply = toContact(reply);
 
     const enabled = (await sec('wa_autoreply_enabled')) === 'true';
-    let sent = false; let sendErr: string | undefined = reply ? undefined : 'guard_refused';
-    if (enabled && reply) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
+    let sent = false; let sendErr: string | undefined;
+    let heldNotice = false;
+    if (reply) { if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; } }
+    else {
+      // NOBODY IS LEFT SILENT: the held notice (a notification) now, the model's answer from the queue later.
+      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, llmFailed ? 'no_model_answer' : 'guard_refused');
+      reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = true;
+    }
 
     let rowSaved = true;
-    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
     if (enabled && !sent) {
@@ -1262,7 +1277,7 @@ async function handleInbound(req: Request): Promise<Response> {
     }
 
     const counts = { audience: audienceFinal, lang, escalated: escalate, autoreply_enabled: enabled, sent, llm_failed: llmFailed, faq_matches: ids.length, row_saved: rowSaved, provenance_verified: 1 };
-    if (llmFailed) await logRun('error', counts, 'no model answered - nothing conversational was sent');
+    if (llmFailed) await logRun('error', counts, 'no model answered - the held notice was sent and the turn queued for the model');
     else if (enabled && !sent) await logRun('error', counts, 'reply composed but Twilio refused to send: ' + (sendErr || 'unknown'));
     else if (!rowSaved) await logRun('error', counts, 'reply handled but wa_messages row failed to save - conversation history will be incomplete');
     else await logRun('ok', counts, escalate ? 'escalated to founder' : '');

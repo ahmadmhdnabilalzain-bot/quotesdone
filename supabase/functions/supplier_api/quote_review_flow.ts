@@ -104,6 +104,10 @@ export interface ReviewDeps {
   /** THE WORDS (1195-1197): the model writes the engineer's message from `situation` (what code decided); with
    *  `actions`, it also picks the supplier's next step from their message. text '' = no model answered. */
   voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[] }): Promise<{ text: string; action: string | null }>;
+  /** No model answer: the turn is filed in sales_engineer's reasoning queue (fn_reason_hold, surface
+   *  supplier_api.quote_review_unwritten); the replayed answer is posted into this thread and a turn still unanswered
+   *  after 15 minutes is escalated to the seat. The HELD NOTICE is added by the flow itself. */
+  hold(v: { reviewId: string; situation: string; supplierMessage: string | null; why: string }): Promise<void>;
 }
 export type Ctx = { supplierId: number; email: string; lang: Lang; companyName?: string | null };
 
@@ -206,16 +210,22 @@ async function view(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: Rev
 // No model answer → no engineer message is added (never a canned one); the turn is logged.
 // prevented by: supplier_api/quote_review.test.ts (the 1195-1197 test)
 const NOTIFICATION_KINDS: MsgKind[] = ['submitted'];
+/** NOBODY IS LEFT SILENT (review of #1335): no model answer → the HELD NOTICE (a fixed receipt — a notification under
+ *  ruling 1197, never an answer) is added, and the turn is queued for the model; escalated to the seat after 15 minutes. */
+export const QR_HELD_NOTICE = 'Thank you, we have received your message. The sales engineer will reply here shortly.';
+async function held(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, situation: string, supplierMessage: string | null, issues?: Issue[]): Promise<MessageRow> {
+  const r = await repo.addMessage({ review_id: reviewId, role: SEAT, kind: 'notice', body: QR_HELD_NOTICE, body_ar: null, attachments: [], issues: issues ?? null });
+  await deps.hold({ reviewId, situation, supplierMessage, why: 'no_model_answer' }).catch(() => {});
+  await repo.log({ signal: 'quote_review_held_notice' }, 'No model answered: the held notice was added and the turn queued for the model (rulings 1195-1197).');
+  return r;
+}
 async function say(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, kind: MsgKind, s: Said,
                    extra: { issues?: Issue[]; attachments?: Attachment[]; notification?: boolean; supplierMessage?: string | null } = {}): Promise<MessageRow> {
   const add = (body: string, body_ar: string | null) =>
     repo.addMessage({ review_id: reviewId, role: SEAT, kind, body, body_ar, attachments: extra.attachments ?? [], issues: extra.issues ?? null });
   if (extra.notification || NOTIFICATION_KINDS.includes(kind)) return add(s.en, s.ar);
   const v = await deps.voice({ kind, situation: s.en, supplierMessage: extra.supplierMessage ?? null }).catch(() => ({ text: '', action: null }));
-  if (!v.text) {
-    await repo.log({ signal: 'quote_review_no_model_reply', kind }, 'No model answered, so no engineer message was added (rulings 1195-1197: never a canned reply).');
-    return { id: '', review_id: reviewId, role: SEAT, kind, body: null, body_ar: null, attachments: [], issues: extra.issues ?? null, created_at: deps.now().toISOString() };
-  }
+  if (!v.text) return held(repo, deps, reviewId, s.en, extra.supplierMessage ?? null, extra.issues);
   return add(v.text, null);
 }
 const supplierSays = (repo: ReviewRepo, reviewId: string, kind: MsgKind, text: string | null, attachments: Attachment[] = []) =>
@@ -458,7 +468,7 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   if (v.action === 'generate' || v.action === 'reupload') return decide(repo, deps, ctx, l, r, v.action, sm.id);
   if (v.action === 'submit') return doSubmit(repo, deps, ctx, l.inq, r, sm.id);
   if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: st === 'awaiting_choice' ? 'choice_prompt' : 'text', body: v.text, body_ar: null, attachments: [], issues: null });
-  else await repo.log({ signal: 'quote_review_no_model_reply', kind: 'text' }, 'No model answered the supplier, so no engineer message was added (rulings 1195-1197).');
+  else await held(repo, deps, r.id, stateFacts(l.inq, r, st, open), t);
   return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
 }
 
