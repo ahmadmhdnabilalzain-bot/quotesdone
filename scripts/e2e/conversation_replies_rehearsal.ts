@@ -87,15 +87,20 @@ try {
     const ms = Date.now() - t0;
     const wantLang = c.audience === 'supplier' ? 'en' : c.lang;
     const langOk = text ? (wantLang === 'ar' ? AR.test(text) : !AR.test(text)) : false;
-    const problems = text ? replyProblems(text, briefNumbers(brief + ' ' + c.situation)) : ['no reply'];
-    let judge: number | null = null;
+    // the SAME check aiReply runs: the brief, the turn's facts and the published contact are allowed (ai_reply.ts line 88)
+    const allowed = brief + '\n' + c.situation + '\n+971 50 931 9355 management@quotesdone.com';
+    const problems = text ? replyProblems(text, briefNumbers(brief + ' ' + c.situation), { allowed }) : ['no reply'];
+    const strictProblems = text ? replyProblems(text, briefNumbers(brief + ' ' + c.situation)) : [];
+    let judge: number | null = null; let judgeWhy = "";
     if (text) {
-      const jr = await deps.llm('verify', 'You grade one customer-service reply for a UAE procurement marketplace. Score 1-5: 5 = answers exactly what was asked, accurate to the facts given, professional, clear, right language; 1 = wrong or useless. Return JSON {"score":n,"why":"..."}',
-        JSON.stringify({ message: c.message, facts: c.situation, reply: text, required_language: wantLang }), { taskClass: 'json_extraction', seat: 'customer_support', max: 200, counterpartModel: 'anthropic/claude-sonnet-5', subject: { fixture: true } });
-      try { judge = Number(JSON.parse(String(jr.content || '').replace(/^```(json)?|```$/g, '').trim()).score) || null; } catch (_e) { judge = null; }
+      const jr = await deps.llm('verify', 'You grade one customer-service reply for a UAE procurement marketplace. Score 1-5: 5 = answers exactly what was asked, accurate to the company brief and the facts given (the brief is the source of every company fact), professional, clear, right language; 1 = wrong or useless. Return JSON {"score":n,"why":"..."}',
+        JSON.stringify({ company_brief: brief.slice(0, 6000), message: c.message, facts: c.situation, reply: text, required_language: wantLang }), { taskClass: 'json_extraction', seat: 'customer_support', max: 200, counterpartModel: 'anthropic/claude-sonnet-5', subject: { fixture: true } });
+      // the judge's JSON may come fenced or with prose around it: take the first object
+      try { const o = JSON.parse(String(jr.content || '').match(/\{[\s\S]*\}/)?.[0] || '{}'); judge = Number(o.score) || null; judgeWhy = String(o.why || ''); }
+      catch (_e) { judge = null; judgeWhy = 'unparsed: ' + String(jr.content || jr.error || '').slice(0, 120); }
     }
     const row = { id: c.id, surface: c.surface, lang: c.lang, audience: c.audience, ms, model, attempts: attempts.join(','), lang_ok: langOk, problems: problems.join('; ') || 'none',
-      action: c.actions ? action : undefined, action_ok: c.actions ? (action ?? null) === (c.expectAction ?? null) : undefined, judge, reply: text.slice(0, 400) };
+      action: c.actions ? action : undefined, action_ok: c.actions ? (action ?? null) === (c.expectAction ?? null) : undefined, judge, judge_why: judgeWhy, problems_without_allowed: strictProblems.join('; ') || 'none', reply: text.slice(0, 400) };
     rows.push(row);
     console.log(JSON.stringify(row));
   }
