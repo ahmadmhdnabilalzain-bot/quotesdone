@@ -12,7 +12,7 @@
 //   - Code writes no reply text. If no model answers cleanly, the reply is '' and the caller sends nothing.
 // Suppliers are always answered in English; everyone else in their language.
 // prevented by: _shared/ai_reply.test.ts
-import { briefNumbers, companyBrief, moneyFiguresNotInBrief, policyProblems } from './company_brief.ts';
+import { briefNumbers, companyBrief, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { EVASION, substanceWords, taskClassFor, type Seat, type ThinkDeps, type Turn } from './think.ts';
 
@@ -61,7 +61,7 @@ const digits = (s: string) => s.replace(/\D/g, '');
 
 /** What is wrong with a reply. `allowed` is the brief and the facts: details found there may be repeated. */
 export function replyProblems(text: string, known: Set<string>, o: { allowed?: string; forbidden?: string[] } = {}): string[] {
-  const out = [...moneyFiguresNotInBrief(text, known).map((n) => 'the figure ' + n + ' (the brief states no such fee, price or rate)'), ...policyProblems(text),
+  const out = [...moneyFiguresNotInBrief(text, known).map((n) => 'the figure ' + n + ' (the brief states no such fee, price or rate)'), ...policyProblems(text), ...revealFeeIncomplete(text),
     ...replyViolations(text).map((v) => 'it breaks the reply rule "' + v + '"')];
   // a deferral with little else in it (think.ts's measure): "I'll check" alone is refused; a full answer that also says
   // "a member of the team will contact you" is not

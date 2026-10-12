@@ -118,7 +118,7 @@ Deno.test('1013/7: a plain reply is not rewritten (no second model call)', async
 // ── the widget sends only CHECKED text (review of #1330, 12 Oct 2026) ─────────────────────────────
 // prevented by: these tests. think() returns 'answered' even when the independent check did not run or disagreed;
 // on the widget such a reply must never be sent (nor cached by site_assistant): the caller's road answers.
-const SHORT = JSON.stringify({ answer: 'The reveal fee is 3% of the quote you choose. No card fee is added.', reasoning: ['s1: FAQ 30'], cited: [], confidence: 0.8, route: 'customer_support' });
+const SHORT = JSON.stringify({ answer: 'The reveal fee is 3% of the quote you choose. No card fee is added, and no VAT is charged on it.', reasoning: ['s1: FAQ 30'], cited: [], confidence: 0.8, route: 'customer_support' });
 Deno.test('widget: a reply the check did not run on goes to the fallback, not to the visitor', async () => {
   const s = stub({ gate: { allowed: true }, synth: [SHORT], corpus: [REFUND], verify: null });
   const r = await supportReply(s.deps, { channel: 'widget', message: 'how much is the reveal fee?', lang: 'en', audience: 'visitor' }, () => Promise.resolve('canned'));

@@ -5527,6 +5527,8 @@
   "369b9a738647",
   "383d04ced24b",
   "423da6c459f6",
+  "4974c9a8be75",
+  "4b5b0a39b035",
   "4f9af0c682d4",
   "53bbd3ac0b54",
   "55848652e127",
@@ -5548,7 +5550,8 @@
   "de62a9134e25",
   "e1814f15aded",
   "eb86d8fc0c02",
-  "f4e468bb2a84"
+  "f4e468bb2a84",
+  "fb7d0496fb58"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
   "7784a68c401d",

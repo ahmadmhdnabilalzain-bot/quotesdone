@@ -26,7 +26,7 @@
 import { taskClassFor, think, type Seat, type ThinkDeps, type Turn } from './think.ts';
 import { checkReadability, rewritePrompt, type Readability } from './readability.ts';
 import { guardSupportReply, replyViolations, type GuardLang } from './support_reply_guard.ts';
-import { policyProblems } from './company_brief.ts';
+import { policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { aiReply } from './ai_reply.ts';
 
 export type Channel = 'widget' | 'whatsapp' | 'email' | 'portal';
@@ -148,7 +148,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
     if (checked && r.verified?.status !== 'agreed') return await fall('unchecked: the independent check ' + (r.verified?.status ?? 'did not run'));
     // A reply the guard refuses (or that affirms a false policy claim) goes BACK TO A MODEL — aiReply rewrites it with the
     // problems checked — never to a substituted canned line (review of #1330, 12 Oct 2026).
-    const refused = [...replyViolations(r.answer), ...policyProblems(r.answer)];
+    const refused = [...replyViolations(r.answer), ...policyProblems(r.answer), ...revealFeeIncomplete(r.answer)];
     if (refused.length) return await fall('guard: ' + refused.join(', '));
     let g = guardSupportReply(r.answer.trim(), req.lang);
     let rd = checkReadability(g.text, req.lang);

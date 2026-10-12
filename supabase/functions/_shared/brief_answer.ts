@@ -8,7 +8,7 @@
 //      then the same class unstreamed, then a third call routed as a counterpart of the model that failed (the gateway's
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
 // prevented by: _shared/brief_answer.test.ts
-import { briefNumbers, moneyFiguresNotInBrief, policyProblems, takeSentences } from './company_brief.ts';
+import { briefNumbers, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 
 export type Msg = { role: 'user' | 'assistant'; content: string };
 export interface BriefCall {
@@ -72,6 +72,9 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
     }
   }
   if (pending.trim()) { const bad = check(pending); if (bad.length) return { text: shown + pending, model, bad }; }
+  // the whole reply: a stated reveal fee must also say no card fee and no VAT (checked once the reply is complete)
+  const whole = revealFeeIncomplete(shown);
+  if (shown.trim() && whole.length) return { text: shown.trim(), model, bad: whole };
   return shown.trim() ? { text: shown.trim(), model, bad: [] } : { text: '', model, bad: [], error: 'empty stream' };
 }
 
@@ -99,7 +102,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
         { role: 'user', content: `Your answer has these problems: ${bad.join('; ')}. Write the whole answer again, exact and direct, correcting them: use only figures the company brief states (where it gives none, explain without a number) and follow every rule in your instructions.` }] }, {});
       attempts.push('rewrite:' + (fix.error ? 'failed ' + fix.error : 'ok'));
       if (!fix.text) break;
-      draft = fix.text; model = fix.model; bad = problems(c, draft, known);
+      draft = fix.text; model = fix.model; bad = [...problems(c, draft, known), ...revealFeeIncomplete(draft)];
       if (!bad.length) return { reply: draft, model, attempts, rewrites, streamed: false };
     }
   }
@@ -108,7 +111,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   for (const extra of [{}, { counterpart_model: model || 'openai/gpt-6-luna' }]) {
     const a = await once(f, c, extra);
     attempts.push((('counterpart_model' in extra) ? 'third:' : 'retry:') + (a.error ? 'failed ' + a.error : 'ok'));
-    if (a.text && !problems(c, a.text, known).length) return { reply: a.text, model: a.model, attempts, rewrites, streamed: false };
+    if (a.text && ![...problems(c, a.text, known), ...revealFeeIncomplete(a.text)].length) return { reply: a.text, model: a.model, attempts, rewrites, streamed: false };
   }
   return { reply: '', model: null, attempts, rewrites, streamed: false, error: 'no model produced an answer that passes the figure check' };
 }

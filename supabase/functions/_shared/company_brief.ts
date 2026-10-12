@@ -172,6 +172,22 @@ export function policyProblems(text: string): string[] {
   return out;
 }
 
+// ── a stated reveal fee says what is NOT added (zero tolerance; coordinator, 12 Oct 2026) ─────────────
+// Checked on the WHOLE reply, never per sentence: when a reply states the reveal fee (3% next to the reveal / الكشف /
+// الاطلاع), it must also say that no card fee is added and that no VAT is charged on the fee. If it does not, the model
+// rewrites. An affirmed card fee or VAT is already refused by policyProblems; this catches the silence.
+const REVEAL = /\breveal|كشف|الاطلاع|اطلاع/i;
+const CARD = /\bcard\b|بطاقة|البطاقة/i;
+const VAT = /\bVAT\b|value[- ]added tax|ضريبة القيمة المضافة|الضريبة/i;
+export function revealFeeIncomplete(text: string): string[] {
+  const t = String(text || '');
+  if (!REVEAL.test(t) || !figuresOf(t).includes('pct:3')) return [];
+  const out: string[] = [];
+  if (!CARD.test(t)) out.push('it states the reveal fee without saying that no card fee is added');
+  if (!VAT.test(t)) out.push('it states the reveal fee without saying that no VAT is charged on it');
+  return out;
+}
+
 /** Complete sentences off the front of a growing buffer, and what is left. Newlines end a sentence too. */
 export function takeSentences(buf: string): { done: string[]; rest: string } {
   const done: string[] = [];
