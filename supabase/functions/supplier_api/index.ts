@@ -891,7 +891,9 @@ const handle = async (req: Request): Promise<Response> => {
       if (body.locale !== undefined) {
         const loc = String(body.locale);
         if (!['en', 'ar'].includes(loc)) return J({ error: 'locale must be en or ar' }, 400);
-        upd.locale = loc;
+        // Suppliers are always English (founder ruling 1008): an 'ar' from an old page is ignored and
+        // 'en' is stored. Prevented by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
+        upd.locale = SUPPLIER_LOCALE;
       }
       if (body.email_shared !== undefined) upd.email_shared = !!body.email_shared;
       const { error } = await admin.from('leads').update(upd).eq('id', sup.id);

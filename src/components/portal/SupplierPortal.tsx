@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
-import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
+import { localisedPath, applyDocumentLocale, applyShellChrome } from '@/lib/documentLocale';
 import { arDays } from '@/lib/durationLabel';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { supaClient } from '@/lib/supaClient';
@@ -405,10 +405,6 @@ const T = {
     main_nav:'أقسام بوابة المورّدين', account:'الحساب' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
-// The URL decides the language (14 Sep 2026). /ar/portal must render Arabic and /portal English, the
-// same as every other page and the same as the page's own <title>; a remembered localStorage choice
-// used to override the URL, so a shared /ar/portal link could open in English.
-function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
 // Typography and chrome carry the platform's voice: display weights are optically
 // tightened, body copy keeps a readable measure, and the tab bar is an inset well
 // with a RAISED active pill rather than a tinted one — so the current tab reads as
@@ -485,16 +481,13 @@ function ClaimRefusal({ code, lang, onClose }) {
     </div>
   );
 }
-const LANG_NOTE = { en: 'The portal follows your account language. Switching here updates it (EN/AR).', ar: 'تتبع البوابة لغة حسابكم، والتبديل هنا يغيّر لغة الحساب.' };
 export function SupplierPortal() {
-  const [lang, setLang] = useState('en');
+  // SUPPLIERS ARE ALWAYS ENGLISH (founder ruling 1008, 28 Sep 2026). The supplier portal had an EN/عربي
+  // toggle and followed /ar URLs and leads.locale into Arabic. It renders English for every supplier now:
+  // no toggle, no Arabic from the URL, none from the account. The customer portal keeps its own toggle.
+  // Prevented by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
+  const lang: string = 'en';
   const [token, setToken] = useState('');
-  const switchSupplierLang = (l) => {
-    adoptLocale(l, setLang);
-    if (token) call('supplier_api', { action: 'save_settings', locale: l }, token)
-      .then((j) => { if (!j || !j.ok) console.error('save_settings refused - leads.locale unchanged', j); })
-      .catch((e) => console.error('save_settings failed - leads.locale unchanged', e));
-  };
   const [phase, setPhase] = useState('login');
   const [mounted, setMounted] = useState(false);
   const [invite, setInvite] = useState(null);
@@ -555,20 +548,10 @@ export function SupplierPortal() {
     })();
     return claimRun.current;
   };
-  // THE SUPPLIER'S REGISTERED LANGUAGE WINS ONCE SIGNED IN (founder, 14 Sep 2026). The portal took its
-  // language from the URL alone, so a supplier registered in Arabic who opened an English link worked
-  // in English while every notice reached them in Arabic. leads.locale decides; Settings changes it.
-  useEffect(() => {
-    if (phase !== 'app' || !token) return;
-    call('supplier_api', { action: 'settings' }, token).then((j) => {
-      const l = j && j.ok && j.settings ? j.settings.locale : null;
-      if (l === 'ar' || l === 'en') adoptLocale(l, setLang);   // leads.locale, as the customer portal applies customers.locale
-      else if (!(j && j.ok)) console.error('supplier settings unavailable - portal language left as the URL gives it', j);
-    }).catch((e) => console.error('supplier settings failed - portal language left as the URL gives it', e));
-  }, [phase, token]);
   useEffect(() => {
     setMounted(true);
-    try { setLang(initLang()); } catch (_e) {}
+    // An /ar/portal link opens the English portal at /portal (suppliers are always English).
+    try { const w = window.location, want = localisedPath(w.pathname, 'en'); if (want !== w.pathname) window.history.replaceState(window.history.state, '', want + w.search + w.hash); } catch (_e) {}
     // Capture ?t= before anything else can navigate away from it.
     //
     // AND RESOLVE IT TO A COMPANY NAME (13 Aug 2026). The invitation is addressed "Dear Al Ain Glass
@@ -618,7 +601,7 @@ export function SupplierPortal() {
   // Both are read by onExpired below, and declared here because onAuth resets the counter.
   const expiredRuns = useRef(0);
   const refreshing = useRef<Promise<void> | null>(null);
-  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); expiredRuns.current = 0; try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+  const onAuth = (access, refresh, _locale) => { expiredRuns.current = 0; try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
   //
@@ -693,7 +676,6 @@ export function SupplierPortal() {
           <span>QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
         </a>
         <div className="flex gap-2 items-center shrink-0">
-          <Button variant="outline" size="sm" lang={lang === 'ar' ? 'en' : 'ar'} title={token ? LANG_NOTE[lang === 'ar' ? 'ar' : 'en'] : undefined} onClick={() => switchSupplierLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
           <Button variant="outline" size="sm" onClick={swapTheme} aria-pressed={theme === 'light'} aria-label={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')} title={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')}><span aria-hidden>{theme === 'dark' ? '☀' : '☾'}</span></Button>
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex"><a href={rtl ? '/ar' : '/'}>{t(lang, 'home')}</a></Button>
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
@@ -1231,7 +1213,7 @@ function Dashboard({ token, lang, onExpired }) {
       {shownTab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
       {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} onExpired={onExpired} />}
       {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} onExpired={onExpired} />}
-      {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
+      {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} />}
       </div>
     </div>
   );
