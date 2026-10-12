@@ -46,6 +46,8 @@ create table if not exists public.signup_purge_dropbox (
   purge_id bigint not null references public.signup_purge(id) on delete cascade,
   doc_backup_id bigint not null unique,
   dropbox_file text not null,      -- the Dropbox path to delete (named _file: it is never a backup source)
+  listed_at timestamptz not null default now(),   -- deleted only 15 minutes later: an upload in flight has finished
+  attempts integer not null default 0,           -- 5 failed attempts, or a refusal, is terminal (done_at stays null)
   done_at timestamptz,
   error text
 );
@@ -142,20 +144,20 @@ create or replace function public.fn_signup_purge_backups(p_purge_id bigint, p_e
  security definer
  set search_path to 'public', 'pg_temp'
 as $function$
-declare v_listed int; v_dropped int;
+declare v_listed int;
 begin
   if p_entity not in ('customer', 'supplier') then raise exception 'fn_signup_purge_backups: customer or supplier only'; end if;
+  -- EVERY record of the entity, whatever its status: a copy that never reached Dropbox answers not_found and its
+  -- record still goes; nothing is stranded and nothing is orphaned (release review, round 4)
   insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
   select p_purge_id, d.id, d.dropbox_path from public.doc_backups d
-   where d.entity = p_entity and d.entity_id = p_entity_id and d.dropbox_path is not null and d.status in ('done', 'processing')
+   where d.entity = p_entity and d.entity_id = p_entity_id and d.dropbox_path is not null
   on conflict (doc_backup_id) do nothing;
   get diagnostics v_listed = row_count;
   update public.doc_backups d set status = 'signup_purge_pending', claimed_at = null, claimed_by = null,
          error = 'unfinished sign-up removed (signup_purge ' || p_purge_id || '): Dropbox copy and record to be deleted'
-   where d.entity = p_entity and d.entity_id = p_entity_id and d.status in ('done', 'processing');
-  delete from public.doc_backups d where d.entity = p_entity and d.entity_id = p_entity_id and d.status <> 'signup_purge_pending';
-  get diagnostics v_dropped = row_count;
-  return jsonb_build_object('dropbox_copies_listed', v_listed, 'records_never_uploaded_deleted', v_dropped);
+   where d.entity = p_entity and d.entity_id = p_entity_id;
+  return jsonb_build_object('records_listed', v_listed);
 end $function$;
 revoke execute on function public.fn_signup_purge_backups(bigint, text, text) from public, anon, authenticated;
 
@@ -276,6 +278,14 @@ begin
              accepted_terms_sha256 = null, accepted_terms_user_agent = null, signed_terms_path = null, portal_updated_at = now()
        where l.id = c.id;
       v_cnt := v_cnt || jsonb_build_object('lead', 'returned to the invited pool');
+      -- what the sign-up uploaded or produced goes, as for any unfinished sign-up (policy 1.6 "deleted in full")
+      insert into public.signup_purge_object (purge_id, bucket, path)
+      select v_id, o.bucket_id, o.name from storage.objects o where o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) = c.id::text
+      on conflict do nothing;
+      v_cnt := v_cnt || public.fn_signup_purge_backups(v_id, 'supplier', c.id::text);
+      update public.leads l set license_doc_path = null, egr_doc_path = null, insurance_doc_path = null, vat_doc_path = null,
+             iso_doc_path = null, manufacturer_auth_doc_path = null, company_profile_doc_path = null, catalog_doc_paths = null
+       where l.id = c.id;
     else
       insert into public.signup_purge_object (purge_id, bucket, path)
       select v_id, d.bucket, d.path from public.doc_backups d
@@ -354,7 +364,8 @@ begin
   values ('customer', '00000000-0000-4000-8000-000000001181', 'probe', 'generated', 'probe', 'probe', '/QuotesDone Backup/Customers/Probe (probe-1181)/a.pdf', 'PROBE1181:done', 'done'),
          ('customer', '00000000-0000-4000-8000-000000001181', 'probe', 'generated', 'probe', 'probe', '/QuotesDone Backup/Customers/Probe (probe-1181)/b.pdf', 'PROBE1181:pending', 'pending');
   r := public.fn_signup_purge_backups(v_l2, 'customer', '00000000-0000-4000-8000-000000001181');
-  if exists (select 1 from public.doc_backups where dedupe_key = 'PROBE1181:pending') then v_fail := v_fail || ' never_uploaded_record_kept'; end if;
+  if not exists (select 1 from public.doc_backups x join public.signup_purge_dropbox p on p.doc_backup_id = x.id
+                  where x.dedupe_key = 'PROBE1181:pending' and x.status = 'signup_purge_pending') then v_fail := v_fail || ' never_uploaded_record_not_listed'; end if;
   if not exists (select 1 from public.doc_backups x join public.signup_purge_dropbox p on p.doc_backup_id = x.id
                   where x.dedupe_key = 'PROBE1181:done' and x.status = 'signup_purge_pending') then v_fail := v_fail || ' dropbox_copy_not_listed:' || r::text; end if;
   delete from public.doc_backups where dedupe_key like 'PROBE1181:%';

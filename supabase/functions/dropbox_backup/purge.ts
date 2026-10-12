@@ -6,7 +6,8 @@
 // "never delete".
 const ROOT = '/QuotesDone Backup/';
 export function signupPurgeDeleteAllowed(path: string): boolean {
-  if (!path.startsWith(ROOT) || path.includes('/../') || path.includes('//')) return false;
+  if (!path.startsWith(ROOT) || path.includes('//') || path.includes('\\')) return false;
+  if (path.split('/').some((seg) => seg === '.' || seg === '..')) return false;      // no relative segment anywhere
   const rest = path.slice(ROOT.length);
   if (rest.startsWith('_') || rest.startsWith('Company/Database Exports/')) return false;
   return /^(Customers|Suppliers|Storage|Company\/Correspondence|Finance)\/.+\/[^/]+$/.test(rest);

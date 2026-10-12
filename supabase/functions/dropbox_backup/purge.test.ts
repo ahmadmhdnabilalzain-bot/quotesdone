@@ -13,5 +13,7 @@ Deno.test('a table export, a probe, a sandbox, an archive, a folder or anything 
   for (const p of ['/QuotesDone Backup/Company/Database Exports/2026-10/2026-10-01/leads/page_0001.json',
     '/QuotesDone Backup/_selftest/x.txt', '/QuotesDone Backup/_sandbox/t/Customers/a.pdf', '/QuotesDone Backup/_archive/x/a.pdf',
     '/QuotesDone Backup/Customers', '/QuotesDone Backup/Customers/Ann (aaaaaaaa)', '/elsewhere/a.pdf',
-    '/QuotesDone Backup/Customers/../_archive/a.pdf', '/QuotesDone Backup//Customers/a.pdf']) assertEquals(signupPurgeDeleteAllowed(p), false, p);
+    '/QuotesDone Backup/Customers/../_archive/a.pdf', '/QuotesDone Backup//Customers/a.pdf',
+    '/QuotesDone Backup/Customers/./Ann (aaaaaaaa)/a.pdf', '/QuotesDone Backup/Customers/Ann/..', '/QuotesDone Backup/Customers/Ann/.',
+    '/QuotesDone Backup/Customers/Ann/../../Company/Database Exports/x.json']) assertEquals(signupPurgeDeleteAllowed(p), false, p);
 });

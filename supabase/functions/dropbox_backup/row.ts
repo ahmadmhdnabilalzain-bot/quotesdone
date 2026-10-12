@@ -99,23 +99,23 @@ export async function backupRow(admin: Admin, dbx: DropboxClient, row: Row, o: {
   const now = () => new Date().toISOString();
   if (o.simulateFailure) throw new Error('simulated: Dropbox 503 service unavailable (tagged sandbox retry test)');
   let bucket = row.bucket, path = row.path;
-  if (row.source === 'generated' && !path) { const g = await renderGenerated(admin, o.supabaseUrl, row); bucket = g.bucket; path = g.path; await admin.from('doc_backups').update({ bucket, path }).eq('id', row.id); }
+  if (row.source === 'generated' && !path) { const g = await renderGenerated(admin, o.supabaseUrl, row); bucket = g.bucket; path = g.path; await admin.from('doc_backups').update({ bucket, path }).eq('id', row.id).eq('status', 'processing'); }
   if (!bucket || !path) throw new Error('no_source');
   const src = await storageSource(admin, bucket, path);
   const up = await uploadFile(dbx, row.dropbox_path, src.size, src.read, { state: row.upload_state, deadline: o.deadline });
   if (!up.done) {
     await admin.from('doc_backups').update({ status: 'pending', ...o.release, upload_state: up.state, bytes: src.size, last_attempt_at: now(),
-      error: `resuming: ${up.state.offset} of ${src.size} bytes sent` }).eq('id', row.id);
+      error: `resuming: ${up.state.offset} of ${src.size} bytes sent` }).eq('id', row.id).eq('status', 'processing');
     return { resuming: up.state.offset };
   }
   await verifyUploaded(dbx, row.dropbox_path, up.hash, src.size);
   const mark = { status: 'done', ...o.release, bytes: src.size, backed_up_at: now(), error: null, attempts: row.attempts + 1,
     last_attempt_at: now(), upload_state: null, dropbox_content_hash: up.hash, dropbox_size: src.size, verified_at: now() };
-  let markErr = (await admin.from('doc_backups').update(mark).eq('id', row.id)).error;
+  let markErr = (await admin.from('doc_backups').update(mark).eq('id', row.id).eq('status', 'processing')).error;
   // a lock wait that timed out (measured 15 Sep 06:40Z, during a migration apply) clears in seconds
   for (let i = 1; markErr && i <= 2 && isTransientDbError(markErr.message) && Date.now() < o.deadline; i++) {
     await new Promise((r) => setTimeout(r, 2000 * i));
-    markErr = (await admin.from('doc_backups').update(mark).eq('id', row.id)).error;
+    markErr = (await admin.from('doc_backups').update(mark).eq('id', row.id).eq('status', 'processing')).error;
   }
   // Only the bookkeeping failed: the copy is uploaded and verified in Dropbox. The row stays
   // 'processing', the claim expires after 10 minutes and it is uploaded again (overwrite, same bytes).

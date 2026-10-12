@@ -115,3 +115,16 @@ test('release review round 3: mail and OTPs go only with the login; an invited l
   const i = sup.indexOf('delete from public.notifications');
   assert.ok(sup.lastIndexOf('if not c.invited then', i) > sup.lastIndexOf('if not v_keep then', i), 'an invited lead\'s campaign mail is never deleted');
 });
+
+test('release review round 4: no upload in flight survives a purge, no bad row blocks the rest, an invited lead loses its sign-up files', () => {
+  const r = src('supabase/functions/dropbox_backup/row.ts');
+  assert.equal((r.match(/\.eq\('id', row\.id\)(?!\.eq\('status', 'processing'\))/g) || []).length, 0, 'every uploader write is conditional on its claim (status processing)');
+  const d = src('supabase/functions/dropbox_backup/index.ts');
+  const p = d.slice(d.indexOf('async function purgeUnfinishedSignups'), d.indexOf("Deno.serve(observe('dropbox_backup'"));
+  assert.ok(p.includes(".lt('attempts', 5)") && p.includes(".lt('listed_at',"), 'a listing waits 15 minutes and stops after 5 attempts');
+  assert.ok(p.includes("attempts: 5 }"), 'a refusal is terminal');
+  const h = SQL.slice(SQL.indexOf('function public.fn_signup_purge_backups'), SQL.indexOf('revoke execute on function public.fn_signup_purge_backups'));
+  assert.ok(!h.includes('delete from public.doc_backups') && !/d\.status in \(/.test(h), 'every record of the entity is listed, whatever its status; none is deleted in SQL');
+  const inv = body.slice(body.indexOf('if c.invited then'), body.indexOf("'lead', 'removed'"));
+  assert.ok(inv.includes("public.fn_signup_purge_backups(v_id, 'supplier', c.id::text)") && inv.includes("o.bucket_id = 'supplier-docs'"), 'an invited lead loses the sign-up files');
+});

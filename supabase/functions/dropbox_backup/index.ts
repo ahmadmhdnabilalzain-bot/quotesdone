@@ -202,7 +202,7 @@ async function sandboxUpload(tag: string, failIds: number[]) {
     if (!claimed.length) break;
     const d = await drainClaim(claimed, { deadline: DEADLINE,
       fail: async (row, msg) => {
-        await admin.from('doc_backups').update({ status: 'error', claimed_at: null, claimed_by: null, error: msg, attempts: row.attempts + 1, last_attempt_at: new Date().toISOString(), upload_state: null }).eq('id', row.id);
+        await admin.from('doc_backups').update({ status: 'error', claimed_at: null, claimed_by: null, error: msg, attempts: row.attempts + 1, last_attempt_at: new Date().toISOString(), upload_state: null }).eq('id', row.id).eq('status', 'processing');
         out.push({ id: row.id, error: msg.slice(0, 160) });
       },
       requeue: async (row, msg) => { await admin.from('doc_backups').update({ status: 'pending', claimed_at: null, claimed_by: null, error: 'requeued: ' + msg.slice(0, 200) }).eq('id', row.id); },
@@ -332,12 +332,15 @@ async function prune() {
 // API. A copy already gone is an answer. Counts only are logged (agent_actions), never a name or a file.
 async function purgeUnfinishedSignups(dbx: DropboxClient) {
   const out = { dropbox_deleted: 0, dropbox_already_gone: 0, dropbox_refused: 0, dropbox_failed: 0, records_deleted: 0, storage_removed: 0, storage_failed: 0 };
-  const { data: copies } = await admin.from('signup_purge_dropbox').select('id,doc_backup_id,dropbox_file').is('done_at', null).order('id').limit(25);
+  // listed at least 15 minutes ago (an upload claimed before the purge has finished: claims expire after 10 minutes and a
+  // run ends within 2), fewer than 5 attempts, never refused: a bad row cannot block the rows behind it
+  const { data: copies } = await admin.from('signup_purge_dropbox').select('id,doc_backup_id,dropbox_file,attempts').is('done_at', null)
+    .lt('attempts', 5).lt('listed_at', new Date(Date.now() - 15 * 60_000).toISOString()).order('attempts').order('id').limit(25);
   for (const c of copies || []) {
     if (Date.now() >= DEADLINE) break;
     if (!signupPurgeDeleteAllowed(String(c.dropbox_file))) {
       out.dropbox_refused++;
-      await admin.from('signup_purge_dropbox').update({ error: 'refused: not a file of the entity tree' }).eq('id', c.id);
+      await admin.from('signup_purge_dropbox').update({ error: 'refused: not a file of the entity tree', attempts: 5 }).eq('id', c.id);
       continue;
     }
     try {
@@ -351,7 +354,7 @@ async function purgeUnfinishedSignups(dbx: DropboxClient) {
       await admin.from('signup_purge_dropbox').update({ done_at: new Date().toISOString(), error: null }).eq('id', c.id);
     } catch (e) {
       out.dropbox_failed++;
-      await admin.from('signup_purge_dropbox').update({ error: 'retried next run: ' + errText(e).slice(0, 200) }).eq('id', c.id);
+      await admin.from('signup_purge_dropbox').update({ error: 'attempt ' + (Number(c.attempts) + 1) + ': ' + errText(e).slice(0, 200), attempts: Number(c.attempts) + 1 }).eq('id', c.id);
     }
   }
   const { data: objs } = await admin.from('signup_purge_object').select('id,bucket,path').is('done_at', null).order('id').limit(50);
@@ -453,7 +456,7 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     // rows it never reached back to pending at once, instead of after the 10-minute claim expiry.
     const d = await drainClaim(claimed, { deadline: DEADLINE,
       fail: async (row, msg) => {
-        await admin.from('doc_backups').update({ status: 'error', ...release, error: msg, attempts: row.attempts + 1, last_attempt_at: now(), upload_state: null }).eq('id', row.id);
+        await admin.from('doc_backups').update({ status: 'error', ...release, error: msg, attempts: row.attempts + 1, last_attempt_at: now(), upload_state: null }).eq('id', row.id).eq('status', 'processing');
         results.push({ id: row.id, error: msg.slice(0, 160) });
       },
       // provider-side and passing: attempts unchanged; upload_state cleared because chunks may have been
