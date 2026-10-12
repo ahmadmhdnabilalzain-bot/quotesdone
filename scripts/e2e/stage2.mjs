@@ -722,6 +722,13 @@ async function realRun(pre) {
         const wrong = prop.filter((x) => !truthTrades.has(x)), missing = (prof.truth.trades || []).filter((x) => !prop.includes(x));
         A(`${d.id}: the profile's trades are proposed for matching, none it does not do`, wrong.length === 0 && missing.length === 0, `proposed ${JSON.stringify(prop)} truth ${JSON.stringify([...truthTrades])} wrong ${wrong} missing ${missing}`);
         results.push({ doc: d.id, format: d.format, authority: d.authority, expected: exp, truth: t, row: { ...row, source_docs: undefined }, verdicts: v, gate, process_docs: r.json, route });
+        // The corpus prints the SAME company on several shapes (Falcon Aluminium is lic_dubai_ded_old_text
+        // and lic_dubai_det_bi_jpg), and one company registers once (leads_claimed_company_name_uidx) - so the
+        // next shape's supplier crashed with 23505 (run f4294be8). Once this shape is asserted, its own
+        // ZZ DEMO row gives the name back; the next supplier registers under the name its licence prints,
+        // so the name-vs-licence rule (1176) is tested on the real name, not on a suffixed one.
+        await write(`update public.leads set company_name = company_name || ${q(' [' + tag + ' ' + d.id + ']')}
+            where id = ${Number(s.leadId)} and claimed_by like '%@example.invalid' and company_name like 'ZZ DEMO%'`, 'S21 release the corpus name');
       }
       save('documents/stage2_document_reading.json', results);
     },
