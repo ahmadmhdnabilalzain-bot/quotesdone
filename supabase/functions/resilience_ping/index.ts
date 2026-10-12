@@ -1608,12 +1608,15 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
 // start from 09:15 to 10:35 UTC.
 // Now the tick only KICKS them: one authenticated POST to this same function with {detached: <name>}, which
 // answers 202 at once and does the work under EdgeRuntime.waitUntil, with its own wall clock and its own
-// timeout (DETACHED_MS) instead of the tick's. The tick's cost for each is the kick (~1 s), so neither can
+// timeout (DETACHED_MS, 120 s, raced over the whole run) instead of the tick's. resilience_step's last_ok_at and
+// ewma for these two now record only the KICK; whether the work passed is the duty:detached_<name> findings. The tick's cost for each is the kick (~1 s), so neither can
 // starve another step again, and whatever the marketing seat adds to its duties (lead sourcing, #1304)
 // never runs inside the tick. The detached run settles its own failures as IT findings under duty
 // detached_<name>, one per failing sub-step, closed when it passes. A detached call never writes the
 // fn:resilience_ping observe row, so it can never make a dead scheduler look alive.
-const DETACHED_MS = 140_000;
+// 120 s for the run itself, raced in runDetached so a hung RPC is cut off with time left inside the ~150 s
+// wall clock for fn_it_duty_settle to record it; the marketing fetch waits the same 120 s.
+const DETACHED_MS = 120_000;
 const DETACHED: Record<string, { run: () => Promise<unknown>; nested?: boolean }> = {
   marketing: { run: marketingTick },
   itlater: { run: itLaterDutiesTick, nested: true },
@@ -1631,7 +1634,10 @@ async function kickDetached(name: string): Promise<unknown> {
 async function runDetached(name: string): Promise<void> {
   const d = DETACHED[name];
   let out: unknown;
-  try { out = await d.run(); } catch (e) { out = { ok: false, error: String((e as Error)?.message || e) }; }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cap = new Promise<unknown>((res) => { timer = setTimeout(() => res({ ok: false, error: 'detached ' + name + ' passed its ' + DETACHED_MS + ' ms limit' }), DETACHED_MS); });
+  try { out = await Promise.race([d.run(), cap]); } catch (e) { out = { ok: false, error: String((e as Error)?.message || e) }; }
+  finally { clearTimeout(timer); }
   try { await admin.rpc('fn_it_duty_settle', { p_duty: 'detached_' + name, p_items: detachedItems(name, out, !!d.nested) }); }
   catch (_e) { /* the next run settles again; a failed settle must not throw out of waitUntil */ }
 }
