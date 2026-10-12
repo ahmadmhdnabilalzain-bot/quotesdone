@@ -26,7 +26,16 @@ Deno.test('ml space: the question and every step are embedded multilingual and r
   await think(m.d, { seat: 'accountant', surface: 'think.answer', question: 'متى يستحق إقرار ضريبة الشركات؟' });
   assertEquals(called(m.rpcs), ['fn_case_recall_ml', 'fn_reason_retrieve_ml']);
   assertEquals(m.rpcs.find(([f]) => f === 'fn_case_recall_ml')![1].p_embedding, '[0.9,0.2]');
-  // the fused search gets both vectors, each from its own model
+  // an Arabic step gets no gte-small vector (English-only model; gteReads, 6 Oct 2026): the multilingual space ranks it
+  const r = m.rpcs.find(([f]) => f === 'fn_reason_retrieve_ml')![1];
+  assertEquals([r.p_embedding, r.p_embedding_gte], ['[0.9,0.2]', null]);
+});
+
+Deno.test('ml space, an English step: the fused search gets both vectors, each from its own model', async () => {
+  const m = deps('ml', true);
+  m.d.llm = (phase) => Promise.resolve({ content: phase === 'decompose' ? J({ steps: [{ id: 's1', goal: 'g', query: 'UAE VAT registration threshold' }], facts: [] })
+    : phase === 'verify' ? J({ verdict: 'agree', problems: [] }) : J({ answer: 'a', reasoning: [], cited: [], confidence: 0.9 }), model: 'm' });
+  await think(m.d, { seat: 'accountant', surface: 'think.answer', question: 'when is the CT return due?' });
   const r = m.rpcs.find(([f]) => f === 'fn_reason_retrieve_ml')![1];
   assertEquals([r.p_embedding, r.p_embedding_gte], ['[0.9,0.2]', '[0.1,0.2]']);
 });

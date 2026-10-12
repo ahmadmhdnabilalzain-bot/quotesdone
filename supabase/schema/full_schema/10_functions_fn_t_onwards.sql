@@ -1784,6 +1784,178 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_unfinished_signup_purge(p_apply boolean DEFAULT false, p_limit integer DEFAULT 20, p_only_email text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c record; v_id bigint; v_n int; v_out jsonb := '[]'::jsonb; v_cnt jsonb; v_auth uuid; v_email text; v_keep boolean;
+  n_done int := 0; n_held int := 0;
+begin
+  -- ── customers ──
+  for c in
+    select cu.id, lower(cu.email) email, cu.phone,
+           least(cu.created_at, coalesce((select min(u.created_at) from auth.users u where lower(u.email) = lower(cu.email)), cu.created_at)) started,
+           array_remove(array[case when not coalesce(cu.email_verified, false) then 'email' end,
+                               case when not coalesce(cu.phone_verified, false) then 'mobile' end,
+                               case when cu.tos_accepted_at is null then 'terms' end,
+                               case when cu.tos_ip is null then 'terms_ip' end], null) missing,
+           public.fn_signup_customer_held(cu.id) busy
+      from public.customers cu
+     where (p_only_email is null and not coalesce(cu.is_demo, false)) or lower(cu.email) = lower(p_only_email)
+  loop
+    continue when cardinality(c.missing) = 0;                       -- complete: never touched
+    continue when c.started > now() - interval '30 minutes';        -- still inside its 30 minutes
+    if c.busy then n_held := n_held + 1; v_out := v_out || jsonb_build_object('kind', 'customer', 'held', 'has a request, a sale, an upload, a draft, a signature or a conversation', 'missing', c.missing); continue; end if;
+    exit when n_done >= greatest(1, least(coalesce(p_limit, 20), 200));
+    if not p_apply then
+      n_done := n_done + 1; v_out := v_out || jsonb_build_object('kind', 'customer', 'missing', c.missing, 'started', c.started); continue;
+    end if;
+    insert into public.signup_purge (kind, subject_ref, started_at, missing)
+    values ('customer', encode(sha256(convert_to(coalesce(c.email, c.id::text), 'UTF8')), 'hex'), c.started, c.missing) returning id into v_id;
+    -- the partial uploads: what storage still holds for this sign-up (removed through the storage API)
+    insert into public.signup_purge_object (purge_id, bucket, path)
+    select v_id, x.bucket, x.path from (
+      select 'signed-terms' bucket, cu.signed_terms_path path from public.customers cu where cu.id = c.id and cu.signed_terms_path is not null
+      union select o.bucket_id, o.name from storage.objects o where o.bucket_id = 'drawing-files' and o.name like 'drawings/' || c.id || '/%'
+      union select d.bucket, d.path from public.doc_backups d where d.entity = 'customer' and d.entity_id = c.id::text and d.bucket is not null and d.path is not null
+    ) x where x.path is not null on conflict do nothing;
+    -- the backups: Dropbox copies and records go too (dropbox_backup deletes the listed copies)
+    v_cnt := public.fn_signup_purge_backups(v_id, 'customer', c.id::text);
+    v_keep := public.fn_signup_email_kept_elsewhere(c.email, 'customer');
+    if not v_keep then
+      -- by e-mail only (the mobile was never verified), and only when no other account of this e-mail stays
+      delete from public.notifications n where lower(n.to_email) = c.email;
+      get diagnostics v_n = row_count; v_cnt := v_cnt || jsonb_build_object('outbox', v_n);
+      delete from public.email_verifications e where lower(e.email) = c.email;
+      get diagnostics v_n = row_count; v_cnt := v_cnt || jsonb_build_object('email_otp', v_n);
+      delete from public.phone_verifications p where lower(p.email) = c.email;
+      get diagnostics v_n = row_count; v_cnt := v_cnt || jsonb_build_object('phone_otp', v_n);
+    else
+      v_cnt := v_cnt || jsonb_build_object('outbox', 0, 'email_otp', 0, 'phone_otp', 0, 'login', 'kept: another account of this e-mail is complete or held');
+    end if;
+    delete from public.inquiry_intake ii where ii.customer_id = c.id or lower(ii.email) = c.email;
+    delete from public.drawing_redaction_runs r where r.customer_id = c.id or lower(r.owner_email) = c.email;
+    delete from public.customer_preference p where p.customer_id = c.id;
+    delete from public.customer_layout l where l.customer_id = c.id;
+    delete from public.company_event e where e.entity_type = 'customer' and e.entity_id = c.id::text;
+    delete from public.customers cu where cu.id = c.id;               -- customer_phone_otps and company_review_ask cascade
+    -- the login is kept while another account of this e-mail is complete or held
+    if not v_keep then
+      delete from auth.users u where lower(u.email) = c.email;        -- sessions, identities and refresh tokens cascade
+      get diagnostics v_n = row_count;
+    else v_n := 0; end if;
+    v_cnt := v_cnt || jsonb_build_object('auth_users', v_n);
+    update public.signup_purge set counts = v_cnt || jsonb_build_object('objects', (select count(*) from public.signup_purge_object where purge_id = v_id)) where id = v_id;
+    n_done := n_done + 1; v_out := v_out || jsonb_build_object('kind', 'customer', 'purge_id', v_id, 'missing', c.missing, 'counts', v_cnt);
+  end loop;
+
+  -- ── suppliers (a claimed company whose owner's sign-up is unfinished) ──
+  for c in
+    select l.id, lower(l.claimed_by) email, l.source,
+           (l.invited_at is not null or l.invite_status is not null or coalesce(l.source, '') <> 'self_registered') invited,
+           least(coalesce(l.portal_updated_at, l.created_at, now()), coalesce((select min(u.created_at) from auth.users u where lower(u.email) = lower(l.claimed_by)), now())) started,
+           array_remove(array[case when not coalesce(l.owner_email_verified, false) then 'email' end,
+                               case when not coalesce(l.owner_phone_verified, false) then 'mobile' end,
+                               case when l.accepted_terms_at is null then 'terms' end,
+                               case when l.accepted_terms_ip is null then 'terms_ip' end], null) missing,
+           public.fn_signup_supplier_held(l.id) busy
+      from public.leads l
+     where l.claimed_by is not null
+       and ((p_only_email is null and not coalesce(l.is_demo, false)) or lower(l.claimed_by) = lower(p_only_email))
+  loop
+    continue when cardinality(c.missing) = 0;
+    continue when c.started > now() - interval '30 minutes';
+    if c.busy then n_held := n_held + 1; v_out := v_out || jsonb_build_object('kind', 'supplier', 'held', 'has a quote, a sale, a match, an upload, a signature or a conversation', 'missing', c.missing); continue; end if;
+    exit when n_done >= greatest(1, least(coalesce(p_limit, 20), 200));
+    if not p_apply then
+      n_done := n_done + 1; v_out := v_out || jsonb_build_object('kind', case when c.invited then 'supplier_invited_lead' else 'supplier_self_registered' end, 'missing', c.missing, 'started', c.started); continue;
+    end if;
+    insert into public.signup_purge (kind, subject_ref, started_at, missing)
+    values (case when c.invited then 'supplier_invited_lead' else 'supplier_self_registered' end,
+            encode(sha256(convert_to(coalesce(c.email, c.id::text), 'UTF8')), 'hex'), c.started, c.missing) returning id into v_id;
+    v_email := c.email;
+    v_keep := public.fn_signup_email_kept_elsewhere(v_email, 'supplier', c.id);
+    v_cnt := '{}'::jsonb;
+    if not v_keep then
+      delete from public.email_verifications e where lower(e.email) = v_email;
+      delete from public.phone_verifications p where lower(p.email) = v_email;
+      -- an invited lead's mail is the campaign's (its invitation and follow-ups): never deleted; a self-registered
+      -- company's mail to this address is the sign-up's own
+      if not c.invited then
+        delete from public.notifications n where lower(n.to_email) = v_email;
+        get diagnostics v_n = row_count; v_cnt := jsonb_build_object('outbox', v_n);
+      else v_cnt := jsonb_build_object('outbox', 0, 'outbox_kept', 'campaign mail of an invited lead'); end if;
+    else
+      v_cnt := jsonb_build_object('outbox', 0, 'login', 'kept: another account of this e-mail is complete or held');
+    end if;
+    if c.invited then
+      -- campaign data stays: the lead goes back to the pool, unclaimed, with nothing of the sign-up on it
+      update public.leads l set claimed = false, claimed_by = null, owner_email_verified = false, owner_phone_verified = false,
+             owner_dob = null, accepted_terms_at = null, accepted_terms_version = null, accepted_terms_ip = null,
+             accepted_terms_sha256 = null, accepted_terms_user_agent = null, signed_terms_path = null, portal_updated_at = now()
+       where l.id = c.id;
+      v_cnt := v_cnt || jsonb_build_object('lead', 'returned to the invited pool');
+      -- what the sign-up uploaded or produced goes, as for any unfinished sign-up (policy 1.6 "deleted in full")
+      insert into public.signup_purge_object (purge_id, bucket, path)
+      select v_id, o.bucket_id, o.name from storage.objects o where o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) = c.id::text
+      on conflict do nothing;
+      v_cnt := v_cnt || public.fn_signup_purge_backups(v_id, 'supplier', c.id::text);
+      update public.leads l set license_doc_path = null, egr_doc_path = null, insurance_doc_path = null, vat_doc_path = null,
+             iso_doc_path = null, manufacturer_auth_doc_path = null, company_profile_doc_path = null, catalog_doc_paths = null
+       where l.id = c.id;
+    else
+      insert into public.signup_purge_object (purge_id, bucket, path)
+      select v_id, d.bucket, d.path from public.doc_backups d
+       where d.entity = 'supplier' and d.entity_id = c.id::text and d.bucket is not null and d.path is not null
+      union select v_id, o.bucket_id, o.name from storage.objects o where o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) = c.id::text
+      on conflict do nothing;
+      v_cnt := v_cnt || public.fn_signup_purge_backups(v_id, 'supplier', c.id::text);
+      begin
+        delete from public.leads l where l.id = c.id;
+        v_cnt := v_cnt || jsonb_build_object('lead', 'removed');
+      exception when foreign_key_violation then
+        -- something else already points at the company: it is unclaimed instead, and the purge says so
+        update public.leads l set claimed = false, claimed_by = null, owner_email_verified = false, owner_phone_verified = false,
+               owner_dob = null, accepted_terms_at = null, accepted_terms_version = null, accepted_terms_ip = null,
+               accepted_terms_sha256 = null, accepted_terms_user_agent = null, signed_terms_path = null, portal_updated_at = now()
+         where l.id = c.id;
+        v_cnt := v_cnt || jsonb_build_object('lead', 'unclaimed (still referenced: ' || left(sqlerrm, 120) || ')');
+      end;
+    end if;
+    if not v_keep then
+      delete from auth.users u where lower(u.email) = v_email;
+      get diagnostics v_n = row_count;
+    else v_n := 0; end if;
+    v_cnt := v_cnt || jsonb_build_object('auth_users', v_n);
+    update public.signup_purge set counts = v_cnt where id = v_id;
+    n_done := n_done + 1; v_out := v_out || jsonb_build_object('kind', 'supplier', 'purge_id', v_id, 'missing', c.missing, 'counts', v_cnt);
+  end loop;
+
+  -- the customer register is rebuilt from the table when a customer row went (audit 12 Oct: it listed 7 for 6)
+  if p_apply and p_only_email is null and exists (select 1 from jsonb_array_elements(v_out) i where i->>'kind' = 'customer' and i ? 'purge_id') then
+    begin
+      perform net.http_post('https://' || public.qd_project_ref() || '.supabase.co/functions/v1/compliance_archive',
+        jsonb_build_object('__secret', (select value from public.app_secrets where key = 'cred_db_internal'), 'action', 'register'),
+        '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+    exception when others then null;    -- the register is rebuilt again at the next registration
+    end;
+  end if;
+  if p_apply and n_done > 0 and p_only_email is null then
+    -- counts only: no name, no e-mail, no file (the coordinator, 12 Oct 2026)
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, decided_at, decided_by)
+    values ('it_engineer', 'signup_purge', 'done', 'low', 'Unfinished sign-ups removed (founder ruling 1181)',
+            jsonb_build_object('removed', n_done, 'held', n_held,
+              'customers', (select count(*) from jsonb_array_elements(v_out) i where i->>'kind' = 'customer' and i ? 'purge_id'),
+              'suppliers', (select count(*) from jsonb_array_elements(v_out) i where i->>'kind' = 'supplier' and i ? 'purge_id')),
+            now(), 'it_engineer');
+  end if;
+  return jsonb_build_object('apply', p_apply, 'removed', n_done, 'held', n_held, 'items', v_out);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_usd_to_aed()
  RETURNS numeric
  LANGUAGE sql
@@ -1834,6 +2006,33 @@ begin
       when 'crossed'     then 'Taxable supplies in the preceding 12 months have passed the mandatory registration threshold. Registration is required.'
       when 'approaching' then 'Not yet required. Close enough that registration should be prepared rather than discovered.'
       else 'No registration obligation on the preceding-12-months test.' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_vercel_snapshot_filed(p_path text, p_summary jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_day text;
+begin
+  if coalesce(p_path, '') !~ '^engineering/vercel/\d{4}-\d{2}-\d{2}\.json$' then
+    raise exception 'fn_vercel_snapshot_filed: the snapshot lives at engineering/vercel/<YYYY-MM-DD>.json (got %)', p_path;
+  end if;
+  v_day := substring(p_path from '(\d{4}-\d{2}-\d{2})');
+  insert into public.doc_backups (entity, entity_id, doc_type, bucket, path, file_name, dropbox_path, source, dedupe_key)
+  values ('company', 'vercel:' || v_day, 'Vercel configuration', 'backups', p_path, v_day || ' vercel-project.json',
+          '/QuotesDone Backup/Company/Vercel/' || left(v_day, 7) || '/' || v_day || ' vercel-project.json', 'storage', 'VERCEL:' || v_day)
+  on conflict do nothing;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('it_engineer', case when coalesce(jsonb_array_length(p_summary->'no_recoverable_source'), 0) > 0 then 'warn' else 'ok' end,
+          jsonb_build_object('job', 'vercel_snapshot') || coalesce(p_summary, '{}'::jsonb),
+          left('Vercel configuration backed up (' || p_path || '): ' || coalesce(p_summary->>'domains', '?') || ' domains, '
+               || coalesce(p_summary->>'env_names', '?') || ' env var names; needed but not in Vercel: '
+               || coalesce(p_summary->>'missing_in_vercel', '[]') || '; no recoverable source: ' || coalesce(p_summary->>'no_recoverable_source', '[]') || '.', 500),
+          now(), now());
+  return jsonb_build_object('filed', p_path);
 end $function$
 
 
@@ -2505,9 +2704,12 @@ CREATE OR REPLACE FUNCTION public.fn_wa_human_request(p_phone text, p_hold boole
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_digits text := regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g'); v_h bigint; v_ok boolean := true; v_err text;
+  v_founder boolean;
 begin
   if length(v_digits) < 9 then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
-  if p_hold then
+  -- A. The founder trying "Talk to a person" from his own number is not a person waiting (handoff 58191, 22 Sep).
+  v_founder := coalesce(public.fn_identify_contact(v_digits) ->> 'audience', '') = 'founder';
+  if p_hold and not v_founder then
     insert into public.wa_conversation (phone_e164, party_kind, message_count, thread_state, handed_to)
     values (v_digits, 'unknown', 0, 'handed_to_human', 'customer_support')
     on conflict (phone_e164) do update set thread_state = 'handed_to_human', handed_to = 'customer_support', last_seen_at = now();
@@ -2515,7 +2717,7 @@ begin
   select id into v_h from public.agent_actions
    where kind = 'handoff' and status = 'pending' and detail ->> 'type' = 'support.human_requested' and detail ->> 'phone_digits' = v_digits
    order by id desc limit 1;
-  if v_h is null then
+  if v_h is null and not v_founder then
     v_h := public.fn_seat_handoff('customer_support', 'customer_support', 'support.human_requested', 'wa_conversation',
       v_digits || ':' || to_char(now() at time zone 'UTC', 'YYYYMMDDHH24MISS'),
       jsonb_build_object('phone_digits', v_digits, 'held', p_hold, 'event', p_event,
@@ -2527,7 +2729,7 @@ begin
                                      p_owner_agent => 'customer_support');
   exception when others then v_ok := false; v_err := left(sqlerrm, 300);
   end;
-  return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'notified', v_ok, 'notify_error', v_err);
+  return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'founder_own_number', v_founder, 'notified', v_ok, 'notify_error', v_err);
 end $function$
 
 
@@ -2559,15 +2761,16 @@ CREATE OR REPLACE FUNCTION public.fn_wa_human_request_tick()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r record; v_conv public.wa_conversation; v_ref text; v_secret text; v_req bigint; v_body text; v_lang text; n int := 0; v_sent int := 0;
+  v_held boolean; v_window interval; v_rep jsonb; rep public.support_ceo_report; n_esc int := 0; n_closed int := 0;
 begin
   select value into v_ref from public.app_secrets where key = 'project_ref';
   select value into v_secret from public.app_secrets where key = 'cred_fn_resilience_ping';
   for r in select a.* from public.agent_actions a
             where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
               and a.created_at < now() - interval '23 hours' and not (a.detail ? 'followed_up_at')
-              and coalesce(a.detail ->> 'held', 'true') = 'true'
             order by a.id limit 20 loop
     n := n + 1; v_req := null;
+    v_held := coalesce(r.detail ->> 'held', 'true') = 'true';
     update public.wa_conversation set thread_state = 'open', handed_to = null
      where phone_e164 = r.detail ->> 'phone_digits' and thread_state = 'handed_to_human'
     returning * into v_conv;
@@ -2576,7 +2779,7 @@ begin
     v_body := case when v_lang = 'ar'
       then 'نعتذر عن تأخر ردنا عليكم. لم يتمكن أحد أعضاء الفريق من التواصل معكم بعد، وقد أبلغناه مجددًا بطلبكم. وإلى حين ذلك عادت إليكم خدمة الردود الفورية في هذه المحادثة، فتفضلوا بإرسال كلمة «قائمة» لعرض الخيارات أو كتابة استفساركم.' || E'\n\nفريق خدمة العملاء في QuotesDone'
       else 'We are sorry you have not heard from us yet. A member of the team has not been able to reach you, and we have reminded them of your request. Meanwhile, instant answers are back on in this chat: reply MENU for the options or type your question.' || E'\n\nQuotesDone Customer Support' end;
-    if v_conv.window_expires_at > now() and v_ref is not null and v_secret is not null then
+    if v_held and v_conv.window_expires_at > now() and v_ref is not null and v_secret is not null then
       select net.http_post(
         url := 'https://' || v_ref || '.supabase.co/functions/v1/send_whatsapp',
         headers := jsonb_build_object('Content-Type', 'application/json'),
@@ -2597,10 +2800,54 @@ begin
     end;
     update public.agent_actions
        set detail = detail || jsonb_build_object('followed_up_at', now(), 'followup_request_id', v_req,
-                                                 'followup_skipped', case when v_req is null then 'the 24-hour WhatsApp window had closed' end)
+                                                 'followup_skipped', case when v_req is not null then null
+                                                                           when not v_held then 'not held: the automatic replies were never paused'
+                                                                           else 'the 24-hour WhatsApp window had closed' end)
      where id = r.id;
   end loop;
-  return jsonb_build_object('ok', true, 'due', n, 'followups_queued', v_sent);
+  -- B. 24 h, the reply clock (seat_handoff_kind.reply_within): customer_support reports it to the CEO, once.
+  select reply_within into v_window from public.seat_handoff_kind
+   where type = 'support.human_requested' and from_seat = 'customer_support' and to_seat = 'customer_support';
+  v_window := coalesce(v_window, interval '24 hours');
+  for r in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
+              and a.created_at < now() - v_window and not (a.detail ? 'escalated_report_id')
+            order by a.id limit 20 loop
+    v_rep := public.fn_support_report_to_ceo('wa_human:' || r.id, 'serious',
+      'A WhatsApp contact asked for a person and nobody answered within ' || v_window || ' (handoff ' || r.id || ')',
+      jsonb_build_object('handoff_id', r.id, 'phone_digits', r.detail ->> 'phone_digits', 'asked_at', r.created_at,
+                         'event', r.detail ->> 'event', 'followed_up_at', r.detail ->> 'followed_up_at',
+                         'followup_request_id', r.detail ->> 'followup_request_id', 'followup_skipped', r.detail ->> 'followup_skipped'),
+      jsonb_build_array('customer_support alerted the founder at ' || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
+                        coalesce('customer_support followed up with the contact at ' || (r.detail ->> 'followed_up_at'),
+                                 'customer_support has not yet followed up with the contact')),
+      'Decide who answers this contact today (call, email or WhatsApp from the company number) and record it. The request stays open until the contact was followed up and this report is completed.',
+      p_review_in => interval '4 hours', p_source_agent => 'customer_support');
+    if coalesce((v_rep ->> 'ok')::boolean, false) then
+      update public.agent_actions
+         set detail = detail || jsonb_build_object('escalated_report_id', (v_rep ->> 'report_id')::bigint, 'escalated_at', now())
+       where id = r.id;
+      n_esc := n_esc + 1;
+    end if;
+  end loop;
+
+  -- The loop closes when the contact was followed up AND the CEO's report is completed; the verdict names both.
+  for r in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
+              and a.detail ? 'followed_up_at' and a.detail ? 'escalated_report_id'
+            order by a.id limit 20 loop
+    select * into rep from public.support_ceo_report where id = (r.detail ->> 'escalated_report_id')::bigint;
+    continue when rep.id is null or rep.status <> 'completed';
+    perform set_config('qd.handoff_closer', 'customer_support', true);
+    perform public.fn_seat_handoff_complete(r.id, coalesce(r.evidence, '{}'::jsonb) || jsonb_build_object(
+      'verified_by', 'customer_support', 'verified_at', now(),
+      'verdict', 'followed up ' || (r.detail ->> 'followed_up_at')
+                 || coalesce(' (' || (r.detail ->> 'followup_skipped') || ')', '')
+                 || '; the CEO decided (report ' || rep.id || '): ' || left(coalesce(rep.completion_note, rep.acceptance_receipt, 'completed'), 400)));
+    perform set_config('qd.handoff_closer', '', true);
+    n_closed := n_closed + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'due', n, 'followups_queued', v_sent, 'escalated', n_esc, 'closed', n_closed);
 end $function$
 
 
@@ -7216,6 +7463,27 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.pdpl_status_me()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with me as (select public.fn_pdpl_my_verified_email() as em)
+  select case when (select em from me) is null
+    then jsonb_build_object('ok', false, 'code', 'email_not_verified')
+    else jsonb_build_object('ok', true, 'requests', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'request_id', q.id, 'kind', q.kind, 'status', q.status, 'created_at', q.created_at,
+               'confirm_after', q.confirm_after,
+               'deferred', coalesce(q.outcome -> 'deferred', '[]'::jsonb),
+               'held', q.outcome -> 'held') order by q.created_at desc)
+        from public.pdpl_requests q, me
+       where q.email = me.em and q.status in ('received', 'cooling_off', 'held')), '[]'::jsonb))
+  end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.qd_project_ref()
  RETURNS text
  LANGUAGE plpgsql
@@ -7828,17 +8096,23 @@ begin
       'next_decision', new.decision, 'generation', new.generation, 'round', new.round));
     perform set_config('qd.handoff_closer', '', true);
   end loop;
-  for h in select a.id from public.agent_actions a
-            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.decision_owed'
-              and a.detail->>'item_key' = new.item_key loop
-    perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('decided_by', 'ceo', 'decision', new.decision,
-      'round_id', new.id, 'reasons', left(new.reasons, 2000)));
-  end loop;
+  -- an owed decision is answered here and closed by the seat that owed it (z61), after it re-verifies
+  update public.agent_actions a
+     set detail = a.detail || jsonb_build_object(
+           'ceo_decided', jsonb_build_object('decided_by', 'ceo', 'decision', new.decision, 'round_id', new.id,
+                                             'reasons', left(new.reasons, 2000)),
+           'awaiting', coalesce(a.detail->>'from', 'the originating seat') || ' re-verifies the CEO''s decision')
+   where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.decision_owed'
+     and a.detail->>'item_key' = new.item_key;
   if new.decision in ('approved', 'replaced', 'withdrawn') then
+    -- the return: the seat's handler (fn_seat_takes_the_ceo_decision) re-verifies and closes what it owed
     perform public.fn_seat_handoff('ceo', new.originator_seat, 'ceo.decision_closed', 'ceo_decision_round', new.id::text,
       jsonb_build_object('round_id', new.id, 'path', new.path, 'item_key', new.item_key, 'decision', new.decision,
                          'reasons', left(new.reasons, 3000), 'generation', new.generation, 'round', new.round,
                          'version', new.version, 'source_table', new.source_table, 'source_id', new.source_id));
+  elsif new.decision = 'rejected' then
+    -- the return is the ceo.revise fn_ceo_decide opened for this round; the seat re-verifies against the ledger
+    perform public.fn_seat_verifies_the_ceo_decision_it_owed(new.originator_seat, new.item_key);
   end if;
   return null;
 end $function$
@@ -8070,22 +8344,95 @@ CREATE OR REPLACE FUNCTION public.trg_doc_backups_admit()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare
+  v_tag text := nullif(btrim(coalesce(current_setting('qd.backup_sandbox', true), '')), '');
+  v_root text := '/QuotesDone Backup';
+  v_kp text := '';                -- the dedupe-key prefix of the rows this one is filed beside
+  v_sandbox boolean := false;
+  v_id text; v_cust text; v_inq8 text; v_inq text; v_anchor text;
+  v_uuid constant text := '^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$';
 begin
   new.dropbox_path := public.fn_dbx_path(new.dropbox_path);
   -- A rehearsal's documents are never queued: its fixtures are torn down minutes later, and a queued
-  -- row could never drain (fn_doc_backups_next leaves zz_demo rows to the probes). Measured: 662 such
-  -- rows piled up in one day (a_rehearsal_never_queues_a_backup.sql). A row a probe inserts as
-  -- 'zz_demo' itself is not caught here and is still admitted.
+  -- row could never drain (a_rehearsal_never_queues_a_backup.sql). A row a probe inserts as 'zz_demo'
+  -- itself is still admitted. 7 Oct 2026: an inquiry of a demo customer is demo too.
   if new.entity is distinct from 'zz_demo' and (
        coalesce(new.dropbox_path, '') ~* 'zz[ _-]?demo' or coalesce(new.path, '') ~* 'zz[ _-]?demo'
        or (new.entity = 'supplier' and exists (select 1 from public.leads l where l.id::text = new.entity_id and l.is_demo))
-       or (new.entity = 'customer' and exists (select 1 from public.customers c where c.id::text = new.entity_id and c.is_demo))) then
-    return null;
+       or (new.entity = 'customer' and exists (select 1 from public.customers c where c.id::text = new.entity_id and c.is_demo))
+       or (new.entity = 'inquiry' and new.entity_id ~ v_uuid and exists (
+             select 1 from public.inquiries i join public.customers c on c.id = i.customer_id
+              where i.id = new.entity_id::uuid and c.is_demo))) then
+    -- A TAGGED SANDBOX RUN (fn_backup_sandbox_enqueue sets qd.backup_sandbox for its own transaction)
+    -- admits the demo documents that carry its tag, re-rooted under _sandbox/<tag>/; every other demo
+    -- row is dropped exactly as before.
+    if v_tag is null or v_tag !~ '^[A-Za-z0-9-]{6,40}$'
+       or position(lower(v_tag) in lower(coalesce(new.dropbox_path, '') || ' ' || coalesce(new.path, ''))) = 0
+       or coalesce(new.dropbox_path, '') !~ '^/QuotesDone Backup/' then
+      return null;
+    end if;
+    v_sandbox := true;
+    v_kp := 'SBX:' || v_tag || ':';
+    v_root := '/QuotesDone Backup/_sandbox/' || v_tag;
+    new.dropbox_path := v_root || substr(new.dropbox_path, length('/QuotesDone Backup') + 1);
+    new.dedupe_key := v_kp || coalesce(new.dedupe_key, '');
   end if;
+
+  -- ONE FOLDER PER ENTITY. The first file of a supplier, a customer or a request decides its folder
+  -- (the Company Details, Customer Details and Inquiry Summary rows are queued for every entity and
+  -- never re-queued); every later file is filed beside it, whatever the name, category or status reads
+  -- now. Each anchor is one lookup on the unique dedupe key.
+  v_id := substring(new.dropbox_path from '^' || v_root || '/Suppliers/[^/]+/[^/]* \((\d+)\)/');
+  if v_id is not null then
+    select substring(d.dropbox_path from '^(' || v_root || '/Suppliers/[^/]+/[^/]* \(' || v_id || '\)/)') into v_anchor
+      from public.doc_backups d where d.dedupe_key = v_kp || 'S:' || v_id || ':details';
+    -- 12 Oct 2026 (review): a first folder opened before the name was known reads 'Supplier (<id>)'
+    -- (fn_enqueue_doc_backups writes coalesce(company_name, 'Supplier')); it never wins over the name.
+    if v_anchor is not null and v_anchor !~ ('/Supplier \(' || v_id || '\)/$') then
+      new.dropbox_path := v_anchor || substring(new.dropbox_path from '^' || v_root || '/Suppliers/[^/]+/[^/]* \(' || v_id || '\)/(.*)$');
+    end if;
+  elsif new.dropbox_path ~ ('^' || v_root || '/Customers/[^/]+/') then
+    v_cust := case
+      when new.entity = 'customer' then new.entity_id
+      when new.entity = 'inquiry' and new.entity_id ~ v_uuid then
+        (select i.customer_id::text from public.inquiries i where i.id = new.entity_id::uuid) end;
+    if v_cust is not null then
+      -- 12 Oct 2026 (review): the CUSTOMER folder is the NAMED one. A customer whose first file was filed
+      -- before the name was saved sits in 'Customer (<id8>)' (coalesce(full_name, 'Customer')); anchoring
+      -- on that put every later file there and lost the name. The first folder wins only when it carries
+      -- a name; otherwise the current name does. (Files already in a 'Customer (<id8>)' folder are refiled
+      -- under the name by scripts/it/dropbox_tree_repair.ts, held for the founder's OK.)
+      select substring(d.dropbox_path from '^(' || v_root || '/Customers/[^/]+/)') into v_anchor
+        from public.doc_backups d where d.dedupe_key = v_kp || 'C:' || v_cust || ':details';
+      if v_anchor is not null and v_anchor !~ '/Customer \([0-9a-f]{8}\)/$' then
+        new.dropbox_path := v_anchor || substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/(.*)$');
+      end if;
+      v_inq8 := substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/\d{4}-\d{2}-\d{2} ([0-9a-f]{8})[^/]*/');
+      if v_inq8 is not null and v_cust ~ v_uuid then
+        v_inq := case when new.entity = 'inquiry' then new.entity_id else
+          (select i.id::text from public.inquiries i
+            where i.customer_id = v_cust::uuid and left(i.id::text, 8) = v_inq8 order by i.created_at limit 1) end;
+        v_anchor := null;
+        -- the request's own subfolder (date, id, first status) comes from its first file; the customer
+        -- folder above it is the one decided just above (the named one)
+        select substring(d.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/([^/]+)/') into v_anchor
+          from public.doc_backups d where d.dedupe_key = v_kp || 'I:' || v_inq || ':summary';
+        if v_anchor is not null then
+          new.dropbox_path := substring(new.dropbox_path from '^(' || v_root || '/Customers/[^/]+/Inquiries/)') || v_anchor || '/'
+            || substring(new.dropbox_path from '^' || v_root || '/Customers/[^/]+/Inquiries/[^/]+/(.*)$');
+        end if;
+      end if;
+    end if;
+  end if;
+
   if new.source = 'storage' and new.status = 'pending'
      and not exists (select 1 from storage.objects o where o.bucket_id = new.bucket and o.name = new.path) then
     new.status := 'waiting_source';
     new.error := left('waiting: storage holds no object at ' || coalesce(new.bucket, '?') || '/' || coalesce(new.path, '?'), 300);
+  end if;
+  if v_sandbox then
+    new.entity_id := new.entity || ':' || new.entity_id;
+    new.entity := 'zz_demo';
   end if;
   return new;
 end $function$

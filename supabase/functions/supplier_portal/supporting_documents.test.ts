@@ -55,7 +55,7 @@ Deno.test('upload: scanned, stored under supporting/<id>/, recorded received —
   assertEquals(stored, pathFor(7, 'ref.pdf', 1789000000000));
   assertEquals(r.body.document.label, 'Reference letter');
   const w = admin.writes[0];
-  assertEquals([w.table, w.op, w.values.status, w.values.ref_table, w.values.ref_id, w.values.kind], ['documents', 'insert', 'received', REF_TABLE, '7', 'supporting:reference_letter']);
+  assertEquals([w.table, w.op, w.values.status, w.values.ref_table, w.values.ref_id, w.values.kind], ['documents', 'insert', 'pending', REF_TABLE, '7', 'supporting:reference_letter']);
   assert(!admin.writes.some((x) => x.table === 'leads'), 'the mandatory six are not reachable from here');
 });
 

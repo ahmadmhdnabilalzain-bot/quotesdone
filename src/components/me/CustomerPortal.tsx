@@ -64,6 +64,7 @@ import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/port
 const SpatialModule = dynamic(() => import('@/components/portal/spatial').then((m) => m.SpatialModule), { ssr: false, loading: ModuleLoading });
 const DocumentVault = dynamic(() => import('@/components/portal/documents').then((m) => m.DocumentVault), { ssr: false, loading: ModuleLoading });
 import { RevealPayment } from './RevealPayment';
+import { PrivacyControls } from '@/components/portal/PrivacyControls';
 const CommunicationCenter = dynamic(() => import('@/components/portal/comms').then((m) => m.CommunicationCenter), { ssr: false, loading: ModuleLoading });
 const OrdersList = dynamic(() => import('@/components/portal/approvals').then((m) => m.OrdersList), { ssr: false, loading: ModuleLoading });
 const PredictiveIntelligence = dynamic(() => import('@/components/portal/predict').then((m) => m.PredictiveIntelligence), { ssr: false, loading: ModuleLoading });
@@ -1965,6 +1966,7 @@ function AccountSettings({ token, lang, onChanged }) {
       </div>
     </Card>
     <p className={S.hint}>{t(lang, 'acct_device_note')}</p>
+    <PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} />
   </div>);
 }
 

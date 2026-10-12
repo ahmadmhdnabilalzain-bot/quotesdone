@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "racking_storage:pallet-racking-price-drivers",
+      "topic": "Pallet racking price drivers",
+      "kind": "price_drivers",
+      "body_en": "Pallet racking is commonly priced per pallet position. A US supplier, East Coast Storage Equipment, gives indicative equipment ranges of USD 55-200 per position for single-deep and USD 85-300 for double-deep racking; these are US figures, not UAE prices. Main cost drivers it lists: weight capacity (heavier loads cost more); height (structures over 12 feet trigger stricter safety and permitting costs); racking type (selective teardrop is the most economical, push-back with shuttle mechanisms the most expensive); and steel price movement (about 12.2% in 2022). Installation, engineering, permitting, concrete analysis and seismic testing add to the equipment cost. Used systems typically cost 5-50% less than new. Exact pricing needs a supplier quote. Not established here: UAE prices and civil defence requirements for racking.",
+      "body_ar": "تُسعَّر الرفوف المخصصة للمنصات النقالة عادةً لكل موقع منصة. ويذكر مورد أمريكي هو East Coast Storage Equipment نطاقات استرشادية لتكلفة المعدات تبلغ 55-200 دولاراً أمريكياً لكل موقع للرفوف أحادية العمق، و85-300 دولاراً للرفوف ثنائية العمق؛ وهذه أرقام أمريكية وليست أسعاراً إماراتية. ومن أهم محركات التكلفة التي يذكرها: سعة الحمولة (الأحمال الأثقل أعلى تكلفة)؛ والارتفاع (الهياكل التي تتجاوز 12 قدماً تستلزم متطلبات سلامة وتكاليف تراخيص أشد)؛ ونوع الرفوف (الرفوف الانتقائية من نوع teardrop هي الأوفر، ورفوف الدفع الخلفي بآليات المكوك هي الأغلى)؛ وتقلبات سعر الحديد (نحو 12.2% في 2022). وتضاف إلى تكلفة المعدات تكاليف التركيب والهندسة والتراخيص وتحليل الخرسانة واختبارات الزلازل. وتكلف الأنظمة المستعملة عادةً أقل بنسبة 5-50% من الجديدة. يتطلب التسعير الدقيق عرض سعر من المورد. غير مثبت هنا: الأسعار في الإمارات ومتطلبات الدفاع المدني للرفوف.",
+      "sources": [
+        "https://ecseco.com/blog/how-much-does-pallet-racking-cost/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "racking_storage:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is pallet racking priced for a new warehouse?",
+      "q_ar": "كيف تُسعّر رفوف المنصات لمستودع جديد؟",
+      "expected_entry_ids": [
+        "racking_storage:pallet-racking-price-drivers"
+      ],
+      "why": "No entry of this pack answered it (No entry covers pallet racking price drivers; missing). racking_storage:pallet-racking-price-drivers was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from racking_storage.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "racking_storage:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "racking_storage:pallet-racking-price-drivers"
+    ]
   }
 }

@@ -47,4 +47,4 @@ export function versionRow(leadId: number, snap: VersionSnapshot, version: numbe
 /** What the upload answer says about an expiry, so the portal can show the read date for confirmation. */
 export type ExpiryNote =
   | { kind: string; expiry: string; source: 'text' | 'ai'; needs_confirm: boolean; typed: string | null }
-  | { kind: string; expiry: null; source: null; needs_confirm: false; typed: string | null; unread: true };
+  | { kind: string; expiry: null; source: null; needs_confirm: false; typed: string | null; unread: true; message?: string };

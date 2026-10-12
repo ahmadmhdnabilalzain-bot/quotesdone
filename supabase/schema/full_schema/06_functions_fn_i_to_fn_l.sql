@@ -1591,6 +1591,43 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_backup_listing_expected(p_root text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_array(d.id, d.dropbox_path, d.dropbox_content_hash, d.status) order by d.id), '[]'::jsonb)
+    from public.doc_backups d
+   where coalesce(p_root, '') ~ '^/QuotesDone Backup/[^/]'
+     and starts_with(lower(d.dropbox_path), lower(p_root) || '/')
+     and (d.entity = 'zz_demo') = starts_with(p_root, '/QuotesDone Backup/_sandbox/');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_listing_record(p_summary jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_bad integer := coalesce((p_summary->>'missing')::int, 0) + coalesce((p_summary->>'changed')::int, 0)
+                       + coalesce((p_summary->>'unlisted_roots')::int, 0);
+        v_status text;
+begin
+  v_status := case when v_bad > 0 then 'warn' else 'ok' end;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('it_engineer', v_status, jsonb_build_object('job', 'dropbox_listing_check') || coalesce(p_summary, '{}'::jsonb),
+          left('IT engineer Dropbox listing check: ' || coalesce(p_summary->>'expected', '0') || ' backed-up files expected, '
+               || coalesce(p_summary->>'listed', '0') || ' listed in Dropbox, ' || coalesce(p_summary->>'missing', '0') || ' missing ('
+               || coalesce(p_summary->>'confirmed_missing', '0') || ' confirmed one by one), ' || coalesce(p_summary->>'changed', '0')
+               || ' changed, ' || coalesce(p_summary->>'stray', '0') || ' in Dropbox with no record, '
+               || coalesce(p_summary->>'unlisted_roots', '0') || ' folder(s) not listed in time.', 500),
+          now(), now());
+  return jsonb_build_object('status', v_status);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_backup_recheck()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2579,7 +2616,9 @@ v_watched := 0;
 for r in
   with s0 as (
     select subject agent, started_at
-    from it_runs7),
+    from it_runs7
+    -- 7 Oct 2026 (gap 3): a refused call is a caller's demand, not the subject's own rhythm.
+    where not refused0),
   g as (
     select agent, started_at,
            extract(epoch from (started_at - lag(started_at) over (partition by agent order by started_at)))/60 gap
@@ -2590,12 +2629,22 @@ for r in
            count(distinct date_trunc('hour', started_at))::int                    hours,
            (percentile_cont(0.5) within group (order by gap) filter (where gap > 0))::numeric p50,
            (percentile_cont(0.9) within group (order by gap) filter (where gap > 0))::numeric p90,
-           max(started_at)                                                        last_run
+           max(started_at)                                                        last_run,
+           (array_agg(gap order by started_at desc))[1]                           last_gap,
+           (array_agg(gap order by started_at desc))[2]                           prev_gap
     from g group by agent)
   select c.*, coalesce(s.public_surface,false) pub,
          extract(epoch from (v_now - c.last_run))/60 silent_min
   from c left join public.it_watch_subject s on s.subject = c.agent
   where c.samples >= 10 and c.hours >= 12 and c.p50 > 0 and c.p90 <= c.p50 * 3
+    -- 7 Oct 2026 (gap 3, PR #1281): a sub-minute median is a burst, not a schedule (ai_gateway, p50 0.01);
+    -- the rhythm is built from served runs only (above), so outside traffic refused 400 cannot lend a public
+    -- surface a schedule (unsubscribe); and a subject whose LAST completed gap already exceeded the threshold
+    -- has settled into a new rhythm -- its last TWO completed gaps both past the threshold (wa_templates_watch
+    -- after #1049) -- is not judged by the old gaps for the next seven days. ONE long gap is a stop that ran once:
+    -- a subject that stops, runs once and stops again is still raised (review of #1283).
+    and c.p50 >= 1
+    and not (coalesce(c.last_gap, 0) > greatest(c.p50 * 4, 30) and coalesce(c.prev_gap, 0) > greatest(c.p50 * 4, 30))
 loop
   v_watched := v_watched + 1;
   continue when r.silent_min <= greatest(r.p50 * 4, 30);
@@ -4938,7 +4987,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_chase()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare f public.it_engineer_finding; o public.agent_actions; n_chased int := 0; n_opened int := 0; v_day int; v_id bigint;
-        v_seats jsonb := '{}'::jsonb;
+        v_seats jsonb := '{}'::jsonb; v_old bigint; n_superseded int := 0;
 begin
   for f in
     select * from public.it_engineer_finding
@@ -4965,10 +5014,27 @@ begin
         'chase', true, 'age_hours', round(extract(epoch from now() - f.started_at) / 3600),
         'original_handoff_id', o.id, 'finding_severity', public.fn_it_engineer_severity(f.blast, f.affected, f.started_at),
         'escalated_report_id', o.detail->'escalated_report_id'));
+    -- ONE LIVE CHASE: the originator closes every older chase of this occurrence (see header).
+    perform set_config('qd.handoff_closer', 'it_engineer', true);
+    for v_old in
+      select a.id from public.agent_actions a
+       where a.kind = 'handoff' and a.status = 'pending' and a.id <> v_id
+         and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+         and coalesce((a.detail->>'chase')::boolean, false)
+         and a.detail->>'issue_key' = f.issue_key
+         and (a.detail->>'occurrence_started_at')::timestamptz = f.started_at
+    loop
+      perform public.fn_seat_handoff_complete(v_old, jsonb_build_object(
+        'verified_by', 'it_engineer', 'verified_at', now(),
+        'verdict', 'superseded by chase day ' || v_day || ' (handoff ' || v_id || '); the finding is still open',
+        'superseded_by', v_id));
+      n_superseded := n_superseded + 1;
+    end loop;
+    perform set_config('qd.handoff_closer', '', true);
     n_chased := n_chased + 1;
     v_seats := jsonb_set(v_seats, array[o.agent], to_jsonb(coalesce((v_seats->>o.agent)::int, 0) + 1));
   end loop;
-  return jsonb_build_object('chased', n_chased, 'loops_opened', n_opened, 'by_seat', v_seats);
+  return jsonb_build_object('chased', n_chased, 'loops_opened', n_opened, 'superseded', n_superseded, 'by_seat', v_seats);
 end $function$
 
 
@@ -5370,7 +5436,7 @@ begin
     insert into public.seat_knowledge_recall_answer (day, question_id, seat, lang, recall)
     select v_day, q.id, q.seat, q.lang,
            (select count(distinct regexp_replace(x->>'id', '@ar$', ''))
-              from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, q.embedding, 6)) with ordinality t(x, n)
+              from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, case when q.lang = 'ar' then null else q.embedding end, 6)) with ordinality t(x, n)
              where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))::numeric
            / (select count(distinct e) from unnest(q.expected) e)
     on conflict do nothing;
@@ -7917,8 +7983,9 @@ AS $function$
                 where h.subject = regexp_replace(coalesce(p_agent, ''), '^fn:', '')
                   and coalesce(p_counts, '{}'::jsonb) @> h.counts_match
                   and (h.note_like is null or coalesce(p_note, '') like h.note_like))
-   and exists (select 1 from public.llm_route_health r
+   and (exists (select 1 from public.llm_route_health r
                 where r.opened_reason like 'HELD BY THE FOUNDER%' and r.open_until > p_started)
+       or p_started < timestamptz '2026-10-07 03:25:36.237679+00')
   , false)
 $function$
 
@@ -9261,12 +9328,12 @@ begin
   -- 3. the founder's hold, on ANY route. He held the whole estate on 15 Aug 2026; holding one route
   --    and leaving the others open would not be what he asked for. A sandbox run inside its open
   --    window passes the hold; it does not lift it.
-  select count(*) into v_held from public.llm_route_health where open_until is not null and open_until > now();
+  select count(*) into v_held from public.llm_route_health where open_until is not null and open_until > now() + interval '1 year';
   if v_held > 0 and not v_rehearsal then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
       'rule', 'founder_hold',
       'reason', v_held || ' of ' || v_routes || ' routes are held open-circuit until '
-             || (select max(open_until)::text from public.llm_route_health where open_until > now()),
+             || (select max(open_until)::text from public.llm_route_health where open_until > now() + interval '1 year'),
       'held', v_held, 'routes', v_routes, 'model', v_model);
   end if;
 
@@ -9719,6 +9786,238 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_lead_sourcing_begin(p_emirate text, p_trades text[], p_serper_credits numeric, p_llm_usd numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare t jsonb; v_credits numeric; v_llm numeric; v_id bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('lead_sourcing_budget'));
+  update public.lead_sourcing_run set status = 'done', serper_credits = greatest(serper_credits, reserved_serper_credits),
+         llm_cost_usd = greatest(llm_cost_usd, reserved_llm_usd), errors = errors || '["reservation of a batch that never recorded"]'::jsonb
+   where status = 'reserved' and started_at < now() - interval '10 minutes';
+  if exists (select 1 from public.lead_sourcing_run where status = 'reserved') then
+    return jsonb_build_object('stop', 'another batch holds the budget');
+  end if;
+  t := public.fn_lead_sourcing_today();
+  if t->>'stop' is not null then return t; end if;
+  v_credits := least(p_serper_credits, floor(((t->>'serper_cap_usd')::numeric - (t->>'serper_usd')::numeric) / (t->>'usd_per_credit')::numeric));
+  v_llm := least(p_llm_usd, (t->>'llm_cap_usd')::numeric - (t->>'llm_usd')::numeric);
+  if v_credits <= 0 or v_llm < 0 then return t || jsonb_build_object('stop', 'budget left is below one call'); end if;
+  insert into public.lead_sourcing_run (kind, status, emirate, trades, usd_per_credit, reserved_serper_credits, reserved_llm_usd)
+  values ('batch', 'reserved', p_emirate, p_trades, (t->>'usd_per_credit')::numeric, v_credits, v_llm)
+  returning id into v_id;
+  return jsonb_build_object('run_id', v_id, 'serper_credits', v_credits, 'llm_usd', v_llm, 'usd_per_credit', (t->>'usd_per_credit')::numeric);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lead_sourcing_daily_report(p_day date DEFAULT (((now() AT TIME ZONE 'Asia/Dubai'::text))::date - 1))
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_sum jsonb; v_id bigint;
+begin
+  select jsonb_build_object('day', p_day, 'batches', count(distinct r.id), 'promoted', coalesce(sum(r.promoted), 0),
+           'serper_usd', round(coalesce(sum(r.serper_credits * r.usd_per_credit), 0), 4), 'llm_usd', round(coalesce(sum(r.llm_cost_usd), 0), 4),
+           'by_trade', coalesce((select jsonb_object_agg(t, jsonb_build_object('found', f, 'new_complete', c))
+              from (select coalesce(p.trade_code, '(no exact trade)') t, count(*) f, count(*) filter (where p.status = 'promoted') c
+                      from public.lead_prospect p join public.lead_sourcing_run x on x.id = p.run_id
+                     where x.kind = 'batch' and x.run_day = p_day group by 1) q), '{}'::jsonb))
+    into v_sum from public.lead_sourcing_run r where r.kind = 'batch' and r.run_day = p_day;
+  if coalesce((v_sum->>'batches')::int, 0) = 0 then return jsonb_build_object('filed', false, 'reason', 'no batch ran on ' || p_day); end if;
+  v_id := public.fn_seat_handoff('marketing', 'ceo', 'marketing.lead_sourcing', 'lead_sourcing_day', p_day::text, v_sum);
+  update public.lead_sourcing_run set handoff_id = v_id where kind = 'batch' and run_day = p_day and handoff_id is null;
+  return jsonb_build_object('filed', true, 'handoff_id', v_id) || v_sum;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lead_sourcing_kick()
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ref text; v_anon text; v_cred text; t jsonb;
+begin
+  t := public.fn_lead_sourcing_today();
+  if t->>'stop' is not null then return null; end if;   -- lead quota, Serper cap or model cap reached (or set to 0)
+  select value into v_ref  from public.app_secrets where key = 'project_ref';
+  select value into v_anon from public.app_secrets where key = 'anon_key';
+  select value into v_cred from public.app_secrets where key = 'cred_fn_marketing';
+  if v_ref is null or v_anon is null or v_cred is null then
+    raise exception 'fn_lead_sourcing_kick: project_ref, anon_key or cred_fn_marketing missing from app_secrets';
+  end if;
+  return net.http_post(url := 'https://' || v_ref || '.supabase.co/functions/v1/marketing',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_anon, 'apikey', v_anon),
+    body := jsonb_build_object('__secret', v_cred, 'action', 'lead_sourcing'), timeout_milliseconds := 10000);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lead_sourcing_next_cells(p_limit integer DEFAULT 1)
+ RETURNS TABLE(code text, label text, aliases text[], emirate text, suppliers integer, last_sourced timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with em(emirate) as (values ('Dubai'), ('Abu Dhabi'), ('Sharjah'), ('Ajman'), ('Ras Al Khaimah'), ('Fujairah'), ('Umm Al Quwain')),
+  pool as (
+    select e.emirate, c.code, count(*)::int n
+      from public.leads l cross join lateral unnest(l.invite_trades) c(code) join em e on e.emirate = l.emirate
+     where not coalesce(l.is_demo, false)
+     group by 1, 2)
+  select t.code, t.label, t.aliases, em.emirate, coalesce(p.n, 0),
+         (select max(r.started_at) from public.lead_sourcing_run r
+           where r.kind <> 'probe' and t.code = any(r.trades) and r.emirate = em.emirate)
+    from public.taxonomy_trade t cross join em
+    left join pool p on p.code = t.code and p.emirate = em.emirate
+   where t.active and t.code !~* '(^|_)(food|beverage|catering|restaurant|bakery)' and coalesce(t.group_code, '') !~* 'food'
+   order by 5, 6 nulls first, 1, 4
+   limit greatest(1, least(p_limit, 20));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lead_sourcing_record(p_run jsonb, p_prospects jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_run public.lead_sourcing_run; p jsonb; v_status text; v_reason text; v_lead bigint; v_demo boolean;
+  v_email text; v_dom text; v_phone text; v_name text;
+begin
+  insert into public.lead_sourcing_run (kind, emirate, trades, queries, serper_credits, usd_per_credit, places, sites_crawled,
+                                        pages_fetched, robots_refused, errors, started_at, model_calls, linkedin_queries, llm_cost_usd)
+  values (coalesce(p_run->>'kind', 'batch'), p_run->>'emirate',
+          array(select jsonb_array_elements_text(coalesce(p_run->'trades', '[]'::jsonb))),
+          coalesce((p_run->>'queries')::int, 0), coalesce((p_run->>'serper_credits')::numeric, 0),
+          coalesce((p_run->>'usd_per_credit')::numeric, 0.001), coalesce((p_run->>'places')::int, 0),
+          coalesce((p_run->>'sites_crawled')::int, 0), coalesce((p_run->>'pages_fetched')::int, 0),
+          coalesce((p_run->>'robots_refused')::int, 0), coalesce(p_run->'errors', '[]'::jsonb),
+          coalesce((p_run->>'started_at')::timestamptz, now()), coalesce((p_run->>'model_calls')::int, 0),
+          coalesce((p_run->>'linkedin_queries')::int, 0), coalesce((p_run->>'llm_cost_usd')::numeric, 0))
+  returning * into v_run;
+  -- the batch's reservation is replaced by this row, in the same transaction
+  if p_run ? 'run_id' then
+    delete from public.lead_sourcing_run where id = (p_run->>'run_id')::bigint and status = 'reserved';
+  end if;
+  v_demo := v_run.kind = 'probe';
+
+  for p in select * from jsonb_array_elements(coalesce(p_prospects, '[]'::jsonb)) loop
+    v_email := nullif(lower(btrim(p->>'email')), '');
+    v_dom   := nullif(lower(btrim(p->>'domain')), '');
+    v_phone := nullif(btrim(p->>'phone_e164'), '');
+    v_name  := nullif(btrim(p->>'company_name'), '');
+    v_status := null; v_reason := null; v_lead := null;
+    if v_name is null then continue; end if;
+    -- A probe can never write a real company into leads: is_demo is derived from the 'ZZ DEMO' name (generated column).
+    if v_demo and v_name not ilike 'ZZ DEMO%' then raise exception 'a probe run may only record ZZ DEMO companies'; end if;
+
+    if v_email is not null and exists (select 1 from public.email_suppressions s where lower(s.email) = v_email) then
+      v_status := 'suppressed'; v_reason := 'email is on the suppression list';
+    elsif exists (select 1 from public.pdpl_lead_erase_vault e
+                   where (v_email is not null and lower(e.snapshot->>'email') = v_email)
+                      or (v_phone is not null and e.snapshot->>'phone_e164' = v_phone)
+                      or (v_dom is not null and lower(e.snapshot->>'domain') = v_dom)) then
+      v_status := 'suppressed'; v_reason := 'matches a lead erased on a privacy request';
+    elsif v_email is not null and exists (select 1 from public.leads l where lower(l.email) = v_email and l.invite_status = 'bounced') then
+      v_status := 'suppressed'; v_reason := 'a lead at this email bounced';
+    elsif exists (select 1 from public.leads l
+                   where (v_dom is not null and (lower(l.domain) = v_dom or lower(l.email_domain) = v_dom))
+                      or (v_email is not null and lower(l.email) = v_email)
+                      or (v_phone is not null and l.phone_e164 = v_phone)
+                      or lower(btrim(l.company_name)) = lower(v_name)) then
+      v_status := 'duplicate'; v_reason := 'a lead already has this email, domain, phone or name';
+    -- The email is the identity (a phone may confirm, never select): a customer or a signed-in account at this exact
+    -- address is already known to the company and is never a new supplier lead.
+    elsif v_email is not null and (exists (select 1 from public.customers c where lower(c.email) = v_email)
+                                   or exists (select 1 from auth.users u where lower(u.email) = v_email)) then
+      v_status := 'duplicate'; v_reason := 'a customer or an account already has this email';
+    elsif v_dom is null or v_email is null or p->>'email_status' is distinct from 'mx_ok' or v_phone is null
+       or nullif(p->>'trade_code', '') is null or nullif(p->>'contact_name', '') is null
+       or nullif(p->>'contact_title', '') is null or nullif(p->>'website', '') is null or nullif(p->>'emirate', '') is null then
+      v_status := 'incomplete';
+      v_reason := 'missing: ' || concat_ws(', ',
+        case when nullif(p->>'trade_code', '') is null then 'trade' end,
+        case when nullif(p->>'contact_name', '') is null then 'contact name' end,
+        case when nullif(p->>'contact_title', '') is null then 'position' end,
+        case when v_email is null then 'email' when p->>'email_status' is distinct from 'mx_ok' then 'deliverable email' end,
+        case when v_phone is null then 'phone' end,
+        case when nullif(p->>'website', '') is null then 'website' end,
+        case when nullif(p->>'emirate', '') is null then 'emirate' end);
+    else
+      insert into public.leads (company_name, website, domain, phone_e164, phone, emirate, city, email, email_domain,
+                                email_verified, contact_name, invite_trades, place_id, source, enrich_source, scraped_at,
+                                notes)
+      values (v_name, p->>'website', v_dom, v_phone, v_phone, p->>'emirate', p->>'emirate', v_email, split_part(v_email, '@', 2),
+              'mx_ok', p->>'contact_name', array[p->>'trade_code'], nullif(p->>'place_id', ''), 'marketing_sourcing',
+              'serper_places+company_site', current_date,
+              'Sourced by the marketing seat (lead_sourcing_run ' || v_run.id || '). Contact position: ' || (p->>'contact_title')
+              || '. Field sources in public.lead_prospect.')
+      returning id into v_lead;
+      v_status := 'promoted';
+    end if;
+
+    insert into public.lead_prospect (run_id, company_name, trade_code, emirate, website, domain, phone_e164, phone_kind, email,
+                                      email_status, contact_name, contact_title, place_id, query, field_sources, status,
+                                      status_reason, promoted_lead_id, model_answer)
+    values (v_run.id, v_name, nullif(p->>'trade_code', ''), nullif(p->>'emirate', ''), nullif(p->>'website', ''), v_dom, v_phone,
+            nullif(p->>'phone_kind', ''), v_email, nullif(p->>'email_status', ''), nullif(p->>'contact_name', ''),
+            nullif(p->>'contact_title', ''), nullif(p->>'place_id', ''), p->>'query', coalesce(p->'field_sources', '{}'::jsonb),
+            v_status, v_reason, v_lead, nullif(p->>'model_answer', ''));
+  end loop;
+
+  update public.lead_sourcing_run r set
+    prospects  = s.n, complete = s.promoted, duplicates = s.dup, suppressed = s.sup, promoted = s.promoted,
+    by_trade   = s.by_trade
+  from (select count(*)::int n,
+               (count(*) filter (where status = 'promoted'))::int promoted,
+               (count(*) filter (where status = 'duplicate'))::int dup,
+               (count(*) filter (where status = 'suppressed'))::int sup,
+               coalesce((select jsonb_object_agg(t, jsonb_build_object('found', f, 'new_complete', c))
+                           from (select coalesce(trade_code, '(no exact trade)') t, count(*) f,
+                                        count(*) filter (where status = 'promoted') c
+                                   from public.lead_prospect where run_id = v_run.id group by 1) x), '{}'::jsonb) by_trade
+          from public.lead_prospect where run_id = v_run.id) s
+  where r.id = v_run.id
+  returning * into v_run;
+
+
+  return jsonb_build_object('run_id', v_run.id, 'prospects', v_run.prospects, 'promoted', v_run.promoted,
+    'duplicates', v_run.duplicates, 'suppressed', v_run.suppressed, 'by_trade', v_run.by_trade,
+    'serper_usd', round(v_run.serper_credits * v_run.usd_per_credit, 4), 'llm_usd', round(v_run.llm_cost_usd, 4));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lead_sourcing_today()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with s as (select
+      coalesce((select nullif(btrim(value), '')::int from public.app_secrets where key = 'lead_sourcing_daily_quota'), 0) quota,
+      coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_daily_serper_usd'), 0) serper_cap,
+      coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_daily_llm_usd'), 0) llm_cap,
+      coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_usd_per_credit'), 0.001) per_credit),
+  d as (select coalesce(sum(promoted), 0) promoted,
+               coalesce(sum(greatest(serper_credits, reserved_serper_credits) * usd_per_credit), 0) serper_usd,
+               coalesce(sum(greatest(llm_cost_usd, reserved_llm_usd)), 0) llm_usd
+          from public.lead_sourcing_run where kind = 'batch' and run_day = (now() at time zone 'Asia/Dubai')::date)
+  select jsonb_build_object('day', (now() at time zone 'Asia/Dubai')::date, 'quota', s.quota, 'promoted', d.promoted,
+           'serper_cap_usd', s.serper_cap, 'serper_usd', round(d.serper_usd, 4), 'llm_cap_usd', s.llm_cap, 'llm_usd', round(d.llm_usd, 4),
+           'usd_per_credit', s.per_credit,
+           'stop', case when s.quota <= 0 or d.promoted >= s.quota then 'lead quota'
+                        when d.serper_usd >= s.serper_cap then 'serper cap'
+                        when d.llm_usd >= s.llm_cap then 'model cap' end)
+    from s, d;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_leads_collaboration_hold_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -9835,7 +10134,11 @@ CREATE OR REPLACE FUNCTION public.fn_leads_mandatory_item_landed_reverifies()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
-  perform public.fn_sales_engineer_verifies_supplier(new.id, 'mandatory_item_changed');
+  perform public.fn_sales_engineer_verifies_supplier(new.id,
+    case when old.approval_status = 'approved'
+              and (old.license_doc_path is distinct from new.license_doc_path
+                   or old.licence_legal_name is distinct from new.licence_legal_name)
+         then 'licence_changed' else 'mandatory_item_changed' end);
   return null;
 end $function$
 

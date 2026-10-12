@@ -40,6 +40,21 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "water_treatment_services:potable-tank-cleaning-frequency",
+      "topic": "Potable water tank cleaning and disinfection frequency (Dubai and Abu Dhabi)",
+      "kind": "regulatory_rule",
+      "body_en": "Service-provider summaries of Dubai Municipality requirements state that drinking-water tanks should be cleaned and disinfected at least every six months, with schools, nurseries, healthcare facilities and hotels typically every three months, by operators holding a Dubai Municipality water-tank-cleaning permit, with technicians trained in confined-space entry; one summary cites Dubai Municipality Technical Guidelines DM-HSD-GU17-DW2 (September 2024), the other the Municipality's 'Safe Water for a Healthy Community' initiative, and both place responsibility on the property owner. The Municipality text itself was not opened, so the frequency should be confirmed against the current guideline. In Abu Dhabi, the DoE Water Supply Regulations 2024 require the Responsible Person to carry out regular inspections of ground storage and roof tanks and, when necessary, clean them according to the procedures in the Guide. A service scope should state visit frequency, method, chemicals, and whether laboratory testing is included.",
+      "body_ar": "تذكر ملخصات مقدّمي الخدمات لمتطلبات بلدية دبي أن خزانات مياه الشرب يجب تنظيفها وتعقيمها مرة كل ستة أشهر على الأقل، وعادةً كل ثلاثة أشهر للمدارس ودور الحضانة والمنشآت الصحية والفنادق، على أن تتولى ذلك جهات حاصلة على تصريح بلدية دبي لتنظيف خزانات المياه، مع فنيين مدرَّبين على دخول الأماكن المحصورة؛ ويستشهد أحد الملخصين بالإرشادات الفنية لبلدية دبي DM-HSD-GU17-DW2 (سبتمبر 2024)، والآخر بمبادرة البلدية «مياه آمنة لمجتمع صحي»، ويحمّل كلاهما مالك العقار المسؤولية. ولم يُفتح نص البلدية نفسه، لذا ينبغي تأكيد التكرار مقابل الإرشادات السارية. وفي أبوظبي، تُلزم لوائح إمداد المياه 2024 الصادرة عن دائرة الطاقة الشخص المسؤول بإجراء فحوص دورية للخزانات الأرضية وخزانات الأسطح، وتنظيفها عند الضرورة وفق الإجراءات الواردة في الدليل. ينبغي أن يحدد نطاق الخدمة تكرار الزيارات والطريقة والمواد الكيميائية وما إذا كانت الفحوص المخبرية مشمولة.",
+      "sources": [
+        "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/",
+        "https://thekleeners.com/water-tank-cleaning-regulations-in-dubai-2026-guide/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +71,15 @@
       "expected_entry_ids": [
         "water_treatment_services:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How often must a building water tank be cleaned in Dubai?",
+      "q_ar": "كم مرة يجب تنظيف خزان مياه المبنى في دبي؟",
+      "expected_entry_ids": [
+        "water_treatment_services:potable-tank-cleaning-frequency"
+      ],
+      "why": "No entry of this pack answered it (Standards entry explicitly says the Dubai Municipality page does not give cleaning frequencies; missing: tank cleaning frequency rule (plumbing:tank-cleaning-dm exists in another trade)). water_treatment_services:potable-tank-cleaning-frequency was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from water_treatment_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +96,9 @@
       "water_treatment_services:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "water_treatment_services:potable-tank-cleaning-frequency"
+    ]
   }
 }

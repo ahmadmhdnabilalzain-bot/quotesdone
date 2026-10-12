@@ -154,6 +154,7 @@
     {
       "id": "mep_general:boq-vs-lumpsum",
       "topic": "BOQ (remeasured) vs lump-sum MEP pricing",
+      "topic_ar": "أعمال الكهروميكانيك (MEP): التسعير بجدول كميات قابل لإعادة القياس أو بمبلغ مقطوع",
       "kind": "comparison",
       "body_en": "MEP work is priced either against a bill of quantities (BOQ) or as a lump sum. In a BOQ contract the consultant's quantity surveyor measures each item (metres of pipe by size, number of fan coil units, points of lighting, metres of cable by size) using a method of measurement such as RICS NRM or POMI, and the contractor inserts rates; quantities may be remeasured, so the final price follows what was actually installed. This protects both parties when design is incomplete, but the employer carries quantity risk. In a lump-sum contract the contractor offers one price for the defined scope and carries quantity risk, which suits fixed designs and fit-outs; the danger is that ambiguous drawings lead to later claims that something was 'not shown'. Many UAE MEP packages mix both: lump sum with a priced BOQ used only for valuing variations and interim payments. Buyers comparing quotes should check that all contractors priced the same BOQ without deleting or altering lines, that provisional sums and prime-cost items are identical, and that 'rate only' items were not left unpriced. A breakdown by system and floor is essential for payment certification and variation valuation.",
       "body_ar": "تُسعَّر أعمال MEP إما مقابل جدول كميات أو كمبلغ مقطوع. في عقد جدول الكميات يقيس مهندس الكميات لدى الاستشاري كل بند (أمتار الأنابيب حسب القطر، عدد وحدات ملف المروحة، نقاط الإنارة، أمتار الكابلات حسب المقطع) بطريقة قياس معتمدة مثل NRM من RICS أو POMI، ويضع المقاول الأسعار؛ وقد يُعاد القياس فيتبع السعر النهائي ما رُكِّب فعلاً. هذا يحمي الطرفين حين يكون التصميم غير مكتمل، لكن المالك يتحمل مخاطر الكميات. وفي العقد المقطوع يقدم المقاول سعراً واحداً للنطاق المحدد ويتحمل مخاطر الكميات، وهو يناسب التصاميم الثابتة وأعمال التشطيب؛ والخطر أن المخططات الغامضة تؤدي لاحقاً إلى مطالبات بأن شيئاً «لم يكن ظاهراً». وكثير من حزم MEP في الإمارات تمزج الاثنين: مبلغ مقطوع مع جدول كميات مسعَّر يُستخدم فقط لتقييم أوامر التغيير والدفعات المرحلية. وعند مقارنة العروض يجب التحقق من أن جميع المقاولين سعّروا جدول الكميات نفسه دون حذف أو تعديل بنود، وأن المبالغ الاحتياطية وبنود التكلفة الأساسية متطابقة، وأن بنود «السعر فقط» لم تُترك دون تسعير. والتفصيل حسب النظام والطابق ضروري لاعتماد الدفعات وتقييم التغييرات.",
@@ -378,6 +379,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:mep-cost-share-benchmark",
+      "topic": "MEP share of construction cost",
+      "kind": "price_driver",
+      "body_en": "One construction-services source puts MEP at up to 25% of the overall construction budget on residential projects, assuming no revisions or rework. MEP scopes are heavier than civil works in copper (cabling, transformers, motor windings, HVAC coils), steel (ductwork, piping, cable trays) and imported HVAC and electrical equipment, so they are more exposed to commodity prices and currency moves; a budget estimate prepared 12 months earlier can be materially adrift, and budgets older than 3-6 months should be re-validated. Not established here: percentage shares for commercial buildings, hospitals, laboratories or data centres, or any UAE-specific benchmark; a quantity surveyor's elemental cost plan is the reliable basis.",
+      "body_ar": "يقدّر أحد مصادر خدمات البناء حصة الأعمال الكهروميكانيكية (MEP) بما يصل إلى 25% من إجمالي ميزانية البناء في المشاريع السكنية، بافتراض عدم وجود تعديلات أو إعادة عمل. وتحتوي أعمال MEP على نسبة أكبر من الأعمال المدنية من النحاس (الكابلات والمحولات ولفائف المحركات وملفات التكييف) والفولاذ (مجاري الهواء والأنابيب وحوامل الكابلات) ومعدات التكييف والكهرباء المستوردة، لذا فهي أكثر عرضة لتقلبات أسعار السلع والعملات؛ وقد يصبح تقدير ميزانية أُعدّ قبل 12 شهراً بعيداً عن الواقع بشكل ملموس، وينبغي إعادة التحقق من الميزانيات التي يزيد عمرها على 3-6 أشهر. غير مثبت هنا: الحصص النسبية للمباني التجارية أو المستشفيات أو المختبرات أو مراكز البيانات، أو أي معيار خاص بالإمارات؛ والأساس الموثوق هو خطة التكلفة العنصرية التي يعدّها مهندس الكميات.",
+      "sources": [
+        "https://www.cadcrowd.com/blog/?p=23672",
+        "https://www.securedengineers.com/insights/construction-cost-spike-where-mep-budgets-bleed/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -474,6 +489,15 @@
         "mep_general:contractor-licence",
         "mep_general:dcd-fire-interface"
       ]
+    },
+    {
+      "q_en": "What share of a building's cost is usually MEP?",
+      "q_ar": "ما النسبة المعتادة للأعمال الكهروميكانيكية من تكلفة المبنى؟",
+      "expected_entry_ids": [
+        "mep_general:mep-cost-share-benchmark"
+      ],
+      "why": "No entry of this pack answered it (No entry gives MEP as a share of total building cost; price-drivers explicitly says area-based pricing is only rough and gives no percentage; missing: MEP cost share benchmark). mep_general:mep-cost-share-benchmark was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from mep_general.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -497,6 +521,9 @@
       "mep_general:dewa-load-noc"
     ],
     "passes": "A3 + A3b (23 Sep 2026)",
-    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf)."
+    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf).",
+    "added_2026_10_06": [
+      "mep_general:mep-cost-share-benchmark"
+    ]
   }
 }

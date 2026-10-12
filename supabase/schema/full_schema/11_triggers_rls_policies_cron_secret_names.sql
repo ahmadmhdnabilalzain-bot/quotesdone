@@ -160,7 +160,7 @@ CREATE TRIGGER z80_invite_same_day_brake AFTER UPDATE OF invite_status ON public
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER z40_leads_keep_the_public_name AFTER INSERT OR UPDATE OF company_name ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_leads_keep_the_public_name();
 CREATE TRIGGER z21_sign_supplier_on_acceptance AFTER UPDATE OF accepted_terms_at ON public.leads FOR EACH ROW WHEN (((new.accepted_terms_at IS NOT NULL) AND (new.accepted_terms_at IS DISTINCT FROM old.accepted_terms_at) AND (new.claimed_by IS NOT NULL) AND (NOT ((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL))))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER z20_leads_mandatory_item_landed_reverifies AFTER UPDATE OF company_name, phone, phone_e164, owner_phone_verified, owner_email_verified, license_doc_path, license_expiry, company_profile_doc_path, signed_terms_path, licence_legal_name ON public.leads FOR EACH ROW WHEN (((new.approval_status = ANY (ARRAY['action_required'::text, 'pending'::text])) AND (pg_trigger_depth() < 1))) EXECUTE FUNCTION fn_leads_mandatory_item_landed_reverifies();
+CREATE TRIGGER z20_leads_mandatory_item_landed_reverifies AFTER UPDATE OF company_name, phone, phone_e164, owner_phone_verified, owner_email_verified, license_doc_path, license_expiry, company_profile_doc_path, signed_terms_path, licence_legal_name ON public.leads FOR EACH ROW WHEN (((pg_trigger_depth() < 1) AND ((new.approval_status = ANY (ARRAY['action_required'::text, 'pending'::text])) OR ((new.approval_status = 'approved'::text) AND ((old.license_doc_path IS DISTINCT FROM new.license_doc_path) OR (old.licence_legal_name IS DISTINCT FROM new.licence_legal_name)))))) EXECUTE FUNCTION fn_leads_mandatory_item_landed_reverifies();
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER trg_sales_engineer_tells_the_supplier_he_is_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW WHEN ((new.approval_status = 'approved'::text)) EXECUTE FUNCTION fn_sales_engineer_tells_the_supplier_he_is_approved();
 CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
@@ -709,6 +709,8 @@ ALTER TABLE public.knowledge_ml_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_module_standard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_vector_ml ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_category ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_prospect ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_sourcing_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_subcategory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_trade_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_trade_map ENABLE ROW LEVEL SECURITY;
@@ -948,6 +950,9 @@ ALTER TABLE public.security_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.self_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_implication ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.signup_purge ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.signup_purge_dropbox ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.signup_purge_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sms_messages ENABLE ROW LEVEL SECURITY;
@@ -1177,6 +1182,8 @@ CREATE POLICY kb_trim_plan_service_role_only ON public.kb_trim_plan AS PERMISSIV
 CREATE POLICY knowledge_ml_claim_service_role_only ON public.knowledge_ml_claim AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_ml_status_service_role_only ON public.knowledge_ml_status AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_vector_ml_service_role_only ON public.knowledge_vector_ml AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY lead_prospect_service_role_only ON public.lead_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY lead_sourcing_run_service_role_only ON public.lead_sourcing_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY lead_trade_class_service_role_only ON public.lead_trade_class AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY line_spec_reading_service_role_only ON public.line_spec_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1281,6 +1288,9 @@ CREATE POLICY seat_lesson_cluster_service_role_only ON public.seat_lesson_cluste
 CREATE POLICY seat_playbook_service_role_only ON public.seat_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_self_review_service_role_only ON public.seat_self_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY signup_purge_service_role_only ON public.signup_purge AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY signup_purge_dropbox_service_role_only ON public.signup_purge_dropbox AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY signup_purge_object_service_role_only ON public.signup_purge_object AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY sms_messages_service_role_only ON public.sms_messages AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_connect_link_service_role_only ON public.social_connect_link AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_conversation_service_role_only ON public.social_conversation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1338,6 +1348,8 @@ CREATE POLICY writer_seat_service_role_only ON public.writer_seat AS PERMISSIVE 
 select cron.schedule('inquiry_conversation_summary_daily','40 23 * * *',$CRON$select public.fn_inquiry_conversation_summary_run(50);$CRON$);
 select cron.schedule('conversation_retention_daily','20 23 * * *',$CRON$select public.fn_conversation_retention_purge(500);$CRON$);
 select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_pdpl_tick();$CRON$);
+select cron.schedule('unfinished_signup_purge','*/5 * * * *',$CRON$select public.fn_unfinished_signup_purge(true)$CRON$);
+select cron.schedule('lead_sourcing_batch','*/10 * * * *',$CRON$select public.fn_lead_sourcing_kick();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1444,6 +1456,7 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   cred_fn_route_inquiry
 --   cred_fn_sales_engineer
 --   cred_fn_secretary_act
+--   cred_fn_site_assistant
 --   cred_fn_social_stage
 --   cred_fn_supplier_api
 --   cred_fn_supplier_portal
@@ -1453,12 +1466,14 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   cred_fn_to_pdf_native
 --   cred_fn_to_route_inquiry
 --   cred_fn_wa_docs
+--   cred_fn_wa_inbound
 --   cred_fn_wa_pdf
 --   cred_fn_workflow_dispatch
 --   cred_ops_doc_render
 --   cred_ops_phone_diag
 --   cred_ops_wa_replay
 --   cred_ops_wa_template_setup
+--   cred_site_error_ingest
 --   cron_down_last_alert
 --   customer_terms_label
 --   customer_terms_version
@@ -1466,6 +1481,7 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   default_post_image
 --   deploy_secret
 --   dispatch_force_key
+--   document_expiry_ai
 --   dropbox_access_token
 --   dropbox_app_key
 --   dropbox_app_secret
@@ -1515,6 +1531,10 @@ select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_p
 --   job_eligibility_note
 --   lead_reclassify_cost_estimate
 --   lead_reclassify_daily_cap
+--   lead_sourcing_daily_llm_usd
+--   lead_sourcing_daily_quota
+--   lead_sourcing_daily_serper_usd
+--   lead_sourcing_usd_per_credit
 --   marketing_golive
 --   marketing_publishing_enabled
 --   meta_access_token

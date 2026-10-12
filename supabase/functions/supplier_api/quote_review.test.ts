@@ -300,7 +300,7 @@ Deno.test('a photo is answered, not guessed; a closed job refuses; another suppl
   await start(mem.repo, deps, ctx, INQ_ID);
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53, 0xde]);
   const t = ok(await upload(mem.repo, deps, ctx, INQ_ID, { b64: btoa(String.fromCharCode(...png)), filename: 'photo.png', mime: 'image/png' }));
-  assertEquals(t.state, 'open'); assertMatch(t.messages.at(-1)!.body_en || '', /photo or a scan/);
+  assertEquals(t.state, 'open'); assertMatch(t.messages.at(-1)!.body_en || "", /photo or scan clearly.*clearer copy/);
   // AND IT NAMES THE WAY FORWARD (finding SP-F-03, 22 Sep 2026). Under the model hold there is no
   // OCR, so a supplier whose quotation is a scan used to have nowhere to go but the quote form
   // outside this conversation — the door that skips the review entirely.

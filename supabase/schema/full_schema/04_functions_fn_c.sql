@@ -2509,7 +2509,7 @@ declare r record; d public.ceo_directive; v bigint; v_ok boolean; v_err text; v_
   n_issued int := 0; n_met int := 0; n_esc int := 0; n_missed int := 0; v_q date;
   v_late text := $q$exists (select 1 from public.agent_actions a
       join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
-     where a.kind = 'handoff' and a.agent = %1$L and a.status = 'pending' and a.created_at < now() - k.reply_within)$q$;
+     where a.kind = 'handoff' and a.agent = %1$L and a.status = 'pending' and public.fn_handoff_is_late(a.detail, a.created_at, k.reply_within))$q$;
 begin
   -- 1. target misses on the year-one plan
   for r in select e->>'metric' as metric, e->>'owner_seat' as seat, e->>'actual' as actual, e->>'expected' as expected
@@ -4173,6 +4173,27 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_reads_lead_sourcing_report(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; n int;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'marketing.lead_sourcing' then
+    raise exception 'fn_ceo_reads_lead_sourcing_report: % is not a marketing.lead_sourcing handoff', p_id;
+  end if;
+  update public.lead_sourcing_run set read_by_ceo_at = coalesce(read_by_ceo_at, now())
+   where kind = 'batch' and run_day = (a.detail->>'subject_id')::date;
+  get diagnostics n = row_count;
+  if n = 0 then raise exception 'marketing.lead_sourcing % names day %, which has no batch', p_id, a.detail->>'subject_id'; end if;
+  return jsonb_build_object('read', true, 'day', a.detail->>'subject_id', 'promoted', a.detail->'promoted', 'by_trade', a.detail->'by_trade',
+                            'note', 'Read by the CEO. New complete supplier leads per trade; nothing to approve.');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_reads_marketing_report(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5343,7 +5364,7 @@ begin
     select count(*) into v_failing from jsonb_array_elements(v_health) h where h->>'owner_seat' = s.role_id;
     select count(*) into v_late from public.agent_actions a
       join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
-     where a.kind = 'handoff' and a.agent = s.role_id and a.status = 'pending' and a.created_at < p_at - k.reply_within;
+     where a.kind = 'handoff' and a.agent = s.role_id and a.status = 'pending' and public.fn_handoff_is_late(a.detail, a.created_at, k.reply_within, p_at);
     select count(*) into v_missed from public.ceo_seat_directive
      where seat = s.role_id and status = 'missed' and month >= (v_q - interval '3 months')::date;
 
@@ -5406,6 +5427,17 @@ declare
   v_from timestamptz := now() - make_interval(days => greatest(1, coalesce(p_days, 7)));
   j jsonb;
 begin
+  -- agent_runs is rolled up per AGENT first (~110 distinct), then mapped to a seat: fn_run_seat runs
+  -- ~110 times instead of once per row per subquery (3 x 6 seats x ~269k rows = ~4.8M calls).
+  with ar as (
+    select public.fn_run_seat(a.agent) as seat,
+           sum(a.runs)::bigint as runs, sum(a.errors)::bigint as errors, max(a.last_seen) as last_seen
+      from (select r.agent,
+                   count(*) filter (where r.started_at >= v_from)                      as runs,
+                   count(*) filter (where r.status = 'error' and r.started_at >= v_from) as errors,
+                   max(r.started_at)                                                     as last_seen
+              from agent_runs r group by r.agent) a
+     group by 1)
   select jsonb_build_object(
     'window_days', greatest(1, coalesce(p_days, 7)),
     'since', v_from,
@@ -5414,13 +5446,9 @@ begin
 
         -- WHAT IT DID: every run, and every run that failed. Same source for all six, so the
         -- comparison between seats is honest.
-        'runs',        (select count(*) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat and r.started_at >= v_from),
-        'errors',      (select count(*) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat
-                           and r.status = 'error' and r.started_at >= v_from),
-        'last_seen',   (select max(r.started_at) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat),
+        'runs',        coalesce((select ar.runs   from ar where ar.seat = s.seat), 0),
+        'errors',      coalesce((select ar.errors from ar where ar.seat = s.seat), 0),
+        'last_seen',   (select ar.last_seen from ar where ar.seat = s.seat),
 
         -- WHAT IS WAITING ON IT: work assigned and not finished. This is the half the CEO had no
         -- sight of at all.
@@ -8686,6 +8714,23 @@ AS $function$
                       where a.source_table = v.source_table and a.source_id = v.source_id)
    order by v.occurred_at
    limit greatest(1, least(coalesce(p_limit, 25), 200));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_archive_pending_sandbox(p_tag text, p_limit integer DEFAULT 5)
+ RETURNS SETOF v_conversation_message
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select v.* from public.v_conversation_message v
+   where coalesce(p_tag, '') ~ '^[A-Za-z0-9-]{6,40}$'
+     and v.subject ilike '%' || p_tag || '%'
+     and v.is_demo
+     and not exists (select 1 from public.conversation_archive a
+                      where a.source_table = v.source_table and a.source_id = v.source_id)
+   order by v.occurred_at
+   limit greatest(1, least(coalesce(p_limit, 5), 25));
 $function$
 
 
