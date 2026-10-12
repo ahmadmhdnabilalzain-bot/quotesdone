@@ -2,7 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { envGatewayVision, b64Bytes } from '../_shared/read_every_attachment.ts';
 import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 import { readQuotationFile } from './quote_review_flow.ts';
-import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS, SAFE_SUPPLIER_PAPERS } from '../_shared/attachment.ts';
 import { seedTerms } from '../_shared/anonymise.ts';
 import { asLocale, SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
 import { arDays } from '../_shared/ar_days.ts';
@@ -777,9 +777,9 @@ const handle = async (req: Request): Promise<Response> => {
       if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); readQueue.push({ path: String(prof.path), name: String(prof.path).split('/').pop() || 'profile', kind: 'profile' }); }
       // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
       else if (prof.original_b64) {
-        const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_UPLOAD,
+        const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_SUPPLIER_PAPERS,
                                            scan: { source: 'supplier_api.company_profile', subject: String(sup.id), filename: prof.filename, bucket: 'supplier-docs' } });
-        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That company profile cannot be accepted. Please upload a PDF or an image (JPEG or PNG).' }, sc.status);
+        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That company profile cannot be accepted. Please upload a PDF, a Word or PowerPoint file, or an image (JPEG or PNG).' }, sc.status);
         const s = sc.result;
         const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
@@ -797,9 +797,9 @@ const handle = async (req: Request): Promise<Response> => {
       for (const c of cats) {
         if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); readQueue.push({ path: String(c.path), name: String(c.path).split('/').pop() || 'catalogue', kind: 'catalogue' }); }
         else if (c?.original_b64) {
-          const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_UPLOAD,
+          const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_SUPPLIER_PAPERS,
                                              scan: { source: 'supplier_api.catalog', subject: String(sup.id), filename: c.filename, bucket: 'supplier-docs' } });
-          if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'One of your catalogue files cannot be accepted. Please upload PDFs or images (JPEG or PNG).' }, sc.status);
+          if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'One of your catalogue files cannot be accepted. Please upload PDFs, Word or PowerPoint files, or images (JPEG or PNG).' }, sc.status);
           const s = sc.result;
           const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
