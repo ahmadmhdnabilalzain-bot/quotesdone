@@ -31,6 +31,11 @@ const PREAMBLE = `You are QuotesDone's customer-facing assistant (website chat, 
   `Never invent figures, dates, clauses, approvals or supplier identities. If the brief does not cover it, say ` +
   `so plainly and give your best general expert guidance labelled as such. Keep replies chat-length.\n\n`;
 const SYSTEM = PREAMBLE + brief.text;
+// A candidate written "model+deep" runs that model with one added instruction (coordinator, 13 Oct: Luna and Haiku
+// scored low on helpfulness with ~200-token answers; does asking for depth close the gap?).
+const DEEP = 'Give a complete, expert, well-structured answer (not a short one), then ask the one or two follow-up questions that matter.\n\n';
+const modelOf = (c) => c.replace(/\+deep$/, '');
+const systemOf = (c) => (c.endsWith('+deep') ? DEEP : '') + SYSTEM;
 
 let spent = 0;
 const key = (await sql(`select value from public.app_secrets where key = 'openrouter_api_key'`))[0]?.value;
@@ -62,13 +67,13 @@ const JUDGE_ONLY = process.argv.includes('--judge-only'); // re-judge saved answ
 const answers = JUDGE_ONLY ? JSON.parse(readFileSync(join(OUT, 'answers.json'), 'utf8')) : {};
 try {
   for (const m of JUDGE_ONLY ? [] : MODELS) {
-    const cache = m.startsWith('anthropic/') || m.startsWith('google/'); // explicit cache_control; OpenAI caches the stable prefix by itself
+    const cache = modelOf(m).startsWith('anthropic/') || modelOf(m).startsWith('google/'); // explicit cache_control; OpenAI caches the stable prefix by itself
     answers[m] = {};
     // first call alone writes the cache; the rest read it (3 lanes, inside the 5-minute TTL)
-    answers[m][questions[0].id] = await call(m, SYSTEM, questions[0].q, { cache });
+    answers[m][questions[0].id] = await call(modelOf(m), systemOf(m), questions[0].q, { cache });
     for (let i = 1; i < questions.length; i += 3) {
       const batch = questions.slice(i, i + 3);
-      const res = await Promise.all(batch.map((q) => call(m, SYSTEM, q.q, { cache }).catch((e) => ({ error: String(e), cost: 0 }))));
+      const res = await Promise.all(batch.map((q) => call(modelOf(m), systemOf(m), q.q, { cache }).catch((e) => ({ error: String(e), cost: 0 }))));
       batch.forEach((q, k) => { answers[m][q.id] = res[k]; });
     }
     writeFileSync(join(OUT, 'answers.json'), JSON.stringify(answers, null, 1)); // saved per model: a key-limit stop keeps what was bought
@@ -116,6 +121,7 @@ try {
       errors: a.filter((x) => x.error).length, usd_total: cost, usd_per_1000_warm: perWarm * 1000,
       cache_write_tokens: a.reduce((x, y) => x + (y.cache_write || 0), 0), cache_read_tokens: a.reduce((x, y) => x + (y.cached_read || 0), 0),
       prompt_tokens: a.reduce((x, y) => x + (y.prompt || 0), 0), first_call_usd: a[0].cost,
+      avg_out_tokens: Math.round(a.reduce((x, y) => x + (y.completion || 0), 0) / a.length),
       median_ms: a.map((x) => x.ms || 0).sort((x, y) => x - y)[15], scored: s.length };
   });
   const judgeCost = Object.values(judged).reduce((x, y) => x + y.cost, 0);
