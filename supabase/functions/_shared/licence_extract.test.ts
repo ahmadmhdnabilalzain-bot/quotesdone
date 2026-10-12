@@ -19,6 +19,22 @@ Deno.test('a read that names no licensee (a blank 1px image) yields no fields at
 Deno.test("a read the model calls 'low' yields no fields, even with a name", () =>
   assertNoFields(normaliseLicence({ ...blankImageAnswer, legal_name: 'Some Trading LLC', confidence: 'low' })));
 
+// Stage-2 run 4 S21, lic_ajman_ded_ar_png: an Arabic-only licence, which the prompt makes the model call 'low'.
+const arabicOnlyAnswer = { legal_name: '', legal_name_ar: 'زد زد ديمو الواحة', trade_name: '', legal_form: 'مؤسسة فردية',
+  license_number: '20840', license_authority: 'Ajman Department of Economic Development', emirate: 'Ajman', city: 'Ajman',
+  issue_date: '2026-04-13', expiry_date: '2027-04-12', activities: ['تكييف الهواء'], trn: '', confidence: 'low' };
+
+Deno.test("an Arabic-only licence read 'low' keeps its fields (number, expiry, Arabic name)", () => {
+  const d = normaliseLicence(arabicOnlyAnswer);
+  assertEquals([d.unreadable, d.license_number, d.expiry_date, d.legal_name_ar, d.legal_name, d.emirate, d.confidence],
+               [false, '20840', '2027-04-12', 'زد زد ديمو الواحة', '', 'Ajman', 'low']);
+});
+
+Deno.test("a 'low' read with only an English name, or with no name, is still unreadable", () => {
+  assertNoFields(normaliseLicence({ ...arabicOnlyAnswer, legal_name: 'Invented Trading LLC', legal_name_ar: '' }));
+  assertNoFields(normaliseLicence({ ...arabicOnlyAnswer, legal_name_ar: '' }));
+});
+
 Deno.test('the gateway path answers ok with an unreadable doc for the blank-image reply', () => {
   const r = licenceFromGateway(true, { ok: true, content: JSON.stringify(blankImageAnswer) });
   assertEquals(r.ok, true);

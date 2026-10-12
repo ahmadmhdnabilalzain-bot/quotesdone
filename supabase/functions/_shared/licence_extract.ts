@@ -67,13 +67,17 @@ export function placeholderLicenceNo(v: unknown): boolean {
  * NOTHING UNGROUNDED IS A READING (12 Oct 2026, stage-2 run 3 S02, sales_engineer). A 1x1 PNG went to the
  * vision model and came back with expiry 2023-03-14 and licence number 123456 (ai_cost_log 19449, lead 143063);
  * supplier_api wrote both and the review held the supplier as licence_expired off a date no document printed.
- * Every UAE licence prints the licensee's name, so a read with no name in either language, or one the model
- * itself calls 'low', saw no licence: it yields NO fields at all (unreadable: true) and callers write nothing.
+ * Every UAE licence prints the licensee's name, so a read with no name in either language saw no licence: it
+ * yields NO fields at all (unreadable: true) and callers write nothing. A 'low' read is unreadable too UNLESS it
+ * carries the Arabic name: SYS_LICENSE tells the model to leave legal_name empty and lower the confidence when a
+ * licence prints no English name, so an Arabic-only licence is always 'low' (13 Oct 2026, stage-2 run 4 S21,
+ * lic_ajman_ded_ar_png lost 20840 / 2027-04-12 to the first version of this guard).
  * A placeholder number (123456, 000000) is dropped even from an otherwise named read. */
 export function normaliseLicence(ai: Record<string, unknown>) {
   const s = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
   const named = /\p{L}{2}/u.test(s(ai.legal_name, 200)) || /\p{L}{2}/u.test(s(ai.legal_name_ar, 200));
-  if (!named || String(ai.confidence) === 'low') {
+  const arabicOnly = !/\p{L}{2}/u.test(s(ai.legal_name, 200)) && /\p{Script=Arabic}{2}/u.test(s(ai.legal_name_ar, 200));
+  if (!named || (String(ai.confidence) === 'low' && !arabicOnly)) {
     return { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '', license_authority: '', emirate: '',
              city: '', issue_date: null as string | null, expiry_date: null as string | null, activities: [] as string[], trn: '',
              confidence: 'low', unreadable: true };
