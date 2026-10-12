@@ -86,6 +86,12 @@ export interface ThinkRequest {
   // A caller that answers a customer or visitor (support_reply.ts only) may accept a short, clear refusal of a
   // manipulation or an out-of-scope ask as the answer. Off for every other caller: their drafts keep the evasion check.
   allowDecline?: boolean;
+  // A caller that has ALREADY narrowed the knowledge for this exact message (the website widget: its own corpus search
+  // is the topic) may hand over the plan instead of asking a model for one. The decompose call is skipped; retrieval,
+  // synthesis and the validator run as always. Such a caller should also ask for stakes 'high', because without the
+  // planner nobody judges the stakes, and the independent check then runs on every answer (12 Oct 2026). A decision
+  // whose options are the whole of what it needs (priceQuestion: a trade from a given list) passes { steps: [] }.
+  plan?: { steps: { id: string; goal: string; query: string }[] };
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -391,9 +397,10 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const d0 = await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
-    JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
-    { taskClass: taskClassFor('decompose', audience, deciding), seat: req.seat, max: 900 });
+  const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
+    : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
+      JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
+      { taskClass: taskClassFor('decompose', audience, deciding), seat: req.seat, max: 900 });
   const plan = parseJson<{ steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean; trade?: string | null; kind?: string | null }>(d0.content);
   if (!plan || !Array.isArray(plan.steps)) {
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error ?? 'no plan' });

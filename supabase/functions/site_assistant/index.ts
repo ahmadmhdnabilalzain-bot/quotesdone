@@ -33,6 +33,8 @@ import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { supportReply, type Channel } from '../_shared/support_reply.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
+import { STATUS, streamReply, wantsStream } from './stream_reply.ts';
+import { cachedReply, cacheKey, storeReply } from './answer_cache.ts';
 import { embedLine } from '../_shared/gte_embed.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
@@ -140,12 +142,26 @@ async function identify(req: Request): Promise<{ email: string; audience: 'custo
 // WHERE THE TIME GOES (E2E stage 1, D5, 30 Sep 2026: 7-14 s for ready-made answers). Every phase is stamped and
 // the stamps ride on the observe row (counts.ms), so the next slow reply names its own slow step.
 type Timer = Record<string, number>;
-Deno.serve(observe('site_assistant', async (req) => {
+const plain = observe('site_assistant', async (req) => {
   const T: Timer = {}; const t0 = Date.now();
   const res = await handle(req, T);
   T.total = Date.now() - t0;
   return annotate(res, { ms: T });
-}));
+});
+// THE STREAMED ANSWER (stream_reply.ts): the status line leaves at once; the finished, checked reply follows as deltas.
+// The same handler answers both, so the observe row and every side effect are identical for either caller. One chain
+// per request, as before: streaming adds no concurrent reasoning to the worker (546, #1327).
+Deno.serve(async (req) => {
+  if (req.method !== 'POST' || !wantsStream(req)) return plain(req);
+  const raw = await req.text();
+  let b: { message?: unknown; lang?: unknown } = {};
+  try { b = JSON.parse(raw); } catch (_e) { b = {}; }
+  const lang = langOf(String(b.message || ''), String(b.lang || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
+  const inner = new Request(req.url, { method: 'POST', headers: req.headers, body: raw });
+  const payload = plain(inner).then((r) => r.json()) as Promise<Record<string, unknown>>;
+  return new Response(streamReply(STATUS[lang], payload),
+    { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', ...CORS } });
+});
 async function handle(req: Request, T: Timer): Promise<Response> {
   const s0 = Date.now(); const lap = (k: string) => { T[k] = Date.now() - s0; };
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -399,6 +415,18 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [], seat: seatForSurface, answered: false, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
       return J({ reply });
     }
+    // A QUESTION ALREADY ANSWERED, ON THE SAME KNOWLEDGE, GETS THAT APPROVED ANSWER (answer_cache.ts). Looked up before
+    // the price reasoning starts, so a hit spends no model call at all; every side effect is filed as on any answer.
+    const cacheK = reasoningOpen && !who && firstTurn
+      ? await cacheKey({ message, lang: langOf(message, uiLang), path, audience, knowledge: { faqs: (faqs || []) as FaqRow[], passages: packRows, company: companyBlock } })
+      : null;
+    const hit = cacheK ? await cachedReply(rpc, cacheK) : null;
+    lap('cache');
+    if (hit) {
+      const fx = await fileEffects({ grounded: true, answered: true, refusal: '' });
+      try { await admin.from('assistant_logs').insert({ message, reply: hit, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+      return J({ reply: hit, scope: 'public', routed: 'cache' });
+    }
     // The model's context is the retrieved pack (FAQ + support pack + operations knowledge, by fn_support_corpus_search)
     // — no longer the FAQs that shared the most tokens with the question.
     const chosen = asked?.startsWith('kb:') ? packRows[Number(asked.slice(3))] ?? null : null;
@@ -456,6 +484,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
         facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', priceCtx, timelineBlock].filter(Boolean).join('\n\n'),
       }, () => Promise.resolve(null));
       if (sr.path === 'reasoned' && sr.reply) {
+        if (cacheK) await storeReply(rpc, cacheK, sr.reply, sr.model ?? null);
         const fx = await fileEffects({ grounded: sr.grounded, answered: true, refusal: 'reasoned_without_company_knowledge' });
         try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
         return J({ reply: sr.reply, scope: live ? audience : 'public', routed: 'reasoned', routed_seat: sr.seat });
