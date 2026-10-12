@@ -12,8 +12,7 @@
 //   pdpl_cancel_me(request)          -> { ok } or { ok:false, error:'no erasure in its cooling-off window' }
 //   pdpl_status_me()                 -> { ok, requests:[{ request_id, kind, status, confirm_after, deferred }] }  (#1273)
 //   any of them, unverified email    -> { ok:false, code:'email_not_verified' }
-// There is no "status of my request" routine, so the confirmed erase (id + date + what is kept) is
-// remembered in this browser; on another device the Cancel button is not shown, and support can cancel.
+// pdpl_status_me (#1273) reads the open requests on any device, so Cancel shows wherever the person signs in.
 
 export type Lang = 'en' | 'ar';
 export type Deferred = { record?: string; legal_hold?: boolean; kept_until?: string; reason?: string };
