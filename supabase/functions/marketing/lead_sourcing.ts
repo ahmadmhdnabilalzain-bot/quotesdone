@@ -142,7 +142,7 @@ export async function mxKind(domain: string): Promise<string> {
 // named in trade-licence details a site publishes, is written in too many shapes for a pattern, so the model reads
 // them (founder 1175: OpenRouter always on; the routine class, gpt-6-luna, cost logged by ai_gateway in ai_cost_log under fn
 // 'marketing', class routine_employee_reasoning). What it may return is held to the page: the name must appear in the text it was given.
-export type AskModel = (prompt: string) => Promise<string | null>;
+export type AskModel = (prompt: string) => Promise<{ content: string | null; cost_usd: number }>;
 export const MODEL_TEXT_CHARS = 10000;
 
 /** Readable text of a page (scripts, styles and tags out), for the model. */
@@ -194,24 +194,29 @@ export interface SourceOptions {
   serperKey: string; trades: Trade[]; emirate: string; pagesPerQuery: number; maxSites: number; deadlineMs: number;
   fetchSerper?: (path: SerperPath, body: unknown) => Promise<SerperReply>;
   askModel?: AskModel;
+  // SPEND CAPS for this batch (release review of #1304): it stops searching at maxSerperCredits and stops asking the
+  // model at maxLlmUsd. Both come from the day's remaining budget (fn_lead_sourcing_today).
+  maxSerperCredits?: number; maxLlmUsd?: number;
 }
 export interface SourceResult { prospects: Prospect[]; queries: number; serper_credits: number; places: number; sites_crawled: number;
-  pages_fetched: number; robots_refused: number; model_calls: number; linkedin_queries: number; linkedin_titles: string[]; errors: string[] }
+  pages_fetched: number; robots_refused: number; model_calls: number; llm_cost_usd: number; linkedin_queries: number; linkedin_titles: string[]; errors: string[] }
 
 export async function sourceLeads(o: SourceOptions): Promise<SourceResult> {
   const stopAt = Date.now() + o.deadlineMs;
   const out: SourceResult = { prospects: [], queries: 0, serper_credits: 0, places: 0, sites_crawled: 0, pages_fetched: 0, robots_refused: 0,
-    model_calls: 0, linkedin_queries: 0, linkedin_titles: [], errors: [] };
+    model_calls: 0, llm_cost_usd: 0, linkedin_queries: 0, linkedin_titles: [], errors: [] };
   const serper = o.fetchSerper ?? (async (path: SerperPath, body: unknown): Promise<SerperReply> => {
     const r = await timedFetch('https://google.serper.dev/' + path, { method: 'POST',
       headers: { 'X-API-KEY': o.serperKey, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 20000);
     if (!r.ok) throw new Error('serper ' + r.status + ' ' + (await r.text()).slice(0, 120));
     return await r.json();
   });
+  const serperLeft = () => out.serper_credits < (o.maxSerperCredits ?? Infinity);
+  const modelLeft = () => out.llm_cost_usd < (o.maxLlmUsd ?? Infinity);
   const seen = new Set<string>();
   for (const t of o.trades) {
     for (let page = 1; page <= o.pagesPerQuery; page++) {
-      if (Date.now() > stopAt) return out;
+      if (Date.now() > stopAt || !serperLeft()) return out;
       const query = `${t.label} supplier in ${o.emirate}, UAE`;
       let res: SerperReply;
       try { res = await serper('places', { q: query, gl: 'ae', hl: 'en', page }); } catch (e) { out.errors.push(String(e).slice(0, 160)); break; }
@@ -272,15 +277,16 @@ export async function sourceLeads(o: SourceOptions): Promise<SourceResult> {
     if (p.email_status !== 'mx_ok' || !p.phone_e164 || !p.emirate) return;
     let person: { name: string; title: string; src: string } | null = null;
     let answer: string | null = null;
-    if (o.askModel && texts.length && Date.now() < stopAt) {
+    if (o.askModel && texts.length && Date.now() < stopAt && modelLeft()) {
       out.model_calls++;   // the model also judges the pattern's candidate: a candidate it does not confirm is dropped
-      answer = await o.askModel(contactPrompt(p.company_name, texts, candidate)).catch(() => null);
+      const reply = await o.askModel(contactPrompt(p.company_name, texts, candidate)).catch(() => ({ content: null, cost_usd: 0 }));
+      out.llm_cost_usd += reply.cost_usd; answer = reply.content;
       const got = acceptContact(answer, texts);
       if (got) person = { name: got.name, title: got.title, src: got.url + ' (read by model)' };
     }
     // No model answer at all (not a "not real" verdict): the pattern's candidate stands, as it did before the model.
     if (!person && answer === null && candidate) person = { name: candidate.name, title: candidate.title, src: candidate.url };
-    if (!person && Date.now() < stopAt) {
+    if (!person && Date.now() < stopAt && serperLeft()) {
       // Public Google results only (Serper search). The LinkedIn page is never opened; the result TITLE is the source.
       out.linkedin_queries++;
       try {
@@ -308,10 +314,14 @@ export async function sourceLeads(o: SourceOptions): Promise<SourceResult> {
   return out;
 }
 
-// ── ONE BATCH (the marketing function's 'lead_sourcing' action; pg_cron lead_sourcing_batch, every 5 minutes) ──
-// One (trade, emirate) cell per batch, fewest suppliers first, until lead_sourcing_daily_quota new complete leads a
-// Dubai day. 110 s of work, inside the edge's 150 s cap with room to record. The day before is reported to the CEO.
+// ── ONE BATCH (the marketing function's 'lead_sourcing' action; pg_cron lead_sourcing_batch, every 10 minutes) ──
+// One (trade, emirate) cell per batch, fewest suppliers first. A batch runs only while ALL THREE day limits hold
+// (fn_lead_sourcing_today: the lead quota, the Serper USD cap and the model USD cap, all app_secrets settings), and is
+// itself capped at the day's REMAINING budget, so a run of batches that promote nothing cannot spend past the cap.
+// 110 s of work, inside the edge's 150 s cap with room to record. The day before is reported to the CEO.
 export const BATCH_DEADLINE_MS = 110_000;
+type Today = { quota: number; promoted: number; serper_cap_usd: number; serper_usd: number; llm_cap_usd: number; llm_usd: number;
+  usd_per_credit: number; stop: string | null };
 // deno-lint-ignore no-explicit-any
 export async function runLeadBatch(admin: any, askModel: AskModel): Promise<Record<string, unknown>> {
   const key = Deno.env.get('SERPER_API_KEY');
@@ -319,18 +329,20 @@ export async function runLeadBatch(admin: any, askModel: AskModel): Promise<Reco
   const report = await admin.rpc('fn_lead_sourcing_daily_report');
   const today = await admin.rpc('fn_lead_sourcing_today');
   if (today.error) return { ok: false, error: 'fn_lead_sourcing_today: ' + today.error.message };
-  const t = today.data as { quota: number; promoted: number };
-  if (t.quota <= 0 || t.promoted >= t.quota) return { ok: true, due: false, ...t };
+  const t = today.data as Today;
+  if (t.stop) return { ok: true, due: false, ...t };
   const cells = await admin.rpc('fn_lead_sourcing_next_cells', { p_limit: 1 });
   if (cells.error || !cells.data?.length) return { ok: false, error: 'fn_lead_sourcing_next_cells: ' + (cells.error?.message ?? 'no cell') };
   const cell = cells.data[0] as Trade & { emirate: string };
   const startedAt = new Date().toISOString();
   const r = await sourceLeads({ serperKey: key, trades: [cell], emirate: cell.emirate, pagesPerQuery: 3, maxSites: 40,
-    deadlineMs: BATCH_DEADLINE_MS, askModel });
+    deadlineMs: BATCH_DEADLINE_MS, askModel,
+    maxSerperCredits: Math.floor((t.serper_cap_usd - t.serper_usd) / t.usd_per_credit), maxLlmUsd: t.llm_cap_usd - t.llm_usd });
   const rec = await admin.rpc('fn_lead_sourcing_record', {
     p_run: { kind: 'batch', emirate: cell.emirate, trades: [cell.code], started_at: startedAt, queries: r.queries,
-      serper_credits: r.serper_credits, places: r.places, sites_crawled: r.sites_crawled, pages_fetched: r.pages_fetched,
-      robots_refused: r.robots_refused, model_calls: r.model_calls, linkedin_queries: r.linkedin_queries, errors: r.errors.slice(0, 20) },
+      serper_credits: r.serper_credits, usd_per_credit: t.usd_per_credit, places: r.places, sites_crawled: r.sites_crawled,
+      pages_fetched: r.pages_fetched, robots_refused: r.robots_refused, model_calls: r.model_calls, llm_cost_usd: r.llm_cost_usd,
+      linkedin_queries: r.linkedin_queries, errors: r.errors.slice(0, 20) },
     p_prospects: r.prospects });
   if (rec.error) return { ok: false, error: 'fn_lead_sourcing_record: ' + rec.error.message };
   return { ok: true, due: true, cell: `${cell.code}@${cell.emirate}`, ...(rec.data as Record<string, unknown>),

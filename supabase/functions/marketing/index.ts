@@ -147,12 +147,15 @@ Deno.serve(observe('marketing', async (req) => {
   }
 
   if (action === 'lead_sourcing') {
-    // pg_cron lead_sourcing_batch -> fn_lead_sourcing_kick, every 5 minutes, on its OWN schedule (never the
+    // pg_cron lead_sourcing_batch -> fn_lead_sourcing_kick, every 10 minutes, on its OWN schedule (never the
     // resilience tick). 202 at once; the batch runs in the background under the 150 s cap and logs its own row.
     if (caller.kind !== 'marketing') return J({ error: 'lead sourcing runs under the seat credential only' }, 403);
     const llm = makeLlmRich(undefined, { fn: 'marketing', taskClass: 'routine_employee_reasoning', dept: 'marketing',
       agent: 'marketing', max: 300, timeoutMs: 25000, temperature: 0, json: true });
-    const batch = runLeadBatch(admin, async (prompt) => (await llm('', '', 300, '', { messages: [{ role: 'user', content: prompt }] })).content)
+    const batch = runLeadBatch(admin, async (prompt) => {
+      const x = await llm('', '', 300, '', { messages: [{ role: 'user', content: prompt }] });
+      return { content: x.content, cost_usd: x.cost_usd ?? 0 };   // the gateway's own charge, summed per batch against the cap
+    })
       .then((r) => run('lead_sourcing', r.ok === false ? 'error' : 'ok', r, r.ok === false ? String(r.error) : undefined))
       .catch((e) => run('lead_sourcing', 'error', {}, String((e as Error)?.message || e)));
     // deno-lint-ignore no-explicit-any

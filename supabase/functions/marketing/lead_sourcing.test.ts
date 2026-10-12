@@ -99,3 +99,13 @@ Deno.test('LinkedIn titles as Google returned them in the 12 Oct pilot (RTL mark
   assertEquals(linkedinPerson('Shibu Mathew - Administrator at AL YOUSUF GENERAL ...', 'AL YOUSUF GENERAL TRADING LLC'), null);   // not a title we accept
 });
 Deno.test('a non-Latin honorific is dropped from a LinkedIn name', () => { assertEquals(linkedinPerson('HANKUK LEE 님 - Chief Executive Officer - Layerlab', 'Layerlab 3D Printing'), { name: 'HANKUK LEE', title: 'Chief Executive Officer' }); });
+
+Deno.test('spend caps: no Serper call past the credit cap, no model call past the USD cap', async () => {
+  let calls = 0;
+  const none = await sourceLeads({ serperKey: 'x', trades: [ALU], emirate: 'Dubai', pagesPerQuery: 3, maxSites: 0, deadlineMs: 5000,
+    maxSerperCredits: 0, fetchSerper: () => { calls++; return Promise.resolve({ credits: 1, places: [] }); } });
+  assertEquals([calls, none.queries], [0, 0]);
+  const one = await sourceLeads({ serperKey: 'x', trades: [ALU, ALU], emirate: 'Dubai', pagesPerQuery: 3, maxSites: 0, deadlineMs: 5000,
+    maxSerperCredits: 2, fetchSerper: () => { calls++; return Promise.resolve({ credits: 2, places: Array(10).fill({ title: 'x', cid: String(Math.random()) }) }); } });
+  assertEquals(one.queries, 1);   // the first call spent the cap; nothing after it
+});

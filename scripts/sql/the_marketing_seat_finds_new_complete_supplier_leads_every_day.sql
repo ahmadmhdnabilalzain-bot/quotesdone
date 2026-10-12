@@ -16,16 +16,18 @@
 --   1. lead_sourcing_run   one row per batch: queries, Serper credits, model calls and cost, crawl counts, per trade.
 --   2. lead_prospect       every company found, each field with its SOURCE URL and collected_at (UAE PDPL).
 --   3. fn_lead_sourcing_next_cells(n)  (trade, emirate) cells with the FEWEST suppliers first, every trade but F&B;
---      among equals the one sourced longest ago. lead_sourcing_daily_quota (app_secrets, 300) and fn_lead_sourcing_today.
+--      among equals the one sourced longest ago. fn_lead_sourcing_today: the day's lead quota AND its Serper and model
+--      USD caps (app_secrets settings); the first one reached stops the day.
 --   4. fn_lead_sourcing_record(run, prospects)  records the batch, then per prospect, in this order:
 --        suppressed — its email is in email_suppressions, its email/phone/domain matches an erased (PDPL) lead,
 --                     or a lead at that email bounced. NEVER re-added.
---        duplicate  — a lead already has that domain (site or email), that phone, or that name.
+--        duplicate  — a lead already has that email, domain (site or email), phone or name; or a customer or a
+--                     signed-in account has that exact email (email is the identity).
 --        complete   — all eight fields, email MX-checked: PROMOTED into public.leads (source 'marketing_sourcing').
 --        incomplete — kept in lead_prospect for a later enrichment pass, never sent anything.
 --   5. fn_lead_sourcing_daily_report — ONE report per Dubai day to the CEO (handoff marketing.lead_sourcing; read,
 --      nothing to approve) and fn_ceo_reads_lead_sourcing_report, its handler.
---   6. pg_cron lead_sourcing_batch, every 5 minutes -> fn_lead_sourcing_kick -> the marketing function's
+--   6. pg_cron lead_sourcing_batch, every 10 minutes -> fn_lead_sourcing_kick -> the marketing function's
 --      'lead_sourcing' action (its own schedule, never the resilience tick), until the day's quota.
 -- WHAT IT DOES NOT DO: it sends nothing to anyone (the invitation belongs to sales_engineer and customer_support,
 -- instr 625), it never touches an existing lead, and it does not measure catch-all (needs SMTP on port 25; see
@@ -35,7 +37,7 @@
 create table if not exists public.lead_sourcing_run (
   id              bigserial primary key,
   kind            text not null check (kind in ('batch', 'pilot', 'probe')),
-  started_at      timestamptz not null default now(),   -- the batch's start: its model cost is read from ai_cost_log after it
+  started_at      timestamptz not null default now(),
   run_day         date not null default (now() at time zone 'Asia/Dubai')::date,
   emirate         text not null,
   trades          text[] not null,
@@ -53,7 +55,7 @@ create table if not exists public.lead_sourcing_run (
   promoted        integer not null default 0,
   model_calls     integer not null default 0,
   linkedin_queries integer not null default 0,
-  llm_cost_usd    numeric not null default 0,       -- ai_cost_log, fn 'marketing', class routine_employee_reasoning, during the batch
+  llm_cost_usd    numeric not null default 0,       -- the gateway's own charge for each of the batch's model calls, summed
   by_trade        jsonb not null default '{}'::jsonb,
   errors          jsonb not null default '[]'::jsonb,
   handoff_id      bigint,
@@ -120,17 +122,35 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
 $fn$;
 revoke execute on function public.fn_lead_sourcing_next_cells(integer) from public, anon, authenticated;
 
--- The day's quota of NEW COMPLETE leads, a setting (0 stops the batches). The batches stop for the Dubai day once
--- it is reached.
-insert into public.app_secrets (key, value) values ('lead_sourcing_daily_quota', '300') on conflict (key) do nothing;
+-- THE DAY'S LIMITS, all settings in app_secrets (release review of #1304: a lead count alone caps nothing; batches
+-- that promote nothing would run all day). The batches stop for the Dubai day at the FIRST of:
+--   lead_sourcing_daily_quota       new complete leads (0 stops everything)
+--   lead_sourcing_daily_serper_usd  Serper spend, credits x lead_sourcing_usd_per_credit (Starter list price, 12 Oct)
+--   lead_sourcing_daily_llm_usd     model spend, the gateway's own charge per call, summed by the batch
+-- Defaults keep the whole job inside the founder's USD 1-2/day idle ceiling (instr 986): 1.00 + 0.75. At the pilot's
+-- rates (~120 new complete leads per USD) that is ~200 a day; several hundred needs the two caps raised together.
+insert into public.app_secrets (key, value) values
+  ('lead_sourcing_daily_quota', '300'), ('lead_sourcing_daily_serper_usd', '1.00'),
+  ('lead_sourcing_daily_llm_usd', '0.75'), ('lead_sourcing_usd_per_credit', '0.001')
+on conflict (key) do nothing;
 
 create or replace function public.fn_lead_sourcing_today()
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select jsonb_build_object(
-    'day', (now() at time zone 'Asia/Dubai')::date,
-    'quota', coalesce((select nullif(btrim(value), '')::int from public.app_secrets where key = 'lead_sourcing_daily_quota'), 0),
-    'promoted', coalesce((select sum(promoted) from public.lead_sourcing_run
-                           where kind = 'batch' and run_day = (now() at time zone 'Asia/Dubai')::date), 0));
+  with s as (select
+      coalesce((select nullif(btrim(value), '')::int from public.app_secrets where key = 'lead_sourcing_daily_quota'), 0) quota,
+      coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_daily_serper_usd'), 0) serper_cap,
+      coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_daily_llm_usd'), 0) llm_cap,
+      coalesce((select nullif(btrim(value), '')::numeric from public.app_secrets where key = 'lead_sourcing_usd_per_credit'), 0.001) per_credit),
+  d as (select coalesce(sum(promoted), 0) promoted, coalesce(sum(serper_credits * usd_per_credit), 0) serper_usd,
+               coalesce(sum(llm_cost_usd), 0) llm_usd
+          from public.lead_sourcing_run where kind = 'batch' and run_day = (now() at time zone 'Asia/Dubai')::date)
+  select jsonb_build_object('day', (now() at time zone 'Asia/Dubai')::date, 'quota', s.quota, 'promoted', d.promoted,
+           'serper_cap_usd', s.serper_cap, 'serper_usd', round(d.serper_usd, 4), 'llm_cap_usd', s.llm_cap, 'llm_usd', round(d.llm_usd, 4),
+           'usd_per_credit', s.per_credit,
+           'stop', case when s.quota <= 0 or d.promoted >= s.quota then 'lead quota'
+                        when d.serper_usd >= s.serper_cap then 'serper cap'
+                        when d.llm_usd >= s.llm_cap then 'model cap' end)
+    from s, d;
 $fn$;
 revoke execute on function public.fn_lead_sourcing_today() from public, anon, authenticated;
 
@@ -142,7 +162,7 @@ declare
   v_email text; v_dom text; v_phone text; v_name text;
 begin
   insert into public.lead_sourcing_run (kind, emirate, trades, queries, serper_credits, usd_per_credit, places, sites_crawled,
-                                        pages_fetched, robots_refused, errors, started_at, model_calls, linkedin_queries)
+                                        pages_fetched, robots_refused, errors, started_at, model_calls, linkedin_queries, llm_cost_usd)
   values (coalesce(p_run->>'kind', 'batch'), p_run->>'emirate',
           array(select jsonb_array_elements_text(coalesce(p_run->'trades', '[]'::jsonb))),
           coalesce((p_run->>'queries')::int, 0), coalesce((p_run->>'serper_credits')::numeric, 0),
@@ -150,7 +170,7 @@ begin
           coalesce((p_run->>'sites_crawled')::int, 0), coalesce((p_run->>'pages_fetched')::int, 0),
           coalesce((p_run->>'robots_refused')::int, 0), coalesce(p_run->'errors', '[]'::jsonb),
           coalesce((p_run->>'started_at')::timestamptz, now()), coalesce((p_run->>'model_calls')::int, 0),
-          coalesce((p_run->>'linkedin_queries')::int, 0))
+          coalesce((p_run->>'linkedin_queries')::int, 0), coalesce((p_run->>'llm_cost_usd')::numeric, 0))
   returning * into v_run;
   v_demo := v_run.kind = 'probe';
 
@@ -175,9 +195,15 @@ begin
       v_status := 'suppressed'; v_reason := 'a lead at this email bounced';
     elsif exists (select 1 from public.leads l
                    where (v_dom is not null and (lower(l.domain) = v_dom or lower(l.email_domain) = v_dom))
+                      or (v_email is not null and lower(l.email) = v_email)
                       or (v_phone is not null and l.phone_e164 = v_phone)
                       or lower(btrim(l.company_name)) = lower(v_name)) then
-      v_status := 'duplicate'; v_reason := 'a lead already has this domain, phone or name';
+      v_status := 'duplicate'; v_reason := 'a lead already has this email, domain, phone or name';
+    -- The email is the identity (a phone may confirm, never select): a customer or a signed-in account at this exact
+    -- address is already known to the company and is never a new supplier lead.
+    elsif v_email is not null and (exists (select 1 from public.customers c where lower(c.email) = v_email)
+                                   or exists (select 1 from auth.users u where lower(u.email) = v_email)) then
+      v_status := 'duplicate'; v_reason := 'a customer or an account already has this email';
     elsif v_dom is null or v_email is null or p->>'email_status' is distinct from 'mx_ok' or v_phone is null
        or nullif(p->>'trade_code', '') is null or nullif(p->>'contact_name', '') is null
        or nullif(p->>'contact_title', '') is null or nullif(p->>'website', '') is null or nullif(p->>'emirate', '') is null then
@@ -227,14 +253,6 @@ begin
   where r.id = v_run.id
   returning * into v_run;
 
-  -- The model's cost for this batch: what ai_gateway logged for fn 'marketing' on the routine class since the batch
-  -- began (the seat's other model work runs on its own classes; a credential per fn is cred_fn_<fn>, so the batch
-  -- calls as 'marketing')
-  -- (cost_usd_reported is OpenRouter's own charge; cost_aed at the pegged 3.6725 where it is missing).
-  update public.lead_sourcing_run r set llm_cost_usd = coalesce((
-      select sum(coalesce(c.cost_usd_reported, c.cost_aed / 3.6725)) from public.ai_cost_log c
-       where c.fn = 'marketing' and c.task_class = 'routine_employee_reasoning' and c.occurred_at >= r.started_at and c.occurred_at <= now()), 0)
-   where r.id = v_run.id returning * into v_run;
 
   return jsonb_build_object('run_id', v_run.id, 'prospects', v_run.prospects, 'promoted', v_run.promoted,
     'duplicates', v_run.duplicates, 'suppressed', v_run.suppressed, 'by_trade', v_run.by_trade,
@@ -243,7 +261,7 @@ end $fn$;
 revoke execute on function public.fn_lead_sourcing_record(jsonb, jsonb) from public, anon, authenticated;
 
 -- ── 5. ONE REPORT A DAY TO THE CEO, AND HIS READ RECEIPT ────────────────────────────────────────────
--- The batches run every 5 minutes; the CEO gets ONE report per Dubai day (the day before), per trade: new complete
+-- The batches run every 10 minutes; the CEO gets ONE report per Dubai day (the day before), per trade: new complete
 -- leads, found, and the cost. fn_seat_handoff is idempotent on (type, subject), so every batch may call this.
 create or replace function public.fn_lead_sourcing_daily_report(p_day date default ((now() at time zone 'Asia/Dubai')::date - 1))
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -291,7 +309,7 @@ on conflict do nothing;
 
 -- ── 6. ITS OWN SCHEDULE ─────────────────────────────────────────────────────────────────────────────
 -- NOT the resilience tick (release coordinator, 12 Oct 2026: the marketing step there already runs ~55 s and starves
--- the seat duties). pg_cron calls this every 5 minutes; it posts ONE request to the marketing function, which
+-- the seat duties). pg_cron calls this every 10 minutes; it posts ONE request to the marketing function, which
 -- answers 202 at once and runs the batch in the background under its 150 s cap. The credentials are read here at
 -- run time, so no key is ever written into cron.job (the schema mirror exports cron commands verbatim).
 create or replace function public.fn_lead_sourcing_kick()
@@ -299,7 +317,7 @@ returns bigint language plpgsql security definer set search_path to 'public', 'p
 declare v_ref text; v_anon text; v_cred text; t jsonb;
 begin
   t := public.fn_lead_sourcing_today();
-  if (t->>'quota')::int <= 0 or (t->>'promoted')::int >= (t->>'quota')::int then return null; end if;   -- quota reached or off
+  if t->>'stop' is not null then return null; end if;   -- lead quota, Serper cap or model cap reached (or set to 0)
   select value into v_ref  from public.app_secrets where key = 'project_ref';
   select value into v_anon from public.app_secrets where key = 'anon_key';
   select value into v_cred from public.app_secrets where key = 'cred_fn_marketing';
@@ -314,7 +332,7 @@ revoke execute on function public.fn_lead_sourcing_kick() from public, anon, aut
 
 do $cron$ begin
   if exists (select 1 from cron.job where jobname = 'lead_sourcing_batch') then perform cron.unschedule('lead_sourcing_batch'); end if;
-  perform cron.schedule('lead_sourcing_batch', '*/5 * * * *', 'select public.fn_lead_sourcing_kick();');
+  perform cron.schedule('lead_sourcing_batch', '*/10 * * * *', 'select public.fn_lead_sourcing_kick();');
 end $cron$;
 
 -- ── 7. PROBE: a verdict ROW, ZZ DEMO subjects only, nothing left behind ────────────────────────────
