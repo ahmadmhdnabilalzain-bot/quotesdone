@@ -20,7 +20,7 @@ Deno.test('the published price guide is in the brief and its figures pass; an un
   assert(b.includes('Gypsum false ceiling: AED 35 to 70'));
   const known = briefNumbers(b);
   assertEquals(moneyFiguresNotInBrief('A gypsum ceiling runs about AED 35 to 70 per square metre.', known), []);
-  assertEquals(moneyFiguresNotInBrief('A gypsum ceiling runs about AED 45 per square metre.', known), ['45']);
+  assertEquals(moneyFiguresNotInBrief('A gypsum ceiling runs about AED 45 per square metre.', known), ['AED 45']);
 });
 
 Deno.test('the brief cache is keyed on content: same-length facts never share a brief', async () => {
@@ -49,8 +49,19 @@ Deno.test('figure check: a fee or rate the brief states passes; any other money 
   const known = briefNumbers(COMPANY);
   assertEquals(moneyFiguresNotInBrief('The reveal fee is 3% of the quote. Registration is AED 1,000 a year after the first 1000.', known), []);
   assertEquals(moneyFiguresNotInBrief('رسوم الكشف ٣٪ فقط، والغرامة 500 درهم.', known), []);
-  assertEquals(moneyFiguresNotInBrief('The reveal fee is 2.5% and a gypsum ceiling runs AED 45 per sqm.', known), ['2.5', '45']);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is 2.5% and a gypsum ceiling runs AED 45 per sqm.', known), ['AED 45', '2.5%']);
   assertEquals(moneyFiguresNotInBrief('Verification takes 3 working days; MDF is 18 mm thick.', known), [], 'counts and sizes are not money');
+});
+
+// prevented by: this test (review of #1330). A figure is its number AND its unit: a 5 stated as dirhams, a phone digit
+// or an hour never lets "5%" through, and a range states both ends with the unit.
+Deno.test('figure check compares the unit: AED 5 in the brief does not pass 5% in a reply', () => {
+  const known = briefNumbers('Admin fee AED 5. Call +971 50 931 9355, Mon-Fri 9am-5pm. Gypsum ceiling: AED 35 to 70 per sqm. ضريبة 12٪.');
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is 5%.', known), ['5%']);
+  assertEquals(moneyFiguresNotInBrief('The admin fee is AED 5.', known), []);
+  assertEquals(moneyFiguresNotInBrief('Expect AED 35 to 70 per square metre, or 70 AED at the top.', known), []);
+  assertEquals(moneyFiguresNotInBrief('من 35 إلى 70 درهم للمتر المربع.', known), []);
+  assertEquals(moneyFiguresNotInBrief('Interest is 12 AED.', known), ['AED 12'], 'a percentage in the brief is not a dirham amount');
 });
 
 Deno.test('sentences come off the front of the stream whole, the unfinished tail stays', () => {
