@@ -7,14 +7,11 @@
 -- on exit and on SIGTERM/SIGINT/crash; this routine is the safety net for a process killed hard (-9,
 -- a cancelled runner) that no handler can catch.
 --
--- RUN TIME. A window's deadline is expires_at (CHECK rehearsal_window_at_most_two_hours bounds it at
--- two hours), shortened by a per-opener ceiling where expires_at is far longer than the opener ever runs:
---   scripts/e2e/run.mjs without models_allowed (the smoke): 45 min  (QD_E2E_DEADLINE_MS defaults to 20 min,
---                                                                   the nightly job's wall is 30 min)
---   demo_factory.withRun:                                   45 min
---   stage2 (opened by run.mjs, then models_allowed = true): expires_at (it sets now() + 2 h; ~1 h 30 run)
---   anything else:                                          expires_at
--- A window inside its run time is NEVER closed.
+-- RUN TIME is the window's own expires_at, for every opener. CHECK rehearsal_window_at_most_two_hours
+-- bounds it at two hours. An opener that runs shorter sets its own: scripts/e2e/run.mjs takes
+-- QD_E2E_WINDOW_MIN from its workflow's job wall plus 3 min teardown (post-deploy smoke 30 -> 33 min,
+-- nightly journey 117 -> 120 min); stage2 sets now() + 2 h; anything else keeps the 2 h default.
+-- A window before its expires_at is NEVER closed.
 --
 -- LIVE OWNER. A window past its run time is still left open while its tag has spent on a model in the
 -- last 10 minutes (ai_cost_log.e2e_run_tag): that run is demonstrably alive.
@@ -35,12 +32,7 @@ begin
   for x in
     select w.id, w.run_tag, w.opened_by, w.started_at, w.expires_at, d.deadline
       from public.rehearsal_window w
-      cross join lateral (select case
-               when w.opened_by = 'scripts/e2e/run.mjs' and not w.models_allowed
-                 then least(w.expires_at, w.started_at + interval '45 minutes')
-               when w.opened_by = 'demo_factory.withRun'
-                 then least(w.expires_at, w.started_at + interval '45 minutes')
-               else w.expires_at end as deadline) d
+      cross join lateral (select w.expires_at as deadline) d
      where w.ended_at is null
        and d.deadline < now()
        and not exists (select 1 from public.ai_cost_log c
@@ -68,3 +60,10 @@ do $cron$ begin
   if exists (select 1 from cron.job where jobname = 'rehearsal_window_sweep') then perform cron.unschedule('rehearsal_window_sweep'); end if;
   perform cron.schedule('rehearsal_window_sweep', '*/10 * * * *', 'select public.fn_rehearsal_window_sweep();');
 end $cron$;
+
+-- The owning seat, in the register every cron job is read against (every_run_label_and_cron_job_names_its_seat).
+insert into public.writer_seat (kind, name, owner_seat, note, owner_file) values
+  ('cron_job', 'rehearsal_window_sweep', 'it_engineer',
+   'fn_rehearsal_window_sweep() every 10 min: closes a rehearsal window past its expires_at with no tagged model call in 10 min, logged to it_watch_finding.',
+   'scripts/sql/a_rehearsal_window_past_its_run_time_is_closed.sql')
+on conflict (kind, name) do update set owner_seat = excluded.owner_seat, note = excluded.note, owner_file = excluded.owner_file;

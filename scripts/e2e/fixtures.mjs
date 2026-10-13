@@ -43,8 +43,11 @@ export async function openRun(opts = {}) {
   if (process.env.QD_FIXTURES !== '1') process.env.QD_FIXTURES = '1';   // this module IS the fixture door
   const run = newRun({ quiet: true, ...opts });
   run.ids = { inquiries: new Set(), quotes: new Set(), leads: new Set(), customers: new Set(), storage: [] };
-  await write(`insert into public.rehearsal_window (run_tag, opened_by, note)
-               values (${q('qd_run:' + run.tag)}, 'scripts/e2e/run.mjs', 'e2e harness run')`, 'rehearsal window');
+  // The window's run time is its expires_at: fn_rehearsal_window_sweep closes it after that if this process died.
+  // QD_E2E_WINDOW_MIN = the workflow's job wall + teardown (smoke 33, nightly 120); unset or bad = the 2 h maximum.
+  const min = Math.min(120, Math.max(1, Number(process.env.QD_E2E_WINDOW_MIN) || 120));
+  await write(`insert into public.rehearsal_window (run_tag, opened_by, note, expires_at)
+               values (${q('qd_run:' + run.tag)}, 'scripts/e2e/run.mjs', 'e2e harness run', now() + interval '${min} minutes')`, 'rehearsal window');
   return run;
 }
 

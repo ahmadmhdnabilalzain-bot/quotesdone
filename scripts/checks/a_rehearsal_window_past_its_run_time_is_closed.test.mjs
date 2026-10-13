@@ -5,7 +5,8 @@
 // WHAT FAILS IF THE CAUSE RETURNS:
 //   (a) closeOnExit no longer closes the window on SIGTERM, SIGINT, an uncaught exception or an unhandled
 //       rejection (each simulated in a child process), or run.mjs / withRun stop arming it;
-//   (b) fn_rehearsal_window_sweep closes a window still inside its run time, or leaves one past it open
+//   (b) fn_rehearsal_window_sweep closes a window before its expires_at (a 60-minute nightly with no model
+//       calls included), leaves one past it open, or its cron is not registered to it_engineer
 //       (production, one rolled-back request, ZZ windows only: the _probe.sql).
 //
 //   node --test scripts/checks/a_rehearsal_window_past_its_run_time_is_closed.test.mjs
@@ -73,19 +74,18 @@ test('(a) run.mjs and withRun arm closeOnExit with their own run tag and disarm 
 const FILE = 'scripts/sql/a_rehearsal_window_past_its_run_time_is_closed.sql';
 const PROBE = 'scripts/sql/a_rehearsal_window_past_its_run_time_is_closed_probe.sql';
 
-test('(b) the sweeper is house-shaped: pinned search_path, revoked, scheduled, never closes inside run time', () => {
+test('(b) the sweeper is house-shaped: pinned search_path, revoked, no transaction lines, probe note', () => {
   const s = R(FILE);
   assert.match(s, /set search_path to 'public', 'pg_temp'/);
   assert.match(s, /revoke execute on function public\.fn_rehearsal_window_sweep\(\) from public, anon, authenticated;/);
   assert.match(s, /cron\.schedule\('rehearsal_window_sweep'/);
-  assert.match(s, /d\.deadline < now\(\)/);
   assert.match(s, /insert into public\.it_watch_finding/);
   assert.doesNotMatch(s.replace(/--.*$/gm, ''), /^\s*(begin|commit)\s*;/im);
   assert.match(pendingNotes().get(PROBE) || '', /^A PROBE\b/);
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
-test('(b) production, rolled back, ZZ windows only: past run time closed and logged, inside run time left open',
+test('(b) production, rolled back, ZZ windows only: past expires_at closed and logged; smoke, 60-min nightly with no model calls and stage2 inside it left open; cron owned by it_engineer',
   { skip: hasToken ? false : 'no Supabase management token in this environment' }, async () => {
   const pre = pendingNotes().has(FILE) ? R(FILE) + '\n' : '';
   let out = null;
