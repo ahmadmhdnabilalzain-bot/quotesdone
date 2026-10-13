@@ -150,6 +150,24 @@ const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice',
 // passes _shared/reasoned_suppliers.ts quoteTerms; founder_instruction 886-903). Held or absent: the
 // terms stay empty and the review asks the supplier for them — never a label guess.
 // ---------------------------------------------------------------------------------------------
+/**
+ * THE VISION MODEL WRITES MARKDOWN (13 Oct 2026, measured live). read_every_attachment's prompt asks for tables "as
+ * markdown tables", so a photographed quotation comes back as "| Jotun ... | 450 | m2 | 20.00 | 9,000.00 |". The price
+ * reader parses CSV and plain lines, and it read that transcription as NO quotation. Each table row becomes a CSV row
+ * (numbers lose their thousands separators), separator rows and **emphasis** / # headings go; every other line stays.
+ * prevented by: supplier_api/quote_review.test.ts ('a photographed quotation transcribed as a markdown table is priced')
+ */
+export function transcriptAsText(md: string): string {
+  const csvCell = (c: string) => { const v = /^-?[\d,]+(\.\d+)?$/.test(c) ? c.replace(/,/g, '') : c; return /[",]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  return String(md || '').split(/\r?\n/)
+    .filter((l) => !/^\s*\|?[\s:|-]*-{2,}[\s:|-]*\|?\s*$/.test(l))
+    .map((l) => {
+      const s = l.replace(/\*\*|__/g, '').replace(/^\s*#{1,6}\s*/, '');
+      if (!/^\s*\|.*\|\s*$/.test(s)) return s;
+      return s.trim().replace(/^\||\|$/g, '').split('|').map((c) => csvCell(c.trim())).join(',');
+    }).join('\n');
+}
+
 export async function readQuotationFile(bytes: Uint8Array, filename: string, mime: string, supplierTerms: string[] = [],
   readTerms?: (text: string) => Promise<Partial<Record<QuoteTermKey, string>> | null>, vision?: Vision | null): Promise<FileRead> {
   const rd = await readDocument(bytes, filename, mime);
@@ -159,7 +177,7 @@ export async function readQuotationFile(bytes: Uint8Array, filename: string, mim
   // a scan got 'image' and a request for a text PDF. Unreadable only when both askings fail.
   if (vision && (!rd.ok || (!rd.text.trim() && !rd.tables.length && !rd.children.length))) {
     const a = await readEveryAttachment(bytes, filename, mime, vision);
-    if (a.status === 'read' && a.by === 'model') return readQuotationFile(new TextEncoder().encode(a.text), 'quotation.txt', 'text/plain', supplierTerms, readTerms, null);
+    if (a.status === 'read' && a.by === 'model') return readQuotationFile(new TextEncoder().encode(transcriptAsText(a.text)), 'quotation.txt', 'text/plain', supplierTerms, readTerms, null);
     return { proposal: null, text: '', kind: rd.ok ? rd.kind : 'image' };
   }
   if (!rd.ok) return { proposal: null, text: '', kind: 'refused' };
@@ -516,9 +534,10 @@ async function messageWithFile(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: 
   const st = effectiveState(r, deps.now());
   // A quotation photographed into the chat with nothing read yet goes to the review — only when the price reader finds
   // prices in it (a site photo's "2.4 m wide" is a number, not a quotation; caught by the test below).
-  if ((!r.working || st === 'awaiting_upload') && looksTyped(a.text, 1)) {
-    const q = await deps.read(new TextEncoder().encode(a.text.slice(0, 20000)), 'chat_attachment.txt', 'text/plain').catch(() => null);
-    if (q?.proposal) return readTyped(repo, deps, ctx, l, r, a.text.slice(0, 20000), sm.id);
+  const asText = transcriptAsText(a.text).slice(0, 20000);
+  if ((!r.working || st === 'awaiting_upload') && looksTyped(asText, 1)) {
+    const q = await deps.read(new TextEncoder().encode(asText), 'chat_attachment.txt', 'text/plain').catch(() => null);
+    if (q?.proposal) return readTyped(repo, deps, ctx, l, r, asText, sm.id);
   }
   const open = await openIssuesOf(repo, r);
   const said = (t || '(they sent this file with no message)') + `\n\nThey attached "${sc.name}". What it says:` + untrustedBlock(a.text.slice(0, 6000));

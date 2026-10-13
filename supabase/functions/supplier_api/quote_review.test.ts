@@ -10,7 +10,7 @@ import {
   applyCorrections, fromMissing, generatedSaid, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
   type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
-import { QR_HELD_NOTICE, choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
+import { QR_HELD_NOTICE, choose, message, readQuotationFile, start, submit, submitPayload, thread, transcriptAsText, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
 import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_documents.ts';
@@ -705,4 +705,39 @@ Deno.test('a quotation photographed into the chat, nothing read yet, is reviewed
   const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'our quotation', { b64: jpegB64, filename: 'quote.jpg', mime: 'image/jpeg' }));
   assertEquals(t.state, 'changes_requested', JSON.stringify(t.open_requests));
   assert(t.open_requests.some((q) => q.code === 'validity'));
+});
+
+// THE VISION MODEL'S TRANSCRIPTION IS MARKDOWN (13 Oct 2026, measured on production with a ZZ DEMO photo): the table
+// came back with pipes and the price reader found no quotation, so the photo was answered as a conversation.
+const MD_QUOTE = `# ZZ DEMO P painting
+Tel 050 123 4567 · sales@zzdemo-paint.example.invalid
+
+---
+
+### QUOTATION
+
+| Description | Qty | Unit | Rate | Amount |
+|---|---|---|---|---|
+| Jotun Fenomastic emulsion 2 coats internal walls | 450 | m2 | 20.00 | 9,000.00 |
+| Jotun Fenomastic emulsion 2 coats ceiling painting | 120 | m2 | 18.00 | 2,160.00 |
+| **Total (excluding VAT)** | | | | **11,160.00** |
+
+Validity: 30 days
+Lead time: 3 weeks
+Warranty: 2 years materials and workmanship
+Prices exclude VAT`;
+Deno.test('a photographed quotation transcribed as a markdown table is priced', async () => {
+  const flat = transcriptAsText(MD_QUOTE);
+  assert(!/\|/.test(flat) && !/\*\*/.test(flat), flat);
+  assertStringIncludes(flat, 'Jotun Fenomastic emulsion 2 coats internal walls,450,m2,20.00,9000.00');
+  // through the upload path's reader: the model's transcription goes to the same parser
+  const vision = () => Promise.resolve({ ok: true, text: MD_QUOTE });
+  const r = await readQuotationFile(JPEG, 'quote.jpg', 'image/jpeg', [], mockedModel, vision);
+  assert(r.proposal, 'no quotation read from the markdown transcription: ' + JSON.stringify(r).slice(0, 300));
+  assertEquals(r.proposal!.line_items.filter((l) => l.amount != null).map((l) => l.amount), [9000, 2160]);
+  // and through the chat
+  const h = harness();
+  h.deps.readAttachment = () => Promise.resolve({ status: 'read', by: 'model', text: MD_QUOTE, kind: 'image', model_attempts: 1, reason: null, doc: null });
+  const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'our quotation', { b64: jpegB64, filename: 'quote.jpg', mime: 'image/jpeg' }));
+  assert(['changes_requested', 'awaiting_choice'].includes(t.state), 'the photographed quotation was not reviewed: ' + t.state);
 });
