@@ -13,6 +13,7 @@ import { price } from './money';
 type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
+const DOCS_BEING_READ = 'we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes';
 const s = (en: string | ((p: P) => string), ar: string | ((p: P) => string)): Entry => ({
   en: typeof en === 'string' ? () => en : en,
   ar: typeof ar === 'string' ? () => ar : ar,
@@ -575,8 +576,8 @@ const COPY: Record<string, Entry> = {
   licence_number_unread: s('we could not read the licence number on your trade licence, even with our document reader. Please upload a clearer copy (a PDF, or a sharp photo of the whole page); we read it again as soon as it arrives',
     'لم نتمكن من قراءة رقم الرخصة في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
   // 13 Oct 2026 (review of #1404): a profile or catalogue whose read has not finished holds approval until it has.
-  documents_being_read: s('we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes',
-    'ما زلنا نقرأ الملف التعريفي لشركتكم أو الكتالوج؛ وسيُعاد فحص تسجيلكم فور انتهاء القراءة'),
+  // English only: suppliers are always written to in English (ruling 1008), so both slots carry the same sentence.
+  documents_being_read: s(DOCS_BEING_READ, DOCS_BEING_READ),
   licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
     'اسم الشركة في الرخصة التجارية لا يطابق اسم شركتكم المسجّل. يُرجى رفع الرخصة التجارية الخاصة بشركتكم، أو التواصل معنا إن كان اسمكم المسجّل يحتاج إلى تعديل'),
 

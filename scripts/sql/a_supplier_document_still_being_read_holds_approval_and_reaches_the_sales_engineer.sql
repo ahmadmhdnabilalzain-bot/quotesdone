@@ -7,7 +7,12 @@
 --      an already-approved supplier is not demoted by a re-read of a profile).
 --   2. fn_supplier_doc_reading_escalate: a document still 'reading' after p_minutes (30) is a read that did not finish.
 --      It is set 'unreadable' with the reason, and handed to the sales_engineer seat as an agent_actions row
---      (kind document_read_stuck) - never left silent. resilience_ping calls it every run (~15 minutes).
+--      (kind document_read_stuck, once - a pending one is never filed twice) - never left silent - and the gate is
+--      re-run for that supplier so its status is current. A 'reading' document with no read_at counts from the
+--      capability row's extracted_at, else from now (never escalated on the first run). resilience_ping calls it
+--      every run (~15 minutes). The gate logs a held supplier as needs_review with its own recommendation.
+--   Proved by scripts/checks/a_document_still_being_read_holds_the_supplier_and_reaches_the_sales_engineer.test.mjs
+--   (one rolled-back transaction on ZZ DEMO rows, with this file replayed first).
 -- CREATE OR REPLACE keeps the gate's ACL; the new routine is CREATEd, so EXECUTE is revoked from PUBLIC here.
 -- Applied at merge (release operator), never before.
 
@@ -116,12 +121,14 @@ begin
   -- Every decision is recorded; a re-run by the trigger that changed nothing is not a decision.
   if v_changed > 0 or p_source not in ('mandatory_item_changed', 'licence_changed') then
   insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'supplier_verification', case when v_reason in ('licence_unreadable', 'licence_expiry_unread', 'licence_number_unread') or (v_decision = 'pending' and v_reason = 'licence_name_mismatch') then 'needs_review' else 'auto_done' end,
+  values ('sales_engineer', 'supplier_verification', case when v_reason in ('licence_unreadable', 'licence_expiry_unread', 'licence_number_unread', 'documents_being_read') or (v_decision = 'pending' and v_reason = 'licence_name_mismatch') then 'needs_review' else 'auto_done' end,
           case when v_decision = 'action_required' or v_reason in ('licence_unreadable', 'licence_name_mismatch', 'licence_expiry_unread', 'licence_number_unread') then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
             when 'approved' then 'No action required. All six mandatory items are present, the licence name matches and the licence is not known to be expired.'
-            when 'pending' then case when v_reason = 'licence_name_mismatch'
+            when 'pending' then case when v_reason = 'documents_being_read'
+              then 'Held: a company profile or catalogue of this supplier is still being read. The gate is run again when the read finishes; a read still unfinished after 30 minutes is marked unreadable and handed to you (document_read_stuck).'
+              when v_reason = 'licence_name_mismatch'
               then 'Review: an approved supplier uploaded a new trade licence whose company name does not match the registered name. Matching is held. Compare the licence with the registered name, then re-approve or ask for the right licence.'
               when v_reason in ('licence_expiry_unread', 'licence_number_unread')
               then 'Review: complete, but the ' || case v_reason when 'licence_expiry_unread' then 'expiry date' else 'licence number' end || ' on the trade licence could not be read. Read it on the licence, record it, then approve or ask for a clearer copy. It is never approved automatically on the name alone.'
@@ -149,30 +156,38 @@ create or replace function public.fn_supplier_doc_reading_escalate(p_minutes int
  security definer
  set search_path to 'public', 'pg_temp'
 as $function$
-declare v jsonb := '[]'::jsonb; r record; d jsonb; docs jsonb; i int; changed boolean;
+declare v jsonb := '[]'::jsonb; r record; d jsonb; docs jsonb; i int; changed boolean; v_since timestamptz;
 begin
-  for r in select c.supplier_id, c.source_docs from public.supplier_capabilities c
+  for r in select c.supplier_id, c.source_docs, c.extracted_at from public.supplier_capabilities c
             where c.source_docs -> 'docs' @> '[{"status":"reading"}]'::jsonb
             order by c.supplier_id limit greatest(1, least(coalesce(p_limit, 50), 200)) for update skip locked loop
     docs := r.source_docs -> 'docs'; changed := false;
     for i in 0 .. jsonb_array_length(docs) - 1 loop
       d := docs -> i;
-      if d ->> 'status' = 'reading'
-         and coalesce((d ->> 'read_at')::timestamptz, '-infinity'::timestamptz) <= now() - make_interval(mins => greatest(coalesce(p_minutes, 30), 1)) then
+      -- since when it has been 'reading': its own mark, else the capability row's last read, else now (never escalated on
+      -- the first run when nothing says how old it is)
+      v_since := coalesce((d ->> 'read_at')::timestamptz, r.extracted_at, now());
+      if d ->> 'status' = 'reading' and v_since <= now() - make_interval(mins => greatest(coalesce(p_minutes, 30), 1)) then
         docs := jsonb_set(docs, array[i::text], d || jsonb_build_object('status', 'unreadable',
                   'reason', 'the read did not finish (the reader stopped before it was done); the sales engineer has it'));
         insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
-        values ('sales_engineer', 'document_read_stuck', 'pending', 'low',
+        select 'sales_engineer', 'document_read_stuck', 'pending', 'low',
                 left('A supplier document was never read: ' || coalesce(d ->> 'name', d ->> 'path', '?'), 200),
                 jsonb_build_object('supplier_id', r.supplier_id, 'path', d ->> 'path', 'kind', d ->> 'kind', 'reading_since', d ->> 'read_at',
                                    'waiting_for', 'sales_engineer to read it again, or to ask the supplier for a smaller or clearer copy'),
-                'supplier_capabilities', r.supplier_id::text || ':' || coalesce(d ->> 'path', ''));
+                'supplier_capabilities', r.supplier_id::text || ':' || coalesce(d ->> 'path', '')
+         where not exists (select 1 from public.agent_actions a where a.kind = 'document_read_stuck' and a.status = 'pending'
+                             and a.target_id = r.supplier_id::text || ':' || coalesce(d ->> 'path', ''));
         v := v || jsonb_build_array(jsonb_build_object('supplier_id', r.supplier_id, 'path', d ->> 'path'));
         changed := true;
       end if;
     end loop;
     if changed then
       update public.supplier_capabilities set source_docs = jsonb_set(r.source_docs, '{docs}', docs) where supplier_id = r.supplier_id;
+      -- the supplier's status is made current: no longer held for 'documents_being_read' by a read that will never finish
+      if exists (select 1 from public.leads l where l.id = r.supplier_id) then
+        perform public.fn_sales_engineer_verifies_supplier(r.supplier_id, 'documents_read');
+      end if;
     end if;
   end loop;
   return v;
