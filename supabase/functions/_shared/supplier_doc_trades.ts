@@ -57,6 +57,9 @@ export type DocEvidence = {
   source?: 'document_text' | 'photo_text'; supply_only?: boolean;
   /** how each path fared on this document (reader @3 on) */
   exact?: ExactState; meaning?: MeaningState;
+  /** profile / catalogue: 'on' = the model chose the trades and each was proven by its quote; 'unavailable' = it could not
+   *  be asked, so NOTHING was proposed (reason says why); rejected = codes the model named that code refused */
+  choice?: 'on' | 'unavailable'; rejected?: { code: string; why: string }[];
 };
 export const PHOTO_TEXT_MAX = 60_000;
 
@@ -144,14 +147,32 @@ export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Prom
     // the labelled activities line is read now; a licence whose activities could not be read proposes nothing.
     // A NAME IS NEVER A TRADE (12 Oct 2026): the supplier's known names and the names this document's own name fields
     // print are cut out of every line by trade_resolve.withoutNames, printed with or without a legal suffix.
+    let whole = text;
     const F = licenceFieldsFromText(text);
     const names = [...(doc.names ?? []), F.legal_name_en, F.legal_name_ar, F.trade_name];
     if (doc.kind === 'licence') {
       const acts = F.activities;
       if (!acts?.length) return { ...base, status: 'read', format, source, reason: 'no activities line could be read on the licence', trades: [] };
       text = acts.join('\n');
-    } else { text = withoutCredentialLines(text); if (doc.kind === 'profile') text = offerText(text) ?? text; }
+    } else { text = withoutCredentialLines(text); whole = text; if (doc.kind === 'profile') text = offerText(text) ?? text; }
     const c = doc.kind === 'catalogue' ? catalogueText(text) : null;
+    // A PROFILE OR CATALOGUE: THE MODEL CHOOSES FROM OUR CODES, CODE CHECKS EVERY QUOTE (supplier_trade_choice.ts).
+    if (deps.chooseTrades && doc.kind !== 'licence') {
+      // The model reads the OFFER first and then the rest of the document, up to its text cap: on the 29 real files the
+      // offer sections alone hid trades a group brochure states in a company's description (ASGC's facade and steel
+      // companies, Royal Joinery's fit-out), and the model - unlike meaning - is not misled by the rest.
+      const forModel = c ? c.text : text === whole ? whole : `${text}
+
+--- the rest of the document ---
+${whole}`;
+      const ch = await deps.chooseTrades(forModel, doc.kind);
+      if (!ch.ok) {
+        console.error(JSON.stringify({ at: 'supplier_doc_trades.choice', path: doc.path, error: ch.error }));
+        return { ...base, status: 'read', format, source, reason: `the trades could not be chosen: ${ch.error}`, trades: [], choice: 'unavailable', ...(c ? { supply_only: c.supply_only } : {}) };
+      }
+      return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}),
+        trades: ch.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.reason], snippet: t.quote })) };
+    }
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
     return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
   };

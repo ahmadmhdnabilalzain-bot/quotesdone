@@ -76,7 +76,7 @@ for (const d of truth.docs) {
   let model_trades: string[] = [];
   const acts = (j?.ok ? (j.doc as { activities?: string[] }).activities : null) || [];
   if (via === 'gateway' && acts.length && !(c.activities || []).length) {
-    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy');
+    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy', { subject: SUBJECT, headers });
     deps.budget.left = 40;
     const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'licence', bytes, mime: d.mime, photo_text: modelReadText('licence', acts) }, deps);
     model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();
@@ -102,7 +102,7 @@ for (const d of truth.docs) {
   let model_trades: string[] = [];
   const services: string[] = jd?.ok ? (jd.profile?.services || []) : [];
   if (services.length) {
-    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy');
+    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy', { subject: SUBJECT, headers });
     deps.budget.left = 40;
     const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'profile', bytes, mime: d.mime, photo_text: modelReadText('profile', services) }, deps);
     model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();

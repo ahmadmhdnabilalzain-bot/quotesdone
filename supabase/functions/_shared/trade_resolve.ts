@@ -32,10 +32,11 @@ import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
 import { serviceVocab, tradeAliasVocab, tradeArNameVocab, tradeLabelVocab } from './service_vocabulary.ts';
 import { isNameOrReachLine, saysInstallWork, supplyOnlyOf } from './catalogue_read.ts';
 import { NAME_LABELS } from './document_expiry.ts';
+import { liveTradeChooser, type TradeChooser } from './supplier_trade_choice.ts';
 
 export type TradeHit = {
   code: string;
-  via: 'exact_code' | 'exact_name' | 'meaning';
+  via: 'exact_code' | 'exact_name' | 'meaning' | 'model_choice';
   /** what named it: the exact phrase, or the service the line means (its English label, lower case) */
   phrases: string[];
   /** the supplier's own line it was found on */
@@ -64,6 +65,8 @@ export type TradeResolveDeps = {
   /** taxonomy_trade code -> its own aliases: a supplier document's meaning hit must be confirmed by its TRADE (see
    *  service_meaning.proposeByMeaning, opts.tradeAliases). */
   tradeAliases?: Record<string, string[]>;
+  /** A supplier's profile or catalogue: a model chooses its trades from our codes and quotes each (supplier_trade_choice.ts). */
+  chooseTrades?: TradeChooser;
 };
 
 // ── THE TRADE'S OWN ARABIC NAME (12 Oct 2026, sales_engineer) ─────────────────────────────────────────────────────
@@ -287,9 +290,9 @@ export async function codeWordsOf(lines: string[], deps: TradeResolveDeps): Prom
 
 /** The deps as an edge function builds them: the database routine, the stored vectors, embed_ml. */
 // deno-lint-ignore no-explicit-any
-export async function liveTradeDeps(admin: any, caller = 'supplier_doc_trades'): Promise<TradeResolveDeps> {
+export async function liveTradeDeps(admin: any, caller = 'supplier_doc_trades', choice: { subject?: unknown; headers?: Record<string, string> } = {}): Promise<TradeResolveDeps> {
   return {
-    services: await serviceVocab(admin), embed: remoteEmbedder(admin, caller), budget: { left: MEANING_MAX_LINES },
+    services: await serviceVocab(admin), embed: remoteEmbedder(admin, caller), budget: { left: MEANING_MAX_LINES }, chooseTrades: liveTradeChooser(admin, choice),
     tradeLabels: await tradeLabelVocab(admin), tradeNamesAr: await tradeArNameVocab(admin), tradeAliases: await tradeAliasVocab(admin),
     normTrades: async (phrases) => {
       const { data: m, error: e } = await admin.rpc('fn_norm_trades_many', { p_texts: phrases.slice(0, EXACT_MAX_PHRASES) });
