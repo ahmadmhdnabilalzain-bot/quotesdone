@@ -78,6 +78,22 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_party_is_demo(p_kind text, p_id text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    -- a party known only by a reserved address (an 'unknown' inbound probe, or a demo party already removed)
+    when public.fn_is_demo_email(p_id) then true
+    when p_kind = 'customer' and p_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      then public.fn_customer_is_demo(p_id::uuid)
+    when p_kind in ('supplier', 'lead') and p_id ~ '^[0-9]{1,18}$' then public.fn_supplier_is_demo(p_id::bigint)
+    else false end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_pdpl_actor()
  RETURNS text
  LANGUAGE sql
@@ -1473,6 +1489,17 @@ begin
   end loop;
   return v_n;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_quote_is_demo(p_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select public.fn_inquiry_is_demo(q.inquiry_id) or public.fn_supplier_is_demo(q.supplier_id)
+                     from public.quotes q where q.id = p_id), false)
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_quote_quality_compose(p_kind text, p_lang text, p jsonb)

@@ -1520,6 +1520,18 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_transaction_is_demo(p_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select public.fn_customer_is_demo(t.customer_id) or public.fn_supplier_is_demo(t.supplier_id)
+                          or public.fn_inquiry_is_demo(t.inquiry_id) or public.fn_quote_is_demo(t.quote_id)
+                     from public.transactions t where t.id = p_id), false)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_transaction_refund_outcome_follows_through()
  RETURNS trigger
  LANGUAGE plpgsql
