@@ -651,10 +651,9 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
     // quotation). The supplier's own language is printed first and named in the message; the other
     // is attached beside it. A print that fails still leaves the attachment, which the portal prints
     // on demand through quote_pdf.
-    const first: Lang = ctx.lang, second: Lang = first === 'ar' ? 'en' : 'ar';
+    const first: Lang = ctx.lang;   // one print, in English (founder ruling 1008); no second-language copy for a supplier
     const pdf = generated && ids[0] ? await deps.quotePdf(ids[0], first).catch(() => ({ url: null, ref: null })) : { url: null, ref: null };
-    if (generated && ids[0]) await deps.quotePdf(ids[0], second).catch(() => null);
-    const atts: Attachment[] = generated && ids[0] ? [first, second].map((lg) => ({ kind: 'standard_quote' as const, name: `${pdf.ref || 'QuotesDone quotation'}-${lg}.pdf`, quote_id: ids[0], lang: lg })) : [];
+    const atts: Attachment[] = generated && ids[0] ? [first].map((lg) => ({ kind: 'standard_quote' as const, name: `${pdf.ref || 'QuotesDone quotation'}-${lg}.pdf`, quote_id: ids[0], lang: lg })) : [];
     const heldIssues = heldOpts.flatMap((o) => (Array.isArray(o.missing) ? o.missing : []) as MissingItem[]).map(fromMissing);
     const base = submittedSaid(inq.job_no, pdf.ref, generated);
     const said: Said = heldOpts.length ? {

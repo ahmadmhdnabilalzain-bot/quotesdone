@@ -258,22 +258,18 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
   );
   return <div className={S.list}>{receipt ? <ReceiptBanner receipt={receipt} lang={lang} /> : null}{dues}<Receipts token={token} lang={lang} onExpired={onExpired} /><RegistrationFeeCard token={token} lang={lang} base={base} /></div>;
 }
-// A supplier's own document as PDF (supplier_api quote_pdf / receipt_pdf, 15 Sep 2026): the portal's
-// language first and the other language one click away, through the same popup-safe door the customer's
-// quotation uses (src/lib/openDocument.ts).
-function PdfLinks({ lang, fetchPdf, otherOnly = false }) {
-  const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
-  const mine = lang === 'ar' ? 'ar' : 'en'; const other = mine === 'ar' ? 'en' : 'ar';
-  const open = (docLang) => async (e) => {
-    e.stopPropagation(); setBusy(docLang); setMsg('');
-    const ok = await openDocument(lang, async () => { const j = await fetchPdf(docLang); return j && j.ok && j.url ? j.url : null; });
-    setBusy(''); if (!ok) setMsg(lang === 'ar' ? 'تعذّر تجهيز المستند. يُرجى المحاولة مرة أخرى.' : 'The document could not be prepared. Please try again.');
+// A supplier's own document as PDF (supplier_api receipt_pdf, 15 Sep 2026), through the same popup-safe
+// door the customer's quotation uses (src/lib/openDocument.ts). English only: an Arabic-copy link sat
+// beside it until 13 Oct 2026 (founder ruling 1008; scripts/checks/nothing_a_supplier_reads_can_be_arabic.test.mjs).
+function PdfLink({ fetchPdf }) {
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const open = async (e) => {
+    e.stopPropagation(); setBusy(true); setMsg('');
+    const ok = await openDocument('en', async () => { const j = await fetchPdf(); return j && j.ok && j.url ? j.url : null; });
+    setBusy(false); if (!ok) setMsg('The document could not be prepared. Please try again.');
   };
-  const prep = lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…';
   return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-    {/* otherOnly: the four-action row (DocActions) already offers the reader's own language. */}
-    {!otherOnly && <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(mine)}>{busy === mine ? prep : (mine === 'ar' ? 'تنزيل PDF' : 'Download PDF')}</button>}
-    <button type="button" lang={other} className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-2 text-[11.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(other)}>{busy === other ? prep : (other === 'ar' ? 'النسخة العربية' : 'English version')}</button>
+    <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={busy} onClick={open}>{busy ? 'Preparing…' : 'Download PDF'}</button>
     {msg ? <span role="alert" className="text-[12px] text-danger-fg">{msg}</span> : null}
   </span>);
 }
@@ -297,15 +293,13 @@ function Receipts({ token, lang, onExpired }) {
       <ul className="mt-3 flex flex-col gap-2">{list.map((r) => (
         <li key={(r.kind || 'dues') + ':' + (r.id ?? r.paid_at)} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
           <span>{r.kind === 'registration' ? (ar ? 'رسوم الاشتراك السنوية · ' : 'Annual subscription fee · ') : ''}<Ltr className="font-semibold tabular-nums">{aed(lang, r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
-          {/* A paid receipt is sealed: View / Download work, Replace / Remove say why not (instruction 524).
-              The other-language copy stays one click away beside them. */}
+          {/* A paid receipt is sealed: View / Download work, Replace / Remove say why not (instruction 524). */}
           <span className="inline-flex flex-wrap items-center gap-3">
             <DocActions lang={lang} name={'receipt-' + (r.id ?? 'registration') + '.pdf'} sealed="paid_invoice"
-              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: lang === 'ar' ? 'ar' : 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
-            <PdfLinks lang={lang} otherOnly fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: l }, token)} />
+              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
             {/* OUR invoice for the same payment (audit 22 Sep 2026, finding 2): Stripe issues none. */}
             <span className="text-[12px] text-muted-foreground">{ar ? 'الفاتورة:' : 'Invoice:'}</span>
-            <PdfLinks lang={lang} fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', doc: 'invoice', kind: r.kind, due_id: r.id, lang: l }, token)} />
+            <PdfLink fetchPdf={() => call('supplier_api', { action: 'receipt_pdf', doc: 'invoice', kind: r.kind, due_id: r.id, lang: 'en' }, token)} />
           </span>
         </li>))}</ul>
     </Card>
