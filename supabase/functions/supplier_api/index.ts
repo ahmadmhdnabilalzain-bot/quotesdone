@@ -12,6 +12,7 @@ import { arDays } from '../_shared/ar_days.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
+import { aiReply } from '../_shared/ai_reply.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { CANONICAL_ORIGIN, siteReturnBase, siteCors } from '../_shared/site_origins.ts';
@@ -483,7 +484,36 @@ const handle = async (req: Request): Promise<Response> => {
       const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: SUPPLIER_LOCALE }, email, self, body, repo: supabaseReviewRepo(admin), scan,
         readTerms: async (text: string) => (await quoteTerms(defaultDeps(admin, 'supplier_api'), { text })).value,
         // The review reads the quotation the way the hold gate will (reasoned_matching.ts readQuote); held: nothing is read, every detail is asked.
-        readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id) });
+        readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id),
+        // THE ENGINEER'S WORDS (rulings 1195-1197): the model writes every chat message from what the review decided, and
+        // reads the supplier's next step (choose / submit) in the same call. Suppliers are always answered in English.
+        voice: async (v) => {
+          const r = await aiReply(defaultDeps(admin, 'supplier_api'), {
+            seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
+            message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
+            facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id),
+            rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
+            subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
+          });
+          return { text: r.reply, action: r.action ?? null };
+        },
+        // No model answer: the turn waits in sales_engineer's queue; reasoned_delivery.ts posts the GUARDED (aiReply)
+        // replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
+        hold: async (v) => {
+          const subject = { channel: 'portal', review_id: v.reviewId, supplier_id: Number(sup.id) };
+          const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);
+          await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'supplier_api.quote_review_unwritten', p_question: q,
+            p_request: { seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', subject, research: false,
+              question: `Write the sales engineer's next message in this supplier's quotation thread, in English. They were told we received their message.
+
+WHAT THE REVIEW DECIDED (facts):
+${v.situation.slice(0, 3000)}
+
+THEIR MESSAGE:
+${q}`,
+              context: { audience: 'supplier', language: 'en' } },
+            p_plan: {}, p_subject: subject, p_reason: v.why, p_dedupe_key: 'qr_unwritten:' + v.reviewId + ':' + q.slice(0, 40) });
+        } });
       return J(out.json, out.status);
     }
 
