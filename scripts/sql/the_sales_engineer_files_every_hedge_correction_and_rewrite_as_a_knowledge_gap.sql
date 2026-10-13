@@ -40,7 +40,7 @@ exception when duplicate_object then null; end $$;
 
 -- The phrases. One place, so the test and the sweep agree. Arabic and English.
 create or replace function public.fn_knowledge_gap_kind(p_agent text, p_customer text)
-returns text language sql immutable set search_path = public, pg_temp as $$
+returns text language sql immutable set search_path to 'public', 'pg_temp' as $$
   select case
     when coalesce(p_agent,'') ~* '(i don.?t (know|have)|i do not (know|have)|rather not guess|i.?m not sure|i am not sure|not certain|i.?ll (check|confirm|get back)|i will (check|confirm|get back)|let me (check|confirm)|unable to (answer|say)|cannot (answer|say|confirm)|لا أعرف|لا اعرف|لست متأكد|غير متأكد|سأتحقق|سوف أتحقق|سأعود إليك)' then 'hedge'
     when coalesce(p_customer,'') ~* '(that.?s (wrong|not right|incorrect)|this is (wrong|incorrect)|you are wrong|not correct|incorrect|i already (told|said|sent)|as i said|غلط|خطأ|غير صحيح|قلت لك|ذكرت سابقا)' then
@@ -49,7 +49,7 @@ returns text language sql immutable set search_path = public, pg_temp as $$
 $$;
 
 create or replace function public.fn_knowledge_gap_sweep(p_hours int default 26, p_dry_run boolean default false)
-returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $$
 declare
   v_from timestamptz := now() - make_interval(hours => greatest(p_hours, 1));
   v_found int := 0; v_filed int := 0; v_by jsonb := '{}'::jsonb; r record;
@@ -97,11 +97,11 @@ end $$;
 
 -- the duty runner calls the routine with no arguments
 create or replace function public.fn_sales_engineer_knowledge_gap_tick()
-returns jsonb language sql security definer set search_path = public, pg_temp as $$ select public.fn_knowledge_gap_sweep(26, false) $$;
+returns jsonb language sql security definer set search_path to 'public', 'pg_temp' as $$ select public.fn_knowledge_gap_sweep(26, false) $$;
 
-revoke all on function public.fn_knowledge_gap_sweep(int, boolean) from public, anon, authenticated;
-revoke all on function public.fn_sales_engineer_knowledge_gap_tick() from public, anon, authenticated;
-revoke all on function public.fn_knowledge_gap_kind(text, text) from public, anon, authenticated;
+revoke execute on function public.fn_knowledge_gap_sweep(int, boolean) from public, anon, authenticated;
+revoke execute on function public.fn_sales_engineer_knowledge_gap_tick() from public, anon, authenticated;
+revoke execute on function public.fn_knowledge_gap_kind(text, text) from public, anon, authenticated;
 
 insert into public.seat_duty (duty, what, every, enabled, routine, owner_file, owner_seat)
 values ('sales_engineer.knowledge_gap_sweep',
