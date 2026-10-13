@@ -221,3 +221,28 @@ Deno.test('on a supplier document a meaning hit stands only when the line holds 
   // without tradeAliases (the Services tab, the RFQ side) nothing changes: the head word still corroborates
   assertEquals(proposeByMeaning([{ text: 'Management 1', vec: [0.95, 0, 0.3], space: 'gte' }], S, { tradeLabels: labels }).map((x) => x.trade), ['accounting_bookkeeping']);
 });
+
+// ── ARABIC (review of #1404; measured on the BCG Arabic brochure, 69 pages) ─────────────────────────────────────────
+import { arabicLigatureFix } from './doc_read/pdf.ts';
+Deno.test('Arabic: the reversed lam-alef at a word start is repaired; an alef-lam inside a word is left alone', () => {
+  assertEquals(arabicLigatureFix('االنتهاء من أعمال األساسات'), 'الانتهاء من أعمال الأساسات');
+  assertEquals(arabicLigatureFix('أعمال مال سؤال'), 'أعمال مال سؤال');
+});
+Deno.test('Arabic: a long profile is read under its Arabic offer heading and offer sentences', () => {
+  const filler = (k: string, n: number) => Array.from({ length: n }, (_, i) => `${k} ${i + 1}`);
+  const doc = ['كلمة رئيس مجلس الإدارة', ...filler('سطر رؤية', 30), 'خدماتنا', 'أعمال الأساسات', 'أعمال الطرق والجسور',
+    ...filler('صورة مشروع', 30), 'قائمة العملاء', 'زد زد ديمو للتغليف', 'الشركة متخصصة في أعمال المقاولات العامة'].join('\n');
+  const o = offerText(doc)!;
+  for (const l of ['أعمال الأساسات', 'أعمال الطرق والجسور', 'متخصصة في أعمال المقاولات العامة']) assert(o.includes(l), l);
+  for (const l of ['زد زد ديمو للتغليف', 'سطر رؤية 3']) assert(!o.includes(l), l);
+});
+Deno.test('Arabic: a meaning hit on an Arabic line stands only with an Arabic alias of its trade', () => {
+  const S: MeaningService[] = [{ trade_code: 'fire_fighting', code: 'sprinklers', label_en: 'Sprinkler systems', label_ar: 'رشاشات الحريق', aliases: [], vec: [1, 0], vec_ml: [1, 0] },
+    { trade_code: 'accounting_bookkeeping', code: 'mgmt', label_en: 'Management accounts', label_ar: 'حسابات الإدارة', aliases: [], vec: [0, 1], vec_ml: [0, 1] }];
+  const labels = { fire_fighting: 'Fire fighting & life safety', accounting_bookkeeping: 'Accounting & bookkeeping' };
+  const tradeAliases = { fire_fighting: ['مكافحة حريق', 'رشاشات حريق'], accounting_bookkeeping: ['محاسبة'] };
+  const read = (text: string, vec: number[]) => proposeByMeaning([{ text, vec, space: 'ml' }], S, { tradeLabels: labels, tradeAliases }).map((x) => [x.trade, x.because]);
+  assertEquals(read('تركيب رشاشات الحريق ضمن أنظمة مكافحة الحريق', [0.99, 0.1]), [['fire_fighting', 'trade_alias']]);
+  assertEquals(read('الإدارة العليا', [0.1, 0.99]), []);
+  assertEquals(read('رشاشات المياه للحدائق', [0.99, 0.1]), [], 'the service word alone, without the trade, is not enough');
+});

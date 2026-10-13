@@ -184,6 +184,7 @@ export function corroborate(s: MeaningService, words: Set<string>, norm: string,
   return alias ? { because: 'alias', word: alias } : { because: null, word: null };
 }
 
+const isArabicText = (t: string) => /[؀-ۿ]/.test(t);
 /** An alias as whole words, a plural s allowed, hyphen or space between its words ("fit out" = "fit-out"). */
 const wholeWords = (a: string) => new RegExp('(?<![\\p{L}\\p{N}])' + a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[\s-]+/g, '[\\s-]+') + 's?(?![\\p{L}\\p{N}])', 'iu');
 
@@ -230,20 +231,25 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
     const parts = (code: string) => String(opts.tradeLabels?.[code] ?? '').toLowerCase().split(/[&,()/]| and /).map((x) => contentWords(x)).filter((x) => x.length);
     const judgeOf = (s: MeaningService): { because: Cand['because']; word: string | null } => {
       let { because, word }: { because: Cand['because']; word: string | null } = corroborate(s, words, norm, ml);
-      if (ml || !opts.tradeLabels) return { because, word };
-      if (!because) { const whole = parts(s.trade_code).find((x) => x.every((w) => words.has(w))); if (whole) { because = 'trade_word'; word = whole.join(' '); } }
-      if (because && word && Object.keys(opts.tradeLabels).some((code) => code !== s.trade_code && parts(code).some((x) => x.length === 1 && x[0] === word))) return { because: null, word: null };
+      if (!opts.tradeLabels) return { because, word };
+      if (!ml) {
+        if (!because) { const whole = parts(s.trade_code).find((x) => x.every((w) => words.has(w))); if (whole) { because = 'trade_word'; word = whole.join(' '); } }
+        if (because && word && Object.keys(opts.tradeLabels).some((code) => code !== s.trade_code && parts(code).some((x) => x.length === 1 && x[0] === word))) return { because: null, word: null };
+      }
       // THE TRADE MUST AGREE, NOT ONLY THE SERVICE (13 Oct 2026, it_engineer; opt-in through opts.tradeAliases, which only
       // supplier_doc_trades passes). On 29 real UAE company profiles the service's head word agreed with 183 lines the
       // company does not do - "Management 1" (an org chart) -> accounting's "management accounts", "Full range of
       // equipment" -> commercial kitchens' "cooking ranges", " Testing and Commissioning" -> testing labs - and with 30
       // that it does. A supplier's line now stands only when it holds the TRADE's own name: a whole part of its label
-      // (trade_word, above) or one of its own aliases (taxonomy_trade.aliases), whole words. The vector still chooses
-      // the service; the trade's words only confirm it, and a line holding none of them proposes nothing.
+      // (trade_word) or one of its own aliases (taxonomy_trade.aliases) - English as whole words, ARABIC too, folded as
+      // contentWords folds it (ال, plural s), in an Arabic line (review of #1404). The vector still chooses the service;
+      // the trade's words only confirm it, and a line holding none of them proposes nothing.
       if (because && because !== 'trade_word' && opts.tradeAliases) {
-        const whole = parts(s.trade_code).find((x) => x.every((w) => words.has(w)));
-        if (whole) return { because: 'trade_word', word: whole.join(' ') };
-        const al = (opts.tradeAliases[s.trade_code] || []).find((a) => a.length >= 3 && !/[؀-ۿ]/.test(a) && wholeWords(a).test(line.text));
+        if (!ml) { const whole = parts(s.trade_code).find((x) => x.every((w) => words.has(w))); if (whole) return { because: 'trade_word', word: whole.join(' ') }; }
+        const seq = ' ' + contentWords(line.text).join(' ') + ' ';
+        const al = (opts.tradeAliases[s.trade_code] || []).find((a) => a.length >= 3 && (isArabicText(a)
+          ? contentWords(a).length > 0 && seq.includes(' ' + contentWords(a).join(' ') + ' ')
+          : !ml && wholeWords(a).test(line.text)));
         if (!al) return { because: null, word: null };
         return { because: 'trade_alias', word: al };
       }

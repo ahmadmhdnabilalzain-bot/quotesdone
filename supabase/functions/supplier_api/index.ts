@@ -26,8 +26,8 @@ import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { pdfjsText } from '../_shared/doc_read/pdf.ts';
-import { licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
+import { readDocument } from '../_shared/doc_read/index.ts';
+import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -828,15 +828,19 @@ ${q}`,
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
-        readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
+        // ONE read of the profile (review of #1404): the words-only read that proposes its trades is done here, kept on the
+        // queue item (DocIn.read), and its own verdict says whether the PDF has a text layer - no second parse.
+        const profRead = /pdf/i.test(s.mime) ? await readDocument(s.bytes, String(prof.filename || 'profile.pdf'), s.mime, 0, { textOnly: true }) : undefined;
+        readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime, ...(profRead ? { read: profRead } : {}) });
         // A PHOTO-ONLY PROFILE IS READ TOO (ruling 1177): code has no text to read in a picture, so the picture goes to
         // the vision model (profile mode) like the page images the portal sends; its services are then read for trades.
-        if (/^image\//i.test(s.mime)) profImgs.push({ b64: btoa(Array.from(s.bytes, (c) => String.fromCharCode(c)).join('')), mime: s.mime });
+        if (/^image\//i.test(s.mime)) profImgs.push({ b64: toB64(s.bytes), mime: s.mime });
         // A PROFILE PDF WITH NO TEXT LAYER IS READ THE SAME WAY (13 Oct 2026, it_engineer; ACCURACY_real_profiles.md): a
         // scanned or outlined-text profile (Menasco, 87 pages, 0 characters) was stored as needs_ocr and never read. The
         // PDF itself goes to the profile mode as a file (licence_extract.documentContent), up to PROFILE_PDF_MODEL_MAX.
-        else if (/pdf/i.test(s.mime) && s.bytes.length <= PROFILE_PDF_MODEL_MAX && !/\p{L}{2}/u.test(await pdfjsText(s.bytes))) {
-          profPdf = { file_b64: btoa(Array.from(s.bytes, (c) => String.fromCharCode(c)).join('')), mime: s.mime, filename: String(prof.filename || 'profile.pdf') };
+        // A PDF pdf.js could not parse is NOT sent: it is held unreadable (profRead.ok false), never taken for a scan.
+        else if (profRead?.ok && profRead.needs === 'ocr' && s.bytes.length <= PROFILE_PDF_MODEL_MAX) {
+          profPdf = { file_b64: toB64(s.bytes), mime: s.mime, filename: String(prof.filename || 'profile.pdf') };
         }
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);

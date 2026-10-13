@@ -112,17 +112,20 @@ export function withoutCredentialLines(text: string): string {
 //     OFFER_TAIL lines that continue it (a PDF breaks a sentence across lines).
 // Which trade those lines name is still decided only by exact code and meaning (trade_resolve.tradesOfText).
 // A document of SHORT_DOC_LINES lines or fewer, or one that states no offer in these forms, is read whole, as before.
-// ponytail: English offer phrasing only; an Arabic profile is read whole until it is measured.
+// ARABIC TOO (review of #1404): the same headings and offer sentences in Arabic (خدماتنا، نطاق العمل، منتجاتنا، متخصصة في،
+// نقدم ...). Measured on the BCG Arabic brochure (69 pages) in ACCURACY_real_profiles.md.
 export const SHORT_DOC_LINES = 60, OFFER_WINDOW = 25, OFFER_TAIL = 3;
 const OFFER_HEAD = /^\s*(?:\d{1,2}[.)]?\s*)?(?:our\s+|core\s+|main\s+|key\s+|list\s+of\s+)*(?:services?|products?(?:\s+range)?|product\s+range|scope(?:\s+of\s+(?:work|works|services|supply))?|activities|speciali[sz](?:ed\s+in|ations?)|expertise|what\s+we\s+do|capabilities|disciplines|divisions)\s*:?\s*$/i;
 const OFFER_FRAME = /\b(?:speciali[sz](?:e|es|ed|ing)\s+in|services?\s+(?:include|including|such\s+as|offered)|we\s+(?:offer|provide|undertake|supply|install|manufacture|take\s+up|carry\s+out|deal\s+in)|scope\s+of\s+works?\s*(?:includes?|:)|activities\s*:|principal\s+activit(?:y|ies)|engaged\s+in|deal(?:s|ing)?\s+(?:with|in)|(?:is|are)\s+(?:a|an|the)\s+(?:[\w&/-]+\s+){0,6}?(?:company|contractors?|manufacturers?|suppliers?|providers?|specialists?|firm))\b/i;
+const OFFER_HEAD_AR = /^\s*(?:\d{1,2}[.)]?\s*)?(?:خدماتنا|الخدمات|خدمات الشركة|نطاق العمل|نطاق الأعمال|نطاق أعمالنا|منتجاتنا|المنتجات|الأنشطة|أنشطة الشركة|أنشطتنا|مجالات العمل|مجالات عملنا|تخصصاتنا|قدراتنا|خبراتنا|أقسام الشركة)\s*[:：]?\s*$/u;
+const OFFER_FRAME_AR = /(?:متخصص(?:ة|ون|ين)?\s+في|تتخصص\s+في|نتخصص\s+في|نقدم|نوفر|تقدم\s+الشركة|توفر\s+الشركة|تشمل\s+خدمات|خدماتنا\s+تشمل|نشاط\s+الشركة|تعمل\s+(?:الشركة\s+)?في\s+مجال)/u;
 export function offerText(text: string): string | null {
   const lines = String(text ?? '').split(/\r?\n/);
   if (lines.filter((l) => l.trim()).length <= SHORT_DOC_LINES) return null;
   const keep = new Set<number>();
   lines.forEach((l, i) => {
-    if (OFFER_HEAD.test(l)) for (let k = i + 1; k <= i + OFFER_WINDOW && k < lines.length; k++) keep.add(k);
-    const m = OFFER_FRAME.exec(l);
+    if (OFFER_HEAD.test(l) || OFFER_HEAD_AR.test(l)) for (let k = i + 1; k <= i + OFFER_WINDOW && k < lines.length; k++) keep.add(k);
+    const m = OFFER_FRAME.exec(l) ?? OFFER_FRAME_AR.exec(l);
     if (m) { lines[i] = l.slice(m.index); for (let k = i; k <= i + OFFER_TAIL && k < lines.length; k++) keep.add(k); }
   });
   const out = [...keep].sort((a, b) => a - b).map((i) => lines[i]).filter((l) => l.trim());
