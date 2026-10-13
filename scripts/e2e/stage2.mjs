@@ -52,8 +52,8 @@ process.env.QD_FIXTURES = '1';
 
 // ---- the matrix ------------------------------------------------------------------------------------
 // Ten different trades, one supplier each, in rotating emirates; plus three more aluminium suppliers.
-// The aluminium request invites as many of the four as decision_policy.match_max_fanout_per_trade allows
-// (3 today), and S07 proves the one left out is refused. elevators has NO demo
+// The aluminium request invites all four (any number may quote) and collects four quotes, so the
+// comparison has a top 3 and "the rest". elevators has NO demo
 // supplier: its request must HOLD, never be routed to a nearest trade (exact trade match or none).
 export const SUPPLIER_TRADES = ['aluminium', 'electrical', 'plumbing', 'hvac', 'flooring', 'joinery', 'glazing', 'painting', 'waterproofing', 'landscaping'];
 export const EXTRA_ALUMINIUM = ['A2', 'A3', 'A4'];
@@ -70,7 +70,7 @@ export const SCENARIOS = [
   { key: 'S04', title: 'Inquiries through the sales-engineer interview: EN + AR, exact specs and "not sure", multiple lines, several emirates', calls: [['inquiry_qualification_conversation', 60, 3000, 500], ['category_classification', 10, 1000, 100]] },
   { key: 'S05', title: 'Drawing / photo / BOQ inquiries: analysed, redacted, no identity reaches a supplier', calls: [['drawing_and_boq_analysis', 4, 8000, 2000], ['redaction_detection', 4, 3000, 500], ['identity_redaction_verify', 4, 4000, 300], ['drawing_boq_confirm', 2, 4000, 500]] },
   { key: 'S06', title: 'Matching: each request reaches only its exact-trade demo supplier; the unmatched trade holds', calls: [['rfq_routing', 11, 3000, 800]] },
-  { key: 'S07', title: 'Quotes from every supplier the request invited (per-trade cap read from decision_policy), the uninvited refused, incomplete quote held with notes, revision releases it, PDF extraction', calls: [['json_extraction', 8, 6000, 1500], ['procurement_reasoning', 8, 4000, 800]] },
+  { key: 'S07', title: 'Quotes: every capable supplier invited (4 on the aluminium request, no count cap) and quoting, incomplete quote held with notes, revision releases it, PDF extraction', calls: [['json_extraction', 8, 6000, 1500], ['procurement_reasoning', 8, 4000, 800]] },
   { key: 'S08', title: 'Spec questions answered by the customer incl. "not sure" (spec offer / missing specs)', calls: [['sales_engineer_reasoning', 6, 3000, 600]] },
   { key: 'S09', title: 'Comparison report on the Opus route: top 3 + every other quote listed, EN and AR', calls: [['quote_comparison', 2, 20000, 6000], ['translation', 4, 6000, 6000]] },
   { key: 'S10', title: 'Reveal with Stripe TEST: declined card refused, paid card reveals at 3% with no card surcharge, invoice + receipt, both parties notified (customer in AR, supplier in EN)', calls: [['customer_communication', 4, 1500, 400], ['supplier_communication', 4, 1500, 400]] },
@@ -181,6 +181,19 @@ async function cleanupLearning(tag, ids, window) {
   const cached = (ids.leads || []).length ? await read(`select bucket, path from public.supplier_document_cache where supplier_id::text in (${lst(ids.leads)}) and bucket is not null and path is not null`) : [];
   if (cached.length) { const { SERVICE } = await keys(); for (const c of cached) await fetch(`${BASE}/storage/v1/object/${c.bucket}/${c.path}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } }).catch(() => {}); }
   await del('supplier_document_cache', `delete from public.supplier_document_cache where supplier_id::text in (${lst(ids.leads)})`);
+  // Run 71b75b60, the first run with released quotes and a real comparison, left the comparison cache (2 rows) and 6 rendered
+  // PDFs named only by the run's ids (agent-docs compare/<inquiry>/..., quote-files quotes/<lead>/<inquiry>/regenerated/...).
+  // Removed by the run's own UUIDs anywhere in the name, and by its numeric lead ids only inside the lead-keyed folders.
+  await del('qd_compare_cache', `delete from public.qd_compare_cache where inquiry_id::text in (${lst(ids.inquiries)})`);
+  {
+    const uu = [...(ids.customers || []), ...(ids.inquiries || []), ...(ids.quotes || [])].map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
+    const ld = (ids.leads || []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    const conds = [...uu.map((u) => `name like ${q('%' + u + '%')}`),
+      ...ld.flatMap((n) => ['quotes', 'supplier', 'licenses', 'profiles', 'catalogs'].map((f) => `name like ${q('%' + f + '/' + n + '/%')}`))];
+    const objs = conds.length ? await read(`select bucket_id b, name n from storage.objects where ${conds.join(' or ')}`) : [];
+    if (objs.length) { const { SERVICE } = await keys(); for (const o of objs) await fetch(`${BASE}/storage/v1/object/${o.b}/${o.n}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } }).catch(() => {}); }
+    out.storage_by_id = objs.length;
+  }
   const hasCol = (await read(`select count(*)::int n from information_schema.columns where table_schema='public' and table_name='ai_cost_log' and column_name='e2e_run_tag'`))[0].n;
   if (hasCol) await del('ai_cost_log', `delete from public.ai_cost_log where e2e_run_tag = ${q(tag)}`);
   else out.ai_cost_log = 'PENDING: ai_cost_log.e2e_run_tag is not applied yet (--run refuses until it is)';
@@ -194,7 +207,9 @@ const dbxCred = async () => (await read(`select value from public.app_secrets wh
 async function verifyClean(tag, ids = {}) {
   const tables = (await read(`select r.table_name t from public.table_export_registry r
       join information_schema.tables i on i.table_schema='public' and i.table_name=r.table_name and i.table_type='BASE TABLE'
-      where r.table_name <> 'rehearsal_window' order by 1`)).map((r) => r.t);  // the window row is the kept record that a rehearsal ran
+      where r.table_name not in ('rehearsal_window', 'routine_change_log') order by 1`)).map((r) => r.t);
+  // rehearsal_window: the kept record that a rehearsal ran. routine_change_log: the DDL audit of applied SQL, whose COMMENTS may
+  // cite a run tag as evidence (run 1c94fa6a: #1337's quote-quality fix named it). Neither is demo data; neither may be deleted.
   const cols = await read(`select table_name t, column_name c from information_schema.columns where table_schema='public'
       and column_name ~ '^(inquiry_id|quote_id|lead_id|supplier_id|supplier_lead_id|customer_id|transaction_id|refund_id)$'`);
   const idSet = [...(ids.inquiries || []), ...(ids.quotes || []), ...(ids.leads || []), ...(ids.customers || []), ...(ids.transactions || []), ...(ids.refunds || [])].map(String);
@@ -388,21 +403,18 @@ async function realRun(pre) {
     S07: async () => {
       const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const al = fx.suppliers.filter((s) => s.trade === 'aluminium');
-      // WHO WAS INVITED IS READ, NOT ASSUMED (run 1c94fa6a, 12 Oct 2026). The harness quoted from all four
-      // aluminium suppliers and A4 got 404 "no inquiry_matches row": the sales engineer's matcher
-      // (supabase/functions/sales_engineer/index.ts, the per-trade loop) takes at most
-      // decision_policy.match_max_fanout_per_trade suppliers per trade - 3 today, a founder dial - so on a
-      // one-trade request the 4th capable supplier is correctly never invited. The run now quotes from the
-      // invited suppliers, and proves the dial on the ones it left out: an uninvited supplier is refused.
-      const cap = Number((await read(`select value from public.decision_policy where key='match_max_fanout_per_trade'`))[0]?.value);
+      // EVERY CAPABLE SUPPLIER IS INVITED (founder ruling 24 Sep 2026: any number may quote; top 3 is only the
+      // report). Run 1c94fa6a: A4 got 404 because the matcher then stopped each trade at 3; that cap is gone
+      // (scripts/checks/every_matched_supplier_is_invited.test.mjs), so all four aluminium suppliers must be invited
+      // and quote. Who was invited is still READ from inquiry_matches, never assumed.
       const invitedIds = new Set((await read(`select supplier_id from public.inquiry_matches where inquiry_id=${q(inq.id)}`)).map((r) => Number(r.supplier_id)));
       const inv = al.filter((s) => invitedIds.has(Number(s.leadId)));
       const out = al.filter((s) => !invitedIds.has(Number(s.leadId)));
-      A(`the aluminium request invites min(${al.length} capable, per-trade cap ${cap}) aluminium suppliers`, Number.isFinite(cap) && inv.length === Math.min(al.length, cap),
+      A(`the aluminium request invites every one of its ${al.length} capable aluminium suppliers (no count cap)`, inv.length === al.length,
         `invited ${inv.map((s) => s.row.company_name).join(', ')}; not invited ${out.map((s) => s.row.company_name).join(', ') || 'none'}`);
       for (const s of out) {
         const r = await call('supplier_api', s.jwt, quotePayload(inq.id, 150000, 'ZZ DEMO uninvited quote'));
-        A(`${s.row.company_name} was not invited (per-trade cap ${cap}), so its quote is refused`, r.status === 404, `HTTP ${r.status}`);
+        A(`${s.row.company_name} was not invited, so its quote is refused`, r.status === 404, `HTTP ${r.status}`);
       }
       need(inv.length >= 2, `only ${inv.length} aluminium supplier(s) invited, so there is no complete quote beside the incomplete one`);
       // The LAST invited supplier sends the incomplete quote (no warranty, validity or lead time); the others a full form.
@@ -427,7 +439,9 @@ async function realRun(pre) {
       const walk = async (s, qid) => {
         const form = await call('supplier_api', s.jwt, { action: 'spec_hold', quote_id: qid });
         const sch = form.json?.schema || {};
-        const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
+        // price_ex_vat is a NUMBER (validateTerm): the quote's own amount, as its supplier would confirm it (run 1be65ab2 sent 'standard').
+        const amt = (await read(`select coalesce(price_ex_vat, quote_amount)::float a from public.quotes where id=${q(qid)}`))[0]?.a;
+        const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, m.attr === 'price_ex_vat' ? String(amt) : TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
           lines: Object.fromEntries((sch.lines || []).map((l) => [l.line_no, Object.fromEntries(l.fields.filter((f) => f.missing).map((f) => [f.attr, f.options?.length ? (f.options[0].value ?? f.options[0]) : f.type === 'number' ? 6 : 'standard']))])) };
         const fill = await call('supplier_api', s.jwt, { action: 'spec_fill', quote_id: qid, values });
         const appr = await call('supplier_api', s.jwt, { action: 'spec_approve', quote_id: qid, confirm: true });
@@ -511,13 +525,22 @@ async function realRun(pre) {
       if (!sk.startsWith('sk_test_')) throw new Error('REFUSED: the Stripe key is not a TEST key');
       const top = need((await read(`select id, quote_amount::float a, supplier_id from public.quotes where inquiry_id=${q(inq.id)} and status='submitted' order by quote_amount limit 1`))[0], 'no submitted quote on the aluminium request (S07), so there is nothing to reveal');
       const ct = async (pm) => (await (await fetch('https://api.stripe.com/v1/test_helpers/confirmation_tokens', { method: 'POST', headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: `payment_method=${pm}` })).json()).id;
-      const quote = await call('stripe_checkout', cu.jwt, { action: 'element_quote', quote_id: top.id });
-      const fee = Number(quote.json?.total_fils) / 100;
-      A('the reveal price is 3% of the quote with no card surcharge', Math.abs(fee - top.a * 0.03) < 0.01, `quote ${top.a} -> charge ${fee}`);
-      const bad = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: await ct('pm_card_chargeDeclined'), expected_total_fils: quote.json?.total_fils });
+      // element_quote prices the card actually used, so it needs that card's ConfirmationToken (the
+      // contract since 14 Sep 2026, stripe_checkout/index.ts element_quote). Run 4 sent none: HTTP 400
+      // bad_confirmation_token, total_fils undefined, and element_pay then compared against NaN and
+      // answered 'repriced' before Stripe ever saw the declined card. Each card is quoted on its own token.
+      const quoteFor = async (pm) => { const t = await ct(pm); const r = await call('stripe_checkout', cu.jwt, { action: 'element_quote', quote_id: top.id, confirmation_token: t }); return { t, r }; };
+      const qBad = await quoteFor('pm_card_chargeDeclined'), qGood = await quoteFor('pm_card_visa');
+      for (const [label, x] of [['declined', qBad], ['visa', qGood]]) {
+        const fee = Number(x.r.json?.total_fils) / 100;
+        A(`the reveal price is 3% of the final ex-VAT quote with no card surcharge (${label} card)`, x.r.status === 200 && Math.abs(fee - top.a * 0.03) < 0.01 && Number(x.r.json?.processing_fee) === 0 && Math.abs(Number(x.r.json?.base_fee) - top.a * 0.03) < 0.01, `HTTP ${x.r.status} quote ${top.a} -> charge ${fee} processing ${x.r.json?.processing_fee} basis ${x.r.json?.fee_basis}`);
+      }
+      const bad = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: qBad.t, expected_total_fils: qBad.r.json?.total_fils });
       const tx0 = (await read(`select count(*)::int n from public.transactions where quote_id=${q(top.id)} and fee_status='paid'`))[0].n;
-      A('a declined TEST card is refused and reveals nothing', bad.json?.ok === false && tx0 === 0, JSON.stringify(bad.json).slice(0, 200));
-      const good = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: await ct('pm_card_visa'), expected_total_fils: quote.json?.total_fils });
+      // Refused BY THE CARD: status 'failed' (Stripe declined, invoice voided), never 'repriced' (Stripe not reached).
+      A('a declined TEST card is refused and reveals nothing', bad.json?.ok === false && bad.json?.status === 'failed' && tx0 === 0, JSON.stringify(bad.json).slice(0, 200));
+      const good = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: qGood.t, expected_total_fils: qGood.r.json?.total_fils });
+      A('the paid TEST card is charged exactly the total it was quoted', good.json?.status === 'succeeded' && good.json?.total_fils === qGood.r.json?.total_fils, JSON.stringify(good.json).slice(0, 200));
       const tx = (await read(`select * from public.transactions where quote_id=${q(top.id)}`))[0];
       if (tx) run.ids.transactions.add(String(tx.id));
       A('a paid TEST card reveals: transaction paid, invoice recorded', tx?.fee_status === 'paid' && tx.stripe_invoice_id, `fee_status=${tx?.fee_status} invoice=${tx?.stripe_invoice_number} total=${tx?.total_charged} processing=${tx?.processing_fee}`);
@@ -565,9 +588,12 @@ async function realRun(pre) {
       save('chats/assistant_transcripts.json', chats); fx.chats = chats;
       const { inq, top } = fx.revealed || {};
       if (inq) {
-        const rq = await call('messages_api', inq.cu.jwt, { action: 'request_chat', quote_id: top.id });
-        const s = await call('messages_api', inq.cu.jwt, { action: 'send', quote_id: top.id, body: 'ZZ DEMO: when can you visit the site?' });
-        const th = await call('messages_api', inq.cu.jwt, { action: 'thread', quote_id: top.id });
+        // messages_api keys a thread on (inquiry_id, supplier_id), not quote_id: run 4's 400 was
+        // 'missing inquiry_id/supplier_id', which a paid reveal alone would not have cured.
+        const key = { inquiry_id: inq.id, supplier_id: top.supplier_id };
+        const rq = await call('messages_api', inq.cu.jwt, { action: 'request_chat', ...key });
+        const s = await call('messages_api', inq.cu.jwt, { action: 'send', ...key, body: 'ZZ DEMO: when can you visit the site?' });
+        const th = await call('messages_api', inq.cu.jwt, { action: 'thread', ...key });
         save('chats/customer_supplier_thread.json', th.json);
         A('post-reveal customer-supplier chat stores the message', rq.status === 200 && s.status === 200, `send HTTP ${s.status}`);
       }
@@ -581,7 +607,7 @@ async function realRun(pre) {
       A('a signed unsubscribe link suppresses the address', r.ok && s?.reason === 'unsubscribe', `HTTP ${r.status} reason=${s?.reason}`);
       const { inq, top } = fx.revealed || {};
       if (inq) {
-        const rt = await call('customer_api', inq.cu.jwt, { action: 'rate_supplier', quote_id: top.id, stars: 5, comment: 'ZZ DEMO rating' });
+        const rt = await call('customer_api', inq.cu.jwt, { action: 'rate_supplier', quote_id: top.id, rating: 5, comment: 'ZZ DEMO rating, five stars' }); // field is `rating` (rating_input.ts); `stars` was 400 rating_out_of_range
         A('the customer can rate the revealed supplier', rt.status === 200, `HTTP ${rt.status}`);
       }
     },
@@ -938,15 +964,15 @@ async function realRun(pre) {
         const { pdfFactsFromBytes } = await import('./pdf_facts.mjs');
         const p = join(OUT, `customers/${alu.cu.cfg.label}_${alu.cu.cfg.locale}_${safe(alu.cu.cfg.emirate)}/inquiry_aluminium/comparison_en.pdf`);
         const txt = existsSync(p) ? String((await pdfFactsFromBytes(readFileSync(p)).catch(() => ({})))?.text || '') : '';
-        const quotes = await read(`select q.quote_amount::float a, l.company_name s from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status in ('submitted','accepted') order by 1`);
-        samples.push({ what: 'comparison report (EN)', q: `Compare these quotes for aluminium works, cheapest first: ${JSON.stringify(quotes)}`, a: txt.slice(0, 6000), producer: 'anthropic/claude-opus-5.5', lang: 'en' });
+        const quotes = await read(`select q.quote_amount::float a, l.company_name s, q.price_ex_vat::float ex_vat, q.validity, q.warranty, q.lead_time, q.payment_terms, q.exclusions, q.terms_spec, (select jsonb_agg(to_jsonb(li) - 'quote_id') from public.quote_items li where li.quote_id::text = q.id::text) lines from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status in ('submitted','accepted') order by 1`);
+        samples.push({ what: 'comparison report (EN)', q: `Compare these quotes for aluminium works, cheapest first. These are the stored quotes the report was built from (supplier names may appear masked in the report); anything in the report that these rows support is NOT invented: ${JSON.stringify(quotes)}`, a: txt.slice(0, 6000), producer: 'anthropic/claude-opus-5.5', lang: 'en' });
       }
       const judged = [];
       for (const s of samples) {
         const task_class = fam(s.producer) === 'anthropic' ? 'internal_judgement' : 'ceo__internal_judgement';
         const w0 = await costWatermark();
         const r = await call('ai_gateway', null, { __secret: (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value, fn: 'stage2_quality_judge', task_class, subject: { email: fx.customers[0].email }, max_tokens: 400,
-          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of a quote to reveal that supplier; no card surcharge). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
+          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of the chosen supplier’s final quoted price after any discount, excluding VAT (ruling 1208; e.g. 3% of AED 1,700 = AED 51), no cap, to reveal that supplier; no card fee and no VAT is added on top of that 3% (QuotesDone is not VAT-registered); a supplier’s own discount and VAT are shown exactly as the supplier quoted them (ruling 1207); a customer finds quotes under My requests (طلباتي) then the request; a supplier revises a quote from the job in the supplier portal (Inquiries received, the job, then send the revised quotation: "Send your quotation to the sales engineer", "Or type it into the quote form", "Attach a revised file", "Submit to Job <n>"), and a new submission replaces the earlier one until the customer chooses; when signed in, the assistant may name the user’s own requests and quotes, which are facts of the account, not inventions). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
                      { role: 'user', content: `QUESTION / INPUT:\n${s.q}\n\nANSWER:\n${s.a || '(empty)'}` }] }, 120000);
         const used = (await costSince(w0)).map((x) => x.model_used).filter(Boolean);
         let v = null; try { v = JSON.parse(String(r.json?.content || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch { v = null; }

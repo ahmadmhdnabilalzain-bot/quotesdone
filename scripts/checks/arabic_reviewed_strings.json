@@ -1331,6 +1331,13 @@
   "fd666cd4a8ef",
   "fe93b75ba546"
  ],
+ "scripts/sql/the_arabic_reveal_fee_question_reaches_its_own_mirror.sql": [
+  "62c0fb48c803",
+  "74e7333ac370",
+  "845ebf488235",
+  "ba8ee4bbe1b8",
+  "e6d120aeb324"
+ ],
  "scripts/sql/the_calendar_resend_waits_on_real_edits_not_on_a_held_posts_dry_run_probe.sql": [
   "f03ed6d53816"
  ],
@@ -2775,7 +2782,8 @@
   "22b2e5437067",
   "5174cb3eb40b",
   "9c1f71981011",
-  "a6b33dd50c2d",
+  "a4879318094c",
+  "a69c82313935",
   "c8eadf831cf9"
  ],
  "src/components/CompanyIdentity.tsx": [
@@ -2869,8 +2877,11 @@
   "72ef00ac7f7b"
  ],
  "src/components/me/PortalShell.tsx": [
+  "91262f796854",
+  "9d0e14c86252",
   "ad9ba68b566f",
-  "f01251ebcbc3"
+  "f01251ebcbc3",
+  "f085945a9a01"
  ],
  "src/components/me/portalText.ts": [
   "00883d7920a3",
@@ -5110,7 +5121,6 @@
   "4ef43061dd49",
   "50f3e1384d16",
   "5283cb9957a9",
-  "52e7c937ed18",
   "53f7a15a0773",
   "5599ba65143f",
   "57a9304a06cc",
@@ -5195,7 +5205,6 @@
   "c336e0135404",
   "c5010faf90c2",
   "c66836318b5a",
-  "c89285eb576d",
   "c9abcfc325f6",
   "ca0f4b621133",
   "caa47f02fb2b",
@@ -5475,6 +5484,10 @@
  "src/components/WorkedCase.tsx": [
   "1bfd692ec1f2"
  ],
+ "supabase/functions/_shared/ai_reply.ts": [
+  "2ad26f4e1be5",
+  "f50238aec3f2"
+ ],
  "supabase/functions/_shared/ar_days.ts": [
   "5857bc86ba2e",
   "c710893ac4d9",
@@ -5495,11 +5508,9 @@
   "0a3a4456e635",
   "216a5ef21bd0",
   "22529ab4133f",
-  "28c42f5909d0",
   "4cecb18cc3b6",
   "59fbbc9fc3a7",
   "63c61322f7a8",
-  "69adab83d339",
   "6b16f970b8f4",
   "706e098d55b5",
   "782757b7918c",
@@ -5509,7 +5520,6 @@
   "cf3c018291ef",
   "d4ac37286024",
   "da98c1583a6a",
-  "dd5485195143",
   "f5abebf3196f"
  ],
  "supabase/functions/_shared/clearer_copy.ts": [
@@ -5519,13 +5529,45 @@
   "90499fad847d",
   "dc67015343c6"
  ],
+ "supabase/functions/_shared/company_brief.ts": [
+  "022c0e841ed6",
+  "047b6da45a18",
+  "06338a5c4b64",
+  "0681db1a83a2",
+  "369b9a738647",
+  "3757e4fbb5e1",
+  "383d04ced24b",
+  "423da6c459f6",
+  "4ec7fa5ea3db",
+  "4f9af0c682d4",
+  "53bbd3ac0b54",
+  "55848652e127",
+  "59678f3fa3ae",
+  "598c323a04b9",
+  "64dd150b65a8",
+  "6a9d7851b56f",
+  "6caad2b4900a",
+  "6e6810c5270d",
+  "71f6af4086e2",
+  "74086c183c68",
+  "805e49d04702",
+  "8ab976e8eb76",
+  "9c25828a3641",
+  "9c3c80eb8969",
+  "9cda9590caa0",
+  "a76e02f9d527",
+  "a844ae93d451",
+  "c3731f8fd32a",
+  "d1e1bf0448b1",
+  "de62a9134e25",
+  "e1814f15aded",
+  "eb86d8fc0c02",
+  "f4e468bb2a84",
+  "fe4e3d803c47"
+ ],
  "supabase/functions/_shared/customer_mail.ts": [
-  "4253a24f0090",
-  "586f6f44a448",
-  "6aa95d8fabfb",
   "7784a68c401d",
-  "9c9347b8a06d",
-  "c607dba157a1"
+  "9c9347b8a06d"
  ],
  "supabase/functions/_shared/customer_terms.ts": [
   "bb6521bace53"
@@ -5920,8 +5962,6 @@
   "84a6acf814f6"
  ],
  "supabase/functions/_shared/support_reply_guard.ts": [
-  "1c124ac36381",
-  "24c91058ee6f",
   "29e16cbb341d",
   "622dc4a7b5b1",
   "713903274b9b"
@@ -6169,29 +6209,12 @@
   "4cd3834955bb"
  ],
  "supabase/functions/site_assistant/index.ts": [
-  "0271a1f4c66d",
   "0e0329c97c49",
-  "32f673f57030",
-  "35a1a42cc34d",
-  "488eec99c14e",
-  "4c6a9cec02c0",
-  "524c3be9b432",
-  "5915ebe1b5c8",
-  "5e40435fb3ce",
-  "5f72d41e3fd6",
-  "88fc3314de43",
-  "89008c118194",
-  "9a84f622dd82",
-  "9ce520c3750e",
-  "ad996ed439d2",
-  "af3e20773443",
-  "c183c419054d",
-  "c4356c2c80ac",
-  "c94d66d845db",
-  "d13175d02298",
-  "dbd6352d03bc",
-  "f34fd00dad6c",
-  "f40cee86aeb4"
+  "244053c77971",
+  "9a03685e2791"
+ ],
+ "supabase/functions/site_assistant/stream_reply.ts": [
+  "aeb58bdf5c4d"
  ],
  "supabase/functions/stripe_checkout/index.ts": [
   "1317c3d3a9ac",
@@ -6225,6 +6248,8 @@
  "supabase/functions/supplier_api/quote_review_flow.ts": [
   "0c4b45efc9bf",
   "265323a0e5fd",
+  "2b249861ae60",
+  "6fbb7fb79755",
   "b05b260309e0",
   "ebcf51ab9588"
  ],
@@ -6392,10 +6417,13 @@
   "5cbb277245b5",
   "61e5bb9d6ede",
   "6c8d4e17edaa",
+  "75e7c95e9ceb",
   "7fea49861151",
   "a543b7484225",
   "b2a7e76366cb",
   "c09183a62789",
+  "caa8dfdaf4f5",
+  "cb974acf7755",
   "e687fbf0ba76"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
@@ -6467,5 +6495,14 @@
   "a5cba62f3cdc",
   "d7028cd29b51",
   "d9a9b884d813"
+ ],
+ "knowledge/brief/uae_regulations/services_and_general_trades.md": [
+  "52a0b1d6e84b"
+ ],
+ "supabase/functions/wa_inbound/menu_flow.ts": [
+  "dd8eecf60984"
+ ],
+ "supabase/functions/wa_inbound/model_says.ts": [
+  "036a6e41b969"
  ]
 }

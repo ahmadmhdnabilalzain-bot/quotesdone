@@ -667,6 +667,31 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_brief()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with lines as (
+    select distinct on (pb.category, pb.item, pb.unit)
+           pb.category, pb.item,
+           '- ' || pb.category || ': ' || pb.item || ': AED '
+             || trim(to_char(pb.low, 'FM999999990.##'))
+             || case when pb.high is not null and pb.high <> pb.low then ' to ' || trim(to_char(pb.high, 'FM999999990.##')) else '' end
+             || coalesce(' per ' || nullif(nullif(pb.unit, ''), 'none'), '')
+             || coalesce(' (as of ' || pb.as_of::text || ')', '') as line
+      from public.price_benchmark pb
+     where pb.source_kind <> 'gap' and pb.item is not null and pb.low is not null
+     order by pb.category, pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end), pb.as_of desc nulls last, pb.id
+  )
+  select '## PUBLISHED PRICE GUIDE (UAE ranges QuotesDone publishes; quote them as a range and say it is a guide, not a quotation — suppliers price the work)'
+      || E'\n' || coalesce((select string_agg(line, E'\n' order by category, item) from lines), '')
+      || coalesce(E'\nNo published range (say so, never estimate): '
+                  || (select string_agg(distinct category, ', ') from public.price_benchmark where source_kind = 'gap'), '');
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
  RETURNS jsonb
  LANGUAGE sql
@@ -3022,7 +3047,11 @@ begin
   with stale as (
     select id from public.reasoning_held_question
      where escalated_at is null
-       and (status = 'failed' or (status = 'held' and created_at <= now() - interval '48 hours'))
+       and (status = 'failed'
+            or (status = 'held' and created_at <= now() - interval '48 hours')
+            -- a person is waiting on a conversation reply no model could write: 15 minutes, not 48 hours
+            or (status = 'held' and surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
+                and created_at <= now() - interval '15 minutes'))
      order by created_at
      limit greatest(1, least(coalesce(p_limit, 20), 100))
      for update skip locked
@@ -3033,7 +3062,10 @@ begin
   ), filed as (
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select m.seat, 'held_question', 'pending', 'low',
-           left('A question held ' || case when m.status = 'failed' then 'after 5 failed reasonings' else 'for 48 hours' end
+           left('A question held ' || case when m.status = 'failed' then 'after 5 failed reasonings'
+                                           when m.surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
+                                             then '15 minutes with no model-written reply (the person has only the held notice)'
+                                           else 'for 48 hours' end
                 || ' on ' || m.surface || ' needs you', 200),
            jsonb_build_object('held_id', m.id, 'surface', m.surface, 'question', left(m.question, 1000), 'subject', m.subject,
                               'held_since', m.created_at, 'status', m.status,
@@ -6640,7 +6672,6 @@ declare
   -- the top-3 rule: the comparison report is the top 3 (founder rule). A constant, not a setting.
   c_target constant int := 3;
   v_window numeric; v_lead numeric := public.fn_seat_clock_policy('rfq_short_sweep_hours_before_deadline', 8);
-  v_fanout int := coalesce(public.fn_seat_clock_policy('match_max_fanout', 5), 5)::int;
   r record; s record; l public.leads; v jsonb; v_codes text[]; v_need text; v_value numeric; v_new int;
   v_swept int := 0; v_invited int := 0; v_reminded int := 0; v_told int := 0; v_skipped jsonb := '[]'::jsonb;
 begin
@@ -6686,12 +6717,11 @@ begin
         v_value := coalesce(r.expected_value, nullif(regexp_replace(coalesce(r.budget, ''), '[^0-9.]', '', 'g'), '')::numeric);
         if v_value is not null and v_value <= 0 then v_value := null; end if;
         for s in select m.supplier_id, m.score, m.why
-                   from public.fn_match_capability(v_codes, v_need, '{}'::text[], '{}'::text[], r.scope_type, v_value, r.emirate, 60) m
+                   from public.fn_match_capability(v_codes, v_need, '{}'::text[], '{}'::text[], r.scope_type, v_value, r.emirate, 100000) m
                    join public.leads ld on ld.id = m.supplier_id
                   where not exists (select 1 from public.inquiry_matches x where x.inquiry_id = r.id and x.supplier_id = m.supplier_id)
                     and public.fn_seat_clock_lead_is_fixture(ld) = r.fixture
-                  order by m.score desc
-                  limit v_fanout loop
+                  order by m.score desc loop
           insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
           values (r.id, s.supplier_id, least(1, greatest(0, round(s.score / 100, 3))),
                   left('short-of-quotes sweep (fn_rfq_short_of_quotes_tick): ' || coalesce(s.why, ''), 400))

@@ -28,7 +28,7 @@ import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
-import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
+import { MATCH_ALL, relevanceFloorApplies } from '../_shared/supplier_capability.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { noExactSpec, offerMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
@@ -36,11 +36,11 @@ import { defaultDeps } from '../_shared/think.ts';
 import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
 import { reasonedOffers } from '../_shared/reasoned_matching.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
-import { langOf, notYet, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
-import { portalPassage, quoteQuestion } from '../_shared/reasoned_channels.ts';
+import { langOf, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { acceptImages } from '../_shared/chat_images.ts';
+import { quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { supportReply } from '../_shared/support_reply.ts';
-import { modelHeld } from '../_shared/llm_hold.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -284,7 +284,7 @@ async function answerFromOwnQuotes(customerId: string, message: string, lang: 'e
     });
     // WHICH quote and field the question is about — and whether a threshold line applies — is REASONED
     // (quoteQuestion, decision point shared.quote_answer), never FIELD_RE / QUOTE_RE / a shared-word score. Held,
-    // null: the question falls through to the corpora, where the held passage choice ends in the honest notYet.
+    // null: no own-quote fact; the model answers from the corpora and the brief.
     const shown = quotes.slice(0, 15);
     const choice = (await quoteQuestion(defaultDeps(admin, 'sales_engineer'), { message, quotes: shown })).value;
     return quoteAnswer(choice, shown, lang, message);
@@ -384,21 +384,10 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // is the same "Supplier A" letter the compare table prints.
       // 781 (28 Sep 2026, customer_support): while a model can answer, the portal reply is COMPOSED (supportReply,
       // below); the own-quote line becomes one of its facts instead of the reply. The stored road is the fallback.
-      const reasoningOpen = !(await modelHeld(admin));
+      // 1195/1196 (12 Oct 2026): the model is always asked; the customer's own quote line is one of its facts, never
+      // the reply on its own.
       let ownQuote: string | null = null;
-      if (caller.kind === 'customer') {
-        const qa = await answerFromOwnQuotes(caller.customerId, message, lang);
-        if (qa && reasoningOpen) ownQuote = qa.reply;
-        else if (qa) {
-          try {
-            await admin.from('assistant_logs').insert({ message, reply: qa.reply, seat: 'sales_engineer', answered: true,
-              audience: 'customer:' + caller.customerId, path: 'portal', gap_task_id: null });
-          } catch { /* the customer already has the answer */ }
-          await run('assist', 'ok', { answered: true, basis: qa.basis, quote_id: qa.quote_id, field: qa.field });
-          return J({ ok: true, seat: 'sales_engineer', answered: true, reply: qa.reply, cited: ['quotes:' + qa.quote_id],
-            basis: 'read from the customer\'s own quote (' + qa.basis + '); no corpus, no model', scope: { customer_id: caller.customerId } });
-        }
-      }
+      if (caller.kind === 'customer') ownQuote = (await answerFromOwnQuotes(caller.customerId, message, lang))?.reply ?? null;
 
       // THE EMBEDDING IS BOUNDED. Measured 21 Sep 2026: fn_sales_assist answers in 0.09 s without a
       // vector; the audit's >2 min portal reply was the in-function gte-small session warming up.
@@ -426,11 +415,13 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // shared word decided it until 23 Sep 2026. Held (the model hold), none is chosen: the gap is recorded and
       // the honest sentence goes out with its task number; nothing is guessed.
       const all = (r.records || []) as Array<Record<string, unknown>>;
-      if (reasoningOpen) {
+      {
         const sr = await supportReply(defaultDeps(admin, 'sales_engineer'), {
           channel: 'portal', message, lang, seat: 'sales_engineer', audience: 'customer',
           passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || ''), citation: String(x.corpus || '') + ':' + String(x.record_id || '') })),
           facts: ownQuote ? 'THEIR OWN QUOTE (scoped in SQL to this customer):\n' + ownQuote : undefined,
+          // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
+          images: acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
         }, () => Promise.resolve(null));
         if (sr.path === 'reasoned' && sr.reply) {
           try {
@@ -441,67 +432,15 @@ Deno.serve(observe('sales_engineer', async (req) => {
           return J({ ok: true, seat: 'sales_engineer', answered: true, reply: sr.reply, routed_seat: sr.seat, basis: 'composed by reasoning over the retrieved records' });
         }
       }
-      const pick = r.answered === true && all.length
-        ? (await portalPassage(defaultDeps(admin, 'sales_engineer'), { message, passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || '') })) })).value
-        : null;
-      const recs = pick?.startsWith('kb:') && all[Number(pick.slice(3))] ? [all[Number(pick.slice(3))]] : [];
-      let answered = r.answered === true && recs.length > 0;
-      let taskId: number | null = (r.task_id as number | undefined) ?? null;
-      if (!answered && r.answered === true) {
-        // the routine cited something; every citation was off topic, so it recorded no gap. Record it.
-        try {
-          const { data: g } = await admin.rpc('fn_support_knowledge_gap', { p_question: message, p_refusal: pick === null ? 'not_reasoned_yet' : 'cited_off_topic', p_surface: 'customer_portal' });
-          taskId = ((g as Record<string, unknown> | null)?.task_id as number | undefined) ?? null;
-        } catch { /* the honest sentence still goes out */ }
-      }
-      // Plain text: the widget renders a string, not markdown. Deterministic assembly of the cited
-      // records — no generation step, nothing to hallucinate with. NO RAW TAGS: the corpus name and
-      // provenance ("[company_faq · FAQ · Marketplace · en]") were printed on screen in the audit;
-      // they stay in `cited` for the log and the passage is shown as a FAQ entry or a titled note.
-      const reply = answered
-        ? recs.map((x) => (String(x.corpus) === 'company_faq'
-            ? String(x.title || '') + '\n' + String(x.content)
-            : (x.title ? String(x.title) + '\n' : '') + String(x.content))).join('\n\n')
-        : (r.refusal === 'text_lost_its_script' ? String(r.handoff || '') : notYet(lang, taskId, 'sales_engineer'));
-
-      // 14 SEP 2026. This exchange was never saved: the customer's question and the answer existed
-      // only in the widget. The founder: "all conversations need to be saved and the sales agent
-      // has access to them at any time". assistant_logs is the store the website assistant already
-      // writes; audience 'customer:<id>' is what fn_conversation_party files it under.
+      // NO ASSEMBLED PASSAGES AND NO "NOT YET" SENTENCE (rulings 1195/1196, 12 Oct 2026): supportReply above writes the reply
+      // by a model, directly if its chain cannot. Only when no model answered at all does the customer get no text; the
+      // question is logged and the gap fn_sales_assist filed stays linked.
       try {
-        await admin.from('assistant_logs').insert({
-          message, reply, seat: 'sales_engineer', answered,
-          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind,
-          path: 'portal', gap_task_id: taskId,
-        });
-      } catch { /* the customer already has the answer; a failed log must not take it back */ }
-
-      await run('assist', 'ok', {
-        answered,
-        cited: recs.length,
-        refusal: r.refusal ?? (answered ? null : 'cited_off_topic'),
-        task_id: taskId,
-        embedded: vec !== null,
-        precedent: recallTrace(memory),
-      });
-
-      return J({
-        ok: true,
-        seat: 'sales_engineer',
-        answered,
-        reply,
-        ...(caller.kind === 'customer' ? {} : { precedent: memory }),
-        cited: recs.map((x) => String(x.corpus) + ':' + String(x.record_id)),
-        corpora: r.corpora,
-        floor: r.floor,
-        refusal: r.refusal ?? (answered ? null : 'cited_off_topic'),
-        // The fallback is an action now, not a sentence. Surfaced so a caller can show the task.
-        task_id: taskId,
-        gap_recorded: r.gap_recorded === true,
-        // Never claimed, always stated: this seat has no model today.
-        basis: 'retrieved across sales_knowledge, ops_knowledge, kb_chunks, agent_knowledge, support_knowledge, category_specs and category_quote_specs under a similarity floor with lexical corroboration (embedded rows) or a stricter lexical-only bar (rows with no embedding); no model was called, so passages are quoted, never fused or restated',
-        scope: caller.kind === 'customer' ? { customer_id: caller.customerId } : { caller: caller.kind },
-      });
+        await admin.from('assistant_logs').insert({ message, reply: null, seat: 'sales_engineer', answered: false,
+          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal', gap_task_id: (r.task_id as number | undefined) ?? null });
+      } catch { /* logging must not change the outcome */ }
+      await run('assist', 'error', { answered: false, no_model: true, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
+      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', task_id: r.task_id ?? null }, 503);
     }
 
     // ── CONVERSATIONS ──────────────────────────────────────────────────────────────────────────
@@ -757,19 +696,17 @@ Deno.serve(observe('sales_engineer', async (req) => {
       const emirate = matchEmirate(src.emirate);
       const projectType = String(src.scope_type ?? '').trim() || null;
 
-      // THE FANOUT CEILING IS READ, NOT COMPILED IN. decision_policy holds match_max_fanout = 5,
-      // match_max_fanout_per_trade = 3 and match_relevance_floor = 35 (measured 9 Sep 2026). The
-      // keyword fallback this replaces hard-coded p_limit: 8, which CONTRADICTED the ceiling of 5
-      // and had done so on every inquiry it ever handled. The configured 5 wins here; 8 was never
-      // policy, it was a literal.
+      // THE RELEVANCE FLOOR IS READ, NOT COMPILED IN (decision_policy.match_relevance_floor = 35, measured 9 Sep 2026).
       const { data: polRows } = await admin.from('decision_policy').select('key,value')
-        .in('key', ['match_max_fanout', 'match_max_fanout_per_trade', 'match_relevance_floor']);
+        .in('key', ['match_relevance_floor']);
       const pol = Object.fromEntries((polRows || []).map((r: { key: string; value: unknown }) => [r.key, Number(r.value)]));
-      const maxFanout = Number.isFinite(pol.match_max_fanout) ? pol.match_max_fanout : 5;
-      const perTrade = Number.isFinite(pol.match_max_fanout_per_trade) ? pol.match_max_fanout_per_trade : 3;
+      // EVERY MATCHED SUPPLIER IS INVITED (founder ruling 24 Sep 2026: ANY number of suppliers may quote; "top 3" is
+      // only the comparison report's recommendation). The per-trade cap of 3 and the ceiling of 5 left a 4th capable
+      // supplier uninvited (sandbox run 1c94fa6a S07). No count caps the invitation; the SQL gates and the relevance
+      // floor decide who is matched. match_max_fanout / _per_trade are no longer read.
       const floor = Number.isFinite(pol.match_relevance_floor) ? pol.match_relevance_floor : 35;
 
-      const policy = { max_fanout: maxFanout, max_fanout_per_trade: perTrade, relevance_floor: floor };
+      const policy = { max_fanout: null, max_fanout_per_trade: null, relevance_floor: floor };
       // HAVE WE MATCHED THIS KIND OF JOB BEFORE, AND HOW DID IT END? (23 Sep 2026.) By meaning, within
       // the same trade only (the exact-trade rule), never this inquiry itself. Evidence in the answer;
       // it does not change the SQL gates — a precedent informs the seat, it does not pick suppliers.
@@ -839,9 +776,8 @@ Deno.serve(observe('sales_engineer', async (req) => {
       askedFor.services = serviceKeys;
       askedFor.services_read = servicesRead;
 
-      // Headroom, then trim. Asking fn_match_capability for exactly 5 would let one over-represented
-      // trade fill the list before the per-trade cap could spread it.
-      const headroom = Math.min(60, Math.max(maxFanout, trades.length * perTrade * 2));
+      // Every gated candidate, not a top N (fn_match_capability applies `limit greatest(1, p_limit)`).
+      const headroom = MATCH_ALL;
       const { data: rowsRaw, error: matchErr } = await admin.rpc('fn_match_capability', {
         p_trades: trades, p_need: need, p_products: products, p_brands: brands,
         p_project_type: projectType, p_value: value, p_emirate: emirate, p_limit: headroom,
@@ -865,20 +801,10 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // aluminium request invited nobody (smoke run 34888342875: 0/3 matched). The #658 check calls
       // the SQL directly and never met this floor. With no product named there is no relevance to
       // measure; the exact trade already is the relevance test ("either exact match or no match"),
-      // so the floor gates only when products were asked for. Fanout and per-trade caps still apply.
+      // so the floor gates only when products were asked for. No count cap applies after it.
       const aboveFloor = relevanceFloorApplies(products) ? rows.filter((r) => Number(r.score) >= floor) : rows;
 
-      const usedByTrade = new Map<string, number>();
-      const picked: Array<Record<string, unknown>> = [];
-      for (const r of aboveFloor) {
-        if (picked.length >= maxFanout) break;
-        const shared = arr(r.trades).filter((t) => trades.includes(t));
-        // Every trade this supplier would be picked FOR is already full. Taking it anyway is the
-        // padding the grant names.
-        if (shared.length && shared.every((t) => (usedByTrade.get(t) || 0) >= perTrade)) continue;
-        for (const t of shared) usedByTrade.set(t, (usedByTrade.get(t) || 0) + 1);
-        picked.push(r);
-      }
+      const picked = aboveFloor;
 
       const matched = picked.map((r) => ({
         supplier_id: Number(r.supplier_id),
@@ -952,7 +878,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         candidates: rows.length, above_floor: aboveFloor.length,
         matched, persisted, gap,
         grant: { grant: may.grant, limit: may.limit },
-        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor, per-trade cap and fanout ceiling. No model was called and no supplier was added to reach a count.',
+        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor; every supplier left is invited, with no count cap. No model was called and no supplier was added to reach a count.',
       });
     }
 

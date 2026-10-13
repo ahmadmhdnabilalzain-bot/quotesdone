@@ -12,6 +12,7 @@ import { arDays } from '../_shared/ar_days.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
+import { aiReply } from '../_shared/ai_reply.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { CANONICAL_ORIGIN, siteReturnBase, siteCors } from '../_shared/site_origins.ts';
@@ -483,7 +484,36 @@ const handle = async (req: Request): Promise<Response> => {
       const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: SUPPLIER_LOCALE }, email, self, body, repo: supabaseReviewRepo(admin), scan,
         readTerms: async (text: string) => (await quoteTerms(defaultDeps(admin, 'supplier_api'), { text })).value,
         // The review reads the quotation the way the hold gate will (reasoned_matching.ts readQuote); held: nothing is read, every detail is asked.
-        readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id) });
+        readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id),
+        // THE ENGINEER'S WORDS (rulings 1195-1197): the model writes every chat message from what the review decided, and
+        // reads the supplier's next step (choose / submit) in the same call. Suppliers are always answered in English.
+        voice: async (v) => {
+          const r = await aiReply(defaultDeps(admin, 'supplier_api'), {
+            seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
+            message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
+            facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id),
+            rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
+            subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
+          });
+          return { text: r.reply, action: r.action ?? null };
+        },
+        // No model answer: the turn waits in sales_engineer's queue; reasoned_delivery.ts posts the GUARDED (aiReply)
+        // replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
+        hold: async (v) => {
+          const subject = { channel: 'portal', review_id: v.reviewId, supplier_id: Number(sup.id) };
+          const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);
+          await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'supplier_api.quote_review_unwritten', p_question: q,
+            p_request: { seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', subject, research: false,
+              question: `Write the sales engineer's next message in this supplier's quotation thread, in English. They were told we received their message.
+
+WHAT THE REVIEW DECIDED (facts):
+${v.situation.slice(0, 3000)}
+
+THEIR MESSAGE:
+${q}`,
+              context: { audience: 'supplier', language: 'en' } },
+            p_plan: {}, p_subject: subject, p_reason: v.why, p_dedupe_key: 'qr_unwritten:' + v.reviewId + ':' + q.slice(0, 40) });
+        } });
       return J(out.json, out.status);
     }
 
@@ -693,6 +723,9 @@ const handle = async (req: Request): Promise<Response> => {
       // A NEW licence replaces the old name even when nothing is read: a stale name must never match for a new
       // document. null = not read, and the review then holds the registration (licence_name_unread).
       if (licBytes?.bytes) upd.licence_legal_name = codeName;
+      // ...and so does its expiry (12 Oct 2026, stage-2 run 3 S02): the OLD licence's date must never judge a new
+      // document. Code or the model below writes the new one's expiry only when it reads one; else it stays unread.
+      if (licBytes?.bytes) { upd.license_expiry = null; upd.doc_extracted_at = null; }
       // EVERY LABELLED FIELD, BY CODE (7 Oct 2026, accuracy suite ledger 1162). Until today the licence number, the
       // authority and the emirate were written only from the model, whose switch is off, so a text licence's number
       // was never recorded. Code's reading is written first; the model below fills only what code left unread.
@@ -730,7 +763,8 @@ const handle = async (req: Request): Promise<Response> => {
         licBytes?.bytes && licenceNeedsModel({ ...codeFields, legal_name_en: codeName, expiry_date: codeFields.expiry_date }) ? null : codeName);
       if (modelDoc && await flagOn('document_expiry_ai')) {
         try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
-          if (jd?.ok && jd.doc) { const d = jd.doc;
+          // An unreadable read (licence_extract.normaliseLicence: no name, or 'low') carries no fields and writes none.
+          if (jd?.ok && jd.doc && !jd.doc.unreadable) { const d = jd.doc;
             if (d.license_number && !codeFields.licence_no) upd.trade_license_no = d.license_number;
             if (d.license_authority && !codeFields.authority) upd.license_authority = d.license_authority;
             // A scan's activities, read by the model, are read for trades exactly as a text licence's are (exact code
@@ -764,7 +798,7 @@ const handle = async (req: Request): Promise<Response> => {
               legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city,
               expiry: codeExpiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
               licence_name: upd.licence_legal_name ?? null, confidence: d.confidence };
-          } else out.license_error = jd?.error || 'extract_failed';
+          } else out.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
         } catch (e) { out.license_error = String((e as Error)?.message || e); }
       }
       const profImgs: any[] = [];
