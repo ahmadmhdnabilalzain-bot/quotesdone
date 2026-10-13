@@ -38,7 +38,10 @@ export async function resolveE2eRun(
   const tag = headers.get('x-qd-e2e-run') || '';
   if (!TAG.test(tag)) return null;
   const bearer = (headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (serviceKey && same(bearer, serviceKey)) return { tag, secret: null };
+  // The service-role hop carries the internal secret on (stage-2 run 4, 13 Oct 2026): customer_api reaches
+  // quote_compare with the service bearer, and quote_compare calls ai_gateway with NO bearer, so the tag reached
+  // the gateway unproven and the comparison was refused fixture_no_spend - the Opus route was never asked.
+  if (serviceKey && same(bearer, serviceKey)) return { tag, secret: await internalSecret().catch(() => null) };
   const presented = headers.get('x-qd-e2e-secret') || '';
   if (!presented) return null;
   const expected = await internalSecret().catch(() => null);
@@ -83,6 +86,13 @@ export async function resolveE2eRunByIdentity(
   return secret ? { tag, secret } : null;
 }
 
+// THE SECRET GOES TO THIS PROJECT'S ORIGIN ONLY (security review of #1371). A prefix test against SUPABASE_URL (no
+// trailing slash) let "https://<ref>.supabase.co.evil.com/" and "https://<ref>.supabase.co@evil.com/" through. The
+// parsed origins must be equal; anything that does not parse is not ours.
+export function sameOrigin(url: string, own: string): boolean {
+  try { return !!own && new URL(url).origin === new URL(own).origin; } catch { return false; }
+}
+
 // try: a unit test importing this module without --allow-env must still load it.
 let OWN = '';
 try { OWN = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno?.env.get('SUPABASE_URL') || ''; } catch { /* no env permission: no forwarding */ }
@@ -92,7 +102,7 @@ if (OWN && !(globalThis as { __qdE2eFetch?: boolean }).__qdE2eFetch) {
   globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const run = E2E_RUN.getStore();
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    if (!run || !url.startsWith(OWN)) return base(input, init);
+    if (!run || !sameOrigin(url, OWN)) return base(input, init);
     const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
     headers.set('x-qd-e2e-run', run.tag);
     // The next hop must be able to prove it too. A hop that reaches PostgREST already carries the

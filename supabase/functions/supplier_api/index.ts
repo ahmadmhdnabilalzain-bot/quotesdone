@@ -28,7 +28,7 @@ import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/sup
 import { licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
 import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
@@ -1627,7 +1627,7 @@ ${q}`,
         const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
         const hold = hs?.[0] || null;
         const lines = await repo.lines(qid);
-        const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
+        const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity);
         return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...hold, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema: formSchema(a, lines) });
       }
       if (action === 'spec_fill') {

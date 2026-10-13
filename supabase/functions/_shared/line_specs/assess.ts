@@ -187,6 +187,33 @@ export function deliveryOf(value: string): { value: string; days: number | null;
   const dt = s.match(DATE_FMT); if (dt) return { value: s.slice(0, 120), days: null, date: dt[1] };
   return null;
 }
+const MONTH_NO: [RegExp, number][] = [[/^jan|^\u064a\u0646\u0627\u064a\u0631/, 1], [/^feb|^\u0641\u0628\u0631\u0627\u064a\u0631/, 2], [/^mar|^\u0645\u0627\u0631\u0633/, 3], [/^apr|^\u0623\u0628\u0631\u064a\u0644|^\u0627\u0628\u0631\u064a\u0644/, 4], [/^may|^\u0645\u0627\u064a\u0648/, 5], [/^jun|^\u064a\u0648\u0646\u064a\u0648/, 6],
+  [/^jul|^\u064a\u0648\u0644\u064a\u0648/, 7], [/^aug|^\u0623\u063a\u0633\u0637\u0633|^\u0627\u063a\u0633\u0637\u0633/, 8], [/^sep|^\u0633\u0628\u062a\u0645\u0628\u0631/, 9], [/^oct|^\u0623\u0643\u062a\u0648\u0628\u0631|^\u0627\u0643\u062a\u0648\u0628\u0631/, 10], [/^nov|^\u0646\u0648\u0641\u0645\u0628\u0631/, 11], [/^dec|^\u062f\u064a\u0633\u0645\u0628\u0631/, 12]];
+const monthNo = (m: string) => MONTH_NO.find(([r]) => r.test(m.toLowerCase()))?.[1] ?? 0;
+/** A stated date as a UTC day (numeric dates are read day-first, as written in the UAE); null when it cannot be read. */
+function dateOf(s: string, now: Date): Date | null {
+  const y4 = (y: string | undefined) => !y ? now.getUTCFullYear() : y.length === 2 ? 2000 + Number(y) : Number(y);
+  let m: RegExpMatchArray | null; let d = 0, mo = 0, y = 0;
+  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  else if ((m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/))) [d, mo, y] = [Number(m[1]), Number(m[2]), y4(m[3])];
+  else if ((m = s.match(/^(\d{1,2})\s+(\S+?)\s*,?\s*(\d{4})?$/))) [d, mo, y] = [Number(m[1]), monthNo(m[2]), y4(m[3])];
+  else if ((m = s.match(/^(\S+)\s+(\d{1,2})(?:,\s*(\d{4}))?$/))) [d, mo, y] = [Number(m[2]), monthNo(m[1]), y4(m[3])];
+  if (!(d >= 1 && d <= 31 && mo >= 1 && mo <= 12 && y >= 2000)) return null;
+  const t = new Date(Date.UTC(y, mo - 1, d));
+  return t.getUTCDate() === d ? t : null;
+}
+/**
+ * A quote's validity: a positive number of days/weeks/months, or a date that has not passed. "0 days", a past date
+ * or a date that cannot be read is not a validity (security review of #1371) — the prices would already have lapsed.
+ */
+export function validityOf(value: string, now: Date = new Date()): { value: string; days: number | null; date: string | null } | null {
+  const v = deliveryOf(value);
+  if (!v) return null;
+  if (v.days != null) return v.days > 0 ? v : null;
+  const t = v.date ? dateOf(v.date.trim(), now) : null;
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return t && t.getTime() >= today ? v : null;
+}
 const PERIOD_FMT = /(\d+(?:\.\d+)?)\s*(years?|yrs?|months?|mos?|سنة|سنوات|سنه|عام|أعوام|اعوام|شهر|أشهر|شهور)|\b(one|two|three|five|ten)\s+years?\b|(سنتين|سنتان|عامين)/i;
 const WORDNUM: Record<string, number> = { one: 1, two: 2, three: 3, five: 5, ten: 10 };
 /** A stated warranty period as months; null when it has no number-and-unit shape. */
@@ -205,6 +232,8 @@ const TERM_LABEL: Record<string, [string, string, MissingItem['type']]> = {
   installation_detail: ['Installation scope or timeline', 'نطاق التركيب أو مدته', 'text'],
   warranty_period: ['Warranty period', 'مدة الضمان', 'text'],
   warranty_coverage: ['What the warranty covers', 'ما يغطيه الضمان', 'text'],
+  // Asked by the hold desk (workflow.ts deskAssess), because the release review (quote_review.ts rule 7) asks it.
+  validity: ['How long your prices are valid (e.g. 30 days, or 30 Nov 2026)', 'مدة صلاحية أسعاركم (مثل 30 يومًا أو 30 نوفمبر 2026)', 'text'],
   price_ex_vat: ['Total price excluding VAT', 'السعر الإجمالي غير شامل ضريبة القيمة المضافة', 'number'],
 };
 export const termItem = (attr: string, label?: [string, string]): MissingItem => {
@@ -339,12 +368,13 @@ export function validateLineValue(a: Attr, raw: unknown): { ok: true; value: str
   if (v.length < 2) return { ok: false, code: 'vague' };
   return { ok: true, value: v };
 }
-export function validateTerm(attr: string, raw: unknown): { ok: true; value: string } | { ok: false; code: FillError['code'] } {
+export function validateTerm(attr: string, raw: unknown, now: Date = new Date()): { ok: true; value: string } | { ok: false; code: FillError['code'] } {
   const v = normText(String(raw ?? ''));
   if (attr === 'installation_included') return v === 'yes' || v === 'no' ? { ok: true, value: v } : { ok: false, code: 'choose_yes_or_no' };
   if (!v || !hasSubstance(v)) return { ok: false, code: 'vague' };
   if (v.length > 200) return { ok: false, code: 'too_long' };
   if (attr === 'price_ex_vat') { const n = Number(v.replace(/[^\d.]/g, '')); return n > 0 && /\d/.test(v) ? { ok: true, value: String(Math.round(n * 100) / 100) } : { ok: false, code: 'not_a_number' }; }
+  if (attr === 'validity') return validityOf(v, now) ? { ok: true, value: v } : { ok: false, code: 'not_concrete' };
   if (attr === 'delivery') return deliveryOf(v) ? { ok: true, value: v } : { ok: false, code: 'not_concrete' };
   if (attr === 'warranty_period') return warrantyPeriod(v).period ? { ok: true, value: v } : { ok: false, code: 'not_concrete' };
   if (attr === 'installation_detail' || attr === 'warranty_coverage' || attr.startsWith('component:')) return v.length >= 2 ? { ok: true, value: v } : { ok: false, code: 'vague' };
