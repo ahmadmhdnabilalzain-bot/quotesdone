@@ -158,7 +158,7 @@ Deno.serve(siteCors(observe('supplier_catalog_ingest', async (req) => {
     // here next year too.
     if (await sanctionedEmail(admin, user.email.toLowerCase())) return J(SANCTIONED_REFUSAL, 403);
     const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', user.email.toLowerCase()).maybeSingle();
-    if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);
+    if (!sup) return J({ error: 'no_company', code: 'no_company', hint: 'claim your company first' }, 400);
     const supId = sup.id as number;
 
     const b = await req.json().catch(() => ({} as Record<string, unknown>));
