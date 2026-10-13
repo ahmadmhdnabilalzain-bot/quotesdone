@@ -9412,6 +9412,72 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_knowledge_gap_kind(p_agent text, p_customer text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when coalesce(p_agent,'') ~* '(i don.?t (know|have)|i do not (know|have)|rather not guess|i.?m not sure|i am not sure|not certain|i.?ll (check|confirm|get back)|i will (check|confirm|get back)|let me (check|confirm)|unable to (answer|say)|cannot (answer|say|confirm)|لا أعرف|لا اعرف|لست متأكد|غير متأكد|سأتحقق|سوف أتحقق|سأعود إليك)' then 'hedge'
+    when coalesce(p_customer,'') ~* '(that.?s (wrong|not right|incorrect)|this is (wrong|incorrect)|you are wrong|not correct|incorrect|i already (told|said|sent)|as i said|غلط|خطأ|غير صحيح|قلت لك|ذكرت سابقا)' then
+      case when p_customer ~* '(i already (told|said|sent)|as i said|قلت لك|ذكرت سابقا)' then 'asked_known' else 'corrected' end
+    else null end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_gap_sweep(p_hours integer DEFAULT 26, p_dry_run boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_from timestamptz := now() - make_interval(hours => greatest(p_hours, 1));
+  v_found int := 0; v_filed int := 0; v_by jsonb := '{}'::jsonb; r record;
+begin
+  for r in
+    -- WhatsApp: the reply hedged, the next inbound corrected, or the gateway rewrote the reply
+    select 'wa_messages' src, m.id::text ref, m.inbound q, m.reply a,
+           coalesce(public.fn_knowledge_gap_kind(m.reply, null),
+             public.fn_knowledge_gap_kind(null, m.inbound),
+             case when m.meta::text ~ 'rewrite:' then 'guard_rewrite' end) kind
+      from public.wa_messages m where m.created_at >= v_from
+    union all
+    select 'quote_review_messages', m.id::text, null, m.body,
+           coalesce(case when m.role <> 'supplier' then public.fn_knowledge_gap_kind(m.body, null) end,
+                    case when m.role = 'supplier' then public.fn_knowledge_gap_kind(null, m.body) end,
+                    case when m.role <> 'supplier' and jsonb_typeof(m.issues) = 'array' and jsonb_array_length(m.issues) > 0 then 'guard_rewrite' end)
+      from public.quote_review_messages m where m.created_at >= v_from
+    union all
+    select 'social_message', m.id::text, null, m.body,
+           coalesce(case when m.direction = 'out' then public.fn_knowledge_gap_kind(m.body, null) end,
+                    case when m.direction = 'in' then public.fn_knowledge_gap_kind(null, m.body) end,
+                    case when coalesce(cardinality(m.guard_failures), 0) > 0 then 'guard_rewrite' end)
+      from public.social_message m where m.created_at >= v_from
+    union all
+    select 'agent_chats', c.id::text, null, c.content,
+           case when c.role = 'assistant' then public.fn_knowledge_gap_kind(c.content, null)
+                else public.fn_knowledge_gap_kind(null, c.content) end
+      from public.agent_chats c where c.created_at >= v_from and (c.agent_key like 'cat:%' or c.agent_key = 'brief')
+  loop
+    continue when r.kind is null;
+    v_found := v_found + 1;
+    v_by := jsonb_set(v_by, array[r.kind], to_jsonb(coalesce((v_by->>r.kind)::int, 0) + 1));
+    if not p_dry_run then
+      insert into public.sales_knowledge_gap (question_norm, question, refusal, kind, source, source_ref, excerpt, detector)
+      values (r.kind || ':' || r.src || ':' || r.ref, left(coalesce(r.q, r.a, ''), 2000), left(coalesce(r.a, ''), 2000),
+              r.kind, r.src, r.ref, left(coalesce(r.a, r.q, ''), 500), 'fn_knowledge_gap_sweep')
+      on conflict (question_norm) do nothing;
+      if found then v_filed := v_filed + 1; end if;
+    end if;
+  end loop;
+  return jsonb_build_object('from', v_from, 'found', v_found, 'filed', v_filed, 'by_kind', v_by, 'dry_run', p_dry_run,
+    'open', (select count(*) from public.sales_knowledge_gap where status = 'open' and kind <> 'refusal'),
+    'filled_by', 'Claude in a session on the subscription: edit knowledge/brief/*.md, recompile, set status knowledge_added');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_knowledge_gaps(p_stale_days integer DEFAULT 14, p_thin_min integer DEFAULT 4)
  RETURNS jsonb
  LANGUAGE sql

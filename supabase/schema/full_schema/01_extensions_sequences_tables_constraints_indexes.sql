@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-13T00:39:29.165Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-13T00:58:47.206Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7877,7 +7877,12 @@ CREATE TABLE IF NOT EXISTS public.sales_knowledge_gap (
   nearest_corpus text,
   task_id bigint,
   status text DEFAULT 'open'::text NOT NULL,
-  closed_at timestamp with time zone
+  closed_at timestamp with time zone,
+  kind text DEFAULT 'refusal'::text NOT NULL,
+  source text,
+  source_ref text,
+  excerpt text,
+  detector text
 );
 
 CREATE TABLE IF NOT EXISTS public.sales_qualification_field (
@@ -11482,6 +11487,7 @@ ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_kind_check
 ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'done'::text, 'failed'::text, 'superseded'::text])));
 ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
 ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
+ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_kind_chk CHECK ((kind = ANY (ARRAY['refusal'::text, 'hedge'::text, 'corrected'::text, 'guard_rewrite'::text, 'asked_known'::text])));
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'knowledge_added'::text, 'not_a_gap'::text])));
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_entry_type_check CHECK ((entry_type = ANY (ARRAY['individual'::text, 'entity'::text])));
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unparseable'::text])));
