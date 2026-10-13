@@ -1,4 +1,4 @@
-// Run: deno test --node-modules-dir=none supabase/functions/customer_api/reveal_rate.test.ts
+// Run: deno test --node-modules-dir=none supabase/functions/_shared/reveal_rate.test.ts
 // The reveal rate is read from pricing_config or the reveal is refused; never a guessed 0.03.
 import { assertEquals } from 'jsr:@std/assert@1';
 import { readRevealRate, recordRateUnreadable } from './reveal_rate.ts';
