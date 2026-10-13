@@ -1,1 +1,0 @@
-Committed with PR (sales_engineer, 13 Oct 2026): ai_gateway joins the scope of five model-calling fn.* credentials (supplier_api measured 325 refusals in 7 days). Applied at merge by the release operator: apply_sql --apply, then this note is deleted and the file appended to MANIFEST.txt in the same commit.
