@@ -64,8 +64,9 @@ on conflict (model) do update set in_aed_per_mtok = excluded.in_aed_per_mtok, ou
 
 -- 0b. THE BACKFILL, these three models only. A row with known tokens booked at AED 0 is re-priced from the rows above
 --     with fn_llm_log's own arithmetic, and marked so it is counted and never re-priced: idempotent (cost_aed = 0 is
---     the guard). A row the old stream path wrote with 0 tokens ("token counts not available") is UNKNOWN, not free:
---     its tokens and cost become NULL.
+--     the guard). Then, ON EVERY MODEL (coordinator's decision, 13 Oct 2026): a row the old stream path wrote - proved by
+--     the gateway's own marker "streamed (token counts not available on the stream path)", with 0 tokens and AED 0 - is
+--     UNKNOWN, not free: its tokens and cost become NULL. Every other zero row is left alone.
 update public.ai_cost_log a
    set cost_aed = round( greatest(a.prompt_tokens - coalesce(a.cached_in_tokens,0) - coalesce(a.cache_write_tokens,0), 0) / 1000000.0 * m.in_aed_per_mtok
                        + coalesce(a.cached_in_tokens,0)  / 1000000.0 * coalesce(m.cache_read_aed_per_mtok,  m.in_aed_per_mtok * 0.10)
@@ -80,8 +81,8 @@ update public.ai_cost_log a
 update public.ai_cost_log a
    set prompt_tokens = null, output_tokens = null, cached_in_tokens = null, cache_write_tokens = null, cost_aed = null,
        model_selected_because = a.model_selected_because || ' | tokens unknown, not zero (13 Oct 2026)'
- where a.model_used in ('anthropic/claude-sonnet-5.5', 'google/gemini-3.8-flash:online', 'perplexity/sonar')
-   and a.model_selected_because like '%token counts not available on the stream path%'
+ where a.model_selected_because like '%streamed (token counts not available on the stream path)%'
+   and coalesce(a.cost_aed, 0) = 0
    and a.model_selected_because not like '%tokens unknown, not zero%'
    and coalesce(a.prompt_tokens, 0) = 0 and coalesce(a.output_tokens, 0) = 0;
 
