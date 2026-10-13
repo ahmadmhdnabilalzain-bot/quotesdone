@@ -70,17 +70,26 @@ const q = async (project, query) => {
 // this file now does the same for its duration and ALWAYS closes it, so real refusals outside it still count.
 // The run_tag is not 'qd_run:<tag>', so the harness's stale-run sweep never mistakes it for a fixture run.
 // Prevented from recurring by the rehearsal/control pair in it_engineer_loop_is_closed.test.mjs.
+// A WINDOW THIS FILE OPENED NEVER OUTLIVES IT (13 Oct 2026). Windows opened at 21:03 and 21:16 on 12 Oct
+// stayed open and blocked sandbox run 4. after() closes on pass and fail alike; it also runs on SIGTERM/SIGINT
+// (a cancelled CI job never reaches `after`), and every open first sweeps this file's own stale windows,
+// matched by its run_tag only, never anyone else's.
+const RUN_TAG = 'check:a_phone_cannot_select_an_account';
 let windowId = null;
+const closeWindows = () => q(PROJECTS.production,
+  `update public.rehearsal_window set ended_at = now() where run_tag = '${RUN_TAG}' and ended_at is null`);
+for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => { (mgmtToken ? closeWindows() : Promise.resolve()).catch(() => {}).finally(() => process.exit(1)); });
 before(async () => {
   if (!mgmtToken) return;
+  await closeWindows();
   const [w] = await q(PROJECTS.production, `insert into public.rehearsal_window (run_tag, opened_by, note)
-    values ('check:a_phone_cannot_select_an_account', 'scripts/checks/a_phone_cannot_select_an_account.test.mjs',
+    values ('${RUN_TAG}', 'scripts/checks/a_phone_cannot_select_an_account.test.mjs',
             'ZZ DEMO: live login_otp refusals by design') returning id`);
   windowId = w.id;
 });
 after(async () => {
-  if (windowId == null) return;
-  await q(PROJECTS.production, `update public.rehearsal_window set ended_at = now() where id = ${Number(windowId)} and ended_at is null`);
+  if (!mgmtToken) return;
+  await closeWindows(); // node:test runs after() when a test fails too
 });
 test('the live login_otp calls run inside a rehearsal window of their own', { skip: mgmtToken ? false : 'no management token' }, () => {
   assert.ok(windowId != null, 'no rehearsal window was opened, so every refusal below reads as a customer turned away');
