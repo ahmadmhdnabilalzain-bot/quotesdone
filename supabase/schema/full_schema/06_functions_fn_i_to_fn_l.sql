@@ -7078,7 +7078,7 @@ AS $function$
                   where c.consumer = p_fn || ':' || coalesce(p_class, 'unclassified')
                      or (c.consumer = p_fn || ':think'
                          and p_class in ('agent_reasoning', 'knowledge_validation', 'customer_communication', 'supplier_communication',
-                                 'routine_employee_reasoning', 'internal_judgement')))
+                                 'routine_employee_reasoning', 'internal_judgement', 'conversation_reply')))
 $function$
 
 
