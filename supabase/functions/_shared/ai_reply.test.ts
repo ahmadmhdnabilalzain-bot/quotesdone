@@ -27,7 +27,10 @@ Deno.test('the model writes the reply from the brief', async () => {
   const s = stub([A('The reveal fee is 3% of the quote you choose; no card fee is added and no VAT is charged on it.')]);
   const r = await aiReply(s.deps, req);
   assertEquals(r.reply, 'The reveal fee is 3% of the quote you choose; no card fee is added and no VAT is charged on it.');
-  assert(s.calls[0].system.includes(COMPANY), 'the company brief is in the system prompt');
+  // founder ruling 1219: the reply class (Sonnet 5.5 > Gemini) and the brief as the cached sys_stable prefix
+  assert(String(s.calls[0].o.sysStable).includes(COMPANY), 'the company brief rides as the cacheable sys_stable block');
+  assert(!s.calls[0].system.includes(COMPANY), 'the varying half does not repeat the brief');
+  assertEquals(s.calls[0].o.taskClass, 'conversation_reply');
 });
 Deno.test('a figure the brief does not state is rewritten by the model', async () => {
   const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);

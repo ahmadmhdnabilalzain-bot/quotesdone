@@ -1,0 +1,1 @@
+Founder ruling 1219 (13 Oct 2026): the seven conversation classes move to anthropic/claude-sonnet-5.5 > google/gemini-3.8-flash and the model is registered. Waits for review; the release operator applies it at merge, then this note is deleted and the file appended to MANIFEST.txt.

@@ -1207,7 +1207,7 @@ async function handleInbound(req: Request): Promise<Response> {
 
     const { ctx, ids } = await retrieveFaq(Body);
     // THE REPLY IS THE MODEL'S (1195-1197, _shared/ai_reply.ts via model_says.ts): the company brief, the model chain
-    // (gpt-6-luna -> gemini -> another family), the figure and reply guard with a model rewrite, suppliers in English.
+    // (conversation_reply: claude-sonnet-5.5 -> gemini -> another family; ruling 1219), the figure and reply guard with a model rewrite, suppliers in English.
     // Everything code knows about this message goes in as facts: who they are, their own record, the database's own
     // answer for the intent it recognised, the approved FAQ for it, the live company block.
     const situation = [audienceBlock,
