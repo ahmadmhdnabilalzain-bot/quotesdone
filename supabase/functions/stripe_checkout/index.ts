@@ -9,6 +9,7 @@ import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { payReveal, priceToken, type StripeCall } from './element_pay.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
 import { canReveal } from '../_shared/reveal_guard.ts';
+import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -69,9 +70,12 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     // "the reveal worked". The portal reads the body (errText), so the status costs it nothing.
     if (!sk && keys.mode === 'test') { await logRun('ok', { quote_id: qid, mode: 'test' }, 'demo account: stripe test keys are not configured, so the payment is refused - the live key is never used for a demo account'); return J({ ok: false, error: 'stripe_test_not_configured', code: 'stripe_test_not_configured', mode: 'test', message: 'Card payments are not available on this test account.', message_ar: 'الدفع بالبطاقة غير متاح على هذا الحساب التجريبي.' }, 503); }
     if (!sk) { await logRun('error', { quote_id: qid }, 'CHECKOUT BLOCKED - stripe_secret_key missing from app_secrets; all reveals are failing'); return J({ ok: false, error: 'stripe_not_configured', code: 'stripe_not_configured', message: 'Card payments are briefly unavailable. Your quotes are safe — please try again shortly.', message_ar: 'الدفع بالبطاقة غير متاح مؤقتًا. عروضك محفوظة — يُرجى المحاولة بعد قليل.' }, 503); }
-    const { data: cfg } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle();
-    const fee = revealFee(Number(q.quote_amount), cfg || {});
-    if (!(fee > 0)) { await logRun('error', { quote_id: qid, quote_amount: q.quote_amount, fee, has_pricing_config: !!cfg }, 'invalid_fee computed - checkout blocked (check pricing_config rates/caps and quote_amount)'); return J({ error: 'invalid_fee' }, 400); }
+    // The one rate reader (../_shared/reveal_rate.ts): unreadable or outside 0 < rate < 1 refuses the checkout.
+    const rateRead = await readRevealRate(admin);
+    if (!rateRead.ok) { await recordRateUnreadable(admin, 'stripe_checkout -> pricing_config', rateRead.error, { quote_id: qid }); await logRun('error', { quote_id: qid, error: rateRead.error }, 'reveal rate unreadable - checkout blocked'); return J({ error: 'invalid_fee' }, 400); }
+    const cfg = rateRead.cfg;
+    const fee = revealFee(Number(q.quote_amount), cfg);
+    if (!(fee > 0)) { await logRun('error', { quote_id: qid, quote_amount: q.quote_amount, fee, has_pricing_config: true }, 'invalid_fee computed - checkout blocked (check pricing_config rates/caps and quote_amount)'); return J({ error: 'invalid_fee' }, 400); }
     // 14 Sep 2026 (founder): "3% plus stripe fees included". The 3% line is unchanged; card
     // processing is its own line so the invoice says what each part is. No tax on either line.
     const ch = revealCharge(Number(q.quote_amount), Number(cfg?.standard_reveal_rate));

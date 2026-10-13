@@ -37,7 +37,8 @@ import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, union
 import type { Line, MissingItem } from '../_shared/line_specs/assess.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
-import { readRevealRate, statedPrice, storedPrice } from '../_shared/stated_price.ts';
+import { statedPrice, storedPrice } from '../_shared/stated_price.ts';
+import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
 import { findTrn } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { DOC_VERSION, completenessOf, inquiryDocument, itemsOfRows, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
@@ -1431,8 +1432,9 @@ ${q}`,
         // The supplier's own words in Arabic are reasoned; a line not yet translated holds the Arabic document.
         let heldAr = false;
         // The fee line prints pricing_config's rate (the one reveal_fee() charges); unread, the PDF is refused, never guessed.
-        const revealRate = await readRevealRate(admin);
-        if (revealRate == null) return J({ error: 'pdf_failed', code: 'reveal_rate_unread' }, 503);
+        const rateRead = await readRevealRate(admin);
+        if (!rateRead.ok) { await recordRateUnreadable(admin, 'supplier_api quotation PDF -> pricing_config', rateRead.error, { quote_id: q.id }); return J({ error: 'pdf_failed', code: 'reveal_rate_unread' }, 503); }
+        const revealRate = rateRead.cfg.standard_reveal_rate;
         const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote, layout: DOC_VERSION, revealRate }), async () => {
           const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => quoteDocument({ quote: done.quote, inquiry, items, letter, lang, arTexts, revealRate }), { subject: { quote_id: q.id } });
           if (!d.doc) { heldAr = true; return null; }
