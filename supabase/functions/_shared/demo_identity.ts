@@ -29,6 +29,19 @@ export function isDemoEmail(email: unknown): boolean {
   return RESERVED_TEST_DOMAIN.test(String(email ?? '').trim());
 }
 
+// A FIXTURE SUPPLIER (13 Oct 2026, customer_support). The TypeScript twin of public.fn_seat_clock_lead_is_fixture,
+// plus the stage-2 run tag (qd_run:<tag> on leads.tags, scripts/lib/demo_factory.mjs). A walk's registration used to
+// file a supplier_registered admin notice -> a customer_support delivery.request handoff -> a routed org_task, about
+// one per walk run (23 tasks measured on production 13 Oct, every one a ZZ DEMO supplier). Such a registration files none.
+type LeadLike = { is_demo?: boolean | null; company_name?: string | null; email?: string | null;
+                  claimed_by?: string | null; tags?: string[] | null } | null | undefined;
+export function isFixtureLead(l: LeadLike): boolean {
+  if (!l) return false;
+  return l.is_demo === true || /^\s*zz\s*demo/i.test(String(l.company_name ?? ''))
+    || isDemoEmail(l.email) || isDemoEmail(l.claimed_by)
+    || (l.tags ?? []).some((t) => String(t).startsWith('qd_run:'));
+}
+
 export function isDemoPhone(phone: unknown): boolean {
   return RESERVED_FIXTURE_MOBILE.test(String(phone ?? '').replace(/\D/g, ''));
 }
