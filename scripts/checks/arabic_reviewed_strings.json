@@ -6544,5 +6544,11 @@
  ],
  "supabase/functions/wa_inbound/model_says.ts": [
   "036a6e41b969"
+ ],
+ "scripts/sql/a_fenced_seat_duty_keeps_its_fixture_switch.sql": [
+  "1ddbe22a20cf",
+  "25831966a970",
+  "71425d07f632",
+  "735f3f9ff862"
  ]
 }
