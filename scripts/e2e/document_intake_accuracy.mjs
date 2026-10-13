@@ -55,7 +55,7 @@ const read = (sql) => mgmtRead(REF, sql);
 const write = (sql, where) => mgmtFixture(REF, sql, where);
 
 function deno(script, args, env = {}) {
-  const r = spawnSync('deno', ['run', '-A', join(REPO, 'scripts', 'e2e', script), ...args],
+  const r = spawnSync('deno', ['run', '-A', '--node-modules-dir=none', join(REPO, 'scripts', 'e2e', script), ...args],
     { stdio: 'inherit', env: { ...process.env, ...env }, cwd: REPO });
   if (r.status !== 0) throw new Error(`${script} exited ${r.status}`);
 }

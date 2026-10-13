@@ -7,7 +7,8 @@
 import { pdfPages } from '../pdf_text_positions.ts';
 import { measurePdf } from '../pdf_measure.ts';
 import { linesOf } from '../../drawing_boq/boq_from_text.ts';
-import { type Qty, type ReadContext, type ReadResult, LIMITS, empty, ok } from './types.ts';
+import { getDocumentProxy } from 'npm:unpdf@0.11.0';
+import { type Qty, type ReadContext, type ReadResult, LIMITS, empty, ok, refuse } from './types.ts';
 
 export async function readPdf(bytes: Uint8Array, ctx: ReadContext): Promise<ReadResult> {
   const pages = await pdfPages(bytes);

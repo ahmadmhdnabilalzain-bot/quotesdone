@@ -16,6 +16,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
+import { pdfjsText } from '../_shared/doc_read/pdf.ts';
 import { textOfRead } from '../_shared/read_every_attachment.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;

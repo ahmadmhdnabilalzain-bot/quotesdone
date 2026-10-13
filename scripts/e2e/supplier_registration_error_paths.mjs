@@ -1,7 +1,7 @@
 // scripts/e2e/supplier_registration_error_paths.mjs — every way the invited registration can go wrong (24 Sep 2026, sales_engineer, ledger 993).
 //   node scripts/e2e/supplier_registration_error_paths.mjs
 // ZZ DEMO leads and @example.invalid accounts only; the one fixture mobile is refused before Twilio. Torn down at the end.
-import { openRun, closeRun, read, write, call } from './fixtures.mjs';
+import { openRun, closeRun, read, write, call, BASE } from './fixtures.mjs';
 import { mkAuthUser, verifyEmailByOtp } from '../lib/demo_factory.mjs';
 const out = []; const step = (n, ok, d) => { out.push({ n, ok, d }); console.log(`${ok ? 'PASS' : 'FAIL'} ${n} — ${d}`); };
 const run = await openRun();
