@@ -21,3 +21,24 @@ Deno.test('cache off: one plain string, in the same order; nothing to say: no sy
   assertEquals(systemMessage({ shared: 'K', stable: 'S', sys: 'v', useCache: false, ttl: '1h' })!.content, 'KSv');
   assertEquals(systemMessage({ shared: '', stable: '', sys: '', useCache: true, ttl: null }), null);
 });
+
+// prevented by: these tests (#1407 review). The 1-hour tier is asked for, never required.
+import { sendWithTtlFallback, withoutTtl } from './system_message.ts';
+const MSGS = [systemMessage({ shared: 'K', stable: 'S', sys: 'v', useCache: true, ttl: '1h' })!, { role: 'user', content: 'hi' }];
+Deno.test('a route that refuses the ttl field gets the same request once more without it, breakpoints kept', async () => {
+  const sent: unknown[][] = [];
+  const r = await sendWithTtlFallback((m) => { sent.push(m);
+    return Promise.resolve(sent.length === 1 ? new Response('{"error":{"message":"cache_control.ttl: Extra inputs are not permitted"}}', { status: 400 }) : new Response('{}', { status: 200 })); }, MSGS, '1h');
+  assertEquals([r.status, sent.length], [200, 2]);
+  assertEquals(sent[1], withoutTtl(MSGS));
+  assertEquals((sent[1][0] as { content: { cache_control?: unknown }[] }).content.map((b) => b.cache_control),
+    [{ type: 'ephemeral' }, { type: 'ephemeral' }, undefined]);
+});
+Deno.test('any other failure is not retried here; nothing is retried when no ttl was asked for', async () => {
+  let n = 0;
+  const bad = () => { n++; return Promise.resolve(new Response('{"error":"rate limited"}', { status: 429 })); };
+  assertEquals((await sendWithTtlFallback(bad, MSGS, '1h')).status, 429);
+  const ttl400 = () => { n++; return Promise.resolve(new Response('{"error":"ttl not allowed"}', { status: 400 })); };
+  assertEquals((await sendWithTtlFallback(ttl400, MSGS, null)).status, 400);
+  assertEquals(n, 2);
+});

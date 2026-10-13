@@ -11,6 +11,18 @@
 // deno-lint-ignore no-explicit-any
 export type Block = { type: 'text'; text: string; cache_control?: Record<string, any> };
 
+/** OpenRouter (or the provider behind it) refused the request because of the cache ttl: a 400 that names it. */
+export function ttlRejected(status: number, body: string): boolean {
+  return status === 400 && /\bttl\b|cache_control/i.test(body || '');
+}
+/** The same messages with every cache_control back on the default tier (the ttl field dropped, the breakpoints kept). */
+// deno-lint-ignore no-explicit-any
+export function withoutTtl(messages: any[]): any[] {
+  // deno-lint-ignore no-explicit-any
+  return messages.map((m: any) => !Array.isArray(m?.content) ? m : { ...m, content: m.content.map((b: any) =>
+    b?.cache_control?.ttl ? { ...b, cache_control: { type: b.cache_control.type ?? 'ephemeral' } } : b) });
+}
+
 export function systemMessage(o: { shared: string; stable: string; sys: string; useCache: boolean; ttl: '1h' | null }):
   { role: 'system'; content: string | Block[] } | null {
   const text = o.shared + o.stable + o.sys;
@@ -23,4 +35,14 @@ export function systemMessage(o: { shared: string; stable: string; sys: string; 
     ...(o.stable ? [{ type: 'text' as const, text: o.stable, cache_control: cc }] : []),
     ...(o.sys ? [{ type: 'text' as const, text: o.sys }] : []),
   ] };
+}
+
+/** Send; if the 1-hour tier was asked for and the route refuses the ttl field, send once more without it. Any other
+ *  failure is returned as it came, for the gateway's own ladder to handle. */
+// deno-lint-ignore no-explicit-any
+export async function sendWithTtlFallback(send: (messages: any[]) => Promise<Response>, messages: any[], ttl: '1h' | null): Promise<Response> {
+  const r = await send(messages);
+  if (r.ok || !ttl || r.status !== 400) return r;
+  const body = await r.clone().text().catch(() => '');
+  return ttlRejected(r.status, body) ? await send(withoutTtl(messages)) : r;
 }

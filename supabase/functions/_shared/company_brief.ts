@@ -38,8 +38,9 @@ type Faq = { id?: unknown; question?: unknown; answer?: unknown; language?: unkn
 // MORE CACHED BLOCKS: a second knowledge block (next: the UAE regulations digest, mandatory codes per trade) is passed
 // as `blocks` — each is appended after the FAQ inside the same byte-stable, cacheable prefix. Its numbers become figures
 // the check accepts, so a block must hold published facts only.
-export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; lang: 'en' | 'ar'; blocks?: string[] }): string {
-  const mine = o.faqs.filter((f) => (f.language ?? 'en') === o.lang && f.question && f.answer)
+/** One language's published FAQ, by id, capped at FAQ_CAP (the same rows that language's asker always received). */
+function faqSection(faqs: Faq[], lang: 'en' | 'ar'): string {
+  const mine = faqs.filter((f) => (f.language ?? 'en') === lang && f.question && f.answer)
     .sort((a, b) => Number(a.id ?? 0) - Number(b.id ?? 0));
   let faq = '';
   for (const f of mine) {
@@ -47,11 +48,21 @@ export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; l
     if (faq.length + line.length > FAQ_CAP) break;
     faq += line;
   }
+  return faq.trim();
+}
+
+// lang 'all' (13 Oct 2026, #1407 review): ONE brief for every language that loses nothing. The Arabic FAQ is not a
+// provable translation of the English one (measured: 150 English rows, 152 Arabic, no shared id, section, sort or
+// source key), so both sections ride in the one brief, each exactly as its own asker received it before.
+export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; lang: 'en' | 'ar' | 'all'; blocks?: string[] }): string {
+  const faq = o.lang === 'all' ? faqSection(o.faqs, 'en') : faqSection(o.faqs, o.lang);
+  const faqAr = o.lang === 'all' ? faqSection(o.faqs, 'ar') : '';
   return [
     '# QUOTESDONE COMPANY BRIEF — everything you state about the company, its fees, terms, rules and contacts comes from here.',
     o.company.trim(),
     o.facts.trim(),
-    '## PUBLISHED FAQ (the approved answers)\n' + faq.trim(),
+    '## PUBLISHED FAQ (the approved answers)\n' + faq,
+    ...(faqAr ? ['## PUBLISHED FAQ IN ARABIC (the approved Arabic answers; the same rules apply)\n' + faqAr] : []),
     ...(o.blocks ?? []).map((b) => b.trim()),
   ].filter(Boolean).join('\n\n');
 }
@@ -64,10 +75,10 @@ export function fnv1a(s: string): string {
   return h.toString(16) + ':' + s.length;
 }
 /** The brief, rebuilt from the live sources at most every BRIEF_TTL_MS per worker. ONE brief for every language
- *  (13 Oct 2026): the knowledge is carried in English (the published English FAQ, FAQ_CAP as before) and the model
- *  answers in the person's language, set by the caller's rules after the cache breakpoints. `_lang` is kept for callers. */
+ *  (13 Oct 2026): the published FAQ in both languages, each as its asker always received it (FAQ_CAP each), and the
+ *  model answers in the person's language, set by the caller's rules after the cache breakpoints. `_lang` is kept for callers. */
 export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 'en' | 'ar', blocks: string[] = [], now = Date.now()): Promise<string> {
-  const lang = 'en' as const;
+  const lang = 'all' as const;
   // Keyed on the CONTENT (review of #1330): two callers whose facts or blocks differ only in wording never share a
   // brief. The FAQ list is the same live table for every caller; its edits reach the brief within BRIEF_TTL_MS.
   const key = lang + ':' + fnv1a([facts, ...blocks].join('\u0001'));

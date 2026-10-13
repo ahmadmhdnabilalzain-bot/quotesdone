@@ -230,6 +230,6 @@ Deno.test('one brief for every language, the knowledge block first and split off
   assert(en.startsWith(BRIEF_TEXT));
   const s = splitBrief(ar);
   assertEquals(s.shared, BRIEF_TEXT);
-  assert(s.stable.includes('FACTS L') && s.stable.includes('Is it free?') && !s.stable.includes(BRIEF_TEXT));
+  assert(s.stable.includes('FACTS L') && s.stable.includes('Is it free?') && s.stable.includes('هل هو مجاني؟') && !s.stable.includes(BRIEF_TEXT), 'both FAQ languages, nothing lost');
   assertEquals(s.shared + s.stable, ar);   // nothing lost, nothing repeated
 });

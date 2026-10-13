@@ -33,7 +33,7 @@
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
 import { cacheTokens, tapUsage } from './stream_usage.ts';
-import { systemMessage } from './system_message.ts';
+import { sendWithTtlFallback, systemMessage } from './system_message.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -819,11 +819,16 @@ async function handle(req: Request): Promise<Response> {
           if (body.tools && body.tools.length) payload.tools = body.tools;
           if (body.tool_choice != null) payload.tool_choice = body.tool_choice;
 
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload), signal: ac.signal,
-          });
+          // THE 1-HOUR TIER IS ASKED FOR, NEVER REQUIRED (13 Oct 2026): if the route refuses the ttl field, the same
+          // request goes once more on the default 5-minute tier, breakpoints kept (system_message.ts).
+          const r = await sendWithTtlFallback((msgs) => {
+            payload.messages = msgs;
+            return fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload), signal: ac.signal,
+            });
+          }, outbound, cacheTtl);
 
           if (wantStream) {
             // Hand the stream straight back. The caller can abandon it, which stops generation
