@@ -37,6 +37,7 @@ import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/
 // One door decides whether a supplier may be revealed, and one predicate decides whether a quote is
 // complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
 import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.ts';
+import { readRevealRate, recordRateUnreadable } from './reveal_rate.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../_shared/drawing_format.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -384,11 +385,12 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
 }
 
 type Cfg = { standard_reveal_rate: number; refund_window_working_days: number };
-async function getCfg(): Promise<Cfg> { const { data } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle(); return (data as Cfg) || { standard_reveal_rate: 0.03, refund_window_working_days: 3 }; }
+// Never a guessed rate (./reveal_rate.ts): null when pricing_config cannot be read, and the caller decides.
+async function getCfg(): Promise<Cfg | null> { const r = await readRevealRate(admin); if (r.ok) return r.cfg as Cfg; await recordRateUnreadable(admin, 'customer_api getCfg -> pricing_config', r.error); return null; }
 // 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
 // and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
 // pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
-function revealFee(amount: number, cfg: Cfg): number { if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
+function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
 // A RATING IS EARNED HERE OR IT DOES NOT EXIST (founder, 9 Sep 2026): "supplier rating should be
 // from customers after they tried them", "google review shouldnt be counted". This used to fall
 // back to leads.rating ?? leads.rating_maps — the Google Maps star of a business QuotesDone has
@@ -1738,7 +1740,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       // promo is always false: there is no promotional reveal rate (founder, 6 Sep 2026); the key stays so no reader breaks.
       // The ladder's numbers, from the same row the refund sweep and the supplier email read, so the
       // portal's timeline cannot drift from what is actually enforced (5 / 3 / 7-14 on 14 Sep 2026).
-      const pc = cfg as unknown as Record<string, number | null | undefined>;
+      const pc = (cfg || {}) as unknown as Record<string, number | null | undefined>;
       const guarantee_terms = { window_days: pc.refund_window_working_days ?? null, chase_after_days: pc.chase_after_working_days ?? null, bank_min_days: pc.bank_settlement_working_days_min ?? null, bank_max_days: pc.bank_settlement_working_days_max ?? null };
       return J({ inquiries: out, locale: cust.locale || null, promo: false, guarantee_terms });
     }
@@ -1916,6 +1918,8 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       const q = gate.quote;
       if (gate.already_revealed) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
       // The breakdown the confirm dialog prints is the one stripe_checkout charges: one module.
+      // No readable rate, no price and no payment: never a guessed 3% (./reveal_rate.ts; getCfg filed the finding).
+      if (!cfg) return J({ ok: false, error: 'reveal_rate_unavailable', code: 'reveal_rate_unavailable', message: 'Card payments are briefly unavailable. Your quotes are safe — please try again shortly.', message_ar: 'الدفع بالبطاقة غير متاح مؤقتًا. عروضك محفوظة — يُرجى المحاولة بعد قليل.' }, 503);
       const ch = revealCharge(Number(q.quote_amount), Number(cfg.standard_reveal_rate));
       return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
     }
