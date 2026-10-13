@@ -131,7 +131,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h' }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -592,7 +592,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
       // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
       const content = o.images?.length ? [{ role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] }] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {

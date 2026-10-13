@@ -215,3 +215,21 @@ Deno.test('the knowledge block adds no accepted figure', async () => {
   const a = [...briefNumbers(base)].sort(), b = [...briefNumbers(figureSource(withBlock))].sort();
   if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`accepted figures changed: ${JSON.stringify(b.filter((x) => !a.includes(x)))}`);
 });
+
+// prevented by: this test (13 Oct 2026, coordinator's option a). Measured live: the English and the Arabic brief were
+// two different ~120k-token cached prefixes, so a sparse Arabic reply paid a full cache write (USD 0.31). One brief for
+// every language: the same bytes for 'en' and 'ar', the knowledge block first so it is its own cached block.
+Deno.test('one brief for every language, the knowledge block first and split off as the shared cached block', async () => {
+  const { BRIEF_TEXT } = await import('./brief.generated.ts');
+  const { splitBrief } = await import('./company_brief.ts');
+  const rpc = () => Promise.resolve({ data: { block: 'CO' }, error: null });
+  const faqs = [{ id: 1, question: 'Is it free?', answer: 'Yes.', language: 'en' }, { id: 2, question: 'هل هو مجاني؟', answer: 'نعم.', language: 'ar' }];
+  const en = await companyBrief(rpc, faqs, 'FACTS L', 'en', [], 100);
+  const ar = await companyBrief(rpc, faqs, 'FACTS L', 'ar', [], 100_000_000);   // past the per-worker cache: rebuilt
+  assertEquals(ar, en);
+  assert(en.startsWith(BRIEF_TEXT));
+  const s = splitBrief(ar);
+  assertEquals(s.shared, BRIEF_TEXT);
+  assert(s.stable.includes('FACTS L') && s.stable.includes('Is it free?') && !s.stable.includes(BRIEF_TEXT));
+  assertEquals(s.shared + s.stable, ar);   // nothing lost, nothing repeated
+});
