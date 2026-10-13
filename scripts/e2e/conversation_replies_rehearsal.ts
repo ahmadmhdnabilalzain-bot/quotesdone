@@ -14,7 +14,7 @@ import { newRun, keys, internalCred, BASE, REF, closeRehearsalWindow } from '../
 import { mgmtFixture, mgmtRead } from '../lib/qd_guard.mjs';
 import { modelSays } from '../../supabase/functions/wa_inbound/model_says.ts';
 import { aiReply, replyProblems } from '../../supabase/functions/_shared/ai_reply.ts';
-import { briefNumbers, companyBrief } from '../../supabase/functions/_shared/company_brief.ts';
+import { briefNumbers, companyBrief, figureSource } from '../../supabase/functions/_shared/company_brief.ts';
 import type { ThinkDeps } from '../../supabase/functions/_shared/think.ts';
 
 const CAP_USD = 2;
@@ -88,9 +88,9 @@ try {
     const wantLang = c.audience === 'supplier' ? 'en' : c.lang;
     const langOk = text ? (wantLang === 'ar' ? AR.test(text) : !AR.test(text)) : false;
     // the SAME check aiReply runs: the brief, the turn's facts and the published contact are allowed (ai_reply.ts line 88)
-    const allowed = brief + '\n' + c.situation + '\n+971 50 931 9355 management@quotesdone.com';
-    const problems = text ? replyProblems(text, briefNumbers(brief + ' ' + c.situation), { allowed }) : ['no reply'];
-    const strictProblems = text ? replyProblems(text, briefNumbers(brief + ' ' + c.situation)) : [];
+    const allowed = figureSource(brief) + '\n' + c.situation + '\n+971 50 931 9355 management@quotesdone.com';
+    const problems = text ? replyProblems(text, briefNumbers(figureSource(brief) + ' ' + c.situation), { allowed }) : ['no reply'];
+    const strictProblems = text ? replyProblems(text, briefNumbers(figureSource(brief) + ' ' + c.situation)) : [];
     let judge: number | null = null; let judgeWhy = "";
     if (text) {
       const jr = await deps.llm('verify', 'You grade one customer-service reply for a UAE procurement marketplace. Score 1-5: 5 = answers exactly what was asked, accurate to the company brief and the facts given (the brief is the source of every company fact), professional, clear, right language; 1 = wrong or useless. Return JSON {"score":n,"why":"..."}',
