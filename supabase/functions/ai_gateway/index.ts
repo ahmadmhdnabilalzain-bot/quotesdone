@@ -715,7 +715,7 @@ async function handle(req: Request): Promise<Response> {
           // "this attempt was free" indistinguishable from "nobody recorded what it cost".
           prompt_tokens: u?.prompt_tokens ?? null,
           output_tokens: u?.completion_tokens ?? null,
-          cached_in_tokens: det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0,
+          cached_in_tokens: u ? (det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0) : null,
         }});
       } catch (_e) { /* the ledger must not take down the call; its absence shows in the report */ }
     };
@@ -830,18 +830,21 @@ async function handle(req: Request): Promise<Response> {
               const tapped = tapUsage(r.body, async (s) => {
                 const u = s.usage;
                 const { cachedIn: sIn, cacheWrite: sWr } = cacheTokens(u);
-                const okStream = !!u && !s.error;
-                await recordAttempt(m, okStream || s.cancelled, Date.now() - startedAt, s.error ?? (s.cancelled ? 'stream abandoned by the caller before the usage chunk' : 'stream ended with no usage chunk'), s.finish ?? undefined, u ?? undefined);
+                // Only a real stream error is a failure (it may trip the breaker). A stream that ended or was
+                // abandoned without its usage chunk delivered its words: ok, with the tokens unknown (null).
+                const okStream = !s.error;
+                await recordAttempt(m, okStream, Date.now() - startedAt, s.error ?? '', s.finish ?? undefined, u ?? undefined);
                 await llmLog({
                   p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
                   p_task_class: route.task_class ?? null, p_model: m,
                   p_because: route.why + ' | streamed'
                              + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): ' + sIn + ' tokens read from cache, ' + sWr + ' written' : '')
-                             + (s.cancelled ? ' | abandoned by the caller' + (u ? '' : ' before the usage chunk (tokens unknown)') : '')
+                             + (s.cancelled ? ' | abandoned by the caller' : '')
+                             + (u ? '' : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
                              + (s.finish === 'length' ? ' | TRUNCATED at the ' + sentMaxTok + '-token ceiling' : ''),
-                  p_tier: route.tier ?? null, p_prompt_tokens: Number(u?.prompt_tokens ?? 0), p_output_tokens: Number(u?.completion_tokens ?? 0),
-                  p_cached: false, p_cached_in: sIn, p_cache_write: sWr,
-                  p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: okStream || s.cancelled,
+                  p_tier: route.tier ?? null, p_prompt_tokens: u?.prompt_tokens ?? null, p_output_tokens: u?.completion_tokens ?? null,
+                  p_cached: false, p_cached_in: sIn ?? 0, p_cache_write: sWr ?? 0,
+                  p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: okStream,
                   p_generation_id: s.id, p_cost_usd_reported: Number.isFinite(Number(u?.cost)) ? Number(u!.cost) : null,
                 });
               });

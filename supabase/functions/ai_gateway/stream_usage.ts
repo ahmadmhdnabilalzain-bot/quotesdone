@@ -35,8 +35,10 @@ export function readSse(buf: string, seen: StreamSeen): string {
   return buf;
 }
 
-/** The cache numbers where OpenRouter actually puts them (nested), with the flat names as a fallback. */
-export function cacheTokens(u: Usage | null): { cachedIn: number; cacheWrite: number } {
+/** The cache numbers where OpenRouter actually puts them (nested), with the flat names as a fallback.
+ *  No usage block = unknown (null), never 0: an unmeasured call must not read as a free one. */
+export function cacheTokens(u: Usage | null): { cachedIn: number | null; cacheWrite: number | null } {
+  if (!u) return { cachedIn: null, cacheWrite: null };
   const det = (u?.prompt_tokens_details || {}) as Record<string, number>;
   return {
     cachedIn: Number(det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0),

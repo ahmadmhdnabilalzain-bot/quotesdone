@@ -38,7 +38,19 @@ Deno.test('a caller that abandons the stream cancels upstream, and the ledger is
   assertEquals((seen as unknown as StreamSeen).usage, null);
 });
 
-Deno.test('cache tokens: nested first, flat names as a fallback, zero when absent', () => {
+Deno.test('cache tokens: nested first, flat names as a fallback, unknown (null) when there is no usage block', () => {
   assertEquals(cacheTokens({ cache_read_input_tokens: 5, cache_creation_input_tokens: 7 }), { cachedIn: 5, cacheWrite: 7 });
-  assertEquals(cacheTokens(null), { cachedIn: 0, cacheWrite: 0 });
+  assertEquals(cacheTokens(null), { cachedIn: null, cacheWrite: null });
+});
+
+Deno.test('a stream that closes normally with no usage chunk is ok, with unknown (null) tokens, never zero', async () => {
+  let seen: StreamSeen | null = null;
+  const body = CHUNKS.slice(0, 2).concat(['data: {"id":"gen-2","choices":[{"delta":{},"finish_reason":"stop"}]}\n\n', 'data: [DONE]\n\n']);
+  const src = new ReadableStream<Uint8Array>({ start(c) { for (const s of body) c.enqueue(enc.encode(s)); c.close(); } });
+  await new Response(tapUsage(src, (s) => { seen = s; })).text();
+  await new Promise((r) => setTimeout(r, 0));
+  const s = seen as unknown as StreamSeen;
+  // the gateway books ok = !s.error: no error here, so the breaker is not touched
+  assertEquals([s.error, s.cancelled, s.usage, s.finish], [null, false, null, 'stop']);
+  assertEquals(cacheTokens(s.usage), { cachedIn: null, cacheWrite: null });
 });
