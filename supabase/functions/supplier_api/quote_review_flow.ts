@@ -157,15 +157,28 @@ const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice',
  * (numbers lose their thousands separators), separator rows and **emphasis** / # headings go; every other line stays.
  * prevented by: supplier_api/quote_review.test.ts ('a photographed quotation transcribed as a markdown table is priced')
  */
+// ONLY TABLE ROWS ARE TOUCHED (review of #1396): a line outside a pipe table passes through byte for byte. Inside a
+// cell, a comma goes only when it is a THOUSANDS separator (9,000.00 -> 9000.00; "1,5" and "12,50" are decimal commas
+// and stay as written, CSV-quoted); Arabic-Indic digits and the Arabic separators (U+066C thousands, U+066B decimal)
+// are read the same way; an escaped \| stays inside its cell; a short or merged row keeps the cells it has.
+const ESC_PIPE = '\u0000';
+const AR_DIGIT = /[٠-٩۰-۹]/g;
+const THOUSANDS = /(^|[^\d,.])(-?\d{1,3}(?:,\d{3})+)(?=\.\d+(?![\d,])|(?![\d,.]))/g;
+function tableCell(raw: string): string {
+  let c = raw.replace(new RegExp(ESC_PIPE, 'g'), '|').trim().replace(/^(\*\*|__)(.*)\1$/, '$2').trim();
+  c = c.replace(AR_DIGIT, (d) => String((d.charCodeAt(0) & 0xf) % 10)).replace(/٬/g, ',').replace(/٫/g, '.');
+  c = c.replace(THOUSANDS, (_m, pre: string, n: string) => pre + n.replace(/,/g, ''));
+  return /[",]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
+}
 export function transcriptAsText(md: string): string {
-  const csvCell = (c: string) => { const v = /^-?[\d,]+(\.\d+)?$/.test(c) ? c.replace(/,/g, '') : c; return /[",]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-  return String(md || '').split(/\r?\n/)
-    .filter((l) => !/^\s*\|?[\s:|-]*-{2,}[\s:|-]*\|?\s*$/.test(l))
-    .map((l) => {
-      const s = l.replace(/\*\*|__/g, '').replace(/^\s*#{1,6}\s*/, '');
-      if (!/^\s*\|.*\|\s*$/.test(s)) return s;
-      return s.trim().replace(/^\||\|$/g, '').split('|').map((c) => csvCell(c.trim())).join(',');
-    }).join('\n');
+  const isRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+  const isSep = (l: string) => /^\s*\|[\s:|-]*-{2,}[\s:|-]*\|\s*$/.test(l);
+  return String(md ?? '').split(/\r?\n/).flatMap((l) => {
+    if (!isRow(l)) return [l];
+    if (isSep(l)) return [];
+    const cells = l.replace(/\\\|/g, ESC_PIPE).trim().replace(/^\|/, '').replace(/\|$/, '').split('|');
+    return [cells.map(tableCell).join(',')];
+  }).join('\n');
 }
 
 export async function readQuotationFile(bytes: Uint8Array, filename: string, mime: string, supplierTerms: string[] = [],

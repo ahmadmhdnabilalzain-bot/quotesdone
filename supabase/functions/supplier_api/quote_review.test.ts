@@ -741,3 +741,24 @@ Deno.test('a photographed quotation transcribed as a markdown table is priced', 
   const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'our quotation', { b64: jpegB64, filename: 'quote.jpg', mime: 'image/jpeg' }));
   assert(['changes_requested', 'awaiting_choice'].includes(t.state), 'the photographed quotation was not reviewed: ' + t.state);
 });
+Deno.test('transcriptAsText: only table rows change, and no price is ever corrupted (review of #1396)', () => {
+  // non-table text passes through byte for byte: headings, emphasis, rules, a "--" line
+  const prose = '# QUOTATION\n**Validity:** 30 days\n---\n-- prices exclude VAT --\n__Warranty__ 2 years\nTotal 1,5 kg';
+  assertEquals(transcriptAsText(prose), prose);
+  const row = (r: string) => transcriptAsText(r);
+  // a thousands separator goes; the number is otherwise untouched
+  assertEquals(row('| Walls | 450 | m2 | 20.00 | 9,000.00 |'), 'Walls,450,m2,20.00,9000.00');
+  assertEquals(row('| Big | 1 | lot | 1,234,567.50 | 1,234,567.50 |'), 'Big,1,lot,1234567.50,1234567.50');
+  // a currency cell keeps its currency and loses only the separator
+  assertEquals(row('| Walls | 450 | m2 | AED 20.00 | AED 9,000.00 |'), 'Walls,450,m2,AED 20.00,AED 9000.00');
+  // decimal commas are never read as thousands: 1,5 is not 15 and 12,50 is not 1250
+  assertEquals(row('| Paint | 1,5 | l | 12,50 | 18,75 |'), 'Paint,"1,5",l,"12,50","18,75"');
+  // Arabic-Indic digits with the Arabic thousands (٬) and decimal (٫) separators
+  assertEquals(row('| دهان | ٤٥٠ | م٢ | ٢٠٫٠٠ | ٩٬٠٠٠٫٠٠ |'), 'دهان,450,م2,20.00,9000.00');
+  // an escaped pipe stays inside its cell: the prices do not move a column
+  assertEquals(row(String.raw`| Gypsum \| board 12 mm | 10 | m2 | 5.00 | 50.00 |`), 'Gypsum | board 12 mm,10,m2,5.00,50.00');
+  // a short or merged row keeps the cells it has, and its total
+  assertEquals(row('| **Total (excluding VAT)** | | **11,160.00** |'), 'Total (excluding VAT),,11160.00');
+  // the separator row of a table goes; one outside a table (no pipes) was kept above
+  assertEquals(row('|---|:---:|---|'), '');
+});
