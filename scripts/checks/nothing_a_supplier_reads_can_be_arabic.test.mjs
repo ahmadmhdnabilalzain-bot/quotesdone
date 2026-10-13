@@ -17,7 +17,8 @@
 //   node --test scripts/checks/nothing_a_supplier_reads_can_be_arabic.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -62,6 +63,23 @@ const ARABIC_SCRIPT = /[؀-ۿ]/;
 
 const files = supplierFiles();
 
+// 4. ARABIC LETTERS ONLY ON THE GATED LIST (review of #1409). Every Arabic line in these files sits in a
+// branch chosen by a language that is the constant English (the portal's `lang = 'en'`, the functions'
+// SUPPLIER_LOCALE) - copy tables, `ar ? … : …` ternaries, the dead registration_received Arabic mail.
+// Those lines are listed by hash in nothing_a_supplier_reads_can_be_arabic.gated.json, so a new Arabic
+// line anywhere here (`const PLANT = 'مرحبا بك'`) fails until someone has read it and confirmed its gate:
+//   node scripts/checks/nothing_a_supplier_reads_can_be_arabic.test.mjs --write
+const GATED_FILE = resolve(ROOT, 'scripts/checks/nothing_a_supplier_reads_can_be_arabic.gated.json');
+const hashOf = (l) => createHash('sha1').update(l.trim()).digest('hex').slice(0, 12);
+const arabicHashes = (f) => [...new Set(code(readFileSync(resolve(ROOT, f), 'utf8')).split('\n').filter((l) => ARABIC_SCRIPT.test(l)).map(hashOf))].sort();
+if (process.argv.includes('--write')) {
+  const out = {}; for (const f of files) { const h = arabicHashes(f); if (h.length) out[f] = h; }
+  writeFileSync(GATED_FILE, JSON.stringify(out, null, 1) + '\n');
+  console.log(`recorded ${Object.values(out).flat().length} gated Arabic lines in ${Object.keys(out).length} files`);
+  process.exit(0);
+}
+const GATED = existsSync(GATED_FILE) ? JSON.parse(readFileSync(GATED_FILE, 'utf8')) : {};
+
 test('the supplier-facing files are derived from the code, not listed', () => {
   assert.ok(files.length >= 30, `only ${files.length} supplier files found - the import walk is broken`);
   for (const e of ENTRIES) assert.ok(files.includes(e), e + ' missing');
@@ -72,7 +90,9 @@ for (const f of files) {
   test(`${f}: a supplier can never be given Arabic`, () => {
     const lines = code(readFileSync(resolve(ROOT, f), 'utf8')).split('\n');
     const bad = [];
+    const allowed = new Set(GATED[f] || []);
     lines.forEach((l, i) => {
+      if (ARABIC_SCRIPT.test(l) && !allowed.has(hashOf(l))) bad.push(`${i + 1}: Arabic letters not on the gated list: ${l.trim().slice(0, 160)}`);
       if (FROM_REQUEST_OR_ROW.test(l) && !/SUPPLIER_LOCALE/.test(l)) bad.push(`${i + 1}: language read from the request or a stored row: ${l.trim().slice(0, 160)}`);
       if (OFFERS_ARABIC.test(l)) bad.push(`${i + 1}: offers the Arabic copy: ${l.trim().slice(0, 160)}`);
       if (f.startsWith('supabase/') && SENDS_ARABIC_FIELD.test(l)) bad.push(`${i + 1}: answers with an Arabic field: ${l.trim().slice(0, 160)}`);
