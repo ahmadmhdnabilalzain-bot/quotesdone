@@ -702,6 +702,406 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_demo_purge(p_apply boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb;
+begin
+  if p_apply then return jsonb_build_object('mode', 'apply') || public.fn_demo_purge_run(); end if;
+  begin
+    v := public.fn_demo_purge_run();
+    raise exception using errcode = 'QD199', message = v::text;
+  exception when sqlstate 'QD199' then
+    return jsonb_build_object('mode', 'plan') || sqlerrm::jsonb;
+  end;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_address(p_email text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_is_demo_email(p_email) or lower(btrim(coalesce(p_email, ''))) = any(public.fn_demo_purge_confirmed_logins()) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_confirmed_logins()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$ select array['ahmadmhdnabilalzain+qdprobe1@gmail.com', 'ahmadmhdnabilalzain+qdcust1@gmail.com']::text[] $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_dropbox_paths()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$ select array[
+  '/QuotesDone Backup/Customers/Ahmad Nabil Al Zain',
+  '/QuotesDone Backup/Customers/QA Journey Tester',
+  '/QuotesDone Backup/Customers/QA Portal Tester',
+  '/QuotesDone Backup/Customers/QA Test Customer',
+  '/QuotesDone Backup/Customers/QA Villa Owner',
+  '/QuotesDone Backup/Customers/ahmad test',
+  '/QuotesDone Backup/Customers/ahmad test 2',
+  '/QuotesDone Backup/Customers/qa.portal.testquotesdone.com',
+  '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12/Suppliers/QD Demo Claimed Aluminium 0686',
+  '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12/Suppliers/QD Demo Claimed Aluminium 1755',
+  '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12/Suppliers/QD Demo Claimed Aluminium 1c4d',
+  '/QuotesDone Backup/_archive/demo-leftovers-2026-10-12/Suppliers/QD Demo Claimed Aluminium e236',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Ahmad Nabil Al Zain (dbb4e36f)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Ahmed Al Mansoori (301a941f)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Bara Al Zain (d38c4fac)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/DEMO — Sara Ahmed (657e47eb)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Fatima Rahman (d52e1f20)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/John Peterson (16b28330)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Layla Haddad (74a0d6f7)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Layla Test (5e97a48c)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Mohammed Iqbal (70683bb5)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Noura Al Ali (65f309ea)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QA Journey Tester (68abd9e3)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QA Portal Tester (296c6bbd)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QA Regression Owner (75bbef26)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QA Test Customer (58371fbd)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QA Test Customer (c5e47f2d)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QA Villa Owner (424d48c3)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QD DEMO Customer (cbfd972e)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/QuotesDone Test (191e9197)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Rajesh Kumar (83e4b5fb)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/Sara Khalifa (8025bf05)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ZZ DEMO - shared handset A (ccef2d0d)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ZZ DEMO - shared handset B (91eeccf8)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ZZ DEMO — section 8 probe customer A (6636916e)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ZZ DEMO — section 8 probe customer B (1bfe4f47)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl A (ae8d1a34)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/__selftest__ctrl B (05540815)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad (27cbbc0a)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad alzain (95e4345e)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test (70f15bc3)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmad test 2 (a6d900ab)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Customers/ahmadsw (84a808ec)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Interior fit-out/DEMO — BlueBay Contracting (30298)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Interior fit-out/DEMO — Falcon Interiors LLC (30297)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Other/ZZ TEST Expiry Harness (delete me) (30371)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/MERIDIAN MEP CONTRACTING LLC (30466)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/ZZ DEMO — section 8 probe supplier A (40466)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/ZZ DEMO — section 8 probe supplier B (40467)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/Uncategorized/شركة اختبار المورّد (30346)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/ac-duct-cleaning/QA PureDuct Cleaning (30328)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/ac-maintenance/QA CoolCare HVAC (30327)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/aluminium-glass/QA ClearView Aluminium & Glass (30329)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/cctv-security/HARNESS_FIX Security (30349)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/cctv-security/QA SecureEye Systems (30330)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/cleaning/QA SparkleClean Services (30331)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/combined-mep/QD DEMO — Al Noor Technical Services LLC (30372)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/custom-furniture/QA Artisan Custom Furniture (30332)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/HARNESS_FIX Electrical (30348)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/HARNESS_FIX Electrical (30395)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/QA Volt Electrical Contracting (30325)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/VoltEdge Electrical Contracting LLC (30365)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/electrical/[QA] Gamma Electrical Works (30358)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/Emirates Prestige Flooring LLC (30361)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/Prestige Floors Contracting LLC (30362)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/QA Flooring Test Co (30355)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/QA TerraFloor Solutions (30333)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/Skyline Surfaces Interiors LLC (30363)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Alpha Flooring LLC (30356)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Beta Floors & More (30357)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Regress Alpha Flooring (30359)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/flooring/[QA] Regress Beta Floors (30360)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/interior-design/HARNESS_FIX Fitout (30350)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/interior-design/[TEST] Falcon Fit-Out LLC (30296)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/joinery-kitchens/QA MasterWood Kitchens (30335)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/landscaping/HARNESS_FIX Landscaping (30351)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/painting/QA ProCoat Painting (30334)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/plumbing/AquaFix Plumbing Services LLC (30364)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/plumbing/QA AquaFlow Plumbing Works (30326)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/swimming-pools/HARNESS_FIX Pools (30347)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/swimming-pools/HARNESS_FIX Pools (30394)',
+  '/QuotesDone Backup/_archive/ownerless-2026-10-12/Suppliers/tiling-marble/QA StonePro Tiling & Marble (30336)'
+]::text[] $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_kept_leads()
+ RETURNS bigint[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$ select array[143027]::bigint[] $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_key_has_confirmed(p_key text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select exists (select 1 from unnest(public.fn_demo_purge_confirmed_logins()) a
+  where lower(coalesce(p_key, '')) ~ ('(^|[^a-z0-9._%+-])' || regexp_replace(a, '([.+*?^$(){}|\[\]\\])', '\\\1', 'g') || '($|[^a-z0-9.-])')) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_real_counts()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'customers', (select count(*) from public.customers where not coalesce(is_demo, false)),
+    'leads', (select count(*) from public.leads where not coalesce(is_demo, false)),
+    'inquiries', (select count(*) from public.inquiries i where not public.fn_inquiry_is_demo(i.id)),
+    'quotes', (select count(*) from public.quotes q where not public.fn_quote_is_demo(q.id)),
+    'transactions', (select count(*) from public.transactions t where not public.fn_transaction_is_demo(t.id)),
+    'auth_users', (select count(*) from auth.users u where not public.fn_is_demo_email(u.email) and not public.fn_is_demo_phone(u.phone)
+                     and not lower(coalesce(u.email, '')) = any(public.fn_demo_purge_confirmed_logins())
+                     and not exists (select 1 from public.customers c where c.id = u.id and c.is_demo)))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_run()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_before jsonb := public.fn_demo_purge_real_counts(); v_after jsonb;
+  c jsonb := '{}'::jsonb; v_pid bigint; v_obj int; v_dbx int; v_rec int; r record;
+  EM constant text := '@([a-z0-9_-]+[.])*(example[.](com|net|org)|test|example|invalid|localhost)([^a-z0-9._-]|$)';
+begin
+  -- the demo id sets: markers only
+  create temp table _dc on commit drop as select id from public.customers where is_demo;
+  -- 143027 (Assurance Corps Co., a real sourced company) is never a demo id, whatever its flag reads
+  create temp table _dl on commit drop as select id from public.leads where is_demo and id <> all(public.fn_demo_purge_kept_leads());
+  create temp table _di on commit drop as select id from public.inquiries i where public.fn_inquiry_is_demo(i.id);
+  create temp table _dq on commit drop as select id from public.quotes where inquiry_id in (select id from _di) or supplier_id in (select id from _dl);
+  create temp table _dt on commit drop as select id from public.transactions
+    where customer_id in (select id from _dc) or supplier_id in (select id from _dl) or inquiry_id in (select id from _di) or quote_id in (select id from _dq);
+  create temp table _du on commit drop as select id from auth.users u
+    where public.fn_is_demo_email(u.email) or public.fn_is_demo_phone(u.phone) or u.id in (select id from _dc)
+       or lower(coalesce(u.email, '')) = any(public.fn_demo_purge_confirmed_logins());
+  create temp table _dk on commit drop as
+    select id::text k from _dc union select id::text from _dl union select id::text from _di
+    union select id::text from _dq union select id::text from _dt;
+  c := jsonb_build_object('demo_ids', jsonb_build_object('customers', (select count(*) from _dc), 'leads', (select count(*) from _dl),
+         'inquiries', (select count(*) from _di), 'quotes', (select count(*) from _dq), 'transactions', (select count(*) from _dt),
+         'auth_users', (select count(*) from _du)));
+
+  insert into public.signup_purge (kind, subject_ref, missing) values ('demo_purge', 'founder ruling 1199', '{}') returning id into v_pid;
+
+  -- storage: every object a demo row names, or whose path carries a marker, that storage actually holds
+  insert into public.signup_purge_object (purge_id, bucket, path)
+  select v_pid, o.bucket_id, o.name from storage.objects o
+    join (
+      select 'signed-terms' b, signed_terms_path p from public.customers where id in (select id from _dc)
+      union select 'signed-terms', signed_terms_path from public.leads where id in (select id from _dl)
+      union select 'supplier-docs', regexp_replace(unnest(array[license_doc_path, company_profile_doc_path, egr_doc_path, insurance_doc_path,
+                     vat_doc_path, iso_doc_path, manufacturer_auth_doc_path] || coalesce(catalog_doc_paths, '{}'::text[])), '^supplier-docs/', '')
+          from public.leads where id in (select id from _dl)
+      union select 'drawing-files', drawing_file_path from public.inquiries where id in (select id from _di)
+      union select 'drawing-files', unnest(drawing_redacted_paths) from public.inquiries where id in (select id from _di)
+      union select 'quote-files', original_file_path from public.quotes where id in (select id from _dq)
+      union select 'quote-files', original_file_path from public.quote_reviews where inquiry_id in (select id from _di) or supplier_id in (select id from _dl)
+      union select bucket, path from public.documents where ref_table in ('inquiries', 'quotes', 'leads', 'customers', 'transactions') and ref_id in (select k from _dk)
+      union select bucket, path from public.doc_backups where entity in ('customer', 'supplier', 'inquiry', 'quote', 'transaction') and entity_id in (select k from _dk)
+      union select bucket, path from public.supplier_document_cache where supplier_id in (select id from _dl)
+      union select pdf_bucket, pdf_path from public.quote_spec_hold where quote_id in (select id from _dq)
+    ) x on x.b = o.bucket_id and x.p = o.name
+  union
+  select v_pid, o.bucket_id, o.name from storage.objects o
+   where (o.bucket_id = 'drawing-files' and split_part(o.name, '/', 2) in (select k from _dk))
+      or (o.bucket_id = 'supplier-docs' and split_part(o.name, '/', 2) in (select id::text from _dl))
+      or (o.bucket_id = 'agent-docs' and exists (select 1 from _di where o.name like '%QD-' || upper(left(_di.id::text, 8)) || '-CMP%'))
+      or (o.bucket_id not in ('brand', 'site', 'demo-assets', 'social-media', 'kb-import-assets', 'backups')
+          and o.name ~* '(^|/)(zz[ _-]?demo([^a-z]|$)|__selftest__|_selftest/)')
+  on conflict (bucket, path) do nothing;
+  get diagnostics v_obj = row_count;
+
+  -- Dropbox (review of #1348, coordinator 13 Oct 2026): ONLY the frozen, reviewed list (fn_demo_purge_dropbox_paths,
+  -- the same paths as supabase/functions/dropbox_backup/demo_purge_paths.json) and the _sandbox/_selftest probe roots.
+  -- No name pattern decides. Each backup record whose copy lies inside a listed path goes with it; a demo entity's
+  -- copy anywhere else is NOT deleted from Dropbox and is named in the plan for a person to add to the list.
+  create temp table _fp on commit drop as select unnest(public.fn_demo_purge_dropbox_paths()) p;
+  insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
+  select v_pid, d.id, d.dropbox_path from public.doc_backups d
+   where d.dropbox_path is not null
+     and (exists (select 1 from _fp where d.dropbox_path = _fp.p or starts_with(d.dropbox_path, _fp.p || '/'))
+          or d.dropbox_path ~ '^/QuotesDone Backup/_(sandbox|selftest)/[^/]+/')
+  on conflict (doc_backup_id) do nothing;
+  get diagnostics v_dbx = row_count;
+  insert into public.signup_purge_dropbox (purge_id, doc_backup_id, dropbox_file)
+  select v_pid, null, f.p from (
+      select p from _fp
+      union select substring(dropbox_path from '^(/QuotesDone Backup/_(?:sandbox|selftest)/[^/]+)/') from public.doc_backups
+       where dropbox_path ~ '^/QuotesDone Backup/_(sandbox|selftest)/[^/]+/'
+      union select path from public.dropbox_files where path ~ '^/QuotesDone Backup/_(sandbox|selftest)/[^/]+$') f
+   where f.p is not null
+     and not exists (select 1 from public.signup_purge_dropbox s where s.dropbox_file = f.p and s.done_at is null);
+  get diagnostics v_rec = row_count;
+  v_dbx := v_dbx + v_rec;
+  c := c || jsonb_build_object('dropbox_frozen_paths', (select jsonb_agg(p order by p) from _fp));
+  -- a listed copy keeps its record until dropbox_backup has deleted the copy; a record with no copy goes now
+  update public.doc_backups d set status = 'signup_purge_pending', claimed_at = null, claimed_by = null,
+         error = 'demo data purged (founder ruling 1199): Dropbox copy and record to be deleted'
+   where d.id in (select doc_backup_id from public.signup_purge_dropbox where purge_id = v_pid and doc_backup_id is not null);
+  -- a demo record with no copy, or whose copy the live Dropbox listing (refreshed within 36 hours) no longer holds, has
+  -- nothing in Dropbox to delete: the record goes now. Without a fresh listing such a record is kept and named.
+  create temp table _dgone on commit drop as
+  select d.id from public.doc_backups d
+   where ((d.entity in ('customer', 'supplier', 'inquiry', 'quote', 'transaction') and d.entity_id in (select k from _dk))
+          or d.entity = 'zz_demo' or d.dedupe_key like 'SBX:%')
+     and d.id not in (select doc_backup_id from public.signup_purge_dropbox where purge_id = v_pid and doc_backup_id is not null)
+     and (d.dropbox_path is null
+          or ((select max(synced_at) from public.dropbox_files) > now() - interval '36 hours'
+              and not exists (select 1 from public.dropbox_files f where lower(f.path) = lower(d.dropbox_path)
+                                and f.synced_at > now() - interval '36 hours')));
+  c := c || jsonb_build_object('dropbox_demo_copies_still_in_dropbox_outside_the_list', coalesce((select jsonb_agg(d.dropbox_path order by d.dropbox_path)
+         from public.doc_backups d
+        where ((d.entity in ('customer', 'supplier', 'inquiry', 'quote', 'transaction') and d.entity_id in (select k from _dk))
+               or d.entity = 'zz_demo' or d.dedupe_key like 'SBX:%')
+          and d.id not in (select doc_backup_id from public.signup_purge_dropbox where purge_id = v_pid and doc_backup_id is not null)
+          and d.id not in (select id from _dgone)), '[]'::jsonb));
+  c := public.fn_demo_purge_walk('public.doc_backups', 'id in (select id from _dgone)', 0, c);
+  c := c || jsonb_build_object('storage_objects_listed', v_obj, 'dropbox_listed', v_dbx, 'purge_id', v_pid);
+
+  -- the id-keyed and identity-keyed rows, while the ids are still known
+  for r in select * from (values
+    ('public.company_event', 'entity_type in (''customer'',''supplier'',''lead'',''inquiry'',''quote'',''transaction'',''refund'') and entity_id in (select k from _dk)'),
+    ('public.agent_actions', 'target_table in (''customers'',''leads'',''suppliers'',''inquiries'',''quotes'',''transactions'') and target_id in (select k from _dk)'),
+    ('public.doc_versions', 'entity_type in (''quote'',''rfq'',''inquiry'',''customer'',''lead'',''supplier'',''transaction'') and entity_id in (select k from _dk)'),
+    ('public.documents', 'ref_table in (''inquiries'',''quotes'',''leads'',''customers'',''transactions'') and ref_id in (select k from _dk)'),
+    ('public.quote_items', 'quote_id in (select id::text from _dq)'),
+    ('public.notifications', 'public.fn_demo_purge_address(to_email) or public.fn_is_demo_phone(to_phone) or lead_id in (select id from _dl) or inquiry_id in (select id from _di) or quote_id in (select id from _dq)'),
+    ('public.email_verifications', 'public.fn_demo_purge_address(email)'),
+    ('public.phone_verifications', 'public.fn_demo_purge_address(email) or public.fn_is_demo_phone(phone)'),
+    ('public.inquiry_intake', 'customer_id in (select id from _dc) or public.fn_demo_purge_address(email)'),
+    ('public.drawing_redaction_runs', 'customer_id in (select id from _dc) or public.fn_demo_purge_address(owner_email)'),
+    ('public.cad_read_jobs', 'customer_id in (select id from _dc) or public.fn_demo_purge_address(owner_email)'),
+    ('public.support_case', 'public.fn_party_is_demo(party_kind, party_id)'),
+    ('public.support_customer_profile', 'customer_id in (select id from _dc) or lead_id in (select id from _dl) or public.fn_demo_purge_address(email)'),
+    ('public.customer_support_duty_message', 'customer_id in (select id from _dc) or lead_id in (select id from _dl) or public.fn_demo_purge_address(to_email)'),
+    ('public.quote_reviews', 'inquiry_id in (select id from _di) or supplier_id in (select id from _dl) or public.fn_demo_purge_address(owner_email)'),
+    ('public.quote_spec_hold', 'quote_id in (select id from _dq) or inquiry_id in (select id from _di) or supplier_id in (select id from _dl)'),
+    ('public.supplier_score', 'lead_id in (select id from _dl)'),
+    ('public.supplier_document_cache', 'supplier_id in (select id from _dl)'),
+    ('public.wa_conversation', 'public.fn_is_demo_phone(phone_e164) or public.fn_party_is_demo(party_kind, party_id)'),
+    ('public.wa_messages', 'public.fn_is_demo_phone(wa_from) or public.fn_is_demo_phone(wa_to)'),
+    ('public.wa_inbound_seen', 'public.fn_is_demo_phone(wa_from)'),
+    ('public.wa_answer_log', 'public.fn_is_demo_phone(from_phone)'),
+    ('public.sms_messages', 'public.fn_is_demo_phone(sms_from) or public.fn_is_demo_phone(sms_to)'),
+    ('public.email_suppressions', 'public.fn_demo_purge_address(email)'),
+    -- pdpl_requests and pdpl_operator_log are NEVER purged: they are the evidence a data request was handled
+    ('public.rl_hits', 'k ~* ''' || EM || ''' or public.fn_demo_purge_key_has_confirmed(k)'),
+    ('public.ai_rate_limit', 'bucket ~* ''' || EM || ''' or public.fn_demo_purge_key_has_confirmed(bucket)'),
+    ('public.assistant_logs', 'user_agent ~* ''(qd-[a-z-]*probe|latency-probe)'''),
+    ('public.ai_cost_log', 'e2e_run_tag is not null'),
+    ('public.rehearsal_window', 'run_tag like ''qd\_run:%'''),
+    ('public.marketing_outreach_message', 'is_demo'),
+    ('public.marketing_prospect', 'is_demo'),
+    ('public.marketing_post', 'is_demo'),
+    ('public.marketing_campaign', 'is_demo'),
+    ('public.marketing_article', 'is_demo'),
+    ('public.marketing_ad_spend_day', 'is_demo'),
+    ('public.ad_campaign_state', 'is_demo'),
+    ('public.social_conversation', 'is_demo'),
+    -- the entities, children first through the walk
+    ('public.transactions', 'id in (select id from _dt)'),
+    ('public.quotes', 'id in (select id from _dq)'),
+    ('public.inquiries', 'id in (select id from _di)'),
+    ('public.customers', 'id in (select id from _dc)'),
+    ('public.leads', 'id in (select id from _dl)'),
+    ('auth.users', 'id in (select id from _du)')
+  ) t(rel, w) loop
+    continue when to_regclass(r.rel) is null;
+    c := public.fn_demo_purge_walk(r.rel::regclass, r.w, 0, c);
+  end loop;
+
+  -- THE GUARD: nothing that is not demo may have moved
+  v_after := public.fn_demo_purge_real_counts();
+  if v_after is distinct from v_before then
+    raise exception 'DEMO PURGE REFUSED: a real row would change. before % after %', v_before, v_after
+      using errcode = 'QD198';
+  end if;
+  return c || jsonb_build_object('real_counts_unchanged', v_after);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_verify()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'customers', (select count(*) from public.customers where is_demo),
+    'leads', (select count(*) from public.leads where is_demo),
+    'inquiries', (select count(*) from public.inquiries i where public.fn_inquiry_is_demo(i.id)),
+    'auth_users', (select count(*) from auth.users u where public.fn_is_demo_email(u.email) or public.fn_is_demo_phone(u.phone)
+                     or lower(coalesce(u.email, '')) = any(public.fn_demo_purge_confirmed_logins())),
+    'notifications', (select count(*) from public.notifications where public.fn_demo_purge_address(to_email) or public.fn_is_demo_phone(to_phone)),
+    'confirmed_alias_leftovers', (select count(*) from public.email_verifications where public.fn_demo_purge_address(email))
+                               + (select count(*) from public.phone_verifications where public.fn_demo_purge_address(email)),
+    'ai_cost_log_tagged', (select count(*) from public.ai_cost_log where e2e_run_tag is not null),
+    'rehearsal_windows', (select count(*) from public.rehearsal_window where run_tag like 'qd\_run:%'),
+    'doc_backups', (select count(*) from public.doc_backups where entity = 'zz_demo' or dedupe_key like 'SBX:%'),
+    'marketing_demo', (select count(*) from public.marketing_prospect where is_demo) + (select count(*) from public.marketing_post where is_demo)
+                    + (select count(*) from public.marketing_campaign where is_demo) + (select count(*) from public.marketing_outreach_message where is_demo),
+    'social_demo', (select count(*) from public.social_conversation where is_demo),
+    'storage_queue_open', (select count(*) from public.signup_purge_object o join public.signup_purge p on p.id = o.purge_id
+                            where p.kind = 'demo_purge' and o.done_at is null),
+    'dropbox_queue_open', (select count(*) from public.signup_purge_dropbox o join public.signup_purge p on p.id = o.purge_id
+                            where p.kind = 'demo_purge' and o.done_at is null))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demo_purge_walk(p_rel regclass, p_where text, p_depth integer, p_counts jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f record; v_n bigint; v_key text := p_rel::text; v_k text;
+begin
+  if p_depth > 8 then raise exception 'demo purge: foreign-key chain deeper than 8 at %', p_rel; end if;
+  -- the data-request evidence is never walked into, by any route (release review of 2953dbf)
+  if regexp_replace(v_key, '^.*[.]', '') ~* '^pdpl_' then raise exception 'DEMO PURGE REFUSED: % is data-request evidence', v_key using errcode = 'QD196'; end if;
+  -- every child, cascading ones included, is walked here, so the plan names each table the purge touches
+  for f in
+    select c.conrelid::regclass child, a.attname col, pa.attname pcol, c.confdeltype del
+      from pg_constraint c
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+      join pg_attribute pa on pa.attrelid = c.confrelid and pa.attnum = c.confkey[1]
+     where c.contype = 'f' and c.confrelid = p_rel and c.conrelid <> p_rel and cardinality(c.conkey) = 1
+  loop
+    if f.del = 'n' then
+      -- a SET NULL reference is unlinked, never deleted: that row is not the demo entity's own
+      execute format('update %s set %I = null where %I in (select %I from %s where %s)', f.child, f.col, f.col, f.pcol, p_rel, p_where);
+      get diagnostics v_n = row_count;
+      v_k := f.child::text || ' (unlinked ' || f.col || ')';
+      p_counts := jsonb_set(p_counts, '{touched}', coalesce(p_counts->'touched', '{}'::jsonb)
+                    || jsonb_build_object(v_k, coalesce((p_counts->'touched'->>v_k)::bigint, 0) + v_n));
+    else
+      p_counts := public.fn_demo_purge_walk(f.child,
+        format('%I in (select %I from %s where %s)', f.col, f.pcol, p_rel, p_where), p_depth + 1, p_counts);
+    end if;
+  end loop;
+  execute format('delete from %s where %s', p_rel, p_where);
+  get diagnostics v_n = row_count;
+  -- the books are never purged: a demo row that reached a ledger table is reversed by the accountant first
+  if v_n > 0 and regexp_replace(v_key, '^.*[.]', '') ~ '^(gl_|ledger|journal|supplier_dues|accountant_issued|reveal_invoices|refund|stripe_|payout|bank_|cash_|finance_)' then
+    raise exception 'DEMO PURGE REFUSED: % demo row(s) reached the ledger table %; the accountant reverses them first', v_n, v_key
+      using errcode = 'QD197';
+  end if;
+  p_counts := jsonb_set(p_counts, '{touched}', coalesce(p_counts->'touched', '{}'::jsonb)
+                || jsonb_build_object(v_key, coalesce((p_counts->'touched'->>v_key)::bigint, 0) + v_n));
+  return p_counts;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dept_authority(p_dept text, p_action_class text, p_amount_aed numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql

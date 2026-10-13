@@ -1,1 +1,0 @@
-Committed, applied at merge by the release operator (apply at merge, never before). Seat: it_engineer. Founder ruling 1199. When applied: delete this note and append the .sql to the END of MANIFEST.txt. The purge itself (fn_demo_purge(true)) runs only after the final sandbox run reports its clean pass.

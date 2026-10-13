@@ -919,6 +919,7 @@ with rep as (
   select c.inquiry_id, min(c.created_at) as reported_at
     from public.qd_compare_cache c
    where not (c.analysis ? '__failed')
+     and not exists (select 1 from public.inquiries di where di.id::text = c.inquiry_id and public.fn_inquiry_is_demo(di.id))
      and c.created_at >= now() - make_interval(days => greatest(1, p_days))
    group by c.inquiry_id
 ),
@@ -1840,7 +1841,7 @@ begin
       from public.leads l
       left join m on m.supplier_id = l.id
       left join q on q.supplier_id = l.id
-     where l.invited_at is not null or coalesce(l.claimed, false) or l.approval_status is not null
+     where (l.invited_at is not null or coalesce(l.claimed, false) or l.approval_status is not null) and not l.is_demo
   )
   insert into public.supplier_onboarding as o (lead_id, stage, first_match_at, first_quote_at, open_matches)
   select id, stage, first_match_at, first_quote_at, open_matches from s
@@ -1858,7 +1859,7 @@ begin
   -- most twice, a week apart, in his language, through customer_support.
   for r in
     select o.lead_id, o.open_matches, l.company_name, lower(nullif(btrim(coalesce(l.claimed_by, l.email)), '')) as to_email
-      from public.supplier_onboarding o join public.leads l on l.id = o.lead_id
+      from public.supplier_onboarding o join public.leads l on l.id = o.lead_id and not l.is_demo
      where o.stage = 'matched' and o.open_matches > 0 and o.first_match_at < now() - interval '3 days'
        and o.nudges < 2 and (o.last_nudge_at is null or o.last_nudge_at < now() - interval '7 days')
      order by o.first_match_at
@@ -2015,7 +2016,7 @@ begin
            case when s.quality_rating is not null then least(1, greatest(0, s.quality_rating / 100.0)) end as qual,
            case when coalesce(r.review_count, 0) > 0 then 1 - least(1, greatest(0, coalesce(r.dispute_rate_pct, 0) / 100.0)) end as disp
       from public.supplier_score s
-      join public.leads l on l.id = s.lead_id
+      join public.leads l on l.id = s.lead_id and not l.is_demo
       left join public.supplier_reputation r on r.supplier_id = s.lead_id
      where s.reliability is not null or s.quality_rating is not null or coalesce(r.review_count, 0) > 0
   )
@@ -7272,6 +7273,14 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_is_demo(p_id bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select coalesce((select l.is_demo from public.leads l where l.id = p_id), false) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_knowledge_graph(p_lead_id bigint)
  RETURNS jsonb
  LANGUAGE sql
@@ -10111,7 +10120,8 @@ begin
   update public.support_case
      set state = 'closed', closed_at = now(),
          close_reason = 'resolved — answered, and no reply from the customer in ' || v_days || ' days (closed by customer_support)'
-   where state = 'waiting_customer' and last_activity_at < now() - make_interval(days => v_days);
+   where state = 'waiting_customer' and last_activity_at < now() - make_interval(days => v_days)
+     and not public.fn_party_is_demo(party_kind, party_id);
   get diagnostics n = row_count;
   return jsonb_build_object('closed', n);
 end $function$
