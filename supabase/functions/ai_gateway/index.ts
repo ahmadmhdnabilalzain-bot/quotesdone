@@ -32,6 +32,7 @@
 //
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
+import { cacheTokens, tapUsage } from './stream_usage.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -714,7 +715,7 @@ async function handle(req: Request): Promise<Response> {
           // "this attempt was free" indistinguishable from "nobody recorded what it cost".
           prompt_tokens: u?.prompt_tokens ?? null,
           output_tokens: u?.completion_tokens ?? null,
-          cached_in_tokens: det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0,
+          cached_in_tokens: u ? (det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0) : null,
         }});
       } catch (_e) { /* the ledger must not take down the call; its absence shows in the report */ }
     };
@@ -823,14 +824,31 @@ async function handle(req: Request): Promise<Response> {
             // and stops billing - that is the whole point of streaming for cost.
             clearTimeout(to);
             if (r.ok && r.body) {
-              await llmLog({
-                p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
-                p_task_class: route.task_class ?? null, p_model: m,
-                p_because: route.why + ' | streamed (token counts not available on the stream path)',
-                p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
-                p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+              // The real usage comes in the stream's final chunk (stream_usage.ts): the ledger is written
+              // when the stream ends or is abandoned, with the tokens, cache reads/writes and OpenRouter's charge.
+              const startedAt = attemptStartedAt;
+              const tapped = tapUsage(r.body, async (s) => {
+                const u = s.usage;
+                const { cachedIn: sIn, cacheWrite: sWr } = cacheTokens(u);
+                // Only a real stream error is a failure (it may trip the breaker). A stream that ended or was
+                // abandoned without its usage chunk delivered its words: ok, with the tokens unknown (null).
+                const okStream = !s.error;
+                await recordAttempt(m, okStream, Date.now() - startedAt, s.error ?? '', s.finish ?? undefined, u ?? undefined);
+                await llmLog({
+                  p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+                  p_task_class: route.task_class ?? null, p_model: m,
+                  p_because: route.why + ' | streamed'
+                             + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): ' + sIn + ' tokens read from cache, ' + sWr + ' written' : '')
+                             + (s.cancelled ? ' | abandoned by the caller' : '')
+                             + (u ? '' : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
+                             + (s.finish === 'length' ? ' | TRUNCATED at the ' + sentMaxTok + '-token ceiling' : ''),
+                  p_tier: route.tier ?? null, p_prompt_tokens: u?.prompt_tokens ?? null, p_output_tokens: u?.completion_tokens ?? null,
+                  p_cached: false, p_cached_in: sIn ?? 0, p_cache_write: sWr ?? 0,
+                  p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: okStream,
+                  p_generation_id: s.id, p_cost_usd_reported: Number.isFinite(Number(u?.cost)) ? Number(u!.cost) : null,
+                });
               });
-              return new Response(r.body, {
+              return new Response(tapped, {
                 headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache',
                            'X-QD-Model': m, 'X-QD-Tier': String(route.tier) },
               });
