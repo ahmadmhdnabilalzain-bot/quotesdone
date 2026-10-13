@@ -27,7 +27,7 @@
 // WHAT IT DOES NOT DO: it never decides a price is too high or too low, never compares a supplier to
 // another supplier, and never tells a supplier anything about the customer beyond the scrubbed
 // inquiry the inbox already serves. Pure: no I/O, no clock, no model — except readWorking, which takes its model as deps.
-import { assessQuote, readDelivery, readInstallation, readWarranty, requirementsOf, type Line, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
+import { assessQuote, readDelivery, readInstallation, validityOf, readWarranty, requirementsOf, type Line, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
 import { normText, VAGUE } from '../_shared/line_specs/model.ts';
 import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
@@ -215,7 +215,7 @@ export async function readWorking(think: ThinkDeps, inq: SafeInquiry, w: Working
   return { ...w, terms_spec: ap.terms_spec, lines: w.lines.map((l, i) => ({ ...l, spec: ap.lines[i].spec ?? l.spec, spec_source: ap.lines[i].spec_source ?? l.spec_source })) };
 }
 
-export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
+export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Date()): Review {
   const issues: Issue[] = [];
   const boq = inq.boq_withheld ? [] : (inq.boq_rows || []).filter((r) => normText(String(r.description ?? '')));
   const lines = w.lines;
@@ -294,7 +294,8 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
   }
 
   // 7. Validity.
-  if (!readDelivery(w.validity)) {
+  // The hold desk's reader (assess.ts validityOf): a positive period or a date not yet passed, so release and desk agree.
+  if (!validityOf(w.validity || '', now)) {
     issues.push(I('validity', 'adjustment', null, null, 'validity',
       'State how long your prices are valid, as a number of days or a date (for example: "validity 30 days").',
       'يُرجى ذكر مدة صلاحية أسعاركم بعدد الأيام أو بتاريخ محدد (مثال: «الصلاحية 30 يومًا»).'));

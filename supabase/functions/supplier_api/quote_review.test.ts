@@ -10,7 +10,7 @@ import {
   applyCorrections, fromMissing, generatedSaid, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
   type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
-import { QR_HELD_NOTICE, choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
+import { QR_HELD_NOTICE, choose, message, readQuotationFile, start, submit, submitPayload, thread, transcriptAsText, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
 import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_documents.ts';
@@ -55,6 +55,8 @@ const CASES: { name: string; inq?: Partial<SafeInquiry>; w: Partial<Working>; co
   { name: 'VAT included with no VAT amount', w: { vat_treatment: 'inclusive', price_ex_vat: null, notes: 'Prices include VAT' }, code: 'vat_ex_price', kind: 'adjustment' },
   { name: 'no validity', w: { validity: '' }, code: 'validity', kind: 'adjustment' },
   { name: 'a vague validity', w: { validity: 'as per standard terms' }, code: 'validity', kind: 'adjustment' },
+  { name: 'a validity of zero days', w: { validity: '0 days' }, code: 'validity', kind: 'adjustment' },
+  { name: 'a validity date already passed', w: { validity: 'valid until 1 Jan 2020' }, code: 'validity', kind: 'adjustment' },
   { name: 'a line without its exact specification', w: { lines: [{ description: 'Jotun Fenomastic emulsion, internal walls', qty: '450', unit: 'm2', unit_price: 20, amount: 9000 }] }, code: 'spec', kind: 'adjustment', line: 1 },
   { name: 'no delivery date or lead time', w: { lead_time: '' }, code: 'delivery', kind: 'adjustment' },
   { name: 'no warranty period', w: { warranty: '' }, code: 'warranty_period', kind: 'adjustment' },
@@ -705,4 +707,60 @@ Deno.test('a quotation photographed into the chat, nothing read yet, is reviewed
   const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'our quotation', { b64: jpegB64, filename: 'quote.jpg', mime: 'image/jpeg' }));
   assertEquals(t.state, 'changes_requested', JSON.stringify(t.open_requests));
   assert(t.open_requests.some((q) => q.code === 'validity'));
+});
+
+// THE VISION MODEL'S TRANSCRIPTION IS MARKDOWN (13 Oct 2026, measured on production with a ZZ DEMO photo): the table
+// came back with pipes and the price reader found no quotation, so the photo was answered as a conversation.
+const MD_QUOTE = `# ZZ DEMO P painting
+Tel 050 123 4567 · sales@zzdemo-paint.example.invalid
+
+---
+
+### QUOTATION
+
+| Description | Qty | Unit | Rate | Amount |
+|---|---|---|---|---|
+| Jotun Fenomastic emulsion 2 coats internal walls | 450 | m2 | 20.00 | 9,000.00 |
+| Jotun Fenomastic emulsion 2 coats ceiling painting | 120 | m2 | 18.00 | 2,160.00 |
+| **Total (excluding VAT)** | | | | **11,160.00** |
+
+Validity: 30 days
+Lead time: 3 weeks
+Warranty: 2 years materials and workmanship
+Prices exclude VAT`;
+Deno.test('a photographed quotation transcribed as a markdown table is priced', async () => {
+  const flat = transcriptAsText(MD_QUOTE);
+  assert(!/\|/.test(flat) && !/\*\*/.test(flat), flat);
+  assertStringIncludes(flat, 'Jotun Fenomastic emulsion 2 coats internal walls,450,m2,20.00,9000.00');
+  // through the upload path's reader: the model's transcription goes to the same parser
+  const vision = () => Promise.resolve({ ok: true, text: MD_QUOTE });
+  const r = await readQuotationFile(JPEG, 'quote.jpg', 'image/jpeg', [], mockedModel, vision);
+  assert(r.proposal, 'no quotation read from the markdown transcription: ' + JSON.stringify(r).slice(0, 300));
+  assertEquals(r.proposal!.line_items.filter((l) => l.amount != null).map((l) => l.amount), [9000, 2160]);
+  // and through the chat
+  const h = harness();
+  h.deps.readAttachment = () => Promise.resolve({ status: 'read', by: 'model', text: MD_QUOTE, kind: 'image', model_attempts: 1, reason: null, doc: null });
+  const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'our quotation', { b64: jpegB64, filename: 'quote.jpg', mime: 'image/jpeg' }));
+  assert(['changes_requested', 'awaiting_choice'].includes(t.state), 'the photographed quotation was not reviewed: ' + t.state);
+});
+Deno.test('transcriptAsText: only table rows change, and no price is ever corrupted (review of #1396)', () => {
+  // non-table text passes through byte for byte: headings, emphasis, rules, a "--" line
+  const prose = '# QUOTATION\n**Validity:** 30 days\n---\n-- prices exclude VAT --\n__Warranty__ 2 years\nTotal 1,5 kg';
+  assertEquals(transcriptAsText(prose), prose);
+  const row = (r: string) => transcriptAsText(r);
+  // a thousands separator goes; the number is otherwise untouched
+  assertEquals(row('| Walls | 450 | m2 | 20.00 | 9,000.00 |'), 'Walls,450,m2,20.00,9000.00');
+  assertEquals(row('| Big | 1 | lot | 1,234,567.50 | 1,234,567.50 |'), 'Big,1,lot,1234567.50,1234567.50');
+  // a currency cell keeps its currency and loses only the separator
+  assertEquals(row('| Walls | 450 | m2 | AED 20.00 | AED 9,000.00 |'), 'Walls,450,m2,AED 20.00,AED 9000.00');
+  // decimal commas are never read as thousands: 1,5 is not 15 and 12,50 is not 1250
+  assertEquals(row('| Paint | 1,5 | l | 12,50 | 18,75 |'), 'Paint,"1,5",l,"12,50","18,75"');
+  // Arabic-Indic digits with the Arabic thousands (٬) and decimal (٫) separators
+  assertEquals(row('| دهان | ٤٥٠ | م٢ | ٢٠٫٠٠ | ٩٬٠٠٠٫٠٠ |'), 'دهان,450,م2,20.00,9000.00');
+  // an escaped pipe stays inside its cell: the prices do not move a column
+  assertEquals(row(String.raw`| Gypsum \| board 12 mm | 10 | m2 | 5.00 | 50.00 |`), 'Gypsum | board 12 mm,10,m2,5.00,50.00');
+  // a short or merged row keeps the cells it has, and its total
+  assertEquals(row('| **Total (excluding VAT)** | | **11,160.00** |'), 'Total (excluding VAT),,11160.00');
+  // the separator row of a table goes; one outside a table (no pipes) was kept above
+  assertEquals(row('|---|:---:|---|'), '');
 });

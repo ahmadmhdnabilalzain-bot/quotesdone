@@ -577,6 +577,21 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_invite_founder_cap(p_day date)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_day < date '2026-10-19' then 20
+    when p_day < date '2026-10-26' then 30
+    when p_day < date '2026-11-02' then 40
+    else 50
+  end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_invite_lane_sent(p_lead_id bigint)
  RETURNS boolean
  LANGUAGE sql
@@ -921,8 +936,10 @@ CREATE OR REPLACE FUNCTION public.fn_invite_ramp()
 AS $function$
 declare
   c jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
-  v_base int     := coalesce((c->>'base_cap')::int, 30);
-  v_ceiling int  := coalesce((c->>'ceiling_cap')::int, 200);
+  -- founder ruling 1231: the dated founder cap is an upper bound only. It lowers the configured ceiling and the
+  -- restart base; it never raises a cap set lower, and the back-off below can still halve.
+  v_base int     := least(coalesce((c->>'base_cap')::int, 30), public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
+  v_ceiling int  := least(coalesce((c->>'ceiling_cap')::int, 200), public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
   v_growth numeric := coalesce((c->>'growth_factor')::numeric, 1.5);
   v_used_pct numeric := coalesce((c->>'grow_if_used_pct')::numeric, 0.8);
   v_ok_b numeric := coalesce((c->>'grow_max_bounce_rate')::numeric, 0.02);
@@ -940,6 +957,9 @@ declare
   v_since timestamptz := public.fn_invite_lane_since();
 begin
   v_cur := coalesce((select nullif(value,'')::int from app_secrets where key = 'invite_daily_cap'), v_base);
+  -- ruling 1231 review: the restart base (a new lane's day 1) is never above the cap already set, so a restart
+  -- lowers to base and never raises a cap set lower.
+  v_base := least(v_base, v_cur);
 
   -- PAUSED IS A REPORTABLE STATE: a paused campaign files a row and leaves the cap alone. The daily tick
   -- calls this only on open days, so the previous body's daily "campaign paused" warning (which, called
@@ -996,7 +1016,7 @@ begin
       end if;
     end if;
   elsif v_s48 >= v_back_n and (v_br >= v_back_b or v_c48 >= 1) then
-    v_new := greatest(v_base, floor(v_cur * 0.5)::int);
+    v_new := greatest(1, floor(v_cur * 0.5)::int);   -- ruling 1231 review: a back-off must reduce, so no floor at base
     v_note := 'back off: 48 h bounce ' || round(v_br * 100, 1) || '% (' || v_b48 || '/' || v_s48 || '), complaints ' || v_c48
               || '; cap ' || v_cur || '->' || v_new || '.';
     if v_new = v_cur then
@@ -1030,7 +1050,7 @@ begin
     end if;
   end if;
 
-  v_new := greatest(v_base, least(v_new, v_ceiling));
+  v_new := greatest(1, least(v_new, v_ceiling));     -- ruling 1231: the schedule only ever lowers the cap
   if v_new <> v_cur then
     update app_secrets set value = v_new::text where key = 'invite_daily_cap';
   end if;

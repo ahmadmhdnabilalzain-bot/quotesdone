@@ -14,7 +14,7 @@
 //   - Code writes no reply text. If no model answers cleanly, the reply is '' and the caller sends nothing.
 // Suppliers are always answered in English; everyone else in their language.
 // prevented by: _shared/ai_reply.test.ts
-import { briefNumbers, companyBrief, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete } from './company_brief.ts';
+import { briefNumbers, companyBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { EVASION, substanceWords, type Seat, type ThinkDeps, type Turn } from './think.ts';
 
@@ -93,7 +93,7 @@ const actionOf = (r: AiReplyRequest, content: string | null | undefined): string
 export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiReply> {
   const replyLang: 'en' | 'ar' = r.audience === 'supplier' ? 'en' : r.lang;
   const brief = await companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? []);
-  const allowed = brief + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
+  const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
   const known = briefNumbers(allowed);
   const check = (t: string) => replyProblems(t, known, { allowed, forbidden: r.forbidden });
   const sys = '\n\n' + aiSystem(r, replyLang);   // after the brief, which rides as the cached sys_stable block
