@@ -97,6 +97,8 @@ try {
       localStorage.setItem('qd-lang', lang); try { sessionStorage.setItem('qd-claim-token', t); } catch { /* */ }
     }, [s, lang, lead.t]);
     const p = await ctx.newPage(); const M = p.locator('main');
+    // --slow (13 Oct 2026, ruling 1230): a poor mobile connection on every portal request (CDP throttling: 400 ms, ~400 kbit/s).
+    if (argv.includes('--slow')) { const cdp = await ctx.newCDPSession(p); await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 400, downloadThroughput: 50000, uploadThroughput: 50000 }); }
     const blank = { hit: false };
     p.on('framenavigated', () => {});
     const t1 = Date.now();
