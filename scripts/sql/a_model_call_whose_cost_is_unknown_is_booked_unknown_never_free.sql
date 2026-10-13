@@ -77,6 +77,7 @@ update public.ai_cost_log a
  where m.model = a.model_used
    and a.model_used in ('anthropic/claude-sonnet-5.5', 'google/gemini-3.8-flash:online', 'perplexity/sonar')
    and coalesce(a.cost_aed, 0) = 0 and not a.cached
+   and coalesce(a.model_selected_because, '') not like '%re-priced 13 Oct 2026 from model_rate%'
    and (coalesce(a.prompt_tokens, 0) > 0 or coalesce(a.output_tokens, 0) > 0);
 update public.ai_cost_log a
    set prompt_tokens = null, output_tokens = null, cached_in_tokens = null, cache_write_tokens = null, cost_aed = null,
