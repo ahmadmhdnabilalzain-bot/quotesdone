@@ -18,6 +18,8 @@ type Lang = 'en' | 'ar';
 // The brand fonts from the repo's fixtures (as customer_api/arabic_documents.test.ts): no network, no project ref.
 const BRAND = new URL('../pdf_native/fixtures/brand/', import.meta.url);
 const fetchBytes = async (p: string) => /\.ttf$/.test(p) ? await Deno.readFile(new URL(p, BRAND)) : null;
+// CI runs without --allow-env: the demo output directory is read only when env access is granted, else unset.
+const demoOut = () => Deno.permissions.querySync({ name: 'env', variable: 'QD_DEMO_PDF_OUT' }).state === 'granted' ? Deno.env.get('QD_DEMO_PDF_OUT') : undefined;
 const INQ = { id: 'zzd3m0dd-1207-4f00-9a00-000000001207', rfq_no: 'ZZ1207', category: 'gypsum', summary: 'ZZ DEMO: gypsum partition for an office in Business Bay, 20 sqm.', emirate: 'Dubai' };
 const ITEMS: Item[] = [{ desc: 'Gypsum board partition, 12.5mm board, 75mm metal stud', qty: '20', unit: 'sqm', unit_price: 100, amount: 2000, specs: { board_thickness: '12.5 mm', stud: '75 mm metal' } }];
 // The supplier stated: subtotal 2,000; special discount 15% (AED 300); net 1,700; VAT 5% AED 85; total 1,785.
@@ -59,7 +61,7 @@ for (const lang of ['en', 'ar'] as const) {
     assert(!s.includes('100123456700003'), 'the supplier TRN reached the page');
     const out = await renderPdf(body, { fetchBytes });
     assert(out.ok, JSON.stringify(!out.ok && out.body));
-    const dir = Deno.env.get('QD_DEMO_PDF_OUT');
+    const dir = demoOut();
     if (dir && out.ok) await Deno.writeFile(`${dir}/ZZDEMO-ruling-1207-quotation-${lang}.pdf`, out.bytes);
   });
 
@@ -73,7 +75,7 @@ for (const lang of ['en', 'ar'] as const) {
     assert(!s.includes(VAT_LINE.en) && !s.includes(VAT_LINE.ar));
     const out = await renderPdf(body, { fetchBytes });
     assert(out.ok, JSON.stringify(!out.ok && out.body));
-    const dir = Deno.env.get('QD_DEMO_PDF_OUT');
+    const dir = demoOut();
     if (dir && out.ok) await Deno.writeFile(`${dir}/ZZDEMO-ruling-1207-comparison-${lang}.pdf`, out.bytes);
   });
 }
