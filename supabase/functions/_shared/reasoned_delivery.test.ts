@@ -82,12 +82,35 @@ Deno.test('escalated at 48 hours: a WhatsApp customer is told a person is handli
   assertEquals(log.length, 1);
 });
 
-Deno.test('a held ANSWER on WhatsApp goes back as the answer, under the same window rule', async () => {
+// Review of #1335: no model reply reaches a person unguarded. think()'s answer is a DRAFT handed to aiReply (writeReply)
+// as a fact to check; only what aiReply returns is sent, and nothing is sent when no reply passes the guard.
+Deno.test('a held ANSWER on WhatsApp goes back only through the guarded writer, under the same window rule', async () => {
   const { x, log } = io(false);
+  const seen: Record<string, unknown>[] = [];
+  const w = x.writeReply; x.writeReply = (q, l, o) => { seen.push(o ?? {}); return w(q, l, o); };
   const d = await deliverReasoned(row('think.answer', 'what depth can my pool be?', { channel: 'whatsapp', phone: '+971500000001' }, false),
     answered(null, 'In Dubai private pools need a DM permit; which emirate is the villa in?'), x);
   assertEquals(d.via, 'whatsapp_template');
-  assertMatch(log[0], /\[what depth can my pool be\?\] In Dubai/);
+  assertMatch(log[0], /^write en WhatsApp what depth can my pool be\?/);
+  assertMatch(String(seen[0].facts), /REASONED DRAFT TO CHECK[\s\S]*In Dubai private pools/);
+  assertEquals(log.some((l) => l.includes('MODEL: what depth can my pool be?')), true, 'what went out is the guarded writer text');
+  assertEquals(log.some((l) => /\] In Dubai/.test(l)), false, 'the raw draft was sent');
+
+  const refused = io(false); refused.x.writeReply = () => Promise.resolve(null);
+  const n = await deliverReasoned(row('think.answer', 'what depth can my pool be?', { channel: 'whatsapp', phone: '+971500000001' }, false),
+    answered(null, 'In Dubai private pools need a DM permit.'), refused.x);
+  assertEquals([n.delivered, n.via], [false, 'none']);
+  assertEquals(refused.log.filter((l) => !l.startsWith('write')), [], 'nothing reached the person');
+});
+
+Deno.test('an unwritten quotation-chat turn is posted into its thread only through the guarded writer', async () => {
+  const { x, log } = io(false);
+  const posted: string[] = []; x.postQuoteReview = (id, t) => { posted.push(id + ':' + t); return Promise.resolve({ ok: true }); };
+  const q = "Write the sales engineer's next message.\n\nWHAT THE REVIEW DECIDED (facts):\nSTATE: awaiting_choice\n\nTHEIR MESSAGE:\nmake it for me";
+  const d = await deliverReasoned(row('supplier_api.quote_review_unwritten', q, { channel: 'portal', review_id: 'r-1' }, false), answered(null, 'I will generate it.'), x);
+  assertEquals([d.delivered, d.via], [true, 'portal']);
+  assertEquals(posted, ['r-1:MODEL: make it for me']);
+  assertMatch(log[0], /^write en the supplier portal quotation chat make it for me$/);
 });
 
 // ── a held MEANING (reasoned_channels.ts): the answer the reasoned meaning selects, once ────────────

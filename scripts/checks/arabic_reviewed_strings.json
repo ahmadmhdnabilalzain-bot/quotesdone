@@ -6242,6 +6242,8 @@
  "supabase/functions/supplier_api/quote_review_flow.ts": [
   "0c4b45efc9bf",
   "265323a0e5fd",
+  "2b249861ae60",
+  "6fbb7fb79755",
   "b05b260309e0",
   "ebcf51ab9588"
  ],
@@ -6409,10 +6411,13 @@
   "5cbb277245b5",
   "61e5bb9d6ede",
   "6c8d4e17edaa",
+  "75e7c95e9ceb",
   "7fea49861151",
   "a543b7484225",
   "b2a7e76366cb",
   "c09183a62789",
+  "caa8dfdaf4f5",
+  "cb974acf7755",
   "e687fbf0ba76"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
@@ -6487,5 +6492,11 @@
  ],
  "knowledge/brief/uae_regulations/services_and_general_trades.md": [
   "52a0b1d6e84b"
+ ],
+ "supabase/functions/wa_inbound/menu_flow.ts": [
+  "dd8eecf60984"
+ ],
+ "supabase/functions/wa_inbound/model_says.ts": [
+  "036a6e41b969"
  ]
 }
