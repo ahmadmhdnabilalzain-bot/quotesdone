@@ -7,19 +7,20 @@ import type { GateAnswer } from './llm_hold.ts';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
 import { needsAPerson } from './reasoned_decisions.ts';
 
-function mock(choice: string) {
+function mock(choice: string, o: { content?: string | null; hold?: boolean } = {}) {
   const calls: { phase: Phase; chars: number; max?: number; taskClass: string }[] = [];
   const rpcs: string[] = [];
   const deps: ThinkDeps = {
-    gate: () => Promise.resolve({ allowed: false, rule: 'route_not_registered' } as GateAnswer),
-    llm: (phase, system, input, o) => {
-      calls.push({ phase, chars: system.length + input.length, max: o.max, taskClass: o.taskClass });
-      const content = phase === 'synthesise' ? JSON.stringify({ answer: 'They ask to speak to a human.', decision: { choice } }) : JSON.stringify({ verdict: 'agree', problems: [] });
+    gate: () => Promise.resolve((o.hold ? { allowed: false, rule: 'founder_hold', held: 1, routes: 8 } : { allowed: false, rule: 'route_not_registered' }) as GateAnswer),
+    llm: (phase, system, input, x) => {
+      calls.push({ phase, chars: system.length + input.length, max: x.max, taskClass: x.taskClass });
+      const content = 'content' in o ? o.content : phase === 'synthesise' ? JSON.stringify({ answer: 'They ask to speak to a human.', decision: { choice } }) : JSON.stringify({ verdict: 'agree', problems: [] });
       return Promise.resolve({ content, model: 'm' } as LlmReply);
     },
     embed: () => Promise.resolve(null),
     rpc: (fn) => {
       rpcs.push(fn);
+      if (fn === 'fn_reason_hold') return Promise.resolve({ data: 77, error: null });
       if (fn === 'fn_case_recall') return Promise.resolve({ data: { cases: [] }, error: null });
       // A knowledge read returns big rows; if one fired, the prompt would balloon and the assertions below fail.
       if (fn.startsWith('fn_reason_retrieve')) return Promise.resolve({ data: Array.from({ length: 6 }, (_, i) => ({ source: 'k', id: i, title: 't', excerpt: 'x'.repeat(1200), similarity: 0.9 })), error: null });
@@ -50,3 +51,19 @@ Deno.test('needsAPerson: a plain question decides no_person on the same single c
   assertEquals(r.value, false);
   assertEquals(m.calls.length, 1);
 });
+
+// THE FAILURE PATH: no guess. A failed, held or unparseable call is value null and the question is filed in the
+// hold queue (fn_reason_hold), whose replay (reasoned_delivery.ts, site_assistant.person) files the CEO report.
+for (const [name, o] of [
+  ['failed (no content)', { content: null }],
+  ['unparseable', { content: 'not json {' }],
+  ['held by the gate', { hold: true }],
+] as const) {
+  Deno.test(`needsAPerson ${name}: value null, question queued`, async () => {
+    const m = mock('needs_a_person', o);
+    const r = await needsAPerson(m.deps, ASK);
+    assertEquals(r.value, null);
+    assertEquals(r.result.status, 'held');
+    assertEquals(m.rpcs.filter((f) => f === 'fn_reason_hold').length, 1);
+  });
+}

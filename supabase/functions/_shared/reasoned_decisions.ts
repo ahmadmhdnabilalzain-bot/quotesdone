@@ -30,7 +30,7 @@ export async function needsAPerson(deps: ThinkDeps, o: {
     decision: {
       name: 'needs_a_person',
       options: [
-        { id: 'needs_a_person', meaning: 'they ask to speak to a human, OR they complain, dispute, demand a refund, accuse us or a supplier of wrongdoing, or threaten legal action — however it is worded, in any language' },
+        { id: 'needs_a_person', meaning: 'they ask to speak to a human, OR they complain, dispute, demand a refund, accuse us or a supplier of wrongdoing, threaten legal action, or report a safety danger (an injury, fire, gas, electrical danger or a structural risk) — however it is worded, in any language' },
         { id: 'no_person', meaning: 'anything else, including a question that merely mentions law, legality, refunds or complaints as a topic' },
       ],
     },
