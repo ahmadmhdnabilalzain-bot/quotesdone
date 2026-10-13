@@ -204,3 +204,14 @@ Deno.test('ruling 1208: a fee taken before VAT is policy; VAT on our fee is stil
   for (const s of ['Our fee is taken before VAT and VAT is added to it.', 'Our 3% fee is excluding VAT, but VAT is charged on the reveal fee.'])
     assertEquals(policyProblems(s).length, 1, s);
 });
+
+// prevented by: this test (sales_engineer, 13 Oct 2026, review of #1382). Adding the knowledge block to the brief
+// must not change which figures the check accepts: exactly the set main accepted before the block was added.
+Deno.test('the knowledge block adds no accepted figure', async () => {
+  const { BRIEF_TEXT } = await import('./brief.generated.ts');
+  const { briefNumbers, composeBrief, figureSource } = await import('./company_brief.ts');
+  const base = composeBrief({ company: 'REVEAL FEE: 3.00% of the quotation. VAT is not charged.', facts: '', faqs: [], lang: 'en', blocks: ['PRICE GUIDE: painting AED 8-15 per m2'] });
+  const withBlock = composeBrief({ company: 'REVEAL FEE: 3.00% of the quotation. VAT is not charged.', facts: '', faqs: [], lang: 'en', blocks: ['PRICE GUIDE: painting AED 8-15 per m2', BRIEF_TEXT] });
+  const a = [...briefNumbers(base)].sort(), b = [...briefNumbers(figureSource(withBlock))].sort();
+  if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`accepted figures changed: ${JSON.stringify(b.filter((x) => !a.includes(x)))}`);
+});
