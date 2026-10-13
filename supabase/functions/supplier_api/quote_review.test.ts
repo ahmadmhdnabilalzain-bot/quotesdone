@@ -805,3 +805,58 @@ Deno.test('a review runs off the request: the turn answers at once, a failure en
     assertEquals(again.messages.length, t.messages.length, 'resolved once, not on every poll');
   }
 });
+
+// REVIEW OF #1413: a LIVE job is never declared dead, and a second turn never starts a second job or loses a result.
+Deno.test('a live review older than the old threshold is NOT resolved; a resubmit or a concurrent turn never starts a second job', async () => {
+  // 1. 6.5 minutes old: older than the old 360 s, younger than STALE_MS (480 s), still within what a live job may take
+  {
+    const h = harness();
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const r = h.mem.reviews[0];
+    await h.mem.repo.updateReview(r.id, { status: 'reviewing', reviewing_since: '2026-09-15T09:53:30Z' });
+    const before = h.mem.messages.length;
+    const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assertEquals(t.state, 'reviewing'); assert(t.reviewing);
+    assertEquals(h.mem.messages.length, before, 'a live review was resolved as killed');
+    assertEquals(h.holds.length, 0);
+  }
+  // 2. resubmitting while the review runs: refused, nothing stored, the running job's result arrives intact
+  {
+    const h = harness(); const jobs: Promise<void>[] = [];
+    h.deps.background = (j) => { jobs.push(j); };
+    let release!: () => void; const gate = new Promise<void>((r) => { release = r; });
+    const read0 = h.deps.read; h.deps.read = async (...a) => { await gate; return read0(...a); };   // the first review is still RUNNING
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    ok(await upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q1.csv', mime: 'text/csv' }));
+    const files = h.mem.files.size;
+    const again = await upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'q2.csv', mime: 'text/csv' });
+    assertEquals((again as { code?: string }).code, 'reviewing');
+    const typedAgain = await typed(h.mem.repo, h.deps, h.ctx, INQ_ID, 'Gypsum partition 120 sqm 95\nPainting 450 sqm 20');
+    assertEquals((typedAgain as { code?: string }).code, 'reviewing');
+    const photoAgain = await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'and this', { b64: jpegB64, filename: 'p.jpg', mime: 'image/jpeg' });
+    assertEquals((photoAgain as { code?: string }).code, 'reviewing');
+    assertEquals(jobs.length, 1, 'a second review job started');
+    assertEquals(h.mem.files.size, files, 'a refused turn still stored its file');
+    release(); await jobs[0];
+    const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assertEquals(t.state, 'changes_requested');
+    assertEquals(t.file?.name, 'q1.csv', 'the running review\'s file was replaced');
+  }
+  // 3. two turns sent at the same moment: exactly one review starts
+  {
+    const h = harness(); const jobs: Promise<void>[] = [];
+    h.deps.background = (j) => { jobs.push(j); };
+    let release!: () => void; const gate = new Promise<void>((r) => { release = r; });
+    const read0 = h.deps.read; h.deps.read = async (...a) => { await gate; return read0(...a); };   // the first review is still RUNNING
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const both = await Promise.all([
+      upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'a.csv', mime: 'text/csv' }),
+      upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'b.csv', mime: 'text/csv' }),
+    ]);
+    assertEquals(both.filter((x) => (x as { ok?: boolean }).ok === true).length, 1, JSON.stringify(both.map((x) => (x as { code?: string }).code ?? 'ok')));
+    assertEquals(both.filter((x) => (x as { code?: string }).code === 'reviewing').length, 1);
+    assertEquals(jobs.length, 1);
+    release(); await jobs[0];
+    assert(ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID)).state !== 'reviewing');
+  }
+});

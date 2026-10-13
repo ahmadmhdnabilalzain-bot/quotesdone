@@ -141,10 +141,10 @@ export type ThreadView = {
 export type Fail = { ok: false; status: number; code: string; message: string };
 const fail = (status: number, code: string, message: string): Fail => ({ ok: false, status, code, message });
 
-/** A review stuck in 'reviewing' this long crashed mid-way; it is treated as not reviewing. 6 minutes: a review now runs
- *  off the request (offRequest) and may take the vision model two askings plus the readers; the runtime's background
- *  wall clock is 400 s, so a job older than this was killed. */
-const STALE_MS = 360_000;
+/** A review stuck in 'reviewing' this long crashed mid-way; it is treated as not reviewing. 8 minutes: a review now runs
+ *  off the request (offRequest), and the runtime's background wall clock is 400 s, so a job older than 480 s cannot still
+ *  be running. Below 400 s a LIVE job would be declared dead and a second one could start (review of #1413). */
+const STALE_MS = 480_000;
 const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice', 'awaiting_upload', 'ready_to_submit'];
 
 // ---------------------------------------------------------------------------------------------
@@ -372,12 +372,12 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
   catch (_e) { return fail(400, 'file_unreadable', 'We could not read that file. Please attach it again, or send it as a PDF.'); }
   if (!sc.ok) return fail(sc.status, sc.code, sc.message);
   const r0 = await ensure(repo, deps, ctx, l);
+  const prior = await enterReview(repo, deps, r0); if (prior == null) return BUSY;
   const path = `review/${ctx.supplierId}/${inquiryId}/${deps.now().getTime()}_${sc.name}`;
-  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) return fail(502, 'upload_failed', 'We could not store your file. Please try again.');
+  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) { await leaveReview(repo, r0.id, prior); return fail(502, 'upload_failed', 'We could not store your file. Please try again.'); }
   const note = typeof text === 'string' && text.trim() ? text.trim().slice(0, 2000) : null;
   const fm = await supplierSays(repo, r0.id, 'file', note, [{ kind: 'quotation_file', name: sc.name, bucket: 'quote-files', path }]);
-  const prior = effectiveState(r0, deps.now());
-  await repo.updateReview(r0.id, { status: 'reviewing', reviewing_since: deps.now().toISOString(), original_file_path: path, original_file_name: sc.name });
+  await repo.updateReview(r0.id, { original_file_path: path, original_file_name: sc.name });
   await offRequest(repo, deps, r0.id, prior, async () => {
     let read: FileRead;
     try { read = await deps.read(sc.bytes, sc.name, sc.mime); } catch (_e) { read = { proposal: null, text: '', kind: 'error' }; }
@@ -396,6 +396,20 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
   });
   return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
 }
+
+/**
+ * ONE REVIEW AT A TIME (review of #1413). Entering 'reviewing' is a CLAIM (status moves only from the state just read), so
+ * two turns sent at the same moment cannot both start a job: the second is refused 409 'reviewing' and nothing it sent is
+ * stored. Returns the state the review came from, or null when one is already running.
+ */
+async function enterReview(repo: ReviewRepo, deps: ReviewDeps, r: ReviewRow): Promise<ReviewState | null> {
+  const prior = effectiveState(r, deps.now());
+  if (prior === 'reviewing' || !(await repo.claim(r.id, [r.status], 'reviewing'))) return null;
+  await repo.updateReview(r.id, { reviewing_since: deps.now().toISOString() });
+  return prior;
+}
+const leaveReview = (repo: ReviewRepo, id: string, prior: ReviewState) => repo.updateReview(id, { status: prior, reviewing_since: null }).catch(() => {});
+const BUSY = fail(409, 'reviewing', 'Your quotation is being reviewed; please wait for the result.');
 
 /**
  * THE REVIEW RUNS OFF THE REQUEST (13 Oct 2026, measured live: a photographed quotation's review made 7 sequential model
@@ -461,9 +475,8 @@ const PRICED_LINES = 2;
 export const looksTyped = (text: string, minLines = PRICED_LINES): boolean =>
   String(text || '').split(/\r?\n/).filter((l) => /\d/.test(l) && l.trim().length > 6).length >= minLines;
 
-async function readTyped(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, r0: ReviewRow, t: string, trigger: string): Promise<ThreadView> {
-  const prior = effectiveState(r0, deps.now());
-  await repo.updateReview(r0.id, { status: 'reviewing', reviewing_since: deps.now().toISOString() });
+async function readTyped(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, r0: ReviewRow, t: string, trigger: string): Promise<ThreadView | Fail> {
+  const prior = await enterReview(repo, deps, r0); if (prior == null) return BUSY;
   await offRequest(repo, deps, r0.id, prior, () => typedJob(repo, deps, ctx, l, t, trigger, prior));
   return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
 }
@@ -563,12 +576,11 @@ async function messageWithFile(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: 
   catch (_e) { return fail(400, 'file_unreadable', 'We could not accept that file. Please attach it again.'); }
   if (!sc.ok) return fail(sc.status, sc.code, sc.message);
   const r = await ensure(repo, deps, ctx, l);
-  const path = `review/${ctx.supplierId}/${l.inq.id}/${deps.now().getTime()}_chat_${sc.name}`;
-  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) return fail(502, 'upload_failed', 'We could not store your file. Please try again.');
-  const sm = await supplierSays(repo, r.id, 'file', t || null, [{ kind: 'chat_file', name: sc.name, bucket: 'quote-files', path }]);
   // Reading a photo can take the vision model two askings; the read and what follows run off the request.
-  const prior = effectiveState(r, deps.now());
-  await repo.updateReview(r.id, { status: 'reviewing', reviewing_since: deps.now().toISOString() });
+  const prior = await enterReview(repo, deps, r); if (prior == null) return BUSY;
+  const path = `review/${ctx.supplierId}/${l.inq.id}/${deps.now().getTime()}_chat_${sc.name}`;
+  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) { await leaveReview(repo, r.id, prior); return fail(502, 'upload_failed', 'We could not store your file. Please try again.'); }
+  const sm = await supplierSays(repo, r.id, 'file', t || null, [{ kind: 'chat_file', name: sc.name, bucket: 'quote-files', path }]);
   await offRequest(repo, deps, r.id, prior, async () => {
     const back = () => repo.updateReview(r.id, { status: prior, reviewing_since: null });
     let a: AttachmentRead;
