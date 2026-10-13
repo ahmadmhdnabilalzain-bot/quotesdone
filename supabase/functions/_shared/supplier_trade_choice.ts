@@ -25,13 +25,18 @@ export type ChoiceResult =
   | { ok: true; trades: TradeChoice[]; rejected: { code: string; why: string }[] }
   | { ok: false; error: string };
 /** The text in, the proven choices out. Injected for tests; liveTradeChooser is the edge function's. */
-export type TradeChooser = (text: string, kind: 'profile' | 'catalogue') => Promise<ChoiceResult>;
+/** `company`: the name the supplier registered - whose work counts (a group's own brochure vs one company's profile). */
+export type TradeChooser = (text: string, kind: 'profile' | 'catalogue', company?: string | null) => Promise<ChoiceResult>;
+const companyLine = (company?: string | null) => company ? `The company registered as: ${String(company).slice(0, 160)}\n\n` : '';
 
 export const CHOICE_TEXT_MAX = 40_000;
 // The route (model_policy). QD_CHOICE_TASK_CLASS lets the accuracy harness measure on another class's model before the
 // new row is applied at merge; production never sets it.
-// deno-lint-ignore no-explicit-any
-export const CHOICE_TASK_CLASS: string = (globalThis as any).Deno?.env?.get('QD_CHOICE_TASK_CLASS') || 'supplier_trade_choice';
+export function choiceTaskClass(): string {
+  // read when a request is built, never at import: a test or a caller without env access still loads this module
+  // deno-lint-ignore no-explicit-any
+  try { return (globalThis as any).Deno?.env?.get('QD_CHOICE_TASK_CLASS') || 'supplier_trade_choice'; } catch { return 'supplier_trade_choice'; }
+}
 
 /** The stable part of the prompt (cacheable): the rules and every trade's definition. */
 export function choiceSystem(defs: TradeDef[]): string {
@@ -45,28 +50,42 @@ RULES
 1. A code is named only when the text says the company does that work or supplies those goods. Exact trade or none: if the company's work is not one of these trades, name nothing for it - never the nearest code.
 2. Never from: the company's or another company's NAME, a client or project owner, another contractor on a project, a certificate or standard it holds (ISO, LEED), a policy, its staff, its equipment or vehicles, its offices, a sentence about quality, safety or values, or a tool or method it uses in its own work (3D printing, BIM, software) - only what it sells as a service or product. Work it does INSIDE a project of another trade names its own trade (electrical works in fit-out projects are electrical, not fit-out).
 3. A line that lists the company's own works as its title or tagline (for example under or beside its name: "Waterproofing, Epoxy Flooring & Painting Works") states what it does: name every trade it lists.
-4. A group brochure: name the trades of the companies of the group that the text describes as doing them. The same for the company's own factory, workshop or division (a "joinery production factory" is joinery).
+4. Whose work it is. The company is the one the profile is about. Its own factory, workshop or division counts (a "joinery production factory" is joinery). Work done by a SISTER, partner or associated company ("our sister company", "by M/s ...", "a group company") is that other company's, not this one's - unless the whole document is the group's own brochure, the group itself being the company, and then each group company's described work counts.
 5. For EVERY code give "quote": a line copied EXACTLY, word for word, from the text - the line that most directly names that service or product itself (for example "applied textured decorative paints", not a general sentence about the company), and "reason": one short sentence. A code you cannot quote is not named.
 6. Prefer the specific trade the text names (fire fighting, HVAC, plumbing, electrical) and add mep_general only when the text offers combined MEP / electromechanical contracting.
 7. Be complete: read the whole text and name EVERY trade it shows the company offers, not only the main one.
+8. What a line IS before what it says: a contact mailbox or department name ("rentals@...", "Sales Department"), a word in the company's name or in its logo artwork (a "Design & Build" under a logo), a caption, or a heading of the brochure's own layout names no trade. A METHOD of delivering a service (rope access, scaffolding, night shifts, BIM) is not a trade of its own: the trade is the work done with it (painting by rope access is painting). A product feature or a material used in its main work (acoustic panels in a fit-out) is that main work's trade.
 
 Return STRICT JSON only: {"trades":[{"code":"...","quote":"...","reason":"..."}]}`;
 }
 
-export function choiceRequest(text: string, kind: 'profile' | 'catalogue', defs: TradeDef[], subject: unknown) {
-  return { fn: 'supplier_doc_trades', task_class: CHOICE_TASK_CLASS, subject: subject ?? null, temperature: 0,
+export function choiceRequest(text: string, kind: 'profile' | 'catalogue', defs: TradeDef[], subject: unknown, company?: string | null) {
+  return { fn: 'supplier_doc_trades', task_class: choiceTaskClass(), subject: subject ?? null, temperature: 0,
     sys_stable: choiceSystem(defs), sys: '',
-    input: [{ role: 'user', content: [{ type: 'text', text: `The company's ${kind === 'catalogue' ? 'catalogue' : 'profile'} text:\n\n${text.slice(0, CHOICE_TEXT_MAX)}` }] }] };
+    input: [{ role: 'user', content: [{ type: 'text', text: `${companyLine(company)}The company's ${kind === 'catalogue' ? 'catalogue' : 'profile'} text:\n\n${text.slice(0, CHOICE_TEXT_MAX)}` }] }] };
 }
 
 /** Letters and digits only, lower case, one space: how a quote is found in the text it came from. */
 export const quoteKey = (s: string) => String(s ?? '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
+/** The JSON object of a model answer that holds `key`: code fences stripped, every {...} candidate tried from the last. */
+export function answerJson(content: string, key: string): Record<string, unknown> | null {
+  const s = String(content ?? '').replace(/```(?:json)?/gi, '');
+  const starts: number[] = []; for (let i = s.indexOf('{'); i >= 0; i = s.indexOf('{', i + 1)) starts.push(i);
+  for (const a of starts) {
+    for (let b = s.lastIndexOf('}'); b > a; b = s.lastIndexOf('}', b - 1)) {
+      try { const o = JSON.parse(s.slice(a, b + 1)); if (o && typeof o === 'object' && key in o) return o; } catch { /* next */ }
+      if (b - a > 200_000) break;
+    }
+  }
+  return null;
+}
+const answerHead = (c: string) => JSON.stringify(String(c ?? '').slice(0, 120));
+
 /** The model's answer, checked by code: active codes only, each with a quote that is in the text. */
 export function checkChoice(content: string, text: string, defs: TradeDef[]): ChoiceResult {
-  let parsed: { trades?: unknown } | null = null;
-  try { const s = String(content ?? ''); parsed = JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1)); } catch { parsed = null; }
-  if (!parsed || !Array.isArray(parsed.trades)) return { ok: false, error: 'the answer was not the JSON asked for' };
+  const parsed = answerJson(content, 'trades') as { trades?: unknown } | null;
+  if (!parsed || !Array.isArray(parsed.trades)) return { ok: false, error: 'the answer was not the JSON asked for: ' + answerHead(content) };
   const codes = new Set(defs.map((d) => d.code));
   const hay = ' ' + quoteKey(text) + ' ';
   const trades: TradeChoice[] = [], rejected: { code: string; why: string }[] = [];
@@ -109,20 +128,30 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
   let defs: TradeDef[] | null = null, cred: string | null = null;
   // One retry of each step: measured on the 29 real files, 1 of 28 answers came back as prose instead of JSON.
   const twice = async <T extends { ok: boolean }>(f: () => Promise<T>) => { const a = await f(); return a.ok ? a : await f(); };
-  return async (text, kind) => {
+  return async (text, kind, company) => {
     try {
       defs ??= await tradeDefs(admin);
       if (!defs) return { ok: false, error: 'the trade list could not be read' };
       if (!cred) { const { data } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle(); cred = data?.value ?? null; }
       if (!cred) return { ok: false, error: 'no model credential' };
       const d = defs;
-      const chosen = await twice(async () => { const g = await gateway(choiceRequest(text, kind, d, opts.subject)); return g.ok ? checkChoice(g.content, text, d) : g; });
+      const chosen = await twice(async () => { const g = await gateway(choiceRequest(text, kind, d, opts.subject, company)); return g.ok ? checkChoice(g.content, text, d) : g; });
       if (!chosen.ok || !chosen.trades.length) return chosen;
-      const kept = await twice(async () => { const g = await gateway(verifyRequest(chosen.trades, d, opts.subject, text)); return g.ok ? checkVerify(g.content, chosen) : g; });
+      const kept = await twice(async () => { const g = await gateway(verifyRequest(chosen.trades, d, opts.subject, text, company)); return g.ok ? checkVerify(g.content, chosen) : g; });
       return kept;
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) }; }
   };
+  // A NETWORK failure (no HTTP answer at all: "fetch failed") is tried twice more after a pause - measured on the
+  // real set, 2 of 29 profiles lost both of their tries to it in one run. An HTTP error is not retried here.
   async function gateway(req: Record<string, unknown>): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
+    let last = '';
+    for (const pause of [0, 2_000, 6_000]) {
+      if (pause) await new Promise((res) => setTimeout(res, pause));
+      try { return await gatewayOnce(req); } catch (e) { last = String((e as Error)?.message || e).slice(0, 160); }
+    }
+    return { ok: false, error: 'model unreachable: ' + last };
+  }
+  async function gatewayOnce(req: Record<string, unknown>): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
     const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway', {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...(opts.headers ?? {}) }, signal: AbortSignal.timeout(120_000),
       body: JSON.stringify({ __secret: cred, ...req }),
@@ -147,7 +176,7 @@ export function verifySystem(defs: TradeDef[]): string {
 ${list}
 
 KEEP a proposal only when the quoted line shows that the company ITSELF sells this now, as a service or a product, and it falls under that trade's definition.
-DROP it when the line is: history ("began as", "formerly"), an internal function of the company (its own IT, HR, fleet), a tool or method it uses for its own work, an accessory sold alongside its main goods rather than a line of business, work that belongs to a different trade in the list, a client, a project or another company's work, or a certificate, policy or value.
+DROP it when the line is: history the company has left behind ("began as", "formerly" - but a capability its history says it ADDED and still runs, such as "activities extended to a joinery production factory", is current), an internal function of the company (its own IT, HR, fleet), a tool or method it uses for its own work or to deliver a service (rope access is how painting is delivered, not façade access), an accessory sold alongside its main goods rather than a line of business, work that is only a part of another trade's work and is not offered on its own (acoustic panels inside a fit-out are fit-out; but a service the company lists on its own in its list of services is offered on its own), a client, a project, or work of a sister, partner or group company when the profile is one company's (when the registered company IS the group and the document is the group's own brochure, each group company's described work is the group's and is kept), a contact mailbox or department name, a word of the company's own name or logo, or a certificate, policy or value.
 
 Return STRICT JSON only: {"keep":["code",...],"drop":[{"code":"...","why":"..."}]}`;
 }
@@ -159,16 +188,15 @@ export function quoteContext(text: string, quote: string, around = 2): string {
   const i = first ? lines.findIndex((l) => (' ' + quoteKey(l) + ' ').includes(' ' + first + ' ') || (first.includes(quoteKey(l)) && quoteKey(l).length >= 12)) : -1;
   return i < 0 ? quote : lines.slice(Math.max(0, i - around), i + around + 1).join('\n').slice(0, 600);
 }
-export function verifyRequest(trades: TradeChoice[], defs: TradeDef[], subject: unknown, text = '') {
-  return { fn: 'supplier_doc_trades', task_class: CHOICE_TASK_CLASS, subject: subject ?? null, temperature: 0,
+export function verifyRequest(trades: TradeChoice[], defs: TradeDef[], subject: unknown, text = '', company?: string | null) {
+  return { fn: 'supplier_doc_trades', task_class: choiceTaskClass(), subject: subject ?? null, temperature: 0,
     sys_stable: verifySystem(defs), sys: '',
-    input: [{ role: 'user', content: [{ type: 'text', text: 'Proposals:\n' + JSON.stringify(trades.map((t) => ({ code: t.code, quote: t.quote, context: text ? quoteContext(text, t.quote) : t.quote, reason: t.reason })), null, 1) }] }] };
+    input: [{ role: 'user', content: [{ type: 'text', text: companyLine(company) + 'Proposals:\n' + JSON.stringify(trades.map((t) => ({ code: t.code, quote: t.quote, context: text ? quoteContext(text, t.quote) : t.quote, reason: t.reason })), null, 1) }] }] };
 }
 /** The check's answer applied by code: only codes it kept stay; the rest are rejected with its reason. */
 export function checkVerify(content: string, chosen: { trades: TradeChoice[]; rejected: { code: string; why: string }[] }): ChoiceResult {
-  let parsed: { keep?: unknown; drop?: unknown } | null = null;
-  try { const s = String(content ?? ''); parsed = JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1)); } catch { parsed = null; }
-  if (!parsed || !Array.isArray(parsed.keep)) return { ok: false, error: 'the check was not the JSON asked for' };
+  const parsed = answerJson(content, 'keep') as { keep?: unknown; drop?: unknown } | null;
+  if (!parsed || !Array.isArray(parsed.keep)) return { ok: false, error: 'the check was not the JSON asked for: ' + answerHead(content) };
   const keep = new Set((parsed.keep as unknown[]).map((c) => String(c).trim()));
   const why = new Map((Array.isArray(parsed.drop) ? parsed.drop as Record<string, unknown>[] : []).map((d) => [String(d?.code ?? ''), String(d?.why ?? '')]));
   return { ok: true, trades: chosen.trades.filter((t) => keep.has(t.code)),

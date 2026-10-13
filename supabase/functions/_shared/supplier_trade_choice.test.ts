@@ -75,3 +75,12 @@ Deno.test('the second look sees the quote with the lines around it (Al Nas Eleva
   assert(c.includes('maintenance of elevators and escalators'), c);
   assertEquals(quoteContext(text, 'not in the text at all'), 'not in the text at all');
 });
+
+Deno.test('an answer in a code fence or after a sentence is still read; a failure says what came back (Summertown, run 9)', () => {
+  const fenced = 'Here is the result:\n```json\n{"trades":[{"code":"joinery","quote":"Wardrobes and Vanity Cabinets","reason":"r"}]}\n```\nDone.';
+  const r = checkChoice(fenced, DOC, DEFS);
+  assert(r.ok);
+  assertEquals(r.trades.map((t) => t.code), ['joinery']);
+  const bad = checkChoice('I cannot answer that {not json}', DOC, DEFS);
+  assert(!bad.ok && /I cannot answer/.test(bad.error), JSON.stringify(bad));
+});

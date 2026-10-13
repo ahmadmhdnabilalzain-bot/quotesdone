@@ -165,7 +165,7 @@ export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Prom
 
 --- the rest of the document ---
 ${whole}`;
-      const ch = await deps.chooseTrades(forModel, doc.kind);
+      const ch = await deps.chooseTrades(forModel, doc.kind, (doc.names ?? []).find((n) => !!n) ?? null);
       if (!ch.ok) {
         console.error(JSON.stringify({ at: 'supplier_doc_trades.choice', path: doc.path, error: ch.error }));
         return { ...base, status: 'read', format, source, reason: `the trades could not be chosen: ${ch.error}`, trades: [], choice: 'unavailable', ...(c ? { supply_only: c.supply_only } : {}) };
