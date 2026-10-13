@@ -1156,7 +1156,11 @@ function Dashboard({ token, lang, onExpired }) {
           <h1 dir="auto" className="mt-2.5 font-head text-[24px] sm:text-[30px] font-semibold tracking-snug text-foreground">{ov.supplier.company_name}</h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {stBadge}
-            {ov.supplier.approval_status === 'action_required' && ov.supplier.licence_gate_reason
+            {/* A LICENCE HOLD IS SAID ON SCREEN (13 Oct 2026, ruling 1230 walk, it_engineer). Since ruling 1177 an unread licence
+                is held as PENDING (licence_unreadable / _expiry_unread / _number_unread), and the reason showed only for
+                action_required: a held supplier saw 'Pending' and 'Trade licence: on file' and never learned a clearer copy
+                was needed. Prevented by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs. */}
+            {(ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || '')))) && ov.supplier.licence_gate_reason
               ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason)}</span> : null}
             {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>
