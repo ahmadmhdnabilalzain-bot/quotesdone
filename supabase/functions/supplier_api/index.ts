@@ -13,6 +13,7 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
+import { acceptImages } from '../_shared/chat_images.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { CANONICAL_ORIGIN, siteReturnBase, siteCors } from '../_shared/site_origins.ts';
@@ -491,6 +492,8 @@ const handle = async (req: Request): Promise<Response> => {
           const r = await aiReply(defaultDeps(admin, 'supplier_api'), {
             seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
             message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
+            // a photo the supplier attached (already read, ruling 1177); acceptImages is the same gate the customer chat uses
+            images: acceptImages(v.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
             facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id),
             rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },

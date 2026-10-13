@@ -14,7 +14,7 @@
 //
 // The caller (index.ts) resolves the supplier from the session and supplies the repository and the
 // upload gate, so this module holds no client and no credential of its own.
-import { envGatewayVision } from '../_shared/read_every_attachment.ts';
+import { envGatewayVision, readEveryAttachment } from '../_shared/read_every_attachment.ts';
 import { jobNo, type BoqRow, type Lang, type SafeInquiry } from './quote_review.ts';
 import * as flow from './quote_review_flow.ts';
 import { SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
@@ -132,6 +132,8 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
     quotePdf: async (quoteId, l) => { const r = await self({ action: 'quote_pdf', quote_id: quoteId, lang: l }); return { url: r.json?.url ?? null, ref: r.json?.ref ?? null }; },
     now: () => new Date(),
     readWorking: o.readWorking,
+    // ruling 1177: a photo or document sent in the chat is read, code first then the vision model
+    readAttachment: (bytes, name, mime) => readEveryAttachment(bytes, name, mime, envGatewayVision({ subject: { supplier_id: Number(sup.id), email } })),
     voice: o.voice,
     hold: o.hold,
   };
@@ -140,7 +142,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
   const res = action === 'review_thread' ? await flow.thread(repo, deps, ctx, id)
     : action === 'review_start' ? await flow.start(repo, deps, ctx, id)
     : action === 'review_upload' ? await flow.upload(repo, deps, ctx, id, body.file || {}, body.text)
-    : action === 'review_message' ? await flow.message(repo, deps, ctx, id, body.text)
+    : action === 'review_message' ? await flow.message(repo, deps, ctx, id, body.text, body.file || null)
     // review_typed: the quotation typed into the chat instead of attached (finding SP-F-03) — the
     // way in for a scan or a photograph while there is no OCR, read by the same parser as a file.
     : action === 'review_typed' ? await flow.typed(repo, deps, ctx, id, body.text)
