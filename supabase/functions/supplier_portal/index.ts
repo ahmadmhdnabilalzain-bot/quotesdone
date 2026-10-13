@@ -167,7 +167,12 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
     if (!who.ok) return annotate(J(refusalBody(who), who.status), await probeCaller(admin, req, 'supplier_portal'));
     const { email } = who;
     const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from').eq('claimed_by', email).maybeSingle();
-    if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);
+    // `code` IS WHAT THE PORTAL READS (13 Oct 2026, ruling 1230 walk, it_engineer). Without it the shared call()
+    // (src/components/portal/supplier/api.ts) stamps every non-2xx answer `load_failed`, so Dashboard never saw
+    // no_company and a supplier with no company yet (signed up without an invitation, or whose claim was refused)
+    // got "Something went wrong" instead of the registration form. Measured on production, desktop and 375 px.
+    // Prevented by scripts/checks/a_supplier_with_no_company_is_shown_the_registration_form.test.mjs.
+    if (!sup) return J({ error: 'no_company', code: 'no_company', hint: 'claim your company first' }, 400);
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026). One gate, above the
     // action switch, so every screen this function serves is covered by one line rather than
     // forty — including the ones written after today. overview.ts already RENDERS a ban as a

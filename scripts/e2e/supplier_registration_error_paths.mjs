@@ -28,8 +28,14 @@ try {
   r = await call('supplier_api', tb, { action: 'create_company', company_name: company, emirate: 'Dubai', lang: 'en' });
   if (r.json?.id) { run.ids.leads.add(String(r.json.id)); await write(`update public.leads set tags = ARRAY['qd_demo','qd_run:${run.tag}'] where id = ${Number(r.json.id)}`, 'tag the duplicate so teardown reaches it'); }
   step('a second account cannot register an already-claimed company name', r.status === 409 && r.json?.code === 'company_already_registered', `${r.status} ${r.text.slice(0, 160)}`);
+  // B's duplicate was refused, so B still owns nothing: its first own company is allowed (and tagged so teardown
+  // reaches it - 13 Oct 2026 this row escaped teardown untagged), and only a SECOND one is refused.
   r = await call('supplier_api', tb, { action: 'create_company', company_name: company + ' 2', emirate: 'Dubai', lang: 'en' });
-  step('one account cannot own a second company', r.status === 409, `${r.status} ${r.text.slice(0, 100)}`);
+  if (r.json?.id) { run.ids.leads.add(String(r.json.id)); await write(`update public.leads set tags = ARRAY['qd_demo','qd_run:${run.tag}'] where id = ${Number(r.json.id)}`, 'tag B company for teardown'); }
+  step('an account with no company may register its own', r.json?.ok === true, `${r.status} ${r.text.slice(0, 100)}`);
+  r = await call('supplier_api', tb, { action: 'create_company', company_name: company + ' 3', emirate: 'Dubai', lang: 'en' });
+  if (r.json?.id) { run.ids.leads.add(String(r.json.id)); await write(`update public.leads set tags = ARRAY['qd_demo','qd_run:${run.tag}'] where id = ${Number(r.json.id)}`, 'tag stray for teardown'); }
+  step('one account cannot own a second company', r.status === 409 && r.json?.code === 'company_exists', `${r.status} ${r.text.slice(0, 100)}`);
   // missing documents: A's listing has no licence -> verification is not approved
   const v = (await write(`select public.fn_sales_engineer_verifies_supplier(${lead.id}, 'e2e_error_paths') j`))[0].j;
   step('missing licence/documents -> action_required, not approved', v?.decision === 'action_required', JSON.stringify(v).slice(0, 200));
