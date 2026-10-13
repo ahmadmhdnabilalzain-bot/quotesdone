@@ -1,0 +1,3 @@
+Committed, not yet applied: written 13 Oct 2026, inside the 04:30-13:00 UTC no-apply window.
+Apply at merge with --apply --ddl --seat it_engineer; it must print PROBE OK. Then delete this note and append the
+.sql to the END of scripts/sql/MANIFEST.txt in the same commit. Seat: it_engineer.
