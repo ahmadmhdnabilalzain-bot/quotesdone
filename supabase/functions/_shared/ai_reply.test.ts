@@ -91,21 +91,33 @@ Deno.test('the knowledge block never licenses a fee figure', async () => {
   assert(BRIEF_TEXT.includes('5%'), 'precondition: the knowledge block states a 5% figure');
   const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
   assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
-  const stable = String(s.calls[0].o.sysStable ?? '');
-  assert(stable.includes('# Conversation playbook:') && stable.includes('How you hold a conversation'), 'the playbooks ride in the cached sys_stable block');
+  const stable = String(s.calls[0].o.sysShared ?? '') + String(s.calls[0].o.sysStable ?? '');
+  assert(stable.includes('# Conversation playbook:') && stable.includes('How you hold a conversation'), 'the playbooks ride in the cached blocks (sys_shared)');
   assert(!s.calls[0].system.includes('# Conversation playbook:'), 'and not again in the varying sys');
 });
 
 // prevented by: these tests (review of #1382). The style is sent once (inside BRIEF_TEXT), and nothing written only in
 // the knowledge block -- a figure, a licence-like number -- is licensed by it.
-Deno.test('the conversation style reaches the model exactly once (sys_stable + sys)', async () => {
+Deno.test('the conversation style reaches the model exactly once (sys_shared + sys_stable + sys)', async () => {
   const { CONVERSATION_STYLE } = await import('./brief.generated.ts');
   const s = stub([A('The reveal fee is 3%, with no card fee and no VAT.')]);
   await aiReply(s.deps, req);
-  const whole = String(s.calls[0].o.sysStable ?? '') + s.calls[0].system;
+  const whole = String(s.calls[0].o.sysShared ?? '') + String(s.calls[0].o.sysStable ?? '') + s.calls[0].system;
   assertEquals(whole.split(CONVERSATION_STYLE.slice(0, 60)).length - 1, 1);
 });
 Deno.test('a licence number that only the knowledge block states is still refused', async () => {
   const s = stub([A('Our trade licence is 1633275.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
   assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
+});
+
+// prevented by: this test (13 Oct 2026). Every reply sends the knowledge block as the shared cached block, the rest of
+// the brief as the stable one, on the 1-hour tier; the reply language is in the uncached system text.
+Deno.test('the knowledge block rides as the shared cached block on the 1-hour tier, the language after it', async () => {
+  const { BRIEF_TEXT } = await import('./brief.generated.ts');
+  const s = stub([A('هذا رد.')]);
+  await aiReply(s.deps, { ...req, lang: 'ar' });
+  assertEquals(s.calls[0].o.sysShared, BRIEF_TEXT);
+  assertEquals(s.calls[0].o.cacheTtl, '1h');
+  assert(!String(s.calls[0].o.sysStable).includes(BRIEF_TEXT));
+  assert(s.calls[0].system.includes('Arabic') && !String(s.calls[0].o.sysStable).includes('Gulf Arabic'));
 });

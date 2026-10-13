@@ -33,6 +33,7 @@
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
 import { cacheTokens, tapUsage } from './stream_usage.ts';
+import { sendWithTtlFallback, systemMessage } from './system_message.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -158,6 +159,8 @@ interface Body {
   counterpart_model?: string;   // the model that wrote what this call reviews (fn_ai_route_review)
   sys?: string;
   sys_stable?: string;                    // the byte-stable half of the system prompt; only this is marked cacheable
+  sys_shared?: string;                    // a byte-stable block shared by a family of prompts, cached first (system_message.ts)
+  cache_ttl?: '1h';                       // Anthropic's 1-hour cache tier, asked for by the chat callers only
   input?: string | Msg[];
   messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
   max?: number; temperature?: number; confidence?: number;
@@ -324,7 +327,15 @@ async function handle(req: Request): Promise<Response> {
     //
     // Callers that know which half of their prompt is stable now say so. sys_stable is prepended to
     // sys and is the ONLY block marked cacheable; sys keeps whatever changes per call.
-    const sysStable = String(body.sys_stable || '');
+    // THE SHARED PREFIX (13 Oct 2026, sales_engineer; coordinator's options a and c). sys_shared is a byte-stable block
+    // that is the SAME for every caller of a family of prompts (the ~250k-char knowledge brief every conversation reply
+    // carries); it goes first with its own cache breakpoint, so a reply in any language on any channel reads it from the
+    // cache even when the caller's own stable half differs. sysStable below holds both halves for hashing and lengths.
+    const sysShared = String(body.sys_shared || '');
+    // cache_ttl '1h': Anthropic's 1-hour cache tier (2x write instead of 1.25x). Asked for only by the chat callers,
+    // whose traffic is too sparse for 5 minutes; every other caller keeps the default (see NO ttl FIELD below).
+    const cacheTtl = body.cache_ttl === '1h' ? '1h' : null;
+    const sysStable = sysShared + String(body.sys_stable || '');
     const sys = String(body.sys || '');
     const explicit = Array.isArray(body.messages) ? body.messages : null;
     const convo: Msg[] = explicit
@@ -561,24 +572,19 @@ async function handle(req: Request): Promise<Response> {
     // is right for a caller whose whole prompt genuinely is stable and wrong only for one that
     // silently mixes, which is exactly what sys_stable exists to fix.
     //
-    // NO ttl FIELD. The 1-hour tier works (probe 11 Aug 2026 returned 200) and loses money on this
+    // NO ttl FIELD BY DEFAULT (a caller may send cache_ttl '1h': only the sparse chat callers do, system_message.ts).
+    // The 1-hour tier works (probe 11 Aug 2026 returned 200) and loses money on this
     // workload: it bills 2x to write against 1.25x for the default, and the hourly loop repeats at
     // ~65 minutes — just outside the window. See scripts/sql/prompt_cache_accounting.sql for the
     // arithmetic and the measured hit rates.
     const cacheBlock = sysStable || sys;
     const useCache = route.cache === true && promptCacheOn && cacheBlock.length >= CACHE_MIN_CHARS;
-    const sysText = sysStable ? (sysStable + sys) : sys;
-    const sysMsg = useCache
-      ? { role: 'system', content: sysStable
-            ? [{ type: 'text', text: sysStable, cache_control: { type: 'ephemeral' } },
-               ...(sys ? [{ type: 'text', text: sys }] : [])]
-            : [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }] }
-      : { role: 'system', content: sysText };
+    const sysMsg = systemMessage({ shared: useCache ? sysShared : '', stable: useCache ? sysStable.slice(sysShared.length) : sysStable, sys, useCache, ttl: cacheTtl });
     // An empty system message is not free - it is a message the provider still tokenises, and on
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,
     // and never when the caller already supplied its own system turn inside `messages`.
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
-    const outbound: Msg[] = (sysText && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
+    const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
 
     // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to
     // about 100 seconds, while _shared/llm.ts abandons a plain call after 30. On 29 Jul five
@@ -813,11 +819,16 @@ async function handle(req: Request): Promise<Response> {
           if (body.tools && body.tools.length) payload.tools = body.tools;
           if (body.tool_choice != null) payload.tool_choice = body.tool_choice;
 
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload), signal: ac.signal,
-          });
+          // THE 1-HOUR TIER IS ASKED FOR, NEVER REQUIRED (13 Oct 2026): if the route refuses the ttl field, the same
+          // request goes once more on the default 5-minute tier, breakpoints kept (system_message.ts).
+          const r = await sendWithTtlFallback((msgs) => {
+            payload.messages = msgs;
+            return fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload), signal: ac.signal,
+            });
+          }, outbound, cacheTtl);
 
           if (wantStream) {
             // Hand the stream straight back. The caller can abandon it, which stops generation
