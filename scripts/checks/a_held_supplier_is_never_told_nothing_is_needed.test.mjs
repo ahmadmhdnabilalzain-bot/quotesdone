@@ -37,3 +37,16 @@ test('the portal wording for the three hold reasons asks for a clearer copy and 
     assert.doesNotMatch(line, /activat|nothing is needed/i, `${k} must not promise activation`);
   }
 });
+
+test('the portal header says a licence hold to a PENDING supplier too, not only to action_required', () => {
+  const portal = readFileSync(new URL('../../src/components/portal/SupplierPortal.tsx', import.meta.url), 'utf8');
+  assert.match(portal, /approval_status === 'pending' && \/\^licence_\/\.test\(String\(ov\.supplier\.licence_gate_reason/, 'a pending supplier held for the licence must see why (licence_unreadable, _expiry_unread, _number_unread)');
+});
+
+test('the dashboard sends the hold reason and its deadline to the portal', () => {
+  const idx = readFileSync(new URL('../../supabase/functions/supplier_portal/index.ts', import.meta.url), 'utf8');
+  const ov = readFileSync(new URL('../../supabase/functions/supplier_portal/overview.ts', import.meta.url), 'utf8');
+  assert.match(idx, /select\('id,company_name,approval_status,[^']*licence_gate_reason[^']*exception_due_at/, 'supplier_portal must read licence_gate_reason and exception_due_at');
+  assert.match(ov, /licence_gate_reason: sup\.licence_gate_reason/, 'supplierCard must send licence_gate_reason');
+  assert.match(ov, /exception_due_at: sup\.exception_due_at/, 'supplierCard must send exception_due_at');
+});
