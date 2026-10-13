@@ -1008,6 +1008,14 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_duty_supply_gap()
 AS $function$ select public.fn_sales_engineer_supply_gap(10) $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_knowledge_gap_tick()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_knowledge_gap_sweep(26, false) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_ladder_step(p_transaction_id uuid, p_step text, p_refund_id bigint DEFAULT NULL::bigint, p_remediation_id bigint DEFAULT NULL::bigint)
  RETURNS bigint
  LANGUAGE plpgsql
