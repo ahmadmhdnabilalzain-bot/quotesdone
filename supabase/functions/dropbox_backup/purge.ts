@@ -12,3 +12,16 @@ export function signupPurgeDeleteAllowed(path: string): boolean {
   if (rest.startsWith('_') || rest.startsWith('Company/Database Exports/')) return false;
   return /^(Customers|Suppliers|Storage|Company\/Correspondence|Finance)\/.+\/[^/]+$/.test(rest);
 }
+
+// THE DEMO PURGE (founder ruling 1199, 12 Oct 2026; it_engineer). fn_demo_purge lists Dropbox paths in the same queue;
+// one is deleted ONLY if it is a path in the frozen, reviewed demo_purge_paths.json (or inside one), or inside the
+// _sandbox/ or _selftest/ probe roots. No name pattern ever decides: "QA Interiors LLC" or "ZZ Demolition" is safe.
+import FROZEN from './demo_purge_paths.json' with { type: 'json' };
+const DEMO_ROOT = /^_(sandbox|selftest)\/[^/]+(\/.+)?$/;
+export const DEMO_PURGE_PATHS: readonly string[] = FROZEN.paths;
+export function demoPurgeDeleteAllowed(path: string, frozen: readonly string[] = DEMO_PURGE_PATHS): boolean {
+  if (!path.startsWith(ROOT) || path.includes('//') || path.includes('\\')) return false;
+  if (path.split('/').some((seg) => seg === '.' || seg === '..')) return false;
+  if (DEMO_ROOT.test(path.slice(ROOT.length))) return true;
+  return frozen.some((p) => path === p || path.startsWith(p + '/'));
+}

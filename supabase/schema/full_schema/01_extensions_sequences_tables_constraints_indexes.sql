@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-12T23:49:02.035Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-13T01:21:10.237Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -2628,7 +2628,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
   tos_ip text,
   locale text DEFAULT 'en'::text NOT NULL,
   industry text,
-  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_phone(phone) OR fn_is_demo_phone(whatsapp_phone) OR (COALESCE(full_name, ''::text) ~~* 'ZZ DEMO%'::text))) STORED,
+  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_phone(phone) OR fn_is_demo_phone(whatsapp_phone) OR (COALESCE(full_name, ''::text) ~* '^ZZ DEMO([^a-z]|$)'::text))) STORED,
   whatsapp_phone text,
   whatsapp_verified_at timestamp with time zone,
   whatsapp_opt text,
@@ -5042,7 +5042,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
   invite_last_followup_at timestamp with time zone,
   accepted_terms_sha256 text,
   collaboration_hold_at timestamp with time zone,
-  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_email(claimed_by) OR fn_is_demo_phone(phone) OR ('qd_demo'::text = ANY (COALESCE(tags, '{}'::text[]))) OR (COALESCE(company_name, ''::text) ~~* 'ZZ DEMO%'::text) OR (COALESCE(company_name, ''::text) ~~ 'QD Demo %'::text) OR (COALESCE(source, ''::text) = ANY (ARRAY['demo_factory'::text, 'qd_demo_fixture'::text])))) STORED,
+  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_email(claimed_by) OR (fn_is_demo_phone(phone) AND (COALESCE(source, ''::text) <> 'marketing_sourcing'::text)) OR ('qd_demo'::text = ANY (COALESCE(tags, '{}'::text[]))) OR (COALESCE(company_name, ''::text) ~* '^ZZ DEMO([^a-z]|$)'::text) OR (COALESCE(company_name, ''::text) ~~ 'QD Demo %'::text) OR (COALESCE(source, ''::text) = ANY (ARRAY['demo_factory'::text, 'qd_demo_fixture'::text])))) STORED,
   whatsapp_phone text,
   whatsapp_verified_at timestamp with time zone,
   whatsapp_opt text,
@@ -7343,7 +7343,10 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   vat_amount numeric,
   supplier_trn text,
   amount_as_stated numeric,
-  extracted_by_model text
+  extracted_by_model text,
+  gross_amount numeric,
+  discount_amount numeric,
+  discount_label text
 );
 
 CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
@@ -7877,7 +7880,12 @@ CREATE TABLE IF NOT EXISTS public.sales_knowledge_gap (
   nearest_corpus text,
   task_id bigint,
   status text DEFAULT 'open'::text NOT NULL,
-  closed_at timestamp with time zone
+  closed_at timestamp with time zone,
+  kind text DEFAULT 'refusal'::text NOT NULL,
+  source text,
+  source_ref text,
+  excerpt text,
+  detector text
 );
 
 CREATE TABLE IF NOT EXISTS public.sales_qualification_field (
@@ -8348,7 +8356,7 @@ CREATE TABLE IF NOT EXISTS public.signup_purge (
 CREATE TABLE IF NOT EXISTS public.signup_purge_dropbox (
   id bigint DEFAULT nextval('signup_purge_dropbox_id_seq'::regclass) NOT NULL,
   purge_id bigint NOT NULL,
-  doc_backup_id bigint NOT NULL,
+  doc_backup_id bigint,
   dropbox_file text NOT NULL,
   listed_at timestamp with time zone DEFAULT now() NOT NULL,
   attempts integer DEFAULT 0 NOT NULL,
@@ -8418,7 +8426,7 @@ CREATE TABLE IF NOT EXISTS public.social_conversation (
   resumed_at timestamp with time zone,
   resumed_by text,
   last_inbound_at timestamp with time zone,
-  is_demo boolean GENERATED ALWAYS AS (((user_id ~* '^ZZDEMO'::text) OR (COALESCE(handle, ''::text) ~* '^ZZ DEMO'::text))) STORED,
+  is_demo boolean GENERATED ALWAYS AS (((user_id ~* '^ZZDEMO([^a-z]|$)'::text) OR (COALESCE(handle, ''::text) ~* '^ZZ DEMO([^a-z]|$)'::text))) STORED,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -11482,6 +11490,7 @@ ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_kind_check
 ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'done'::text, 'failed'::text, 'superseded'::text])));
 ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
 ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
+ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_kind_chk CHECK ((kind = ANY (ARRAY['refusal'::text, 'hedge'::text, 'corrected'::text, 'guard_rewrite'::text, 'asked_known'::text])));
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'knowledge_added'::text, 'not_a_gap'::text])));
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_entry_type_check CHECK ((entry_type = ANY (ARRAY['individual'::text, 'entity'::text])));
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unparseable'::text])));
@@ -11533,7 +11542,7 @@ ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_c
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_itself CHECK ((from_code <> ((implies_trade || '.'::text) || implies_code)));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_en_check CHECK ((btrim(reason_en) <> ''::text));
-ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_kind_check CHECK ((kind = ANY (ARRAY['customer'::text, 'supplier_self_registered'::text, 'supplier_invited_lead'::text])));
+ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_kind_check CHECK ((kind = ANY (ARRAY['customer'::text, 'supplier_self_registered'::text, 'supplier_invited_lead'::text, 'demo_purge'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_order CHECK (((completed_at IS NULL) OR (started_at IS NOT NULL)));
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_platform_check CHECK ((platform = ANY (ARRAY['youtube'::text, 'linkedin'::text])));

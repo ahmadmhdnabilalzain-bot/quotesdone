@@ -738,6 +738,13 @@
   "f4054a06e456",
   "ff4b6d7b4671"
  ],
+ "scripts/sql/demo_data_is_purged_by_its_marker_and_no_seat_duty_reads_it.sql": [
+  "fb15ef2ad341",
+  "1ddbe22a20cf",
+  "25831966a970",
+  "71425d07f632",
+  "735f3f9ff862"
+ ],
  "scripts/sql/every_arabic_message_is_written_not_translated.sql": [
   "031d0af3af9c",
   "03ca1e1afe2a",
@@ -1339,6 +1346,15 @@
   "0e3944a15f96",
   "3fbfc9c44cae",
   "50d6d400e862"
+ ],
+ "scripts/sql/the_faq_states_the_fee_base_and_the_supplier_quote_as_stated.sql": [
+  "33f3832b06b0",
+  "5dc0c783470e",
+  "87dbc4d1e035",
+  "90ef68a67059",
+  "96c9fec939b6",
+  "dc528da26c82",
+  "e586ea015bca"
  ],
  "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
   "c12bc8b93a2b",
@@ -2524,6 +2540,12 @@
  "scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql": [
   "67e0d864b486"
  ],
+ "scripts/sql/the_sales_engineer_files_every_hedge_correction_and_rewrite_as_a_knowledge_gap.sql": [
+  "3f500a9ad425",
+  "4363a0cd5152",
+  "ac4fab6bcef4",
+  "d73b6729305e"
+ ],
  "scripts/sql/the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql": [
   "70b5a40fe07a",
   "859798d5f8bb",
@@ -2935,6 +2957,7 @@
   "35cc22f1e03c",
   "35f171f7e8a2",
   "36c55d485f47",
+  "38d136ab6f59",
   "39b50046faba",
   "3b6f809a9de0",
   "3d55d42d21fc",
@@ -2963,6 +2986,7 @@
   "540c2fb2ae96",
   "56b8bdb1ee36",
   "58a5d69c6dbd",
+  "5953c1477772",
   "5af9cad10162",
   "5c174a8af4ea",
   "5e4992364cc0",
@@ -5495,6 +5519,9 @@
   "80525653a9e7",
   "ce534deaa8f7"
  ],
+ "supabase/functions/_shared/brief.generated.ts": [
+  "434f70386172"
+ ],
  "supabase/functions/_shared/cad_file_redact.ts": [
   "214e2a66c5bf"
  ],
@@ -5707,6 +5734,7 @@
   "528894c8bb2d",
   "699eba58d604",
   "73502e2ecb2a",
+  "9e73cc11a342",
   "9e7fe4178786",
   "a440c9548e98",
   "a9b7c3e70cd0",
@@ -5818,6 +5846,26 @@
  ],
  "supabase/functions/_shared/size_question.ts": [
   "fb124abd6131"
+ ],
+ "supabase/functions/_shared/stated_price.ts": [
+  "0606cadc7570",
+  "112c4662fbf6",
+  "17a8beaa5500",
+  "49175bc8c637",
+  "5a629a082c9a",
+  "5eada1a04c3f",
+  "659b3e0b6865",
+  "6eb3a5ab7bb4",
+  "704a95d762a3",
+  "7d12b7a501dc",
+  "8c237eb49571",
+  "8cc7466c5249",
+  "9b9c4b356724",
+  "c56381adb176",
+  "c6aa2ccc0e0b",
+  "d1e3bf58385c",
+  "daec3ca59871",
+  "df7419d4841d"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "2eeb132406ba",
@@ -5964,7 +6012,8 @@
   "4e2156827796"
  ],
  "supabase/functions/_shared/trade_resolve.ts": [
-  "a1150629315a"
+  "a1150629315a",
+  "bdab39592e4e"
  ],
  "supabase/functions/_shared/unsubscribe_mailbox.ts": [
   "fe749a06f354"
@@ -5972,6 +6021,7 @@
  "supabase/functions/customer_api/index.ts": [
   "0183560e12a8",
   "06ed97856972",
+  "18b5cdffdfb5",
   "1e7a6e6cab42",
   "302ecd33f24f",
   "318701cc6ae5",
