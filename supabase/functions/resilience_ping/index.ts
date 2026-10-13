@@ -1284,6 +1284,13 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     const told = await sendHeldNotices(owed ?? [], liveDeliveryIO(admin), (id, d) => rpc('fn_reason_held_notice_record', { p_id: id, p_delivery: d }));
     return { escalated: (rows ?? []).length, told };
   });
+  // A SUPPLIER DOCUMENT WHOSE READ NEVER FINISHED (review of #1404): a profile or catalogue is marked 'reading' before
+  // its parse; one still 'reading' after 30 minutes was killed mid-parse. It is set unreadable with the reason and handed
+  // to the sales_engineer seat (fn_supplier_doc_reading_escalate) - never left silent - and the gate never approves past it.
+  await step('supplier_doc_reading_stuck', async () => {
+    const rows = (await rpc('fn_supplier_doc_reading_escalate', { p_minutes: 30, p_limit: 50 })) as unknown[] | null;
+    return { handed_to_sales_engineer: (rows ?? []).length };
+  });
   // THE SUPPLIER TRADE BACKFILL (sales_engineer, 23 Sep 2026): files at most the daily cap of leads for reasoning,
   // and NOTHING unless app_secrets.lead_reclassify_backfill = 'go' (the cost is quoted beside the gate).
   await step('lead_reclassify', async () => rpc('fn_lead_reclassify_tick', { p_limit: 20 }));

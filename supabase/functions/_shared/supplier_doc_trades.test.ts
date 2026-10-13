@@ -266,3 +266,44 @@ Deno.test('a read killed partway (the worker dies at its CPU cap) leaves the doc
   const d = writes[0].source_docs.docs[0];
   assertEquals([d.path, d.status, d.trades.length], ['profiles/7/p.pdf', 'reading', 0]);
 });
+
+// ── THE READING BUDGET AND THE SIZE REFUSAL (review of #1404) ───────────────────────────────────────────────────────
+import { pdfjsText, PDFJS_BUDGET_MS } from './doc_read/pdf.ts';
+import { LIMITS } from './doc_read/types.ts';
+/** A PDF of `n` pages, each printing "Page k fire pumps" in Helvetica. */
+function pagesPdf(n: number): Uint8Array {
+  const objs: string[] = ['<< /Type /Catalog /Pages 2 0 R >>', ''];
+  const kids: string[] = [];
+  for (let k = 1; k <= n; k++) {
+    const ops = `BT /F1 12 Tf 72 700 Td (Page ${k} fire pumps) Tj ET`;
+    const page = objs.length + 1; kids.push(`${page} 0 R`);
+    objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${page + 1} 0 R /Resources << /Font << /F1 ${3 + 2 * n} 0 R >> >> >>`);
+    objs.push(`<< /Length ${ops.length} >>\nstream\n${ops}\nendstream`);
+  }
+  objs[1] = `<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${n} >>`;
+  objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  let pdf = '%PDF-1.4\n'; const at: number[] = [];
+  objs.forEach((o, i) => { at.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const x = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${at.map((v) => String(v).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF`;
+  return new TextEncoder().encode(pdf);
+}
+Deno.test('the pdf.js read stops starting pages once its CPU budget is spent, and says how far it got', async () => {
+  let t = 0; const clock = () => (t += 300);   // every look at the clock costs 300 ms of parse time
+  const r = await pdfjsText(pagesPdf(6), 250, PDFJS_BUDGET_MS, clock);
+  assertEquals(r.status, 'text');
+  assertEquals(r.of, 6);
+  assert(r.pages >= 1 && r.pages < 6, `read ${r.pages} of 6`);
+  assert(r.text.includes('Page 1 fire pumps') && !r.text.includes('Page 6'), r.text);
+  const all = await pdfjsText(pagesPdf(6));
+  assertEquals([all.pages, all.of], [6, 6]);
+});
+Deno.test('a file over 25 MB is refused before pdf.js opens it, and is held unreadable, never read as a scan', async () => {
+  const big = new Uint8Array(LIMITS.maxBytes + 1); big.set(new TextEncoder().encode('%PDF-1.4\n'));
+  const r = await pdfjsText(big);
+  assertEquals([r.status, r.pages], ['failed', 0]);
+  assert(/over the .* read limit/.test(r.detail || ''), r.detail);
+  const ev = await readDocForTrades({ path: 'profiles/1/big.pdf', name: 'big.pdf', kind: 'profile', bytes: big, mime: 'application/pdf' }, deps());
+  assertEquals(ev.status, 'unreadable');
+  assert(/file_too_large/.test(ev.reason || ''), ev.reason);
+});

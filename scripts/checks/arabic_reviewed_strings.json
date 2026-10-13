@@ -4638,6 +4638,7 @@
   "af2798650a9c",
   "af80f5ae1866",
   "af9002188ff2",
+  "aff166d22e78",
   "b234bdc725a5",
   "b49c4007ce15",
   "b58aaab82b78",
@@ -6544,5 +6545,9 @@
  ],
  "supabase/functions/wa_inbound/model_says.ts": [
   "036a6e41b969"
+ ],
+ "supabase/functions/_shared/supplier_doc_trades.ts": [
+  "4116f122be73",
+  "611e94d11c87"
  ]
 }

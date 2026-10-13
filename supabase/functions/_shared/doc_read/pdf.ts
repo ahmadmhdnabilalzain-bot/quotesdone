@@ -35,8 +35,8 @@ export const arabicLigatureFix = (t: string) => t.replace(AR_LIGATURE_START, '$1
 // 'reading' before the parse (supplier_doc_trades.markReading): a kill leaves it held, never silently missing.
 export const PDFJS_MAX_PAGES = 250, PDFJS_BUDGET_MS = 700;
 export type PdfjsRead = { status: 'text' | 'no_text' | 'failed'; text: string; pages: number; of?: number; detail?: string };
-export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, budgetMs = PDFJS_BUDGET_MS): Promise<PdfjsRead> {
-  const t0 = performance.now();
+export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, budgetMs = PDFJS_BUDGET_MS, now: () => number = () => performance.now()): Promise<PdfjsRead> {
+  const t0 = now();
   let pages = 0;
   try {
     if (bytes.length > LIMITS.maxBytes) throw new Error(`${bytes.length} bytes is over the ${LIMITS.maxBytes} read limit`);
@@ -44,7 +44,7 @@ export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, b
     const out: string[] = [];
     let n = 0;
     for (let i = 1; i <= Math.min(pdf.numPages, maxPages) && n < LIMITS.maxTextChars; i++) {
-      if (performance.now() - t0 > budgetMs) break;   // a partial read, said so in `pages` / `of`
+      if (now() - t0 > budgetMs) break;   // a partial read, said so in `pages` / `of`
       const tc = await (await pdf.getPage(i)).getTextContent();
       // deno-lint-ignore no-explicit-any
       const page = tc.items.map((it: any) => (typeof it.str === 'string' ? it.str + (it.hasEOL ? '\n' : '') : '')).join('');
@@ -54,7 +54,7 @@ export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, b
     return { status: /\p{L}{2}/u.test(text) ? 'text' : 'no_text', text, pages, of: pdf.numPages };
   } catch (e) {
     const detail = String((e as Error)?.message || e).slice(0, 200);
-    console.error(JSON.stringify({ at: 'doc_read.pdfjsText', status: 'failed', bytes: bytes.length, pages, ms: Math.round(performance.now() - t0), detail }));
+    console.error(JSON.stringify({ at: 'doc_read.pdfjsText', status: 'failed', bytes: bytes.length, pages, ms: Math.round(now() - t0), detail }));
     return { status: 'failed', text: '', pages, detail };
   }
 }
@@ -63,7 +63,7 @@ export async function readPdf(bytes: Uint8Array, ctx: ReadContext): Promise<Read
   if (ctx.textOnly) {
     const r = await pdfjsText(bytes);
     if (r.status === 'failed') return refuse('pdf_unreadable', `The PDF could not be read: ${r.detail}`);
-    if (r.status === 'no_text') return ok(empty('pdf', ['This PDF has no text layer (a scan, or text drawn as outlines); its words need OCR.'], 'ocr'));
+    if (r.status === 'no_text') return ok(empty('pdf', ['This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.'], 'ocr'));
     const notes = r.of && r.pages < r.of ? [`Read ${r.pages} of ${r.of} pages within the reading budget.`] : [];
     return ok({ kind: 'pdf', text: r.text, tables: [], quantities: [], children: [], needs: null, notes });
   }

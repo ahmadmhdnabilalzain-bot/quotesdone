@@ -574,6 +574,9 @@ const COPY: Record<string, Entry> = {
     'لم نتمكن من قراءة تاريخ الانتهاء في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
   licence_number_unread: s('we could not read the licence number on your trade licence, even with our document reader. Please upload a clearer copy (a PDF, or a sharp photo of the whole page); we read it again as soon as it arrives',
     'لم نتمكن من قراءة رقم الرخصة في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
+  // 13 Oct 2026 (review of #1404): a profile or catalogue whose read has not finished holds approval until it has.
+  documents_being_read: s('we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes',
+    'ما زلنا نقرأ الملف التعريفي لشركتكم أو الكتالوج؛ وسيُعاد فحص تسجيلكم فور انتهاء القراءة'),
   licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
     'اسم الشركة في الرخصة التجارية لا يطابق اسم شركتكم المسجّل. يُرجى رفع الرخصة التجارية الخاصة بشركتكم، أو التواصل معنا إن كان اسمكم المسجّل يحتاج إلى تعديل'),
 
