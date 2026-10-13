@@ -97,7 +97,7 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     const MAX_COMPARE = 120;
     const MAX_ITEMS_PER_QUOTE = 40;
     const MAX_ITEMS_TOTAL = 1200;
-    const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,extracted_by_model,expires_at,quality,submittable').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
+    const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,vat_treatment,vat_amount,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,extracted_by_model,expires_at,quality,submittable').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
     if (qsErr) { await logRun('error', { compared: 0, quotes_query_ok: 0, quotes_seen: 0 }, 'quote_compare could not read the quotes for inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(qsErr.message).slice(0, 120) + '). The customer will be told they need at least two quotes even though suppliers may well have quoted — a query failure presented as an absence of quotes.'); }
     const live = (qsAll || []).filter((q: any) => q.status !== 'draft');
     // THE QUALITY CHECK (founder ledger 1018, 29 Sep 2026; scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_
@@ -240,7 +240,7 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
       const missMandatory = Number.isFinite(mmRaw) ? mmRaw : null;
       const items = itemsByQuote[String(q.id)] || [];
       const tr = q.supplier_id != null ? trackBySupplier[String(q.supplier_id)] : null;
-      return { label: labels.get(String(q.id))?.en || ('Supplier ' + supplierLabel(i)), price: q.price_ex_vat ?? q.quote_amount, lead_time: q.lead_time, validity: q.validity, warranty: q.warranty, payment_terms: q.payment_terms, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, notes: q.notes,
+      return { label: labels.get(String(q.id))?.en || ('Supplier ' + supplierLabel(i)), price: q.price_ex_vat ?? q.quote_amount, gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, vat_treatment: q.vat_treatment ?? null, vat_amount: q.vat_amount ?? null, lead_time: q.lead_time, validity: q.validity, warranty: q.warranty, payment_terms: q.payment_terms, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, notes: q.notes,
         items: items.length ? items : undefined,
         itemised: items.length > 0,
         expired: q.expires_at ? (new Date(q.expires_at).getTime() < nowTs) : false,
