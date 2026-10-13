@@ -20,6 +20,12 @@ export async function needsAPerson(deps: ThinkDeps, o: {
 }): Promise<Reasoned<boolean>> {
   const result = await think(deps, {
     seat: o.seat, surface: o.surface, question: o.message, dedupeKey: o.dedupeKey, subject: o.subject,
+    // THE TWO OPTIONS ARE THE WHOLE OF WHAT THIS NEEDS: nothing to plan, nothing to retrieve (customer_support, 13 Oct 2026).
+    // Measured on production (ai_cost_log 02:20-02:21Z): after every widget reply this ran a decompose call
+    // (routine_employee_reasoning, Luna) and then a synthesis whose payload carried up to 5 x 6 retrieved knowledge rows,
+    // 14,614 and 15,658 prompt tokens, both cut off at the 900-token cap (Luna, then Gemini) and so held. The same
+    // shape as priceQuestion. reasoned_decisions.test.ts fails if a decompose or a retrieval comes back.
+    plan: { steps: [] },
     context: { audience: o.audience ?? 'customer', conversation: o.conversation },
     decision: {
       name: 'needs_a_person',
