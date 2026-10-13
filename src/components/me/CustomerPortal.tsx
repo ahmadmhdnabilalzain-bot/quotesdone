@@ -1526,7 +1526,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   const revealedFacts = (r) => !!(r && r.already_revealed && r.supplier);
   const unlock = (r) => {
     if (!revealedFacts(r)) { setState('settling'); return false; }
-    setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); setState('revealed'); setJustRevealed(true); return true;
+    setContact({ supplier: r.supplier }); setState('revealed'); setJustRevealed(true); return true;
   };
   // The settling card's own button: one more ask, no reload, no second payment.
   const [recheckBusy, setRecheckBusy] = useState(false);
@@ -1569,7 +1569,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   // It falls back to the settling card, which says why and carries the Check again button.
   const showContactData = async () => {
     const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null);
-    if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name });
+    if (r && r.supplier) setContact({ supplier: r.supplier });
     else setState('settling');
   };
   const settling = state === 'settling';
@@ -1680,11 +1680,6 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
         {s.email && <a href={'mailto:' + s.email} className="font-semibold text-primary">✉ <bdi dir="ltr">{s.email}</bdi></a>}
         {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_website')}</a>}
       </div>
-      {/* The supplier's own quotation file: View / Download; Replace / Remove say it is the supplier's (instruction 524). */}
-      {c.file_url && <div className="mt-1.5">
-        <div className={cn(S.sub, 'mb-1')}>{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</div>
-        <DocActions lang={lang} name={c.file_name} url={c.file_url} sealed="suppliers_file" />
-      </div>}
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         {/* A11Y (5 Aug 2026): real buttons carrying their value, in a labelled group. */}
         {/* The stars stay after a rating (audit 21 Sep 2026, item 18): rate_supplier upserts the one
