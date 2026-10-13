@@ -149,7 +149,7 @@ async function main() {
       const j = await gw({ fn: 'sales_engineer_conversation_drill', task_class: 'knowledge_validation', counterpart_model: agentModel,
         sys: JUDGE, input: `TRADE: ${s.trade}\nCUSTOMER'S HIDDEN FACTS (for checking completeness): ${s.facts}\n\nTRANSCRIPT:\n${transcript}`, max: 900, temperature: 0 });
       const v = json(j.content);
-      results.push({ id: s.id, lang: s.lang, trade: s.trade, agent_model: agentModel, judge_model: j.model, score: v, judge_raw: v ? undefined : String(j.content ?? j.err).slice(0, 1500), transcript: turns });
+      results.push({ id: s.id, capped: turns.filter((x) => x.role === 'agent').length >= MAX_AGENT_TURNS, lang: s.lang, trade: s.trade, agent_model: agentModel, judge_model: j.model, score: v, judge_raw: v ? undefined : String(j.content ?? j.err).slice(0, 1500), transcript: turns });
       console.log(`${s.id}: overall ${v?.overall ?? '?'} (adapt ${v?.adaptiveness ?? '?'}, correct ${v?.correctness ?? '?'}, no_idk ${v?.no_idk ?? '?'}, complete ${v?.completeness ?? '?'}) agent=${agentModel} judge=${j.model ?? j.err}`);
     }
   } finally {
