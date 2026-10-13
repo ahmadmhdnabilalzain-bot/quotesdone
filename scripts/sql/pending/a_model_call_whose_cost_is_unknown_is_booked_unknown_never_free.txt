@@ -1,1 +1,0 @@
-Follow-up of #1391 (release operator review, 13 Oct 2026): unknown token counts and cost stay NULL in ai_cost_log, the spend readers name unpriced calls, and anthropic/claude-sonnet-5.5 gets its model_rate row. Applied at merge by the release operator, after #1391; then this note is deleted and the file appended to MANIFEST.txt.
