@@ -521,13 +521,13 @@ Deno.test('finding 12: a revised file keeps what the chat settled; only what the
   assertEquals(keys, ['spec|3||board_type']);
   const t4 = ok(await message(mem.repo, deps, ctx, ID, 'line 3 board type: standard gypsum board'));
   assertEquals(t4.state, 'awaiting_choice', JSON.stringify(t4.open_requests));
-  // finding 28: "generate" produces the quotation in BOTH languages — printed for the supplier
-  // first (SP-F-07, 22 Sep 2026), and the PDFs attached once the supplier submits it.
+  // finding 28: "generate" produces the quotation — printed for the supplier first (SP-F-07, 22 Sep
+  // 2026) and attached once the supplier submits it. English only since 13 Oct 2026 (founder ruling 1008).
   ok(await choose(mem.repo, deps, ctx, ID, 'generate'));
   const t5 = ok(await submit(mem.repo, deps, ctx, ID));
   assertEquals(t5.state, 'submitted');
   const atts = t5.messages.find((m) => m.kind === 'submitted')!.attachments;
-  assertEquals(atts.map((a) => a.lang), ['en', 'ar']);
+  assertEquals(atts.map((a) => a.lang), ['en']);
   assert(atts.every((a) => a.kind === 'standard_quote' && a.quote_id === 'q-1'));
 });
 
