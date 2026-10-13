@@ -35,15 +35,17 @@ export const arabicLigatureFix = (t: string) => t.replace(AR_LIGATURE_START, '$1
 // 'reading' before the parse (supplier_doc_trades.markReading): a kill leaves it held, never silently missing.
 export const PDFJS_MAX_PAGES = 250, PDFJS_BUDGET_MS = 700;
 export type PdfjsRead = { status: 'text' | 'no_text' | 'failed'; text: string; pages: number; of?: number; detail?: string };
-export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, budgetMs = PDFJS_BUDGET_MS, now: () => number = () => performance.now()): Promise<PdfjsRead> {
+/** `fromPage` (1-based) continues a read a previous step stopped at its budget (the background read job). `pages`
+ *  is then the last page read, and `of` the document's page count. */
+export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, budgetMs = PDFJS_BUDGET_MS, now: () => number = () => performance.now(), fromPage = 1): Promise<PdfjsRead> {
   const t0 = now();
-  let pages = 0;
+  let pages = Math.max(0, fromPage - 1);
   try {
     if (bytes.length > LIMITS.maxBytes) throw new Error(`${bytes.length} bytes is over the ${LIMITS.maxBytes} read limit`);
     const pdf = await getDocumentProxy(bytes.slice());   // pdf.js takes ownership of the buffer it is given
     const out: string[] = [];
     let n = 0;
-    for (let i = 1; i <= Math.min(pdf.numPages, maxPages) && n < LIMITS.maxTextChars; i++) {
+    for (let i = Math.max(1, fromPage); i <= Math.min(pdf.numPages, maxPages) && n < LIMITS.maxTextChars; i++) {
       if (now() - t0 > budgetMs) break;   // a partial read, said so in `pages` / `of`
       const tc = await (await pdf.getPage(i)).getTextContent();
       // deno-lint-ignore no-explicit-any

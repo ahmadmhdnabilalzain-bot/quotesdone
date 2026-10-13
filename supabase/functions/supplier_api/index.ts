@@ -25,9 +25,9 @@ import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
-import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { readDocument } from '../_shared/doc_read/index.ts';
-import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
+import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { runReadStep, startReadJobs, type JobDoc, type JobStep, type ProfileReader } from '../_shared/supplier_doc_job.ts';
+import { licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -67,8 +67,6 @@ const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // bank_name, bank_account_name, bank_iban and iban_doc_path left this list on 21 Sep 2026: the columns are
 // being dropped/purged (scripts/sql/the_founder_removed_bank_details_from_the_estate.sql). Money moves both
 // directions through Stripe, so the estate never holds a supplier's bank details — founder instruction 527.
-// The largest profile PDF with no text layer sent to the vision model as a file (an 8.4 MB, 87-page scan was measured).
-const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
 // A file over the 25 MB ceiling (the supplier-docs bucket's file_size_limit) was told its FORMAT was wrong. 3 of 29 real UAE
 // profiles measured on 13 Oct 2026 are larger (30, 38 and 85 MB): the supplier is now told the size, and how to fix it.
 const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. Please upload a smaller copy - most PDF tools can export a compressed or "smallest file size" version.`;
@@ -447,6 +445,34 @@ async function arabicFinish(quoteId: string): Promise<Response> {
 }
 
 // Named so the quotation review can run this same function in-process with the caller's own session.
+const mimeOfPath = (x: string) => /\.pdf$/i.test(x) ? 'application/pdf' : /\.png$/i.test(x) ? 'image/png' : /\.jpe?g$/i.test(x) ? 'image/jpeg' : /\.docx$/i.test(x) ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : /\.pptx$/i.test(x) ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation' : 'application/octet-stream';
+/** Fire one read_docs_job step at this function and let it run past the response (EdgeRuntime.waitUntil). */
+async function fireReadJob(step: JobStep): Promise<void> {
+  const secret = await secretVal('cred_fn_supplier_api'); if (!secret) throw new Error('no internal credential');
+  const next = fetch(`${SUPA_URL}/functions/v1/supplier_api`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ __secret: secret, action: 'read_docs_job', ...step }) }).then((r) => r.body?.cancel()).catch(() => {});
+  // deno-lint-ignore no-explicit-any
+  const rt = (globalThis as any).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(next); else await next;
+}
+/** The vision model's profile mode for the background read: the services become photo_text, and, as process_docs
+ *  always did, the summary and the services it read become the supplier's (the documents lead). */
+function readProfileForJob(supplierId: number): ProfileReader {
+  return async (d) => {
+    const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null;
+    const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(120_000),
+      body: JSON.stringify({ __secret: secret, subject: { supplier_id: supplierId }, mode: 'profile', ...(d.image ? { images: [{ b64: d.b64, mime: d.mime }] } : { file_b64: d.b64, mime: d.mime, filename: d.filename }) }) });
+    const jd = await r.json().catch(() => null);
+    if (!jd?.ok || !jd.profile) return null;
+    const services = (Array.isArray(jd.profile.services) ? jd.profile.services : []).map((x: unknown) => String(x).trim()).filter(Boolean).slice(0, 40);
+    const u: Record<string, unknown> = {};
+    if (jd.profile.summary) u.capability_summary = String(jd.profile.summary);
+    if (services.length) u.services = services.join(', ');
+    if (Object.keys(u).length) await admin.from('leads').update(u).eq('id', supplierId);
+    return { services, summary: jd.profile.summary, products: jd.profile.products };
+  };
+}
+
 const handle = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
@@ -455,6 +481,16 @@ const handle = async (req: Request): Promise<Response> => {
   try {
     // The one internal door, before any session is asked for: the replay of a held Arabic translation.
     const peek = await req.clone().json().catch(() => ({}));
+    // THE BACKGROUND READ (supplier_doc_job.ts): one step per call; an unfinished document fires its next step.
+    if (peek?.__secret && peek.action === 'read_docs_job') {
+      const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
+      if (!auth.ok) return J({ error: 'forbidden' }, 403);
+      const step = { supplier_id: Number(peek.supplier_id), doc: peek.doc as JobDoc };
+      if (!step.supplier_id || !step.doc?.path) return J({ error: 'bad_step' }, 400);
+      const r = await runReadStep(admin, step, readProfileForJob(step.supplier_id));
+      if (!r.done && r.status === 'reading') await fireReadJob(step);
+      return J({ ok: true, ...r });
+    }
     if (peek?.__secret && peek.action === 'spec_arabic_finish') {
       const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
       if (!auth.ok) return J({ error: 'forbidden' }, 403);
@@ -815,9 +851,12 @@ ${q}`,
       // Extracted services for THIS run, kept aside so they can be cross-checked against the
       // supplier's own typed text once the row has been written (see the 29 Jul 2026 header).
       let xServices: string[] = [];
-      let profPdf: { file_b64: string; mime: string; filename: string } | null = null;
+      // A PROFILE OR CATALOGUE IS READ IN THE BACKGROUND (13 Oct 2026, _shared/supplier_doc_job.ts): it is stored here,
+      // marked 'reading' and handed to read_docs_job after the row is written; this request no longer waits on the
+      // parse or the model calls. Licences are still read here: the gate needs their fields now.
+      const jobDocs: JobDoc[] = [];
       const prof = body.company_profile || {};
-      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); readQueue.push({ path: String(prof.path), name: String(prof.path).split('/').pop() || 'profile', kind: 'profile' }); }
+      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); jobDocs.push({ path: String(prof.path), name: String(prof.path).split('/').pop() || 'profile', kind: 'profile', mime: mimeOfPath(String(prof.path)) }); }
       // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
       else if (prof.original_b64) {
         const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_SUPPLIER_PAPERS,
@@ -828,29 +867,16 @@ ${q}`,
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
-        // ONE read of the profile (review of #1404): the words-only read that proposes its trades is done here, kept on the
-        // queue item (DocIn.read), and its own verdict says whether the PDF has a text layer - no second parse.
-        // Held BEFORE the parse: a CPU kill mid-parse leaves the profile 'reading' (held), never silently unread.
-        if (/pdf/i.test(s.mime)) await markReading(admin, Number(sup.id), [{ path: p, name: String(prof.filename || 'profile'), kind: 'profile' }]);
-        const profRead = /pdf/i.test(s.mime) ? await readDocument(s.bytes, String(prof.filename || 'profile.pdf'), s.mime, 0, { textOnly: true }) : undefined;
-        readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime, ...(profRead ? { read: profRead } : {}) });
-        // A PHOTO-ONLY PROFILE IS READ TOO (ruling 1177): code has no text to read in a picture, so the picture goes to
-        // the vision model (profile mode) like the page images the portal sends; its services are then read for trades.
-        if (/^image\//i.test(s.mime)) profImgs.push({ b64: toB64(s.bytes), mime: s.mime });
-        // A PROFILE PDF WITH NO TEXT LAYER IS READ THE SAME WAY (13 Oct 2026, it_engineer; ACCURACY_real_profiles.md): a
-        // scanned or outlined-text profile (Menasco, 87 pages, 0 characters) was stored as needs_ocr and never read. The
-        // PDF itself goes to the profile mode as a file (licence_extract.documentContent), up to PROFILE_PDF_MODEL_MAX.
-        // A PDF pdf.js could not parse is NOT sent: it is held unreadable (profRead.ok false), never taken for a scan.
-        else if (profRead?.ok && profRead.needs === 'ocr' && s.bytes.length <= PROFILE_PDF_MODEL_MAX) {
-          profPdf = { file_b64: toB64(s.bytes), mime: s.mime, filename: String(prof.filename || 'profile.pdf') };
-        }
+        // Read in the background (supplier_doc_job.ts): the PDF a slice of pages per step, a picture or a PDF with no
+        // text layer through the vision model's profile mode (ruling 1177), then the trades chosen from our codes.
+        jobDocs.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', mime: s.mime });
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
       const cats = Array.isArray(body.catalogs) ? body.catalogs.slice(0, 5) : []; const catPaths: string[] = [];
       // AUDIT 9.1. Catalogues. A rejected catalogue is refused outright rather than skipped,
       // because silently dropping one is how a supplier ends up believing a document is on file.
       for (const c of cats) {
-        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); readQueue.push({ path: String(c.path), name: String(c.path).split('/').pop() || 'catalogue', kind: 'catalogue' }); }
+        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); jobDocs.push({ path: String(c.path), name: String(c.path).split('/').pop() || 'catalogue', kind: 'catalogue', mime: mimeOfPath(String(c.path)) }); }
         else if (c?.original_b64) {
           const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_SUPPLIER_PAPERS,
                                              scan: { source: 'supplier_api.catalog', subject: String(sup.id), filename: c.filename, bucket: 'supplier-docs' } });
@@ -860,7 +886,7 @@ ${q}`,
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
           if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
           catPaths.push(p);
-          readQueue.push({ path: p, name: String(c.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime });
+          jobDocs.push({ path: p, name: String(c.filename || 'catalogue'), kind: 'catalogue', mime: s.mime });
         }
         if (Array.isArray(c?.images)) profImgs.push(...c.images);
       }
@@ -873,8 +899,8 @@ ${q}`,
         const existingCat: string[] = Array.isArray(curCat?.catalog_doc_paths) ? (curCat!.catalog_doc_paths as string[]) : [];
         upd.catalog_doc_paths = [...existingCat, ...catPaths.filter((p) => !existingCat.includes(p))].slice(0, 20);
       }
-      if (profImgs.length || profPdf) {
-        try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', ...(profImgs.length ? { images: profImgs.slice(0, 10) } : profPdf) });
+      if (profImgs.length) {
+        try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', images: profImgs.slice(0, 10) });
           if (jd?.ok && jd.profile) { const pf = jd.profile;
             if (pf.summary) upd.capability_summary = pf.summary;
             // DOCUMENTS LEAD (spec, 29 Jul 2026). This line used to read
@@ -886,8 +912,6 @@ ${q}`,
             // and cross-checked immediately below.
             if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); upd.services = xServices.join(', '); }
             // The services the model read off a picture are read for trades exactly as a text profile's lines are.
-            const pq = readQueue.find((x) => x.kind === 'profile' && x.mime && (/^image\//i.test(x.mime) || (!!profPdf && /pdf/i.test(x.mime))));
-            if (pq) pq.photo_text = modelReadText('profile', xServices);
             if (Array.isArray(pf.products) && pf.products.length && !sup.products) upd.products = pf.products.join(', ');
             if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) upd.service_emirates = pf.emirates;
             out.profile = { summary: pf.summary, sectors: pf.sectors, confidence: pf.confidence };
@@ -917,6 +941,7 @@ ${q}`,
       // After the row write, so only documents now on the supplier's row are read. A reading failure
       // is reported beside the result and never fails the upload the supplier just made.
       if (readQueue.length) out.documents_read = await proposeTradesFromDocs(admin, Number(sup.id), readQueue);
+      if (jobDocs.length) out.documents_reading = await startReadJobs(admin, Number(sup.id), jobDocs, fireReadJob);
       // DOUBLE CONFIRMATION (spec, 29 Jul 2026). The typed services box exists so the supplier's
       // own description can be checked AGAINST the documents; until now the two were never
       // compared, so no mismatch could ever be flagged. Compare them, record the outcome in
