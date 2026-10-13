@@ -91,16 +91,19 @@ Deno.test('the knowledge block never licenses a fee figure', async () => {
   assert(BRIEF_TEXT.includes('5%'), 'precondition: the knowledge block states a 5% figure');
   const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
   assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
-  assert(s.calls[0].system.includes('# Conversation playbook:') && s.calls[0].system.includes('How you hold a conversation'), 'the playbooks reach the system prompt');
+  const stable = String(s.calls[0].o.sysStable ?? '');
+  assert(stable.includes('# Conversation playbook:') && stable.includes('How you hold a conversation'), 'the playbooks ride in the cached sys_stable block');
+  assert(!s.calls[0].system.includes('# Conversation playbook:'), 'and not again in the varying sys');
 });
 
 // prevented by: these tests (review of #1382). The style is sent once (inside BRIEF_TEXT), and nothing written only in
 // the knowledge block -- a figure, a licence-like number -- is licensed by it.
-Deno.test('the conversation style is in the system prompt exactly once', async () => {
+Deno.test('the conversation style reaches the model exactly once (sys_stable + sys)', async () => {
   const { CONVERSATION_STYLE } = await import('./brief.generated.ts');
   const s = stub([A('The reveal fee is 3%, with no card fee and no VAT.')]);
   await aiReply(s.deps, req);
-  assertEquals(s.calls[0].system.split(CONVERSATION_STYLE.slice(0, 60)).length - 1, 1);
+  const whole = String(s.calls[0].o.sysStable ?? '') + s.calls[0].system;
+  assertEquals(whole.split(CONVERSATION_STYLE.slice(0, 60)).length - 1, 1);
 });
 Deno.test('a licence number that only the knowledge block states is still refused', async () => {
   const s = stub([A('Our trade licence is 1633275.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
