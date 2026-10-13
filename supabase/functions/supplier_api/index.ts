@@ -1091,8 +1091,9 @@ ${q}`,
         const supplierMail = decision === 'approved'
           ? (ar ? { subject: 'أصبح حسابكم على QuotesDone مفعّلًا', body: `فُعِّل حساب ${name} لدى QuotesDone، وبإمكانكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
                 : { subject: 'Your QuotesDone supplier account is active', body: `Your account for ${name} is active — you can now receive inquiries and submit quotes.` })
-          : (decision === 'pending' || !stillNeeded.length) && licUnreadEn
-          ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn }
+          // Any decision short of approved: the unread licence is said first, with whatever else is still missing.
+          : licUnreadEn
+          ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
           : decision === 'pending'
           ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. اكتملت البنود الستة المطلوبة، ويتولّى مهندس المبيعات مراجعة طلب التسجيل حاليًا، وسنوافيكم برسالة فور اعتماده.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })

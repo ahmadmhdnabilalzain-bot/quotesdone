@@ -1,16 +1,39 @@
 // A HELD SUPPLIER IS NEVER TOLD "NOTHING IS NEEDED" (13 Oct 2026, it_engineer, founder ruling 1230).
 // Measured on production: a supplier whose licence could not be read (Arabic-only, blank) was e-mailed and WhatsApped at
 // Save "your account activates automatically ... Nothing is needed from you", then held as licence_unreadable with no
-// further word. supplier_api save_profile must ask for a clearer licence BEFORE the "pending" and "certificate on its
-// way" messages whenever the licence name, number or expiry is unread. Reads source only; runs in the checks job.
+// further word. supplier_api save_profile must ask for a clearer licence on EVERY decision short of approved whenever
+// the licence name, number or expiry is unread - also when other items are missing too - and that one notice is what
+// goes out on e-mail AND WhatsApp. The portal's own wording for the three hold reasons asks for a clearer copy too.
+// Reads source only; runs in the checks job.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const src = readFileSync(new URL('../../supabase/functions/supplier_api/index.ts', import.meta.url), 'utf8');   // raw: comment stripping would eat the rest of any line holding 'https://'
-test('an unread licence is asked for again before any "reviewing" or "nothing needed" message', () => {
+// raw source: stripping comments would eat the rest of any line holding 'https://'
+const src = readFileSync(new URL('../../supabase/functions/supplier_api/index.ts', import.meta.url), 'utf8');
+const copy = readFileSync(new URL('../../src/components/portal/supplier/serverCopy.ts', import.meta.url), 'utf8');
+
+test('an unread licence is tested on all three fields', () => {
   for (const f of ['licence_legal_name', 'trade_license_no', 'license_expiry']) assert.ok(src.includes(`!full?.${f} &&`), `the unread test must cover ${f}`);
-  const ask = src.indexOf("(decision === 'pending' || !stillNeeded.length) && licUnreadEn");
-  const pending = src.indexOf("decision === 'pending'\n", ask + 10), nothing = src.lastIndexOf('Nothing is needed from you');
-  assert.ok(ask > 0, 'the clearer-licence branch is missing from save_profile');
-  assert.ok(ask < pending && ask < nothing, 'the clearer-licence branch must come before the pending and certificate-on-its-way messages');
+});
+
+test('the clearer-licence ask comes straight after approved, before every other message, and keeps what else is missing', () => {
+  const start = src.indexOf("const supplierMail = decision === 'approved'");
+  const ask = src.indexOf('          : licUnreadEn\n', start);
+  assert.ok(start > 0 && ask > start, 'the clearer-licence branch is missing from save_profile');
+  assert.ok(!/decision === 'pending'|stillNeeded\.length/.test(src.slice(start, ask)), 'only the approved branch may come before the clearer-licence ask');
+  const branch = src.slice(ask, src.indexOf('\n          : ', ask + 20));
+  assert.match(branch, /stillNeeded\.length \? `[^`]*\$\{needEn\}/, 'with other items missing too, the ask must list them (the combined case)');
+  assert.ok(src.lastIndexOf('Nothing is needed from you') > ask, '"Nothing is needed" must only be reachable after the ask');
+});
+
+test('the one notice goes to e-mail and WhatsApp alike', () => {
+  assert.match(src, /type: 'registration_received', to_email: email, to_role: 'supplier'[^\n]*\.\.\.supplierMail/, 'registration_received must carry supplierMail (requestDelivery sends it on both channels)');
+});
+
+test('the portal wording for the three hold reasons asks for a clearer copy and promises no activation', () => {
+  for (const k of ['licence_unreadable', 'licence_expiry_unread', 'licence_number_unread']) {
+    const line = copy.split('\n').find((l) => l.trimStart().startsWith(k + ':')) || '';
+    assert.match(line, /clearer copy/, `${k} must ask for a clearer copy`);
+    assert.doesNotMatch(line, /activat|nothing is needed/i, `${k} must not promise activation`);
+  }
 });
