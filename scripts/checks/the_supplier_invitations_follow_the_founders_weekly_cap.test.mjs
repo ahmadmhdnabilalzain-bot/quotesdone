@@ -29,10 +29,18 @@ test('the daily invitation cap is the founder schedule, enforced by the ramp and
   const defs = await q(`select p.proname, pg_get_functiondef(p.oid) def from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname in ('fn_invite_ramp', 'enqueue_supplier_invites')`);
   const def = (name) => String(defs.find((r) => r.proname === name)?.def || '');
-  assert.match(def('fn_invite_ramp'), /v_base int\s+:= public\.fn_invite_founder_cap\(/,
-    'fn_invite_ramp takes its base from config again, not from the founder schedule');
-  assert.match(def('fn_invite_ramp'), /v_ceiling int\s+:= public\.fn_invite_founder_cap\(/,
-    'fn_invite_ramp takes its ceiling from config again, so it can grow past the founder schedule');
+  const ramp = def('fn_invite_ramp');
+  assert.match(ramp, /v_ceiling int\s+:= least\([^;]*public\.fn_invite_founder_cap\(/,
+    'fn_invite_ramp\'s ceiling is no longer bounded by the founder schedule, so it can grow past the ruling');
+  assert.match(ramp, /v_base int\s+:= least\([^;]*public\.fn_invite_founder_cap\(/,
+    'fn_invite_ramp\'s restart base is no longer bounded by the founder schedule');
+  // THE SCHEDULE ONLY LOWERS (review of #1389): flooring the cap at a schedule-derived base would RAISE a cap set
+  // lower (10 -> 20 -> 30) and turn the bounce back-off into a no-op. Measured by rolled-back probe on 13 Oct 2026:
+  // cap 10 stays 10, 10% bounces halve 20 -> 10, a hand-set 500 comes back 20.
+  assert.doesNotMatch(ramp, /greatest\(\s*v_base\s*,/,
+    'fn_invite_ramp floors a cap at v_base again: that raises a lower cap and stops the bounce back-off from reducing');
+  assert.match(ramp, /v_restart := true; v_new := least\(v_cur, v_base\)/,
+    'a cold restart may raise the cap again; it must be least(current cap, base)');
   assert.match(def('enqueue_supplier_invites'), /v_cap := least\(v_cap, public\.fn_invite_founder_cap\(/,
     'enqueue_supplier_invites no longer clamps invite_daily_cap to the founder schedule');
 });

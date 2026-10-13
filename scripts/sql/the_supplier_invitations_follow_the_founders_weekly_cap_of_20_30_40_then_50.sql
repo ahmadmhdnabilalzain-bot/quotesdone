@@ -7,10 +7,10 @@
 --
 --   1. fn_invite_founder_cap(day) returns the ruling's number for a Dubai day. It is the only place the
 --      schedule lives.
---   2. fn_invite_ramp: base and ceiling are both the day's founder cap, so on a healthy day the cap IS the
---      schedule and it never grows past it. Every brake is unchanged: the complaint pause still sets
---      invite_enabled false, the restart still resets to base. invite_warmup.base_cap/ceiling_cap are no
---      longer read for the cap.
+--   2. fn_invite_ramp: the founder cap is an UPPER BOUND on the configured base and ceiling. Healthy growth
+--      (x1.5 once per send day) reaches the week's number and stops there; a cap set lower is never raised;
+--      the bounce back-off halves (it used to floor at base, a no-op that paged daily). The configured
+--      ceiling_cap goes to 50 with this apply (bottom of the file).
 --   3. enqueue_supplier_invites clamps whatever invite_daily_cap holds to the founder cap, so a hand edit
 --      of app_secrets cannot send more than the ruling allows either.
 -- Weekends and UAE holidays already send nothing (enqueue holds itself), so the schedule needs no
@@ -39,9 +39,10 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   c jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
-  -- founder ruling 1231: base and ceiling are the dated founder cap (fn_invite_founder_cap), not config.
-  v_base int     := public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date);
-  v_ceiling int  := public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date);
+  -- founder ruling 1231: the dated founder cap is an upper bound only. It lowers the configured ceiling and the
+  -- restart base; it never raises a cap set lower, and the back-off below can still halve.
+  v_base int     := least(coalesce((c->>'base_cap')::int, 30), public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
+  v_ceiling int  := least(coalesce((c->>'ceiling_cap')::int, 200), public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
   v_growth numeric := coalesce((c->>'growth_factor')::numeric, 1.5);
   v_used_pct numeric := coalesce((c->>'grow_if_used_pct')::numeric, 0.8);
   v_ok_b numeric := coalesce((c->>'grow_max_bounce_rate')::numeric, 0.02);
@@ -98,7 +99,7 @@ begin
     -- A RESTART, NOT A STALL. After days of silence the domain is cold again, so it starts at the base.
     -- It is a stall only if the previous run was ALSO a restart and still nothing has been issued.
     -- A lane that has just been switched on has issued nothing yet, so it lands here: day 1 of its own ramp.
-    v_restart := true; v_new := v_base;
+    v_restart := true; v_new := least(v_cur, v_base);   -- ruling 1231 review: a restart lowers to base, never raises
     select coalesce((a.counts->>'restart')::boolean, false) into v_prev_restart
       from agent_runs a where a.agent = 'invite_ramp' and coalesce((a.counts->>'paused')::boolean, false) = false
      order by a.id desc limit 1;
@@ -115,7 +116,7 @@ begin
       end if;
     end if;
   elsif v_s48 >= v_back_n and (v_br >= v_back_b or v_c48 >= 1) then
-    v_new := greatest(v_base, floor(v_cur * 0.5)::int);
+    v_new := greatest(1, floor(v_cur * 0.5)::int);   -- ruling 1231 review: a back-off must reduce, so no floor at base
     v_note := 'back off: 48 h bounce ' || round(v_br * 100, 1) || '% (' || v_b48 || '/' || v_s48 || '), complaints ' || v_c48
               || '; cap ' || v_cur || '->' || v_new || '.';
     if v_new = v_cur then
@@ -149,7 +150,7 @@ begin
     end if;
   end if;
 
-  v_new := greatest(v_base, least(v_new, v_ceiling));
+  v_new := greatest(1, least(v_new, v_ceiling));     -- ruling 1231: the schedule only ever lowers the cap
   if v_new <> v_cur then
     update app_secrets set value = v_new::text where key = 'invite_daily_cap';
   end if;
@@ -325,6 +326,12 @@ begin
 end;
 $fn$;
 revoke execute on function public.enqueue_supplier_invites(integer) from public, anon, authenticated;
+
+-- CONFIG WITH THE APPLY (founder:1231): configured ceiling_cap becomes 50 so healthy x1.5 growth can reach each
+-- week's founder cap (20 -> 30 -> 40 -> 50); fn_invite_founder_cap keeps it at or below the ruling. Written here and
+-- not before, because the ramp live until this file would grow to the configured ceiling with no schedule above it.
+set local app.change_reason = 'founder:1231';
+update public.app_secrets set value = (value::jsonb || '{"ceiling_cap": 50}'::jsonb)::text where key = 'invite_warmup';
 
 -- PROBE (verdict row; DDL in this file, so it does not raise). Reads only; writes nothing.
 select case
