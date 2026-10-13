@@ -25,7 +25,7 @@ import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
-import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
@@ -830,6 +830,8 @@ ${q}`,
         upd.company_profile_doc_path = p;
         // ONE read of the profile (review of #1404): the words-only read that proposes its trades is done here, kept on the
         // queue item (DocIn.read), and its own verdict says whether the PDF has a text layer - no second parse.
+        // Held BEFORE the parse: a CPU kill mid-parse leaves the profile 'reading' (held), never silently unread.
+        if (/pdf/i.test(s.mime)) await markReading(admin, Number(sup.id), [{ path: p, name: String(prof.filename || 'profile'), kind: 'profile' }]);
         const profRead = /pdf/i.test(s.mime) ? await readDocument(s.bytes, String(prof.filename || 'profile.pdf'), s.mime, 0, { textOnly: true }) : undefined;
         readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime, ...(profRead ? { read: profRead } : {}) });
         // A PHOTO-ONLY PROFILE IS READ TOO (ruling 1177): code has no text to read in a picture, so the picture goes to

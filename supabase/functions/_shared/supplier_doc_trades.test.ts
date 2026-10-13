@@ -246,3 +246,23 @@ Deno.test('Arabic: a meaning hit on an Arabic line stands only with an Arabic al
   assertEquals(read('الإدارة العليا', [0.1, 0.99]), []);
   assertEquals(read('رشاشات المياه للحدائق', [0.99, 0.1]), [], 'the service word alone, without the trade, is not enough');
 });
+
+// ── A KILLED PARSE LEAVES THE DOCUMENT HELD (review of #1404) ───────────────────────────────────────────────────────
+import { proposeTradesFromDocs } from './supplier_doc_trades.ts';
+Deno.test('a read killed partway (the worker dies at its CPU cap) leaves the document held as "reading"', async () => {
+  const writes: { source_docs: { docs: { path: string; status: string; trades: unknown[] }[] } }[] = [];
+  const admin = { from: (_t: string) => ({
+    select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
+    upsert: async (row: { source_docs: { docs: { path: string; status: string; trades: unknown[] }[] } }) => { writes.push(structuredClone(row)); return { error: null }; },
+  }) };
+  // The parse never finishes: the worker is killed here, so nothing after this point runs (no catch, no final write).
+  const hang = new Promise<number[] | null>(() => {});
+  const killed = deps({ embed: () => hang });
+  const pdf = makeDrawingPdf(['ZZ DEMO PROFILE', 'Chiller maintenance for villas and towers'], '');
+  const run = proposeTradesFromDocs(admin, 7, [{ path: 'profiles/7/p.pdf', name: 'p.pdf', kind: 'profile', bytes: pdf, mime: 'application/pdf' }], killed);
+  const outcome = await Promise.race([run.then(() => 'finished'), new Promise((r) => setTimeout(() => r('killed'), 300))]);
+  assertEquals(outcome, 'killed');
+  assertEquals(writes.length, 1, 'only the mark was written before the kill');
+  const d = writes[0].source_docs.docs[0];
+  assertEquals([d.path, d.status, d.trades.length], ['profiles/7/p.pdf', 'reading', 0]);
+});

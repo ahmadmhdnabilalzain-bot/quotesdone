@@ -51,7 +51,8 @@ export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Ar
   names?: (string | null)[] };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
-  status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable';
+  /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing */
+  status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable' | 'reading';
   reason?: string; format?: string; trades: TradeHit[]; read_at: string;
   source?: 'document_text' | 'photo_text'; supply_only?: boolean;
   /** how each path fared on this document (reader @3 on) */
@@ -186,6 +187,25 @@ export const proposedFrom = (docs: DocEvidence[]): string[] =>
  * Never throws and never blocks an upload: a failure comes back as { error } for the caller to report.
  * `deps` is for tests; an edge function passes nothing and gets the live routine, vectors and model.
  */
+/**
+ * HELD BEFORE IT IS READ (review of #1404). The edge worker is killed at its CPU cap with no catch running, so a parse
+ * that dies must already have left its mark: each document is stored as 'reading' first. A finished read replaces the
+ * mark; a killed one leaves the document held ('reading', no trades), visible as not read rather than silently absent.
+ * Never throws; a failed write is returned for the caller to report.
+ */
+export async function markReading(admin: Admin, supplierId: number, docs: { path: string; name: string; kind: DocKind }[]): Promise<string | null> {
+  try {
+    if (!docs.length) return null;
+    const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
+    const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
+    const at = new Date().toISOString();
+    const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: [], read_at: at }));
+    const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], marks);
+    const { error } = await admin.from('supplier_capabilities').upsert({ supplier_id: supplierId, source_docs: { ...prevSrc, reader: READER, docs: merged } }, { onConflict: 'supplier_id' });
+    return error ? `mark: ${error.message}` : null;
+  } catch (e) { return String((e as Error)?.message || e).slice(0, 200); }
+}
+
 export async function proposeTradesFromDocs(admin: Admin, supplierId: number, docs: DocIn[], deps?: TradeResolveDeps):
   Promise<{ ok: true; proposed_trades: string[]; docs: DocEvidence[] } | { ok: false; error: string }> {
   try {
@@ -196,6 +216,8 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     // (code's reading, or the model's where code read none). Read once; a failed read only means fewer names.
     const { data: who } = await admin.from('leads').select('company_name,licence_legal_name').eq('id', supplierId).maybeSingle();
     const known = [who?.company_name ?? null, who?.licence_legal_name ?? null];
+    const markErr = await markReading(admin, supplierId, docs);
+    if (markErr) console.error(JSON.stringify({ at: 'supplier_doc_trades.markReading', supplier: supplierId, error: markErr }));
     const fresh: DocEvidence[] = [];
     for (const d of docs) {
       let bytes = d.bytes;

@@ -26,27 +26,35 @@ import { type Qty, type ReadContext, type ReadResult, LIMITS, empty, ok, refuse 
 // real alef-lam), so it is left: an exact Arabic name split by it is missed, never matched wrongly.
 const AR_LIGATURE_START = /(^|[^؀-ۿ])ا([اأإآ])ل/gu;
 export const arabicLigatureFix = (t: string) => t.replace(AR_LIGATURE_START, '$1ال$2');
-export const PDFJS_MAX_PAGES = 250, PDFJS_DEADLINE_MS = 20_000;
-export type PdfjsRead = { status: 'text' | 'no_text' | 'failed'; text: string; pages: number; detail?: string };
-export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, deadlineMs = PDFJS_DEADLINE_MS): Promise<PdfjsRead> {
-  const t0 = Date.now();
+// THE BUDGET IS CPU, NOT WALL TIME (review of #1404). The edge worker is killed at about 2 s of CPU, and a kill runs no
+// catch. pdf.js works on bytes already in memory, so its time between pages IS its CPU time; measured locally on the 28
+// real PDFs (13 Oct 2026): opening a 25 MB file <= 30 ms, one page 3-37 ms on average and 211 ms at worst, a whole
+// 208-page profile 1.7 s. So the read stops starting pages once PDFJS_BUDGET_MS is spent - 700 ms + the worst page +
+// the open stays near half the cap - and the document says how many pages were read. Bytes are capped before the
+// open (LIMITS.maxBytes, 25 MB). A kill is still possible on a pathological file, so the CALLER marks the document
+// 'reading' before the parse (supplier_doc_trades.markReading): a kill leaves it held, never silently missing.
+export const PDFJS_MAX_PAGES = 250, PDFJS_BUDGET_MS = 700;
+export type PdfjsRead = { status: 'text' | 'no_text' | 'failed'; text: string; pages: number; of?: number; detail?: string };
+export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, budgetMs = PDFJS_BUDGET_MS): Promise<PdfjsRead> {
+  const t0 = performance.now();
   let pages = 0;
   try {
+    if (bytes.length > LIMITS.maxBytes) throw new Error(`${bytes.length} bytes is over the ${LIMITS.maxBytes} read limit`);
     const pdf = await getDocumentProxy(bytes.slice());   // pdf.js takes ownership of the buffer it is given
     const out: string[] = [];
     let n = 0;
     for (let i = 1; i <= Math.min(pdf.numPages, maxPages) && n < LIMITS.maxTextChars; i++) {
-      if (Date.now() - t0 > deadlineMs) throw new Error(`deadline ${deadlineMs} ms passed after ${pages} of ${pdf.numPages} pages`);
+      if (performance.now() - t0 > budgetMs) break;   // a partial read, said so in `pages` / `of`
       const tc = await (await pdf.getPage(i)).getTextContent();
       // deno-lint-ignore no-explicit-any
       const page = tc.items.map((it: any) => (typeof it.str === 'string' ? it.str + (it.hasEOL ? '\n' : '') : '')).join('');
       out.push(page); n += page.length; pages = i;
     }
     const text = arabicLigatureFix(out.join('\n')).slice(0, LIMITS.maxTextChars);
-    return { status: /\p{L}{2}/u.test(text) ? 'text' : 'no_text', text, pages };
+    return { status: /\p{L}{2}/u.test(text) ? 'text' : 'no_text', text, pages, of: pdf.numPages };
   } catch (e) {
     const detail = String((e as Error)?.message || e).slice(0, 200);
-    console.error(JSON.stringify({ at: 'doc_read.pdfjsText', status: 'failed', bytes: bytes.length, pages, ms: Date.now() - t0, detail }));
+    console.error(JSON.stringify({ at: 'doc_read.pdfjsText', status: 'failed', bytes: bytes.length, pages, ms: Math.round(performance.now() - t0), detail }));
     return { status: 'failed', text: '', pages, detail };
   }
 }
@@ -56,7 +64,8 @@ export async function readPdf(bytes: Uint8Array, ctx: ReadContext): Promise<Read
     const r = await pdfjsText(bytes);
     if (r.status === 'failed') return refuse('pdf_unreadable', `The PDF could not be read: ${r.detail}`);
     if (r.status === 'no_text') return ok(empty('pdf', ['This PDF has no text layer (a scan, or text drawn as outlines); its words need OCR.'], 'ocr'));
-    return ok({ kind: 'pdf', text: r.text, tables: [], quantities: [], children: [], needs: null, notes: [] });
+    const notes = r.of && r.pages < r.of ? [`Read ${r.pages} of ${r.of} pages within the reading budget.`] : [];
+    return ok({ kind: 'pdf', text: r.text, tables: [], quantities: [], children: [], needs: null, notes });
   }
   const pages = await pdfPages(bytes);
   if (!pages.length) return ok(empty('pdf', ['The PDF could not be opened (encrypted, damaged or not a PDF).']));
