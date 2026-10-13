@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-13T00:58:47.206Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-13T01:21:10.237Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7343,7 +7343,10 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   vat_amount numeric,
   supplier_trn text,
   amount_as_stated numeric,
-  extracted_by_model text
+  extracted_by_model text,
+  gross_amount numeric,
+  discount_amount numeric,
+  discount_label text
 );
 
 CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
