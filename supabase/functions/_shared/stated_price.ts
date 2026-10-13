@@ -176,16 +176,6 @@ export function vatShort(q: PriceRow, lang: L): string {
 /** The quotes-row price columns for a stated price. quote_amount — what revealCharge reads — is the fee base
  * (ruling 1208); only when no ex-VAT figure is known (the quote is then held for its VAT basis) does it fall back to
  * the final total as stated, which is after the discount, never the gross. */
-/** pricing_config.standard_reveal_rate, the rate public.reveal_fee() reads. Null when it cannot be read: the quotation
- * PDF is then refused, never printed with a guessed rate. */
-// deno-lint-ignore no-explicit-any
-export async function readRevealRate(admin: any): Promise<number | null> {
-  try {
-    const { data, error } = await admin.from('pricing_config').select('standard_reveal_rate').eq('id', 1).maybeSingle();
-    return error ? null : pos(data?.standard_reveal_rate);
-  } catch (_e) { return null; }
-}
-
 export function storedPrice(sp: StatedPrice, statedAmount: number | null) {
   return {
     quote_amount: sp.fee_base ?? sp.total_as_stated ?? statedAmount, price_ex_vat: sp.price_ex_vat, vat_treatment: sp.treatment, vat_amount: sp.vat_amount,

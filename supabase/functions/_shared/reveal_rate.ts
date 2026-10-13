@@ -4,7 +4,7 @@
 // read, so the reveal confirm dialog quoted a price nobody had set. The rate is pricing_config.id=1 and
 // nothing else (ruling 1208: 3% of the final ex-VAT price, no card surcharge). If that row cannot be
 // read, or carries a rate that is not a positive number, the answer is "no rate": the caller refuses
-// and the accountant gets a finding. stripe_checkout already refuses on the same condition (invalid_fee).
+// and the accountant gets a finding. Every reader of the rate (customer_api, supplier_api quotation PDF, stripe_checkout) calls this one function.
 
 export type PricingCfg = { standard_reveal_rate: number; refund_window_working_days?: number; [k: string]: unknown };
 export type RateRead = { ok: true; cfg: PricingCfg } | { ok: false; error: string };

@@ -325,7 +325,7 @@ const hasSpecs = (it: Item) => !!((it.specs && Object.values(it.specs).some((v) 
 // requestUrl: the portal deep link back to this quote on its request (site_origins portalLink).
 /** `partyName`: the supplier's company name once the customer has paid to reveal it; the letter still names the reference. */
 export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts;
-  /** pricing_config.standard_reveal_rate, read by the caller (stated_price.ts readRevealRate) — the source public.reveal_fee()
+  /** pricing_config.standard_reveal_rate, read by the caller (reveal_rate.ts readRevealRate) — the source public.reveal_fee()
    * reads. Absent or not positive, the page prints no rate and no fee figure: a guessed rate is never printed. */
   revealRate?: number | null }) {
   const { quote: q, inquiry: inq, letter, lang } = args;
