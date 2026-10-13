@@ -55,6 +55,8 @@ const CASES: { name: string; inq?: Partial<SafeInquiry>; w: Partial<Working>; co
   { name: 'VAT included with no VAT amount', w: { vat_treatment: 'inclusive', price_ex_vat: null, notes: 'Prices include VAT' }, code: 'vat_ex_price', kind: 'adjustment' },
   { name: 'no validity', w: { validity: '' }, code: 'validity', kind: 'adjustment' },
   { name: 'a vague validity', w: { validity: 'as per standard terms' }, code: 'validity', kind: 'adjustment' },
+  { name: 'a validity of zero days', w: { validity: '0 days' }, code: 'validity', kind: 'adjustment' },
+  { name: 'a validity date already passed', w: { validity: 'valid until 1 Jan 2020' }, code: 'validity', kind: 'adjustment' },
   { name: 'a line without its exact specification', w: { lines: [{ description: 'Jotun Fenomastic emulsion, internal walls', qty: '450', unit: 'm2', unit_price: 20, amount: 9000 }] }, code: 'spec', kind: 'adjustment', line: 1 },
   { name: 'no delivery date or lead time', w: { lead_time: '' }, code: 'delivery', kind: 'adjustment' },
   { name: 'no warranty period', w: { warranty: '' }, code: 'warranty_period', kind: 'adjustment' },
