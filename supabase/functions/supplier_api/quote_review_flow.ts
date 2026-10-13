@@ -162,11 +162,11 @@ const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice',
 // and stay as written, CSV-quoted); Arabic-Indic digits and the Arabic separators (U+066C thousands, U+066B decimal)
 // are read the same way; an escaped \| stays inside its cell; a short or merged row keeps the cells it has.
 const ESC_PIPE = '\u0000';
-const AR_DIGIT = /[٠-٩۰-۹]/g;
+const AR_DIGIT = /[\u0660-\u0669\u06F0-\u06F9]/g;
 const THOUSANDS = /(^|[^\d,.])(-?\d{1,3}(?:,\d{3})+)(?=\.\d+(?![\d,])|(?![\d,.]))/g;
 function tableCell(raw: string): string {
   let c = raw.replace(new RegExp(ESC_PIPE, 'g'), '|').trim().replace(/^(\*\*|__)(.*)\1$/, '$2').trim();
-  c = c.replace(AR_DIGIT, (d) => String((d.charCodeAt(0) & 0xf) % 10)).replace(/٬/g, ',').replace(/٫/g, '.');
+  c = c.replace(AR_DIGIT, (d) => String((d.charCodeAt(0) & 0xf) % 10)).replace(/\u066C/g, ',').replace(/\u066B/g, '.');
   c = c.replace(THOUSANDS, (_m, pre: string, n: string) => pre + n.replace(/,/g, ''));
   return /[",]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
 }
