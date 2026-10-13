@@ -3276,7 +3276,7 @@ begin
      where issue_key = 'reputation:no_public_review_link' and closed_at is null;
     for r in select a.id, a.customer_id, coalesce(a.transaction_id::text, a.customer_id::text) as job,
                     c.full_name, lower(btrim(c.email)) as email, c.locale
-               from public.company_review_ask a join public.customers c on c.id = a.customer_id
+               from public.company_review_ask a join public.customers c on c.id = a.customer_id and not c.is_demo
               where a.status = 'waiting_link' and a.created_at > now() - interval '60 days'
                 and not exists (select 1 from public.email_suppressions s where lower(btrim(s.email)) = lower(btrim(c.email)))
               order by a.id limit 50 loop
