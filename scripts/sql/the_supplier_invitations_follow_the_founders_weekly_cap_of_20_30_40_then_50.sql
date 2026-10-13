@@ -327,10 +327,10 @@ end;
 $fn$;
 revoke execute on function public.enqueue_supplier_invites(integer) from public, anon, authenticated;
 
--- CONFIG WITH THE APPLY (founder:1231): configured ceiling_cap becomes 50 so healthy x1.5 growth can reach each
+-- CONFIG WITH THE APPLY (founder ruling 1231): configured ceiling_cap becomes 50 so healthy x1.5 growth can reach each
 -- week's founder cap (20 -> 30 -> 40 -> 50); fn_invite_founder_cap keeps it at or below the ruling. Written here and
 -- not before, because the ramp live until this file would grow to the configured ceiling with no schedule above it.
-set local app.change_reason = 'founder:1231';
+set local app.change_reason = 'marketing: founder ruling 1231, weekly invitation cap';
 update public.app_secrets set value = (value::jsonb || '{"ceiling_cap": 50}'::jsonb)::text where key = 'invite_warmup';
 
 -- PROBE (verdict row; DDL in this file, so it does not raise). Reads only; writes nothing.
