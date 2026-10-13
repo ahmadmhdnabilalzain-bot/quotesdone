@@ -178,7 +178,8 @@ jobs:
                 echo "diff base widened to $last, the last main push that deployed (was $before)"
                 before="$last"
               else
-                echo "diff base kept at $before (last deployed push: ${last:-none found})"
+                echo "::error::last deployed push $last is not an ancestor of $before (main rewritten?); refusing to deploy from a narrowed base. Dispatch the affected slugs from main's head."
+                exit 1
               fi
             fi
             # ── THERE IS NO STAGING ANY MORE (15 Aug 2026) ───────────────────────────────────────
