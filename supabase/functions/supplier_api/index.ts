@@ -37,7 +37,7 @@ import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, union
 import type { Line, MissingItem } from '../_shared/line_specs/assess.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
-import { readVat } from '../_shared/line_specs/vat.ts';
+import { readRevealRate, statedPrice, storedPrice } from '../_shared/stated_price.ts';
 import { findTrn } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { DOC_VERSION, completenessOf, inquiryDocument, itemsOfRows, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
@@ -1430,8 +1430,11 @@ ${q}`,
         const ref = quoteRef(inquiry, letter);
         // The supplier's own words in Arabic are reasoned; a line not yet translated holds the Arabic document.
         let heldAr = false;
-        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote, layout: DOC_VERSION }), async () => {
-          const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => quoteDocument({ quote: done.quote, inquiry, items, letter, lang, arTexts }), { subject: { quote_id: q.id } });
+        // The fee line prints pricing_config's rate (the one reveal_fee() charges); unread, the PDF is refused, never guessed.
+        const revealRate = await readRevealRate(admin);
+        if (revealRate == null) return J({ error: 'pdf_failed', code: 'reveal_rate_unread' }, 503);
+        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote, layout: DOC_VERSION, revealRate }), async () => {
+          const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => quoteDocument({ quote: done.quote, inquiry, items, letter, lang, arTexts, revealRate }), { subject: { quote_id: q.id } });
           if (!d.doc) { heldAr = true; return null; }
           return { doc: d.doc.body as Record<string, unknown>, ref };
         });
@@ -1795,9 +1798,14 @@ ${q}`,
       const results: any[] = [];
       let anyAccepted = false;
       for (const p of plan) {
-        const vat = readVat({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
-          stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat) });
-        const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, quote_amount: vat.price_ex_vat ?? p.amount, price_ex_vat: vat.price_ex_vat, vat_treatment: vat.treatment, vat_amount: vat.vat_amount, supplier_trn: trn, amount_as_stated: p.amount,
+        // Rulings 1207/1208: the supplier's discount and VAT exactly as stated; price_ex_vat (and quote_amount, which the
+        // reveal fee reads) is the price AFTER the stated discount, excluding VAT — never the gross (_shared/stated_price.ts).
+        const vat = statedPrice({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
+          stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat),
+          gross_amount: multi ? null : numOrNull(body.gross_amount), discount_amount: multi ? null : numOrNull(body.discount_amount),
+          discount_label: multi ? null : clip(body.discount_label, 80), net_amount: multi ? null : numOrNull(body.net_amount) });
+        const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, ...storedPrice(vat, p.amount), supplier_trn: trn,
+          discount_label: vat.discount_label ? scrub(vat.discount_label, 80) : null,
           notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.

@@ -2976,6 +2976,7 @@
   "540c2fb2ae96",
   "56b8bdb1ee36",
   "58a5d69c6dbd",
+  "5953c1477772",
   "5af9cad10162",
   "5c174a8af4ea",
   "5e4992364cc0",
@@ -5835,6 +5836,26 @@
  ],
  "supabase/functions/_shared/size_question.ts": [
   "fb124abd6131"
+ ],
+ "supabase/functions/_shared/stated_price.ts": [
+  "0606cadc7570",
+  "112c4662fbf6",
+  "17a8beaa5500",
+  "49175bc8c637",
+  "5a629a082c9a",
+  "5eada1a04c3f",
+  "659b3e0b6865",
+  "6eb3a5ab7bb4",
+  "704a95d762a3",
+  "7d12b7a501dc",
+  "8c237eb49571",
+  "8cc7466c5249",
+  "9b9c4b356724",
+  "c56381adb176",
+  "c6aa2ccc0e0b",
+  "d1e3bf58385c",
+  "daec3ca59871",
+  "df7419d4841d"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "2eeb132406ba",

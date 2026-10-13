@@ -196,3 +196,11 @@ Deno.test('a supplier quotation stands as stated; only our 3% fee carries the no
   assertEquals(policyProblems('سنعرض لك ضريبة القيمة المضافة على الرسوم.').length, 1);
   assertEquals(revealFeeIncomplete('The supplier quoted AED 1,700. Our 3% reveal fee is AED 51.').length, 2);
 });
+Deno.test('ruling 1208: a fee taken before VAT is policy; VAT on our fee is still caught', () => {
+  assertEquals(policyProblems('Our 3% fee is taken on the supplier\'s final price before VAT, after any discount.'), []);
+  assertEquals(policyProblems('Supplier B adds VAT of AED 85 to its price, as it stated.'), []);
+  assertEquals(policyProblems('VAT is added to the reveal fee.').length, 1);
+  // the fee-basis phrase exempts only itself: any other VAT claim in the sentence is still caught
+  for (const s of ['Our fee is taken before VAT and VAT is added to it.', 'Our 3% fee is excluding VAT, but VAT is charged on the reveal fee.'])
+    assertEquals(policyProblems(s).length, 1, s);
+});
