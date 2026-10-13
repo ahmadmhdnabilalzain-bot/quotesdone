@@ -1586,6 +1586,11 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     </div>
     <div className="mt-0.5 text-[11.5px] text-muted-foreground">{[q.lead_time ? t(lang, 'q_lead') + ': ' + q.lead_time : '', q.warranty ? t(lang, 'q_warranty') + ': ' + durationLabel(q.warranty, lang) : '', q.payment_terms ? t(lang, 'q_terms') + ': ' + q.payment_terms : '', q.win_rate != null ? t(lang, 'q_win') + ' ' + Math.round(q.win_rate) + '%' : ''].filter(Boolean).join(' · ')}</div>
     {/* W9: anonymous facts about the supplier, served per quote; each badge hides when its value is absent. */}
+    {/* Rulings 1207/1208: the supplier's price exactly as stated ("AED 2,000, after discount AED 1,700") and its VAT as
+        stated, served by my_inquiries from _shared/stated_price.ts; QuotesDone is not responsible for those details. */}
+    {q.discount_amount ? <div className={cn(S.sub, 'mt-1 font-medium text-foreground')}>{lang === 'ar' ? q.price_stated_ar : q.price_stated}</div> : null}
+    {q.vat_stated ? <div className={cn(S.sub, 'mt-0.5')}>{lang === 'ar' ? q.vat_stated_ar : q.vat_stated}</div> : null}
+    <div className={cn(S.sub, 'mt-0.5 italic')}>{t(lang, 'q_not_responsible')}</div>
     {q.badges ? <div className="mt-1.5"><QuoteBadges f={q.badges} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
     {q.scope && <div className={cn(S.sub, 'mt-1')}>{q.scope}</div>}
     {q.notes &&<div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_note') + q.notes}</div>}
@@ -1605,7 +1610,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
         : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)
       : (<div className="mt-3 flex flex-col items-stretch gap-2.5 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Stacked below sm: beside the button the fee sentence was squeezed to 1-2 words a line at 375px. */}
-          <div className={cn(S.sub, 'min-w-0 sm:flex-1')}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}</div>
+          <div className={cn(S.sub, 'min-w-0 sm:flex-1')}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}{q.fee_basis ? <div className="mt-0.5">{lang === 'ar' ? q.fee_basis_ar : q.fee_basis}</div> : null}</div>
           {/* Gold: the one action in the product that unseals an identity. */}
           <Button variant="reveal" aria-busy={revealSpin || undefined} disabled={busy || concluded} onClick={reveal}>{revealSpin ? <Spinner /> : <Lock aria-hidden />}{busy ? t(lang, leaving ? 'q_redirecting' : 'q_wait') : t(lang, 'q_reveal')}</Button>
         </div>)}

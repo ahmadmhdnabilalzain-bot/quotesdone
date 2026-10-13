@@ -1347,6 +1347,15 @@
   "3fbfc9c44cae",
   "50d6d400e862"
  ],
+ "scripts/sql/the_faq_states_the_fee_base_and_the_supplier_quote_as_stated.sql": [
+  "33f3832b06b0",
+  "5dc0c783470e",
+  "87dbc4d1e035",
+  "90ef68a67059",
+  "96c9fec939b6",
+  "dc528da26c82",
+  "e586ea015bca"
+ ],
  "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
   "c12bc8b93a2b",
   "d4da55db16ad"
@@ -2948,6 +2957,7 @@
   "35cc22f1e03c",
   "35f171f7e8a2",
   "36c55d485f47",
+  "38d136ab6f59",
   "39b50046faba",
   "3b6f809a9de0",
   "3d55d42d21fc",
@@ -2976,6 +2986,7 @@
   "540c2fb2ae96",
   "56b8bdb1ee36",
   "58a5d69c6dbd",
+  "5953c1477772",
   "5af9cad10162",
   "5c174a8af4ea",
   "5e4992364cc0",
@@ -5509,7 +5520,7 @@
   "ce534deaa8f7"
  ],
  "supabase/functions/_shared/brief.generated.ts": [
-  "bc5896d2a7f9"
+  "434f70386172"
  ],
  "supabase/functions/_shared/cad_file_redact.ts": [
   "214e2a66c5bf"
@@ -5835,6 +5846,26 @@
  ],
  "supabase/functions/_shared/size_question.ts": [
   "fb124abd6131"
+ ],
+ "supabase/functions/_shared/stated_price.ts": [
+  "0606cadc7570",
+  "112c4662fbf6",
+  "17a8beaa5500",
+  "49175bc8c637",
+  "5a629a082c9a",
+  "5eada1a04c3f",
+  "659b3e0b6865",
+  "6eb3a5ab7bb4",
+  "704a95d762a3",
+  "7d12b7a501dc",
+  "8c237eb49571",
+  "8cc7466c5249",
+  "9b9c4b356724",
+  "c56381adb176",
+  "c6aa2ccc0e0b",
+  "d1e3bf58385c",
+  "daec3ca59871",
+  "df7419d4841d"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "2eeb132406ba",
