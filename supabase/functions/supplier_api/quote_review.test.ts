@@ -764,3 +764,44 @@ Deno.test('transcriptAsText: only table rows change, and no price is ever corrup
   // the separator row of a table goes; one outside a table (no pipes) was kept above
   assertEquals(row('|---|:---:|---|'), '');
 });
+
+// THE REVIEW RUNS OFF THE REQUEST (13 Oct 2026, measured live: the photo turn's review passed the edge runtime's 150 s).
+Deno.test('a review runs off the request: the turn answers at once, a failure ends held for the seat, a killed job never stays reviewing', async () => {
+  // 1. answered at once in 'reviewing'; the job finishes after the response
+  {
+    const h = harness(); const jobs: Promise<void>[] = [];
+    h.deps.background = (j) => { jobs.push(j); };
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const t = ok(await upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+    assertEquals(t.state, 'reviewing'); assert(t.reviewing);
+    assertEquals(jobs.length, 1);
+    await jobs[0];
+    assertEquals(ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID)).state, 'changes_requested');
+  }
+  // 2. a job that FAILS goes back, adds the held notice and is queued for the sales_engineer seat - never stuck
+  {
+    const h = harness(); const jobs: Promise<void>[] = [];
+    h.deps.background = (j) => { jobs.push(j); };
+    h.deps.readWorking = () => Promise.reject(new Error('reader down'));
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    ok(await upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+    await jobs[0];
+    const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assert(t.state !== 'reviewing' && !t.reviewing, 'a failed review left the turn reviewing: ' + t.state);
+    assertEquals(t.messages.at(-1)!.body_en, QR_HELD_NOTICE);
+    assert(h.holds.length >= 1, 'the failed turn was not queued for the seat');
+  }
+  // 3. a job the runtime KILLED (no catch ran): once stale, the next load resolves it to held for the seat
+  {
+    const h = harness();
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const r = h.mem.reviews[0];
+    await h.mem.repo.updateReview(r.id, { status: 'reviewing', reviewing_since: '2026-09-15T09:00:00Z' });
+    const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assert(t.state !== 'reviewing', 'a killed review stayed reviewing');
+    assertEquals(t.messages.at(-1)!.body_en, QR_HELD_NOTICE);
+    assert(h.holds.length >= 1);
+    const again = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assertEquals(again.messages.length, t.messages.length, 'resolved once, not on every poll');
+  }
+});
