@@ -157,7 +157,7 @@ const pdfModel = () => Promise.resolve(PDF_TERMS);
 function harness(inq = inquiry()) {
   const mem = memoryReviewRepo(() => new Date('2026-09-15T10:00:00Z'));
   const submitted: Record<string, unknown>[] = [];
-  const written: string[] = []; const noModel = { on: false }; const holds: string[] = [];
+  const written: string[] = []; const noModel = { on: false }; const holds: string[] = []; const voices: Parameters<ReviewDeps['voice']>[0][] = [];
   const deps: ReviewDeps = {
     inquiry: (id) => Promise.resolve(id === inq.id ? inq : null),
     scan(data, filename, mime) {
@@ -173,7 +173,7 @@ function harness(inq = inquiry()) {
     // facts themselves, so the assertions below read what it was told), and reads the supplier's next step from their
     // words the way a model does. Every text it wrote is kept: a test proves each engineer message is one of them.
     hold: (v) => { holds.push(v.reviewId); return Promise.resolve(); },
-    voice: (v) => {
+    voice: (v) => { voices.push(v);
       const t = '[sales engineer] ' + v.situation; written.push(t);
       const m = String(v.supplierMessage || ''); const ids = (v.actions || []).map((x) => x.id);
       const action = ids.includes('submit') && /submit/i.test(m) ? 'submit'
@@ -182,7 +182,7 @@ function harness(inq = inquiry()) {
       return Promise.resolve(noModel.on ? { text: '', action: null } : { text: t, action });
     },
   };
-  return { mem, deps, submitted, written, noModel, holds, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
+  return { mem, deps, submitted, written, noModel, holds, voices, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
 }
 const ok = (v: unknown): ThreadView => { assert((v as ThreadView).ok, JSON.stringify(v)); return v as ThreadView; };
 
@@ -656,4 +656,53 @@ Deno.test('1195-1197: no engineer message in the quotation chat is added unless 
       assert(h.holds.length >= 4, 'each unwritten turn is queued for the model: ' + h.holds.length);
     }
   }
+});
+
+// THE SUPPLIER SIDE OF #1342 (13 Oct 2026): a photo or document sent WITH a chat message is read (ruling 1177) and
+// used; a file neither code nor the vision model could read is kept and a clearer copy is asked for, in English.
+const JPEG = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9]);
+const jpegB64 = btoa(String.fromCharCode(...JPEG));
+Deno.test('a photo or document sent in the chat is read and used; an unreadable one is held and a clearer copy asked', async () => {
+  // read: the vision model's transcription reaches the model as fenced data, and the photo itself as an image
+  {
+    const h = harness();
+    h.deps.readAttachment = () => Promise.resolve({ status: 'read', by: 'model', text: 'Site photo: alcove 2.4 m wide, 2.7 m high, power socket on the left wall', kind: 'image', model_attempts: 1, reason: null, doc: null });
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'is this space enough?', { b64: jpegB64, filename: 'site.jpg', mime: 'image/jpeg' }));
+    const sent = t.messages.find((m) => m.role === 'supplier' && m.kind === 'file');
+    assert(sent && sent.attachments[0]?.kind === 'chat_file' && sent.attachments[0].url, 'the photo is kept in the thread');
+    const v = h.voices.at(-1)!;
+    assertStringIncludes(String(v.supplierMessage), 'alcove 2.4 m wide');
+    assertStringIncludes(String(v.supplierMessage), 'UNTRUSTED ATTACHMENT TEXT');
+    assertEquals(v.images?.length, 1); assertMatch(v.images![0], /^data:image\/jpeg;base64,/);
+    assert(h.written.includes(String(t.messages.at(-1)!.body_en)), 'the answer is the model\'s');
+  }
+  // unreadable: held, kept, and the supplier is asked in English for a clearer copy (model writes it; none → held notice)
+  for (const noModel of [false, true]) {
+    const h = harness(); h.noModel.on = noModel;
+    h.deps.readAttachment = () => Promise.resolve({ status: 'unreadable', by: null, text: '', kind: 'image', model_attempts: 2, reason: 'model_answer_too_thin', doc: null });
+    const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, '', { b64: jpegB64, filename: 'blurry.jpg', mime: 'image/jpeg' }));
+    assert(t.messages.some((m) => m.attachments[0]?.kind === 'chat_file'), 'an unreadable file is still kept');
+    const last = t.messages.at(-1)!;
+    if (noModel) assertEquals(last.body_en, QR_HELD_NOTICE);
+    else assertMatch(String(last.body_en), /could not read "blurry\.jpg" clearly\. Please send a clearer copy/);
+    assert(!/[؀-ۿ]/.test(String(last.body_en)), 'suppliers are always written in English');
+  }
+  // a document with a text layer is read by code (no model), and a refused file never enters the thread
+  {
+    const h = harness();
+    const doc = 'Technical data sheet: Jotun Fenomastic, 2 coats, coverage 10 m2 per litre';
+    ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'data sheet attached', { b64: b64(doc), filename: 'datasheet.txt', mime: 'text/plain' }));
+    assertStringIncludes(String(h.voices.at(-1)!.supplierMessage), 'coverage 10 m2 per litre');
+    assertEquals(h.voices.at(-1)!.images?.length ?? 0, 0);
+    const bad = await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'x', { b64: btoa('MZ\x90\x00 not a document'), filename: 'run.exe', mime: 'application/octet-stream' });
+    assertEquals((bad as { ok: boolean }).ok, false);
+  }
+});
+Deno.test('a quotation photographed into the chat, nothing read yet, is reviewed like an attached one', async () => {
+  const h = harness();
+  h.deps.readAttachment = () => Promise.resolve({ status: 'read', by: 'model', text: INCOMPLETE_CSV, kind: 'image', model_attempts: 1, reason: null, doc: null });
+  const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'our quotation', { b64: jpegB64, filename: 'quote.jpg', mime: 'image/jpeg' }));
+  assertEquals(t.state, 'changes_requested', JSON.stringify(t.open_requests));
+  assert(t.open_requests.some((q) => q.code === 'validity'));
 });

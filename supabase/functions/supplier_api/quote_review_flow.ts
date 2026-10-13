@@ -33,7 +33,8 @@
 //
 // Written against a repository interface, like line_specs/workflow.ts, so the whole conversation runs
 // in memory in the test — no database, no network, and no way to reach a real supplier.
-import { readEveryAttachment, type Vision } from '../_shared/read_every_attachment.ts';
+import { readEveryAttachment, untrustedBlock, type AttachmentRead, type Vision } from '../_shared/read_every_attachment.ts';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, quoteText, type Proposal } from '../quote_extract/quote_from_document.ts';
 import type { QuoteTermKey } from '../_shared/reasoned_suppliers.ts';
@@ -52,7 +53,7 @@ export type ReviewRow = {
   reviewing_since: string | null; total_amount: number | null; currency: string | null; submitted_quote_ids: string[] | null;
   completed_at: string | null; created_at: string; updated_at: string;
 };
-export type Attachment = { kind: 'quotation_file' | 'standard_quote'; name: string; bucket?: string | null; path?: string | null; quote_id?: string | null; /** standard_quote: which language this print is. */ lang?: Lang };
+export type Attachment = { kind: 'quotation_file' | 'standard_quote' | 'chat_file'; name: string; bucket?: string | null; path?: string | null; quote_id?: string | null; /** standard_quote: which language this print is. */ lang?: Lang };
 export type MsgKind = 'text' | 'file' | 'review' | 'choice_prompt' | 'choice' | 'submitted' | 'notice';
 export type MessageRow = {
   id: string; review_id: string; role: 'supplier' | typeof SEAT; kind: MsgKind; body: string | null; body_ar: string | null;
@@ -103,7 +104,10 @@ export interface ReviewDeps {
   readWorking?(inq: SafeInquiry, w: Working): Promise<Working>;
   /** THE WORDS (1195-1197): the model writes the engineer's message from `situation` (what code decided); with
    *  `actions`, it also picks the supplier's next step from their message. text '' = no model answered. */
-  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[] }): Promise<{ text: string; action: string | null }>;
+  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[]; images?: string[] }): Promise<{ text: string; action: string | null }>;
+  /** RULING 1177: a photo or document the supplier attaches to a chat message is READ - code first, then the vision
+   *  model (_shared/read_every_attachment.ts). Absent: code only. */
+  readAttachment?(bytes: Uint8Array, filename: string, mime: string): Promise<AttachmentRead>;
   /** No model answer: the turn is filed in sales_engineer's reasoning queue (fn_reason_hold, surface
    *  supplier_api.quote_review_unwritten); the replayed answer is posted into this thread and a turn still unanswered
    *  after 15 minutes is escalated to the seat. The HELD NOTICE is added by the flow itself. */
@@ -437,11 +441,30 @@ ${rules}
 Answer what they wrote directly; if it is not a question, guide them to the next step above.`;
 }
 
-export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string, text: unknown): Promise<ThreadView | Fail> {
+/** A photo the model may SEE as well as read (chat_images.ts limits: JPEG/PNG/WebP, a data URL under its cap). */
+const MAX_SEEN_IMAGE_BYTES = 1_150_000;
+const seenImage = (bytes: Uint8Array, mime: string): string[] => {
+  if (!/^image\/(jpeg|png|webp)$/.test(mime) || bytes.length > MAX_SEEN_IMAGE_BYTES) return [];
+  let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return [`data:${mime};base64,${btoa(s)}`];
+};
+
+/**
+ * A MESSAGE, optionally with a photo or document (13 Oct 2026, the supplier side of #1342). The file passes the same
+ * upload gate as a quotation, is stored beside it, and is READ (ruling 1177): code first, then the vision model with
+ * one more asking. Read: its text goes to the model as fenced DATA (untrustedBlock), a photo also as an image, and a
+ * quotation photographed into the chat with nothing read yet is reviewed like typed lines. Unreadable only when both
+ * askings fail: the file is kept and the supplier is asked, in English, for a clearer copy (clearer_copy.ts).
+ * prevented by: supplier_api/quote_review.test.ts ('a photo or document sent in the chat is read')
+ */
+export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string, text: unknown,
+                              file?: { b64?: unknown; filename?: unknown; mime?: unknown } | null): Promise<ThreadView | Fail> {
   const l = await load(repo, deps, ctx, inquiryId); if (isFail(l)) return l;
   const bad = writableOr(l, l.r, deps.now()); if (bad) return bad;
   const t = typeof text === 'string' ? text.trim().slice(0, 2000) : '';
-  if (!t) return fail(400, 'text_required', 'Write a message.');
+  const hasFile = !!file && typeof file.b64 === 'string' && !!file.b64;
+  if (!t && !hasFile) return fail(400, 'text_required', 'Write a message.');
+  if (hasFile) return messageWithFile(repo, deps, ctx, l, t, file!);
   const r = await ensure(repo, deps, ctx, l);
   const sm = await supplierSays(repo, r.id, 'text', t);
   const st = effectiveState(r, deps.now());
@@ -470,6 +493,41 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: st === 'awaiting_choice' ? 'choice_prompt' : 'text', body: v.text, body_ar: null, attachments: [], issues: null });
   else await held(repo, deps, r.id, stateFacts(l.inq, r, st, open), t);
   return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
+}
+
+async function messageWithFile(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, t: string, file: { b64?: unknown; filename?: unknown; mime?: unknown }): Promise<ThreadView | Fail> {
+  let sc: Scanned;
+  try { sc = await deps.scan(String(file.b64), String(file.filename || 'attachment'), String(file.mime || '')); }
+  catch (_e) { return fail(400, 'file_unreadable', 'We could not accept that file. Please attach it again.'); }
+  if (!sc.ok) return fail(sc.status, sc.code, sc.message);
+  const r = await ensure(repo, deps, ctx, l);
+  const path = `review/${ctx.supplierId}/${l.inq.id}/${deps.now().getTime()}_chat_${sc.name}`;
+  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) return fail(502, 'upload_failed', 'We could not store your file. Please try again.');
+  const sm = await supplierSays(repo, r.id, 'file', t || null, [{ kind: 'chat_file', name: sc.name, bucket: 'quote-files', path }]);
+  let a: AttachmentRead;
+  try { a = deps.readAttachment ? await deps.readAttachment(sc.bytes, sc.name, sc.mime) : await readEveryAttachment(sc.bytes, sc.name, sc.mime, null); }
+  catch (e) { a = { status: 'unreadable', by: null, text: '', kind: 'error', model_attempts: 0, reason: String((e as Error)?.message || e).slice(0, 160), doc: null }; }
+  await repo.log({ signal: 'quote_review_chat_file', status: a.status, by: a.by, model_attempts: a.model_attempts }, `Chat attachment ${a.status}${a.reason ? ': ' + a.reason : ''}.`);
+  if (a.status !== 'read') {
+    // HELD, never guessed: the file stays in the thread and the supplier is asked for a clearer copy, in English.
+    await say(repo, deps, r.id, 'notice', { en: clearerCopyAsk('supplier', 'en', sc.name), ar: '' }, { supplierMessage: t || null });
+    return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
+  }
+  const st = effectiveState(r, deps.now());
+  // A quotation photographed into the chat with nothing read yet goes to the review — only when the price reader finds
+  // prices in it (a site photo's "2.4 m wide" is a number, not a quotation; caught by the test below).
+  if ((!r.working || st === 'awaiting_upload') && looksTyped(a.text, 1)) {
+    const q = await deps.read(new TextEncoder().encode(a.text.slice(0, 20000)), 'chat_attachment.txt', 'text/plain').catch(() => null);
+    if (q?.proposal) return readTyped(repo, deps, ctx, l, r, a.text.slice(0, 20000), sm.id);
+  }
+  const open = await openIssuesOf(repo, r);
+  const said = (t || '(they sent this file with no message)') + `\n\nThey attached "${sc.name}". What it says:` + untrustedBlock(a.text.slice(0, 6000));
+  const situation = stateFacts(l.inq, r, st, open) + '\nThey attached a file with this message; what it says is in their message. Use it in your answer.';
+  const v = await deps.voice({ kind: 'text', supplierMessage: said, situation, images: seenImage(sc.bytes, sc.mime) })
+    .catch(() => ({ text: '', action: null as string | null }));
+  if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: 'text', body: v.text, body_ar: null, attachments: [], issues: null });
+  else await held(repo, deps, r.id, situation, said);
+  return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
 }
 
 export async function choose(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string, choice: unknown): Promise<ThreadView | Fail> {

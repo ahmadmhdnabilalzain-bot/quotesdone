@@ -46,7 +46,7 @@ export type InquiryDocuments = { ok: true; job_no: string; boq_withheld: boolean
 export type MessageView = {
   id: string; role: 'supplier' | 'sales_engineer'; kind: 'text' | 'file' | 'review' | 'choice_prompt' | 'choice' | 'submitted' | 'notice';
   body_en: string | null; body_ar: string | null; text: string | null;
-  attachments: { kind: 'quotation_file' | 'standard_quote'; name: string; url: string | null; quote_id: string | null; /** standard_quote: which language this print is. */ lang?: Lang | null }[];
+  attachments: { kind: 'quotation_file' | 'standard_quote' | 'chat_file'; name: string; url: string | null; quote_id: string | null; /** standard_quote: which language this print is. */ lang?: Lang | null }[];
   issues: Issue[] | null; created_at: string;
 };
 export type RequestView = { id: number; key: string; code: string; kind: 'adjustment' | 'clarification' | 'choice'; line_no: number | null; boq_line: number | null; label_en: string; label_ar: string; opened_at: string };
@@ -73,7 +73,8 @@ export const qr = {
   documents: (token: string, id: string) => post<InquiryDocuments>({ action: 'inquiry_documents', inquiry_id: id }, token),
   thread: (token: string, id: string, lang: Lang) => post<ThreadView>({ action: 'review_thread', inquiry_id: id, lang }, token),
   start: (token: string, id: string, lang: Lang) => post<ThreadView>({ action: 'review_start', inquiry_id: id, lang }, token),
-  message: (token: string, id: string, text: string, lang: Lang) => post<ThreadView>({ action: 'review_message', inquiry_id: id, text, lang }, token),
+  message: (token: string, id: string, text: string, lang: Lang, file?: { b64: string; filename: string; mime: string }) =>
+    post<ThreadView>({ action: 'review_message', inquiry_id: id, text, lang, ...(file ? { file } : {}) }, token),
   upload: (token: string, id: string, file: { b64: string; filename: string; mime: string }, lang: Lang, text?: string) =>
     post<ThreadView>({ action: 'review_upload', inquiry_id: id, file, text, lang }, token),
   choose: (token: string, id: string, choice: 'generate' | 'reupload', lang: Lang) => post<ThreadView>({ action: 'review_choose', inquiry_id: id, choice, lang }, token),
