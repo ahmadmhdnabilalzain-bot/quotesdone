@@ -83,6 +83,12 @@ on:
 # #1393's fix. Main deploys (push or dispatch) now share one group and queue; cancel-in-progress is
 # false so no run is killed halfway through a deploy. Branch runs only typecheck, so each branch
 # keeps its own group. The "Is this still main's head?" step below closes the other half.
+#
+# LIMIT: GitHub holds ONE pending run per group. When a third main run arrives while one runs and one
+# waits, the waiting one is cancelled by GitHub. Its conclusion is "cancelled", shown in the run list,
+# never a green success. A cancelled PUSH loses nothing: the next push widens its diff base to the
+# last push that deployed. A cancelled DISPATCH is NOT covered by anything and must be dispatched
+# again; the run list shows it as cancelled, not as passed.
 concurrency:
   group: ${{ github.ref == 'refs/heads/main' && 'deploy-functions-production' || format('deploy-functions-{0}', github.ref) }}
   cancel-in-progress: false
@@ -155,12 +161,20 @@ jobs:
             # of the last PUSH run whose Deploy step actually ran, when that is an ancestor of HEAD.
             # A dispatch is excluded: it deploys only the slugs someone named.
             if [ "$is_main" = "true" ]; then
+              # Every gh call fails the run on an API error or rate limit (set -e, no || fallbacks):
+              # a silently narrowed base would skip functions. --paginate walks every page.
+              set -euo pipefail
               last=""
-              for id in $(gh api "repos/${{ github.repository }}/actions/workflows/deploy-functions.yml/runs?branch=main&event=push&status=success&per_page=30" --jq '.workflow_runs[].id' 2>/dev/null); do
-                ran=$(gh api "repos/${{ github.repository }}/actions/runs/$id/jobs" --jq '[.jobs[].steps[] | select(.name=="Deploy" and .conclusion=="success")] | length' 2>/dev/null || echo 0)
-                if [ "$ran" != "0" ]; then last=$(gh api "repos/${{ github.repository }}/actions/runs/$id" --jq .head_sha); break; fi
-              done
-              if [ -n "$last" ] && git merge-base --is-ancestor "$last" "$before" 2>/dev/null; then
+              ids=$(gh api --paginate "repos/${{ github.repository }}/actions/workflows/deploy-functions.yml/runs?branch=main&event=push&status=success&per_page=100" --jq '.workflow_runs[] | "\(.id) \(.head_sha)"')
+              while read -r id sha; do
+                [ -z "$id" ] && continue
+                ran=$(gh api --paginate "repos/${{ github.repository }}/actions/runs/$id/jobs?per_page=100" --jq '[.jobs[].steps[] | select(.name=="Deploy" and .conclusion=="success")] | length')
+                if [ "$(echo "$ran" | awk '{s+=$1} END {print s+0}')" != "0" ]; then last="$sha"; break; fi
+              done <<< "$ids"
+              if [ -z "$last" ]; then
+                echo "::error::no earlier main push run ever deployed; refusing to guess a diff base"; exit 1
+              fi
+              if git merge-base --is-ancestor "$last" "$before"; then
                 echo "diff base widened to $last, the last main push that deployed (was $before)"
                 before="$last"
               else
@@ -252,18 +266,23 @@ jobs:
       # A push deploys only from main. Everything else has already been printed and typechecked
       # above, which is the "test, pass" half.
       # ── IS THIS STILL MAIN'S HEAD? (13 Oct 2026) ────────────────────────────────────────────
-      # Checked at the last moment before deploying. If origin/main has moved to a descendant of
-      # this run's commit, a newer run will deploy (its base widens to cover this commit), so this
-      # one deploys nothing and stays green. A dispatch runs at main's head, so it passes unless main
-      # moves while it waits in the queue.
+      # Checked at the last moment before deploying. If origin/main is not this run's commit (moved
+      # on, or force-pushed elsewhere), this run's tree is not main and must not deploy:
+      #   - a PUSH deploys nothing and stays green; the run for main's head deploys, and its base
+      #     widens to cover this commit.
+      #   - a DISPATCH FAILS. It names slugs nobody else will deploy, so passing green would lose
+      #     them silently. Re-dispatch it; it then runs at main's head.
       - name: Is this still main's head?
         id: fresh
         if: github.ref == 'refs/heads/main'
         run: |
           git fetch --quiet origin main
           head=$(git rev-parse origin/main)
-          if [ "$head" != "${{ github.sha }}" ] && git merge-base --is-ancestor "${{ github.sha }}" "$head"; then
-            echo "::notice title=Deploy skipped, superseded::origin/main is now $head, a descendant of ${{ github.sha }}. Deploying nothing; the newer run deploys."
+          if [ "$head" != "${{ github.sha }}" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "::error title=Dispatch not deployed::origin/main moved to $head while this dispatch of ${{ github.sha }} waited. Nothing deployed. Dispatch again to deploy the named slugs from main's head."
+            exit 1
+          elif [ "$head" != "${{ github.sha }}" ]; then
+            echo "::notice title=Deploy skipped, superseded::origin/main is now $head, not ${{ github.sha }}. Deploying nothing; the run for main's head deploys."
             echo "current=false" >> "$GITHUB_OUTPUT"
           else
             echo "origin/main is ${head}; this run (${{ github.sha }}) deploys."
