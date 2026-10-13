@@ -739,6 +739,7 @@
   "ff4b6d7b4671"
  ],
  "scripts/sql/demo_data_is_purged_by_its_marker_and_no_seat_duty_reads_it.sql": [
+  "fb15ef2ad341",
   "1ddbe22a20cf",
   "25831966a970",
   "71425d07f632",
