@@ -32,20 +32,59 @@ set local lock_timeout = '3s';
 alter table public.ai_cost_log alter column cached_in_tokens drop not null;
 alter table public.ai_cost_log alter column cache_write_tokens drop not null;
 
--- 0. THE PRICE ROW #1380 MISSED (found by this file's probe). fn_llm_log prices from model_rate, not model_registry,
---    and anthropic/claude-sonnet-5.5 had no row, so every Sonnet reply (ruling 1219) would be booked at AED 0 even
---    with its tokens known. OpenRouter catalogue, 13 Oct 2026: USD 2.00 in / 10.00 out, cache read 0.10, write 2.50.
+-- 0. THE PRICE ROWS fn_llm_log NEVER HAD (found by this file's probe and the release operator's review). fn_llm_log
+--    prices from model_rate, not model_registry; a model with no row is booked at AED 0 even with its tokens known.
+--    Three models in live use had none (OpenRouter catalogue read 13 Oct 2026, USD per Mtok):
+--      anthropic/claude-sonnet-5.5     2.00 in / 10.00 out, cache read 0.10, write 2.50 - every conversation reply (1219)
+--      google/gemini-3.8-flash:online  0.75 / 3.75, cache read 0.075, write 0.0417 - the base model's token prices
+--      perplexity/sonar                1.00 / 1.00, no cache prices
+--    THE PER-REQUEST SEARCH FEES ARE NOT HERE: OpenRouter lists web_search USD 0.014 a request on gemini-3.8-flash and
+--    USD 0.005 on sonar, and model_rate has no per-request column (only per-Mtok rates). Those calls carry OpenRouter's
+--    own charge in ai_cost_log.cost_usd_reported (24 of their 27 rows do), and the spend readers prefer it; cost_aed
+--    from this table is the token cost only.
 insert into public.model_rate
   (model, tier, in_aed_per_mtok, out_aed_per_mtok, usd_per_m_prompt, usd_per_m_output,
    cache_read_aed_per_mtok, cache_write_aed_per_mtok, id_verified, source_url, verified_at, note)
-values ('anthropic/claude-sonnet-5.5', 'large', round(2.00 * 3.6725, 6), round(10.00 * 3.6725, 6), 2.00, 10.00,
-        round(0.10 * 3.6725, 6), round(2.50 * 3.6725, 6), true, 'https://openrouter.ai/api/v1/models', date '2026-10-13',
-        'Converted at 3.6725 AED/USD. Founder ruling 1219: every conversation reply. Without this row fn_llm_log priced '
-        || 'every Sonnet 5.5 call at AED 0.')
+select v.model, r.tier, round(v.usd_in * 3.6725, 6), round(v.usd_out * 3.6725, 6), v.usd_in, v.usd_out,
+       case when v.usd_cr is null then null else round(v.usd_cr * 3.6725, 6) end,
+       case when v.usd_cw is null then null else round(v.usd_cw * 3.6725, 6) end,
+       true, 'https://openrouter.ai/api/v1/models', date '2026-10-13',
+       'Converted at 3.6725 AED/USD, as every row here. USD prices from the OpenRouter catalogue on 13 Oct 2026. Added '
+       || 'because fn_llm_log booked AED 0 for this model with no row. ' || v.why
+  from (values
+    ('anthropic/claude-sonnet-5.5',    2.00, 10.00, 0.100, 2.5000, 'Founder ruling 1219: every conversation reply.'),
+    ('google/gemini-3.8-flash:online', 0.75,  3.75, 0.075, 0.0417, 'Token prices only; the USD 0.014 per-request web search fee has no column here.'),
+    ('perplexity/sonar',               1.00,  1.00, null,  null,   'Token prices only; the USD 0.005 per-request search fee has no column here.')
+  ) as v(model, usd_in, usd_out, usd_cr, usd_cw, why)
+  left join public.model_registry r on r.model_id = v.model
 on conflict (model) do update set in_aed_per_mtok = excluded.in_aed_per_mtok, out_aed_per_mtok = excluded.out_aed_per_mtok,
   usd_per_m_prompt = excluded.usd_per_m_prompt, usd_per_m_output = excluded.usd_per_m_output,
   cache_read_aed_per_mtok = excluded.cache_read_aed_per_mtok, cache_write_aed_per_mtok = excluded.cache_write_aed_per_mtok,
   verified_at = excluded.verified_at, note = excluded.note;
+
+-- 0b. THE BACKFILL, these three models only. A row with known tokens booked at AED 0 is re-priced from the rows above
+--     with fn_llm_log's own arithmetic, and marked so it is counted and never re-priced: idempotent (cost_aed = 0 is
+--     the guard). A row the old stream path wrote with 0 tokens ("token counts not available") is UNKNOWN, not free:
+--     its tokens and cost become NULL.
+update public.ai_cost_log a
+   set cost_aed = round( greatest(a.prompt_tokens - coalesce(a.cached_in_tokens,0) - coalesce(a.cache_write_tokens,0), 0) / 1000000.0 * m.in_aed_per_mtok
+                       + coalesce(a.cached_in_tokens,0)  / 1000000.0 * coalesce(m.cache_read_aed_per_mtok,  m.in_aed_per_mtok * 0.10)
+                       + coalesce(a.cache_write_tokens,0) / 1000000.0 * coalesce(m.cache_write_aed_per_mtok, m.in_aed_per_mtok * 1.25)
+                       + coalesce(a.output_tokens,0) / 1000000.0 * m.out_aed_per_mtok, 6),
+       model_selected_because = coalesce(a.model_selected_because, '') || ' | re-priced 13 Oct 2026 from model_rate (it had no row)'
+  from public.model_rate m
+ where m.model = a.model_used
+   and a.model_used in ('anthropic/claude-sonnet-5.5', 'google/gemini-3.8-flash:online', 'perplexity/sonar')
+   and coalesce(a.cost_aed, 0) = 0 and not a.cached
+   and (coalesce(a.prompt_tokens, 0) > 0 or coalesce(a.output_tokens, 0) > 0);
+update public.ai_cost_log a
+   set prompt_tokens = null, output_tokens = null, cached_in_tokens = null, cache_write_tokens = null, cost_aed = null,
+       model_selected_because = a.model_selected_because || ' | tokens unknown, not zero (13 Oct 2026)'
+ where a.model_used in ('anthropic/claude-sonnet-5.5', 'google/gemini-3.8-flash:online', 'perplexity/sonar')
+   and a.model_selected_because like '%token counts not available on the stream path%'
+   and a.model_selected_because not like '%tokens unknown, not zero%'
+   and coalesce(a.prompt_tokens, 0) = 0 and coalesce(a.output_tokens, 0) = 0;
+
 
 CREATE OR REPLACE FUNCTION public.fn_llm_log(p_fn text, p_dept text, p_agent text, p_task_class text, p_model text, p_because text, p_tier text, p_prompt_tokens integer, p_output_tokens integer, p_cached boolean, p_cache_key text, p_latency_ms integer, p_ok boolean, p_confidence numeric DEFAULT NULL::numeric, p_cached_in integer DEFAULT 0, p_cache_write integer DEFAULT 0, p_generation_id text DEFAULT NULL::text, p_cost_usd_reported numeric DEFAULT NULL::numeric, p_prompt_hash text DEFAULT NULL::text)
  RETURNS numeric

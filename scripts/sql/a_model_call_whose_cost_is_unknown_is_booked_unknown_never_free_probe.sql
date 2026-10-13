@@ -3,9 +3,10 @@
 -- (scripts/lib/safe_replay.mjs): always raises, verdict in CHK<<...>>. Its two rows are written with fn 'zz_probe_unknown_cost'
 -- and never survive. Asserts: a call with no token counts stores NULL tokens, NULL cache tokens and NULL cost_aed;
 -- an ordinary priced call on the same model is still booked with its tokens and a cost above 0; the monthly unit
--- economics names the unpriced call; the idle-floor reader selects a consumer with 5 unknown calls (read, not called: it notifies).
+-- economics names the unpriced call; Sonnet 5.5, gemini-3.8-flash:online and perplexity/sonar price a known call above
+-- zero; no known call on them is left at AED 0, and the verdict carries what the backfill re-priced (rows, AED); the idle-floor reader selects a consumer with 5 unknown calls (read, not called: it notifies).
 do $p$
-declare bad text[] := '{}'; r record; v jsonb; i int;
+declare bad text[] := '{}'; r record; v jsonb; i int; m text; c numeric; n_fix int; aed_fix numeric; n_unk int;
 begin
   perform public.fn_llm_log('zz_probe_unknown_cost', null, null, 'visitor_chat', 'anthropic/claude-sonnet-5.5', 'probe unknown',
     'large', null, null, false, null, 100, true);
@@ -40,5 +41,21 @@ begin
     bad := bad || 'the idle-floor reader does not name 5 unpriced calls'::text;
   end if;
 
-  raise exception 'CHK<<%>>', case when cardinality(bad) = 0 then 'PROBE OK' else 'PROBE FAILED ' || array_to_string(bad, '; ') end;
+  -- each of the three models that had no model_rate row now prices a known call above zero
+  foreach m in array array['anthropic/claude-sonnet-5.5', 'google/gemini-3.8-flash:online', 'perplexity/sonar'] loop
+    c := public.fn_llm_log('zz_probe_unknown_cost', null, null, 'visitor_chat', m, 'probe rate', 'large', 1000, 100, false, null, 100, true);
+    if coalesce(c, 0) <= 0 then bad := bad || (m || ' still prices a known call at ' || coalesce(c::text, 'null')); end if;
+  end loop;
+
+  -- the backfill (counted by its own marker, so the verdict says what it changed)
+  select count(*), coalesce(sum(cost_aed), 0) into n_fix, aed_fix from public.ai_cost_log
+   where model_selected_because like '%re-priced 13 Oct 2026 from model_rate%';
+  select count(*) into n_unk from public.ai_cost_log where model_selected_because like '%tokens unknown, not zero (13 Oct 2026)%';
+  if exists (select 1 from public.ai_cost_log where model_used in ('anthropic/claude-sonnet-5.5', 'google/gemini-3.8-flash:online', 'perplexity/sonar')
+              and fn <> 'zz_probe_unknown_cost' and cost_aed = 0 and not cached and (prompt_tokens > 0 or output_tokens > 0)) then
+    bad := bad || 'a known call on the three models is still booked at AED 0'::text;
+  end if;
+
+  raise exception 'CHK<<%>>', case when cardinality(bad) = 0 then 'PROBE OK' else 'PROBE FAILED ' || array_to_string(bad, '; ') end
+    || ' backfill_repriced=' || n_fix || ' backfill_aed=' || round(aed_fix, 4) || ' made_unknown=' || n_unk;
 end $p$;
