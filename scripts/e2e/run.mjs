@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, sweepStaleRuns, read, REF } from './fixtures.mjs';
 import { launch, SITE, HARNESS_SIGNED_OUT } from './browser.mjs';
 import { JOURNEYS } from './journeys.mjs';
-import { newRun, teardown, closeRehearsalWindow } from '../lib/demo_factory.mjs';
+import { newRun, teardown, closeRehearsalWindow, closeOnExit } from '../lib/demo_factory.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
@@ -97,6 +97,8 @@ const DEADLINE = t0 + DEADLINE_MS;
 const state = { truncated: false };
 const outOfTime = () => { if (Date.now() <= DEADLINE) return false; state.truncated = true; return true; };
 const run = await openRun({ keep: KEEP });
+// A cancelled job (SIGTERM), Ctrl-C or a stray crash never reaches the finally below; close this run's window anyway.
+const disarm = closeOnExit(() => closeRehearsalWindow(run.tag));
 const ctx = { run, rep, dir: DIR, consoleErrors: [], fx: {}, deadline: DEADLINE, outOfTime };
 let browser = null, closed = null, fatal = null;
 // Set when the harness's OWN session died mid-run (browser.mjs HarnessSignedOut). It is kept apart
@@ -161,6 +163,7 @@ try {
 } finally {
   if (browser) await browser.close().catch(() => {});
   closed = await closeRun(run, { keep: KEEP }).catch((e) => ({ error: String(e.message) }));
+  disarm();
   if (KEEP) rep.step('cleanup', 'run kept', 'SKIP', `tear down later: node scripts/e2e/run.mjs --purge-tag ${run.tag}`);
   else if (closed?.error) rep.step('cleanup', 'teardown', 'FAIL', closed.error);
   else rep.step('cleanup', 'zero leftovers', closed.leftovers.total === 0 ? 'PASS' : 'FAIL',
