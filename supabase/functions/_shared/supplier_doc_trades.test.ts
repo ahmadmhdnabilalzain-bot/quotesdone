@@ -155,3 +155,69 @@ Deno.test('an image-only licence or profile: what the vision model read becomes 
   const none = await readDocForTrades({ path: 'licenses/1/s.pdf', name: 's.pdf', kind: 'licence', bytes: scan, mime: 'application/pdf', photo_text: modelReadText('licence', null) }, deps());
   assertEquals(none.status, 'needs_ocr');
 });
+
+// ── REAL UAE COMPANY PROFILES (13 Oct 2026, it_engineer; ACCURACY_real_profiles.md) ─────────────────────────────────
+// Regression fixtures from the 29 real profiles and catalogues measured that day. The files themselves are real
+// companies' publications and stay on the founder's Desktop (real_profiles\, with SOURCES.md and the hand-written
+// truth.json); what is committed here is the SHAPE of each failure, names replaced by ZZ DEMO.
+import { offerText, SHORT_DOC_LINES } from './supplier_doc_trades.ts';
+import { readDocument } from './doc_read/index.ts';
+
+/** A one-page PDF that places every glyph with its own Td, as Canva/InDesign exports do (Maxfire, MAS Paints, Abu Hail). */
+function perGlyphPdf(line: string): Uint8Array {
+  let ops = 'BT /F1 12 Tf 72 700 Td';
+  // Helvetica's own advance widths (1/1000 em) at 12 pt, so the glyphs sit where a real export puts them
+  const W: Record<string, number> = { S: 667, p: 556, r: 333, i: 222, n: 556, k: 500, l: 222, e: 556, y: 500, t: 278, m: 833, s: 500, F: 611, u: 556, P: 667, ' ': 278 };
+  for (const ch of line) ops += ` (${ch}) Tj ${((W[ch] ?? 556) * 12) / 1000} 0 Td`;   // letters and spaces only
+  ops += ' ET';
+  const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${ops.length} >>\nstream\n${ops}\nendstream`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+  let pdf = '%PDF-1.4\n'; const at: number[] = [];
+  objs.forEach((o, i) => { at.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const x = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${at.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF`;
+  return new TextEncoder().encode(pdf);
+}
+
+Deno.test('a PDF that places each glyph on its own is read as words, not letters (pdf.js, words-only reads)', async () => {
+  const r = await readDocument(perGlyphPdf('Sprinkler Systems Fire Pumps'), 'p.pdf', 'application/pdf', 0, { textOnly: true });
+  const text = r.ok ? r.text : '';
+  assert(/Sprinkler\s*Systems/.test(text), text);
+  assert(!/S p r i n k/.test(text), text);
+});
+
+Deno.test('a long profile is read where it states its offer, not in its org chart, insurance or client sections', () => {
+  const filler = (k: string, n: number) => Array.from({ length: n }, (_, i) => `${k} ${i + 1}`);
+  const doc = [
+    'CEO MESSAGE', 'ZZ DEMO Fire LLC is a Dubai based fire protection contractor approved by Civil Defence.',
+    ...filler('Our vision line', 20),
+    'ORGANIZATION CHART', 'Management 1', 'Marketing 2', 'Estimation 2', 'Foremen 2', ...filler('Staff row', 25),
+    'OUR SERVICES', 'Sprinkler Systems', 'Fire Alarm Systems', 'Fire Pumps', 'Clean Agent Systems',
+    ...filler('Gallery caption', 30),
+    'SECTION 13: INSURANCE DETAILS', 'Workmen compensation', 'OUR CLIENTS', 'ZZ DEMO Packaging, Technopark',
+  ].join('\n');
+  const o = offerText(doc)!;
+  for (const l of ['is a Dubai based fire protection contractor approved by Civil Defence.', 'Sprinkler Systems', 'Fire Alarm Systems', 'Fire Pumps']) assert(o.includes(l), l);
+  for (const l of ['Management 1', 'Marketing 2', 'INSURANCE DETAILS', 'Workmen compensation', 'ZZ DEMO Packaging']) assert(!o.includes(l), l);
+  // a short document (the synthetic one-page profiles of the suite) is read whole, as before
+  assertEquals(offerText(filler('line', SHORT_DOC_LINES).join('\n')), null);
+});
+
+Deno.test('on a supplier document a meaning hit stands only when the line holds its TRADE\'s own words', () => {
+  const S: MeaningService[] = [
+    { trade_code: 'accounting_bookkeeping', code: 'mgmt_accounts', label_en: 'Management accounts', label_ar: '', aliases: ['management'], vec: [1, 0, 0] },
+    { trade_code: 'fire_fighting', code: 'sprinklers', label_en: 'Sprinkler systems', label_ar: '', aliases: [], vec: [0, 1, 0] },
+    { trade_code: 'testing_labs', code: 'lab_testing', label_en: 'Product lab testing', label_ar: '', aliases: [], vec: [0, 0, 1] },
+  ];
+  const labels = { accounting_bookkeeping: 'Accounting & bookkeeping', fire_fighting: 'Fire fighting & life safety', testing_labs: 'Testing laboratories' };
+  const tradeAliases = { accounting_bookkeeping: ['bookkeeping', 'accountant'], fire_fighting: ['sprinkler', 'fire alarm'], testing_labs: ['laboratory'] };
+  const read = (text: string, vec: number[]) => proposeByMeaning([{ text, vec, space: 'gte' }], S, { tradeLabels: labels, tradeAliases }).map((x) => [x.trade, x.because]);
+  // measured on real profiles: an org chart's "Management 1" -> accounting (the service's own alias agreed), and
+  // " Testing and Commissioning" of an MEP contractor -> testing labs; neither line names the trade
+  assertEquals(read('Management 1', [0.95, 0, 0.3]), []);
+  assertEquals(read('Testing and Commissioning', [0, 0.2, 0.97]), []);
+  assertEquals(read('Sprinkler Systems', [0, 0.99, 0.1]), [['fire_fighting', 'trade_alias']]);
+  // without tradeAliases (the Services tab, the RFQ side) nothing changes: the head word still corroborates
+  assertEquals(proposeByMeaning([{ text: 'Management 1', vec: [0.95, 0, 0.3], space: 'gte' }], S, { tradeLabels: labels }).map((x) => x.trade), ['accounting_bookkeeping']);
+});

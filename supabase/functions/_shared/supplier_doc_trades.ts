@@ -97,6 +97,38 @@ export function withoutCredentialLines(text: string): string {
     && !/\b(certification|audit(?:ing)?|consultan(?:cy|ts?)|training|implementation)\s+(services?|body|bodies)\b|\bwe\s+(certify|audit|train)\b/i.test(l))).join('\n');
 }
 
+// WHAT A REAL PROFILE SAYS IT DOES (13 Oct 2026, it_engineer; ACCURACY_real_profiles.md). The synthetic profiles of the
+// suite were a page each; a real UAE company profile is 10-180 pages of which a few lines say what the company does,
+// and the rest is the CEO's message, policies, the organisation chart, staff and machinery lists, certificates,
+// client and project lists. Measured on 29 real profiles and catalogues, reading every line: 131 trades proposed that
+// the company does not do (meaning: "Management 1" on an org chart -> accounting, "SECTION 13: INSURANCE DETAILS" ->
+// insurance brokerage, "Full range of equipment" -> commercial kitchens), and meaning's 40-clause budget was spent on
+// whichever lines came first. So a long profile is read where it states its offer, by the document's STRUCTURE, never
+// by which trade a word names:
+//   * the lines under an offer heading ("Our Services", "Specialised in", "Scope of Work", "Products", "Activities" ...)
+//     up to OFFER_WINDOW lines on;
+//   * a sentence that states the offer ("specialises in", "services include", "we offer / provide / undertake / supply /
+//     install / manufacture", "principal activity", "engaged in", "is a ... contractor") from that phrase on, and the
+//     OFFER_TAIL lines that continue it (a PDF breaks a sentence across lines).
+// Which trade those lines name is still decided only by exact code and meaning (trade_resolve.tradesOfText).
+// A document of SHORT_DOC_LINES lines or fewer, or one that states no offer in these forms, is read whole, as before.
+// ponytail: English offer phrasing only; an Arabic profile is read whole until it is measured.
+export const SHORT_DOC_LINES = 60, OFFER_WINDOW = 25, OFFER_TAIL = 3;
+const OFFER_HEAD = /^\s*(?:\d{1,2}[.)]?\s*)?(?:our\s+|core\s+|main\s+|key\s+|list\s+of\s+)*(?:services?|products?(?:\s+range)?|product\s+range|scope(?:\s+of\s+(?:work|works|services|supply))?|activities|speciali[sz](?:ed\s+in|ations?)|expertise|what\s+we\s+do|capabilities|disciplines|divisions)\s*:?\s*$/i;
+const OFFER_FRAME = /\b(?:speciali[sz](?:e|es|ed|ing)\s+in|services?\s+(?:include|including|such\s+as|offered)|we\s+(?:offer|provide|undertake|supply|install|manufacture|take\s+up|carry\s+out|deal\s+in)|scope\s+of\s+works?\s*(?:includes?|:)|activities\s*:|principal\s+activit(?:y|ies)|engaged\s+in|deal(?:s|ing)?\s+(?:with|in)|(?:is|are)\s+(?:a|an|the)\s+(?:[\w&/-]+\s+){0,6}?(?:company|contractors?|manufacturers?|suppliers?|providers?|specialists?|firm))\b/i;
+export function offerText(text: string): string | null {
+  const lines = String(text ?? '').split(/\r?\n/);
+  if (lines.filter((l) => l.trim()).length <= SHORT_DOC_LINES) return null;
+  const keep = new Set<number>();
+  lines.forEach((l, i) => {
+    if (OFFER_HEAD.test(l)) for (let k = i + 1; k <= i + OFFER_WINDOW && k < lines.length; k++) keep.add(k);
+    const m = OFFER_FRAME.exec(l);
+    if (m) { lines[i] = l.slice(m.index); for (let k = i; k <= i + OFFER_TAIL && k < lines.length; k++) keep.add(k); }
+  });
+  const out = [...keep].sort((a, b) => a - b).map((i) => lines[i]).filter((l) => l.trim());
+  return out.length ? out.join('\n') : null;
+}
+
 /** One document -> what it says about trades, or the honest reason it could not be read. */
 export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Promise<DocEvidence> {
   const base = { path: doc.path, name: doc.name, kind: doc.kind, read_at: new Date().toISOString() };
@@ -114,7 +146,7 @@ export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Prom
       const acts = F.activities;
       if (!acts?.length) return { ...base, status: 'read', format, source, reason: 'no activities line could be read on the licence', trades: [] };
       text = acts.join('\n');
-    } else text = withoutCredentialLines(text);
+    } else { text = withoutCredentialLines(text); if (doc.kind === 'profile') text = offerText(text) ?? text; }
     const c = doc.kind === 'catalogue' ? catalogueText(text) : null;
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
     return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };

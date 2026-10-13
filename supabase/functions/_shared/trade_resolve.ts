@@ -29,7 +29,7 @@
 import { contentWords, MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning, type MeaningService } from './service_meaning.ts';
 import { splitPhrases } from './service_rewrite.ts';
 import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
-import { serviceVocab, tradeArNameVocab, tradeLabelVocab } from './service_vocabulary.ts';
+import { serviceVocab, tradeAliasVocab, tradeArNameVocab, tradeLabelVocab } from './service_vocabulary.ts';
 import { isNameOrReachLine, saysInstallWork, supplyOnlyOf } from './catalogue_read.ts';
 import { NAME_LABELS } from './document_expiry.ts';
 
@@ -61,6 +61,9 @@ export type TradeResolveDeps = {
   tradeLabels?: Record<string, string>;
   /** taxonomy_trade code -> its Arabic name (label_ar): the exact-name path for an Arabic work clause. */
   tradeNamesAr?: Record<string, string>;
+  /** taxonomy_trade code -> its own aliases: a supplier document's meaning hit must be confirmed by its TRADE (see
+   *  service_meaning.proposeByMeaning, opts.tradeAliases). */
+  tradeAliases?: Record<string, string[]>;
 };
 
 // ── THE TRADE'S OWN ARABIC NAME (12 Oct 2026, sales_engineer) ─────────────────────────────────────────────────────
@@ -259,7 +262,7 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
       else {
         meaning = 'on';
         const codeWords = await codeWordsOf(lines, deps);
-        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, codeWords });
+        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, tradeAliases: deps.tradeAliases, codeWords });
         for (const p of props) {
           const line = origin.get(p.lines[0] ?? '') ?? p.lines[0] ?? '';
           add({ code: p.trade, via: 'meaning', phrases: [p.label_en.toLowerCase()], snippet: line.slice(0, 180), similarity: p.similarity });
@@ -287,7 +290,7 @@ export async function codeWordsOf(lines: string[], deps: TradeResolveDeps): Prom
 export async function liveTradeDeps(admin: any, caller = 'supplier_doc_trades'): Promise<TradeResolveDeps> {
   return {
     services: await serviceVocab(admin), embed: remoteEmbedder(admin, caller), budget: { left: MEANING_MAX_LINES },
-    tradeLabels: await tradeLabelVocab(admin), tradeNamesAr: await tradeArNameVocab(admin),
+    tradeLabels: await tradeLabelVocab(admin), tradeNamesAr: await tradeArNameVocab(admin), tradeAliases: await tradeAliasVocab(admin),
     normTrades: async (phrases) => {
       const { data: m, error: e } = await admin.rpc('fn_norm_trades_many', { p_texts: phrases.slice(0, EXACT_MAX_PHRASES) });
       return e || !m || typeof m !== 'object' ? null : m as Record<string, string[]>;

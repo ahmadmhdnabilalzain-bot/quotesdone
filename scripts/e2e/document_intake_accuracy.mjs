@@ -55,14 +55,19 @@ const read = (sql) => mgmtRead(REF, sql);
 const write = (sql, where) => mgmtFixture(REF, sql, where);
 
 function deno(script, args, env = {}) {
-  const r = spawnSync('deno', ['run', '-A', join(REPO, 'scripts', 'e2e', script), ...args],
+  const r = spawnSync('deno', ['run', '-A', '--node-modules-dir=none', join(REPO, 'scripts', 'e2e', script), ...args],
     { stdio: 'inherit', env: { ...process.env, ...env }, cwd: REPO });
   if (r.status !== 0) throw new Error(`${script} exited ${r.status}`);
 }
 
 // ── 1. corpus + code ───────────────────────────────────────────────────────────────────────────────
-const corpusDir = join(WORK, 'corpus');
-const docs = await buildCorpus(corpusDir);
+// --corpus <dir>: a corpus written by hand instead of the synthetic one — a folder holding the files and a truth.json
+// ({docs:[{id,file,mime,kind,format,registered_name,truth:{trades}}]}). Used for the REAL company profiles and
+// catalogues measured on 13 Oct 2026 (ACCURACY_real_profiles.md): their companies are real, so inside the rolled-back
+// probe each supplier row is named "ZZ DEMO real <id>", never by the company, and nothing about them is committed.
+const CORPUS = val('--corpus');
+const corpusDir = CORPUS ? resolve(CORPUS) : join(WORK, 'corpus');
+const docs = CORPUS ? JSON.parse(readFileSync(join(corpusDir, 'truth.json'), 'utf8')).docs : await buildCorpus(corpusDir);
 console.log(`corpus: ${docs.length} documents in ${corpusDir}`);
 const { SERVICE } = await keys();
 const SB = { SUPABASE_URL: `https://${REF}.supabase.co`, SUPABASE_SERVICE_ROLE_KEY: SERVICE };
@@ -118,7 +123,7 @@ supplierDocs.forEach((d, i) => {
   const lic = d.kind === 'licence' ? (d.file ? `licenses/zzdemo-accuracy-${tag}/${d.id}` : null) : `licenses/zzdemo-accuracy-${tag}/${d.id}-licence`;
   const prof = `profiles/zzdemo-accuracy-${tag}/${d.id}`;
   // A profile or catalogue supplier holds a valid licence read in full: only its trades are under test.
-  const name = d.registered_name, licName = d.kind === 'licence' ? m.legal_name_en : name;
+  const name = CORPUS ? `ZZ DEMO real ${d.id}` : d.registered_name, licName = d.kind === 'licence' ? m.legal_name_en : name;
   const expiry = d.kind === 'licence' ? m.expiry_date : '2028-12-31', no = d.kind === 'licence' ? m.licence_no : `ZZACC-${i}`;
   body += `
   ${lic ? `insert into storage.objects (bucket_id, name) values ('supplier-docs', ${q(lic)});` : ''}
