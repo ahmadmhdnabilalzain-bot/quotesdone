@@ -146,6 +146,8 @@ begin
   v_go  := (coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') = 'true')
            and public.fn_supplier_outreach_golive();
   v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
+  -- founder ruling 1231: never more than the dated founder cap, whatever invite_daily_cap holds.
+  v_cap := least(v_cap, public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
   select count(*) into v_pool from leads l where public.fn_supplier_invite_eligible(l);
   v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
   insert into invite_schedule(day, planned, status, note)
@@ -7727,16 +7729,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -7762,6 +7754,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
