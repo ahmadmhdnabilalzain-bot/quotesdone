@@ -34,8 +34,11 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+// A LOCAL RUN NEVER WRITES TO PRODUCTION BY DEFAULT (13 Oct 2026). The token file is read only with an explicit
+// QD_LIVE_CHECK=1; otherwise only SUPABASE_ACCESS_TOKEN (set by CI on purpose) makes these cases live.
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
-  || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
+  || (process.env.QD_LIVE_CHECK === '1' && existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
+const NO_TOKEN = 'live check off: set SUPABASE_ACCESS_TOKEN, or QD_LIVE_CHECK=1 to use the local token file';
 
 // ONE PROJECT since 15 Aug 2026. This used to loop over { production, staging }; staging was
 // deleted, and left in place every assertion below would have run twice — once for real, once
@@ -70,19 +73,28 @@ const q = async (project, query) => {
 // this file now does the same for its duration and ALWAYS closes it, so real refusals outside it still count.
 // The run_tag is not 'qd_run:<tag>', so the harness's stale-run sweep never mistakes it for a fixture run.
 // Prevented from recurring by the rehearsal/control pair in it_engineer_loop_is_closed.test.mjs.
+// A WINDOW THIS FILE OPENED NEVER OUTLIVES IT (13 Oct 2026). Windows opened at 21:03 and 21:16 on 12 Oct
+// stayed open and blocked sandbox run 4. after() closes on pass and fail alike; it also runs on SIGTERM/SIGINT
+// (a cancelled CI job never reaches `after`), and every open first sweeps this file's own stale windows,
+// matched by its run_tag only, never anyone else's.
+const RUN_TAG = 'check:a_phone_cannot_select_an_account';
 let windowId = null;
+const closeWindows = () => q(PROJECTS.production,
+  `update public.rehearsal_window set ended_at = now() where run_tag = '${RUN_TAG}' and ended_at is null`);
+for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => { (mgmtToken ? closeWindows() : Promise.resolve()).catch(() => {}).finally(() => process.exit(1)); });
 before(async () => {
   if (!mgmtToken) return;
+  await closeWindows();
   const [w] = await q(PROJECTS.production, `insert into public.rehearsal_window (run_tag, opened_by, note)
-    values ('check:a_phone_cannot_select_an_account', 'scripts/checks/a_phone_cannot_select_an_account.test.mjs',
+    values ('${RUN_TAG}', 'scripts/checks/a_phone_cannot_select_an_account.test.mjs',
             'ZZ DEMO: live login_otp refusals by design') returning id`);
   windowId = w.id;
 });
 after(async () => {
-  if (windowId == null) return;
-  await q(PROJECTS.production, `update public.rehearsal_window set ended_at = now() where id = ${Number(windowId)} and ended_at is null`);
+  if (!mgmtToken) return;
+  await closeWindows(); // node:test runs after() when a test fails too
 });
-test('the live login_otp calls run inside a rehearsal window of their own', { skip: mgmtToken ? false : 'no management token' }, () => {
+test('the live login_otp calls run inside a rehearsal window of their own', { skip: mgmtToken ? false : NO_TOKEN }, () => {
   assert.ok(windowId != null, 'no rehearsal window was opened, so every refusal below reads as a customer turned away');
 });
 
@@ -96,7 +108,7 @@ const send = async (project, user_kind, identifier) => {
 
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`an unknown number resolves to nobody for every kind on ${label}`, async (t) => {
-    if (!mgmtToken) { t.skip('no management token'); return; }
+    if (!mgmtToken) { t.skip(NO_TOKEN); return; }
     // "Unknown" must be measured, not assumed: if any account carries the number, a 200 below would
     // be production answering correctly, and the check would be blaming it for its own fixture.
     // Ids, the column that matched and the demo marker, so a transient harness row is told from a customer.
@@ -131,7 +143,7 @@ for (const [label, project] of Object.entries(PROJECTS)) {
 // the ~20 server-side lookups could key on.
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`a mobile number cannot create an account on ${label}`, async (t) => {
-    if (!mgmtToken) { t.skip('no management token'); return; }
+    if (!mgmtToken) { t.skip(NO_TOKEN); return; }
     const { status, body } = await fetch(`https://${project}.supabase.co/functions/v1/login_otp`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'send', user_kind: 'customer', identifier: UNKNOWN, allow_signup: true }),
@@ -209,7 +221,7 @@ async function signOut(project, s) {
 // This asserts the count does not move when an authenticated non-customer reads the endpoint.
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`customer_api does not manufacture an account on ${label}`, async (t) => {
-    if (!mgmtToken) { t.skip('no management token'); return; }
+    if (!mgmtToken) { t.skip(NO_TOKEN); return; }
 
     const admins = await q(project, `select value from app_secrets where key='admin_emails'`);
     const qaEmail = assertQaIdentity(QA_IDENTITY, admins[0]?.value);
@@ -251,10 +263,15 @@ for (const [label, project] of Object.entries(PROJECTS)) {
 //      that ever leaks is identifiable on sight rather than looking like a customer;
 //   3. the removal is ASSERTED, not assumed. `finally` deletes them and the test then counts back
 //      to zero, so a leak fails this check instead of hiding inside it.
-test('two accounts on one number are refused, not guessed', async (t) => {
-  if (!mgmtToken) { t.skip('no management token'); return; }
+// SINCE #1362 A PHONE MATCHES ONLY A ROW WHOSE PHONE AND EMAIL ARE BOTH VERIFIED (13 Oct 2026). The fixtures
+// below set both flags where a row must count, and leave them false where it must not. SHARED is a reserved
+// fixture number, so a number that resolves to one account answers 200 fixture_number (the step just before
+// Twilio) and is never texted; 404 means nobody resolved, 409 means two did.
+const SHARED_EMAILS = ['zz-demo-shared-a@example.invalid', 'zz-demo-shared-b@example.invalid'];
+const sharedFixture = async (t, rows, expect) => {
+  if (!mgmtToken) { t.skip(NO_TOKEN); return; }
   const project = PROJECTS.production;
-  const cleanup = () => q(project, `delete from public.customers where email in ('zz-demo-shared-a@example.invalid','zz-demo-shared-b@example.invalid')`);
+  const cleanup = () => q(project, `delete from public.customers where email in ('${SHARED_EMAILS.join("','")}')`);
 
   await cleanup();
   // NAMED, NOT COUNTED (22 Sep 2026). A run reported this number "carried by a real customers row" twice and
@@ -269,36 +286,52 @@ test('two accounts on one number are refused, not guessed', async (t) => {
     + 'row was created seconds ago it is a concurrent run of this check, not a customer; otherwise this check would '
     + 'be inserting fixtures alongside live data and asserting against a mix of the two. Pick another fixture number.');
   try {
-    await q(project, `insert into public.customers (full_name, email, phone) values
-      ('ZZ DEMO - shared handset A','zz-demo-shared-a@example.invalid','${SHARED}'),
-      ('ZZ DEMO - shared handset B','zz-demo-shared-b@example.invalid','${SHARED}')`);
-
-    const rows = await q(project, `select count(*) n from public.customers where phone = '${SHARED}'`);
-    assert.equal(Number(rows[0].n), 2, 'the fixture did not create two accounts on one number, so the guard below would not be under test');
+    const values = rows.map((verified, i) => `('ZZ DEMO - shared handset ${'AB'[i]}','${SHARED_EMAILS[i]}','${SHARED}',${verified},${verified})`);
+    await q(project, `insert into public.customers (full_name, email, phone, phone_verified, email_verified) values ${values.join(',')}`);
+    const seeded = await q(project, `select count(*)::int n from public.customers where phone = '${SHARED}'`);
+    assert.equal(Number(seeded[0].n), rows.length, 'the fixture rows were not all created, so the case below would not be under test');
 
     const { status, body } = await send(project, 'customer', SHARED);
-    assert.notEqual(status, 503, 'Twilio is not configured on staging, so this check cannot tell a refusal from an outage');
-    assert.equal(status, 409, `expected 409 for a number on two accounts, got ${status} ${JSON.stringify(body)}`);
-    assert.equal(body.ambiguous, true, `expected ambiguous:true, got ${JSON.stringify(body)}`);
-    assert.match(String(body.error || ''), /sign in with your email/i, 'the refusal must tell the caller what to do instead');
+    assert.notEqual(status, 503, 'SMS sign-in is not configured, so this check cannot tell a refusal from an outage');
+    expect(status, body);
   } finally {
     await cleanup();
     // ASSERTED, NOT ASSUMED. A delete that matched nothing returns 200 exactly like one that
     // matched two rows, and this is the only place in the estate that puts a fixture next to live
     // customer data. If it ever leaks, this line is what says so.
     const left = await q(project, `select count(*)::int n from public.customers
-       where email in ('zz-demo-shared-a@example.invalid','zz-demo-shared-b@example.invalid')
-          or phone = '${SHARED}'`);
+       where email in ('${SHARED_EMAILS.join("','")}') or phone = '${SHARED}'`);
     assert.equal(Number(left[0].n), 0,
-      'the ambiguity fixtures were not removed — there is demo data on the live project right now');
+      'the shared-number fixtures were not removed — there is demo data on the live project right now');
   }
-});
+};
+
+test('two verified accounts on one number are refused, not guessed', (t) => sharedFixture(t, [true, true], (status, body) => {
+  assert.equal(status, 409, `expected 409 for a number on two accounts, got ${status} ${JSON.stringify(body)}`);
+  assert.equal(body.ambiguous, true, `expected ambiguous:true, got ${JSON.stringify(body)}`);
+  assert.match(String(body.error || ''), /sign in with your email/i, 'the refusal must tell the caller what to do instead');
+}));
+
+test('one verified and one unverified account on a number resolve to the verified one', (t) => sharedFixture(t, [true, false], (status, body) => {
+  assert.equal(status, 200, `the unverified row must not make the number ambiguous; got ${status} ${JSON.stringify(body)}`);
+  assert.equal(body.code, 'fixture_number', `expected the resolved number to reach the pre-Twilio fixture step, got ${JSON.stringify(body)}`);
+}));
+
+test('a fully verified account on a number reaches the code step (live positive control)', (t) => sharedFixture(t, [true], (status, body) => {
+  assert.equal(status, 200, `a verified owner must resolve; got ${status} ${JSON.stringify(body)}`);
+  assert.equal(body.code, 'fixture_number', `expected the pre-Twilio fixture step, got ${JSON.stringify(body)}`);
+}));
+
+test('an unverified account on a number resolves to nobody', (t) => sharedFixture(t, [false], (status, body) => {
+  assert.equal(status, 404, `an unverified phone must not select an account; got ${status} ${JSON.stringify(body)}`);
+  assert.equal(body.code, 'no_account_for_number', JSON.stringify(body));
+}));
 
 // The schema half of the same rule: email is unique, phone is deliberately not, and the reason is
 // recorded on the column so the next session does not "fix" the missing phone index.
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`email is unique and phone is deliberately not on ${label}`, async (t) => {
-    if (!mgmtToken) { t.skip('no management token'); return; }
+    if (!mgmtToken) { t.skip(NO_TOKEN); return; }
     const idx = await q(project, `select indexname from pg_indexes where schemaname='public'
       and indexname in ('customers_email_lower_uidx','leads_claimed_by_lower_uidx')`);
     const names = idx.map((r) => r.indexname).sort();
