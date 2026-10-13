@@ -30,7 +30,7 @@ mkdirSync(OUT, { recursive: true });
 process.env.QD_FIXTURES = '1';
 const read = (sql) => mgmtRead(REF, sql);
 const write = (sql, where) => mgmtFixture(REF, sql, where);
-const MAX_AGENT_TURNS = 9;
+const MAX_AGENT_TURNS = 14;   // 9 cut 3 of 4 misses in run cb0b01b6 before the agent's summary; the loop still stops on the customer's confirmation
 
 // A customer's sketch of the studio wall (the "photo/drawing" of the founder's example), rendered locally.
 async function studioSketch() {
@@ -149,7 +149,7 @@ async function main() {
       const j = await gw({ fn: 'sales_engineer_conversation_drill', task_class: 'knowledge_validation', counterpart_model: agentModel,
         sys: JUDGE, input: `TRADE: ${s.trade}\nCUSTOMER'S HIDDEN FACTS (for checking completeness): ${s.facts}\n\nTRANSCRIPT:\n${transcript}`, max: 900, temperature: 0 });
       const v = json(j.content);
-      results.push({ id: s.id, lang: s.lang, trade: s.trade, agent_model: agentModel, judge_model: j.model, score: v, judge_raw: v ? undefined : String(j.content ?? j.err).slice(0, 1500), transcript: turns });
+      results.push({ id: s.id, capped: turns.filter((x) => x.role === 'agent').length >= MAX_AGENT_TURNS, lang: s.lang, trade: s.trade, agent_model: agentModel, judge_model: j.model, score: v, judge_raw: v ? undefined : String(j.content ?? j.err).slice(0, 1500), transcript: turns });
       console.log(`${s.id}: overall ${v?.overall ?? '?'} (adapt ${v?.adaptiveness ?? '?'}, correct ${v?.correctness ?? '?'}, no_idk ${v?.no_idk ?? '?'}, complete ${v?.completeness ?? '?'}) agent=${agentModel} judge=${j.model ?? j.err}`);
     }
   } finally {
