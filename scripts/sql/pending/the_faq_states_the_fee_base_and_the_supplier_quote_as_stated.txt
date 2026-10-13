@@ -1,0 +1,1 @@
+Committed, not applied: md5-guarded data update of six public FAQ rows (29, 30, 89, 608, 609, 610) to rulings 1207/1208. The release operator applies it AT MERGE, after #1364 (no dependency on its columns). On apply: delete this note and append the file to the END of MANIFEST.txt in the same commit.
