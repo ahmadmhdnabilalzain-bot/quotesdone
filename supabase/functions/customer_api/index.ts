@@ -70,7 +70,6 @@ const EDIT_WINDOW_MS = 60 * 60e3;
 // emits '[', '\\', ']' from the 27th, so a customer with 30 quotes saw "Supplier [" and the
 // comparison report referenced a label that did not exist in their list.
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
-async function signedFile(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('quote-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDrawing(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDoc(bucket: string | null | undefined, path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from(bucket || 'agent-docs').createSignedUrl(path, 7 * 24 * 3600); return data?.signedUrl || null; } catch { return null; } }
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -1921,7 +1920,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       const gate = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });
       if (!gate.ok) return J({ ok: false, error: gate.error, code: gate.code, message: gate.message, message_ar: gate.message_ar }, gate.status);
       const q = gate.quote;
-      if (gate.already_revealed) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
+      if (gate.already_revealed) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: null, original_file_name: null /* ruling 1220: the customer sees only the QuotesDone template, never the supplier's own file */ }); }
       // The breakdown the confirm dialog prints is the one stripe_checkout charges: one module.
       // No readable rate, no price and no payment: never a guessed 3% (./reveal_rate.ts; getCfg filed the finding).
       if (!cfg) return J({ ok: false, error: 'reveal_rate_unavailable', code: 'reveal_rate_unavailable', message: 'Card payments are briefly unavailable. Your quotes are safe — please try again shortly.', message_ar: 'الدفع بالبطاقة غير متاح مؤقتًا. عروضك محفوظة — يُرجى المحاولة بعد قليل.' }, 503);
@@ -2105,7 +2104,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         scope: 'this customer',
         rfqs_sent_platform_wide: sentAll || 0,
       };
-      return J({ ok: true, supplier: sup ? { ...sup, rating_display: ratingOf(sup) } : null, projects, projects_count: projects.length, relationship, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null });
+      return J({ ok: true, supplier: sup ? { ...sup, rating_display: ratingOf(sup) } : null, projects, projects_count: projects.length, relationship, original_file_url: null, original_file_name: null /* ruling 1220: the customer sees only the QuotesDone template, never the supplier's own file */ });
     }
 
 
