@@ -12,6 +12,14 @@
 // ponytail: the FAQ section is capped at FAQ_CAP chars (≈ the first ~60 FAQs by id) to keep the brief near 8k tokens;
 // rank FAQs by how often they are asked if the cap starts cutting answers people need.
 // prevented by: _shared/company_brief.test.ts
+import { BRIEF_TEXT } from './brief.generated.ts';
+
+/** The text whose numbers the figure check accepts: the brief WITHOUT the authored knowledge block. Measured 13 Oct
+ *  2026: with BRIEF_TEXT counted, "The reveal fee is 5%." passed the check, because the regulation digests state a
+ *  5% VAT. Fees and prices come from the live sources (fn_company_context, fn_price_brief, FAQ); the knowledge block
+ *  informs the answer but never licenses a money figure. */
+export const figureSource = (brief: string): string => brief.replace(BRIEF_TEXT, '');
+
 export const FAQ_CAP = 16_000;
 export const BRIEF_TTL_MS = 5 * 60_000;
 
@@ -59,7 +67,10 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: '
   const [cc, pb] = await Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})]);
   const company = String((cc as { block?: string } | null)?.block || '');
   const prices = typeof pb === 'string' ? pb : '';
-  const brief = composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks].filter(Boolean) });
+  const brief = composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks, BRIEF_TEXT].filter(Boolean) });
+  // BRIEF_TEXT (scripts/kb/compile_brief.mjs, sales_engineer, rulings 1195-1200): the authored company brief, the UAE
+  // regulation digests and every trade's conversation playbook, ~60k tokens, byte-stable, so it sits last in the cached
+  // prefix for every caller (aiReply, site_assistant) instead of being passed by each one.
   cache.set(key, { at: now, brief });
   return brief;
 }

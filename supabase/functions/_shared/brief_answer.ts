@@ -9,7 +9,7 @@
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
 // prevented by: _shared/brief_answer.test.ts
 import { withImages } from './chat_images.ts';
-import { briefNumbers, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
+import { briefNumbers, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 
 export type Msg = { role: 'user' | 'assistant'; content: string };
 export interface BriefCall {
@@ -94,7 +94,7 @@ function problems(c: BriefCall, text: string, known: Set<string>): string[] {
 }
 
 export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f: Fetch = fetch): Promise<BriefAnswer> {
-  const known = briefNumbers(c.brief);
+  const known = briefNumbers(figureSource(c.brief));
   const attempts: string[] = [];
   let rewrites = 0;
   const s = await streamed(f, c, known, emit);

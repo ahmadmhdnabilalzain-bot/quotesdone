@@ -80,3 +80,13 @@ Deno.test('escalate and the rate bucket ride on the same call', async () => {
   assertEquals(r.escalate, true);
   assertEquals(s.calls[0].o.rateKey, 'wa:+971500000001');
 });
+
+// prevented by: this test (sales_engineer, 13 Oct 2026). The knowledge block (BRIEF_TEXT) is in every brief, and its
+// regulation digests state a 5% VAT; a wrong 5% reveal fee must still be refused.
+Deno.test('the knowledge block never licenses a fee figure', async () => {
+  const { BRIEF_TEXT } = await import('./brief.generated.ts');
+  assert(BRIEF_TEXT.includes('5%'), 'precondition: the knowledge block states a 5% figure');
+  const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
+  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
+  assert(s.calls[0].system.includes('# Conversation playbook:') && s.calls[0].system.includes('How you hold a conversation'), 'the playbooks reach the system prompt');
+});
