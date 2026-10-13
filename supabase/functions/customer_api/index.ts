@@ -30,7 +30,7 @@ import { currentCustomerTermsVersion, needsReacceptance, customerTermsRecord, RE
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
-import { feeBaseOf, feeBasisLine, priceStated, readRevealRate, vatStated } from '../_shared/stated_price.ts';
+import { feeBaseOf, feeBasisLine, priceStated, vatStated } from '../_shared/stated_price.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { arabicOf, arabicTextsFor, nativeArabic } from '../_shared/reasoned_governance.ts';
@@ -38,7 +38,7 @@ import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/
 // One door decides whether a supplier may be revealed, and one predicate decides whether a quote is
 // complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
 import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.ts';
-import { readRevealRate, recordRateUnreadable } from './reveal_rate.ts';
+import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../_shared/drawing_format.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -386,7 +386,7 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
 }
 
 type Cfg = { standard_reveal_rate: number; refund_window_working_days: number };
-// Never a guessed rate (./reveal_rate.ts): null when pricing_config cannot be read, and the caller decides.
+// Never a guessed rate (../_shared/reveal_rate.ts): null when pricing_config cannot be read, and the caller decides.
 async function getCfg(): Promise<Cfg | null> { const r = await readRevealRate(admin); if (r.ok) return r.cfg as Cfg; await recordRateUnreadable(admin, 'customer_api getCfg -> pricing_config', r.error); return null; }
 // 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
 // and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
@@ -621,8 +621,9 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   // The Arabic of the supplier's own words is reasoned (decision point trade_glossary_ar); a line not yet
   // translated HOLDS the Arabic document — it is never printed half-translated.
   // The fee line prints pricing_config's rate (the one reveal_fee() charges); unread, the PDF is refused, never guessed.
-  const revealRate = await readRevealRate(admin);
-  if (revealRate == null) return { j: { ok: false, error: 'reveal_rate_unread' }, ref: quoteRef(inq, letter) };
+  const rateRead = await readRevealRate(admin);
+  if (!rateRead.ok) { await recordRateUnreadable(admin, 'customer_api quotation PDF -> pricing_config', rateRead.error, { quote_id: q.id }); return { j: { ok: false, error: 'reveal_rate_unread' }, ref: quoteRef(inq, letter) }; }
+  const revealRate = rateRead.cfg.standard_reveal_rate;
   const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts, revealRate }), { subject: { quote_id: q.id } });
   if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
   const { body, ref } = doc.doc;
@@ -1715,7 +1716,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         // from 60, so the portal offered an Edit button for 23 hours that the server always refused.
         editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < EDIT_WINDOW_MS), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((EDIT_WINDOW_MS - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0,
         // How many quotes are on hold for missing details and are therefore not in the list below.
-        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(feeBaseOf(q) ?? 0), cfg), price_stated: priceStated(q, 'en'), price_stated_ar: priceStated(q, 'ar'), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, discount_label: q.discount_label ?? null, vat_treatment: q.vat_treatment ?? null, vat_stated: vatStated(q, 'en'), vat_stated_ar: vatStated(q, 'ar'), fee_basis: feeBasisLine(feeBaseOf(q), Number(cfg.standard_reveal_rate), 'en'), fee_basis_ar: feeBasisLine(feeBaseOf(q), Number(cfg.standard_reveal_rate), 'ar'), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(feeBaseOf(q) ?? 0), cfg), price_stated: priceStated(q, 'en'), price_stated_ar: priceStated(q, 'ar'), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, discount_label: q.discount_label ?? null, vat_treatment: q.vat_treatment ?? null, vat_stated: vatStated(q, 'en'), vat_stated_ar: vatStated(q, 'ar'), fee_basis: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'en'), fee_basis_ar: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'ar'), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
           // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.
