@@ -150,6 +150,37 @@ const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice',
 // passes _shared/reasoned_suppliers.ts quoteTerms; founder_instruction 886-903). Held or absent: the
 // terms stay empty and the review asks the supplier for them — never a label guess.
 // ---------------------------------------------------------------------------------------------
+/**
+ * THE VISION MODEL WRITES MARKDOWN (13 Oct 2026, measured live). read_every_attachment's prompt asks for tables "as
+ * markdown tables", so a photographed quotation comes back as "| Jotun ... | 450 | m2 | 20.00 | 9,000.00 |". The price
+ * reader parses CSV and plain lines, and it read that transcription as NO quotation. Each table row becomes a CSV row
+ * (numbers lose their thousands separators), separator rows and **emphasis** / # headings go; every other line stays.
+ * prevented by: supplier_api/quote_review.test.ts ('a photographed quotation transcribed as a markdown table is priced')
+ */
+// ONLY TABLE ROWS ARE TOUCHED (review of #1396): a line outside a pipe table passes through byte for byte. Inside a
+// cell, a comma goes only when it is a THOUSANDS separator (9,000.00 -> 9000.00; "1,5" and "12,50" are decimal commas
+// and stay as written, CSV-quoted); Arabic-Indic digits and the Arabic separators (U+066C thousands, U+066B decimal)
+// are read the same way; an escaped \| stays inside its cell; a short or merged row keeps the cells it has.
+const ESC_PIPE = '\u0000';
+const AR_DIGIT = /[\u0660-\u0669\u06F0-\u06F9]/g;
+const THOUSANDS = /(^|[^\d,.])(-?\d{1,3}(?:,\d{3})+)(?=\.\d+(?![\d,])|(?![\d,.]))/g;
+function tableCell(raw: string): string {
+  let c = raw.replace(new RegExp(ESC_PIPE, 'g'), '|').trim().replace(/^(\*\*|__)(.*)\1$/, '$2').trim();
+  c = c.replace(AR_DIGIT, (d) => String((d.charCodeAt(0) & 0xf) % 10)).replace(/\u066C/g, ',').replace(/\u066B/g, '.');
+  c = c.replace(THOUSANDS, (_m, pre: string, n: string) => pre + n.replace(/,/g, ''));
+  return /[",]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
+}
+export function transcriptAsText(md: string): string {
+  const isRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+  const isSep = (l: string) => /^\s*\|[\s:|-]*-{2,}[\s:|-]*\|\s*$/.test(l);
+  return String(md ?? '').split(/\r?\n/).flatMap((l) => {
+    if (!isRow(l)) return [l];
+    if (isSep(l)) return [];
+    const cells = l.replace(/\\\|/g, ESC_PIPE).trim().replace(/^\|/, '').replace(/\|$/, '').split('|');
+    return [cells.map(tableCell).join(',')];
+  }).join('\n');
+}
+
 export async function readQuotationFile(bytes: Uint8Array, filename: string, mime: string, supplierTerms: string[] = [],
   readTerms?: (text: string) => Promise<Partial<Record<QuoteTermKey, string>> | null>, vision?: Vision | null): Promise<FileRead> {
   const rd = await readDocument(bytes, filename, mime);
@@ -159,7 +190,7 @@ export async function readQuotationFile(bytes: Uint8Array, filename: string, mim
   // a scan got 'image' and a request for a text PDF. Unreadable only when both askings fail.
   if (vision && (!rd.ok || (!rd.text.trim() && !rd.tables.length && !rd.children.length))) {
     const a = await readEveryAttachment(bytes, filename, mime, vision);
-    if (a.status === 'read' && a.by === 'model') return readQuotationFile(new TextEncoder().encode(a.text), 'quotation.txt', 'text/plain', supplierTerms, readTerms, null);
+    if (a.status === 'read' && a.by === 'model') return readQuotationFile(new TextEncoder().encode(transcriptAsText(a.text)), 'quotation.txt', 'text/plain', supplierTerms, readTerms, null);
     return { proposal: null, text: '', kind: rd.ok ? rd.kind : 'image' };
   }
   if (!rd.ok) return { proposal: null, text: '', kind: 'refused' };
@@ -516,9 +547,10 @@ async function messageWithFile(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: 
   const st = effectiveState(r, deps.now());
   // A quotation photographed into the chat with nothing read yet goes to the review — only when the price reader finds
   // prices in it (a site photo's "2.4 m wide" is a number, not a quotation; caught by the test below).
-  if ((!r.working || st === 'awaiting_upload') && looksTyped(a.text, 1)) {
-    const q = await deps.read(new TextEncoder().encode(a.text.slice(0, 20000)), 'chat_attachment.txt', 'text/plain').catch(() => null);
-    if (q?.proposal) return readTyped(repo, deps, ctx, l, r, a.text.slice(0, 20000), sm.id);
+  const asText = transcriptAsText(a.text).slice(0, 20000);
+  if ((!r.working || st === 'awaiting_upload') && looksTyped(asText, 1)) {
+    const q = await deps.read(new TextEncoder().encode(asText), 'chat_attachment.txt', 'text/plain').catch(() => null);
+    if (q?.proposal) return readTyped(repo, deps, ctx, l, r, asText, sm.id);
   }
   const open = await openIssuesOf(repo, r);
   const said = (t || '(they sent this file with no message)') + `\n\nThey attached "${sc.name}". What it says:` + untrustedBlock(a.text.slice(0, 6000));
