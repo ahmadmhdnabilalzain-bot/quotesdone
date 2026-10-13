@@ -60,6 +60,9 @@ declare
   v_since timestamptz := public.fn_invite_lane_since();
 begin
   v_cur := coalesce((select nullif(value,'')::int from app_secrets where key = 'invite_daily_cap'), v_base);
+  -- ruling 1231 review: the restart base (a new lane's day 1) is never above the cap already set, so a restart
+  -- lowers to base and never raises a cap set lower.
+  v_base := least(v_base, v_cur);
 
   -- PAUSED IS A REPORTABLE STATE: a paused campaign files a row and leaves the cap alone. The daily tick
   -- calls this only on open days, so the previous body's daily "campaign paused" warning (which, called
@@ -99,7 +102,7 @@ begin
     -- A RESTART, NOT A STALL. After days of silence the domain is cold again, so it starts at the base.
     -- It is a stall only if the previous run was ALSO a restart and still nothing has been issued.
     -- A lane that has just been switched on has issued nothing yet, so it lands here: day 1 of its own ramp.
-    v_restart := true; v_new := least(v_cur, v_base);   -- ruling 1231 review: a restart lowers to base, never raises
+    v_restart := true; v_new := v_base;
     select coalesce((a.counts->>'restart')::boolean, false) into v_prev_restart
       from agent_runs a where a.agent = 'invite_ramp' and coalesce((a.counts->>'paused')::boolean, false) = false
      order by a.id desc limit 1;

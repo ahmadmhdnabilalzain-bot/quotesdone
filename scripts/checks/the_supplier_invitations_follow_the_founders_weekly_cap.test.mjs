@@ -39,8 +39,8 @@ test('the daily invitation cap is the founder schedule, enforced by the ramp and
   // cap 10 stays 10, 10% bounces halve 20 -> 10, a hand-set 500 comes back 20.
   assert.doesNotMatch(ramp, /greatest\(\s*v_base\s*,/,
     'fn_invite_ramp floors a cap at v_base again: that raises a lower cap and stops the bounce back-off from reducing');
-  assert.match(ramp, /v_restart := true; v_new := least\(v_cur, v_base\)/,
-    'a cold restart may raise the cap again; it must be least(current cap, base)');
+  assert.match(ramp, /v_base := least\(v_base, v_cur\);/,
+    'a cold restart may raise the cap again; the restart base must be bounded by the cap already set');
   assert.match(def('enqueue_supplier_invites'), /v_cap := least\(v_cap, public\.fn_invite_founder_cap\(/,
     'enqueue_supplier_invites no longer clamps invite_daily_cap to the founder schedule');
 });
