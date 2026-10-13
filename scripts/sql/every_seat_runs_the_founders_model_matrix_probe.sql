@@ -29,6 +29,8 @@ declare
   c_gem  constant text := 'google/gemini-3.8-flash';
   c_opus constant text := 'anthropic/claude-opus-5.5';
   c_luna constant text := 'openai/gpt-6-luna';
+  -- 13 Oct 2026, founder ruling 1219: every AI-written conversation reply (route 'chat')
+  c_son  constant text := 'anthropic/claude-sonnet-5.5';
   -- retired from routing 5 Oct 2026 (matrix v2): named here only to assert that nothing routes to them
   c_deep constant text := 'deepseek/deepseek-v4.1-flash';
   c_qwen constant text := 'qwen/qwen3.7-plus';
@@ -64,17 +66,17 @@ begin
     ('SE drawing_redact find',         null,                          'drawing_redact',          null,               c_luna, c_gem),
     ('SE drawing_redact_verify',       null,                          'drawing_redact_verify',   null,               c_gem,  c_opus),
     ('SE drawing_boq_confirm',         'drawing_boq_confirm',         'drawing_boq',             null,               c_gem,  c_opus),
-    ('SE inquiry_intake',              null,                          'inquiry_intake',          null,               c_luna, c_gem),
+    ('SE inquiry_intake',              null,                          'inquiry_intake',          null,               c_son,  c_gem),
     ('SE inquiry_parse',               null,                          'inquiry_parse',           null,               c_luna, c_gem),
     ('SE supplier_review',             null,                          'supplier_review',         null,               c_luna, c_gem),
     ('SE inquiry_ai',                  null,                          'inquiry_ai',              null,               c_luna, c_gem),
     ('SE project_consultant',          null,                          'project_consultant',      null,               c_luna, c_gem),
     ('SE supplier_onboard',            null,                          'supplier_onboard',        null,               c_luna, c_gem),
-    ('SE customer_api',                null,                          'customer_api',            null,               c_luna, c_gem),
-    ('SE messages_api',                null,                          'messages_api',            null,               c_luna, c_gem),
+    ('SE customer_api',                null,                          'customer_api',            null,               c_son,  c_gem),
+    ('SE messages_api',                null,                          'messages_api',            null,               c_son,  c_gem),
     ('SE route_inquiry',               null,                          'route_inquiry',           null,               c_luna, c_gem),
     ('SE transcribe',                  null,                          'transcribe',              null,               c_gem,  null),
-    ('SE portal assistant',            'customer_portal_assistant',   'site_assistant',          'sales_engineer',   c_luna, c_gem),
+    ('SE portal assistant',            'customer_portal_assistant',   'site_assistant',          'sales_engineer',   c_son,  c_gem),
     ('SE reasoning',                   'sales_engineer_reasoning',    'sales_engineer',          'sales_engineer',   c_luna, c_gem),
     ('SE think plan',                  'routine_employee_reasoning',  'sales_engineer',          'sales_engineer',   c_luna, c_gem),
     ('SE think decide',                'internal_judgement',          'sales_engineer',          'sales_engineer',   c_luna, c_gem),
@@ -94,7 +96,8 @@ begin
     ('CEO on a shared class (easy)',   'summarization',               'ceo_agent',               'ceo',              c_luna, c_gem),
     -- customer_support
     ('CS wa_inbound',                  null,                          'wa_inbound',              null,               c_luna, c_gem),
-    ('CS widget visitor',              'visitor_chat',                'site_assistant',          'customer_support', c_luna, c_gem),
+    ('every aiReply() reply (1219)',  'conversation_reply',          'wa_inbound',              'customer_support', c_son,  c_gem),
+    ('CS widget visitor',              'visitor_chat',                'site_assistant',          'customer_support', c_son,  c_gem),
     ('CS email_triage',                null,                          'email_triage',            null,               c_luna, c_gem),
     ('CS directive parse',             'json_extraction',             'founder_directive',       null,               c_luna, c_gem),
     ('CS think decide',                'internal_judgement',          'wa_inbound',              'customer_support', c_luna, c_gem),
@@ -285,11 +288,12 @@ begin
       bad := bad || to_jsonb(r.m || ' is still named by an active policy');
     end if;
   end loop;
-  -- every class that calls a model is on the matrix's four models, except the measurement classes named in the file
+  -- every class that calls a model is on the matrix's five models (Sonnet 5.5 for the conversation replies, ruling 1219),
+  -- except the measurement classes named in the file
   for r in select task_class, model_primary, model_fallback from public.model_policy
             where active and tier <> 'none'
               and task_class not in ('marketing_geo_search', 'marketing_geo_online')
-              and (model_primary not in (c_gem, c_opus, c_luna)
+              and (model_primary not in (c_gem, c_opus, c_luna, c_son)
                    or coalesce(model_fallback, 'x') not in (c_luna, c_gem, c_opus, 'x')) loop
     bad := bad || to_jsonb(r.task_class || ' is off the matrix: ' || r.model_primary || '>' || coalesce(r.model_fallback, 'none'));
   end loop;
@@ -305,11 +309,11 @@ begin
     with route(route, p, f, t, min_tok) as (values
       -- (5 Oct 2026, matrix v2) 'main' = every seat's routine work, the CEO's easy work and the sales engineer but its
       -- comparison; 'review' = every review whose authors write on luna
-      ('main', c_luna, c_gem, 'medium', 1), ('se_compare', c_opus, c_luna, 'xlarge', 4000), ('review', c_gem, c_opus, 'small', 4000),
+      ('main', c_luna, c_gem, 'medium', 1), ('chat', c_son, c_gem, 'medium', 1), ('se_compare', c_opus, c_luna, 'xlarge', 4000), ('review', c_gem, c_opus, 'small', 4000),
       ('ceo_hard', c_opus, c_luna, 'xlarge', 4000), ('hears', c_gem, null, 'medium', 1), ('measure', null, null, null, null)),
     matrix(cls, seat, route) as (values
       ('quote_comparison', 'sales_engineer', 'se_compare'), ('sales_engineer_reasoning', 'sales_engineer', 'main'),
-      ('customer_portal_assistant', 'sales_engineer', 'main'), ('inquiry_qualification_conversation', 'sales_engineer', 'main'),
+      ('customer_portal_assistant', 'sales_engineer', 'chat'), ('inquiry_qualification_conversation', 'sales_engineer', 'chat'),
       ('rfq_routing', 'sales_engineer', 'main'), ('redaction_detection', 'sales_engineer', 'main'),
       ('drawing_and_boq_analysis', 'sales_engineer', 'main'), ('identity_redaction_verify', 'sales_engineer', 'review'),
       ('drawing_boq_confirm', 'sales_engineer', 'review'), ('speech_transcription', 'sales_engineer', 'hears'),
@@ -321,7 +325,7 @@ begin
       ('ceo_article_review', 'ceo', 'ceo_hard'), ('ceo__internal_judgement', 'ceo', 'ceo_hard'), ('ceo__knowledge_validation', 'ceo', 'review'),
       ('accountant_expense_classification', 'accountant', 'main'), ('accountant_receipt_extraction', 'accountant', 'main'),
       ('accountant_weekly_report', 'accountant', 'main'), ('finance_analysis', 'accountant', 'main'),
-      ('support_ai', 'customer_support', 'main'), ('visitor_chat', 'customer_support', 'main'), ('wa_inbound', 'customer_support', 'main'),
+      ('support_ai', 'customer_support', 'main'), ('visitor_chat', 'customer_support', 'chat'), ('wa_inbound', 'customer_support', 'main'),
       ('email_triage', 'customer_support', 'main'), ('inbound_email', 'customer_support', 'main'),
       ('resend_inbound', 'customer_support', 'main'), ('intent_detection', 'customer_support', 'main'),
       ('engineering_reasoning', 'it_engineer', 'main'), ('reflection_and_learning', 'it_engineer', 'main'),
@@ -331,7 +335,7 @@ begin
       ('marketing_research', 'marketing', 'main'), ('marketing_watch', 'marketing', 'hears'),
       ('marketing_article_draft', 'marketing', 'main'), ('marketing_article_revise', 'marketing', 'main'),
       ('marketing_geo_search', 'marketing', 'measure'), ('marketing_geo_online', 'marketing', 'measure'),
-      ('customer_communication', 'shared', 'main'), ('supplier_communication', 'shared', 'main'),
+      ('customer_communication', 'shared', 'main'), ('supplier_communication', 'shared', 'main'), ('conversation_reply', 'shared', 'chat'),
       ('agent_reasoning', 'shared', 'main'), ('routine_employee_reasoning', 'shared', 'main'), ('internal_judgement', 'shared', 'main'),
       ('general_drafting', 'shared', 'main'), ('category_classification', 'shared', 'main'), ('content_drafting', 'shared', 'main'),
       ('contract_analysis', 'shared', 'main'), ('legal_analysis', 'shared', 'main'), ('document_extraction', 'shared', 'main'),

@@ -4,7 +4,8 @@
 //   1. CHECKS FIGURES: each finished sentence is checked before it is shown — every money or rate figure must be one the
 //      brief states (moneyFiguresNotInBrief). A sentence that fails stops the stream, and the MODEL rewrites the whole
 //      answer with the correction named; the rewrite is checked the same way (twice at most).
-//   2. CLIMBS THE MODEL LADDER: the streamed call (the gateway's own ladder: gpt-6-luna, then gemini-3.8-flash behind it),
+//   2. CLIMBS THE MODEL LADDER: the streamed call (the gateway's own ladder: claude-sonnet-5.5, then gemini-3.8-flash behind
+//      it; founder ruling 1219, 13 Oct 2026),
 //      then the same class unstreamed, then a third call routed as a counterpart of the model that failed (the gateway's
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
 // prevented by: _shared/brief_answer.test.ts
@@ -116,9 +117,9 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
       if (!bad.length) return { reply: draft, model, attempts, rewrites, streamed: false };
     }
   }
-  // The streamed call failed (or its rewrites did): the same class unstreamed (gpt-6-luna, then gemini behind it), then a
+  // The streamed call failed (or its rewrites did): the same class unstreamed (sonnet-5.5, then gemini behind it), then a
   // third family through the gateway's counterpart routing. Each answer is figure-checked.
-  for (const extra of [{}, { counterpart_model: model || 'openai/gpt-6-luna' }]) {
+  for (const extra of [{}, { counterpart_model: model || 'anthropic/claude-sonnet-5.5' }]) {
     const a = await once(f, c, extra);
     attempts.push((('counterpart_model' in extra) ? 'third:' : 'retry:') + (a.error ? 'failed ' + a.error : 'ok'));
     if (a.text && ![...problems(c, a.text, known), ...revealFeeIncomplete(a.text)].length) return { reply: a.text, model: a.model, attempts, rewrites, streamed: false };

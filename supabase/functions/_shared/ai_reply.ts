@@ -7,14 +7,21 @@
 //     does not state, false policy claims (card fee, VAT on the fee, refund promises, liability), the reply guard
 //     (licence, "AI", internal or prompt text), a deferral or "I don't know" (903), another party's identity before a
 //     reveal (the caller's `forbidden` list, and any e-mail, phone or licence-like number not in the brief or facts).
-//   - The model ladder: the gateway's route (gpt-6-luna, gemini behind it), then a counterpart of another family.
+//   - The model ladder: the gateway's route for class conversation_reply (anthropic/claude-sonnet-5.5, gemini-3.8-flash
+//     behind it; founder ruling 1219, 13 Oct 2026), then a counterpart of another family. The company brief is sent as
+//     the cacheable system block (sys_stable), so the gateway marks it with Anthropic cache_control.
 //     At most MAX_CALLS model calls per reply, answers and rewrites together.
 //   - Code writes no reply text. If no model answers cleanly, the reply is '' and the caller sends nothing.
 // Suppliers are always answered in English; everyone else in their language.
 // prevented by: _shared/ai_reply.test.ts
 import { briefNumbers, companyBrief, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
-import { EVASION, substanceWords, taskClassFor, type Seat, type ThinkDeps, type Turn } from './think.ts';
+import { EVASION, substanceWords, type Seat, type ThinkDeps, type Turn } from './think.ts';
+
+/** The model class every conversation reply is routed by (founder ruling 1219: Sonnet 5.5, Gemini behind it). */
+export const REPLY_CLASS = 'conversation_reply';
+/** The primary of REPLY_CLASS: the second rung asks for a counterpart of it, so another family answers. */
+export const REPLY_MODEL = 'anthropic/claude-sonnet-5.5';
 
 export const MAX_CALLS = 4;
 
@@ -89,11 +96,10 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const allowed = brief + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
   const known = briefNumbers(allowed);
   const check = (t: string) => replyProblems(t, known, { allowed, forbidden: r.forbidden });
-  const sys = brief + '\n\n' + aiSystem(r, replyLang);
+  const sys = '\n\n' + aiSystem(r, replyLang);   // after the brief, which rides as the cached sys_stable block
   const convo = (r.conversation ?? []).slice(-8).map((t) => `${t.role}: ${t.text}`).join('\n');
   const input = (convo ? 'CONVERSATION SO FAR:\n' + convo + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000);
-  const taskClass = taskClassFor('synthesise', r.audience, false, replyLang);
-  const opts = { taskClass, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  const opts = { taskClass: REPLY_CLASS, sysStable: brief, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
   const call = async (prompt: string, counterpartModel: string | null) => {
@@ -105,7 +111,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     return { reply: text, model, attempts, action: actionOf(r, content), ...(r.askEscalate ? { escalate: j.escalate === true } : {}) };
   };
   // the gateway's route (its own ladder), then a counterpart of another family; MAX_CALLS in all
-  for (const counterpartModel of [null, 'openai/gpt-6-luna']) {
+  for (const counterpartModel of [null, REPLY_MODEL]) {
     if (calls >= MAX_CALLS) break;
     let res = await call(input, counterpartModel);
     let text = parse(res?.content);
