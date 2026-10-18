@@ -19,7 +19,12 @@ language plpgsql
 set search_path to 'public', 'pg_temp'
 as $fn$
 begin
-  new.verification_status := case when new.verified is true then 'verified' else 'unverified' end;
+  -- Only the two values verified decides. 'pending', 'held', 'rejected' or any other status a writer sets is
+  -- left alone when verified is false: a held or unreadable licence stays held (release review of #1486).
+  new.verification_status := case
+    when new.verified is true then 'verified'
+    when new.verification_status is null or new.verification_status = 'verified' then 'unverified'
+    else new.verification_status end;
   return new;
 end $fn$;
 
@@ -32,14 +37,16 @@ create trigger trg_leads_z90_verification_status_follows_verified
 
 -- ONE-TIME CORRECTION, BY EXACT ID: the two rows measured inconsistent above. Lead 143027 is not touched.
 update public.leads
-   set verification_status = case when verified is true then 'verified' else 'unverified' end
+   set verification_status = 'verified'
  where id in (126512, 144967)
-   and verification_status is distinct from case when verified is true then 'verified' else 'unverified' end;
+   and verified is true
+   and verification_status is distinct from 'verified';
 
 -- VERDICT (DDL in this file, so no raise: a raise would roll the trigger back with it).
 select case
   when (select count(*) from public.leads
-         where verification_status is distinct from case when verified is true then 'verified' else 'unverified' end) <> 0
+         where (verified is true and verification_status is distinct from 'verified')
+            or (verified is not true and (verification_status is null or verification_status = 'verified'))) <> 0
     then 'PROBE FAILED: leads still disagree between verified and verification_status'
   when not exists (select 1 from pg_trigger where tgrelid = 'public.leads'::regclass
                     and tgname = 'trg_leads_z90_verification_status_follows_verified' and not tgisinternal)

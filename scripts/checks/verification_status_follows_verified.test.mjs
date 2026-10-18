@@ -21,8 +21,31 @@ test('it sorts after the mandatory-six gate, so a demotion is seen', () => {
   assert.ok(TRG > 'trg_leads_e0_mandatory_six_gate');
 });
 
-test('the mapping is total: true -> verified, else -> unverified', () => {
-  assert.match(sql, /new\.verification_status := case when new\.verified is true then 'verified' else 'unverified' end/);
+// Runs the trigger's CASE by translating it out of the file, so the downgrade rule is executed, not just
+// matched: verified=false never overwrites 'held', 'pending' or 'rejected' (release review of #1486).
+const derive = (verified, status) => {
+  const body = sql.match(/new\.verification_status := case([\s\S]*?)end;/i)[1];
+  const js = body
+    .replace(/when new\.verified is true then 'verified'/i, "verified === true ? 'verified' :")
+    .replace(/when new\.verification_status is null or new\.verification_status = 'verified' then 'unverified'/i, "(status == null || status === 'verified') ? 'unverified' :")
+    .replace(/else new\.verification_status/i, 'status');
+  return Function('verified', 'status', 'return (' + js + ')')(verified, status);
+};
+
+test('true -> verified, whatever the status was', () => {
+  for (const s of [null, 'unverified', 'held', 'pending']) assert.equal(derive(true, s), 'verified');
+});
+
+test('a downgrade clears verified or null to unverified', () => {
+  assert.equal(derive(false, 'verified'), 'unverified');
+  assert.equal(derive(false, null), 'unverified');
+  assert.equal(derive(null, null), 'unverified');
+});
+
+test('a downgrade never wipes held, pending or rejected', () => {
+  assert.equal(derive(false, 'held'), 'held');
+  assert.equal(derive(false, 'pending'), 'pending');
+  assert.equal(derive(false, 'rejected'), 'rejected');
 });
 
 test('the correction names exact ids and never lead 143027', () => {
