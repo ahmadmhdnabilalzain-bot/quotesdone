@@ -873,7 +873,8 @@ export async function runIntake(cust, answers, maxTurns = 10, sheet = null) {
     if (status === 'ready') break;
     // A HELD TURN ENDS THE INTERVIEW AND SAYS WHY (12 Oct 2026, run 1c94fa6a). 'held' means no model could
     // read the trade; re-asking 13 more times only repeated it, and the result read "readiness 0" with the
-    // gateway's HTTP status (a 502 from a spent OpenRouter key) nowhere in it.
+    // gateway's HTTP status (a 502 from a spent OpenRouter key) nowhere in it. 'held' also means a spec went
+    // unanswered three turns (slots.ts MAX_OPEN_TURNS): held_reason then reads 'specs_unanswered: <keys>'.
     if (status === 'held') {
       const f = r.json?.llm_failure;
       status = `held (${r.json?.held_reason ?? 'held'}${f ? `; gateway HTTP ${f.http} ${f.error} ${f.detail}` : ''})`;
