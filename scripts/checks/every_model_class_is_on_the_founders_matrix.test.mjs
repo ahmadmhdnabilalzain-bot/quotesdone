@@ -79,7 +79,7 @@ test('a failure breaker open for minutes is not matrix drift', { skip: !token() 
   perform set_config('app.change_reason', 'probe:every_model_class_is_on_the_founders_matrix', true);
   update public.llm_route_health set open_until = now() + interval '5 minutes',
     opened_reason = 'zz probe: empty_completion trip', opened_class = 'empty_completion'
-   where model_id in ('openai/gpt-6-luna', 'google/gemini-3.8-flash');
+   where model_id in ('openai/gpt-6-luna-pro', 'anthropic/claude-sonnet-5.5');
   get diagnostics n = row_count;
   perform set_config('app.change_reason', '', true);
   if n <> 2 then raise exception 'CHK<<PROBE FAILED: the breaker trip touched % routes, not 2>>', n; end if;
@@ -90,6 +90,23 @@ end $trip$;`;
 
 test('a new class with no seat in the matrix fails the probe', { skip: !token() }, async () => {
   const v = await run(replay() + `\n;\ninsert into public.model_policy (task_class, tier, model_primary, model_fallback, max_tokens, active)
-    values ('zz_probe_unmapped_class', 'medium', 'openai/gpt-6-luna', 'google/gemini-3.8-flash', 500, true);\n` + probe());
+    values ('zz_probe_unmapped_class', 'medium', 'openai/gpt-6-luna-pro', 'anthropic/claude-sonnet-5.5', 500, true);\n` + probe());
   assert.match(v, /zz_probe_unmapped_class has no seat in the matrix/, v);
+});
+
+// 18 Oct 2026 (rulings 1240, 1241): Gemini only hears, and the 5.6 generation is gone. Each bite is proved.
+test('Gemini behind a class that does not hear fails the probe', { skip: !token() }, async () => {
+  const v = await run(replay() + `
+;
+update public.model_policy set model_fallback = 'google/gemini-3.8-flash' where task_class = 'summarization';
+` + probe());
+  assert.match(v, /outside a recording name Gemini/, v);
+});
+
+test('a 5.6 model back in the registry fails the probe', { skip: !token() }, async () => {
+  const v = await run(replay() + `
+;
+update public.model_registry set active = true, approved = true where model_id = 'openai/gpt-5.6-sol';
+` + probe());
+  assert.match(v, /5.6 model or plain luna is still active/, v);
 });

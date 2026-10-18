@@ -78,8 +78,10 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
 4. **Receive matched RFQs** anonymised; ignoring an invitation carries no penalty. (FAQ "Can I decline invitations?")
 5. **Quote** itemised: scope, line items with brand/model and specs, quantities, unit prices, materials,
    lead time, validity, warranty, payment terms, exclusions. A quote below the quality bar is held as a
-   draft with coaching. Submitted quotes are final (no revision); a quote may be withdrawn before reveal.
-   (FAQ "What information is mandatory?", "Can I revise quotations?", "Can I withdraw…")
+   draft with coaching. **Before reveal** a supplier may refresh a quotation (send a revised one from the job;
+   the new submission replaces the earlier one for that option, and is checked again) or withdraw it; **once a
+   customer reveals the supplier**, the revealed quotation binds within its validity and any change is agreed
+   directly with the customer. (SA§12; FAQ "What information is mandatory?", "Can I revise quotations?", "Can I withdraw…")
 6. **Validity.** A quotation is valid **30 days** from submission unless refreshed or withdrawn before
    reveal; the supplier is bound by a quotation revealed within validity. (SA§12)
 7. **Win.** The supplier is notified the moment a customer pays to reveal it, and must **begin responding
