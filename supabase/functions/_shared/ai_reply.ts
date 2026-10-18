@@ -24,6 +24,13 @@ export const REPLY_CLASS = 'conversation_reply';
 export const REPLY_MODEL = 'anthropic/claude-sonnet-5.5';
 
 export const MAX_CALLS = 4;
+// THE TURN HAS A CLOCK (customer_support, 19 Oct 2026). Without one, MAX_CALLS calls at 45 s each could hold a turn
+// for minutes: run 5 (qd_run:321d13ae, agent_runs 3793567) spent 73.7 s in serial gateway calls and still ended
+// llm_failed; ai_cost_log 27144 shows one wa_inbound call cut at the gateway's 47 s wall. With r.deadline, each call
+// gets at most PER_CALL_MS and never more than the time left, and none starts with under MIN_CALL_MS left, so the
+// caller reaches its held notice (the handover) in bounded time.
+export const PER_CALL_MS = 25_000;
+export const MIN_CALL_MS = 8_000;
 
 export interface AiReplyRequest {
   seat: Seat; channel: string; audience: 'customer' | 'supplier' | 'visitor' | 'founder';
@@ -36,6 +43,7 @@ export interface AiReplyRequest {
   actions?: { id: string; meaning: string }[];   // the next step the model picks in the same call (quote-review chat)
   askEscalate?: boolean;    // the model also says whether this is a complaint, dispute, legal/payment/refund matter or a person request
   forbidden?: string[];     // another party's identity before a reveal: names, phones, e-mails, licence numbers
+  deadline?: number;        // epoch ms by which the reply must be settled; no model call starts after it
   images?: string[];        // photos or drawings the person sent (accepted by chat_images.acceptImages); the model uses them (ruling 1200)
 }
 export interface AiReply { reply: string; model: string | null; attempts: string[]; action?: string | null; escalate?: boolean; problems?: string[] }
@@ -102,9 +110,12 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const opts = { taskClass: REPLY_CLASS, sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
+  const left = () => (r.deadline ?? Infinity) - Date.now();
   const call = async (prompt: string, counterpartModel: string | null) => {
+    if (left() < MIN_CALL_MS) { calls = MAX_CALLS; attempts.push('deadline: no time left for another call'); return null; }
     calls++;
-    return await deps.llm('synthesise', sys, prompt, { ...opts, ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
+    const timeout = r.deadline ? { timeoutMs: Math.min(PER_CALL_MS, left()) } : {};
+    return await deps.llm('synthesise', sys, prompt, { ...opts, ...timeout, ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
   };
   const done = (text: string, content: string | null | undefined, model: string | null): AiReply => {
     const j = json(content);
