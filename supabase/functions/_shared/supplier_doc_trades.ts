@@ -218,7 +218,8 @@ async function visionHeld(admin: Admin, supplierId: number, d: DocEvidence): Pro
       detail: { supplier_id: supplierId, path: d.path, kind: d.kind, held: d.vision_held!.map((t) => ({ code: t.code, quote: t.snippet })),
                 waiting_for: 'sales_engineer to check each quote against the file and confirm or drop the trade' },
       target_table: 'supplier_capabilities', target_id: target });
-    if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: error.message }));
+    // 23505: the table's one-pending-per-document index refused a second item filed at the same moment - already filed
+    if (error && error.code !== '23505') console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: error.message }));
   } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
 }
 
