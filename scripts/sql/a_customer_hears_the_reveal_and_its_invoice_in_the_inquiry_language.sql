@@ -3,7 +3,7 @@
 -- Ruling (founder, 28 Sep 2026): a customer is written in the language of the inquiry the message is
 -- about, else their registered one; a supplier is always English (ruling 1008).
 --
--- MEASURED 19 Oct 2026. Every reveal_receipt on production (2 email rows) is English, on English
+-- MEASURED 19 Oct 2026. Every reveal_receipt on production (5 rows, all channels; 2 of them email) is English, on English
 -- inquiries: an Arabic customer has never been sent an Arabic reveal notice. fn_sales_engineer_writes
 -- (reveal_receipt) already chose by the inquiry, but fn_sales_engineer_tells_customer_invoice_ready
 -- (invoice_ready) chose by the REGISTERED locale only, so an English-registered customer who asked in

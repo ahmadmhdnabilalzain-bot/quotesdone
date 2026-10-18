@@ -654,10 +654,13 @@ async function realRun(pre) {
       A('every notice the run caused was captured, none sent', n.length > 0 && n.every((x) => !['sent', 'queued', 'pending'].includes(x.status)), `${n.length} notices, statuses ${[...new Set(n.map((x) => x.status))].join(',')}`);
       // Each customer is answered in THEIR language. Run 5 asserted "an Arabic customer receives Arabic"
       // and counted 0: by S15 the only customer events (new quotes, reveal, invoice) belong to the
-      // aluminium request, whose owner is C1 (en); no Arabic customer had been sent anything yet. The
-      // product was not at fault (the AR customer's later notice 101749 is lang=ar, Arabic subject). So
-      // the language rule is asserted here on every customer notice that exists, and the existence of
-      // an Arabic customer notice is asserted in S24, at the end of the run.
+      // aluminium request, whose owner is C1 (en); no Arabic customer had been sent anything yet. That
+      // hid a product gap: production had never sent an Arabic reveal_receipt (5 of 5 are en), and
+      // invoice_ready followed the registered locale, not the inquiry's (fixed by
+      // a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql; the only Arabic notice
+      // run 5 produced, 101749, is a pdpl_verification). So the language rule is asserted here on every
+      // customer notice that exists, S10 reveals for an Arabic customer, and S24 requires an Arabic
+      // reveal_receipt to an Arabic customer.
       const localeOf = new Map(fx.customers.map((c) => [String(c.email).toLowerCase(), c.cfg.locale]));
       const supMails = new Set(fx.suppliers.map((s) => s.email));
       const cust = n.filter((x) => localeOf.has(String(x.to_email).toLowerCase())), sup = n.filter((x) => supMails.has(x.to_email));
