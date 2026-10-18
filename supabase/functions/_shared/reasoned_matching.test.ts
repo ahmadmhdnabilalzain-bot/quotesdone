@@ -113,8 +113,11 @@ Deno.test('applyReading never overwrites what the supplier stated himself', () =
 Deno.test('a value the quotation does not say is refused by the validator, never written in', async () => {
   const m = mock((q, sys) => sys.includes('installation_included (') ? reader(q, sys)
     : { answer: 'Line details stated.', decision: { fields: { L1__thickness_mm: ev('20mm', '20mm MR MDF carcass') } } });
-  assertEquals(await readQuote(m.deps, { quoteId: 'q4', category: 'joinery', lines: [LINES[0]], terms: TERMS, requirements: null }), null);
-  assertEquals(m.holds[0].p_dedupe_key, 'quote_read:q4');
+  // 18 Oct 2026: the quotation readers validate PER FIELD (think.ts `reader`). Before, this one invented field refused
+  // and held the WHOLE reading, which on live photos dropped every correct field with it. The subject of this test is
+  // unchanged: the value the quotation does not say is never written in. It is dropped, and asked of the supplier.
+  const rd = await readQuote(m.deps, { quoteId: 'q4', category: 'joinery', lines: [LINES[0]], terms: TERMS, requirements: null });
+  assertEquals(rd?.lines?.[1]?.thickness_mm, undefined, 'an invented value was written in: ' + JSON.stringify(rd));
 });
 
 Deno.test('a supplier own words: the reasoned trade, none, and held -> no trade and no invented code', async () => {
