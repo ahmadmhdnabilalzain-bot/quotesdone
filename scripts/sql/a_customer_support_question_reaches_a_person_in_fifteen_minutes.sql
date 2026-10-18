@@ -41,10 +41,12 @@
 -- Every message goes only to a CONFIRMED contact (verified email; OTP-confirmed WhatsApp number), once per kind per
 -- question (notifications.dedupe_key <kind>:<held_id>, on conflict do nothing). No confirmed contact -> nothing is sent
 -- and the question is dismissed as unreachable.
--- RUNS ON resilience_ping's heartbeat (step ceo_support_replies: route, duty, gate), not pg_cron (which is running:
--- 12 active jobs, 51 runs in the 30 minutes to 21:44 UTC on 18 Oct). Two reasons: the reply gate is TypeScript
--- (customerReplyGate) and must run in an edge function, so route, pick-up and gate run in one step, in order; and the
--- founder's 7 Sep instruction keeps new schedules out of cron.schedule in repo code (resilience_ping's own header).
+-- SCHEDULE: the router and the CEO duty run on their own pg_cron job (cs_held_question_route, every 5 minutes; pg_cron is
+-- live: 12 active jobs, 51 runs in the 30 minutes to 21:44 UTC on 18 Oct). Only the reply gate, which is TypeScript
+-- (customerReplyGate), runs in an edge function: resilience_ping's step ceo_support_replies.
+-- A KNOWN customer or supplier (customer_id / lead_id / supplier_id) with no confirmed contact is never dismissed: it
+-- stays open with customer_support (support_no_confirmed_contact) and becomes the CEO's overdue item at 4 hours; only a
+-- truly anonymous visitor is dismissed.
 --
 -- THE FIXTURES FOR THE #1348 PURGE (ruling 1199), by exact key, re-measured 19 Oct 2026 after review: the only
 -- customer_support fixture held questions that exist are
@@ -134,6 +136,8 @@ begin
     select h.*,
            coalesce(h.request -> 'context' ->> 'audience', '') audience,
            (k ->> 'email' is not null or k ->> 'phone' is not null) reachable,
+           (coalesce(h.request -> 'context', '{}'::jsonb) || coalesce(h.subject, '{}'::jsonb))
+             ?| array['customer_id', 'lead_id', 'supplier_id'] known,
            (h.question ~* v_fx or h.request::text ~* v_fx or h.subject::text ~* v_fx) fixture
       from public.reasoning_held_question h
       cross join lateral (select public.fn_cs_held_question_contact(h.id) k) kk
@@ -149,7 +153,12 @@ begin
       when (r.audience = 'internal' or r.surface like 'customer_support.%') and r.created_at < now() - interval '7 days'
         then 'dismissed'
       when r.audience = 'internal' or r.surface like 'customer_support.%' then null   -- a fresh duty: its seat works it
-      when not r.reachable then 'dismissed'
+      when not r.reachable and not r.known then 'dismissed'               -- a truly anonymous visitor
+      -- a KNOWN customer or supplier with no confirmed contact stays open with customer_support (reply on the surface
+      -- they asked from, or confirm the contact); 4 hours from the question it becomes the CEO's overdue item
+      when not r.reachable and r.created_at < now() - interval '4 hours' then 'overdue_alerted'
+      when not r.reachable and coalesce(r.result ->> 'cs_route', '') = 'no_confirmed_contact' then null
+      when not r.reachable then 'no_confirmed_contact'
       when coalesce(r.result ->> 'cs_route', '') = 'handed_to_ceo'
            and (r.result ->> 'cs_route_at')::timestamptz < now() - interval '4 hours' then 'overdue_alerted'
       when coalesce(r.result ->> 'cs_route', '') = 'handed_to_ceo' then null
@@ -182,6 +191,17 @@ begin
       do update set risk = excluded.risk, title = excluded.title, escalation_reason = excluded.escalation_reason;
     end if;
 
+    if v_out = 'no_confirmed_contact' then
+      -- customer_support keeps it: an open item of its own (one per question), even when no held_question action exists
+      insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, escalation_reason)
+      values ('customer_support', 'support_no_confirmed_contact', 'pending', 'medium',
+              'A known person is waiting and has no confirmed contact',
+              jsonb_build_object('held_id', r.id, 'surface', r.surface, 'asked_at', r.created_at,
+                                 'needed', 'reply on the surface they asked from, or have them confirm their email or WhatsApp number'),
+              'reasoning_held_question', r.id::text, 'no confirmed contact')
+      on conflict (agent, kind, target_id) where status = 'pending' do nothing;
+    end if;
+
     update public.reasoning_held_question h
        set result = coalesce(h.result, '{}'::jsonb)
                     || jsonb_build_object('cs_route', v_out, 'cs_route_at', now())
@@ -201,6 +221,8 @@ begin
                then 'no contact on the request: there is no route to the person who asked'
              when v_out = 'dismissed' then 'internal seat duty older than 7 days: its next run re-files it'
              when v_out = 'handed_to_ceo' then 'acknowledged to the person and handed to the ceo seat at ' || now()
+             when v_out = 'no_confirmed_contact'
+               then 'no confirmed contact: reply on the surface they asked from, or confirm the contact'
              else 'overdue: unanswered 4 hours after it was handed to the ceo seat' end
      where a.target_table = 'reasoning_held_question' and a.target_id = r.id::text
        and a.kind like 'held_question%' and a.status = 'pending';
@@ -308,6 +330,12 @@ begin
   if a.id is null then return 'not pending or claimed elsewhere'; end if;
   select * into q from public.reasoning_held_question where id = nullif(a.detail ->> 'reasoning_id', '')::bigint;
   if q.id is null or coalesce(q.result ->> 'answer', '') = '' then return 'no answer yet'; end if;
+  -- a passed reply still needs a confirmed contact to go to; without one it is held like a failed one
+  if not exists (select 1 from jsonb_each_text(public.fn_cs_held_question_contact((a.detail ->> 'held_id')::bigint)) e
+                  where e.key in ('email', 'phone') and e.value is not null)
+     and coalesce(jsonb_array_length(case when jsonb_typeof(p_problems) = 'array' then p_problems end), 0) = 0 then
+    p_problems := '["no confirmed contact: reply on the surface they asked from, or confirm the contact"]'::jsonb;
+  end if;
 
   if jsonb_typeof(p_problems) = 'array' and jsonb_array_length(p_problems) > 0 then
     update public.agent_actions
@@ -337,3 +365,17 @@ end $fn$;
 revoke execute on function public.fn_ceo_support_reply_record(bigint, jsonb) from public, anon, authenticated;
 grant execute on function public.fn_ceo_support_reply_record(bigint, jsonb) to service_role;
 
+
+-- The router and the CEO duty run on pg_cron (live: 12 active jobs, 51 runs in the 30 minutes to 21:44 UTC on 18 Oct);
+-- only the TypeScript reply gate runs on resilience_ping (step ceo_support_replies).
+select cron.schedule('cs_held_question_route', '*/5 * * * *',
+  $CRON$select public.fn_cs_held_question_route(); select public.fn_ceo_support_handover_duty();$CRON$);
+insert into public.cron_registry (jobname, human_name, category, purpose) values
+  ('cs_held_question_route', 'customer_support held questions reach a person', 'Support',
+   'Every 5 minutes. A customer_support question the model could not answer: a person with a confirmed contact is '
+   || 'acknowledged and handed to the CEO seat after 15 minutes; a known person without one stays with customer_support; '
+   || 'either becomes the CEO''s overdue item at 4 hours. The CEO duty then has it reasoned; the reply is sent only after '
+   || 'resilience_ping''s customer-reply gate. Fixtures are tagged for the ruling 1199 purge; anonymous widget turns and '
+   || 'stale internal duties are closed with their reason.')
+on conflict (jobname) do update
+  set human_name = excluded.human_name, category = excluded.category, purpose = excluded.purpose;

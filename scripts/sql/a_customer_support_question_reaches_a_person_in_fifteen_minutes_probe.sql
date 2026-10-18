@@ -2,8 +2,8 @@
 -- Pure probe, run in the SAME query after a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql so the
 -- whole thing aborts; never applied. A probe customer with a VERIFIED email and an unverified twin; probe held
 -- questions 20 minutes old. It checks, end to end:
---   the verified customer is acknowledged in Arabic ONCE (the router runs twice) and handed to the CEO; the unverified
---   one gets nothing and is dismissed; the CEO duty picks the handover up and files its reasoning as audience customer;
+--   the verified customer is acknowledged in Arabic ONCE (the router runs twice) and handed to the CEO; a KNOWN customer
+--   with no confirmed contact gets nothing, stays open with customer_support and is the CEO's overdue item at 4 h; the CEO duty picks the handover up and files its reasoning as audience customer;
 --   a returned answer the gate HOLDS leaves the item open and sends nothing; a passed answer is sent once, the question
 --   applied and the item closed; an anonymous visitor is dismissed; a ZZ DEMO fixture is tagged, NOT deleted; no
 --   founder-kind notification is written and no other seat's pending item changes.
@@ -11,7 +11,7 @@ do $probe$
 declare v_real int; v_real2 int; v_cu uuid; v_cu2 uuid; a_id bigint; u_id bigint; b_id bigint; c_id bigint;
         ra text; ru text; rb text; rc text; c_left int; v_acks int; v_ack_lang text; v_u_msgs int; v_ceo bigint;
         v_rid bigint; v_aud text; v_held_verdict text; v_open text; v_after_hold int; v_sent text; v_reply int;
-        v_held text; v_ho text; v_again text; v_fnd int; v_err text;
+        v_held text; v_ho text; v_again text; v_fnd int; v_err text; v_u_cs int; v_u_ceo text;
 begin
   begin
     select count(*) into v_real from public.agent_actions
@@ -45,6 +45,12 @@ begin
     select count(*), max(lang) into v_acks, v_ack_lang from public.notifications
      where kind = 'support_question_ack' and to_email = 'probe-1462@probe.test';
     select count(*) into v_u_msgs from public.notifications where to_email in ('probe-1462-unverified@probe.test', 'typed@probe.test');
+    select count(*) into v_u_cs from public.agent_actions
+     where agent = 'customer_support' and kind = 'support_no_confirmed_contact' and status = 'pending' and target_id = u_id::text;
+    update public.reasoning_held_question set created_at = now() - interval '5 hours' where id = u_id;   -- 4 hours pass
+    perform public.fn_cs_held_question_route();
+    select risk into v_u_ceo from public.agent_actions
+     where agent = 'ceo' and kind = 'support_question_handover' and status = 'pending' and target_id = u_id::text;
     select min(id) into v_ceo from public.agent_actions where agent = 'ceo' and kind = 'support_question_handover' and target_id = a_id::text;
 
     perform public.fn_ceo_support_handover_duty();                                     -- picks it up
@@ -72,7 +78,8 @@ begin
   if v_err <> 'ZZPROBE rollback' then raise exception 'CHK<<PROBE FAILED a routine raised: %>>', v_err;
   elsif ra is distinct from 'handed_to_ceo' or v_ceo is null then raise exception 'CHK<<PROBE FAILED not handed to the CEO: %>>', ra;
   elsif v_acks <> 1 or v_ack_lang is distinct from 'ar' then raise exception 'CHK<<PROBE FAILED acks % in %>>', v_acks, v_ack_lang;
-  elsif ru is distinct from 'dismissed' or v_u_msgs <> 0 then raise exception 'CHK<<PROBE FAILED unverified contact: % / % messages>>', ru, v_u_msgs;
+  elsif ru is distinct from 'no_confirmed_contact' or v_u_msgs <> 0 or v_u_cs <> 1 or v_u_ceo is distinct from 'high' then
+    raise exception 'CHK<<PROBE FAILED known person, unconfirmed contact: route %, messages %, cs items %, ceo overdue %>>', ru, v_u_msgs, v_u_cs, v_u_ceo;
   elsif v_rid is null or v_aud is distinct from 'customer' then raise exception 'CHK<<PROBE FAILED pickup: reasoning %, audience %>>', v_rid, v_aud;
   elsif v_held_verdict <> 'held' or v_open <> 'pending' or v_after_hold <> 0 then
     raise exception 'CHK<<PROBE FAILED a held reply: %, item %, sent %>>', v_held_verdict, v_open, v_after_hold;
@@ -83,5 +90,5 @@ begin
   elsif v_real2 <> v_real then raise exception 'CHK<<PROBE FAILED other seats changed: % -> %>>', v_real, v_real2;
   elsif v_fnd <> 0 then raise exception 'CHK<<PROBE FAILED % founder-kind notifications written>>', v_fnd;
   end if;
-  raise exception 'CHK<<PROBE OK one Arabic ack, unverified untouched, picked up as customer, held reply kept open, passed reply sent once and closed>>';
+  raise exception 'CHK<<PROBE OK one Arabic ack, known-unconfirmed kept open and overdue to the CEO at 4 h, picked up as customer, held reply kept open, passed reply sent once and closed>>';
 end $probe$;
