@@ -25,7 +25,6 @@
 --   node scripts/kb/embed_sales_knowledge.mjs --table=company_faq
 -- agent_knowledge 1047 carries no embedding_gte (measured: null); z_ml_vectors_stale marks its ML vector.
 
-begin;
 
 update public.company_faq set answer =
   'Yes, before Reveal. Under Supplier Agreement §12, a quotation is valid for 30 days from submission unless you refresh or withdraw it before Reveal, and you are bound by a quotation that is revealed within that validity period. After Reveal, the contract for the work is solely between you and the customer, on terms you agree; QuotesDone is not a party to it.',
@@ -66,4 +65,3 @@ do $$ declare n int; begin
   raise notice 'PROBE OK';
 end $$;
 
-commit;
