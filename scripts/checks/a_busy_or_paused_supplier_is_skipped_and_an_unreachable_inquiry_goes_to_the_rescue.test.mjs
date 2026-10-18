@@ -22,6 +22,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -107,7 +108,7 @@ test('production, rolled back, ZZ DEMO only: skipped when busy or paused, back o
   // While the change is pending, its file runs first in the same transaction; the probe's raise rolls both back.
   const pre = pendingNotes().has(FILE) ? R(FILE) + '\n' : '';
   let out = null;
-  try { await sql(pre + R(PROBE), { retry: false }); } catch (e) {
+  try { await replaySql(pre + R(PROBE), { retry: false }); } catch (e) {
     const m = String(e.message || e).match(/CHK<<([\s\S]*)>>/);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message || e).slice(0, 800));
     out = JSON.parse(m[1].replace(/\\"/g, '"'));

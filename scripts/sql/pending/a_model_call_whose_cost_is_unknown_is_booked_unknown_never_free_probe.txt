@@ -1,0 +1,1 @@
+The probe for a_model_call_whose_cost_is_unknown_is_booked_unknown_never_free.sql: replay both in one aborted transaction (scripts/lib/safe_replay.mjs) before and after apply. Never applied on its own; it always raises.

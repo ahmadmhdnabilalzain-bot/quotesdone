@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { sql, PROJECT_REF } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 // The file that defines fn_faq_answer last (22 Sep 2026: a supplier-side record answers only a question
@@ -69,14 +70,14 @@ async function answers() {
   const calls = [];
   for (const [q] of CASES) calls.push(`public.fn_faq_answer(${lit(q)}, 0.15, ${lit(await embed(q))}::vector, ${FLOOR})`);
   const select = `select jsonb_agg(a order by n) r from (values ${calls.map((c, i) => `(${i}, ${c})`).join(',')}) v(n, a)`;
-  if (!SIMULATE) return (await sql(select))[0].r;
+  if (!SIMULATE) return (await replaySql(select, { rows: true }))[0].r;
   // Simulation: the pending routine and the missing vectors, in a transaction nobody commits.
   const missing = await sql(`select id, question, answer from public.company_faq
                               where public and status = 'approved' and embedding_gte is null`);
   const vals = [];
   for (const m of missing) vals.push(`(${m.id}, ${lit(await embed(m.question + '\n' + m.answer))}::vector)`);
   const fill = vals.length ? `update public.company_faq f set embedding_gte = v.e from (values ${vals.join(',')}) v(id, e) where f.id = v.id;` : '';
-  return (await sql(`begin;\n${readFileSync(join(ROOT, FILE), 'utf8')}\n;\n${fill}\n${select}`, { retry: false }))[0].r;
+  return (await replaySql(`${readFileSync(join(ROOT, FILE), 'utf8')}\n;\n${fill}\n${select}`, { retry: false, rows: true }))[0].r;
 }
 
 test('a question asked in other words reaches its answer, and an uncovered one gets none', { skip: SKIP, timeout: 300000 }, async () => {

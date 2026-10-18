@@ -21,7 +21,8 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { readPacks, rowsOf, upsertSql, vecLit, SEATS, SEAT_TABLE, TABLES } from '../kb/verified_packs.mjs';
+import { readPacks, gate, validate, rowsOf, upsertSql, vecLit, SEATS, SEAT_TABLE, TABLES } from '../kb/verified_packs.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -36,6 +37,42 @@ test('every pack in knowledge/ is verified, well-formed and unique, and every se
   assert.deepEqual(packs.filter((p) => p.errors.length).map((p) => `${p.rel}: ${p.errors[0]}`), []);
   for (const s of SEATS) assert.ok(packs.some((p) => p.kind === 'seat' && p.code === s), `no pack for ${s}`);
   assert.ok(packs.every((p) => (p.pack.eval ?? []).length > 0), 'a pack without eval questions cannot be measured');
+});
+
+test('an unverified entry is stored but never retrievable, and a verified one is', () => {
+  // Founder, 7 Oct 2026: low confidence, or any fact not read on an opened page -> verified=false, never stated.
+  const e = (id, x) => ({ id, topic: 't', kind: 'concept', body_en: 'b', body_ar: 'ب', sources: ['https://example.invalid'], as_of: '2026-10-07', ...x });
+  const p = { kind: 'trade', code: 'zz', key: 'zz', rel: 'packs/zz.json', version: 'v', pack_id: 'verified:trade:zz',
+    pack: { entries: [e('zz:a', { confidence: 'high' }), e('zz:b', { confidence: 'low' }), e('zz:c', { confidence: 'medium', verified: false })] } };
+  const got = Object.fromEntries(rowsOf(p).map((r) => [r.record_id, [r.cols.runtime_index_eligible, r.cols.tags.includes('verified:' + r.cols.runtime_index_eligible)]]));
+  assert.deepEqual(got, { 'zz:a': [true, true], 'zz:a@ar': [true, true], 'zz:b': [false, true], 'zz:b@ar': [false, true], 'zz:c': [false, true], 'zz:c@ar': [false, true] });
+  // The gate: a declared-unverified entry is quarantined (not served, not counted); an undeclared low one still counts.
+  const pk = (x) => ({ verified: {}, entries: [e('zz:a', { confidence: 'high' }), e('zz:d', { confidence: 'medium' }), x] });
+  assert.equal(gate(pk(e('zz:b', { confidence: 'low', verified: false }))).ok, true);
+  assert.equal(gate(pk(e('zz:b', { confidence: 'low' }))).ok, false);
+  assert.equal(gate({ verified: {}, entries: [e('zz:b', { confidence: 'low', verified: false })] }).ok, false, 'a pack that serves nothing is not verified');
+  for (const f of ['scripts/sql/knowledge_lookup_goes_to_the_trade_first.sql', 'scripts/sql/an_arabic_question_finds_the_same_knowledge_as_an_english_one.sql'])
+    assert.match(read(f), /from public\.sales_knowledge s\s+where[^;]*?s\.runtime_index_eligible/, `${f}: sales_knowledge read without the eligibility filter`);
+});
+
+test('the eval scores the path production reads: ml, gte fused for English, none for Arabic (#1259)', async () => {
+  const ev = read('scripts/eval/knowledge_pack_eval.mjs');
+  assert.ok(ev.includes('select public.fn_ml_read_space()'), 'the default path is not production\'s own space');
+  assert.ok(ev.includes("public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${PATH === 'ml' && gteReads(q.text) ? vecLit(q.vec) : 'null'}"), 'the ml call does not drop gte for Arabic');
+  const src = ev.slice(ev.indexOf('const AR_LETTER'), ev.indexOf('// = #1259'));
+  const gteReads = new Function(src.replace('export const gteReads', 'const gteReads') + '; return gteReads;')();
+  assert.equal(gteReads('Which bubble wrap is sold locally?'), true);
+  assert.equal(gteReads('ما مواد التبطين المتوفرة محلياً؟'), false);
+});
+
+test('a market question may also name an entry of its own trade pack, only as a justified any, never another trade', () => {
+  const e = (id) => ({ id, topic: 't', kind: 'concept', body_en: 'b', body_ar: 'ب', sources: ['https://example.invalid'], confidence: 'high', as_of: '2026-10-07' });
+  const pk = (q) => ({ trade: 'zz', verified: {}, entries: [e('zz:uae-market-sizes'), e('zz:uae-market-products')], eval: [q] });
+  const sib = new Set(['zz:price-drivers']);
+  const q = (ids, x = {}) => ({ q_en: 'q', q_ar: 'س', expected_entry_ids: ids, ...x });
+  assert.deepEqual(validate(pk(q(['zz:uae-market-sizes', 'zz:price-drivers'], { expected_mode: 'any', why: 'w' })), 'trade', 'zz', sib), []);
+  assert.ok(validate(pk(q(['zz:uae-market-sizes', 'zz:price-drivers'])), 'trade', 'zz', sib).length, 'a sibling id without any is refused');
+  assert.ok(validate(pk(q(['zz:uae-market-sizes', 'yy:price-drivers'], { expected_mode: 'any', why: 'w' })), 'trade', 'zz', sib).length, 'another trade is refused');
 });
 
 test('the loader and the eval run the shared module, not a copy', () => {
@@ -89,7 +126,7 @@ o := jsonb_build_object('bits', b, 'anon', (select bool_or(has_function_privileg
   'rls', (select relrowsecurity from pg_class where oid = 'public.marketing_knowledge'::regclass));
 raise exception 'CHK<<%>>', o::text; end $qdchk$;`;
   let out;
-  try { await sql(pending + Object.entries(byTable).map(([t, rs]) => upsertSql(t, rs)).join('\n') + block, { retry: false }); }
+  try { await replaySql(pending + Object.entries(byTable).map(([t, rs]) => upsertSql(t, rs)).join('\n') + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));

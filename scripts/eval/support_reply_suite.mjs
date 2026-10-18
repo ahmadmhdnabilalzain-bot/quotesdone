@@ -57,7 +57,7 @@ const T = [
   { id: 'customer_cost', aud: 'customer', seat: 'customer_support',
     en: 'What does it cost me to get quotes?', ar: 'كم تكلفني خدمة الحصول على عروض الأسعار؟',
     must: { en: ['free', '3%'], ar: ['مجان', '3\\s?%|٣\\s?٪|3 ?في المئة'] },
-    good: { en: 'Posting a job and comparing quotes is free. You pay a 3% reveal fee only if you choose to reveal a supplier, shown before you pay.', ar: 'تقديم الطلب ومقارنة العروض مجاني. تدفع رسوم كشف بنسبة 3% فقط إذا اخترت كشف هوية مورد، وتظهر لك قبل الدفع.' },
+    good: { en: 'Posting a job and comparing quotes is free. You pay a 3% reveal fee only if you choose to reveal a supplier, shown before you pay, with no VAT, and nothing is added for paying by card.', ar: 'تقديم الطلب ومقارنة العروض مجاني. تدفع رسوم كشف بنسبة 3% فقط إذا اخترت كشف هوية مورد، وتظهر لك قبل الدفع، ولا ضريبة عليها ولا رسوم على الدفع بالبطاقة.' },
     bad: { en: 'Comparing is free; the 3% reveal fee plus a card fee and 5% VAT applies.', ar: 'المقارنة مجانية، وتضاف إلى رسوم الكشف 3% رسوم بطاقة وضريبة 5%.' }, forbid: ['card fee|رسوم بطاقة', '5% VAT|ضريبة 5'] },
   { id: 'vat', aud: 'customer', seat: 'customer_support',
     en: 'Is VAT added to the reveal fee?', ar: 'هل تضاف ضريبة القيمة المضافة إلى رسوم الكشف؟',

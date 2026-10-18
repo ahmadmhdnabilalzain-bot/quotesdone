@@ -9,9 +9,9 @@
 // of every scenario, not assumed.
 // deno test --no-lock --node-modules-dir=none supabase/functions/_shared/line_specs/workflow.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { SEAT, SEAT_LABEL, type Line } from './assess.ts';
+import { SEAT, SEAT_LABEL, validateTerm, type Line } from './assess.ts';
 import { optionAmount, splitOptions } from './options.ts';
-import { approve, fillIn, finishArabic, formSchema, gate, supabaseRepo, type HoldRow, type NotificationRow, type QuoteRow, type SpecRepo } from './workflow.ts';
+import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, supabaseRepo, type HoldRow, type NotificationRow, type QuoteRow, type SpecRepo } from './workflow.ts';
 import type { QuoteReading } from '../reasoned_matching.ts';
 
 // What reasoning read from each quotation (reasoned_matching.ts readQuote, mocked here): the gate writes it in
@@ -265,4 +265,37 @@ Deno.test('UNDER THE HOLD "is installation included?" is asked with its scope, s
   const no = await fillIn(repo2, 'q6', SUP_EN, { terms: { installation_included: 'no', installation_detail: '' } }, ctx);
   assert(no.ok && no.complete, 'a supply-only answer is asked for no scope');
   nobodyReal(repo); nobodyReal(repo2);
+});
+
+// STAGE-2 RUN 4 (13 Oct 2026), S07: a quote sent with no validity was held, its supplier filled in every field the
+// form showed, and spec_approve answered still_missing [validity]: the release review asks validity, the form never
+// did, and validateTerm refused it as unknown_attribute. The desk must ask, accept and store everything its release asks.
+Deno.test('a held quote with no validity: the form asks it, the fill-in stores it, and the release is not stranded', async () => {
+  const repo = new Fake();
+  repo.quotes.set('q9', q('q9', SUP_EN.id, { validity: '' }));
+  repo.items.set('q9', [{ line_no: 1, description: 'Wardrobe MDF carcass, HPL finish', qty: 2, unit: 'nos', unit_price: 6000, amount: 12000 }]);
+  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO09', now: NOW, read: reads({ q9: { lines: { 1: { material: 'MDF', finish: 'HPL' } }, terms: { ...INSTALLED, ...WARRANTED } } }) };
+  const g = await gate(repo, 'q9', SUP_EN, ctx);
+  assert(g.held, 'held for the line thickness');
+  const a = deskAssess({ category: 'joinery', lines: await repo.lines('q9'), terms: repo.quotes.get('q9')!, requirements: null }, repo.quotes.get('q9')!.validity);
+  assert(formSchema(a, []).terms.some((t) => t.attr === 'validity'), 'the hold form asks validity');
+  const bad = await fillIn(repo, 'q9', SUP_EN, { lines: { '1': { thickness_mm: '18' } }, terms: { validity: 'as usual' } }, ctx);
+  assert(!bad.ok && bad.code === 'invalid_values' && bad.errors.some((e) => e.attr === 'validity' && e.code === 'not_concrete'), 'a vague validity is refused as vague, not as unknown');
+  const half = await fillIn(repo, 'q9', SUP_EN, { lines: { '1': { thickness_mm: '18' } } }, ctx);
+  assert(half.ok && !half.complete && half.missing.some((m) => m.attr === 'validity'), 'not complete until validity is given');
+  const done = await fillIn(repo, 'q9', SUP_EN, { terms: { validity: '30 days' } }, ctx, async () => ({ bucket: 'quote-files', path: 'quotes/zz/q9.pdf' }));
+  assert(done.ok && done.complete, JSON.stringify(done).slice(0, 300));
+  assertEquals(repo.quotes.get('q9')!.validity, '30 days');
+  const ok = await approve(repo, 'q9', SUP_EN, SUP_EN.email, true, ctx, accept(repo));
+  assert(ok.ok && ok.released, JSON.stringify(ok).slice(0, 300));
+  nobodyReal(repo);
+});
+
+// Security review of #1371: a lapsed validity is not a validity. NOW() is 14 Sep 2026.
+Deno.test('validity: zero days, a past date and an unreadable date are refused; a future date or positive period passes', () => {
+  const ok = (v: string) => validateTerm('validity', v, NOW()).ok;
+  for (const v of ['0 days', '0 weeks', '2026-09-13', '13/09/2026', '1 Sep 2026', 'Sep 1, 2026', '31/02/2027', '45/13/2026']) assertEquals(ok(v), false, v);
+  for (const v of ['30 days', '4 weeks', '2026-09-14', '30/11/2026', '30 Nov 2026', 'Nov 30, 2026', '30 نوفمبر 2026']) assertEquals(ok(v), true, v);
+  const a = deskAssess({ category: 'joinery', lines: [], terms: {}, requirements: null }, '1 Sep 2026', NOW());
+  assert(a.missing.some((m) => m.attr === 'validity'), 'a quote whose stored validity has lapsed is asked again');
 });

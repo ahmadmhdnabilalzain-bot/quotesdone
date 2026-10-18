@@ -43,6 +43,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "motors_drives:ie3-vs-ie4-continuous-duty",
+      "topic": "IE3 versus IE4 motor efficiency for continuous duty",
+      "kind": "selection_guide",
+      "body_en": "IEC 60034-30-1 defines efficiency classes for single-speed motors from 0.12 to 1000 kW, with IE3 as Premium and IE4 as Super Premium efficiency. Each class step cuts losses by roughly 20 percent, although the gain in efficiency points is small: for a 15 kW motor, moving from 92.1% to 93.9%. In a worked example of a 15 kW motor running 6,000 hours a year, IE3 draws 16.29 kW and IE4 15.97 kW, saving about 1,870 kWh a year (about EUR 375 at EUR 0.20/kWh). Savings scale with run hours, so a pump running all day strengthens the case for IE4, and replacements are best planned at scheduled maintenance rather than in an emergency. For comparison, EU Regulation 2019/1781 has required IE3 for motors of 0.75-1000 kW from 1 July 2021 and IE4 for 75-200 kW from 1 July 2023. Buyers should get the tariff, actual run hours and both nameplate efficiencies to compute payback. Not established here: UAE-specific motor efficiency minimums and a general payback period.",
+      "body_ar": "يحدد المعيار IEC 60034-30-1 فئات الكفاءة للمحركات أحادية السرعة من 0.12 إلى 1000 كيلوواط، حيث تمثّل IE3 الكفاءة الممتازة وIE4 الكفاءة فائقة الامتياز. وكل انتقال إلى فئة أعلى يخفّض الفواقد بنحو 20 بالمئة، رغم أن الزيادة في نقاط الكفاءة صغيرة: فلمحرك 15 كيلوواط ترتفع من 92.1% إلى 93.9%. وفي مثال محسوب لمحرك 15 كيلوواط يعمل 6,000 ساعة سنوياً، يستهلك محرك IE3 قدرة 16.29 كيلوواط ومحرك IE4 قدرة 15.97 كيلوواط، بوفر نحو 1,870 كيلوواط ساعة سنوياً (نحو 375 يورو بسعر 0.20 يورو للكيلوواط ساعة). ويتناسب الوفر مع ساعات التشغيل، لذا فإن المضخة التي تعمل طوال اليوم تعزّز جدوى IE4، ويُفضَّل التخطيط للاستبدال أثناء الصيانة المجدولة لا في حالات الطوارئ. وللمقارنة، اشترطت لائحة الاتحاد الأوروبي 2019/1781 الفئة IE3 للمحركات من 0.75 إلى 1000 كيلوواط اعتباراً من 1 يوليو 2021، والفئة IE4 للمحركات من 75 إلى 200 كيلوواط اعتباراً من 1 يوليو 2023. ينبغي للمشترين الحصول على التعرفة وساعات التشغيل الفعلية وكفاءة لوحة البيانات لكلا المحركين لحساب فترة الاسترداد. غير مثبت هنا: الحدود الدنيا لكفاءة المحركات في الإمارات وفترة استرداد عامة.",
+      "sources": [
+        "https://www.fabrico.io/blog/ie3-vs-ie4-motor-efficiency/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "motors_drives:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Should I buy an IE3 or IE4 motor for a pump running all day?",
+      "q_ar": "هل أشتري محركاً بكفاءة IE3 أم IE4 لمضخة تعمل طوال اليوم؟",
+      "expected_entry_ids": [
+        "motors_drives:ie3-vs-ie4-continuous-duty"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither compares IE3 vs IE4 efficiency or life-cycle cost for continuous duty; missing: motor efficiency class selection entry). motors_drives:ie3-vs-ie4-continuous-duty was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from motors_drives.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +97,9 @@
       "motors_drives:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "motors_drives:ie3-vs-ie4-continuous-duty"
+    ]
   }
 }

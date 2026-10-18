@@ -41,6 +41,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "fleet_maintenance:service-intervals-and-severe-duty",
+      "topic": "Fleet vehicle service intervals and severe-duty schedules",
+      "kind": "service_interval",
+      "body_en": "Service intervals for light vehicles are set by each manufacturer's maintenance schedule. In the UAE, Gulf News reported that the Ministry of Economy announced cars must be serviced every 10,000 km instead of 5,000 km, giving manufacturers and authorised dealers until the end of that year to comply; European and German manufacturers prefer 15,000 to 20,000 km. Manufacturers also publish a separate 'severe usage' schedule. Hyundai's owner's manual, for example, applies it to extensive idling or low-speed driving, rough, dusty or unpaved roads, heavy dust, heavy and stop-and-go traffic, towing or roof loads, and driving as a patrol car, taxi or other commercial use, and to vehicles over 10 years or 100,000 miles. Many fleet vehicles therefore fall under the severe schedule. A fleet contract should state which schedule (normal or severe) applies per vehicle type and the km/month trigger. Not established here: any single legal maximum interval for fleet cars.",
+      "body_ar": "تُحدَّد فترات صيانة المركبات الخفيفة وفق جدول الصيانة الصادر عن كل مُصنِّع. وفي الإمارات، أفادت صحيفة غلف نيوز بأن وزارة الاقتصاد أعلنت وجوب صيانة السيارات كل 10,000 كم بدلاً من 5,000 كم، مع منح المصنّعين والوكلاء المعتمدين مهلة حتى نهاية ذلك العام للالتزام؛ بينما يفضّل المصنّعون الأوروبيون والألمان فترات من 15,000 إلى 20,000 كم. ويصدر المصنّعون أيضاً جدولاً منفصلاً لظروف الاستخدام القاسية؛ فدليل مالك هيونداي مثلاً يطبّقه على التشغيل الطويل دون حركة أو القيادة البطيئة، والطرق الوعرة أو المغبرة أو غير المعبّدة، والغبار الكثيف، والزحام والقيادة المتقطعة، والقَطر أو الأحمال على السقف، والاستخدام كسيارة دورية أو أجرة أو أي استخدام تجاري آخر، وكذلك على المركبات التي تجاوز عمرها 10 سنوات أو 100,000 ميل. لذلك تقع كثير من مركبات الأساطيل ضمن الجدول القاسي. ينبغي أن يحدد عقد صيانة الأسطول الجدول المطبّق (العادي أو القاسي) لكل نوع مركبة، ومعيار الاستحقاق بالكيلومترات أو الأشهر. غير مثبت هنا: أي حد قانوني أقصى موحّد لفترات صيانة سيارات الأساطيل.",
+      "sources": [
+        "https://gulfnews.com/uae/transport/how-often-do-you-service-your-car-1.1583842",
+        "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_US/id3ce613a50f9.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +71,15 @@
       "expected_entry_ids": [
         "fleet_maintenance:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How often should a fleet car in the UAE be serviced?",
+      "q_ar": "كم مرة يجب صيانة سيارة الأسطول في الإمارات؟",
+      "expected_entry_ids": [
+        "fleet_maintenance:service-intervals-and-severe-duty"
+      ],
+      "why": "No entry of this pack answered it (no entry gives service intervals for fleet cars). fleet_maintenance:service-intervals-and-severe-duty was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from fleet_maintenance.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +96,9 @@
       "fleet_maintenance:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "fleet_maintenance:service-intervals-and-severe-duty"
+    ]
   }
 }

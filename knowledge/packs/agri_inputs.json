@@ -44,6 +44,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "agri_inputs:date-palm-fertigation-nutrition",
+      "topic": "Date palm nutrition under drip fertigation",
+      "kind": "spec_checklist",
+      "body_en": "No single mandated fertiliser grade for date palms was found. FAO's date palm production manual names straight materials: ammonium sulphate, double superphosphate and potassium chloride (or potassium sulphate), with planting-hole doses of 0.25 kg ammonium sulphate plus another 0.25 kg six weeks later, 700 g double superphosphate and 500 g potassium chloride (or 625 g potassium sulphate). On fertigation, ICARDA trials in Jordan, Oman and the UAE over the 2014/2015 and 2015/2016 seasons on sandy soil found fertigation raised date yield by 51.2% to 81% across cultivars compared with traditional application, with the hydraulic injector the most effective method (Sacchari reaching 69 kg per tree). Not established here: per-tree annual N-P-K doses for mature palms, a specific soluble NPK grade for fertigation, or a MOCCAE-endorsed grade.",
+      "body_ar": "لم يُعثر على درجة سماد واحدة مُلزِمة لنخيل التمر. ويذكر دليل منظمة الأغذية والزراعة (الفاو) لإنتاج نخيل التمر أسمدة أحادية هي: كبريتات الأمونيوم، والسوبر فوسفات المزدوج، وكلوريد البوتاسيوم (أو كبريتات البوتاسيوم)، بجرعات في حفرة الغرس قدرها 0.25 كغ من كبريتات الأمونيوم ثم 0.25 كغ أخرى بعد ستة أسابيع، و700 غ من السوبر فوسفات المزدوج، و500 غ من كلوريد البوتاسيوم (أو 625 غ من كبريتات البوتاسيوم). وفي التسميد مع الري، وجدت تجارب إيكاردا في الأردن وعُمان والإمارات خلال موسمي 2014/2015 و2015/2016 على تربة رملية أن التسميد مع الري رفع إنتاج التمر بنسبة تراوحت بين 51.2% و81% بحسب الصنف مقارنة بالطريقة التقليدية، وكان الحاقن الهيدروليكي أكثر الطرق فاعلية (إذ بلغ إنتاج صنف السكري 69 كغ للنخلة). غير مثبت هنا: الجرعات السنوية من النيتروجين والفوسفور والبوتاسيوم للنخلة البالغة، أو درجة NPK ذوابة محددة للتسميد مع الري، أو درجة معتمدة من وزارة التغير المناخي والبيئة.",
+      "sources": [
+        "https://www.fao.org/4/y4360e/y4360e0f.htm",
+        "https://repo.mel.cgiar.org/items/05f91798-ce51-42ef-8b15-04a0167cf12a/full"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +74,15 @@
       "expected_entry_ids": [
         "agri_inputs:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which fertiliser grade is used for date palms in fertigation?",
+      "q_ar": "ما درجة السماد المستخدمة للنخيل في التسميد بالري؟",
+      "expected_entry_ids": [
+        "agri_inputs:date-palm-fertigation-nutrition"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither names a fertiliser grade or NPK analysis for date-palm fertigation; missing: crop fertigation grades entry). agri_inputs:date-palm-fertigation-nutrition was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from agri_inputs.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +99,9 @@
       "agri_inputs:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "agri_inputs:date-palm-fertigation-nutrition"
+    ]
   }
 }

@@ -1,12 +1,15 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
+import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
+import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
@@ -21,9 +24,13 @@ import { storedAt } from '../_shared/stored_at.ts';
 import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, jobNoOf, isCurrentDoc, arCategory, arEmirate, enCategory, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
+import { clientIp } from '../_shared/supplier_terms.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
+import { currentCustomerTermsVersion, needsReacceptance, customerTermsRecord, REACCEPT_MESSAGE } from '../_shared/customer_terms.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
-import { portalLink } from '../_shared/site_origins.ts';
+import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
+import { feeBaseOf, feeBasisLine, priceStated, vatStated } from '../_shared/stated_price.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { arabicOf, arabicTextsFor, nativeArabic } from '../_shared/reasoned_governance.ts';
@@ -32,6 +39,7 @@ import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/
 // complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
 import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.ts';
 import { verifiedBadges } from '../_shared/verified_badges.ts';
+import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../_shared/drawing_format.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -63,7 +71,6 @@ const EDIT_WINDOW_MS = 60 * 60e3;
 // emits '[', '\\', ']' from the 27th, so a customer with 30 quotes saw "Supplier [" and the
 // comparison report referenced a label that did not exist in their list.
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
-async function signedFile(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('quote-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDrawing(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDoc(bucket: string | null | undefined, path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from(bucket || 'agent-docs').createSignedUrl(path, 7 * 24 * 3600); return data?.signedUrl || null; } catch { return null; } }
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -266,7 +273,7 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
       // matching — with routing.fallback = true and no exception, no alert and no stuck row, while
       // decision_policy.use_capability_matching said true the whole time.
       // sales_engineer's `match` action runs public.fn_match_capability and honours
-      // decision_policy's fanout ceiling, per-trade cap and relevance floor. persist:false because
+      // decision_policy's relevance floor, and invites every supplier left (no count cap: any number may quote). persist:false because
       // the write happens below, where the landed/refused split decides who is emailed.
       const secret = await getSecret('cred_fn_customer_api');
       // The Authorization header is NOT optional and its absence is what the old call looked like.
@@ -379,11 +386,12 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
 }
 
 type Cfg = { standard_reveal_rate: number; refund_window_working_days: number };
-async function getCfg(): Promise<Cfg> { const { data } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle(); return (data as Cfg) || { standard_reveal_rate: 0.03, refund_window_working_days: 3 }; }
+// Never a guessed rate (../_shared/reveal_rate.ts): null when pricing_config cannot be read, and the caller decides.
+async function getCfg(): Promise<Cfg | null> { const r = await readRevealRate(admin); if (r.ok) return r.cfg as Cfg; await recordRateUnreadable(admin, 'customer_api getCfg -> pricing_config', r.error); return null; }
 // 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
 // and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
 // pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
-function revealFee(amount: number, cfg: Cfg): number { if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
+function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
 // A RATING IS EARNED HERE OR IT DOES NOT EXIST (founder, 9 Sep 2026): "supplier rating should be
 // from customers after they tried them", "google review shouldnt be counted". This used to fall
 // back to leads.rating ?? leads.rating_maps — the Google Maps star of a business QuotesDone has
@@ -612,7 +620,11 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   const maskNames = partyName ? [] : await supplierIdentities([q.supplier_id]);
   // The Arabic of the supplier's own words is reasoned (decision point trade_glossary_ar); a line not yet
   // translated HOLDS the Arabic document — it is never printed half-translated.
-  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts }), { subject: { quote_id: q.id } });
+  // The fee line prints pricing_config's rate (the one reveal_fee() charges); unread, the PDF is refused, never guessed.
+  const rateRead = await readRevealRate(admin);
+  if (!rateRead.ok) { await recordRateUnreadable(admin, 'customer_api quotation PDF -> pricing_config', rateRead.error, { quote_id: q.id }); return { j: { ok: false, error: 'reveal_rate_unread' }, ref: quoteRef(inq, letter) }; }
+  const revealRate = rateRead.cfg.standard_reveal_rate;
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts, revealRate }), { subject: { quote_id: q.id } });
   if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
@@ -674,7 +686,8 @@ async function buildBriefPdf(inq: any, lang: string) {
     'هذا ملخّص الطلب كما ترسله QuotesDone إلى المورّدين المطابقين، دون الإفصاح عن هوية العميل؛ فلا يتضمّن اسمه ولا اسم شركته ولا بيانات التواصل معه. يقدّم المورّدون عروضهم استنادًا إلى نطاق العمل وحده، ولا تُتبادل بيانات التواصل إلا بعد أن يكشف العميل عن العرض الذي يختاره.') });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص الطلب للمورّدين'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true } }) });
+    // filed under the request in Dropbox (fn_enqueue_doc_backups: CUSTOMER DOCUMENTS reads agent-docs/brief/<inquiry id>/)
+    body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص الطلب للمورّدين'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true }, folder: 'brief/' + inq.id }) });
   const j = await r.json();
   return { j, ref };
 }
@@ -717,7 +730,8 @@ async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, __secret: secret }) });
+    // filed under the request in Dropbox (fn_enqueue_doc_backups: CUSTOMER DOCUMENTS reads agent-docs/compare/<inquiry id>/)
+    body: JSON.stringify({ ...body, __secret: secret, folder: 'compare/' + inq.id }) });
   const j = await r.json();
   return { j, ref };
 }
@@ -797,7 +811,7 @@ async function resolveRedactedPaths(custId: string, authUserId: string, drawing:
   return { paths };
 }
 
-Deno.serve(observe('customer_api', async (req) => {
+Deno.serve(siteCors(observe('customer_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
@@ -839,7 +853,28 @@ Deno.serve(observe('customer_api', async (req) => {
     const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
-    if (action === 'me') return J({ customer: cust });
+    // RE-ACCEPTANCE OF A NEW TERMS VERSION (6 Oct 2026, release review of #1240). Recorded the same way as sign-up
+    // (_shared/customer_terms.ts: version, time, IP, SHA of the pinned text) and the signed certificate re-issued.
+    const recordTermsAcceptance = async (): Promise<boolean> => {
+      const rec = await customerTermsRecord(getSecret, clientIp(req));
+      if (!rec || !cust?.id) return false;
+      const { tos_sha256, ...base } = rec;
+      const { error } = await admin.from('customers').update(base).eq('id', cust.id);
+      if (error) return false;
+      // A separate write, so a database without the column yet cannot fail the acceptance itself.
+      await admin.from('customers').update({ tos_sha256 }).eq('id', cust.id).then(() => null, () => null);
+      try {
+        const s = await getSecret('cred_fn_customer_api');
+        timedFetch(`${SUPABASE_URL}/functions/v1/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: s, action: 'sign', kind: 'customer', email }) }).catch(() => { /* best effort */ });
+      } catch (_e) { /* never blocks the customer */ }
+      return true;
+    };
+    if (action === 'me') return J({ customer: cust, terms_current_version: await currentCustomerTermsVersion(getSecret) });
+    if (action === 'accept_terms') {
+      if (!cust?.tos_accepted_at) return J({ error: 'finish_signup_first', code: 'finish_signup_first' }, 400);
+      const ok = await recordTermsAcceptance();
+      return ok ? J({ ok: true, version: await currentCustomerTermsVersion(getSecret) }) : J({ error: 'could not record the acceptance', code: 'terms_not_recorded' }, 500);
+    }
 
     // ATTACH A BOQ (founder, 14 Sep 2026: "describe a job / drop a drawing is fine but add attach a
     // BOQ also"). A spreadsheet BOQ (xlsx / xls / csv). drawing_boq mode 'sheet' sniffs it by its
@@ -876,7 +911,8 @@ Deno.serve(observe('customer_api', async (req) => {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'sheet', file_b64: b64, mime, filename: name, hint }) });
         jd = await r.json();
       } catch (_e) { /* answered below as boq_unreadable */ }
-      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'boq_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
+      // Ruling 1177: an unreadable file is answered with a clearer-copy request in the customer's own language.
+      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'boq_unreadable'), detail: String(jd?.detail || '').slice(0, 200), message: clearerCopyAsk('customer', documentLocale(body.lang, cust.locale), name) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_SHEET);
       return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
     }
@@ -907,7 +943,7 @@ Deno.serve(observe('customer_api', async (req) => {
         if (job) return J({ ok: true, boq: null, kind: 'dxf', needs: 'cad_conversion', drawing_file_path: p, drawing_file_name: name, drawing_redacted_paths: [], stored: true, note: 'cad_queued', cad_job_id: job });
       }
       if (jd?.error === DRAWING_FORMAT_ERROR) return J(drawingFormatRefused(), 415);
-      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
+      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200), message: clearerCopyAsk('customer', documentLocale(body.lang, cust.locale), name) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
       // A DXF's take-off carries the file's own names (layers, blocks, title block): cad_identity takes them
       // out before the customer's portal holds the BOQ it will send (22 Sep 2026). The CAD FILE is never
@@ -1191,6 +1227,16 @@ Deno.serve(observe('customer_api', async (req) => {
       // customer's ability to trade away for an operational fault of ours. It is repaired in the
       // background instead, so the evidence still lands and the gap stays visible.
       // (Enforced by the account-rule gate above since 14 Sep 2026.)
+      // A NEWER TERMS VERSION IS ACCEPTED INLINE, NEVER A WALL (release review of #1240): an older acceptance stands
+      // until this, the customer's next request. The composer shows the current Terms with a checkbox and resends
+      // with accept_terms_version; nothing else about the request changes. 409, with the message in both languages.
+      {
+        const curV = await currentCustomerTermsVersion(getSecret);
+        if (needsReacceptance(cust, curV)) {
+          if (body.accept_terms_version !== curV) return J({ error: 'terms_reaccept', code: 'terms_reaccept', version: curV, message: REACCEPT_MESSAGE.en, message_ar: REACCEPT_MESSAGE.ar }, 409);
+          if (!(await recordTermsAcceptance())) return J({ error: 'could not record the acceptance', code: 'terms_not_recorded' }, 500);
+        }
+      }
       if (!cust.signed_terms_path) {
         // Fire-and-forget repair. Never awaited: create_inquiry must not inherit the latency or
         // the failure mode of a PDF render and a Dropbox round-trip.
@@ -1463,6 +1509,16 @@ Deno.serve(observe('customer_api', async (req) => {
         const clean = String(scrubIdentity(String(v ?? '').slice(0, 300), cust.full_name, hits) || '').trim();
         if (clean.replace(/\[removed\]/g, '').trim()) answers[String(k).slice(0, 80)] = clean;
       }
+      // "Not sure" records no answer: it opens a handoff to the sales engineer for those specs (./spec_handoff.ts).
+      const unsure = notSureKeys(body.not_sure);
+      const hand = specHandoffArgs(iid, cust.id, unsure);
+      let handoff: number | null = null;
+      if (hand) {
+        const { data: hid, error: herr } = await admin.rpc('fn_seat_handoff', hand);
+        if (herr) return J({ ok: false, error: 'handoff_failed' }, 500);
+        handoff = (hid as number) ?? null;
+      }
+      if (!Object.keys(answers).length && hand) return J({ ok: true, released: false, handoff, not_sure: unsure });
       const { data: res, error } = await admin.rpc('fn_inquiry_add_missing_specs', { p_inquiry: iid, p_customer: cust.id, p_answers: answers, p_source: 'customer_portal' });
       if (error) return J({ ok: false, error: 'save_failed' }, 500);
       const r = (res || {}) as Record<string, any>;
@@ -1472,7 +1528,10 @@ Deno.serve(observe('customer_api', async (req) => {
         ({ matches } = await matchAndNotify(iid, { category: String(inq.category || ''), emirate: inq.emirate ?? null, summary: String(inq.summary || ''),
           budget: inq.budget ?? null, extra: ' The customer completed the details this trade needs.' }));
       }
-      return J({ ...r, released: r.ready === true, matches, removed: hits.length });
+      // An answer in Arabic script was saved as written and its supplier copy is held for its English
+      // (fn_inquiry_add_missing_specs files it for the replay; _shared/supplier_english.ts finishEnglish sends it).
+      const held = r.held_for_english === true ? { notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en } : {};
+      return J({ ...r, ...held, released: r.ready === true, matches, removed: hits.length, handoff });
     }
 
     if (action === 'rfq_note') {
@@ -1488,20 +1547,19 @@ Deno.serve(observe('customer_api', async (req) => {
       const hits: string[] = [];
       const clean = String(scrubIdentity(raw, cust.full_name, hits) || '').trim();
       if (clean.replace(/\[removed\]/g, '').trim().length < 2) return J({ error: 'text_required' }, 400);
+      // Every matched supplier reads this note, and suppliers read English only (_shared/supplier_english.ts):
+      // Arabic is kept as written and the supplier copy is held until the model route writes its English.
       const nowIso = new Date().toISOString();
+      if (hasArabic(clean)) {
+        const { data: held, error: herr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: null,
+          answer_as_written: clean, english_held_at: nowIso, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
+        if (herr || !held) return J({ error: 'save_failed' }, 500);
+        try { await holdForEnglish(admin, Number(held.id), clean); } catch (_e) { return J({ error: 'save_failed' }, 500); }
+        return J({ ok: true, id: held.id, text: clean, notified: 0, removed: hits.length, held_for_english: true, notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en });
+      }
       const { data: ins, error: nerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
       if (nerr || !ins) return J({ error: 'save_failed' }, 500);
-      const { data: ms } = await admin.from('inquiry_matches').select('supplier_id').eq('inquiry_id', iid);
-      const sids = [...new Set((ms || []).map((m: { supplier_id: number }) => Number(m.supplier_id)).filter(Boolean))];
-      let notified = 0;
-      if (sids.length) {
-        const { data: ls } = await admin.from('leads').select('id,email,claimed_by,banned').in('id', sids);
-        const rows = (ls || []).filter((l: any) => l.banned !== true).map((l: any) => ({ id: l.id, to: String(l.claimed_by || l.email || '') })).filter((l) => /@/.test(l.to))
-          .map((l) => ({ type: 'rfq_addendum', to_email: l.to, to_role: 'supplier', lead_id: l.id, inquiry_id: iid, subject: 'The customer added detail to a request you were invited to quote',
-            body: 'The customer added this to the ' + (inq.category || '') + (inq.emirate ? ' job in ' + inq.emirate : ' job') + ' you were invited to quote:\n\n"' + clean + '"\n\nIt is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.' }));
-        await queueNotifications(rows);
-        notified = rows.length;
-      }
+      const notified = await mailMatched(admin, iid, supplierMail('note', inq, null, clean));
       return J({ ok: true, id: ins.id, text: clean, notified, removed: hits.length });
     }
 
@@ -1538,7 +1596,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (ids.length && txRes.error) console.error('my_inquiries: transactions read failed —', txRes.error.message);
       const txIds = txs.map((t) => t.id);
       const [qsRes, msRes, sosRes, rfsRes] = await Promise.all([
-        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
+        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,discount_label,vat_treatment,vat_amount,amount_as_stated,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
         ids.length ? admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids) : null,
         ids.length ? admin.from('spec_alternative_offer').select('id,inquiry_id,line_no,item,attr,label_en,label_ar,requested,alternatives,state,reply_by').in('inquiry_id', ids).eq('customer_id', cust.id).eq('state', 'open').order('opened_at', { ascending: true }) : null,
         txIds.length ? admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds) : null,
@@ -1658,7 +1716,7 @@ Deno.serve(observe('customer_api', async (req) => {
         // from 60, so the portal offered an Edit button for 23 hours that the server always refused.
         editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < EDIT_WINDOW_MS), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((EDIT_WINDOW_MS - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0,
         // How many quotes are on hold for missing details and are therefore not in the list below.
-        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(feeBaseOf(q) ?? 0), cfg), price_stated: priceStated(q, 'en'), price_stated_ar: priceStated(q, 'ar'), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, discount_label: q.discount_label ?? null, vat_treatment: q.vat_treatment ?? null, vat_stated: vatStated(q, 'en'), vat_stated_ar: vatStated(q, 'ar'), fee_basis: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'en'), fee_basis_ar: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'ar'), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
           // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.
@@ -1687,7 +1745,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // promo is always false: there is no promotional reveal rate (founder, 6 Sep 2026); the key stays so no reader breaks.
       // The ladder's numbers, from the same row the refund sweep and the supplier email read, so the
       // portal's timeline cannot drift from what is actually enforced (5 / 3 / 7-14 on 14 Sep 2026).
-      const pc = cfg as unknown as Record<string, number | null | undefined>;
+      const pc = (cfg || {}) as unknown as Record<string, number | null | undefined>;
       const guarantee_terms = { window_days: pc.refund_window_working_days ?? null, chase_after_days: pc.chase_after_working_days ?? null, bank_min_days: pc.bank_settlement_working_days_min ?? null, bank_max_days: pc.bank_settlement_working_days_max ?? null };
       return J({ inquiries: out, locale: cust.locale || null, promo: false, guarantee_terms });
     }
@@ -1863,8 +1921,10 @@ Deno.serve(observe('customer_api', async (req) => {
       const gate = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });
       if (!gate.ok) return J({ ok: false, error: gate.error, code: gate.code, message: gate.message, message_ar: gate.message_ar }, gate.status);
       const q = gate.quote;
-      if (gate.already_revealed) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
+      if (gate.already_revealed) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup /* rulings 1228/1229: the customer only ever gets our template quotation as a PDF, never the supplier's own file */ }); }
       // The breakdown the confirm dialog prints is the one stripe_checkout charges: one module.
+      // No readable rate, no price and no payment: never a guessed 3% (./reveal_rate.ts; getCfg filed the finding).
+      if (!cfg) return J({ ok: false, error: 'reveal_rate_unavailable', code: 'reveal_rate_unavailable', message: 'Card payments are briefly unavailable. Your quotes are safe — please try again shortly.', message_ar: 'الدفع بالبطاقة غير متاح مؤقتًا. عروضك محفوظة — يُرجى المحاولة بعد قليل.' }, 503);
       const ch = revealCharge(Number(q.quote_amount), Number(cfg.standard_reveal_rate));
       return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
     }
@@ -2001,7 +2061,7 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'supplier_history') {
       const qid = String(body.quote_id || '');
-      const { data: q } = await admin.from('quotes').select('id,supplier_id,original_file_path,original_file_name').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
+      const { data: q } = await admin.from('quotes').select('id,supplier_id').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
       if (await sanctionedLead(admin, q.supplier_id)) return J(SANCTIONED_REFUSAL, 403);  // founder instruction 516: never shown to a customer
       // The reveal check gates what is RETURNED, not what may be read, so the three reads that only
       // need q.supplier_id run beside it instead of one after another (14 Sep 2026: four sequential
@@ -2045,7 +2105,7 @@ Deno.serve(observe('customer_api', async (req) => {
         scope: 'this customer',
         rfqs_sent_platform_wide: sentAll || 0,
       };
-      return J({ ok: true, supplier: sup ? { ...sup, rating_display: ratingOf(sup) } : null, projects, projects_count: projects.length, relationship, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null });
+      return J({ ok: true, supplier: sup ? { ...sup, rating_display: ratingOf(sup) } : null, projects, projects_count: projects.length, relationship /* rulings 1228/1229: the customer only ever gets our template quotation as a PDF, never the supplier's own file */ });
     }
 
 
@@ -2266,4 +2326,4 @@ Deno.serve(observe('customer_api', async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));
