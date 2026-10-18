@@ -1,0 +1,4 @@
+Committed, not applied: apply at merge (rule: never apply before merge). Moves when the release operator runs
+`node scripts/apply_sql.mjs scripts/sql/one_slow_duty_never_wedges_the_seat_duty_tick.sql --apply`, then the probe
+(one_slow_duty_never_wedges_the_seat_duty_tick_probe.sql) reads PROBE OK, then deletes this note and appends the file
+to the END of scripts/sql/MANIFEST.txt in the same commit.
