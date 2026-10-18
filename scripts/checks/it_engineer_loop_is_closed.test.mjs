@@ -280,23 +280,34 @@ test('a registered policy refusal on the counted telemetry row is not a customer
 // -- a parked handoff whose class the playbook covers must close, and one whose class it does not
 // must stay parked -- because a gate that opens for everything is the failure this build could cause.
 test('a parked handoff closes from the playbook, and an unknown class still refuses', { skip: SKIP }, async () => {
+  // 13 Oct 2026: covered_by_playbook used to count only handoffs ALREADY parked (awaiting_learning),
+  // while fn_it_loop_reverify fills from the playbook every handoff whose finding has CLEARED --
+  // parked or clearing in this very pass. Two handoffs that cleared since the last tick made it
+  // learned 2 / covered 0 and turned the check red on a correct run. It now counts the population the
+  // routine acts on (the routine's own cleared test), and asserts the real invariant directly:
+  // after the pass, no parked handoff is one the playbook covers.
   const r = await probe(`
-    declare v jsonb; v_before int; v_after int; v_known int; v_unknown int;
+    declare v jsonb; v_after int; v_known int; v_unknown int; v_parked_covered int;
     begin
       set local statement_timeout = '60s';
-      select count(*) filter (where true),
-             count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null),
+      select count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null),
              count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is null)
-        into v_before, v_known, v_unknown
+        into v_known, v_unknown
+        from public.agent_actions a
+        left join public.it_engineer_finding f on f.issue_key = a.detail->>'issue_key'
+       where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+         and a.status in ('pending','failed')
+         and (f.issue_key is null or f.closed_at is not null
+              or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz);
+      v := public.fn_it_loop_reverify();
+      select count(*),
+             count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null)
+        into v_after, v_parked_covered
         from public.agent_actions a
        where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
          and a.status in ('pending','failed') and a.detail ? 'awaiting_learning';
-      v := public.fn_it_loop_reverify();
-      select count(*) into v_after from public.agent_actions a
-       where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
-         and a.status in ('pending','failed') and a.detail ? 'awaiting_learning';
       raise exception 'CHK<<%>>', json_build_object(
-        'parked_before', v_before, 'parked_after', v_after,
+        'parked_after', v_after, 'parked_after_but_covered', v_parked_covered,
         'covered_by_playbook', v_known, 'not_covered', v_unknown,
         'closed', (v->>'closed')::int, 'learned_from_playbook', (v->>'learned_from_playbook')::int,
         'known_class', (public.fn_it_playbook_for('duty:heartbeat:ZZ DEMO probe step')).failure_class,
@@ -309,9 +320,8 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
     'a key whose own class has no written cause borrowed a broader class: the gate opened on a guess');
   assert.equal(r.known_class, 'heartbeat_step', 'the playbook no longer covers duty:heartbeat:');
   assert.equal(r.learned_from_playbook, r.covered_by_playbook,
-    'a parked handoff whose class the playbook covers was not filled from it');
-  assert.equal(r.parked_after, r.not_covered,
-    'the handoffs left parked are not exactly the ones no playbook class covers');
+    'a cleared handoff whose class the playbook covers was not filled from it');
+  assert.equal(r.parked_after_but_covered, 0, 'a handoff the playbook covers is still parked after the pass');
   // Deliberately NO assertion that either count is above zero. Both are a snapshot of production's
   // backlog: a floor on them would turn a drained queue -- the thing this build is for -- into a red
   // check. The refusal path is proved by the three lookups above, which do not depend on the backlog.

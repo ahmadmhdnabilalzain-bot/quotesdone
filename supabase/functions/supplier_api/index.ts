@@ -507,6 +507,9 @@ const handle = async (req: Request): Promise<Response> => {
           });
           return { text: r.reply, action: r.action ?? null };
         },
+        // THE REVIEW RUNS OFF THE REQUEST (quote_review_flow.ts offRequest): the turn answers at once in 'reviewing',
+        // and the runtime keeps the job alive after the response. The portal polls while it is reviewing.
+        background: (job) => { const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime; if (er?.waitUntil) er.waitUntil(job); },
         // No model answer: the turn waits in sales_engineer's queue; reasoned_delivery.ts posts the GUARDED (aiReply)
         // replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
         hold: async (v) => {
