@@ -38,11 +38,59 @@ export async function resolveE2eRun(
   const tag = headers.get('x-qd-e2e-run') || '';
   if (!TAG.test(tag)) return null;
   const bearer = (headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (serviceKey && same(bearer, serviceKey)) return { tag, secret: null };
+  // The service-role hop carries the internal secret on (stage-2 run 4, 13 Oct 2026): customer_api reaches
+  // quote_compare with the service bearer, and quote_compare calls ai_gateway with NO bearer, so the tag reached
+  // the gateway unproven and the comparison was refused fixture_no_spend - the Opus route was never asked.
+  if (serviceKey && same(bearer, serviceKey)) return { tag, secret: await internalSecret().catch(() => null) };
   const presented = headers.get('x-qd-e2e-secret') || '';
   if (!presented) return null;
   const expected = await internalSecret().catch(() => null);
   return expected && same(presented, expected) ? { tag, secret: presented } : null;
+}
+
+// THE RUN'S OWN IDENTITY IS PROOF TOO (run 1be65ab2, 12 Oct 2026). The browser walk signs in as the run's own
+// customer (qd-<tag>-...@example.invalid) and cannot send x-qd-e2e-secret, so every intake turn was refused
+// fixture_no_spend although qd_run:<tag> had models_allowed open; the intake held on turn 1 and the terms step
+// never reached "Send to suppliers". The tag is now ALSO honoured when the request's bearer is a user JWT that
+// the auth server VERIFIES (verifyEmail) to belong to that run's own address, and only while
+// fn_e2e_run_tag_open(tag) (window open, models_allowed, unexpired) says so. A header or a guessed tag still
+// gets a public caller nothing: the tag comes from the verified email, never from the request.
+const RUN_EMAIL = /^qd-([a-z0-9]{4,16})-[a-z0-9._+-]+@example\.invalid$/;
+export const runTagOfEmail = (email: unknown): string | null => {
+  const m = RUN_EMAIL.exec(String(email || '').toLowerCase());
+  return m ? m[1] : null;
+};
+/** The unverified JWT payload email, used ONLY to skip the auth round-trip for everyone else. */
+function claimedEmail(bearer: string): string | null {
+  try {
+    const p = bearer.split('.')[1]; if (!p) return null;
+    return JSON.parse(atob(p.replace(/-/g, '+').replace(/_/g, '/')))?.email ?? null;
+  } catch { return null; }
+}
+// AN ADDRESS ANYONE CAN TYPE IS NOT PROOF (review of #1361). The user must ALSO carry app_metadata.e2e_run equal
+// to that tag: app_metadata is writable only by the service role, and the harness creates its users through the
+// admin API with it (scripts/lib/demo_factory.mjs mkAuthUser). user_metadata is user-writable and is never read.
+// Every lookup that throws or errs — the auth server included — fails closed.
+type AuthUser = { email?: string | null; app_metadata?: Record<string, unknown> | null } | null;
+export async function resolveE2eRunByIdentity(
+  headers: Headers, verifyUser: (jwt: string) => Promise<AuthUser>,
+  isOpen: (tag: string) => Promise<boolean>, internalSecret: () => Promise<string | null>,
+): Promise<Run | null> {
+  const bearer = (headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!bearer || !runTagOfEmail(claimedEmail(bearer))) return null;
+  const user = await verifyUser(bearer).catch(() => null);     // the auth server's answer, not the payload's
+  const tag = runTagOfEmail(user?.email);
+  if (!tag || user?.app_metadata?.e2e_run !== tag) return null;
+  if ((await isOpen(tag).catch(() => false)) !== true) return null;
+  const secret = await internalSecret().catch(() => null);      // so the next hop can prove it too
+  return secret ? { tag, secret } : null;
+}
+
+// THE SECRET GOES TO THIS PROJECT'S ORIGIN ONLY (security review of #1371). A prefix test against SUPABASE_URL (no
+// trailing slash) let "https://<ref>.supabase.co.evil.com/" and "https://<ref>.supabase.co@evil.com/" through. The
+// parsed origins must be equal; anything that does not parse is not ours.
+export function sameOrigin(url: string, own: string): boolean {
+  try { return !!own && new URL(url).origin === new URL(own).origin; } catch { return false; }
 }
 
 // try: a unit test importing this module without --allow-env must still load it.
@@ -54,7 +102,7 @@ if (OWN && !(globalThis as { __qdE2eFetch?: boolean }).__qdE2eFetch) {
   globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const run = E2E_RUN.getStore();
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    if (!run || !url.startsWith(OWN)) return base(input, init);
+    if (!run || !sameOrigin(url, OWN)) return base(input, init);
     const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
     headers.set('x-qd-e2e-run', run.tag);
     // The next hop must be able to prove it too. A hop that reaches PostgREST already carries the

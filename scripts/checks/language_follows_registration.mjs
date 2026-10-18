@@ -220,8 +220,10 @@ const sp = src('src/components/portal/SupplierPortal.tsx');
 // the reloading switchLang with adoptLocale (src/lib/documentLocale.ts) — the same path the customer
 // portal uses. The behaviour stayed; the check still named the removed function. It now asserts the
 // behaviour: the settings answer's locale is adopted, and switching while signed in saves leads.locale.
-ok(/action: 'settings' \}, token\)\.then\(\(j\) => \{\s*const l = [^\n]*settings\.locale[\s\S]{0,200}?adoptLocale\(l, setLang\)/.test(sp), 'SupplierPortal: the supplier\'s registered language must open the portal');
-ok(/action: 'save_settings', locale: l/.test(sp), 'SupplierPortal: switching language while signed in must save leads.locale');
+// 12 Oct 2026 (founder ruling 1008): suppliers are always English, so the supplier portal no longer
+// adopts leads.locale or saves a language. scripts/checks/the_supplier_portal_is_always_english.test.mjs
+// owns that rule; here we only assert the old behaviour has not come back.
+ok(/const lang: string = 'en';/.test(sp) && !/adoptLocale|setLang/.test(sp), 'SupplierPortal: the supplier portal must render English only (ruling 1008)');
 
 // THE FRAME AND THE TEMPLATE MUST AGREE ON THE FOOTER (22 Sep 2026, reviews of PR #857).
 // DL-06 corrected the supplier footer in templates.email_supplier and in send_outbox/arabic_frame.ts,

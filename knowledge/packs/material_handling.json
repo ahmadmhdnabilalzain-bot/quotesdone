@@ -43,6 +43,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "material_handling:rated-capacity-load-centre-derating",
+      "topic": "Forklift rated capacity, load centre and derating",
+      "kind": "technical_explainer",
+      "body_en": "A forklift's load centre is the horizontal distance from the face of the forks to the centre of gravity of the load; the rated capacity on the data plate applies only under the stated conditions. 500 mm is the standard reference load centre in the cited UK guide, while WorkSafe Victoria notes that forklifts in Australia rated above one tonne are typically designed with a 600 mm load centre. A truck rated 3,000 kg at 500 mm can safely carry only about 2,100 kg when the load centre increases to 700 mm. Raising a load also reduces safe capacity, so the load capacity chart must be read using both load centre and lift height. Fitting attachments or changing to forks for a greater load centre can significantly reduce capacity; the supplier will amend the information plate or provide a supplementary plate stating rated capacity with that attachment, and an attachment not listed on the plate must not be used. Buyers should request the load chart for the actual mast, lift height and attachment, not just the headline tonnage.",
+      "body_ar": "مركز الحمولة في الرافعة الشوكية هو المسافة الأفقية من وجه الشوكات إلى مركز ثقل الحمولة، والسعة المقنّنة المدوّنة على لوحة البيانات لا تنطبق إلا في الظروف المحددة عليها. ويُعدّ 500 مم مركز الحمولة المرجعي القياسي في الدليل البريطاني المذكور، بينما تشير هيئة WorkSafe في فيكتوريا إلى أن الرافعات الشوكية في أستراليا التي تزيد حمولتها المقنّنة على طن واحد تُصمَّم عادةً بمركز حمولة 600 مم. والرافعة المقنّنة بـ 3,000 كغ عند 500 مم لا تحمل بأمان سوى نحو 2,100 كغ عندما يزداد مركز الحمولة إلى 700 مم. كما أن رفع الحمولة إلى ارتفاع أعلى يقلّل السعة الآمنة، لذا يجب قراءة جدول السعة باستخدام مركز الحمولة وارتفاع الرفع معاً. وقد يؤدي تركيب الملحقات أو استبدال الشوكات بأخرى لمركز حمولة أكبر إلى خفض السعة بشكل كبير؛ ويقوم المورّد بتعديل لوحة المعلومات أو تركيب لوحة إضافية تبيّن السعة المقنّنة مع ذلك الملحق، ولا يجوز استخدام ملحق غير مدرج على اللوحة. ينبغي للمشترين طلب جدول السعة الخاص بالصاري الفعلي وارتفاع الرفع والملحق، لا الاكتفاء بالحمولة الاسمية.",
+      "sources": [
+        "https://acclaimhandling.co.uk/?p=26356",
+        "https://www.worksafe.vic.gov.au/forklift-attachments"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +73,15 @@
       "expected_entry_ids": [
         "material_handling:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What does 3 tonnes at 500 mm load centre mean on a forklift?",
+      "q_ar": "ماذا يعني 3 أطنان عند مركز حمل 500 مم في الرافعة الشوكية؟",
+      "expected_entry_ids": [
+        "material_handling:rated-capacity-load-centre-derating"
+      ],
+      "why": "No entry of this pack answered it (no entry explains rated capacity at load centre and derating for forklifts). material_handling:rated-capacity-load-centre-derating was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from material_handling.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +98,9 @@
       "material_handling:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "material_handling:rated-capacity-load-centre-derating"
+    ]
   }
 }

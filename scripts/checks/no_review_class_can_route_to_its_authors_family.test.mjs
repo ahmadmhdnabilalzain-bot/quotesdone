@@ -237,6 +237,7 @@ begin
                                                   where x->>'item' = 'review_author_unknown:zz_probe_cmp'));
   -- 5 no last-resort family left, and 7 capabilities. Matrix v2 (5 Oct 2026) retired the fourth last-resort family, so
   -- with Gemini and luna tripped an author on Sol and Opus has no reviewer outside its families: the review is HELD.
+  perform set_config('app.change_reason', 'probe:no_review_class_can_route_to_its_authors_family', true);  -- the founder-hold guard admits an aborted probe by name
   update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '1 hour'
    where model_id in ('google/gemini-3.8-flash', 'openai/gpt-6-luna');
   o := o || jsonb_build_object(

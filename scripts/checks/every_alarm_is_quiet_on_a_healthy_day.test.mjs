@@ -64,7 +64,9 @@ export const HEALTHY = [
   { at: '2026-09-14T01:00:00Z', why: 'night, Dubai 05:00; 4 ticks at 0 findings' },
   { at: '2026-09-14T04:00:00Z', why: 'Dubai 08:00; 4 ticks at 0 findings' },
   { at: '2026-09-14T06:00:00Z', why: 'Dubai 10:00, working hours; 4 ticks at 0 findings' },
-  { at: '2026-09-14T18:00:00Z', why: 'Dubai 22:00; 4 ticks at 0 findings' },
+  // 2026-09-14T18:00Z left on 12 Oct: retention purged that hour's ok agent_runs rows and kept its errors (measured:
+  // 88 error rows 16:00-19:00, 0 ok), so the replay saw "ai_gateway failed every one of its 6 attempts" - history
+  // that no longer exists, not a rule that fires on a healthy day. The four instants below still replay quiet (12 Oct).
   { at: '2026-09-19T06:00:00Z', why: 'Dubai 10:00, five days later; 2 ticks at 0 findings' },
 ];
 
@@ -291,6 +293,9 @@ export const REGISTER = {
   // instant would not be a replay of anything. Measured quiet on a healthy day: run on production 29 Sep 2026 inside one
   // rolled-back transaction, 5/5 scenarios passed and 0 game_day findings were open afterwards.
   fn_it_engineer_game_day: { relay: 'records a game-day scenario that failed; the failure is the verdict of the injected fault against the real detector, and a healthy month passes all five and raises nothing (measured 29 Sep 2026: 5/5, 0 findings)' },
+  // 12 Oct 2026 (it_engineer, #1287 release review): the held-question replay decides a stale answer is not sent
+  // (think.ts replayHeld, older than 24 h or undated); this routine only records that decision for customer_support.
+  fn_reason_held_delivered: { relay: 'records a reasoned answer the replay held for review instead of sending (think.ts replayHeld decided it was stale); a healthy day answers inside 24 h and holds none' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },

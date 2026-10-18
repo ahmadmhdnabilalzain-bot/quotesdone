@@ -14,25 +14,21 @@ import { readFileSync } from 'node:fs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 
-test('site_assistant answers the routed questions before it reads the model key or calls the gateway', () => {
+// 12 Oct 2026 (founder rulings 1195/1196): the widget's deterministic route (pickFaq before the gateway) and the portal's
+// assembled-passage reply were REMOVED — every conversation reply is written by a model. These two tests now assert that.
+test('site_assistant has no stored-answer route: the reply is one model call from the company brief', () => {
   const s = read('supabase/functions/site_assistant/index.ts');
-  const route = s.indexOf('pickFaq(qType');
-  const key = s.indexOf("sec('cred_fn_ai')");
-  const gw = s.indexOf('fetch(GATEWAY');
-  assert.ok(route > 0 && key > 0 && gw > 0, 'markers missing');
-  assert.ok(route < key, 'the deterministic route must come before the model key is read');
-  assert.ok(route < gw, 'the deterministic route must come before the gateway call');
+  for (const gone of ['pickFaq(', 'capabilityStatement(', 'cachedReply(']) assert.ok(!s.includes(gone), 'a stored-answer road is back: ' + gone);
+  assert.ok(s.includes('await answerFromBrief({'), 'the reply must be the model call');
 });
 
-test('sales_engineer answers from the own quote first, filters off-topic passages, prints no raw tags', () => {
+test('sales_engineer gives the own quote to the model as a fact, prints no assembled passages, no raw tags', () => {
   const s = read('supabase/functions/sales_engineer/index.ts');
   const own = s.indexOf('answerFromOwnQuotes(caller.customerId');
   const rpc = s.indexOf("rpc('fn_sales_assist'");
-  assert.ok(own > 0 && rpc > 0 && own < rpc, 'own-quote answer must precede fn_sales_assist');
-  // Off-topic passages are dropped by the REASONED passage choice (portalPassage, 23 Sep 2026), not a shared word:
-  // only the chosen record is answered, and nothing is answered while it is unreasoned.
-  assert.match(s, /portalPassage\(defaultDeps\(admin, 'sales_engineer'\)/, 'retrieved passages must be chosen by portalPassage');
-  assert.ok(s.includes("const recs = pick?.startsWith('kb:') && all[Number(pick.slice(3))] ? [all[Number(pick.slice(3))]] : [];"), 'only the reasoned passage is answered');
+  assert.ok(own > 0 && rpc > 0 && own < rpc, 'own-quote fact must precede fn_sales_assist');
+  assert.ok(s.includes("facts: ownQuote ? 'THEIR OWN QUOTE"), 'the own quote is a fact for the composed reply');
+  assert.ok(!s.includes('notYet(') && !s.includes('const recs = pick'), 'a code-written reply (notYet / assembled passages) is back');
   assert.doesNotMatch(s, /'\[' \+ String\(x\.corpus\)/, 'the raw [corpus · provenance] tag is back in the reply');
   assert.match(s, /setTimeout\(\(\) => r\(null\), 1500\)/, 'the gte-small embed must stay bounded');
 });

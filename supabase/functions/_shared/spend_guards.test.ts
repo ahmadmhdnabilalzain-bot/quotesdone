@@ -1,7 +1,7 @@
 // The rules that stop a paid call repeating itself (it_engineer, 22 Sep 2026, founder instruction 705).
 // Each test replays the input that used to multiply spend.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import {
+import { rehearsalLetsFixtureThrough,
   activeFailure, attemptPlan, COMPARE_RETRY_BASE_MS, COMPARE_RETRY_MAX_MS, failureKind, failureRecord,
   fixtureVerdict, isCachedAnalysis, MAX_PAID_CALLS_PER_REQUEST, nextAttempt, ownWorkByName, subjectOf,
 } from './spend_guards.ts';
@@ -84,4 +84,12 @@ Deno.test('a card view inside the retry window is served from the cached failure
   assertEquals(activeFailure(f1, new Date(t0.getTime() + COMPARE_RETRY_BASE_MS + 1)), null, 'after the window: try again');
   assertEquals(activeFailure({ top3: [1] }, t0), null);
   assertEquals(activeFailure(null, t0), null);
+});
+
+Deno.test('a fixture is let through only for a proven tag whose window the database reports open (stage-2 #1230)', () => {
+  assertEquals(rehearsalLetsFixtureThrough('ab12cd34', true, null), true);
+  assertEquals(rehearsalLetsFixtureThrough(null, true, null), false);          // unproven tag resolves to null
+  assertEquals(rehearsalLetsFixtureThrough('ab12cd34', false, null), false);   // window closed / no models
+  assertEquals(rehearsalLetsFixtureThrough('ab12cd34', 1, null), false);       // only a literal true
+  assertEquals(rehearsalLetsFixtureThrough('ab12cd34', true, { message: 'x' }), false);
 });

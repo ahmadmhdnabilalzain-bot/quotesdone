@@ -7,9 +7,10 @@
     {
       "id": "pallets_wood_plastic:uae-market-products",
       "topic": "Pallets (wood & plastic): products, variants and grades sold in the UAE",
+      "topic_ar": "الطبليات الخشبية والبلاستيكية: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Pallets in the UAE: wooden pallets (new and used; Euro pallet 1200 x 800 mm EPAL, standard 1200 x 1000 mm, 1100 x 1100 mm, custom), heat-treated pallets stamped ISPM 15 (HT, with the IPPC mark) mandatory for export wood packaging, plastic pallets (HDPE/PP; nestable, rackable, stackable, hygienic for pharma), presswood/moulded wood pallets (exempt from ISPM 15), paper/cardboard pallets for air freight, and pallet collars and boxes. Rackable load ratings (dynamic, static, racking) matter for warehouses. Buyers specify size, entry (2-way or 4-way), static/dynamic/racking load (kg), wood species and moisture, HT certification, and quantity.",
-      "body_ar": "المنصات (الطبليات) في الإمارات: المنصات الخشبية (جديدة ومستعملة؛ المنصة الأوروبية 1200 × 800 مم EPAL، والقياسية 1200 × 1000 مم، و1100 × 1100 مم، وحسب الطلب)، والمنصات المعالجة حرارياً والمختومة وفق ISPM 15 (HT مع علامة IPPC) الإلزامية لمواد التغليف الخشبية المصدرة، والمنصات البلاستيكية (HDPE/PP؛ قابلة للتداخل وللرفوف والتكديس، والصحية للأدوية)، والمنصات الخشبية المضغوطة (معفاة من ISPM 15)، والمنصات الورقية والكرتونية للشحن الجوي، وإطارات وصناديق المنصات. وتهم أحمال الرفوف (الديناميكي والثابت والرفوف) للمستودعات. يحدد المشتري المقاس والمداخل (اتجاهين أو أربعة) والأحمال بالكيلوغرام ونوع الخشب ورطوبته وشهادة المعالجة الحرارية والكمية.",
+      "body_en": "This covers the pallets sold in the UAE, wooden, heat-treated, plastic, presswood and paper, in standard sizes, and what buyers specify for entry, load and certification. Pallets in the UAE: wooden pallets (new and used; Euro pallet 1200 x 800 mm EPAL, standard 1200 x 1000 mm, 1100 x 1100 mm, custom), heat-treated pallets stamped ISPM 15 (HT, with the IPPC mark) mandatory for export wood packaging, plastic pallets (HDPE/PP; nestable, rackable, stackable, hygienic for pharma), presswood/moulded wood pallets (exempt from ISPM 15), paper/cardboard pallets for air freight, and pallet collars and boxes. Rackable load ratings (dynamic, static, racking) matter for warehouses. Buyers specify size, entry (2-way or 4-way), static/dynamic/racking load (kg), wood species and moisture, HT certification, and quantity.",
+      "body_ar": "تشمل الطبليات المباعة في الإمارات الطبليات الخشبية والمعالجة حراريًا والبلاستيكية والخشب المضغوط والورقية بالمقاسات القياسية، مع ما يحدده المشترون لاتجاهات الإدخال والحمولة والشهادات. المنصات (الطبليات) في الإمارات: المنصات الخشبية (جديدة ومستعملة؛ المنصة الأوروبية 1200 × 800 مم EPAL، والقياسية 1200 × 1000 مم، و1100 × 1100 مم، وحسب الطلب)، والمنصات المعالجة حرارياً والمختومة وفق ISPM 15 (HT مع علامة IPPC) الإلزامية لمواد التغليف الخشبية المصدرة، والمنصات البلاستيكية (HDPE/PP؛ قابلة للتداخل وللرفوف والتكديس، والصحية للأدوية)، والمنصات الخشبية المضغوطة (معفاة من ISPM 15)، والمنصات الورقية والكرتونية للشحن الجوي، وإطارات وصناديق المنصات. وتهم أحمال الرفوف (الديناميكي والثابت والرفوف) للمستودعات. يحدد المشتري المقاس والمداخل (اتجاهين أو أربعة) والأحمال بالكيلوغرام ونوع الخشب ورطوبته وشهادة المعالجة الحرارية والكمية.",
       "sources": [
         "https://en.wikipedia.org/wiki/ISPM_15",
         "https://www.chep.com/ae/en",
@@ -24,9 +25,10 @@
     {
       "id": "pallets_wood_plastic:uae-market-brands",
       "topic": "Pallets (wood & plastic): makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الطبليات الخشبية والبلاستيكية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Wooden pallets are made by many local factories in Sharjah (Al Sajaa, Industrial Area), Ajman, Umm Al Quwain, Jebel Ali and Musaffah, not checked by name; used-pallet traders recycle and repair. Pooling and plastic pallet brands: CHEP, Schoeller Allibert, Craemer, Cabka, Rehrig, Supreme, Nilkamal. Heat treatment is done by treatment providers registered with MOCCAE. Timber comes from Europe, Russia, New Zealand and Chile.",
-      "body_ar": "تصنع المنصات الخشبية مصانع محلية كثيرة في الشارقة (الصجعة والمنطقة الصناعية) وعجمان وأم القيوين وجبل علي ومصفح، ولم يُتحقق منها بالاسم، ويعيد تجار المنصات المستعملة تدويرها وإصلاحها. علامات التجميع والمنصات البلاستيكية: CHEP، Schoeller Allibert، Craemer، Cabka، Rehrig، Supreme، Nilkamal. وتتم المعالجة الحرارية لدى مقدمي معالجة مسجلين لدى وزارة التغير المناخي والبيئة. والخشب من أوروبا وروسيا ونيوزيلندا وتشيلي.",
+      "body_en": "This lists who supplies pallets in the UAE: local wooden pallet factories, used-pallet traders, pooling and plastic pallet brands such as CHEP and Schoeller Allibert, and timber origins. Wooden pallets are made by many local factories in Sharjah (Al Sajaa, Industrial Area), Ajman, Umm Al Quwain, Jebel Ali and Musaffah, not checked by name; used-pallet traders recycle and repair. Pooling and plastic pallet brands: CHEP, Schoeller Allibert, Craemer, Cabka, Rehrig, Supreme, Nilkamal. Heat treatment is done by treatment providers registered with MOCCAE. Timber comes from Europe, Russia, New Zealand and Chile.",
+      "body_ar": "يأتي توريد الطبليات في الإمارات من مصانع الطبليات الخشبية المحلية وتجار الطبليات المستعملة وماركات تأجير الطبليات والطبليات البلاستيكية مثل CHEP وSchoeller Allibert، مع بيان منشأ الخشب. تصنع المنصات الخشبية مصانع محلية كثيرة في الشارقة (الصجعة والمنطقة الصناعية) وعجمان وأم القيوين وجبل علي ومصفح، ولم يُتحقق منها بالاسم، ويعيد تجار المنصات المستعملة تدويرها وإصلاحها. علامات التجميع والمنصات البلاستيكية: CHEP، Schoeller Allibert، Craemer، Cabka، Rehrig، Supreme، Nilkamal. وتتم المعالجة الحرارية لدى مقدمي معالجة مسجلين لدى وزارة التغير المناخي والبيئة. والخشب من أوروبا وروسيا ونيوزيلندا وتشيلي.",
       "sources": [
         "https://en.wikipedia.org/wiki/ISPM_15",
         "https://www.chep.com/ae/en",
@@ -41,9 +43,10 @@
     {
       "id": "pallets_wood_plastic:uae-market-sizes",
       "topic": "Pallets (wood & plastic): typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الطبليات الخشبية والبلاستيكية: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Priced per pallet by size and load class, with volume breaks; used pallets graded A/B; plastic pallets per piece (much higher unit cost, long life); pooling per pallet per trip/day. Delivery per truck (about 400-600 wooden pallets per truckload depending on size). ISPM 15 certificate or stamp stated in quotes.",
-      "body_ar": "تُسعّر بالمنصة حسب المقاس وفئة الحمل، مع شرائح للكميات؛ والمستعملة مصنفة A/B؛ والبلاستيكية بالقطعة (تكلفة وحدة أعلى بكثير وعمر طويل)؛ والتجميع بالمنصة لكل رحلة/يوم. والتوصيل بالشاحنة (نحو 400-600 منصة خشبية للحمولة حسب المقاس). وتُذكر شهادة أو ختم ISPM 15 في العروض.",
+      "body_en": "This explains how pallets are priced per pallet by size and load class, how used, plastic and pooled pallets are priced, and how delivery is counted per truck. Priced per pallet by size and load class, with volume breaks; used pallets graded A/B; plastic pallets per piece (much higher unit cost, long life); pooling per pallet per trip/day. Delivery per truck (about 400-600 wooden pallets per truckload depending on size). ISPM 15 certificate or stamp stated in quotes.",
+      "body_ar": "تُسعَّر الطبليات بالحبة حسب المقاس وفئة الحمولة، ولكل من الطبليات المستعملة والبلاستيكية والمؤجرة ضمن نظام التأجير المشترك (pooling) طريقة تسعير خاصة، ويُحتسب التوصيل بالشاحنة. تُسعّر بالمنصة حسب المقاس وفئة الحمل، مع شرائح للكميات؛ والمستعملة مصنفة A/B؛ والبلاستيكية بالقطعة (تكلفة وحدة أعلى بكثير وعمر طويل)؛ والتجميع بالمنصة لكل رحلة/يوم. والتوصيل بالشاحنة (نحو 400-600 منصة خشبية للحمولة حسب المقاس). وتُذكر شهادة أو ختم ISPM 15 في العروض.",
       "sources": [
         "https://en.wikipedia.org/wiki/ISPM_15",
         "https://www.chep.com/ae/en",
@@ -58,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "Do export pallets from the UAE need ISPM 15 treatment?",
-      "q_ar": "هل تحتاج منصات التصدير من الإمارات معالجة ISPM 15؟",
+      "q_en": "What kinds of timber and plastic pallets can businesses source in the UAE?",
+      "q_ar": "شو أنواع الطبليات الخشب والبلاستيك اللي تقدر الشركات توفرها في الإمارات؟",
       "expected_entry_ids": [
         "pallets_wood_plastic:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the wooden and plastic pallet types (EPAL, ISPM 15, HDPE/PP), which answers what is available.",
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

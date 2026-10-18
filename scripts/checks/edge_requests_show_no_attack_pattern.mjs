@@ -104,14 +104,20 @@ try {
                 + 'traffic continuously, so that is an instrument failure, not a quiet estate.');
     process.exit(2);
   }
+  // THE STATUS TEST IS INSIDE THE AGGREGATE, NEVER IN WHERE (7 Oct 2026, it_engineer). Measured that night: any WHERE
+  // on ${STATUS} answered HTTP 200 {"error":"Backend error! Retry your query"} for every window holding 22:00-22:30 UTC
+  // on 6 Oct, while a count over the same rows answered 15,722 and status.supabase.com read all operational. The parity
+  // job exited 2 on main and on every PR. countIf / uniqExactIf over the same GROUP BY return the same rows: an
+  // (ip, hour) group with no 401/403 counts 0 and fails the HAVING, exactly as it was filtered out before. Measured
+  // over 24 h with this form: 119,433 requests, 4 auth failures, 0 bursts, 0 sweeps.
   authBursts = await logs(
-    `select ${IP} as ip, toStartOfHour(timestamp) as hr, count(*) as n
-     ${FROM} and ${STATUS} in (401, 403)
-     group by ip, hr having count(*) >= ${AUTH_FAILURES_PER_HOUR} order by n desc limit 50`);
+    `select ${IP} as ip, toStartOfHour(timestamp) as hr, countIf(${STATUS} in (401, 403)) as n
+     ${FROM}
+     group by ip, hr having n >= ${AUTH_FAILURES_PER_HOUR} order by n desc limit 50`);
   sweeps = await logs(
     `select ${IP} as ip, toStartOfHour(timestamp) as hr,
-            uniqExact(log_attributes['request.path']) as paths, count(*) as n
-     ${FROM} and ${STATUS} = 404
+            uniqExactIf(log_attributes['request.path'], ${STATUS} = 404) as paths, countIf(${STATUS} = 404) as n
+     ${FROM}
      group by ip, hr having paths >= ${MISSING_PATHS_PER_HOUR}
      order by paths desc limit 50`);
 } catch (e) {

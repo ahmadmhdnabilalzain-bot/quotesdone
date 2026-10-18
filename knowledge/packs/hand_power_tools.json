@@ -44,6 +44,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "hand_power_tools:sds-plus-vs-sds-max-capacity",
+      "topic": "SDS-plus vs SDS-max drilling capacity",
+      "kind": "product_selection",
+      "body_en": "A 32 mm hole in concrete sits at the top of the largest SDS-plus rotary hammers. For example, the Bosch GBH 4-32 DFR (SDS-plus, 4.2 J impact energy, 4.7 kg) takes bits up to 32 mm in concrete but its optimal range is 14-25 mm. SDS-max machines deliver far more impact energy: the Bosch GBH 8-45 DV (SDS-max, 12.5 J, 8.9 kg, 1,500 W) drills 12-45 mm in concrete with hammer bits and up to 125 mm with core cutters, and is sold in 110 V versions. So for occasional 32 mm holes a heavy SDS-plus tool reaches the size; for regular 32 mm drilling an SDS-max tool works within its range. Specify shank type, impact energy in joules, hole diameter and depth, and site voltage.",
+      "body_ar": "يقع ثقب بقطر 32 مم في الخرسانة عند الحد الأعلى لأكبر مطارق الدوران من نوع SDS-plus. فمثلاً تقبل مطرقة Bosch GBH 4-32 DFR (SDS-plus، طاقة صدم 4.2 جول، وزن 4.7 كغ) لقماً حتى 32 مم في الخرسانة، لكن نطاقها الأمثل 14-25 مم. أما آلات SDS-max فتعطي طاقة صدم أكبر بكثير: إذ تثقب Bosch GBH 8-45 DV (SDS-max، 12.5 جول، 8.9 كغ، 1,500 واط) من 12 إلى 45 مم في الخرسانة بلقم الطرق وحتى 125 مم بلقم القطع الأسطوانية، وتُباع بنسخ 110 فولت. لذا فإن أداة SDS-plus ثقيلة تبلغ هذا القطر للثقوب العرضية، أما للثقب المتكرر بقطر 32 مم فأداة SDS-max تعمل ضمن نطاقها. حدّد نوع الساق وطاقة الصدم بالجول وقطر الثقب وعمقه وجهد الموقع.",
+      "sources": [
+        "https://www.gigatools.ph/collections/bosch/products/bosch-gbh-4-32-dfr-heavy-duty-rotary-hammer-with-sds-plus-32mm-900w",
+        "https://towntools.co.uk/products/bosch-gbh-8-45-dv-sds-max-professional-rotary-hammer-1500w-110v"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +74,15 @@
       "expected_entry_ids": [
         "hand_power_tools:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which rotary hammer type do I need for 32 mm holes in concrete?",
+      "q_ar": "ما نوع المطرقة الدوارة الذي أحتاجه لثقوب 32 مم في الخرسانة؟",
+      "expected_entry_ids": [
+        "hand_power_tools:sds-plus-vs-sds-max-capacity"
+      ],
+      "why": "No entry of this pack answered it (No entry covers SDS-plus vs SDS-max rotary hammer capacity; missing). hand_power_tools:sds-plus-vs-sds-max-capacity was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from hand_power_tools.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +99,9 @@
       "hand_power_tools:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "hand_power_tools:sds-plus-vs-sds-max-capacity"
+    ]
   }
 }

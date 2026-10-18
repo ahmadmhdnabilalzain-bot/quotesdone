@@ -182,10 +182,27 @@ export function messageIdFor(notificationId: number | string, now: Date): string
   return `<qd-notif-${notificationId}.${now.getTime()}@quotesdone.com>`;
 }
 
-/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). */
+// ---------------------------------------------------------------- Reply-To (6 Oct 2026, it_engineer)
+// MEASURED 6 Oct 2026: an invitation from this lane passed SPF, DKIM (selector1, d=quotesdone.com) and DMARC, scored
+// 10/10 at mail-tester with outbound SCL 1, and still landed in Junk at a Microsoft 365 recipient. Its From was
+// supplier@quotesdone.com and its Reply-To suppliers@mail.quotesdone.com (app_secrets.email_reply_supplier): a
+// Reply-To on another domain than the From is a phishing signal. So the lane sends with NO Reply-To and a reply goes
+// to the mailbox itself -- but only once _shared/m365_reply_inbox.ts has PROVED, on a recent tick, that it can read
+// that mailbox and hand its mail to resend_inbound. Until then the old Reply-To stays, so a reply is never sent to a
+// mailbox nobody reads. The proof is the newest agent_runs row of M365_INBOX_AGENT carrying counts.m365_inbox, status 'ok'.
+export const M365_INBOX_AGENT = 'resend_inbound';   // = m365_reply_inbox.ts PROOF_LABEL; its rows carry counts.m365_inbox = 1
+export const M365_INBOX_PROOF_MAX_AGE_MS = 2 * 60 * 60_000;
+/** '' = no Reply-To header (replies reach the From mailbox); otherwise the fallback, kept until the reader is proven. */
+export function m365ReplyTo(o: { proofAt: string | null | undefined; now: Date; fallback: string }): string {
+  const t = o.proofAt ? Date.parse(o.proofAt) : NaN;
+  const age = o.now.getTime() - t;
+  return Number.isFinite(t) && age <= M365_INBOX_PROOF_MAX_AGE_MS && age >= -60_000 ? '' : o.fallback;
+}
+
+/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To. */
 export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date }): string {
   const lines = [
-    `From: ${clean(o.from)}`, `To: ${clean(o.to)}`, `Reply-To: ${clean(o.reply)}`, `Subject: ${hdr(clean(o.subject) || 'QuotesDone')}`,
+    `From: ${clean(o.from)}`, `To: ${clean(o.to)}`, ...(clean(o.reply) ? [`Reply-To: ${clean(o.reply)}`] : []), `Subject: ${hdr(clean(o.subject) || 'QuotesDone')}`,
     `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, 'MIME-Version: 1.0',
   ];
   if (o.unsub) lines.push(`List-Unsubscribe: <${clean(o.unsub)}>, <mailto:${o.unsubMailto}?subject=unsubscribe>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click');

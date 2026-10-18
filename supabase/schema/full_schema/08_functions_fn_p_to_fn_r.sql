@@ -78,6 +78,22 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_party_is_demo(p_kind text, p_id text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    -- a party known only by a reserved address (an 'unknown' inbound probe, or a demo party already removed)
+    when public.fn_is_demo_email(p_id) then true
+    when p_kind = 'customer' and p_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      then public.fn_customer_is_demo(p_id::uuid)
+    when p_kind in ('supplier', 'lead') and p_id ~ '^[0-9]{1,18}$' then public.fn_supplier_is_demo(p_id::bigint)
+    else false end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_pdpl_actor()
  RETURNS text
  LANGUAGE sql
@@ -667,6 +683,41 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_brief()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with lines as (
+    select distinct on (pb.category, pb.item, pb.unit)
+           pb.category, pb.item,
+           '- ' || pb.category || ': ' || pb.item || ': AED '
+             || trim(to_char(pb.low, 'FM999999990.##'))
+             || case when pb.high is not null and pb.high <> pb.low then ' to ' || trim(to_char(pb.high, 'FM999999990.##')) else '' end
+             || coalesce(' per ' || nullif(nullif(pb.unit, ''), 'none'), '')
+             || coalesce(' (as of ' || pb.as_of::text || ')', '') as line
+      from public.price_benchmark pb
+     where pb.source_kind <> 'gap' and pb.item is not null and pb.low is not null
+     order by pb.category, pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end), pb.as_of desc nulls last, pb.id
+  )
+  select '## PUBLISHED PRICE GUIDE (UAE ranges QuotesDone publishes; quote them as a range and say it is a guide, not a quotation — suppliers price the work)'
+      || E'\n' || coalesce((select string_agg(line, E'\n' order by category, item) from lines), '')
+      || coalesce(E'\nNo published range (say so, never estimate): '
+                  || (select string_agg(distinct category, ', ') from public.price_benchmark where source_kind = 'gap'), '');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -837,16 +888,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -1450,6 +1491,17 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_quote_is_demo(p_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select public.fn_inquiry_is_demo(q.inquiry_id) or public.fn_supplier_is_demo(q.supplier_id)
+                     from public.quotes q where q.id = p_id), false)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_quote_quality_compose(p_kind text, p_lang text, p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1976,7 +2028,7 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__decision_owed(p_id bigint
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.reasoning_held_question; v_choice text; v_hid bigint; v_review jsonb; v jsonb; x record;
+declare r public.reasoning_held_question; v_choice text; v_hid bigint; v_review jsonb; v jsonb; x record; v_from text;
 begin
   v_choice := public.fn_ambition_choice(p_id, p_result);
   select * into r from public.reasoning_held_question where id = p_id;
@@ -1984,8 +2036,6 @@ begin
   -- A REFUND IS RE-MEASURED FIRST: one whose checks now pass is approved, which settles what was owed, so a
   -- payable refund is never declined on a stale reading.
   if split_part(r.subject->>'item_key', ':', 1) = 'refunds' then
-    -- a remediation whose checks now pass is closed first (as fn_ceo_refund_loop_sweep would on its next run);
-    -- closing the last one re-runs the review through fn_ceo_refund_loop_advance
     for x in select a.id, a.detail from public.agent_actions a
               where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'refund.remediate'
                 and a.detail->>'refund_id' = split_part(r.subject->>'item_key', ':', 2) order by a.id loop
@@ -1997,16 +2047,26 @@ begin
     end loop;
     v_review := public.fn_ceo_refund_review(split_part(r.subject->>'item_key', ':', 2)::bigint, 'ceo_decision_owed');
   end if;
-  -- a stale answer changes nothing: the item moved on (a new round, an approval) and settled what was owed
-  if not exists (select 1 from public.agent_actions a where a.id = v_hid and a.status = 'pending') then
+  -- CHANGED: a stale answer changes nothing. The item moved on (a new round, an approval) and the CEO's decision is
+  -- recorded on the owed handoff ('ceo_decided'), which now waits only for its seat to re-verify and close it.
+  if not exists (select 1 from public.agent_actions a where a.id = v_hid and a.status = 'pending'
+                   and not (a.detail ? 'ceo_decided') and not (a.detail ? 'ceo_nothing_to_close')) then
     return jsonb_build_object('applied', true, 'already', 'the owed decision was settled by the item''s next round', 'review', v_review);
   end if;
   v := public.fn_ceo_decision_close(r.subject->>'item_key', case v_choice when 'replace' then 'replaced' else 'withdrawn' end,
     coalesce(p_result->>'answer', ''), jsonb_build_object('held_id', p_id, 'model', p_result->>'model', 'fields', public.fn_ambition_fields(p_result)));
-  -- nothing is left to decide (the item closed or the refund left 'requested' another way): the owed conversation
-  -- ends with that fact instead of waiting for ever. An item under review stays owed; its review turn settles it.
+  -- CHANGED: nothing is left to decide (the item closed or the refund left 'requested' another way). The CEO's
+  -- answer is recorded and delivered back as ceo.decision_closed; the seat that owed it re-verifies and closes it.
+  -- An item under review stays owed; its review turn settles it.
   if not coalesce((v->>'ok')::boolean, false) and coalesce(v->>'reason', '') !~ 'under review' then
-    perform public.fn_seat_handoff_complete(v_hid, jsonb_build_object('decided_by', 'ceo', 'nothing_to_close', v->>'reason', 'held_id', p_id));
+    update public.agent_actions
+       set detail = detail || jsonb_build_object('ceo_nothing_to_close', jsonb_build_object('decided_by', 'ceo', 'reason', v->>'reason', 'held_id', p_id),
+                                                 'awaiting', coalesce(detail->>'from', 'the originating seat') || ' re-verifies the CEO''s answer')
+     where id = v_hid
+    returning detail->>'from' into v_from;
+    perform public.fn_seat_handoff('ceo', v_from, 'ceo.decision_closed', 'agent_actions', 'owed:' || v_hid,
+      jsonb_build_object('item_key', r.subject->>'item_key', 'decision', 'nothing_to_close', 'reasons', left(v->>'reason', 3000),
+                         'owed_handoff_id', v_hid, 'held_id', p_id));
   end if;
   return v || jsonb_build_object('review', v_review);
 end $function$
@@ -2942,12 +3002,25 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_delivered(p_id bigint, p_delive
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare v_n int; v_ids jsonb;
 begin
   update public.reasoning_held_question
      set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('delivery', p_delivery),
          status = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then 'applied' else status end,
          applied_at = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then now() else applied_at end
    where id = p_id;
+  if p_delivery->>'via' = 'held_for_review' then
+    select count(*), coalesce(jsonb_agg(id order by id desc) filter (where true), '[]'::jsonb)
+      into v_n, v_ids
+      from public.reasoning_held_question
+     where status <> 'applied' and result->'delivery'->>'via' = 'held_for_review';
+    perform public.fn_it_engineer_finding_upsert('reasoned_answer_held_for_review',
+      v_n || ' stale reasoned answer(s) are held for review before reaching a person',
+      'held-question replay (fn_reason_held_delivered)', 'customer_facing', v_n,
+      jsonb_build_object('waiting', v_n, 'ids', (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(v_ids) x limit 20) z),
+                         'owner_seat', 'customer_support', 'duty', 'reply_time'),
+      '{}'::text[], array['whether the person was answered on another channel since'], 'customer_support');
+  end if;
 end $function$
 
 
@@ -2983,7 +3056,7 @@ begin
            expires_at = case when h.attempts = 0 and h.surface not like 'site_assistant.%'
                              then now() + interval '14 days' else h.expires_at end
       from due where h.id = due.id
-    returning h.id, h.seat, h.surface, h.request, h.subject
+    returning h.id, h.seat, h.surface, h.request, h.subject, h.created_at
   )
   select coalesce(jsonb_agg(to_jsonb(claimed)), '[]'::jsonb) into v from claimed;
   return v;
@@ -3001,7 +3074,11 @@ begin
   with stale as (
     select id from public.reasoning_held_question
      where escalated_at is null
-       and (status = 'failed' or (status = 'held' and created_at <= now() - interval '48 hours'))
+       and (status = 'failed'
+            or (status = 'held' and created_at <= now() - interval '48 hours')
+            -- a person is waiting on a conversation reply no model could write: 15 minutes, not 48 hours
+            or (status = 'held' and surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
+                and created_at <= now() - interval '15 minutes'))
      order by created_at
      limit greatest(1, least(coalesce(p_limit, 20), 100))
      for update skip locked
@@ -3012,7 +3089,10 @@ begin
   ), filed as (
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select m.seat, 'held_question', 'pending', 'low',
-           left('A question held ' || case when m.status = 'failed' then 'after 5 failed reasonings' else 'for 48 hours' end
+           left('A question held ' || case when m.status = 'failed' then 'after 5 failed reasonings'
+                                           when m.surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
+                                             then '15 minutes with no model-written reply (the person has only the held notice)'
+                                           else 'for 48 hours' end
                 || ' on ' || m.surface || ' needs you', 200),
            jsonb_build_object('held_id', m.id, 'surface', m.surface, 'question', left(m.question, 1000), 'subject', m.subject,
                               'held_since', m.created_at, 'status', m.status,
@@ -4103,7 +4183,7 @@ CREATE OR REPLACE FUNCTION public.fn_record_llm_attempt(p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_req      uuid    := coalesce(nullif(p->>'request_id','')::uuid, gen_random_uuid());
@@ -4146,7 +4226,12 @@ begin
 
   if v_ok then
     update llm_route_health
-       set consecutive_failures = 0, open_until = null, opened_reason = null, opened_class = null,
+       -- A SUCCESS CLOSES A BREAKER, NEVER THE FOUNDER'S HOLD (7 Oct 2026). A sandbox call passes the hold
+       -- inside its window; its success used to null open_until here and lift the hold for everyone.
+       set consecutive_failures = 0,
+           open_until    = case when public.fn_llm_route_founder_held(open_until) then open_until end,
+           opened_reason = case when public.fn_llm_route_founder_held(open_until) then opened_reason end,
+           opened_class  = case when public.fn_llm_route_founder_held(open_until) then opened_class end,
            last_ok_at = now(), total_attempts = total_attempts + 1, total_ok = total_ok + 1,
            updated_at = now()
      where model_id = v_model;
@@ -4167,8 +4252,9 @@ begin
                              then 'opened on first occurrence of ' || v_key
                              else v_conseq || ' consecutive failures, threshold ' || v_thresh end,
              opened_class = v_key
-       where model_id = v_model;
-      v_state := 'opened_by_this';
+       where model_id = v_model
+         and not public.fn_llm_route_founder_held(open_until);   -- a 15-minute breaker never replaces a 2126 hold
+      if found then v_state := 'opened_by_this'; end if;
     end if;
   end if;
 
@@ -6613,7 +6699,6 @@ declare
   -- the top-3 rule: the comparison report is the top 3 (founder rule). A constant, not a setting.
   c_target constant int := 3;
   v_window numeric; v_lead numeric := public.fn_seat_clock_policy('rfq_short_sweep_hours_before_deadline', 8);
-  v_fanout int := coalesce(public.fn_seat_clock_policy('match_max_fanout', 5), 5)::int;
   r record; s record; l public.leads; v jsonb; v_codes text[]; v_need text; v_value numeric; v_new int;
   v_swept int := 0; v_invited int := 0; v_reminded int := 0; v_told int := 0; v_skipped jsonb := '[]'::jsonb;
 begin
@@ -6659,12 +6744,11 @@ begin
         v_value := coalesce(r.expected_value, nullif(regexp_replace(coalesce(r.budget, ''), '[^0-9.]', '', 'g'), '')::numeric);
         if v_value is not null and v_value <= 0 then v_value := null; end if;
         for s in select m.supplier_id, m.score, m.why
-                   from public.fn_match_capability(v_codes, v_need, '{}'::text[], '{}'::text[], r.scope_type, v_value, r.emirate, 60) m
+                   from public.fn_match_capability(v_codes, v_need, '{}'::text[], '{}'::text[], r.scope_type, v_value, r.emirate, 100000) m
                    join public.leads ld on ld.id = m.supplier_id
                   where not exists (select 1 from public.inquiry_matches x where x.inquiry_id = r.id and x.supplier_id = m.supplier_id)
                     and public.fn_seat_clock_lead_is_fixture(ld) = r.fixture
-                  order by m.score desc
-                  limit v_fanout loop
+                  order by m.score desc loop
           insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
           values (r.id, s.supplier_id, least(1, greatest(0, round(s.score / 100, 3))),
                   left('short-of-quotes sweep (fn_rfq_short_of_quotes_tick): ' || coalesce(s.why, ''), 400))

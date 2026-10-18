@@ -150,8 +150,9 @@ function doc(lang: Lang, ref: string, dateIso: string, title: string, kicker: st
     cover: { kicker, title, subtitle, meta, figures },
     control: `${ref} · ${RECOVERY_DOC_VERSION} · ${ar ? 'أُصدر في' : 'Issued'} ${fmtDate(dateIso, lang)} · ${ar ? 'أعدّه محاسب QuotesDone' : 'Prepared by the QuotesDone accountant'}`,
     // Founder, 14 Sep 2026: "with stamp and signature of course". Every recovery document except the filing
-    // guide carries his signature image and the company stamp. The renderer fetches both from the brand
-    // bucket (qd_signature.png, qd_stamp.png) — one controlled store, nothing copied into code — and refuses
+    // guide carries his signature image and the company stamp. The renderer fetches both from the
+    // PRIVATE bucket company-seal (qd_signature.png, qd_stamp.png; moved out of the public brand bucket
+    // 6 Oct 2026) — one controlled store, nothing copied into code — and refuses
     // to issue a signed document if any character would be missing. signingRecord() records what went out.
     blocks, options: { letterhead: true, sign, stamp: sign }, issued_iso: dateIso,
     ...(ar ? { date_ar: fmtDate(dateIso, 'ar') } : { date: fmtDate(dateIso, 'en') }),
@@ -380,7 +381,7 @@ export async function signingRecord(c: CaseFile, doc: { name: string; lang: Lang
     document: doc.name, ref: doc.body.ref, lang: doc.lang, doc_version: RECOVERY_DOC_VERSION, case_ref: c.case_ref,
     agreement_version: c.acceptance.version, issued: doc.body.issued_iso, pdf_sha256: await sha256Hex(pdf), pages,
     signed_by: FALLBACK.signer, signer_title: FALLBACK.title,
-    signature_asset: 'brand/qd_signature.png', stamp_asset: 'brand/qd_stamp.png',
+    signature_asset: 'company-seal/qd_signature.png', stamp_asset: 'company-seal/qd_stamp.png',
     signature_asset_sha256: assets.signature ? await sha256Hex(assets.signature) : null,
     stamp_asset_sha256: assets.stamp ? await sha256Hex(assets.stamp) : null,
   };

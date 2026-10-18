@@ -14,6 +14,8 @@ export type Stub = {
   user?: { id: string; email: string };   // GET /auth/v1/user
   // Seen first for every db.invalid request; return a Response to answer it, undefined to fall through.
   handle?: (req: Request, u: URL) => Response | Promise<Response | undefined> | undefined;
+  // Seen first for every twilio.com request (e.g. to answer a VerificationCheck approved).
+  twilio?: (req: Request, u: URL) => Response | undefined;
 };
 export type Call = { method: string; url: string; body: string };
 
@@ -33,7 +35,7 @@ function install() {
     const req = input instanceof Request ? input : new Request(String(input), init);
     const u = new URL(req.url);
     calls.push({ method: req.method, url: req.url, body: req.method === 'GET' || req.method === 'HEAD' ? '' : await req.clone().text() });
-    if (u.hostname === 'twilio.com' || u.hostname.endsWith('.twilio.com')) return J({ sid: 'SMstub', status: 'pending' }, 201);
+    if (u.hostname === 'twilio.com' || u.hostname.endsWith('.twilio.com')) return current.twilio?.(req, u) ?? J({ sid: 'SMstub', status: 'pending' }, 201);
     if (u.hostname !== 'db.invalid') return J({});
     const own = await current.handle?.(req, u); if (own) return own;
     if (u.pathname === '/auth/v1/user') return J({ aud: 'authenticated', role: 'authenticated', ...(current.user ?? { id: 'u-stub', email: 'qd-stub@example.invalid' }) });

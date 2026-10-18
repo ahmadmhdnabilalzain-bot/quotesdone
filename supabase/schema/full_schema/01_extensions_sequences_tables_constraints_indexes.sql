@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-06T14:02:03.799Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-13T04:10:09.117Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -136,6 +136,8 @@ CREATE SEQUENCE IF NOT EXISTS public.it_restore_drill_result_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.kb_revisions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_questions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_results_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.lead_prospect_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.lead_sourcing_run_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.licence_renewal_ask_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.llm_calls_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.marketing_asset_perception_id_seq;
@@ -185,6 +187,9 @@ CREATE SEQUENCE IF NOT EXISTS public.seat_case_memory_miss_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_knowledge_eval_question_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_knowledge_exam_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.self_review_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.signup_purge_dropbox_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.signup_purge_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.signup_purge_object_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_alternative_offer_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_backlog_id_seq;
@@ -211,7 +216,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (707) =====
+-- ===== TABLES (714) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -797,8 +802,8 @@ CREATE TABLE IF NOT EXISTS public.ai_cost_log (
   could_be_cheaper boolean,
   cheaper_reason text,
   ok boolean DEFAULT true NOT NULL,
-  cached_in_tokens integer DEFAULT 0 NOT NULL,
-  cache_write_tokens integer DEFAULT 0 NOT NULL,
+  cached_in_tokens integer DEFAULT 0,
+  cache_write_tokens integer DEFAULT 0,
   generation_id text,
   cost_usd_reported numeric,
   seat text,
@@ -2623,11 +2628,12 @@ CREATE TABLE IF NOT EXISTS public.customers (
   tos_ip text,
   locale text DEFAULT 'en'::text NOT NULL,
   industry text,
-  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_phone(phone) OR fn_is_demo_phone(whatsapp_phone) OR (COALESCE(full_name, ''::text) ~~* 'ZZ DEMO%'::text))) STORED,
+  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_phone(phone) OR fn_is_demo_phone(whatsapp_phone) OR (COALESCE(full_name, ''::text) ~* '^ZZ DEMO([^a-z]|$)'::text))) STORED,
   whatsapp_phone text,
   whatsapp_verified_at timestamp with time zone,
   whatsapp_opt text,
-  whatsapp_asked_at timestamp with time zone
+  whatsapp_asked_at timestamp with time zone,
+  tos_sha256 text
 );
 
 CREATE TABLE IF NOT EXISTS public.dead_letter (
@@ -4544,6 +4550,28 @@ CREATE TABLE IF NOT EXISTS public.kb_chunks (
   embed_claimed_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.kb_chunks_old (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  source_kind text NOT NULL,
+  source_id text,
+  category text,
+  title text,
+  content text NOT NULL,
+  citation text,
+  effective_date date,
+  fts tsvector GENERATED ALWAYS AS (to_tsvector('english'::regconfig, ((COALESCE(title, ''::text) || ' '::text) || COALESCE(content, ''::text)))) STORED,
+  created_at timestamp with time zone DEFAULT now(),
+  embedding_gte vector(384),
+  category_norm text GENERATED ALWAYS AS (NULLIF(regexp_replace(lower(COALESCE(category, ''::text)), '^cat:'::text, ''::text), ''::text)) STORED,
+  embed_claimed_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.kb_chunks_swap_log (
+  seq bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  id bigint NOT NULL,
+  logged_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.kb_citation_jurisdiction (
   citation_md5 text NOT NULL,
   citation text NOT NULL,
@@ -4778,6 +4806,62 @@ CREATE TABLE IF NOT EXISTS public.lead_category (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.lead_prospect (
+  id bigint DEFAULT nextval('lead_prospect_id_seq'::regclass) NOT NULL,
+  run_id bigint NOT NULL,
+  company_name text NOT NULL,
+  trade_code text,
+  emirate text,
+  website text,
+  domain text,
+  phone_e164 text,
+  phone_kind text,
+  email text,
+  email_status text,
+  contact_name text,
+  contact_title text,
+  place_id text,
+  query text,
+  field_sources jsonb DEFAULT '{}'::jsonb NOT NULL,
+  collected_at timestamp with time zone DEFAULT now() NOT NULL,
+  status text NOT NULL,
+  status_reason text,
+  promoted_lead_id bigint,
+  model_answer text
+);
+
+CREATE TABLE IF NOT EXISTS public.lead_sourcing_run (
+  id bigint DEFAULT nextval('lead_sourcing_run_id_seq'::regclass) NOT NULL,
+  kind text NOT NULL,
+  status text DEFAULT 'done'::text NOT NULL,
+  reserved_serper_credits numeric DEFAULT 0 NOT NULL,
+  reserved_llm_usd numeric DEFAULT 0 NOT NULL,
+  started_at timestamp with time zone DEFAULT now() NOT NULL,
+  run_day date DEFAULT ((now() AT TIME ZONE 'Asia/Dubai'::text))::date NOT NULL,
+  emirate text NOT NULL,
+  trades text[] NOT NULL,
+  queries integer DEFAULT 0 NOT NULL,
+  serper_credits numeric DEFAULT 0 NOT NULL,
+  usd_per_credit numeric DEFAULT 0.001 NOT NULL,
+  places integer DEFAULT 0 NOT NULL,
+  sites_crawled integer DEFAULT 0 NOT NULL,
+  pages_fetched integer DEFAULT 0 NOT NULL,
+  robots_refused integer DEFAULT 0 NOT NULL,
+  prospects integer DEFAULT 0 NOT NULL,
+  complete integer DEFAULT 0 NOT NULL,
+  duplicates integer DEFAULT 0 NOT NULL,
+  suppressed integer DEFAULT 0 NOT NULL,
+  promoted integer DEFAULT 0 NOT NULL,
+  model_calls integer DEFAULT 0 NOT NULL,
+  linkedin_queries integer DEFAULT 0 NOT NULL,
+  llm_cost_usd numeric DEFAULT 0 NOT NULL,
+  by_trade jsonb DEFAULT '{}'::jsonb NOT NULL,
+  errors jsonb DEFAULT '[]'::jsonb NOT NULL,
+  handoff_id bigint,
+  read_by_ceo_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.lead_subcategory (
   lead_id bigint NOT NULL,
   sub_slug text NOT NULL,
@@ -4958,7 +5042,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
   invite_last_followup_at timestamp with time zone,
   accepted_terms_sha256 text,
   collaboration_hold_at timestamp with time zone,
-  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_email(claimed_by) OR fn_is_demo_phone(phone) OR ('qd_demo'::text = ANY (COALESCE(tags, '{}'::text[]))) OR (COALESCE(company_name, ''::text) ~~* 'ZZ DEMO%'::text) OR (COALESCE(company_name, ''::text) ~~ 'QD Demo %'::text) OR (COALESCE(source, ''::text) = ANY (ARRAY['demo_factory'::text, 'qd_demo_fixture'::text])))) STORED,
+  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_email(claimed_by) OR (fn_is_demo_phone(phone) AND (COALESCE(source, ''::text) <> 'marketing_sourcing'::text)) OR ('qd_demo'::text = ANY (COALESCE(tags, '{}'::text[]))) OR (COALESCE(company_name, ''::text) ~* '^ZZ DEMO([^a-z]|$)'::text) OR (COALESCE(company_name, ''::text) ~~ 'QD Demo %'::text) OR (COALESCE(source, ''::text) = ANY (ARRAY['demo_factory'::text, 'qd_demo_fixture'::text])))) STORED,
   whatsapp_phone text,
   whatsapp_verified_at timestamp with time zone,
   whatsapp_opt text,
@@ -7259,7 +7343,10 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   vat_amount numeric,
   supplier_trn text,
   amount_as_stated numeric,
-  extracted_by_model text
+  extracted_by_model text,
+  gross_amount numeric,
+  discount_amount numeric,
+  discount_label text
 );
 
 CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
@@ -7793,7 +7880,12 @@ CREATE TABLE IF NOT EXISTS public.sales_knowledge_gap (
   nearest_corpus text,
   task_id bigint,
   status text DEFAULT 'open'::text NOT NULL,
-  closed_at timestamp with time zone
+  closed_at timestamp with time zone,
+  kind text DEFAULT 'refusal'::text NOT NULL,
+  source text,
+  source_ref text,
+  excerpt text,
+  detector text
 );
 
 CREATE TABLE IF NOT EXISTS public.sales_qualification_field (
@@ -8251,6 +8343,36 @@ CREATE TABLE IF NOT EXISTS public.service_implication (
   active boolean DEFAULT true NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.signup_purge (
+  id bigint DEFAULT nextval('signup_purge_id_seq'::regclass) NOT NULL,
+  kind text NOT NULL,
+  subject_ref text NOT NULL,
+  started_at timestamp with time zone,
+  purged_at timestamp with time zone DEFAULT now() NOT NULL,
+  missing text[] NOT NULL,
+  counts jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.signup_purge_dropbox (
+  id bigint DEFAULT nextval('signup_purge_dropbox_id_seq'::regclass) NOT NULL,
+  purge_id bigint NOT NULL,
+  doc_backup_id bigint,
+  dropbox_file text NOT NULL,
+  listed_at timestamp with time zone DEFAULT now() NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  done_at timestamp with time zone,
+  error text
+);
+
+CREATE TABLE IF NOT EXISTS public.signup_purge_object (
+  id bigint DEFAULT nextval('signup_purge_object_id_seq'::regclass) NOT NULL,
+  purge_id bigint NOT NULL,
+  bucket text NOT NULL,
+  path text NOT NULL,
+  done_at timestamp with time zone,
+  error text
+);
+
 CREATE TABLE IF NOT EXISTS public.simulations (
   id bigint DEFAULT nextval('simulations_id_seq'::regclass) NOT NULL,
   scenario jsonb,
@@ -8304,7 +8426,7 @@ CREATE TABLE IF NOT EXISTS public.social_conversation (
   resumed_at timestamp with time zone,
   resumed_by text,
   last_inbound_at timestamp with time zone,
-  is_demo boolean GENERATED ALWAYS AS (((user_id ~* '^ZZDEMO'::text) OR (COALESCE(handle, ''::text) ~* '^ZZ DEMO'::text))) STORED,
+  is_demo boolean GENERATED ALWAYS AS (((user_id ~* '^ZZDEMO([^a-z]|$)'::text) OR (COALESCE(handle, ''::text) ~* '^ZZ DEMO([^a-z]|$)'::text))) STORED,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -10096,6 +10218,8 @@ ALTER TABLE public.kb_category_aliases ADD CONSTRAINT kb_category_aliases_pkey P
 ALTER TABLE public.kb_category_stats ADD CONSTRAINT kb_category_stats_pkey PRIMARY KEY (category, source_kind);
 ALTER TABLE public.kb_chunk_quarantine ADD CONSTRAINT kb_chunk_quarantine_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_chunks ADD CONSTRAINT kb_chunks_pkey PRIMARY KEY (id);
+ALTER TABLE public.kb_chunks_old ADD CONSTRAINT kb_chunks_old_pkey PRIMARY KEY (id);
+ALTER TABLE public.kb_chunks_swap_log ADD CONSTRAINT kb_chunks_swap_log_pkey PRIMARY KEY (seq);
 ALTER TABLE public.kb_citation_jurisdiction ADD CONSTRAINT kb_citation_jurisdiction_pkey PRIMARY KEY (citation_md5);
 ALTER TABLE public.kb_embed_inflight ADD CONSTRAINT kb_embed_inflight_pkey PRIMARY KEY (request_id);
 ALTER TABLE public.kb_embed_priority ADD CONSTRAINT kb_embed_priority_pkey PRIMARY KEY (category);
@@ -10120,6 +10244,8 @@ ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_pkey P
 ALTER TABLE public.knowledge_module_standard ADD CONSTRAINT knowledge_module_standard_pkey PRIMARY KEY (module);
 ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_pkey PRIMARY KEY (src, row_id);
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_pkey PRIMARY KEY (lead_id, slug);
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_pkey PRIMARY KEY (id);
+ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_pkey PRIMARY KEY (lead_id, sub_slug);
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_pkey PRIMARY KEY (trade_key);
@@ -10359,6 +10485,9 @@ ALTER TABLE public.security_kpi_snapshots ADD CONSTRAINT security_kpi_snapshots_
 ALTER TABLE public.self_review ADD CONSTRAINT self_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY (slug);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
+ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_pkey PRIMARY KEY (id);
+ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_pkey PRIMARY KEY (id);
+ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_pkey PRIMARY KEY (id);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
 ALTER TABLE public.sms_messages ADD CONSTRAINT sms_messages_pkey PRIMARY KEY (id);
@@ -10575,6 +10704,8 @@ ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_kind_subje
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_question_norm_key UNIQUE (question_norm);
 ALTER TABLE public.seat_case_memory ADD CONSTRAINT seat_case_memory_source_uq UNIQUE (source_table, source_id);
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_seat_pack_lang_question_key UNIQUE (seat, pack, lang, question);
+ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_doc_backup_id_key UNIQUE (doc_backup_id);
+ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_bucket_path_key UNIQUE (bucket, path);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_state_hash_key UNIQUE (state_hash);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_token_hash_key UNIQUE (token_hash);
 ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_user_id_key UNIQUE (platform, user_id);
@@ -10947,6 +11078,10 @@ ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_ru
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
 ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_id_check CHECK (id);
 ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_src_check CHECK ((src = ANY (ARRAY['seat_case_memory'::text, 'ceo_knowledge'::text, 'support_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'sales_knowledge'::text, 'company_faq'::text, 'agent_knowledge'::text, 'ops_knowledge'::text, 'reasoning_knowledge_candidate'::text, 'kb_chunks'::text])));
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_field_sources_check CHECK ((jsonb_typeof(field_sources) = 'object'::text));
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_status_check CHECK ((status = ANY (ARRAY['complete'::text, 'incomplete'::text, 'duplicate'::text, 'suppressed'::text, 'promoted'::text])));
+ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_kind_check CHECK ((kind = ANY (ARRAY['batch'::text, 'pilot'::text, 'probe'::text])));
+ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_status_check CHECK ((status = ANY (ARRAY['reserved'::text, 'done'::text])));
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_confidence_check CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric))));
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_decided_by_check CHECK ((decided_by = 'reasoning'::text));
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_evidence_check CHECK ((btrim(evidence) <> ''::text));
@@ -11355,6 +11490,7 @@ ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_kind_check
 ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'done'::text, 'failed'::text, 'superseded'::text])));
 ALTER TABLE public.routine_judgement ADD CONSTRAINT routine_judgement_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
 ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
+ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_kind_chk CHECK ((kind = ANY (ARRAY['refusal'::text, 'hedge'::text, 'corrected'::text, 'guard_rewrite'::text, 'asked_known'::text])));
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'knowledge_added'::text, 'not_a_gap'::text])));
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_entry_type_check CHECK ((entry_type = ANY (ARRAY['individual'::text, 'entity'::text])));
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unparseable'::text])));
@@ -11406,6 +11542,7 @@ ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_c
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_itself CHECK ((from_code <> ((implies_trade || '.'::text) || implies_code)));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_en_check CHECK ((btrim(reason_en) <> ''::text));
+ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_kind_check CHECK ((kind = ANY (ARRAY['customer'::text, 'supplier_self_registered'::text, 'supplier_invited_lead'::text, 'demo_purge'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_order CHECK (((completed_at IS NULL) OR (started_at IS NOT NULL)));
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_platform_check CHECK ((platform = ANY (ARRAY['youtube'::text, 'linkedin'::text])));
@@ -11733,6 +11870,8 @@ ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_run_id_fkey FOREIGN KEY (run_id) REFERENCES knowledge_ingestion_run(run_id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_promoted_lead_id_fkey FOREIGN KEY (promoted_lead_id) REFERENCES leads(id) ON DELETE SET NULL;
+ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_run_id_fkey FOREIGN KEY (run_id) REFERENCES lead_sourcing_run(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
@@ -11849,6 +11988,8 @@ ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES reasoning_knowledge_candidate(id);
 ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
+ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES social_conversation(id);
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_in_reply_to_fkey FOREIGN KEY (in_reply_to) REFERENCES social_message(id);
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
@@ -12197,17 +12338,29 @@ CREATE INDEX ix_sec_audit_tbl ON public.security_audit_log USING btree (table_na
 CREATE INDEX ix_workflow_run_correlation ON public.workflow_run USING btree (correlation_id);
 CREATE INDEX ix_workflow_run_status ON public.workflow_run USING btree (status, next_attempt_at);
 CREATE INDEX kb_chunks_cat_id_idx ON public.kb_chunks USING btree (category) INCLUDE (id);
+CREATE INDEX kb_chunks_cat_id_idx_old ON public.kb_chunks_old USING btree (category) INCLUDE (id);
 CREATE INDEX kb_chunks_category_norm_idx ON public.kb_chunks USING btree (category_norm);
+CREATE INDEX kb_chunks_category_norm_idx_old ON public.kb_chunks_old USING btree (category_norm);
 CREATE UNIQUE INDEX kb_chunks_company_faq_source_id ON public.kb_chunks USING btree (source_id) WHERE (source_kind = 'company_faq'::text);
+CREATE UNIQUE INDEX kb_chunks_company_faq_source_id_old ON public.kb_chunks_old USING btree (source_id) WHERE (source_kind = 'company_faq'::text);
 CREATE INDEX kb_chunks_created_at_desc_idx ON public.kb_chunks USING btree (created_at DESC);
+CREATE INDEX kb_chunks_created_at_desc_idx_old ON public.kb_chunks_old USING btree (created_at DESC);
 CREATE INDEX kb_chunks_emb_hnsw ON public.kb_chunks USING hnsw (embedding_gte vector_cosine_ops);
+CREATE INDEX kb_chunks_emb_hnsw_old ON public.kb_chunks_old USING hnsw (embedding_gte vector_cosine_ops);
 CREATE INDEX kb_chunks_fts ON public.kb_chunks USING gin (fts);
+CREATE INDEX kb_chunks_fts_old ON public.kb_chunks_old USING gin (fts);
 CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx ON public.kb_chunks USING btree (source_id) WHERE (source_kind = 'qd_kb_pack'::text);
+CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx_old ON public.kb_chunks_old USING btree (source_id) WHERE (source_kind = 'qd_kb_pack'::text);
 CREATE INDEX kb_chunks_source_id_idx ON public.kb_chunks USING btree (source_id);
+CREATE INDEX kb_chunks_source_id_idx_old ON public.kb_chunks_old USING btree (source_id);
 CREATE INDEX kb_chunks_source_kind_idx ON public.kb_chunks USING btree (source_kind);
+CREATE INDEX kb_chunks_source_kind_idx_old ON public.kb_chunks_old USING btree (source_kind);
 CREATE INDEX kb_chunks_unembedded_cat_created_idx ON public.kb_chunks USING btree (category, created_at) WHERE (embedding_gte IS NULL);
+CREATE INDEX kb_chunks_unembedded_cat_created_idx_old ON public.kb_chunks_old USING btree (category, created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_chunks_unembedded_created_idx ON public.kb_chunks USING btree (created_at) WHERE (embedding_gte IS NULL);
+CREATE INDEX kb_chunks_unembedded_created_idx_old ON public.kb_chunks_old USING btree (created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_chunks_unembedded_kind_created_idx ON public.kb_chunks USING btree (source_kind, created_at) WHERE (embedding_gte IS NULL);
+CREATE INDEX kb_chunks_unembedded_kind_created_idx_old ON public.kb_chunks_old USING btree (source_kind, created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_embed_inflight_chunk_idx ON public.kb_embed_inflight USING btree (chunk_id);
 CREATE INDEX kb_op_alias_lang_idx ON public.kb_operational_alias USING btree (language, negative);
 CREATE INDEX kb_op_alias_norm_idx ON public.kb_operational_alias USING btree (alias_norm);
@@ -12222,6 +12375,9 @@ CREATE INDEX knowledge_vector_ml_day_idx ON public.knowledge_vector_ml USING btr
 CREATE INDEX knowledge_vector_ml_kb_hnsw ON public.knowledge_vector_ml USING hnsw (embedding vector_cosine_ops) WHERE (src = 'kb_chunks'::text);
 CREATE UNIQUE INDEX lead_category_primary_uidx ON public.lead_category USING btree (lead_id) WHERE is_primary;
 CREATE INDEX lead_category_slug_idx ON public.lead_category USING btree (slug);
+CREATE INDEX lead_prospect_domain_idx ON public.lead_prospect USING btree (domain);
+CREATE INDEX lead_prospect_run_idx ON public.lead_prospect USING btree (run_id);
+CREATE UNIQUE INDEX lead_sourcing_one_reservation ON public.lead_sourcing_run USING btree ((true)) WHERE (status = 'reserved'::text);
 CREATE INDEX lead_subcategory_domain_idx ON public.lead_subcategory USING btree (domain_slug);
 CREATE UNIQUE INDEX lead_subcategory_primary_uidx ON public.lead_subcategory USING btree (lead_id) WHERE is_primary;
 CREATE INDEX lead_subcategory_sub_idx ON public.lead_subcategory USING btree (sub_slug);

@@ -1,3 +1,5 @@
+import { siteCors } from '../_shared/site_origins.ts';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 // supplier_portal v5 — advanced supplier dashboard API. Supplier-authed (own leads row via claimed_by).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
@@ -12,14 +14,14 @@ import { readSupplierProfile } from '../_shared/reasoned_suppliers.ts';
 import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
-import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { buildInsightsSummary } from './insights_summary.ts';
 import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/sanctioned.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
 // instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
-import { licenceNameFromModel, readExpiry, readLicenceName, type ExpiryRead } from '../_shared/document_expiry.ts';
+import { licenceNameFromModel, readExpiry, readLicenceFields, readLicenceName, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
@@ -153,7 +155,7 @@ async function listDocuments(supId: number) {
       attention: docs.filter((d) => d.status === 'expired' || d.status === 'expiring').length } };
 }
 
-Deno.serve(observe('supplier_portal', async (req) => {
+Deno.serve(siteCors(observe('supplier_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
   // what needs exercising. See warmPortal() in resilience_ping/index.ts.
@@ -164,8 +166,13 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // Our own hourly launch-path probe is marked fixture by its credential, never by its say-so (_shared/probe_caller.ts).
     if (!who.ok) return annotate(J(refusalBody(who), who.status), await probeCaller(admin, req, 'supplier_portal'));
     const { email } = who;
-    const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from').eq('claimed_by', email).maybeSingle();
-    if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);
+    const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle();
+    // `code` IS WHAT THE PORTAL READS (13 Oct 2026, ruling 1230 walk, it_engineer). Without it the shared call()
+    // (src/components/portal/supplier/api.ts) stamps every non-2xx answer `load_failed`, so Dashboard never saw
+    // no_company and a supplier with no company yet (signed up without an invitation, or whose claim was refused)
+    // got "Something went wrong" instead of the registration form. Measured on production, desktop and 375 px.
+    // Prevented by scripts/checks/a_supplier_with_no_company_is_shown_the_registration_form.test.mjs.
+    if (!sup) return J({ error: 'no_company', code: 'no_company', hint: 'claim your company first' }, 400);
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026). One gate, above the
     // action switch, so every screen this function serves is covered by one line rather than
     // forty — including the ones written after today. overview.ts already RENDERS a ban as a
@@ -516,6 +523,25 @@ Deno.serve(observe('supplier_portal', async (req) => {
           let codeName: string | null = null;
           try { codeName = await readLicenceName(stored.bytes, stored.mime); } catch (_e) { codeName = null; }
           upd.licence_legal_name = codeName;
+          // THE LICENCE NUMBER, AUTHORITY AND EMIRATE BY CODE TOO (browser walk f4294be8, 12 Oct 2026, it_engineer).
+          // supplier_api has read every labelled field by code since 7 Oct; this tab still left the number to the
+          // (held) model, so a licence uploaded here kept trade_license_no NULL and fn_sales_engineer_verifies_supplier
+          // held a clean text licence as licence_number_unread. Same reader as supplier_api; the model fills only gaps.
+          let codeFields: Partial<LicenceFields> = {};
+          try { codeFields = await readLicenceFields(stored.bytes, stored.mime); } catch (_e) { codeFields = {}; }
+          if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
+          if (codeFields.authority) upd.license_authority = codeFields.authority;
+          if (codeFields.emirate) upd.emirate = codeFields.emirate;
+        }
+        // A PHOTO-ONLY COMPANY PROFILE IS READ TOO (ruling 1177), as supplier_api.process_docs reads it: the picture goes
+        // to license_extract's profile mode and the services it reads are read for trades through photo_text.
+        if (kindStr === 'profile' && stored && /^image\//i.test(stored.mime) && aiOn && INBOUND_SECRET) {
+          try {
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', images: [{ b64: String(it.original_b64), mime: stored.mime }] }) });
+            const jd = await r.json().catch(() => null);
+            const q = readQueue.find((x) => x.kind === 'profile');
+            if (q && jd?.ok) q.photo_text = modelReadText('profile', jd.profile?.services);
+          } catch (_e) { /* the document stays needs_ocr: never a false "no trades" */ }
         }
         if (kindStr === 'license' && docRead) {
           upd.license_expiry = docRead.expiry; licExpiryFromDoc = true; upd.doc_extracted_at = new Date().toISOString();
@@ -531,11 +557,11 @@ Deno.serve(observe('supplier_portal', async (req) => {
               const jd = await r.json();
               if (jd?.ok && jd.found_expiry && jd.cert?.expiry_date) read[kindStr] = { kind: kindStr, expiry: String(jd.cert.expiry_date), source: 'ai', needs_confirm: true, typed };
             } catch (_e) { /* the honest 'unread' note below */ }
-            if (!read[kindStr]) read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true };
-          } else read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true };
+            if (!read[kindStr]) read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
+          } else read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && !(aiOn && INBOUND_SECRET)) {
-          read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true };
+          read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && aiOn && INBOUND_SECRET) {
           try {
@@ -548,14 +574,17 @@ Deno.serve(observe('supplier_portal', async (req) => {
             if (jd?.ok && jd.doc) {
               const d = jd.doc;
               if (d.expiry_date) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
-              if (d.license_number) upd.trade_license_no = d.license_number;
-              if (d.license_authority) upd.license_authority = d.license_authority;
+              if (d.license_number && !upd.trade_license_no) upd.trade_license_no = d.license_number;
+              if (d.license_authority && !upd.license_authority) upd.license_authority = d.license_authority;
               if (d.city) upd.license_city = d.city;
               if (!upd.licence_legal_name) { const n = licenceNameFromModel(d); if (n) upd.licence_legal_name = n; }
+              // The scan's activities, as the model read them, are read for trades like a text licence's (ruling 1177).
+              const q = readQueue.find((x) => x.kind === 'licence');
+              if (q) q.photo_text = modelReadText('licence', d.activities);
               upd.doc_extracted_at = new Date().toISOString();
             }
           } catch (_e) { /* fall back to the typed value below */ }
-          if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true };
+          if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
         // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
         // a date - including when NO document was attached at all, since the extraction block requires
@@ -621,12 +650,11 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // refused above the switch. Catalogues: one path out of the array, the same way.
     if (action === 'remove_document') {
       const kindStr = String(b.kind || '');
-      const ar = String(b.lang || '') === 'ar';
       if (kindStr === 'catalogs') {
         const path = String(b.path || '');
         const { data: cur } = await admin.from('leads').select('catalog_doc_paths').eq('id', sup.id).maybeSingle();
         const list: string[] = Array.isArray(cur?.catalog_doc_paths) ? (cur!.catalog_doc_paths as string[]) : [];
-        if (!path || !list.includes(path)) { const r = removeRefusal({ kind: kindStr, known: true, onFile: false, required: false, approval_status: sup.approval_status })!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, 409); }
+        if (!path || !list.includes(path)) { const r = removeRefusal({ kind: kindStr, known: true, onFile: false, required: false, approval_status: sup.approval_status })!; return J({ ok: false, error: 'remove_refused', code: r.code, message: r.message }, 409); }
         const { error } = await admin.from('leads').update({ catalog_doc_paths: list.filter((p) => p !== path), portal_updated_at: new Date().toISOString() }).eq('id', sup.id);
         if (error) return failed('remove_document', 'remove_failed', 'We could not remove that document. Please try again.', error, 502);
         const snap: VersionSnapshot = { event: 'removed', kind: 'catalogs', path, name: path.split('/').pop() || null, expiry: null, at: new Date().toISOString() };
@@ -640,7 +668,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
       const row = (cur || {}) as Record<string, unknown>;
       const prev = kind ? (row[kind.pathCol] as string | null) : null;
       const refusal = removeRefusal({ kind: kindStr, known: !!kind, onFile: !!prev, required: REQUIRED_DOC_KEYS.includes(kindStr), approval_status: sup.approval_status });
-      if (refusal || !kind || !prev) { const r = refusal!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, r.code === 'mandatory_of_approved' ? 409 : 400); }
+      if (refusal || !kind || !prev) { const r = refusal!; return J({ ok: false, error: 'remove_refused', code: r.code, message: r.message }, r.code === 'mandatory_of_approved' ? 409 : 400); }
       const clear: Record<string, unknown> = { [kind.pathCol]: null, portal_updated_at: new Date().toISOString() };
       if (kind.nameCol) clear[kind.nameCol] = null;
       if (kind.expCol) clear[kind.expCol] = null;
@@ -706,4 +734,4 @@ Deno.serve(observe('supplier_portal', async (req) => {
 
     return J({ error: 'unknown_action', action }, 400);
   } catch (e) { return failed('request', 'unexpected_error', 'Something went wrong. Please try again.', e as Error); }
-}));
+})));

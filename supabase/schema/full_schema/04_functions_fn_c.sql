@@ -2509,7 +2509,7 @@ declare r record; d public.ceo_directive; v bigint; v_ok boolean; v_err text; v_
   n_issued int := 0; n_met int := 0; n_esc int := 0; n_missed int := 0; v_q date;
   v_late text := $q$exists (select 1 from public.agent_actions a
       join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
-     where a.kind = 'handoff' and a.agent = %1$L and a.status = 'pending' and a.created_at < now() - k.reply_within)$q$;
+     where a.kind = 'handoff' and a.agent = %1$L and a.status = 'pending' and public.fn_handoff_is_late(a.detail, a.created_at, k.reply_within))$q$;
 begin
   -- 1. target misses on the year-one plan
   for r in select e->>'metric' as metric, e->>'owner_seat' as seat, e->>'actual' as actual, e->>'expected' as expected
@@ -4130,18 +4130,18 @@ declare v_week date := public.fn_ceo_review_week(); v_ev jsonb; v_quoted int; v_
 begin
   with q as (
     select i.id, (select count(*) from public.quotes x where x.inquiry_id = i.id) as quotes
-      from public.inquiries i where i.created_at > now() - interval '90 days'
+      from public.inquiries i where i.created_at > now() - interval '90 days' and not public.fn_inquiry_is_demo(i.id)
   )
   select jsonb_build_object(
     'pricing_config', (select to_jsonb(p) - 'id' - 'updated_at' from public.pricing_config p order by id limit 1),
     'requests_90d', (select count(*) from q),
     'quoted_requests_90d', (select count(*) from q where quotes > 0),
-    'reveals_90d', (select count(*) from public.transactions where revealed_at > now() - interval '90 days'),
-    'refunds_90d', (select count(*) from public.transactions where refund_requested_at > now() - interval '90 days'),
-    'avg_quote_aed', (select round(avg(quote_amount), 2) from public.quotes where created_at > now() - interval '90 days' and quote_amount > 0),
-    'avg_reveal_fee_aed', (select round(avg(reveal_fee), 2) from public.transactions where revealed_at > now() - interval '90 days'),
-    'nonresponse_refunds', (select coalesce(sum(rv_nonresponse_refunds), 0) from public.leads),
-    'supplier_fee_paying', (select count(*) from public.leads where registration_paid_at is not null),
+    'reveals_90d', (select count(*) from public.transactions t where t.revealed_at > now() - interval '90 days' and not public.fn_transaction_is_demo(t.id)),
+    'refunds_90d', (select count(*) from public.transactions t where t.refund_requested_at > now() - interval '90 days' and not public.fn_transaction_is_demo(t.id)),
+    'avg_quote_aed', (select round(avg(quote_amount), 2) from public.quotes x where x.created_at > now() - interval '90 days' and x.quote_amount > 0 and not public.fn_quote_is_demo(x.id)),
+    'avg_reveal_fee_aed', (select round(avg(t.reveal_fee), 2) from public.transactions t where t.revealed_at > now() - interval '90 days' and not public.fn_transaction_is_demo(t.id)),
+    'nonresponse_refunds', (select coalesce(sum(rv_nonresponse_refunds), 0) from public.leads where not is_demo),
+    'supplier_fee_paying', (select count(*) from public.leads where registration_paid_at is not null and not is_demo),
     'competitors_on_file', (select count(*) from public.competitor),
     'unit_economics_last_month', public.fn_accountant_unit_economics((date_trunc('month', now() at time zone 'Asia/Dubai') - interval '1 month')::date))
   into v_ev;
@@ -4170,6 +4170,27 @@ begin
     update public.ceo_review set held_id = v_held where kind = 'pricing_monitor' and period = v_week;
   end if;
   return jsonb_build_object('week', v_week, 'quoted_requests_90d', v_quoted, 'reasoning_filed', v_held is not null);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_reads_lead_sourcing_report(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; n int;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'marketing.lead_sourcing' then
+    raise exception 'fn_ceo_reads_lead_sourcing_report: % is not a marketing.lead_sourcing handoff', p_id;
+  end if;
+  update public.lead_sourcing_run set read_by_ceo_at = coalesce(read_by_ceo_at, now())
+   where kind = 'batch' and run_day = (a.detail->>'subject_id')::date;
+  get diagnostics n = row_count;
+  if n = 0 then raise exception 'marketing.lead_sourcing % names day %, which has no batch', p_id, a.detail->>'subject_id'; end if;
+  return jsonb_build_object('read', true, 'day', a.detail->>'subject_id', 'promoted', a.detail->'promoted', 'by_trade', a.detail->'by_trade',
+                            'note', 'Read by the CEO. New complete supplier leads per trade; nothing to approve.');
 end $function$
 
 
@@ -4887,7 +4908,7 @@ begin
            else jsonb_build_object('facts_cut_at_50000_chars', left(rv.facts::text, 50000)) end,
       jsonb_build_object('call', v_choice, 'fields', v_fields, 'reasoning', left(coalesce(p_result->>'answer', ''), 3000),
                          'founder_detail', left(coalesce(v_fields->>'proposal', '') || E'\n\n' || coalesce(v_fields->>'evidence', '') || E'\n\n' || coalesce(p_result->>'answer', ''), 4000)),
-      nullif(p_result->>'model', ''), 'agent_reasoning');
+      nullif(p_result->>'model', ''), 'internal_judgement');
     v_review := v_gate;
   elsif v_choice in ('propose_change', 'tell_founder') then
     v_review := public.fn_seat_duty_cross_review('ceo.' || v_kind, 'ceo', 'accountant',
@@ -5343,7 +5364,7 @@ begin
     select count(*) into v_failing from jsonb_array_elements(v_health) h where h->>'owner_seat' = s.role_id;
     select count(*) into v_late from public.agent_actions a
       join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
-     where a.kind = 'handoff' and a.agent = s.role_id and a.status = 'pending' and a.created_at < p_at - k.reply_within;
+     where a.kind = 'handoff' and a.agent = s.role_id and a.status = 'pending' and public.fn_handoff_is_late(a.detail, a.created_at, k.reply_within, p_at);
     select count(*) into v_missed from public.ceo_seat_directive
      where seat = s.role_id and status = 'missed' and month >= (v_q - interval '3 months')::date;
 
@@ -5406,6 +5427,17 @@ declare
   v_from timestamptz := now() - make_interval(days => greatest(1, coalesce(p_days, 7)));
   j jsonb;
 begin
+  -- agent_runs is rolled up per AGENT first (~110 distinct), then mapped to a seat: fn_run_seat runs
+  -- ~110 times instead of once per row per subquery (3 x 6 seats x ~269k rows = ~4.8M calls).
+  with ar as (
+    select public.fn_run_seat(a.agent) as seat,
+           sum(a.runs)::bigint as runs, sum(a.errors)::bigint as errors, max(a.last_seen) as last_seen
+      from (select r.agent,
+                   count(*) filter (where r.started_at >= v_from)                      as runs,
+                   count(*) filter (where r.status = 'error' and r.started_at >= v_from) as errors,
+                   max(r.started_at)                                                     as last_seen
+              from agent_runs r group by r.agent) a
+     group by 1)
   select jsonb_build_object(
     'window_days', greatest(1, coalesce(p_days, 7)),
     'since', v_from,
@@ -5414,13 +5446,9 @@ begin
 
         -- WHAT IT DID: every run, and every run that failed. Same source for all six, so the
         -- comparison between seats is honest.
-        'runs',        (select count(*) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat and r.started_at >= v_from),
-        'errors',      (select count(*) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat
-                           and r.status = 'error' and r.started_at >= v_from),
-        'last_seen',   (select max(r.started_at) from agent_runs r
-                         where public.fn_run_seat(r.agent) = s.seat),
+        'runs',        coalesce((select ar.runs   from ar where ar.seat = s.seat), 0),
+        'errors',      coalesce((select ar.errors from ar where ar.seat = s.seat), 0),
+        'last_seen',   (select ar.last_seen from ar where ar.seat = s.seat),
 
         -- WHAT IS WAITING ON IT: work assigned and not finished. This is the half the CEO had no
         -- sight of at all.
@@ -8689,6 +8717,23 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_conversation_archive_pending_sandbox(p_tag text, p_limit integer DEFAULT 5)
+ RETURNS SETOF v_conversation_message
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select v.* from public.v_conversation_message v
+   where coalesce(p_tag, '') ~ '^[A-Za-z0-9-]{6,40}$'
+     and v.subject ilike '%' || p_tag || '%'
+     and v.is_demo
+     and not exists (select 1 from public.conversation_archive a
+                      where a.source_table = v.source_table and a.source_id = v.source_id)
+   order by v.occurred_at
+   limit greatest(1, least(coalesce(p_limit, 5), 25));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_conversation_archived(p_source_table text, p_source_id text, p_path text, p_bytes bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9865,6 +9910,14 @@ begin
                                     'by_category', coalesce(v_by_cat, '[]'::jsonb)),
     'predictions', coalesce(v_predictions, '[]'::jsonb));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_is_demo(p_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select coalesce((select c.is_demo from public.customers c where c.id = p_id), false) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_customer_is_substantiated(p_customer_id uuid)

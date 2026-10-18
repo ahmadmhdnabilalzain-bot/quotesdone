@@ -46,6 +46,7 @@
 // expenses@mail.quotesdone.com does not exist — only info@, supplier@ and docs@mail are wired — so
 // the live webhook was never going to be handed this mail. Resend kept the messages anyway. The
 // history is the only path by which the founder's own spend can reach the ledger.
+import { readEveryAttachment, envGatewayVision } from '../_shared/read_every_attachment.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 // The sweep runs the SAME code the live webhook runs. Nothing about reading a receipt is
@@ -947,7 +948,14 @@ Deno.serve(observe('accountant', async (req) => {
           docText = await pdfText(att.bytes);
           if (!docText) readNote = 'The attached PDF carries no text layer we can trust — scanned, or a font we cannot map — so nothing was read from the file. ';
         } else if (att) {
-          readNote = 'The receipt is an image, which has no text layer; reading it needs a vision model and every paid route is held. ';
+          readNote = 'The receipt is an image, which has no text layer. ';
+        }
+        // RULING 1177 (12 Oct 2026): a scanned PDF or a photographed receipt is READ by the vision model (_shared/
+        // read_every_attachment: one more asking, the gateway's second model). Held only when both askings fail.
+        if (att && !docText) {
+          const seen = await readEveryAttachment(att.bytes, att.name, att.mime, envGatewayVision());
+          if (seen.status === 'read') { docText = seen.text.slice(0, 8000); readNote = ''; }
+          else readNote += 'The vision model could not read it either (' + String(seen.reason || 'no answer').slice(0, 80) + '), so it is held for a clearer copy. ';
         }
         // THE STATEMENT'S TABLE NEEDS ITS ROWS (14 Sep 2026). Measured on the founder's real Mashreq
         // e-statement: pdf_text returns '' for it (its Arabic captions are glyph noise, correctly refused by

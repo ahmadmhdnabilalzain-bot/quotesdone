@@ -1,3 +1,5 @@
+import { siteCors } from '../_shared/site_origins.ts';
+import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 // supplier_catalog_ingest — SPEC FILE #5 §7. A CATALOGUE IN, PRODUCT RECORDS OUT.
 //
 // §7 asks for a structured product store built from what the supplier already has: catalogues,
@@ -144,7 +146,7 @@ function rowsToProducts(rows: Record<string, unknown>[]) {
   return out;
 }
 
-Deno.serve(observe('supplier_catalog_ingest', async (req) => {
+Deno.serve(siteCors(observe('supplier_catalog_ingest', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
@@ -156,7 +158,7 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
     // here next year too.
     if (await sanctionedEmail(admin, user.email.toLowerCase())) return J(SANCTIONED_REFUSAL, 403);
     const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', user.email.toLowerCase()).maybeSingle();
-    if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);
+    if (!sup) return J({ error: 'no_company', code: 'no_company', hint: 'claim your company first' }, 400);
     const supId = sup.id as number;
 
     const b = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -228,7 +230,9 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
 
     const fail = async (status: string, why: string) => {
       if (catalogId) await admin.from('supplier_catalog').update({ status }).eq('id', catalogId);
-      return J({ ok: true, catalog_id: catalogId, products_created: 0, status, why, documents_read: await readTrades(), vision: await vision() });
+      // A file neither code nor the model could read: the supplier is asked for a clearer copy, in English (ruling 1177).
+      const message = ['unread_llm_hold', 'extraction_failed'].includes(status) ? clearerCopyAsk('supplier', 'en', fileName) : undefined;
+      return J({ ok: true, catalog_id: catalogId, products_created: 0, status, why, message, documents_read: await readTrades(), vision: await vision() });
     };
 
     let products: Record<string, unknown>[] = [];
@@ -288,14 +292,23 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
         if (!keyRow?.value) return await fail('extraction_unavailable', 'the smart engine is not configured on this project');
         let s = ''; const CH = 0x8000;
         for (let i = 0; i < readable.length; i += CH) s += String.fromCharCode.apply(null, Array.from(readable.subarray(i, i + CH)));
-        const r = await fetch(SUPA_URL + '/functions/v1/ai_gateway', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            __secret: keyRow.value, fn: 'supplier_catalog_ingest', max: 3000, temperature: 0.1,
-            sys: EXTRACTION_PROMPT, response_format: 'json',
-            input: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: `data:${readableMime};base64,${btoa(s)}` } }] }],
-          }),
-        }).then((x) => x.json()).catch(() => null);
+        // RULING 1177 (12 Oct 2026): a PDF goes to the model as a FILE (it was sent as an image_url, which a model reads
+        // as a broken picture), and an empty answer is asked once more; the gateway falls to the route's second model.
+        const dataUrl = `data:${readableMime};base64,${btoa(s)}`;
+        const part = readableMime === 'application/pdf' ? { type: 'file', file: { filename: fileName, file_data: dataUrl } } : { type: 'image_url', image_url: { url: dataUrl } };
+        // deno-lint-ignore no-explicit-any
+        let r: any = null;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          r = await fetch(SUPA_URL + '/functions/v1/ai_gateway', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              __secret: keyRow.value, fn: 'supplier_catalog_ingest', max: 3000, temperature: 0.1,
+              sys: EXTRACTION_PROMPT, response_format: 'json',
+              input: [{ role: 'user', content: [part] }],
+            }),
+          }).then((x) => x.json()).catch(() => null);
+          if (r && r.ok !== false && r.used_llm !== false && typeof r.content === 'string' && /\{[\s\S]*\}/.test(r.content)) break;
+        }
         // A REFUSAL IS NOT AN EMPTY CATALOGUE (15 Sep 2026). Under the hold ai_gateway answers
         // {ok:false, outcome:'circuit_open'} or {used_llm:false}; `r.content` is then absent, the parse
         // below saw '{}', and the catalogue was recorded 'no_products_found' — "we read it and it lists
@@ -352,4 +365,4 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));

@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "road_works:concrete-block-paver-thickness-by-traffic",
+      "topic": "Concrete block paver thickness by traffic class",
+      "kind": "spec_guide",
+      "body_en": "Interlocking concrete pavers are chosen by thickness and aspect ratio (length divided by thickness). Industry guidance: residential driveways use units at least 60 mm thick with a maximum 4:1 aspect ratio; for vehicular applications ASCE 58-10 recommends at least 80 mm thickness and a maximum 3:1 aspect ratio, with structural design using the industry's interlocking concrete pavement design method. A car park carrying general vehicle traffic therefore falls under the vehicular case: 80 mm minimum. Not established here: thicknesses for heavy industrial loads, and any Dubai Municipality or RTA rule fixing paver thickness for car parks; the project specification governs.",
+      "body_ar": "تُختار بلاطات الإنترلوك الخرسانية حسب السماكة ونسبة الأبعاد (الطول مقسوماً على السماكة). توجيهات القطاع: الممرات السكنية للسيارات تستخدم وحدات بسماكة 60 مم على الأقل ونسبة أبعاد قصوى 4:1؛ أما للاستخدامات المرورية فتوصي المواصفة ASCE 58-10 بسماكة 80 مم على الأقل ونسبة أبعاد قصوى 3:1، مع إجراء التصميم الإنشائي وفق طريقة القطاع لتصميم رصف الإنترلوك. ولذلك يندرج موقف السيارات الذي تمر عليه حركة مركبات عامة ضمن الحالة المرورية: 80 مم كحد أدنى. لم يثبت هنا: السماكات للأحمال الصناعية الثقيلة، ولا أي قاعدة من بلدية دبي أو هيئة الطرق والمواصلات تحدد سماكة البلاط لمواقف السيارات؛ وتسري مواصفات المشروع.",
+      "sources": [
+        "https://www.cmha.org/resource/pav-tec-009/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "road_works:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What thickness of interlock is needed for a car park?",
+      "q_ar": "ما سماكة الإنترلوك المطلوبة لموقف سيارات؟",
+      "expected_entry_ids": [
+        "road_works:concrete-block-paver-thickness-by-traffic"
+      ],
+      "why": "No entry of this pack answered it (Standards entry explicitly says layer thicknesses must come from the specification and the checklist gives none; missing: interlock paver thickness by traffic class entry). road_works:concrete-block-paver-thickness-by-traffic was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from road_works.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "road_works:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "road_works:concrete-block-paver-thickness-by-traffic"
+    ]
   }
 }

@@ -142,7 +142,7 @@
     "supabase": {
       "what": "the database, auth, storage and every edge function",
       "hosts": ["htdblwldjkcgjvmqkbeh.supabase.co"], "secrets": ["anon_key", "project_ref"],
-      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SB_REGION"],
+      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SB_REGION", "QD_OTP_RACE_PG"],
       "owner_seat": "it_engineer", "blast": "customer_facing",
       "probe": { "kind": "http", "method": "GET", "url": "{env:SUPABASE_URL}/auth/v1/health", "auth": "apikey:SUPABASE_ANON_KEY", "ok": [200] },
       "self_fix": "retried once after 3 s",
@@ -242,8 +242,14 @@
       "self_fix": "retried once after 3 s",
       "action": "Nothing to reconnect: a CDN outage passes; check https://status.esm.sh if it persists", "link": "https://esm.sh/"
     },
+    "dns_over_https": {
+      "what": "MX lookups for the email of a sourced supplier lead (marketing lead sourcing, DNS-over-HTTPS, keyless)", "hosts": ["cloudflare-dns.com"], "secrets": [], "env": [],
+      "owner_seat": "marketing", "blast": "agent_facing", "notify_founder": false,
+      "probe": { "kind": "covered", "by": "marketing/lead_sourcing.ts mxKind: an unreachable resolver records email_status mx_error, so the lead stays incomplete and is never promoted on an unchecked address" },
+      "action": "Nothing to do by hand: leads found while it is down stay incomplete", "link": "https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/"
+    },
     "web_search": {
-      "what": "the seats' web lookups while reasoning (Serper, official UAE sources only, 50 a day)", "hosts": ["google.serper.dev"], "secrets": [], "env": ["SERPER_API_KEY"],
+      "what": "the seats' web lookups while reasoning (Serper, official UAE sources only, 50 a day), and the marketing seat's supplier lead sourcing (Serper places and search, capped a day by lead_sourcing_daily_serper_usd)", "hosts": ["google.serper.dev"], "secrets": [], "env": ["SERPER_API_KEY"],
       "owner_seat": "it_engineer", "blast": "agent_facing",
       "notify_founder": true, "notify_why": "the Serper account and its billing are the founder's: a refused key or billing failure needs him; an outage or the daily cap never does",
       "probe": { "kind": "covered", "by": "web_search.ts raises the finding itself on each call (fn_web_search_degraded): HTTP 401/402/403 notify=true, outages, no key and the cap notify=false; a probe would spend a paid search" },
@@ -281,7 +287,8 @@
     "_about": "Secrets and env the company mints itself or plain settings stored beside the credentials. Nothing outside answers for them, so there is nothing external to probe; internal credentials are rotated by fn_it_credential_rotate.",
     "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
     "secrets": {
-      "admin_emails": "setting", "admin_mfa_phone": "setting", "email_triage_enabled": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
+      "lead_sourcing_daily_quota": "setting", "lead_sourcing_daily_serper_usd": "setting", "lead_sourcing_daily_llm_usd": "setting", "lead_sourcing_usd_per_credit": "setting",
+      "admin_emails": "setting", "backup_prune_mode": "setting", "conversation_retention_mode": "setting", "document_expiry_ai": "setting", "admin_mfa_phone": "setting", "email_triage_enabled": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
       "customer_terms_label": "setting", "customer_terms_version": "setting", "supplier_terms_html": "setting", "supplier_terms_label": "setting",
       "supplier_terms_version": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting",
       "email_asset_public_base": "setting", "email_enabled": "setting", "email_from_info": "setting", "email_from_supplier": "setting",

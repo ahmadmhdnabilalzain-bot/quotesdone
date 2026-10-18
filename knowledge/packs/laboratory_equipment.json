@@ -43,6 +43,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "laboratory_equipment:analyser-acquisition-models",
+      "topic": "Acquisition models for chemistry analysers",
+      "kind": "pricing_basis",
+      "body_en": "Chemistry analysers are commonly acquired by outright purchase (owning the analysers and buying supplies, cited as most cost-effective for high-volume users with deep discounts), by reagent rental (equipment, service and supplies combined in one bundled contract, where vendors often gave their best discounts), or on a fee per reportable test. Vendors price on commitment and term: in one US health-system tender, both vendors gave much better discounts for a 100% commitment across all nine facilities than for 85%, under five-year contracts, and standardisation produced a reported 40.5% cost reduction. A request should state annual test volumes, menu, contract term and included consumables. Not established here: UAE per-test price levels.",
+      "body_ar": "تُقتنى أجهزة تحليل الكيمياء السريرية عادةً بالشراء المباشر (امتلاك الأجهزة وشراء المستلزمات، ويُذكر أنه الأوفر للمختبرات ذات الأحجام الكبيرة التي تحصل على خصومات عالية)، أو باستئجار مقابل الكواشف (عقد مجمّع يضم الجهاز والصيانة والمستلزمات، وكان الموردون يمنحون فيه أفضل خصوماتهم)، أو برسم عن كل نتيجة فحص مُبلَّغ عنها. ويسعّر الموردون بحسب الالتزام والمدة: ففي مناقصة لنظام صحي أمريكي منح المورّدان خصومات أفضل بكثير مقابل التزام بنسبة 100% في المنشآت التسع جميعها مقارنةً بـ85%، بعقود مدتها خمس سنوات، وأدى التوحيد إلى خفض التكلفة بنسبة 40.5% وفق ما أُفيد. ينبغي أن يحدد الطلب أحجام الفحوص السنوية وقائمة الفحوص ومدة العقد والمستهلكات المشمولة. لم يُثبت هنا: مستويات سعر الفحص في الإمارات.",
+      "sources": [
+        "https://clpmag.com/diagnostic-technologies/clinical-chemistry/article-16543/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "laboratory_equipment:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How are clinical chemistry analysers usually priced for a hospital lab?",
+      "q_ar": "كيف تُسعّر عادةً محللات الكيمياء السريرية لمختبر مستشفى؟",
+      "expected_entry_ids": [
+        "laboratory_equipment:analyser-acquisition-models"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry covers analyser pricing models (outright purchase vs reagent rental / cost-per-test)). laboratory_equipment:analyser-acquisition-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from laboratory_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +97,9 @@
       "laboratory_equipment:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "laboratory_equipment:analyser-acquisition-models"
+    ]
   }
 }

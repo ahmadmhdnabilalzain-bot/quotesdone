@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+import { twilioVerdict } from './verdict.ts';
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -102,13 +103,9 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
         try{
           const r=await fetch(`https://content.twilio.com/v1/Content/${s.sid}/ApprovalRequests`,{ headers:{ 'Authorization':auth }, signal: AbortSignal.timeout(8000) });
           const j=await r.json().catch(()=>({}));
-          http = r.status;
-          // AN HTTP CODE IS NOT A STATUS (customer_support, 6 Oct 2026). Twilio's error body carries
-          // `status: 404`, and the old `j?.status` fallback wrote the string "404" into the register as
-          // if Meta had said it. Measured 6 Oct: six rows read "404". A 404 is 'missing'; any other
-          // non-2xx is no verdict at all; the code itself goes to last_http_status.
-          st = r.status === 404 ? 'missing' : !r.ok ? 'error:http ' + r.status : (j?.whatsapp?.status || 'unknown');
-          reason = j?.whatsapp?.rejection_reason || null;
+          // AN HTTP CODE IS NOT A STATUS (customer_support, 6 Oct 2026; read moved into verdict.ts by
+          // it_engineer). A 404 is 'missing'; any other non-2xx is no verdict; the code goes to last_http_status.
+          ({ status: st, reason, http } = twilioVerdict(r.status, j));
         }catch(e){ st='error:'+String(e); }
       }
       return { name:s.name, sid:s.sid, status:st, reason, http, polled: !decided.has(s.sid) };

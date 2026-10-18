@@ -49,6 +49,10 @@ const OWNING_SQLS = [
   // 5 Oct 2026, matrix v2: deepseek/deepseek-v4.1-flash and qwen/qwen3.7-plus are switched off (active = false), so
   // they leave the claim; a retired model is skipped, every active one is still compared strictly.
   'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql',
+  // 12 Oct 2026: the catalogue re-priced ~anthropic/claude-haiku-latest to 0.1 / 0.5, context 1000000; this file wins.
+  'scripts/sql/haiku_latest_costs_what_the_catalogue_charges_on_12_october.sql',
+  // anthropic/claude-sonnet-5.5, every conversation reply (founder ruling 1219, 13 Oct 2026).
+  'scripts/sql/every_conversation_reply_runs_on_sonnet_5_5_with_gemini_behind.sql',
 ];
 const V2_SQL = 'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql';
 const RETIRING_SQL = 'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql';

@@ -7,9 +7,10 @@
     {
       "id": "lighting_fixtures:uae-market-products",
       "topic": "Lighting fixtures & luminaires: products, variants and grades sold in the UAE",
+      "topic_ar": "وحدات الإنارة والمصابيح: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Lighting fixtures and luminaires in the UAE: LED downlights (fixed, adjustable, trimless), panel lights (600 x 600, 300 x 1200), linear and batten luminaires, track and spotlights for retail, high-bay and low-bay industrial fittings, weatherproof and vapour-tight fittings (IP65/IP66), street lights and floodlights, landscape and façade lighting (in-ground uplights IP67/68, wall washers, LED strips, RGBW), pool lights, decorative chandeliers and pendants, emergency and exit lighting (self-contained 3-hour, central battery, to Civil Defence requirements), and lighting controls (DALI, 0-10 V, sensors). Key specs: lumens, efficacy (lm/W), CCT (2700-6500 K), CRI (>80, >90 for retail/hospitality), UGR<19 for offices, beam angle, IP and IK rating, driver brand, L70/L80 lifetime. Products need ECAS/MoIAT conformity where regulated and Dubai lighting efficiency requirements.",
-      "body_ar": "وحدات الإنارة في الإمارات: السبوتات الغائرة LED (الثابتة والقابلة للتوجيه وبدون إطار)، والألواح (600 × 600 و300 × 1200)، والوحدات الخطية والبطاريات، والمسارات والسبوتات للمحلات، ووحدات الإنارة الصناعية العالية والمنخفضة، والوحدات المقاومة للعوامل الجوية والبخار (IP65/IP66)، وأعمدة الشوارع والكشافات، وإنارة الحدائق والواجهات (الكشافات الأرضية IP67/68، وغاسلات الجدران، وأشرطة LED، وRGBW)، وإنارة المسابح، والثريات والمعلقات الزخرفية، وإنارة الطوارئ والمخارج (ذاتية 3 ساعات أو ببطارية مركزية وفق متطلبات الدفاع المدني)، وأنظمة التحكم (DALI و0-10 فولت والحساسات). المواصفات الرئيسية: اللومن، والكفاءة (لومن/واط)، ودرجة حرارة اللون (2700-6500 كلفن)، ومؤشر تجسيد اللون (أكثر من 80، وأكثر من 90 للمحلات والضيافة)، وUGR أقل من 19 للمكاتب، وزاوية الشعاع، وتصنيف IP وIK، وعلامة المشغل، وعمر L70/L80. وتحتاج المنتجات مطابقة ECAS من وزارة الصناعة حيث تكون منظمة ومتطلبات كفاءة الإنارة في دبي.",
+      "body_en": "This entry covers lighting fixtures sold in the UAE, from LED downlights, panels and high-bays to street, façade, pool, decorative and emergency lighting and controls, and the key specs buyers check. Lighting fixtures and luminaires in the UAE: LED downlights (fixed, adjustable, trimless), panel lights (600 x 600, 300 x 1200), linear and batten luminaires, track and spotlights for retail, high-bay and low-bay industrial fittings, weatherproof and vapour-tight fittings (IP65/IP66), street lights and floodlights, landscape and façade lighting (in-ground uplights IP67/68, wall washers, LED strips, RGBW), pool lights, decorative chandeliers and pendants, emergency and exit lighting (self-contained 3-hour, central battery, to Civil Defence requirements), and lighting controls (DALI, 0-10 V, sensors). Key specs: lumens, efficacy (lm/W), CCT (2700-6500 K), CRI (>80, >90 for retail/hospitality), UGR<19 for offices, beam angle, IP and IK rating, driver brand, L70/L80 lifetime. Products need ECAS/MoIAT conformity where regulated and Dubai lighting efficiency requirements.",
+      "body_ar": "تشمل وحدات الإنارة في السوق الإماراتي سبوتات LED والبانلات وكشافات الهاي باي، وإنارة الشوارع والواجهات والمسابح والإنارة الديكورية وإنارة الطوارئ وأنظمة التحكم، مع أهم المواصفات التي يتحقق منها المشتري. وحدات الإنارة في الإمارات: السبوتات الغائرة LED (الثابتة والقابلة للتوجيه وبدون إطار)، والألواح (600 × 600 و300 × 1200)، والوحدات الخطية والبطاريات، والمسارات والسبوتات للمحلات، ووحدات الإنارة الصناعية العالية والمنخفضة، والوحدات المقاومة للعوامل الجوية والبخار (IP65/IP66)، وأعمدة الشوارع والكشافات، وإنارة الحدائق والواجهات (الكشافات الأرضية IP67/68، وغاسلات الجدران، وأشرطة LED، وRGBW)، وإنارة المسابح، والثريات والمعلقات الزخرفية، وإنارة الطوارئ والمخارج (ذاتية 3 ساعات أو ببطارية مركزية وفق متطلبات الدفاع المدني)، وأنظمة التحكم (DALI و0-10 فولت والحساسات). المواصفات الرئيسية: اللومن، والكفاءة (لومن/واط)، ودرجة حرارة اللون (2700-6500 كلفن)، ومؤشر تجسيد اللون (أكثر من 80، وأكثر من 90 للمحلات والضيافة)، وUGR أقل من 19 للمكاتب، وزاوية الشعاع، وتصنيف IP وIK، وعلامة المشغل، وعمر L70/L80. وتحتاج المنتجات مطابقة ECAS من وزارة الصناعة حيث تكون منظمة ومتطلبات كفاءة الإنارة في دبي.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae",
@@ -23,9 +24,10 @@
     {
       "id": "lighting_fixtures:uae-market-brands",
       "topic": "Lighting fixtures & luminaires: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "وحدات الإنارة والمصابيح: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Brands: Signify, Ledvance, Zumtobel, Thorn, iGuzzini, ERCO, Flos, Artemide, Delta Light, Fagerhult, Trilux, LEDS C4, Opple, Havells, Ligman, Linea Light, Beghelli, plus many Chinese OEM brands and local assemblers. Showrooms are along Sheikh Zayed Road and in Al Quoz, with wholesale in Deira (Naif) and Sharjah. The UAE distributors of the brands were not checked. Origins: Europe for premium architectural fittings, China for most volume, India, Turkey, and UAE assembly.",
-      "body_ar": "العلامات: Signify، Ledvance، Zumtobel، Thorn، iGuzzini، ERCO، Flos، Artemide، Delta Light، Fagerhult، Trilux، LEDS C4، Opple، Havells، Ligman، Linea Light، Beghelli، إضافة إلى علامات تصنيع صينية كثيرة ومجمّعين محليين. وتنتشر المعارض على شارع الشيخ زايد والقوز، والجملة في ديرة (نايف) والشارقة، ولم يُتحقق من موزعي العلامات في الإمارات. المنشأ: أوروبا (الإنارة المعمارية الفاخرة)، الصين (معظم الكميات)، الهند، تركيا، تجميع إماراتي.",
+      "body_en": "This entry lists lighting brands such as Signify, Ledvance, Zumtobel, iGuzzini and ERCO, plus Chinese OEM brands, where showrooms and wholesalers are, and where fittings come from. Brands: Signify, Ledvance, Zumtobel, Thorn, iGuzzini, ERCO, Flos, Artemide, Delta Light, Fagerhult, Trilux, LEDS C4, Opple, Havells, Ligman, Linea Light, Beghelli, plus many Chinese OEM brands and local assemblers. Showrooms are along Sheikh Zayed Road and in Al Quoz, with wholesale in Deira (Naif) and Sharjah. The UAE distributors of the brands were not checked. Origins: Europe for premium architectural fittings, China for most volume, India, Turkey, and UAE assembly.",
+      "body_ar": "من علامات الإنارة المتداولة Signify وLedvance وZumtobel وiGuzzini وERCO، إضافة إلى علامات المصنعين الصينيين (OEM)، مع بيان أماكن صالات العرض وتجار الجملة ومنشأ وحدات الإنارة. العلامات: Signify، Ledvance، Zumtobel، Thorn، iGuzzini، ERCO، Flos، Artemide، Delta Light، Fagerhult، Trilux، LEDS C4، Opple، Havells، Ligman، Linea Light، Beghelli، إضافة إلى علامات تصنيع صينية كثيرة ومجمّعين محليين. وتنتشر المعارض على شارع الشيخ زايد والقوز، والجملة في ديرة (نايف) والشارقة، ولم يُتحقق من موزعي العلامات في الإمارات. المنشأ: أوروبا (الإنارة المعمارية الفاخرة)، الصين (معظم الكميات)، الهند، تركيا، تجميع إماراتي.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae",
@@ -39,9 +41,10 @@
     {
       "id": "lighting_fixtures:uae-market-sizes",
       "topic": "Lighting fixtures & luminaires: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "وحدات الإنارة والمصابيح: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Luminaires are sold per piece against a lighting schedule with type codes; LED strips per metre or per 5 m reel; controls per channel/driver. Installed lighting is often quoted as supply and install per fitting with wiring counted under electrical points. Warranty 2-5 years typical (5 years for quality commercial LED). Samples and photometric data (IES/LDT files) and lighting calculations (DIALux/Relux) are part of submittals. Lead time for European architectural fittings is often 8-14 weeks versus stock for mainstream items.",
-      "body_ar": "تُباع وحدات الإنارة بالقطعة مقابل جدول إنارة برموز الأنواع؛ وأشرطة LED بالمتر أو ببكرة 5 م؛ وأنظمة التحكم بالقناة/المشغل. وكثيراً ما يُسعّر التوريد والتركيب بالوحدة مع احتساب التمديدات ضمن نقاط الكهرباء. والضمان 2-5 سنوات عادة (5 سنوات لإنارة LED التجارية الجيدة). والعينات والبيانات الضوئية (ملفات IES/LDT) وحسابات الإنارة (DIALux/Relux) جزء من التقديمات. ومدة التوريد للوحدات المعمارية الأوروبية غالباً 8-14 أسبوعاً مقابل التوفر من المخزون للبنود الشائعة.",
+      "body_en": "This entry explains how lighting is priced: luminaires per piece against a schedule, LED strips per metre or reel, controls per channel, installed per fitting, with warranty, submittals and lead times. Luminaires are sold per piece against a lighting schedule with type codes; LED strips per metre or per 5 m reel; controls per channel/driver. Installed lighting is often quoted as supply and install per fitting with wiring counted under electrical points. Warranty 2-5 years typical (5 years for quality commercial LED). Samples and photometric data (IES/LDT files) and lighting calculations (DIALux/Relux) are part of submittals. Lead time for European architectural fittings is often 8-14 weeks versus stock for mainstream items.",
+      "body_ar": "تُسعَّر الإنارة كالتالي: وحدات الإنارة بالقطعة وفق جدول الإنارة، وشرائط LED بالمتر أو باللفة، وأنظمة التحكم بالقناة، والتركيب بالوحدة، مع الضمان والاعتمادات (submittals) ومدد التسليم. تُباع وحدات الإنارة بالقطعة مقابل جدول إنارة برموز الأنواع؛ وأشرطة LED بالمتر أو ببكرة 5 م؛ وأنظمة التحكم بالقناة/المشغل. وكثيراً ما يُسعّر التوريد والتركيب بالوحدة مع احتساب التمديدات ضمن نقاط الكهرباء. والضمان 2-5 سنوات عادة (5 سنوات لإنارة LED التجارية الجيدة). والعينات والبيانات الضوئية (ملفات IES/LDT) وحسابات الإنارة (DIALux/Relux) جزء من التقديمات. ومدة التوريد للوحدات المعمارية الأوروبية غالباً 8-14 أسبوعاً مقابل التوفر من المخزون للبنود الشائعة.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae",
@@ -55,11 +58,15 @@
   ],
   "eval": [
     {
-      "q_en": "What CRI and colour temperature should retail lighting have?",
-      "q_ar": "ما مؤشر تجسيد اللون ودرجة حرارة اللون المناسبة لإنارة المحلات؟",
+      "q_en": "Which lamps and luminaires can I find locally nowadays: recessed, long bars, exterior, ornamental?",
+      "q_ar": "أي لمبات ووحدات إنارة أقدر ألقاها محلياً هالأيام: سبوت مدفون، لاينر طويل، خارجي، ديكور؟",
       "expected_entry_ids": [
         "lighting_fixtures:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists downlights, linear fittings, outdoor and decorative luminaires sold.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125,
+      "word_overlap_after_enrichment": 0.125
     }
   ],
   "verified": {

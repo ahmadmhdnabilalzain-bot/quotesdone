@@ -1,5 +1,5 @@
 // The stage-2 sandbox run (scripts/e2e/stage2.mjs, ledger 1119) spends real model money on production
-// with the hold lifted. These are the fences that keep it from costing more than the founder allowed,
+// past the hold, for its own tagged calls only (the hold itself never changes: a_sandbox_success_never_lifts_the_model_hold). These are the fences that keep it from costing more than the founder allowed,
 // from reaching a real person, from taking a live card, and from leaving anything a seat could learn from.
 //   node --test scripts/checks/the_stage2_sandbox_run_is_fenced.test.mjs
 import { test } from 'node:test';
@@ -69,6 +69,21 @@ test('the gate: untagged traffic is untouched, tagged traffic is capped and pass
   assert.match(sql, /PROBE OK: untagged=/);
 });
 
+test('the run secret is forwarded to this project\'s origin only (security review of #1371)', async () => {
+  const { sameOrigin } = await import('../../supabase/functions/_shared/e2e_run.ts');
+  const OWN = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
+  assert.equal(sameOrigin(OWN + '/functions/v1/ai_gateway', OWN), true);
+  assert.equal(sameOrigin(OWN + '/rest/v1/quotes?select=id', OWN), true);
+  assert.equal(sameOrigin('https://htdblwldjkcgjvmqkbeh.supabase.co.evil.com/functions/v1/x', OWN), false, 'a suffix host is not ours');
+  assert.equal(sameOrigin('https://htdblwldjkcgjvmqkbeh.supabase.co@evil.com/', OWN), false, 'userinfo is not our host');
+  assert.equal(sameOrigin('http://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/x', OWN), false, 'another scheme is another origin');
+  assert.equal(sameOrigin('https://htdblwldjkcgjvmqkbeh.supabase.co:8443/', OWN), false, 'another port is another origin');
+  assert.equal(sameOrigin('not a url', OWN), false, 'unparseable fails closed');
+  assert.equal(sameOrigin(OWN + '/x', ''), false, 'no project URL: nothing is forwarded');
+  const run = readFileSync(new URL('../../supabase/functions/_shared/e2e_run.ts', import.meta.url), 'utf8');
+  assert.match(run, /if \(!run \|\| !sameOrigin\(url, OWN\)\) return base\(input, init\);/, 'the wrapper uses the origin test');
+});
+
 test('the tag alone gets a public caller nothing: it needs the service role or the internal secret', async () => {
   const { resolveE2eRun } = await import('../../supabase/functions/_shared/e2e_run.ts');
   const SK = 'service-role-key-xyz', SECRET = 'internal-secret-abc';
@@ -78,7 +93,7 @@ test('the tag alone gets a public caller nothing: it needs the service role or t
   assert.equal(await ask({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': 'internal-secret-abd' }), null, 'a wrong secret is ignored');
   assert.equal(await ask({ 'x-qd-e2e-run': 'AB;drop', 'x-qd-e2e-secret': SECRET }), null, 'a malformed tag is ignored');
   assert.deepEqual(await ask({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': SECRET }), { tag: 'ab12cd34', secret: SECRET });
-  assert.deepEqual(await ask({ 'x-qd-e2e-run': 'ab12cd34', authorization: 'Bearer ' + SK }), { tag: 'ab12cd34', secret: null });
+  assert.deepEqual(await ask({ 'x-qd-e2e-run': 'ab12cd34', authorization: 'Bearer ' + SK }), { tag: 'ab12cd34', secret: SECRET }, 'the service-role hop carries the secret on, so a next hop with no bearer can prove it (run 4 S09)');
   assert.equal(await resolveE2eRun(new Headers({ 'x-qd-e2e-run': 'ab12cd34', 'x-qd-e2e-secret': 'x' }), null, async () => null), null, 'no secret configured: nothing passes');
   // the database applies the same rule to a header that reaches PostgREST directly
   assert.match(sql, /->> 'role' = 'service_role'\s+then nullif\(nullif\(current_setting\('request\.headers', true\)/);
@@ -87,6 +102,41 @@ test('the tag alone gets a public caller nothing: it needs the service role or t
   // and observe() only sets the tag through the resolver
   const obs = readFileSync(new URL('../../supabase/functions/_shared/observe.ts', import.meta.url), 'utf8');
   assert.match(obs, /await resolveE2eRun\(req\.headers, envOr\('SUPABASE_SERVICE_ROLE_KEY'\), internalSecret\)/);
+});
+
+// Run 1be65ab2: the browser walk's own customer was refused every model although its window was open.
+test('the run\'s own VERIFIED identity in its open window is let through; nothing else is', async () => {
+  const { resolveE2eRunByIdentity, runTagOfEmail } = await import('../../supabase/functions/_shared/e2e_run.ts');
+  const jwt = (email) => 'h.' + Buffer.from(JSON.stringify({ email })).toString('base64url') + '.s';
+  const OWN = 'qd-ab12cd34-cust1@example.invalid';
+  const U = (email, app, user) => ({ email, app_metadata: app, user_metadata: user });
+  const FLAGGED = U(OWN, { e2e_run: 'ab12cd34' });
+  const ask = (claimed, verified, open = true, secret = 'S') => resolveE2eRunByIdentity(
+    new Headers({ authorization: 'Bearer ' + jwt(claimed) }), async () => verified,
+    typeof open === 'function' ? open : async (t) => open && t === 'ab12cd34', async () => secret);
+  assert.deepEqual(await ask(OWN, FLAGGED), { tag: 'ab12cd34', secret: 'S' });
+  assert.equal(await ask(OWN, U(OWN, {})), null, 'self-signed-up with the right email but no flag: nothing');
+  assert.equal(await ask(OWN, U(OWN, {}, { e2e_run: 'ab12cd34' })), null, 'flag only in user-writable user_metadata: nothing');
+  assert.equal(await ask(OWN, U(OWN, { e2e_run: 'ffff0000' })), null, 'a flag for another run: nothing');
+  assert.equal(await ask(OWN, FLAGGED, false), null, 'window closed or models off: nothing');
+  assert.equal(await ask(OWN, FLAGGED, async () => { throw new Error('db down'); }), null, 'window lookup error: nothing');
+  assert.equal(await ask(OWN, FLAGGED, async () => 'true'), null, 'only a literal true opens it');
+  assert.equal(await resolveE2eRunByIdentity(new Headers({ authorization: 'Bearer ' + jwt(OWN) }), async () => { throw new Error('auth outage'); }, async () => true, async () => 'S'), null, 'auth outage: nothing');
+  assert.equal(await ask(OWN, U('someone@gmail.com', { e2e_run: 'ab12cd34' })), null, 'a forged payload the auth server does not confirm: nothing');
+  assert.equal(await ask(OWN, null), null, 'an unverifiable token: nothing');
+  assert.equal(await ask('real@customer.ae', U('real@customer.ae', { e2e_run: 'ab12cd34' })), null, 'a real customer: nothing');
+  assert.equal(await ask('qd-ab12cd34-x@gmail.com', U('qd-ab12cd34-x@gmail.com', { e2e_run: 'ab12cd34' })), null, 'only the reserved example.invalid domain');
+  assert.equal(await ask(OWN, FLAGGED, true, null), null, 'no internal secret configured: nothing');
+  assert.equal(await resolveE2eRunByIdentity(new Headers({ 'x-qd-e2e-run': 'ab12cd34' }), async () => FLAGGED, async () => true, async () => 'S'), null,
+    'the tag header alone, with no signed-in identity: nothing');
+  const fac = readFileSync(new URL('../lib/demo_factory.mjs', import.meta.url), 'utf8');
+  assert.match(fac, /app_metadata: \{ e2e_run:/, 'the harness creates its users with the service-role-only flag');
+  let calls = 0;
+  await resolveE2eRunByIdentity(new Headers({ authorization: 'Bearer ' + jwt('real@customer.ae') }), async () => { calls++; return null; }, async () => true, async () => 'S');
+  assert.equal(calls, 0, 'ordinary traffic never pays the auth round-trip');
+  assert.equal(runTagOfEmail('QD-AB12CD34-C@EXAMPLE.INVALID'), 'ab12cd34');
+  const obs = readFileSync(new URL('../../supabase/functions/_shared/observe.ts', import.meta.url), 'utf8');
+  assert.match(obs, /resolveE2eRunByIdentity\(req\.headers,[\s\S]{0,200}auth\.getUser\(jwt\)[\s\S]{0,200}fn_e2e_run_tag_open/);
 });
 
 test('the harness enables models for its own tag only, and always turns them off', () => {

@@ -40,6 +40,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "mobile_phones_wholesale:regional-version-middle-east-vs-international",
+      "topic": "Middle East vs international device versions",
+      "kind": "product_reference",
+      "body_en": "'Middle East' phones are the versions distributed through local UAE channels; 'international' units are imported from other markets. The best-known example: iPhone 4 units sold in the UAE did not include FaceTime video calling. A senior UAE telecoms executive said Apple was being over-cautious and taking its own interpretation of UAE regulation, against the background of the TRA's restrictions on internet calling such as Skype. Not established here: whether current models still differ on FaceTime, a model-by-model list of differences (warranty, charger, bands, SIM/eSIM), or TDRA type-approval status; confirm with the brand or TDRA.",
+      "body_ar": "هواتف 'نسخة الشرق الأوسط' هي النسخ الموزعة عبر القنوات المحلية في الإمارات؛ أما 'النسخة الدولية' فهي أجهزة مستوردة من أسواق أخرى. أشهر مثال: أجهزة iPhone 4 المبيعة في الإمارات لم تتضمن خدمة مكالمات الفيديو FaceTime. وقال مسؤول تنفيذي كبير في قطاع الاتصالات الإماراتي إن Apple كانت مفرطة في الحذر وتعتمد تفسيرها الخاص لتنظيمات الإمارات، في ظل قيود هيئة تنظيم الاتصالات على مكالمات الإنترنت مثل Skype. غير مثبت هنا: ما إذا كانت الطرازات الحالية لا تزال تختلف في FaceTime، وقائمة الفروق لكل طراز (الضمان، الشاحن، النطاقات، الشريحة/eSIM)، وحالة اعتماد الطراز لدى هيئة تنظيم الاتصالات والحكومة الرقمية؛ تحقق لدى العلامة التجارية أو الهيئة.",
+      "sources": [
+        "https://www.thenationalnews.com/business/iphone-lacks-video-feature-1.510019"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "mobile_phones_wholesale:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the difference between a Middle East version and an international version phone?",
+      "q_ar": "ما الفرق بين هاتف نسخة الشرق الأوسط والنسخة الدولية؟",
+      "expected_entry_ids": [
+        "mobile_phones_wholesale:regional-version-middle-east-vs-international"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry explains Middle East vs international versions (FaceTime, warranty, bands, TDRA); spec-checklist only lists \"Regional version\" as a field). mobile_phones_wholesale:regional-version-middle-east-vs-international was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from mobile_phones_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "mobile_phones_wholesale:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "mobile_phones_wholesale:regional-version-middle-east-vs-international"
+    ]
   }
 }

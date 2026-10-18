@@ -77,9 +77,31 @@ on:
         required: false
         default: ''
 
+# ── ONE PRODUCTION DEPLOY AT A TIME, AND NEVER AN OLDER TREE OVER A NEWER ONE (13 Oct 2026) ─────
+# Two main runs overlapped: #1382 (8189d06) started 02:47, #1393 (eed2765) started 02:50, and the
+# older run finished last. At 02:52 it deployed supplier_portal v288 from the OLDER tree over
+# #1393's fix. Main deploys (push or dispatch) now share one group and queue; cancel-in-progress is
+# false so no run is killed halfway through a deploy. Branch runs only typecheck, so each branch
+# keeps its own group. The "Is this still main's head?" step below closes the other half.
+#
+# LIMIT: GitHub holds ONE pending run per group. When a third main run arrives while one runs and one
+# waits, the waiting one is cancelled by GitHub. Its conclusion is "cancelled", shown in the run list,
+# never a green success. A cancelled PUSH loses nothing: the next push widens its diff base to the
+# last push that deployed. A cancelled DISPATCH is NOT covered by anything and must be dispatched
+# again; the run list shows it as cancelled, not as passed.
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && 'deploy-functions-production' || format('deploy-functions-{0}', github.ref) }}
+  cancel-in-progress: false
+
+# actions: read lets a main push find the last run that really deployed (see "Work out what changed").
+permissions:
+  contents: read
+  actions: read
+
 env:
   # STAGING_REF is gone with the staging branch it named (deleted 15 Aug 2026). One project, one ref.
   PRODUCTION_REF: htdblwldjkcgjvmqkbeh
+  DENO_NO_PACKAGE_JSON: "1"   # see checks.yml: deno never resolves the app's package.json (12 Oct 2026)
 
 jobs:
   deploy:
@@ -115,6 +137,8 @@ jobs:
       # else merge-base with origin/main on a branch, else HEAD~1).
       - name: Work out what changed
         id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "ref=${{ github.event.inputs.target }}" >> "$GITHUB_OUTPUT"
@@ -131,6 +155,33 @@ jobs:
             is_main=false
             if [ "${{ github.ref }}" = "refs/heads/main" ]; then is_main=true; fi
             before=$(bash scripts/ci/resolve_diff_base.sh '${{ github.event.before }}' main "$is_main")
+            # ── A SKIPPED OLDER RUN MUST NOT LOSE ITS FUNCTIONS (13 Oct 2026) ───────────────────
+            # An older main run that finds a newer main head deploys nothing (see the guard below),
+            # so this run must cover that commit's changes too. On main the base widens to the head
+            # of the last PUSH run whose Deploy step actually ran, when that is an ancestor of HEAD.
+            # A dispatch is excluded: it deploys only the slugs someone named.
+            if [ "$is_main" = "true" ]; then
+              # Every gh call fails the run on an API error or rate limit (set -e, no || fallbacks):
+              # a silently narrowed base would skip functions. --paginate walks every page.
+              set -euo pipefail
+              last=""
+              ids=$(gh api --paginate "repos/${{ github.repository }}/actions/workflows/deploy-functions.yml/runs?branch=main&event=push&status=success&per_page=100" --jq '.workflow_runs[] | "\(.id) \(.head_sha)"')
+              while read -r id sha; do
+                [ -z "$id" ] && continue
+                ran=$(gh api --paginate "repos/${{ github.repository }}/actions/runs/$id/jobs?per_page=100" --jq '[.jobs[].steps[] | select(.name=="Deploy" and .conclusion=="success")] | length')
+                if [ "$(echo "$ran" | awk '{s+=$1} END {print s+0}')" != "0" ]; then last="$sha"; break; fi
+              done <<< "$ids"
+              if [ -z "$last" ]; then
+                echo "::error::no earlier main push run ever deployed; refusing to guess a diff base"; exit 1
+              fi
+              if git merge-base --is-ancestor "$last" "$before"; then
+                echo "diff base widened to $last, the last main push that deployed (was $before)"
+                before="$last"
+              else
+                echo "::error::last deployed push $last is not an ancestor of $before (main rewritten?); refusing to deploy from a narrowed base. Dispatch the affected slugs from main's head."
+                exit 1
+              fi
+            fi
             # ── THERE IS NO STAGING ANY MORE (15 Aug 2026) ───────────────────────────────────────
             # The founder deleted the staging branch: "from now on there is no staging branches. we
             # directly build, test, pass then production." `list_projects` now returns exactly one
@@ -215,10 +266,35 @@ jobs:
       # other branch would put unreviewed code on production, so it dry-runs like a branch push.
       # A push deploys only from main. Everything else has already been printed and typechecked
       # above, which is the "test, pass" half.
+      # ── IS THIS STILL MAIN'S HEAD? (13 Oct 2026) ────────────────────────────────────────────
+      # Checked at the last moment before deploying. If origin/main is not this run's commit (moved
+      # on, or force-pushed elsewhere), this run's tree is not main and must not deploy:
+      #   - a PUSH deploys nothing and stays green; the run for main's head deploys, and its base
+      #     widens to cover this commit.
+      #   - a DISPATCH FAILS. It names slugs nobody else will deploy, so passing green would lose
+      #     them silently. Re-dispatch it; it then runs at main's head.
+      - name: Is this still main's head?
+        id: fresh
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git fetch --quiet origin main
+          head=$(git rev-parse origin/main)
+          if [ "$head" != "${{ github.sha }}" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "::error title=Dispatch not deployed::origin/main moved to $head while this dispatch of ${{ github.sha }} waited. Nothing deployed. Dispatch again to deploy the named slugs from main's head."
+            exit 1
+          elif [ "$head" != "${{ github.sha }}" ]; then
+            echo "::notice title=Deploy skipped, superseded::origin/main is now $head, not ${{ github.sha }}. Deploying nothing; the run for main's head deploys."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "origin/main is ${head}; this run (${{ github.sha }}) deploys."
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy
         if: >-
           steps.gate.outputs.configured == 'true'
           && github.ref == 'refs/heads/main'
+          && steps.fresh.outputs.current == 'true'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -249,7 +325,9 @@ jobs:
       - name: Say whether production was updated
         run: |
           deployable='${{ github.ref == 'refs/heads/main' }}'
-          if [ "$deployable" = "true" ] && [ "${{ steps.gate.outputs.configured }}" = "true" ]; then
+          if [ "$deployable" = "true" ] && [ "${{ steps.fresh.outputs.current }}" = "false" ]; then
+            echo "superseded — origin/main moved past ${{ github.sha }}; the newer run deploys. Production NOT updated by this run."
+          elif [ "$deployable" = "true" ] && [ "${{ steps.gate.outputs.configured }}" = "true" ]; then
             echo "deployed to production (${{ env.PRODUCTION_REF }})"
           elif [ "$deployable" = "true" ]; then
             echo "::warning title=Not deployed::this run was deployable but SUPABASE_ACCESS_TOKEN is not set, so production was NOT updated."

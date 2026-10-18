@@ -43,6 +43,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "hse_consultancy:abu-dhabi-osh-practitioner-registration",
+      "topic": "Abu Dhabi OSH practitioner and provider registration (Qudorat)",
+      "kind": "regulatory_reference",
+      "body_en": "On 8 April 2026 the Abu Dhabi Public Health Centre announced a competency-based regulatory framework under the Qudorat Programme for registering occupational safety and health (OSH) practitioners and service providers. Specialists go through qualification verification and a competency assessment before formal registration. The framework defines categories including OSH General Practitioner, Senior Practitioner and Auditor. Registration is accessed through the TAMM platform, and the initiative expects specialists to keep up to date with current practice. When appointing an HSE consultancy for Abu Dhabi work, ask for its registration and the registered category of each named individual. Not established here: fees, the transition deadline for practitioners already working, and how the framework interacts with sector regulators' own consultant lists.",
+      "body_ar": "في 8 أبريل 2026 أعلن مركز أبوظبي للصحة العامة إطاراً تنظيمياً قائماً على الكفاءة ضمن برنامج «قدرات» لتسجيل ممارسي الصحة والسلامة المهنية ومقدمي خدماتها. ويخضع المختصون للتحقق من مؤهلاتهم ولتقييم الكفاءة قبل التسجيل الرسمي. ويحدد الإطار فئات منها: ممارس عام للصحة والسلامة المهنية، وممارس أول، ومدقق. ويتم التسجيل عبر منصة «تم»، وتتوقع المبادرة من المختصين مواكبة أحدث الممارسات. عند تعيين استشاري صحة وسلامة وبيئة لأعمال في أبوظبي، اطلب ما يثبت تسجيله والفئة المسجلة لكل فرد مسمّى. غير مثبت هنا: الرسوم، والمهلة الانتقالية للممارسين العاملين حالياً، وعلاقة الإطار بقوائم الاستشاريين لدى الجهات التنظيمية القطاعية.",
+      "sources": [
+        "https://www.mediaoffice.abudhabi/en/health/abu-dhabi-public-health-centre-launches-competency-based-regulatory-framework-for-registration-of-occupational-health-and-safety-specialists/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "hse_consultancy:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does an HSE consultant working in Abu Dhabi need OSHAD registration?",
+      "q_ar": "هل يحتاج استشاري الصحة والسلامة العامل في أبوظبي إلى التسجيل لدى OSHAD؟",
+      "expected_entry_ids": [
+        "hse_consultancy:abu-dhabi-osh-practitioner-registration"
+      ],
+      "why": "No entry of this pack answered it (the standards entry covers Civil Defence and Dubai Municipality but not Abu Dhabi OSHAD consultant registration). hse_consultancy:abu-dhabi-osh-practitioner-registration was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from hse_consultancy.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +97,9 @@
       "hse_consultancy:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "hse_consultancy:abu-dhabi-osh-practitioner-registration"
+    ]
   }
 }
