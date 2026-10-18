@@ -1,0 +1,5 @@
+Founder ruling 1231 ("this week 20, next week 30, the week after 40, until we reach 50 a day"): fn_invite_founder_cap was one week early (30 on 19 Oct). The new body returns 20 until 25 Oct, 30 from 26 Oct, 40 from 2 Nov, 50 from 9 Nov. Must be applied before 10:00 Dubai on 19 Oct 2026, when the window opens.
+
+Measured 19 Oct 2026 against production in a rolled-back replay (scripts/lib/safe_replay.mjs replaySql): PROBE OK. Read-only on production the same morning: fn_invite_ramp and enqueue_supplier_invites both bound by least(..., fn_invite_founder_cap(Dubai today)); invite_daily_cap = 20, invite_warmup base_cap = 20, ceiling_cap = 50 (bounded by the founder cap), invite_enabled = false. The guarded update of invite_daily_cap is a no-op at those values.
+
+Seat: it_engineer.
