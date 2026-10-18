@@ -40,6 +40,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "aircraft_parts_mro:authorised-release-certificate-form-1",
+      "topic": "Authorised release certificate for maintained components",
+      "kind": "regulatory_reference",
+      "body_en": "Under GCAA CAR-145 a component released after maintenance is accompanied by the authorised release certificate, GCAA AW Form 1. It releases assemblies, items, components and parts after maintenance and allows items removed from one aircraft or component to be fitted to another; it is used for export, import and domestic purposes. Only GCAA-approved organisations may issue it, and only within the scope of their approval. The release statement certifies that the specified work was carried out in accordance with CAR-145 and that the item is considered ready for release to service. A Form 1 should not be issued for an item known to be unserviceable, except during multi-stage maintenance at several GCAA-approved organisations, where a limitation statement is endorsed in Block 12. When buying an overhauled part, check the work recorded, the part and serial numbers, and the issuing organisation's approval. Not established here: equivalence with EASA Form 1 and GCAA acceptance of foreign EASA Form 1 or FAA 8130-3 releases.",
+      "body_ar": "بموجب لائحة CAR-145 الصادرة عن الهيئة العامة للطيران المدني، يرافق المكوّنَ المُفرَج عنه بعد الصيانة شهادةُ الإفراج المعتمدة، وهي النموذج GCAA AW Form 1. ويُستخدم للإفراج عن التجميعات والقطع والمكونات بعد الصيانة، ويتيح تركيب القطع المفكوكة من طائرة أو مكوّن على طائرة أو مكوّن آخر؛ ويُستخدم لأغراض التصدير والاستيراد والاستخدام المحلي. ولا يجوز إصداره إلا للمؤسسات المعتمدة من الهيئة وضمن نطاق اعتمادها فقط. ويشهد بيان الإفراج بأن العمل المحدد نُفّذ وفق CAR-145 وأن القطعة تُعدّ جاهزة للإفراج للخدمة. ولا ينبغي إصدار النموذج لقطعة معروف أنها غير صالحة للخدمة، إلا أثناء الصيانة متعددة المراحل لدى عدة مؤسسات معتمدة من الهيئة، حيث يُدوَّن بيان قيود في الخانة 12. عند شراء قطعة مُجدَّدة، تحقق من العمل المسجّل وأرقام القطعة والرقم التسلسلي واعتماد المؤسسة المُصدِرة. غير مثبت هنا: التكافؤ مع نموذج EASA Form 1، وقبول الهيئة لشهادات EASA Form 1 أو FAA 8130-3 الأجنبية.",
+      "sources": [
+        "https://sassofia.com/blog/considerations-related-to-gulf-civil-aviation-authority-car-145-50-certification-of-maintenance/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "aircraft_parts_mro:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What release certificate should accompany an overhauled aircraft component?",
+      "q_ar": "ما شهادة الإفراج التي يجب أن ترافق مكون طائرة معاد عَمرته؟",
+      "expected_entry_ids": [
+        "aircraft_parts_mro:authorised-release-certificate-form-1"
+      ],
+      "why": "No entry of this pack answered it (Entries name GCAA CAR-145 and list 'release certificate required' as a field but never name the certificate (GCAA/EASA Form 1 authorised release certificate); missing). aircraft_parts_mro:authorised-release-certificate-form-1 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from aircraft_parts_mro.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "aircraft_parts_mro:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "aircraft_parts_mro:authorised-release-certificate-form-1"
+    ]
   }
 }

@@ -7,9 +7,10 @@
     {
       "id": "office_furniture:uae-market-products",
       "topic": "Office furniture: products, variants and grades sold in the UAE",
+      "topic_ar": "أثاث مكاتب: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Office furniture sold in the UAE includes workstations and benching systems (with cable management and screens), executive desks, height-adjustable sit-stand desks (single/dual motor), meeting and boardroom tables, task chairs (ergonomic with synchro-tilt, lumbar support, adjustable arms), executive and visitor chairs, soft seating and pods, acoustic booths, storage (pedestals, lockers, filing cabinets, compactus mobile shelving), reception counters and partitions. Buyers specify board material and finish (melamine-faced chipboard or MDF to E1/E0 emissions, veneer, laminate thickness), edge banding (PVC/ABS 2 mm), frame type, chair standards (EN 1335, BIFMA X5.1), warranty (often 5-10 years on chairs), fabric or mesh, and load ratings. Sustainability certifications (GREENGUARD, FSC, Level) are asked for Estidama/LEED fit-outs.",
-      "body_ar": "يشمل الأثاث المكتبي المباع في الإمارات محطات العمل وأنظمة المكاتب المتصلة (مع إدارة الكابلات والحواجز)، والمكاتب التنفيذية، والمكاتب القابلة لتعديل الارتفاع للجلوس والوقوف (بمحرك واحد أو مزدوج)، وطاولات الاجتماعات ومجالس الإدارة، وكراسي العمل (المريحة مع إمالة متزامنة ودعم أسفل الظهر ومساند أذرع قابلة للتعديل)، والكراسي التنفيذية وكراسي الزوار، والجلسات المريحة والكبائن، وأكشاك العزل الصوتي، ووحدات التخزين (الأدراج، والخزائن، وخزائن الملفات، ورفوف الأرشيف المتحركة)، وكاونترات الاستقبال والقواطع. يحدد المشترون مادة الألواح وتشطيبها (ألواح حبيبية مكسوة بالميلامين أو MDF وفق انبعاثات E1/E0، قشرة خشبية، سماكة اللامينيت)، وأشرطة الحواف (PVC/ABS بسماكة 2 مم)، ونوع الهيكل، ومعايير الكراسي (EN 1335، BIFMA X5.1)، والضمان (غالباً 5-10 سنوات للكراسي)، والقماش أو الشبك، وتصنيفات التحمل. ويُطلب الحصول على شهادات الاستدامة (GREENGUARD، FSC، Level) لتجهيزات استدامة ولييد.",
+      "body_en": "Office furniture in the UAE covers workstations, executive and sit-stand desks, meeting tables, ergonomic chairs, soft seating, acoustic booths and storage, specified by board material, finish, chair standards, warranty and load ratings. Office furniture sold in the UAE includes workstations and benching systems (with cable management and screens), executive desks, height-adjustable sit-stand desks (single/dual motor), meeting and boardroom tables, task chairs (ergonomic with synchro-tilt, lumbar support, adjustable arms), executive and visitor chairs, soft seating and pods, acoustic booths, storage (pedestals, lockers, filing cabinets, compactus mobile shelving), reception counters and partitions. Buyers specify board material and finish (melamine-faced chipboard or MDF to E1/E0 emissions, veneer, laminate thickness), edge banding (PVC/ABS 2 mm), frame type, chair standards (EN 1335, BIFMA X5.1), warranty (often 5-10 years on chairs), fabric or mesh, and load ratings. Sustainability certifications (GREENGUARD, FSC, Level) are asked for Estidama/LEED fit-outs.",
+      "body_ar": "يشمل أثاث المكاتب في الإمارات محطات العمل والمكاتب التنفيذية ومكاتب الجلوس والوقوف، وطاولات الاجتماعات والكراسي المريحة والجلسات الناعمة والكبائن العازلة للصوت ووحدات التخزين، وتُحدَّد بمادة الألواح والتشطيب ومعايير الكراسي والضمان وقدرة التحمل. يشمل الأثاث المكتبي المباع في الإمارات محطات العمل وأنظمة المكاتب المتصلة (مع إدارة الكابلات والحواجز)، والمكاتب التنفيذية، والمكاتب القابلة لتعديل الارتفاع للجلوس والوقوف (بمحرك واحد أو مزدوج)، وطاولات الاجتماعات ومجالس الإدارة، وكراسي العمل (المريحة مع إمالة متزامنة ودعم أسفل الظهر ومساند أذرع قابلة للتعديل)، والكراسي التنفيذية وكراسي الزوار، والجلسات المريحة والكبائن، وأكشاك العزل الصوتي، ووحدات التخزين (الأدراج، والخزائن، وخزائن الملفات، ورفوف الأرشيف المتحركة)، وكاونترات الاستقبال والقواطع. يحدد المشترون مادة الألواح وتشطيبها (ألواح حبيبية مكسوة بالميلامين أو MDF وفق انبعاثات E1/E0، قشرة خشبية، سماكة اللامينيت)، وأشرطة الحواف (PVC/ABS بسماكة 2 مم)، ونوع الهيكل، ومعايير الكراسي (EN 1335، BIFMA X5.1)، والضمان (غالباً 5-10 سنوات للكراسي)، والقماش أو الشبك، وتصنيفات التحمل. ويُطلب الحصول على شهادات الاستدامة (GREENGUARD، FSC، Level) لتجهيزات استدامة ولييد.",
       "sources": [
         "https://paradox24.com/chair-certifications-en-1335-bifma-explained/",
         "https://www.hermanmiller.com/en_afr/contact/dubai-showroom/",
@@ -25,9 +26,10 @@
     {
       "id": "office_furniture:uae-market-brands",
       "topic": "Office furniture: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "أثاث مكاتب: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Brands and confirmed UAE players: Herman Miller (MillerKnoll), Steelcase, Haworth, Kinnarps, Highmoon Office Furniture, Vitra, Humanscale, Koleksiyon. Herman Miller has its own Dubai showroom and Highmoon is a local maker; the other brands' UAE dealers were not checked. Many factories operate in Dubai Investments Park, Jebel Ali, Sharjah and Ajman.",
-      "body_ar": "العلامات واللاعبون المؤكدون في الإمارات: Herman Miller (MillerKnoll)، Steelcase، Haworth، Kinnarps، Highmoon Office Furniture، Vitra، Humanscale، Koleksiyon. ولدى هيرمان ميلر صالة عرض خاصة في دبي، وهاي مون مصنع محلي؛ ولم يُتحقق من وكلاء العلامات الأخرى في الإمارات. وتعمل مصانع كثيرة في مجمع دبي للاستثمار وجبل علي والشارقة وعجمان.",
+      "body_en": "Office furniture brands in the UAE include Herman Miller, Steelcase, Haworth, Kinnarps, Vitra, Humanscale, Koleksiyon and local maker Highmoon, with many factories in Dubai Investments Park, Jebel Ali, Sharjah and Ajman. Brands and confirmed UAE players: Herman Miller (MillerKnoll), Steelcase, Haworth, Kinnarps, Highmoon Office Furniture, Vitra, Humanscale, Koleksiyon. Herman Miller has its own Dubai showroom and Highmoon is a local maker; the other brands' UAE dealers were not checked. Many factories operate in Dubai Investments Park, Jebel Ali, Sharjah and Ajman.",
+      "body_ar": "من علامات أثاث المكاتب في الإمارات Herman Miller وSteelcase وHaworth وKinnarps وVitra وHumanscale وKoleksiyon والمصنِّع المحلي Highmoon، والكثير من المصانع في مجمع دبي للاستثمار وجبل علي والشارقة وعجمان. العلامات واللاعبون المؤكدون في الإمارات: Herman Miller (MillerKnoll)، Steelcase، Haworth، Kinnarps، Highmoon Office Furniture، Vitra، Humanscale، Koleksiyon. ولدى هيرمان ميلر صالة عرض خاصة في دبي، وهاي مون مصنع محلي؛ ولم يُتحقق من وكلاء العلامات الأخرى في الإمارات. وتعمل مصانع كثيرة في مجمع دبي للاستثمار وجبل علي والشارقة وعجمان.",
       "sources": [
         "https://paradox24.com/chair-certifications-en-1335-bifma-explained/",
         "https://www.hermanmiller.com/en_afr/contact/dubai-showroom/",
@@ -43,9 +45,10 @@
     {
       "id": "office_furniture:uae-market-sizes",
       "topic": "Office furniture: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "أثاث مكاتب: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Furniture is priced per piece or per workstation cluster (e.g. 4-pod 1200 x 600 mm or 1400 x 700 mm desks). Common desk depths are 600-800 mm, heights 720-750 mm; sit-stand ranges about 620-1270 mm. Projects are quoted as a lump sum against a furniture schedule with delivery and installation; lead times 2-4 weeks for local stock, 6-12 weeks for imported brands.",
-      "body_ar": "يُسعّر الأثاث لكل قطعة أو لكل مجموعة محطات عمل (مثل كتلة من 4 مكاتب بمقاس 1200 × 600 مم أو 1400 × 700 مم). وأعماق المكاتب الشائعة 600-800 مم، والارتفاعات 720-750 مم؛ ونطاق مكاتب الجلوس والوقوف نحو 620-1270 مم. وتُسعّر المشاريع كمبلغ مقطوع وفق جدول الأثاث مع التوصيل والتركيب؛ ومدة التوريد 2-4 أسابيع للمخزون المحلي و6-12 أسبوعاً للعلامات المستوردة.",
+      "body_en": "Office furniture is priced per piece or per workstation cluster, with projects quoted lump sum against a furniture schedule, and lead times of 2-4 weeks local or 6-12 weeks imported. Furniture is priced per piece or per workstation cluster (e.g. 4-pod 1200 x 600 mm or 1400 x 700 mm desks). Common desk depths are 600-800 mm, heights 720-750 mm; sit-stand ranges about 620-1270 mm. Projects are quoted as a lump sum against a furniture schedule with delivery and installation; lead times 2-4 weeks for local stock, 6-12 weeks for imported brands.",
+      "body_ar": "يُسعَّر أثاث المكاتب بالقطعة أو بمجموعة محطات العمل، وتُسعَّر المشاريع بمبلغ مقطوع وفق جدول الأثاث، ومدة التوريد من 2 إلى 4 أسابيع للمحلي ومن 6 إلى 12 أسبوعًا للمستورد. يُسعّر الأثاث لكل قطعة أو لكل مجموعة محطات عمل (مثل كتلة من 4 مكاتب بمقاس 1200 × 600 مم أو 1400 × 700 مم). وأعماق المكاتب الشائعة 600-800 مم، والارتفاعات 720-750 مم؛ ونطاق مكاتب الجلوس والوقوف نحو 620-1270 مم. وتُسعّر المشاريع كمبلغ مقطوع وفق جدول الأثاث مع التوصيل والتركيب؛ ومدة التوريد 2-4 أسابيع للمخزون المحلي و6-12 أسبوعاً للعلامات المستوردة.",
       "sources": [
         "https://paradox24.com/chair-certifications-en-1335-bifma-explained/",
         "https://www.hermanmiller.com/en_afr/contact/dubai-showroom/",
@@ -61,11 +64,15 @@
   ],
   "eval": [
     {
-      "q_en": "What standard should an ergonomic office chair meet?",
-      "q_ar": "ما المعيار الذي يجب أن يستوفيه الكرسي المكتبي المريح؟",
+      "q_en": "Desks, seats, cubicles: which workplace furnishing ranges are offered around town these days?",
+      "q_ar": "مكاتب وكراسي وبارتيشنات: شو تشكيلات أثاث أماكن العمل المتوفرة هنا هالأيام؟",
       "expected_entry_ids": [
         "office_furniture:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the workstations, chairs, storage and other office furniture ranges, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143,
+      "word_overlap_after_enrichment": 0.143
     }
   ],
   "verified": {

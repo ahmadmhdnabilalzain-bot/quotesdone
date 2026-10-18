@@ -20,6 +20,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pendingNotes } from '../lib/pending_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL_FILE = 'scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql';
@@ -112,11 +113,7 @@ test('G. the decision names the right lever and escalates a stall (pure, replaye
     pg_temp.fn_ceo_plan_decide(${f(true, '2000-01-10')}, ${target}, null) as seat,
     pg_temp.fn_ceo_plan_decide(${f(true, '2000-01-18')}, ${target}, ${prev}) as l2,
     pg_temp.fn_ceo_plan_decide(${f(true, '2000-01-25')}, ${target}, ${prev}) as l3;`;
-  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
-  });
-  const rows = await r.json();
-  assert.ok(r.ok, `query failed: ${r.status} ${JSON.stringify(rows)}`);
+  const rows = await replaySql(query, { rows: true, label: 'routine bodies replayed in pg_temp' });
   const [{ off, seat, l2, l3 }] = rows;
   assert.equal(off.stage, 'invitations'); assert.equal(off.lever, 'founder_reserved'); assert.equal(off.directive, null);
   assert.equal(off.founder_line, null, 'a closed campaign gate must be held silently (instruction 636)');
@@ -172,11 +169,7 @@ test('H. no founder-facing text raises the campaign, caps, subscriptions or a se
     reveals_l3: `${f(true, '2000-01-25', 100, z({ i: 5000, r: 500, v: 500, q: 500 }))}, ${tg}, ${prev('reveals')}`,
   };
   const query = fn + '\nselect ' + Object.entries(cases).map(([k, a]) => `pg_temp.fn_ceo_plan_decide(${a}) as ${k}`).join(', ') + ';';
-  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
-  });
-  const rows = await r.json();
-  assert.ok(r.ok, `query failed: ${r.status} ${JSON.stringify(rows)}`);
+  const rows = await replaySql(query, { rows: true, label: 'routine bodies replayed in pg_temp' });
   const [d] = rows;
   assert.equal(d.gate_closed.founder_line, null, 'a closed campaign gate reached the founder');
   assert.equal(d.cap_short.founder_line, null, 'the invitation cap reached the founder');

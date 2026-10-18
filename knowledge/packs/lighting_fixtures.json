@@ -46,6 +46,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "lighting_fixtures:retail-cri-and-cct-guide",
+      "topic": "Colour rendering and colour temperature for retail spaces",
+      "kind": "product_guide",
+      "body_en": "Colour rendering index (CRI) shows how faithfully light reproduces colours; colour temperature (CCT, kelvin) sets how warm or cool the white appears. Manufacturer guidance treats CRI 90 and above as excellent for retail, since lower CRI makes products look dull. Typical selections: apparel 3000-3500K at CRI 95+ (R9 critical for fabrics and skin tones); grocery 3500-4000K at CRI 90+ (R9 critical for meat and produce); mass merchandise 4000K at CRI 85-90+; pharmacy 4000K at CRI 90+; home improvement 5000K at CRI 80+ (90+ in paint and colour-matching areas). Keep fittings consistent to avoid colour shifts between zones. These are industry recommendations; no UAE authority rule on retail CRI or CCT was established here.",
+      "body_ar": "يبيّن مؤشر تجسيد الألوان (CRI) مدى دقة الضوء في إظهار الألوان، وتحدد درجة حرارة اللون (CCT، بالكلفن) مدى دفء الضوء الأبيض أو برودته. يَعدّ توجيه أحد المصنّعين قيمة CRI 90 فأكثر ممتازة لمحلات التجزئة، لأن انخفاضها يجعل المنتجات تبدو باهتة. الاختيارات المعتادة: الملابس 3000-3500 كلفن مع CRI 95+ (قيمة R9 حاسمة للأقمشة ولون البشرة)؛ البقالة 3500-4000 كلفن مع CRI 90+ (R9 حاسمة للحوم والخضار والفواكه)؛ متاجر السلع العامة 4000 كلفن مع CRI 85-90+؛ الصيدليات 4000 كلفن مع CRI 90+؛ مواد تحسين المنازل 5000 كلفن مع CRI 80+ (90+ في مناطق مطابقة الدهانات والألوان). حافظ على تجانس وحدات الإنارة لتجنّب تفاوت الألوان بين المناطق. هذه توصيات من القطاع؛ ولم يثبت هنا وجود قاعدة من جهة رسمية في الدولة بشأن CRI أو CCT لمحلات التجزئة.",
+      "sources": [
+        "https://www.westgatemfg.com/blog/solutions/best-led-lighting-for-retail-stores"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -62,6 +75,15 @@
       "expected_entry_ids": [
         "lighting_fixtures:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What CRI and colour temperature should retail lighting have?",
+      "q_ar": "ما مؤشر تجسيد اللون ودرجة حرارة اللون المناسبة لإنارة المحلات؟",
+      "expected_entry_ids": [
+        "lighting_fixtures:retail-cri-and-cct-guide"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry recommends CRI/CCT values for retail; spec-checklist only lists \"Colour temperature and CRI\" as a field). lighting_fixtures:retail-cri-and-cct-guide was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from lighting_fixtures.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -78,6 +100,9 @@
       "lighting_fixtures:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "lighting_fixtures:retail-cri-and-cct-guide"
+    ]
   }
 }

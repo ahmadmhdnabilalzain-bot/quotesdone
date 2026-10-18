@@ -7,9 +7,10 @@
     {
       "id": "steel_stock:uae-market-products",
       "topic": "Steel stock & trading: products, variants and grades sold in the UAE",
+      "topic_ar": "تجارة الحديد والصلب: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Steel stock and trading in the UAE: rebar (B500B, 8-32 mm), wire rod, merchant bars (angles, flats, rounds, squares, channels), structural sections (IPE, HEA/HEB, UB/UC, UPN), hollow sections (SHS, RHS, CHS; black and galvanised, EN 10219/ASTM A500), hot-rolled coil and plate (S275JR, S355JR/J2, A36, A572), cold-rolled and galvanised coil/sheet (GI, Z120-Z275, and pre-painted PPGI), chequered plates, stainless coil/sheet/pipe (304/316), seamless and ERW pipes (API 5L, ASTM A53/A106, BS 1387), wire mesh and BRC fabric, and scaffold tubes. Stockholders cut-to-length, slit, shear, bend and deliver. Buyers specify grade, standard, size, thickness, length, coating, quantity and mill certificate; origin matters for projects with approved-origin rules.",
-      "body_ar": "مخزون الحديد وتجارته في الإمارات: حديد التسليح (B500B، 8-32 مم)، والأسلاك، والقضبان التجارية (الزوايا والمسطحات والمستديرة والمربعة والمجاري)، والمقاطع الإنشائية (IPE وHEA/HEB وUB/UC وUPN)، والمقاطع المجوفة (SHS وRHS وCHS؛ أسود ومجلفن، EN 10219/ASTM A500)، واللفائف والألواح المدرفلة على الساخن (S275JR وS355JR/J2 وA36 وA572)، واللفائف والألواح المدرفلة على البارد والمجلفنة (GI من Z120 إلى Z275، والمطلية مسبقاً PPGI)، والألواح المضلعة، ولفائف وألواح وأنابيب الستانلس (304/316)، والأنابيب غير الملحومة وERW (API 5L وASTM A53/A106 وBS 1387)، والشبك الملحوم وشبك BRC، وأنابيب السقالات. ويقوم المخزّنون بالقص حسب الطول والتشريح والقص والثني والتوصيل. يحدد المشتري الدرجة والمعيار والمقاس والسماكة والطول والطلاء والكمية وشهادة المصنع؛ ويهم المنشأ للمشاريع ذات قواعد المنشأ المعتمد.",
+      "body_en": "This entry covers the steel products stocked in the UAE, from rebar and sections to coil, plate, pipes and mesh, and what buyers specify: grade, standard, size, thickness, coating and mill certificate. Steel stock and trading in the UAE: rebar (B500B, 8-32 mm), wire rod, merchant bars (angles, flats, rounds, squares, channels), structural sections (IPE, HEA/HEB, UB/UC, UPN), hollow sections (SHS, RHS, CHS; black and galvanised, EN 10219/ASTM A500), hot-rolled coil and plate (S275JR, S355JR/J2, A36, A572), cold-rolled and galvanised coil/sheet (GI, Z120-Z275, and pre-painted PPGI), chequered plates, stainless coil/sheet/pipe (304/316), seamless and ERW pipes (API 5L, ASTM A53/A106, BS 1387), wire mesh and BRC fabric, and scaffold tubes. Stockholders cut-to-length, slit, shear, bend and deliver. Buyers specify grade, standard, size, thickness, length, coating, quantity and mill certificate; origin matters for projects with approved-origin rules.",
+      "body_ar": "تشمل منتجات الحديد لدى تجار المخزون في الإمارات حديد التسليح والمقاطع واللفائف والألواح والأنابيب والشبك، ويحدد المشتري الدرجة والمعيار والمقاس والسماكة والطلاء وشهادة المصنع. ويضم المخزون والتجارة: حديد التسليح (B500B، ‏8-32 مم)، وأسلاك الحديد (وير رود)، والقضبان التجارية (الزوايا، والمبسط، والمدور، والمربع، والمجاري)، والمقاطع الإنشائية (IPE وHEA/HEB وUB/UC وUPN)، والمقاطع المجوفة (SHS وRHS وCHS؛ أسود ومجلفن، وفق EN 10219/ASTM A500)، واللفائف والألواح المدرفلة على الساخن (S275JR وS355JR/J2 وA36 وA572)، واللفائف والصفائح المدرفلة على البارد والمجلفنة (GI بطلاء Z120-Z275، والمدهونة مسبقًا PPGI)، والصاج المخطط (الشيكر)، ولفائف وصفائح وأنابيب الستانلس (304/316)، والأنابيب غير الملحومة وERW ‏(API 5L وASTM A53/A106 وBS 1387)، والشبك وشبك BRC، وأنابيب السقالات. ويقوم تجار المخزون بالقص على الطول والشق والقص والثني والتوصيل. ويحدد المشتري الدرجة والمعيار والمقاس والسماكة والطول والطلاء والكمية وشهادة المصنع؛ ويهم بلد المنشأ في المشاريع التي لها قواعد منشأ معتمد.",
       "sources": [
         "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
         "https://www.conares.com/about/",
@@ -25,9 +26,10 @@
     {
       "id": "steel_stock:uae-market-brands",
       "topic": "Steel stock & trading: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "تجارة الحديد والصلب: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Mills and brands: EMSTEEL, Conares, Al Ghurair Iron & Steel, Tata Steel, JSW, POSCO, Hyundai Steel, Baosteel, Kardemir, Habas, Qatar Steel, Jindal Shadeed, SABIC Hadeed. EMSTEEL (Abu Dhabi), Conares (Jebel Ali) and Al Ghurair Iron & Steel (galvanised and coated coil) are UAE producers. The rest are imported, and the stockists were not checked by name. Stockists are concentrated in Jebel Ali, Sharjah (Industrial Area, Hamriyah), Ajman and Musaffah.",
-      "body_ar": "المصانع والعلامات: EMSTEEL، Conares، Al Ghurair Iron & Steel، Tata Steel، JSW، POSCO، Hyundai Steel، Baosteel، Kardemir، Habas، Qatar Steel، Jindal Shadeed، SABIC Hadeed. وEMSTEEL (أبوظبي) وConares (جبل علي) وAl Ghurair Iron & Steel (اللفائف المجلفنة والمطلية) منتجون إماراتيون، والبقية مستوردة ولم يُتحقق من المخزّنين بالاسم. ويتركز المخزّنون في جبل علي والشارقة (المنطقة الصناعية والحمرية) وعجمان ومصفح.",
+      "body_en": "This entry lists the steel mills and brands sold in the UAE, including the UAE producers EMSTEEL, Conares and Al Ghurair Iron & Steel, and where stockists are concentrated. Mills and brands: EMSTEEL, Conares, Al Ghurair Iron & Steel, Tata Steel, JSW, POSCO, Hyundai Steel, Baosteel, Kardemir, Habas, Qatar Steel, Jindal Shadeed, SABIC Hadeed. EMSTEEL (Abu Dhabi), Conares (Jebel Ali) and Al Ghurair Iron & Steel (galvanised and coated coil) are UAE producers. The rest are imported, and the stockists were not checked by name. Stockists are concentrated in Jebel Ali, Sharjah (Industrial Area, Hamriyah), Ajman and Musaffah.",
+      "body_ar": "من مصانع الحديد وماركاته المباعة في الإمارات المنتجون المحليون EMSTEEL وكونارس والغرير للحديد والصلب، مع بيان المناطق التي يتركز فيها تجار مخزون الحديد. المصانع والماركات: EMSTEEL، Conares، Al Ghurair Iron & Steel، Tata Steel، JSW، POSCO، Hyundai Steel، Baosteel، Kardemir، Habas، Qatar Steel، Jindal Shadeed، SABIC Hadeed. وEMSTEEL (أبوظبي) وConares (جبل علي) وAl Ghurair Iron & Steel (لفائف مجلفنة ومطلية) منتجون إماراتيون، أما البقية فمستوردة، ولم نتحقق من تجار المخزون بالاسم. ويتركز تجار المخزون في جبل علي والشارقة (المنطقة الصناعية والحمرية) وعجمان ومصفح.",
       "sources": [
         "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
         "https://www.conares.com/about/",
@@ -43,9 +45,10 @@
     {
       "id": "steel_stock:uae-market-sizes",
       "topic": "Steel stock & trading: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "تجارة الحديد والصلب: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Priced per tonne (sections, plates, coil, rebar) or per piece/length (pipes and hollow sections in 6 m or 12 m); sheets 1219/1250/1500 x 2438/2500/3000/6000 mm; coil by width and thickness. Prices move with regional steel indices (e.g. Emirates Steel monthly rebar price, Chinese export HRC); quotes carry short validity (days), cutting charges, delivery by trailer (20-25 t) and mill certificate EN 10204 3.1.",
-      "body_ar": "التسعير بالطن (المقاطع والألواح واللفائف والتسليح) أو بالقطعة/الطول (الأنابيب والمقاطع المجوفة بطول 6 م أو 12 م)؛ والألواح 1219/1250/1500 × 2438/2500/3000/6000 مم؛ واللفائف حسب العرض والسماكة. وتتحرك الأسعار مع مؤشرات الحديد الإقليمية (مثل سعر التسليح الشهري للإمارات للصلب، وصادرات اللفائف الساخنة الصينية)؛ والعروض بصلاحية قصيرة (أيام) مع رسوم القص والتوصيل بمقطورة (20-25 طناً) وشهادة المصنع EN 10204 3.1.",
+      "body_en": "This entry explains how steel is sized and priced in the UAE: per tonne for sections, plates, coil and rebar, per piece or length for pipes, with standard sheet sizes and short quote validity. Priced per tonne (sections, plates, coil, rebar) or per piece/length (pipes and hollow sections in 6 m or 12 m); sheets 1219/1250/1500 x 2438/2500/3000/6000 mm; coil by width and thickness. Prices move with regional steel indices (e.g. Emirates Steel monthly rebar price, Chinese export HRC); quotes carry short validity (days), cutting charges, delivery by trailer (20-25 t) and mill certificate EN 10204 3.1.",
+      "body_ar": "تُسعَّر مواد الحديد والصلب في الإمارات بالطن للقطاعات والصاج والكويلات وحديد التسليح، وبالحبة أو بالطول للمواسير، مع مقاسات قياسية لألواح الصاج وصلاحية قصيرة للعروض. فالتسعير بالطن (القطاعات، الصاج، الكويلات، حديد التسليح) أو بالحبة/الطول (المواسير والقطاعات المجوفة بطول 6 م أو 12 م)؛ وألواح الصاج 1219/1250/1500 x 2438/2500/3000/6000 مم؛ والكويلات حسب العرض والسماكة. وتتحرك الأسعار مع مؤشرات الحديد الإقليمية (مثلاً السعر الشهري لحديد التسليح من Emirates Steel، وسعر تصدير HRC الصيني)؛ وتحمل العروض صلاحية قصيرة (أيام)، ورسوم قص، والتوصيل بالتريلا (20 إلى 25 طناً)، وشهادة المصنع EN 10204 3.1.",
       "sources": [
         "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
         "https://www.conares.com/about/",
@@ -61,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "How long is a steel price quote usually valid in the UAE?",
-      "q_ar": "كم تبقى صلاحية عرض سعر الحديد عادة في الإمارات؟",
+      "q_en": "How do steel stockists in the UAE usually trade, by weight or by bar count?",
+      "q_ar": "تجار الحديد في الإمارات شلون يبيعون عادةً، بالوزن ولا بعدد الأعواد؟",
       "expected_entry_ids": [
         "steel_stock:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Priced per tonne (sections, plates, coil, rebar) or per piece/length (pipes and hollow sections in 6 m or 12 m); sheets 1219/1250/1500 x 2438/2500/3000/6000 mm; coil by width and thickness\".",
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

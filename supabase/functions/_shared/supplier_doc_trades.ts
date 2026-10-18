@@ -32,6 +32,7 @@
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
 import type { Extracted } from './doc_read/types.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
+import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, tradesOfText, type ExactState, type MeaningState, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
 
 export type { TradeHit, TradeResolveDeps };
@@ -45,7 +46,9 @@ export type DocKind = 'licence' | 'profile' | 'catalogue';
 // `photo_text` is the text the supplier's own browser recognised in a photo or a scanned page
 // (tesseract.js, the same self-hosted OCR the customer side uses). It is untrusted words like any other
 // upload, read through the same path, and the evidence says it came from a photo.
-export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string };
+export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string;
+  /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
+  names?: (string | null)[] };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
   status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable';
@@ -55,6 +58,16 @@ export type DocEvidence = {
   exact?: ExactState; meaning?: MeaningState;
 };
 export const PHOTO_TEXT_MAX = 60_000;
+
+// WHAT THE VISION MODEL READ OFF A PICTURE IS READ FOR TRADES LIKE TEXT (ruling 1177, 12 Oct 2026). A licence or
+// profile with no text layer has its activities / services read by license_extract; they become the document's
+// photo_text, so they go through the same exact-code and meaning rules (Arabic exact names #1312, the licence's
+// activities line only #1313). One spelling for every upload path: supplier_api, supplier_portal and the suite.
+export function modelReadText(kind: DocKind, items: unknown): string | undefined {
+  const a = (Array.isArray(items) ? items : []).map((x) => String(x ?? '').trim()).filter(Boolean);
+  if (!a.length) return undefined;
+  return kind === 'licence' ? 'Activities: ' + a.join(', ') : a.join('\n');
+}
 
 /** Every word a read document holds: its text, its table cells, and its zip / email children. */
 export function allText(e: Extracted, depth = 0): string {
@@ -72,13 +85,38 @@ function catalogueText(text: string): { text: string; supply_only: boolean } {
   return { text: [...L.headings, ...L.types, ...L.statements].join('\n'), supply_only: supplyOnlyOf([...L.headings, ...L.statements].join('\n')).supply_only };
 }
 
+// A CERTIFICATE THE COMPANY HOLDS IS NOT A SERVICE IT SELLS (7 Oct 2026, accuracy suite ledger 1162). "ISO
+// 9001:2015 quality management" on a contractor's profile proposed the trade iso_certification on every profile of
+// the corpus (meaning: "iso 9001", head word present). A line that cites a dated standard is a credential unless it
+// offers certification, auditing, consultancy or training AS a service. The section heading over such lines
+// ("Certifications", "Our Certificates", "Accreditations") is the same credential: it proposed corporate_training
+// ("IT & professional certification") on every profile of the corpus.
+const CREDENTIAL_HEADING = /^\s*[-•*]?\s*(our\s+)?(certifications?|certificates?|accreditations?|approvals?\s+and\s+certifications?)\s*:?\s*$/i;
+export function withoutCredentialLines(text: string): string {
+  return String(text ?? '').split(/\r?\n/).filter((l) => !CREDENTIAL_HEADING.test(l) && !(/\bISO\s*\d{3,5}(?:-\d+)?\s*:\s*\d{4}\b/i.test(l)
+    && !/\b(certification|audit(?:ing)?|consultan(?:cy|ts?)|training|implementation)\s+(services?|body|bodies)\b|\bwe\s+(certify|audit|train)\b/i.test(l))).join('\n');
+}
+
 /** One document -> what it says about trades, or the honest reason it could not be read. */
 export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Promise<DocEvidence> {
   const base = { path: doc.path, name: doc.name, kind: doc.kind, read_at: new Date().toISOString() };
   const photo = String(doc.photo_text ?? '').slice(0, PHOTO_TEXT_MAX);
   const found = async (text: string, source: 'document_text' | 'photo_text', format?: string): Promise<DocEvidence> => {
+    // A LICENCE NAMES ITS TRADES IN ITS ACTIVITIES, NOWHERE ELSE (7 Oct 2026, accuracy suite ledger 1162). The whole
+    // licence was read, so the company's NAME line proposed trades: "Company Name: ZZ DEMO Horizon Floor LLC" ->
+    // floor cleaners and mezzanine floors, on 4 of 22 text licences of scripts/e2e/document_intake_corpus.mjs. Only
+    // the labelled activities line is read now; a licence whose activities could not be read proposes nothing.
+    // A NAME IS NEVER A TRADE (12 Oct 2026): the supplier's known names and the names this document's own name fields
+    // print are cut out of every line by trade_resolve.withoutNames, printed with or without a legal suffix.
+    const F = licenceFieldsFromText(text);
+    const names = [...(doc.names ?? []), F.legal_name_en, F.legal_name_ar, F.trade_name];
+    if (doc.kind === 'licence') {
+      const acts = F.activities;
+      if (!acts?.length) return { ...base, status: 'read', format, source, reason: 'no activities line could be read on the licence', trades: [] };
+      text = acts.join('\n');
+    } else text = withoutCredentialLines(text);
     const c = doc.kind === 'catalogue' ? catalogueText(text) : null;
-    const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only });
+    const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
     return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
   };
   const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true }) : null);
@@ -119,6 +157,10 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     if (!docs.length) return { ok: true, proposed_trades: [], docs: [] };
     // One set of deps for every document of this call: the vectors are read once, and meaning's line budget is shared.
     const d0 = deps ?? await liveTradeDeps(admin);
+    // The names on the supplier's row after the upload's own write: the registered name and the licence's legal name
+    // (code's reading, or the model's where code read none). Read once; a failed read only means fewer names.
+    const { data: who } = await admin.from('leads').select('company_name,licence_legal_name').eq('id', supplierId).maybeSingle();
+    const known = [who?.company_name ?? null, who?.licence_legal_name ?? null];
     const fresh: DocEvidence[] = [];
     for (const d of docs) {
       let bytes = d.bytes;
@@ -126,7 +168,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
         const { data: blob } = await admin.storage.from('supplier-docs').download(d.path);
         if (blob) bytes = new Uint8Array(await blob.arrayBuffer());
       }
-      fresh.push(await readDocForTrades({ ...d, bytes }, d0));
+      fresh.push(await readDocForTrades({ ...d, bytes, names: [...known, ...(d.names ?? [])] }, d0));
     }
     const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};

@@ -252,7 +252,9 @@ Deno.serve(observe('stripe_webhook', async (req) => {
 
           // Only settle rows that are genuinely still outstanding - makes duplicate deliveries a no-op.
           const { data: settled, error: uErr } = await admin.from('supplier_dues')
-            .update({ status: 'paid', paid_at: new Date().toISOString(), payment_ref: payRef })
+            // stripe_session_id = the session that was PAID (a supplier may have opened a later one): the settlement
+            // row reads that session's stored per-due amount (supplier_due_checkouts, written by supplier_pay)
+            .update({ status: 'paid', paid_at: new Date().toISOString(), payment_ref: payRef, stripe_session_id: String(s.id) })
             .in('id', ids).is('paid_at', null).select('id,amount_due,supplier_id');
 
           if (uErr) { await logRun('error', { kind: 'supplier_dues', due_ids: ids, amount: paidAmount }, 'SUPPLIER PAID BUT NOT RECORDED - failed to mark supplier_dues paid (' + uErr.message + '). Payment ref ' + payRef + '. The supplier has been charged and will still be chased for the debt until this is reconciled by hand.'); return new Response('due update failed: ' + uErr.message, { status: 500 }); }

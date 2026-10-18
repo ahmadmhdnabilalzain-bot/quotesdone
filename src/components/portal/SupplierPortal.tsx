@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
-import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
+import { localisedPath, applyDocumentLocale, applyShellChrome } from '@/lib/documentLocale';
 import { arDays } from '@/lib/durationLabel';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { supaClient } from '@/lib/supaClient';
@@ -259,22 +259,18 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
   );
   return <div className={S.list}>{receipt ? <ReceiptBanner receipt={receipt} lang={lang} /> : null}{dues}<Receipts token={token} lang={lang} onExpired={onExpired} /><RegistrationFeeCard token={token} lang={lang} base={base} /></div>;
 }
-// A supplier's own document as PDF (supplier_api quote_pdf / receipt_pdf, 15 Sep 2026): the portal's
-// language first and the other language one click away, through the same popup-safe door the customer's
-// quotation uses (src/lib/openDocument.ts).
-function PdfLinks({ lang, fetchPdf, otherOnly = false }) {
-  const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
-  const mine = lang === 'ar' ? 'ar' : 'en'; const other = mine === 'ar' ? 'en' : 'ar';
-  const open = (docLang) => async (e) => {
-    e.stopPropagation(); setBusy(docLang); setMsg('');
-    const ok = await openDocument(lang, async () => { const j = await fetchPdf(docLang); return j && j.ok && j.url ? j.url : null; });
-    setBusy(''); if (!ok) setMsg(lang === 'ar' ? 'تعذّر تجهيز المستند. يُرجى المحاولة مرة أخرى.' : 'The document could not be prepared. Please try again.');
+// A supplier's own document as PDF (supplier_api receipt_pdf, 15 Sep 2026), through the same popup-safe
+// door the customer's quotation uses (src/lib/openDocument.ts). English only: an Arabic-copy link sat
+// beside it until 13 Oct 2026 (founder ruling 1008; scripts/checks/nothing_a_supplier_reads_can_be_arabic.test.mjs).
+function PdfLink({ fetchPdf }) {
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const open = async (e) => {
+    e.stopPropagation(); setBusy(true); setMsg('');
+    const ok = await openDocument('en', async () => { const j = await fetchPdf(); return j && j.ok && j.url ? j.url : null; });
+    setBusy(false); if (!ok) setMsg('The document could not be prepared. Please try again.');
   };
-  const prep = lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…';
   return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-    {/* otherOnly: the four-action row (DocActions) already offers the reader's own language. */}
-    {!otherOnly && <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(mine)}>{busy === mine ? prep : (mine === 'ar' ? 'تنزيل PDF' : 'Download PDF')}</button>}
-    <button type="button" lang={other} className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-2 text-[11.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(other)}>{busy === other ? prep : (other === 'ar' ? 'النسخة العربية' : 'English version')}</button>
+    <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={busy} onClick={open}>{busy ? 'Preparing…' : 'Download PDF'}</button>
     {msg ? <span role="alert" className="text-[12px] text-danger-fg">{msg}</span> : null}
   </span>);
 }
@@ -298,15 +294,13 @@ function Receipts({ token, lang, onExpired }) {
       <ul className="mt-3 flex flex-col gap-2">{list.map((r) => (
         <li key={(r.kind || 'dues') + ':' + (r.id ?? r.paid_at)} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
           <span>{r.kind === 'registration' ? (ar ? 'رسوم الاشتراك السنوية · ' : 'Annual subscription fee · ') : ''}<Ltr className="font-semibold tabular-nums">{aed(lang, r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
-          {/* A paid receipt is sealed: View / Download work, Replace / Remove say why not (instruction 524).
-              The other-language copy stays one click away beside them. */}
+          {/* A paid receipt is sealed: View / Download work, Replace / Remove say why not (instruction 524). */}
           <span className="inline-flex flex-wrap items-center gap-3">
             <DocActions lang={lang} name={'receipt-' + (r.id ?? 'registration') + '.pdf'} sealed="paid_invoice"
-              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: lang === 'ar' ? 'ar' : 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
-            <PdfLinks lang={lang} otherOnly fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: l }, token)} />
+              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
             {/* OUR invoice for the same payment (audit 22 Sep 2026, finding 2): Stripe issues none. */}
             <span className="text-[12px] text-muted-foreground">{ar ? 'الفاتورة:' : 'Invoice:'}</span>
-            <PdfLinks lang={lang} fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', doc: 'invoice', kind: r.kind, due_id: r.id, lang: l }, token)} />
+            <PdfLink fetchPdf={() => call('supplier_api', { action: 'receipt_pdf', doc: 'invoice', kind: r.kind, due_id: r.id, lang: 'en' }, token)} />
           </span>
         </li>))}</ul>
     </Card>
@@ -338,6 +332,7 @@ const T = {
     signup_email_only:"Please sign up with your work email — you'll register your company and verify your mobile next.",
     signup_email_reserved:'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real work email.', err_need_email:'Please enter your work email first.', err_need_id:'Please enter your email or mobile number first.',
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
+    conflict_customer_phone:'This mobile number is registered as a customer. Please use the customer app to sign in.',
     setup_title:'Set up your supplier account', setup_sub_company:'Register your company, then complete your profile.', setup_sub_profile:'Complete your profile to start receiving RFQs and submitting quotes.',
     onboard_title:'Register your company', onboard_sub:'Enter your company name and your main trade. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
     bill_title:'Amounts due', bill_none:'Nothing to pay. You are not charged commission on the work you win.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.',
@@ -378,6 +373,7 @@ const T = {
     signup_email_only:'يُرجى التسجيل ببريدكم الإلكتروني للعمل، ثم تسجيل شركتكم وتأكيد رقم جوالكم في الخطوة التالية.',
     signup_email_reserved:'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريد العمل الحقيقي.', err_need_email:'يُرجى إدخال بريد العمل أولًا.', err_need_id:'يُرجى إدخال بريدكم الإلكتروني أو رقم جوالكم أولًا.',
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
+    conflict_customer_phone:'رقم الجوال هذا مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
     setup_title:'إنشاء حساب المورّد', setup_sub_company:'سجّلوا شركتكم ثم أكملوا ملف الشركة.', setup_sub_profile:'أكملوا ملف الشركة لتبدأوا استقبال الاستفسارات وتقديم عروض الأسعار.',
     onboard_title:'تسجيل الشركة', onboard_sub:'أدخلوا اسم شركتكم وتخصصها الرئيسي. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'يُرجى إدخال اسم الشركة.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
     bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة، ولا نتقاضى أي عمولة على الأعمال التي تفوزون بها.', bill_total:'إجمالي المستحق', bill_pay:'الدفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدكم. يُرجى المحاولة مرة أخرى.', bill_refund:'رسم عدم الاستجابة (المبلغ المردود ورسوم مزوّد الدفع غير المستردّة)', bill_admin:'رسوم إدارية', bill_interest:'فوائد ورسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'إعادة المحاولة', bill_secure:'ستنتقلون إلى صفحة الدفع الآمنة في Stripe، ولا تطّلع QuotesDone على بيانات بطاقتكم. ولا تنشأ هذه المبالغ إلا عند ردّ مبلغ إلى العميل لتعذّر التواصل معكم \u2014 ولا عمولة على الأعمال المنجزة.', t_rfqs:'الاستفسارات', approved:'معتمد', pending:'قيد المراجعة',
@@ -404,10 +400,6 @@ const T = {
     main_nav:'أقسام بوابة المورّدين', account:'الحساب' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
-// The URL decides the language (14 Sep 2026). /ar/portal must render Arabic and /portal English, the
-// same as every other page and the same as the page's own <title>; a remembered localStorage choice
-// used to override the URL, so a shared /ar/portal link could open in English.
-function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
 // Typography and chrome carry the platform's voice: display weights are optically
 // tightened, body copy keeps a readable measure, and the tab bar is an inset well
 // with a RAISED active pill rather than a tinted one — so the current tab reads as
@@ -484,16 +476,13 @@ function ClaimRefusal({ code, lang, onClose }) {
     </div>
   );
 }
-const LANG_NOTE = { en: 'The portal follows your account language. Switching here updates it (EN/AR).', ar: 'تتبع البوابة لغة حسابكم، والتبديل هنا يغيّر لغة الحساب.' };
 export function SupplierPortal() {
-  const [lang, setLang] = useState('en');
+  // SUPPLIERS ARE ALWAYS ENGLISH (founder ruling 1008, 28 Sep 2026). The supplier portal had an EN/عربي
+  // toggle and followed /ar URLs and leads.locale into Arabic. It renders English for every supplier now:
+  // no toggle, no Arabic from the URL, none from the account. The customer portal keeps its own toggle.
+  // Prevented by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
+  const lang: string = 'en';
   const [token, setToken] = useState('');
-  const switchSupplierLang = (l) => {
-    adoptLocale(l, setLang);
-    if (token) call('supplier_api', { action: 'save_settings', locale: l }, token)
-      .then((j) => { if (!j || !j.ok) console.error('save_settings refused - leads.locale unchanged', j); })
-      .catch((e) => console.error('save_settings failed - leads.locale unchanged', e));
-  };
   const [phase, setPhase] = useState('login');
   const [mounted, setMounted] = useState(false);
   const [invite, setInvite] = useState(null);
@@ -554,20 +543,10 @@ export function SupplierPortal() {
     })();
     return claimRun.current;
   };
-  // THE SUPPLIER'S REGISTERED LANGUAGE WINS ONCE SIGNED IN (founder, 14 Sep 2026). The portal took its
-  // language from the URL alone, so a supplier registered in Arabic who opened an English link worked
-  // in English while every notice reached them in Arabic. leads.locale decides; Settings changes it.
-  useEffect(() => {
-    if (phase !== 'app' || !token) return;
-    call('supplier_api', { action: 'settings' }, token).then((j) => {
-      const l = j && j.ok && j.settings ? j.settings.locale : null;
-      if (l === 'ar' || l === 'en') adoptLocale(l, setLang);   // leads.locale, as the customer portal applies customers.locale
-      else if (!(j && j.ok)) console.error('supplier settings unavailable - portal language left as the URL gives it', j);
-    }).catch((e) => console.error('supplier settings failed - portal language left as the URL gives it', e));
-  }, [phase, token]);
   useEffect(() => {
     setMounted(true);
-    try { setLang(initLang()); } catch (_e) {}
+    // An /ar/portal link opens the English portal at /portal (suppliers are always English).
+    try { const w = window.location, want = localisedPath(w.pathname, 'en'); if (want !== w.pathname) window.history.replaceState(window.history.state, '', want + w.search + w.hash); } catch (_e) {}
     // Capture ?t= before anything else can navigate away from it.
     //
     // AND RESOLVE IT TO A COMPANY NAME (13 Aug 2026). The invitation is addressed "Dear Al Ain Glass
@@ -617,7 +596,7 @@ export function SupplierPortal() {
   // Both are read by onExpired below, and declared here because onAuth resets the counter.
   const expiredRuns = useRef(0);
   const refreshing = useRef<Promise<void> | null>(null);
-  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); expiredRuns.current = 0; try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+  const onAuth = (access, refresh, _locale) => { expiredRuns.current = 0; try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
   //
@@ -692,7 +671,6 @@ export function SupplierPortal() {
           <span>QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
         </a>
         <div className="flex gap-2 items-center shrink-0">
-          <Button variant="outline" size="sm" lang={lang === 'ar' ? 'en' : 'ar'} title={token ? LANG_NOTE[lang === 'ar' ? 'ar' : 'en'] : undefined} onClick={() => switchSupplierLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
           <Button variant="outline" size="sm" onClick={swapTheme} aria-pressed={theme === 'light'} aria-label={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')} title={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')}><span aria-hidden>{theme === 'dark' ? '☀' : '☾'}</span></Button>
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex"><a href={rtl ? '/ar' : '/'}>{t(lang, 'home')}</a></Button>
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
@@ -773,6 +751,8 @@ function InviteBanner({ invite, lang, onStart }) {
 // sentence table and then to the generic line, so adding a code to the function can never make the
 // page worse than it was — but it should be added here the same day.
 const LOGIN_CODE = {
+  // role_conflict: the address is a customer account, told only after the code proved the mailbox (6 Oct 2026).
+  role_conflict: 'conflict_customer', role_conflict_phone: 'conflict_customer_phone', limiter_unavailable: 'le_generic',
   rate_limited: 'le_too_many', too_many_attempts: 'le_attempts', code_burned: 'le_attempts',
   bad_identifier: 'le_bad_id', bad_mobile: 'le_bad_id',
   email_suppressed: 'le_suppressed', ambiguous_phone: 'le_ambiguous', sms_signup_refused: 'le_signup_email',
@@ -812,7 +792,6 @@ function Login({ onAuth, lang, startMode }) {
   // An empty press says so, and a sign-up address is checked for shape AND for reserved names that
   // can never receive a code (src/lib/signupEmail.ts; audit 21 Sep 2026, items 26 and 28).
   const send = async () => { const v = id.trim(); if (!v) { setMsg(t(lang, isSignup ? 'err_need_email' : 'err_need_id')); return; } if (isSignup) { const p = signupEmailProblem(v); if (p) { setMsg(t(lang, p)); return; } } setBusy(true); setMsg('');
-    try { const g = await call('role_guard', { user_kind: 'supplier', identifier: v }); if (g && g.conflict === 'customer') { setBusy(false); setMsg(t(lang, 'conflict_customer')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(loginErr(lang, j, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(loginErr(lang, j, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token, j.locale); };
   const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setCode(''); };
@@ -866,7 +845,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -916,6 +895,22 @@ const AGREEMENT_CHANGES = {
       'الاسترداد بسبب عدم الاستجابة (البند 33): تُحتسب الآن رسوم مزوّد خدمة الدفع على رسوم الكشف المستردّة التي لم نتمكن من استردادها بمبلغها المسجَّل، إضافةً إلى المبلغ المستردّ والرسم الإداري البالغ 500 درهم إماراتي.',
       'تُحتسب على أي مبلغ متأخر فائدة بسيطة بنسبة 12% سنويًا، وهو السعر المتفق عليه وفقًا لقانون المعاملات التجارية، ولا تُركَّب (البندان 31 و33). ويبقى على المبلغ الذي استُحق في ظل إصدار سابق سعرُ ذلك الإصدار.',
       'إذا بقي رسم دون سداد، تُضاف بالتكلفة الرسوم الرسمية لتحصيله (رسوم المحكمة وأمر الأداء والتنفيذ والتوثيق)، ويجوز لنا إجراء المقاصة بين ما تدينون به وأي مبلغ ندين به لكم (البندان 9 و33).',
+    ],
+  },
+  // v15, 6 Oct 2026 (ceo; founder rulings 1155 and the addendum: QuotesDone is a portal and introducer only).
+  // Legal basis: CTL 50/2022 Arts 252, 258, 265; Civil Transactions Law 25/2025 Arts 236, 257, 334(2), 443.
+  15: {
+    en: [
+      'QuotesDone is a portal and introducer only. It gives no warranty on leads, inquiries, Customers or results, and is not a party to your contract with a Customer (clauses 17 and 18).',
+      'To the fullest extent UAE law permits, QuotesDone is not liable to you. Only if a court refuses that exclusion is its liability capped, at the greater of the fees you paid in the last 12 months or AED 5,000. Fraud, gross fault and harmful acts are never excluded (clause 18).',
+      'You indemnify QuotesDone for claims caused by your quotations, statements, licences, goods, works or people (clause 18(c)).',
+      'New clause 38: third-party services, a 90-day notice of any claim (late notice never bars it), suspension or removal of unlawful or misleading content, and the entire agreement. Force majeure now names its examples (clause 20). No fee or charge changes.',
+    ],
+    ar: [
+      'QuotesDone بوابة ووسيط تعريف فقط، ولا تقدّم أي ضمان بشأن الفرص أو الطلبات أو العملاء أو النتائج، وليست طرفًا في عقدكم مع العميل (البندان 17 و18).',
+      'إلى أقصى حد يجيزه قانون دولة الإمارات، لا تُسأل QuotesDone تجاهكم. وإذا رفضت محكمةٌ هذا الاستبعاد فقط، تُحدَّد مسؤوليتها بالمبلغ الأعلى من الرسوم التي دفعتموها خلال آخر 12 شهرًا أو 5,000 درهم إماراتي. ولا تُستبعد أبدًا المسؤولية عن الغش أو الخطأ الجسيم أو الفعل الضار (البند 18).',
+      'تعوّضون QuotesDone عن المطالبات الناشئة عن عروض أسعاركم أو بياناتكم أو رخصكم أو سلعكم أو أعمالكم أو العاملين لديكم (البند 18(ج)).',
+      'بند جديد 38: خدمات الغير، والإخطار بأي مطالبة خلال 90 يومًا (ولا يُسقط التأخيرُ المطالبة)، وتعليق المحتوى المخالف أو المضلل أو إزالته، وكامل الاتفاق. ويذكر بند القوة القاهرة أمثلتها الآن (البند 20). لا تغيير في أي رسم.',
     ],
   },
 };
@@ -1156,7 +1151,11 @@ function Dashboard({ token, lang, onExpired }) {
           <h1 dir="auto" className="mt-2.5 font-head text-[24px] sm:text-[30px] font-semibold tracking-snug text-foreground">{ov.supplier.company_name}</h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {stBadge}
-            {ov.supplier.approval_status === 'action_required' && ov.supplier.licence_gate_reason
+            {/* A LICENCE HOLD IS SAID ON SCREEN (13 Oct 2026, ruling 1230 walk, it_engineer). Since ruling 1177 an unread licence
+                is held as PENDING (licence_unreadable / _expiry_unread / _number_unread), and the reason showed only for
+                action_required: a held supplier saw 'Pending' and 'Trade licence: on file' and never learned a clearer copy
+                was needed. Prevented by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs. */}
+            {(ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || '')))) && ov.supplier.licence_gate_reason
               ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason)}</span> : null}
             {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>
@@ -1167,7 +1166,7 @@ function Dashboard({ token, lang, onExpired }) {
             It wraps now, and every control is at least 44px tall for a thumb. */}
         <nav aria-label={t(lang, 'main_nav')}>
           <div className={cn(S.tabsWrap, 'flex')}>
-            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
+            {MAIN_TABS.map((k) => <button key={k} type="button" data-nav-id={k} aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
           </div>
         </nav>
       </div>
@@ -1213,7 +1212,7 @@ function Dashboard({ token, lang, onExpired }) {
       {shownTab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
       {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} onExpired={onExpired} />}
       {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} onExpired={onExpired} />}
-      {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
+      {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} />}
       </div>
     </div>
   );
@@ -1770,7 +1769,10 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // up"): save() lists it as missing and supplier_api save_profile refuses without it (reg_whatsapp).
   const [wa, setWa] = useState(undefined);
   const [saved, setSaved] = useState(false);
-  const loadKyc = () => call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); setWa(k ? k.whatsapp : undefined); });
+  // SAVE WAITS FOR THE KYC STATE (run 71b75b60, en/mobile): Save pressed before this read resolved checked a
+  // phoneVerified that was still its initial false, refused "missing mobile" on screen in 36 ms and sent nothing.
+  const [kycRead, setKycRead] = useState(false);
+  const loadKyc = () => call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); setWa(k ? k.whatsapp : undefined); }).finally(() => setKycRead(true));
   useEffect(() => { loadKyc(); }, []);
   const sendSms = async () => { const e164 = uaeMobile(f.phone); if (!e164) { setMsg(t(lang, 'mobile_format')); return; } if (e164 !== f.phone) set('phone', e164); setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: e164 }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg(srvMsg(lang, j, t(lang, 'could_not_sms'))); };
   const verifySms = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone: f.phone, code: smsCode }, token); setVbusy(false); if (j && j.ok) setPhoneVerified(true); else setMsg(srvMsg(lang, j, t(lang, 'wrong_code'))); };
@@ -1936,15 +1938,15 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {!isEdit && <>
       <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'doc_profile')}{ok(!!profileFile || !!me.company_profile_doc_path)}<Need lang={lang} req /></h3>
       <div className={cn(S.sub, 'mb-1')}>{ar ? 'الملف التعريفي مطلوب؛ الكتالوجات اختيارية ويمكن إضافتها لاحقًا من تبويب المستندات.' : 'The company profile is required; catalogues are optional and can be added later from Documents.'}</div>
-      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" onPick={(fl) => { setProfileFile(fl); setDocsSent(false); }} />{profileFile && <span className={S.sub}>{profileFile.name}</span>}</div>
-      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}<Need lang={lang} /></span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" multiple onPick={(a) => { const all = a || []; setCatalogFiles(all.slice(0, 5)); setCatCut(all.length > 5); setDocsSent(false); }} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept=".pdf,.docx,.pptx,.jpg,.jpeg,.png" onPick={(fl) => { setProfileFile(fl); setDocsSent(false); }} />{profileFile && <span className={S.sub}>{profileFile.name}</span>}</div>
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}<Need lang={lang} /></span><FilePick lang={lang} accept=".pdf,.docx,.pptx,.jpg,.jpeg,.png" multiple onPick={(a) => { const all = a || []; setCatalogFiles(all.slice(0, 5)); setCatCut(all.length > 5); setDocsSent(false); }} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
       {/* Catalogues were cut to 5 silently (audit 15 Sep 2026). The limit is stated, and a cut is announced. */}
       <div role={catCut ? 'status' : undefined} className={cn(S.sub, 'mt-1 text-[12px]', catCut && 'font-semibold text-warn-fg')}>{t(lang, catCut ? 'catalogs_cut' : 'catalogs_limit')}</div>
     </>}
     {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{ar ? 'تُدار الرخصة التجارية والملف التعريفي والكتالوجات من تبويب المستندات، حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
 
     <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" aria-required={!isEdit} checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href={(ar ? '/ar' : '') + '/supplier-agreement'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}{!isEdit && <Need lang={lang} req />}</label>
-    <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>
+    <Button className="w-full mt-3" disabled={busy || uploading || !kycRead} onClick={save}>
       {busy ? (isEdit ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : t(lang, 'submitting'))
             : isEdit ? (ar ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}
     </Button>

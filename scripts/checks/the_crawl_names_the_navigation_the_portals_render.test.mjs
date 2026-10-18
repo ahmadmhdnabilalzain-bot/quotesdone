@@ -92,5 +92,7 @@ test('journey f sets the account locale, because the portals follow it and not t
   // /ar/portal gets dir=ltr lang=en. Without this the two Arabic passes crawl an English screen.
   assert.match(JOURNEYS, /update public\.customers set locale = \$\{q\(lang\)\}/, 'the crawl does not set customers.locale');
   assert.match(JOURNEYS, /update public\.leads set locale = \$\{q\(lang\)\}/, 'the crawl does not set leads.locale');
-  assert.match(SUPPLIER, /adoptLocale\(l, setLang\)/, 'the supplier portal no longer adopts the account locale');
+  // 12 Oct 2026 (founder ruling 1008): the supplier portal is always English and adopts no locale;
+  // scripts/checks/the_supplier_portal_is_always_english.test.mjs owns that rule.
+  assert.match(SUPPLIER, /const lang: string = 'en';/, 'the supplier portal must render English only');
 });

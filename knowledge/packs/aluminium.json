@@ -563,6 +563,16 @@
         "aluminium:spec-checklist-windows-doors",
         "aluminium:glass-in-aluminium-systems"
       ]
+    },
+    {
+      "q_en": "Can I still use normal PE core ACP on a villa façade in Dubai?",
+      "q_ar": "هل يمكنني استخدام ألواح ACP بقلب بولي إيثيلين عادي على واجهة فيلا في دبي؟",
+      "expected_entry_ids": [
+        "aluminium:acp-core-pe-fr-a2",
+        "aluminium:uae-fls-code-facade-rules"
+      ],
+      "why": "acp-core-pe-fr-a2 explains PE vs FR vs A2 cores, and uae-fls-code-facade-rules states the post-2017 Fire & Life Safety Code cladding rules that govern whether PE core is still allowed.",
+      "origin": "real buyer question, moved from aluminium.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -44,6 +44,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "marble_stone:engineered-quartz-vs-sintered-stone",
+      "topic": "Engineered quartz compared with sintered stone",
+      "kind": "material_comparison",
+      "body_en": "Engineered quartz and sintered stone are made differently. Quartz combines natural quartz crystals with resins, pigments and polymers. Sintered stone is compacted under extreme pressure and heat, without resin. Quartz can be damaged by extreme heat and fades in sunlight; sintered stone withstands high temperatures and does not fade, so it suits outdoor kitchens and high-heat areas. Both resist scratching, sintered stone more so. Quartz costs moderate to high and is easy to moderate to install; sintered stone costs more and is difficult to install, needing professional handling. Not established here: quantified heat, chipping or edge-strength limits, which vary by brand; check the manufacturer's data sheet.",
+      "body_ar": "يختلف الكوارتز المُصنَّع عن الحجر الملبَّد (Sintered Stone) في طريقة التصنيع. يجمع الكوارتز بين بلورات الكوارتز الطبيعية والراتنجات والأصباغ والبوليمرات. أما الحجر الملبَّد فيُضغط تحت ضغط وحرارة شديدين دون راتنج. قد يتضرر الكوارتز من الحرارة الشديدة ويبهت لونه في ضوء الشمس، بينما يتحمل الحجر الملبَّد درجات الحرارة العالية ولا يبهت، لذا يناسب المطابخ الخارجية والمناطق المعرضة للحرارة العالية. وكلاهما مقاوم للخدش، والحجر الملبَّد أكثر مقاومة. تكلفة الكوارتز متوسطة إلى مرتفعة وتركيبه سهل إلى متوسط؛ أما الحجر الملبَّد فأعلى تكلفة وتركيبه صعب ويحتاج إلى معالجة احترافية. غير ثابت هنا: الحدود الرقمية لتحمل الحرارة والتشظي ومتانة الحواف، وهي تختلف باختلاف العلامة التجارية؛ راجع ورقة بيانات الشركة المصنّعة.",
+      "sources": [
+        "https://mikolmarmi.com/blogs/marble-granite-library/which-is-better-quartz-or-sintered-stone"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +73,15 @@
       "expected_entry_ids": [
         "marble_stone:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the difference between quartz and sintered stone for a countertop?",
+      "q_ar": "ما الفرق بين الكوارتز والحجر الملبّد لسطح عمل المطبخ؟",
+      "expected_entry_ids": [
+        "marble_stone:engineered-quartz-vs-sintered-stone"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither compares quartz vs sintered stone; missing: engineered surfaces comparison entry). marble_stone:engineered-quartz-vs-sintered-stone was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from marble_stone.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +98,9 @@
       "marble_stone:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "marble_stone:engineered-quartz-vs-sintered-stone"
+    ]
   }
 }

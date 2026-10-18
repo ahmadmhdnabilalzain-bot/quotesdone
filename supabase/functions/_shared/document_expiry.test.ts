@@ -136,3 +136,45 @@ Deno.test('readLicenceName: a PDF that places each line with its own Tm reads th
   const out = new Uint8Array(head.length + s.length + tail.length); out.set(head); out.set(s, head.length); out.set(tail, head.length + s.length);
   assertEquals(await readLicenceName(out, 'application/pdf'), 'ZZ DEMO Walk en desktop');
 });
+
+// 7 Oct 2026 (sales_engineer, accuracy suite ledger 1162): the two-column table layout, and every labelled field.
+import { licenceFieldsFromText, licenceNeedsModel, mergeLicenceReads, readLicenceFields } from './document_expiry.ts';
+const tablePdf = (rows: [string, string][]) => {
+  // each label and each value is its own BT..ET with its own Tm, on the same baseline: how a table licence is drawn
+  const body = rows.map(([k, v], i) => `BT /F1 10 Tf 1 0 0 1 60 ${700 - 22 * i} Tm (${esc(k)}) Tj ET\nBT /F1 10 Tf 1 0 0 1 230 ${700 - 22 * i} Tm (${esc(v)}) Tj ET`).join('\n');
+  const s = enc.encode(body);
+  const head = enc.encode(`%PDF-1.4\n5 0 obj\n<< /Length ${s.length} >>\nstream\n`), tail = enc.encode('\nendstream\nendobj\n%%EOF\n');
+  const out = new Uint8Array(head.length + s.length + tail.length); out.set(head); out.set(s, head.length); out.set(tail, head.length + s.length);
+  return out;
+};
+Deno.test('a table licence (label and value placed apart on one baseline) reads every field; before the fix the name was held', async () => {
+  const f = await readLicenceFields(tablePdf([['Licence Number', '1023757'], ['Legal Name', 'ZZ DEMO Dune Plumbing LLC'], ['Trade Name', 'ZZ DEMO Dune Plumbing'],
+    ['Legal Form', 'Limited Liability Company'], ['Issuing Authority', 'Dubai Department of Economy and Tourism'], ['Issue Date', '03 Mar 2025'],
+    ['Expiry Date', '02 Mar 2027'], ['Business Activities', 'Plumbing and Sanitary Installation, Building Waterproofing Works']]), 'application/pdf');
+  assertEquals(f.licence_no, '1023757');
+  assertEquals(f.legal_name_en, 'ZZ DEMO Dune Plumbing LLC');
+  assertEquals(f.trade_name, 'ZZ DEMO Dune Plumbing');
+  assertEquals(f.emirate, 'Dubai');                     // from the authority: the licence prints no emirate line
+  assertEquals([f.issue_date, f.expiry_date], ['2025-03-03', '2027-03-02']);
+  assertEquals(f.activities, ['Plumbing and Sanitary Installation', 'Building Waterproofing Works']);
+  assertEquals(licenceNeedsModel(f), false);
+});
+Deno.test('labels are whole words, the legal name is never the trade name, and nothing unlabelled is read', () => {
+  const f = licenceFieldsFromText('Licence Number: DMCC-104477\nEstablishment Name: ZZ DEMO Sidra Lifts Est\nTrade Name: ZZ DEMO Sidra Lifts\nValid Until: 12/04/2027');
+  assertEquals(f.licence_no, 'DMCC-104477');
+  assertEquals(f.legal_name_en, 'ZZ DEMO Sidra Lifts Est');
+  assertEquals(f.expiry_date, '2027-04-12');
+  const g = licenceFieldsFromText('Trade Name: ZZ DEMO Only Trade\nTRN: 100000000000003\nGeneral Trading');
+  assertEquals([g.legal_name_en, g.licence_no, g.activities, g.emirate], [null, null, null, null]);
+  assertEquals(licenceNeedsModel(g), true);
+});
+Deno.test('merge: code first, the model only fills what code left unread, a low-confidence name is not a name', () => {
+  const { merged, source } = mergeLicenceReads({ legal_name_en: 'ZZ DEMO A LLC', licence_no: null, expiry_date: '2027-01-01' },
+    { legal_name: 'ZZ DEMO B LLC', license_number: '777', expiry_date: '2029-09-09', license_authority: 'Jebel Ali Free Zone Authority', confidence: 'high' });
+  assertEquals([merged.legal_name_en, merged.licence_no, merged.expiry_date, merged.emirate], ['ZZ DEMO A LLC', '777', '2027-01-01', 'Dubai']);
+  assertEquals([source.legal_name_en, source.licence_no], ['code', 'model']);
+  assertEquals(mergeLicenceReads(null, { legal_name: 'ZZ DEMO C LLC', confidence: 'low' }).merged.legal_name_en, null);
+  // an Arabic-only licence: the model's Arabic name is the Arabic name, never the English one the gate compares
+  const ar = mergeLicenceReads(null, { legal_name: 'زد زد ديمو الواحة', legal_name_ar: 'زد زد ديمو الواحة', confidence: 'high' }).merged;
+  assertEquals([ar.legal_name_en, ar.legal_name_ar], [null, 'زد زد ديمو الواحة']);
+});

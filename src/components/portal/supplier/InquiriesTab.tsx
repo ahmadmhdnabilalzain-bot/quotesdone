@@ -83,9 +83,8 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
       <span className="min-w-0 text-[13px] font-semibold text-foreground">{t.inqPdf}</span>
       <span className="flex items-center gap-1.5">
         <Button size="sm" variant="outline" disabled={!!busy} onClick={() => inquiryPdf('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
-        <Button size="sm" variant="outline" disabled={!!busy} onClick={() => inquiryPdf('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
       </span>
-      {pdfErr ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{pdfErr === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
+      {pdfErr ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
     </li>
   );
   if (err) return (

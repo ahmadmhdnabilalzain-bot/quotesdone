@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "corporate_travel:tmc-fee-models",
+      "topic": "Travel management company fee models",
+      "kind": "commercial_model",
+      "body_en": "Travel management companies (TMCs) charge corporate clients under several models: one-off implementation fees, per-booking transaction fees, service or management fees, concierge charges, phone-booking surcharges and pay-per-trip models. One published source gives average transaction fees of USD 7.84 per online self-service booking, USD 18.01 for online booking with agent help and USD 25.20 for phone bookings. It reports management fees of about USD 100 to over USD 1,000 a month depending on company size, one-off implementation fees for booking platforms of USD 500-5,000, and concierge services at USD 25-100 per request. Ask bidders to price the same booking mix and to state each of these fees. These figures come from an international source; UAE-specific benchmarks and the treatment of supplier commissions were not established here.",
+      "body_ar": "تفرض شركات إدارة السفر على عملائها من الشركات رسوماً وفق عدة نماذج: رسوم تأسيس لمرة واحدة، ورسوم معاملة عن كل حجز، ورسوم خدمة أو إدارة، ورسوم خدمات الكونسيرج، ورسوم إضافية على الحجز الهاتفي، ونماذج الدفع لكل رحلة. يذكر مصدر منشور متوسط رسوم معاملة قدره 7.84 دولارات أمريكية للحجز الذاتي عبر الإنترنت، و18.01 دولاراً للحجز عبر الإنترنت بمساعدة وكيل، و25.20 دولاراً للحجز الهاتفي. ويذكر رسوم إدارة تتراوح بين نحو 100 وأكثر من 1,000 دولار شهرياً بحسب حجم الشركة، ورسوم تأسيس لمنصات الحجز بين 500 و5,000 دولار لمرة واحدة، وخدمات الكونسيرج بين 25 و100 دولار لكل طلب. اطلب من المتنافسين تسعير مزيج الحجوزات نفسه وبيان كل رسم من هذه الرسوم. هذه الأرقام من مصدر دولي؛ ولم تثبت هنا مؤشرات خاصة بالإمارات ولا طريقة التعامل مع عمولات الموردين.",
+      "sources": [
+        "https://www.perk.com/blog/travel-management-company-fees"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "corporate_travel:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How do travel management companies charge for corporate bookings?",
+      "q_ar": "كيف تتقاضى شركات إدارة السفر رسوم حجوزات الشركات؟",
+      "expected_entry_ids": [
+        "corporate_travel:tmc-fee-models"
+      ],
+      "why": "No entry of this pack answered it (Spec-checklist names 'fee model' only as a field; no explanation of TMC transaction/management fees; missing). corporate_travel:tmc-fee-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from corporate_travel.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "corporate_travel:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "corporate_travel:tmc-fee-models"
+    ]
   }
 }

@@ -564,8 +564,16 @@ const COPY: Record<string, Entry> = {
   // ── Licence gate reasons (leads.licence_gate_reason) ────────────────────────────────────────────
   no_licence: s('no trade licence on file', 'لا توجد رخصة تجارية محفوظة'),
   licence_expired: s('the trade licence on file has expired', 'الرخصة التجارية المحفوظة منتهية الصلاحية'),
-  licence_name_unread: s('we could not read the company name on your trade licence, so our team is checking it by hand. You do not need to do anything; a clearer copy speeds it up',
-    'لم نتمكن من قراءة اسم الشركة في رخصتكم التجارية، لذا يراجعها فريقنا يدويًا. لا يلزمكم أي إجراء، ورفع نسخة أوضح يسرّع المراجعة'),
+  licence_name_unread: s('we could not read the company name on your trade licence, even with our document reader. Please upload a clearer copy (a PDF, or a sharp photo of the whole page); we read it again as soon as it arrives',
+    'لم نتمكن من قراءة اسم الشركة في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
+  licence_unreadable: s('we could not read the company name on your trade licence, even with our document reader. Please upload a clearer copy (a PDF, or a sharp photo of the whole page); we read it again as soon as it arrives',
+    'لم نتمكن من قراءة اسم الشركة في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
+  // 7 Oct 2026 (ledger 1162, founder ruling 1177): a licence field still unread after code AND the vision model is held, never
+  // guessed, and the supplier is asked for a clearer copy; the new upload is read again and re-runs the gate.
+  licence_expiry_unread: s('we could not read the expiry date on your trade licence, even with our document reader. Please upload a clearer copy (a PDF, or a sharp photo of the whole page); we read it again as soon as it arrives',
+    'لم نتمكن من قراءة تاريخ الانتهاء في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
+  licence_number_unread: s('we could not read the licence number on your trade licence, even with our document reader. Please upload a clearer copy (a PDF, or a sharp photo of the whole page); we read it again as soon as it arrives',
+    'لم نتمكن من قراءة رقم الرخصة في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
   licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
     'اسم الشركة في الرخصة التجارية لا يطابق اسم شركتكم المسجّل. يُرجى رفع الرخصة التجارية الخاصة بشركتكم، أو التواصل معنا إن كان اسمكم المسجّل يحتاج إلى تعديل'),
 

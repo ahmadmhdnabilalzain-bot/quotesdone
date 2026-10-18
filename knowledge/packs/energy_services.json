@@ -41,6 +41,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "energy_services:rooftop-solar-commercial-models",
+      "topic": "Rooftop solar pricing basis and ownership models",
+      "kind": "pricing_basis",
+      "body_en": "Rooftop solar is benchmarked per kWp of installed capacity: a 2018 Khaleej Times article cited a benchmark of about AED 6,000 per kWp in Dubai, an old figure that should not be used as a current rate. In Dubai, DEWA's Shams Dubai net metering exports surplus power to the grid and deducts it from future bills rather than paying cash, and grid-tied systems are capped at 1 MW per plot. Zero-capex options exist: under a typical solar PPA, a developer owns the system and the customer pays a discounted per-kWh rate over 15-20 years. Under outright purchase the owner pays for the system up front. A quote should state kWp, expected yield, equipment, warranties and, for a PPA, tariff and term. Not established here: a current verified AED per kWp market rate.",
+      "body_ar": "تُقاس تكلفة الطاقة الشمسية على الأسطح لكل كيلوواط ذروة من القدرة المركبة: فقد أورد مقال في صحيفة خليج تايمز عام 2018 سعراً مرجعياً يقارب 6,000 درهم لكل كيلوواط ذروة في دبي، وهو رقم قديم لا ينبغي اعتماده سعراً حالياً. وفي دبي، يُصدِّر نظام صافي القياس ضمن برنامج شمس دبي التابع لهيئة كهرباء ومياه دبي الفائض إلى الشبكة ويخصمه من الفواتير المستقبلية بدلاً من دفعه نقداً، وتُحدَّد الأنظمة المتصلة بالشبكة بحد أقصى 1 ميغاواط لكل قطعة أرض. وتتوفر خيارات دون نفقات رأسمالية: ففي اتفاقية شراء الطاقة الشمسية النموذجية يملك المطوّر النظام ويدفع العميل سعراً مخفضاً لكل كيلوواط ساعة على مدى 15-20 سنة. أما في الشراء المباشر فيدفع المالك ثمن النظام مقدماً. ينبغي أن يحدد عرض السعر القدرة بالكيلوواط ذروة والإنتاج المتوقع والمعدات والضمانات، وفي حالة اتفاقية شراء الطاقة التعرفة والمدة. لم يُثبت هنا: سعر سوقي حالي موثق بالدرهم لكل كيلوواط ذروة.",
+      "sources": [
+        "https://www.surgepv.com/solar-compliance/uae/guides/ci-solar-uae",
+        "https://www.khaleejtimes.com/uae/going-solar-for-the-future"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +71,15 @@
       "expected_entry_ids": [
         "energy_services:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Is rooftop solar priced per kWp, and is there a zero-capex option?",
+      "q_ar": "هل تُسعّر الطاقة الشمسية على الأسطح لكل كيلوواط ذروة، وهل يوجد خيار دون نفقات رأسمالية؟",
+      "expected_entry_ids": [
+        "energy_services:rooftop-solar-commercial-models"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry covers per-kWp solar pricing or zero-capex PPA/lease models). energy_services:rooftop-solar-commercial-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from energy_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +96,9 @@
       "energy_services:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "energy_services:rooftop-solar-commercial-models"
+    ]
   }
 }

@@ -810,6 +810,16 @@
         "steel:paint-iso12944",
         "steel:canopies-pergolas"
       ]
+    },
+    {
+      "q_en": "Which stainless steel grade should I use for a handrail near the beach?",
+      "q_ar": "ما درجة الفولاذ المقاوم للصدأ المناسبة لدرابزين قرب الشاطئ؟",
+      "expected_entry_ids": [
+        "steel:ss-grade-selection-uae",
+        "steel:ss-304-vs-316-316l"
+      ],
+      "why": "ss-grade-selection-uae gives the exposure ladder (316 or better for coastal/beach), and ss-304-vs-316-316l explains why molybdenum-bearing 316 resists chlorides.",
+      "origin": "real buyer question, moved from steel.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
