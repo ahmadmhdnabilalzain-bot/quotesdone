@@ -1,7 +1,7 @@
 // The folder classification, the exact allowlist and the fail-closed reader of inbox_placement.ts.
 //   deno test supabase/functions/_shared/inbox_placement.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { addressOf, authVerdicts, forefront, gmailFolder, gmailIsOwnCopy, graphFolder, MAX_PAGES, placementTick, readGmail, readOutlook, SEED_GMAIL, SEED_OUTLOOK, seedAllowed, worstFolder } from './inbox_placement.ts';
+import { addressOf, authVerdicts, forefront, gmailFolder, gmailIsOwnCopy, graphFolder, MAX_PAGES, placementTick, readGmail, readOutlook as readOutlookWith, SEED_GMAIL, SEED_OUTLOOK, seedAllowed, worstFolder } from './inbox_placement.ts';
 
 const TOKEN = 'QD0123456789';
 const SENDER = 'info@quotesdone.com';
@@ -12,8 +12,10 @@ const creds: Record<string, string> = {
 const sec = (over: Record<string, string> = {}) => async (k: string) => ({ ...creds, ...over })[k] ?? '';
 const ok = (o: unknown) => new Response(JSON.stringify(o), { status: 200 });
 const since = () => new Date().toISOString();
-// readOutlook reads the M365 app from the edge environment; the tests give it one.
-for (const [k, v] of [['MS_TENANT_ID', 'tid'], ['MS_CLIENT_ID', 'mid'], ['MS_CLIENT_SECRET', 'msec']]) Deno.env.set(k, v);
+// readOutlook reads the M365 app from the edge environment; the tests hand it one through its env parameter. Never
+// Deno.env.set: `npm test` runs the Deno suite without --allow-env, and a top-level set is an uncaught NotCapable.
+const M365_ENV: Record<string, string> = { MS_TENANT_ID: 'tid', MS_CLIENT_ID: 'mid', MS_CLIENT_SECRET: 'msec' };
+const readOutlook = (...a: Parameters<typeof readOutlookWith>) => readOutlookWith(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7] ?? ((k) => M365_ENV[k]));
 
 type GMsg = { labels: string[]; from?: string };
 // A fake Gmail: the profile says `who`, and the token matches these messages (labels + From header).
