@@ -250,22 +250,25 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
  * touch it on either side ("9,000.00" is one number; "1,5" stays as written).
  * prevented by: _shared/think_value_in_evidence.test.ts
  */
-/** The numbers of a text: each whole number (a thousands comma and a decimal kept: "9,000.00" is one; "450,m2,20.00" is three), and whether a letter
- *  touches it ("m2", "C25", "L1" are part of a name or a unit, not a quantity). */
-function numbersOf(t: string): { n: string; attached: boolean }[] {
-  const out: { n: string; attached: boolean }[] = [];
-  for (const m of t.matchAll(/\d+(?:,\d{3})*(?:\.\d+)?/g)) {
-    const before = t[m.index! - 1] ?? '', after = t[m.index! + m[0].length] ?? '';
-    out.push({ n: m[0], attached: /\p{L}/u.test(before) || /\p{L}/u.test(after) });
+/** The numbers of a text, in any script (\p{Nd}: "٣٠" is one number, never "٣"): digits with an optional thousands
+ *  separator ("," or the Arabic "٬") before exactly three digits, and an optional decimal part ("." or "٫"). "9,000.00" is
+ *  one number; "450,m2,20.00" is three. A number is CODE-LIKE when one or two letters that START a token sit right before
+ *  it ("C25", "L1", the "2" of "m2" written apart): part of a name, not a quantity. A unit or currency glued to it
+ *  ("AED9,000", "450m2", "10mm", "30days") does not make it code-like. */
+const NUMBER = /\p{Nd}+(?:[,\u066C]\p{Nd}{3})*(?:[.\u066B]\p{Nd}+)?/gu;
+function numbersOf(t: string): { n: string; code: boolean }[] {
+  const out: { n: string; code: boolean }[] = [];
+  for (const m of t.matchAll(NUMBER)) {
+    const before = t.slice(Math.max(0, m.index! - 3), m.index!);
+    out.push({ n: m[0], code: /(?:^|[^\p{L}\p{Nd}])\p{L}{1,2}$/u.test(before) || (m.index! <= 2 && /^\p{L}{1,2}$/u.test(before)) });
   }
   return out;
 }
 export function valueInEvidence(val: string, ev: string): boolean {
   if (!ev.includes(val)) return false;
   const evNums = numbersOf(ev);
-  // A number standing alone in the value must be a whole number standing alone in the evidence; one attached to a
-  // letter in the value ("C25") may match the same attached number.
-  return numbersOf(val).every((v) => evNums.some((e) => e.n === v.n && (v.attached || !e.attached)));
+  // A quantity in the value must be a whole quantity of the evidence; a code-like number ("C25") may match the same code.
+  return numbersOf(val).every((v) => evNums.some((e) => e.n === v.n && (v.code || !e.code)));
 }
 
 /** One JSON object out of a model reply, or null. Tolerates a ```json fence; nothing else. */
