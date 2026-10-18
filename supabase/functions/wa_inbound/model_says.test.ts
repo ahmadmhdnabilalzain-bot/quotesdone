@@ -64,3 +64,34 @@ Deno.test('the rate key reaches the gateway call, and the model\'s escalate flag
   assertEquals(s.calls[0].o.rateKey, 'wa:whatsapp:+971500000021');
   assertEquals(r.escalate, true);
 });
+
+// prevented by: this test. Run 5 (qd_run:321d13ae, agent_runs 3793567) held a WhatsApp turn 73.7 s in serial model
+// calls and still ended llm_failed. A hanging model now costs at most the reply budget: each call is given only the
+// time left (never more than PER_CALL_MS), no call starts with under MIN_CALL_MS left, and the result is '' so the
+// caller sends the held notice and queues the turn.
+Deno.test('a hanging model ends the reply inside its budget, each call given only the time left', async () => {
+  const timeouts: number[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null),
+    // the gateway honours the caller's timeout: it hangs until then and answers nothing
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => {
+      timeouts.push(Number(o.timeoutMs));
+      return new Promise<LlmReply>((res) => setTimeout(() => res({ content: null, error: 'timeout' } as LlmReply), Number(o.timeoutMs)));
+    },
+    embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+  } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'how long does installation take?', situation: 'facts', budgetMs: 9_000 });
+  assertEquals(r.text, '', 'no model answered: the caller sends the held notice');
+  assert(r.ms < 10_000, `the turn took ${r.ms} ms against a 9 s budget`);
+  assertEquals(timeouts.length, 1, 'no second call starts with under MIN_CALL_MS left');
+  assert(timeouts[0] <= 9_000, `the call was given ${timeouts[0]} ms, more than the budget`);
+  assert(r.attempts.some((a) => a.startsWith('deadline')), 'the attempts say the clock ran out: ' + r.attempts.join(','));
+});
+
+Deno.test('the default WhatsApp budget caps a reply call at 25 s', async () => {
+  const s = stub([A('Installation of aluminium windows on a villa usually takes a few days, depending on the area.')]);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'how long?', situation: 'facts' });
+  assert(r.text.length > 0);
+  assert(Number(s.calls[0].o.timeoutMs) <= 25_000, 'a reply call keeps no more than 25 s');
+});
