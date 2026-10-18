@@ -66,7 +66,8 @@ Deno.test('a profile whose trades could not be chosen proposes NOTHING and says 
   assert(/breaker open/.test(ev.reason || ''), ev.reason);
   const ok = await readDocForTrades({ path: 'p', name: 'p.txt', kind: 'profile', photo_text: 'We install sprinkler systems' },
     { ...deps, chooseTrades: async (t) => checkChoice(JSON.stringify({ trades: [{ code: 'fire_fighting', quote: 'install sprinkler systems', reason: 'r' }] }), t, DEFS) });
-  assertEquals(ok.trades.map((t) => [t.code, t.via]), [['fire_fighting', 'model_choice']]);
+  // text read off a picture: chosen and quoted, but held for the sales engineer, never proposed (review of #1412)
+  assertEquals([ok.trades.length, ok.vision_held?.map((t) => [t.code, t.via])], [0, [['fire_fighting', 'model_choice']]]);
 });
 
 Deno.test('the second look sees the quote with the lines around it (Al Nas Elevators, run 7: a quote cut short)', () => {
@@ -90,7 +91,7 @@ Deno.test('an answer in a code fence or after a sentence is still read; a failur
 // cleaning"), so every quote matched text the model itself had written and six trades it does not sell got through.
 // The picture's trades are now chosen only from the lines it PRINTS (license_extract profile.lines, verbatim); a quote
 // from a summary is not in those lines and is refused. Lines below are ZZ DEMO paraphrases of the file's kind.
-Deno.test('an image-only profile proposes only what its printed lines quote; a summary phrase proposes nothing (H01)', async () => {
+Deno.test('an image-only profile proposes NOTHING: what its printed lines quote is held for the sales engineer; a summary phrase is refused (H01)', async () => {
   const { modelReadText } = await import('./supplier_doc_trades.ts');
   const lines = ['ZZ DEMO Aluminium works, Glass works, UPVC windows & doors', 'Glass Partitions', 'Doors & windows'];
   const deps: TradeResolveDeps = { normTrades: async () => ({}), services: [], embed: async () => null, budget: { left: 0 },
@@ -99,7 +100,8 @@ Deno.test('an image-only profile proposes only what its printed lines quote; a s
       { code: 'fire_fighting', quote: 'Plumbing and sanitary installation', reason: 'from the summary' },   // not a printed line
     ] }), t, DEFS) };
   const ev = await readDocForTrades({ path: 'p', name: 'p.pdf', kind: 'profile', photo_text: modelReadText('profile', lines) }, deps);
-  assertEquals(ev.trades.map((t) => t.code), ['doors']);
+  assertEquals([ev.trades.length, ev.vision_held?.map((t) => t.code)], [0, ['doors']]);
+  assert(/held for the sales engineer/.test(ev.reason || ''), ev.reason);
 });
 
 Deno.test('the profile reading asks for printed lines verbatim, never from a certificate or letter', async () => {

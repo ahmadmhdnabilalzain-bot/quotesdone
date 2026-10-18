@@ -397,7 +397,8 @@
     "gypsum",
     "masonry_blockwork",
     "painting",
-    "swimming_pools"
+    "swimming_pools",
+    "interior_fitout"
    ],
    "H09": [
     "electrical",
@@ -406,21 +407,24 @@
    "H15": [
     "fencing_shades",
     "road_works"
-   ],
-   "H01": [
-    "joinery"
    ]
   },
   "why_blind_truth_missed_them": "the blind truth was written from the opening pages; these are listed later in each file (activity lists, licence activities, service tables)",
   "overturned_by_reviewer": {
    "H06": [
     "design_consultancy"
+   ],
+   "H01": [
+    "joinery"
    ]
   },
-  "h01_quotes": {
-   "joinery": "Glass folding doors are our speciality... offering excellent aluminium partition, ACP cladding, structural glazing, and kitchen cabinets. (page Aluminium Glass Folding Doors)",
-   "hvac": "Aluminium works, Glass works, UPVC windows & doors and Air conditioning services. (About page; hvac already in trades_also)"
+  "h01_before_guard": "6 wrong (cleaning, electrical, flooring, gypsum, painting, plumbing), chosen from the vision model summary; their words are on two ISO certificate scope pages, not in the company's own description. Fixed by the guard: trades are chosen only from printed lines, never from a certificate.",
+  "reviewer_ruled_wrong": {
+   "H05": [
+    "home_automation",
+    "security_systems"
+   ]
   },
-  "h01_before_guard": "6 wrong (cleaning, electrical, flooring, gypsum, painting, plumbing), chosen from the vision model summary; their words are on two ISO certificate scope pages, not in the company's own description. Fixed by the guard: trades are chosen only from printed lines, never from a certificate."
+  "reviewer_ruled_wrong_why": "Automation & Controls and Access Control sit under H05 ELECTRICAL WORKS: a sub-part of electrical, not trades of their own"
  }
 }

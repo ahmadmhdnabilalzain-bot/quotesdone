@@ -60,6 +60,9 @@ export type DocEvidence = {
   /** profile / catalogue: 'on' = the model chose the trades and each was proven by its quote; 'unavailable' = it could not
    *  be asked, so NOTHING was proposed (reason says why); rejected = codes the model named that code refused */
   choice?: 'on' | 'unavailable'; rejected?: { code: string; why: string }[];
+  /** trades read off a PICTURE (image, or a PDF with no text layer): their quotes are lines the vision model transcribed,
+   *  which code cannot check against the file, so they are never proposed - held here for the sales engineer to confirm */
+  vision_held?: TradeHit[];
 };
 export const PHOTO_TEXT_MAX = 60_000;
 
@@ -170,8 +173,12 @@ ${whole}`;
         console.error(JSON.stringify({ at: 'supplier_doc_trades.choice', path: doc.path, error: ch.error }));
         return { ...base, status: 'read', format, source, reason: `the trades could not be chosen: ${ch.error}`, trades: [], choice: 'unavailable', ...(c ? { supply_only: c.supply_only } : {}) };
       }
-      return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}),
-        trades: ch.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.reason], snippet: t.quote })) };
+      const hits = ch.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.reason], snippet: t.quote }));
+      // HELD, NOT PROPOSED (review of #1412, 18 Oct 2026): a picture's quote is checked only against the vision model's own
+      // transcription, so a line it invented would pass. Those trades wait for the sales engineer (vision_trades_confirm).
+      if (source === 'photo_text') return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}),
+        reason: 'read off a picture by the vision model; held for the sales engineer to confirm against the file', trades: [], vision_held: hits };
+      return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}), trades: hits };
     }
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
     return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
@@ -198,6 +205,21 @@ export function mergeEvidence(prev: DocEvidence[], fresh: DocEvidence[]): DocEvi
   const replaced = (d: DocEvidence) => fresh.some((f) => f.path === d.path || (f.kind !== 'catalogue' && f.kind === d.kind));
   const kept = prev.filter((d) => !replaced(d)).map((d) => (wordRead(d) ? { ...d, trades: [], reason: WORD_READ } : d));
   return [...fresh, ...kept].slice(0, MAX_DOCS);
+}
+
+/** One pending sales_engineer item per supplier document whose trades were read off a picture (never filed twice). */
+async function visionHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
+  const target = `${supplierId}:${d.path}`;
+  try {
+    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'vision_trades_confirm').eq('status', 'pending').eq('target_id', target).limit(1);
+    if (open?.length) return;
+    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'vision_trades_confirm', status: 'pending', risk: 'low',
+      title: ('Confirm trades read off a picture: ' + d.name).slice(0, 200),
+      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, held: d.vision_held!.map((t) => ({ code: t.code, quote: t.snippet })),
+                waiting_for: 'sales_engineer to check each quote against the file and confirm or drop the trade' },
+      target_table: 'supplier_capabilities', target_id: target });
+    if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
 }
 
 export const proposedFrom = (docs: DocEvidence[]): string[] =>
@@ -252,6 +274,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], fresh);
     const proposed = proposedFrom(merged);
+    for (const d of fresh) if (d.vision_held?.length) await visionHeld(admin, supplierId, d);
     const { error } = await admin.from('supplier_capabilities').upsert({
       supplier_id: supplierId, proposed_trades: proposed,
       source_docs: { ...prevSrc, reader: READER, docs: merged }, extracted_at: new Date().toISOString(),

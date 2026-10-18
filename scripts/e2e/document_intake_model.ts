@@ -109,15 +109,16 @@ for (const d of truth.docs) {
       body: JSON.stringify({ __secret: Deno.env.get('QD_SECRET_EXTRACT'), subject: SUBJECT, mode: 'profile', ...(noTextPdf ? { file_b64: btoa(b64), mime: d.mime, filename: d.file } : { images: [{ b64: btoa(b64), mime: d.mime }] }) }) });
     jd = await r.json().catch(() => null);
   }
-  let model_trades: string[] = [];
+  let model_trades: string[] = [], vision_held: string[] = [];
   const services: string[] = jd?.ok ? (jd.profile?.lines || []) : [];
   if (services.length) {
     deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy', { subject: SUBJECT, headers });
     deps.budget.left = 40;
     const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'profile', bytes, mime: d.mime, photo_text: modelReadText('profile', services) }, deps);
-    model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();
+    model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();   // [] for a picture: its trades are held
+    vision_held = [...new Set((ev.vision_held || []).map((t) => t.code))].sort();
   }
-  out.push({ id: d.id, asked: true, ok: !!jd?.ok, profile: jd?.profile ?? null, error: jd?.ok ? null : String(jd?.error || 'no answer'), model_trades });
+  out.push({ id: d.id, asked: true, ok: !!jd?.ok, profile: jd?.profile ?? null, error: jd?.ok ? null : String(jd?.error || 'no answer'), model_trades, vision_held });
   console.log(`${d.id}: ${jd?.ok ? 'read ' + services.length + ' services' : 'not read'}`);
 }
 await Deno.writeTextFile(outPath, JSON.stringify({ via, run_tag: TAG, read_at: new Date().toISOString(), docs: out }, null, 1));
