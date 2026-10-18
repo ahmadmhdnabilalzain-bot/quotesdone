@@ -8,11 +8,14 @@
 --
 -- assistant_logs already holds every widget and portal turn (message + reply) and is kept with the conversations
 -- (fn_conversation_record). What it lacked was the key that says which conversation a turn belongs to, so nothing could
--- read a conversation back. conv_id is that key: 'w-<tab id>' for the widget, 'p-<customer id>-<tab id>' for the
--- portal (the customer part comes from the verified session, never the request body). _shared/chat_history.ts reads it.
+-- read a conversation back. conv_id is that key (founder ruling 1255, 19 Oct: the agent can't lose the chat):
+--   v-<visitor id>        a website visitor; the id lives in the browser's localStorage, so it survives a closed browser;
+--   a-c-<customer id>     a signed-in customer, the same conversation in the portal and on the widget, the account taken
+--                         from the verified session, never the request body.
+-- Signing up adopts the visitor's rows into the account (conv_id rewritten, no row deleted). _shared/chat_history.ts.
 --
 -- 309 rows (344 kB) on 18 Oct, so the index is built in place. No routine is created; RLS on the table is unchanged.
 alter table public.assistant_logs add column if not exists conv_id text;
 comment on column public.assistant_logs.conv_id is
-  'The conversation this turn belongs to (w-<tab> widget, p-<customer>-<tab> portal). _shared/chat_history.ts loadTranscript reads every turn of it back, oldest first, for the model.';
+  'The conversation this turn belongs to (v-<visitor id> before sign-up, a-c-<customer id> after; ruling 1255). _shared/chat_history.ts loadTranscript reads every turn of it back, oldest first, for the model.';
 create index if not exists assistant_logs_conv_id_id on public.assistant_logs (conv_id, id) where conv_id is not null;

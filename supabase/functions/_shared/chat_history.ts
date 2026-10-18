@@ -79,3 +79,29 @@ export function clientHistory(h: unknown): ChatMsg[] {
 
 /** A conversation id the caller may use: letters, digits and dashes, 8-64 long. */
 export const convIdOf = (v: unknown): string => { const s = String(v ?? '').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 64); return s.length >= 8 ? s : ''; };
+
+// ── ONE CONVERSATION PER PERSON, THAT NOTHING CAN LOSE (founder ruling 1255, 19 Oct 2026) ──────────────────────────
+// "No matter what, the agent can't lose the chat. Cache shouldn't be cleared until the inquiry is made fully."
+//   - A visitor's chat lives under v-<id>, the id kept in the browser's localStorage (survives a reload, a closed browser
+//     and a return days later); a signed-in person's under a-<account>, the same key on the widget and in the portal.
+//   - Signing up mid-conversation carries it over: the first signed-in turn that presents the visitor id ADOPTS those
+//     rows into the account (conv_id rewritten, nothing deleted), so the sales engineer sees everything said before
+//     sign-up, and the visitor id then reads nothing for anyone else.
+//   - Every turn reloads the whole conversation from assistant_logs, so a provider's prompt cache expiring changes the
+//     price of a turn, never what the model is given. Nothing here deletes a row; retention (fn_conversation_retention_
+//     purge) only blanks rows five years after the party's last activity.
+export const visitorKey = (conv: string) => (conv ? 'v-' + conv : '');
+export const accountKey = (kind: 'customer' | 'supplier', id: string) => (id ? 'a-' + (kind === 'supplier' ? 's' : 'c') + '-' + id : '');
+
+/** The key a new turn is written under, and every turn of the conversation so far. turns is null when unreadable. */
+// deno-lint-ignore no-explicit-any
+export async function openConversation(admin: any, o: { account?: string; visitorConv?: string }): Promise<{ key: string; turns: ChatMsg[] | null; adopted: number }> {
+  const v = visitorKey(convIdOf(o.visitorConv));
+  if (!o.account) return { key: v, turns: v ? await loadTranscript(admin, v) : [], adopted: 0 };
+  let adopted = 0;
+  if (v) {
+    const { data, error } = await admin.from('assistant_logs').update({ conv_id: o.account }).eq('conv_id', v).select('id');
+    if (!error) adopted = (data ?? []).length;
+  }
+  return { key: o.account, turns: await loadTranscript(admin, o.account), adopted };
+}

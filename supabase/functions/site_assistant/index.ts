@@ -32,7 +32,7 @@ import { precedentBlock, recallCases, type CaseMemory } from '../_shared/case_re
 import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
-import { clientHistory, convIdOf, fitHistory, loadTranscript } from '../_shared/chat_history.ts';
+import { accountKey, clientHistory, convIdOf, fitHistory, openConversation } from '../_shared/chat_history.ts';
 import { STATUS, streamReply, wantsStream } from './stream_reply.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
@@ -169,6 +169,13 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     const photos = acceptImages(b.images, new URL(Deno.env.get('SUPABASE_URL')!).host);
     if (photos.refused.length) T.images_refused = photos.refused.length;
     T.images = photos.images.length;
+    // THE CHAT IS REDRAWN FROM THE DATABASE (ruling 1255): after a reload, a closed browser or days away, the widget asks
+    // for its conversation and shows every turn. Read-only; the same resolver the reply uses (_shared/chat_history.ts).
+    if (b.action === 'history') {
+      const w = await identify(req);
+      const c = await openConversation(admin, { account: w ? accountKey(w.audience, w.id) : '', visitorConv: b.conv });
+      return J({ turns: c.turns ?? [], adopted: c.adopted });
+    }
     if (message.length < 1) return J({ error: 'empty' }, 400);
     const path = String(b.path||'').slice(0,200);
     // The language the SCREEN is in, which is not always the language of the question. A customer
@@ -227,8 +234,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // THE WHOLE CONVERSATION (_shared/chat_history.ts, 18 Oct 2026). This was b.history.slice(-6) at 600 characters each,
     // so the founder's wardrobe dimensions were gone by the fourth turn. Every turn is stored in assistant_logs under
     // conv_id and read back here; the browser's copy is used only while the database has none yet.
-    const convKey = conv ? 'w-' + (who ? String(who.email).toLowerCase().replace(/[^a-z0-9]/g, '') + '-' : '') + conv : '';   // signed in: bound to the account too
-    const pStored = convKey ? loadTranscript(admin, convKey) : Promise.resolve(null);
+    // ruling 1255: one conversation per person; a visitor's turns are adopted into the account the moment they sign in
+    const pConvo = openConversation(admin, { account: who ? accountKey(who.audience, who.id) : '', visitorConv: conv });
 
     // A VERIFIED SESSION OUTRANKS BOTH HEURISTICS. Guessing the audience from the URL and the
     // wording is what you do when you do not know; when you know, you do not guess.
@@ -283,7 +290,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       return J({ reply: RL_REPLY, rate_limited: true });
     }
     await Promise.all(reads); lap('reads');
-    const stored = await pStored;
+    const convo = await pConvo; const convKey = convo.key; const stored = convo.turns;
     const history = stored && stored.length ? stored : clientHistory(b.history);
 
     // EVERY EXIT FILES THE SAME TWO SIDE EFFECTS (review of #1043): the knowledge gap when company knowledge could

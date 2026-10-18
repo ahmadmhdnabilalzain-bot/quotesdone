@@ -101,11 +101,14 @@ const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
 // 0.86 similarity floor corroborated by a lexical match, and REFUSES when nothing clears it. A
 // refusal arrives as a normal reply that says so and hands off to Support; the widget needs no
 // special case for it.
-async function askAssistant(message, history, token, lang, path, images = [], conv = '') {
+// THE CUSTOMER'S ONE CONVERSATION (founder ruling 1255): sales_engineer keeps every turn under the account, and the
+// website-widget chat they had before signing up (its id in localStorage) is carried in as widget_conv.
+const widgetConv = () => { try { return localStorage.getItem('qd-chat-conv') || ''; } catch (_e) { return ''; } };
+async function askAssistant(message, history, token, lang, path, images = []) {
   const r = await fetch(fnUrl('sales_engineer'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, conv, ...(images.length ? { images } : {}) }),
+    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, widget_conv: widgetConv(), ...(images.length ? { images } : {}) }),
   });
   return r.json();
 }
@@ -125,15 +128,14 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   const fileRef = useRef(null);
   const [photo, setPhoto] = useState('');
   const sentSeed = useRef('');
-  // ONE CONVERSATION ID PER TAB (18 Oct 2026): sales_engineer stores every turn under it and reads the whole
-  // conversation back, so the assistant remembers everything said in this chat however long it runs.
-  const conv = useRef('');
+  // redrawn from the database on every visit: a reload, another device or days later shows the whole conversation
   useEffect(() => {
-    try {
-      conv.current = sessionStorage.getItem('qd-portal-conv') || '';
-      if (!conv.current) { conv.current = crypto.randomUUID(); sessionStorage.setItem('qd-portal-conv', conv.current); }
-    } catch (_e) { conv.current = Math.random().toString(36).slice(2) + Date.now().toString(36); }
-  }, []);
+    if (!token) return;
+    fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ action: 'assist_history', widget_conv: widgetConv() }) })
+      .then((r) => r.json()).then((j) => { if (Array.isArray(j?.turns) && j.turns.length) setMsgs(j.turns); })
+      .catch(() => { /* the next turn still reads the whole conversation on the server */ });
+  }, [token]);
 
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open]);
   useEffect(() => { if (open) setTimeout(() => inpRef.current && inpRef.current.focus(), 80); }, [open]);
@@ -147,7 +149,7 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     const history = msgs.map((m) => ({ role: m.role, content: m.content }));
     setMsgs((m) => [...m, { role: 'user', content: q }]);
     try {
-      const j = await askAssistant(q, history, token, lang, '/me', images, conv.current);
+      const j = await askAssistant(q, history, token, lang, '/me', images);
       setMsgs((m) => [...m, { role: 'assistant', content: String((j && j.reply) || t('asst_err')), scope: j && j.scope }]);
     } catch (_e) {
       setMsgs((m) => [...m, { role: 'assistant', content: t('asst_err') }]);

@@ -41,7 +41,7 @@ import { acceptImages } from '../_shared/chat_images.ts';
 import { quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { supportReply } from '../_shared/support_reply.ts';
-import { clientHistory, convIdOf, loadTranscript } from '../_shared/chat_history.ts';
+import { accountKey, clientHistory, openConversation } from '../_shared/chat_history.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -370,6 +370,14 @@ Deno.serve(observe('sales_engineer', async (req) => {
       return error ? J({ error: 'rating_failed' }, 400) : J(data);
     }
 
+    // THE PORTAL CHAT IS REDRAWN FROM THE DATABASE (ruling 1255): every turn of the customer's one conversation, including
+    // what they said on the website widget before signing up (widget_conv, adopted into the account here).
+    if (action === 'assist_history') {
+      const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
+      if (!acct) return J({ turns: [] });
+      const c = await openConversation(admin, { account: acct, visitorConv: body.widget_conv });
+      return J({ turns: c.turns ?? [], adopted: c.adopted });
+    }
     if (action === 'assist') {
       const message = String(body.message || '').trim();
       if (!message) return J({ error: 'message_required' }, 400);
@@ -378,9 +386,10 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // handler never read it: every portal turn reached the model alone, so on 14 Oct the founder's 2 m x 1.2 m wardrobe
       // was asked for again one turn later (assistant_logs 3695). Every turn is stored under conv_id, scoped to the
       // caller the session resolved (never the body), and read back whole; the browser's copy only fills the first turn.
-      const pConv = convIdOf(body.conv);
-      const convKey = pConv ? 'p-' + (caller.kind === 'customer' ? caller.customerId : caller.kind) + '-' + pConv : '';
-      const pStored = convKey ? loadTranscript(admin, convKey) : Promise.resolve(null);
+      // ruling 1255: ONE conversation per customer (the same key the widget writes when they are signed in), and the
+      // visitor chat they had before signing up (widget_conv) is adopted into it, so nothing said before sign-up is lost.
+      const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
+      const pConvo = acct ? openConversation(admin, { account: acct, visitorConv: body.widget_conv }) : Promise.resolve({ key: '', turns: null, adopted: 0 });
 
       // ── A QUESTION ABOUT THE CUSTOMER'S OWN QUOTE IS ANSWERED FROM THAT QUOTE (21 Sep 2026) ──
       // Measured in the portal audit: "the quote excludes scaffolding above 4 m, but my ceilings
@@ -423,7 +432,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // shared word decided it until 23 Sep 2026. Held (the model hold), none is chosen: the gap is recorded and
       // the honest sentence goes out with its task number; nothing is guessed.
       const all = (r.records || []) as Array<Record<string, unknown>>;
-      const stored = await pStored;
+      const convo = await pConvo; const convKey = convo.key; const stored = convo.turns;
       const transcript = stored && stored.length ? stored : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
       {
         const sr = await supportReply(defaultDeps(admin, 'sales_engineer'), {

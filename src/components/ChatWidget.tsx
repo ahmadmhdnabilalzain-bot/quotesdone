@@ -63,23 +63,29 @@ export function ChatWidget() {
   const inpRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open]);
-  useEffect(() => { if (open) { if (!msgs.length) setMsgs([{ role: 'assistant', content: t.greet }]); setTimeout(() => inpRef.current?.focus(), 60); } }, [open]);
+  useEffect(() => { if (open) { if (!msgs.length) setMsgs([{ role: 'assistant', content: t.greet }]); restore(); setTimeout(() => inpRef.current?.focus(), 60); } }, [open]);
 
-  // One id per browser tab's conversation. site_assistant keys its per-visitor ceiling on
-  // conversation depth rather than raw message count (29% of widget traffic was refused by the
-  // flat 10/hour cap — website audit, "Where the smart shows").
+  // ONE CONVERSATION THAT IS NEVER LOST (founder ruling 1255). Its id lives in localStorage, so a reload, a closed browser
+  // or a return days later finds it; site_assistant stores every turn under it and the chat is redrawn from the database
+  // (action 'history'), never from this tab's memory. Signing up carries it into the portal (PortalShell sends it as
+  // widget_conv). site_assistant also keys its per-visitor ceiling on this id (website audit, "Where the smart shows").
   const conv = useRef('');
   useEffect(() => {
     try {
-      conv.current = sessionStorage.getItem('qd-chat-conv') || '';
-      if (!conv.current) { conv.current = crypto.randomUUID(); sessionStorage.setItem('qd-chat-conv', conv.current); }
-      // the chat survives a reload or a language switch in this tab (18 Oct 2026): it used to restart at the greeting
-      const kept = JSON.parse(sessionStorage.getItem('qd-chat-msgs') || '[]');
-      if (Array.isArray(kept) && kept.length) setMsgs(kept);
+      conv.current = localStorage.getItem('qd-chat-conv') || sessionStorage.getItem('qd-chat-conv') || '';
+      if (!conv.current) conv.current = crypto.randomUUID();
+      localStorage.setItem('qd-chat-conv', conv.current);
     } catch (_e) { conv.current = Math.random().toString(36).slice(2) + Date.now().toString(36); }
   }, []);
-
-  useEffect(() => { try { if (msgs.length > 1) sessionStorage.setItem('qd-chat-msgs', JSON.stringify(msgs)); } catch (_e) { /* private mode */ } }, [msgs]);
+  // redrawn when the chat is opened (not on every page view): only a visitor who has one gets turns back
+  const restored = useRef(false);
+  const restore = () => {
+    if (restored.current || !conv.current) return; restored.current = true;
+    fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+      body: JSON.stringify({ action: 'history', conv: conv.current }) })
+      .then((r) => r.json()).then((j) => { if (Array.isArray(j?.turns) && j.turns.length) setMsgs((m) => (m.length > 1 ? m : [{ role: 'assistant', content: t.greet }, ...j.turns])); })
+      .catch(() => { /* the next turn still reads the whole conversation on the server */ });
+  };
 
   // On a phone the launcher sat over the hero's demonstration card. Below 640px it waits for the
   // first scroll; on wider screens it is there from the start.
