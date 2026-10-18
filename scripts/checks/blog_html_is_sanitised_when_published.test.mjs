@@ -28,6 +28,33 @@ test('script, handlers and dangerous containers never survive', () => {
   assert.equal(S('a < b'), 'a &lt; b');
 });
 
+test('images are kept with a safe src and their alt; an unsafe src drops the image', () => {
+  assert.equal(S('<img src="/images/villa.jpg" alt="A villa &amp; pool" onerror="x">'), '<img src="/images/villa.jpg" alt="A villa &amp; pool">');
+  assert.equal(S('<img src="https://cdn.example/a.png">'), '<img src="https://cdn.example/a.png" alt="">');
+  for (const bad of ['<img src="javascript:alert(1)">', '<img src=x onerror=alert(1)>', '<img src="//evil/a.png">',
+    '<img src="http://plain/a.png">', '<img src="data:image/png;base64,AAAA">', '<img src="/\\evil.com/a.png">']) {
+    assert.equal(S(bad), '', bad);
+  }
+  assert.equal(S('<img alt="x" src="/a.png" data-alt="&quot;onload=alert(1)">'), '<img src="/a.png" alt="x">');
+  assert.equal(S('<img src="/a.png" alt="&quot; onerror=&quot;alert(1)">'), '<img src="/a.png" alt="&quot; onerror=&quot;alert(1)">');
+});
+
+test('a path a browser reads as another site is refused', () => {
+  for (const h of ['/\\evil.com', '\\evil.com', '\\\\evil.com', '//evil.com', '/\t/evil.com', '&#47;&#92;evil.com']) {
+    assert.equal(S(`<a href="${h}">x</a>`), '<a>x</a>', h);
+  }
+  assert.equal(S('<a href="/en/blog">x</a>'), '<a href="/en/blog">x</a>');
+});
+
+test('dir="rtl" and dir="ltr" are kept; no other dir value is', () => {
+  assert.equal(S('<p dir="rtl">نص</p>'), '<p dir="rtl">نص</p>');
+  assert.equal(S("<span dir='ltr' class=x>+971</span>"), '<span dir="ltr">+971</span>');
+  assert.equal(S('<a href="/x" dir="RTL">x</a>'), '<a href="/x" dir="rtl">x</a>');
+  assert.equal(S('<p dir="auto" onclick="x">t</p>'), '<p>t</p>');
+  assert.equal(S('<p dir="rtl onmouseover=alert(1)">t</p>'), '<p>t</p>');
+  assert.equal(S('<p data-dir="rtl">t</p>'), '<p>t</p>');
+});
+
 test('the bake runs every released body through the sanitiser', () => {
   const src = readFileSync(new URL('../marketing/business_development.mjs', import.meta.url), 'utf8');
   assert.match(src, /body_html: sanitizeBlogHtml\(r\.body_html_en\)/);
