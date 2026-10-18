@@ -2,7 +2,7 @@
 // Regression fixtures from the 29 real UAE profiles measured on 13 Oct 2026 (ACCURACY_real_profiles.md), names
 // replaced by ZZ DEMO. deno test --no-lock --node-modules-dir=none supabase/functions/_shared/supplier_trade_choice.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { checkChoice, checkVerify, choiceRequest, choiceSystem, quoteContext, quoteKey, type TradeDef } from './supplier_trade_choice.ts';
+import { checkChoice, checkVerify, choiceRequest, choiceSystem, isHeading, quoteContext, quoteKey, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
 import { readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 
 const DEFS: TradeDef[] = [
@@ -108,4 +108,24 @@ Deno.test('the profile reading asks for printed lines verbatim, never from a cer
   const LX = await import('./licence_extract.ts');
   assert(/copied EXACTLY as printed/.test(LX.SYS_PROFILE) && /never from a certificate, a letter of recommendation/.test(LX.SYS_PROFILE));
   assertEquals(LX.profileExtractRequest({ images: [] }, null).sys, LX.SYS_PROFILE);
+});
+
+// 19 Oct 2026, the held-out misses (ACCURACY_real_profiles.md): H08 lost a trade because only its weakest line was
+// quoted; H05's "Access Control" sat under an "ELECTRICAL WORKS" heading the second look never saw.
+Deno.test('several quotes per code: each is proven on its own, the code stands on any proven one, and the check sees them all', () => {
+  const r = checkChoice(JSON.stringify({ trades: [
+    { code: 'joinery', quotes: ['We make bespoke kitchens for everyone', 'Wardrobes and Vanity Cabinets'], reason: 'r' },   // first one invented
+    { code: 'doors', quotes: ['Invented line one', 'Invented line two'], reason: 'r' },
+  ] }), DOC, DEFS);
+  assert(r.ok);
+  assertEquals(r.trades.map((t) => [t.code, t.quotes]), [['joinery', ['Wardrobes and Vanity Cabinets']]]);
+  assertEquals(r.rejected.map((x) => x.code), ['doors']);
+  const req = verifyRequest(r.trades, DEFS, null, DOC);
+  assert(JSON.stringify(req.input).includes('Wardrobes and Vanity Cabinets'));
+});
+
+Deno.test('the second look is told the list heading a quoted item sits under, found by code', () => {
+  const text = 'ZZ DEMO MEP LLC\nPLUMBING WORKS\nWater heaters   Booster pumps\nDrainage lines\nGrease traps\nAbout our quality';
+  assert(quoteContext(text, 'Grease traps').startsWith('[under the heading: PLUMBING WORKS]'));
+  assert(isHeading('ELECTRICAL       WORKS') && isHeading('Civil :') && !isHeading('Water heaters   Booster pumps') && !isHeading('ISO 9001'));
 });

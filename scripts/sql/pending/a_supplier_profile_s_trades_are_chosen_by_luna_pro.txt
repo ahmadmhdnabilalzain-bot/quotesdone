@@ -1,0 +1,1 @@
+Applied at merge by the release operator, AFTER a_supplier_profile_s_trades_are_chosen_by_sonnet_from_our_codes.sql (whose route it supersedes). Must print PROBE OK. Seat: sales_engineer.
