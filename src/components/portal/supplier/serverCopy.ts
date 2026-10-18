@@ -656,7 +656,6 @@ const COPY: Record<string, Entry> = {
   session_failed: s('Could not start your session. Please try again.', 'تعذّر بدء جلستكم. يُرجى المحاولة مرة أخرى.'),
   not_signed_in: s('Please sign in first.', 'يُرجى تسجيل الدخول أولًا.'),
   // The rate limits say WHICH limit was hit — "try again later" alone tells a supplier nothing.
-  resend_too_soon: s('A code is on its way. Please wait a few seconds before asking for another.', 'الرمز في طريقه إليكم. يُرجى الانتظار بضع ثوانٍ قبل طلب رمز آخر.'),
   rate_limited: s('Too many code requests. Please try again later.', 'طلبتم رموزًا كثيرة خلال وقت قصير. يُرجى المحاولة لاحقًا.'),
   sms_rate_limited: s('Too many SMS codes were requested for this number in the last hour. Please wait and request a new one.',
     'طُلب عدد كبير من رموز الرسائل النصية لهذا الرقم خلال الساعة الماضية. يُرجى الانتظار قليلًا ثم طلب رمز جديد.'),
