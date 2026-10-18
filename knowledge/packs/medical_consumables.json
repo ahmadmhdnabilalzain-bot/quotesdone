@@ -42,6 +42,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "medical_consumables:remaining-shelf-life-on-delivery",
+      "topic": "Remaining shelf life at delivery",
+      "kind": "spec_checklist",
+      "body_en": "Remaining shelf life on delivery is set by the purchaser's tender or agreement, not by one fixed rule. WHO Technical Report Series 1044, Annex 8 (2022) says remaining shelf life should be defined from relevant factors including product category and type, inventory level, manufacturing and transit lead time, local release lead time, storage conditions, delivery chain and resources in the recipient country, and that agreements between suppliers, purchasers and recipients should cover remaining shelf life or expiry date. Its example table (Appendix 1) gives minimum remaining shelf life by total shelf life: for products with more than 48 and up to 60 months, 40 months at dispatch, 30 months at port of entry and 12 months at end-user level; more than 36 to 48 months: 30, 24 and 12 months; more than 24 to 36 months: 20, 15 and 6 months; more than 12 to 24 months: 9, 7 and 3 months; 12 months or less: special arrangements. Not established here: a UAE-wide mandatory percentage from MOHAP, DHA, DoH or EHS; the figure in the specific tender governs.",
+      "body_ar": "تُحدَّد مدة الصلاحية المتبقية عند التسليم في مناقصة المشتري أو اتفاقه، لا بقاعدة ثابتة واحدة. وتنص سلسلة التقارير الفنية لمنظمة الصحة العالمية رقم 1044، الملحق 8 (2022) على أن تُحدَّد مدة الصلاحية المتبقية بناءً على عوامل ذات صلة، منها فئة المنتج ونوعه، ومستوى المخزون، ومهلة التصنيع والنقل، ومهلة الإفراج المحلي، وظروف التخزين، وسلسلة التوريد، والموارد في البلد المستلم، وعلى أن تغطي الاتفاقات بين الموردين والمشترين والمستلمين مدة الصلاحية المتبقية أو تاريخ الانتهاء. ويعطي جدولها التوضيحي (الملحق 1) الحد الأدنى لمدة الصلاحية المتبقية بحسب مدة الصلاحية الكلية: للمنتجات التي تزيد مدتها على 48 شهراً وحتى 60 شهراً: 40 شهراً عند الشحن من المصنع، و30 شهراً عند ميناء الدخول، و12 شهراً عند مستوى المستخدم النهائي؛ وأكثر من 36 حتى 48 شهراً: 30 و24 و12 شهراً؛ وأكثر من 24 حتى 36 شهراً: 20 و15 و6 أشهر؛ وأكثر من 12 حتى 24 شهراً: 9 و7 و3 أشهر؛ و12 شهراً أو أقل: ترتيبات خاصة. غير مثبت هنا: نسبة إلزامية على مستوى الإمارات من وزارة الصحة ووقاية المجتمع أو هيئة الصحة بدبي أو دائرة الصحة أو مؤسسة الإمارات للخدمات الصحية؛ ويسري الرقم الوارد في المناقصة المعنية.",
+      "sources": [
+        "https://cdn.who.int/media/docs/default-source/medicines/norms-and-standards/guidelines/distribution/trs1044-annex8-points-to-consider-for-setting-the-remaining-shelf-life-of-medical-products.pdf?sfvrsn=dd30f2ab_2&download=true"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "medical_consumables:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What shelf life must medical consumables have at delivery for hospital tenders?",
+      "q_ar": "ما مدة الصلاحية المطلوبة للمستهلكات الطبية عند التسليم في مناقصات المستشفيات؟",
+      "expected_entry_ids": [
+        "medical_consumables:remaining-shelf-life-on-delivery"
+      ],
+      "why": "No entry of this pack answered it (Spec-checklist names 'shelf life on delivery' as a field but gives no required minimum; missing). medical_consumables:remaining-shelf-life-on-delivery was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from medical_consumables.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "medical_consumables:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "medical_consumables:remaining-shelf-life-on-delivery"
+    ]
   }
 }

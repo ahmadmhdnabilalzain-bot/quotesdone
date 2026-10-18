@@ -42,6 +42,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "industrial_crating:seaworthy-machinery-packing",
+      "topic": "Seaworthy export packing for machinery",
+      "kind": "method",
+      "body_en": "Export packing for machinery combines corrosion protection (VCI wraps, desiccants and foil barriers) with heat-treated timber cases or bespoke wooden crates, pallets and cases for oversized or heavy items, to prevent corrosion, movement and physical damage. Solid-wood packaging must meet ISPM 15: it must be made of debarked wood, heat-treated (core at 56 °C for at least 30 minutes) or fumigated with methyl bromide, and stamped with the IPPC mark showing country code, producer number and treatment; plywood, OSB, particle board and wood thinner than 6 mm are exempt. A request should state machine dimensions and weight, destination, voyage and storage duration, and container or break-bulk. Not established here: desiccant sizing methods and marking of centre of gravity and sling points.",
+      "body_ar": "تجمع تعبئة الآلات للتصدير بين الحماية من التآكل (أغلفة VCI ومواد مجففة وحواجز من رقائق الألمنيوم) وصناديق خشبية معالجة حرارياً أو أقفاص ومنصات وصناديق خشبية مصممة خصيصاً للبنود كبيرة الحجم أو الثقيلة، وذلك لمنع التآكل والحركة والضرر المادي. ويجب أن تستوفي مواد التعبئة من الخشب الصلب المعيار ISPM 15: أن تُصنع من خشب منزوع اللحاء، وأن تُعالج حرارياً (بلوغ قلب الخشب 56 درجة مئوية لمدة 30 دقيقة على الأقل) أو تُبخَّر ببروميد الميثيل، وأن تُختم بعلامة IPPC التي تبيّن رمز البلد ورقم المنتج ونوع المعالجة؛ ويُستثنى الخشب الرقائقي (البلايوود) وألواح OSB وألواح الحبيبات والخشب الذي تقل سماكته عن 6 مم. ينبغي أن يحدد الطلب أبعاد الآلة ووزنها والوجهة ومدة الرحلة والتخزين، وما إذا كان الشحن بالحاويات أو بضائع سائبة. لم يُثبت هنا: طرق حساب كمية المواد المجففة، ووسم مركز الثقل ونقاط الرفع.",
+      "sources": [
+        "https://hwchamber.co.uk/what-is-export-packing/",
+        "https://en.wikipedia.org/wiki/ISPM_15"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +72,15 @@
       "expected_entry_ids": [
         "industrial_crating:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How should machinery be packed for a long sea voyage?",
+      "q_ar": "كيف تُغلف الآلات لرحلة بحرية طويلة؟",
+      "expected_entry_ids": [
+        "industrial_crating:seaworthy-machinery-packing"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither covers seaworthy packing (VCI, desiccant, ISPM 15, case type); missing: export sea crating method entry). industrial_crating:seaworthy-machinery-packing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from industrial_crating.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +97,9 @@
       "industrial_crating:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "industrial_crating:seaworthy-machinery-packing"
+    ]
   }
 }

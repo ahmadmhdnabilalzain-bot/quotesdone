@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "digital_marketing:uae-media-council-advertiser-permit",
+      "topic": "UAE Media Council advertiser permit for influencers",
+      "kind": "regulatory_requirement",
+      "body_en": "On 30 July the UAE Media Council announced an Advertiser Permit: anyone who shares advertisements, paid or not, on social media platforms, websites or apps must hold it, and it became mandatory three months after the announcement. The applicant must already hold a licence that allows digital media or social-media marketing. The permit is valid for one year and can be renewed each year; if it is not renewed within 30 days after expiry, it is cancelled. It is free for the first three years. Business owners promoting only their own business or project do not need it. So an influencer promoting your product needs the permit, and a brand should ask to see it and the underlying licence. Not established here: age or conduct criteria, the application channel, rules for visiting foreign influencers, and fees after the three-year waiver.",
+      "body_ar": "في 30 يوليو أعلن مجلس الإمارات للإعلام عن تصريح المعلن: يجب على كل من ينشر إعلانات، مدفوعة أو غير مدفوعة، على منصات التواصل الاجتماعي أو المواقع الإلكترونية أو التطبيقات أن يحمل هذا التصريح، وقد أصبح إلزامياً بعد ثلاثة أشهر من الإعلان. ويجب أن يحمل مقدم الطلب مسبقاً رخصة تجيز نشاط التسويق عبر الإعلام الرقمي أو وسائل التواصل الاجتماعي. التصريح صالح لمدة سنة واحدة ويمكن تجديده سنوياً، وإذا لم يُجدَّد خلال 30 يوماً من انتهائه يُلغى. وهو مجاني خلال السنوات الثلاث الأولى. ولا يحتاج أصحاب الأعمال الذين يروّجون لأعمالهم أو مشاريعهم الخاصة فقط إلى هذا التصريح. لذلك يحتاج المؤثر الذي يروّج لمنتجك إلى التصريح، وعلى العلامة التجارية أن تطلب الاطلاع عليه وعلى الرخصة المرتبطة به. غير ثابت هنا: شروط العمر أو السلوك، وقناة تقديم الطلب، والقواعد الخاصة بالمؤثرين الأجانب الزائرين، والرسوم بعد فترة الإعفاء البالغة ثلاث سنوات.",
+      "sources": [
+        "https://www.khaleejtimes.com/new-advertiser-permit-who-needs-faqs"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "digital_marketing:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does an influencer need a licence to promote our product in the UAE?",
+      "q_ar": "هل يحتاج المؤثر إلى ترخيص للترويج لمنتجنا في الإمارات؟",
+      "expected_entry_ids": [
+        "digital_marketing:uae-media-council-advertiser-permit"
+      ],
+      "why": "No entry of this pack answered it (the standards entry only says a trade licence is needed; nothing on the UAE Media Council advertiser/influencer licence). digital_marketing:uae-media-council-advertiser-permit was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from digital_marketing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "digital_marketing:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "digital_marketing:uae-media-council-advertiser-permit"
+    ]
   }
 }

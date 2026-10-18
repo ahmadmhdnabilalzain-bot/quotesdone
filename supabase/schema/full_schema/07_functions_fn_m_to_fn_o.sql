@@ -3276,7 +3276,7 @@ begin
      where issue_key = 'reputation:no_public_review_link' and closed_at is null;
     for r in select a.id, a.customer_id, coalesce(a.transaction_id::text, a.customer_id::text) as job,
                     c.full_name, lower(btrim(c.email)) as email, c.locale
-               from public.company_review_ask a join public.customers c on c.id = a.customer_id
+               from public.company_review_ask a join public.customers c on c.id = a.customer_id and not c.is_demo
               where a.status = 'waiting_link' and a.created_at > now() - interval '60 days'
                 and not exists (select 1 from public.email_suppressions s where lower(btrim(s.email)) = lower(btrim(c.email)))
               order by a.id limit 50 loop
@@ -3368,7 +3368,7 @@ declare
   v_local date := (p_at at time zone 'Asia/Dubai')::date;
   v_last_month date := (date_trunc('month', v_local) - interval '1 month')::date;
   v_quarter date := date_trunc('quarter', v_local)::date;
-  v_body jsonb; v_id bigint; v_out jsonb := '{}'::jsonb;
+  v_body jsonb; v_id bigint; v_handoff bigint; v_out jsonb := '{}'::jsonb;
 begin
   if extract(day from v_local) >= 2 and not exists (select 1 from public.marketing_review where kind = 'geo_monthly' and period = v_last_month)
      and exists (select 1 from public.marketing_geo_check where month = v_last_month) then
@@ -3376,8 +3376,9 @@ begin
     insert into public.marketing_review (kind, period, body) values ('geo_monthly', v_last_month, v_body)
       on conflict (kind, period) do nothing returning id into v_id;
     if v_id is not null then
-      update public.marketing_review set handoff_id = public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
-        jsonb_build_object('kind', 'geo_monthly', 'period', v_last_month)) where id = v_id;
+      v_handoff := public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
+        jsonb_build_object('kind', 'geo_monthly', 'period', v_last_month));
+      update public.marketing_review set handoff_id = v_handoff where id = v_id;
       v_out := v_out || jsonb_build_object('geo_monthly', v_id);
     end if;
   end if;
@@ -3419,8 +3420,9 @@ begin
     insert into public.marketing_review (kind, period, body) values ('brand_quarterly', v_quarter, v_body)
       on conflict (kind, period) do nothing returning id into v_id;
     if v_id is not null then
-      update public.marketing_review set handoff_id = public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
-        jsonb_build_object('kind', 'brand_quarterly', 'period', v_quarter)) where id = v_id;
+      v_handoff := public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
+        jsonb_build_object('kind', 'brand_quarterly', 'period', v_quarter));
+      update public.marketing_review set handoff_id = v_handoff where id = v_id;
       v_out := v_out || jsonb_build_object('brand_quarterly', v_id);
     end if;
   end if;
@@ -6805,7 +6807,14 @@ begin
          group by 1, 2
       ) x;
 
-    v_settled := public.fn_it_duty_settle('org_task_queue', v_items);
+    declare v_lt text := current_setting('lock_timeout'); begin
+      perform set_config('lock_timeout', '2s', true);
+      v_settled := public.fn_it_duty_settle('org_task_queue', v_items);
+      perform set_config('lock_timeout', v_lt, true);
+    exception when lock_not_available then
+      perform set_config('lock_timeout', v_lt, true);
+      v_settled := jsonb_build_object('skipped', true, 'why', 'a finding row was locked by another transaction for 2 s; settled on the next tick');
+    end;
   end if;
 
   -- THE STEP RUNNER ONLY COUNTS {ok:false, error:'<string>'} AS A FAILURE (resilience_ping/steps.ts,
@@ -8106,7 +8115,7 @@ declare
   v_reqs bigint[]; v_outs jsonb; v_verdict text; v_waiting boolean; v_failed jsonb; v_undecided int;
   n_answered int := 0; n_q_closed_by_ceo int := 0; n_q_reported int := 0; n_q_wait int := 0;
   n_closed int := 0; n_recorded int := 0; n_reported int := 0; n_wait int := 0; v_err jsonb := '[]'::jsonb;
-  f record; v_type text; v_ok boolean; n_cleared int := 0;
+  f record; v_type text; v_ok boolean; n_cleared int := 0; n_generic int := 0; n_reopened int := 0;
 begin
   -- 1. THE SALES ENGINEER: did the accountant answer the question it was asked?
   for h in select * from public.agent_actions a
@@ -8278,6 +8287,52 @@ begin
     end;
   end loop;
 
+  -- 4. EVERY OTHER ORIGINATOR CLOSES WHAT WAS ANSWERED (4 Oct 2026). Sections 1 and 2 cover the two
+  -- money conversations; every other kind with originator_closes had no closer at all, so an answered
+  -- handoff stayed open until the SLA duty raised it. The originator reads the reply its handler wrote:
+  --   no 'waiting' and no error  -> the contract is met: closed, the reply is the verdict;
+  --   an error or ok=false       -> sent back with the reason and handled again (ruling 1059: a rejection
+  --                                 never ends the cycle); after 3 rounds the SLA duty raises it to the CEO;
+  --   'waiting', a future due_at, or a step held by the model hold -> the contract is not finished; left.
+  for h in select a.* from public.agent_actions a
+             join public.seat_handoff_kind sk on sk.type = a.detail->>'type' and sk.from_seat = a.detail->>'from'
+                                             and sk.to_seat = a.agent and sk.originator_closes
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ? 'replied_at'
+              and a.detail->>'type' not in ('it.finding', 'delivery.request')
+              and not (a.detail->>'type' = any (c_questions || c_notices))
+              and not (coalesce(a.evidence, '{}'::jsonb) ? 'waiting')
+              and coalesce(a.evidence#>>'{step,action}', '') <> 'held'
+              and coalesce((a.detail->>'due_at')::timestamptz, '-infinity') <= now()
+              and coalesce((a.detail->>'reopened')::int, 0) < 3
+            order by a.id limit greatest(coalesce(p_limit, 200), 1) loop
+    begin
+      if coalesce(h.evidence, '{}'::jsonb) ? 'error' or h.evidence->>'ok' = 'false' then
+        update public.agent_actions
+           set detail = (detail - 'replied_at') || jsonb_build_object('reopened', coalesce((detail->>'reopened')::int, 0) + 1,
+                 'reopen_reasons', coalesce(detail->'reopen_reasons', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+                   'at', now(), 'by', h.detail->>'from', 'why', 'the reply did not meet the contract: '
+                   || left(coalesce(h.evidence->>'error', h.evidence->>'reason', h.evidence::text), 300))))
+         where id = h.id;
+        -- Its own block: a handler that raises still counts as a round, so the 3-round limit holds.
+        begin
+          perform public.fn_seat_handoff_act(h.id);
+        exception when others then
+          v_err := v_err || jsonb_build_object('handoff', h.id, 'sent_back_error', left(sqlerrm, 300));
+        end;
+        n_reopened := n_reopened + 1;
+      else
+        perform set_config('qd.handoff_closer', h.detail->>'from', true);
+        perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+          'verified_by', h.detail->>'from', 'verified_at', now(),
+          'verdict', 'answered within the contract of ' || (h.detail->>'type') || '; closed by the originator'));
+        perform set_config('qd.handoff_closer', '', true);
+        n_generic := n_generic + 1;
+      end if;
+    exception when others then
+      v_err := v_err || jsonb_build_object('handoff', h.id, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+
   -- 3. A DEFECT THE CEO RAISED CLEARS WHEN THE SAME CONVERSATION WORKS AGAIN. The finding's key names
   -- the conversation; it closes when the latest one of that kind was answered (a question), written
   -- (a notice the sales engineer could not write) or delivered (a notice with no outcome). Closing it
@@ -8322,6 +8377,7 @@ begin
 
   return jsonb_build_object(
     'defects_cleared', n_cleared,
+    'every_originator', jsonb_build_object('closed', n_generic, 'sent_back', n_reopened),
     'sales_engineer', jsonb_build_object('answered', n_answered, 'closed_with_ceo_decision', n_q_closed_by_ceo,
                                          'reported', n_q_reported, 'waiting', n_q_wait),
     'accountant', jsonb_build_object('closed', n_closed, 'recorded', n_recorded, 'reported', n_reported, 'waiting', n_wait),

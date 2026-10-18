@@ -15,7 +15,7 @@
     },
     {
       "id": "interior_fitout:design-build-vs-build-only",
-      "topic": "Design & build vs build-only (traditional) vs turnkey",
+      "topic": "Design & build vs consultant-led (traditional) vs turnkey: choosing the fit-out route",
       "kind": "comparison",
       "body_en": "In a traditional (design-bid-build) route, the client appoints a designer or consultant who prepares full drawings, specifications and BOQ; contractors then bid on the same documents, which makes quotes comparable and gives the client design control, but it takes longer and design errors become client-paid variations. In design & build (D&B), one contractor is responsible for both design and construction, usually against the client's brief; it is faster and gives a single point of responsibility, but the client has less control over detail and quality unless the brief and specification are strong, and D&B quotes are hard to compare because each bidder designs differently. Turnkey goes further, delivering a ready-to-use space including furniture, IT/AV and sometimes approvals and moving in. In the UAE, most small and mid-size fit-outs are D&B by fit-out contractors who also handle authority approvals; larger or branded projects often use a consultant-led traditional or hybrid route. Buyers should choose based on their ability to define the brief, time available and need for price certainty. FIDIC's suite mirrors these routes: the Red Book for employer-designed works, the Yellow Book for contractor-designed works and the Silver Book for EPC/turnkey. The share of UAE fit-outs procured by each route is market practice, not a published statistic.",
       "body_ar": "في المسار التقليدي (تصميم ثم مناقصة ثم تنفيذ) يعين العميل مصمماً أو استشارياً يعد المخططات الكاملة والمواصفات وجدول الكميات، ثم يقدم المقاولون أسعارهم على الوثائق نفسها، مما يجعل العروض قابلة للمقارنة ويمنح العميل السيطرة على التصميم، لكنه أطول زمناً وأخطاء التصميم تصبح أوامر تغييرية يدفعها العميل. أما في التصميم والتنفيذ فيتولى مقاول واحد التصميم والتنفيذ معاً، عادةً بناءً على متطلبات العميل؛ وهو أسرع ويوفر جهة مسؤولية واحدة، لكن سيطرة العميل على التفاصيل والجودة أقل ما لم تكن المتطلبات والمواصفات قوية، وتصعب مقارنة العروض لأن كل متنافس يصمم بطريقته. ويذهب التسليم المفتاح أبعد، فيسلم مساحة جاهزة للاستخدام شاملة الأثاث وتقنية المعلومات وأحياناً الموافقات والانتقال. في الإمارات تُنفذ معظم مشاريع التشطيب الصغيرة والمتوسطة بالتصميم والتنفيذ عبر مقاولي تشطيب يتولون موافقات الجهات أيضاً، بينما تستخدم المشاريع الكبيرة أو ذات العلامات التجارية مساراً تقليدياً أو مختلطاً بقيادة استشاري. على المشتري الاختيار حسب قدرته على تحديد المتطلبات والوقت المتاح والحاجة إلى يقين السعر. وتعكس عقود فيديك هذه المسارات: الكتاب الأحمر للأعمال التي يصممها صاحب العمل، والأصفر للأعمال التي يصممها المقاول، والفضي لعقود التصميم والتوريد والتنفيذ وتسليم المفتاح. أما نسبة كل مسار في سوق التشطيبات الإماراتي فهي ممارسة سوقية وليست إحصاءً منشوراً.",
@@ -144,6 +144,7 @@
     {
       "id": "interior_fitout:boq-vs-lump-sum",
       "topic": "BOQ re-measure vs lump sum pricing",
+      "topic_ar": "التشطيبات الداخلية: التسعير بجدول كميات قابل لإعادة القياس أو بمبلغ مقطوع",
       "kind": "comparison",
       "body_en": "A lump sum (fixed price) contract prices the whole defined scope for one amount; the contractor carries quantity risk, and the client gets price certainty — provided drawings and specification are complete; changes are priced as variations. A BOQ (bill of quantities) contract lists measured items with rates; in a re-measurable contract, the final price is based on actual measured quantities, which suits projects where design is incomplete but exposes the client to quantity growth. Many UAE fit-outs are lump sum with a priced BOQ attached as a breakdown for valuing variations and interim payments. For D&B quotes, contractors often give a lump sum with a short breakdown, which is hard to compare. Measurement standards help keep BOQs consistent: RICS NRM2 is the UK detailed-measurement standard, and POMI was long used in the GCC although RICS is reported to have withdrawn it in 2017 (not established from a primary source). Buyers should request a priced breakdown in a common format for all bidders, check provisional sums and exclusions, and understand which items are fixed and which are re-measurable.",
       "body_ar": "في عقد المبلغ المقطوع (السعر الثابت) يُسعَّر كامل النطاق المحدد بمبلغ واحد، ويتحمل المقاول مخاطر الكميات ويحصل العميل على يقين في السعر، بشرط اكتمال المخططات والمواصفات، وتُسعَّر التغييرات كأوامر تغييرية. أما عقد جدول الكميات فيسرد بنوداً مقاسة بأسعار وحدات، وفي العقد القابل لإعادة القياس يُبنى السعر النهائي على الكميات المقاسة فعلياً، وهو يناسب المشاريع ذات التصميم غير المكتمل لكنه يعرض العميل لزيادة الكميات. كثير من مشاريع التشطيب في الإمارات بمبلغ مقطوع مع جدول كميات مسعر مرفق كتفصيل لتقييم الأوامر التغييرية والدفعات المرحلية. وفي عروض التصميم والتنفيذ يقدم المقاولون غالباً مبلغاً مقطوعاً مع تفصيل مختصر يصعب مقارنته. تساعد معايير القياس (مثل NRM من RICS أو POMI في الخليج) على اتساق جداول الكميات. على المشتري طلب تفصيل مسعر بصيغة موحدة لكل المتنافسين، ومراجعة المبالغ الاحتياطية والاستثناءات، وفهم البنود الثابتة والقابلة لإعادة القياس. ومعايير القياس تحافظ على اتساق جداول الكميات: فمعيار NRM2 الصادر عن RICS هو معيار القياس التفصيلي في المملكة المتحدة، واستُخدم معيار POMI طويلاً في دول الخليج، مع تقارير عن سحبه من RICS عام 2017 (غير مثبت من مصدر رسمي).",
@@ -479,6 +480,16 @@
       "expected_entry_ids": [
         "interior_fitout:fire-finish-classes-2018"
       ]
+    },
+    {
+      "q_en": "What approvals do I need to fit out an office in a Dubai free zone?",
+      "q_ar": "ما الاعتمادات المطلوبة لتجهيز مكتب في منطقة حرة بدبي؟",
+      "expected_entry_ids": [
+        "interior_fitout:free-zone-and-master-developer-nocs",
+        "interior_fitout:civil-defence-fitout"
+      ],
+      "why": "The free-zone/master-developer entry names the zone authority (DMCC, DDA, Trakhees, DIFC, etc.) that approves the fit-out, and the Civil Defence fit-out entry covers the fire and life safety approval every office fit-out also needs.",
+      "origin": "real buyer question, moved from interior_fitout.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

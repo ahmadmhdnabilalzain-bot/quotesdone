@@ -550,6 +550,16 @@
       "expected_entry_ids": [
         "labour_supply:free-zones-difc"
       ]
+    },
+    {
+      "q_en": "Is a hired steel fixer priced per hour or per month, and what is included?",
+      "q_ar": "هل يُسعّر عامل تثبيت حديد التسليح المستأجر بالساعة أم بالشهر، وما المشمول؟",
+      "expected_entry_ids": [
+        "labour_supply:hourly-vs-monthly",
+        "labour_supply:rate-build-up"
+      ],
+      "why": "hourly-vs-monthly explains when hourly vs monthly per-worker rates apply and their assumptions; rate-build-up states what a supplied-labour rate must include, answering 'what is included'.",
+      "origin": "real buyer question, moved from labour_supply.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

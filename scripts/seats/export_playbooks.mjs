@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { homedir } from 'node:os';
+import { replaySql } from '../lib/safe_replay.mjs';
 import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -28,28 +28,12 @@ async function fromDatabase() {
 async function fromDryRun() {
   const files = ['every_handoff_carries_a_note_of_what_is_known_tried_and_needed.sql', 'every_seat_keeps_a_living_playbook.sql']
     .map((f) => readFileSync(join(root, 'scripts', 'sql', f), 'utf8'));
-  const q = files.join('\n') + `\ndo $x$ begin raise exception 'PLAYBOOKS<<%>>',
-    (select jsonb_object_agg(seat, markdown) from public.seat_playbook)::text; end $x$;`;
-  // Direct, not through lib/db.mjs: that helper cuts an error body at 2,000 characters and the
-  // playbooks travel IN the error. No retry: a DDL batch must never be re-issued concurrently.
-  const tok = process.env.SUPABASE_ACCESS_TOKEN?.trim()
-    || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8').trim();
-  // A 429 is refused at the gateway before anything runs, so only that is retried, serially.
-  let res;
-  for (let attempt = 0; attempt < 7; attempt++) {
-    res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
-      method: 'POST', headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q }),
-    });
-    if (res.status !== 429) break;
-    await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
-  }
-  const text = await res.text();
-  let msg = text;
-  try { msg = JSON.parse(text).message ?? text; } catch { /* keep the raw body */ }
-  const m = /PLAYBOOKS<<([\s\S]*)>>/.exec(msg);
-  if (m) return JSON.parse(m[1]);
-  throw new Error(`the dry run did not return the playbooks: HTTP ${res.status} ${String(msg).slice(0, 500)}`);
+  // Through scripts/lib/safe_replay.mjs: the files are replayed and rolled back, the playbooks come back as the
+  // rows of the last query (read from the untruncated answer), and nothing the files create survives. No retry:
+  // a DDL batch must never be re-issued concurrently.
+  const [row] = await replaySql(files.join('\n') + '\n;\nselect jsonb_object_agg(seat, markdown) as books from public.seat_playbook;',
+    { rows: true, retry: false, label: 'the playbook dry run' });
+  return row?.books ?? {};
 }
 
 const books = args.includes('--dry') ? await fromDryRun() : await fromDatabase();

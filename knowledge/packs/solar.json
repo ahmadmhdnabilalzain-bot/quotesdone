@@ -59,6 +59,15 @@
       "expected_entry_ids": [
         "solar:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Who can install a rooftop solar system on my villa in Dubai?",
+      "q_ar": "من يحق له تركيب نظام شمسي على سطح فيلتي في دبي؟",
+      "expected_entry_ids": [
+        "solar:uae-standards-and-approvals"
+      ],
+      "why": "States that in Dubai DEWA's Shams Dubai accepts rooftop PV only through enrolled solar PV consultants and contractors using listed equipment, which answers who can install.",
+      "origin": "real buyer question, moved from solar.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -24,6 +24,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -139,13 +140,10 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 
 test('production, aborted: switching the lane on restarts the same ramp at the base cap', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  // The replay must not commit: drop the file's own transaction lines and its verdict select.
-  const replay = pending(FILE)
-    ? read(FILE).replace(/^\s*(begin|commit);\s*$/gim, '').replace(/-- ── VERDICT[\s\S]*$/, '')
-    : '';
-  assert.doesNotMatch(code(replay), /^\s*commit\b/im, 'the replay would commit');
+  // The file without its verdict select; replaySql drops any transaction line it carries and refuses the rest.
+  const replay = pending(FILE) ? read(FILE).replace(/-- ── VERDICT[\s\S]*$/, '') : '';
   let o;
-  try { await sql(replay + '\n' + PROBE, { retry: false }); }
+  try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));

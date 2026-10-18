@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // supplier_onboard — SPEC FILE #5 §2. A SENTENCE IN, A SUPPLIER PROFILE OUT.
 //
 // ── DORMANT BY DESIGN, DECIDED 18 Sep 2026 (it_engineer, orphan-function audit) ───────────────────
@@ -132,7 +133,7 @@ const fillState = (p: Record<string, unknown>) => {
   return { filled, missing: FIELDS.filter((f) => !filled.includes(f)) };
 };
 
-Deno.serve(observe('supplier_onboard', async (req) => {
+Deno.serve(siteCors(observe('supplier_onboard', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     // Supplier-authed, like the rest of the portal. Onboarding deliberately does NOT require an
@@ -230,4 +231,4 @@ Deno.serve(observe('supplier_onboard', async (req) => {
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e), fallback: true });
   }
-}));
+})));

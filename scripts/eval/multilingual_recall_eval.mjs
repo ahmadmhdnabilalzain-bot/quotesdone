@@ -53,7 +53,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
-import { ML_MODEL, ML_QUERY_PREFIX, ML_PASSAGE_PREFIX, rowText, modelHost } from '../kb/ml_embed_recipe.mjs';
+import { ML_MODEL, mlQueryText, mlRowText, rowText, modelHost } from '../kb/ml_embed_recipe.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const at = (f) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : null; };
@@ -85,7 +85,7 @@ if (!packs.length) { console.error(`no packs under ${kdir}`); process.exit(2); }
 const seatsOf = (p) => (p.kind === 'trade' ? TRADE_SEATS : [p.code]);
 const packRows = packs.flatMap((p) => p.pack.entries.flatMap((e) => ['en', 'ar'].map((lang) => ({
   src: p.kind === 'trade' ? 'sales_knowledge' : SEAT_OWN[p.code][0], trade: p.kind === 'trade',
-  id: lang === 'en' ? e.id : e.id + '@ar', title: e.topic, body: lang === 'en' ? e.body_en : e.body_ar, seat: p.kind === 'trade' ? null : p.code,
+  id: lang === 'en' ? e.id : e.id + '@ar', title: lang === 'ar' && e.topic_ar ? e.topic_ar : e.topic, body: lang === 'en' ? e.body_en : e.body_ar, seat: p.kind === 'trade' ? null : p.code,
 }))));
 const qs = packs.flatMap((p) => (p.pack.eval ?? []).flatMap((q) => ['en', 'ar'].flatMap((lang) => seatsOf(p).map((seat) =>
   ({ pack: p.key, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: [...new Set(q.expected_entry_ids)] })))));
@@ -159,7 +159,7 @@ console.log(`packs ${packs.length}, questions ${qs.length}, pool ${pool.length} 
 // (23 Sep 2026: e5 EN 0.625-0.705 chunked vs 0.646-0.722 whole), so a row is one vector.
 const SPACES = {
   gte: { model: 'Supabase/gte-small', row: (r) => rowText(r.title, r.body), q: (t) => t },
-  ml: { model: ML_MODEL, row: (r) => ML_PASSAGE_PREFIX + rowText(r.title, r.body), q: (t) => ML_QUERY_PREFIX + t },
+  ml: { model: ML_MODEL, row: (r) => mlRowText(r.src, r.title, r.body), q: (t) => mlQueryText(t) },
 };
 const sims = {};
 for (const [name, sp] of Object.entries(SPACES)) {

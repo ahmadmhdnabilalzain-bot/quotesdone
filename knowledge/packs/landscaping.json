@@ -507,6 +507,15 @@
         "landscaping:irrigation-drip-vs-spray",
         "landscaping:date-palms"
       ]
+    },
+    {
+      "q_en": "How are trees priced in a UAE landscaping quote?",
+      "q_ar": "كيف تُسعّر الأشجار في عرض تنسيق حدائق بالإمارات؟",
+      "expected_entry_ids": [
+        "landscaping:price-drivers"
+      ],
+      "why": "Landscaping price-drivers entry is the entry that explains what moves plant and tree prices in a quote.",
+      "origin": "real buyer question, moved from landscaping.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -1,5 +1,6 @@
 // @ts-nocheck
 'use client';
+import { photoToDataUrl } from '@/lib/chatPhoto';
 // THE PORTAL SHELL — an application frame, not a page with a menu.
 //
 // WHAT THIS REPLACES AND WHY. The founder registered as a customer on 13 Aug 2026, opened /en/me,
@@ -100,11 +101,11 @@ const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
 // 0.86 similarity floor corroborated by a lexical match, and REFUSES when nothing clears it. A
 // refusal arrives as a normal reply that says so and hands off to Support; the widget needs no
 // special case for it.
-async function askAssistant(message, history, token, lang, path) {
+async function askAssistant(message, history, token, lang, path, images = []) {
   const r = await fetch(fnUrl('sales_engineer'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang }),
+    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, ...(images.length ? { images } : {}) }),
   });
   return r.json();
 }
@@ -121,19 +122,23 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   const [busy, setBusy] = useState(false);
   const boxRef = useRef(null);
   const inpRef = useRef(null);
+  const fileRef = useRef(null);
+  const [photo, setPhoto] = useState('');
   const sentSeed = useRef('');
 
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open]);
   useEffect(() => { if (open) setTimeout(() => inpRef.current && inpRef.current.focus(), 80); }, [open]);
 
   const send = async (text) => {
-    const q = String(text == null ? val : text).trim();
+    const q = String(text == null ? val : text).trim() || (photo ? (rtl ? '(صورة)' : '(photo)') : '');
     if (!q || busy) return;
+    const images = photo ? [photo] : [];
+    setPhoto('');
     setVal(''); setBusy(true);
     const history = msgs.map((m) => ({ role: m.role, content: m.content }));
     setMsgs((m) => [...m, { role: 'user', content: q }]);
     try {
-      const j = await askAssistant(q, history, token, lang, '/me');
+      const j = await askAssistant(q, history, token, lang, '/me', images);
       setMsgs((m) => [...m, { role: 'assistant', content: String((j && j.reply) || t('asst_err')), scope: j && j.scope }]);
     } catch (_e) {
       setMsgs((m) => [...m, { role: 'assistant', content: t('asst_err') }]);
@@ -215,10 +220,16 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
 
       <form className="flex items-end gap-2 border-t border-border p-3"
         onSubmit={(e) => { e.preventDefault(); send(); }}>
+        {/* A photo or drawing with the next message (ruling 1200): resized in the browser, checked again on the server. */}
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={async (e) => { const d = await photoToDataUrl(e.target.files && e.target.files[0]); if (d) setPhoto(d); e.target.value = ''; }} />
+        <Button type="button" variant={photo ? 'secondary' : 'outline'} size="sm" className="h-11 px-3" disabled={busy}
+          onClick={() => fileRef.current && fileRef.current.click()} aria-label={rtl ? 'أرفق صورة أو مخططًا' : 'Add a photo or drawing'}>
+          {photo ? (rtl ? 'تم إرفاق الصورة' : 'Photo attached') : (rtl ? 'صورة' : 'Photo')}
+        </Button>
         <input ref={inpRef} value={val} onChange={(e) => setVal(e.target.value)} disabled={busy}
           aria-label={t('asst_ph')} placeholder={t('asst_ph')}
           className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3.5 text-[13.5px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-        <Button type="submit" size="sm" className="h-11 px-3.5" disabled={busy || !val.trim()} aria-label={t('asst_send')}>
+        <Button type="submit" size="sm" className="h-11 px-3.5" disabled={busy || (!val.trim() && !photo)} aria-label={t('asst_send')}>
           <Send className={cn('h-4 w-4', rtl && 'rotate-180')} aria-hidden />
         </Button>
       </form>
@@ -391,6 +402,7 @@ export function PortalShell({
     return (
       <button
         type="button"
+        data-nav-id={item.id}
         onClick={() => go(item.id)}
         aria-current={active ? 'page' : undefined}
         style={{ order: rankOf(item.id, order) }}

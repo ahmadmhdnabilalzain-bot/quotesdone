@@ -17,7 +17,7 @@
 // the gte routines. A vector is never returned for the wrong space. The pipeline is built once per worker
 // (module scope): building it per request is what killed kb_embed with WORKER_RESOURCE_LIMIT on 28 Jul.
 import * as TJS from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm';
-import { ML_MODEL, ML_MODEL_PATH, ML_PASSAGE_PREFIX, ML_QUERY_PREFIX, rowText } from './ml_embed_recipe.ts';
+import { ML_MODEL, ML_MODEL_PATH, mlQueryText, mlRowText, rowText } from './ml_embed_recipe.ts';
 import { embedLine } from './gte_embed.ts';
 
 export const ML_EMBED_MS = 20_000;   // a cold start downloads the model (1.2-2.6 s measured); a warm embed is tens of ms
@@ -64,13 +64,13 @@ export async function embedRaw(texts: string[], timeoutMs = ML_EMBED_MS): Promis
 export async function embedQueryMl(text: string, timeoutMs = ML_EMBED_MS): Promise<number[] | null> {
   const t = String(text ?? '').trim();
   if (!t) return null;
-  const v = await embedRaw([ML_QUERY_PREFIX + t.slice(0, 2000)], timeoutMs);
+  const v = await embedRaw([mlQueryText(t)], timeoutMs);
   return v ? v[0] : null;
 }
 
 /** The text a source row becomes: a case is a query-side text, knowledge is a passage. */
 export function textForRow(src: string, title: string | null, body: string | null): string {
-  return (src === 'seat_case_memory' ? ML_QUERY_PREFIX : ML_PASSAGE_PREFIX) + rowText(title, body);
+  return mlRowText(src, title, body);
 }
 // The two tables that had no gte-small column (support_knowledge, ceo_knowledge: 916 rows) get their gte
 // vector from the same pass, so the fused retrieval reads them in both spaces like every other source.

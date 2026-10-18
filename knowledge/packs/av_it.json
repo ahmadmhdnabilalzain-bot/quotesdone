@@ -622,6 +622,15 @@
         "av_it:spec-structured-cabling",
         "av_it:price-drivers"
       ]
+    },
+    {
+      "q_en": "Should I install Cat6 or Cat6A cabling in a new Dubai office?",
+      "q_ar": "هل أركّب كابلات Cat6 أم Cat6A في مكتب جديد بدبي؟",
+      "expected_entry_ids": [
+        "av_it:cat6-vs-cat6a"
+      ],
+      "why": "Compares Cat6 (1G to 100 m, 10G only ~55 m) with Cat6A (10G over full channel, higher PoE), which is the decision asked.",
+      "origin": "real buyer question, moved from av_it.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
