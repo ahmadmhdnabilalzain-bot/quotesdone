@@ -1313,8 +1313,8 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // pending, so runPostmasterStep records a missing routine or table as "skipped: schema not applied".
   await step('postmaster', () => runPostmasterStep((fn, args) => admin.rpc(fn, args), () => takePostmasterReading(fetch, sec)));
   // The model registry against the public OpenRouter catalogue, once a day (it_engineer, follow-up 28). Reading the
-  // catalogue is a public GET with no key, not inference. Postgres decides (fn_model_catalogue_sync): small drift on a
-  // non-matrix model is applied, anything else is held behind a finding until it has a reason. Only the fields the
+  // catalogue is a public GET with no key, not inference. Postgres records (fn_model_catalogue_sync): every disagreement
+  // becomes a ledger row and a finding; no price is ever changed here (rulings 1217/1218). Only the fields the
   // rule reads are sent, so the payload is a fraction of the catalogue.
   await step('model_catalogue', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('model_catalogue')) return { due: false };
@@ -1325,8 +1325,8 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     const cat = data.map((m) => ({ id: m?.id, context_length: m?.context_length ?? null,
       pricing: { prompt: m?.pricing?.prompt ?? null, completion: m?.pricing?.completion ?? null } }));
     const r = (await rpc('fn_model_catalogue_sync', { p_catalogue: cat })) as Record<string, unknown>;
-    return { due: true, compared: r?.compared, auto_applied: r?.auto_applied, held: r?.held,
-             reasoned_applied: r?.reasoned_applied, absent: r?.absent };
+    return { due: true, compared: r?.compared, open: r?.open, new: r?.new,
+             resolved: r?.resolved };
   });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
