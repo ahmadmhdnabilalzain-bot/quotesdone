@@ -22,9 +22,10 @@
 --   3. A duty over 1 s (seat_duty.own_job) never shares the tick: it runs on its own pg_cron job
 --      seat_duty:<duty>, every 5 min a no-op unless due, under its own 60 s statement_timeout. A timeout there rolls
 --      back that duty only; the health check in the tick still reports it overdue. The 7 duties over 1 s are moved.
---   4. A duty never measured (avg_ms null, e.g. one registered after this file) is not run by the tick either: the
---      pg_cron job seat_duty:unmeasured runs the most overdue one alone under 60 s and so measures it.
---      ponytail: one unmeasured lane; an unmeasured duty over 60 s holds it until fn_seat_duty_isolate moves it.
+--   4. NOTHING STARVES. fn_seat_duty_run moves a duty whose avg_ms passes 1 s onto its own job the run it does so
+--      (the tick would otherwise skip it forever once 1.5x avg_ms cannot fit). A duty never measured (avg_ms null,
+--      e.g. one registered after this file) is moved onto its own job by the tick and measured there; a timeout
+--      on that job holds only that duty, never a shared lane.
 --   5. Row cap restored: the tick's candidate scan is greatest(30, least(p_limit, 60)) again.
 --   6. fn_ceo_improvement_sweep (now on its own job) still stops itself at 2 s; every step is idempotent.
 --   New routines revoked from PUBLIC/anon/authenticated, granted to service_role; search_path pinned.
@@ -35,7 +36,7 @@
 
 alter table public.seat_duty add column if not exists avg_ms integer;
 alter table public.seat_duty add column if not exists own_job boolean not null default false;
-comment on column public.seat_duty.avg_ms is 'Moving average run time in ms (fn_seat_duty_run). Null = never measured: run only by the seat_duty:unmeasured cron job.';
+comment on column public.seat_duty.avg_ms is 'Moving average run time in ms (fn_seat_duty_run). Null = never measured: the tick moves it onto its own job, where it is measured.';
 comment on column public.seat_duty.own_job is 'True = runs on its own pg_cron job seat_duty:<duty> (fn_seat_duty_isolate), never inside fn_seat_duties_tick.';
 
 -- Runs ONE duty if it is due, enabled, not paused and not already running; records start, result, error and time.
@@ -59,11 +60,17 @@ begin
     v_ms := round(extract(epoch from clock_timestamp() - v_t0) * 1000);
     update public.seat_duty set last_ok_at = now(), last_result = v_res, last_error = null, failures = 0,
            avg_ms = round(coalesce(avg_ms * 0.7 + v_ms * 0.3, v_ms)) where duty = d.duty;
+    if not d.own_job and (select avg_ms from public.seat_duty where duty = d.duty) > 1000 then
+      perform public.fn_seat_duty_isolate(d.duty);   -- too slow for the shared tick: its own job from now on
+    end if;
     return jsonb_build_object('duty', d.duty, 'ok', true, 'ms', v_ms);
   exception when others then
     v_ms := round(extract(epoch from clock_timestamp() - v_t0) * 1000);
     update public.seat_duty set last_error = left(sqlerrm, 1000), failures = failures + 1,
            avg_ms = round(coalesce(avg_ms * 0.7 + v_ms * 0.3, v_ms)) where duty = d.duty;
+    if not d.own_job and (select avg_ms from public.seat_duty where duty = d.duty) > 1000 then
+      perform public.fn_seat_duty_isolate(d.duty);
+    end if;
     return jsonb_build_object('duty', d.duty, 'ok', false, 'ms', v_ms, 'error', left(sqlerrm, 300));
   end;
 end $function$;
@@ -89,6 +96,8 @@ as $function$
 declare d public.seat_duty; v_out jsonb := '[]'::jsonb; v_health jsonb; p jsonb;
         v_t0 timestamptz := clock_timestamp(); v_ms integer;
 begin
+  -- A duty never measured gets its own job before anything else: it may be the 9 s one.
+  perform public.fn_seat_duty_isolate(sd.duty) from public.seat_duty sd where sd.enabled and not sd.own_job and sd.avg_ms is null;
   -- Up to greatest(30, least(p_limit, 60)) candidates, the most overdue first; fn_seat_duty_run locks each.
   for d in
     select sd.* from public.seat_duty sd
@@ -136,8 +145,7 @@ update public.seat_duty s set avg_ms = m.ms from (values
   ('accountant.fraud_watch', 1013), ('ceo.daily_run', 430), ('it_engineer.model_spend', 404),
   ('it_engineer.latency_slo', 325)) m(duty, ms) where s.duty = m.duty;
 select public.fn_seat_duty_isolate(duty) from public.seat_duty where enabled and avg_ms > 1000 order by duty;
-select cron.schedule('seat_duty:unmeasured', '*/5 * * * *',
-  $c$set statement_timeout = '60s'; select public.fn_seat_duty_run(duty) from (select duty from public.seat_duty where enabled and not own_job and avg_ms is null order by last_started_at nulls first, duty limit 1) x;$c$);
+
 
 create or replace function public.fn_ceo_improvement_sweep()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp'

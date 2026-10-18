@@ -1,4 +1,4 @@
 Committed, not applied: apply at merge (rule: never apply before merge). Moves when the release operator runs
-`node scripts/apply_sql.mjs scripts/sql/one_slow_duty_never_wedges_the_seat_duty_tick.sql --apply --ddl` (adds seat_duty.avg_ms and own_job, schedules 8 cron jobs), then the probe
+`node scripts/apply_sql.mjs scripts/sql/one_slow_duty_never_wedges_the_seat_duty_tick.sql --apply --ddl` (adds seat_duty.avg_ms and own_job, schedules 7 cron jobs seat_duty:<duty>), then the probe
 (one_slow_duty_never_wedges_the_seat_duty_tick_probe.sql) reads PROBE OK, then deletes this note and appends the file
 to the END of scripts/sql/MANIFEST.txt in the same commit.
