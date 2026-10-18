@@ -34,7 +34,12 @@ Deno.test('only a crashed turn is left at received: a finished turn closes its a
   const sql = await Deno.readTextFile(new URL('../../../scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql', import.meta.url));
   assert(/meta->>'stage' = 'received'[\s\S]{0,200}interval '5 minutes'[\s\S]{0,300}for update skip locked[\s\S]{0,300}'stage', 'escalated'/.test(sql),
     'the sweep must take only rows still at received after 5 minutes, lock them, and mark them escalated in the same statement (once)');
-  assert(!/fn_reason_hold|wa_inbound'\)|net\.http_post/.test(sql), 'the sweep must escalate only, never replay the turn');
+  assert(!/fn_reason_hold\(|net\.http_post/.test(sql), 'the sweep must escalate only, never replay the turn');
+  assert(/'failed', now\(\), 'wa_arrival:' \|\| m\.id[\s\S]{0,80}on conflict \(dedupe_key\) do nothing/.test(sql),
+    'the sweep must queue the holding notice (escalated, status failed so it is never replayed) once per message');
+  // The race with a slow turn: completing the arrival row is guarded on 'received', and a swept row is closed, not overwritten.
+  assert(/update\(waRow\(rcv, row\)\)\.eq\('id', id\)\.eq\('meta->>stage', 'received'\)/.test(code), 'waInsert overwrites a row the sweep already took');
+  assert((code.match(/fn_wa_arrival_turn_finished/g) || []).length >= 2, 'a late reply (row or no row) no longer closes what the sweep opened');
 });
 
 Deno.test('the turn completes the arrival row in place (one row per message), not a second insert-only write', () => {

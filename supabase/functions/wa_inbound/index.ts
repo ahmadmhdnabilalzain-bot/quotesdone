@@ -395,9 +395,17 @@ async function handleInbound(req: Request): Promise<Response> {
   // Prevented by: arrival_is_stored_first.test.ts.
   let arrivalId: number | null = null;
   let crashed = false, MessageSidSeen = '';
-  const waInsert = (rcv: string, row: Record<string, unknown>) => {
+  // RACE WITH THE SWEEP (review of #1457): the arrival row is completed only while it is still 'received'. If
+  // fn_wa_arrival_sweep took it first (a turn past 5 minutes), the row stays 'escalated', this turn's record goes on a row
+  // of its own, and fn_wa_arrival_turn_finished closes the action and suppresses a holding notice not yet sent.
+  const waInsert = async (rcv: string, row: Record<string, unknown>) => {
     const id = arrivalId; arrivalId = null;
-    return id != null ? admin.from('wa_messages').update(waRow(rcv, row)).eq('id', id) : admin.from('wa_messages').insert(waRow(rcv, row));
+    if (id == null) return await admin.from('wa_messages').insert(waRow(rcv, row));
+    const upd = await admin.from('wa_messages').update(waRow(rcv, row)).eq('id', id).eq('meta->>stage', 'received').select('id');
+    if (upd.error || (upd.data?.length ?? 0) > 0) return upd;
+    const own = await admin.from('wa_messages').insert(waRow(rcv, { ...row, meta: { ...((row.meta as Record<string, unknown>) || {}), after_sweep_of: id } }));
+    await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: id }).then(() => null, () => null);
+    return own;
   };
   try {
     let From = '', Body = '', Profile = '', MessageSid = '';
@@ -1313,7 +1321,10 @@ async function handleInbound(req: Request): Promise<Response> {
     // A turn that FINISHED but wrote no row of its own (a branch that answers without waInsert) closes its arrival row,
     // so only a crashed or killed turn is left at 'received' for fn_wa_arrival_sweep (5 minutes, once, to customer_support).
     if (!crashed && arrivalId != null) {
-      try { await admin.from('wa_messages').update({ meta: { stage: 'handled', message_sid: MessageSidSeen || null } }).eq('id', arrivalId); } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
+      try {
+        const h = await admin.from('wa_messages').update({ meta: { stage: 'handled', message_sid: MessageSidSeen || null } }).eq('id', arrivalId).eq('meta->>stage', 'received').select('id');
+        if (!h.error && (h.data?.length ?? 0) === 0) await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: arrivalId });
+      } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
     }
   }
 }
