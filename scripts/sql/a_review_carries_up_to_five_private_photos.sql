@@ -27,7 +27,7 @@ comment on column public.reviews.photo_paths is
 
 -- 3. The backup registry: review-photos is swept like every other customer-file bucket, and
 --    reviews.photo_paths is filed through that sweep. fn_backup_source_registry is copied from its
---    current definition (the_ceo_weekly_review_acts_on_every_missed_target.sql, MANIFEST 1872) with
+--    current definition (the_company_seal_bucket_is_registered_for_backup.sql, MANIFEST 1973) with
 --    these two rows added.
 --    Prevented by: scripts/checks/every_storage_path_is_in_the_backup_registry.test.mjs
 CREATE OR REPLACE FUNCTION public.fn_backup_source_registry()
@@ -73,9 +73,10 @@ AS $function$
     ('finance-reports',  'bucket', 'finance-reports',  true, 'fn_enqueue_doc_backups: ACCOUNTING (month close); STORAGE SWEEP for every other report and legal notice', null),
     ('reports',          'bucket', 'reports',          true, 'fn_enqueue_doc_backups: STORAGE SWEEP (board and executive report PDFs; their rows are not in the daily table export)', null),
     ('social-media',     'bucket', 'social-media',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (generated post cards and avatars; not in the repository)', null),
+    ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
+    ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
     ('review-photos',    'bucket', 'review-photos',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (customers'' post-job review photos, EXIF stripped; private, signed links only)', null),
     ('reviews.photo_paths',                  'column', 'review-photos', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (review-photos)', null),
-    ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
     ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),
@@ -134,6 +135,7 @@ AS $function$
     ('cad_read_jobs.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a work-queue pointer to the customer''s original drawing in drawing-files, which is backed up through inquiries.drawing_file_path; the job holds no second copy'),
     ('marketing_first_touch.landing_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): the site page (a URL path such as /en/suppliers) a supplier first landed on from a post, not a stored file; the row is in the daily table export'),
     ('marketing_asset_feature.asset_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): a pointer to a post video already in marketing-media (backed up through marketing_post.video_path and media_paths); the feature row measures it and holds no second copy'),
+    ('conversation_retention_pdf.pdf_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): a pointer, kept after the text is removed, to the conversation PDF already in backups/conversations/ (backed up through conversation_archive.pdf_path); it holds no second copy'),
     ('action_class_demand.on_revenue_path', 'column', null, false, null, 'EXEMPT (not a file or not ours): a boolean saying whether an action_class is on the revenue path; it names no file, and the row is in the daily table export'),
     ('ml-models',                            'bucket', null, false, null, 'EXEMPT (not a file or not ours): a copy of a public embedding model downloaded from Hugging Face for the multilingual embedder; it can be fetched again and holds no record'),
     ('supplier_campaign_daily_list.pdf_path', 'column', null, false, null, 'EXEMPT (not a file or not ours): the 18:00 supplier-list PDF is drawn from its own row (rows, pdf_blocks), which is in the daily table export; it can be rendered again'),
@@ -145,6 +147,5 @@ AS $function$
     -- redacted files have no original left (review, 15 Sep 2026), so they are kept like any other file. ──
     ('inquiries.drawing_redacted_paths',     'column', 'drawing-files', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (drawing-files/redacted/; derived, but not every original survives)', null),
     ('drawing_redaction_runs.output_paths',  'column', 'drawing-files', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (drawing-files/redacted/; derived, but not every original survives)', null)
-$function$
-;
+$function$;
 revoke execute on function public.fn_backup_source_registry() from public, anon, authenticated;
