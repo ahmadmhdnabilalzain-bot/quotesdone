@@ -18,9 +18,10 @@
 -- The cause is that the open step was unbounded and ran BEFORE reverify. The fix:
 --   1. reverify (the escalation) and every sweep run first, so a large backlog can never starve them;
 --   2. the open step takes the oldest unopened findings until 3.5 s after the statement began, at most 50
---      per tick, and at least one while the tick is under 6 s, so the backlog drains a few a tick instead
---      of the whole tick dying. The fixed sections cost about 3.1 s (fn_it_ceo_silence_watch 2.1 s of it;
---      it re-asks the CEO decider for every overdue report on purpose), so the open step gets what is left;
+--      per tick, and at least one while the tick is under 4.5 s, so the backlog drains a few a tick instead
+--      of the whole tick dying. The fixed sections cost about 3.1 s, of which fn_it_ceo_silence_watch is 2.1 s
+--      (it re-asks the CEO decider for every overdue report), so that watch now runs at most once an hour,
+--      keyed on its own it_engineer_scanner beat ('it_ceo_silence_watch', 2 h max gap);
 --   3. the digest stays last, so everything this tick escalated or opened leaves in one message.
 -- ponytail: a time budget, not a faster fn_it_loop_open. If the backlog ever outgrows ~1,500 findings a
 -- day, make fn_it_loop_open cheaper (104 ms a call) rather than raising the budget.
@@ -37,7 +38,7 @@ create or replace function public.fn_it_loop_tick()
 as $function$
 declare f record; o jsonb := '{}'::jsonb; n_open int := 0; n_left int := 0; v_err jsonb := '[]'::jsonb; v_step text; x jsonb;
         v_deadline timestamptz := statement_timestamp() + interval '3.5 seconds';
-        v_floor_until timestamptz := statement_timestamp() + interval '6 seconds';
+        v_floor_until timestamptz := statement_timestamp() + interval '4.5 seconds';
 begin
   -- 1. ESCALATION AND THE SWEEPS FIRST. Before 18 Oct 2026 the open step ran first and unbounded; with
   --    409 findings unopened it took 42 s, PostgREST cancelled the tick at 8 s, and nothing escalated.
@@ -62,8 +63,21 @@ begin
   begin o := o || jsonb_build_object('ceo_accountant', public.fn_ceo_accountant_reports_sweep(),
                                      'accountant_completed', public.fn_accountant_reports_complete());
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_accountant', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
+  -- The silence watch re-asks the CEO decider for every overdue report (2.1 s measured 18 Oct). Hourly is
+  -- enough for a reminder whose founder notice is once a day; its last run is a registered scanner beat,
+  -- so section B of the alert tick raises a finding if it stops running for 2 hours.
+  begin
+    if coalesce((select s.last_beat_at < now() - interval '55 minutes' from public.it_engineer_scanner s
+                  where s.scanner = 'it_ceo_silence_watch'), true) then
+      o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
+      perform public.fn_it_engineer_scanner_beat('it_ceo_silence_watch', null, 120);
+    else
+      o := o || jsonb_build_object('ceo_silence', 'not due');
+    end if;
+  exception when others then
+    v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm);
+    perform public.fn_it_engineer_scanner_beat('it_ceo_silence_watch', sqlerrm, 120);
+  end;
   begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
   exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
 

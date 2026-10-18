@@ -342,10 +342,14 @@ test('the alert tick fits the 8 s statement timeout and escalates before it open
     declare t0 timestamptz; v jsonb;
     begin
       set local statement_timeout = '8s';
+      -- worst case: the hourly silence watch is due on this tick
+      update public.it_engineer_scanner set last_beat_at = now() - interval '2 hours' where scanner = 'it_ceo_silence_watch';
       t0 := clock_timestamp();
       v := public.fn_it_engineer_alert_tick();
       raise exception 'CHK<<%>>', json_build_object('tick_ms', round(extract(epoch from clock_timestamp() - t0) * 1000),
-        'reverify_ran', v->'loop' ? 'reverify', 'opened', v->'loop'->'opened', 'left', v->'loop'->'left_for_next_tick');
+        'reverify_ran', v->'loop' ? 'reverify', 'opened', v->'loop'->'opened', 'left', v->'loop'->'left_for_next_tick',
+        'silence_ran', jsonb_typeof(v->'loop'->'ceo_silence') = 'object',
+        'floor_4_5', pg_get_functiondef('public.fn_it_loop_tick()'::regprocedure) like '%v_floor_until timestamptz := statement_timestamp() + interval ''4.5 seconds''%');
     end $p$;`;
   let r;
   try {
@@ -360,4 +364,6 @@ test('the alert tick fits the 8 s statement timeout and escalates before it open
   assert.ok(r.tick_ms < 6000, `fn_it_engineer_alert_tick took ${r.tick_ms} ms; PostgREST cancels it at 8000`);
   assert.equal(r.reverify_ran, true, 'the tick returned without running reverify, so nothing it owes escalated');
   assert.ok(r.opened <= 50, `the open step opened ${r.opened} findings in one tick; it is capped at 50`);
+  assert.equal(r.silence_ran, true, 'the silence watch was due and did not run: the worst case was not measured');
+  assert.equal(r.floor_4_5, true, 'the forced open floor is no longer 4.5 s after the statement began');
 });
