@@ -108,6 +108,8 @@ export interface ReviewDeps {
   /** RULING 1177: a photo or document the supplier attaches to a chat message is READ - code first, then the vision
    *  model (_shared/read_every_attachment.ts). Absent: code only. */
   readAttachment?(bytes: Uint8Array, filename: string, mime: string): Promise<AttachmentRead>;
+  /** Keep a job running after the response is sent (EdgeRuntime.waitUntil). Absent: the job runs inline (tests). */
+  background?(job: Promise<void>): void;
   /** No model answer: the turn is filed in sales_engineer's reasoning queue (fn_reason_hold, surface
    *  supplier_api.quote_review_unwritten); the replayed answer is posted into this thread and a turn still unanswered
    *  after 15 minutes is escalated to the seat. The HELD NOTICE is added by the flow itself. */
@@ -139,8 +141,10 @@ export type ThreadView = {
 export type Fail = { ok: false; status: number; code: string; message: string };
 const fail = (status: number, code: string, message: string): Fail => ({ ok: false, status, code, message });
 
-/** A review stuck in 'reviewing' this long crashed mid-way; it is treated as not reviewing. */
-const STALE_MS = 120_000;
+/** A review stuck in 'reviewing' this long crashed mid-way; it is treated as not reviewing. 8 minutes: a review now runs
+ *  off the request (offRequest), and the runtime's background wall clock is 400 s, so a job older than 480 s cannot still
+ *  be running. Below 400 s a LIVE job would be declared dead and a second one could start (review of #1413). */
+const STALE_MS = 480_000;
 const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice', 'awaiting_upload', 'ready_to_submit'];
 
 // ---------------------------------------------------------------------------------------------
@@ -150,6 +154,37 @@ const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice',
 // passes _shared/reasoned_suppliers.ts quoteTerms; founder_instruction 886-903). Held or absent: the
 // terms stay empty and the review asks the supplier for them — never a label guess.
 // ---------------------------------------------------------------------------------------------
+/**
+ * THE VISION MODEL WRITES MARKDOWN (13 Oct 2026, measured live). read_every_attachment's prompt asks for tables "as
+ * markdown tables", so a photographed quotation comes back as "| Jotun ... | 450 | m2 | 20.00 | 9,000.00 |". The price
+ * reader parses CSV and plain lines, and it read that transcription as NO quotation. Each table row becomes a CSV row
+ * (numbers lose their thousands separators), separator rows and **emphasis** / # headings go; every other line stays.
+ * prevented by: supplier_api/quote_review.test.ts ('a photographed quotation transcribed as a markdown table is priced')
+ */
+// ONLY TABLE ROWS ARE TOUCHED (review of #1396): a line outside a pipe table passes through byte for byte. Inside a
+// cell, a comma goes only when it is a THOUSANDS separator (9,000.00 -> 9000.00; "1,5" and "12,50" are decimal commas
+// and stay as written, CSV-quoted); Arabic-Indic digits and the Arabic separators (U+066C thousands, U+066B decimal)
+// are read the same way; an escaped \| stays inside its cell; a short or merged row keeps the cells it has.
+const ESC_PIPE = '\u0000';
+const AR_DIGIT = /[\u0660-\u0669\u06F0-\u06F9]/g;
+const THOUSANDS = /(^|[^\d,.])(-?\d{1,3}(?:,\d{3})+)(?=\.\d+(?![\d,])|(?![\d,.]))/g;
+function tableCell(raw: string): string {
+  let c = raw.replace(new RegExp(ESC_PIPE, 'g'), '|').trim().replace(/^(\*\*|__)(.*)\1$/, '$2').trim();
+  c = c.replace(AR_DIGIT, (d) => String((d.charCodeAt(0) & 0xf) % 10)).replace(/\u066C/g, ',').replace(/\u066B/g, '.');
+  c = c.replace(THOUSANDS, (_m, pre: string, n: string) => pre + n.replace(/,/g, ''));
+  return /[",]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
+}
+export function transcriptAsText(md: string): string {
+  const isRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+  const isSep = (l: string) => /^\s*\|[\s:|-]*-{2,}[\s:|-]*\|\s*$/.test(l);
+  return String(md ?? '').split(/\r?\n/).flatMap((l) => {
+    if (!isRow(l)) return [l];
+    if (isSep(l)) return [];
+    const cells = l.replace(/\\\|/g, ESC_PIPE).trim().replace(/^\|/, '').replace(/\|$/, '').split('|');
+    return [cells.map(tableCell).join(',')];
+  }).join('\n');
+}
+
 export async function readQuotationFile(bytes: Uint8Array, filename: string, mime: string, supplierTerms: string[] = [],
   readTerms?: (text: string) => Promise<Partial<Record<QuoteTermKey, string>> | null>, vision?: Vision | null): Promise<FileRead> {
   const rd = await readDocument(bytes, filename, mime);
@@ -159,7 +194,7 @@ export async function readQuotationFile(bytes: Uint8Array, filename: string, mim
   // a scan got 'image' and a request for a text PDF. Unreadable only when both askings fail.
   if (vision && (!rd.ok || (!rd.text.trim() && !rd.tables.length && !rd.children.length))) {
     const a = await readEveryAttachment(bytes, filename, mime, vision);
-    if (a.status === 'read' && a.by === 'model') return readQuotationFile(new TextEncoder().encode(a.text), 'quotation.txt', 'text/plain', supplierTerms, readTerms, null);
+    if (a.status === 'read' && a.by === 'model') return readQuotationFile(new TextEncoder().encode(transcriptAsText(a.text)), 'quotation.txt', 'text/plain', supplierTerms, readTerms, null);
     return { proposal: null, text: '', kind: rd.ok ? rd.kind : 'image' };
   }
   if (!rd.ok) return { proposal: null, text: '', kind: 'refused' };
@@ -247,6 +282,14 @@ async function load(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: str
     await repo.updateReview(r.id, { status: 'closed', reviewing_since: null });
     r = await repo.review(inquiryId, ctx.supplierId);
   }
+  // A REVIEW THE RUNTIME KILLED (offRequest cannot run its catch) never stays 'reviewing': once stale it goes back and is
+  // queued for the sales_engineer seat with the held notice, exactly as a failed one is. The claim makes it happen once.
+  if (r && r.status === 'reviewing' && effectiveState(r, deps.now()) !== 'reviewing' && await repo.claim(r.id, ['reviewing'], effectiveState(r, deps.now()))) {
+    await repo.updateReview(r.id, { reviewing_since: null });
+    await held(repo, deps, r.id, 'The review of their last message or file stopped before it finished (it ran longer than ' + Math.round(STALE_MS / 60000) + ' minutes). Tell them it is being looked at and what happens next.', null).catch(() => {});
+    await repo.log({ signal: 'quote_review_stale_resolved' }, 'A review left in reviewing past STALE_MS was resolved and queued for sales_engineer.').catch(() => {});
+    r = await repo.review(inquiryId, ctx.supplierId);
+  }
   // The address the supplier's own-row policy reads follows whoever owns the company now.
   if (r && r.owner_email !== ctx.email) { await repo.updateReview(r.id, { owner_email: ctx.email }); r = { ...r, owner_email: ctx.email }; }
   return { inq, r };
@@ -329,33 +372,66 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
   catch (_e) { return fail(400, 'file_unreadable', 'We could not read that file. Please attach it again, or send it as a PDF.'); }
   if (!sc.ok) return fail(sc.status, sc.code, sc.message);
   const r0 = await ensure(repo, deps, ctx, l);
+  const prior = await enterReview(repo, deps, r0); if (prior == null) return BUSY;
   const path = `review/${ctx.supplierId}/${inquiryId}/${deps.now().getTime()}_${sc.name}`;
-  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) return fail(502, 'upload_failed', 'We could not store your file. Please try again.');
+  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) { await leaveReview(repo, r0.id, prior); return fail(502, 'upload_failed', 'We could not store your file. Please try again.'); }
   const note = typeof text === 'string' && text.trim() ? text.trim().slice(0, 2000) : null;
   const fm = await supplierSays(repo, r0.id, 'file', note, [{ kind: 'quotation_file', name: sc.name, bucket: 'quote-files', path }]);
-  const prior = effectiveState(r0, deps.now());
-  await repo.updateReview(r0.id, { status: 'reviewing', reviewing_since: deps.now().toISOString(), original_file_path: path, original_file_name: sc.name });
-  // A failed write below must not leave the thread "reviewing": it goes back to where it was.
-  try {
-  let read: FileRead;
-  try { read = await deps.read(sc.bytes, sc.name, sc.mime); } catch (_e) { read = { proposal: null, text: '', kind: 'error' }; }
-  const r = (await repo.review(inquiryId, ctx.supplierId))!;
-  if (!read.proposal) {
-    await say(repo, deps, r.id, 'notice', unreadableSaid(read.kind));
-    await repo.updateReview(r.id, { status: prior, reviewing_since: null });
-    return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
-  }
-  // A new version replaces what the last file said, and keeps what the CHAT settled (carryOver: the
-  // audit of 21 Sep 2026 saw a revised CSV re-open validity, installation and warranty answered in text).
-  let w = carryOver(r.working, workingFromProposal(read.proposal, read.text), l.inq.boq_rows);
-  if (note) w = applyCorrections(w, readReply(note, await openIssuesOf(repo, r)).corrections, l.inq.boq_rows);
-  await repo.updateReview(r.id, { extracted: read.proposal });
-  await runReview(repo, deps, l.inq, r, w, fm.id);
-  } catch (e) {
-    await repo.updateReview(r0.id, { status: prior, reviewing_since: null }).catch(() => {});
-    throw e;
-  }
+  await repo.updateReview(r0.id, { original_file_path: path, original_file_name: sc.name });
+  await offRequest(repo, deps, r0.id, prior, async () => {
+    let read: FileRead;
+    try { read = await deps.read(sc.bytes, sc.name, sc.mime); } catch (_e) { read = { proposal: null, text: '', kind: 'error' }; }
+    const r = (await repo.review(inquiryId, ctx.supplierId))!;
+    if (!read.proposal) {
+      await say(repo, deps, r.id, 'notice', unreadableSaid(read.kind));
+      await repo.updateReview(r.id, { status: prior, reviewing_since: null });
+      return;
+    }
+    // A new version replaces what the last file said, and keeps what the CHAT settled (carryOver: the
+    // audit of 21 Sep 2026 saw a revised CSV re-open validity, installation and warranty answered in text).
+    let w = carryOver(r.working, workingFromProposal(read.proposal, read.text), l.inq.boq_rows);
+    if (note) w = applyCorrections(w, readReply(note, await openIssuesOf(repo, r)).corrections, l.inq.boq_rows);
+    await repo.updateReview(r.id, { extracted: read.proposal });
+    await runReview(repo, deps, l.inq, r, w, fm.id);
+  });
   return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
+}
+
+/**
+ * ONE REVIEW AT A TIME (review of #1413). Entering 'reviewing' is a CLAIM (status moves only from the state just read), so
+ * two turns sent at the same moment cannot both start a job: the second is refused 409 'reviewing' and nothing it sent is
+ * stored. Returns the state the review came from, or null when one is already running.
+ */
+async function enterReview(repo: ReviewRepo, deps: ReviewDeps, r: ReviewRow): Promise<ReviewState | null> {
+  const prior = effectiveState(r, deps.now());
+  if (prior === 'reviewing' || !(await repo.claim(r.id, [r.status], 'reviewing'))) return null;
+  await repo.updateReview(r.id, { reviewing_since: deps.now().toISOString() });
+  return prior;
+}
+const leaveReview = (repo: ReviewRepo, id: string, prior: ReviewState) => repo.updateReview(id, { status: prior, reviewing_since: null }).catch(() => {});
+const BUSY = fail(409, 'reviewing', 'Your quotation is being reviewed; please wait for the result.');
+
+/**
+ * THE REVIEW RUNS OFF THE REQUEST (13 Oct 2026, measured live: a photographed quotation's review made 7 sequential model
+ * calls and the request hit the edge runtime's 150 s limit, HTTP 504, while the server finished a minute later). With
+ * deps.background (supplier_api passes EdgeRuntime.waitUntil) the turn answers at once in 'reviewing' and the portal polls
+ * until it is not; without it (the tests) the job runs inline. A job that FAILS never leaves the turn 'reviewing': the
+ * state goes back, the held notice is added and the turn is queued for the sales_engineer seat (held()). A job the
+ * runtime KILLS cannot run its catch; load() resolves that one the same way once it is older than STALE_MS.
+ * prevented by: supplier_api/quote_review.test.ts ('a review runs off the request ...')
+ */
+async function offRequest(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, prior: ReviewState, job: () => Promise<void>): Promise<void> {
+  const guarded = async () => {
+    try { await job(); }
+    catch (e) {
+      const why = String((e as Error)?.message || e).slice(0, 200);
+      await repo.updateReview(reviewId, { status: prior, reviewing_since: null }).catch(() => {});
+      await held(repo, deps, reviewId, `The review of their last message or file failed before it finished (${why}). Tell them it is being looked at and what happens next.`, null).catch(() => {});
+      await repo.log({ signal: 'quote_review_background_failed' }, 'The quotation review failed off the request; the turn went back to ' + prior + ' and was queued for sales_engineer: ' + why).catch(() => {});
+      if (!deps.background) throw e;
+    }
+  };
+  if (deps.background) deps.background(guarded()); else await guarded();
 }
 
 /**
@@ -399,27 +475,26 @@ const PRICED_LINES = 2;
 export const looksTyped = (text: string, minLines = PRICED_LINES): boolean =>
   String(text || '').split(/\r?\n/).filter((l) => /\d/.test(l) && l.trim().length > 6).length >= minLines;
 
-async function readTyped(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, r0: ReviewRow, t: string, trigger: string): Promise<ThreadView> {
-  const prior = effectiveState(r0, deps.now());
-  await repo.updateReview(r0.id, { status: 'reviewing', reviewing_since: deps.now().toISOString() });
-  try {
-    let read: FileRead;
-    try { read = await deps.read(new TextEncoder().encode(t), 'typed_quotation.txt', 'text/plain'); }
-    catch (_e) { read = { proposal: null, text: '', kind: 'error' }; }
-    const r = (await repo.review(l.inq.id, ctx.supplierId))!;
-    if (!read.proposal) {
-      await say(repo, deps, r.id, 'notice', typedUnreadableSaid());
-      await repo.updateReview(r.id, { status: prior, reviewing_since: null });
-      return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
-    }
-    const w = carryOver(r.working, workingFromProposal(read.proposal, t), l.inq.boq_rows);
-    await repo.updateReview(r.id, { extracted: read.proposal });
-    await runReview(repo, deps, l.inq, r, w, trigger);
-  } catch (e) {
-    await repo.updateReview(r0.id, { status: prior, reviewing_since: null }).catch(() => {});
-    throw e;
-  }
+async function readTyped(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, r0: ReviewRow, t: string, trigger: string): Promise<ThreadView | Fail> {
+  const prior = await enterReview(repo, deps, r0); if (prior == null) return BUSY;
+  await offRequest(repo, deps, r0.id, prior, () => typedJob(repo, deps, ctx, l, t, trigger, prior));
   return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
+}
+/** The typed (or photographed) quotation's review itself; the caller has already set 'reviewing'. */
+async function typedJob(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, t: string, trigger: string, prior: ReviewState, already?: FileRead): Promise<void> {
+  let read: FileRead;
+  if (already) read = already;
+  else try { read = await deps.read(new TextEncoder().encode(t), 'typed_quotation.txt', 'text/plain'); }
+  catch (_e) { read = { proposal: null, text: '', kind: 'error' }; }
+  const r = (await repo.review(l.inq.id, ctx.supplierId))!;
+  if (!read.proposal) {
+    await say(repo, deps, r.id, 'notice', typedUnreadableSaid());
+    await repo.updateReview(r.id, { status: prior, reviewing_since: null });
+    return;
+  }
+  const w = carryOver(r.working, workingFromProposal(read.proposal, t), l.inq.boq_rows);
+  await repo.updateReview(r.id, { extracted: read.proposal });
+  await runReview(repo, deps, l.inq, r, w, trigger);
 }
 
 /** What the engineer knows at this point of the thread, for the model to answer from: the state, the open points,
@@ -501,32 +576,41 @@ async function messageWithFile(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: 
   catch (_e) { return fail(400, 'file_unreadable', 'We could not accept that file. Please attach it again.'); }
   if (!sc.ok) return fail(sc.status, sc.code, sc.message);
   const r = await ensure(repo, deps, ctx, l);
+  // Reading a photo can take the vision model two askings; the read and what follows run off the request.
+  const prior = await enterReview(repo, deps, r); if (prior == null) return BUSY;
   const path = `review/${ctx.supplierId}/${l.inq.id}/${deps.now().getTime()}_chat_${sc.name}`;
-  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) return fail(502, 'upload_failed', 'We could not store your file. Please try again.');
+  if (!(await repo.storeFile(path, sc.bytes, sc.mime))) { await leaveReview(repo, r.id, prior); return fail(502, 'upload_failed', 'We could not store your file. Please try again.'); }
   const sm = await supplierSays(repo, r.id, 'file', t || null, [{ kind: 'chat_file', name: sc.name, bucket: 'quote-files', path }]);
-  let a: AttachmentRead;
-  try { a = deps.readAttachment ? await deps.readAttachment(sc.bytes, sc.name, sc.mime) : await readEveryAttachment(sc.bytes, sc.name, sc.mime, null); }
-  catch (e) { a = { status: 'unreadable', by: null, text: '', kind: 'error', model_attempts: 0, reason: String((e as Error)?.message || e).slice(0, 160), doc: null }; }
-  await repo.log({ signal: 'quote_review_chat_file', status: a.status, by: a.by, model_attempts: a.model_attempts }, `Chat attachment ${a.status}${a.reason ? ': ' + a.reason : ''}.`);
-  if (a.status !== 'read') {
-    // HELD, never guessed: the file stays in the thread and the supplier is asked for a clearer copy, in English.
-    await say(repo, deps, r.id, 'notice', { en: clearerCopyAsk('supplier', 'en', sc.name), ar: '' }, { supplierMessage: t || null });
-    return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
-  }
-  const st = effectiveState(r, deps.now());
-  // A quotation photographed into the chat with nothing read yet goes to the review — only when the price reader finds
-  // prices in it (a site photo's "2.4 m wide" is a number, not a quotation; caught by the test below).
-  if ((!r.working || st === 'awaiting_upload') && looksTyped(a.text, 1)) {
-    const q = await deps.read(new TextEncoder().encode(a.text.slice(0, 20000)), 'chat_attachment.txt', 'text/plain').catch(() => null);
-    if (q?.proposal) return readTyped(repo, deps, ctx, l, r, a.text.slice(0, 20000), sm.id);
-  }
-  const open = await openIssuesOf(repo, r);
-  const said = (t || '(they sent this file with no message)') + `\n\nThey attached "${sc.name}". What it says:` + untrustedBlock(a.text.slice(0, 6000));
-  const situation = stateFacts(l.inq, r, st, open) + '\nThey attached a file with this message; what it says is in their message. Use it in your answer.';
-  const v = await deps.voice({ kind: 'text', supplierMessage: said, situation, images: seenImage(sc.bytes, sc.mime) })
-    .catch(() => ({ text: '', action: null as string | null }));
-  if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: 'text', body: v.text, body_ar: null, attachments: [], issues: null });
-  else await held(repo, deps, r.id, situation, said);
+  await offRequest(repo, deps, r.id, prior, async () => {
+    const back = () => repo.updateReview(r.id, { status: prior, reviewing_since: null });
+    let a: AttachmentRead;
+    try { a = deps.readAttachment ? await deps.readAttachment(sc.bytes, sc.name, sc.mime) : await readEveryAttachment(sc.bytes, sc.name, sc.mime, null); }
+    catch (e) { a = { status: 'unreadable', by: null, text: '', kind: 'error', model_attempts: 0, reason: String((e as Error)?.message || e).slice(0, 160), doc: null }; }
+    await repo.log({ signal: 'quote_review_chat_file', status: a.status, by: a.by, model_attempts: a.model_attempts }, `Chat attachment ${a.status}${a.reason ? ': ' + a.reason : ''}.`);
+    if (a.status !== 'read') {
+      // HELD, never guessed: the file stays in the thread and the supplier is asked for a clearer copy, in English.
+      await back();
+      await say(repo, deps, r.id, 'notice', { en: clearerCopyAsk('supplier', 'en', sc.name), ar: '' }, { supplierMessage: t || null });
+      return;
+    }
+    // A quotation photographed into the chat with nothing read yet goes to the review — only when the price reader finds
+    // prices in it (a site photo's "2.4 m wide" is a number, not a quotation). That ONE reading is the review's reading:
+    // before, it was read here and again in readTyped, two terms askings for one photo (measured live, 13 Oct 2026).
+    const asText = transcriptAsText(a.text).slice(0, 20000);
+    if ((!r.working || prior === 'awaiting_upload') && looksTyped(asText, 1)) {
+      const q = await deps.read(new TextEncoder().encode(asText), 'chat_attachment.txt', 'text/plain').catch(() => null);
+      if (q?.proposal) return typedJob(repo, deps, ctx, l, asText, sm.id, prior, q);
+    }
+    await back();
+    const r1 = (await repo.review(l.inq.id, ctx.supplierId)) ?? r;
+    const open = await openIssuesOf(repo, r1);
+    const said = (t || '(they sent this file with no message)') + `\n\nThey attached "${sc.name}". What it says:` + untrustedBlock(a.text.slice(0, 6000));
+    const situation = stateFacts(l.inq, r1, prior, open) + '\nThey attached a file with this message; what it says is in their message. Use it in your answer.';
+    const v = await deps.voice({ kind: 'text', supplierMessage: said, situation, images: seenImage(sc.bytes, sc.mime) })
+      .catch(() => ({ text: '', action: null as string | null }));
+    if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: 'text', body: v.text, body_ar: null, attachments: [], issues: null });
+    else await held(repo, deps, r.id, situation, said);
+  });
   return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
 }
 
@@ -619,10 +703,9 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
     // quotation). The supplier's own language is printed first and named in the message; the other
     // is attached beside it. A print that fails still leaves the attachment, which the portal prints
     // on demand through quote_pdf.
-    const first: Lang = ctx.lang, second: Lang = first === 'ar' ? 'en' : 'ar';
+    const first: Lang = ctx.lang;   // one print, in English (founder ruling 1008); no second-language copy for a supplier
     const pdf = generated && ids[0] ? await deps.quotePdf(ids[0], first).catch(() => ({ url: null, ref: null })) : { url: null, ref: null };
-    if (generated && ids[0]) await deps.quotePdf(ids[0], second).catch(() => null);
-    const atts: Attachment[] = generated && ids[0] ? [first, second].map((lg) => ({ kind: 'standard_quote' as const, name: `${pdf.ref || 'QuotesDone quotation'}-${lg}.pdf`, quote_id: ids[0], lang: lg })) : [];
+    const atts: Attachment[] = generated && ids[0] ? [first].map((lg) => ({ kind: 'standard_quote' as const, name: `${pdf.ref || 'QuotesDone quotation'}-${lg}.pdf`, quote_id: ids[0], lang: lg })) : [];
     const heldIssues = heldOpts.flatMap((o) => (Array.isArray(o.missing) ? o.missing : []) as MissingItem[]).map(fromMissing);
     const base = submittedSaid(inq.job_no, pdf.ref, generated);
     const said: Said = heldOpts.length ? {

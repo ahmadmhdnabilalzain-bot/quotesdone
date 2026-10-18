@@ -53,8 +53,7 @@ function QuotePdf({ token, lang, quoteId, title }: { token: string; lang: Lang; 
     <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px]">
       <span className="text-muted-foreground">{title ? `${title} · ` : ''}{t.pdf}</span>
       <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
-      <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
-      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{err === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
+      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 import { readQuotationFile } from './quote_review_flow.ts';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS, SAFE_SUPPLIER_PAPERS } from '../_shared/attachment.ts';
 import { seedTerms } from '../_shared/anonymise.ts';
-import { asLocale, SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
+import { SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
 import { arDays } from '../_shared/ar_days.ts';
 // MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
 // storage; a hash VirusTotal already knows to be malicious is refused here rather than stored,
@@ -501,6 +501,9 @@ const handle = async (req: Request): Promise<Response> => {
           });
           return { text: r.reply, action: r.action ?? null };
         },
+        // THE REVIEW RUNS OFF THE REQUEST (quote_review_flow.ts offRequest): the turn answers at once in 'reviewing',
+        // and the runtime keeps the job alive after the response. The portal polls while it is reviewing.
+        background: (job) => { const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime; if (er?.waitUntil) er.waitUntil(job); },
         // No model answer: the turn waits in sales_engineer's queue; reasoned_delivery.ts posts the GUARDED (aiReply)
         // replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
         hold: async (v) => {
@@ -526,7 +529,7 @@ ${q}`,
     // answered with the value we already hold.
     if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
-    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); /* A COMPANY ALREADY CLAIMED IS NOT REGISTERED TWICE (24 Sep 2026, sales_engineer, ledger 993). Measured on production with two ZZ DEMO accounts: after account A claimed "ZZ DEMO Errors …", account B created a second listing with the identical name and got HTTP 200, so one company could hold two verified profiles and be matched twice. The comparison is case- and space-folded and exact; a different company with a similar name is not blocked. */ { const { data: twins } = await admin.from('leads').select('id').eq('claimed', true).ilike('company_name', name.replace(/\s+/g, ' ').replace(/[\\%_]/g, (c) => '\\' + c)).limit(1); if (twins && twins.length) return J(COMPANY_ALREADY_REGISTERED, 409); } const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: asLocale(body.lang), scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* The exact-name check above is not atomic and does not fold spellings; the duplicate-company indexes are the rule itself (_shared/duplicate_company.ts). */ if (isDuplicateCompany(error)) return J(COMPANY_ALREADY_REGISTERED, 409); /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); await recordFirstTouch(ins!.id, body.first_touch); return J({ ok: true, id: ins?.id, registration: reg }); }
+    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); /* A COMPANY ALREADY CLAIMED IS NOT REGISTERED TWICE (24 Sep 2026, sales_engineer, ledger 993). Measured on production with two ZZ DEMO accounts: after account A claimed "ZZ DEMO Errors …", account B created a second listing with the identical name and got HTTP 200, so one company could hold two verified profiles and be matched twice. The comparison is case- and space-folded and exact; a different company with a similar name is not blocked. */ { const { data: twins } = await admin.from('leads').select('id').eq('claimed', true).ilike('company_name', name.replace(/\s+/g, ' ').replace(/[\\%_]/g, (c) => '\\' + c)).limit(1); if (twins && twins.length) return J(COMPANY_ALREADY_REGISTERED, 409); } const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: SUPPLIER_LOCALE, scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* The exact-name check above is not atomic and does not fold spellings; the duplicate-company indexes are the rule itself (_shared/duplicate_company.ts). */ if (isDuplicateCompany(error)) return J(COMPANY_ALREADY_REGISTERED, 409); /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); await recordFirstTouch(ins!.id, body.first_touch); return J({ ok: true, id: ins?.id, registration: reg }); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
     // 'claim' resolved the listing from body.leads_id - the sequential primary key - and never
     // looked at claim_token. claim_lookup v2 was rewritten on 19 Jul 2026 to accept ONLY the
@@ -924,13 +927,9 @@ ${q}`,
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
-      if (body.locale !== undefined) {
-        const loc = String(body.locale);
-        if (!['en', 'ar'].includes(loc)) return J({ error: 'locale must be en or ar' }, 400);
-        // Suppliers are always English (founder ruling 1008): an 'ar' from an old page is ignored and
-        // 'en' is stored. Prevented by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
-        upd.locale = SUPPLIER_LOCALE;
-      }
+      // Suppliers are always English (founder ruling 1008): whatever locale an old page sends, 'en' is
+      // stored. Prevented by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
+      if ('locale' in body) upd.locale = SUPPLIER_LOCALE;
       if (body.email_shared !== undefined) upd.email_shared = !!body.email_shared;
       const { error } = await admin.from('leads').update(upd).eq('id', sup.id);
       if (error) return J({ error: error.message }, 500);
@@ -1081,9 +1080,19 @@ ${q}`,
         const needEn = sixInWords(stillNeeded.filter((c) => c !== 'licence_expired'), 'en') + (stillNeeded.includes('licence_expired') ? (stillNeeded.length > 1 ? ', ' : '') + 'a trade licence that is in date' : '');
         const needAr = sixInWords(stillNeeded.filter((c) => c !== 'licence_expired'), 'ar') + (stillNeeded.includes('licence_expired') ? (stillNeeded.length > 1 ? '، ' : '') + 'رخصة تجارية سارية المفعول' : '');
         const days = 14;
+        // A LICENCE NOBODY COULD READ IS NOT "NOTHING NEEDED" (13 Oct 2026, ruling 1230 walk, it_engineer). With only the
+        // certificate outstanding at Save, a supplier whose licence name, number or expiry could not be read was told
+        // "your account activates automatically ... Nothing is needed from you", and the gate then held them (pending,
+        // licence_unreadable / _number_unread / _expiry_unread) with no further notice. Measured on production with an
+        // Arabic-only and a blank licence. They are told what could not be read and asked for a clearer copy instead.
+        const licUnread = [!full?.licence_legal_name && 'the company name', !full?.trade_license_no && 'the licence number', !full?.license_expiry && 'the expiry date'].filter(Boolean) as string[];
+        const licUnreadEn = licUnread.length ? `Thank you for registering ${name}. We could not read ${licUnread.join(', ').replace(/, ([^,]*)$/, ' and $1')} on the trade licence you uploaded, so your registration is on hold. ${clearerCopyAsk('supplier', 'en', 'your trade licence')} Upload it in the Documents tab of your supplier portal: https://quotesdone.com/portal` : '';
         const supplierMail = decision === 'approved'
           ? (ar ? { subject: 'أصبح حسابكم على QuotesDone مفعّلًا', body: `فُعِّل حساب ${name} لدى QuotesDone، وبإمكانكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
                 : { subject: 'Your QuotesDone supplier account is active', body: `Your account for ${name} is active — you can now receive inquiries and submit quotes.` })
+          // Any decision short of approved: the unread licence is said first, with whatever else is still missing.
+          : licUnreadEn
+          ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
           : decision === 'pending'
           ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. اكتملت البنود الستة المطلوبة، ويتولّى مهندس المبيعات مراجعة طلب التسجيل حاليًا، وسنوافيكم برسالة فور اعتماده.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })
@@ -1392,8 +1401,7 @@ ${q}`,
       const sign = async (b: string, p: string) => { try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
       // An Arabic document with a line not yet translated by reasoning (the founder's model hold): held, not half-printed.
       const ARABIC_HELD_REPLY = { ok: false, held: true, code: 'arabic_held',
-        message: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
-        message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.' };
+        message: 'The document is being prepared and will be ready shortly. Please try again in a minute.' };
       const served = async (kind: 'inquiry' | 'quotation', subject: string, hash: string, build: () => Promise<{ doc: Record<string, unknown>; ref: string } | null>) => {
         const { data: hit } = await admin.from('supplier_document_cache').select('bucket,path,content_hash').eq('kind', kind).eq('subject_id', subject).eq('supplier_id', sup.id).eq('lang', lang).maybeSingle();
         if (hit && hit.content_hash === hash) { const url = await sign(hit.bucket, hit.path); if (url) return { url, cached: true }; }

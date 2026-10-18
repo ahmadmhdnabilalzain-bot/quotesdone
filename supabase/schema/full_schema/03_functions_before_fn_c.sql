@@ -146,6 +146,8 @@ begin
   v_go  := (coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') = 'true')
            and public.fn_supplier_outreach_golive();
   v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
+  -- founder ruling 1231: never more than the dated founder cap, whatever invite_daily_cap holds.
+  v_cap := least(v_cap, public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
   select count(*) into v_pool from leads l where public.fn_supplier_invite_eligible(l);
   v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
   insert into invite_schedule(day, planned, status, note)
@@ -6077,7 +6079,7 @@ declare
   v_m date := date_trunc('month', p_month)::date; v_e date; v_fx numeric;
   v_reveals int; v_fee numeric; v_gmv numeric; v_charged numeric; v_stripe numeric;
   v_ref_n int; v_ref_aed numeric; v_disp int; v_rfq int; v_llm numeric; v_msg numeric;
-  v_sub_n int; v_sub_rev numeric; v_var numeric; v_missing text[] := '{}';
+  v_sub_n int; v_sub_rev numeric; v_var numeric; v_missing text[] := '{}'; v_llm_unpriced int;
 begin
   v_e := (v_m + interval '1 month')::date;
   select num_value into v_fx from public.gl_settings where key = 'usd_to_aed';
@@ -6094,7 +6096,9 @@ begin
   select count(*) into v_disp from public.stripe_dispute where livemode and first_seen_at >= v_m and first_seen_at < v_e;
   select count(*) into v_rfq from public.inquiries i join public.customers c on c.id = i.customer_id
    where i.created_at >= v_m and i.created_at < v_e and not (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email));
-  select coalesce(sum(cost_aed), 0) into v_llm from public.ai_cost_log where occurred_at >= v_m and occurred_at < v_e;
+  select coalesce(sum(cost_aed), 0),
+         count(*) filter (where cost_aed is null and not cached and coalesce(model_used, 'none') <> 'none')
+    into v_llm, v_llm_unpriced from public.ai_cost_log where occurred_at >= v_m and occurred_at < v_e;
   select coalesce(sum(case when upper(currency) = 'USD' then amount * v_fx else amount end), 0) into v_msg
     from public.expense_entries where charged_on >= v_m and charged_on < v_e and vendor ~* '(twilio|resend|whatsapp|meta.*messag)';
   select count(*) into v_sub_n from public.leads where registration_paid_at >= v_m and registration_paid_at < v_e;
@@ -6103,6 +6107,7 @@ begin
   v_var := v_llm + v_msg;
   if v_reveals = 0 then v_missing := v_missing || text 'no paid reveal in the month, so per-reveal figures are undefined'; end if;
   if v_rfq = 0 then v_missing := v_missing || text 'no request in the month, so cost per request is undefined'; end if;
+  if v_llm_unpriced > 0 then v_missing := v_missing || (v_llm_unpriced || ' model call(s) returned no usage: their cost is unknown, so llm_cost_aed is a lower bound'); end if;
   if v_sub_n = 0 then v_missing := v_missing || text 'no paid supplier subscription in the month'; end if;
   return jsonb_build_object(
     'month', to_char(v_m, 'YYYY-MM'),
@@ -6114,7 +6119,7 @@ begin
     'refunds', v_ref_n, 'refunded_aed', round(v_ref_aed, 2),
     'refund_rate', case when v_fee > 0 then round(v_ref_aed / v_fee, 4) end,
     'disputes', v_disp, 'dispute_rate', case when v_reveals > 0 then round(v_disp::numeric / v_reveals, 4) end,
-    'requests', v_rfq, 'llm_cost_aed', round(v_llm, 2), 'messaging_email_cost_aed', round(v_msg, 2),
+    'requests', v_rfq, 'llm_cost_aed', round(v_llm, 2), 'llm_calls_unpriced', v_llm_unpriced, 'messaging_email_cost_aed', round(v_msg, 2),
     'variable_cost_per_request_aed', case when v_rfq > 0 then round(v_var / v_rfq, 2) end,
     'contribution_per_reveal_aed', case when v_reveals > 0 then round((v_fee - v_stripe - v_ref_aed - v_var) / v_reveals, 2) end,
     'subscriptions_paid', v_sub_n, 'subscription_revenue_aed', round(v_sub_rev, 2),
@@ -6659,7 +6664,7 @@ declare
   v_gl_all int; v_gl_lines int; v_gl_n int; v_dr numeric; v_cr numeric;
   v_cash numeric;
   -- platform cost
-  v_ai_all int; v_ai_n int; v_ai_aed numeric; v_ai_models text;
+  v_ai_all int; v_ai_n int; v_ai_aed numeric; v_ai_models text; v_ai_unpriced int;
   v_lines jsonb;
 begin
   select count(*) into v_txn_all from transactions;
@@ -6704,8 +6709,9 @@ begin
   select coalesce(sum(balance),0) into v_cash from gl_account_balances where code in ('1000','1050');
 
   select count(*) into v_ai_all from ai_cost_log;
-  select count(*), coalesce(sum(cost_aed),0), coalesce(string_agg(distinct coalesce(model_used,'?'), ', '), '')
-    into v_ai_n, v_ai_aed, v_ai_models
+  select count(*), coalesce(sum(cost_aed),0), coalesce(string_agg(distinct coalesce(model_used,'?'), ', '), ''),
+         count(*) filter (where cost_aed is null and not cached and coalesce(model_used, 'none') <> 'none')
+    into v_ai_n, v_ai_aed, v_ai_models, v_ai_unpriced
     from ai_cost_log where occurred_at >= v_from and occurred_at < v_to;
 
   v_lines := jsonb_build_object(
@@ -6806,12 +6812,13 @@ begin
 
     -- PLATFORM COST --------------------------------------------------------------------------
     'ai_and_model_cost', jsonb_build_object(
-      'aed', v_ai_aed, 'n', v_ai_n, 'denom', v_ai_all, 'models', v_ai_models,
+      'aed', v_ai_aed, 'n', v_ai_n, 'denom', v_ai_all, 'models', v_ai_models, 'unpriced', v_ai_unpriced,
       'basis', case when v_ai_all = 0 then 'true zero' else 'measured' end,
       'note', case when v_ai_all = 0
         then 'public.ai_cost_log holds 0 rows.'
         else v_ai_n||' model call(s) inside the window, of '||v_ai_all||' logged in total, costing '||to_char(v_ai_aed,'FM999,999,990.00')||
              ' AED. Models used: '||coalesce(nullif(v_ai_models,''),'none in this window')||
+             case when v_ai_unpriced > 0 then ' '||v_ai_unpriced||' call(s) returned no usage, so their cost is unknown and this total is a lower bound.' else '' end||
              case when v_ai_models = 'none' then '. Every logged call resolved to model_used=''none'', so this zero is a real measured zero: the paid route was refused, not that the work was free.' else '.' end end)
   );
 
@@ -7727,16 +7734,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -7762,6 +7759,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 

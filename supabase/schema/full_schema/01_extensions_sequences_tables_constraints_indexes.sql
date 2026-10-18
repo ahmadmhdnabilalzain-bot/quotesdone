@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-13T02:22:21.916Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-13T04:10:09.117Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -802,8 +802,8 @@ CREATE TABLE IF NOT EXISTS public.ai_cost_log (
   could_be_cheaper boolean,
   cheaper_reason text,
   ok boolean DEFAULT true NOT NULL,
-  cached_in_tokens integer DEFAULT 0 NOT NULL,
-  cache_write_tokens integer DEFAULT 0 NOT NULL,
+  cached_in_tokens integer DEFAULT 0,
+  cache_write_tokens integer DEFAULT 0,
   generation_id text,
   cost_usd_reported numeric,
   seat text,
