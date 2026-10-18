@@ -73,7 +73,7 @@ export const SCENARIOS = [
   { key: 'S07', title: 'Quotes: every capable supplier invited (4 on the aluminium request, no count cap) and quoting, incomplete quote held with notes, revision releases it, PDF extraction', calls: [['json_extraction', 8, 6000, 1500], ['procurement_reasoning', 8, 4000, 800]] },
   { key: 'S08', title: 'Spec questions answered by the customer incl. "not sure" (spec offer / missing specs)', calls: [['sales_engineer_reasoning', 6, 3000, 600]] },
   { key: 'S09', title: 'Comparison report on the Opus route: top 3 + every other quote listed, EN and AR', calls: [['quote_comparison', 2, 20000, 6000], ['translation', 4, 6000, 6000]] },
-  { key: 'S10', title: 'Reveal with Stripe TEST: declined card refused, paid card reveals at 3% with no card surcharge, invoice + receipt, both parties notified (customer in their own language, supplier in EN)', calls: [['customer_communication', 4, 1500, 400], ['supplier_communication', 4, 1500, 400]] },
+  { key: 'S10', title: 'Reveal with Stripe TEST: declined card refused, paid card reveals at 3% with no card surcharge, invoice + receipt, both parties notified (customer in AR, supplier in EN)', calls: [['customer_communication', 4, 1500, 400], ['supplier_communication', 4, 1500, 400]] },
   { key: 'S11', title: 'Refund request -> accountant case -> CEO approval decision with reasons', calls: [['ceo_approval_decision', 1, 6000, 1000], ['seat_deliberation_blind', 1, 5000, 1000], ['seat_deliberation_compare', 1, 5000, 1000]] },
   { key: 'S12', title: 'Supplier non-response after reveal: watch opened, chase scheduled, non-response path recorded', calls: [['agent_reasoning', 2, 3000, 600]] },
   { key: 'S13', title: 'Chat: homepage widget EN + AR, customer portal chat, supplier portal chat, post-reveal messages', calls: [['visitor_chat', 4, 3000, 500], ['customer_portal_assistant', 2, 3000, 500], ['support_ai', 2, 3000, 500]] },
@@ -561,6 +561,31 @@ async function realRun(pre) {
       const toCust = n.filter((x) => x.to_email === cu.email), toSup = n.filter((x) => x.to_email !== cu.email);
       A('both parties notified', toCust.length > 0 && toSup.length > 0, `customer ${toCust.length}, supplier ${toSup.length}`);
       fx.revealed = { tx, top, inq };
+      // THE CUSTOMER IN AR. The aluminium request belongs to C1 (en), so an Arabic request is quoted and
+      // revealed too: its exact-trade supplier quotes in full and the Arabic customer pays with the TEST visa.
+      // Run 5 had no Arabic reveal at all; production had never sent an Arabic reveal_receipt (review of #1456).
+      const arInq = Object.values(fx.inq).find((x) => x.cu.cfg.locale === 'ar' && x.lang === 'ar' && x.trade !== 'aluminium'
+        && fx.suppliers.some((s) => s.trade === x.trade));
+      const arSup = arInq && fx.suppliers.find((s) => s.trade === arInq.trade);
+      let arReceipts = [];
+      if (arInq) {
+        run.ids.inquiries.add(String(arInq.id));
+        const sq = await call('supplier_api', arSup.jwt, quotePayload(arInq.id, 42000, 'ZZ DEMO quote for the Arabic customer'));
+        const arQ = (await read(`select id, status from public.quotes where inquiry_id=${q(arInq.id)} and supplier_id=${Number(arSup.leadId)} order by created_at desc limit 1`))[0];
+        if (arQ) run.ids.quotes.add(String(arQ.id));
+        if (arQ?.status === 'submitted') {
+          const t = await ct('pm_card_visa');
+          const pq = await call('stripe_checkout', arInq.cu.jwt, { action: 'element_quote', quote_id: arQ.id, confirmation_token: t });
+          const pay = await call('stripe_checkout', arInq.cu.jwt, { action: 'element_pay', quote_id: arQ.id, confirmation_token: t, expected_total_fils: pq.json?.total_fils });
+          const arTx = (await read(`select id from public.transactions where quote_id=${q(arQ.id)}`))[0];
+          if (arTx) run.ids.transactions.add(String(arTx.id));
+          A('the Arabic customer reveals with the TEST card', pay.json?.status === 'succeeded' && !!arTx, JSON.stringify(pay.json).slice(0, 200));
+          arReceipts = await read(`select id, channel, lang, subject, body from public.notifications where type='reveal_receipt' and quote_id=${q(arQ.id)}`);
+        } else A('the Arabic customer reveals with the TEST card', false, `quote HTTP ${sq.status} status=${arQ?.status} on ${arInq.trade}`);
+      }
+      A('the Arabic customer\'s reveal receipt is in Arabic', arReceipts.length > 0 && arReceipts.every((x) => x.lang === 'ar' && /[؀-ۿ]{3,}/.test(`${x.subject} ${x.body}`)),
+        arInq ? `${arReceipts.length} reveal_receipt(s), langs ${[...new Set(arReceipts.map((x) => x.lang))].join(',') || 'none'}` : 'no Arabic request with an exact-trade supplier reached S10');
+      fx.revealedAr = arReceipts;
     },
     S11: async () => {
       const { tx, inq } = need(fx.revealed?.tx && fx.revealed, 'no paid reveal (S10), so there is no transaction to refund');
@@ -978,8 +1003,11 @@ async function realRun(pre) {
     S24: async () => {
       // The Arabic half of S15, at the end of the run when Arabic customers have been sent something.
       const arMails = fx.customers.filter((c) => c.cfg.locale === 'ar').map((c) => String(c.email).toLowerCase());
-      const arN = arMails.length ? await read(`select id, type, subject, body, html from public.notifications where lower(to_email) in (${arMails.map(q).join(',')})`) : [];
-      A('an Arabic customer receives Arabic', arN.length > 0 && arN.every((x) => /[؀-ۿ]{3,}/.test(`${x.subject || ''} ${x.body || x.html || ''}`)), `${arN.length} notices to Arabic customers (${[...new Set(arN.map((x) => x.type))].join(',') || 'none'})`);
+      const arN = arMails.length ? await read(`select id, type, lang, subject, body, html from public.notifications where lower(to_email) in (${arMails.map(q).join(',')})`) : [];
+      const arReveal = arN.filter((x) => x.type === 'reveal_receipt');
+      A('an Arabic customer receives Arabic, including an Arabic reveal_receipt', arReveal.length > 0 && arN.length > 0
+        && arN.every((x) => /[؀-ۿ]{3,}/.test(`${x.subject || ''} ${x.body || x.html || ''}`)),
+        `${arN.length} notices to Arabic customers, ${arReveal.length} reveal_receipt (${[...new Set(arN.map((x) => x.type))].join(',') || 'none'})`);
       const fam = (m) => String(m || '').split('/')[0];
       const samples = (fx.chats || []).map((c) => ({ what: `${c.who} chat (${c.lang})`, q: c.msg, a: String(c.reply?.reply || c.reply?.answer || c.reply?.text || ''), producer: (c.route || '').split(' ').map((x) => x.split(':')[1]).filter(Boolean)[0] || 'openai/gpt-6-luna', lang: c.lang }));
       const alu = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
