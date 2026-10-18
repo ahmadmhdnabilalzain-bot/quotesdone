@@ -10,7 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey } from './slots.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor } from './slots.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -421,8 +421,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       const settled = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns));
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
       // The state's first askable question and its key: when that is the question asked, the key goes with it.
-      const askKeys = settled.missingKeys.filter((k) => !settled.exhausted.includes(k));
-      if (askKeys.length && settled.missing.length) slotAsk = { key: askKeys[0], text: settled.missing[0] };
+      slotAsk = slotAskOf(settled);
     }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
@@ -766,7 +765,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) nextQuestion = { key: requiredGate ? requiredGate.missing_keys[0] || null
       // Before a ready the gate is null; the slot state's key is named only when its question is the one asked
       // (a question the model wrote in its own words has no key we can vouch for). Run 321d13ae: key was always null.
-      : (slotAsk && String(out.questions[0]) === slotAsk.text ? slotAsk.key : null), text: String(out.questions[0]), options: null };
+      : slotKeyFor(slotAsk, String(out.questions[0])), text: String(out.questions[0]), options: null };
     // The readiness bar counts the sales engineer's questions from the first turn, so it never reads
     // 100% while something is still going to be asked, and remaining_questions lists every open
     // question in the customer's language, so the composer can show exactly what is left.
@@ -797,7 +796,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // harness answered hvac "system_type" and plumbing "fixture_count" with its whole sheet three times,
       // slots.ts held the intake for unanswered specs, and the run printed "held (held)" with no reason.
       missing_keys: missingKeys,
-      ...(status === 'held' && email.endsWith('@example.invalid') ? { held_reason: 'specs_unanswered: ' + (slotExhausted.join(',') || 'unknown') } : {}),
+      ...heldReasonFor(status, email, slotExhausted),
       agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 })));
