@@ -12,7 +12,9 @@ export type QuoteTemplate = { name: string; line_headings: string[] } & Record<(
 
 // Kept in step with the CHECK in the SQL file (fn_text_states_a_price). A percentage ("50% advance")
 // and a duration ("30 days") are not prices; a figure beside a currency or a per-unit rate is.
-const PRICE_RE = /(\b(aed|dhs?|dirhams?|usd|eur|gbp|sar)\b\s*[0-9])|([0-9][0-9,.]*\s*(\/-|\b(aed|dhs?|dirhams?|usd|eur|gbp|sar)\b))|(درهم\s*[0-9]|[0-9][0-9,.]*\s*درهم)|([0-9][0-9,.]*\s*\/\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)\b)/i;
+// The Arabic word for dirham is written as \u escapes: this pattern only refuses input, it is never
+// shown to a supplier, and the supplier files must carry no Arabic script (founder ruling 1008).
+const PRICE_RE = /(\b(aed|dhs?|dirhams?|usd|eur|gbp|sar)\b\s*[0-9])|([0-9][0-9,.]*\s*(\/-|\b(aed|dhs?|dirhams?|usd|eur|gbp|sar)\b))|(\u062F\u0631\u0647\u0645\s*[0-9]|[0-9][0-9,.]*\s*\u062F\u0631\u0647\u0645)|([0-9][0-9,.]*\s*\/\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)\b)/i;
 export const statesAPrice = (s: string): boolean => PRICE_RE.test(s);
 
 const txt = (v: unknown, max: number) => (typeof v === 'string' ? v : '').replace(/\s+/g, ' ').trim().slice(0, max);
