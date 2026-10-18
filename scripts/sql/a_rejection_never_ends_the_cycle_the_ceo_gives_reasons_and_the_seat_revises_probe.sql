@@ -218,7 +218,12 @@ begin
   select string_agg(decision || '#' || round, ',' order by round) into v_decs from public.ceo_decision_round where item_key = 'refunds:' || v_rf1;
   r := r || jsonb_build_object('refund_cycle', v_decs, 'refund_status', (select status || ':' || (refund_decision_id is not null) from public.refunds where id = v_rf1));
   if v_decs is distinct from 'rejected#1,approved#2' then v_bad := v_bad || ('refund_history:' || coalesce(v_decs, 'none')); end if;
-  if (select status from public.refunds where id = v_rf1) <> 'requested' or (select refund_decision_id from public.refunds where id = v_rf1) is null then
+  -- Since #1138 the approval goes through fn_refund_decide (the one decision + the second seat), which moves the
+  -- refund to 'approved' - not 'requested' as before. 'approved' is still before money: only 'processing' /
+  -- 'succeeded' or a Stripe refund id means money moved (outcome audit 30 Sep 2026, measured: approved, dec linked,
+  -- stripe_refund_id null).
+  if (select status from public.refunds where id = v_rf1) <> 'approved' or (select refund_decision_id from public.refunds where id = v_rf1) is null
+     or (select stripe_refund_id from public.refunds where id = v_rf1) is not null then
     v_bad := v_bad || 'refund_approval_not_linked_or_money_moved'::text;
   end if;
 

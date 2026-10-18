@@ -7,9 +7,10 @@
     {
       "id": "laundry_equipment:uae-market-products",
       "topic": "Commercial laundry equipment: products, variants and grades sold in the UAE",
+      "topic_ar": "معدات المغاسل التجارية: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Laundry equipment sold in the UAE includes commercial washer-extractors (hard-mount and soft-mount, high G-force 200-450 G), tumble dryers (gas, electric, steam, heat pump), flatwork ironers, chest ironers, folding machines, tunnel washers for central laundries, dry cleaning machines (perchloroethylene and hydrocarbon/solvent alternatives), finishing equipment (form finishers, tensioning cabinets, pressing tables, steam boilers), coin/card-operated vended laundry machines for buildings and labour accommodation, chemical dosing pumps, trolleys and sorting equipment. Buyers specify load capacity (kg), heating type, voltage (400 V three-phase), water and energy consumption, programmability, barrier washers for healthcare (infection control separation), and compliance with CE and IEC 60335-2-122 for commercial washing machines (IEC 60335-2-7 covers household machines). Installations need drainage, ventilation, and in Dubai Civil Defence approval for gas dryers and Dubai Municipality environment rules for dry cleaning solvents.",
-      "body_ar": "تشمل معدات الغسيل المباعة في الإمارات غسالات-عصارات تجارية (مثبتة صلباً ومرنة التثبيت، بقوة طرد عالية 200-450 G)، ومجففات دوارة (غاز، كهرباء، بخار، مضخة حرارية)، ومكاوي البياضات المسطحة، والمكاوي الأسطوانية، وآلات الطي، والغسالات النفقية للمغاسل المركزية، وآلات التنظيف الجاف (البيركلوروإيثيلين والبدائل الهيدروكربونية)، ومعدات التشطيب (آلات تشكيل الملابس، وخزائن الشد، وطاولات الكي، وغلايات البخار)، وآلات الغسيل العاملة بالعملة أو البطاقة للمباني وسكن العمال، ومضخات جرعات الكيماويات، والعربات ومعدات الفرز. يحدد المشترون سعة الحمولة (كغ)، ونوع التسخين، والجهد (400 فولت ثلاثي الطور)، واستهلاك المياه والطاقة، وقابلية البرمجة، والغسالات الحاجزة للرعاية الصحية (فصل مكافحة العدوى)، والامتثال لعلامة CE ومعيار IEC 60335-2-122 للغسالات التجارية (ويغطي IEC 60335-2-7 الغسالات المنزلية). وتحتاج التركيبات إلى تصريف وتهوية، وفي دبي إلى موافقة الدفاع المدني للمجففات الغازية وقواعد بلدية دبي البيئية لمذيبات التنظيف الجاف.",
+      "body_en": "This entry covers commercial laundry equipment sold in the UAE: washer-extractors, dryers, ironers, folders, tunnel washers, dry cleaning and finishing machines, vended machines, and what buyers specify. Laundry equipment sold in the UAE includes commercial washer-extractors (hard-mount and soft-mount, high G-force 200-450 G), tumble dryers (gas, electric, steam, heat pump), flatwork ironers, chest ironers, folding machines, tunnel washers for central laundries, dry cleaning machines (perchloroethylene and hydrocarbon/solvent alternatives), finishing equipment (form finishers, tensioning cabinets, pressing tables, steam boilers), coin/card-operated vended laundry machines for buildings and labour accommodation, chemical dosing pumps, trolleys and sorting equipment. Buyers specify load capacity (kg), heating type, voltage (400 V three-phase), water and energy consumption, programmability, barrier washers for healthcare (infection control separation), and compliance with CE and IEC 60335-2-122 for commercial washing machines (IEC 60335-2-7 covers household machines). Installations need drainage, ventilation, and in Dubai Civil Defence approval for gas dryers and Dubai Municipality environment rules for dry cleaning solvents.",
+      "body_ar": "تشمل معدات المغاسل التجارية في السوق الإماراتي الغسالات العصّارة والنشافات والمكاوي الأسطوانية وآلات الطي وغسالات النفق وآلات التنظيف الجاف والكي والتشطيب والآلات العاملة بالعملة، مع المواصفات التي يحددها المشتري عند الطلب. وتضم: غسالات عصّارة تجارية (مثبتة بالأرض أو بتعليق مرن، بقوة طرد عالية 200 إلى 450 G)، ونشافات دوارة (غاز، أو كهرباء، أو بخار، أو مضخة حرارية)، ومكاوي أسطوانية للمفروشات، ومكاوي صدرية، وآلات طي، وغسالات نفق للمغاسل المركزية، وآلات تنظيف جاف (بالبيركلوروإيثيلين أو بالهيدروكربون والمذيبات البديلة)، ومعدات التشطيب (قوالب الكي، وخزائن الشد، وطاولات الكي، وغلايات البخار)، وغسالات ذاتية الخدمة تعمل بالعملة أو البطاقة للمباني وسكن العمال، ومضخات حقن الكيماويات، والعربات ومعدات الفرز. يحدد المشتري سعة الحمولة (كجم)، ونوع التسخين، والجهد (400 فولت ثلاثي الطور)، واستهلاك المياه والطاقة، وقابلية البرمجة، والغسالات العازلة للمنشآت الصحية (للفصل بهدف مكافحة العدوى)، والمطابقة لـ CE وIEC 60335-2-122 للغسالات التجارية (أما IEC 60335-2-7 فتغطي الغسالات المنزلية). يحتاج التركيب إلى تصريف وتهوية، وفي دبي إلى موافقة الدفاع المدني لنشافات الغاز، والالتزام بقواعد بلدية دبي البيئية بشأن مذيبات التنظيف الجاف.",
       "sources": [
         "https://webstore.iec.ch/en/publication/80076",
         "https://www.electroluxprofessional.com/me/contact-us/",
@@ -25,9 +26,10 @@
     {
       "id": "laundry_equipment:uae-market-brands",
       "topic": "Commercial laundry equipment: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "معدات المغاسل التجارية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Brands commonly sold: Electrolux Professional, Miele Professional, Girbau, Primus, IPSO, Speed Queen, UniMac, Jensen, Kannegiesser, Union, Renzacci. Electrolux Professional has its own Middle East office in Dubai; the other brands' UAE dealers were not checked. Dealers and service companies are found in Al Quoz, Deira, Sharjah and Musaffah.",
-      "body_ar": "العلامات المباعة عادةً: Electrolux Professional، Miele Professional، Girbau، Primus، IPSO، Speed Queen، UniMac، Jensen، Kannegiesser، Union، Renzacci. ولدى إلكترولوكس بروفيشنال مكتب خاص للشرق الأوسط في دبي؛ ولم يُتحقق من وكلاء العلامات الأخرى في الإمارات. ويوجد الوكلاء وشركات الخدمة في القوز وديرة والشارقة ومصفح.",
+      "body_en": "This entry lists laundry equipment brands commonly sold, such as Electrolux Professional, Miele Professional, Girbau and Speed Queen, and where dealers and service companies are found. Brands commonly sold: Electrolux Professional, Miele Professional, Girbau, Primus, IPSO, Speed Queen, UniMac, Jensen, Kannegiesser, Union, Renzacci. Electrolux Professional has its own Middle East office in Dubai; the other brands' UAE dealers were not checked. Dealers and service companies are found in Al Quoz, Deira, Sharjah and Musaffah.",
+      "body_ar": "أكثر علامات معدات المغاسل مبيعاً Electrolux Professional وMiele Professional وGirbau وSpeed Queen، مع بيان أماكن الوكلاء وشركات الصيانة. والعلامات الشائعة في السوق: Electrolux Professional وMiele Professional وGirbau وPrimus وIPSO وSpeed Queen وUniMac وJensen وKannegiesser وUnion وRenzacci. ولشركة Electrolux Professional مكتبها الخاص للشرق الأوسط في دبي، ولم نتحقق من وكلاء العلامات الأخرى في الإمارات. ويوجد الوكلاء وشركات الصيانة في القوز وديرة والشارقة ومصفح.",
       "sources": [
         "https://webstore.iec.ch/en/publication/80076",
         "https://www.electroluxprofessional.com/me/contact-us/",
@@ -43,9 +45,10 @@
     {
       "id": "laundry_equipment:uae-market-sizes",
       "topic": "Commercial laundry equipment: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "معدات المغاسل التجارية: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Machines are priced per unit by capacity (washers 8-120 kg, dryers 10-100+ kg, ironers by roll width 1.6-3.5 m and diameter). Complete laundry projects are quoted as a lump sum with layout design, installation and commissioning. Vended laundry is often offered on revenue-share or rental per machine per month. AMCs are priced per year; spare parts per item.",
-      "body_ar": "تُسعّر الآلات لكل وحدة حسب السعة (غسالات 8-120 كغ، ومجففات 10-100 كغ فأكثر، ومكاوٍ حسب عرض الأسطوانة 1.6-3.5 م وقطرها). وتُسعّر مشاريع المغاسل الكاملة كمبلغ مقطوع يشمل تصميم المخطط والتركيب والتشغيل. وغالباً ما تُقدَّم مغاسل الخدمة الذاتية بنظام تقاسم الإيرادات أو الإيجار لكل آلة شهرياً. وتُسعّر عقود الصيانة سنوياً، وقطع الغيار لكل بند.",
+      "body_en": "This entry explains how laundry equipment is priced: machines per unit by capacity, complete projects as a lump sum, vended laundry on revenue-share or rental, AMCs per year, spares per item. Machines are priced per unit by capacity (washers 8-120 kg, dryers 10-100+ kg, ironers by roll width 1.6-3.5 m and diameter). Complete laundry projects are quoted as a lump sum with layout design, installation and commissioning. Vended laundry is often offered on revenue-share or rental per machine per month. AMCs are priced per year; spare parts per item.",
+      "body_ar": "تُسعَّر معدات المغاسل كالتالي: الماكينات بالوحدة حسب السعة، والمشاريع المتكاملة بمبلغ مقطوع، والمغاسل الذاتية بمشاركة الإيراد أو بالإيجار، وعقود الصيانة السنوية بالسنة، وقطع الغيار بالقطعة. تُسعَّر الماكينات بالوحدة حسب السعة (الغسالات 8-120 كغ، والنشافات 10-100 كغ وأكثر، ومكاوي الأسطوانة حسب عرض الأسطوانة 1.6-3.5 م وقطرها). وتُسعَّر مشاريع المغاسل المتكاملة بمبلغ مقطوع يشمل تصميم المخطط والتركيب والتشغيل. وكثيرًا ما تُقدَّم المغاسل الذاتية (vended) بمشاركة الإيراد أو بإيجار شهري لكل ماكينة. وعقود الصيانة السنوية (AMC) بالسنة، وقطع الغيار بالقطعة.",
       "sources": [
         "https://webstore.iec.ch/en/publication/80076",
         "https://www.electroluxprofessional.com/me/contact-us/",
@@ -61,11 +64,15 @@
   ],
   "eval": [
     {
-      "q_en": "What capacity washer-extractor does a 150-room hotel laundry typically need?",
-      "q_ar": "ما سعة الغسالة-العصارة التي تحتاجها عادةً مغسلة فندق من 150 غرفة؟",
+      "q_en": "For a wash house, which drum capacities in kilograms are common in machines around here?",
+      "q_ar": "لمغسلة، أي سعات حلة بالكيلو هي المنتشرة في الغسالات هنا؟",
       "expected_entry_ids": [
         "laundry_equipment:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry gives washer and dryer capacities in kg.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.143,
+      "word_overlap_after_enrichment": 0.143
     }
   ],
   "verified": {

@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "device_repair:oem-vs-aftermarket-parts-warranty",
+      "topic": "Genuine vs aftermarket parts and warranty",
+      "kind": "warranty_reference",
+      "body_en": "Under a 2017 internal Apple memo (reported by MacRumors), a third-party screen does not automatically void the warranty: for a non-display issue, Apple inspects the device for fraud or tampering and then repairs or swaps it at in-warranty pricing. Replacing the third-party screen with a genuine one is charged at out-of-warranty prices, and if the third-party repair damaged other components Apple may void coverage. Authorised providers must decline iPhones with third-party enclosures, logic boards, batteries or Lightning connectors that have functional failures. Coverage applies only within the original warranty period. Not established: Apple's current policy and UAE warranty wording; check Apple's local terms.",
+      "body_ar": "بموجب مذكرة داخلية من Apple صدرت عام 2017 (نقلها موقع MacRumors)، لا تُلغي الشاشة غير الأصلية الضمان تلقائيًا: ففي حال عطل لا يتعلق بالشاشة، تفحص Apple الجهاز بحثًا عن أي احتيال أو عبث ثم تصلحه أو تستبدله بأسعار الضمان. ويُحتسب استبدال الشاشة غير الأصلية بأخرى أصلية بأسعار ما بعد الضمان، وإذا تسبب الإصلاح لدى طرف ثالث في تلف مكونات أخرى فيحق لـApple إلغاء التغطية. ويجب على مقدمي الخدمة المعتمدين رفض خدمة أجهزة iPhone المزودة بهياكل أو لوحات أم أو بطاريات أو منافذ Lightning غير أصلية تعاني أعطالًا وظيفية. وتسري التغطية فقط خلال فترة الضمان الأصلية. غير مثبت: سياسة Apple الحالية وصياغة الضمان في الإمارات؛ راجع الشروط المحلية لـApple.",
+      "sources": [
+        "https://eshop.macsales.com/blog/40117-apple-memo-third-party-iphone-screen-repairs-no-longer-fully-void-warranty/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "device_repair:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Will an iPhone screen repaired with a non-genuine part lose Apple warranty?",
+      "q_ar": "هل يفقد هاتف آيفون ضمان أبل إذا أُصلحت شاشته بقطعة غير أصلية؟",
+      "expected_entry_ids": [
+        "device_repair:oem-vs-aftermarket-parts-warranty"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither addresses manufacturer warranty effect of non-genuine parts; missing: OEM vs aftermarket parts and warranty entry). device_repair:oem-vs-aftermarket-parts-warranty was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from device_repair.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "device_repair:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "device_repair:oem-vs-aftermarket-parts-warranty"
+    ]
   }
 }

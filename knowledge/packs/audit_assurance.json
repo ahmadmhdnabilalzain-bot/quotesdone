@@ -42,6 +42,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "audit_assurance:free-zone-approved-auditor-panels",
+      "topic": "Free-zone approved auditor lists (DMCC example)",
+      "kind": "regulatory_rule",
+      "body_en": "DMCC is a documented case of a free zone that restricts statutory audits to an approved list. Under the DMCCA Approved Auditor Rules (effective 1 February 2019), a member company must ensure the audit firm it engages appears on the Approved Auditor List at the time of engagement or renewal. If a company submits audited financial statements with a report from a non-approved auditor, DMCCA may reject the submission and impose sanctions, and the company must resubmit with an approved auditor's report. The Rules do not apply to a branch whose accounts are prepared within group accounts by the parent's group auditor, but a branch audited on a standalone basis must use an approved auditor. DMCC's guidance note requires listed firms to hold a valid UAE trade licence permitting auditing, a physical location in the UAE and an audit partner with valid Ministry of Economy accreditation, with appointment renewed every 12 months, and requires accounts to be audited by a DMCCA-approved auditor within six months of the financial year end. Not established here: the regimes of other free zones such as JAFZA, DIFC or ADGM.",
+      "body_ar": "تُعدّ DMCC حالة موثّقة لمنطقة حرة تقصر التدقيق القانوني على قائمة معتمدة. فبموجب قواعد المدققين المعتمدين لدى سلطة DMCC (السارية اعتباراً من 1 فبراير 2019)، يجب على الشركة العضو التأكد من أن شركة التدقيق التي تتعاقد معها مدرجة في قائمة المدققين المعتمدين وقت التعاقد أو التجديد. وإذا قدّمت الشركة بيانات مالية مدققة تتضمن تقريراً من مدقق غير معتمد، يحق للسلطة رفض التقديم وفرض جزاءات، وعلى الشركة إعادة التقديم بتقرير من مدقق معتمد. ولا تنطبق القواعد على الفرع الذي تُعدّ حساباته ضمن الحسابات المجمّعة من قبل مدقق مجموعة الشركة الأم، لكن الفرع الذي يُدقَّق بشكل مستقل يجب أن يستعين بمدقق معتمد. وتشترط مذكرة التوجيه الصادرة عن DMCC أن تحمل الشركات المدرجة رخصة تجارية سارية في الإمارات تسمح بالتدقيق، وأن يكون لها مقر فعلي في الدولة، وشريك تدقيق معتمد من وزارة الاقتصاد، مع تجديد التعيين كل 12 شهراً، كما تشترط تدقيق الحسابات من قبل مدقق معتمد من السلطة خلال ستة أشهر من نهاية السنة المالية. غير مثبت هنا: الأنظمة المطبقة في المناطق الحرة الأخرى مثل جافزا ومركز دبي المالي العالمي وسوق أبوظبي العالمي.",
+      "sources": [
+        "https://dmcc.ae/hubfs/2509857/C5-Migrated-Files/All-Files/DMCC_Approved_Auditor_Rules.pdf",
+        "https://dmcc.ae/hubfs/website%20support%20documents/AAR%20-%20Guidance%20Note.pdf?hsLang=en"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +72,15 @@
       "expected_entry_ids": [
         "audit_assurance:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does our free-zone company need an auditor from the free zone's approved list?",
+      "q_ar": "هل تحتاج شركتنا في المنطقة الحرة إلى مدقق من القائمة المعتمدة لدى المنطقة الحرة؟",
+      "expected_entry_ids": [
+        "audit_assurance:free-zone-approved-auditor-panels"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither addresses free-zone approved-auditor lists (standards entry only covers Ministry of Economy registration); missing: free-zone auditor panel rules). audit_assurance:free-zone-approved-auditor-panels was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from audit_assurance.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +96,9 @@
       "audit_assurance:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "audit_assurance:free-zone-approved-auditor-panels"
+    ]
   }
 }

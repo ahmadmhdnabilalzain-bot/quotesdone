@@ -41,6 +41,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "fasteners_fixings:flange-stud-bolting-b7-2h",
+      "topic": "Flange stud bolting: ASTM A193 B7 with A194 2H",
+      "kind": "spec_checklist",
+      "body_en": "For bolted flanges in oil and gas piping, the common bolting set is an ASTM A193 Grade B7 stud with ASTM A194 Grade 2H heavy hex nuts; 2H is by far the most purchased nut in oil and gas piping because it matches the B7 stud. B7 is a chromium-molybdenum alloy steel, quenched and tempered, and the 2H nut is used across about -29 C to 450 C. For sour service under NACE MR0175, specify A193 B7M studs with A194 2HM nuts, which have restricted hardness (22 HRC maximum) to prevent hydrogen embrittlement. Standard ASTM A563 nuts do not meet A194 hardness or proof-load requirements and can strip before the bolt reaches design load, so commercial hardware nuts are unsuitable for pressure service. Ask for EN 10204 3.1 mill test certificates showing chemical composition, hardness and proof-load results by heat number. Not established here: stud length rules and coating requirements.",
+      "body_ar": "في الشفّات (الفلنجات) المربوطة بالمسامير في أنابيب النفط والغاز، مجموعة الربط الشائعة هي مسمار ملولب (ستاد) وفق ASTM A193 الدرجة B7 مع صواميل سداسية ثقيلة وفق ASTM A194 الدرجة 2H؛ والدرجة 2H هي الأكثر شراءً بفارق كبير في أنابيب النفط والغاز لأنها تطابق مسمار B7. الدرجة B7 فولاذ سبائكي من الكروم والموليبدينوم، مُخمَّد ومُطبَّع، وتُستخدم صامولة 2H في نطاق يقارب -29 إلى 450 درجة مئوية. وفي الخدمة الحامضة وفق NACE MR0175 تُحدَّد مسامير A193 B7M مع صواميل A194 2HM ذات الصلادة المحدودة (22 HRC كحد أقصى) لمنع التقصف الهيدروجيني. صواميل ASTM A563 القياسية لا تحقق متطلبات الصلادة وحمل الإثبات في A194 وقد تنزع أسنانها قبل بلوغ المسمار حمل التصميم، لذا فصواميل العُدد التجارية غير مناسبة لخدمة الضغط. اطلب شهادات اختبار المصنع وفق EN 10204 3.1 تبيّن التركيب الكيميائي والصلادة ونتائج حمل الإثبات حسب رقم الصبّة. غير مثبت هنا: قواعد طول المسمار ومتطلبات الطلاء.",
+      "sources": [
+        "https://blog.projectmaterials.com/quick-answers/gaskets-bolts/what-is-astm-a194/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "fasteners_fixings:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What stud bolt grade is normal for oil and gas flanges?",
+      "q_ar": "ما درجة المسامير الملولبة المعتادة لفلنجات النفط والغاز؟",
+      "expected_entry_ids": [
+        "fasteners_fixings:flange-stud-bolting-b7-2h"
+      ],
+      "why": "No entry of this pack answered it (no entry names ASTM A193 B7 / A194 2H stud bolting for flanges; the checklist uses ISO 4014 generically (the oilfield pack covers it, not this trade)). fasteners_fixings:flange-stud-bolting-b7-2h was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from fasteners_fixings.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "fasteners_fixings:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "fasteners_fixings:flange-stud-bolting-b7-2h"
+    ]
   }
 }

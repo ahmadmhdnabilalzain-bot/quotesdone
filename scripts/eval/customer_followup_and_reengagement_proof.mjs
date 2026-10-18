@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const { sql } = await import('../lib/db.mjs');
@@ -129,7 +130,7 @@ end $p$;
 `;
 
 let o;
-try { await sql(replay.join('\n') + '\n' + PROBE, { retry: false }); }
+try { await replaySql(replay.join('\n') + '\n' + PROBE, { retry: false }); }
 catch (e) {
   const m = String(e.message).match(/CHK<<(.*?)>>/s);
   if (!m) { console.error('the probe failed before it could report:', String(e.message).slice(0, 1500)); process.exit(1); }

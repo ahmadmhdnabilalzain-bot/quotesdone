@@ -120,7 +120,7 @@ if (at >= 0) {
   L.push(`--   3. The decision_policy keys the seats and routines read for each figure.`);
   L.push(`-- WHAT THIS DOES NOT CHANGE: how a charge is computed (see the file for the version-aware administrative fee).`);
   L.push(`-- It ends with a verdict row; apply_sql.mjs exits 3 on PROBE FAILED.`);
-  L.push('', 'begin;', '');
+  L.push('', '-- no begin/commit: the applier runs the file as one transaction, and a replaying check must never commit it', '');
   const docs = [];
   for (const [k, d] of Object.entries(F.documents)) if (d.page_slug) {
     const n = d.version.replace(/^v/, '');
@@ -156,7 +156,7 @@ if (at >= 0) {
   const checks = docs.map(({ d, sha: h }) => `(select count(*) = 1 from public.legal_documents where slug = '${d.registry_slug}' and version = '${d.version}' and content_sha256 = '${h}')`);
   checks.push(...docs.map(({ d }) => `(select value from public.app_secrets where key = '${d.secrets.version[0]}') = '${d.version}'`));
   L.push(`select case when ${checks.join('\n   and ')}\n  then 'PROBE OK' else 'PROBE FAILED: the registry does not carry the generated bodies and versions' end as verdict;`);
-  L.push('', 'commit;', '');
+  L.push('');
   writeFileSync(new URL(file, ROOT), L.join('\n'));
   console.log(`wrote ${file}: ${docs.length} signed document(s), ${rows.length} knowledge row(s)`);
   process.exit(0);

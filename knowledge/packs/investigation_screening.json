@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "investigation_screening:criminal-record-good-conduct-certificate",
+      "topic": "Criminal record checks via good conduct certificates",
+      "kind": "regulatory_note",
+      "body_en": "From 4 February 2018, employers sponsoring residence visas for non-UAE national employees must submit a good conduct certificate with the employment visa application, throughout the UAE including free zones. The certificate comes from the employee's home country or country of residence for the five years before the application, notarised there and authenticated by that country's Ministry of Foreign Affairs, the UAE Embassy for that country, and finally the UAE Ministry of Foreign Affairs and International Cooperation. It is required only for the employment visa, not for dependants' visas, transit or visit visas. Screening providers therefore work with certificates the candidate obtains. Not established here: the issuing route for UAE police clearance certificates, and whether any licence lets a private screening firm query UAE criminal records directly.",
+      "body_ar": "اعتباراً من 4 فبراير 2018، يتعين على أصحاب العمل الذين يكفلون تأشيرات إقامة لموظفين من غير مواطني الدولة تقديم شهادة حسن سيرة وسلوك مع طلب تأشيرة العمل، في جميع أنحاء الدولة بما فيها المناطق الحرة. تصدر الشهادة من بلد الموظف الأصلي أو بلد إقامته خلال السنوات الخمس السابقة للطلب، وتُوثَّق لدى كاتب العدل هناك ثم تُصدَّق من وزارة خارجية ذلك البلد، فسفارة الدولة في ذلك البلد، وأخيراً وزارة الخارجية والتعاون الدولي في الدولة. وهي مطلوبة لتأشيرة العمل فقط، وليست مطلوبة لتأشيرات المُعالين أو العبور أو الزيارة. ولذلك تعمل شركات التحقق من الخلفية بالشهادات التي يستخرجها المرشح. لم يثبت هنا: آلية إصدار شهادات حسن السيرة من شرطة الدولة، ولا وجود ترخيص يتيح لشركة تحقق خاصة الاطلاع مباشرة على السجلات الجنائية في الدولة.",
+      "sources": [
+        "https://afridi-angell.com/certificate-of-good-conduct-required-for-all-uae-employment-visas/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "investigation_screening:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Can a background screening company check a candidate's criminal record in the UAE?",
+      "q_ar": "هل يمكن لشركة الفحص الخلفي التحقق من السجل الجنائي للمرشح في الإمارات؟",
+      "expected_entry_ids": [
+        "investigation_screening:criminal-record-good-conduct-certificate"
+      ],
+      "why": "No entry of this pack answered it (the standards entry says sources do not establish what screening may check; nothing on criminal-record / police clearance checks). investigation_screening:criminal-record-good-conduct-certificate was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from investigation_screening.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "investigation_screening:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "investigation_screening:criminal-record-good-conduct-certificate"
+    ]
   }
 }

@@ -26,14 +26,16 @@
 // CEILING (stated, not hidden): meaning reads at most MEANING_MAX_LINES clauses per call, and a caller reading
 // several documents shares one budget of that size (each clause is one embed_ml call; service_meaning.ts has the
 // measurement). The clauses holding a service head word go first (meaningCandidates).
-import { MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning, type MeaningService } from './service_meaning.ts';
+import { contentWords, MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning, type MeaningService } from './service_meaning.ts';
 import { splitPhrases } from './service_rewrite.ts';
 import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
-import { serviceVocab } from './service_vocabulary.ts';
+import { serviceVocab, tradeArNameVocab, tradeLabelVocab } from './service_vocabulary.ts';
+import { isNameOrReachLine, saysInstallWork, supplyOnlyOf } from './catalogue_read.ts';
+import { NAME_LABELS } from './document_expiry.ts';
 
 export type TradeHit = {
   code: string;
-  via: 'exact_code' | 'meaning';
+  via: 'exact_code' | 'exact_name' | 'meaning';
   /** what named it: the exact phrase, or the service the line means (its English label, lower case) */
   phrases: string[];
   /** the supplier's own line it was found on */
@@ -55,7 +57,70 @@ export type TradeResolveDeps = {
   embed: Embedder;
   /** Lines meaning may still read in this request, shared by every text read with these deps. */
   budget: { left: number };
+  /** taxonomy_trade code -> its English label: lets meaning accept a line naming a trade in general (service_meaning.proposeByMeaning). */
+  tradeLabels?: Record<string, string>;
+  /** taxonomy_trade code -> its Arabic name (label_ar): the exact-name path for an Arabic work clause. */
+  tradeNamesAr?: Record<string, string>;
 };
+
+// ── THE TRADE'S OWN ARABIC NAME (12 Oct 2026, sales_engineer) ─────────────────────────────────────────────────────
+// A UAE licence often prints its activities in Arabic only. Meaning cannot confirm them: on the e5 vectors the
+// activity "أعمال الألمنيوم" scores 0.868, the company name "فالكون الألمنيوم ذ.م.م" 0.850 and the metal trader
+// "تجارة الألمنيوم والنحاس" 0.862 (ML_FLOOR 0.83) - no separation. So an Arabic clause is read by NAME, exactly:
+//   * the clause is WORK (catalogue_read's own install/contracting words: أعمال، مقاولات، تركيب ...) and not
+//     supply-only - a company name and a trading clause ("تجارة ...") name no work and propose nothing;
+//   * it holds a WHOLE part of the trade's own Arabic name (taxonomy_trade.label_ar, work words left out): the first
+//     part whole, one word or several ("الأعمال الكهربائية" -> كهربائية; "تنسيق الحدائق" both words), or a later
+//     part of several words whole ("أدوات صحية"). No single word of a longer part decides: "أعمال تنسيق المشاريع" is
+//     not landscaping, "تركيب أدوات المطبخ" not plumbing, "أعمال التشطيبات الداخلية" not painting (review of #1312);
+//   * a name two trades share decides nothing - unless one of them puts its CODE at that part of its English
+//     name ("Aluminium & cladding" / "الألمنيوم والتكسية"): الألمنيوم is the aluminium trade, not non_ferrous_metals
+//     ("الألمنيوم والنحاس والمعادن غير الحديدية").
+// Words fold like contentWords (letters, ال) and nothing else: no plural folding, so "الدهان" is not "الدهانات".
+// ponytail: Arabic clauses only, and only by the names in the table; a supplier's word the table's name lacks is
+// reached by correcting the trade's Arabic name, never by a list here.
+const arWords = (s: string) => contentWords(s);
+const AR_PART = /[\u060C,&()/]|\s+\u0648\s*|\s+(?=\u0648\u0627\u0644)/;   // the Arabic comma, or the joining "and"
+const isArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+
+/** Arabic head word -> the ONE trade it names (see above). */
+export function arabicNameHeads(labelsAr: Record<string, string>, labelsEn: Record<string, string> = {}): Map<string, string> {
+  const claims = new Map<string, Set<string>>(), codeOf = new Map<string, string>();
+  for (const [code, ar] of Object.entries(labelsAr)) {
+    const arParts = String(ar ?? '').split(AR_PART).map((p) => arWords(p.replace(/^\u0648(?=\u0627\u0644)/, '')).filter((w) => !saysInstallWork(w)));
+    const enParts = String(labelsEn[code] ?? '').split(/[&,()/]| and /).map((p) => contentWords(p));
+    const cw = contentWords(code.replace(/_/g, ' '));
+    arParts.forEach((p, i) => {
+      if (!p.length) return;
+      // The trade is named only by a WHOLE part of its name: the first part (one word or several - "تنسيق الحدائق",
+      // never "تنسيق" alone: "أعمال تنسيق المشاريع" is not landscaping), or a later part of several words. A word of a
+      // later part never decides alone: "تركيب أدوات المطبخ" is not plumbing, "أعمال التشطيبات الداخلية" is not painting.
+      const whole = p.join(' ');
+      // A one-word later part is a single word of the name, so it decides nothing either ("التشطيبات").
+      for (const k of new Set(i === 0 || p.length > 1 ? [whole] : [])) {
+        if (!claims.has(k)) claims.set(k, new Set());
+        claims.get(k)!.add(code);
+      }
+      if (cw.length === 1 && enParts.length === arParts.length && enParts[i]?.length === 1 && enParts[i][0] === cw[0]) codeOf.set(whole, code);
+    });
+  }
+  const out = new Map<string, string>();
+  for (const [h, codes] of claims) {
+    if (codes.size === 1) out.set(h, [...codes][0]);
+    else if (codeOf.has(h)) out.set(h, codeOf.get(h)!);
+  }
+  return out;
+}
+
+/** The trades an Arabic WORK clause names by a trade's own Arabic name; [] for anything else. */
+export function tradesByArabicName(clause: string, heads: Map<string, string>): { code: string; word: string }[] {
+  if (!isArabic(clause) || !saysInstallWork(clause) || supplyOnlyOf(clause).supply_only) return [];
+  const seen = new Map<string, string>();
+  // the name's words IN ORDER and side by side: "أعمال تنسيق المشاريع والحدائق" holds تنسيق and حدائق, not "تنسيق الحدائق"
+  const seq = ` ${arWords(clause).join(' ')} `;
+  for (const [k, c] of heads) if (!seen.has(c) && seq.includes(` ${k} `)) seen.set(c, k);
+  return [...seen].map(([code, word]) => ({ code, word }));
+}
 
 // A code or slug is a few words at most ("engineering and architectural consultancies" is the longest slug).
 export const EXACT_MAX_WORDS = 5;
@@ -78,11 +143,70 @@ export function exactCandidates(lines: string[]): string[] {
   return [...out];
 }
 
+// A NAME PRINTED WITHOUT A LEGAL SUFFIX (12 Oct 2026, unsuffixed-names). isNameOrReachLine knows a name only by its
+// suffix, so "ZZ DEMO Falcon Cleaning" still proposed cleaning. A name is known two more ways, both exact:
+//   the LAYOUT  a line that is a labelled name field ("Company Name:", "Trade Name:", "الاسم التجاري:" - the labels
+//               document_expiry reads the licence's name by) is a name, whatever follows the label;
+//   the NAMES   the supplier's registered company name, the licence's legal name (read by code or by the model) and
+//               the names the document's own name fields print: wherever one occurs in a line it is cut out, with or
+//               without its legal suffix, and the rest of the line is still read ("ZZ DEMO Falcon Cleaning provides
+//               painting works" keeps "provides painting works"). Nothing similar is guessed: only the exact name.
+const LEGAL_SUFFIX = /[\s,.\-]*(?:l\.?\s?l\.?\s?c\.?|fz[\s-]?llc|fze|fzco|est\.?|establishment|\u0630\s?\.?\s?\u0645\s?\.?\s?\u0645\.?)\s*$/iu;
+const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const NAME_FIELD = new RegExp('^\\s*(?:' + NAME_LABELS.map(escRe).join('|') + ')(?![\\p{L}])\\s*[:：\\-]?', 'iu');
+export const isNameField = (line: string): boolean => NAME_FIELD.test(line);
+/** Each name as printed and without its legal suffix; a form shorter than five characters is not used. */
+export function nameForms(names: (string | null | undefined)[]): string[] {
+  const out = new Set<string>();
+  for (const n of names) {
+    let f = String(n ?? '').replace(/\s+/g, ' ').trim();
+    while (f) {
+      if (f.length >= 5 && /\p{L}{2}/u.test(f)) out.add(f.toLowerCase());
+      const cut = f.replace(LEGAL_SUFFIX, '').trim();
+      if (cut === f) break;
+      f = cut;
+    }
+  }
+  return [...out].sort((a, b) => b.length - a.length);
+}
+// THE DOCUMENT'S TITLE (12 Oct 2026, sandbox run 1c94fa6a S21). A profile headed "ZZ DEMO Falcon Cleaning - Company
+// Profile" proposed cleaning for three suppliers whose own names are different (Palm Glass, ...): the known names above
+// are the SUPPLIER's, so a profile printing another name kept it. The title layout is exact: "<name> - Company Profile"
+// or "Company Profile - <name>" (separator - – — | :). The line names the company, and that name is cut wherever else
+// the document prints it, like a known name.
+const PROFILE_TITLE = [/^(.*\p{L}.*?)\s*[-–—|:]\s*company\s+profile\s*$/iu, /^company\s+profile\s*[-–—|:]\s*(.*\p{L}.*)$/iu];
+/** The company name a "<name> - Company Profile" title line prints; null for any other line. */
+export function profileTitleName(line: string): string | null {
+  for (const re of PROFILE_TITLE) { const m = re.exec(line.trim()); if (m) return m[1].trim(); }
+  return null;
+}
+const EDGE = /^[\s\-–—:|,.]+|[\s\-–—:|,.]+$/g;
+/** The line with every known name cut out; null when it is a name field, or nothing but a name was on it. */
+export function withoutNames(line: string, forms: string[]): string | null {
+  if (isNameField(line)) return null;
+  let l = line;
+  for (const f of forms) l = l.replace(new RegExp('(?<![\\p{L}\\p{N}])' + escRe(f).replace(/ /g, '\\s+') + '(?![\\p{L}\\p{N}])', 'giu'), ' ');
+  if (l === line) return line;
+  l = l.replace(/\s+/g, ' ').replace(EDGE, '').trim();
+  return /\p{L}{2}/u.test(l) ? l : null;
+}
+
 const lineHolding = (lines: string[], phrase: string) => (lines.find((l) => l.includes(phrase)) ?? phrase).slice(0, 180);
 
 /** Both paths over one text. Never throws: a path that could not run says so in its state. */
-export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: { supplyOnly?: boolean } = {}): Promise<TradeRead> {
-  const lines = textLines(text);
+export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: { supplyOnly?: boolean; names?: (string | null | undefined)[] } = {}): Promise<TradeRead> {
+  // A NAME OR CONTACT LINE PROPOSES NOTHING, by any path (12 Oct 2026, accuracy suite). "Legal Name: ZZ DEMO Falcon
+  // Cleaning LLC" was proposed cleaning (head_word), its "Legal Name" label legal_services (meaning 0.82), and
+  // "... Falcon Glazing LLC" glazing (0.821): a company's name says who it is, never what it does, and a wrong trade
+  // sends a request to the wrong supplier. The line is dropped before both paths when it carries a legal-entity suffix
+  // (LLC, FZE, FZCO, ذ.م.م), an e-mail, a web address or a phone number (catalogue_read.isNameOrReachLine) - never on a
+  // bare "mobile" or an address word, which work lines carry ("Mobile crane hire", "Office fit-out, 3 floors").
+  // A name printed WITHOUT a suffix is cut out by its layout and by the known names (withoutNames, above).
+  const all = textLines(text);
+  const titled = all.map(profileTitleName).filter((n): n is string => !!n);
+  const forms = nameForms([...(opts.names ?? []), ...titled]);
+  const lines = [...new Set(all.filter((l) => !isNameOrReachLine(l) && !profileTitleName(l))
+    .map((l) => withoutNames(l, forms)).filter((l): l is string => !!l && l.length >= 2))];
   const hits = new Map<string, TradeHit>();
   const add = (h: TradeHit) => {
     const cur = hits.get(h.code);
@@ -104,12 +228,27 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
     }
   }
 
+  // 1b. an Arabic work clause, by the trade's own Arabic name (exact; see tradesByArabicName)
+  if (deps.tradeNamesAr) {
+    const heads = arabicNameHeads(deps.tradeNamesAr, deps.tradeLabels);
+    for (const l of lines) for (const clause of l.split(/[\u060C,;|]+/)) {
+      for (const { code, word } of tradesByArabicName(clause, heads)) add({ code, via: 'exact_name', phrases: [word], snippet: l.slice(0, 180) });
+    }
+  }
+
   // 2. meaning, over the stored service vectors
   let meaning: MeaningState = 'nothing_to_read';
   if (lines.some((l) => l.length >= 3)) {
     // Each line clause by clause; the evidence is the supplier's whole line.
     const origin = new Map<string, string>();
-    for (const l of lines) for (const c of meaningClauses(l)) if (!origin.has(c)) origin.set(c, l);
+    // A ONE-word piece split off a longer line is not read by meaning (7 Oct 2026, accuracy suite ledger 1162): "Glass
+    // and Glazing Works" splits into "Glass", whose nearest service is "cosmetic & perfume glass" with its head word in
+    // it, and a glazing contractor was proposed for glass containers; "أعمال تبليط الأرضيات والجدران" splits into
+    // "الجدران" (walls) and a tiling contractor was proposed for wallpaper. The piece only qualifies its neighbour; the
+    // exact path above has already put it to fn_norm_trades ("glass" -> glazing). A line that IS one word (a catalogue
+    // heading "UPS") is still read by meaning, as before.
+    const oneWord = (s: string) => s.trim().split(/\s+/).length < 2;
+    for (const l of lines) for (const c of meaningClauses(l)) if (!origin.has(c) && !(oneWord(c) && !oneWord(l.replace(/[\/|:;,،.\-]+/g, ' ')))) origin.set(c, l);
     if (!deps.services.some((s) => s.vec || s.vec_ml)) meaning = 'service_vectors_missing';
     else if (deps.budget.left <= 0) meaning = 'budget_spent';
     else if (origin.size) {
@@ -119,7 +258,8 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
       if (!read.some((l) => l.vec)) meaning = 'embedding_unavailable';
       else {
         meaning = 'on';
-        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly });
+        const codeWords = await codeWordsOf(lines, deps);
+        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, codeWords });
         for (const p of props) {
           const line = origin.get(p.lines[0] ?? '') ?? p.lines[0] ?? '';
           add({ code: p.trade, via: 'meaning', phrases: [p.label_en.toLowerCase()], snippet: line.slice(0, 180), similarity: p.similarity });
@@ -130,11 +270,24 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
   return { trades: [...hits.values()].sort((a, b) => a.code.localeCompare(b.code)), exact, meaning };
 }
 
+/** The single words of the text that public.fn_norm_trades resolves to exactly ONE trade (a live code, or a stored
+ *  intake alias such as "aluminum"), keyed as contentWords folds them; {} when the database could not be asked. */
+export async function codeWordsOf(lines: string[], deps: TradeResolveDeps): Promise<Record<string, string>> {
+  const raw = [...new Set(lines.join(' ').toLowerCase().split(/[^\p{L}]+/u).filter((w) => w.length >= 3 && contentWords(w).length === 1))].slice(0, EXACT_MAX_PHRASES);
+  if (!raw.length) return {};
+  let map: Record<string, string[]> | null = null;
+  try { map = await deps.normTrades(raw); } catch { map = null; }
+  const out: Record<string, string> = {};
+  for (const [w, codes] of Object.entries(map ?? {})) if (Array.isArray(codes) && codes.length === 1) out[contentWords(w)[0]] = codes[0];
+  return out;
+}
+
 /** The deps as an edge function builds them: the database routine, the stored vectors, embed_ml. */
 // deno-lint-ignore no-explicit-any
 export async function liveTradeDeps(admin: any, caller = 'supplier_doc_trades'): Promise<TradeResolveDeps> {
   return {
     services: await serviceVocab(admin), embed: remoteEmbedder(admin, caller), budget: { left: MEANING_MAX_LINES },
+    tradeLabels: await tradeLabelVocab(admin), tradeNamesAr: await tradeArNameVocab(admin),
     normTrades: async (phrases) => {
       const { data: m, error: e } = await admin.rpc('fn_norm_trades_many', { p_texts: phrases.slice(0, EXACT_MAX_PHRASES) });
       return e || !m || typeof m !== 'object' ? null : m as Record<string, string[]>;

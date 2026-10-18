@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/the_public_company_block_carries_no_internal_figures.sql';
@@ -33,8 +34,8 @@ const INTERNAL = [
 test('the public company block states capabilities, not internal figures; the internal block keeps them', { skip: SKIP, timeout: 120000 }, async () => {
   const select = `select public.fn_company_context(16000, 'public')->>'block' pub, public.fn_company_context(16000, 'internal')->>'block' internal`;
   const r = SIMULATE
-    ? (await sql(`begin;\n${readFileSync(join(ROOT, FILE), 'utf8')}\n;\n${select}`, { retry: false }))[0]
-    : (await sql(select))[0];
+    ? (await replaySql(`${readFileSync(join(ROOT, FILE), 'utf8')}\n;\n${select}`, { retry: false, rows: true }))[0]
+    : (await replaySql(select, { rows: true }))[0];
   for (const [re, what] of INTERNAL) {
     assert.ok(!re.test(r.pub), `the PUBLIC block carries ${what}: ${r.pub.match(re)?.[0]}`);
     assert.ok(re.test(r.internal), `the INTERNAL block lost ${what}`);

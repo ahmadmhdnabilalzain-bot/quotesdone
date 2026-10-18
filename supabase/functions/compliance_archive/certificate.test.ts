@@ -1,6 +1,17 @@
 // Run: deno test -A supabase/functions/compliance_archive/certificate.test.ts
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert';
-import { certFields, certLang, certificate, identityRows, noAcceptanceRunStatus, supplierEvidence } from './certificate.ts';
+import { certFields, certLang, certificate, identityRows, isRegisterRow, noAcceptanceRunStatus, supplierEvidence } from './certificate.ts';
+
+// 12 Oct 2026: the live register listed 3 ZZ DEMO customers (founderdemo A/B, harness d749b836).
+Deno.test('the customer register lists accepted real customers only, never a fixture', () => {
+  const real = { full_name: 'Real Buyer', email: 'buyer@realco.ae', tos_accepted_at: '2026-10-01', is_demo: false };
+  assert(isRegisterRow(real));
+  assert(!isRegisterRow({ ...real, tos_accepted_at: null }), 'no acceptance, not a customer (1181)');
+  assert(!isRegisterRow({ ...real, is_demo: true }));
+  assert(!isRegisterRow({ ...real, email: 'qd-d749b836-cust0@example.invalid' }));
+  assert(!isRegisterRow({ ...real, full_name: 'ZZ DEMO Customer d749b836' }));
+  assert(isRegisterRow({ ...real, full_name: 'Zzdemolition Contracting LLC' }), 'a real name that merely starts with zzdemo-letters stays');
+});
 
 Deno.test('a demo fixture without an acceptance is skipped; a real party without one is still an error', () => {
   assertEquals(noAcceptanceRunStatus('qd-abb53328-cust0@example.invalid'), 'skipped');

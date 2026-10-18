@@ -71,19 +71,12 @@ export function noAutoReply(m: MailFacts, founderAddrs: string[]): NoAutoReply |
   return null;
 }
 
-/** The words that go back. `answer` is a verified reasoned answer; `passage` a reviewed knowledge passage,
- *  quoted verbatim; with neither, an honest receipt that promises only what the replay delivers. */
-export function composeMailReply(o: { lang: 'en' | 'ar'; answer?: string | null; passage?: string | null; person?: boolean }): string {
+/** The e-mail around a reply. The reply itself is ALWAYS written by a model in the moment (aiReply; founder rulings
+ *  1195/1196, 12 Oct 2026): the person-handoff sentence, the quoted knowledge passage and the 'we received it' receipt that
+ *  stood here were removed. Only the fixed greeting and sign-off are code. */
+export function composeMailReply(o: { lang: 'en' | 'ar'; answer: string }): string {
   const ar = o.lang === 'ar';
   const hello = ar ? 'مرحباً،' : 'Hello,';
   const bye = ar ? 'مع أطيب التحيات،\nفريق QuotesDone' : 'Kind regards,\nThe QuotesDone Team';
-  let mid: string;
-  if (o.person) mid = ar ? 'شكراً لرسالتكم. طلبتم التحدث مع أحد أعضاء فريقنا، وقد أحلنا رسالتكم إليه، وسيرد عليكم في هذه المحادثة نفسها.'
-    : 'Thank you for your message. You asked to speak to a person, so we have passed it to a member of our team, who will reply to you in this same thread.';
-  else if (o.answer && o.answer.trim()) mid = o.answer.trim();
-  else if (o.passage && o.passage.trim()) mid = (ar ? 'شكراً لرسالتكم. إليكم ما يتعلق بسؤالكم:' : 'Thank you for your message. Here is what applies to your question:') + '\n\n' + o.passage.trim().replace(/^#+\s*/gm, '').slice(0, 1500)
-    + '\n\n' + (ar ? 'إن لم يُجب هذا عن سؤالكم، فردّوا على هذه الرسالة بمزيد من التفاصيل.' : 'If this does not answer your question, reply to this e-mail with a little more detail.');
-  else mid = ar ? 'شكراً لرسالتكم، لقد وصلتنا. سنرسل إليكم الإجابة في هذه المحادثة نفسها. ويمكنكم أيضاً الاطلاع على الأسئلة الشائعة على https://quotesdone.com'
-    : 'Thank you for your message, which we have received. We will send you the answer in this same thread. Our frequently asked questions are also at https://quotesdone.com';
-  return hello + '\n\n' + mid + '\n\n' + bye;
+  return hello + '\n\n' + o.answer.trim() + '\n\n' + bye;
 }

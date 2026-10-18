@@ -42,6 +42,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "dental_supplies:fanr-dental-xray-authorisation",
+      "topic": "FANR authorisation for dental X-ray units",
+      "kind": "regulatory_requirement",
+      "body_en": "Yes. Dental radiography is regulated by two authorities. Because dental X-ray is clinical, DHA regulates it in Dubai; because it is ionising radiation, the Federal Authority for Nuclear Regulation (FANR) regulates the radiation source itself. FANR approval applies to intraoral, panoramic (OPG) and CBCT units alike. FANR-REG-24 is the Basic Safety Standards for Facilities and Activities involving Ionising Radiation other than in Nuclear Facilities, and covers sites such as hospitals. Expect a radiation protection programme built on ALARA, a shielding and safety assessment by a FANR-approved medical physicist, quality assurance for each unit, an emergency plan and a designated Radiation Safety Officer. FANR approval must generally be in place before the DHA facility inspection, so plan it from the start. Not established here: FANR fees and penalties.",
+      "body_ar": "نعم. يخضع التصوير الشعاعي للأسنان لجهتين تنظيميتين. فلأن أشعة الأسنان إجراء سريري، تنظمها هيئة الصحة بدبي (DHA) في دبي، ولأنها إشعاع مؤيِّن، تنظم الهيئة الاتحادية للرقابة النووية (FANR) مصدر الإشعاع نفسه. وتنطبق موافقة الهيئة على أجهزة الأشعة داخل الفم والأجهزة البانورامية (OPG) وأجهزة التصوير المقطعي بالحزمة المخروطية (CBCT) على حد سواء. واللائحة FANR-REG-24 هي معايير السلامة الأساسية للمرافق والأنشطة التي تنطوي على الإشعاع المؤيِّن خارج المنشآت النووية، وتشمل مواقع مثل المستشفيات. ويُتوقع وجود برنامج للوقاية من الإشعاع قائم على مبدأ ALARA، وتقييم للتدريع والسلامة يعده فيزيائي طبي معتمد من الهيئة، وضمان الجودة لكل جهاز، وخطة للطوارئ، وضابط سلامة إشعاعية معيّن. ويجب عموماً الحصول على موافقة الهيئة قبل تفتيش هيئة الصحة بدبي على المنشأة، لذا خطط لها منذ البداية. غير ثابت هنا: رسوم الهيئة والعقوبات.",
+      "sources": [
+        "https://www.businessdubai.ae/blogs/dental-clinic-setup-dubai",
+        "https://gulfnews.com/uae/government/nuclear-regulator-seeks-public-comment-on-radiation-safety-standards-1.1367005"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +72,15 @@
       "expected_entry_ids": [
         "dental_supplies:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does a dental OPG X-ray unit need a FANR licence in the UAE?",
+      "q_ar": "هل يحتاج جهاز الأشعة البانورامية للأسنان إلى ترخيص من الهيئة الاتحادية للرقابة النووية في الإمارات؟",
+      "expected_entry_ids": [
+        "dental_supplies:fanr-dental-xray-authorisation"
+      ],
+      "why": "No entry of this pack answered it (Standards entry covers EDE marketing authorization only; no FANR licensing for dental X-ray units; missing). dental_supplies:fanr-dental-xray-authorisation was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from dental_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +96,9 @@
       "dental_supplies:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "dental_supplies:fanr-dental-xray-authorisation"
+    ]
   }
 }

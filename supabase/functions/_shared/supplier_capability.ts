@@ -61,6 +61,10 @@ export async function capabilityState(admin: Admin, supplierId: number) {
 export const tradeCode = (name: unknown): string =>
   String(name ?? '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
 
+/** fn_match_capability's p_limit when a request is matched: every gated candidate, never a top N. Any number of
+ *  suppliers may quote (founder, 24 Sep 2026); this only bounds the SQL row count, far above any trade's list. */
+export const MATCH_ALL = 100000;
+
 /** Does decision_policy's match_relevance_floor gate this match? Only when the request named
  *  products: fn_match_capability's product term is 0 without them, so the floor would measure
  *  nothing and refuse every exact-trade supplier without a track record (measured 15 Sep 2026: 5.0

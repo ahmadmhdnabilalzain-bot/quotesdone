@@ -58,6 +58,15 @@
       "expected_entry_ids": [
         "iso_certification:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How do we verify that an ISO certificate from a supplier is genuine and accredited?",
+      "q_ar": "كيف نتحقق من أن شهادة الأيزو لدى المورد أصلية ومعتمدة؟",
+      "expected_entry_ids": [
+        "iso_certification:uae-standards-and-approvals"
+      ],
+      "why": "States a certificate is recognised only when the certification body is accredited by a mutual-recognition signatory (now GAC, ex-IAF) and names EIAC, which is how to verify it.",
+      "origin": "real buyer question, moved from iso_certification.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

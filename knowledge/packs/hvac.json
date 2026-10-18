@@ -886,6 +886,15 @@
         "hvac:estidama",
         "hvac:ashrae-62-90"
       ]
+    },
+    {
+      "q_en": "How many tons of AC does a 20 m2 bedroom need in Dubai?",
+      "q_ar": "كم طن تكييف تحتاج غرفة نوم مساحتها 20 م2 في دبي؟",
+      "expected_entry_ids": [
+        "hvac:heat-load-sizing"
+      ],
+      "why": "Explains why TR-per-square-metre rules mislead and how a bedroom should be sized by heat load.",
+      "origin": "real buyer question, moved from hvac.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

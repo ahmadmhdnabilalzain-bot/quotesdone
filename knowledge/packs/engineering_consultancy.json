@@ -1,473 +1,484 @@
 {
- "trade": "engineering_consultancy",
- "entries": [
-  {
-   "id": "engineering_consultancy:authority-map",
-   "topic": "Which authority approves your building in the UAE",
-   "kind": "authority_approval",
-   "body_en": "The first question on any UAE project is which authority has jurisdiction over the plot, because each authority has its own portal, drawing format, codes and fees, and a submission to the wrong one is simply rejected. In Dubai, Dubai Municipality (DM) governs most mainland plots (for example Deira, Bur Dubai, Business Bay and Downtown). Trakhees, the planning and development arm of the Ports, Customs and Free Zone Corporation, covers PCFC areas such as Jebel Ali Free Zone, Palm Jumeirah and other Nakheel communities, and Dubai Maritime City. The Dubai Development Authority (DDA) covers the TECOM zones such as Dubai Internet City, Dubai Media City, Dubai Knowledge Park and d3. DIFC runs its own property development department, and DMCC routes fit-outs in JLT through its own NOC process. The master developer or landlord NOC normally comes before the government submission. Since Dubai Law No. 14 of 2025, engineering consultancy across the whole emirate, including free zones and DIFC, falls under one Dubai Municipality-linked registration system. In Abu Dhabi the Department of Municipalities and Transport administers building regulation; its codes are based on the 2009 International Codes. The other emirates each have their own municipality. The consultant must be registered with the specific authority to submit there.",
-   "body_ar": "أول سؤال في أي مشروع في الإمارات هو: ما الجهة المختصة بالأرض؟ فلكل جهة بوابتها وصيغة مخططاتها وأنظمتها ورسومها، والتقديم لجهة غير مختصة يُرفض مباشرة. في دبي تختص بلدية دبي بمعظم أراضي البر الرئيسي مثل ديرة وبر دبي والخليج التجاري ووسط المدينة. أما «تراخيص»، الذراع التنظيمية لمؤسسة الموانئ والجمارك والمنطقة الحرة، فتغطي مناطق المؤسسة مثل المنطقة الحرة لجبل علي ونخلة جميرا ومجتمعات نخيل الأخرى ومدينة دبي الملاحية. وتختص سلطة دبي للتطوير بمناطق «تيكوم» مثل مدينة دبي للإنترنت ومدينة دبي للإعلام وقرية المعرفة وحي دبي للتصميم. ولمركز دبي المالي العالمي إدارة تطوير خاصة به، ويمرّ تجهيز المكاتب في أبراج بحيرات جميرا عبر إجراءات عدم ممانعة خاصة بمركز دبي للسلع المتعددة. وتسبق شهادة عدم ممانعة المطوّر الرئيسي أو المالك عادةً التقديم للجهة الحكومية. ومنذ القانون رقم ١٤ لسنة ٢٠٢٥ أصبحت الاستشارات الهندسية في كامل الإمارة، بما فيها المناطق الحرة والمركز المالي، تحت نظام تسجيل موحد مرتبط ببلدية دبي. وفي أبوظبي تتولى دائرة البلديات والنقل تنظيم البناء، وأنظمتها مبنية على الأكواد الدولية إصدار ٢٠٠٩. ولكل إمارة أخرى بلديتها. ويجب أن يكون الاستشاري مسجلاً لدى الجهة المعنية كي يقدّم لديها.",
-   "sources": [
-    "https://almujassam.ae/trakhees-approval-dubai/",
-    "https://www.mitchellscommercialrealty.com/guides/fitout-permits",
-    "https://www.iccsafe.org/products-and-services/global-services/countries/united-arab-emirates/",
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:dm-building-permit",
-   "topic": "Dubai Municipality building permit process",
-   "kind": "authority_approval",
-   "body_en": "In Dubai Municipality jurisdiction, building permits are processed online by a consultant registered with Dubai Municipality; owners cannot submit directly. DM publishes separate permit procedures for residential villas (private and investment), industrial buildings, and multi-storey and public buildings, covering permit issue, technical inspections of sites under construction, and the completion certificate. The typical sequence is: obtain the affection plan, prepare designs to the Dubai Building Code, obtain the master developer NOC where applicable, submit the soil investigation report (DM requires verified soil test results from an EIAC-accredited laboratory before a permit), submit for design approval, collect service-authority NOCs such as Civil Defence, DEWA and RTA, pay fees and receive the permit, appoint a registered contractor, build under consultant supervision with stage inspections, and finally apply for the completion certificate. The old Dubai BPS web address now redirects to the Build in Dubai platform, so consultants should use the current portal. Al Sa'fat green building compliance is checked within the process. Timelines are not established as fixed durations; they depend on completeness of submissions and the number of comment cycles, so the consultant should give a project-specific approval matrix.",
-   "body_ar": "في نطاق بلدية دبي تُعالَج رخص البناء إلكترونياً عن طريق استشاري مسجّل لدى البلدية، ولا يحق للمالك التقديم مباشرة. وتنشر البلدية إجراءات مستقلة للفلل السكنية (الخاصة والاستثمارية) والمباني الصناعية والمباني متعددة الطوابق والعامة، تشمل إصدار الرخصة والتفتيش الفني على المواقع قيد الإنشاء وشهادة الإنجاز. والتسلسل المعتاد: استخراج مخطط الأرض (الأفيكشن بلان)، ثم إعداد التصاميم وفق كود دبي للبناء، ثم الحصول على عدم ممانعة المطوّر الرئيسي عند الحاجة، وتقديم تقرير فحص التربة (إذ تشترط البلدية نتائج فحص موثقة من مختبر معتمد لدى مركز الإمارات للاعتماد قبل إصدار الرخصة)، ثم التقديم لاعتماد التصميم، وجمع شهادات عدم الممانعة من الجهات الخدمية مثل الدفاع المدني وهيئة كهرباء ومياه دبي وهيئة الطرق، ثم دفع الرسوم واستلام الرخصة، وتعيين مقاول مسجّل، والتنفيذ تحت إشراف الاستشاري مع تفتيش على المراحل، وأخيراً طلب شهادة الإنجاز. وقد أصبح الرابط القديم لنظام رخص البناء يحوّل إلى منصة «ابنِ في دبي»، لذا يجب استخدام البوابة الحالية. ويُدقَّق الالتزام بنظام السعفات للمباني الخضراء ضمن الإجراءات. ولا توجد مدد زمنية ثابتة مُثبتة؛ فهي تعتمد على اكتمال الملف وعدد دورات الملاحظات، لذا ينبغي أن يقدّم الاستشاري مصفوفة موافقات خاصة بالمشروع.",
-   "sources": [
-    "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
-    "https://integradxb.com/soil-testing-and-geotechnical-reports-for-dm-approval-complete-guide-for-2026/",
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:civil-defence-approval",
-   "topic": "Civil Defence (fire and life safety) approvals",
-   "kind": "authority_approval",
-   "body_en": "Every building, and almost every renovation or fit-out, needs fire and life safety approval from Civil Defence: Dubai Civil Defence (DCD) in Dubai, Abu Dhabi Civil Defence Authority in Abu Dhabi, and the relevant Civil Defence elsewhere. The reference document is the UAE Fire and Life Safety Code of Practice, which covers means of egress, compartmentation, fire alarm and detection, sprinklers and firefighting, smoke control, emergency lighting and materials such as facade cladding. In Dubai, DCD approval is required for all renovation, fit-out and modification works, even minor changes that affect exits, ceilings, partitions or electrical systems. Applications go through the DCD e-services portal with drawings in PDF or DWF; one approvals firm reports straightforward cases closing in about ten working days and complex ones taking fifteen or more. Under Dubai Law 4 of 2025, Civil Defence sign-off also gates trade licence issue and renewal for commercial premises. Installation is by Civil Defence-approved fire contractors using approved products, followed by witnessed testing, snag closure and a Civil Defence certificate before occupation. Common rejection causes are exit widths and travel distances, missing fire-rated doors, sprinkler coverage broken by new partitions and non-approved materials. Buyers should confirm that both the consultant and the fire contractor are registered with the relevant Civil Defence.",
-   "body_ar": "يحتاج كل مبنى، وكل أعمال تجديد أو تجهيز داخلي تقريباً، إلى موافقة الدفاع المدني على اشتراطات الوقاية من الحريق وسلامة الأرواح: الدفاع المدني بدبي في دبي، وهيئة أبوظبي للدفاع المدني في أبوظبي، والدفاع المدني المختص في بقية الإمارات. والمرجع هو «كود الإمارات للحماية من الحريق وسلامة الأرواح» الذي يغطي مخارج الطوارئ والتقسيم الحريقي وأنظمة الإنذار والكشف والرشاشات والإطفاء والتحكم بالدخان وإنارة الطوارئ والمواد مثل كسوة الواجهات. وفي دبي تُشترط موافقة الدفاع المدني لجميع أعمال التجديد والتجهيز والتعديل، حتى التغييرات البسيطة التي تمسّ المخارج أو الأسقف أو القواطع أو الأنظمة الكهربائية. ويُقدَّم الطلب عبر بوابة الخدمات الإلكترونية للدفاع المدني بمخططات PDF أو DWF، وتفيد إحدى شركات التخليص بأن الحالات البسيطة تُنجز في نحو عشرة أيام عمل والمعقدة في خمسة عشر يوماً أو أكثر. وبموجب قانون دبي رقم ٤ لسنة ٢٠٢٥ أصبحت موافقة الدفاع المدني شرطاً لإصدار الرخص التجارية وتجديدها. ويتولى التركيب مقاولو حريق معتمدون بمنتجات معتمدة، ثم اختبار بحضور الجهة وإغلاق الملاحظات وإصدار شهادة الدفاع المدني قبل الإشغال. ومن أسباب الرفض الشائعة: عرض المخارج ومسافات الهروب، وغياب الأبواب المقاومة للحريق، وانقطاع تغطية الرشاشات بسبب القواطع الجديدة، والمواد غير المعتمدة. وعلى المشتري التأكد من تسجيل الاستشاري ومقاول الحريق لدى الدفاع المدني المختص.",
-   "sources": [
-    "https://approvals.ae/services/dubai-civil-defense-approval",
-    "https://www.mitchellscommercialrealty.com/guides/fitout-permits"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:utility-nocs",
-   "topic": "Utility NOCs: DEWA, ADDC/AADC, SEWA, FEWA/Etihad WE",
-   "kind": "authority_approval",
-   "body_en": "Power and water connections need approval from the utility that serves the plot: DEWA in Dubai, ADDC or AADC in Abu Dhabi, SEWA in Sharjah and Etihad Water and Electricity in the northern emirates. In Dubai only DEWA-enrolled consultants and contractors can manage building NOC and connection applications. The file typically includes the latest affection plan, ownership documents, municipality-stamped architectural drawings, DLTM coordinates of the plot and substation, an RTA NOC and a load summary listing equipment and total expected demand. One Dubai contractor guide reports that a dedicated substation becomes necessary when demand exceeds about 400 kW, and describes a sequence of load assessment, concept design, detailed design, construction, inspection and testing, then energisation. The same guide reports DEWA NOCs in a few working days and design review in one to two weeks, but transformer delivery and commissioning of roughly sixteen weeks, which is often the critical path. Underestimating connected load at design stage can force a site-plan change if the network cannot supply it, so early load estimation by the MEP consultant matters. Utility NOCs are also needed before excavation near existing services. The figures above come from a contractor's guide and should be confirmed with the utility for each project.",
-   "body_ar": "تحتاج توصيلات الكهرباء والمياه إلى موافقة الجهة الخدمية المختصة بالأرض: هيئة كهرباء ومياه دبي في دبي، وشركتا أبوظبي والعين للتوزيع في أبوظبي، وهيئة كهرباء ومياه الشارقة، والاتحاد للماء والكهرباء في الإمارات الشمالية. وفي دبي لا يحق إدارة طلبات عدم الممانعة والتوصيل إلا للاستشاريين والمقاولين المسجلين لدى الهيئة. ويشمل الملف عادةً أحدث مخطط للأرض ووثائق الملكية والمخططات المعمارية المختومة من البلدية وإحداثيات الأرض والمحطة الفرعية بنظام DLTM وشهادة عدم ممانعة من هيئة الطرق وملخص أحمال يبيّن المعدات والطلب الكلي المتوقع. ويذكر دليل صادر عن أحد المقاولين في دبي أن المحطة الفرعية المخصصة تصبح لازمة عندما يتجاوز الطلب نحو ٤٠٠ كيلوواط، ويصف تسلسلاً يبدأ بتقييم الأحمال ثم التصميم المبدئي والتفصيلي ثم التنفيذ والتفتيش والاختبار ثم التشغيل. كما يذكر أن شهادة عدم الممانعة تصدر خلال أيام عمل قليلة ومراجعة التصميم خلال أسبوع إلى أسبوعين، بينما يستغرق توريد المحوّل وتشغيله نحو ستة عشر أسبوعاً، وهو غالباً المسار الحرج. والتقليل من الأحمال في مرحلة التصميم قد يفرض تغيير المخطط العام إذا عجزت الشبكة عن التغذية، لذا فالتقدير المبكر للأحمال من استشاري الأنظمة الكهروميكانيكية مهم. وتلزم أيضاً موافقات الجهات الخدمية قبل الحفر قرب الخدمات القائمة. والأرقام أعلاه من دليل مقاول ويجب تأكيدها مع الجهة الخدمية لكل مشروع.",
-   "sources": [
-    "https://murjangroup.com/blog/dewa-substation-approval"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:rta-telecom-nocs",
-   "topic": "RTA, telecom and other service NOCs",
-   "kind": "authority_approval",
-   "body_en": "Besides Civil Defence and power and water, projects commonly need NOCs from other service owners. In Dubai, the Roads and Transport Authority (RTA) reviews access and parking, traffic impact for larger developments, work in the right-of-way, and road-cutting or diversion permits. Telecom providers (Etisalat by e& and du) approve telecom infrastructure, ducts and rooms, and in some areas the master developer's own telecom provider applies. Other NOCs can include drainage and sewerage (Dubai Municipality's drainage section), gas (for buildings with central gas systems, subject to Civil Defence and gas authority rules), Dubai Police for security systems in some building types, and civil aviation authorities for tall buildings or cranes near airports and flight paths (GCAA and Dubai Civil Aviation Authority). In Abu Dhabi, the Integrated Transport Centre and relevant service entities play similar roles. The consultant should list all NOCs required for the specific project early, because a missing NOC can block the permit or completion certificate. Buyers should ask whether NOC fees are included in the consultant fee or reimbursable. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
-   "body_ar": "إلى جانب الدفاع المدني والكهرباء والمياه تحتاج المشاريع عادة شهادات عدم ممانعة من جهات خدمية أخرى. في دبي تراجع هيئة الطرق والمواصلات المداخل والمواقف ودراسات الأثر المروري للمشاريع الكبيرة والأعمال في حرم الطريق وتصاريح قطع الطرق أو تحويلها. ويعتمد مزودو الاتصالات، اتصالات من إي آند ودو، البنية التحتية للاتصالات والقنوات والغرف، وفي بعض المناطق ينطبق مزود الاتصالات الخاص بالمطور الرئيسي. ومن شهادات عدم الممانعة الأخرى الصرف الصحي وتصريف الأمطار عبر قسم الصرف في بلدية دبي، والغاز للمباني ذات أنظمة الغاز المركزي وفق قواعد الدفاع المدني وجهة الغاز، وشرطة دبي لأنظمة الأمن في بعض أنواع المباني، وسلطات الطيران المدني للمباني العالية أو الرافعات قرب المطارات ومسارات الطيران، الهيئة العامة للطيران المدني وهيئة دبي للطيران المدني. وفي أبوظبي يؤدي مركز النقل المتكامل والجهات الخدمية المعنية أدواراً مماثلة. يجب أن يحدد الاستشاري مبكراً كل شهادات عدم الممانعة اللازمة للمشروع، لأن غياب إحداها قد يوقف التصريح أو شهادة الإنجاز. وعلى المشتري أن يسأل هل رسوم الشهادات مشمولة في أتعاب الاستشاري أم تُسترد. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
-   "sources": [
-    "https://en.wikipedia.org/wiki/Dubai_Civil_Aviation_Authority",
-    "https://murjangroup.com/blog/dewa-substation-approval"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:green-building-alsafat-estidama",
-   "topic": "Green building: Al Sa'fat (Dubai) vs Estidama Pearl (Abu Dhabi)",
-   "kind": "comparison",
-   "body_en": "Dubai and Abu Dhabi each mandate a green building standard for new buildings. In Dubai, Al Sa'fat (the Dubai Green Building System, approved in 2016 and administered by Dubai Municipality's buildings regulation and permits agency) replaced the earlier green building regulations. Since 19 October 2020 every new building must meet the Silver Sa'fa level; Golden and Platinum Sa'fa are voluntary higher tiers. It covers energy efficiency, mechanical and electrical systems, carbon reduction and wider sustainability measures, and is checked in the permit process. Dubai Municipality also publishes calculation tools, villa insulation specifications and glazing schedules alongside the Dubai Building Code to help compliance. In Abu Dhabi, the Estidama Pearl Rating System has separate systems for buildings, villas and communities; since 2010 all new developments need at least 1 Pearl, and government buildings at least 2 Pearls. Ratings are given at design stage (needed for the building permit) and at construction stage (needed for the completion certificate), and each project must engage at least one Pearl Qualified Professional. Other emirates have their own rules (for example Ras Al Khaimah's Barjeel), but the Barjeel details were not confirmed from a fetched source and are not established here. Buyers should ask which system applies, the target level, and how envelope and MEP choices affect cost.",
-   "body_ar": "تُلزم كل من دبي وأبوظبي المباني الجديدة بمعيار للمباني الخضراء. ففي دبي حلّ نظام «السعفات» للمباني الخضراء، المعتمد عام ٢٠١٦ والذي تديره مؤسسة تنظيم المباني والرخص في بلدية دبي، محل لوائح المباني الخضراء السابقة. ومنذ ١٩ أكتوبر ٢٠٢٠ يجب أن يحقق كل مبنى جديد مستوى «السعفة الفضية»، أما السعفة الذهبية والبلاتينية فمستويات أعلى اختيارية. ويغطي النظام كفاءة الطاقة والأنظمة الميكانيكية والكهربائية وخفض الكربون ومتطلبات استدامة أخرى، ويُدقَّق ضمن إجراءات الرخصة. وتنشر البلدية أيضاً أدوات حساب ومواصفات عزل للفلل وجداول للزجاج إلى جانب كود دبي للبناء لتسهيل الالتزام. وفي أبوظبي يتضمن نظام «استدامة» لتقييم اللؤلؤ أنظمة مستقلة للمباني والفلل والمجتمعات؛ ومنذ ٢٠١٠ يجب أن تحقق كل التطويرات الجديدة لؤلؤة واحدة على الأقل، والمباني الحكومية لؤلؤتين على الأقل. ويُمنح التقييم في مرحلة التصميم (وهو شرط لرخصة البناء) وفي مرحلة التنفيذ (وهو شرط لشهادة الإنجاز)، ويجب أن يضم كل مشروع مختصاً معتمداً واحداً على الأقل في نظام اللؤلؤ. ولبقية الإمارات أنظمتها (مثل نظام «بارجيل» في رأس الخيمة) لكن تفاصيله لم تُؤكَّد من مصدر تم الاطلاع عليه فهي غير مُثبتة هنا. وعلى المشتري أن يسأل عن النظام المطبّق والمستوى المستهدف وأثر خيارات الغلاف والأنظمة على التكلفة.",
-   "sources": [
-    "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
-    "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
-    "https://www.dm.gov.ae/municipality-business/planning-and-construction/dubai-building-code-2/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:design-stages",
-   "topic": "Design stages: concept, schematic, design development, detailed, IFC",
-   "kind": "standard",
-   "body_en": "Consultancy services are organised in stages, and fees are usually tied to them. Concept design establishes the brief, massing, zoning, planning compliance and a first cost estimate. Schematic design develops layouts, elevations, structural system and MEP strategy. Design development coordinates disciplines and fixes key dimensions, systems and materials, usually the basis for authority submissions. Detailed design produces construction-level drawings, specifications and bills of quantities used for tendering. Issued for Construction (IFC) drawings are the approved set the contractor builds from, updated for authority comments and tender clarifications. Some frameworks name these differently (for example RIBA Plan of Work stages 0 to 7), but the principle is the same. Post-contract services include tender assistance, construction supervision, shop drawing and material submittal review, site inspections, variations evaluation, payment certification, testing and commissioning witnessing, completion certificate application, and review of as-built drawings. Buyers should confirm which stages are in scope, the deliverables per stage, and how many design revisions are included before extra fees apply.",
-   "body_ar": "تُنظَّم خدمات الاستشارات على مراحل، وترتبط الأتعاب بها عادة. التصميم المبدئي يحدد المتطلبات والكتلة والتوزيع والامتثال التخطيطي وأول تقدير للتكلفة. التصميم التخطيطي يطور المساقط والواجهات والنظام الإنشائي واستراتيجية الأعمال الكهروميكانيكية. تطوير التصميم ينسق التخصصات ويثبت الأبعاد والأنظمة والمواد الرئيسية، وعادة يكون أساس التقديم للجهات. التصميم التفصيلي ينتج رسومات بمستوى التنفيذ ومواصفات وجداول كميات تُستخدم للمناقصة. رسومات الإصدار للإنشاء هي المجموعة المعتمدة التي يبني منها المقاول، محدثة وفق ملاحظات الجهات وتوضيحات المناقصة. بعض الأطر تسمي المراحل بشكل مختلف، مثل مراحل خطة عمل RIBA من صفر إلى سبعة، لكن المبدأ واحد. خدمات ما بعد التعاقد تشمل المساعدة في المناقصة، والإشراف على الإنشاء، ومراجعة الرسومات التنفيذية واعتمادات المواد، والتفتيش الموقعي، وتقييم التغييرات، واعتماد الدفعات، وشهود الاختبار والتشغيل، والتقدم لشهادة الإنجاز، ومراجعة الرسومات المنفذة. على المشتري التأكد من المراحل المشمولة في النطاق والمخرجات لكل مرحلة وعدد مراجعات التصميم المشمولة قبل الأتعاب الإضافية.",
-   "sources": [
-    "https://www.riba.org/knowledge-and-resources/resources-landing-page/riba-plan-of-work",
-    "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:supervision",
-   "topic": "Construction supervision by the consultant",
-   "kind": "product",
-   "body_en": "UAE authorities require a registered consultant to supervise construction of permitted buildings, and the supervising consultant signs off at inspection stages and for the completion certificate. The level of supervision varies greatly: 'authority supervision' may mean periodic visits sufficient to satisfy authority inspections, while full-time resident supervision places a resident engineer, and possibly inspectors for structure, MEP and finishes, on site daily. For villas, periodic supervision is common; for commercial buildings and towers, full-time site teams are typical. Supervision duties typically include checking works against IFC drawings and specifications, approving material submittals and shop drawings, witnessing tests (concrete cubes, pressure tests, fire system tests), recording site instructions, checking the contractor's progress and payment applications, and managing snagging. Buyers should specify the supervision level, the number and qualification of site staff, visit frequency, the duration assumed (and the cost of extension if construction overruns), reporting format, and whether the consultant certifies payments. Supervision fees quoted as a percentage without a staffing schedule are hard to compare. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
-   "body_ar": "تشترط الجهات في الإمارات أن يشرف استشاري مسجل على إنشاء المباني المرخصة، ويوقع الاستشاري المشرف عند مراحل التفتيش ولشهادة الإنجاز. يختلف مستوى الإشراف كثيراً: الإشراف لأغراض الجهة قد يعني زيارات دورية كافية لاستيفاء تفتيشات الجهة، بينما الإشراف المقيم بدوام كامل يضع مهندساً مقيماً وربما مفتشين للإنشاءات والأعمال الكهروميكانيكية والتشطيبات في الموقع يومياً. للفلل الإشراف الدوري شائع، وللمباني التجارية والأبراج تكون فرق الموقع بدوام كامل معتادة. تشمل مهام الإشراف عادة مطابقة الأعمال لرسومات الإصدار للإنشاء والمواصفات، واعتماد طلبات المواد والرسومات التنفيذية، وشهود الاختبارات كمكعبات الخرسانة واختبارات الضغط وأنظمة الحريق، وتسجيل تعليمات الموقع، ومراجعة تقدم المقاول وطلبات الدفع، وإدارة الملاحظات النهائية. على المشتري تحديد مستوى الإشراف وعدد موظفي الموقع ومؤهلاتهم وتكرار الزيارات والمدة المفترضة وتكلفة التمديد إذا تأخر الإنشاء وشكل التقارير وهل يعتمد الاستشاري الدفعات. أتعاب الإشراف المعروضة كنسبة مئوية دون جدول موظفين صعبة المقارنة. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
-   "sources": [
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai",
-    "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:consultant-registration",
-   "topic": "Consultant registration and classification",
-   "kind": "authority_approval",
-   "body_en": "Dubai Law No. 14 of 2025, issued in October 2025, replaced the 1994 local order on engineering consultancy and applies across the whole emirate, including free zones and DIFC. A consultancy now needs both a professional trade licence and separate Dubai Municipality registration; operating without both is a violation. Classification is based on qualified engineering staff rather than capital. A business-setup guide summarising the law describes an unlimited grade (any height), a second grade (up to 12 floors) and a third grade (up to 4 floors), each with a minimum number of registered engineers and office size. Each registered engineer must be a member of the Society of Engineers UAE and accredited by Dubai Municipality. Consultancies must carry professional indemnity insurance sized to the projects they sign, and the law restricts consultancies from contracting activities that would compromise their independent supervisory role. Trakhees and other zone authorities also require accredited consultants for submissions, and Civil Defence registers consultants for fire and life safety work. In Abu Dhabi, Estidama projects need a Pearl Qualified Professional. Buyers should check the licence, the grade and whether it covers the building height, and that the engineers named in the proposal are the registered signatories.",
-   "body_ar": "صدر قانون دبي رقم ١٤ لسنة ٢٠٢٥ في أكتوبر ٢٠٢٥ ليحل محل الأمر المحلي لعام ١٩٩٤ بشأن الاستشارات الهندسية، ويسري على كامل الإمارة بما فيها المناطق الحرة ومركز دبي المالي العالمي. فأصبح المكتب الاستشاري يحتاج إلى رخصة مهنية وإلى تسجيل مستقل لدى بلدية دبي معاً، والعمل دون أحدهما مخالفة. ويقوم التصنيف على الكادر الهندسي المؤهل لا على رأس المال؛ ويصف دليل تأسيس أعمال يلخّص القانون فئة غير محدودة (أي ارتفاع)، وفئة ثانية (حتى ١٢ طابقاً)، وفئة ثالثة (حتى ٤ طوابق)، لكلٍّ منها حد أدنى من المهندسين المسجلين ومساحة المكتب. ويجب أن يكون كل مهندس مسجّل عضواً في جمعية المهندسين الإماراتية ومعتمداً لدى البلدية. وعلى المكاتب حمل تأمين مسؤولية مهنية يتناسب مع قيمة المشاريع التي توقّع عليها، ويقيّد القانون ممارسة المكتب لأعمال المقاولات التي تمس استقلالية دوره الإشرافي. كما تشترط «تراخيص» وغيرها من السلطات استشاريين معتمدين للتقديم، ويسجّل الدفاع المدني الاستشاريين لأعمال الوقاية من الحريق. وفي أبوظبي تحتاج مشاريع «استدامة» إلى مختص معتمد في نظام اللؤلؤ. وعلى المشتري التحقق من الرخصة والفئة ومدى تغطيتها لارتفاع المبنى، وأن المهندسين المذكورين في العرض هم الموقّعون المسجّلون.",
-   "sources": [
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai",
-    "https://almujassam.ae/trakhees-approval-dubai/",
-    "https://approvals.ae/services/dubai-civil-defense-approval"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:fitout-permits",
-   "topic": "Fit-out permits for offices, shops and restaurants",
-   "kind": "authority_approval",
-   "body_en": "Interior fit-outs in Dubai need approvals even without structural work, and the regulator depends on location, not business type. Dubai Municipality covers mainland areas; Trakhees covers PCFC land such as JAFZA, Palm Jumeirah and Dubai Maritime City; the Dubai Development Authority covers TECOM zones such as Internet City, Media City, d3 and Knowledge Park; DIFC has its own property development department; and DMCC handles JLT towers through its own NOC route. Nearly every project needs two approvals: the statutory permit from that authority and a landlord or community NOC, which often gates the government submission. On the mainland, Administrative Resolution 85 of 2019 exempts from the DM permit any unit inside a mall or commercial complex and units of 100 square metres or less; the exemption removes paperwork only, not technical standards. Two regulators apply everywhere: DEWA for power or water changes, and Dubai Civil Defence for all commercial premises, whose approval is needed for any change affecting exits, ceilings, partitions or electrical systems and which now gates licence issue and renewal. Food outlets and clinics need additional food safety or health authority layout approvals, which were not confirmed from a fetched source here. Buyers should budget time for landlord and authority reviews and check the fit-out contractor's registrations.",
-   "body_ar": "تحتاج أعمال التجهيز الداخلي في دبي إلى موافقات حتى من دون أعمال إنشائية، وتتحدد الجهة المختصة بالموقع لا بنوع النشاط. فبلدية دبي تختص بمناطق البر الرئيسي، و«تراخيص» بأراضي مؤسسة الموانئ والجمارك مثل جافزا ونخلة جميرا ومدينة دبي الملاحية، وسلطة دبي للتطوير بمناطق تيكوم مثل مدينة الإنترنت ومدينة الإعلام وحي التصميم وقرية المعرفة، ولمركز دبي المالي العالمي إدارته الخاصة، ويعالج مركز دبي للسلع المتعددة أبراج بحيرات جميرا عبر إجراءات عدم ممانعة خاصة به. ويحتاج كل مشروع تقريباً إلى موافقتين: الرخصة النظامية من تلك الجهة، وعدم ممانعة المالك أو المجتمع التي تكون غالباً شرطاً مسبقاً للتقديم الحكومي. وفي البر الرئيسي يعفي القرار الإداري رقم ٨٥ لسنة ٢٠١٩ من رخصة البلدية أي وحدة داخل مول أو مجمع تجاري والوحدات التي لا تتجاوز ١٠٠ متر مربع، والإعفاء يلغي الإجراءات الورقية فقط دون المعايير الفنية. وتسري جهتان في كل المناطق: هيئة كهرباء ومياه دبي لأي تعديل على الكهرباء أو المياه، والدفاع المدني بدبي لكل المنشآت التجارية، إذ تلزم موافقته لأي تغيير يمس المخارج أو الأسقف أو القواطع أو الأنظمة الكهربائية، وأصبحت شرطاً لإصدار الرخص وتجديدها. وتحتاج منشآت الأغذية والعيادات إلى موافقات إضافية على المخططات من جهات سلامة الغذاء أو الصحة، ولم تُؤكَّد تفاصيلها من مصدر تم الاطلاع عليه هنا. وعلى المشتري احتساب وقت مراجعات المالك والجهات والتحقق من تسجيلات مقاول التجهيز.",
-   "sources": [
-    "https://www.mitchellscommercialrealty.com/guides/fitout-permits",
-    "https://approvals.ae/services/dubai-civil-defense-approval"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:completion-certificate",
-   "topic": "Building completion certificate and occupancy",
-   "kind": "authority_approval",
-   "body_en": "A building cannot be legally occupied or connected permanently to utilities until the authority issues a completion certificate (sometimes called a building completion or occupancy certificate). The supervising consultant applies after construction is finished, with prerequisites such as the Civil Defence completion certificate, utility connection or clearance from DEWA or the relevant utility, telecom clearance, RTA or municipality clearances for external works, drainage connection, green building compliance evidence, as-built drawings, and final inspections by the building authority. Snags raised by inspectors must be closed before issue. For sale or lease of units, the completion certificate is also needed for title registration and tenancy registration. Delays usually stem from missing NOCs, deviations from approved drawings without amendment approval, incomplete fire systems testing, and unpaid fees or fines. Buyers of consultancy services should confirm that completion certificate application is included in the consultant's scope and that the contractor's obligations include providing test certificates and as-built documentation in time.",
-   "body_ar": "لا يجوز إشغال المبنى قانونياً أو توصيله بالمرافق بشكل دائم حتى تصدر الجهة شهادة الإنجاز، وتسمى أحياناً شهادة إتمام البناء أو الإشغال. يتقدم الاستشاري المشرف بعد انتهاء الإنشاء، مع متطلبات مسبقة كشهادة إنجاز الدفاع المدني، وتوصيل أو براءة ذمة من هيئة كهرباء ومياه دبي أو شركة المرافق المعنية، وبراءة الاتصالات، وبراءات هيئة الطرق أو البلدية للأعمال الخارجية، وتوصيل الصرف، وإثبات الامتثال للمباني الخضراء، والرسومات المنفذة، والتفتيشات النهائية من جهة البناء. يجب إغلاق الملاحظات التي يثيرها المفتشون قبل الإصدار. ولبيع الوحدات أو تأجيرها تلزم الشهادة أيضاً لتسجيل الملكية وتسجيل عقود الإيجار. تنشأ التأخيرات عادة من غياب شهادات عدم ممانعة، أو الانحراف عن الرسومات المعتمدة دون اعتماد تعديل، أو عدم اكتمال اختبارات أنظمة الحريق، أو رسوم أو مخالفات غير مدفوعة. على مشتري خدمات الاستشارات التأكد من أن التقدم لشهادة الإنجاز مشمول في نطاق الاستشاري، وأن التزامات المقاول تشمل تقديم شهادات الاختبار ووثائق التنفيذ في الوقت المناسب.",
-   "sources": [
-    "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
-    "https://almujassam.ae/trakhees-approval-dubai/",
-    "https://approvals.ae/services/dubai-civil-defense-approval"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:fee-structures",
-   "topic": "Consultancy fee structures and drivers",
-   "kind": "price_driver",
-   "body_en": "Consultancy fees in the UAE are commonly quoted as a lump sum per stage, a percentage of the estimated construction cost, or a man-month rate for supervision. Published fee scales from authorities or professional bodies are not established here as binding figures, so no numbers are given. Fee drivers include project type and complexity (a hospital or hotel versus a warehouse), size and height, number of disciplines (architecture, structure, MEP, fire, landscape, interior, facade, acoustics, vertical transport), the green building rating target, the number of authorities and NOCs, design revision allowance, BIM level required, whether specialist studies are needed (traffic impact, wind, geotechnical interpretation, energy modelling), and the level and duration of supervision. Percentage fees create a potential conflict: if cost rises, fees rise, so many clients prefer lump sums with defined scope. Buyers should require a fee breakdown by stage and discipline, list of deliverables, revision and variation terms, reimbursable costs (authority fees, printing, travel, testing), payment schedule tied to milestones, and the fee consequence if construction runs longer than planned. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
-   "body_ar": "تُعرض أتعاب الاستشارات في الإمارات عادة كمبلغ مقطوع لكل مرحلة، أو نسبة من تكلفة الإنشاء التقديرية، أو سعر شهري للفرد للإشراف. لا نعتمد هنا جداول أتعاب منشورة من الجهات أو الهيئات المهنية كأرقام ملزمة، لذا لا نذكر أرقاماً. محركات الأتعاب: نوع المشروع وتعقيده كالمستشفى أو الفندق مقابل المستودع، والحجم والارتفاع، وعدد التخصصات من عمارة وإنشاء وكهروميكانيك وحريق وتنسيق حدائق وتصميم داخلي وواجهات وصوتيات ونقل رأسي، ومستوى تصنيف المباني الخضراء المستهدف، وعدد الجهات وشهادات عدم الممانعة، وعدد مراجعات التصميم المسموحة، ومستوى نمذجة معلومات البناء المطلوب، والحاجة لدراسات متخصصة كالأثر المروري والرياح وتفسير الجيوتقنية ونمذجة الطاقة، ومستوى الإشراف ومدته. الأتعاب النسبية تخلق تعارضاً محتملاً، فإذا ارتفعت التكلفة ارتفعت الأتعاب، لذا يفضل عملاء كثيرون المبالغ المقطوعة بنطاق محدد. على المشتري طلب تفصيل الأتعاب حسب المرحلة والتخصص، وقائمة المخرجات، وشروط المراجعات والتغييرات، والتكاليف المستردة كرسوم الجهات والطباعة والسفر والاختبارات، وجدول دفعات مرتبط بالمراحل، وأثر الأتعاب إذا طال الإنشاء أكثر من المخطط. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
-   "sources": [
-    "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use",
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:consultancy-spec-checklist",
-   "topic": "What to state when requesting a consultancy proposal",
-   "kind": "spec_checklist",
-   "body_en": "To obtain comparable consultancy proposals, the client should issue a written brief rather than ask for a price on a plot number. The brief should give the plot number, location, governing authority and master developer; the affection plan and any existing approvals; project type and use; approximate built-up area and number of floors (basement, ground, podium, typical floors, roof), because the floor count also decides which consultant grade can legally sign it under Dubai's 2025 consultancy law; budget or target construction cost; programme expectations; and whether the work is new build, extension, modification or fit-out. Define the services required: design stages from concept to issued-for-construction (the RIBA Plan of Work, for example, divides a project into eight stages), disciplines (architecture, structure, MEP, fire and life safety, landscape, interior, facade), authority submissions and NOCs, green building target, BIM requirements, specialist studies (geotechnical investigation, topographic survey, traffic, energy), tender documents and BOQ, tender evaluation, supervision level and duration, and the completion certificate. Ask for team CVs and registrations, authority grade, similar project references, deliverables per stage, revision allowance, fee breakdown, payment milestones, professional indemnity insurance and exclusions. Ambiguity in the brief is the main reason proposals vary widely.",
-   "body_ar": "للحصول على عروض استشارية قابلة للمقارنة، ينبغي أن يصدر العميل موجزاً مكتوباً بدل طلب سعر على رقم أرض فقط. ويتضمن الموجز: رقم الأرض وموقعها والجهة المختصة والمطوّر الرئيسي، ومخطط الأرض وأي موافقات قائمة، ونوع المشروع واستخدامه، ومساحة البناء التقريبية وعدد الطوابق (قبو، أرضي، منصة، طوابق متكررة، سطح)، لأن عدد الطوابق يحدد أيضاً فئة الاستشاري المخوّلة قانوناً بالتوقيع وفق قانون الاستشارات في دبي لعام ٢٠٢٥، والميزانية أو التكلفة المستهدفة، والبرنامج الزمني المتوقع، وهل العمل بناء جديد أم توسعة أم تعديل أم تجهيز داخلي. ثم تُحدَّد الخدمات: مراحل التصميم من الفكرة إلى مخططات التنفيذ المعتمدة (فمثلاً تقسم خطة عمل المعهد الملكي للمعماريين البريطانيين المشروع إلى ثماني مراحل)، والتخصصات (معماري، إنشائي، كهروميكانيكي، حريق وسلامة، تنسيق مواقع، داخلي، واجهات)، وتقديمات الجهات وشهادات عدم الممانعة، ومستوى المبنى الأخضر المستهدف، ومتطلبات نمذجة معلومات البناء، والدراسات المتخصصة (فحص التربة، المساحة الطبوغرافية، المرور، الطاقة)، ومستندات المناقصة وجدول الكميات وتقييم العطاءات، ومستوى الإشراف ومدته، وشهادة الإنجاز. ويُطلب من الاستشاري السير الذاتية والتسجيلات وفئته لدى الجهة ومشاريع مماثلة ومخرجات كل مرحلة وعدد التعديلات المشمولة وتفصيل الأتعاب ودفعات السداد وتأمين المسؤولية المهنية والاستثناءات. والغموض في الموجز هو السبب الرئيسي لتفاوت العروض.",
-   "required_specs": [
-    "plot number and location",
-    "building authority and master developer",
-    "project type and use",
-    "built-up area and floors",
-    "target construction cost",
-    "new build / extension / fit-out",
-    "stages required",
-    "disciplines required",
-    "authority submissions and NOCs",
-    "green building rating target",
-    "BIM requirements",
-    "specialist studies (soil, survey, traffic, energy)",
-    "tender documents and BOQ",
-    "supervision level and duration",
-    "completion certificate included",
-    "team registrations and classification",
-    "PI insurance level",
-    "fee breakdown and payment milestones"
-   ],
-   "sources": [
-    "https://www.riba.org/knowledge-and-resources/resources-landing-page/riba-plan-of-work",
-    "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:bim",
-   "topic": "BIM requirements in UAE projects",
-   "kind": "standard",
-   "body_en": "Building Information Modelling (BIM) is the use of a shared digital representation of a built asset to support design, construction and operation decisions, as ISO 19650-1 defines it. It supports design coordination and clash detection, 4D (linking the model to the schedule), 5D (adding cost) and facility management. Dubai Municipality first mandated BIM through circular 196 and widened it with circular 207. Under the current requirement, BIM model submissions have been mandatory for building permits since 1 January 2024 for: architectural models of buildings over 20 floors or complexes over 20,000 square metres; structural models of buildings over 40 floors or complexes over 30,000 square metres; specialised facilities such as hospitals and universities; and all government projects, following the Dubai Building Code and Dubai's BIM standard. Thresholds may change, so the latest circular should be checked. Many clients also specify delivery under the ISO 19650 series, with a BIM execution plan, a common data environment and defined information requirements per stage; ISO 19650 uses the Level of Information Need concept, which is replacing the older Level of Development (LOD) terminology. Buyers should state whether BIM is required by the authority or for their own facility management, which disciplines are modelled, whether the contractor maintains the model and delivers an as-built model, and require native files and data ownership in the contract.",
-   "body_ar": "نمذجة معلومات البناء هي استخدام تمثيل رقمي مشترك للأصل المبني لدعم قرارات التصميم والتنفيذ والتشغيل، وفق تعريف المعيار ISO 19650-1. وتدعم تنسيق التصاميم واكتشاف التعارضات، والبعد الرابع (ربط النموذج بالبرنامج الزمني)، والبعد الخامس (إضافة التكلفة)، وإدارة المرافق. وقد فرضت بلدية دبي النمذجة أولاً بالتعميم ١٩٦ ثم وسّعتها بالتعميم ٢٠٧. ووفق المتطلب الحالي، أصبح تقديم النماذج إلزامياً لرخص البناء منذ ١ يناير ٢٠٢٤ في الحالات التالية: النماذج المعمارية للمباني التي تتجاوز ٢٠ طابقاً أو المجمعات التي تزيد على ٢٠ ألف متر مربع؛ والنماذج الإنشائية للمباني التي تتجاوز ٤٠ طابقاً أو المجمعات التي تزيد على ٣٠ ألف متر مربع؛ والمنشآت المتخصصة كالمستشفيات والجامعات؛ وجميع المشاريع الحكومية، مع الالتزام بكود دبي للبناء ومعيار دبي للنمذجة. وقد تتغير هذه الحدود فيجب مراجعة أحدث تعميم. ويشترط كثير من العملاء التسليم وفق سلسلة ISO 19650 مع خطة تنفيذ للنمذجة وبيئة بيانات مشتركة ومتطلبات معلومات محددة لكل مرحلة، ويستخدم المعيار مفهوم «مستوى الحاجة إلى المعلومات» الذي يحل تدريجياً محل مصطلح «مستوى التطوير». وعلى المشتري تحديد ما إذا كانت النمذجة مطلوبة من الجهة أو لإدارة مرافقه، والتخصصات المنمذجة، وهل يحدّث المقاول النموذج ويسلّم نموذجاً مطابقاً للتنفيذ، واشتراط الملفات الأصلية وملكية البيانات في العقد.",
-   "sources": [
-    "https://www.globalconstructionreview.com/dubai-mandates-bim-for-new-buildings/",
-    "https://en.wikipedia.org/wiki/Building_information_modeling"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:dubai-building-code",
-   "topic": "Dubai Building Code and applicable design codes",
-   "kind": "standard",
-   "body_en": "Dubai Municipality publishes the Dubai Building Code, whose current downloadable version is the 2021 edition. Its stated aim is to unify building design across Dubai in one easy-to-use code and to set minimum requirements for the health, safety, welfare and convenience of people in and around buildings, reduce environmental impact and support sustainable development. It applies to everyone designing and building in the emirate, and DM publishes supporting tools with it, including calculation tools, insulation specifications for villa types, glazing schedules, air-conditioning unit requirements and a solar calculator. The Dubai Building Code sits alongside the UAE Fire and Life Safety Code for fire matters, Al Sa'fat for green building, and utility regulations from DEWA. For structural design, UAE practice commonly uses international codes such as ACI 318, Eurocodes or BS codes as accepted by the authority, with local wind and seismic parameters; this practice point was not confirmed from a fetched authority source. In Abu Dhabi, the building codes are based on the 2009 International Codes (ICC family) and are implemented by the Department of Municipalities and Transport, together with Estidama. Buyers should ask the consultant to list the governing codes and editions in the design basis report; designing to outdated editions or mixing code families without justification leads to rejection.",
-   "body_ar": "تنشر بلدية دبي «كود دبي للبناء»، ونسخته المتاحة حالياً للتحميل هي إصدار ٢٠٢١. وهدفه المعلن توحيد تصميم المباني في دبي ضمن كود واحد سهل الاستخدام، ووضع حد أدنى من المتطلبات لصحة الناس وسلامتهم ورفاهيتهم وراحتهم داخل المباني وحولها، وتقليل الأثر البيئي ودعم التنمية المستدامة. ويسري على كل من يصمم أو يبني في الإمارة، وتنشر البلدية معه أدوات مساندة منها أدوات حساب ومواصفات عزل لأنواع الفلل وجداول للزجاج ومتطلبات لوحدات التكييف وحاسبة للطاقة الشمسية. ويعمل الكود جنباً إلى جنب مع كود الإمارات للحماية من الحريق في مسائل الحريق، ونظام السعفات للمباني الخضراء، ولوائح هيئة كهرباء ومياه دبي. وفي التصميم الإنشائي تستخدم الممارسة الإماراتية عادةً أكواداً دولية مثل ACI 318 أو الأكواد الأوروبية أو البريطانية حسب قبول الجهة، مع معاملات محلية للرياح والزلازل؛ ولم تُؤكَّد هذه النقطة من مصدر رسمي تم الاطلاع عليه. وفي أبوظبي تقوم أنظمة البناء على الأكواد الدولية إصدار ٢٠٠٩ وتطبقها دائرة البلديات والنقل إلى جانب «استدامة». وعلى المشتري أن يطلب من الاستشاري بيان الأكواد وإصداراتها في تقرير أسس التصميم؛ فالتصميم على إصدارات قديمة أو خلط عائلات الأكواد دون مبرر يؤدي إلى الرفض.",
-   "sources": [
-    "https://www.dm.gov.ae/municipality-business/planning-and-construction/dubai-building-code-2/",
-    "https://www.iccsafe.org/products-and-services/global-services/countries/united-arab-emirates/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:soil-investigation-survey",
-   "topic": "Geotechnical investigation and topographic survey",
-   "kind": "product",
-   "body_en": "Before structural design, a geotechnical (soil) investigation and a topographic survey are needed, and Dubai Municipality requires verified soil test results and a geotechnical report before it issues a building permit. Testing must be done by a laboratory accredited by the Emirates International Accreditation Centre (EIAC) under ISO/IEC 17025 for construction materials and geotechnical testing; data from non-accredited labs is rejected. A typical scope includes boreholes with standard penetration tests, groundwater level, grain size and Atterberg limits, moisture and density, shear strength, consolidation, and chemical tests for chlorides, sulphates and pH, which matter because aggressive salts attack concrete and reinforcement. One Dubai consultancy guide reports borehole rules such as depth of at least 8 m or 2.5 to 3 times the footing width for pad and strip foundations, about one borehole per 750 square metres, and minimum counts of five for towers above G+12, three for lower buildings and two for a single villa; these figures should be confirmed with the structural engineer and the current DM requirement. Coastal sabkha soils are known to be high in sulphates and chlorides and weak when wet, which strongly affects foundation cost. The topographic survey should be done by a licensed surveyor in the emirate's coordinate system. Buyers should specify borehole numbers and depths as recommended by the engineer and require an EIAC-accredited laboratory.",
-   "body_ar": "قبل التصميم الإنشائي يلزم إجراء فحص جيوتقني للتربة ومسح طبوغرافي، وتشترط بلدية دبي نتائج فحص تربة موثقة وتقريراً جيوتقنياً قبل إصدار رخصة البناء. ويجب أن يجري الفحوص مختبر معتمد من مركز الإمارات العالمي للاعتماد وفق المعيار ISO/IEC 17025 في مجال مواد البناء والفحوص الجيوتقنية، وتُرفض بيانات المختبرات غير المعتمدة. ويشمل النطاق المعتاد حفر جسّات مع اختبار الاختراق القياسي، وقياس منسوب المياه الجوفية، والتدرج الحبيبي وحدود أتربرغ، والرطوبة والكثافة، ومقاومة القص، والانضغاط، والفحوص الكيميائية للكلوريدات والكبريتات ودرجة الحموضة، وهي مهمة لأن الأملاح العدوانية تهاجم الخرسانة وحديد التسليح. ويذكر دليل لأحد المكاتب في دبي قواعد مثل ألا يقل عمق الجسّة عن ٨ أمتار أو ٢٫٥ إلى ٣ أضعاف عرض القاعدة للقواعد المنفصلة والشريطية، وجسّة واحدة تقريباً لكل ٧٥٠ متراً مربعاً، وحداً أدنى خمس جسّات للأبراج فوق أرضي +١٢ وثلاثاً للمباني الأقل وجسّتين للفيلا الواحدة؛ ويجب تأكيد هذه الأرقام مع المهندس الإنشائي ومع متطلبات البلدية الحالية. وتُعرف تربة السبخة الساحلية بارتفاع الكبريتات والكلوريدات وضعفها عند التشبع، مما يؤثر كثيراً في تكلفة الأساسات. ويجب أن يجري المسح الطبوغرافي مسّاح مرخّص بنظام الإحداثيات المعتمد في الإمارة. وعلى المشتري تحديد عدد الجسّات وأعماقها وفق توصية المهندس واشتراط مختبر معتمد.",
-   "sources": [
-    "https://integradxb.com/soil-testing-and-geotechnical-reports-for-dm-approval-complete-guide-for-2026/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:mep-structural-design",
-   "topic": "MEP and structural design scope",
-   "kind": "product",
-   "body_en": "Structural design covers the design basis (codes, loads, wind and seismic, exposure), foundation design using the soil report, the structural system (RC flat slabs, post-tensioned slabs, beams, transfer structures, steel structures), calculations and drawings, and coordination with architecture and MEP openings. MEP design covers HVAC (cooling load calculations for UAE climate, system selection such as split, VRF, chilled water or district cooling connection, ventilation and smoke control), electrical (load schedule, single-line diagram, lighting, small power, earthing, lightning protection, standby power), plumbing and drainage (water supply, hot water, drainage, stormwater), fire fighting and fire alarm (per Civil Defence), and low-current systems (data, CCTV, access control, public address). In the UAE, district cooling is common in master communities and requires coordination with the provider. Buyers should confirm which systems are in scope, whether specialist design for lifts, facade, kitchen or pool equipment is included, and whether the MEP engineer will produce energy modelling for green building compliance. Gaps between disciplines are a frequent source of variations. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
-   "body_ar": "يغطي التصميم الإنشائي أساس التصميم من أكواد وأحمال ورياح وزلازل وتعرض، وتصميم الأساسات وفق تقرير التربة، والنظام الإنشائي كالبلاطات المسطحة المسلحة أو سابقة الإجهاد والجسور والمنشآت الناقلة والهياكل الفولاذية، والحسابات والرسومات، والتنسيق مع العمارة وفتحات الأعمال الكهروميكانيكية. ويغطي تصميم الأعمال الكهروميكانيكية التكييف من حساب أحمال التبريد لمناخ الإمارات واختيار النظام كالسبليت أو VRF أو المياه المبردة أو التوصيل بالتبريد المركزي والتهوية والتحكم بالدخان، والكهرباء من جدول الأحمال والمخطط الأحادي والإنارة والمقابس والتأريض والحماية من الصواعق والطاقة الاحتياطية، والصحي والصرف من تغذية المياه والماء الساخن والصرف وتصريف الأمطار، والإطفاء وإنذار الحريق وفق الدفاع المدني، وأنظمة التيار الخفيف من بيانات وكاميرات مراقبة والتحكم بالدخول والإذاعة الداخلية. في الإمارات التبريد المركزي شائع في المجتمعات الرئيسية ويتطلب التنسيق مع المزود. على المشتري التأكد من الأنظمة المشمولة وهل يشمل التصميم المتخصص للمصاعد والواجهات والمطابخ ومعدات المسابح، وهل سيعد المهندس نمذجة الطاقة لامتثال المباني الخضراء. الفجوات بين التخصصات مصدر متكرر لأوامر التغيير. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
-   "sources": [
-    "https://www.dm.gov.ae/municipality-business/planning-and-construction/dubai-building-code-2/",
-    "https://murjangroup.com/blog/dewa-substation-approval"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:as-built",
-   "topic": "As-built drawings and handover documentation",
-   "kind": "installation",
-   "body_en": "As-built drawings record what was actually constructed, including deviations from IFC drawings, routes of concealed services, and final equipment. In UAE practice, the contractor prepares as-built drawings and the consultant reviews and approves them; authorities and utilities (for example DEWA, Civil Defence and the building authority) require as-built submissions for completion. The handover package typically includes as-built drawings (in native CAD or BIM format and PDF), operation and maintenance manuals, test and commissioning certificates, warranties and guarantees from subcontractors and suppliers, spare parts and attic stock lists, and training records for facility staff. Owners should specify in contracts the format, level of detail, timing (as-built submittals often slip to the end), and retention of payments until documents are received. Without accurate as-builts, future modifications, fit-outs and maintenance become costly, and some authority applications for later changes require them. Buyers engaging a consultant should include the review of as-built and O&M documentation in scope. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
-   "body_ar": "تسجل الرسومات المنفذة ما تم إنشاؤه فعلياً، بما في ذلك الانحرافات عن رسومات الإصدار للإنشاء ومسارات الخدمات المخفية والمعدات النهائية. في الممارسة الإماراتية يعد المقاول الرسومات المنفذة ويراجعها الاستشاري ويعتمدها، وتشترط الجهات وشركات المرافق، مثل هيئة كهرباء ومياه دبي والدفاع المدني وجهة البناء، تقديم الرسومات المنفذة للإنجاز. تتضمن حزمة التسليم عادة الرسومات المنفذة بصيغة CAD أو BIM الأصلية وPDF، وأدلة التشغيل والصيانة، وشهادات الاختبار والتشغيل، والضمانات والكفالات من المقاولين من الباطن والموردين، وقوائم قطع الغيار والمخزون الاحتياطي، وسجلات تدريب موظفي المرافق. يجب على الملاك تحديد الصيغة ومستوى التفصيل والتوقيت في العقود، إذ كثيراً ما تتأخر الرسومات المنفذة إلى النهاية، مع احتجاز دفعات حتى استلام الوثائق. بدون رسومات منفذة دقيقة تصبح التعديلات والتجهيزات والصيانة المستقبلية مكلفة، وبعض طلبات الجهات للتغييرات اللاحقة تتطلبها. على المشتري الذي يتعاقد مع استشاري أن يدرج مراجعة الرسومات المنفذة ووثائق التشغيل والصيانة في النطاق. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
-   "sources": [
-    "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
-    "https://en.wikipedia.org/wiki/Building_information_modeling"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:tender-boq",
-   "topic": "Tender documents, BOQ and cost consultancy",
-   "kind": "product",
-   "body_en": "Consultants or separate quantity surveyors prepare tender documents so that contractors price on the same basis: conditions of contract, specifications, drawings, bills of quantities (BOQ), forms of tender and instructions to tenderers. FIDIC contracts are common in the region. FIDIC's guidance is that the Construction Contract (the Red Book) suits works designed by the employer or its engineer, while the Plant and Design-Build Contract (successor to the Yellow Book) suits works where the contractor does most of the design; either is amended for UAE law. BOQs should be measured to a stated method: the RICS New Rules of Measurement (NRM1 for cost estimating and cost planning, NRM2 for detailed measurement of building works, NRM3 for maintenance cost planning) or the older Principles of Measurement (International) still used on some regional projects. A cost consultant provides estimates at each design stage, cost plans, tender evaluation reports and, during construction, valuation of variations and the final account. Mandatory UAE law applies regardless of contract wording: under the new Civil Code (Federal Decree-Law 25 of 2025, in force from 1 June 2026, Articles 821 to 824) the contractor and engineer carry ten-year decennial liability that cannot be excluded. Buyers should decide whether the consultant's scope includes the BOQ and cost management or whether a separate QS is appointed; missing cost control often leads to tenders far above budget.",
-   "body_ar": "يُعدّ الاستشاري أو مكتب مستقل لحساب الكميات مستندات المناقصة كي يسعّر المقاولون على أساس واحد: شروط العقد والمواصفات والمخططات وجداول الكميات ونماذج العطاء وتعليمات المناقصين. وعقود «فيديك» شائعة في المنطقة؛ وبحسب إرشادات فيديك فإن عقد التشييد (الكتاب الأحمر) يناسب الأعمال التي يصممها المالك أو مهندسه، بينما يناسب عقد المصنع والتصميم والبناء (خلف الكتاب الأصفر) الأعمال التي يتولى المقاول معظم تصميمها، ويُعدَّل أيٌّ منهما بما يتوافق مع القانون الإماراتي. ويجب أن تُحسب جداول الكميات وفق طريقة قياس محددة: قواعد القياس الجديدة الصادرة عن المعهد الملكي للمساحين القانونيين (NRM1 لتقدير التكلفة وتخطيطها، وNRM2 للقياس التفصيلي لأعمال المباني، وNRM3 لتخطيط تكاليف الصيانة)، أو مبادئ القياس الدولية الأقدم التي ما زالت مستخدمة في بعض مشاريع المنطقة. ويقدّم استشاري التكلفة تقديرات في كل مرحلة تصميم وخطط تكلفة وتقارير تقييم العطاءات، وأثناء التنفيذ تقييم الأوامر التغييرية والحساب الختامي. ويسري القانون الإماراتي الآمر بصرف النظر عن صياغة العقد: فبموجب القانون المدني الجديد (المرسوم بقانون اتحادي رقم ٢٥ لسنة ٢٠٢٥، النافذ من ١ يونيو ٢٠٢٦، المواد ٨٢١ إلى ٨٢٤) يتحمل المقاول والمهندس مسؤولية عشرية لا يجوز استبعادها. وعلى المشتري أن يقرر هل يشمل نطاق الاستشاري جداول الكميات وإدارة التكلفة أم يُعيَّن مكتب كميات مستقل؛ فغياب ضبط التكلفة يؤدي غالباً إلى عطاءات تتجاوز الميزانية كثيراً.",
-   "sources": [
-    "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use",
-    "https://www.rics.org/profession-standards/rics-standards-and-guidance/sector-standards/construction-standards/nrm",
-    "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/construction-engineering-and-projects/2026/decennial-liability-and-subcontractors-under-the-new-uae-civil-code-articles-821-to-824/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:decennial-liability-pi",
-   "topic": "Decennial liability and professional indemnity insurance",
-   "kind": "warranty",
-   "body_en": "Decennial liability is the UAE's mandatory ten-year liability of the contractor and the engineer for serious building failure. Since 1 June 2026 it is governed by the new Civil Code, Federal Decree-Law No. 25 of 2025, Articles 821 to 824, which replaced Articles 880 to 883 of the 1985 Civil Transactions Law. The main contractor and the engineer are jointly liable to the employer for ten years from handover for total or partial collapse of the building and for defects that threaten its stability or safety. It does not cover every defect. Any agreement that tries to exclude or limit this liability is void, and a claim must be brought within three years of the collapse or the discovery of the defect. The new code clarifies that the strict decennial regime does not apply between the main contractor and its subcontractors, so main contractors must rely on contract or fault-based claims against them and should watch subcontract limitation periods. How the new code treats a designer who did not supervise was not confirmed from a fetched source and is not established here. Consultants carry professional indemnity (PI) insurance; Dubai's 2025 consultancy law requires cover sized to the value of projects the firm signs. Buyers should request the PI certificate and check the limit, retroactive date and run-off cover, and have a UAE lawyer confirm the provisions for the specific project.",
-   "body_ar": "المسؤولية العشرية هي مسؤولية إلزامية مدتها عشر سنوات يتحملها المقاول والمهندس في الإمارات عن الإخفاقات الجسيمة في المباني. ومنذ ١ يونيو ٢٠٢٦ تحكمها أحكام القانون المدني الجديد، المرسوم بقانون اتحادي رقم ٢٥ لسنة ٢٠٢٥، المواد ٨٢١ إلى ٨٢٤، التي حلّت محل المواد ٨٨٠ إلى ٨٨٣ من قانون المعاملات المدنية لعام ١٩٨٥. ويكون المقاول الرئيسي والمهندس مسؤولين بالتضامن تجاه المالك لمدة عشر سنوات من التسليم عن التهدم الكلي أو الجزئي للمبنى وعن العيوب التي تهدد متانته أو سلامته، ولا تشمل كل عيب. وكل اتفاق يهدف إلى الإعفاء من هذه المسؤولية أو الحد منها باطل، ويجب رفع الدعوى خلال ثلاث سنوات من التهدم أو اكتشاف العيب. ويوضح القانون الجديد أن نظام المسؤولية العشرية الصارم لا يسري بين المقاول الرئيسي ومقاوليه من الباطن، فعلى المقاول الرئيسي الاعتماد على الدعاوى العقدية أو القائمة على الخطأ ومراقبة مدد التقادم في عقود الباطن. أما معاملة القانون الجديد للمصمم الذي لم يتولَّ الإشراف فلم تُؤكَّد من مصدر تم الاطلاع عليه وهي غير مُثبتة هنا. ويحمل الاستشاريون تأمين المسؤولية المهنية، ويشترط قانون الاستشارات في دبي لعام ٢٠٢٥ تغطية تتناسب مع قيمة المشاريع التي يوقّع عليها المكتب. وعلى المشتري طلب شهادة التأمين والتحقق من الحد والتاريخ الرجعي وتغطية ما بعد الإنجاز، وتأكيد الأحكام مع محامٍ إماراتي للمشروع المعني.",
-   "sources": [
-    "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/construction-engineering-and-projects/2026/decennial-liability-and-subcontractors-under-the-new-uae-civil-code-articles-821-to-824/",
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:quote-red-flags",
-   "topic": "Red flags in consultancy proposals",
-   "kind": "quote_red_flag",
-   "body_en": "Watch for these in engineering consultancy proposals. A very low design fee that excludes authority submissions, NOCs, or MEP and fire design, which are then charged as additions. 'Supervision included' without a staffing schedule, visit frequency or duration. No limit on the construction period covered, so every month of delay becomes an extra claim. Unlimited exclusions such as 'any other approvals' or 'specialist design'. No stated number of revisions. The consultant is not registered with the relevant authority, or its classification does not cover the building height and type. Named engineers who are not the registered signatories. No professional indemnity insurance or an inadequate limit. Offers to 'guarantee' permit approval within a fixed short time regardless of project complexity. Proposals that rely on the contractor to do design work without saying so, which shifts design responsibility unclearly. Fees charged as a percentage of construction cost with no cap, giving an incentive for higher costs. Lack of a design programme. Clarifying these points before appointment avoids disputes and delays.",
-   "body_ar": "انتبه لما يلي في عروض الاستشارات الهندسية. أتعاب تصميم منخفضة جداً تستثني التقديم للجهات أو شهادات عدم الممانعة أو تصميم الأعمال الكهروميكانيكية والحريق ثم تُحتسب إضافات. عبارة الإشراف مشمول دون جدول موظفين أو تكرار زيارات أو مدة. عدم تحديد مدة الإنشاء المغطاة فيصبح كل شهر تأخير مطالبة إضافية. استثناءات مفتوحة مثل أي موافقات أخرى أو التصميم المتخصص. عدم ذكر عدد المراجعات. استشاري غير مسجل لدى الجهة المعنية أو تصنيفه لا يغطي ارتفاع المبنى ونوعه. مهندسون مذكورون ليسوا الموقعين المسجلين. غياب تأمين المسؤولية المهنية أو حد غير كافٍ. عروض تضمن اعتماد التصريح خلال مدة قصيرة ثابتة بغض النظر عن تعقيد المشروع. عروض تعتمد على المقاول في أعمال تصميم دون ذكر ذلك، مما ينقل مسؤولية التصميم بشكل غير واضح. أتعاب كنسبة من تكلفة الإنشاء بلا سقف، مما يخلق حافزاً لرفع التكلفة. غياب برنامج زمني للتصميم. توضيح هذه النقاط قبل التعيين يتجنب النزاعات والتأخير.",
-   "sources": [
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai",
-    "https://almujassam.ae/trakhees-approval-dubai/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:buyer-mistakes",
-   "topic": "Common client mistakes with consultants and approvals",
-   "kind": "buyer_mistake",
-   "body_en": "Frequent client mistakes in UAE projects: starting construction or fit-out before the permit, leading to fines and stop orders; choosing the consultant on lowest fee, then paying for additional services and delays; not obtaining the master developer's design guidelines at the start, so designs are rejected for setbacks, height, colours or roof elements; changing the brief after design development, triggering redesign fees and resubmissions; assuming the contractor will 'handle approvals' in a traditional contract where that is the consultant's role; failing to commission a soil investigation early, so foundation design is guessed; ignoring utility load and substation requirements until late, which can change the site plan; underestimating Civil Defence requirements in fit-outs of older buildings; not checking whether the building's existing permits and completion certificate match the actual use, which blocks tenant fit-out approvals; and not keeping approved drawings and permits organised, making later modifications difficult. Another mistake is appointing separate designers for interior and MEP without a lead consultant responsible for coordination.",
-   "body_ar": "أخطاء العملاء المتكررة في مشاريع الإمارات: بدء الإنشاء أو التجهيز قبل التصريح مما يؤدي إلى غرامات وأوامر إيقاف؛ اختيار الاستشاري بأقل أتعاب ثم الدفع مقابل خدمات إضافية وتأخيرات؛ عدم الحصول على إرشادات التصميم من المطور الرئيسي في البداية فتُرفض التصاميم بسبب الارتدادات أو الارتفاع أو الألوان أو عناصر السطح؛ تغيير المتطلبات بعد تطوير التصميم مما يستتبع أتعاب إعادة تصميم وإعادة تقديم؛ افتراض أن المقاول سيتولى الموافقات في عقد تقليدي يكون فيه ذلك دور الاستشاري؛ عدم إجراء فحص التربة مبكراً فيُخمَّن تصميم الأساسات؛ تجاهل الأحمال الكهربائية ومتطلبات المحطة الفرعية حتى وقت متأخر مما قد يغير مخطط الموقع؛ التقليل من متطلبات الدفاع المدني في تجهيز المباني القديمة؛ عدم التحقق من مطابقة تصاريح المبنى القائمة وشهادة إنجازه للاستخدام الفعلي مما يعطل موافقات تجهيز المستأجر؛ وعدم تنظيم الرسومات والتصاريح المعتمدة مما يصعب التعديلات لاحقاً. ومن الأخطاء أيضاً تعيين مصممين منفصلين للتصميم الداخلي والأعمال الكهروميكانيكية دون استشاري رئيسي مسؤول عن التنسيق.",
-   "sources": [
-    "https://almujassam.ae/trakhees-approval-dubai/",
-    "https://www.mitchellscommercialrealty.com/guides/fitout-permits",
-    "https://integradxb.com/soil-testing-and-geotechnical-reports-for-dm-approval-complete-guide-for-2026/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:master-developer-noc",
-   "topic": "Master developer design approval and NOC",
-   "kind": "authority_approval",
-   "body_en": "In master-planned communities and free zones, the master developer or zone authority controls design through development control regulations and design guidelines: permitted use, gross floor area, height, setbacks, parking ratios, facade materials and colours, boundary walls, roof equipment screening and landscape. Before a building authority will issue a permit, the consultant usually needs the master developer's NOC confirming compliance, and later a construction NOC and site access permits. Developers such as Emaar, Nakheel, Meraas, Dubai Properties, Aldar and others each run their own submission portals and fee schedules; some also require a refundable deposit against damage to community infrastructure and approved contractor lists. For modifications to existing villas or units (extensions, pools, pergolas, facade changes), a modification NOC is required from the developer or community management before the authority permit. At completion, some developers issue their own completion NOC before the authority completion certificate. Buyers should obtain the plot's development control regulations at the start and budget for developer fees and review time.",
-   "body_ar": "في المجتمعات المخططة والمناطق الحرة يتحكم المطور الرئيسي أو سلطة المنطقة بالتصميم عبر لوائح ضبط التطوير وإرشادات التصميم: الاستخدام المسموح، ومساحة الطوابق الإجمالية، والارتفاع، والارتدادات، ونسب المواقف، ومواد الواجهات وألوانها، والأسوار، وتغطية معدات السطح، وتنسيق الحدائق. قبل أن تصدر جهة البناء التصريح يحتاج الاستشاري عادة إلى شهادة عدم ممانعة من المطور الرئيسي تؤكد الامتثال، ثم لاحقاً عدم ممانعة للإنشاء وتصاريح دخول الموقع. يدير المطورون كإعمار ونخيل ومِراس ودبي للعقارات والدار وغيرهم بوابات تقديم وجداول رسوم خاصة بهم، ويشترط بعضهم تأميناً مسترداً ضد تلف البنية التحتية للمجتمع وقوائم مقاولين معتمدين. لتعديلات الفلل أو الوحدات القائمة كالتوسعات والمسابح والبرجولات وتغيير الواجهات تلزم شهادة عدم ممانعة للتعديل من المطور أو إدارة المجتمع قبل تصريح الجهة. عند الإنجاز يصدر بعض المطورين عدم ممانعة إنجاز خاصة بهم قبل شهادة إنجاز الجهة. على المشتري الحصول على لوائح ضبط التطوير للقطعة في البداية وتخصيص ميزانية لرسوم المطور ووقت المراجعة.",
-   "sources": [
-    "https://almujassam.ae/trakhees-approval-dubai/",
-    "https://www.mitchellscommercialrealty.com/guides/fitout-permits",
-    "https://www.poolmaintenancedubai.com/blog/dubai-municipality-pool-regulations-villa-owners.html"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:architect-vs-engineering-firm",
-   "topic": "Architect-led vs engineering-led vs design-and-build",
-   "kind": "comparison",
-   "body_en": "Clients can procure design in several ways. An architect-led consultancy leads design with in-house or sub-consulted engineers, suited to projects where aesthetics, planning and user experience dominate (villas, hotels, retail). An engineering-led multidisciplinary firm has strong structural and MEP capability and suits industrial, infrastructure and technically complex buildings. In both, the consultant designs, submits and supervises while a separate contractor builds (traditional procurement), giving the client independent quality control but more interfaces. In design-and-build, the contractor takes responsibility for design and construction under one contract, often using its own consultant; this can be faster and provide a single point of responsibility, but the client loses some control over design quality and needs an employer's representative or independent consultant to check the contractor's design against the employer's requirements. In the UAE, a registered consultant must still sign and submit designs regardless of route. Buyers should choose based on complexity, time, risk appetite and in-house capability, and should not confuse a fit-out company's 'free design' with independent consultancy.",
-   "body_ar": "يمكن للعملاء التعاقد على التصميم بعدة طرق. المكتب الذي يقوده معماري يقود التصميم مع مهندسين داخليين أو استشاريين من الباطن، ويناسب المشاريع التي يغلب فيها الجانب الجمالي والتخطيطي وتجربة المستخدم كالفلل والفنادق والمحلات. المكتب متعدد التخصصات الذي تقوده الهندسة لديه قدرات قوية إنشائية وكهروميكانيكية ويناسب المنشآت الصناعية والبنية التحتية والمباني المعقدة فنياً. في الحالتين يصمم الاستشاري ويقدم للجهات ويشرف بينما يبني مقاول منفصل، وهو التعاقد التقليدي الذي يمنح العميل رقابة جودة مستقلة لكن مع واجهات أكثر. في التصميم والتنفيذ يتحمل المقاول مسؤولية التصميم والإنشاء بعقد واحد وغالباً باستشاريه الخاص؛ قد يكون أسرع ويوفر جهة مسؤولية واحدة، لكن العميل يفقد بعض السيطرة على جودة التصميم ويحتاج ممثلاً لصاحب العمل أو استشارياً مستقلاً لمراجعة تصميم المقاول مقابل متطلبات صاحب العمل. في الإمارات يجب أن يوقع استشاري مسجل التصاميم ويقدمها أياً كان المسار. على المشتري الاختيار حسب التعقيد والوقت وتقبل المخاطر والقدرات الداخلية، وألا يخلط بين التصميم المجاني لشركة التجهيز والاستشارات المستقلة.",
-   "sources": [
-    "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use",
-    "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:lead-times",
-   "topic": "Design and approval durations",
-   "kind": "lead_time",
-   "body_en": "Authority approval durations in the UAE are not fixed; they depend on the authority, project complexity, completeness of submissions and the number of comment cycles. Some published indications from firms working in the market, which should be treated as rough and confirmed per project: one Dubai consultancy estimates about four to six weeks from a complete Trakhees submission to permit; an approvals firm reports Dubai Civil Defence approvals in about ten working days for straightforward cases and fifteen or more for complex ones; and a contractor guide reports DEWA NOCs in a few working days and design review in one to two weeks, but transformer delivery and commissioning of around sixteen weeks. End-to-end timelines are much longer because they chain surveys and soil investigation, concept and schematic design with client approvals, master developer review, authority design review with NOCs, detailed design and tender documents, tender and evaluation, permit issue, construction with inspections, and the completion certificate with final NOCs. Fit-out approvals are shorter than new-build approvals but still involve landlord review, the authority permit and Civil Defence. Common causes of delay are incomplete submissions, client changes, late utility load applications and fire code comments. Buyers should ask for an approvals programme showing each authority step, its dependency and assumed review cycles, updated monthly.",
-   "body_ar": "مدد موافقات الجهات في الإمارات غير ثابتة؛ فهي تعتمد على الجهة وتعقيد المشروع واكتمال الملف وعدد دورات الملاحظات. وهناك مؤشرات منشورة من شركات عاملة في السوق تُعامل كتقديرات تقريبية وتُؤكَّد لكل مشروع: يقدّر أحد المكاتب في دبي نحو أربعة إلى ستة أسابيع من تقديم ملف مكتمل لدى «تراخيص» حتى إصدار الرخصة؛ وتذكر شركة تخليص أن موافقات الدفاع المدني بدبي تستغرق نحو عشرة أيام عمل للحالات البسيطة وخمسة عشر يوماً أو أكثر للمعقدة؛ ويذكر دليل مقاول أن شهادات عدم ممانعة هيئة الكهرباء تصدر خلال أيام عمل قليلة ومراجعة التصميم خلال أسبوع إلى أسبوعين، بينما يستغرق توريد المحوّل وتشغيله نحو ستة عشر أسبوعاً. أما المدة الكلية فأطول بكثير لأنها تربط المسح وفحص التربة، والتصميم المبدئي والتخطيطي مع موافقات العميل، ومراجعة المطوّر الرئيسي، ومراجعة الجهة مع شهادات عدم الممانعة، والتصميم التفصيلي ومستندات المناقصة، وفترة المناقصة والتقييم، وإصدار الرخصة، والتنفيذ مع التفتيش، وشهادة الإنجاز مع الموافقات النهائية. وموافقات التجهيز الداخلي أقصر من المباني الجديدة لكنها تمر بمراجعة المالك ورخصة الجهة والدفاع المدني. ومن أسباب التأخير الشائعة: نقص الملفات وتغييرات العميل وتأخر طلبات الأحمال وملاحظات كود الحريق. وعلى المشتري طلب برنامج موافقات يبيّن كل خطوة لدى كل جهة واعتمادياتها وعدد دورات المراجعة المفترضة، مع تحديثه شهرياً.",
-   "sources": [
-    "https://almujassam.ae/trakhees-approval-dubai/",
-    "https://approvals.ae/services/dubai-civil-defense-approval",
-    "https://murjangroup.com/blog/dewa-substation-approval"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "engineering_consultancy:glossary",
-   "topic": "Consultancy and approvals glossary",
-   "kind": "glossary",
-   "body_en": "Affection plan: official plot plan showing boundaries, area, permitted use and development controls. DCR: development control regulations. NOC: no objection certificate from an authority, utility or developer. BPS: Dubai Municipality's online building permit system. IFC: issued for construction drawings. Shop drawings: contractor's detailed drawings for approval. Material submittal: contractor's proposal of a product for consultant approval. RFI: request for information. Site instruction: consultant's written instruction on site. Variation order: approved change to the contract scope or price. Snag list: list of defects to fix before handover. Completion certificate: authority certificate allowing occupation. DLP: defects liability period after handover. Decennial liability: ten-year legal liability for structural failure. PI: professional indemnity insurance. BIM and LOD: building information modelling and level of development. Pearl rating: Abu Dhabi Estidama sustainability rating. Al Sa'fat: Dubai green building evaluation system. G+4: ground plus four floors. BUA: built-up area. GFA: gross floor area. Setback: minimum distance from plot boundary to building.",
-   "body_ar": "مخطط الأرض: المخطط الرسمي للقطعة يبين الحدود والمساحة والاستخدام المسموح وضوابط التطوير. لوائح ضبط التطوير: الضوابط التخطيطية للقطعة. شهادة عدم الممانعة: وثيقة من جهة أو شركة مرافق أو مطور. نظام تصاريح البناء: النظام الإلكتروني لتصاريح البناء في بلدية دبي. رسومات الإصدار للإنشاء: الرسومات المعتمدة للتنفيذ. الرسومات التنفيذية: رسومات المقاول التفصيلية للاعتماد. طلب اعتماد المواد: اقتراح المقاول لمنتج لاعتماد الاستشاري. طلب المعلومات: استفسار رسمي من المقاول. تعليمات الموقع: تعليمات مكتوبة من الاستشاري في الموقع. أمر التغيير: تغيير معتمد في نطاق العقد أو سعره. قائمة الملاحظات: العيوب المطلوب إصلاحها قبل التسليم. شهادة الإنجاز: شهادة الجهة التي تسمح بالإشغال. فترة مسؤولية العيوب: الفترة بعد التسليم لإصلاح العيوب. المسؤولية العشرية: المسؤولية القانونية لعشر سنوات عن الانهيار الإنشائي. تأمين المسؤولية المهنية: تأمين أخطاء التصميم والمشورة. نمذجة معلومات البناء ومستوى التطوير: النماذج الرقمية ودرجة تفصيلها. تصنيف اللؤلؤ: تصنيف الاستدامة في استدامة أبوظبي. الصفات: نظام تقييم المباني الخضراء في دبي. أرضي وأربعة: الطابق الأرضي وأربعة طوابق. مساحة البناء: المساحة المبنية. المساحة الإجمالية للطوابق: مجموع مساحات الطوابق. الارتداد: أقل مسافة بين حد القطعة والمبنى.",
-   "sources": [
-    "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
-    "https://en.wikipedia.org/wiki/Building_information_modeling",
-    "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
-    "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  }
- ],
- "eval": [
-  {
-   "q_en": "My plot is in Jumeirah Village Circle, do I apply to Dubai Municipality or Trakhees?",
-   "q_ar": "قطعتي في قرية جميرا الدائرية، هل أقدّم لبلدية دبي أم تراخيص؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:authority-map",
-    "engineering_consultancy:master-developer-noc"
-   ]
-  },
-  {
-   "q_en": "What approvals do I need to open a restaurant in a mall?",
-   "q_ar": "ما الموافقات التي أحتاجها لافتتاح مطعم في مول؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:fitout-permits",
-    "engineering_consultancy:civil-defence-approval"
-   ]
-  },
-  {
-   "q_en": "What is the difference between Estidama and Al Sa'fat?",
-   "q_ar": "ما الفرق بين استدامة والصفات؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:green-building-alsafat-estidama"
-   ]
-  },
-  {
-   "q_en": "Why is one consultant 40% cheaper than the other for the same villa?",
-   "q_ar": "لماذا استشاري أرخص بنسبة 40% من آخر لنفس الفيلا؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:quote-red-flags",
-    "engineering_consultancy:fee-structures"
-   ]
-  },
-  {
-   "q_en": "What should I include in my request for proposal for a G+5 residential building design?",
-   "q_ar": "ماذا أضع في طلب العروض لتصميم مبنى سكني أرضي وخمسة؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:consultancy-spec-checklist",
-    "engineering_consultancy:design-stages"
-   ]
-  },
-  {
-   "q_en": "We finished building but cannot connect DEWA permanently, what are we missing?",
-   "q_ar": "انتهينا من البناء ولا نستطيع التوصيل الدائم مع ديوا، ما الناقص؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:completion-certificate",
-    "engineering_consultancy:utility-nocs"
-   ]
-  },
-  {
-   "q_en": "Is the architect responsible if cracks appear in the structure after 6 years?",
-   "q_ar": "هل المعماري مسؤول إذا ظهرت تشققات في الهيكل بعد 6 سنوات؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:decennial-liability-pi"
-   ]
-  },
-  {
-   "q_en": "Do I really need a soil test for a small villa?",
-   "q_ar": "هل أحتاج فعلاً فحص تربة لفيلا صغيرة؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:soil-investigation-survey"
-   ]
-  },
-  {
-   "q_en": "Design-and-build or hire a consultant first?",
-   "q_ar": "تصميم وتنفيذ أم تعيين استشاري أولاً؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:architect-vs-engineering-firm"
-   ]
-  },
-  {
-   "q_en": "Is BIM mandatory for my project in Dubai?",
-   "q_ar": "هل نمذجة معلومات البناء إلزامية لمشروعي في دبي؟",
-   "expected_entry_ids": [
-    "engineering_consultancy:bim"
-   ]
-  }
- ],
- "verified": {
-  "fetched_urls": 19,
-  "claims_checked": 155,
-  "corrected": [
-   "engineering_consultancy:authority-map",
-   "engineering_consultancy:dm-building-permit",
-   "engineering_consultancy:civil-defence-approval",
-   "engineering_consultancy:utility-nocs",
-   "engineering_consultancy:green-building-alsafat-estidama",
-   "engineering_consultancy:consultant-registration",
-   "engineering_consultancy:fitout-permits",
-   "engineering_consultancy:consultancy-spec-checklist",
-   "engineering_consultancy:bim",
-   "engineering_consultancy:dubai-building-code",
-   "engineering_consultancy:soil-investigation-survey",
-   "engineering_consultancy:tender-boq",
-   "engineering_consultancy:decennial-liability-pi",
-   "engineering_consultancy:lead-times"
+  "trade": "engineering_consultancy",
+  "entries": [
+    {
+      "id": "engineering_consultancy:authority-map",
+      "topic": "Which authority approves your building in the UAE",
+      "kind": "authority_approval",
+      "body_en": "The first question on any UAE project is which authority has jurisdiction over the plot, because each authority has its own portal, drawing format, codes and fees, and a submission to the wrong one is simply rejected. In Dubai, Dubai Municipality (DM) governs most mainland plots (for example Deira, Bur Dubai, Business Bay and Downtown). Trakhees, the planning and development arm of the Ports, Customs and Free Zone Corporation, covers PCFC areas such as Jebel Ali Free Zone, Palm Jumeirah and other Nakheel communities, and Dubai Maritime City. The Dubai Development Authority (DDA) covers the TECOM zones such as Dubai Internet City, Dubai Media City, Dubai Knowledge Park and d3. DIFC runs its own property development department, and DMCC routes fit-outs in JLT through its own NOC process. The master developer or landlord NOC normally comes before the government submission. Since Dubai Law No. 14 of 2025, engineering consultancy across the whole emirate, including free zones and DIFC, falls under one Dubai Municipality-linked registration system. In Abu Dhabi the Department of Municipalities and Transport administers building regulation; its codes are based on the 2009 International Codes. The other emirates each have their own municipality. The consultant must be registered with the specific authority to submit there.",
+      "body_ar": "أول سؤال في أي مشروع في الإمارات هو: ما الجهة المختصة بالأرض؟ فلكل جهة بوابتها وصيغة مخططاتها وأنظمتها ورسومها، والتقديم لجهة غير مختصة يُرفض مباشرة. في دبي تختص بلدية دبي بمعظم أراضي البر الرئيسي مثل ديرة وبر دبي والخليج التجاري ووسط المدينة. أما «تراخيص»، الذراع التنظيمية لمؤسسة الموانئ والجمارك والمنطقة الحرة، فتغطي مناطق المؤسسة مثل المنطقة الحرة لجبل علي ونخلة جميرا ومجتمعات نخيل الأخرى ومدينة دبي الملاحية. وتختص سلطة دبي للتطوير بمناطق «تيكوم» مثل مدينة دبي للإنترنت ومدينة دبي للإعلام وقرية المعرفة وحي دبي للتصميم. ولمركز دبي المالي العالمي إدارة تطوير خاصة به، ويمرّ تجهيز المكاتب في أبراج بحيرات جميرا عبر إجراءات عدم ممانعة خاصة بمركز دبي للسلع المتعددة. وتسبق شهادة عدم ممانعة المطوّر الرئيسي أو المالك عادةً التقديم للجهة الحكومية. ومنذ القانون رقم ١٤ لسنة ٢٠٢٥ أصبحت الاستشارات الهندسية في كامل الإمارة، بما فيها المناطق الحرة والمركز المالي، تحت نظام تسجيل موحد مرتبط ببلدية دبي. وفي أبوظبي تتولى دائرة البلديات والنقل تنظيم البناء، وأنظمتها مبنية على الأكواد الدولية إصدار ٢٠٠٩. ولكل إمارة أخرى بلديتها. ويجب أن يكون الاستشاري مسجلاً لدى الجهة المعنية كي يقدّم لديها.",
+      "sources": [
+        "https://almujassam.ae/trakhees-approval-dubai/",
+        "https://www.mitchellscommercialrealty.com/guides/fitout-permits",
+        "https://www.iccsafe.org/products-and-services/global-services/countries/united-arab-emirates/",
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:dm-building-permit",
+      "topic": "Dubai Municipality building permit process",
+      "kind": "authority_approval",
+      "body_en": "In Dubai Municipality jurisdiction, building permits are processed online by a consultant registered with Dubai Municipality; owners cannot submit directly. DM publishes separate permit procedures for residential villas (private and investment), industrial buildings, and multi-storey and public buildings, covering permit issue, technical inspections of sites under construction, and the completion certificate. The typical sequence is: obtain the affection plan, prepare designs to the Dubai Building Code, obtain the master developer NOC where applicable, submit the soil investigation report (DM requires verified soil test results from an EIAC-accredited laboratory before a permit), submit for design approval, collect service-authority NOCs such as Civil Defence, DEWA and RTA, pay fees and receive the permit, appoint a registered contractor, build under consultant supervision with stage inspections, and finally apply for the completion certificate. The old Dubai BPS web address now redirects to the Build in Dubai platform, so consultants should use the current portal. Al Sa'fat green building compliance is checked within the process. Timelines are not established as fixed durations; they depend on completeness of submissions and the number of comment cycles, so the consultant should give a project-specific approval matrix.",
+      "body_ar": "في نطاق بلدية دبي تُعالَج رخص البناء إلكترونياً عن طريق استشاري مسجّل لدى البلدية، ولا يحق للمالك التقديم مباشرة. وتنشر البلدية إجراءات مستقلة للفلل السكنية (الخاصة والاستثمارية) والمباني الصناعية والمباني متعددة الطوابق والعامة، تشمل إصدار الرخصة والتفتيش الفني على المواقع قيد الإنشاء وشهادة الإنجاز. والتسلسل المعتاد: استخراج مخطط الأرض (الأفيكشن بلان)، ثم إعداد التصاميم وفق كود دبي للبناء، ثم الحصول على عدم ممانعة المطوّر الرئيسي عند الحاجة، وتقديم تقرير فحص التربة (إذ تشترط البلدية نتائج فحص موثقة من مختبر معتمد لدى مركز الإمارات للاعتماد قبل إصدار الرخصة)، ثم التقديم لاعتماد التصميم، وجمع شهادات عدم الممانعة من الجهات الخدمية مثل الدفاع المدني وهيئة كهرباء ومياه دبي وهيئة الطرق، ثم دفع الرسوم واستلام الرخصة، وتعيين مقاول مسجّل، والتنفيذ تحت إشراف الاستشاري مع تفتيش على المراحل، وأخيراً طلب شهادة الإنجاز. وقد أصبح الرابط القديم لنظام رخص البناء يحوّل إلى منصة «ابنِ في دبي»، لذا يجب استخدام البوابة الحالية. ويُدقَّق الالتزام بنظام السعفات للمباني الخضراء ضمن الإجراءات. ولا توجد مدد زمنية ثابتة مُثبتة؛ فهي تعتمد على اكتمال الملف وعدد دورات الملاحظات، لذا ينبغي أن يقدّم الاستشاري مصفوفة موافقات خاصة بالمشروع.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
+        "https://integradxb.com/soil-testing-and-geotechnical-reports-for-dm-approval-complete-guide-for-2026/",
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:civil-defence-approval",
+      "topic": "Civil Defence (fire and life safety) approvals",
+      "kind": "authority_approval",
+      "body_en": "Every building, and almost every renovation or fit-out, needs fire and life safety approval from Civil Defence: Dubai Civil Defence (DCD) in Dubai, Abu Dhabi Civil Defence Authority in Abu Dhabi, and the relevant Civil Defence elsewhere. The reference document is the UAE Fire and Life Safety Code of Practice, which covers means of egress, compartmentation, fire alarm and detection, sprinklers and firefighting, smoke control, emergency lighting and materials such as facade cladding. In Dubai, DCD approval is required for all renovation, fit-out and modification works, even minor changes that affect exits, ceilings, partitions or electrical systems. Applications go through the DCD e-services portal with drawings in PDF or DWF; one approvals firm reports straightforward cases closing in about ten working days and complex ones taking fifteen or more. Under Dubai Law 4 of 2025, Civil Defence sign-off also gates trade licence issue and renewal for commercial premises. Installation is by Civil Defence-approved fire contractors using approved products, followed by witnessed testing, snag closure and a Civil Defence certificate before occupation. Common rejection causes are exit widths and travel distances, missing fire-rated doors, sprinkler coverage broken by new partitions and non-approved materials. Buyers should confirm that both the consultant and the fire contractor are registered with the relevant Civil Defence.",
+      "body_ar": "يحتاج كل مبنى، وكل أعمال تجديد أو تجهيز داخلي تقريباً، إلى موافقة الدفاع المدني على اشتراطات الوقاية من الحريق وسلامة الأرواح: الدفاع المدني بدبي في دبي، وهيئة أبوظبي للدفاع المدني في أبوظبي، والدفاع المدني المختص في بقية الإمارات. والمرجع هو «كود الإمارات للحماية من الحريق وسلامة الأرواح» الذي يغطي مخارج الطوارئ والتقسيم الحريقي وأنظمة الإنذار والكشف والرشاشات والإطفاء والتحكم بالدخان وإنارة الطوارئ والمواد مثل كسوة الواجهات. وفي دبي تُشترط موافقة الدفاع المدني لجميع أعمال التجديد والتجهيز والتعديل، حتى التغييرات البسيطة التي تمسّ المخارج أو الأسقف أو القواطع أو الأنظمة الكهربائية. ويُقدَّم الطلب عبر بوابة الخدمات الإلكترونية للدفاع المدني بمخططات PDF أو DWF، وتفيد إحدى شركات التخليص بأن الحالات البسيطة تُنجز في نحو عشرة أيام عمل والمعقدة في خمسة عشر يوماً أو أكثر. وبموجب قانون دبي رقم ٤ لسنة ٢٠٢٥ أصبحت موافقة الدفاع المدني شرطاً لإصدار الرخص التجارية وتجديدها. ويتولى التركيب مقاولو حريق معتمدون بمنتجات معتمدة، ثم اختبار بحضور الجهة وإغلاق الملاحظات وإصدار شهادة الدفاع المدني قبل الإشغال. ومن أسباب الرفض الشائعة: عرض المخارج ومسافات الهروب، وغياب الأبواب المقاومة للحريق، وانقطاع تغطية الرشاشات بسبب القواطع الجديدة، والمواد غير المعتمدة. وعلى المشتري التأكد من تسجيل الاستشاري ومقاول الحريق لدى الدفاع المدني المختص.",
+      "sources": [
+        "https://approvals.ae/services/dubai-civil-defense-approval",
+        "https://www.mitchellscommercialrealty.com/guides/fitout-permits"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:utility-nocs",
+      "topic": "Utility NOCs: DEWA, ADDC/AADC, SEWA, FEWA/Etihad WE",
+      "kind": "authority_approval",
+      "body_en": "Power and water connections need approval from the utility that serves the plot: DEWA in Dubai, ADDC or AADC in Abu Dhabi, SEWA in Sharjah and Etihad Water and Electricity in the northern emirates. In Dubai only DEWA-enrolled consultants and contractors can manage building NOC and connection applications. The file typically includes the latest affection plan, ownership documents, municipality-stamped architectural drawings, DLTM coordinates of the plot and substation, an RTA NOC and a load summary listing equipment and total expected demand. One Dubai contractor guide reports that a dedicated substation becomes necessary when demand exceeds about 400 kW, and describes a sequence of load assessment, concept design, detailed design, construction, inspection and testing, then energisation. The same guide reports DEWA NOCs in a few working days and design review in one to two weeks, but transformer delivery and commissioning of roughly sixteen weeks, which is often the critical path. Underestimating connected load at design stage can force a site-plan change if the network cannot supply it, so early load estimation by the MEP consultant matters. Utility NOCs are also needed before excavation near existing services. The figures above come from a contractor's guide and should be confirmed with the utility for each project.",
+      "body_ar": "تحتاج توصيلات الكهرباء والمياه إلى موافقة الجهة الخدمية المختصة بالأرض: هيئة كهرباء ومياه دبي في دبي، وشركتا أبوظبي والعين للتوزيع في أبوظبي، وهيئة كهرباء ومياه الشارقة، والاتحاد للماء والكهرباء في الإمارات الشمالية. وفي دبي لا يحق إدارة طلبات عدم الممانعة والتوصيل إلا للاستشاريين والمقاولين المسجلين لدى الهيئة. ويشمل الملف عادةً أحدث مخطط للأرض ووثائق الملكية والمخططات المعمارية المختومة من البلدية وإحداثيات الأرض والمحطة الفرعية بنظام DLTM وشهادة عدم ممانعة من هيئة الطرق وملخص أحمال يبيّن المعدات والطلب الكلي المتوقع. ويذكر دليل صادر عن أحد المقاولين في دبي أن المحطة الفرعية المخصصة تصبح لازمة عندما يتجاوز الطلب نحو ٤٠٠ كيلوواط، ويصف تسلسلاً يبدأ بتقييم الأحمال ثم التصميم المبدئي والتفصيلي ثم التنفيذ والتفتيش والاختبار ثم التشغيل. كما يذكر أن شهادة عدم الممانعة تصدر خلال أيام عمل قليلة ومراجعة التصميم خلال أسبوع إلى أسبوعين، بينما يستغرق توريد المحوّل وتشغيله نحو ستة عشر أسبوعاً، وهو غالباً المسار الحرج. والتقليل من الأحمال في مرحلة التصميم قد يفرض تغيير المخطط العام إذا عجزت الشبكة عن التغذية، لذا فالتقدير المبكر للأحمال من استشاري الأنظمة الكهروميكانيكية مهم. وتلزم أيضاً موافقات الجهات الخدمية قبل الحفر قرب الخدمات القائمة. والأرقام أعلاه من دليل مقاول ويجب تأكيدها مع الجهة الخدمية لكل مشروع.",
+      "sources": [
+        "https://murjangroup.com/blog/dewa-substation-approval"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:rta-telecom-nocs",
+      "topic": "RTA, telecom and other service NOCs",
+      "kind": "authority_approval",
+      "body_en": "Besides Civil Defence and power and water, projects commonly need NOCs from other service owners. In Dubai, the Roads and Transport Authority (RTA) reviews access and parking, traffic impact for larger developments, work in the right-of-way, and road-cutting or diversion permits. Telecom providers (Etisalat by e& and du) approve telecom infrastructure, ducts and rooms, and in some areas the master developer's own telecom provider applies. Other NOCs can include drainage and sewerage (Dubai Municipality's drainage section), gas (for buildings with central gas systems, subject to Civil Defence and gas authority rules), Dubai Police for security systems in some building types, and civil aviation authorities for tall buildings or cranes near airports and flight paths (GCAA and Dubai Civil Aviation Authority). In Abu Dhabi, the Integrated Transport Centre and relevant service entities play similar roles. The consultant should list all NOCs required for the specific project early, because a missing NOC can block the permit or completion certificate. Buyers should ask whether NOC fees are included in the consultant fee or reimbursable. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
+      "body_ar": "إلى جانب الدفاع المدني والكهرباء والمياه تحتاج المشاريع عادة شهادات عدم ممانعة من جهات خدمية أخرى. في دبي تراجع هيئة الطرق والمواصلات المداخل والمواقف ودراسات الأثر المروري للمشاريع الكبيرة والأعمال في حرم الطريق وتصاريح قطع الطرق أو تحويلها. ويعتمد مزودو الاتصالات، اتصالات من إي آند ودو، البنية التحتية للاتصالات والقنوات والغرف، وفي بعض المناطق ينطبق مزود الاتصالات الخاص بالمطور الرئيسي. ومن شهادات عدم الممانعة الأخرى الصرف الصحي وتصريف الأمطار عبر قسم الصرف في بلدية دبي، والغاز للمباني ذات أنظمة الغاز المركزي وفق قواعد الدفاع المدني وجهة الغاز، وشرطة دبي لأنظمة الأمن في بعض أنواع المباني، وسلطات الطيران المدني للمباني العالية أو الرافعات قرب المطارات ومسارات الطيران، الهيئة العامة للطيران المدني وهيئة دبي للطيران المدني. وفي أبوظبي يؤدي مركز النقل المتكامل والجهات الخدمية المعنية أدواراً مماثلة. يجب أن يحدد الاستشاري مبكراً كل شهادات عدم الممانعة اللازمة للمشروع، لأن غياب إحداها قد يوقف التصريح أو شهادة الإنجاز. وعلى المشتري أن يسأل هل رسوم الشهادات مشمولة في أتعاب الاستشاري أم تُسترد. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Dubai_Civil_Aviation_Authority",
+        "https://murjangroup.com/blog/dewa-substation-approval"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:green-building-alsafat-estidama",
+      "topic": "Green building: Al Sa'fat (Dubai) vs Estidama Pearl (Abu Dhabi)",
+      "kind": "comparison",
+      "body_en": "Dubai and Abu Dhabi each mandate a green building standard for new buildings. In Dubai, Al Sa'fat (the Dubai Green Building System, approved in 2016 and administered by Dubai Municipality's buildings regulation and permits agency) replaced the earlier green building regulations. Since 19 October 2020 every new building must meet the Silver Sa'fa level; Golden and Platinum Sa'fa are voluntary higher tiers. It covers energy efficiency, mechanical and electrical systems, carbon reduction and wider sustainability measures, and is checked in the permit process. Dubai Municipality also publishes calculation tools, villa insulation specifications and glazing schedules alongside the Dubai Building Code to help compliance. In Abu Dhabi, the Estidama Pearl Rating System has separate systems for buildings, villas and communities; since 2010 all new developments need at least 1 Pearl, and government buildings at least 2 Pearls. Ratings are given at design stage (needed for the building permit) and at construction stage (needed for the completion certificate), and each project must engage at least one Pearl Qualified Professional. Other emirates have their own rules (for example Ras Al Khaimah's Barjeel), but the Barjeel details were not confirmed from a fetched source and are not established here. Buyers should ask which system applies, the target level, and how envelope and MEP choices affect cost.",
+      "body_ar": "تُلزم كل من دبي وأبوظبي المباني الجديدة بمعيار للمباني الخضراء. ففي دبي حلّ نظام «السعفات» للمباني الخضراء، المعتمد عام ٢٠١٦ والذي تديره مؤسسة تنظيم المباني والرخص في بلدية دبي، محل لوائح المباني الخضراء السابقة. ومنذ ١٩ أكتوبر ٢٠٢٠ يجب أن يحقق كل مبنى جديد مستوى «السعفة الفضية»، أما السعفة الذهبية والبلاتينية فمستويات أعلى اختيارية. ويغطي النظام كفاءة الطاقة والأنظمة الميكانيكية والكهربائية وخفض الكربون ومتطلبات استدامة أخرى، ويُدقَّق ضمن إجراءات الرخصة. وتنشر البلدية أيضاً أدوات حساب ومواصفات عزل للفلل وجداول للزجاج إلى جانب كود دبي للبناء لتسهيل الالتزام. وفي أبوظبي يتضمن نظام «استدامة» لتقييم اللؤلؤ أنظمة مستقلة للمباني والفلل والمجتمعات؛ ومنذ ٢٠١٠ يجب أن تحقق كل التطويرات الجديدة لؤلؤة واحدة على الأقل، والمباني الحكومية لؤلؤتين على الأقل. ويُمنح التقييم في مرحلة التصميم (وهو شرط لرخصة البناء) وفي مرحلة التنفيذ (وهو شرط لشهادة الإنجاز)، ويجب أن يضم كل مشروع مختصاً معتمداً واحداً على الأقل في نظام اللؤلؤ. ولبقية الإمارات أنظمتها (مثل نظام «بارجيل» في رأس الخيمة) لكن تفاصيله لم تُؤكَّد من مصدر تم الاطلاع عليه فهي غير مُثبتة هنا. وعلى المشتري أن يسأل عن النظام المطبّق والمستوى المستهدف وأثر خيارات الغلاف والأنظمة على التكلفة.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
+        "https://www.dm.gov.ae/municipality-business/planning-and-construction/dubai-building-code-2/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:design-stages",
+      "topic": "Design stages: concept, schematic, design development, detailed, IFC",
+      "kind": "standard",
+      "body_en": "Consultancy services are organised in stages, and fees are usually tied to them. Concept design establishes the brief, massing, zoning, planning compliance and a first cost estimate. Schematic design develops layouts, elevations, structural system and MEP strategy. Design development coordinates disciplines and fixes key dimensions, systems and materials, usually the basis for authority submissions. Detailed design produces construction-level drawings, specifications and bills of quantities used for tendering. Issued for Construction (IFC) drawings are the approved set the contractor builds from, updated for authority comments and tender clarifications. Some frameworks name these differently (for example RIBA Plan of Work stages 0 to 7), but the principle is the same. Post-contract services include tender assistance, construction supervision, shop drawing and material submittal review, site inspections, variations evaluation, payment certification, testing and commissioning witnessing, completion certificate application, and review of as-built drawings. Buyers should confirm which stages are in scope, the deliverables per stage, and how many design revisions are included before extra fees apply.",
+      "body_ar": "تُنظَّم خدمات الاستشارات على مراحل، وترتبط الأتعاب بها عادة. التصميم المبدئي يحدد المتطلبات والكتلة والتوزيع والامتثال التخطيطي وأول تقدير للتكلفة. التصميم التخطيطي يطور المساقط والواجهات والنظام الإنشائي واستراتيجية الأعمال الكهروميكانيكية. تطوير التصميم ينسق التخصصات ويثبت الأبعاد والأنظمة والمواد الرئيسية، وعادة يكون أساس التقديم للجهات. التصميم التفصيلي ينتج رسومات بمستوى التنفيذ ومواصفات وجداول كميات تُستخدم للمناقصة. رسومات الإصدار للإنشاء هي المجموعة المعتمدة التي يبني منها المقاول، محدثة وفق ملاحظات الجهات وتوضيحات المناقصة. بعض الأطر تسمي المراحل بشكل مختلف، مثل مراحل خطة عمل RIBA من صفر إلى سبعة، لكن المبدأ واحد. خدمات ما بعد التعاقد تشمل المساعدة في المناقصة، والإشراف على الإنشاء، ومراجعة الرسومات التنفيذية واعتمادات المواد، والتفتيش الموقعي، وتقييم التغييرات، واعتماد الدفعات، وشهود الاختبار والتشغيل، والتقدم لشهادة الإنجاز، ومراجعة الرسومات المنفذة. على المشتري التأكد من المراحل المشمولة في النطاق والمخرجات لكل مرحلة وعدد مراجعات التصميم المشمولة قبل الأتعاب الإضافية.",
+      "sources": [
+        "https://www.riba.org/knowledge-and-resources/resources-landing-page/riba-plan-of-work",
+        "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:supervision",
+      "topic": "Construction supervision by the consultant",
+      "kind": "product",
+      "body_en": "UAE authorities require a registered consultant to supervise construction of permitted buildings, and the supervising consultant signs off at inspection stages and for the completion certificate. The level of supervision varies greatly: 'authority supervision' may mean periodic visits sufficient to satisfy authority inspections, while full-time resident supervision places a resident engineer, and possibly inspectors for structure, MEP and finishes, on site daily. For villas, periodic supervision is common; for commercial buildings and towers, full-time site teams are typical. Supervision duties typically include checking works against IFC drawings and specifications, approving material submittals and shop drawings, witnessing tests (concrete cubes, pressure tests, fire system tests), recording site instructions, checking the contractor's progress and payment applications, and managing snagging. Buyers should specify the supervision level, the number and qualification of site staff, visit frequency, the duration assumed (and the cost of extension if construction overruns), reporting format, and whether the consultant certifies payments. Supervision fees quoted as a percentage without a staffing schedule are hard to compare. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
+      "body_ar": "تشترط الجهات في الإمارات أن يشرف استشاري مسجل على إنشاء المباني المرخصة، ويوقع الاستشاري المشرف عند مراحل التفتيش ولشهادة الإنجاز. يختلف مستوى الإشراف كثيراً: الإشراف لأغراض الجهة قد يعني زيارات دورية كافية لاستيفاء تفتيشات الجهة، بينما الإشراف المقيم بدوام كامل يضع مهندساً مقيماً وربما مفتشين للإنشاءات والأعمال الكهروميكانيكية والتشطيبات في الموقع يومياً. للفلل الإشراف الدوري شائع، وللمباني التجارية والأبراج تكون فرق الموقع بدوام كامل معتادة. تشمل مهام الإشراف عادة مطابقة الأعمال لرسومات الإصدار للإنشاء والمواصفات، واعتماد طلبات المواد والرسومات التنفيذية، وشهود الاختبارات كمكعبات الخرسانة واختبارات الضغط وأنظمة الحريق، وتسجيل تعليمات الموقع، ومراجعة تقدم المقاول وطلبات الدفع، وإدارة الملاحظات النهائية. على المشتري تحديد مستوى الإشراف وعدد موظفي الموقع ومؤهلاتهم وتكرار الزيارات والمدة المفترضة وتكلفة التمديد إذا تأخر الإنشاء وشكل التقارير وهل يعتمد الاستشاري الدفعات. أتعاب الإشراف المعروضة كنسبة مئوية دون جدول موظفين صعبة المقارنة. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
+      "sources": [
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai",
+        "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:consultant-registration",
+      "topic": "Consultant registration and classification",
+      "kind": "authority_approval",
+      "body_en": "Dubai Law No. 14 of 2025, issued in October 2025, replaced the 1994 local order on engineering consultancy and applies across the whole emirate, including free zones and DIFC. A consultancy now needs both a professional trade licence and separate Dubai Municipality registration; operating without both is a violation. Classification is based on qualified engineering staff rather than capital. A business-setup guide summarising the law describes an unlimited grade (any height), a second grade (up to 12 floors) and a third grade (up to 4 floors), each with a minimum number of registered engineers and office size. Each registered engineer must be a member of the Society of Engineers UAE and accredited by Dubai Municipality. Consultancies must carry professional indemnity insurance sized to the projects they sign, and the law restricts consultancies from contracting activities that would compromise their independent supervisory role. Trakhees and other zone authorities also require accredited consultants for submissions, and Civil Defence registers consultants for fire and life safety work. In Abu Dhabi, Estidama projects need a Pearl Qualified Professional. Buyers should check the licence, the grade and whether it covers the building height, and that the engineers named in the proposal are the registered signatories.",
+      "body_ar": "صدر قانون دبي رقم ١٤ لسنة ٢٠٢٥ في أكتوبر ٢٠٢٥ ليحل محل الأمر المحلي لعام ١٩٩٤ بشأن الاستشارات الهندسية، ويسري على كامل الإمارة بما فيها المناطق الحرة ومركز دبي المالي العالمي. فأصبح المكتب الاستشاري يحتاج إلى رخصة مهنية وإلى تسجيل مستقل لدى بلدية دبي معاً، والعمل دون أحدهما مخالفة. ويقوم التصنيف على الكادر الهندسي المؤهل لا على رأس المال؛ ويصف دليل تأسيس أعمال يلخّص القانون فئة غير محدودة (أي ارتفاع)، وفئة ثانية (حتى ١٢ طابقاً)، وفئة ثالثة (حتى ٤ طوابق)، لكلٍّ منها حد أدنى من المهندسين المسجلين ومساحة المكتب. ويجب أن يكون كل مهندس مسجّل عضواً في جمعية المهندسين الإماراتية ومعتمداً لدى البلدية. وعلى المكاتب حمل تأمين مسؤولية مهنية يتناسب مع قيمة المشاريع التي توقّع عليها، ويقيّد القانون ممارسة المكتب لأعمال المقاولات التي تمس استقلالية دوره الإشرافي. كما تشترط «تراخيص» وغيرها من السلطات استشاريين معتمدين للتقديم، ويسجّل الدفاع المدني الاستشاريين لأعمال الوقاية من الحريق. وفي أبوظبي تحتاج مشاريع «استدامة» إلى مختص معتمد في نظام اللؤلؤ. وعلى المشتري التحقق من الرخصة والفئة ومدى تغطيتها لارتفاع المبنى، وأن المهندسين المذكورين في العرض هم الموقّعون المسجّلون.",
+      "sources": [
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai",
+        "https://almujassam.ae/trakhees-approval-dubai/",
+        "https://approvals.ae/services/dubai-civil-defense-approval"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:fitout-permits",
+      "topic": "Fit-out permits for offices, shops and restaurants",
+      "kind": "authority_approval",
+      "body_en": "Interior fit-outs in Dubai need approvals even without structural work, and the regulator depends on location, not business type. Dubai Municipality covers mainland areas; Trakhees covers PCFC land such as JAFZA, Palm Jumeirah and Dubai Maritime City; the Dubai Development Authority covers TECOM zones such as Internet City, Media City, d3 and Knowledge Park; DIFC has its own property development department; and DMCC handles JLT towers through its own NOC route. Nearly every project needs two approvals: the statutory permit from that authority and a landlord or community NOC, which often gates the government submission. On the mainland, Administrative Resolution 85 of 2019 exempts from the DM permit any unit inside a mall or commercial complex and units of 100 square metres or less; the exemption removes paperwork only, not technical standards. Two regulators apply everywhere: DEWA for power or water changes, and Dubai Civil Defence for all commercial premises, whose approval is needed for any change affecting exits, ceilings, partitions or electrical systems and which now gates licence issue and renewal. Food outlets and clinics need additional food safety or health authority layout approvals, which were not confirmed from a fetched source here. Buyers should budget time for landlord and authority reviews and check the fit-out contractor's registrations.",
+      "body_ar": "تحتاج أعمال التجهيز الداخلي في دبي إلى موافقات حتى من دون أعمال إنشائية، وتتحدد الجهة المختصة بالموقع لا بنوع النشاط. فبلدية دبي تختص بمناطق البر الرئيسي، و«تراخيص» بأراضي مؤسسة الموانئ والجمارك مثل جافزا ونخلة جميرا ومدينة دبي الملاحية، وسلطة دبي للتطوير بمناطق تيكوم مثل مدينة الإنترنت ومدينة الإعلام وحي التصميم وقرية المعرفة، ولمركز دبي المالي العالمي إدارته الخاصة، ويعالج مركز دبي للسلع المتعددة أبراج بحيرات جميرا عبر إجراءات عدم ممانعة خاصة به. ويحتاج كل مشروع تقريباً إلى موافقتين: الرخصة النظامية من تلك الجهة، وعدم ممانعة المالك أو المجتمع التي تكون غالباً شرطاً مسبقاً للتقديم الحكومي. وفي البر الرئيسي يعفي القرار الإداري رقم ٨٥ لسنة ٢٠١٩ من رخصة البلدية أي وحدة داخل مول أو مجمع تجاري والوحدات التي لا تتجاوز ١٠٠ متر مربع، والإعفاء يلغي الإجراءات الورقية فقط دون المعايير الفنية. وتسري جهتان في كل المناطق: هيئة كهرباء ومياه دبي لأي تعديل على الكهرباء أو المياه، والدفاع المدني بدبي لكل المنشآت التجارية، إذ تلزم موافقته لأي تغيير يمس المخارج أو الأسقف أو القواطع أو الأنظمة الكهربائية، وأصبحت شرطاً لإصدار الرخص وتجديدها. وتحتاج منشآت الأغذية والعيادات إلى موافقات إضافية على المخططات من جهات سلامة الغذاء أو الصحة، ولم تُؤكَّد تفاصيلها من مصدر تم الاطلاع عليه هنا. وعلى المشتري احتساب وقت مراجعات المالك والجهات والتحقق من تسجيلات مقاول التجهيز.",
+      "sources": [
+        "https://www.mitchellscommercialrealty.com/guides/fitout-permits",
+        "https://approvals.ae/services/dubai-civil-defense-approval"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:completion-certificate",
+      "topic": "Building completion certificate and occupancy",
+      "kind": "authority_approval",
+      "body_en": "A building cannot be legally occupied or connected permanently to utilities until the authority issues a completion certificate (sometimes called a building completion or occupancy certificate). The supervising consultant applies after construction is finished, with prerequisites such as the Civil Defence completion certificate, utility connection or clearance from DEWA or the relevant utility, telecom clearance, RTA or municipality clearances for external works, drainage connection, green building compliance evidence, as-built drawings, and final inspections by the building authority. Snags raised by inspectors must be closed before issue. For sale or lease of units, the completion certificate is also needed for title registration and tenancy registration. Delays usually stem from missing NOCs, deviations from approved drawings without amendment approval, incomplete fire systems testing, and unpaid fees or fines. Buyers of consultancy services should confirm that completion certificate application is included in the consultant's scope and that the contractor's obligations include providing test certificates and as-built documentation in time.",
+      "body_ar": "لا يجوز إشغال المبنى قانونياً أو توصيله بالمرافق بشكل دائم حتى تصدر الجهة شهادة الإنجاز، وتسمى أحياناً شهادة إتمام البناء أو الإشغال. يتقدم الاستشاري المشرف بعد انتهاء الإنشاء، مع متطلبات مسبقة كشهادة إنجاز الدفاع المدني، وتوصيل أو براءة ذمة من هيئة كهرباء ومياه دبي أو شركة المرافق المعنية، وبراءة الاتصالات، وبراءات هيئة الطرق أو البلدية للأعمال الخارجية، وتوصيل الصرف، وإثبات الامتثال للمباني الخضراء، والرسومات المنفذة، والتفتيشات النهائية من جهة البناء. يجب إغلاق الملاحظات التي يثيرها المفتشون قبل الإصدار. ولبيع الوحدات أو تأجيرها تلزم الشهادة أيضاً لتسجيل الملكية وتسجيل عقود الإيجار. تنشأ التأخيرات عادة من غياب شهادات عدم ممانعة، أو الانحراف عن الرسومات المعتمدة دون اعتماد تعديل، أو عدم اكتمال اختبارات أنظمة الحريق، أو رسوم أو مخالفات غير مدفوعة. على مشتري خدمات الاستشارات التأكد من أن التقدم لشهادة الإنجاز مشمول في نطاق الاستشاري، وأن التزامات المقاول تشمل تقديم شهادات الاختبار ووثائق التنفيذ في الوقت المناسب.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
+        "https://almujassam.ae/trakhees-approval-dubai/",
+        "https://approvals.ae/services/dubai-civil-defense-approval"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:fee-structures",
+      "topic": "Consultancy fee structures and drivers",
+      "kind": "price_driver",
+      "body_en": "Consultancy fees in the UAE are commonly quoted as a lump sum per stage, a percentage of the estimated construction cost, or a man-month rate for supervision. Published fee scales from authorities or professional bodies are not established here as binding figures, so no numbers are given. Fee drivers include project type and complexity (a hospital or hotel versus a warehouse), size and height, number of disciplines (architecture, structure, MEP, fire, landscape, interior, facade, acoustics, vertical transport), the green building rating target, the number of authorities and NOCs, design revision allowance, BIM level required, whether specialist studies are needed (traffic impact, wind, geotechnical interpretation, energy modelling), and the level and duration of supervision. Percentage fees create a potential conflict: if cost rises, fees rise, so many clients prefer lump sums with defined scope. Buyers should require a fee breakdown by stage and discipline, list of deliverables, revision and variation terms, reimbursable costs (authority fees, printing, travel, testing), payment schedule tied to milestones, and the fee consequence if construction runs longer than planned. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
+      "body_ar": "تُعرض أتعاب الاستشارات في الإمارات عادة كمبلغ مقطوع لكل مرحلة، أو نسبة من تكلفة الإنشاء التقديرية، أو سعر شهري للفرد للإشراف. لا نعتمد هنا جداول أتعاب منشورة من الجهات أو الهيئات المهنية كأرقام ملزمة، لذا لا نذكر أرقاماً. محركات الأتعاب: نوع المشروع وتعقيده كالمستشفى أو الفندق مقابل المستودع، والحجم والارتفاع، وعدد التخصصات من عمارة وإنشاء وكهروميكانيك وحريق وتنسيق حدائق وتصميم داخلي وواجهات وصوتيات ونقل رأسي، ومستوى تصنيف المباني الخضراء المستهدف، وعدد الجهات وشهادات عدم الممانعة، وعدد مراجعات التصميم المسموحة، ومستوى نمذجة معلومات البناء المطلوب، والحاجة لدراسات متخصصة كالأثر المروري والرياح وتفسير الجيوتقنية ونمذجة الطاقة، ومستوى الإشراف ومدته. الأتعاب النسبية تخلق تعارضاً محتملاً، فإذا ارتفعت التكلفة ارتفعت الأتعاب، لذا يفضل عملاء كثيرون المبالغ المقطوعة بنطاق محدد. على المشتري طلب تفصيل الأتعاب حسب المرحلة والتخصص، وقائمة المخرجات، وشروط المراجعات والتغييرات، والتكاليف المستردة كرسوم الجهات والطباعة والسفر والاختبارات، وجدول دفعات مرتبط بالمراحل، وأثر الأتعاب إذا طال الإنشاء أكثر من المخطط. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
+      "sources": [
+        "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use",
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:consultancy-spec-checklist",
+      "topic": "What to state when requesting a consultancy proposal",
+      "topic_ar": "الاستشارات الهندسية: ما يجب أن يتضمنه موجز طلب العرض الاستشاري",
+      "kind": "spec_checklist",
+      "body_en": "To obtain comparable consultancy proposals, the client should issue a written brief rather than ask for a price on a plot number. The brief should give the plot number, location, governing authority and master developer; the affection plan and any existing approvals; project type and use; approximate built-up area and number of floors (basement, ground, podium, typical floors, roof), because the floor count also decides which consultant grade can legally sign it under Dubai's 2025 consultancy law; budget or target construction cost; programme expectations; and whether the work is new build, extension, modification or fit-out. Define the services required: design stages from concept to issued-for-construction (the RIBA Plan of Work, for example, divides a project into eight stages), disciplines (architecture, structure, MEP, fire and life safety, landscape, interior, facade), authority submissions and NOCs, green building target, BIM requirements, specialist studies (geotechnical investigation, topographic survey, traffic, energy), tender documents and BOQ, tender evaluation, supervision level and duration, and the completion certificate. Ask for team CVs and registrations, authority grade, similar project references, deliverables per stage, revision allowance, fee breakdown, payment milestones, professional indemnity insurance and exclusions. Ambiguity in the brief is the main reason proposals vary widely.",
+      "body_ar": "للحصول على عروض استشارية قابلة للمقارنة، ينبغي أن يصدر العميل موجزاً مكتوباً بدل طلب سعر على رقم أرض فقط. ويتضمن الموجز: رقم الأرض وموقعها والجهة المختصة والمطوّر الرئيسي، ومخطط الأرض وأي موافقات قائمة، ونوع المشروع واستخدامه، ومساحة البناء التقريبية وعدد الطوابق (قبو، أرضي، منصة، طوابق متكررة، سطح)، لأن عدد الطوابق يحدد أيضاً فئة الاستشاري المخوّلة قانوناً بالتوقيع وفق قانون الاستشارات في دبي لعام ٢٠٢٥، والميزانية أو التكلفة المستهدفة، والبرنامج الزمني المتوقع، وهل العمل بناء جديد أم توسعة أم تعديل أم تجهيز داخلي. ثم تُحدَّد الخدمات: مراحل التصميم من الفكرة إلى مخططات التنفيذ المعتمدة (فمثلاً تقسم خطة عمل المعهد الملكي للمعماريين البريطانيين المشروع إلى ثماني مراحل)، والتخصصات (معماري، إنشائي، كهروميكانيكي، حريق وسلامة، تنسيق مواقع، داخلي، واجهات)، وتقديمات الجهات وشهادات عدم الممانعة، ومستوى المبنى الأخضر المستهدف، ومتطلبات نمذجة معلومات البناء، والدراسات المتخصصة (فحص التربة، المساحة الطبوغرافية، المرور، الطاقة)، ومستندات المناقصة وجدول الكميات وتقييم العطاءات، ومستوى الإشراف ومدته، وشهادة الإنجاز. ويُطلب من الاستشاري السير الذاتية والتسجيلات وفئته لدى الجهة ومشاريع مماثلة ومخرجات كل مرحلة وعدد التعديلات المشمولة وتفصيل الأتعاب ودفعات السداد وتأمين المسؤولية المهنية والاستثناءات. والغموض في الموجز هو السبب الرئيسي لتفاوت العروض.",
+      "required_specs": [
+        "plot number and location",
+        "building authority and master developer",
+        "project type and use",
+        "built-up area and floors",
+        "target construction cost",
+        "new build / extension / fit-out",
+        "stages required",
+        "disciplines required",
+        "authority submissions and NOCs",
+        "green building rating target",
+        "BIM requirements",
+        "specialist studies (soil, survey, traffic, energy)",
+        "tender documents and BOQ",
+        "supervision level and duration",
+        "completion certificate included",
+        "team registrations and classification",
+        "PI insurance level",
+        "fee breakdown and payment milestones"
+      ],
+      "sources": [
+        "https://www.riba.org/knowledge-and-resources/resources-landing-page/riba-plan-of-work",
+        "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:bim",
+      "topic": "BIM requirements in UAE projects",
+      "kind": "standard",
+      "body_en": "Building Information Modelling (BIM) is the use of a shared digital representation of a built asset to support design, construction and operation decisions, as ISO 19650-1 defines it. It supports design coordination and clash detection, 4D (linking the model to the schedule), 5D (adding cost) and facility management. Dubai Municipality first mandated BIM through circular 196 and widened it with circular 207. Under the current requirement, BIM model submissions have been mandatory for building permits since 1 January 2024 for: architectural models of buildings over 20 floors or complexes over 20,000 square metres; structural models of buildings over 40 floors or complexes over 30,000 square metres; specialised facilities such as hospitals and universities; and all government projects, following the Dubai Building Code and Dubai's BIM standard. Thresholds may change, so the latest circular should be checked. Many clients also specify delivery under the ISO 19650 series, with a BIM execution plan, a common data environment and defined information requirements per stage; ISO 19650 uses the Level of Information Need concept, which is replacing the older Level of Development (LOD) terminology. Buyers should state whether BIM is required by the authority or for their own facility management, which disciplines are modelled, whether the contractor maintains the model and delivers an as-built model, and require native files and data ownership in the contract.",
+      "body_ar": "نمذجة معلومات البناء هي استخدام تمثيل رقمي مشترك للأصل المبني لدعم قرارات التصميم والتنفيذ والتشغيل، وفق تعريف المعيار ISO 19650-1. وتدعم تنسيق التصاميم واكتشاف التعارضات، والبعد الرابع (ربط النموذج بالبرنامج الزمني)، والبعد الخامس (إضافة التكلفة)، وإدارة المرافق. وقد فرضت بلدية دبي النمذجة أولاً بالتعميم ١٩٦ ثم وسّعتها بالتعميم ٢٠٧. ووفق المتطلب الحالي، أصبح تقديم النماذج إلزامياً لرخص البناء منذ ١ يناير ٢٠٢٤ في الحالات التالية: النماذج المعمارية للمباني التي تتجاوز ٢٠ طابقاً أو المجمعات التي تزيد على ٢٠ ألف متر مربع؛ والنماذج الإنشائية للمباني التي تتجاوز ٤٠ طابقاً أو المجمعات التي تزيد على ٣٠ ألف متر مربع؛ والمنشآت المتخصصة كالمستشفيات والجامعات؛ وجميع المشاريع الحكومية، مع الالتزام بكود دبي للبناء ومعيار دبي للنمذجة. وقد تتغير هذه الحدود فيجب مراجعة أحدث تعميم. ويشترط كثير من العملاء التسليم وفق سلسلة ISO 19650 مع خطة تنفيذ للنمذجة وبيئة بيانات مشتركة ومتطلبات معلومات محددة لكل مرحلة، ويستخدم المعيار مفهوم «مستوى الحاجة إلى المعلومات» الذي يحل تدريجياً محل مصطلح «مستوى التطوير». وعلى المشتري تحديد ما إذا كانت النمذجة مطلوبة من الجهة أو لإدارة مرافقه، والتخصصات المنمذجة، وهل يحدّث المقاول النموذج ويسلّم نموذجاً مطابقاً للتنفيذ، واشتراط الملفات الأصلية وملكية البيانات في العقد.",
+      "sources": [
+        "https://www.globalconstructionreview.com/dubai-mandates-bim-for-new-buildings/",
+        "https://en.wikipedia.org/wiki/Building_information_modeling"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:dubai-building-code",
+      "topic": "Dubai Building Code and applicable design codes",
+      "kind": "standard",
+      "body_en": "Dubai Municipality publishes the Dubai Building Code, whose current downloadable version is the 2021 edition. Its stated aim is to unify building design across Dubai in one easy-to-use code and to set minimum requirements for the health, safety, welfare and convenience of people in and around buildings, reduce environmental impact and support sustainable development. It applies to everyone designing and building in the emirate, and DM publishes supporting tools with it, including calculation tools, insulation specifications for villa types, glazing schedules, air-conditioning unit requirements and a solar calculator. The Dubai Building Code sits alongside the UAE Fire and Life Safety Code for fire matters, Al Sa'fat for green building, and utility regulations from DEWA. For structural design, UAE practice commonly uses international codes such as ACI 318, Eurocodes or BS codes as accepted by the authority, with local wind and seismic parameters; this practice point was not confirmed from a fetched authority source. In Abu Dhabi, the building codes are based on the 2009 International Codes (ICC family) and are implemented by the Department of Municipalities and Transport, together with Estidama. Buyers should ask the consultant to list the governing codes and editions in the design basis report; designing to outdated editions or mixing code families without justification leads to rejection.",
+      "body_ar": "تنشر بلدية دبي «كود دبي للبناء»، ونسخته المتاحة حالياً للتحميل هي إصدار ٢٠٢١. وهدفه المعلن توحيد تصميم المباني في دبي ضمن كود واحد سهل الاستخدام، ووضع حد أدنى من المتطلبات لصحة الناس وسلامتهم ورفاهيتهم وراحتهم داخل المباني وحولها، وتقليل الأثر البيئي ودعم التنمية المستدامة. ويسري على كل من يصمم أو يبني في الإمارة، وتنشر البلدية معه أدوات مساندة منها أدوات حساب ومواصفات عزل لأنواع الفلل وجداول للزجاج ومتطلبات لوحدات التكييف وحاسبة للطاقة الشمسية. ويعمل الكود جنباً إلى جنب مع كود الإمارات للحماية من الحريق في مسائل الحريق، ونظام السعفات للمباني الخضراء، ولوائح هيئة كهرباء ومياه دبي. وفي التصميم الإنشائي تستخدم الممارسة الإماراتية عادةً أكواداً دولية مثل ACI 318 أو الأكواد الأوروبية أو البريطانية حسب قبول الجهة، مع معاملات محلية للرياح والزلازل؛ ولم تُؤكَّد هذه النقطة من مصدر رسمي تم الاطلاع عليه. وفي أبوظبي تقوم أنظمة البناء على الأكواد الدولية إصدار ٢٠٠٩ وتطبقها دائرة البلديات والنقل إلى جانب «استدامة». وعلى المشتري أن يطلب من الاستشاري بيان الأكواد وإصداراتها في تقرير أسس التصميم؛ فالتصميم على إصدارات قديمة أو خلط عائلات الأكواد دون مبرر يؤدي إلى الرفض.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/planning-and-construction/dubai-building-code-2/",
+        "https://www.iccsafe.org/products-and-services/global-services/countries/united-arab-emirates/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:soil-investigation-survey",
+      "topic": "Geotechnical investigation and topographic survey",
+      "kind": "product",
+      "body_en": "Before structural design, a geotechnical (soil) investigation and a topographic survey are needed, and Dubai Municipality requires verified soil test results and a geotechnical report before it issues a building permit. Testing must be done by a laboratory accredited by the Emirates International Accreditation Centre (EIAC) under ISO/IEC 17025 for construction materials and geotechnical testing; data from non-accredited labs is rejected. A typical scope includes boreholes with standard penetration tests, groundwater level, grain size and Atterberg limits, moisture and density, shear strength, consolidation, and chemical tests for chlorides, sulphates and pH, which matter because aggressive salts attack concrete and reinforcement. One Dubai consultancy guide reports borehole rules such as depth of at least 8 m or 2.5 to 3 times the footing width for pad and strip foundations, about one borehole per 750 square metres, and minimum counts of five for towers above G+12, three for lower buildings and two for a single villa; these figures should be confirmed with the structural engineer and the current DM requirement. Coastal sabkha soils are known to be high in sulphates and chlorides and weak when wet, which strongly affects foundation cost. The topographic survey should be done by a licensed surveyor in the emirate's coordinate system. Buyers should specify borehole numbers and depths as recommended by the engineer and require an EIAC-accredited laboratory.",
+      "body_ar": "قبل التصميم الإنشائي يلزم إجراء فحص جيوتقني للتربة ومسح طبوغرافي، وتشترط بلدية دبي نتائج فحص تربة موثقة وتقريراً جيوتقنياً قبل إصدار رخصة البناء. ويجب أن يجري الفحوص مختبر معتمد من مركز الإمارات العالمي للاعتماد وفق المعيار ISO/IEC 17025 في مجال مواد البناء والفحوص الجيوتقنية، وتُرفض بيانات المختبرات غير المعتمدة. ويشمل النطاق المعتاد حفر جسّات مع اختبار الاختراق القياسي، وقياس منسوب المياه الجوفية، والتدرج الحبيبي وحدود أتربرغ، والرطوبة والكثافة، ومقاومة القص، والانضغاط، والفحوص الكيميائية للكلوريدات والكبريتات ودرجة الحموضة، وهي مهمة لأن الأملاح العدوانية تهاجم الخرسانة وحديد التسليح. ويذكر دليل لأحد المكاتب في دبي قواعد مثل ألا يقل عمق الجسّة عن ٨ أمتار أو ٢٫٥ إلى ٣ أضعاف عرض القاعدة للقواعد المنفصلة والشريطية، وجسّة واحدة تقريباً لكل ٧٥٠ متراً مربعاً، وحداً أدنى خمس جسّات للأبراج فوق أرضي +١٢ وثلاثاً للمباني الأقل وجسّتين للفيلا الواحدة؛ ويجب تأكيد هذه الأرقام مع المهندس الإنشائي ومع متطلبات البلدية الحالية. وتُعرف تربة السبخة الساحلية بارتفاع الكبريتات والكلوريدات وضعفها عند التشبع، مما يؤثر كثيراً في تكلفة الأساسات. ويجب أن يجري المسح الطبوغرافي مسّاح مرخّص بنظام الإحداثيات المعتمد في الإمارة. وعلى المشتري تحديد عدد الجسّات وأعماقها وفق توصية المهندس واشتراط مختبر معتمد.",
+      "sources": [
+        "https://integradxb.com/soil-testing-and-geotechnical-reports-for-dm-approval-complete-guide-for-2026/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:mep-structural-design",
+      "topic": "MEP and structural design scope",
+      "kind": "product",
+      "body_en": "Structural design covers the design basis (codes, loads, wind and seismic, exposure), foundation design using the soil report, the structural system (RC flat slabs, post-tensioned slabs, beams, transfer structures, steel structures), calculations and drawings, and coordination with architecture and MEP openings. MEP design covers HVAC (cooling load calculations for UAE climate, system selection such as split, VRF, chilled water or district cooling connection, ventilation and smoke control), electrical (load schedule, single-line diagram, lighting, small power, earthing, lightning protection, standby power), plumbing and drainage (water supply, hot water, drainage, stormwater), fire fighting and fire alarm (per Civil Defence), and low-current systems (data, CCTV, access control, public address). In the UAE, district cooling is common in master communities and requires coordination with the provider. Buyers should confirm which systems are in scope, whether specialist design for lifts, facade, kitchen or pool equipment is included, and whether the MEP engineer will produce energy modelling for green building compliance. Gaps between disciplines are a frequent source of variations. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
+      "body_ar": "يغطي التصميم الإنشائي أساس التصميم من أكواد وأحمال ورياح وزلازل وتعرض، وتصميم الأساسات وفق تقرير التربة، والنظام الإنشائي كالبلاطات المسطحة المسلحة أو سابقة الإجهاد والجسور والمنشآت الناقلة والهياكل الفولاذية، والحسابات والرسومات، والتنسيق مع العمارة وفتحات الأعمال الكهروميكانيكية. ويغطي تصميم الأعمال الكهروميكانيكية التكييف من حساب أحمال التبريد لمناخ الإمارات واختيار النظام كالسبليت أو VRF أو المياه المبردة أو التوصيل بالتبريد المركزي والتهوية والتحكم بالدخان، والكهرباء من جدول الأحمال والمخطط الأحادي والإنارة والمقابس والتأريض والحماية من الصواعق والطاقة الاحتياطية، والصحي والصرف من تغذية المياه والماء الساخن والصرف وتصريف الأمطار، والإطفاء وإنذار الحريق وفق الدفاع المدني، وأنظمة التيار الخفيف من بيانات وكاميرات مراقبة والتحكم بالدخول والإذاعة الداخلية. في الإمارات التبريد المركزي شائع في المجتمعات الرئيسية ويتطلب التنسيق مع المزود. على المشتري التأكد من الأنظمة المشمولة وهل يشمل التصميم المتخصص للمصاعد والواجهات والمطابخ ومعدات المسابح، وهل سيعد المهندس نمذجة الطاقة لامتثال المباني الخضراء. الفجوات بين التخصصات مصدر متكرر لأوامر التغيير. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/planning-and-construction/dubai-building-code-2/",
+        "https://murjangroup.com/blog/dewa-substation-approval"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:as-built",
+      "topic": "As-built drawings and handover documentation",
+      "kind": "installation",
+      "body_en": "As-built drawings record what was actually constructed, including deviations from IFC drawings, routes of concealed services, and final equipment. In UAE practice, the contractor prepares as-built drawings and the consultant reviews and approves them; authorities and utilities (for example DEWA, Civil Defence and the building authority) require as-built submissions for completion. The handover package typically includes as-built drawings (in native CAD or BIM format and PDF), operation and maintenance manuals, test and commissioning certificates, warranties and guarantees from subcontractors and suppliers, spare parts and attic stock lists, and training records for facility staff. Owners should specify in contracts the format, level of detail, timing (as-built submittals often slip to the end), and retention of payments until documents are received. Without accurate as-builts, future modifications, fit-outs and maintenance become costly, and some authority applications for later changes require them. Buyers engaging a consultant should include the review of as-built and O&M documentation in scope. Note: the practice points in this entry are general UAE market practice; they were not confirmed against a published authority rule and are marked not established.",
+      "body_ar": "تسجل الرسومات المنفذة ما تم إنشاؤه فعلياً، بما في ذلك الانحرافات عن رسومات الإصدار للإنشاء ومسارات الخدمات المخفية والمعدات النهائية. في الممارسة الإماراتية يعد المقاول الرسومات المنفذة ويراجعها الاستشاري ويعتمدها، وتشترط الجهات وشركات المرافق، مثل هيئة كهرباء ومياه دبي والدفاع المدني وجهة البناء، تقديم الرسومات المنفذة للإنجاز. تتضمن حزمة التسليم عادة الرسومات المنفذة بصيغة CAD أو BIM الأصلية وPDF، وأدلة التشغيل والصيانة، وشهادات الاختبار والتشغيل، والضمانات والكفالات من المقاولين من الباطن والموردين، وقوائم قطع الغيار والمخزون الاحتياطي، وسجلات تدريب موظفي المرافق. يجب على الملاك تحديد الصيغة ومستوى التفصيل والتوقيت في العقود، إذ كثيراً ما تتأخر الرسومات المنفذة إلى النهاية، مع احتجاز دفعات حتى استلام الوثائق. بدون رسومات منفذة دقيقة تصبح التعديلات والتجهيزات والصيانة المستقبلية مكلفة، وبعض طلبات الجهات للتغييرات اللاحقة تتطلبها. على المشتري الذي يتعاقد مع استشاري أن يدرج مراجعة الرسومات المنفذة ووثائق التشغيل والصيانة في النطاق. ملاحظة: النقاط العملية في هذا البند تمثّل الممارسة السائدة في السوق الإماراتي، ولم يتم التحقق منها مقابل نص صادر عن جهة رسمية، لذا تُعدّ غير مُثبتة.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
+        "https://en.wikipedia.org/wiki/Building_information_modeling"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:tender-boq",
+      "topic": "Tender documents, BOQ and cost consultancy",
+      "topic_ar": "الاستشارات الهندسية: وثائق المناقصة وجدول الكميات واستشارات التكلفة",
+      "kind": "product",
+      "body_en": "Consultants or separate quantity surveyors prepare tender documents so that contractors price on the same basis: conditions of contract, specifications, drawings, bills of quantities (BOQ), forms of tender and instructions to tenderers. FIDIC contracts are common in the region. FIDIC's guidance is that the Construction Contract (the Red Book) suits works designed by the employer or its engineer, while the Plant and Design-Build Contract (successor to the Yellow Book) suits works where the contractor does most of the design; either is amended for UAE law. BOQs should be measured to a stated method: the RICS New Rules of Measurement (NRM1 for cost estimating and cost planning, NRM2 for detailed measurement of building works, NRM3 for maintenance cost planning) or the older Principles of Measurement (International) still used on some regional projects. A cost consultant provides estimates at each design stage, cost plans, tender evaluation reports and, during construction, valuation of variations and the final account. Mandatory UAE law applies regardless of contract wording: under the new Civil Code (Federal Decree-Law 25 of 2025, in force from 1 June 2026, Articles 821 to 824) the contractor and engineer carry ten-year decennial liability that cannot be excluded. Buyers should decide whether the consultant's scope includes the BOQ and cost management or whether a separate QS is appointed; missing cost control often leads to tenders far above budget.",
+      "body_ar": "يُعدّ الاستشاري أو مكتب مستقل لحساب الكميات مستندات المناقصة كي يسعّر المقاولون على أساس واحد: شروط العقد والمواصفات والمخططات وجداول الكميات ونماذج العطاء وتعليمات المناقصين. وعقود «فيديك» شائعة في المنطقة؛ وبحسب إرشادات فيديك فإن عقد التشييد (الكتاب الأحمر) يناسب الأعمال التي يصممها المالك أو مهندسه، بينما يناسب عقد المصنع والتصميم والبناء (خلف الكتاب الأصفر) الأعمال التي يتولى المقاول معظم تصميمها، ويُعدَّل أيٌّ منهما بما يتوافق مع القانون الإماراتي. ويجب أن تُحسب جداول الكميات وفق طريقة قياس محددة: قواعد القياس الجديدة الصادرة عن المعهد الملكي للمساحين القانونيين (NRM1 لتقدير التكلفة وتخطيطها، وNRM2 للقياس التفصيلي لأعمال المباني، وNRM3 لتخطيط تكاليف الصيانة)، أو مبادئ القياس الدولية الأقدم التي ما زالت مستخدمة في بعض مشاريع المنطقة. ويقدّم استشاري التكلفة تقديرات في كل مرحلة تصميم وخطط تكلفة وتقارير تقييم العطاءات، وأثناء التنفيذ تقييم الأوامر التغييرية والحساب الختامي. ويسري القانون الإماراتي الآمر بصرف النظر عن صياغة العقد: فبموجب القانون المدني الجديد (المرسوم بقانون اتحادي رقم ٢٥ لسنة ٢٠٢٥، النافذ من ١ يونيو ٢٠٢٦، المواد ٨٢١ إلى ٨٢٤) يتحمل المقاول والمهندس مسؤولية عشرية لا يجوز استبعادها. وعلى المشتري أن يقرر هل يشمل نطاق الاستشاري جداول الكميات وإدارة التكلفة أم يُعيَّن مكتب كميات مستقل؛ فغياب ضبط التكلفة يؤدي غالباً إلى عطاءات تتجاوز الميزانية كثيراً.",
+      "sources": [
+        "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use",
+        "https://www.rics.org/profession-standards/rics-standards-and-guidance/sector-standards/construction-standards/nrm",
+        "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/construction-engineering-and-projects/2026/decennial-liability-and-subcontractors-under-the-new-uae-civil-code-articles-821-to-824/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:decennial-liability-pi",
+      "topic": "Decennial liability and professional indemnity insurance",
+      "kind": "warranty",
+      "body_en": "Decennial liability is the UAE's mandatory ten-year liability of the contractor and the engineer for serious building failure. Since 1 June 2026 it is governed by the new Civil Code, Federal Decree-Law No. 25 of 2025, Articles 821 to 824, which replaced Articles 880 to 883 of the 1985 Civil Transactions Law. The main contractor and the engineer are jointly liable to the employer for ten years from handover for total or partial collapse of the building and for defects that threaten its stability or safety. It does not cover every defect. Any agreement that tries to exclude or limit this liability is void, and a claim must be brought within three years of the collapse or the discovery of the defect. The new code clarifies that the strict decennial regime does not apply between the main contractor and its subcontractors, so main contractors must rely on contract or fault-based claims against them and should watch subcontract limitation periods. How the new code treats a designer who did not supervise was not confirmed from a fetched source and is not established here. Consultants carry professional indemnity (PI) insurance; Dubai's 2025 consultancy law requires cover sized to the value of projects the firm signs. Buyers should request the PI certificate and check the limit, retroactive date and run-off cover, and have a UAE lawyer confirm the provisions for the specific project.",
+      "body_ar": "المسؤولية العشرية هي مسؤولية إلزامية مدتها عشر سنوات يتحملها المقاول والمهندس في الإمارات عن الإخفاقات الجسيمة في المباني. ومنذ ١ يونيو ٢٠٢٦ تحكمها أحكام القانون المدني الجديد، المرسوم بقانون اتحادي رقم ٢٥ لسنة ٢٠٢٥، المواد ٨٢١ إلى ٨٢٤، التي حلّت محل المواد ٨٨٠ إلى ٨٨٣ من قانون المعاملات المدنية لعام ١٩٨٥. ويكون المقاول الرئيسي والمهندس مسؤولين بالتضامن تجاه المالك لمدة عشر سنوات من التسليم عن التهدم الكلي أو الجزئي للمبنى وعن العيوب التي تهدد متانته أو سلامته، ولا تشمل كل عيب. وكل اتفاق يهدف إلى الإعفاء من هذه المسؤولية أو الحد منها باطل، ويجب رفع الدعوى خلال ثلاث سنوات من التهدم أو اكتشاف العيب. ويوضح القانون الجديد أن نظام المسؤولية العشرية الصارم لا يسري بين المقاول الرئيسي ومقاوليه من الباطن، فعلى المقاول الرئيسي الاعتماد على الدعاوى العقدية أو القائمة على الخطأ ومراقبة مدد التقادم في عقود الباطن. أما معاملة القانون الجديد للمصمم الذي لم يتولَّ الإشراف فلم تُؤكَّد من مصدر تم الاطلاع عليه وهي غير مُثبتة هنا. ويحمل الاستشاريون تأمين المسؤولية المهنية، ويشترط قانون الاستشارات في دبي لعام ٢٠٢٥ تغطية تتناسب مع قيمة المشاريع التي يوقّع عليها المكتب. وعلى المشتري طلب شهادة التأمين والتحقق من الحد والتاريخ الرجعي وتغطية ما بعد الإنجاز، وتأكيد الأحكام مع محامٍ إماراتي للمشروع المعني.",
+      "sources": [
+        "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/construction-engineering-and-projects/2026/decennial-liability-and-subcontractors-under-the-new-uae-civil-code-articles-821-to-824/",
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:quote-red-flags",
+      "topic": "Red flags in consultancy proposals",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for these in engineering consultancy proposals. A very low design fee that excludes authority submissions, NOCs, or MEP and fire design, which are then charged as additions. 'Supervision included' without a staffing schedule, visit frequency or duration. No limit on the construction period covered, so every month of delay becomes an extra claim. Unlimited exclusions such as 'any other approvals' or 'specialist design'. No stated number of revisions. The consultant is not registered with the relevant authority, or its classification does not cover the building height and type. Named engineers who are not the registered signatories. No professional indemnity insurance or an inadequate limit. Offers to 'guarantee' permit approval within a fixed short time regardless of project complexity. Proposals that rely on the contractor to do design work without saying so, which shifts design responsibility unclearly. Fees charged as a percentage of construction cost with no cap, giving an incentive for higher costs. Lack of a design programme. Clarifying these points before appointment avoids disputes and delays.",
+      "body_ar": "انتبه لما يلي في عروض الاستشارات الهندسية. أتعاب تصميم منخفضة جداً تستثني التقديم للجهات أو شهادات عدم الممانعة أو تصميم الأعمال الكهروميكانيكية والحريق ثم تُحتسب إضافات. عبارة الإشراف مشمول دون جدول موظفين أو تكرار زيارات أو مدة. عدم تحديد مدة الإنشاء المغطاة فيصبح كل شهر تأخير مطالبة إضافية. استثناءات مفتوحة مثل أي موافقات أخرى أو التصميم المتخصص. عدم ذكر عدد المراجعات. استشاري غير مسجل لدى الجهة المعنية أو تصنيفه لا يغطي ارتفاع المبنى ونوعه. مهندسون مذكورون ليسوا الموقعين المسجلين. غياب تأمين المسؤولية المهنية أو حد غير كافٍ. عروض تضمن اعتماد التصريح خلال مدة قصيرة ثابتة بغض النظر عن تعقيد المشروع. عروض تعتمد على المقاول في أعمال تصميم دون ذكر ذلك، مما ينقل مسؤولية التصميم بشكل غير واضح. أتعاب كنسبة من تكلفة الإنشاء بلا سقف، مما يخلق حافزاً لرفع التكلفة. غياب برنامج زمني للتصميم. توضيح هذه النقاط قبل التعيين يتجنب النزاعات والتأخير.",
+      "sources": [
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai",
+        "https://almujassam.ae/trakhees-approval-dubai/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:buyer-mistakes",
+      "topic": "Common client mistakes with consultants and approvals",
+      "kind": "buyer_mistake",
+      "body_en": "Frequent client mistakes in UAE projects: starting construction or fit-out before the permit, leading to fines and stop orders; choosing the consultant on lowest fee, then paying for additional services and delays; not obtaining the master developer's design guidelines at the start, so designs are rejected for setbacks, height, colours or roof elements; changing the brief after design development, triggering redesign fees and resubmissions; assuming the contractor will 'handle approvals' in a traditional contract where that is the consultant's role; failing to commission a soil investigation early, so foundation design is guessed; ignoring utility load and substation requirements until late, which can change the site plan; underestimating Civil Defence requirements in fit-outs of older buildings; not checking whether the building's existing permits and completion certificate match the actual use, which blocks tenant fit-out approvals; and not keeping approved drawings and permits organised, making later modifications difficult. Another mistake is appointing separate designers for interior and MEP without a lead consultant responsible for coordination.",
+      "body_ar": "أخطاء العملاء المتكررة في مشاريع الإمارات: بدء الإنشاء أو التجهيز قبل التصريح مما يؤدي إلى غرامات وأوامر إيقاف؛ اختيار الاستشاري بأقل أتعاب ثم الدفع مقابل خدمات إضافية وتأخيرات؛ عدم الحصول على إرشادات التصميم من المطور الرئيسي في البداية فتُرفض التصاميم بسبب الارتدادات أو الارتفاع أو الألوان أو عناصر السطح؛ تغيير المتطلبات بعد تطوير التصميم مما يستتبع أتعاب إعادة تصميم وإعادة تقديم؛ افتراض أن المقاول سيتولى الموافقات في عقد تقليدي يكون فيه ذلك دور الاستشاري؛ عدم إجراء فحص التربة مبكراً فيُخمَّن تصميم الأساسات؛ تجاهل الأحمال الكهربائية ومتطلبات المحطة الفرعية حتى وقت متأخر مما قد يغير مخطط الموقع؛ التقليل من متطلبات الدفاع المدني في تجهيز المباني القديمة؛ عدم التحقق من مطابقة تصاريح المبنى القائمة وشهادة إنجازه للاستخدام الفعلي مما يعطل موافقات تجهيز المستأجر؛ وعدم تنظيم الرسومات والتصاريح المعتمدة مما يصعب التعديلات لاحقاً. ومن الأخطاء أيضاً تعيين مصممين منفصلين للتصميم الداخلي والأعمال الكهروميكانيكية دون استشاري رئيسي مسؤول عن التنسيق.",
+      "sources": [
+        "https://almujassam.ae/trakhees-approval-dubai/",
+        "https://www.mitchellscommercialrealty.com/guides/fitout-permits",
+        "https://integradxb.com/soil-testing-and-geotechnical-reports-for-dm-approval-complete-guide-for-2026/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:master-developer-noc",
+      "topic": "Master developer design approval and NOC",
+      "kind": "authority_approval",
+      "body_en": "In master-planned communities and free zones, the master developer or zone authority controls design through development control regulations and design guidelines: permitted use, gross floor area, height, setbacks, parking ratios, facade materials and colours, boundary walls, roof equipment screening and landscape. Before a building authority will issue a permit, the consultant usually needs the master developer's NOC confirming compliance, and later a construction NOC and site access permits. Developers such as Emaar, Nakheel, Meraas, Dubai Properties, Aldar and others each run their own submission portals and fee schedules; some also require a refundable deposit against damage to community infrastructure and approved contractor lists. For modifications to existing villas or units (extensions, pools, pergolas, facade changes), a modification NOC is required from the developer or community management before the authority permit. At completion, some developers issue their own completion NOC before the authority completion certificate. Buyers should obtain the plot's development control regulations at the start and budget for developer fees and review time.",
+      "body_ar": "في المجتمعات المخططة والمناطق الحرة يتحكم المطور الرئيسي أو سلطة المنطقة بالتصميم عبر لوائح ضبط التطوير وإرشادات التصميم: الاستخدام المسموح، ومساحة الطوابق الإجمالية، والارتفاع، والارتدادات، ونسب المواقف، ومواد الواجهات وألوانها، والأسوار، وتغطية معدات السطح، وتنسيق الحدائق. قبل أن تصدر جهة البناء التصريح يحتاج الاستشاري عادة إلى شهادة عدم ممانعة من المطور الرئيسي تؤكد الامتثال، ثم لاحقاً عدم ممانعة للإنشاء وتصاريح دخول الموقع. يدير المطورون كإعمار ونخيل ومِراس ودبي للعقارات والدار وغيرهم بوابات تقديم وجداول رسوم خاصة بهم، ويشترط بعضهم تأميناً مسترداً ضد تلف البنية التحتية للمجتمع وقوائم مقاولين معتمدين. لتعديلات الفلل أو الوحدات القائمة كالتوسعات والمسابح والبرجولات وتغيير الواجهات تلزم شهادة عدم ممانعة للتعديل من المطور أو إدارة المجتمع قبل تصريح الجهة. عند الإنجاز يصدر بعض المطورين عدم ممانعة إنجاز خاصة بهم قبل شهادة إنجاز الجهة. على المشتري الحصول على لوائح ضبط التطوير للقطعة في البداية وتخصيص ميزانية لرسوم المطور ووقت المراجعة.",
+      "sources": [
+        "https://almujassam.ae/trakhees-approval-dubai/",
+        "https://www.mitchellscommercialrealty.com/guides/fitout-permits",
+        "https://www.poolmaintenancedubai.com/blog/dubai-municipality-pool-regulations-villa-owners.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:architect-vs-engineering-firm",
+      "topic": "Architect-led vs engineering-led vs design-and-build",
+      "kind": "comparison",
+      "body_en": "Clients can procure design in several ways. An architect-led consultancy leads design with in-house or sub-consulted engineers, suited to projects where aesthetics, planning and user experience dominate (villas, hotels, retail). An engineering-led multidisciplinary firm has strong structural and MEP capability and suits industrial, infrastructure and technically complex buildings. In both, the consultant designs, submits and supervises while a separate contractor builds (traditional procurement), giving the client independent quality control but more interfaces. In design-and-build, the contractor takes responsibility for design and construction under one contract, often using its own consultant; this can be faster and provide a single point of responsibility, but the client loses some control over design quality and needs an employer's representative or independent consultant to check the contractor's design against the employer's requirements. In the UAE, a registered consultant must still sign and submit designs regardless of route. Buyers should choose based on complexity, time, risk appetite and in-house capability, and should not confuse a fit-out company's 'free design' with independent consultancy.",
+      "body_ar": "يمكن للعملاء التعاقد على التصميم بعدة طرق. المكتب الذي يقوده معماري يقود التصميم مع مهندسين داخليين أو استشاريين من الباطن، ويناسب المشاريع التي يغلب فيها الجانب الجمالي والتخطيطي وتجربة المستخدم كالفلل والفنادق والمحلات. المكتب متعدد التخصصات الذي تقوده الهندسة لديه قدرات قوية إنشائية وكهروميكانيكية ويناسب المنشآت الصناعية والبنية التحتية والمباني المعقدة فنياً. في الحالتين يصمم الاستشاري ويقدم للجهات ويشرف بينما يبني مقاول منفصل، وهو التعاقد التقليدي الذي يمنح العميل رقابة جودة مستقلة لكن مع واجهات أكثر. في التصميم والتنفيذ يتحمل المقاول مسؤولية التصميم والإنشاء بعقد واحد وغالباً باستشاريه الخاص؛ قد يكون أسرع ويوفر جهة مسؤولية واحدة، لكن العميل يفقد بعض السيطرة على جودة التصميم ويحتاج ممثلاً لصاحب العمل أو استشارياً مستقلاً لمراجعة تصميم المقاول مقابل متطلبات صاحب العمل. في الإمارات يجب أن يوقع استشاري مسجل التصاميم ويقدمها أياً كان المسار. على المشتري الاختيار حسب التعقيد والوقت وتقبل المخاطر والقدرات الداخلية، وألا يخلط بين التصميم المجاني لشركة التجهيز والاستشارات المستقلة.",
+      "sources": [
+        "https://fidic.org/bookshop/about-bookshop/which-FIDIC-Contract-should-I-use",
+        "https://www.businessdubai.ae/blogs/engineering-consultancy-company-setup-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:lead-times",
+      "topic": "Design and approval durations",
+      "kind": "lead_time",
+      "body_en": "Authority approval durations in the UAE are not fixed; they depend on the authority, project complexity, completeness of submissions and the number of comment cycles. Some published indications from firms working in the market, which should be treated as rough and confirmed per project: one Dubai consultancy estimates about four to six weeks from a complete Trakhees submission to permit; an approvals firm reports Dubai Civil Defence approvals in about ten working days for straightforward cases and fifteen or more for complex ones; and a contractor guide reports DEWA NOCs in a few working days and design review in one to two weeks, but transformer delivery and commissioning of around sixteen weeks. End-to-end timelines are much longer because they chain surveys and soil investigation, concept and schematic design with client approvals, master developer review, authority design review with NOCs, detailed design and tender documents, tender and evaluation, permit issue, construction with inspections, and the completion certificate with final NOCs. Fit-out approvals are shorter than new-build approvals but still involve landlord review, the authority permit and Civil Defence. Common causes of delay are incomplete submissions, client changes, late utility load applications and fire code comments. Buyers should ask for an approvals programme showing each authority step, its dependency and assumed review cycles, updated monthly.",
+      "body_ar": "مدد موافقات الجهات في الإمارات غير ثابتة؛ فهي تعتمد على الجهة وتعقيد المشروع واكتمال الملف وعدد دورات الملاحظات. وهناك مؤشرات منشورة من شركات عاملة في السوق تُعامل كتقديرات تقريبية وتُؤكَّد لكل مشروع: يقدّر أحد المكاتب في دبي نحو أربعة إلى ستة أسابيع من تقديم ملف مكتمل لدى «تراخيص» حتى إصدار الرخصة؛ وتذكر شركة تخليص أن موافقات الدفاع المدني بدبي تستغرق نحو عشرة أيام عمل للحالات البسيطة وخمسة عشر يوماً أو أكثر للمعقدة؛ ويذكر دليل مقاول أن شهادات عدم ممانعة هيئة الكهرباء تصدر خلال أيام عمل قليلة ومراجعة التصميم خلال أسبوع إلى أسبوعين، بينما يستغرق توريد المحوّل وتشغيله نحو ستة عشر أسبوعاً. أما المدة الكلية فأطول بكثير لأنها تربط المسح وفحص التربة، والتصميم المبدئي والتخطيطي مع موافقات العميل، ومراجعة المطوّر الرئيسي، ومراجعة الجهة مع شهادات عدم الممانعة، والتصميم التفصيلي ومستندات المناقصة، وفترة المناقصة والتقييم، وإصدار الرخصة، والتنفيذ مع التفتيش، وشهادة الإنجاز مع الموافقات النهائية. وموافقات التجهيز الداخلي أقصر من المباني الجديدة لكنها تمر بمراجعة المالك ورخصة الجهة والدفاع المدني. ومن أسباب التأخير الشائعة: نقص الملفات وتغييرات العميل وتأخر طلبات الأحمال وملاحظات كود الحريق. وعلى المشتري طلب برنامج موافقات يبيّن كل خطوة لدى كل جهة واعتمادياتها وعدد دورات المراجعة المفترضة، مع تحديثه شهرياً.",
+      "sources": [
+        "https://almujassam.ae/trakhees-approval-dubai/",
+        "https://approvals.ae/services/dubai-civil-defense-approval",
+        "https://murjangroup.com/blog/dewa-substation-approval"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "engineering_consultancy:glossary",
+      "topic": "Consultancy and approvals glossary",
+      "kind": "glossary",
+      "body_en": "Affection plan: official plot plan showing boundaries, area, permitted use and development controls. DCR: development control regulations. NOC: no objection certificate from an authority, utility or developer. BPS: Dubai Municipality's online building permit system. IFC: issued for construction drawings. Shop drawings: contractor's detailed drawings for approval. Material submittal: contractor's proposal of a product for consultant approval. RFI: request for information. Site instruction: consultant's written instruction on site. Variation order: approved change to the contract scope or price. Snag list: list of defects to fix before handover. Completion certificate: authority certificate allowing occupation. DLP: defects liability period after handover. Decennial liability: ten-year legal liability for structural failure. PI: professional indemnity insurance. BIM and LOD: building information modelling and level of development. Pearl rating: Abu Dhabi Estidama sustainability rating. Al Sa'fat: Dubai green building evaluation system. G+4: ground plus four floors. BUA: built-up area. GFA: gross floor area. Setback: minimum distance from plot boundary to building.",
+      "body_ar": "مخطط الأرض: المخطط الرسمي للقطعة يبين الحدود والمساحة والاستخدام المسموح وضوابط التطوير. لوائح ضبط التطوير: الضوابط التخطيطية للقطعة. شهادة عدم الممانعة: وثيقة من جهة أو شركة مرافق أو مطور. نظام تصاريح البناء: النظام الإلكتروني لتصاريح البناء في بلدية دبي. رسومات الإصدار للإنشاء: الرسومات المعتمدة للتنفيذ. الرسومات التنفيذية: رسومات المقاول التفصيلية للاعتماد. طلب اعتماد المواد: اقتراح المقاول لمنتج لاعتماد الاستشاري. طلب المعلومات: استفسار رسمي من المقاول. تعليمات الموقع: تعليمات مكتوبة من الاستشاري في الموقع. أمر التغيير: تغيير معتمد في نطاق العقد أو سعره. قائمة الملاحظات: العيوب المطلوب إصلاحها قبل التسليم. شهادة الإنجاز: شهادة الجهة التي تسمح بالإشغال. فترة مسؤولية العيوب: الفترة بعد التسليم لإصلاح العيوب. المسؤولية العشرية: المسؤولية القانونية لعشر سنوات عن الانهيار الإنشائي. تأمين المسؤولية المهنية: تأمين أخطاء التصميم والمشورة. نمذجة معلومات البناء ومستوى التطوير: النماذج الرقمية ودرجة تفصيلها. تصنيف اللؤلؤ: تصنيف الاستدامة في استدامة أبوظبي. الصفات: نظام تقييم المباني الخضراء في دبي. أرضي وأربعة: الطابق الأرضي وأربعة طوابق. مساحة البناء: المساحة المبنية. المساحة الإجمالية للطوابق: مجموع مساحات الطوابق. الارتداد: أقل مسافة بين حد القطعة والمبنى.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/building-permit-steps/",
+        "https://en.wikipedia.org/wiki/Building_information_modeling",
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    }
   ],
-  "removed": [],
-  "still_unverified": []
- }
+  "eval": [
+    {
+      "q_en": "My plot is in Jumeirah Village Circle, do I apply to Dubai Municipality or Trakhees?",
+      "q_ar": "قطعتي في قرية جميرا الدائرية، هل أقدّم لبلدية دبي أم تراخيص؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:authority-map",
+        "engineering_consultancy:master-developer-noc"
+      ]
+    },
+    {
+      "q_en": "What approvals do I need to open a restaurant in a mall?",
+      "q_ar": "ما الموافقات التي أحتاجها لافتتاح مطعم في مول؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:fitout-permits",
+        "engineering_consultancy:civil-defence-approval"
+      ]
+    },
+    {
+      "q_en": "What is the difference between Estidama and Al Sa'fat?",
+      "q_ar": "ما الفرق بين استدامة والصفات؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:green-building-alsafat-estidama"
+      ]
+    },
+    {
+      "q_en": "Why is one consultant 40% cheaper than the other for the same villa?",
+      "q_ar": "لماذا استشاري أرخص بنسبة 40% من آخر لنفس الفيلا؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:quote-red-flags",
+        "engineering_consultancy:fee-structures"
+      ]
+    },
+    {
+      "q_en": "What should I include in my request for proposal for a G+5 residential building design?",
+      "q_ar": "ماذا أضع في طلب العروض لتصميم مبنى سكني أرضي وخمسة؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:consultancy-spec-checklist",
+        "engineering_consultancy:design-stages"
+      ]
+    },
+    {
+      "q_en": "We finished building but cannot connect DEWA permanently, what are we missing?",
+      "q_ar": "انتهينا من البناء ولا نستطيع التوصيل الدائم مع ديوا، ما الناقص؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:completion-certificate",
+        "engineering_consultancy:utility-nocs"
+      ]
+    },
+    {
+      "q_en": "Is the architect responsible if cracks appear in the structure after 6 years?",
+      "q_ar": "هل المعماري مسؤول إذا ظهرت تشققات في الهيكل بعد 6 سنوات؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:decennial-liability-pi"
+      ]
+    },
+    {
+      "q_en": "Do I really need a soil test for a small villa?",
+      "q_ar": "هل أحتاج فعلاً فحص تربة لفيلا صغيرة؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:soil-investigation-survey"
+      ]
+    },
+    {
+      "q_en": "Design-and-build or hire a consultant first?",
+      "q_ar": "تصميم وتنفيذ أم تعيين استشاري أولاً؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:architect-vs-engineering-firm"
+      ]
+    },
+    {
+      "q_en": "Is BIM mandatory for my project in Dubai?",
+      "q_ar": "هل نمذجة معلومات البناء إلزامية لمشروعي في دبي؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:bim"
+      ]
+    },
+    {
+      "q_en": "How do we check that an engineering consultant is registered with Dubai Municipality?",
+      "q_ar": "كيف نتحقق من أن الاستشاري الهندسي مسجل لدى بلدية دبي؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:consultant-registration"
+      ],
+      "why": "States that under Dubai Law 14 of 2025 a consultancy needs both a professional trade licence and separate Dubai Municipality registration and covers classification, which is what the buyer must verify.",
+      "origin": "real buyer question, moved from engineering_consultancy.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    }
+  ],
+  "verified": {
+    "fetched_urls": 19,
+    "claims_checked": 155,
+    "corrected": [
+      "engineering_consultancy:authority-map",
+      "engineering_consultancy:dm-building-permit",
+      "engineering_consultancy:civil-defence-approval",
+      "engineering_consultancy:utility-nocs",
+      "engineering_consultancy:green-building-alsafat-estidama",
+      "engineering_consultancy:consultant-registration",
+      "engineering_consultancy:fitout-permits",
+      "engineering_consultancy:consultancy-spec-checklist",
+      "engineering_consultancy:bim",
+      "engineering_consultancy:dubai-building-code",
+      "engineering_consultancy:soil-investigation-survey",
+      "engineering_consultancy:tender-boq",
+      "engineering_consultancy:decennial-liability-pi",
+      "engineering_consultancy:lead-times"
+    ],
+    "removed": [],
+    "still_unverified": []
+  }
 }

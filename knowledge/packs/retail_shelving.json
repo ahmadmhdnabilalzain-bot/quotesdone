@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "retail_shelving:gondola-bay-dimensions-and-loads",
+      "topic": "Gondola bay widths and shelf loads",
+      "kind": "spec_reference",
+      "body_en": "Supermarket gondolas are built from repeating single-sided or double-sided bays. One supplier's range offers shelf widths of 900 mm or 1200 mm, double-sided units 5 ft tall and single-sided units 4 ft or 7 ft tall, with plain, pegboard, steel or open back panels; shelves are usually deeper on the bottom levels and narrower towards the top. A specification should state bay width, height, shelf depths, number of levels, back panel type and the rated load per shelf from the supplier's data. Not established here: standard shelf load ratings (kg per shelf), steel gauge, and any UAE standard for gondola dimensions or loads.",
+      "body_ar": "تُبنى رفوف الجندولا في السوبرماركت من وحدات متكررة أحادية الجانب أو مزدوجة الجانب. وتوفر مجموعة أحد الموردين عروض رفوف بمقاس 900 مم أو 1200 مم، ووحدات مزدوجة الجانب بارتفاع 5 أقدام ووحدات أحادية الجانب بارتفاع 4 أو 7 أقدام، مع ألواح خلفية سادة أو مثقبة أو فولاذية أو مفتوحة؛ وتكون الرفوف عادةً أعمق في المستويات السفلية وأضيق نحو الأعلى. ينبغي أن تحدد المواصفة عرض الوحدة وارتفاعها وأعماق الرفوف وعدد المستويات ونوع اللوح الخلفي والحمل المقنن لكل رف من بيانات المورد. لم يُثبت هنا: الأحمال القياسية للرفوف (كغ لكل رف)، وسماكة الفولاذ، وأي مواصفة إماراتية لأبعاد الجندولا أو أحمالها.",
+      "sources": [
+        "https://img0.hospitalityhub.com.au/supermarket-gondola-shelving/p/84280"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "retail_shelving:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What bay width and shelf load are standard for supermarket gondolas?",
+      "q_ar": "ما عرض الوحدة وحمولة الرف القياسيان لرفوف الجندولا في السوبرماركت؟",
+      "expected_entry_ids": [
+        "retail_shelving:gondola-bay-dimensions-and-loads"
+      ],
+      "why": "No entry of this pack answered it (No entry gives standard gondola bay widths or shelf loads; missing). retail_shelving:gondola-bay-dimensions-and-loads was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from retail_shelving.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "retail_shelving:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "retail_shelving:gondola-bay-dimensions-and-loads"
+    ]
   }
 }

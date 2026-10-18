@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
@@ -47,7 +48,7 @@ function mkLog(t0: number) {
   };
 }
 
-Deno.serve(observe('reveal_invoice', async (req) => {
+Deno.serve(siteCors(observe('reveal_invoice', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
@@ -111,4 +112,4 @@ Deno.serve(observe('reveal_invoice', async (req) => {
     await logRun('ok', { quote_id: qid, doc: kind, lang: docLang, cached: false }, '');
     return J({ ok: true, url, invoice_no: sale.invoice_no, doc: kind, lang: docLang });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: 'invoice_failed' }, 500); }
-}));
+})));

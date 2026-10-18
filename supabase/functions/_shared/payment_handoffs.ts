@@ -123,6 +123,24 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'fraud.money_released', from: 'accountant', to: 'customer_support' },
   // the demand stage is the marketing seat's (instruction 721): the CEO steers it like every other seat, never approves
   { type: 'ceo.directive', from: 'ceo', to: 'marketing' },
+  // a rejection never ends the cycle (founder_instruction 1059; MANIFEST 1894,
+  // scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql): the CEO sends a
+  // submission back with reasons, returns its final decision, and is owed one when a revision stalls
+  { type: 'ceo.revise', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.revise', from: 'ceo', to: 'sales_engineer' },
+  { type: 'ceo.revise', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.revise', from: 'ceo', to: 'it_engineer' },
+  { type: 'ceo.revise', from: 'ceo', to: 'marketing' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'sales_engineer' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'it_engineer' },
+  { type: 'ceo.decision_closed', from: 'ceo', to: 'marketing' },
+  { type: 'ceo.decision_owed', from: 'customer_support', to: 'ceo' },
+  { type: 'ceo.decision_owed', from: 'sales_engineer', to: 'ceo' },
+  { type: 'ceo.decision_owed', from: 'accountant', to: 'ceo' },
+  { type: 'ceo.decision_owed', from: 'it_engineer', to: 'ceo' },
+  { type: 'ceo.decision_owed', from: 'marketing', to: 'ceo' },
   // the root cause of a target miss (the ambition build, #913) and the year-one plan's month directive and improvement (#923)
   { type: 'ceo.root_cause', from: 'ceo', to: 'sales_engineer' },
   { type: 'ceo.root_cause', from: 'ceo', to: 'customer_support' },
@@ -145,6 +163,7 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'marketing.report', from: 'marketing', to: 'ceo' },
   // The quarterly brand review and the monthly GEO report (ledger 983, marketing gap 8).
   { type: 'marketing.review', from: 'marketing', to: 'ceo' },
+  { type: 'marketing.lead_sourcing', from: 'marketing', to: 'ceo' },
   { type: 'adspend.recorded', from: 'marketing', to: 'accountant' },
   { type: 'adspend.booked', from: 'accountant', to: 'marketing' },
   { type: 'delivery.request', from: 'marketing', to: 'customer_support' },
@@ -157,4 +176,7 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // closes each once the receiving seat has answered (scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql)
   { type: 'social.escalation', from: 'marketing', to: 'customer_support' },
   { type: 'social.lead', from: 'marketing', to: 'sales_engineer' },
+  // a customer answered "not sure" to a spec on a held request: the sales engineer takes that spec up
+  // (scripts/sql/a_not_sure_spec_opens_a_handoff_to_the_sales_engineer.sql, handler fn_sales_engineer_spec_handoff_waits)
+  { type: 'spec.not_sure', from: 'customer_support', to: 'sales_engineer' },
 ] as const;

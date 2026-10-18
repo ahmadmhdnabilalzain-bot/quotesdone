@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "rubber_products:weathering-resistant-elastomers",
+      "topic": "Elastomers for outdoor UV and ozone exposure",
+      "kind": "material_selection",
+      "body_en": "For outdoor parts exposed to sun, EPDM is the usual cost-effective choice: it survives prolonged exposure to UV, ozone and water. Silicone also resists sunlight and weathering but is not an inherently tough compound. FKM (Viton) is highly resistant to demanding environments and tougher than EPDM, at a higher price. Neoprene gives solid resistance to UV, ozone and water, plus excellent oil resistance, at a mid-range price. Natural rubber breaks down under sunlight and ozone, and nitrile (NBR), used for oil resistance, is not suited for outdoor use. A specification should state the polymer, hardness, and any oil or fuel contact. Not established here: performance data for UAE climate specifically.",
+      "body_ar": "للأجزاء الخارجية المعرضة للشمس، يُعد مطاط EPDM الخيار الاقتصادي المعتاد، إذ يتحمل التعرض الطويل للأشعة فوق البنفسجية والأوزون والماء. ويقاوم السيليكون أيضاً أشعة الشمس وعوامل الطقس لكنه ليس مركباً متيناً بطبيعته. أما FKM (فيتون) فمقاومته عالية جداً للبيئات القاسية وهو أمتن من EPDM لكن بسعر أعلى. ويوفر النيوبرين مقاومة جيدة للأشعة فوق البنفسجية والأوزون والماء مع مقاومة ممتازة للزيوت بسعر متوسط. أما المطاط الطبيعي فيتحلل تحت أشعة الشمس والأوزون، والنتريل (NBR) المستخدم لمقاومة الزيوت غير مناسب للاستخدام الخارجي. ينبغي أن تحدد المواصفة نوع البوليمر والصلادة وأي تلامس مع الزيوت أو الوقود. لم يُثبت هنا: بيانات أداء خاصة بمناخ الإمارات.",
+      "sources": [
+        "https://www.timcorubber.com/blog/archive/what-is-the-best-rubber-for-weather-resistance/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "rubber_products:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which rubber should I use outdoors in UAE sun?",
+      "q_ar": "ما المطاط المناسب للاستخدام الخارجي تحت شمس الإمارات؟",
+      "expected_entry_ids": [
+        "rubber_products:weathering-resistant-elastomers"
+      ],
+      "why": "No entry of this pack answered it (no entry recommends UV/ozone-resistant rubbers (EPDM, silicone, neoprene) for outdoor sun). rubber_products:weathering-resistant-elastomers was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from rubber_products.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "rubber_products:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "rubber_products:weathering-resistant-elastomers"
+    ]
   }
 }

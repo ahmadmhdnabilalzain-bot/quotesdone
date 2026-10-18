@@ -25,7 +25,8 @@
 import type { Cell, Extracted } from '../_shared/doc_read/types.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 import { OPTION_HEAD, optionAmount, optionNumber, splitOptions } from '../_shared/line_specs/options.ts';
-import { readVat, type VatTreatment } from '../_shared/line_specs/vat.ts';
+import type { VatTreatment } from '../_shared/line_specs/vat.ts';
+import { AFTER_DISCOUNT, statedPrice } from '../_shared/stated_price.ts';
 import type { QuoteTermKey } from '../_shared/reasoned_suppliers.ts';
 
 export type QuoteLine = { description: string; qty: string; amount: number | null; option?: number; /** A "Specification" column, when the file has one. */ specification?: string };
@@ -35,6 +36,8 @@ export type Proposal = {
   description_anonymized: string; masked_terms: string[]; confidence: 'low'; method: 'document';
   /** Internal record only; never shown to a customer. */
   subtotal: number | null; vat_amount: number | null; total_incl_vat: number | null; vat_treatment: VatTreatment; price_ex_vat: number | null; trn: string | null;
+  /** Ruling 1207: the supplier's discount exactly as stated (null when none). */
+  gross_amount: number | null; discount_amount: number | null; discount_label: string | null;
   options: { option_no: number; amount: number | null }[]; option_totals: Record<string, number>;
 };
 
@@ -62,7 +65,11 @@ const SUBTOTAL = /sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat
 const TOTAL = /(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl|^\s*total\b|الإجمالي|المجموع)/i;
 const VAT = /(vat|tax|ضريبة)/i;
 
-type Table = { lines: QuoteLine[]; totals: Record<string, number>; subtotal: number | null; vat: number | null };
+// A discount row (ruling 1207): kept as the supplier's discount, never a priced line and never folded into the terms.
+// `total_first`: the only total written came before the discount, so it is the price before the discount.
+type Disc = { amount: number; label: string; net: number | null; total_first: boolean };
+type Table = { lines: QuoteLine[]; totals: Record<string, number>; subtotal: number | null; vat: number | null; discount?: Disc | null };
+const DISCOUNT = /discount|rebate|\u062E\u0635\u0645/i;
 function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null {
   for (let r = 0; r < Math.min(rows.length, 30); r++) {
     const cols: Partial<Record<Col, number>> = {};
@@ -71,6 +78,7 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
     const lines: QuoteLine[] = [];
     const totals: Record<string, number> = {}; const grand: Record<string, boolean> = {};
     let subtotal: number | null = null, vat: number | null = null, cur: number | null = null, seq = 0;
+    let discount: Disc | null = null;
     for (const row of rows.slice(r + 1)) {
       const at = (k: Col) => (cols[k] === undefined ? '' : row[cols[k]!]);
       const raw = String(at('desc') ?? '').trim();
@@ -85,6 +93,12 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
         lines.push({ description: desc.slice(0, 300), qty: '', amount: null, option: cur });
         continue;
       }
+      if (DISCOUNT.test(label) && !AFTER_DISCOUNT.test(label)) {
+        const v = lastNum();
+        if (v != null && cur == null) discount = { amount: Math.abs(v), label: clean(raw || label).replace(/[\s:–-]+$/, '').slice(0, 80), net: null, total_first: totals.all != null };
+        continue;
+      }
+      if (discount && AFTER_DISCOUNT.test(label)) { const v = lastNum(); if (v != null && cur == null) { discount.net = v; discount.total_first = false; } }
       if (SUBTOTAL.test(label)) { const v = lastNum(); if (v != null && cur == null) subtotal = v; continue; }
       if (VAT.test(label) && !/incl/i.test(label) && !TOTAL.test(label)) { const v = lastNum(); if (v != null && cur == null) vat = v; continue; }
       if (TOTAL.test(label)) {
@@ -97,7 +111,7 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
       const spec = clean(String(at('spec') ?? '').trim()).slice(0, 300);
       lines.push({ description: desc.slice(0, 300), qty: [at('qty'), at('unit')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ').slice(0, 40), amount, ...(spec ? { specification: spec } : {}), ...(cur != null ? { option: cur } : {}) });
     }
-    if (lines.some((l) => l.amount != null || l.qty)) return { lines, totals, subtotal, vat };
+    if (lines.some((l) => l.amount != null || l.qty)) return { lines, totals, subtotal, vat, discount };
   }
   return null;
 }
@@ -211,7 +225,10 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   const plain = b ? b.lines.filter((l) => l.amount != null || l.qty) : [];
   const sum = plain.reduce((s, l) => s + (l.amount || 0), 0);
   const gross = b?.totals.all ?? textTotal ?? (sum > 0 ? Math.round(sum * 100) / 100 : null);
-  const vat = readVat({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal, vat_amount: b?.vat ?? tt.vat, text });
+  const dsc = b?.discount ?? null;
+  // Ruling 1208: the price after the stated discount, excluding VAT, is the price compared and the fee base.
+  const vat = statedPrice({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal, vat_amount: b?.vat ?? tt.vat, text,
+    discount_amount: dsc?.amount ?? null, discount_label: dsc?.label ?? null, net_amount: dsc?.net ?? null, amount_is_gross: !!dsc?.total_first });
   const option_totals: Record<string, number> = {};
   for (const [k, v] of Object.entries(b?.totals ?? {})) if (k !== 'all') option_totals[k] = v;
   const split = b && b.lines.some((l) => l.option != null) ? splitOptions(b.lines, option_totals) : [];
@@ -220,8 +237,9 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
     amount: options.length ? options[0].amount : (vat.price_ex_vat ?? gross), currency: 'AED', line_items: b ? b.lines.slice(0, 200) : [],
     lead_time: '', validity: '', payment_terms: '', warranty: '', scope: '', conditions: '', exclusions: '', description_anonymized: '', masked_terms: [], confidence: 'low', method: 'document',
     notes: `Read from the ${ex.kind.toUpperCase()} file with no model${b ? `: ${plain.length} priced line(s)` : ''}${options.length ? `, ${options.length} options (each is sent as its own quotation)` : ''}. Please check every figure before sending.`,
-    subtotal: b?.subtotal ?? null, vat_amount: vat.vat_amount, total_incl_vat: vat.vat_amount && gross ? gross : null, vat_treatment: vat.treatment,
+    subtotal: b?.subtotal ?? null, vat_amount: vat.vat_amount, total_incl_vat: vat.vat_amount && vat.total_as_stated ? vat.total_as_stated : null, vat_treatment: vat.treatment,
     price_ex_vat: options.length ? null : vat.price_ex_vat, trn: vat.trn, options, option_totals,
+    gross_amount: options.length ? null : vat.gross_amount, discount_amount: options.length ? null : vat.discount_amount, discount_label: options.length ? null : vat.discount_label,
   };
   // THE TERMS (lead time, validity, payment, warranty, exclusions, installation / conditions) are what the
   // file MEANS, so they are not read here by label patterns (founder_instruction 886-903): quote_extract
