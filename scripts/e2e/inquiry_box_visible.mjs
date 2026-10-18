@@ -27,10 +27,14 @@ const OUT = join(process.env.QD_WALK_OUT || 'C:/Users/Opera/Desktop/QuotesDone S
 
 /** The whole assertion for one page: open New request, measure, focus, type. Returns { ok, facts }. */
 export async function assertBoxUsable(page, lang) {
-  const box = await openNewRequest(page, lang);
+  // openNewRequest throws on an unusable box; here the full facts are wanted, so measure regardless.
+  await openNewRequest(page, lang).catch((e) => { if (!/not usable/.test(String(e.message))) throw e; });
+  const box = page.locator('#qd-intake-input');
   // A person scrolls the PAGE to the panel; that is allowed. What is measured is whether the box is then
   // whole: not cut by the panel's own overflow, not under anything, not a sliver.
-  await box.scrollIntoViewIfNeeded().catch(() => {});
+  // 'nearest' honours the box's scroll-margin (it clears the phone's fixed tab bar), as focusing it does.
+  await box.evaluate((el) => el.scrollIntoView({ block: 'nearest' })).catch(() => {});
+  await page.waitForTimeout(400);
   await page.waitForTimeout(600);   // let the panel settle (fonts, concierge steps, motion)
   const facts = await page.evaluate(measureInquiryBox);
   const probe = lang === 'ar' ? 'نافذة ألمنيوم' : 'ZZ DEMO box check';

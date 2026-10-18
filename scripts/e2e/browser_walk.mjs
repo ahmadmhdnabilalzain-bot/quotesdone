@@ -385,7 +385,9 @@ export async function openNewRequest(page, lang) {
   // no visibility:hidden; a textarea clipped to 7px by the panel's overflow:hidden passed it, so S26 walked a
   // page whose box the founder could not see. The box is now measured as a person sees it and a hidden one
   // fails the step that opened it (scripts/e2e/inquiry_box_visible.mjs walks all five viewports, both languages).
-  await box.scrollIntoViewIfNeeded().catch(() => {});
+  // 'nearest' honours the box's scroll-margin (it clears the phone's fixed tab bar), as focusing it does.
+  await box.evaluate((el) => el.scrollIntoView({ block: 'nearest' })).catch(() => {});
+  await page.waitForTimeout(400);
   const { problems } = await page.evaluate(measureInquiryBox);
   if (problems.length) throw new Error('the inquiry box is not usable: ' + problems.join(' | '));
   return box;

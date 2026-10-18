@@ -624,7 +624,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         )}
         {/* THE BOX GETS ITS OWN LINE BELOW lg. Four tool buttons and Send share this row; at 375px they left the
             textarea 77px wide (66px in Arabic at 768px, where the BOQ label shows). Below lg the textarea is first
-            and full width, the tools and Send wrap to the line under it. */}
+            and full width, the tools and Send wrap to the line under it. Its scroll margin keeps it above the
+            phone's fixed tab bar when focus or the page scrolls it into view. */}
         <div className="flex flex-wrap items-end gap-2 lg:flex-nowrap">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
@@ -652,7 +653,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
             </button>
           )}
           <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
-          <textarea id="qd-intake-input" ref={inputRef} className="order-first min-h-[48px] min-w-0 basis-full resize-none lg:order-none lg:basis-0 lg:flex-1 rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
+          <textarea id="qd-intake-input" ref={inputRef} className="order-first min-h-[48px] scroll-mb-[calc(var(--qd-tabbar-h,0px)+16px)] min-w-0 basis-full resize-none lg:order-none lg:basis-0 lg:flex-1 rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
             placeholder={rec ? t(lang, 'nr_listening') : t(lang, 'nr_ph')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
           <Button size="lg" className="ms-auto px-4 lg:ms-0" disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
         </div>
