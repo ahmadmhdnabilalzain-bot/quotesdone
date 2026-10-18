@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { canonicalReplay } from '../lib/canonical_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const SQL = join(REPO, 'scripts', 'sql');
@@ -161,7 +162,7 @@ const chk = (e) => {
 test('production: every duty\'s loop closes on ZZ DEMO fixtures, rolled back', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let r;
-  try { await sql(fixtures()); } catch (e) { r = chk(e); }
+  try { await replaySql(fixtures()); } catch (e) { r = chk(e); }
   assert.ok(r, 'the fixture batch committed instead of rolling back');
   for (const k of DUTIES) assert.ok(r[k], `duty ${k} did not report`);
 });
@@ -182,7 +183,7 @@ test('production: the 22 files replay in MANIFEST order and every duty\'s loop s
   // The CANONICAL definition of every routine the files define, not the files whole (21 Sep 2026): a
   // whole file re-runs bodies a later file replaced, which fails on columns since dropped (#777) and
   // tests code production no longer runs. scripts/lib/canonical_sql.mjs resolves each by MANIFEST order.
-  try { await sql(canonicalReplay(FILES) + '\n;\n' + fixtures(), { retry: false }); } catch (e) { r = chk(e); }
+  try { await replaySql(canonicalReplay(FILES) + '\n;\n' + fixtures(), { retry: false }); } catch (e) { r = chk(e); }
   assert.ok(r, 'the fixture batch committed instead of rolling back');
   for (const k of DUTIES) assert.ok(r[k], `duty ${k} did not report`);
 });

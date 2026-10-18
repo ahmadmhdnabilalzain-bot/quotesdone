@@ -43,6 +43,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "labels_sleeves:label-cost-drivers",
+      "topic": "Cost drivers for self-adhesive labels",
+      "kind": "pricing_basis",
+      "body_en": "Self-adhesive labels are priced as fixed set-up costs plus a per-label cost, so quantity is the biggest driver: one European label printer states set-up typically makes up 30-50% of total cost on small runs and can drop below 5% on large orders. Digital printing is usually cheaper for smaller quantities (typically under 10,000 labels), with flexographic printing becoming economical at higher volumes. Paper labels are usually cheapest, films cost more, and specialty adhesives can add 15-40% versus standard. Custom shapes need a cutting die, a one-off cost of several hundred pounds at that printer, while standard rectangles or circles avoid it. Finishes such as UV coating, lamination, hot foil and embossing add cost, and rush orders can carry a 15-50% premium. Not established here: UAE price levels.",
+      "body_ar": "تُسعَّر الملصقات ذاتية اللصق على أساس تكاليف إعداد ثابتة إضافةً إلى تكلفة لكل ملصق، لذا تُعد الكمية العامل الأكبر: إذ تذكر إحدى مطابع الملصقات الأوروبية أن الإعداد يشكل عادةً 30-50% من التكلفة الإجمالية في الكميات الصغيرة وقد ينخفض إلى أقل من 5% في الطلبات الكبيرة. وتكون الطباعة الرقمية عادةً أرخص للكميات الصغيرة (عادةً أقل من 10,000 ملصق)، بينما تصبح الطباعة الفلكسوغرافية اقتصادية في الكميات الأكبر. والملصقات الورقية هي الأرخص عادةً، والأفلام البلاستيكية أغلى، وقد تضيف المواد اللاصقة الخاصة 15-40% مقارنة بالقياسية. وتحتاج الأشكال المخصصة إلى قالب قص، وهو تكلفة لمرة واحدة تبلغ عدة مئات من الجنيهات الإسترلينية لدى تلك المطبعة، بينما تتجنبها الأشكال المستطيلة أو الدائرية القياسية. وتضيف التشطيبات مثل الطلاء بالأشعة فوق البنفسجية والتغليف والختم بالرقائق الساخنة والنقش البارز تكلفة، وقد تحمل الطلبات العاجلة علاوة 15-50%. لم يُثبت هنا: مستويات الأسعار في الإمارات.",
+      "sources": [
+        "https://www.labelprint24.com/en/magazine/cost-factors-in-custom-label-production-1969"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "labels_sleeves:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How are self-adhesive labels priced?",
+      "q_ar": "كيف تُسعّر الملصقات ذاتية اللصق؟",
+      "expected_entry_ids": [
+        "labels_sleeves:label-cost-drivers"
+      ],
+      "why": "No entry of this pack answered it (No entry covers label pricing drivers (size, material, colours, run length); missing). labels_sleeves:label-cost-drivers was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from labels_sleeves.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "labels_sleeves:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "labels_sleeves:label-cost-drivers"
+    ]
   }
 }

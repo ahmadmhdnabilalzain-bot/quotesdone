@@ -9,7 +9,11 @@
 //      loop pages the founder again, the ledger loses its loop guard or its reasons rule, or the ledger falls out
 //      of the daily export (another file redefining fn_table_export_list from an older list would drop it);
 //   2. (production, with a management token) the two files and the probe, replayed in ONE transaction that the
-//      probe always rolls back, do not answer PROBE OK.
+//      probe always rolls back, do not answer PROBE OK. The two files are followed by the CANONICAL body of every
+//      routine they define (canonicalReplay): replaying the original file alone resurrected its own older
+//      fn_ceo_refund_review, which every_refund_approval_goes_through_the_one_decision_and_the_second_seat.sql
+//      (#1138) replaced, so the probe measured a body production no longer runs (6 Oct 2026: refund_status
+//      requested:true, where the live path answers approved with the decision linked and no Stripe refund).
 //
 //   node --test scripts/checks/a_ceo_rejection_loops_back_to_the_seat.test.mjs
 import { test } from 'node:test';
@@ -19,8 +23,9 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { manifestWithPending } from '../lib/pending_sql.mjs';
-import { definitions } from '../lib/canonical_sql.mjs';
+import { definitions, canonicalReplay } from '../lib/canonical_sql.mjs';
 import { exportedTables } from '../lib/table_export_registry.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql';
@@ -75,10 +80,11 @@ test('the ledger keeps its loop guard and its reasons rule, and is exported ever
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 test('production, aborted: the probe answers PROBE OK', { skip: hasToken ? false : 'no Supabase management token in this environment', timeout: 600000 }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const text = [FILE, EVAL, PROBE].map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n;\n');
+  const read = (f) => readFileSync(join(REPO, f), 'utf8');
+  const text = [read(FILE), read(EVAL), canonicalReplay([FILE, EVAL].map((f) => f.replace('scripts/sql/', ''))), read(PROBE)].join('\n;\n');
   let msg = '';
   for (let attempt = 0; attempt < 2; attempt++) {
-    try { await sql(text, { retry: false }); msg = 'the probe did not raise'; break; }
+    try { await replaySql(text, { retry: false }); msg = 'the probe did not raise'; break; }
     catch (e) { msg = String(e.message); if (!/deadlock detected|55P03|57014/.test(msg)) break; }   // serial re-issue of a rolled-back replay is safe
   }
   const i = msg.indexOf('CHK<<');

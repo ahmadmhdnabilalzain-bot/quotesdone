@@ -67,38 +67,3 @@ export function competitorsNamed(answer: string, names: string[]): string[] {
   return out;
 }
 
-/**
- * One web search for the GEO audit. DuckDuckGo answers a bot-checked GET from a datacenter address with a 2xx page
- * that carries no results (HTTP 202 anomaly page), so r.ok alone never proves a result list came back. On an empty
- * GET the same query is re-sent as the POST its own search form makes; if that is empty too, the error names both
- * statuses and whether the bot check was seen, so the finding says WHY rather than only "no results".
- */
-export async function duckSearch(q: string, fetchFn: (url: string, init: RequestInit) => Promise<Response>): Promise<{ url: string; title: string }[]> {
-  const URL_ = 'https://html.duckduckgo.com/html/';
-  const headers = { 'User-Agent': 'QuotesDone-marketing-geo/1.0 (+https://www.quotesdone.ae)' };
-  const seen: string[] = [];
-  for (const init of [
-    { url: URL_ + '?q=' + encodeURIComponent(q), init: { headers } as RequestInit },
-    { url: URL_, init: { method: 'POST', headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'q=' + encodeURIComponent(q) } as RequestInit },
-  ]) {
-    const r = await fetchFn(init.url, init.init);
-    const html = r.ok ? await r.text() : '';
-    const results = parseDuckResults(html);
-    if (results.length) return results;
-    seen.push((init.init.method || 'GET') + ' HTTP ' + r.status + (/anomaly|captcha|challenge/i.test(html) ? ' bot-check' : ''));
-  }
-  throw new Error('web search returned no results (' + seen.join(', ') + ')');
-}
-
-/** DuckDuckGo's HTML results (the same public endpoint think.ts's research uses), unwrapped to target URLs. */
-export function parseDuckResults(html: string): { url: string; title: string }[] {
-  const out: { url: string; title: string }[] = [];
-  for (const m of html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
-    let url = decode(m[1]);
-    const uddg = url.match(/[?&]uddg=([^&]+)/);
-    if (uddg) url = decodeURIComponent(uddg[1]);
-    if (url.startsWith('//')) url = 'https:' + url;
-    out.push({ url, title: decode(m[2].replace(/<[^>]+>/g, '')) });
-  }
-  return out;
-}

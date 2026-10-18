@@ -82,7 +82,7 @@ Deno.test('every recovery document but the guide is signed, and each signing is 
   const inv = pack.find((p) => p.name === '1_invoice' && p.lang === 'en')!;
   const rec = await signingRecord(C, inv, bytes, 1, { signature: new Uint8Array([1]), stamp: null });
   assert(rec);
-  assertEquals([rec.document, rec.ref, rec.agreement_version, rec.issued, rec.signature_asset, rec.stamp_asset_sha256], ['1_invoice', C.invoice.number, C.acceptance.version, C.invoice.date, 'brand/qd_signature.png', null]);
+  assertEquals([rec.document, rec.ref, rec.agreement_version, rec.issued, rec.signature_asset, rec.stamp_asset_sha256], ['1_invoice', C.invoice.number, C.acceptance.version, C.invoice.date, 'company-seal/qd_signature.png', null]);
   assertEquals(rec.pdf_sha256, await sha256Hex(bytes));
   assertEquals(rec.pdf_sha256.length, 64);
   assertEquals(await signingRecord(C, pack.find((p) => p.name === '4c_filing_guide')!, bytes, 1), null);
@@ -126,4 +126,15 @@ Deno.test('v14 (24 Sep 2026): the processor fee at cost and the agreed 12%, only
   assertStringIncludes(JSON.stringify(finalDemandDocument(v14, 'en')), 'Interest (d) at 12% p.a.');
   const old = JSON.stringify(invoiceDocument(C, 'en'));
   assert(!old.includes('Processor fee'), 'a pre-v14 supplier is never charged the processor fee');
+});
+
+Deno.test('v15 (6 Oct 2026, #1250): a v15 signer is charged exactly as a v14 signer (AED 500 + processor fee at cost + 12% simple, clause 33)', () => {
+  const rev = '2026-10-10T10:00:00Z';
+  const t15 = termsAt('v15', '2026-10-07T10:00:00Z', rev), t14 = termsAt('v14', '2026-10-07T10:00:00Z', rev);
+  assertEquals(t15, { version: 15, admin_fee: 500, rate_pa: 0.12, processor_fee_owed: true });
+  assertEquals({ ...t15, version: 14 }, t14);
+  const charge = (t: typeof t15) => computeCharge({ refunded_reveal_fee: 300, refunded_processing_fee: 0, unrecovered_processor_fee: t.processor_fee_owed ? 8.95 : 0, notice_date: '2026-10-10', as_of: '2027-10-17', admin_fee_aed: t.admin_fee, rate_pa: t.rate_pa });
+  assertEquals(charge(t15), charge(t14));
+  assertEquals(charge(t15).principal, 808.95); assertEquals(charge(t15).interest, 97.07);
+  assertEquals(termsAt('v15', '2026-10-11T10:00:00Z', rev).rate_pa, 0.09, 'accepted after the reveal: never retroactive');
 });

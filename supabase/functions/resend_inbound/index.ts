@@ -21,6 +21,7 @@
 // svix-signature) against app_secrets.resend_inbound_signing_secret. The ?s= token is KEPT as a
 // second factor - both must now pass. The body is read ONCE as raw text because the signature is
 // over the exact bytes; it is parsed only after verification succeeds.
+import { readEveryAttachment, envGatewayVision, clearerCopyAsk } from '../_shared/read_every_attachment.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -44,6 +45,7 @@ import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
 import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
+import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -174,6 +176,10 @@ export const handler = observe('resend_inbound', async (req) => {
     const isResend = p?.type === 'email.received' && p?.data;
     let d = isResend ? p.data : (p.data || p);
     const emailId = String(d.email_id || d.id || '');
+    // 6 Oct 2026: a reply read from the Microsoft 365 mailbox (_shared/m365_reply_inbox.ts) arrives with its body,
+    // headers and files inline and an id of 'm365:<Graph immutable id>'. Resend has no such email, so it is never
+    // asked for one; the id is still the provider_email_id that makes a second delivery a duplicate.
+    const resendEmailId = emailId.startsWith(M365_INBOUND_PREFIX) ? '' : emailId;
     // 6 SEP 2026 (MASTER_PLAN A6): the classifier no longer holds a provider key. It reaches the
     // model through ai_gateway like every other caller; `key` below is only "is classification on".
     const rkey = await sec('resend_api_key'); const key = await sec('cred_fn_resend_inbound'); const inbSecret = await sec('cred_fn_ai');
@@ -182,8 +188,8 @@ export const handler = observe('resend_inbound', async (req) => {
     // The RFC headers a customer reply needs (Message-ID, for In-Reply-To) and the ones that say a machine sent
     // it (Auto-Submitted, Content-Type); kept from the webhook, or from the full read below when it runs.
     let hdrs: Record<string, unknown> | null = (d.headers && typeof d.headers === 'object') ? d.headers : null;
-    if ((!text || text.length < 20 || !atts.length) && emailId && rkey) {
-      const full = await fetchInboundEmail(emailId, rkey);
+    if ((!text || text.length < 20 || !atts.length) && resendEmailId && rkey) {
+      const full = await fetchInboundEmail(resendEmailId, rkey);
       if (full) { const fd = full.data || full; if (fd.headers && typeof fd.headers === 'object') hdrs = { ...fd.headers, ...(hdrs || {}) }; const fb = pickBody(fd); if (fb && fb.length > text.length) text = fb; if (Array.isArray(fd.attachments) && fd.attachments.length) atts = fd.attachments; if (!d.subject && fd.subject) d = { ...d, subject: fd.subject }; if (!d.from && fd.from) d = { ...d, from: fd.from }; if (!d.to && fd.to) d = { ...d, to: fd.to }; if (!d.html && fd.html) d = { ...d, html: fd.html }; }
       else if (emailId) await logRun('error', { email_id: emailId }, 'could not fetch full inbound email from Resend - body and attachments may be incomplete');
     }
@@ -223,7 +229,7 @@ export const handler = observe('resend_inbound', async (req) => {
     // + content unchanged since it was sent + month not over + "approve". It answers him itself.
     if (isCalendarReply({ to, subject })) {
       const calHdrs = d.headers?.['authentication-results'] ? d.headers
-        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+        : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
       const verdict = { token: calendarTokenOf({ to, subject }) || '', from_email: from,
         authenticated: fromDomainAuthenticated(calHdrs?.['authentication-results'], from), message_id: providerEmailId || '', intent: replyIntent(fullText),
         // his own words (quote cut off): a reply that is not exactly "approve" becomes the marketing seat's change request
@@ -245,7 +251,7 @@ export const handler = observe('resend_inbound', async (req) => {
     const approveToken = approvalTokenOf({ to, subject });
     if (approveToken) {
       const aHdrs = d.headers?.['authentication-results'] ? d.headers
-        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+        : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
       const av = { token: approveToken, from_email: from, authenticated: fromDomainAuthenticated(aHdrs?.['authentication-results'], from),
         message_id: providerEmailId || '', intent: replyIntent(fullText), text: ownWords(fullText).slice(0, 4000) };
       const { data: out, error: aErr } = await admin.rpc('fn_marketing_approval_reply', { p: av });
@@ -266,7 +272,7 @@ export const handler = observe('resend_inbound', async (req) => {
     const planToken = planTokenOf({ to, subject });
     if (planToken) {
       const pHdrs = d.headers?.['authentication-results'] ? d.headers
-        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+        : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
       const pv = { token: planToken, from_email: from, authenticated: fromDomainAuthenticated(pHdrs?.['authentication-results'], from),
         message_id: providerEmailId || '', text: ownWords(fullText).slice(0, 4000),
         attachments: atts.map((a: any) => String(a?.filename || a?.name || '')).filter(Boolean).slice(0, 50) };
@@ -334,7 +340,7 @@ export const handler = observe('resend_inbound', async (req) => {
       } else {
         // The webhook is metadata-only; the headers come from GET /emails/inbound/{id} (measured 22 Sep 2026).
         const hdrs = d.headers?.['authentication-results'] ? d.headers
-          : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+          : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
         if (!fromDomainAuthenticated(hdrs?.['authentication-results'], from)) {
           why = 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
         } else {
@@ -410,7 +416,14 @@ export const handler = observe('resend_inbound', async (req) => {
           docText = await pdfText(att.bytes);
           if (!docText) receiptReason = 'The attached PDF carries no text layer we can trust — it is scanned, or uses a font we cannot map — so nothing was read from it. ';
         } else if (att) {
-          receiptReason = 'The receipt is an image, which has no text layer; reading it needs a vision model and every paid route is held. ';
+          receiptReason = 'The receipt is an image, which has no text layer. ';
+        }
+        // RULING 1177 (12 Oct 2026): a scanned PDF or a photographed receipt is READ by the vision model (_shared/
+        // read_every_attachment: one more asking, the gateway's second model). Held only when both askings fail.
+        if (att && !docText) {
+          const seen = await readEveryAttachment(att.bytes, att.name, att.mime, envGatewayVision());
+          if (seen.status === 'read') { docText = seen.text.slice(0, 8000); receiptReason = ''; }
+          else receiptReason += 'The vision model could not read it either (' + String(seen.reason || 'no answer').slice(0, 80) + '), so it is held for a clearer copy. ';
         }
         // A CSV export (the .csv extension is a file-format fact) is read as text; it is used only if the message is
         // reasoned to be a statement, and the reasoning reads it too.
@@ -714,7 +727,7 @@ export const handler = observe('resend_inbound', async (req) => {
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
     let lead: any = null;
     if (from) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
-    let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = [];
+    let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = [];
     let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0; let classifySkipped = 0;
     for (const a of atts.slice(0,6)) {
       const fname = String(a.filename || a.name || 'document').slice(0,180);
@@ -770,6 +783,7 @@ export const handler = observe('resend_inbound', async (req) => {
       if (lead && inbSecret) {
         if (cat === 'trade_license') {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
+          if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
           if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
               // The name printed on this licence (a scan is read by the vision model); null = not read, and the
               // sales engineer's review then holds the registration for a human (licence_name_unread).
@@ -790,6 +804,7 @@ export const handler = observe('resend_inbound', async (req) => {
           }
         } else if (cat === 'company_profile' || cat === 'catalogue') {
           const ex = await extractDoc('profile', bytes, mime, fname, inbSecret);
+          if (!ex?.profile) unreadDocs.push(fname);
           const u:any = { doc_extracted_at: new Date().toISOString() };
           if (cat === 'company_profile') u.company_profile_doc_path = path;
           if (cat === 'catalogue') { const cur = Array.isArray(lead.catalog_doc_paths)?lead.catalog_doc_paths:[]; u.catalog_doc_paths = [...cur, path]; }
@@ -812,7 +827,7 @@ export const handler = observe('resend_inbound', async (req) => {
     // it. It was needs_review=false, which email_triage's selection excludes, so a customer's question was stored
     // and never read. raw keeps what the reply and noAutoReply need (_shared/customer_mail.ts).
     const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
-    const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'),
+    const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'), in_reply_to: hv('in-reply-to'), references: hv('references'),
       content_type: hv('content-type'), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
@@ -827,7 +842,12 @@ export const handler = observe('resend_inbound', async (req) => {
     if (lead && appliedSummary.length) {
       try{ await requestDelivery(admin, { type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
-    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body:`Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and updated your records.`, status:'queued' });
+    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body: unreadDocs.length
+      // RULING 1177 (12 Oct 2026): this said 'updated your records' even when nothing could be read. A document both the
+      // code and the model could not read is now answered with a clearer-copy request (suppliers: always English), and
+      // the clearer copy, sent to the same address, is read by this same path when it arrives.
+      ? `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s). ` + unreadDocs.map((n) => clearerCopyAsk('supplier', 'en', n)).join(' ')
+      : `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and ${appliedSummary.length ? 'updated your records' : 'our team will add them to your profile'}.`, status:'queued' });
     const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, classify_skipped_zero_cost: classifySkipped, applied: appliedSummary.length, signature_verified: 1 };
     if (lostAttachments || uploadFailures) await logRun('error', counts, 'INBOUND DOCUMENTS LOST - ' + lostAttachments + ' attachment(s) could not be downloaded from Resend and ' + uploadFailures + ' failed to upload to storage. Sender: ' + from + ', subject: ' + subject.slice(0, 120));
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));

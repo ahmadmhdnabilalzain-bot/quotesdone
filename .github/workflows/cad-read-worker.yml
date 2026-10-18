@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   read:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     # 75 (was 40): a scanned drawing is OCR'd eight times a page since 25 Sep 2026, up to 30 minutes a job
     # (scripts/cad_read_worker.ts SCAN_JOB_MS).
     timeout-minutes: 75

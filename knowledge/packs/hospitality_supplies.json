@@ -44,6 +44,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "hospitality_supplies:linen-par-levels",
+      "topic": "Linen par levels for hotels",
+      "kind": "sizing_rule",
+      "body_en": "PAR (periodic automatic replacement) is the total amount of linen needed to outfit one guest room. Alsco lists one PAR as one set of sheets and comforter or duvet per bed, four pillows with covers, one mattress protector, four bath towels, four hand towels and four wash towels. Industry guidance cited there suggests a PAR level of at least four, so linen can cycle through four states: stored, in use, removed and awaiting laundering. The baseline quantity is guest rooms x items per room PAR x 4; for 200 rooms with four pillow covers per room that is 3,200 pillow covers. Large, busy properties may need more than four; slower properties may run below it, and seasonal peaks and supply disruptions also matter. This is industry guidance, not a UAE regulation.",
+      "body_ar": "مستوى PAR (الاستبدال الدوري التلقائي) هو إجمالي كمية البياضات اللازمة لتجهيز غرفة نزلاء واحدة. وتذكر شركة Alsco أن مستوى PAR الواحد يشمل طقم شراشف ولحافاً أو غطاء لحاف لكل سرير، وأربع وسائد بأغطيتها، وواقي مرتبة واحداً، وأربع مناشف حمام، وأربع مناشف يد، وأربع مناشف وجه. وتقترح الإرشادات المهنية المذكورة هناك مستوى PAR لا يقل عن أربعة، لكي تدور البياضات بين أربع حالات: مخزّنة، وقيد الاستخدام، ومُزالة، وبانتظار الغسيل. الكمية الأساسية = عدد الغرف × عدد القطع للغرفة الواحدة × 4؛ فلفندق من 200 غرفة بأربعة أغطية وسائد لكل غرفة تكون الكمية 3,200 غطاء وسادة. قد تحتاج المنشآت الكبيرة المزدحمة إلى أكثر من أربعة، وقد تعمل المنشآت الأهدأ بأقل منها، كما تؤثر مواسم الذروة واضطرابات الإمداد. هذه إرشادات مهنية وليست لائحة إماراتية.",
+      "sources": [
+        "https://alsco.com/resources/what-is-a-normal-par-level-in-hotel-laundry"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +73,15 @@
       "expected_entry_ids": [
         "hospitality_supplies:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What par level of bed linen should we order for a 200-room hotel?",
+      "q_ar": "ما المستوى المعياري لبياضات الأسرّة الذي يجب طلبه لفندق من 200 غرفة؟",
+      "expected_entry_ids": [
+        "hospitality_supplies:linen-par-levels"
+      ],
+      "why": "No entry of this pack answered it (No entry covers linen par levels; missing). hospitality_supplies:linen-par-levels was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from hospitality_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +97,9 @@
       "hospitality_supplies:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "hospitality_supplies:linen-par-levels"
+    ]
   }
 }

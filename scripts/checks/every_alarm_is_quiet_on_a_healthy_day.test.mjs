@@ -64,7 +64,9 @@ export const HEALTHY = [
   { at: '2026-09-14T01:00:00Z', why: 'night, Dubai 05:00; 4 ticks at 0 findings' },
   { at: '2026-09-14T04:00:00Z', why: 'Dubai 08:00; 4 ticks at 0 findings' },
   { at: '2026-09-14T06:00:00Z', why: 'Dubai 10:00, working hours; 4 ticks at 0 findings' },
-  { at: '2026-09-14T18:00:00Z', why: 'Dubai 22:00; 4 ticks at 0 findings' },
+  // 2026-09-14T18:00Z left on 12 Oct: retention purged that hour's ok agent_runs rows and kept its errors (measured:
+  // 88 error rows 16:00-19:00, 0 ok), so the replay saw "ai_gateway failed every one of its 6 attempts" - history
+  // that no longer exists, not a rule that fires on a healthy day. The four instants below still replay quiet (12 Oct).
   { at: '2026-09-19T06:00:00Z', why: 'Dubai 10:00, five days later; 2 ticks at 0 findings' },
 ];
 
@@ -168,6 +170,12 @@ export const REGISTER = {
   // 24 Sep 2026 (ceo, #933). The CEO's report sweep, the weekly constraint lever and the marketing month-plan chase.
   // Not filtered: each reads present state (open reports, the plan, the month plan), the ceiling fn_it_detect's
   // neighbours state above; a healthy day has no unanswered report, no stalled lever and no late plan.
+  // 5 Oct 2026 (it_engineer, #1188). A duty paused in public.duty_pause for over 7 days. Pauses that existed at the
+  // instant; a healthy day has no duty paused for a week.
+  fn_it_engineer_duty_pause_expiry: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_duty_pause_expiry()',
+    asOf: { duty_pause: 'paused_at' },
+  },
   fn_ceo_report_answer_sweep: { replay: 'pg_temp.qd_replay_fn_ceo_report_answer_sweep()', asOf: {} },
   fn_ceo_constraint_lever: { replay: 'pg_temp.qd_replay_fn_ceo_constraint_lever()', asOf: {} },
   fn_ceo_marketing_plan_watch: { replay: 'pg_temp.qd_replay_fn_ceo_marketing_plan_watch()', asOf: {} },
@@ -256,7 +264,10 @@ export const REGISTER = {
   fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_settle reached on a seed message the inbox reader (resilience_ping inboxPlacement) looked at; the folder is the reader\'s reading, and no seed is sent on a healthy day before the morning batch' },
   fn_it_duty_settle: { relay: 'writes the failing items a duty reading hands it; the rule is the duty\'s' },
   fn_accountant_duty_settle: { relay: 'the accountant\'s twin of fn_it_duty_settle' },
+  fn_accountant_record_supplier_payment: { relay: 'records the refusal of a bank payment above what is still owed on a supplier due; fires only when a caller attempts that overpayment, and a healthy day has none' },
+  fn_supplier_due_record_settlement: { relay: 'records a Stripe settlement (stripe_webhook\'s write to supplier_dues.paid_at) with no stored checkout amount, or above what was owed; fires only on that settlement, and a healthy day has none' },
   fn_customer_support_sends_the_it_digest: { relay: 'raises nothing itself: the match is its file\'s rolled-back probe, which seeds one ZZ DEMO duty:access finding to prove a real founder decision still mails; on a healthy day the digest only reads findings' },
+  fn_web_search_degraded: { relay: 'records that web_search.ts degraded (no key, an outage, a refused Serper key, or the daily cap fn_web_search_claim counted); the failure is what the caller read, and a healthy day searches without one' },
   fn_accountant_duty_stage: { relay: 'records that an accountant duty stage raised; the error is the finding' },
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
   fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
@@ -282,6 +293,9 @@ export const REGISTER = {
   // instant would not be a replay of anything. Measured quiet on a healthy day: run on production 29 Sep 2026 inside one
   // rolled-back transaction, 5/5 scenarios passed and 0 game_day findings were open afterwards.
   fn_it_engineer_game_day: { relay: 'records a game-day scenario that failed; the failure is the verdict of the injected fault against the real detector, and a healthy month passes all five and raises nothing (measured 29 Sep 2026: 5/5, 0 findings)' },
+  // 12 Oct 2026 (it_engineer, #1287 release review): the held-question replay decides a stale answer is not sent
+  // (think.ts replayHeld, older than 24 h or undated); this routine only records that decision for customer_support.
+  fn_reason_held_delivered: { relay: 'records a reasoned answer the replay held for review instead of sending (think.ts replayHeld decided it was stale); a healthy day answers inside 24 h and holds none' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },

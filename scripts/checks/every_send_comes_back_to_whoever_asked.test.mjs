@@ -34,6 +34,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
@@ -104,7 +105,10 @@ const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 't
   'a_credential_only_the_founder_can_renew_is_never_rotated_or_reminded.sql',
   // 4 Oct 2026: redefines the digest to carry only founder decisions; its marking and the closing of every
   // told request with the digest's notification ids are carried over unchanged.
-  'the_originator_closes_what_was_answered_and_the_digest_carries_only_his_decisions.sql']);
+  'the_originator_closes_what_was_answered_and_the_digest_carries_only_his_decisions.sql',
+  // 5 Oct 2026: redefines the digest with one added step (a notify=false integration closes internal); its marking
+  // and the closing of every told request with the digest's notification ids are carried over unchanged.
+  'an_integration_the_founder_holds_no_account_for_is_never_his_decision.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;
@@ -371,7 +375,7 @@ end $probe$;`;
 test('production: every send comes back and the asking seat closes or acts (aborted transaction)', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let message = '';
-  try { await sql(PROBE); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  try { await replaySql(PROBE); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));

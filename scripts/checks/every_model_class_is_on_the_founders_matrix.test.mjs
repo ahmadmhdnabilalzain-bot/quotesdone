@@ -19,6 +19,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL = join(REPO, 'scripts', 'sql');
@@ -40,30 +41,21 @@ function pendingPolicyFiles() {
     .sort();
 }
 
+// Through scripts/lib/safe_replay.mjs (30 Sep 2026): a pending file's own COMMIT once ran before this probe's raise
+// and applied the file to production. The helper strips a file's transaction lines, refuses what cannot be rolled
+// back, always ends in a raise, and checks afterwards that nothing it creates changed.
 async function run(query) {
-  for (let attempt = 0; ; attempt++) {
-    const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-      method: 'POST', headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-    const text = await res.text();
-    if ((res.status === 429 || res.status >= 500) && attempt < 6) { await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt)); continue; }
-    const m = text.match(/CHK<<(.*?)>>/s);
-    assert.ok(m, `the probe returned no verdict (HTTP ${res.status}): ${text.slice(0, 500)}`);
-    return m[1];
-  }
+  let text = '';
+  try { await replaySql(query, { ref: REF, label: 'the model-matrix replay' }); } catch (e) { if (e.throttled) throw e; text = String(e.body ?? e.message); }
+  const m = text.match(/CHK<<(.*?)>>/s);
+  assert.ok(m, `the probe returned no verdict: ${text.slice(0, 500)}`);
+  return m[1];
 }
 
-// THE REPLAY MUST NOT COMMIT (30 Sep 2026). A pending file that carries its own transaction lines was replayed
-// verbatim, so its COMMIT ran before the probe's raise and the "aborted" run applied it to production before merge
-// (the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql). The file's own
-// transaction lines are dropped, as the_invitations_leave_on_their_own_subdomain.test.mjs already does.
-const replay = () => {
-  const text = pendingPolicyFiles().map((n) => readFileSync(join(SQL, n), 'utf8')
-    .replace(/^\s*(begin|commit|rollback)\s*;\s*$/gim, '')).join('\n;\n');
-  assert.doesNotMatch(text.replace(/--.*$/gm, ''), /^\s*(commit|rollback)\s*;/im, 'the replay would commit');
-  return text;
-};
+// The pending files as they are: run() sends them through safe_replay, which drops their own transaction lines
+// (the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql carried a pair and was
+// applied by this check's older transport, 30 Sep 2026) and refuses ROLLBACK and the rest.
+const replay = () => pendingPolicyFiles().map((n) => readFileSync(join(SQL, n), 'utf8')).join('\n;\n');
 const probe = () => readFileSync(join(SQL, PROBE), 'utf8');
 
 test('a management token is present where the matrix must be verified',
@@ -77,8 +69,27 @@ test('every active model class has a seat and runs its route (pending model file
   assert.match(v, /^PROBE OK /, v);
 });
 
+// 12 Oct 2026: luna's failure breaker opened at 14:46:56 UTC (five empty completions) while a PR ran this check, and
+// the probe reported 11 review-route "drifts" over an unchanged model_policy. A breaker open for minutes is the
+// router working, not a change to the matrix: tripping luna's and Gemini's breakers here must still give PROBE OK.
+test('a failure breaker open for minutes is not matrix drift', { skip: !token() }, async () => {
+  // A named probe that raises (a_sandbox_success_never_lifts_the_model_hold.test.mjs): the trip runs in the same
+  // aborted transaction as the matrix probe, which always raises, and fails loudly if it tripped nothing.
+  const trip = `do $trip$ declare n int; begin
+  perform set_config('app.change_reason', 'probe:every_model_class_is_on_the_founders_matrix', true);
+  update public.llm_route_health set open_until = now() + interval '5 minutes',
+    opened_reason = 'zz probe: empty_completion trip', opened_class = 'empty_completion'
+   where model_id in ('openai/gpt-6-luna', 'google/gemini-3.8-flash');
+  get diagnostics n = row_count;
+  perform set_config('app.change_reason', '', true);
+  if n <> 2 then raise exception 'CHK<<PROBE FAILED: the breaker trip touched % routes, not 2>>', n; end if;
+end $trip$;`;
+  const v = await run(replay() + '\n;\n' + trip + '\n' + probe());
+  assert.match(v, /^PROBE OK /, v);
+});
+
 test('a new class with no seat in the matrix fails the probe', { skip: !token() }, async () => {
   const v = await run(replay() + `\n;\ninsert into public.model_policy (task_class, tier, model_primary, model_fallback, max_tokens, active)
-    values ('zz_probe_unmapped_class', 'medium', 'google/gemini-3.8-flash', 'deepseek/deepseek-v4.1-flash', 500, true);\n` + probe());
+    values ('zz_probe_unmapped_class', 'medium', 'openai/gpt-6-luna', 'google/gemini-3.8-flash', 500, true);\n` + probe());
   assert.match(v, /zz_probe_unmapped_class has no seat in the matrix/, v);
 });

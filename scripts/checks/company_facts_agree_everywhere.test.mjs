@@ -120,11 +120,12 @@ test('the Supplier Agreement module a supplier signs is the current legal.json t
 
 test('every archived agreement version is still readable and linked', () => {
   const portal = read('src/components/portal/SupplierPortal.tsx');
+  // 6 Oct 2026 (Customer Terms v10): the Customer Terms are archived too (terms-v9 -> /terms/v9/).
   for (const k of F.surfaces.archived_documents) {
-    const v = k.replace('supplier-agreement-', '');
+    const [, doc, v] = /^(.*)-(v\d+)$/.exec(k);
     assert.ok(legal[k], `${k} is missing from legal.json`);
-    assert.ok(read(`src/app/[locale]/supplier-agreement/${v}/page.tsx`).includes(`slug="${k}"`), `${k} has no page`);
-    assert.match(portal, new RegExp(`ARCHIVED_AGREEMENTS = \\[[^\\]]*'${v}'`), `${v} is not in ARCHIVED_AGREEMENTS`);
+    assert.ok(read(`src/app/[locale]/${doc}/${v}/page.tsx`).includes(`slug="${k}"`), `${k} has no page`);
+    if (doc === 'supplier-agreement') assert.match(portal, new RegExp(`ARCHIVED_AGREEMENTS = \\[[^\\]]*'${v}'`), `${v} is not in ARCHIVED_AGREEMENTS`);
   }
   const cur = Number(F.documents['supplier-agreement'].version.slice(1));
   assert.match(portal, new RegExp(`\\n  ${cur}: \\{`), `AGREEMENT_CHANGES has no entry for v${cur}`);

@@ -62,6 +62,15 @@
       "expected_entry_ids": [
         "industrial_pumps:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What data do I need to size a booster pump for a building?",
+      "q_ar": "ما البيانات التي أحتاجها لتحديد مضخة رفع لمبنى؟",
+      "expected_entry_ids": [
+        "industrial_pumps:spec-checklist"
+      ],
+      "why": "Lists the data needed to size a pump: duty flow and head, pumped fluid and temperature, materials, motor power and voltage.",
+      "origin": "real buyer question, moved from industrial_pumps.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

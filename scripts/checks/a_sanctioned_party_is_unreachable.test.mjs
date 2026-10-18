@@ -38,6 +38,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const PROJECT = 'htdblwldjkcgjvmqkbeh';
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
@@ -183,7 +184,7 @@ test('B. production refuses a confirmed sanctions hit on every surface, and keep
   // db.mjs retries seven times with jitter first and only then throws, and its message names the
   // throttle as infrastructure. The assertion on the verdict is unchanged.
   let text;
-  try { text = JSON.stringify(await sql(query, { ref: PROJECT })); }
+  try { text = JSON.stringify(await replaySql(query, { ref: PROJECT })); }
   catch (e) { if (e.throttled) throw e; text = String(e.message); }
   assert.ok(text.includes('CHK<<sanctioned party unreachable:'),
     'the production probe did not return its verdict. Raw answer:\n' + text.slice(0, 4000));
