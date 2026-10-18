@@ -1,0 +1,1 @@
+Data only (playbook rows, learning on incidents, closes by exact key). Applied at merge by the release operator, outside 10:00-17:00 Dubai. Proved 19 Oct 2026 ~02:30 Dubai in a rolled-back transaction on production: 25 of 25 rows CLOSED (3 release-train keys, 22 handoffs). On apply: delete this note and append the file to the end of MANIFEST.txt.
