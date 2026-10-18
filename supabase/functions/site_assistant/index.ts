@@ -19,6 +19,8 @@
 //     of 16 conversations, read by nothing — is replaced by what actually happens: a recorded
 //     knowledge gap (fn_support_knowledge_gap) when we cannot answer, and a visibility report to
 //     the CEO when someone asks for a person. assistant_logs now records which seat answered.
+// v12: A VISITOR GETS GENERAL ANSWERS AND THE WAY TO SIGN UP (founder ruling 18 Oct 2026, visitor_scope.ts). No inquiry
+//     is collected on the homepage; a real need is sent to sign up; a server-side cap per conversation and IP.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
@@ -33,6 +35,7 @@ import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
 import { STATUS, streamReply, wantsStream } from './stream_reply.ts';
+import { VISITOR_CAP, capReply, pastVisitorCap, signupAction, visitorRules } from './visitor_scope.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -187,7 +190,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // never reaches it. The GLOBAL daily cap still applies to them - it is the one that caps spend.
     const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
     const lim = await secNums({ site_assistant_ip_hour: RL_IP_HOUR_DEFAULT, site_assistant_global_day: RL_GLOBAL_DAY_DEFAULT,
-      site_assistant_acct_hour: RL_ACCT_HOUR_DEFAULT, site_assistant_conv_hour: 40, site_assistant_ip_hard_hour: 80 });
+      site_assistant_acct_hour: RL_ACCT_HOUR_DEFAULT, site_assistant_conv_hour: 40, site_assistant_ip_hard_hour: 80,
+      site_assistant_visitor_conv_day: VISITOR_CAP.conv, site_assistant_visitor_ip_day: VISITOR_CAP.ip });
     const ipLimit = lim.site_assistant_ip_hour, dayLimit = lim.site_assistant_global_day;
     // THE VISITOR CAP IS KEYED ON CONVERSATION DEPTH (14 Sep 2026). A flat 10 messages/hour per IP
     // refused 12 of 41 widget messages (29%) — a real visitor asking a fourth or fifth follow-up hit
@@ -277,6 +281,16 @@ async function handle(req: Request, T: Timer): Promise<Response> {
           : ('site_assistant hit the GLOBAL daily ceiling of ' + dayLimit + ' visitor messages. Further messages are refused today to cap OpenRouter spend. This ceiling exists because the per-IP cap trusts a forgeable X-Forwarded-For header - if real traffic has genuinely grown, raise app_secrets.site_assistant_global_day, do not remove the ceiling.'));
       return J({ reply: RL_REPLY, rate_limited: true });
     }
+    // THE VISITOR CAP (founder ruling, 18 Oct 2026): a visitor who is not signed up gets a limited number of messages,
+    // counted on the server by conversation and by IP; past it every reply is the sign-up direction and no model runs.
+    const visitorLang = audience === 'supplier' ? 'en' : langOf(message, uiLang);
+    const signup = who ? null : signupAction(audience, visitorLang);
+    if (!who && await pastVisitorCap(rl, { ip, conv: hasConv ? conv : '', cap: { conv: lim.site_assistant_visitor_conv_day, ip: lim.site_assistant_visitor_ip_day } })) {
+      const reply = capReply(audience, visitorLang);
+      await logWithAttempts(admin, 'assistant_logs', { message, reply, matched_ids: [], seat: 'customer_support', answered: true, gap_task_id: null, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
+        { attempts: ['visitor_cap'], rewrites: 0, images: photos.images.length });
+      return J({ reply, scope: 'public', routed: 'visitor_cap', visitor_cap: true, signup });
+    }
     await Promise.all(reads); lap('reads');
 
     // EVERY EXIT FILES THE SAME TWO SIDE EFFECTS (review of #1043): the knowledge gap when company knowledge could
@@ -337,12 +351,13 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       ? `AUDIENCE: a CUSTOMER${path ? ' (on ' + path + ')' : ''}. Do not bring up supplier subscriptions, supplier fines or supplier recruitment unless they ask.`
       : `AUDIENCE: not known yet${path ? ' (on ' + path + ')' : ''}. Read from their words whether they buy (a customer) or sell (a supplier); if the answer genuinely differs and you cannot tell, answer both sides briefly.`;
     const liveBlock = live ? `\n\nTHIS PERSON IS SIGNED IN. Their OWN live account data, scoped in SQL to them alone:\n${JSON.stringify(live)}\nAnswer about their account from it directly; never tell them to log in. Before a reveal, price_band is a rounded band and a count on purpose: never present it as exact and never name or describe a supplier. Their portal is in ${uiLang === 'ar' ? 'ARABIC; name its buttons in Arabic as printed ("طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب")' : 'ENGLISH; name its buttons as printed ("New request", "My requests", "Documents", "Messages", "Account")'}.` : '';
-    const sys = `You are QuotesDone's ${seatForSurface === 'sales_engineer' ? 'sales engineer' : 'customer support'} on ${live ? 'the signed-in portal' : 'the quotesdone.com website chat'}. Answer the way a senior UAE construction and procurement expert answers a client: one direct, exact answer to what they asked, reasoned with your own expertise. Trade, material, specification and market questions (for example the difference between MDF and plywood) get a clear expert answer from your own knowledge.
+    const sys = `You are QuotesDone's ${seatForSurface === 'sales_engineer' ? 'sales engineer' : 'customer support'} on ${live ? 'the signed-in portal' : 'the quotesdone.com website chat'}. ${who ? 'Answer the way a senior UAE construction and procurement expert answers a client: one direct, exact answer to what they asked, reasoned with your own expertise. Trade, material, specification and market questions (for example the difference between MDF and plywood) get a clear expert answer from your own knowledge.' : 'Answer the way a senior, friendly member of our team answers a visitor: one direct, exact answer to what they asked about QuotesDone.'}
 ${audienceBlock}${liveBlock}${timelineBlock}${memoryBlock}
 RULES:
-- Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a price, fee or rate the brief does not give — explain without a number instead. For what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range, say it is a guide and not a quotation, and offer to collect real quotes.
-- Never say you will check, confirm or get back to them, and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now.
-- Answer what they asked, directly and exactly; then, where it helps, ask the one or two follow-up questions that matter most for their job (you may offer two concrete choices when they are unsure). Never a list of "top results", never a robotic yes/no. Plain text for a chat window: no markdown, no bullets, no headings. Under about ${live ? 120 : 90} words.
+- Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a price, fee or rate the brief does not give — explain without a number instead. ${who ? 'For what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range, say it is a guide and not a quotation, and offer to collect real quotes.' : 'For what a specific job or item would cost, say that real quotes come from vetted suppliers once they sign up and send the request.'}
+- Never say you will check, confirm or get back to them${who ? ', and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now' : ''}.
+${who ? '- Answer what they asked, directly and exactly; then, where it helps, ask the one or two follow-up questions that matter most for their job (you may offer two concrete choices when they are unsure).' : visitorRules(audience, replyLang)}
+- Never a list of "top results", never a robotic yes/no. Plain text for a chat window: no markdown, no bullets, no headings. Under about ${live ? 120 : 90} words.
 - Reply in ${replyLang === 'ar' ? 'formal Gulf Arabic (Western digits; each phone number, email or link on its own line)' : 'UAE English'}${audience === 'supplier' ? ' — suppliers are always answered in English' : ', the language they wrote in'}.
 - If they sent a photo or drawing, use what you see in it: name what is there, what it means for their job, and what you still need to know.
 - If they ask for a person, give the published contact: +971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, /contact/.
@@ -370,6 +385,6 @@ RULES:
     // The gateway's rate limit for this visitor: the same polite system notice the local limiter gives (not a reply).
     if (!reply && a.error === 'rate_limited') return J({ reply: RL_REPLY, rate_limited: true });
     if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', attempts: a.attempts }, 503); }
-    return J({ reply, scope: live ? audience : 'public', routed: 'brief', model: a.model, attempts: a.attempts });
+    return J({ reply, scope: live ? audience : 'public', routed: 'brief', model: a.model, attempts: a.attempts, ...(signup ? { signup } : {}) });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }
