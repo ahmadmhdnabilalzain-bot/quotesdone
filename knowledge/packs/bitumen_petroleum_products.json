@@ -41,6 +41,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "bitumen_petroleum_products:penetration-vs-performance-grading",
+      "topic": "Penetration grade 60/70 versus performance grade PG 76-10",
+      "kind": "grade_comparison",
+      "body_en": "60/70 is a penetration grade; PG 76-10 is a performance grade (PG). PG binder grade designations are based on climate parameters: the maximum 7-day pavement temperature and the minimum pavement temperature, so PG 76-10 is graded for a high pavement temperature of 76 °C and a low of -10 °C. A KFUPM study found that local 60/70 penetration-grade bitumen satisfies the environmental conditions of less than 30% of the Gulf countries' area, and that polymer modification is necessary for other parts including the United Arab Emirates. TxDOT requires an elastic recovery test for binders with a spread of 92 °C or more between the low and high temperatures of the grade, which ensures a polymer modifier is used, and notes that higher-spread binders are generally more costly. Not established here: the exact penetration test definition, and which grade a UAE roads authority mandates for a given layer; the project specification governs.",
+      "body_ar": "البيتومين 60/70 هو درجة اختراق، أما PG 76-10 فهو درجة أداء (PG). تُحدَّد درجات الأداء للمادة الرابطة بناءً على معايير مناخية: أقصى درجة حرارة للرصف خلال 7 أيام وأدنى درجة حرارة للرصف، وعليه فإن PG 76-10 مُصنَّف لدرجة حرارة رصف عليا تبلغ 76 °م ودنيا تبلغ -10 °م. وجدت دراسة لجامعة الملك فهد للبترول والمعادن أن البيتومين المحلي من درجة الاختراق 60/70 يفي بالظروف البيئية لأقل من 30% من مساحة دول الخليج، وأن التعديل بالبوليمرات ضروري لأجزاء أخرى منها الإمارات العربية المتحدة. وتشترط إدارة النقل في تكساس (TxDOT) اختبار الاسترجاع المرن للمواد الرابطة التي يبلغ الفارق بين درجتي الحرارة الدنيا والعليا في درجتها 92 °م أو أكثر، مما يضمن استخدام معدِّل بوليمري، وتشير إلى أن المواد الرابطة ذات الفارق الأعلى أغلى تكلفة عموماً. غير مثبت هنا: التعريف الدقيق لاختبار الاختراق، والدرجة التي تفرضها هيئة طرق إماراتية لطبقة معينة؛ وتسري مواصفات المشروع.",
+      "sources": [
+        "https://faculty.kfupm.edu.sa/CE/hawahab/WEBPAGE/Abstracts/J11.htm",
+        "https://www.txdot.gov/manuals/mnt/pdm/materials_investigation_and_selection_information/perform_graded_binders-i1013823.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +71,15 @@
       "expected_entry_ids": [
         "bitumen_petroleum_products:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the difference between 60/70 and PG 76-10 bitumen?",
+      "q_ar": "ما الفرق بين بيتومين 60/70 وPG 76-10؟",
+      "expected_entry_ids": [
+        "bitumen_petroleum_products:penetration-vs-performance-grading"
+      ],
+      "why": "No entry of this pack answered it (no entry compares penetration grade 60/70 with performance grade PG 76-10). bitumen_petroleum_products:penetration-vs-performance-grading was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from bitumen_petroleum_products.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +95,9 @@
       "bitumen_petroleum_products:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "bitumen_petroleum_products:penetration-vs-performance-grading"
+    ]
   }
 }

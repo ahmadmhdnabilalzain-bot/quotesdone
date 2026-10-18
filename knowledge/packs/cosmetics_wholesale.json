@@ -60,6 +60,15 @@
       "expected_entry_ids": [
         "cosmetics_wholesale:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What do I need before I can sell an imported face cream in Dubai?",
+      "q_ar": "ما الذي أحتاجه قبل أن أتمكن من بيع كريم وجه مستورد في دبي؟",
+      "expected_entry_ids": [
+        "cosmetics_wholesale:spec-checklist"
+      ],
+      "why": "The checklist names what an imported cosmetic needs: UAE product registration, conformity certificate, ingredients, batch/expiry and Arabic labelling.",
+      "origin": "real buyer question, moved from cosmetics_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -18,6 +18,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { definitions } from '../lib/canonical_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/the_ceo_reviews_the_months_video_plan_before_the_founder_sees_it.sql';
@@ -58,7 +59,7 @@ test('production, aborted: the probe answers PROBE OK', { skip: hasToken ? false
   const { sql } = await import('../lib/db.mjs');
   const text = [FILE, PROBE].map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n;\n');
   let msg = '';
-  try { await sql(text, { retry: false }); msg = 'the probe did not raise'; } catch (e) { msg = String(e.message); }
+  try { await replaySql(text, { retry: false }); msg = 'the probe did not raise'; } catch (e) { msg = String(e.message); }
   const i = msg.indexOf('CHK<<');
   assert.ok(i >= 0, msg.slice(0, 1500));
   assert.match(msg.slice(i, msg.indexOf('>>', i)), /PROBE OK/, msg.slice(i, i + 3000));

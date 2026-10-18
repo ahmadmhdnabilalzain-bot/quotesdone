@@ -21,7 +21,7 @@
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { siteReturnBase } from '../_shared/site_origins.ts';
+import { siteReturnBase, siteCors } from '../_shared/site_origins.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 // WHO IS CALLING, ANSWERED WITHOUT LYING (audit 22 Sep 2026, finding SP-N-08). This function called
 // admin.auth.getUser directly, so the ~35 s auth outages measured on 18 and 21 Sep — documented in
@@ -42,14 +42,16 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
       started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
   } catch (_e) { /* never let logging block a payment */ }
 }
-// Everything a supplier owes on one due: the refunded reveal fee + admin fee + accrued interest
-// (+ any legacy fine_amount). These are separate GL lines, so they are kept separate here too.
-function owed(d: any): number {
-  return Math.round((Number(d.amount_due || 0) + Number(d.admin_fee || 0)
-    + Number(d.interest_amount || 0) + Number(d.fine_amount || 0)) * 100) / 100;
-}
+// What a supplier STILL owes on one due (30 Sep 2026, accountant): never the stored columns. It is
+// public.fn_supplier_dues_outstanding, computed live by fn_accountant_nonresponse_charge: the unpaid principal
+// (refund + processor fee + admin fee, less every payment in supplier_due_payments from its own date) + simple
+// interest to today + any legacy fine. The same ledger as supplier_charge.ts computeCharge(), so a supplier who
+// part-paid by bank is billed the exact remainder. Before this, a part payer was billed the whole stored figure.
+type Outstanding = { owed_aed: number; interest_aed: number; unpaid_principal_aed: number; paid_aed: number };
+// the map is per request (never module state: two suppliers' requests share one isolate)
+function owed(d: any, out: Record<string, Outstanding>): number { return Math.round(Number(out[String(d.id)]?.owed_aed || 0) * 100) / 100; }
 
-Deno.serve(observe('supplier_pay', async (req) => {
+Deno.serve(siteCors(observe('supplier_pay', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
   // what needs exercising. See warmPortal() in resilience_ping/index.ts.
@@ -138,17 +140,25 @@ Deno.serve(observe('supplier_pay', async (req) => {
       .order('due_date', { ascending: true });
     if (dErr) { await logRun('error', { supplier_id: lead.id }, 'supplier_pay could not read supplier_dues (' + String(dErr.message).slice(0,140) + '). The supplier was shown no outstanding balance, which looks identical to owing nothing - they may believe they are settled when they are not, and keep accruing interest.'); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
 
-    const outstanding = (dues || []).filter((d) => owed(d) > 0);
-    const totalOwed = Math.round(outstanding.reduce((s, d) => s + owed(d), 0) * 100) / 100;
+    let OUT: Record<string, Outstanding> = {};
+    if ((dues || []).length) {
+      const { data: live, error: oErr } = await admin.rpc('fn_supplier_dues_outstanding', { p_due_ids: (dues || []).map((d) => d.id) });
+      // fail closed: without the live figure no amount is shown or billed (a stale figure could over- or under-bill)
+      if (oErr || !live) { await logRun('error', { supplier_id: lead.id }, 'supplier_pay could not compute what is still owed (' + String(oErr?.message || 'no result').slice(0, 140) + '). Nothing was shown or billed.'); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
+      OUT = live as Record<string, Outstanding>;
+    }
+    const outstanding = (dues || []).filter((d) => owed(d, OUT) > 0);
+    const totalOwed = Math.round(outstanding.reduce((s, d) => s + owed(d, OUT), 0) * 100) / 100;
 
     if (action === 'list') {
       await logRun('ok', { supplier_id: lead.id, outstanding: outstanding.length, total_owed: totalOwed }, '');
       return J({ ok: true, company: lead.company_name, currency: 'AED', total_owed: totalOwed,
-        dues: outstanding.map((d) => ({ id: d.id, amount: owed(d),
+        dues: outstanding.map((d) => ({ id: d.id, amount: owed(d, OUT),
           // clause 33(a)+(b): the refund and, from v14, the unrecovered processor fee (the key name is the portal's)
           refunded_fee: Number(d.amount_due || 0),
           admin_fee: Number(d.admin_fee || 0),
-          interest: Number(d.interest_amount || 0) + Number(d.fine_amount || 0),
+          interest: Number(OUT[String(d.id)]?.interest_aed || 0) + Number(d.fine_amount || 0),
+          paid: Number(OUT[String(d.id)]?.paid_aed || 0),
           due_date: d.due_date, status: d.status, in_legal: d.legal_stage ? true : false })) });
     }
 
@@ -165,7 +175,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       if (!selected.length) return J({ error: 'no payable dues in selection', code: 'no_payable_dues' }, 400);
     }
 
-    const amount = Math.round(selected.reduce((s, d) => s + owed(d), 0) * 100) / 100;
+    const amount = Math.round(selected.reduce((s, d) => s + owed(d, OUT), 0) * 100) / 100;
     if (!(amount > 0)) return J({ ok: true, nothing_to_pay: true, total_owed: 0 });
 
     // THE CEO'S CIRCUIT BREAKER (14 Sep 2026): no supplier charge moves while a mismatch is open.
@@ -208,7 +218,14 @@ Deno.serve(observe('supplier_pay', async (req) => {
     const sj = await r.json();
     if (!r.ok) { await logRun('error', { supplier_id: lead.id, amount, http: r.status }, 'Stripe session create failed for a supplier trying to settle: ' + String(sj?.error?.message || '').slice(0, 200) + '. The supplier cannot pay right now and interest keeps accruing.'); return J({ error: 'stripe_error', code: 'payment_failed' }, 502); }
 
-    try { await admin.from('supplier_dues').update({ stripe_session_id: String(sj.id) }).in('id', ids); } catch (_e) { /* non-fatal */ }
+    // WHAT THIS SESSION CHARGES, PER DUE (2 Oct 2026, accountant; review of #1173). The settlement row records exactly
+    // this amount, never a figure recomputed when the payment lands (a checkout opened before midnight and paid after
+    // it would otherwise be recorded at a day's more interest than Stripe took). Fail closed: without the stored
+    // amounts the supplier is not sent to pay (the unused session simply expires).
+    const { error: cErr } = await admin.from('supplier_due_checkouts')
+      .insert(selected.map((d) => ({ session_id: String(sj.id), due_id: Number(d.id), amount_aed: owed(d, OUT) })));
+    if (cErr) { await logRun('error', { supplier_id: lead.id, amount, session: String(sj.id) }, 'supplier_pay could not store the per-due checkout amounts (' + String(cErr.message).slice(0, 140) + '). The supplier was not sent to pay.'); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
+    try { await admin.from('supplier_dues').update({ stripe_session_id: String(sj.id) }).in('id', ids); } catch (_e) { /* the webhook writes the paid session id too */ }
 
     await logRun('ok', { supplier_id: lead.id, amount, dues: ids.length, session: String(sj?.id || '') }, 'Supplier ' + (lead.company_name || lead.id) + ' started checkout for ' + amount + ' AED across ' + ids.length + ' outstanding charge(s). Nothing is marked paid until stripe_webhook confirms.');
     return J({ ok: true, url: sj.url, amount, currency: 'AED', dues: ids.length });
@@ -217,4 +234,4 @@ Deno.serve(observe('supplier_pay', async (req) => {
     await logRun('error', { unhandled_exception: 1 }, 'supplier_pay threw: ' + m.slice(0, 200));
     return J({ error: m }, 500);
   }
-}));
+})));

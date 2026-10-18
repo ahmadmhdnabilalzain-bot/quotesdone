@@ -42,6 +42,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "demolition_works:dubai-demolition-permit-sequence",
+      "topic": "Dubai demolition permit sequence",
+      "kind": "regulatory_process",
+      "body_en": "In Dubai, some projects require a Dubai Municipality demolition permit, submitted through the Dubai Building Permit System (BPS). Utility disconnection is handled under DEWA's demolition permit for electricity and water, which only DEWA-enrolled demolition contractors can apply for. Water requires the online application, a setting-out plan of the demolition area, and additional documents for partial demolition; electricity additionally needs a letter from the owner and, for projects in Dubai free-zone areas, an affection plan. The DEWA permit is free of charge and approval takes 10 working days. Not established here: DM BPS fees and document list, RTA or historic-area NOCs, and free-zone authority variants, which run their own permits.",
+      "body_ar": "في دبي، تتطلب بعض المشاريع تصريح هدم من بلدية دبي يُقدَّم عبر نظام تصاريح البناء في دبي (BPS). ويُعالَج فصل الخدمات بموجب تصريح الهدم الصادر عن هيئة كهرباء ومياه دبي (ديوا) للكهرباء والمياه، ولا يحق التقدم به إلا لمقاولي الهدم المسجلين لدى ديوا. يتطلب طلب المياه تعبئة الطلب الإلكتروني ومخطط تحديد موقع منطقة الهدم ومستندات إضافية في حالة الهدم الجزئي؛ ويتطلب طلب الكهرباء أيضًا رسالة من المالك، ومخطط تأثير (Affection Plan) للمشاريع الواقعة في المناطق الحرة بدبي. تصريح ديوا مجاني وتستغرق الموافقة عليه 10 أيام عمل. غير مثبت هنا: رسوم نظام BPS وقائمة مستنداته، وشهادات عدم الممانعة من هيئة الطرق والمواصلات أو للمناطق التاريخية، وإجراءات سلطات المناطق الحرة التي تصدر تصاريحها الخاصة.",
+      "sources": [
+        "https://www.dubizzle.com/blog/property/dewa-demolition-disconnection-services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "demolition_works:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What permits are needed before demolishing a building in Dubai?",
+      "q_ar": "ما التصاريح المطلوبة قبل هدم مبنى في دبي؟",
+      "expected_entry_ids": [
+        "demolition_works:dubai-demolition-permit-sequence"
+      ],
+      "why": "No entry of this pack answered it (the standards entry covers Dubai Municipality material approvals and Civil Defence, not demolition permits). demolition_works:dubai-demolition-permit-sequence was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from demolition_works.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "demolition_works:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "demolition_works:dubai-demolition-permit-sequence"
+    ]
   }
 }

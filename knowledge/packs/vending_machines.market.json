@@ -7,9 +7,10 @@
     {
       "id": "vending_machines:uae-market-products",
       "topic": "Vending & coffee machines: products, variants and grades sold in the UAE",
+      "topic_ar": "آلات البيع الذاتي والقهوة: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Vending machines sold and operated in the UAE include snack and cold drink combo machines, can and bottle vending, hot beverage (bean-to-cup and instant) machines, fresh food and refrigerated vending (with food-safe temperature control), micro-markets and smart fridges (self-checkout), ice cream and frozen vending, water vending and refill stations, PPE and industrial tool vending for sites, pharmacy and personal care vending, and kiosks. Buyers specify capacity (selections and products), payment options (cash, NFC card, Apple Pay/Google Pay, QR), telemetry for stock and sales, refrigeration performance in high ambient heat, power (230 V), branding wraps, and whether the operator provides free placement with commission. Food vending in Dubai requires Dubai Municipality food safety approval of the operator, product labelling and temperature control; placement in public areas needs the landlord's and relevant municipality permits.",
-      "body_ar": "تشمل آلات البيع الذاتي المباعة والمشغلة في الإمارات آلات الوجبات الخفيفة والمشروبات الباردة المدمجة، وآلات بيع العلب والقوارير، وآلات المشروبات الساخنة (من الحبوب إلى الكوب والفورية)، وآلات بيع الطعام الطازج والمبرد (مع التحكم في درجة الحرارة الآمنة للغذاء)، والأسواق المصغرة والثلاجات الذكية (بالدفع الذاتي)، وآلات بيع الآيس كريم والمجمدات، وآلات بيع المياه ومحطات إعادة التعبئة، وآلات بيع معدات الوقاية الشخصية والأدوات الصناعية للمواقع، وآلات الصيدلية والعناية الشخصية، والأكشاك. يحدد المشترون السعة (عدد الخيارات والمنتجات)، وخيارات الدفع (نقداً، وبطاقة NFC، وأبل باي/جوجل باي، ورمز QR)، والقياس عن بعد للمخزون والمبيعات، وأداء التبريد في الحرارة المحيطة المرتفعة، والطاقة (230 فولت)، وأغلفة العلامة التجارية، وما إذا كان المشغل يوفر التركيب المجاني مقابل عمولة. ويتطلب بيع الأغذية آلياً في دبي موافقة بلدية دبي على المشغل من ناحية سلامة الغذاء، وتوسيم المنتجات والتحكم في الحرارة؛ ويحتاج التركيب في الأماكن العامة إلى تصاريح المالك والبلدية المختصة.",
+      "body_en": "Vending in the UAE covers snack and drink, hot beverage, fresh food, smart fridges, ice cream, water, PPE and pharmacy machines, specified by capacity, payment options, telemetry, refrigeration and placement terms. Vending machines sold and operated in the UAE include snack and cold drink combo machines, can and bottle vending, hot beverage (bean-to-cup and instant) machines, fresh food and refrigerated vending (with food-safe temperature control), micro-markets and smart fridges (self-checkout), ice cream and frozen vending, water vending and refill stations, PPE and industrial tool vending for sites, pharmacy and personal care vending, and kiosks. Buyers specify capacity (selections and products), payment options (cash, NFC card, Apple Pay/Google Pay, QR), telemetry for stock and sales, refrigeration performance in high ambient heat, power (230 V), branding wraps, and whether the operator provides free placement with commission. Food vending in Dubai requires Dubai Municipality food safety approval of the operator, product labelling and temperature control; placement in public areas needs the landlord's and relevant municipality permits.",
+      "body_ar": "تشمل آلات البيع الذاتي في الإمارات آلات الوجبات الخفيفة والمشروبات والمشروبات الساخنة والأطعمة الطازجة والثلاجات الذكية والآيس كريم والمياه ومعدات الوقاية الشخصية والأدوية، وتُحدَّد بالسعة وطرق الدفع والمراقبة عن بُعد والتبريد وشروط وضع الآلة في الموقع. وتضم الآلات المباعة والمشغّلة: آلات مدمجة للوجبات الخفيفة والمشروبات الباردة، وآلات العلب والقناني، وآلات المشروبات الساخنة (طحن البن الطازج والقهوة الفورية)، وآلات الأطعمة الطازجة والمبردة (مع تحكم بالحرارة آمن للغذاء)، والمتاجر المصغرة والثلاجات الذكية (دفع ذاتي)، وآلات الآيس كريم والمجمدات، وآلات بيع المياه ومحطات التعبئة، وآلات معدات الوقاية الشخصية والعدد الصناعية للمواقع، وآلات الصيدلة والعناية الشخصية، والأكشاك. ويحدد المشتري السعة (عدد الخيارات والمنتجات)، وطرق الدفع (نقدًا، وبطاقة NFC، وApple Pay/Google Pay، وQR)، والمراقبة عن بُعد للمخزون والمبيعات، وأداء التبريد في الحرارة المرتفعة، والكهرباء (230 فولت)، وتغليف الآلة بالهوية التجارية، وهل يوفر المشغل وضع الآلة مجانًا مقابل عمولة. ويتطلب بيع الأغذية آليًا في دبي اعتماد بلدية دبي للمشغل من ناحية سلامة الغذاء، وبطاقة بيان للمنتجات، والتحكم بالحرارة؛ ويحتاج وضع الآلات في الأماكن العامة إلى تصاريح المالك والبلدية المعنية.",
       "sources": [
         "https://wendor.ai/blog/vending-machine-business-dubai/",
         "https://first-classvending.com/",
@@ -25,9 +26,10 @@
     {
       "id": "vending_machines:uae-market-brands",
       "topic": "Vending & coffee machines: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "آلات البيع الذاتي والقهوة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Confirmed UAE operators and common machine brands: First Class Vending, Wendor, Vendohmatic, Crane Merchandising Systems, Azkoyen, Evoca (Necta, Saeco), Bianchi Vending, TCN. The machine brands' UAE dealers were not checked. Suppliers are concentrated in Al Quoz, Deira and Sharjah.",
-      "body_ar": "المشغلون المؤكدون في الإمارات وعلامات الآلات الشائعة: First Class Vending، Wendor، Vendohmatic، Crane Merchandising Systems، Azkoyen، Evoca (Necta, Saeco)، Bianchi Vending، TCN. ولم يُتحقق من وكلاء علامات الآلات في الإمارات. ويتركز الموردون في القوز وديرة والشارقة.",
+      "body_en": "UAE vending operators include First Class Vending, Wendor and Vendohmatic, with machine brands such as Crane, Azkoyen, Evoca (Necta, Saeco), Bianchi and TCN, mostly in Al Quoz, Deira and Sharjah. Confirmed UAE operators and common machine brands: First Class Vending, Wendor, Vendohmatic, Crane Merchandising Systems, Azkoyen, Evoca (Necta, Saeco), Bianchi Vending, TCN. The machine brands' UAE dealers were not checked. Suppliers are concentrated in Al Quoz, Deira and Sharjah.",
+      "body_ar": "من مشغلي مكائن البيع الذاتي (الفندنغ) في الإمارات First Class Vending وWendor وVendohmatic، ومن ماركات المكائن Crane وAzkoyen وEvoca (Necta وSaeco) وBianchi وTCN، ويتركز أغلبهم في القوز وديرة والشارقة. المشغلون المؤكدون في الإمارات وماركات المكائن الشائعة: First Class Vending، Wendor، Vendohmatic، Crane Merchandising Systems، Azkoyen، Evoca (Necta، Saeco)، Bianchi Vending، TCN. ولم نتحقق من وكلاء ماركات المكائن في الإمارات. ويتركز الموردون في القوز وديرة والشارقة.",
       "sources": [
         "https://wendor.ai/blog/vending-machine-business-dubai/",
         "https://first-classvending.com/",
@@ -43,9 +45,10 @@
     {
       "id": "vending_machines:uae-market-sizes",
       "topic": "Vending & coffee machines: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "آلات البيع الذاتي والقهوة: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Machines are sold per unit (priced by model and selections, e.g. 30-60 selections for snack/drink combos) or rented per month. Operator models commonly place machines free with a revenue share or commission paid to the site (percentage of sales), subject to minimum footfall. Coffee machines may be leased per month with ingredient supply. Service/restocking is included in operator models.",
-      "body_ar": "تُباع الآلات لكل وحدة (مسعرة حسب الطراز وعدد الخيارات، مثل 30-60 خياراً للآلات المدمجة للوجبات والمشروبات) أو تُؤجر شهرياً. وعادةً ما تضع نماذج المشغلين الآلات مجاناً مقابل تقاسم الإيرادات أو عمولة تُدفع للموقع (نسبة من المبيعات)، بشرط حد أدنى من الحركة. وقد تُؤجر آلات القهوة شهرياً مع توريد المكونات. وتكون الخدمة وإعادة التعبئة مشمولة في نماذج المشغلين.",
+      "body_en": "Vending machines are sold per unit by model and selections or rented monthly, and operators often place them free in return for a share of sales. Machines are sold per unit (priced by model and selections, e.g. 30-60 selections for snack/drink combos) or rented per month. Operator models commonly place machines free with a revenue share or commission paid to the site (percentage of sales), subject to minimum footfall. Coffee machines may be leased per month with ingredient supply. Service/restocking is included in operator models.",
+      "body_ar": "تُباع مكائن البيع الذاتي (الفندينج مشين) في الإمارات بالوحدة حسب الموديل وعدد الخيارات أو تُؤجَّر شهرياً، وكثيراً ما يضعها المشغلون مجاناً مقابل نسبة من المبيعات. فالمكائن تُباع بالوحدة (يُسعَّر حسب الموديل وعدد الخيارات، مثلاً 30 إلى 60 خياراً لمكائن السناكات والمشروبات المجمعة) أو تُؤجَّر شهرياً. وفي نموذج المشغل تُوضع المكائن عادة مجاناً مقابل حصة من الإيرادات أو عمولة تُدفع للموقع (نسبة من المبيعات)، بشرط حد أدنى من عدد الزوار. ومكائن القهوة قد تُؤجَّر شهرياً مع توريد المواد. والخدمة وإعادة التعبئة مشمولة في نماذج المشغلين.",
       "sources": [
         "https://wendor.ai/blog/vending-machine-business-dubai/",
         "https://first-classvending.com/",
@@ -61,11 +64,15 @@
   ],
   "eval": [
     {
-      "q_en": "Can a vending company place a machine in our office for free?",
-      "q_ar": "هل يمكن لشركة بيع آلي وضع آلة في مكتبنا مجاناً؟",
+      "q_en": "Are snack dispensers bought outright, hired, or placed on an income split?",
+      "q_ar": "مكاين بيع السناكات، تنشرى كاش ولا تتأجر ولا تنحط بنظام تقاسم الدخل؟",
       "expected_entry_ids": [
         "vending_machines:uae-market-sizes"
-      ]
+      ],
+      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Machines are sold per unit (priced by model and selections, e.g\".",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.125,
+      "word_overlap_after_enrichment": 0.125
     }
   ],
   "verified": {

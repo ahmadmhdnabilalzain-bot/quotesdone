@@ -44,6 +44,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "exhibition_stands:dwtc-stand-height-limits",
+      "topic": "DWTC stand height and structural approval",
+      "kind": "spec_checklist",
+      "body_en": "At Dubai World Trade Centre, venue rules published for a 2026 show set a maximum height of 6 m for both single-storey and double-deck space-only stands. A single-storey stand of 4 m or higher is classed as complex and needs structural engineer approval at the exhibitor's cost; every double-deck stand needs structural engineer sign-off and venue review. The DWTC mandatory submission fee is AED 500 + 5% VAT for a complex single-storey stand and AED 1,000 + 5% VAT for a double-deck stand, with designs submitted to DWTC through the organisers 4 weeks before the show. Rigging, banners and overhead elements must stay within the height limits and must not overhang gangways or neighbouring stands. Organisers can be stricter: another Dubai show's rules give a basic construction height of 2.5 m, state that heights vary by hall and stand location up to a 6 m maximum, require sides facing neighbouring stands to be smooth and white, keep advertising at least 1 m from the neighbouring border, and charge USD 100 per m2 for double-deck stands. Confirm against the specific show's exhibitor manual.",
+      "body_ar": "في مركز دبي التجاري العالمي، تحدد قواعد المكان المنشورة لمعرض عام 2026 ارتفاعاً أقصى قدره 6 أمتار للأجنحة ذات المساحة الفارغة، سواء أكانت من طابق واحد أم من طابقين. ويُصنَّف الجناح ذو الطابق الواحد الذي يبلغ ارتفاعه 4 أمتار أو أكثر جناحاً معقداً يتطلب موافقة مهندس إنشائي على نفقة العارض؛ ويحتاج كل جناح من طابقين إلى اعتماد مهندس إنشائي ومراجعة من إدارة المكان. ورسوم التقديم الإلزامية لدى المركز هي 500 درهم + 5% ضريبة القيمة المضافة للجناح المعقد ذي الطابق الواحد، و1,000 درهم + 5% ضريبة القيمة المضافة للجناح ذي الطابقين، وتُقدَّم التصاميم إلى المركز عبر منظمي المعرض قبل 4 أسابيع من المعرض. ويجب أن تبقى التعليقات واللافتات والعناصر العلوية ضمن حدود الارتفاع وألا تبرز فوق الممرات أو الأجنحة المجاورة. وقد يكون المنظمون أكثر تشدداً: فقواعد معرض آخر في دبي تحدد ارتفاع البناء الأساسي بـ2.5 متر، وتنص على أن الارتفاعات تختلف بحسب القاعة وموقع الجناح بحد أقصى 6 أمتار، وتشترط أن تكون الجوانب المواجهة للأجنحة المجاورة ملساء وبيضاء، وأن يبعد الإعلان مسافة متر واحد على الأقل عن حدود الجناح المجاور، وتفرض رسماً قدره 100 دولار أمريكي لكل متر مربع للأجنحة ذات الطابقين. تحقق دائماً من دليل العارضين الخاص بالمعرض المعني.",
+      "sources": [
+        "https://middleeast.breakbulk.com/page/venue-services",
+        "https://intersecglobal.ae.messefrankfurt.com/dubai/en/planning-preparation/Information-for-exhibitors/faq.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +74,15 @@
       "expected_entry_ids": [
         "exhibition_stands:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the maximum stand height allowed at Dubai World Trade Centre?",
+      "q_ar": "ما الحد الأقصى لارتفاع الجناح المسموح به في مركز دبي التجاري العالمي؟",
+      "expected_entry_ids": [
+        "exhibition_stands:dwtc-stand-height-limits"
+      ],
+      "why": "No entry of this pack answered it (No entry states DWTC stand height limits; missing organiser-rules content). exhibition_stands:dwtc-stand-height-limits was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from exhibition_stands.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +98,9 @@
       "exhibition_stands:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "exhibition_stands:dwtc-stand-height-limits"
+    ]
   }
 }

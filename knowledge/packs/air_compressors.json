@@ -43,6 +43,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "air_compressors:iso-8573-1-class-0-pharma-air",
+      "topic": "ISO 8573-1 Class 0 air in pharmaceutical production",
+      "kind": "technical_reference",
+      "body_en": "ISO 8573-1 grades compressed air purity; Class 0 is the highest achievable purity level, more stringent than Class 1, and is intended to keep compressed air free of oil particles and vapour. Compressor manufacturers list tablet and capsule production (mixing, granulation, coating, packaging), blister and vial packaging, instrumentation and automation, fermentation for biopharmaceuticals and drying of medicines as pharmaceutical uses for Class 0 air, and present oil-free compressors as the way to supply it. Not established here: the text of EU GMP or WHO GMP on compressed air, any UAE (MOHAP or Emirate health authority) rule naming a specific ISO 8573-1 class, and whether an oil-injected compressor with filtration is acceptable; the site's validation and risk assessment decides.",
+      "body_ar": "يصنّف معيار ISO 8573-1 درجات نقاء الهواء المضغوط، والفئة 0 هي أعلى مستوى نقاء ممكن وأشد صرامة من الفئة 1، ويُقصد بها أن يكون الهواء المضغوط خالياً من جزيئات الزيت وأبخرته. ويذكر مصنّعو الضواغط من الاستخدامات الدوائية لهواء الفئة 0: إنتاج الأقراص والكبسولات (الخلط والتحبيب والتغليف بالطلاء والتعبئة)، وتعبئة الأشرطة البليسترية والقوارير، والأجهزة والأتمتة، والتخمير في المستحضرات الصيدلانية الحيوية، وتجفيف الأدوية، ويقدّمون الضواغط الخالية من الزيت وسيلةً لتوفيره. غير مثبت هنا: نص إرشادات EU GMP أو WHO GMP بشأن الهواء المضغوط، وأي قاعدة إماراتية (وزارة الصحة ووقاية المجتمع أو جهة صحية محلية) تحدد فئة معينة من ISO 8573-1، ومدى قبول ضاغط مُحقَن بالزيت مع ترشيح؛ إذ يحسم ذلك التحقق من صلاحية المنشأة وتقييم المخاطر فيها.",
+      "sources": [
+        "https://www.elgi.com/eu/?p=47499"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "air_compressors:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Do I need an oil-free compressor for a pharmaceutical line?",
+      "q_ar": "هل أحتاج ضاغطاً خالياً من الزيت لخط أدوية؟",
+      "expected_entry_ids": [
+        "air_compressors:iso-8573-1-class-0-pharma-air"
+      ],
+      "why": "No entry of this pack answered it (no entry says when oil-free (ISO 8573-1 class 0) air is needed for pharma; the checklist only names oil-free/oil-injected and ISO 8573-1 class as fields to state). air_compressors:iso-8573-1-class-0-pharma-air was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from air_compressors.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "air_compressors:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "air_compressors:iso-8573-1-class-0-pharma-air"
+    ]
   }
 }

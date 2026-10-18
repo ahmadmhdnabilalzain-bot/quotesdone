@@ -23,6 +23,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -81,7 +82,8 @@ test('no migrated decision point is decided by a word list again, and each one a
   // Case memory: think() recalls through the one shared recall (#910), which calls fn_case_recall itself.
   assert.ok(th.includes('await recallCases(deps, '), 'think.ts lost its case recall (recallCases)');
   assert.ok(read('supabase/functions/_shared/case_recall.ts').includes("admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {"), 'case_recall.ts lost fn_case_recall');
-  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, 3, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\)\)\)/);
+  // 7 Oct 2026 (ledger 1175), 12 Oct: REPLAY_CLAIM a claim, concurrently, bounded by REPLAY_MAX_ROWS and REPLAY_BUDGET_MS per tick.
+  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, REPLAY_CLAIM, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\),\s*\{ maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS \}\)\)/);
 });
 
 test('provider webhooks are acknowledged at once and handled after (reasoning never runs inside Twilio\'s or Meta\'s deadline)', () => {
@@ -165,7 +167,7 @@ async function pendingReplay() {
 /** Runs a DO block that ends in raise exception 'CHK<<json>>' after the pending chain; returns the json. Nothing commits. */
 async function probe(block, prefix = '') {
   const { sql } = await import('../lib/db.mjs');
-  try { await sql(prefix + (await pendingReplay()) + block, { retry: false }); }
+  try { await replaySql(prefix + (await pendingReplay()) + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));
@@ -209,7 +211,8 @@ begin
   v_id := public.fn_reason_hold('ceo', 'ceo.command_intent', 'ZZ DEMO stop the campaign', '{"seat":"ceo"}'::jsonb, '{}'::jsonb,
             jsonb_build_object('command_id', (select command_id from public.fn_ceo_command_submit('api', 'ZZ DEMO probe', 'ZZ DEMO stop the campaign'))), 'model_hold', 'zz-demo-probe-1');
   o := o || jsonb_build_object('hold_dedupe', public.fn_reason_hold('ceo', 'ceo.command_intent', 'ZZ DEMO again', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_failed: x', 'zz-demo-probe-1') = v_id);
-  o := o || jsonb_build_object('gate_rule', public.fn_kernel_paid_provider_gate('hold-probe/not-a-model')->>'rule', 'due_under_gate', public.fn_reason_held_due(3));
+  o := o || jsonb_build_object('gate_rule', public.fn_kernel_paid_provider_gate((select h.model_id from public.llm_route_health h join public.model_registry r using (model_id) where r.active and h.open_until is null order by 1 limit 1))->>'rule',
+                               'due_claimed', coalesce(jsonb_array_length(public.fn_reason_held_due(3)), 0));
   o := o || jsonb_build_object('resolve_held', public.fn_reason_held_resolve(v_id, '{"status":"held"}'::jsonb)->>'status',
                                'resolve_answered', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ DEMO halt","decision":{"choice":"stop"}}'::jsonb)->>'status');
   select jsonb_build_object('row', h.status, 'cmd', c.state || ':' || c.intent_id) into v
@@ -280,7 +283,7 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   const body = before + (await pendingReplay()) + PROBE;
   let out;
   try {
-    await sql(body, { retry: false });
+    await replaySql(body, { retry: false });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));
@@ -310,8 +313,10 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   assert.ok(out.keyed_present.includes('floor_type'), 'a keyed answer is');
 
   assert.equal(out.hold_dedupe, true, 'one held row per inbound message');
-  assert.equal(out.gate_rule, 'founder_hold', 'this check assumes the founder\'s hold is on; if released, rewrite the due assertion');
-  assert.deepEqual(out.due_under_gate, [], 'under the hold nothing is replayed');
+  // Ledger 1175 (7 Oct 2026): OpenRouter is always on. A registered route with a closed breaker passes the gate, and
+  // the held queue is claimed for replay (at most the limit; 0 only once it has drained).
+  assert.equal(out.gate_rule, 'registered_breaker_closed', 'ruling 1175: the gate is open for a registered route');
+  assert.ok(out.due_claimed >= 0 && out.due_claimed <= 3, 'the replay claims at most its limit');
   assert.equal(out.resolve_held, 'still_held');
   assert.equal(out.resolve_answered, 'applied');
   assert.deepEqual(out.resolved, { row: 'applied', cmd: 'tasks_created:stop' });
@@ -326,8 +331,10 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   // Measured 23 Sep 2026: 3 — the only 3 inquiries on production, all quoted or revealed, so readiness no longer gates them.
   console.log('already-dispatched inquiries whose readiness the text scan had supplied:', out.rfq_flipped_after_dispatch);
   assert.equal(out.intake_after, 'needs_info:reasoning', 'the held intake reopens with the reasoned trade');
-  assert.equal(out.intake_expires, true, 'a held intake never expires');
-  assert.equal(out.channel_expires, false, 'a held question never expires (the hold lasts a while)');
+  // Since 6 Oct (a_held_question_lives_fourteen_days_once_the_model_is_open_...sql) every filed question carries a 14-day
+  // clock; it can only expire while a model may run and once it has been tried (fn_reason_held_sweep).
+  assert.equal(out.intake_expires, false, 'a held intake carries its 14-day clock');
+  assert.equal(out.channel_expires, true, 'a held question carries its 14-day clock (it expires only once tried, while a model may run)');
   assert.equal(out.delivered_row, 'applied:whatsapp_template');
   assert.equal(out.old_status, 'held', 'a 49-hour-old question is still held for the replay, never expired');
   assert.equal(out.escalated, 1, 'at 48 hours it is escalated to its seat');
@@ -475,7 +482,7 @@ begin
     begin
       select count(*) into n from public.refund_ceo_review where refund_id = v_ref;
       v := public.fn_ceo_refund_review(v_ref, 'probe');
-      o := o || jsonb_build_object('rf_review', v->>'outcome', 'rf_review_reason', v->>'reason', 'rf_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n);
+      o := o || jsonb_build_object('rf_review', v->>'outcome', 'rf_review_offp', coalesce(v->>'reason', '') ~ 'off the platform', 'rf_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n);
       raise exception 'zz_b6_rollback';
     exception when others then if sqlerrm <> 'zz_b6_rollback' then raise; end if;
     end;
@@ -527,7 +534,7 @@ begin
     update public.reasoning_held_question set status = 'held' where id = v_id;
     v := public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"engaged_off_platform"}}'::jsonb);
     o := o || jsonb_build_object('rf_row', (select status from public.reasoning_held_question where id = v_id),
-      'rf_apply_review', v->'effect'->'review'->>'outcome', 'rf_apply_reason', v->'effect'->'review'->>'reason');
+      'rf_apply_review', v->'effect'->'review'->>'outcome', 'rf_apply_offp', coalesce(v->'effect'->'review'->>'reason', '') ~ 'off the platform \(reasoned');
     update public.refunds set reason_note = 'The customer reported that the revealed supplier has not responded.' where id = v_ref;
     v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
     o := o || jsonb_build_object('rf_default_note_asks', exists (select 1 from jsonb_array_elements(v->'items') i where i->>'item' = 'off_platform_engagement_reasoned'));
@@ -595,7 +602,7 @@ end $p$;`);
     assert.equal(out.rf_offp_before, null, 'no exclusion is assumed before the note is read');
     if (out.rf_nonrem_other > 0) {
       assert.equal(out.rf_review, 'declined');
-      assert.doesNotMatch(String(out.rf_review_reason), /off the platform/);
+      assert.equal(out.rf_review_offp, false, 'the decline names no off-platform exclusion before the note is read');
     } else {
       assert.equal(out.rf_review, 'waiting_on_reasoning');
       assert.equal(out.rf_cycles, 0, 'a question still being reasoned spends no cycle and pages nobody');
@@ -614,7 +621,9 @@ end $p$;`);
     assert.equal(out.rf_reasoned_item_gone, true);
     assert.equal(out.rf_row, 'applied');
     assert.equal(out.rf_apply_review, 'declined', 'the replay re-runs the CEO review on the reasoned answer');
-    assert.match(String(out.rf_apply_reason), /off the platform \(reasoned/);
+    // reported as booleans, not the reason text: the management API cuts an error message near 2 KB, and the
+    // two reason sentences (each ~250 chars) pushed this probe's CHK past it on 6 Oct 2026, losing the closing marker
+    assert.equal(out.rf_apply_offp, true, 'the replayed decline names the reasoned off-platform exclusion');
     assert.equal(out.rf_default_note_asks, false, 'our own default note asks nothing');
   }
 
@@ -653,6 +662,9 @@ begin
   o := o || jsonb_build_object('not_go', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason');
 
   -- 2. 'go' under the model hold: nothing is filed (it would only wait and pile up in the seat's queue).
+  -- Ledger 1175 (7 Oct 2026) lifted the hold on production; the hold is re-imposed HERE, inside this aborted
+  -- transaction, so the property "under a hold nothing is filed" is still proved for the day one returns.
+  create or replace function public.fn_kernel_paid_provider_gate(p_model text default null) returns jsonb language sql as $g$ select '{"allowed":false,"rule":"founder_hold"}'::jsonb $g$;
   update public.app_secrets set value = 'go' where key = 'lead_reclassify_backfill';
   o := o || jsonb_build_object('held_gate', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason');
   -- ... and with the models open (the gate stubbed inside this aborted transaction) and room for exactly two more
@@ -994,7 +1006,8 @@ begin
   insert into public.notifications (type, kind, to_role, subject, body, status, channel)
   values ('ai_quality_alert', 'uptime_alert', 'founder', 'CRITICAL failed down', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
   o := o || jsonb_build_object('type_routine', (select status || ':' || severity from public.notifications where id = v_n));
-  -- the lifecycle: a failed held question filed again is REOPENED (held, attempts 0, not escalated)
+  -- the lifecycle: a failed held question filed again STAYS FAILED (5 Oct 2026, LLM burn audit R3: reopening it reset
+  -- the 3-try limit; a_held_question_is_paid_for_once_and_test_traffic_never_waits_for_a_model.sql)
   v_id := public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
   update public.reasoning_held_question set status = 'failed', attempts = 5, escalated_at = now() where id = v_id;
   perform public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
@@ -1078,7 +1091,7 @@ end $p$;`);
   assert.equal(out.producer_status, 'queued', 'a real outage from the real producer is sent at once, not digested');
   assert.equal(out.type_outage, 'queued:critical', 'an outage type goes at once whatever its subject says');
   assert.equal(out.type_routine, 'digest:warn', 'a routine type folds whatever its subject says');
-  assert.equal(out.reopened, 'held:0:true:true:true', 'a failed question filed again is reopened (its 48-hour clock restarts), never left dead or expiring');
+  assert.equal(out.reopened, 'failed:5:false:false:true', 'a failed question filed again is reopened: the 3-try limit is bypassed (burn audit R3)');
   assert.equal(out.kept_code, 'ZZ DEMO IP65');
   assert.equal(out.prose_echo_rejected, true, 'title-case English echoed back is not stored as its Arabic');
   assert.equal(out.waiter_early, false);
@@ -1111,7 +1124,7 @@ test('production, aborted: B5 — price by reasoned trade, quote quality held un
   { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const out = await probe(String.raw`
 do $p$
-declare o jsonb := '{}'::jsonb; v jsonb; v_due jsonb; v_q uuid; v_id bigint; v_lead bigint; v_sup bigint; v_key text; v_name text; v_catkey text; v_trade text; v_fields jsonb;
+declare o jsonb := '{}'::jsonb; v jsonb; v_due jsonb; v_q uuid; v_id bigint; v_lead bigint; v_sup bigint; v_key text; v_name text; v_catkey text; v_trade text; v_fields jsonb; v_notif bigint;
 begin
   -- 40. fn_price_guidance reads no question: a sentence is not a trade; a reasoned trade is.
   v := public.fn_price_guidance(null, 6);
@@ -1134,8 +1147,22 @@ begin
   o := o || jsonb_build_object('q_due_after_held', public.fn_quote_aspects_due(v_q) is null);
   select jsonb_object_agg(c.aspect, jsonb_build_object('value', 'ZZ', 'evidence', 'ZZ DEMO words')) into v_fields
     from public.category_quote_specs c where c.spec_group = v_due->>'spec_group';
+  -- Every quote with a spec group is harness traffic today (measured 6 Oct 2026: 3 of 3), and since #1219 fn_reason_hold
+  -- files nothing for a harness subject. That is asserted first; then, inside this rolled-back transaction, the quote's
+  -- customer and supplier are re-pointed to a ZZ DEMO identity at example.invalid (no harness tag, no real address), so
+  -- the real hold path files it. Nothing here can reach a person: the notifications count is asserted unchanged.
+  v_notif := (select count(*) from public.notifications) + (select count(*) from public.support_notification);
+  o := o || jsonb_build_object('q_is_fixture', public.fn_reason_subject_is_fixture(jsonb_build_object('quote_id', v_q)),
+    'q_fixture_filed', public.fn_reason_hold('sales_engineer', 'sql.trg_quote_quality', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb,
+            '{}'::jsonb, jsonb_build_object('quote_id', v_q, 'content_md5', v_due->>'content_md5'), 'model_hold', 'zz-b5-quote-fx') is not null);
+  update public.customers set email = 'zz-demo-b5-customer@example.invalid'
+   where id = (select i.customer_id from public.quotes q join public.inquiries i on i.id = q.inquiry_id where q.id = v_q);
+  update public.leads set email = 'zz-demo-b5-supplier@example.invalid', claimed_by = null
+   where id = (select supplier_id from public.quotes where id = v_q);
+  o := o || jsonb_build_object('q_demo_is_fixture', public.fn_reason_subject_is_fixture(jsonb_build_object('quote_id', v_q)));
   v_id := public.fn_reason_hold('sales_engineer', 'sql.trg_quote_quality', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
             jsonb_build_object('quote_id', v_q, 'content_md5', v_due->>'content_md5'), 'model_hold', 'zz-b5-quote');
+  o := o || jsonb_build_object('q_filed', v_id is not null);
   o := o || jsonb_build_object('q_resolve', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ',
             'decision', jsonb_build_object('choice', null, 'fields', v_fields)))->>'status');
   select quality into v from public.quotes where id = v_q;
@@ -1166,8 +1193,14 @@ begin
   o := o || jsonb_build_object('gaps_before', (select jsonb_agg(x->>'code') from jsonb_array_elements(public.fn_supplier_portfolio_gaps(v_sup)) x),
     'gaps_due', public.fn_supplier_readings_due(v_sup)->'own_words');
   select s.trade_code || '.' || s.code into v_key from public.taxonomy_trade_service s where s.active and s.trade_code = v_trade order by s.sort, s.code limit 1;
+  -- the confirmed supplier may be a harness identity too (#1219 files nothing for it): asserted, then re-pointed (rolled back)
+  o := o || jsonb_build_object('w_is_fixture', public.fn_reason_subject_is_fixture(jsonb_build_object('supplier_id', v_sup)),
+    'w_fixture_filed', public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_portfolio_gaps', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('supplier_id', v_sup, 'word', 'ZZ DEMO own words'), 'model_hold', 'zz-b5-word-fx') is not null);
+  update public.leads set email = 'zz-demo-b5-supplier@example.invalid', claimed_by = null where id = v_sup;
   v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_portfolio_gaps', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
             jsonb_build_object('supplier_id', v_sup, 'word', 'ZZ DEMO own words'), 'model_hold', 'zz-b5-word');
+  o := o || jsonb_build_object('w_filed', v_id is not null);
   perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_key)));
   v := public.fn_supplier_portfolio_gaps(v_sup);
   o := o || jsonb_build_object('gaps_after', (select jsonb_agg(x->>'code') from jsonb_array_elements(v) x),
@@ -1201,7 +1234,8 @@ begin
               'fn_reason_apply_sql__fn_supplier_portfolio_gaps', 'fn_reason_apply_sql__trg_quote_quality')),
     'service_can', has_function_privilege('service_role', 'public.fn_quote_aspect_reading_record(uuid,text,text[],bigint)', 'execute'),
     'rls', (select bool_and(c.relrowsecurity) from pg_class c where c.oid in ('public.supplier_capability_reading'::regclass,
-              'public.supplier_own_word_reading'::regclass, 'public.quote_aspect_reading'::regclass)));
+              'public.supplier_own_word_reading'::regclass, 'public.quote_aspect_reading'::regclass)),
+    'notif_escaped', (select count(*) from public.notifications) + (select count(*) from public.support_notification) - v_notif);
   raise exception 'CHK<<%>>', o::text;
 end $p$;`);
   console.log(JSON.stringify(out, null, 1));
@@ -1214,6 +1248,10 @@ end $p$;`);
   assert.ok(['not_read', 'reasoned'].includes(out.q_before), 'an unread quote is scored by structure, never held on a model (24 Sep 2026)');
   assert.ok(out.q_due_aspects >= 1);
   assert.equal(out.q_due_after_held, true, 'a queued reading is not re-asked on every write');
+  if (out.q_is_fixture) assert.equal(out.q_fixture_filed, false, 'a harness quote is never filed for a model (#1219)');
+  assert.equal(out.q_demo_is_fixture, false, 'the re-pointed ZZ DEMO quote is not a harness record');
+  assert.equal(out.q_filed, true, 'fn_reason_hold files a held question for a quote that is not harness traffic');
+  assert.equal(out.notif_escaped, 0, 'the probe queued no notification for anyone');
   assert.equal(out.q_resolve, 'applied');
   assert.equal(out.q_after, 'reasoned'); assert.equal(out.q_cat_pass_after, 'true'); assert.equal(out.q_missing_after, '0');
 
@@ -1226,6 +1264,8 @@ end $p$;`);
   assert.ok(out.gaps_due.includes('ZZ DEMO own words'));
   assert.ok(out.gaps_after.includes('own_word_is_a_service'), JSON.stringify(out.gaps_after));
   assert.equal(out.gaps_named, true);
+  if (out.w_is_fixture) assert.equal(out.w_fixture_filed, false, 'a harness supplier is never filed for a model (#1219)');
+  assert.equal(out.w_filed, true, 'fn_reason_hold files a held question for a supplier that is not harness traffic');
   assert.equal(out.bad_key, '22023');
 
   assert.equal(out.cat_by_name, null, 'a catalogue name in the words decides nothing');

@@ -38,6 +38,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "waste_management:skip-and-roro-container-sizes",
+      "topic": "Skip and roll-on roll-off container sizes",
+      "kind": "size_reference",
+      "body_en": "Skips are sized in cubic yards. One UK skip-hire guide lists: 2 yd mini (1.5 m³, 20-30 bags), 4 yd midi (3.1 m³, 30-40 bags), 6 yd small builders' skip (4.6 m³, 50-60 bags, suited to loose heavy material such as soil, stones or bricks), 8 yd builders' skip (6.1 m³, 60-80 bags, for larger home projects), 12, 14 and 16 yd large builders'/maxi skips (9.2, 10.7 and 12.2 m³) for clearances and light construction waste, with a weight limit of about 5 tonnes and not suitable for inert heavy material, and roll-on roll-off (RORO) containers of 20 yd (15.3 m³, for demolition and heavier material such as bricks, rubble, soil and stone) and 40 yd (30.6 m³, not suitable for loose heavy material), both with a 16-tonne limit. For a renovation, heavy debris therefore points to the smaller skips (up to 8 yd) or a 20 yd RORO, and bulky light strip-out to the maxi sizes. Not established here: sizes, weight caps and placement rules in UAE emirates; quotes should state volume in m³, maximum payload, exchange frequency and disposal site.",
+      "body_ar": "تُقاس سعة حاويات المخلفات (السكيب) بالياردة المكعبة. ويعدّد أحد أدلة تأجير الحاويات في المملكة المتحدة: الحاوية الصغيرة 2 ياردة (1.5 م³، 20-30 كيساً)، والمتوسطة 4 ياردات (3.1 م³، 30-40 كيساً)، وحاوية البنّائين الصغيرة 6 ياردات (4.6 م³، 50-60 كيساً، مناسبة للمواد الثقيلة السائبة كالتربة والحجارة والطوب)، وحاوية البنّائين 8 ياردات (6.1 م³، 60-80 كيساً، للمشاريع المنزلية الأكبر)، والحاويات الكبيرة/ماكسي 12 و14 و16 ياردة (9.2 و10.7 و12.2 م³) لعمليات الإخلاء ومخلفات البناء الخفيفة، بحد وزن يقارب 5 أطنان وهي غير مناسبة للمواد الخاملة الثقيلة، وحاويات الرفع والتحميل (RORO) بسعة 20 ياردة (15.3 م³، لأعمال الهدم والمواد الأثقل كالطوب والركام والتربة والحجارة) و40 ياردة (30.6 م³، غير مناسبة للمواد الثقيلة السائبة)، وكلتاهما بحد وزن 16 طناً. لذلك تناسب مخلفات الترميم الثقيلة الحاويات الأصغر (حتى 8 ياردات) أو حاوية RORO سعة 20 ياردة، بينما تناسب مخلفات التفكيك الخفيفة كبيرة الحجم أحجام الماكسي. غير مثبت هنا: الأحجام وحدود الوزن وقواعد وضع الحاويات في إمارات الدولة؛ وينبغي أن تحدد عروض الأسعار الحجم بالمتر المكعب والحمولة القصوى وتكرار الاستبدال وموقع التخلص.",
+      "sources": [
+        "https://www.dunmowgroup.com/blog/skip-size-guide/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -54,6 +67,15 @@
       "expected_entry_ids": [
         "waste_management:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What skip sizes are available for renovation waste?",
+      "q_ar": "ما أحجام الحاويات المتاحة لمخلفات التجديد؟",
+      "expected_entry_ids": [
+        "waste_management:skip-and-roro-container-sizes"
+      ],
+      "why": "No entry of this pack answered it (no entry lists skip sizes; the checklist only lists skip sizes as a field to state). waste_management:skip-and-roro-container-sizes was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from waste_management.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "waste_management:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "waste_management:skip-and-roro-container-sizes"
+    ]
   }
 }

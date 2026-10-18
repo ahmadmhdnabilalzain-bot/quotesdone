@@ -41,6 +41,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "books_educational:media-content-import-permit",
+      "topic": "Media content permit for imported publications",
+      "kind": "regulatory_requirement",
+      "body_en": "Yes. Businesses importing printed materials into the UAE, including books, must obtain National Media Council (NMC) import clearance before customs will release the shipment. Uncleared materials are held at the port of entry, with daily storage and handling charges; the importer may then apply for clearance retroactively (which may be refused), destroy the goods under customs supervision at its own cost, or re-export them. One licensing guide estimates the clearance cost at AED 800-3,000 per shipment and recommends applying 1-2 weeks before arrival. Not established here: the official fee schedule, the current name of the authority's portal, and whether school textbooks need separate education-authority approval.",
+      "body_ar": "نعم. يجب على الشركات التي تستورد مطبوعات إلى الإمارات، ومنها الكتب، الحصول على إذن استيراد من المجلس الوطني للإعلام قبل أن تُفرج الجمارك عن الشحنة. وتُحتجز المواد غير المجازة في منفذ الدخول مع رسوم تخزين ومناولة يومية، ثم يمكن للمستورد التقدم بطلب الإجازة بأثر لاحق (وقد يُرفض)، أو إتلاف البضاعة تحت إشراف الجمارك على نفقته، أو إعادة تصديرها. ويقدّر أحد أدلة الترخيص تكلفة الإجازة بنحو 800 إلى 3,000 درهم للشحنة، ويوصي بالتقديم قبل الوصول بأسبوع إلى أسبوعين. لم يُثبت هنا: جدول الرسوم الرسمي، والاسم الحالي لبوابة الجهة المختصة، وما إذا كانت الكتب المدرسية تحتاج موافقة منفصلة من جهة التعليم.",
+      "sources": [
+        "https://uaefreezonefinder.com/uae-printing-publishing-nmc-license-guide-2026/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "books_educational:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Do imported books need Media Council approval before we can sell them to schools?",
+      "q_ar": "هل تحتاج الكتب المستوردة إلى موافقة مجلس الإمارات للإعلام قبل بيعها للمدارس؟",
+      "expected_entry_ids": [
+        "books_educational:media-content-import-permit"
+      ],
+      "why": "No entry of this pack answered it (Standards entry covers MoIAT/ECAS product conformity only; nothing on UAE Media Council content approval for imported books; missing). books_educational:media-content-import-permit was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from books_educational.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "books_educational:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "books_educational:media-content-import-permit"
+    ]
   }
 }

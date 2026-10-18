@@ -50,6 +50,8 @@ export async function payReveal(stripe: StripeCall, a: PayArgs): Promise<PayResu
   const p = await priceToken(stripe, a.ct, a.quoteAmount, a.rate);
   if (!p.ok) return { status: 'failed', error: p.error };
   const { priced } = p;
+  // An unreadable rate prices at 0 (revealCharge): refuse before any Stripe write, never charge a guess.
+  if (!(priced.charge.total_charged > 0)) return { status: 'failed', priced, error: 'invalid_fee' };
   if (fils(priced.charge.total_charged) !== Math.round(Number(a.expectedTotalFils))) return { status: 'repriced', priced };
 
   // One Stripe customer per QuotesDone customer, found by our id rather than by email.

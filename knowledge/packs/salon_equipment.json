@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "salon_equipment:laser-ipl-regulated-as-healthcare",
+      "topic": "Laser and IPL hair removal as a regulated health service in Dubai",
+      "kind": "regulatory_note",
+      "body_en": "In Dubai, laser hair removal is regulated by the Dubai Health Authority (DHA) as a medical activity. Khaleej Times reported in 2011 that salons had until 27 July 2011 to either stop offering laser treatments or convert to specialty centres, med-spa clinics or cosmetic laser facilities, employing a full-time licensed physician with trained, licensed technicians working under supervision, with complete physical and clinical exams of clients before treatment and complete safety measures. Dubai Municipality took over licensing of beauty centres from 31 August 2011, while the DHA continued to regulate medical activities such as laser treatments. The report describes laser and IPL treatments as turning salon clients into patients. So a salon should not operate such equipment for clients without the health licensing. Not established here: the current DHA standard, and rules in Abu Dhabi (DoH) and the northern emirates (MOHAP); confirm before supplying.",
+      "body_ar": "في دبي، تنظّم هيئة الصحة بدبي (DHA) إزالة الشعر بالليزر بوصفها نشاطاً طبياً. وأفادت صحيفة خليج تايمز في عام 2011 بأن الصالونات مُنحت مهلة حتى 27 يوليو 2011 إما للتوقف عن تقديم علاجات الليزر أو التحول إلى مراكز تخصصية أو عيادات سبا طبية أو منشآت ليزر تجميلي، مع توظيف طبيب مرخّص بدوام كامل وفنيين مدرَّبين ومرخَّصين يعملون تحت إشرافه، وإجراء فحوص بدنية وسريرية كاملة للعملاء قبل العلاج، وتطبيق إجراءات سلامة كاملة. وتولّت بلدية دبي ترخيص مراكز التجميل اعتباراً من 31 أغسطس 2011، بينما واصلت هيئة الصحة بدبي تنظيم الأنشطة الطبية مثل علاجات الليزر. ويصف التقرير علاجات الليزر والضوء النبضي المكثف (IPL) بأنها تحوّل عملاء الصالون إلى مرضى. لذلك لا ينبغي للصالون تشغيل هذه الأجهزة للعملاء دون الترخيص الصحي. غير مثبت هنا: المعيار الحالي لهيئة الصحة بدبي، والقواعد في أبوظبي (دائرة الصحة) والإمارات الشمالية (وزارة الصحة ووقاية المجتمع)؛ يجب التأكد قبل التوريد.",
+      "sources": [
+        "https://khaleejtimes.com/uae/dubai-gets-tough-with-laser-treatment-at-salons"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "salon_equipment:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Can a beauty salon buy and use an IPL hair removal machine without a medical licence?",
+      "q_ar": "هل يمكن لصالون تجميل شراء جهاز إزالة الشعر بالضوء النبضي واستخدامه دون ترخيص طبي؟",
+      "expected_entry_ids": [
+        "salon_equipment:laser-ipl-regulated-as-healthcare"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry says whether IPL use needs a DHA/medical licence; uae-standards only says salons are licensed and inspected by Dubai Municipality). salon_equipment:laser-ipl-regulated-as-healthcare was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from salon_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "salon_equipment:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "salon_equipment:laser-ipl-regulated-as-healthcare"
+    ]
   }
 }

@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // procurement_api — the customer-authed surface for the spec §22 Orders module. Auth: customer
 // Supabase JWT -> email -> customers row (same model as customer_api and project_api).
 //
@@ -34,7 +35,7 @@ async function customer(req: Request): Promise<{ id: string; email: string } | n
   return { id: c.id as string, email: c.email as string };
 }
 
-Deno.serve(observe('procurement_api', async (req) => {
+Deno.serve(siteCors(observe('procurement_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -52,4 +53,4 @@ Deno.serve(observe('procurement_api', async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));

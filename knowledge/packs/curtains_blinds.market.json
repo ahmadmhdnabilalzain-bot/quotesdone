@@ -7,9 +7,10 @@
     {
       "id": "curtains_blinds:uae-market-products",
       "topic": "Curtains & blinds: products, variants and grades sold in the UAE",
+      "topic_ar": "الستائر بأنواعها: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Curtains and blinds sold in the UAE include blackout and dim-out curtains, sheers, motorised curtain tracks, pinch-pleat, wave and eyelet headings, roller blinds (blackout, sunscreen with 1-10% openness, dual/day-night), Roman blinds, Venetian blinds (aluminium 25/50 mm, wood and faux wood), vertical blinds, honeycomb/cellular shades, zebra blinds, outdoor zip-screen and awning systems, pergola fabrics, and hospital cubicle curtains and tracks. Buyers specify fabric composition (polyester, linen, blends), fire-retardant rating (for hotels and public buildings civil defence authorities commonly accept BS 5867 Part 2 Type B or NFPA 701 test certificates), UV and heat rejection, openness factor, motorisation (Somfy, tubular motors, RTS/Zigbee/KNX integration), lining, and fullness ratio (typically 2-2.5x for wave curtains). Hospital curtains are antimicrobial and disposable or washable.",
-      "body_ar": "تشمل الستائر والستائر المعدنية المباعة في الإمارات الستائر المعتمة الكاملة والجزئية، والستائر الشفافة، ومسارات الستائر الآلية، ورؤوس الستائر المطوية والموجية وذات الحلقات، والستائر الدوارة (معتمة، شمسية بنسبة انفتاح 1-10%، مزدوجة ليلية ونهارية)، والستائر الرومانية، والستائر الفينيسية (ألمنيوم 25/50 مم، خشب وخشب صناعي)، والستائر العمودية، والستائر الخلوية على شكل خلايا النحل، والستائر المخططة (زيبرا)، وأنظمة الستائر الخارجية ذات السحّاب والمظلات، وأقمشة البرجولات، وستائر ومسارات حجرات المستشفيات. يحدد المشترون تركيبة القماش (بوليستر، كتان، مزيج)، وتصنيف مقاومة الحريق (للفنادق والمباني العامة تقبل سلطات الدفاع المدني عادةً شهادات اختبار BS 5867 الجزء 2 النوع B أو NFPA 701)، وحجب الأشعة فوق البنفسجية والحرارة، ومعامل الانفتاح، والتشغيل الآلي (سومفي، المحركات الأنبوبية، التكامل مع RTS/زيجبي/KNX)، والبطانة، ونسبة الامتلاء (عادةً 2-2.5 مرة للستائر الموجية). وستائر المستشفيات مضادة للميكروبات وتكون أحادية الاستخدام أو قابلة للغسل.",
+      "body_en": "This entry covers the curtains and blinds sold in the UAE, from blackout curtains and motorised tracks to roller, Roman, Venetian and outdoor blinds, and how buyers specify them. Curtains and blinds sold in the UAE include blackout and dim-out curtains, sheers, motorised curtain tracks, pinch-pleat, wave and eyelet headings, roller blinds (blackout, sunscreen with 1-10% openness, dual/day-night), Roman blinds, Venetian blinds (aluminium 25/50 mm, wood and faux wood), vertical blinds, honeycomb/cellular shades, zebra blinds, outdoor zip-screen and awning systems, pergola fabrics, and hospital cubicle curtains and tracks. Buyers specify fabric composition (polyester, linen, blends), fire-retardant rating (for hotels and public buildings civil defence authorities commonly accept BS 5867 Part 2 Type B or NFPA 701 test certificates), UV and heat rejection, openness factor, motorisation (Somfy, tubular motors, RTS/Zigbee/KNX integration), lining, and fullness ratio (typically 2-2.5x for wave curtains). Hospital curtains are antimicrobial and disposable or washable.",
+      "body_ar": "تشمل الستائر المباعة في الإمارات الستائر المعتمة (بلاك آوت) والسكك الكهربائية (الموتور)، وصولًا إلى الستائر الرول والرومانية والفينيسية والستائر الخارجية، مع طريقة تحديد المشترين لمواصفاتها. وتضم الستائر المعتمة وشبه المعتمة، والستائر الشفافة (الشيفون)، وسكك الستائر الكهربائية، وتفصيلات الكسرات (بنش بليت) والويف والحلقات، والستائر الرول (معتمة، وسن سكرين بنسبة فتحات 1-10%، والمزدوجة ليل/نهار)، والستائر الرومانية، والستائر الفينيسية (ألمنيوم 25/50 مم، وخشب وخشب صناعي)، والستائر العمودية، وستائر خلية النحل، وستائر الزيبرا، وأنظمة الزيب سكرين والمظلات الخارجية، وأقمشة البرجولات، وستائر الفواصل وسككها في المستشفيات. ويحدد المشتري تركيبة القماش (بوليستر، كتان، خلطات)، ودرجة مقاومة الحريق (للفنادق والمباني العامة تقبل جهات الدفاع المدني عادة شهادات اختبار BS 5867 Part 2 Type B أو NFPA 701)، وصد الأشعة فوق البنفسجية والحرارة، ونسبة الفتحات، والتشغيل الكهربائي (Somfy، المحركات الأنبوبية، والربط بـRTS/Zigbee/KNX)، والبطانة، ونسبة الكثافة (عادة 2-2.5 ضعف لستائر الويف). أما ستائر المستشفيات فهي مضادة للميكروبات، وتكون للاستعمال مرة واحدة أو قابلة للغسل.",
       "sources": [
         "https://www.alvoraglobalfabrics.com/blog/fire-retardant-curtain-fabric-middle-east",
         "https://creativevisionglobal.com/somfy-motor-dubai/",
@@ -24,9 +25,10 @@
     {
       "id": "curtains_blinds:uae-market-brands",
       "topic": "Curtains & blinds: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الستائر بأنواعها: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Confirmed motor partner and common system and fabric brands: Somfy, Creative Vision Global (Somfy Expert partner), Hunter Douglas, Silent Gliss, Coulisse, Mermet, Serge Ferrari. Apart from the Somfy partner, UAE distributors were not checked. Supply and installation is done by curtain showrooms and workshops in Satwa, Karama, Al Quoz, Deira, Sharjah and Musaffah, and by fit-out companies.",
-      "body_ar": "شريك المحركات المؤكد وعلامات الأنظمة والأقمشة الشائعة: Somfy، Creative Vision Global (Somfy Expert partner)، Hunter Douglas، Silent Gliss، Coulisse، Mermet، Serge Ferrari. وباستثناء شريك سومفي، لم يُتحقق من الموزعين في الإمارات. ويتولى التوريد والتركيب معارض وورش الستائر في السطوة والكرامة والقوز وديرة والشارقة ومصفح، وشركات التجهيزات الداخلية.",
+      "body_en": "This entry names the motor brand Somfy and system and fabric brands such as Hunter Douglas and Silent Gliss, and where curtain showrooms and workshops operate. Confirmed motor partner and common system and fabric brands: Somfy, Creative Vision Global (Somfy Expert partner), Hunter Douglas, Silent Gliss, Coulisse, Mermet, Serge Ferrari. Apart from the Somfy partner, UAE distributors were not checked. Supply and installation is done by curtain showrooms and workshops in Satwa, Karama, Al Quoz, Deira, Sharjah and Musaffah, and by fit-out companies.",
+      "body_ar": "من الماركات المعروفة في الستائر والبلايند محركات Somfy، وأنظمة وأقمشة Hunter Douglas وSilent Gliss، مع بيان أماكن صالات العرض وورش الستائر. شريك المحركات المؤكد والماركات الشائعة للأنظمة والأقمشة: Somfy، وCreative Vision Global (شريك Somfy Expert)، وHunter Douglas، وSilent Gliss، وCoulisse، وMermet، وSerge Ferrari. وباستثناء شريك Somfy لم نتحقق من الموزعين في الإمارات. ويتولى التوريد والتركيب محلات وورش الستائر في السطوة والكرامة والقوز وديرة والشارقة ومصفح، وكذلك شركات التشطيبات الداخلية (الفت آوت).",
       "sources": [
         "https://www.alvoraglobalfabrics.com/blog/fire-retardant-curtain-fabric-middle-east",
         "https://creativevisionglobal.com/somfy-motor-dubai/",
@@ -41,9 +43,10 @@
     {
       "id": "curtains_blinds:uae-market-sizes",
       "topic": "Curtains & blinds: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الستائر بأنواعها: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Curtains are priced per linear metre of track or per m2 of finished curtain, sometimes per metre of fabric plus stitching; blinds are priced per m2 with a minimum chargeable area (often 1-1.5 m2 per blind). Motorisation is priced per motor and per control/remote. Fabric widths are commonly 140 cm, 280 cm and 300 cm. Hotel projects are quoted per room type with a schedule of windows; installation is usually included, with site measurement free for local jobs.",
-      "body_ar": "تُسعّر الستائر لكل متر طولي من المسار أو لكل متر مربع من الستارة الجاهزة، وأحياناً لكل متر من القماش مع الخياطة؛ وتُسعّر الستائر المعدنية والدوارة لكل متر مربع مع حد أدنى للمساحة المحتسبة (غالباً 1-1.5 م2 لكل ستارة). ويُسعّر التشغيل الآلي لكل محرك ولكل وحدة تحكم أو جهاز تحكم عن بعد. وعرض الأقمشة الشائع 140 سم و280 سم و300 سم. وتُسعّر مشاريع الفنادق لكل نوع غرفة مع جدول النوافذ؛ ويكون التركيب مشمولاً عادةً، مع قياس مجاني للموقع في الأعمال المحلية.",
+      "body_en": "This entry explains how curtains are priced per linear metre or m2 and blinds per m2 with a minimum area, plus motor pricing and common fabric widths. Curtains are priced per linear metre of track or per m2 of finished curtain, sometimes per metre of fabric plus stitching; blinds are priced per m2 with a minimum chargeable area (often 1-1.5 m2 per blind). Motorisation is priced per motor and per control/remote. Fabric widths are commonly 140 cm, 280 cm and 300 cm. Hotel projects are quoted per room type with a schedule of windows; installation is usually included, with site measurement free for local jobs.",
+      "body_ar": "تُسعَّر الستائر في الإمارات بالمتر الطولي أو بالمتر المربع، والبلايندز بالمتر المربع مع حد أدنى للمساحة، ويُسعَّر الموتور منفصلاً، ولأقمشة الستائر عروض شائعة. فالستائر تُسعَّر بالمتر الطولي من السكة أو بالمتر المربع من الستارة الجاهزة، وأحياناً بمتر القماش مضافاً إليه الخياطة؛ والبلايندز بالمتر المربع مع حد أدنى للمساحة المحتسبة (غالباً 1 إلى 1.5 م2 لكل بلايند). ويُسعَّر التشغيل الكهربائي لكل موتور ولكل وحدة تحكم/ريموت. وعروض الأقمشة الشائعة 140 سم و280 سم و300 سم. ومشاريع الفنادق تُسعَّر حسب نوع الغرفة مع جدول بالشبابيك؛ والتركيب مشمول عادة، وأخذ المقاسات في الموقع مجاني للأعمال المحلية.",
       "sources": [
         "https://www.alvoraglobalfabrics.com/blog/fire-retardant-curtain-fabric-middle-east",
         "https://creativevisionglobal.com/somfy-motor-dubai/",
@@ -58,11 +61,14 @@
   ],
   "eval": [
     {
-      "q_en": "What openness factor should we choose for sunscreen roller blinds in an office?",
-      "q_ar": "ما نسبة الانفتاح التي يجب أن نختارها للستائر الدوارة الشمسية في مكتب؟",
+      "q_en": "What styles of curtains and blinds do UAE suppliers offer for commercial premises?",
+      "q_ar": "شو أنواع الستاير والبلايندز اللي يوفرها الموردين في الإمارات للمحلات والمكاتب التجارية؟",
       "expected_entry_ids": [
         "curtains_blinds:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists blackout curtains, roller, Roman, Venetian and motorised blinds sold in the UAE.",
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

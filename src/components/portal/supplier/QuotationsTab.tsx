@@ -24,6 +24,7 @@ const COPY = {
     job: 'Job No.', notStarted: 'No quotation yet', open: 'Open conversation', close: 'Close', inquiry: 'Read the inquiry',
     option: (n: number) => `Option ${n}`, loading: 'Loading…', err: 'Something went wrong. Please try again.',
     pdf: 'Your quotation (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfHeld: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.', pdfFailed: 'The document could not be prepared. Please try again.',
+    lost: (o: string) => `Why ${o} was not chosen`, thisQuote: 'this quotation',
     qst: { draft: 'Held — not sent yet', submitted: 'Sent to the customer', accepted: 'Customer revealed you', withdrawn: 'Withdrawn', expired: 'Expired' } as Record<string, string>,
   },
   ar: {
@@ -32,6 +33,8 @@ const COPY = {
     job: 'رقم الطلب', notStarted: 'لا يوجد عرض بعد', open: 'فتح المحادثة', close: 'إغلاق', inquiry: 'قراءة الطلب',
     option: (n: number) => `الخيار ${n}`, loading: 'جارٍ التحميل…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
     pdf: 'عرض سعركم (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfHeld: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
+    // Suppliers are English only (founder, 28 Sep 2026): the loss reasons are English, so is their label.
+    lost: (o: string) => `Why ${o} was not chosen`, thisQuote: 'this quotation',
     qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضكم', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
   },
 };
@@ -50,8 +53,7 @@ function QuotePdf({ token, lang, quoteId, title }: { token: string; lang: Lang; 
     <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px]">
       <span className="text-muted-foreground">{title ? `${title} · ` : ''}{t.pdf}</span>
       <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
-      <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
-      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{err === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
+      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
     </div>
   );
 }
@@ -116,6 +118,12 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
                 </div>
               </div>
               {i.quotes.map((q) => <QuotePdf key={'pdf-' + q.id} token={token} lang={lang} quoteId={q.id} title={i.quotes.length > 1 ? t.option(q.option_no) : null} />)}
+              {i.quotes.filter((q) => q.loss_feedback?.length).map((q) => (
+                <div key={'lf-' + q.id} lang="en" dir="ltr" className="mt-2 rounded-chip border border-[var(--line2)] px-3 py-2 text-[12.5px]">
+                  <p className="font-semibold text-foreground">{t.lost(i.quotes.length > 1 ? `Option ${q.option_no}` : t.thisQuote)}</p>
+                  <ul className="mt-1 list-disc ps-4 text-muted-foreground">{(q.loss_feedback || []).map((r) => <li key={r.code}>{r.text}</li>)}</ul>
+                </div>
+              ))}
               {i.quotes.filter((q) => q.on_hold).map((q) => (
                 <SpecHoldPanel key={q.id} quoteId={q.id} lang={lang} token={token} onChanged={load} onResubmit={() => setOpen(i.id)} title={i.quotes.length > 1 ? t.option(q.option_no) : null} />
               ))}

@@ -156,3 +156,20 @@ export function carriedFailures(state: StepState[], ranMs: Record<string, number
     .map((s) => ({ name: s.step, error: 'its last run at ' + s.last_started_at + ' failed and it has not passed since (last ok: '
       + (s.last_ok_at ?? 'never') + ')', carried: true }));
 }
+
+// A DETACHED RUN'S FAILURES AS fn_it_duty_settle ITEMS (12 Oct 2026, it_engineer). `marketing` and `itlater`
+// run in their own invocation (index.ts, DETACHED), so their failures no longer reach the tick's heartbeat;
+// each failing sub-step is one item, keyed by its own name, so a nested runner's map is read per entry.
+export function detachedItems(name: string, out: unknown, nested: boolean) {
+  // A whole-run failure (the 120 s cap, a throw) is {ok:false,error} even for a nested runner: it is ONE item
+  // under the step's name, never read entry by entry, or an empty list would close open findings over a hung run.
+  const whole = failureOf(out);
+  if (whole) return [{ item: name, title: 'detached ' + name + ' failed: ' + whole, owner_seat: 'it_engineer',
+    subject: 'resilience_ping', blast: 'agent_facing', affected: 1, evidence: { step: name, error: whole } }];
+  const parts: Record<string, unknown> = nested && out && typeof out === 'object' ? out as Record<string, unknown> : { [name]: out };
+  return Object.entries(parts).flatMap(([k, v]) => {
+    const f = failureOf(v);
+    return f ? [{ item: k, title: 'detached ' + name + ' step ' + k + ' failed: ' + f, owner_seat: 'it_engineer',
+      subject: 'resilience_ping', blast: 'agent_facing', affected: 1, evidence: { step: name, sub: k, error: f } }] : [];
+  });
+}
