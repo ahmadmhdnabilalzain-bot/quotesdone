@@ -199,7 +199,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     //   - a hard per-IP message ceiling   (site_assistant_ip_hard_hour, default 80), so a script that
     //     forges a fresh id on every call cannot escape the IP bucket.
     // Callers without a conv id (older clients) keep the original per-IP message bucket.
-    const conv = String(b.conv || '').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 64);
+    const conv = convIdOf(b.conv);   // 8-64 characters or none: a short id must never read another visitor's stored turns (review of #1438)
     const firstTurn = !Array.isArray(b.history) || b.history.filter((h: any) => h && h.role === 'user').length <= 1;
     const hasConv = !who && conv.length >= 8;
     // rlKey / rlLimit are also handed to ai_gateway (rate_key below), so the gateway spends from the
@@ -227,7 +227,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // THE WHOLE CONVERSATION (_shared/chat_history.ts, 18 Oct 2026). This was b.history.slice(-6) at 600 characters each,
     // so the founder's wardrobe dimensions were gone by the fourth turn. Every turn is stored in assistant_logs under
     // conv_id and read back here; the browser's copy is used only while the database has none yet.
-    const convKey = conv ? 'w-' + conv : '';
+    const convKey = conv ? 'w-' + (who ? String(who.email).toLowerCase().replace(/[^a-z0-9]/g, '') + '-' : '') + conv : '';   // signed in: bound to the account too
     const pStored = convKey ? loadTranscript(admin, convKey) : Promise.resolve(null);
 
     // A VERIFIED SESSION OUTRANKS BOTH HEURISTICS. Guessing the audience from the URL and the
