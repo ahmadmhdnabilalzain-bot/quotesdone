@@ -185,6 +185,18 @@ async function cleanupLearning(tag, ids, window) {
   // PDFs named only by the run's ids (agent-docs compare/<inquiry>/..., quote-files quotes/<lead>/<inquiry>/regenerated/...).
   // Removed by the run's own UUIDs anywhere in the name, and by its numeric lead ids only inside the lead-keyed folders.
   await del('qd_compare_cache', `delete from public.qd_compare_cache where inquiry_id::text in (${lst(ids.inquiries)})`);
+  // Run 321d13ae (18 Oct) left rows that features merged since run 4 write: the quotation chat thread (chat_threads), the
+  // WhatsApp turns of the run's demo sender (wa_turn, the tag is in their fact pack), and a seat task a demo rating raised
+  // (org_tasks) with its decision_trace and undo_log rows. Removed by the run's own ids or tag only; undo_log last,
+  // because deleting the task writes one more undo row.
+  await del('chat_threads', `delete from public.chat_threads where inquiry_id::text in (${lst(ids.inquiries)}) or customer_id::text in (${lst(ids.customers)}) or supplier_id::text in (${lst(ids.leads)})`);
+  await del('wa_turn', `delete from public.wa_turn x where x::text like ${q('%' + tag + '%')}`);
+  const tasks = (await read(`select id from public.org_tasks t where t::text like ${q('%' + tag + '%')}`)).map((r) => String(r.id));
+  if (tasks.length) {
+    await del('decision_trace', `delete from public.decision_trace where entity_type = 'org_task' and entity_id::text in (${lst(tasks)})`);
+    await del('org_tasks', `delete from public.org_tasks where id::text in (${lst(tasks)})`);
+    await del('undo_log', `delete from public.undo_log where table_name = 'org_tasks' and row_id::text in (${lst(tasks)})`);
+  }
   {
     const uu = [...(ids.customers || []), ...(ids.inquiries || []), ...(ids.quotes || [])].map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
     const ld = (ids.leads || []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
