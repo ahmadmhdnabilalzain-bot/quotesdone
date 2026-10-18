@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-13T04:10:09.117Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-18T18:37:14.999Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -998,7 +998,8 @@ CREATE TABLE IF NOT EXISTS public.assistant_logs (
   path text,
   seat text,
   answered boolean,
-  gap_task_id bigint
+  gap_task_id bigint,
+  reply_attempts jsonb
 );
 
 CREATE TABLE IF NOT EXISTS public.autonomy_control_audit (
@@ -8091,7 +8092,9 @@ CREATE TABLE IF NOT EXISTS public.seat_duty (
   last_result jsonb,
   last_error text,
   failures integer DEFAULT 0 NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  avg_ms integer,
+  own_job boolean DEFAULT false NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_exam_item (
@@ -8452,7 +8455,8 @@ CREATE TABLE IF NOT EXISTS public.social_message (
   classification text,
   decided_by text,
   guard_failures text[] DEFAULT '{}'::text[] NOT NULL,
-  handoff_id bigint
+  handoff_id bigint,
+  reply_attempts jsonb
 );
 
 CREATE TABLE IF NOT EXISTS public.social_posts (
