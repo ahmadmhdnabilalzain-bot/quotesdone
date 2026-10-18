@@ -73,8 +73,13 @@ export function ChatWidget() {
     try {
       conv.current = sessionStorage.getItem('qd-chat-conv') || '';
       if (!conv.current) { conv.current = crypto.randomUUID(); sessionStorage.setItem('qd-chat-conv', conv.current); }
+      // the chat survives a reload or a language switch in this tab (18 Oct 2026): it used to restart at the greeting
+      const kept = JSON.parse(sessionStorage.getItem('qd-chat-msgs') || '[]');
+      if (Array.isArray(kept) && kept.length) setMsgs(kept);
     } catch (_e) { conv.current = Math.random().toString(36).slice(2) + Date.now().toString(36); }
   }, []);
+
+  useEffect(() => { try { if (msgs.length > 1) sessionStorage.setItem('qd-chat-msgs', JSON.stringify(msgs)); } catch (_e) { /* private mode */ } }, [msgs]);
 
   // On a phone the launcher sat over the hero's demonstration card. Below 640px it waits for the
   // first scroll; on wider screens it is there from the start.
@@ -111,7 +116,8 @@ export function ChatWidget() {
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
         // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
         // was unreachable code. useLocale() already knows; the value simply never left the browser.
-        body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname, lang: locale, conv: conv.current, ...(images.length ? { images } : {}) })
+        body: JSON.stringify({ message: m, history: next.slice(-40),   // only a first-turn fallback: site_assistant stores every turn and reads the whole conversation back by conv
+        path: pathname, lang: locale, conv: conv.current, ...(images.length ? { images } : {}) })
       });
       if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
         const rd = r.body.getReader(); const dec = new TextDecoder();

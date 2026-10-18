@@ -25,7 +25,8 @@ Deno.test('the routine result reaches the model as facts and the model writes th
   const r = await modelSays(s.deps, { audience: 'supplier', lang: 'ar', message: 'make it 9000', situation: 'They asked to change their quotation price to AED 9000. pricing routine: {"ok":true,"old":10000,"new":9000}',
     subject: { fixture: true, phone: '+971500000021' } });
   assertEquals(r.text, 'Done: your quotation for the ZZ DEMO job is now AED 9,000.');
-  assert(s.calls[0].system.includes('"new":9000'), 'the routine result is in the facts');
+  // the facts ride in the turn itself, after the cached conversation (chat_history.ts, 18 Oct 2026), not in the system prompt
+  assert(s.calls[0].input.includes('"new":9000'), 'the routine result is in the facts');
   assert(s.calls[0].system.includes('suppliers are always answered in English'), 'a supplier is answered in English even when they wrote Arabic');
   assertEquals((s.calls[0].o.subject as Record<string, unknown>).fixture, true, 'a ZZ DEMO turn is tagged for the rehearsal window');
 });
