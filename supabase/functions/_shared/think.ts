@@ -237,10 +237,35 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
       if (ev.length < 8 || !hay.includes(ev)) return `field ${k} has no evidence copied verbatim from the conversation`;
       // ...and the value must be what those words say, not a value merely placed next to them.
       const val = String(f?.value ?? '').trim().toLowerCase();
-      if (!val || !ev.includes(val)) return `field ${k}: the value "${val}" is not in the evidence quoted for it`;
+      if (!val || !valueInEvidence(val, ev)) return `field ${k}: the value "${val}" is not in the evidence quoted for it`;
     }
   }
   return null;
+}
+
+/**
+ * A VALUE IS WHAT ITS EVIDENCE SAYS, NUMBER FOR NUMBER (review of #1444, 18 Oct 2026). Substring containment let "3"
+ * pass for "Validity: 30 days", "2" for "25 m2" and "0.5" for "10.5 mm". The value must still sit inside its evidence,
+ * and every number in it must match a WHOLE number in the evidence: no digit, decimal point or separator-and-digit may
+ * touch it on either side ("9,000.00" is one number; "1,5" stays as written).
+ * prevented by: _shared/think_value_in_evidence.test.ts
+ */
+/** The numbers of a text: each whole number (a thousands comma and a decimal kept: "9,000.00" is one; "450,m2,20.00" is three), and whether a letter
+ *  touches it ("m2", "C25", "L1" are part of a name or a unit, not a quantity). */
+function numbersOf(t: string): { n: string; attached: boolean }[] {
+  const out: { n: string; attached: boolean }[] = [];
+  for (const m of t.matchAll(/\d+(?:,\d{3})*(?:\.\d+)?/g)) {
+    const before = t[m.index! - 1] ?? '', after = t[m.index! + m[0].length] ?? '';
+    out.push({ n: m[0], attached: /\p{L}/u.test(before) || /\p{L}/u.test(after) });
+  }
+  return out;
+}
+export function valueInEvidence(val: string, ev: string): boolean {
+  if (!ev.includes(val)) return false;
+  const evNums = numbersOf(ev);
+  // A number standing alone in the value must be a whole number standing alone in the evidence; one attached to a
+  // letter in the value ("C25") may match the same attached number.
+  return numbersOf(val).every((v) => evNums.some((e) => e.n === v.n && (v.attached || !e.attached)));
 }
 
 /** One JSON object out of a model reply, or null. Tolerates a ```json fence; nothing else. */
