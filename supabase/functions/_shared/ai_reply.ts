@@ -64,8 +64,18 @@ RULES:
 Return ONE JSON object: {"answer":"<the reply>"${extra}}${r.facts ? '\n\nTHIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) : ''}`;
 }
 
+// A MODEL'S OK ANSWER WAS BEING THROWN AWAY (customer_support, 19 Oct 2026). Run c89dc272: conversation_reply came back
+// ok on Sonnet 5.5 and Gemini 3.8 Flash and the customer still got the held notice. The old parser accepted only bare
+// JSON or a fence flush against both ends: a leading newline, a trailing newline after the closing fence, or a sentence
+// before the object made JSON.parse throw, the answer read '' and the turn counted as "no model answered". The object
+// is now taken from the first '{' to the last '}' when the whole string does not parse. A truncated object (cut at
+// the output cap) still does not parse and is still refused: a half answer is never sent.
 const json = (s: string | null | undefined): Record<string, unknown> => {
-  try { return JSON.parse(String(s ?? '').replace(/^```(json)?|```$/g, '').trim()) ?? {}; } catch (_e) { return {}; }
+  const t = String(s ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  for (const c of [t, t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)]) {
+    try { const v = JSON.parse(c); if (v && typeof v === 'object') return v as Record<string, unknown>; } catch (_e) { /* next */ }
+  }
+  return {};
 };
 const parse = (s: string | null | undefined): string => String(json(s).answer ?? '').trim();
 
@@ -107,7 +117,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const sys = '\n\n' + aiSystem(r, replyLang);   // after the brief, which rides as the cached sys_stable block
   const convo = (r.conversation ?? []).slice(-8).map((t) => `${t.role}: ${t.text}`).join('\n');
   const input = (convo ? 'CONVERSATION SO FAR:\n' + convo + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000);
-  const opts = { taskClass: REPLY_CLASS, sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  const opts = { taskClass: REPLY_CLASS, sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
   const left = () => (r.deadline ?? Infinity) - Date.now();
