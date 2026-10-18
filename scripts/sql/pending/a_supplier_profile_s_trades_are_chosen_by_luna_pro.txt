@@ -1,1 +1,1 @@
-Applied at merge by the release operator, AFTER a_supplier_profile_s_trades_are_chosen_by_sonnet_from_our_codes.sql (whose route it supersedes). Must print PROBE OK. Seat: sales_engineer.
+Applied at merge by the release operator, AFTER matrix v3 (gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql, #1433) and a_supplier_profile_s_trades_are_chosen_by_sonnet_from_our_codes.sql. Must print PROBE OK. Seat: sales_engineer.

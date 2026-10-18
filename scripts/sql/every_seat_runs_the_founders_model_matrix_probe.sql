@@ -60,7 +60,7 @@ begin
     ('SE quote_compare',               null,                          'quote_compare',           null,               c_opus, c_luna),
     ('SE quote_review',                null,                          'quote_review',            null,               c_opus, c_luna),
     ('SE quote_extract',               null,                          'quote_extract',           null,               c_luna, c_gem),
-    ('SE supplier_trade_choice',       'supplier_trade_choice',       'supplier_doc_trades',     null,               c_lunp, c_luna),
+    ('SE supplier_trade_choice',       'supplier_trade_choice',       'supplier_doc_trades',     null,               c_lunp, c_son),
     ('SE doc_extract',                 null,                          'doc_extract',             null,               c_luna, c_gem),
     ('SE license_extract',             null,                          'license_extract',         null,               c_luna, c_gem),
     ('SE extract_text',                null,                          'extract_text',            null,               c_luna, c_gem),

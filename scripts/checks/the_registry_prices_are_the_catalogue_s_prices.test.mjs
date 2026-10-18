@@ -53,8 +53,6 @@ const OWNING_SQLS = [
   'scripts/sql/haiku_latest_costs_what_the_catalogue_charges_on_12_october.sql',
   // anthropic/claude-sonnet-5.5, every conversation reply (founder ruling 1219, 13 Oct 2026).
   'scripts/sql/every_conversation_reply_runs_on_sonnet_5_5_with_gemini_behind.sql',
-  // openai/gpt-6-luna-pro, the extraction model (19 Oct 2026, sales_engineer)
-  'scripts/sql/a_supplier_profile_s_trades_are_chosen_by_luna_pro.sql',
 ];
 const V2_SQL = 'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql';
 const RETIRING_SQL = 'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql';
