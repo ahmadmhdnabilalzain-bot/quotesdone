@@ -2,10 +2,14 @@
 //
 // script-src carries NO 'unsafe-inline'. Pages get a per-request nonce from src/middleware.ts: Next
 // reads the nonce out of the request's CSP header and stamps it on its own flight-data scripts, and
-// the one inline script we write ourselves (BootPrefetch on /me) reads it with headers(). Requests the
-// middleware does not see (route handlers, static files) get the same policy with no nonce, so an
-// inline script there is simply blocked. 'strict-dynamic' lets a nonced script load the chunks it
-// imports; browsers that honour it ignore 'self' and the host list, older ones fall back to them.
+// the one inline script we write ourselves (BootPrefetch on /me) reads it with headers().
+// Responses the middleware does not see (route handlers, the global not-found page Next prerenders
+// for unmatched paths) get the policy from next.config.mjs with NO nonce, and there 'unsafe-inline'
+// stays: the prerendered not-found page carries Next's inline flight scripts, which no per-request
+// nonce can reach. Every [locale] page gets the nonced policy, where 'unsafe-inline' is absent.
+// No 'strict-dynamic' (review of #1482): every chunk is 'self', pdf.js is the listed cdnjs host, and
+// strict-dynamic would make browsers ignore that host list, blocking the vercel.live toolbar script
+// on preview deployments.
 // JSON-LD (<script type="application/ld+json">) is data, not script, and CSP does not govern it.
 //
 // Origins, all measured by grepping src/ (14 Sep 2026, kept as they were):
@@ -27,7 +31,7 @@ const vercelLive = process.env.VERCEL_ENV === 'preview' ? ' https://vercel.live'
 
 /** @param {string} [nonce] */
 export function buildCsp(nonce) {
-  const scriptNonce = nonce ? ` 'nonce-${nonce}' 'strict-dynamic'` : '';
+  const scriptNonce = nonce ? ` 'nonce-${nonce}'` : " 'unsafe-inline'";
   return [
     "default-src 'self'",
     `script-src 'self'${scriptNonce} 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''} https://cdnjs.cloudflare.com${vercelLive}`,

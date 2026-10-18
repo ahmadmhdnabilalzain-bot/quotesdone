@@ -19,7 +19,7 @@ import { buildCsp } from './src/lib/csp.mjs';
 // ── SECURITY HEADERS (website audit 14 Sep 2026) ──────────────────────────────────────────────────
 // The CSP and every origin in it are documented in src/lib/csp.mjs. This copy carries no nonce and
 // covers requests the middleware does not see (route handlers, static files); src/middleware.ts
-// replaces it with the nonced policy on every page.
+// replaces it with the nonced policy on every [locale] page.
 const SUPA = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co').host;
 const CSP = buildCsp();
 
