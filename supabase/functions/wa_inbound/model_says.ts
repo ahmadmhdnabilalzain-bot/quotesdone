@@ -20,7 +20,10 @@ export interface SayRequest {
   subject?: Record<string, unknown>;
   rateKey?: string;             // the per-sender ceiling at the gateway (wa:<From>, 20/hour)
   forbidden?: string[];         // another party's identity before a reveal: a hit is rewritten by the model
+  budgetMs?: number;            // the reply's wall-clock budget (default WA_REPLY_BUDGET_MS)
 }
+// A WhatsApp reply is written within this, or the person gets the held notice and the turn is queued (run 5: 73.7 s).
+export const WA_REPLY_BUDGET_MS = 45_000;
 export interface Said { text: string; model: string | null; attempts: string[]; ms: number; escalate: boolean }
 
 export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 words; put each phone number, email or link on its own line, exactly as given in the facts.';
@@ -35,6 +38,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       conversation: r.conversation,
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
       rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true,
+      deadline: t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS),
     });
     return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true };
   } catch (e) {

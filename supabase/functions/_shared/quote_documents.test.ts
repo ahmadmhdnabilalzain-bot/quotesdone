@@ -428,8 +428,8 @@ Deno.test('compare_csv exports the same commercial rows the report shows, marker
   const a = analysisFor('fitout', 'en');
   const t = compareTable(a, false)!;
   // deno-lint-ignore no-explicit-any
-  const shortlisted = a.top3.map((x: any) => x.label);
-  assertEquals(t.head, ['Compare', ...shortlisted]);
+  const live = a.all_quotes.filter((x: any) => x.status !== 'held').sort((x: any, y: any) => (x.price ?? Infinity) - (y.price ?? Infinity)).map((x: any) => x.label);
+  assertEquals(t.head, ['Compare', ...live], 'every live quote is a CSV column, cheapest first');
   assert(!t.head.includes('Supplier B'), 'the held quote is not a CSV column');
   const lead = t.rows.find((r) => r[0] === 'Delivery / lead time')!;
   for (const cell of lead.slice(1)) assert(/^[✓≠—] /.test(cell), 'a marker on ' + cell);

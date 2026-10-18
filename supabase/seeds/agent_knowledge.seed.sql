@@ -1480,7 +1480,7 @@ It does not reject you outright — it enforces a quality standard. A quote belo
 Each quote is scored on how completely it covers the category''s required sections and how well it is itemised — scope, line items with brand/model and specs, quantities and unit prices, and the commercial terms. It must reach the quality threshold to be submittable to the customer.
 
 ## [Quotation] Can suppliers revise quotations?
-No — once a supplier submits a quotation it is final, so it should be reviewed carefully before sending. After a customer reveals a supplier, any changes are arranged directly between them, off the comparison.
+Yes, before Reveal. Under Supplier Agreement §12, a quotation is valid for 30 days from submission unless the supplier refreshes or withdraws it before Reveal, and the supplier is bound by a quotation that is revealed within that validity period. After Reveal, the contract for the work is solely between the supplier and the customer, on terms they agree; QuotesDone is not a party to it.
 
 ## [QuotesDone Constitution] Constitution: Never guess.
 Agents retrieve before answering; below confidence they escalate rather than fabricate. Enforced by the retrieve-first design and eval checks.
@@ -1695,7 +1695,7 @@ A complete, itemised quote: scope of work; line items with brand/model and speci
 (Audience: supplier)
 
 ## [Supplier] Can I revise quotations?
-No — once you submit a quotation it is final, so review it carefully before sending. After a customer reveals you, you are free to adjust anything directly with them — by that point the platform''''s job is done.
+Yes, before Reveal. Under Supplier Agreement §12, a quotation is valid for 30 days from submission unless you refresh or withdraw it before Reveal, and you are bound by a quotation that is revealed within that validity period. After Reveal, the contract for the work is solely between you and the customer, on terms you agree; QuotesDone is not a party to it.
 (Audience: supplier)
 
 ## [Supplier] Can I withdraw a quotation?

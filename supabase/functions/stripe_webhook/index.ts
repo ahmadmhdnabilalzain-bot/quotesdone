@@ -452,7 +452,7 @@ Deno.serve(observe('stripe_webhook', async (req) => {
         const pi = String(ip?.data?.[0]?.payment?.payment_intent || '');
         const sale = await recordRevealSale(admin, { quoteId: String(md.quote_id), customerId: md.customer_id || null,
           baseFee: Number(md.base_fee), processingFee: Number(md.processing_fee), totalCharged: Number(inv.amount_paid) / 100,
-          paymentRef: pi || String(inv.id) });
+          paymentRef: pi || String(inv.id), invoiceId: String(inv.id) });
         if ('error' in sale) await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id }, 'PAID BUT NOT RECORDED - element invoice.paid: ' + sale.error);
         else if (pi) await recordStripeFee(invKey, sale.id, pi, logRun);
       }

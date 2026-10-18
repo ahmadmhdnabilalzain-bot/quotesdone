@@ -5530,7 +5530,8 @@
  ],
  "supabase/functions/_shared/ai_reply.ts": [
   "2ad26f4e1be5",
-  "f50238aec3f2"
+  "f50238aec3f2",
+  "fa3890266f5e"
  ],
  "supabase/functions/_shared/ar_days.ts": [
   "5857bc86ba2e",
@@ -6136,6 +6137,7 @@
   "9621cf0393b6",
   "a30bf6242239",
   "c73b02e4b5e8",
+  "caa9d0149589",
   "d098b2f4595a",
   "d8fa797cf5b7"
  ],
@@ -6530,7 +6532,8 @@
   "c09183a62789",
   "caa8dfdaf4f5",
   "cb974acf7755",
-  "e687fbf0ba76"
+  "e687fbf0ba76",
+  "f00b7f659d1a"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
   "027ef5367e8d",
@@ -6607,5 +6610,24 @@
   "a5cba62f3cdc",
   "d7028cd29b51",
   "d9a9b884d813"
+ ],
+ "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql": [
+  "3c2dc612880a",
+  "7741094dd3ef",
+  "d0466f61047f",
+  "fae3d0feb457"
+ ],
+ "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
+  "2d40f052e0dc",
+  "8e9efb918bad",
+  "8f2b4b5cab7b",
+  "952398d7142e",
+  "bafd773faf8b",
+  "cda600d8f764"
+ ],
+ "scripts/sql/a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql": [
+  "0ad679a262b2",
+  "1390254fa3fe",
+  "6795f24f47d7"
  ]
 }
