@@ -1,0 +1,5 @@
+Committed, not applied: apply at merge (rule: never apply before merge). Until it is live, model_registry and
+model_rate carry 0.75/3.75 (gemini-3.8-flash) and 2/10 (gpt-5.6-sol), so fn_llm_log under-prices every gemini call
+by 10%. Moves when the release operator runs
+`node scripts/apply_sql.mjs scripts/sql/gemini_flash_and_gpt_sol_cost_what_the_catalogue_charges_on_18_october.sql --apply`,
+reads PROBE OK, then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt in the same commit.
