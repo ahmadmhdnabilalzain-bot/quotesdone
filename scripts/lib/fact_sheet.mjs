@@ -79,6 +79,9 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
     system_type: 'Central chilled-water system: ducted concealed fan coil units with air handling units',
     fixtures: '4 bathrooms and 1 kitchen',
   };
+  // Run 321d13ae cust23: landscaping area_sqm got "450 m2 built-up, 6 rooms", which is the house, not
+  // the garden, and the intake was held after three asks. Landscaping's area is the outdoor area.
+  if (trade === 'landscaping') v.area = lang === 'ar' ? 'مساحة الحديقة الخارجية حوالي 300 متر مربع' : 'Garden (outdoor) area of about 300 m2';
   const whole = () => Object.entries(v).map(([k, x]) => `${k}: ${x}`).join('. ') + '.';
   return {
     trade, lang, notSure, values: v,
