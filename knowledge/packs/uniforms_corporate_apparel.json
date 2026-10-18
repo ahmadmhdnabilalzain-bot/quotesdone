@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "uniforms_corporate_apparel:en-iso-20471-classes-for-roadworks",
+      "topic": "EN ISO 20471 visibility classes for roadworks",
+      "kind": "spec_checklist",
+      "body_en": "EN ISO 20471:2013+A1:2016 grades high-visibility clothing into three classes by minimum visible area: Class 1 - 0.14 m2 fluorescent background and 0.10 m2 retroreflective material; Class 2 - 0.50 m2 and 0.13 m2; Class 3 - 0.80 m2 and 0.20 m2. The standard covers vests, jackets, trousers and coveralls, including protective wear for road workers. Not established here: which class a UAE road authority or federal rule requires for road workers, or which class a vest can reach; the client's or road authority's HSE specification governs.",
+      "body_ar": "تصنّف المواصفة EN ISO 20471:2013+A1:2016 ملابس الرؤية العالية إلى ثلاث فئات بحسب الحد الأدنى للمساحة المرئية: الفئة 1 - 0.14 م² من الخلفية الفلورية و0.10 م² من المادة العاكسة؛ الفئة 2 - 0.50 م² و0.13 م²؛ الفئة 3 - 0.80 م² و0.20 م². وتشمل المواصفة السترات والجاكيتات والبناطيل والأفرولات، بما في ذلك الملابس الواقية لعمال الطرق. غير مثبت هنا: الفئة التي تشترطها هيئة طرق أو قاعدة اتحادية في الإمارات لعمال الطرق، أو الفئة التي يمكن أن تبلغها السترة؛ وتسري مواصفة الصحة والسلامة والبيئة الخاصة بالعميل أو بهيئة الطرق.",
+      "sources": [
+        "https://www.centexbel.be/en/problem-solving/testing/high-visibility-clothing-according-en-iso-204712013a12016"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "uniforms_corporate_apparel:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What hi-vis class is required for road workers' vests?",
+      "q_ar": "ما فئة الملابس عالية الوضوح المطلوبة لسترات عمال الطرق؟",
+      "expected_entry_ids": [
+        "uniforms_corporate_apparel:en-iso-20471-classes-for-roadworks"
+      ],
+      "why": "No entry of this pack answered it (entries name EN ISO 20471 but not the class required (Class 2/3) for road workers). uniforms_corporate_apparel:en-iso-20471-classes-for-roadworks was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from uniforms_corporate_apparel.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "uniforms_corporate_apparel:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "uniforms_corporate_apparel:en-iso-20471-classes-for-roadworks"
+    ]
   }
 }

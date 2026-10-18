@@ -42,6 +42,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "tents_shades:event-tent-hire-cost-and-permit-basis",
+      "topic": "Event tent hire cost basis and Dubai permits",
+      "kind": "pricing_reference",
+      "body_en": "Dubai Municipality rules reported for temporary (Ramadan) tents require a Civil Defence approval letter before applying for the municipality permit, at least 4 m from the nearest building, electric lighting 40 cm from the fabric, fire extinguishers within reach, no cooking, and no flammable decoration. Fines start at AED 1,000 and reach AED 50,000, for example for a tent without a permit. Not established here: how event tent hire is priced, current UAE rates, and whether these rules apply to wedding tents; obtain itemised supplier quotes.",
+      "body_ar": "تشترط قواعد بلدية دبي المعلنة للخيام المؤقتة (خيام رمضان) الحصول على خطاب موافقة من الدفاع المدني قبل التقدم بطلب تصريح البلدية، وألا تقل المسافة عن أقرب مبنى عن 4 م، وتركيب الإنارة الكهربائية على بعد 40 سم من القماش، وتوفير طفايات الحريق في متناول اليد، ومنع الطهي، وعدم استخدام زينة قابلة للاشتعال. تبدأ الغرامات من 1,000 درهم وتصل إلى 50,000 درهم، كإقامة خيمة دون تصريح. غير مثبت هنا: طريقة تسعير تأجير خيام المناسبات، والأسعار الحالية في الإمارات، ومدى انطباق هذه القواعد على خيام الأعراس؛ اطلب عروض أسعار مفصلة من الموردين.",
+      "sources": [
+        "https://gulfnews.com/uae/set-up-ramadan-tents-but-follow-rules-1.1353523"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "tents_shades:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is a wedding tent rental priced in the UAE?",
+      "q_ar": "كيف يُسعّر تأجير خيمة أعراس في الإمارات؟",
+      "expected_entry_ids": [
+        "tents_shades:event-tent-hire-cost-and-permit-basis"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains wedding tent pricing (per m2/per day, AC, flooring, setup); missing: tent rental pricing entry). tents_shades:event-tent-hire-cost-and-permit-basis was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from tents_shades.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "tents_shades:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "tents_shades:event-tent-hire-cost-and-permit-basis"
+    ]
   }
 }

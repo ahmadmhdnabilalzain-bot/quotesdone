@@ -78,6 +78,25 @@ export async function sendWhatsAppFirst(send: (channel: 'whatsapp' | 'sms') => P
     : { ...res, refused, ok: false, channel: null };
 }
 
+// SMS, THEN VOICE (customer_support, 6 Oct 2026). The sign-in code's last channel. Same rule as the
+// WhatsApp->SMS step above (founder, 15 Sep 2026: fall back only on the specific refusal): Verify is
+// asked to CALL the number only when it refused SMS because SMS cannot reach that number at all -
+//   60205  SMS is not supported to this number (a landline)      21614  not a mobile number
+//   21408  no permission to send SMS to this region              21612  this route cannot carry SMS
+//   60220  the SMS geo-permission for this country is off
+// A fraud block (60410), a rate limit (60203) or any other refusal is NOT retried by voice: the second
+// channel must never hand an attacker or a flood a second door.
+const SMS_UNREACHABLE = new Set([60205, 21614, 21408, 21612, 60220]);
+// deno-lint-ignore no-explicit-any
+export function smsUnreachable(jd: any): boolean { return SMS_UNREACHABLE.has(Number(jd?.code)); }
+export async function voiceAfterSms(first: VerifySent, send: (channel: 'call') => Promise<VerifySendResult>): Promise<VerifySent> {
+  if (first.ok || !smsUnreachable(first.jd)) return first;
+  const res = await send('call');
+  return res.r.ok && res.jd?.status !== 'canceled'
+    ? { ...res, refused: first.refused, ok: true, channel: 'call' }
+    : { ...res, refused: first.refused, ok: false, channel: null };
+}
+
 export type Patch = Record<string, string | boolean | null>;
 
 // whatsapp_choose. Caller has already refused 'same' when the mobile is not verified; verifiedMobile

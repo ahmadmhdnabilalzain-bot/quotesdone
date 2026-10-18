@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // transcribe — server-side speech-to-text via OpenRouter audio models (funded key that powers the agents).
 // Replaces the browser Web Speech API (broke on Safari/iOS, poor with UAE Arabic/English mixed speech).
 // Client records WAV. Prompt is NEUTRAL + anti-hallucination (no domain priming) so silence/noise returns empty. Auth-gated.
@@ -16,7 +17,7 @@ async function sec(k: string): Promise<string | null> { const { data } = await a
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const PROMPT = 'Transcribe the spoken words in this audio EXACTLY as spoken, word for word. The speaker may talk in Arabic, English, or a mix of both (United Arab Emirates). Output ONLY the transcribed words and nothing else. Do NOT translate, summarise, correct, complete, punctuate creatively, or invent anything. Keep numbers, measurements and units as spoken. If the audio contains no clear human speech - for example silence, background noise, music, or a tone - say so in the speech field, and never guess or fabricate any sentence. Reply with ONE JSON object and nothing else: {"speech": true, "text": "<the transcribed words>"} when there is speech, {"speech": false, "text": ""} when there is none.';
 
-Deno.serve(observe('transcribe', async (req) => {
+Deno.serve(siteCors(observe('transcribe', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -42,6 +43,9 @@ Deno.serve(observe('transcribe', async (req) => {
 
     const content = [ { type: 'text', text: PROMPT }, { type: 'input_audio', input_audio: { data: b64, format } } ];
     let text: string | null = null; let lastErr = ''; let unreadable = false;
+    // RULING 1177 (12 Oct 2026): an unreadable answer is asked once more before the user is asked to record again;
+    // the gateway itself falls to the route's second model on a provider failure.
+    for (let attempt = 1; attempt <= 2 && text === null; attempt++) { unreadable = false;
     try {
       const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'transcribe', temperature: 0, max: 1024, response_format: { type: 'json_object' }, input: [{ role: 'user', content }] }) });
       const j = await r.json();
@@ -54,9 +58,10 @@ Deno.serve(observe('transcribe', async (req) => {
         if (read) text = read.text; else unreadable = true;
       }
     } catch (e) { lastErr = String((e as Error)?.message || e); }
+    }
     // Not the structured answer (a truncated or malformed reply): no guess, the user is simply asked to record again.
-    if (unreadable) return J({ ok: false, error: 'transcription_unreadable', text: '', message: 'We could not read that recording clearly. Please record it again.' }, 200);
+    if (unreadable) return J({ ok: false, error: 'transcription_unreadable', text: '', message: String(body.lang || '').toLowerCase().startsWith('ar') ? 'تعذّرت علينا قراءة هذا التسجيل بوضوح. يُرجى تسجيله مرة أخرى في مكان أهدأ.' : 'We could not read that recording clearly. Please record it again, somewhere quieter.' }, 200);
     if (text === null) return J({ error: 'transcription_failed', detail: lastErr }, 502);
     return J({ ok: true, text });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+})));

@@ -44,6 +44,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "office_furniture:office-chair-standards-en-1335",
+      "topic": "Standards for office work chairs",
+      "kind": "technical_reference",
+      "body_en": "The European standard series for office work chairs is EN 1335. EN 1335-1 specifies the dimensions of office work chair types and the test methods for determining them; the 2020 edition was superseded by EN 1335-1:2020+A1:2022. EN 1335-2 sets the safety requirements for office work chairs. The Estonian standards body lists related standards including EN 16139 (strength, durability and safety requirements for non-domestic seating). In a tender, ask the supplier to name the standards and editions the chair is tested to and to supply the test report. Not established here: the dimensional values in EN 1335-1, and whether any UAE authority mandates a particular chair standard.",
+      "body_ar": "سلسلة المواصفات الأوروبية لكراسي العمل المكتبية هي EN 1335. تحدد EN 1335-1 أبعاد أنواع كراسي العمل المكتبية وطرق الاختبار لتحديدها، وقد حلّت محل إصدار 2020 النسخةُ EN 1335-1:2020+A1:2022. وتحدد EN 1335-2 متطلبات السلامة لكراسي العمل المكتبية. وتُدرج هيئة المواصفات الإستونية مواصفات ذات صلة منها EN 16139 (متطلبات المتانة والديمومة والسلامة لمقاعد الاستخدام غير المنزلي). في المناقصة، اطلب من المورد تسمية المواصفات وإصداراتها التي اختُبر الكرسي وفقها وتقديم تقرير الاختبار. غير مثبت هنا: القيم البعدية في EN 1335-1، وما إذا كانت أي جهة إماراتية تُلزم بمواصفة معينة للكراسي.",
+      "sources": [
+        "https://www.evs.ee/en/evs-en-1335-1-2020"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +73,15 @@
       "expected_entry_ids": [
         "office_furniture:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What standard should an ergonomic office chair meet?",
+      "q_ar": "ما المعيار الذي يجب أن يستوفيه الكرسي المكتبي المريح؟",
+      "expected_entry_ids": [
+        "office_furniture:office-chair-standards-en-1335"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither names ergonomic chair standards (EN 1335, BIFMA X5.1); missing: office seating standards entry). office_furniture:office-chair-standards-en-1335 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from office_furniture.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +98,9 @@
       "office_furniture:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "office_furniture:office-chair-standards-en-1335"
+    ]
   }
 }

@@ -38,6 +38,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "recruitment_executive_search:placement-fee-benchmarks",
+      "topic": "Permanent placement fee benchmarks in the UAE",
+      "kind": "pricing_benchmark",
+      "body_en": "UAE recruitment agencies usually charge a percentage of the candidate's first-year salary. One market guide puts standard professional roles at 15-20%, niche or executive roles at 20-30% and retained executive search at 25-35%, and also cites 8-15% for general roles; flat-fee models of about AED 5,000-15,000 per hire are used for volume recruiting. The employer is fully responsible for visa and work permit costs and may not deduct them from the employee's pay. These are commercial benchmarks from one industry source, not regulated rates. Not established here: typical staged-payment and replacement-guarantee terms; agree the salary base, guarantee period and payment timing in writing.",
+      "body_ar": "تتقاضى وكالات التوظيف في الدولة عادةً نسبة من راتب السنة الأولى للمرشح. ويحدد أحد الأدلة السوقية الأدوار المهنية القياسية بنسبة 15-20%، والأدوار المتخصصة أو التنفيذية بنسبة 20-30%، والبحث التنفيذي بنظام الاحتفاظ بنسبة 25-35%، كما يذكر 8-15% للأدوار العامة؛ وتُستخدم نماذج الرسم الثابت بنحو 5,000-15,000 درهم لكل تعيين في التوظيف بأعداد كبيرة. ويتحمل صاحب العمل كامل تكاليف التأشيرة وتصريح العمل ولا يجوز له خصمها من أجر الموظف. هذه مؤشرات تجارية من مصدر واحد في القطاع، وليست أسعاراً منظَّمة. لم يثبت هنا: شروط الدفع المرحلي وضمان الاستبدال المعتادة؛ اتفق كتابياً على أساس الراتب ومدة الضمان وتوقيت الدفع.",
+      "sources": [
+        "https://www.qureos.com/cost-of-recruitment-calculator/uae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -54,6 +67,15 @@
       "expected_entry_ids": [
         "recruitment_executive_search:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What fee does a recruitment agency charge for a mid-level hire in Dubai?",
+      "q_ar": "ما الأتعاب التي تتقاضاها وكالة التوظيف لتعيين موظف متوسط المستوى في دبي؟",
+      "expected_entry_ids": [
+        "recruitment_executive_search:placement-fee-benchmarks"
+      ],
+      "why": "No entry of this pack answered it (Spec-checklist lists 'fee basis' only; no typical agency fee (percent of annual salary); missing). recruitment_executive_search:placement-fee-benchmarks was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from recruitment_executive_search.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "recruitment_executive_search:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "recruitment_executive_search:placement-fee-benchmarks"
+    ]
   }
 }

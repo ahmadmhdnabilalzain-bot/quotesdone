@@ -7,9 +7,10 @@
     {
       "id": "land_survey:uae-market-products",
       "topic": "Land, topographic & hydrographic survey: products, variants and grades sold in the UAE",
+      "topic_ar": "المساحة والمسح الطبوغرافي والبحري: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Land survey services in the UAE include topographic surveys, boundary/plot demarcation and setting out (affection plan verification), as-built surveys, construction setting-out and monitoring, GPS/GNSS control surveys referenced to the UAE national geodetic framework (e.g. Dubai Local Transverse Mercator, UTM zones 39/40, WGS84), utility detection and mapping (GPR, electromagnetic locators) with DEWA/ADDC/Etisalat/du NOC support, hydrographic and bathymetric surveys for marine works, 3D laser scanning and point clouds for BIM (scan-to-BIM), drone/UAV photogrammetry and LiDAR mapping, deformation and settlement monitoring, volume calculations for earthworks and stockpiles, and cadastral and strata surveys for title registration. Buyers need surveyors licensed or registered with the relevant authority: Dubai Land Department and Dubai Municipality (licensed surveyors for plot and strata), Abu Dhabi Department of Municipalities and Transport/ADM, and municipalities in other emirates. Drone surveys need GCAA and local approvals.",
-      "body_ar": "تشمل خدمات المساحة في الإمارات المسوح الطبوغرافية، وتحديد حدود القطع والتوقيع (التحقق من مخطط الأرض)، ومسوح الأعمال المنفذة، والتوقيع والمراقبة أثناء الإنشاء، ومسوح التحكم بنظام تحديد المواقع العالمي المرجعية للإطار الجيوديسي الوطني (مثل إسقاط دبي المستعرض المحلي، ومناطق UTM 39/40، وWGS84)، وكشف المرافق ورسم خرائطها (رادار اختراق الأرض، والكواشف الكهرومغناطيسية) مع دعم شهادات عدم الممانعة من ديوا/أدك/اتصالات/دو، والمسوح الهيدروغرافية وقياس الأعماق للأعمال البحرية، والمسح بالليزر ثلاثي الأبعاد وسحب النقاط لنمذجة معلومات البناء، والمسح الفوتوغرامتري وبتقنية الليدار بالطائرات بدون طيار، ومراقبة التشوه والهبوط، وحسابات الكميات لأعمال الحفر والردم والمخزون، والمسوح المساحية ومسوح الوحدات لتسجيل الملكية. ويحتاج المشترون إلى مساحين مرخصين أو مسجلين لدى الجهة المختصة: دائرة الأراضي والأملاك وبلدية دبي (مساحون مرخصون للقطع والوحدات)، ودائرة البلديات والنقل في أبوظبي، والبلديات في الإمارات الأخرى. وتحتاج مسوح الطائرات بدون طيار إلى موافقات الهيئة العامة للطيران المدني والجهات المحلية.",
+      "body_en": "This entry covers land survey services in the UAE: topographic, boundary, as-built and setting-out surveys, GNSS control, utility detection, hydrographic, laser scanning and drone mapping, and surveyor licensing. Land survey services in the UAE include topographic surveys, boundary/plot demarcation and setting out (affection plan verification), as-built surveys, construction setting-out and monitoring, GPS/GNSS control surveys referenced to the UAE national geodetic framework (e.g. Dubai Local Transverse Mercator, UTM zones 39/40, WGS84), utility detection and mapping (GPR, electromagnetic locators) with DEWA/ADDC/Etisalat/du NOC support, hydrographic and bathymetric surveys for marine works, 3D laser scanning and point clouds for BIM (scan-to-BIM), drone/UAV photogrammetry and LiDAR mapping, deformation and settlement monitoring, volume calculations for earthworks and stockpiles, and cadastral and strata surveys for title registration. Buyers need surveyors licensed or registered with the relevant authority: Dubai Land Department and Dubai Municipality (licensed surveyors for plot and strata), Abu Dhabi Department of Municipalities and Transport/ADM, and municipalities in other emirates. Drone surveys need GCAA and local approvals.",
+      "body_ar": "تشمل خدمات المساحة في الإمارات المسح الطبوغرافي ومسح الحدود ومسح الأعمال المنفذة (As-built) والتوقيع (Setting-out)، ونقاط التحكم بنظام GNSS، وكشف الخدمات المدفونة، والمسح الهيدروغرافي، والمسح بالليزر، والمسح بالدرون، مع اشتراطات ترخيص المسّاحين. تشمل خدمات المساحة في الإمارات المسوح الطبوغرافية، وتحديد حدود القطع والتوقيع (التحقق من مخطط الأرض)، ومسوح الأعمال المنفذة، والتوقيع والمراقبة أثناء الإنشاء، ومسوح التحكم بنظام تحديد المواقع العالمي المرجعية للإطار الجيوديسي الوطني (مثل إسقاط دبي المستعرض المحلي، ومناطق UTM 39/40، وWGS84)، وكشف المرافق ورسم خرائطها (رادار اختراق الأرض، والكواشف الكهرومغناطيسية) مع دعم شهادات عدم الممانعة من ديوا/أدك/اتصالات/دو، والمسوح الهيدروغرافية وقياس الأعماق للأعمال البحرية، والمسح بالليزر ثلاثي الأبعاد وسحب النقاط لنمذجة معلومات البناء، والمسح الفوتوغرامتري وبتقنية الليدار بالطائرات بدون طيار، ومراقبة التشوه والهبوط، وحسابات الكميات لأعمال الحفر والردم والمخزون، والمسوح المساحية ومسوح الوحدات لتسجيل الملكية. ويحتاج المشترون إلى مساحين مرخصين أو مسجلين لدى الجهة المختصة: دائرة الأراضي والأملاك وبلدية دبي (مساحون مرخصون للقطع والوحدات)، ودائرة البلديات والنقل في أبوظبي، والبلديات في الإمارات الأخرى. وتحتاج مسوح الطائرات بدون طيار إلى موافقات الهيئة العامة للطيران المدني والجهات المحلية.",
       "sources": [
         "https://dubailand.gov.ae",
         "https://leica-geosystems.com",
@@ -24,9 +25,10 @@
     {
       "id": "land_survey:uae-market-brands",
       "topic": "Land, topographic & hydrographic survey: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "المساحة والمسح الطبوغرافي والبحري: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Common survey equipment brands: Leica Geosystems, Trimble, Topcon, DJI. Their UAE dealers and individual survey firms were not checked; ask for the surveyor's licence with the relevant land department or municipality.",
-      "body_ar": "علامات معدات المساحة الشائعة: Leica Geosystems، Trimble، Topcon، DJI. ولم يُتحقق من وكلائها في الإمارات ولا من شركات المساحة؛ ويجب طلب ترخيص المساح لدى دائرة الأراضي أو البلدية المختصة.",
+      "body_en": "This entry names common survey equipment brands, Leica Geosystems, Trimble, Topcon and DJI, and advises asking for the surveyor's licence. Common survey equipment brands: Leica Geosystems, Trimble, Topcon, DJI. Their UAE dealers and individual survey firms were not checked; ask for the surveyor's licence with the relevant land department or municipality.",
+      "body_ar": "من ماركات أجهزة المساحة الشائعة Leica Geosystems وTrimble وTopcon وDJI، ويُنصح بطلب ترخيص المساح. علامات معدات المساحة الشائعة: Leica Geosystems، Trimble، Topcon، DJI. ولم يُتحقق من وكلائها في الإمارات ولا من شركات المساحة؛ ويجب طلب ترخيص المساح لدى دائرة الأراضي أو البلدية المختصة.",
       "sources": [
         "https://dubailand.gov.ae",
         "https://leica-geosystems.com",
@@ -41,9 +43,10 @@
     {
       "id": "land_survey:uae-market-sizes",
       "topic": "Land, topographic & hydrographic survey: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "المساحة والمسح الطبوغرافي والبحري: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Topographic surveys are priced per plot or per hectare/m2 (with minimum charges), setting-out per visit/day, surveyor crews per day or month for construction projects, utility detection per linear metre or per hectare, laser scanning per m2 of floor area or per day, drone mapping per km2 or hectare, and monitoring per epoch/reading. Deliverables (CAD drawings, coordinates, reports) are included; authority submission fees are extra.",
-      "body_ar": "تُسعّر المسوح الطبوغرافية لكل قطعة أو لكل هكتار/متر مربع (مع حد أدنى للرسوم)، والتوقيع لكل زيارة/يوم، وفرق المساحين يومياً أو شهرياً لمشاريع الإنشاء، وكشف المرافق لكل متر طولي أو لكل هكتار، والمسح الليزري لكل متر مربع من مساحة الطابق أو يومياً، ورسم الخرائط بالطائرات بدون طيار لكل كيلومتر مربع أو هكتار، والمراقبة لكل قراءة. وتكون المخرجات (رسومات CAD، والإحداثيات، والتقارير) مشمولة؛ ورسوم التقديم للجهات الرسمية إضافية.",
+      "body_en": "This entry explains how surveys are priced: topographic per plot or area, setting-out per visit, crews per day or month, utility detection per metre, scanning per m2, and drone mapping per area. Topographic surveys are priced per plot or per hectare/m2 (with minimum charges), setting-out per visit/day, surveyor crews per day or month for construction projects, utility detection per linear metre or per hectare, laser scanning per m2 of floor area or per day, drone mapping per km2 or hectare, and monitoring per epoch/reading. Deliverables (CAD drawings, coordinates, reports) are included; authority submission fees are extra.",
+      "body_ar": "تُسعَّر أعمال المساحة عادةً كالتالي: المسح الطبوغرافي لكل قطعة أو حسب المساحة، والتوقيع (setting-out) لكل زيارة، وفرق المساحة باليوم أو بالشهر، وكشف المرافق المدفونة بالمتر، والمسح بالليزر بالمتر المربع، والمسح بالدرون حسب المساحة. تُسعّر المسوح الطبوغرافية لكل قطعة أو لكل هكتار/متر مربع (مع حد أدنى للرسوم)، والتوقيع لكل زيارة/يوم، وفرق المساحين يومياً أو شهرياً لمشاريع الإنشاء، وكشف المرافق لكل متر طولي أو لكل هكتار، والمسح الليزري لكل متر مربع من مساحة الطابق أو يومياً، ورسم الخرائط بالطائرات بدون طيار لكل كيلومتر مربع أو هكتار، والمراقبة لكل قراءة. وتكون المخرجات (رسومات CAD، والإحداثيات، والتقارير) مشمولة؛ ورسوم التقديم للجهات الرسمية إضافية.",
       "sources": [
         "https://dubailand.gov.ae",
         "https://leica-geosystems.com",
@@ -58,11 +61,15 @@
   ],
   "eval": [
     {
-      "q_en": "Does a boundary survey in Dubai need a licensed surveyor?",
-      "q_ar": "هل يحتاج مسح الحدود في دبي إلى مساح مرخص؟",
+      "q_en": "Which kinds of measuring, ashore or underwater, can firms here perform?",
+      "q_ar": "شو أنواع المسح والقياس، على البر أو تحت الماي، اللي تقدر تسويها الشركات هنا؟",
       "expected_entry_ids": [
         "land_survey:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the survey types offered, including topographic and hydrographic.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0,
+      "word_overlap_after_enrichment": 0
     }
   ],
   "verified": {

@@ -104,3 +104,82 @@ nothing recording the failure.
 5. **Non-Latin names must survive.** `pdf_native` falls back to WinAnsi Helvetica when brand fonts are
    missing and **drops non-Latin glyphs while still returning `ok:true`** — an Arabic company name
    would vanish from a signed contract and the call would look successful. Fail loudly instead.
+
+---
+
+## The design as built, measured 7 Oct 2026 (founder gate, ledger 1162)
+
+Owners: **sales_engineer files** every document; **it_engineer verifies** it is there. One uploader,
+two copies: the private Supabase bucket and Dropbox (*"by back up i mean 2 points. supabase and
+dropbox"*, 14 Sep 2026).
+
+### The pipeline
+
+1. **A document lands** in a private bucket (supplier-docs, signed-terms, drawing-files, quote-files,
+   agent-docs, finance-docs, backups, ...). The trigger `z70_document_landed_kicks_backup` on leads,
+   customers, inquiries and transactions kicks `dropbox_backup` at once; the 15-minute heartbeat and the
+   daily pass catch the rest.
+2. **`fn_enqueue_doc_backups()`** (owner rules, one `doc_backups` row per file, unique on `dedupe_key`
+   and on `(bucket, path)`) decides the Dropbox path. **`fn_enqueue_doc_backups_backfill()`** files
+   every other object of a registered bucket (`fn_backup_source_registry()`) under
+   `Storage/<bucket>/<path>` after one hour, so an owner rule always wins.
+3. **`trg_doc_backups_admit`** normalises the path (`fn_dbx_path`), drops every demo row, holds a row
+   whose object does not exist yet as `waiting_source`, and (since this change) files a later document
+   of an entity in the folder its first document opened.
+4. **`dropbox_backup`** claims rows (`fn_doc_backups_next`: 10-minute claims, 5 attempts, backoff
+   2^attempts minutes, resume first), uploads (chunked above 8 MiB, resumable), and **confirms** every
+   copy with `files/get_metadata` (size AND Dropbox content_hash) before the row is `done`.
+   `generated` rows (Company Details, Customer Details, Inquiry Summary) are rendered by `pdf_native`
+   into `backups/generated/` first.
+5. **`conversation_archive`** renders every message (email in/out, WhatsApp, portal chat) as a PDF
+   into `backups/conversations/<channel>/<month>/`; `fn_conversation_archived` records it and the
+   CORRESPONDENCE rule files it under its party.
+6. **it_engineer**: the daily check (`dropbox_backup` mode `reconcile`, from `resilience_ping`) reads
+   the new rows one by one and, since this change, **lists the whole tree** and compares it with every
+   `done` row: missing, changed (content_hash) and stray. Findings go to the sales engineer as a
+   `backup.refile` hand-over (`fn_it_backup_check`), which `fn_it_backup_recheck` closes only when the
+   file is verified in Dropbox; the daily health probe (login, write/read/delete, space) is separate.
+
+### The tree (entity -> type -> date)
+
+```
+/QuotesDone Backup/
+  Suppliers/<primary category>/<company name> (<supplier id>)/
+      Trade licence - <file>   Establishment card - <file>   Insurance - <file>   VAT certificate - <file>
+      ISO certificate - <file>   Manufacturer authorization - <file>   Company profile - <file>
+      Catalogue - <file>   Signed Terms & Conditions - <file>   Company Details.pdf
+      Correspondence/<YYYY-MM-DD HHMM Dubai> <in|out> <channel> - <subject> #<id>.pdf
+  Customers/<full name> (<customer id, 8>)/
+      Signed Terms & Conditions - <file>   Customer Details.pdf   Correspondence/...
+      Inquiries/<YYYY-MM-DD> <inquiry id, 8> - <status when first filed>/
+          Drawing - <file>   Inquiry Summary.pdf   Correspondence/...
+          Quotes/<YYYY-MM-DD> Quote <quote id, 8> - <supplier's file>   Quote <id, 8> (EN|AR) - <file>
+          Payment/<reveal invoice or receipt>
+          Reports/<comparison report>  <request brief>
+  Finance/Revenue Invoices/<YYYY>/<YYYY-MM>/...   Month Close/   Bank Statements/   Issued Documents/   Year End/
+  Company/Correspondence/<YYYY-MM>/...   (a message with no registered party)
+  Company/Database Exports/<YYYY-MM>/<YYYY-MM-DD>/<table>/page_NNNN.json
+  Storage/<bucket>/<original path>     (every other stored file: the sweep)
+  _selftest/   (it_engineer's probes)      _sandbox/<tag>/   (a tagged ZZ DEMO run only)
+```
+
+The company stamp and signature live in the private `company-seal` bucket and reach Dropbox through
+the sweep (`Storage/company-seal/...`).
+
+### Decisions this change made
+
+- **A folder never moves and never splits.** The spec above asked to *"decide and state whether the
+  archive follows the change or records where it was filed"*: it records where it was filed. The
+  supplier's, customer's and request's first document decides the folder; a later status, name or
+  category change does not open a second one (measured before: 2 of 60 inquiries and 2 of 40 customers
+  were split). Existing Dropbox files are not moved.
+- **A customer's request documents live under the request**: the supplier's quotation, the quotation
+  PDF, every reveal invoice and receipt, the comparison report and the brief (measured before: 386 owned
+  files sat in `Storage/`; they stay there, new ones go to the request).
+- **Demo data never reaches the real tree.** A tagged sandbox run (`fn_backup_sandbox_enqueue(tag)`,
+  `dropbox_backup` ops `sandbox`, `sandbox_verify`, `sandbox_cleanup`, `conversation_archive` action
+  `sandbox`) files ZZ DEMO documents that carry the tag under `_sandbox/<tag>/` only, through the same
+  enqueue, uploader and listing check, and is removed afterwards.
+- **No public link.** Every bucket that holds a supplier's or customer's document is private, and the
+  Dropbox app holds no `sharing.*` scope (measured: `sharing/list_shared_links` and
+  `sharing/create_shared_link_with_settings` are refused for the app), so the pipeline cannot publish a link.

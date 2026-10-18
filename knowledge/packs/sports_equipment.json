@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "sports_equipment:padel-court-dimensions-and-cost-drivers",
+      "topic": "Padel court dimensions and cost drivers",
+      "kind": "spec_reference",
+      "body_en": "Citing International Padel Federation (FIP) rules, a padel court is a 10 m x 20 m rectangle. The net runs the full 10 m width at 0.88 m high, and the service lines are 6.95 m from the net. The court is surrounded by glass (or other transparent material) walls and mesh panels, and its minimum height should ideally be roughly 6-8 m. Not established here: tolerances, post height, line width, glass thickness, what a per-court supply package includes and current UAE prices; obtain itemised supplier quotes.",
+      "body_ar": "استنادًا إلى قواعد الاتحاد الدولي للبادل (FIP)، ملعب البادل مستطيل أبعاده 10 م × 20 م. تمتد الشبكة على كامل العرض البالغ 10 م بارتفاع 0.88 م، وتقع خطوط الإرسال على بعد 6.95 م من الشبكة. يُحاط الملعب بجدران زجاجية (أو من مادة شفافة أخرى) وألواح شبكية، ويُفضَّل أن يكون الحد الأدنى للارتفاع فوقه نحو 6-8 م. غير مثبت هنا: التفاوتات المسموحة، وارتفاع الشبكة عند القوائم، وعرض الخطوط، وسماكة الزجاج، ومحتويات حزمة التوريد لكل ملعب، والأسعار الحالية في الإمارات؛ يُرجى الحصول على عروض أسعار مفصلة من الموردين.",
+      "sources": [
+        "https://padel1969.com/rules/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "sports_equipment:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the standard size of a padel court and how is it priced?",
+      "q_ar": "ما المقاس القياسي لملعب البادل وكيف يُسعّر؟",
+      "expected_entry_ids": [
+        "sports_equipment:padel-court-dimensions-and-cost-drivers"
+      ],
+      "why": "No entry of this pack answered it (no entry gives padel court dimensions (10 x 20 m) or pricing). sports_equipment:padel-court-dimensions-and-cost-drivers was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from sports_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "sports_equipment:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "sports_equipment:padel-court-dimensions-and-cost-drivers"
+    ]
   }
 }

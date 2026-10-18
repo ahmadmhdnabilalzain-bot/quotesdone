@@ -24,7 +24,7 @@
 //   exactly as login_otp stores it; only delivery is skipped). The MOBILE verification is recorded
 //   directly: Twilio Verify cannot be driven without sending an SMS, and the number is fake by design.
 import { readFileSync } from 'node:fs';
-import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile } from '../lib/demo_factory.mjs';
+import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile, EMIRATES } from '../lib/demo_factory.mjs';
 import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 
@@ -196,19 +196,19 @@ export async function makeDemoCustomer(run, opts = {}) {
  * A supplier with the mandatory six (founder's list): name, mobile, email, trade licence document,
  * profile, and the CURRENT Supplier Agreement accepted and signed - approved, capability confirmed.
  */
-export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', locale = 'en' } = {}) {
+export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', locale = 'en', activity = 'Aluminium and Glass Works' } = {}) {
   const email = demoEmail(run, 'sup');
   const phone = demoMobile();
   const company = `ZZ DEMO ${label} ${trade} ${run.tag}`;
   // Inserted 'pending', not approved: since #698 the database refuses an approval while any of the six
   // is missing, and approves by itself (fn_sales_engineer_verifies_supplier) once the last one lands.
-  const s = await makeSupplier(run, { trade, email, company_name: company, locale, approval: 'pending' });
+  const s = await makeSupplier(run, { trade, email, company_name: company, locale, approval: 'pending', coverage_emirates: EMIRATES });
   run.ids.leads.add(String(s.leadId));
   // 1-3: name, mobile, email.   4: the trade licence and 5: the company profile, real PDFs in the real
   // bucket - fn_supplier_mandatory_six counts a document only if its path exists in supplier-docs.
   const licenceNo = `ZZDEMO-${run.tag}-${label}`.toUpperCase();
   const path = `licenses/${s.leadId}/${run.tag}_trade_licence.pdf`;
-  await uploadObject('supplier-docs', path, demoTradeLicence({ company, licenceNo, activity: 'Aluminium and Glass Works' }), 'application/pdf');
+  await uploadObject('supplier-docs', path, demoTradeLicence({ company, licenceNo, activity }), 'application/pdf');
   run.ids.storage.push(`supplier-docs/${path}`);
   const profilePath = `profiles/${s.leadId}/${run.tag}_company_profile.pdf`;
   await uploadObject('supplier-docs', profilePath, demoPdf([

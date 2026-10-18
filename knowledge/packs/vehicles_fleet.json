@@ -1,575 +1,585 @@
 {
- "trade": "vehicles_fleet",
- "entries": [
-  {
-   "id": "vehicles_fleet:gcc-spec-vs-non-gcc",
-   "topic": "GCC-spec vs non-GCC (imported) vehicles",
-   "kind": "comparison",
-   "body_en": "\"GCC spec\" means a vehicle built and certified to the Gulf technical regulations for motor vehicles issued by the GCC Standardization Organization (GSO). Since a 2004 decision GSO has run a common GCC conformity certificate scheme for new vehicles and tyres, and publishes each model year a list of the technical regulations that apply, covering items such as general requirements, conformity certificates, impact strength, safety belts, interior flammability, engine radiators, emissions limits for petrol and diesel engines, speed limiters, head lamps, laminated glass, noise and tyres for cars, trucks and buses. Vehicles bought from the official UAE distributor are normally GCC spec and come with the conformity certificate, local warranty and parts support. Non-GCC vehicles (for example US, Japanese or European market imports) may lack the cooling, filtration and specification items the regulations require and must be shown to conform before registration; MoIAT provides attestation of GSO conformity certificates for importers. For a fleet buyer the practical rule is to specify \"new, GCC specification, supplied by the authorised UAE distributor or with a valid GSO conformity certificate\", because a cheaper grey import can create registration delays, warranty refusal and resale discounts. Exact climate-related technical differences per model are manufacturer data and were not established here.",
-   "body_ar": "تعني \"المواصفات الخليجية\" أن المركبة مصنعة ومعتمدة وفق اللوائح الفنية الخليجية للمركبات الصادرة عن هيئة التقييس لدول مجلس التعاون الخليجي. ومنذ قرار عام 2004 تدير الهيئة نظام شهادة مطابقة خليجية موحدة للمركبات الجديدة والإطارات، وتنشر لكل سنة طراز قائمة باللوائح الفنية المطبقة، وتشمل المتطلبات العامة وشهادات المطابقة ومقاومة الصدمات وأحزمة الأمان وقابلية اشتعال المواد الداخلية ومشعات المحرك وحدود الانبعاثات لمحركات البنزين والديزل ومحددات السرعة والمصابيح الأمامية والزجاج الرقائقي والضوضاء وإطارات السيارات والشاحنات والحافلات. والمركبات المشتراة من الموزع الرسمي في الدولة تكون عادة بالمواصفات الخليجية ومعها شهادة المطابقة والضمان المحلي ودعم قطع الغيار. أما المركبات غير الخليجية (مثل الواردة من الأسواق الأمريكية أو اليابانية أو الأوروبية) فقد تفتقر إلى عناصر التبريد والترشيح والمواصفات التي تشترطها اللوائح، ويجب إثبات مطابقتها قبل التسجيل، وتقدم وزارة الصناعة والتكنولوجيا المتقدمة خدمة التصديق على شهادات المطابقة الخليجية للمستوردين. والقاعدة العملية لمشتري الأساطيل أن يحدد \"جديدة بالمواصفات الخليجية ومورّدة من الموزع المعتمد في الدولة أو مع شهادة مطابقة خليجية سارية\"، لأن الاستيراد الموازي الأرخص قد يسبب تأخير التسجيل ورفض الضمان وخصماً عند إعادة البيع. أما الفروق الفنية المناخية الدقيقة لكل طراز فهي بيانات مصنّعين ولم تثبت هنا.",
-   "sources": [
-    "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
-    "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:gso-technical-regulations",
-   "topic": "GSO technical regulations list for motor vehicles",
-   "kind": "standard",
-   "body_en": "The GCC Standardization Organization publishes, per model year, a \"List of GSO Technical Regulations for Motor Vehicles\" used by its conformity assessment department; the 2025 model-year list (MY2025-D2) is the current reference seen in this research. It groups regulations covering: lead-acid starter batteries; impact strength test methods for frontal, rear, side and roof strength, including a moving-barrier side-impact method aligned with US standards; front and rear protective devices (bumpers); general requirements for motor vehicles; conformity certificates, including a separate regulation for conformity certificates of vehicles manufactured in multiple stages; passenger-car tyres and multi-purpose vehicle, truck, bus and trailer tyres (nomenclature, dimensions, load capacity, test methods); safety belts and their tests; flammability of interior materials; sound signalling devices; engine radiators; allowable pollutant limits and test methods for heavy-duty diesel, light-duty diesel and unleaded petrol vehicles; dimensions and weights; door locks and hinges; rear-view mirrors; general requirements for ambulances; temporary-use spare tyres; protection against theft; head lamps; head restraints; noise emissions; speed limiters; and laminated safety glass. For procurement this list is the checklist behind \"GCC spec\": a tender can require the supplier to state conformity to the applicable GSO regulations for the model year and to provide the GCC conformity certificate, especially for special-purpose bodies such as ambulances.",
-   "body_ar": "تنشر هيئة التقييس الخليجية لكل سنة طراز \"قائمة اللوائح الفنية الخليجية للمركبات\" التي تستخدمها إدارة تقييم المطابقة لديها، وقائمة طراز 2025 (MY2025-D2) هي المرجع الحالي الذي تم الاطلاع عليه في هذا البحث. وتضم لوائح تغطي: بطاريات التشغيل الرصاصية الحمضية، وطرق اختبار مقاومة الصدمات الأمامية والخلفية والجانبية وقوة السقف بما فيها طريقة الصدم الجانبي بحاجز متحرك وفق المواصفات الأمريكية، وأجهزة الحماية الأمامية والخلفية (المصدات)، والمتطلبات العامة للمركبات، وشهادات المطابقة بما فيها لائحة مستقلة لشهادات مطابقة المركبات المصنعة على مراحل متعددة، وإطارات سيارات الركوب وإطارات المركبات متعددة الأغراض والشاحنات والحافلات والمقطورات (التسمية والأبعاد والحمولة وطرق الاختبار)، وأحزمة الأمان واختباراتها، وقابلية اشتعال المواد الداخلية، وأجهزة التنبيه الصوتي، ومشعات المحرك، وحدود الملوثات المسموح بها وطرق اختبارها لمركبات الديزل الثقيلة والخفيفة ومركبات البنزين الخالي من الرصاص، والأبعاد والأوزان، وأقفال الأبواب ومفصلاتها، والمرايا الخلفية، والمتطلبات العامة لسيارات الإسعاف، والإطارات الاحتياطية المؤقتة، والحماية من السرقة، والمصابيح الأمامية، ومساند الرأس، وانبعاثات الضوضاء، ومحددات السرعة، والزجاج الرقائقي الآمن. وهذه القائمة في المشتريات هي قائمة التحقق وراء عبارة \"مواصفات خليجية\"، إذ يمكن أن تشترط المناقصة على المورّد بيان مطابقة المركبة للوائح الخليجية المطبقة لسنة الطراز وتقديم شهادة المطابقة الخليجية، لا سيما للهياكل الخاصة مثل سيارات الإسعاف.",
-   "sources": [
-    "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:moiat-conformity",
-   "topic": "MoIAT conformity certificates and attestation for vehicles and tyres",
-   "kind": "authority_approval",
-   "body_en": "The Ministry of Industry and Advanced Technology (MoIAT) is the UAE authority for conformity of regulated products. Two services matter to vehicle importers and fleet suppliers. First, attestation of a conformity certificate issued by the GCC Standardization Organization: the importer submits a valid UAE trade or industrial licence and the GSO certificate number through MoIAT's digital platform and receives a certified copy; the published fee is AED 50 per certified copy and the service is instant. MoIAT's page describes it in the context of GSO tyre certificates and products under Gulf technical regulations. Second, issuance of UAE conformity certificates for regulated products: applicants upload the trade licence and an accredited laboratory test report; published fees are AED 600 document review, AED 620 technical review per certificate and AED 500 issuance, plus AED 2,500 per assessor-day if a technical assessment is needed, with a stated service time of one and a half working days. For buyers this means a supplier of imported vehicles, tyres or regulated automotive parts should be able to show the relevant GSO or MoIAT certificate; missing certificates delay customs clearance and registration. Which specific automotive items fall under each scheme is set in MoIAT's regulated-products list, which was not reviewed item by item here.",
-   "body_ar": "وزارة الصناعة والتكنولوجيا المتقدمة هي الجهة الاتحادية المختصة بمطابقة المنتجات الخاضعة للوائح. وتهم مستوردي المركبات وموردي الأساطيل خدمتان. الأولى التصديق على شهادة المطابقة الصادرة عن هيئة التقييس الخليجية: يقدم المستورد رخصة تجارية أو صناعية سارية في الدولة ورقم الشهادة الخليجية عبر المنصة الرقمية للوزارة، ويتسلم نسخة مصدقة، والرسم المعلن 50 درهماً للنسخة والخدمة فورية، وتصف صفحة الوزارة الخدمة في سياق شهادات الإطارات الخليجية والمنتجات الخاضعة للوائح الخليجية. والثانية إصدار شهادات المطابقة الإماراتية للمنتجات الخاضعة للوائح: يرفع المتقدم الرخصة التجارية وتقرير اختبار من مختبر معتمد، والرسوم المعلنة 600 درهم لمراجعة المستندات و620 درهماً للمراجعة الفنية لكل شهادة و500 درهم للإصدار، إضافة إلى 2,500 درهم عن كل يوم عمل للمقيّم إذا لزم تقييم فني، بمدة خدمة معلنة يوم ونصف يوم عمل. ويعني ذلك للمشتري أن مورّد المركبات أو الإطارات أو قطع السيارات الخاضعة للوائح يجب أن يتمكن من إبراز الشهادة الخليجية أو شهادة الوزارة ذات الصلة، فغيابها يؤخر التخليص الجمركي والتسجيل. أما تحديد البنود الخاصة بالسيارات الخاضعة لكل نظام فيرد في قائمة المنتجات الخاضعة للوائح لدى الوزارة، ولم تتم مراجعتها بنداً بنداً هنا.",
-   "sources": [
-    "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
-    "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:used-import-rules",
-   "topic": "Importing used vehicles: MoIAT product status statement and banned categories",
-   "kind": "authority_approval",
-   "body_en": "Used vehicles imported into the UAE are screened by MoIAT together with customs and insurance bodies. MoIAT issues a Product Status Statement for used imported vehicles confirming that the vehicle is eligible for traffic registration and lawful use; the applicant provides a UAE ID copy and the vehicle's unified identification number, the published fee is AED 200 and issuance is instant after payment. MoIAT reported blocking about 6,500 used vehicles in one year while approving around 35,000, and its system rejects several categories, including vehicles that fail registration, licensing and insurance requirements, damaged vehicles and vehicles with manufacturing defects; buyers can check eligibility on the ministry's website using the VIN before importing. Industry guides also describe age limits and a ban on burnt, flooded, scrapped or dismantled cars, but the precise legal age limit was not confirmed from a primary source in this research. For a fleet buyer, used imports rarely make sense for new operational fleets: registration risk, unknown history, no local warranty and possible non-GCC specification outweigh the price saving. If a buyer does purchase used imported units, the contract should make the seller responsible for obtaining the MoIAT statement and passing registration and inspection, with a refund if the vehicle is rejected.",
-   "body_ar": "تخضع المركبات المستعملة المستوردة إلى الدولة لفحص وزارة الصناعة والتكنولوجيا المتقدمة بالتعاون مع الجمارك وجهات التأمين. وتصدر الوزارة \"بيان حالة المنتج\" للمركبات المستعملة المستوردة الذي يؤكد أهلية المركبة للتسجيل المروري والاستخدام القانوني، ويقدم الطالب نسخة الهوية الإماراتية ورقم التعريف الموحد للمركبة، والرسم المعلن 200 درهم ويصدر البيان فوراً بعد الدفع. وقد أعلنت الوزارة حجب نحو 6,500 مركبة مستعملة في عام واحد مقابل اعتماد نحو 35,000، ويرفض نظامها عدة فئات منها المركبات التي لا تستوفي متطلبات التسجيل والترخيص والتأمين، والمركبات المتضررة، والمركبات ذات العيوب المصنعية، ويمكن للمشتري التحقق من الأهلية عبر موقع الوزارة برقم الهيكل قبل الاستيراد. وتذكر أدلة القطاع أيضاً حدوداً عمرية وحظراً للسيارات المحترقة أو الغارقة أو التالفة أو المفككة، لكن الحد العمري القانوني الدقيق لم يُؤكد من مصدر رسمي في هذا البحث. ونادراً ما يكون الاستيراد المستعمل خياراً منطقياً لأساطيل تشغيلية جديدة، فمخاطر التسجيل والتاريخ المجهول وغياب الضمان المحلي واحتمال عدم مطابقة المواصفات الخليجية تفوق التوفير في السعر. وإذا اشترى المشتري وحدات مستعملة مستوردة، فيجب أن يُلزم العقد البائع باستخراج بيان الوزارة واجتياز التسجيل والفحص مع استرداد الثمن إذا رُفضت المركبة.",
-   "sources": [
-    "https://moiat.gov.ae/en/services/issue-product-status-statement-for-used-imported-vehicles",
-    "https://www.khaleejtimes.com/uae/uae-blocked-import-of-6500-used-vehicles-last-year-heres-why"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:heavy-vehicle-weights",
-   "topic": "Maximum gross weights of heavy vehicles on UAE federal roads",
-   "kind": "standard",
-   "body_en": "The federal law regulating weights and dimensions of heavy vehicles, announced by the Ministry of Energy and Infrastructure, caps gross vehicle weight by number of axles: 21 tonnes for two axles, 34 for three, 45 for four, 56 for five and 65 tonnes for six axles, the maximum for any combination. Enforcement started in the first quarter of 2024 after 24 smart electronic weighing gates were installed. Fines published by the ministry are AED 400 per tonne or part of a tonne when the excess is under 10%, AED 500 per tonne for 10 to 20%, and AED 600 per tonne above 20%, capped at AED 15,000; AED 1,500 per axle for axle-weight violations; AED 3,000 for dimension violations; AED 5,000 for evading a weigh station; and AED 5,000 for invalid permit documents. For a truck buyer this means the specification must start from the payload the operation really needs and the legal gross weight of the chosen axle configuration, not from the chassis's technical rating alone. Tipper, tanker and trailer bodies add tare weight that reduces legal payload. Ask the supplier to provide a weight distribution calculation for the complete vehicle with body, showing tare, payload, axle loads and gross weight against these limits.",
-   "body_ar": "يحدد القانون الاتحادي المنظم لأوزان وأبعاد المركبات الثقيلة، الذي أعلنته وزارة الطاقة والبنية التحتية، الوزن الإجمالي للمركبة بحسب عدد المحاور: 21 طناً للمحورين، و34 لثلاثة محاور، و45 لأربعة، و56 لخمسة، و65 طناً لستة محاور وهو الحد الأقصى لأي تركيبة. وبدأ التطبيق في الربع الأول من 2024 بعد تركيب 24 بوابة وزن إلكترونية ذكية. والغرامات التي أعلنتها الوزارة: 400 درهم عن كل طن أو جزء منه إذا كانت الزيادة أقل من 10%، و500 درهم للطن من 10 إلى 20%، و600 درهم للطن فوق 20% بحد أقصى 15,000 درهم، و1,500 درهم لكل محور عند مخالفة وزن المحور، و3,000 درهم لمخالفة الأبعاد، و5,000 درهم للتهرب من محطة الوزن، و5,000 درهم لمستندات التصاريح غير السارية. ويعني ذلك لمشتري الشاحنات أن تبدأ المواصفة من الحمولة التي يحتاجها التشغيل فعلاً والوزن الإجمالي القانوني لتركيبة المحاور المختارة، لا من التصنيف الفني للشاصي وحده. وتضيف هياكل القلاب والصهريج والمقطورة وزناً فارغاً يقلل الحمولة القانونية. واطلب من المورّد حساب توزيع الأوزان للمركبة الكاملة مع الهيكل، مبيناً الوزن الفارغ والحمولة وأحمال المحاور والوزن الإجمالي مقارنة بهذه الحدود.",
-   "sources": [
-    "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:heavy-vehicle-dimensions",
-   "topic": "Maximum dimensions of heavy vehicles and combinations",
-   "kind": "standard",
-   "body_en": "The same federal weights-and-dimensions regime sets maximum sizes. A single integrated vehicle may be up to 12.5 m long; a truck with semi-trailer up to 21 m; a truck with trailer and semi-trailer up to 28 m; and a vehicle carrying small vehicles (car transporter) up to 23 m. Maximum width is 2.6 m for all these categories, and maximum height is 4.6 m, except car transporters at 4.75 m. Exceeding a dimension carries an AED 3,000 fine, and operating with invalid permit documents AED 5,000. Loads that must exceed these limits need specific permits rather than being loaded \"a bit over\". Procurement implications: when ordering bodies (box, curtain-side, reefer, tanker, flatbed, crane-mounted), state the maximum overall length, width and height in the order and ask the body builder to confirm compliance including mirrors, reefer units and roof equipment; check that bus or coach heights with roof-mounted air-conditioning units are within the limit; and for car transporters specify the 23 m and 4.75 m envelope. Buyers of trailers should also fix kingpin, coupling and axle configuration so that the combination stays within both the dimension and the axle-based gross-weight limits for the intended route network.",
-   "body_ar": "يحدد النظام الاتحادي نفسه للأوزان والأبعاد المقاسات القصوى. فالمركبة المتكاملة الواحدة يصل طولها إلى 12.5 متر، والشاحنة مع نصف مقطورة إلى 21 متراً، والشاحنة مع مقطورة ونصف مقطورة إلى 28 متراً، والمركبة الناقلة للمركبات الصغيرة (ناقلة السيارات) إلى 23 متراً. والعرض الأقصى 2.6 متر لجميع هذه الفئات، والارتفاع الأقصى 4.6 متر باستثناء ناقلات السيارات 4.75 متر. ومخالفة الأبعاد غرامتها 3,000 درهم، والتشغيل بمستندات تصاريح غير سارية 5,000 درهم. والأحمال التي يجب أن تتجاوز هذه الحدود تحتاج إلى تصاريح خاصة لا إلى تحميل \"زائد قليلاً\". وانعكاسات ذلك على الشراء: عند طلب الهياكل (صندوق أو ستائر جانبية أو مبرد أو صهريج أو مسطح أو مزود برافعة) حدد الطول والعرض والارتفاع الكلي الأقصى في أمر الشراء، واطلب من مصنّع الهيكل تأكيد المطابقة بما في ذلك المرايا ووحدات التبريد ومعدات السقف، وتحقق من أن ارتفاع الحافلات المزودة بوحدات تكييف على السقف ضمن الحد، وحدد لناقلات السيارات غلاف 23 متراً و4.75 متر. وعلى مشتري المقطورات تحديد مسمار القطر ووصلة الربط وتركيبة المحاور بحيث تبقى التركيبة ضمن حدود الأبعاد والوزن الإجمالي القائم على المحاور لشبكة الطرق المقصودة.",
-   "sources": [
-    "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:speed-limiters",
-   "topic": "Speed limiters for commercial and heavy vehicles",
-   "kind": "authority_approval",
-   "body_en": "Commercial and heavy vehicles in the UAE must be fitted with an approved speed-limiting device, and Gulf technical regulations include speed-limiter technical requirements and test methods in the GSO motor-vehicle list. Dubai's school-transport bylaw requires school buses to be restricted to 80 km/h by a control device. Fitment providers describe the scope in Dubai as heavy goods trucks, passenger buses, school buses, taxis and commercial vans and tankers, with heavy trucks typically calibrated at 80 km/h; private passenger cars are generally outside the requirement unless registered for commercial use. The device must be installed and sealed by an authorised fitment centre, which issues a speed-limiter certificate valid for one year; the certificate is presented at the annual vehicle inspection and registration renewal and is renewed after a verification check of function, tamper seals and connections. Exact per-category set speeds for all emirates, and the device approval list, were not confirmed from a primary authority page in this research. For procurement: require the supplier to deliver commercial units with an approved speed limiter fitted, calibrated to the required speed and certified, or quote it as a separate line with lead time, because a vehicle without a valid certificate cannot pass inspection and registration.",
-   "body_ar": "يجب تزويد المركبات التجارية والثقيلة في الدولة بجهاز معتمد للحد من السرعة، وتتضمن قائمة اللوائح الخليجية للمركبات متطلبات فنية وطرق اختبار لمحددات السرعة. وتشترط اللائحة التنفيذية للنقل المدرسي في دبي تقييد سرعة الحافلات المدرسية عند 80 كم/ساعة بجهاز تحكم. ويصف مزودو التركيب النطاق في دبي بأنه يشمل الشاحنات الثقيلة وحافلات الركاب والحافلات المدرسية وسيارات الأجرة والشاحنات الصغيرة التجارية والصهاريج، مع معايرة الشاحنات الثقيلة عادة عند 80 كم/ساعة، بينما تخرج سيارات الركوب الخاصة عموماً من هذا الاشتراط ما لم تُسجل للاستخدام التجاري. ويجب تركيب الجهاز وختمه لدى مركز تركيب معتمد يصدر شهادة محدد سرعة صالحة لسنة، تُقدَّم عند الفحص الفني السنوي وتجديد التسجيل، وتُجدَّد بعد فحص للأداء والأختام والتوصيلات. ولم تُؤكد السرعات المحددة لكل فئة في جميع الإمارات ولا قائمة الأجهزة المعتمدة من صفحة رسمية في هذا البحث. وفي الشراء: اشترط على المورّد تسليم الوحدات التجارية مزودة بمحدد سرعة معتمد ومعاير على السرعة المطلوبة ومعه الشهادة، أو تسعيره كبند مستقل بمدة توريد، لأن المركبة دون شهادة سارية لا تجتاز الفحص والتسجيل.",
-   "sources": [
-    "https://speed.resolute-dynamics.com/blog/speed-limiter-certificate-dubai-rta-process-cost/",
-    "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "technical"
-  },
-  {
-   "id": "vehicles_fleet:school-bus-dubai",
-   "topic": "Dubai school bus technical requirements",
-   "kind": "standard",
-   "body_en": "Dubai's school-transport rules (Administrative Resolution No. 196 of 2015, the implementing bylaw of Executive Council Resolution No. 2 of 2008) set technical requirements that any school-bus purchase or lease must meet. The bus must be painted yellow RAL 1018 (zinc yellow) with no other overlapping colour; \"School Bus\" must appear in black in Arabic and English on the front, rear and sides, with reflective identification at the corners; speed must be limited to 80 km/h by a control device; one or two fire extinguishers are required depending on capacity, plus a first-aid kit sized to the seating; a GPS tracking system is mandatory; an automatic stop arm with flashing red light must deploy at stops; the bus may not exceed 15 years from manufacture; multiple signed emergency exits are required; seats must be padded, shock-absorbing and fire-resistant; air-conditioning must hold the cabin at no more than 24 °C; aisles need anti-slip flooring; passenger seats need two-point belts, while the driver and nursery-bus passengers need three-point belts, with universal anchorages for child seats. The bylaw extract reviewed did not mention CCTV as a requirement. When buying, state \"compliant with Dubai school transport bylaw\" and list these items in the specification; other emirates have their own school-transport rules that must be checked separately.",
-   "body_ar": "تحدد قواعد النقل المدرسي في دبي (القرار الإداري رقم 196 لسنة 2015 بإصدار اللائحة التنفيذية لقرار المجلس التنفيذي رقم 2 لسنة 2008) متطلبات فنية يجب أن يستوفيها أي شراء أو استئجار لحافلة مدرسية. فيجب طلاء الحافلة باللون الأصفر RAL 1018 (أصفر الزنك) دون أي لون متداخل، وكتابة عبارة \"حافلة مدرسية\" باللون الأسود بالعربية والإنجليزية في الأمام والخلف والجانبين مع علامات تعريف عاكسة في الزوايا، وتحديد السرعة عند 80 كم/ساعة بجهاز تحكم، وتوفير طفاية حريق أو اثنتين بحسب السعة وحقيبة إسعافات أولية تناسب عدد المقاعد، ونظام تتبع بالأقمار الصناعية إلزامياً، وذراع توقف آلي بضوء أحمر وامض يُفتح عند التوقف، وألا يتجاوز عمر الحافلة 15 سنة من تاريخ الصنع، ومخارج طوارئ متعددة بعلامات واضحة، ومقاعد مبطنة ماصة للصدمات مقاومة للحريق، وتكييفاً يحافظ على حرارة المقصورة عند 24 درجة مئوية كحد أقصى، وأرضيات مانعة للانزلاق في الممرات، وأحزمة بنقطتين لمقاعد الركاب وبثلاث نقاط للسائق ولركاب حافلات الحضانة مع نقاط تثبيت عالمية لمقاعد الأطفال. ولم يذكر مقتطف اللائحة الذي تمت مراجعته كاميرات المراقبة كاشتراط. وعند الشراء اذكر \"مطابقة للائحة النقل المدرسي في دبي\" وأدرج هذه البنود في المواصفة، ولكل إمارة أخرى قواعدها للنقل المدرسي التي يجب التحقق منها بشكل مستقل.",
-   "sources": [
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:spec-passenger-cars",
-   "topic": "What to specify when buying passenger cars for a fleet",
-   "kind": "spec_checklist",
-   "body_en": "A car dealer or fleet desk can only quote exactly when the request fixes the variables. State: make and model or the class you will accept (compact sedan, mid-size sedan, SUV) with any brand restrictions; model year and \"new, GCC specification, from the authorised UAE distributor\"; exact trim or variant, since one model can span a wide range (for example a compact sedan listed from AED 61,500 for the base trim to AED 81,500 for the top trim); engine and fuel (petrol, hybrid, electric), transmission, and for EVs battery size and charging standard; quantity and delivery schedule; colour per unit; mandatory equipment (airbags, ESC, rear camera, cruise control, telematics provision); window tint within the legal limit; accessories and branding; registration in whose name and in which emirate, insurance, and whether plates, Salik tags and first registration are included; warranty and service package required (years, km, what is covered); delivery location; trade-in or disposal of old units; and payment terms or financing/lease alternative. Also state intended use (pool car, sales, chauffeur, rental), which affects trim and service intervals. For leased fleets, add term, annual mileage, maintenance, replacement vehicle and end-of-term conditions. Without these fields quotes will not be comparable.",
-   "body_ar": "لا يستطيع وكيل السيارات أو قسم الأساطيل التسعير بدقة إلا إذا ثبّت الطلب المتغيرات. حدّد: الطراز أو الفئة المقبولة (سيدان صغيرة أو متوسطة أو مركبة رياضية متعددة الاستخدامات) مع أي قيود على العلامة، وسنة الطراز وعبارة \"جديدة بالمواصفات الخليجية ومن الموزع المعتمد في الدولة\"، والفئة أو النسخة بدقة لأن الطراز الواحد قد يمتد عبر نطاق واسع (مثلاً سيدان صغيرة تبدأ من 61,500 درهم للفئة الأساسية وتصل إلى 81,500 للفئة العليا)، والمحرك والوقود (بنزين أو هجين أو كهرباء) وناقل الحركة، وللكهربائية حجم البطارية ومعيار الشحن، والكمية وجدول التسليم، واللون لكل وحدة، والتجهيزات الإلزامية (الوسائد الهوائية والتحكم الإلكتروني بالثبات والكاميرا الخلفية ومثبت السرعة وتجهيز التتبع)، وتظليل النوافذ ضمن الحد القانوني، والإكسسوارات والشعارات، والتسجيل باسم من وفي أي إمارة والتأمين، وهل تشمل اللوحات وملصقات سالك والتسجيل الأول، والضمان وباقة الصيانة المطلوبة (السنوات والكيلومترات والتغطية)، وموقع التسليم، واستبدال الوحدات القديمة أو التخلص منها، وشروط الدفع أو بديل التمويل أو التأجير. واذكر أيضاً الاستخدام المقصود (سيارة مشتركة أو مبيعات أو سائق أو تأجير) لأنه يؤثر في الفئة وفترات الصيانة. وللأساطيل المؤجرة أضف المدة والمسافة السنوية والصيانة والمركبة البديلة وشروط نهاية العقد. ودون هذه البنود لن تكون العروض قابلة للمقارنة.",
-   "required_specs": [
-    "Make/model or acceptable class",
-    "Model year; new; GCC spec; authorised distributor",
-    "Exact trim/variant",
-    "Engine/fuel/transmission (EV: battery, charging standard)",
-    "Quantity and delivery schedule",
-    "Colour per unit",
-    "Mandatory equipment list",
-    "Tint, accessories, branding",
-    "Registration name/emirate, insurance, plates, Salik",
-    "Warranty and service package",
-    "Delivery location",
-    "Trade-in/disposal",
-    "Payment/finance/lease terms",
-    "Intended use"
-   ],
-   "sources": [
-    "https://www.zigwheels.ae/new-cars/nissan/sunny/price-dubai",
-    "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "vehicles_fleet:spec-pickups-vans",
-   "topic": "What to specify when buying pickups and vans",
-   "kind": "spec_checklist",
-   "body_en": "Pickups and vans are ordered by payload, cab and body configuration, not by model name alone. Specify: vehicle type (single-cab or double-cab pickup, panel van, high-roof van, commuter/passenger van); engine and fuel (for example a popular pickup range offers 2.7 L four-cylinder and 4.0 L V6 petrol engines, and a common van range lists 2.7 L petrol, 2.8 L diesel and 3.5 L petrol options) and transmission (manual or automatic); 4x2 or 4x4; payload and gross vehicle weight required; seating capacity (for commuter vans, the exact number of passenger seats, for example 13 seats); roof height and cargo dimensions; body additions such as canopy, cargo box, racks, shelving, refrigeration, tipper or crane, and who supplies and certifies them; equipment such as air-conditioning for rear passengers, rear camera, tow bar, speed limiter and GPS for commercial registration; tyre type for sand or road; quantity, colour and branding; registration category (commercial or private) and emirate; warranty and service package; delivery location and date. Published UAE list prices show how much trim matters: one distributor lists a 2.7 L pickup from AED 115,900 and the 4.0 L adventure trim from AED 155,900, and vans from AED 99,900 (2.7 L) to AED 131,900 (3.5 L high-roof). State the variant precisely so quotes match.",
-   "body_ar": "تُطلب مركبات البيك أب والشاحنات الصغيرة (الفان) بحسب الحمولة وتكوين المقصورة والهيكل لا باسم الطراز وحده. حدّد: نوع المركبة (بيك أب بمقصورة مفردة أو مزدوجة، أو فان مغلق، أو فان بسقف مرتفع، أو فان ركاب)، والمحرك والوقود (مثلاً تقدم فئة بيك أب شائعة محركي بنزين 2.7 لتر رباعي الأسطوانات و4.0 لتر V6، وتعرض فئة فان شائعة خيارات بنزين 2.7 لتر وديزل 2.8 لتر وبنزين 3.5 لتر) وناقل الحركة (يدوي أو آلي)، والدفع الثنائي أو الرباعي، والحمولة والوزن الإجمالي المطلوبين، وعدد المقاعد (لفان الركاب العدد الدقيق لمقاعد الركاب مثل 13 مقعداً)، وارتفاع السقف وأبعاد صندوق الحمولة، وإضافات الهيكل مثل الغطاء والصندوق والحوامل والرفوف والتبريد والقلاب أو الرافعة ومن يوردها ويعتمدها، والتجهيزات مثل تكييف الركاب الخلفي والكاميرا الخلفية ووصلة القطر ومحدد السرعة وجهاز التتبع للتسجيل التجاري، ونوع الإطارات للرمل أو الطرق، والكمية واللون والشعارات، وفئة التسجيل (تجاري أو خاص) والإمارة، والضمان وباقة الصيانة، وموقع التسليم وتاريخه. وتُظهر أسعار القوائم المنشورة في الدولة أهمية الفئة: يعرض أحد الموزعين بيك أب 2.7 لتر من 115,900 درهم وفئة المغامرة 4.0 لتر من 155,900 درهم، وفان من 99,900 درهم (2.7 لتر) إلى 131,900 درهم (3.5 لتر بسقف مرتفع). حدّد النسخة بدقة حتى تتطابق العروض.",
-   "required_specs": [
-    "Vehicle type and cab/body style",
-    "Engine, fuel, transmission",
-    "4x2 or 4x4",
-    "Payload and GVW",
-    "Seating capacity (vans)",
-    "Roof height and cargo dimensions",
-    "Body additions and certifying supplier",
-    "Equipment incl. speed limiter/GPS for commercial use",
-    "Tyre type",
-    "Quantity, colour, branding",
-    "Registration category and emirate",
-    "Warranty/service package",
-    "Delivery location and date"
-   ],
-   "sources": [
-    "https://www.toyota.ae/en/new-cars/hilux/",
-    "https://www.toyota.ae/en/new-cars/hiace/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:spec-buses",
-   "topic": "What to specify when buying buses and coaches",
-   "kind": "spec_checklist",
-   "body_en": "Bus quotes vary widely with seat count, air-conditioning and body. Specify: application (staff transport, school bus, city bus, tourist coach); seating capacity including driver and attendant (UAE market bodies range from about 26-seat minibuses to 60 to 71-seat full-size buses); air-conditioned or non-air-conditioned, and the required cabin temperature performance for summer; engine emission standard and fuel; transmission; luggage space for coaches; seat type (standard, reclining, padded fire-resistant) and seat belts (two-point or three-point); doors, emergency exits and wheelchair access; safety items: ABS, engine-compartment fire suppression, fire extinguishers, first-aid kit, GPS tracking, CCTV if wanted, reversing camera, speed limiter with certificate; for school buses in Dubai, full compliance with the school transport bylaw (RAL 1018 yellow, bilingual \"School Bus\" markings, stop arm, 80 km/h limit, 24 °C air-conditioning, belts, age limit); overall height with roof A/C against the 4.6 m limit; livery; quantity, delivery schedule and registration; warranty (chassis, body, A/C) and service support location; and spare-parts package. Published UAE listings show for example a 26-seat minibus at AED 139,000 and a 63-seat full-size bus at AED 212,000, which illustrates how capacity and A/C drive price.",
-   "body_ar": "تتفاوت عروض الحافلات كثيراً بحسب عدد المقاعد والتكييف والهيكل. حدّد: الاستخدام (نقل موظفين أو حافلة مدرسية أو حافلة مدينة أو حافلة سياحية)، وعدد المقاعد شاملاً السائق والمرافق (تتراوح الهياكل في سوق الدولة من حافلات صغيرة بنحو 26 مقعداً إلى حافلات كاملة من 60 إلى 71 مقعداً)، ومكيفة أم غير مكيفة وأداء التبريد المطلوب في الصيف، ومعيار الانبعاثات للمحرك والوقود، وناقل الحركة، ومساحة الأمتعة للحافلات السياحية، ونوع المقاعد (عادية أو قابلة للإمالة أو مبطنة مقاومة للحريق) وأحزمة الأمان (بنقطتين أو بثلاث)، والأبواب ومخارج الطوارئ وإمكانية دخول الكراسي المتحركة، وعناصر السلامة: الفرامل المانعة للانغلاق، ونظام إطفاء حريق حجرة المحرك، وطفايات الحريق، وحقيبة الإسعاف، والتتبع بالأقمار الصناعية، وكاميرات المراقبة إن رغبت، وكاميرا الرجوع، ومحدد السرعة مع شهادته، وللحافلات المدرسية في دبي المطابقة الكاملة للائحة النقل المدرسي (اللون الأصفر RAL 1018 وعبارة \"حافلة مدرسية\" بلغتين وذراع التوقف وحد 80 كم/ساعة وتكييف 24 درجة والأحزمة وحد العمر)، والارتفاع الكلي مع التكييف العلوي مقارنة بحد 4.6 متر، والطلاء والشعارات، والكمية وجدول التسليم والتسجيل، والضمان (الشاصي والهيكل والتكييف) وموقع دعم الصيانة، وحزمة قطع الغيار. وتُظهر إعلانات منشورة في الدولة مثلاً حافلة صغيرة 26 مقعداً بسعر 139,000 درهم وحافلة كاملة 63 مقعداً بسعر 212,000 درهم، ما يوضح أثر السعة والتكييف في السعر.",
-   "required_specs": [
-    "Application (staff/school/city/coach)",
-    "Seating capacity incl. driver/attendant",
-    "A/C or non-A/C and cooling performance",
-    "Engine emission standard, fuel, transmission",
-    "Seat type and belt type",
-    "Doors, emergency exits, accessibility",
-    "Safety equipment list (ABS, fire suppression, GPS, CCTV, camera, speed limiter)",
-    "School-bus bylaw compliance (if applicable)",
-    "Overall height vs 4.6 m limit",
-    "Livery, quantity, delivery, registration",
-    "Warranty coverage and service location",
-    "Spare-parts package"
-   ],
-   "sources": [
-    "https://www.dubicars.com/uae/new/ashok-leyland/bus",
-    "https://www.alnaboodahvehicles.com/products/buses-and-coaches/ashokleyland/falcon",
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html",
-    "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:spec-trucks",
-   "topic": "What to specify when buying trucks",
-   "kind": "spec_checklist",
-   "body_en": "Truck RFQs fail when they name a model but not the duty. Specify: application and body (box, curtain-side, refrigerated, tipper, tanker, flatbed, crane, tractor head); required legal payload and the resulting gross vehicle weight and axle configuration, checked against the federal limits (21 t two axles up to 65 t six axles) and dimension limits (12.5 m rigid, 21 m articulated, 2.6 m wide, 4.6 m high); duty class (light, medium, heavy), for example one brand's light-duty range covers payloads of about 2.8 to 6 tonnes and its medium range about 8 to 13 tonnes; cab type (day, sleeper, single or crew cab); engine power, emission standard and fuel; transmission (manual or automated); wheelbase; tyres and spare; fuel tank capacity; PTO and hydraulics for body equipment; safety and compliance items including speed limiter certificate, reflective markings and GPS; air-conditioning; body builder and certification of the complete vehicle, including multi-stage conformity where the chassis and body come from different makers; quantity, delivery and registration; warranty and service coverage (network locations, mobile service, uptime commitments); and spare-parts stock. Ask each supplier for a weight calculation of the finished vehicle, not only the chassis brochure.",
-   "body_ar": "تفشل طلبات عروض الشاحنات عندما تذكر الطراز دون طبيعة العمل. حدّد: الاستخدام والهيكل (صندوق أو ستائر جانبية أو مبرد أو قلاب أو صهريج أو مسطح أو رافعة أو رأس قاطرة)، والحمولة القانونية المطلوبة وما يترتب عليها من وزن إجمالي وتركيبة محاور مع مقارنتها بالحدود الاتحادية (من 21 طناً للمحورين إلى 65 طناً لستة محاور) وحدود الأبعاد (12.5 متر للشاحنة المفردة و21 متراً للمفصلية وعرض 2.6 متر وارتفاع 4.6 متر)، وفئة العمل (خفيفة أو متوسطة أو ثقيلة)، فمثلاً تغطي الفئة الخفيفة لإحدى العلامات حمولات من نحو 2.8 إلى 6 أطنان والمتوسطة من نحو 8 إلى 13 طناً، ونوع المقصورة (نهارية أو بسرير أو مفردة أو مزدوجة)، وقدرة المحرك ومعيار الانبعاثات والوقود، وناقل الحركة (يدوي أو مؤتمت)، وقاعدة العجلات، والإطارات والاحتياطي، وسعة خزان الوقود، ومأخذ القدرة والهيدروليك لمعدات الهيكل، وعناصر السلامة والامتثال بما فيها شهادة محدد السرعة والعلامات العاكسة والتتبع، والتكييف، ومصنّع الهيكل واعتماد المركبة الكاملة بما في ذلك المطابقة متعددة المراحل عندما يكون الشاصي والهيكل من صانعين مختلفين، والكمية والتسليم والتسجيل، والضمان وتغطية الصيانة (مواقع الشبكة والخدمة المتنقلة والتزامات الجاهزية)، ومخزون قطع الغيار. واطلب من كل مورّد حساب أوزان المركبة المكتملة لا كتيّب الشاصي وحده.",
-   "required_specs": [
-    "Application and body type",
-    "Legal payload, GVW, axle configuration vs federal limits",
-    "Overall dimensions vs limits",
-    "Duty class",
-    "Cab type",
-    "Engine power, emission standard, fuel",
-    "Transmission",
-    "Wheelbase",
-    "Tyres and spare",
-    "Fuel tank capacity",
-    "PTO/hydraulics",
-    "Speed limiter, markings, GPS",
-    "Air-conditioning",
-    "Body builder and multi-stage conformity",
-    "Quantity, delivery, registration",
-    "Warranty and service network",
-    "Spare-parts stock"
-   ],
-   "sources": [
-    "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced",
-    "https://www.isuzu-uae.ae/",
-    "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
-    "https://www.mercedes-benz-trucks.com/ae/en/trucks.html"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:spec-upfitting",
-   "topic": "What to specify for vehicle upfitting and conversions",
-   "kind": "spec_checklist",
-   "body_en": "Upfitting turns a base chassis or van into a working vehicle: refrigerated boxes, shelving, tool bodies, tippers, cranes, ambulances, mobile workshops, VIP or passenger conversions, school-bus conversions, emergency lighting and fleet branding. Specify: base vehicle make, model, year and whether you supply it or the upfitter does; the exact conversion scope with drawings; materials and dimensions; added weight and the resulting payload and gross weight against legal limits; electrical load and battery or alternator changes; refrigeration temperature range and unit make if relevant; seating changes and seat-belt anchorages for passenger conversions; compliance with the relevant GCC regulations, noting that the GSO list includes a regulation on conformity certificates for vehicles manufactured in multiple stages and general requirements for ambulances; approvals needed before and after the work, since Dubai requires modifications to be done by approved workshops and the vehicle to be re-inspected and its registration updated, which industry sources describe as RTA and ESMA/MoIAT-linked processes; impact on the base manufacturer's warranty; warranty on the conversion itself; lead time and vehicle downtime; and branding content, which as vehicle advertising needs a permit in Dubai. Ask the upfitter to confirm in writing who obtains the post-conversion inspection and updated registration. Detailed RTA modification-approval steps were not confirmed from a primary source here.",
-   "body_ar": "يحوّل التجهيز الشاصي أو الفان الأساسي إلى مركبة عاملة: صناديق مبردة، ورفوف، وهياكل عدد، وقلابات، ورافعات، وسيارات إسعاف، وورش متنقلة، وتحويلات كبار الشخصيات أو الركاب، وتحويل الحافلات المدرسية، وإضاءة الطوارئ، وشعارات الأسطول. حدّد: طراز المركبة الأساسية ونوعها وسنتها وهل تورّدها أنت أم المجهّز، ونطاق التحويل بدقة مع المخططات، والخامات والأبعاد، والوزن المضاف وما يترتب عليه من حمولة ووزن إجمالي مقارنة بالحدود القانونية، والحمل الكهربائي وتعديلات البطارية أو المولد، ومدى حرارة التبريد وعلامة وحدة التبريد عند الحاجة، وتعديلات المقاعد ونقاط تثبيت الأحزمة في تحويلات الركاب، والمطابقة للوائح الخليجية ذات الصلة علماً بأن القائمة الخليجية تتضمن لائحة لشهادات مطابقة المركبات المصنعة على مراحل متعددة ومتطلبات عامة لسيارات الإسعاف، والموافقات المطلوبة قبل العمل وبعده إذ تشترط دبي تنفيذ التعديلات في ورش معتمدة وإعادة فحص المركبة وتحديث تسجيلها، وتصف مصادر القطاع ذلك بإجراءات مرتبطة بهيئة الطرق والجهة الاتحادية للمواصفات، وأثر التحويل على ضمان الصانع الأصلي، والضمان على التحويل نفسه، ومدة التنفيذ وتوقف المركبة، ومحتوى الشعارات الذي يحتاج كإعلان على المركبات إلى تصريح في دبي. واطلب من المجهّز أن يؤكد كتابياً من يستخرج الفحص بعد التحويل والتسجيل المحدث. ولم تُؤكد خطوات موافقة التعديل لدى هيئة الطرق تفصيلاً من مصدر رسمي هنا.",
-   "required_specs": [
-    "Base vehicle and who supplies it",
-    "Conversion scope and drawings",
-    "Materials and dimensions",
-    "Added weight, payload, GVW",
-    "Electrical changes",
-    "Refrigeration range/unit (if any)",
-    "Seating and belt anchorages",
-    "GCC multi-stage conformity",
-    "Pre/post approvals, re-inspection, registration update",
-    "Effect on base warranty; conversion warranty",
-    "Lead time and downtime",
-    "Branding content and permit"
-   ],
-   "sources": [
-    "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
-    "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced",
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "technical"
-  },
-  {
-   "id": "vehicles_fleet:buy-vs-lease",
-   "topic": "Buying vs long-term leasing a fleet",
-   "kind": "comparison",
-   "body_en": "Owning and leasing solve different problems. Buying outright or with bank finance gives full control, no mileage limits and residual value on sale, but ties up capital and leaves the company handling registration, insurance, servicing, tyres, breakdowns, replacement vehicles and disposal. An operational (full-service) lease bundles the vehicle with some or all of these services for a fixed monthly rental over a defined term, usually with an annual mileage allowance and return conditions; the lessor carries residual-value risk and remarketing. Short-term or monthly rental is the most flexible and most expensive per month. Choosing: lease where the fleet is standard cars or light commercials, use is predictable and the company prefers fixed operating cost; buy where vehicles are specialised (upfitted trucks, school buses, refrigerated bodies), kept long, heavily used beyond typical mileage caps, or where capital is cheap. Compare on total cost of ownership over the same period, including finance cost, depreciation, maintenance, insurance, downtime and admin, not on monthly rental versus list price. UAE lease market terms (typical durations, inclusions, rates) are commercial and were not established from a fetched primary source in this research; obtain written quotes that list every inclusion and exclusion.",
-   "body_ar": "يحل التملك والتأجير مشكلتين مختلفتين. فالشراء النقدي أو بتمويل مصرفي يمنح سيطرة كاملة ودون حدود للمسافة وقيمة متبقية عند البيع، لكنه يجمّد رأس المال ويترك للشركة التسجيل والتأمين والصيانة والإطارات والأعطال والمركبات البديلة والتخلص منها. أما التأجير التشغيلي (بخدمة شاملة) فيجمع المركبة مع بعض هذه الخدمات أو كلها مقابل إيجار شهري ثابت لمدة محددة، مع حد سنوي للمسافة وشروط إرجاع في العادة، ويتحمل المؤجر مخاطر القيمة المتبقية وإعادة البيع. والإيجار قصير الأجل أو الشهري هو الأكثر مرونة والأعلى كلفة شهرياً. وللاختيار: التأجير حيث يكون الأسطول سيارات قياسية أو مركبات تجارية خفيفة والاستخدام متوقعاً والشركة تفضل كلفة تشغيل ثابتة، والشراء حيث تكون المركبات متخصصة (شاحنات مجهزة أو حافلات مدرسية أو هياكل مبردة) أو تُحتفظ بها طويلاً أو تُستخدم بكثافة تتجاوز حدود المسافة المعتادة أو يكون رأس المال رخيصاً. وقارن على أساس الكلفة الإجمالية للتملك خلال المدة نفسها، شاملة كلفة التمويل والاستهلاك والصيانة والتأمين والتوقف والإدارة، لا الإيجار الشهري مقابل سعر القائمة. أما شروط سوق التأجير في الدولة (المدد المعتادة والمشمولات والأسعار) فتجارية ولم تثبت من مصدر رسمي في هذا البحث، فاطلب عروضاً مكتوبة تسرد كل مشمول ومستثنى.",
-   "sources": [
-    "https://www.toyota.ae/en/new-cars/hilux/"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "vehicles_fleet:fuel-choice",
-   "topic": "Petrol vs diesel vs hybrid vs electric for UAE fleets",
-   "kind": "comparison",
-   "body_en": "Powertrain choice depends on duty, availability in the GCC-spec range and charging access. Many high-volume fleet models are petrol-only in the UAE; for example one widely used compact sedan is listed with a 1.6 L petrol engine and no diesel option. Light commercials offer a choice: one common van range is listed with 2.7 L petrol, 2.8 L diesel and 3.5 L petrol engines. Diesel suits high-mileage, heavily loaded or long-haul work and is standard in medium and heavy trucks and full-size buses, though emission standards vary by product (one bus range sold in the UAE advertises a Euro 3 engine). Hybrids reduce fuel use in urban stop-start driving without charging infrastructure. Battery-electric vehicles, now offered by several distributors including fully electric and plug-in \"super hybrid\" ranges, and electric trucks such as eActros appearing in distributor ranges, need depot or public charging and route planning. In Dubai DEWA operates the EV Green Charger public network; its published commercial tariff was 29 fils per kWh, but tariffs have since been revised and the current rate was not confirmed from a primary source here. Compare on total energy cost per km, maintenance, residual value, range against daily duty, and charging downtime, and specify powertrain explicitly in RFQs.",
-   "body_ar": "يعتمد اختيار نظام الدفع على طبيعة العمل وتوفره ضمن المواصفات الخليجية وإمكانية الشحن. فكثير من طرازات الأساطيل الأعلى مبيعاً في الدولة بنزين فقط، ومثال ذلك سيدان صغيرة شائعة الاستخدام معروضة بمحرك بنزين 1.6 لتر دون خيار ديزل. وتتيح المركبات التجارية الخفيفة خيارات، فإحدى فئات الفان الشائعة معروضة بمحركات بنزين 2.7 لتر وديزل 2.8 لتر وبنزين 3.5 لتر. ويناسب الديزل العمل كثيف المسافات أو الأحمال أو النقل الطويل، وهو المعتاد في الشاحنات المتوسطة والثقيلة والحافلات الكاملة، مع اختلاف معايير الانبعاثات بحسب المنتج (إذ تعلن فئة حافلات تباع في الدولة محركاً بمعيار يورو 3). ويقلل الهجين استهلاك الوقود في القيادة الحضرية المتقطعة دون بنية شحن. أما المركبات الكهربائية بالبطارية، التي يعرضها الآن عدة موزعين ضمن فئات كهربائية بالكامل وهجينة قابلة للشحن، والشاحنات الكهربائية التي بدأت تظهر في فئات الموزعين، فتحتاج إلى شحن في المستودع أو عام وتخطيط للمسارات. وفي دبي تشغّل هيئة كهرباء ومياه دبي شبكة \"الشاحن الأخضر\" العامة، وكانت تعرفتها التجارية المعلنة 29 فلساً للكيلوواط ساعة، لكن التعرفة عُدلت لاحقاً ولم تُؤكد القيمة الحالية من مصدر رسمي هنا. قارن على أساس كلفة الطاقة لكل كيلومتر والصيانة والقيمة المتبقية والمدى مقابل العمل اليومي وزمن الشحن، وحدد نظام الدفع صراحة في طلبات العروض.",
-   "sources": [
-    "https://www.zigwheels.ae/new-cars/nissan/sunny/price-dubai",
-    "https://www.toyota.ae/en/new-cars/hiace/",
-    "https://www.alnaboodahvehicles.com/products/buses-and-coaches/ashokleyland/falcon",
-    "https://www.byduae.ae/en/",
-    "https://www.mercedes-benz-trucks.com/ae/en/trucks.html",
-    "https://dubaisce.gov.ae/en/dewas-ev-green-charger-initiative/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "vehicles_fleet:ev-charging",
-   "topic": "EV fleet charging in Dubai (DEWA EV Green Charger)",
-   "kind": "installation",
-   "body_en": "Dubai Electricity and Water Authority (DEWA) runs the EV Green Charger initiative, the emirate's main public charging network, with around 300 stations reported installed across Dubai including Hatta at the time of the source reviewed. Users register through DEWA's app or website; commercially registered customers such as companies and government entities were charged a published commercial tariff of 29 fils per kWh, while non-commercial users had free charging until the end of 2021. Tariffs have been revised since then and differ for AC and DC charging according to later reports, but the current figures were not confirmed from a DEWA primary page in this research and must be checked before budgeting. For a fleet operator planning electric vehicles: count daily kilometres per vehicle and compare with realistic summer range; decide whether charging will be at depot (needs a DEWA-approved installation, load assessment and possibly a supply upgrade) or on the public network; specify charger type (AC wallbox or DC fast charger), connector standard supported by the vehicles, number of charge points and smart-charging software; and plan for driver access cards and billing to the company account. Also confirm that each EV model carries MoIAT conformity and the distributor's battery warranty terms in writing.",
-   "body_ar": "تدير هيئة كهرباء ومياه دبي مبادرة \"الشاحن الأخضر\"، وهي الشبكة العامة الرئيسية لشحن المركبات الكهربائية في الإمارة، وقد أفاد المصدر الذي تمت مراجعته بتركيب نحو 300 محطة في أنحاء دبي بما فيها حتا. ويسجل المستخدمون عبر تطبيق الهيئة أو موقعها، وكان العملاء المسجلون تجارياً مثل الشركات والجهات الحكومية يدفعون تعرفة تجارية معلنة قدرها 29 فلساً للكيلوواط ساعة، بينما كان الشحن مجانياً لغير التجاريين حتى نهاية 2021. وقد عُدلت التعرفة منذ ذلك الحين وأصبحت تختلف بين الشحن المتردد والسريع وفق تقارير لاحقة، لكن القيم الحالية لم تُؤكد من صفحة رسمية للهيئة في هذا البحث ويجب التحقق منها قبل إعداد الميزانية. وعلى مشغل الأسطول الذي يخطط للمركبات الكهربائية: احتساب الكيلومترات اليومية لكل مركبة ومقارنتها بالمدى الواقعي صيفاً، وتحديد ما إذا كان الشحن في المستودع (ويحتاج إلى تركيب معتمد من الهيئة وتقييم للأحمال وربما رفع للقدرة) أم عبر الشبكة العامة، وتحديد نوع الشاحن (منزلي متردد أو سريع مستمر) ومعيار الموصل الذي تدعمه المركبات وعدد نقاط الشحن وبرمجيات الشحن الذكي، والتخطيط لبطاقات وصول السائقين والفوترة على حساب الشركة. وتأكد أيضاً من حصول كل طراز كهربائي على مطابقة الوزارة ومن شروط ضمان البطارية لدى الموزع كتابياً.",
-   "sources": [
-    "https://dubaisce.gov.ae/en/dewas-ev-green-charger-initiative/",
-    "https://www.byduae.ae/en/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "vehicles_fleet:window-tint",
-   "topic": "Window tint limits for fleet vehicles",
-   "kind": "standard",
-   "body_en": "Window tint is a frequent fleet add-on and a frequent fine. UAE rules allow tint on side and rear windows up to a limit expressed as visible light transmission (VLT), and the front windscreen must stay clear. The revised federal traffic law in force since 1 July 2017 raised the permitted tint from 30% to 50% on all windows except the front windscreen, which may not be tinted; trucks and taxis are not covered by this allowance and follow different rules. Reported fines start at AED 1,000 and vary by emirate and degree of excess, with consumer guides citing AED 1,500 and possible impoundment in serious cases; exemptions exist for medical reasons and security cases on approval. Sources differ on some details (for example separate limits for front side windows), so confirm the exact figure per window with the licensing authority before ordering. For fleet procurement: specify tint \"within the legal UAE limit for the registration category\", require the installer to use certified film and to provide the VLT value on the invoice, avoid tinting company vehicles that carry passengers for hire or school children unless the category permits it, and remember that windows covered by branding film must still meet visibility rules. A cheaper darker tint that triggers fines and re-work across a whole fleet is a false saving.",
-   "body_ar": "يُعد تظليل النوافذ إضافة شائعة للأساطيل وسبباً شائعاً للمخالفات. وتسمح قواعد الدولة بتظليل النوافذ الجانبية والخلفية حتى حد يُعبَّر عنه بنسبة نفاذ الضوء المرئي، ويجب أن يبقى الزجاج الأمامي شفافاً. وقد رفع قانون السير الاتحادي المعدل النافذ منذ الأول من يوليو 2017 نسبة التظليل المسموحة من 30% إلى 50% على جميع النوافذ عدا الزجاج الأمامي الذي لا يجوز تظليله، ولا تشمل هذه النسبة الشاحنات وسيارات الأجرة التي تخضع لقواعد مختلفة. وتبدأ الغرامات المعلنة من 1,000 درهم وتختلف بحسب الإمارة ومقدار التجاوز، وتذكر أدلة المستهلكين 1,500 درهم وإمكانية حجز المركبة في الحالات الجسيمة، وتوجد استثناءات لأسباب طبية وأمنية بعد الموافقة. وتختلف المصادر في بعض التفاصيل (مثل حدود منفصلة للنوافذ الجانبية الأمامية)، لذا أكد النسبة الدقيقة لكل نافذة لدى جهة الترخيص قبل الطلب. وفي مشتريات الأساطيل: حدد التظليل \"ضمن الحد القانوني في الدولة لفئة التسجيل\"، واشترط على المركّب استخدام فيلم معتمد وذكر نسبة النفاذ في الفاتورة، وتجنب تظليل مركبات الشركة التي تنقل ركاباً بأجر أو طلاب مدارس ما لم تسمح الفئة بذلك، وتذكّر أن النوافذ المغطاة بأفلام الشعارات يجب أن تستوفي قواعد الرؤية أيضاً. والتظليل الأغمق الأرخص الذي يجر مخالفات وإعادة عمل على أسطول كامل توفير زائف.",
-   "sources": [
-    "https://gulfnews.com/uae/transport/law-allowing-50-car-window-tinting-helps-motorists-stay-cool-1.2204274",
-    "https://www.cars24.ae/news/en/buyers-guide/tinting-laws-in-the-uae/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:recalls",
-   "topic": "Vehicle recalls and consumer protection",
-   "kind": "warranty",
-   "body_en": "Recalls in the UAE are overseen by the Ministry of Economy's consumer protection function together with manufacturers and their UAE agents. The ministry's published recall procedure runs through detection of the defect, verification that the product is on the market, and withdrawal; suppliers submit a recall request with documentation, publish the notice through accredited press channels, and close the file with a report to the ministry. For a fleet owner, recalls are one of the strongest reasons to buy through the authorised distributor: the agent holds the VIN records, contacts registered owners and performs recall work under the manufacturer's campaign, while grey imports may never be notified. Fleet managers should register every vehicle in the company's name with the dealer, keep an up-to-date contact for recall notices, check open campaigns by VIN at each service, and write into supply contracts that recall and safety-campaign work is performed free of charge with a replacement vehicle if downtime exceeds an agreed period. Keep recall completion records in each vehicle's file, because they matter at resale and in any warranty dispute.",
-   "body_ar": "تشرف على عمليات الاستدعاء في الدولة إدارة حماية المستهلك في وزارة الاقتصاد بالتعاون مع المصنّعين ووكلائهم في الدولة. ويمر إجراء الاستدعاء المنشور لدى الوزارة بمراحل اكتشاف العيب، والتحقق من وجود المنتج في السوق، ثم سحبه، ويقدم المورّد طلب استدعاء بالمستندات، وينشر الإعلان عبر الصحف المعتمدة، ويغلق الملف بتقرير إلى الوزارة. وبالنسبة لمالك الأسطول، يُعد الاستدعاء من أقوى أسباب الشراء عبر الموزع المعتمد، إذ يحتفظ الوكيل بسجلات أرقام الهياكل ويتواصل مع الملاك المسجلين وينفذ أعمال الاستدعاء ضمن حملة الصانع، بينما قد لا يُبلَّغ مالكو السيارات المستوردة بشكل موازٍ أبداً. وعلى مديري الأساطيل تسجيل كل مركبة باسم الشركة لدى الوكيل، والاحتفاظ بجهة اتصال محدثة لإشعارات الاستدعاء، والتحقق من الحملات المفتوحة برقم الهيكل عند كل صيانة، والنص في عقود التوريد على تنفيذ أعمال الاستدعاء وحملات السلامة مجاناً مع مركبة بديلة إذا تجاوز التوقف مدة متفقاً عليها. واحتفظ بسجلات إتمام الاستدعاء في ملف كل مركبة لأهميتها عند إعادة البيع وفي أي نزاع على الضمان.",
-   "sources": [
-    "https://www.moet.gov.ae/en/product-recall1"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:authorised-vs-grey",
-   "topic": "Authorised distributor vs parallel (grey) supply",
-   "kind": "comparison",
-   "body_en": "Most mainstream brands in the UAE are sold through an appointed distributor, often an established family group, for example Toyota through Al-Futtaim, Hyundai, Kia, Genesis and Isuzu commercial vehicles through Juma Al Majid group companies (Isuzu trucks via GENAVCO), Ashok Leyland buses through Al Naboodah, King Long buses through Al Ghurair Motors, Volvo trucks and buses through Al-Futtaim, and BYD through Al-Futtaim's electric mobility arm; Mercedes-Benz trucks are supported by Daimler Truck Middle East Africa in Jebel Ali with a dealer network. Buying from the authorised channel normally gives GCC-spec vehicles with conformity certification, manufacturer warranty honoured locally, recall coverage, parts availability and service network. Parallel or grey supply (vehicles imported by independent traders, sometimes new, sometimes nearly new, sometimes non-GCC spec) can be cheaper or faster when the distributor has waiting lists, but brings risks: warranty may not be honoured by the local agent, specification may differ, conformity documents may be missing, and resale value is lower. Online marketplaces list both channels side by side, and listings for the same model can vary widely. For fleet tenders, require bidders to state whether they are the authorised distributor or a reseller, the vehicle origin and specification, and who provides warranty service.",
-   "body_ar": "تُباع معظم العلامات الرئيسية في الدولة عبر موزع معيّن، غالباً مجموعة عائلية عريقة، ومن الأمثلة تويوتا عبر الفطيم، وهيونداي وكيا وجينيسيس ومركبات إيسوزو التجارية عبر شركات مجموعة جمعة الماجد (شاحنات إيسوزو عبر جينافكو)، وحافلات أشوك ليلاند عبر النابودة، وحافلات كينغ لونغ عبر الغرير للسيارات، وشاحنات وحافلات فولفو عبر الفطيم، وBYD عبر ذراع التنقل الكهربائي للفطيم، وتدعم \"دايملر تراك الشرق الأوسط وأفريقيا\" في جبل علي شاحنات مرسيدس-بنز مع شبكة وكلاء. والشراء من القناة المعتمدة يمنح عادة مركبات بالمواصفات الخليجية مع شهادات المطابقة، وضمان الصانع المعتمد محلياً، وتغطية الاستدعاءات، وتوفر قطع الغيار وشبكة الخدمة. أما التوريد الموازي (مركبات يستوردها تجار مستقلون، جديدة أحياناً وشبه جديدة أحياناً وبمواصفات غير خليجية أحياناً) فقد يكون أرخص أو أسرع عند وجود قوائم انتظار لدى الموزع، لكنه يحمل مخاطر: قد لا يلتزم الوكيل المحلي بالضمان، وقد تختلف المواصفات، وقد تغيب مستندات المطابقة، وتنخفض قيمة إعادة البيع. وتعرض الأسواق الإلكترونية القناتين جنباً إلى جنب، وقد تتفاوت أسعار الطراز نفسه كثيراً. وفي مناقصات الأساطيل اشترط على المتقدمين بيان ما إذا كانوا الموزع المعتمد أم معيد بيع، ومنشأ المركبة ومواصفاتها، ومن يقدم خدمة الضمان.",
-   "sources": [
-    "https://www.toyota.ae/en/new-cars/hilux/",
-    "https://www.al-majid.com/group_businesses/commercial/automotive-heavy-equipment/",
-    "https://www.isuzu-uae.ae/",
-    "https://www.alnaboodahvehicles.com/products/buses-and-coaches/ashokleyland/falcon",
-    "https://kinglong.ae/home",
-    "https://www.mercedes-benz-trucks.com/ae/en/trucks.html",
-    "https://www.byduae.ae/en/",
-    "https://www.dubicars.com/uae/new/isuzu/npr"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:truck-classes",
-   "topic": "Truck classes and body types in the UAE market",
-   "kind": "glossary",
-   "body_en": "Terms used in truck quotes: light-duty trucks (for example the N-series class offered in the UAE covers payloads of roughly 2.8 to 6 tonnes) used for city distribution, often as cab-chassis for a box, pickup or tipper body; medium-duty trucks (the F-series class, roughly 8 to 13 tonnes payload) for heavier regional distribution and construction supply; heavy-duty rigid trucks and tractor heads for long haul and construction, for example distributor ranges that split into long-distance (Actros), distribution (Atego, Accelo), construction (Arocs) and special trucks (Zetros, Unimog, Econic), plus electric models; pickups (single or double cab) for light work. Configuration terms: cab-chassis, the bare chassis delivered for a body builder; wheelbase, the distance between axles, which sets body length; 4x2, 6x4, 8x4, describing total wheels and driven wheels; GVW or GCW, the gross vehicle or combination weight; payload, what remains after tare; PTO, power take-off to drive hydraulics. Body types: dry box, curtain-side, reefer, tipper, tanker, flatbed, crane-mounted, car carrier. UAE listings show light trucks in many forms, from cab-chassis to tipper and double-cab chassis, with prices varying by body and year. Always check that axle configuration and body fit within the federal weight and dimension limits.",
-   "body_ar": "مصطلحات تتكرر في عروض الشاحنات: الشاحنات الخفيفة (مثل فئة N المعروضة في الدولة التي تغطي حمولات من نحو 2.8 إلى 6 أطنان) لتوزيع المدن، وتورَّد غالباً كشاصي مع مقصورة لتركيب صندوق أو بيك أب أو قلاب، والشاحنات المتوسطة (فئة F بحمولات من نحو 8 إلى 13 طناً) للتوزيع الإقليمي الأثقل وتوريد مواد البناء، والشاحنات الثقيلة المفردة ورؤوس القاطرات للنقل الطويل والبناء، ومثالها فئات موزعين تنقسم إلى النقل الطويل (أكتروس) والتوزيع (أتيغو وأكسيلو) والبناء (أروكس) والشاحنات الخاصة (زيتروس ويونيموغ وإيكونيك) إضافة إلى طرازات كهربائية، ومركبات البيك أب (بمقصورة مفردة أو مزدوجة) للأعمال الخفيفة. ومصطلحات التكوين: الشاصي مع المقصورة، أي الهيكل المجرد المسلّم لمصنّع الهيكل، وقاعدة العجلات أي المسافة بين المحاور التي تحدد طول الهيكل، و4x2 و6x4 و8x4 لوصف إجمالي العجلات والعجلات الدافعة، والوزن الإجمالي للمركبة أو للتركيبة، والحمولة أي ما يتبقى بعد الوزن الفارغ، ومأخذ القدرة لتشغيل الهيدروليك. وأنواع الهياكل: صندوق جاف، وستائر جانبية، ومبرد، وقلاب، وصهريج، ومسطح، ومزود برافعة، وناقل سيارات. وتُظهر الإعلانات في الدولة الشاحنات الخفيفة بأشكال كثيرة من الشاصي إلى القلاب والشاصي بمقصورة مزدوجة، مع تفاوت الأسعار بحسب الهيكل والسنة. وتحقق دائماً من ملاءمة تركيبة المحاور والهيكل لحدود الأوزان والأبعاد الاتحادية.",
-   "sources": [
-    "https://www.isuzu-uae.ae/",
-    "https://www.mercedes-benz-trucks.com/ae/en/trucks.html",
-    "https://www.dubicars.com/uae/new/isuzu/npr",
-    "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:bus-classes",
-   "topic": "Bus and coach categories in the UAE market",
-   "kind": "glossary",
-   "body_en": "Bus categories a buyer will meet: minibuses (roughly 14 to 30 seats) for small staff shuttles and hotel transfers, including van-based 13-seat commuters; medium buses; full-size buses of about 60 to 71 seats, the workhorse of labour and school transport, sold with or without air-conditioning; school buses built to school-transport bylaws; city buses with low floors and standing capacity; and luxury coaches with reclining seats, luggage holds and higher-spec air-conditioning for tourism and intercity work. In the UAE market, for example, Ashok Leyland's Falcon family (represented exclusively by Al Naboodah, with a sales and service facility in Ras Al Khaimah) is offered as A/C, non-A/C, 4x4 and school-bus versions with a Euro 3 engine and options such as ABS and engine fire suppression, and the distributor reports over a thousand Falcons in UAE school transport; King Long, distributed by Al Ghurair Motors since 2007, lists school buses, staff buses of about 40 to 60 seats, city buses and several coach models. Published listings show a 26-seat minibus around AED 139,000 and a 63-seat bus around AED 212,000, while many units are \"price on request\". Specify category, seat count and A/C explicitly; seat count alone does not define a bus.",
-   "body_ar": "فئات الحافلات التي سيقابلها المشتري: الحافلات الصغيرة (من نحو 14 إلى 30 مقعداً) لنقل الموظفين بأعداد صغيرة وتنقلات الفنادق، بما فيها فان الركاب ذو 13 مقعداً، والحافلات المتوسطة، والحافلات الكاملة من نحو 60 إلى 71 مقعداً وهي عماد نقل العمال والطلاب وتباع مكيفة أو غير مكيفة، والحافلات المدرسية المصنعة وفق لوائح النقل المدرسي، وحافلات المدن ذات الأرضية المنخفضة وسعة الوقوف، والحافلات السياحية الفاخرة بمقاعد قابلة للإمالة ومخازن أمتعة وتكييف أعلى مواصفة للسياحة والنقل بين المدن. ففي سوق الدولة مثلاً تُعرض عائلة \"فالكون\" من أشوك ليلاند (التي تمثلها النابودة حصرياً ولديها منشأة مبيعات وخدمة في رأس الخيمة) بنسخ مكيفة وغير مكيفة ودفع رباعي وحافلة مدرسية بمحرك يورو 3 وخيارات مثل الفرامل المانعة للانغلاق ونظام إطفاء حريق المحرك، ويذكر الموزع أن أكثر من ألف حافلة فالكون تعمل في النقل المدرسي في الدولة، وتعرض كينغ لونغ، التي توزعها الغرير للسيارات منذ 2007، حافلات مدرسية وحافلات موظفين من نحو 40 إلى 60 مقعداً وحافلات مدن وعدة طرازات سياحية. وتُظهر إعلانات منشورة حافلة صغيرة 26 مقعداً بنحو 139,000 درهم وحافلة 63 مقعداً بنحو 212,000 درهم، بينما كثير من الوحدات \"السعر عند الطلب\". حدد الفئة وعدد المقاعد والتكييف صراحة، فعدد المقاعد وحده لا يعرّف الحافلة.",
-   "sources": [
-    "https://www.alnaboodahvehicles.com/products/buses-and-coaches/ashokleyland/falcon",
-    "https://kinglong.ae/home",
-    "https://www.dubicars.com/uae/new/ashok-leyland/bus",
-    "https://www.toyota.ae/en/new-cars/hiace/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:mistake-overload-noncompliant",
-   "topic": "Buyer mistakes in vehicle and fleet purchasing",
-   "kind": "buyer_mistake",
-   "body_en": "Common and costly errors: buying a truck by chassis rating without checking legal payload after the body is fitted, then running overweight on federal roads where fines reach AED 600 per excess tonne (capped at AED 15,000) plus AED 1,500 per overloaded axle; ordering bodies or roof equipment that push a vehicle beyond the 2.6 m width or 4.6 m height limits; buying or leasing school buses that do not meet the Dubai bylaw (RAL 1018 yellow, stop arm, GPS, 80 km/h limiter, 24 °C A/C, belts, maximum 15 years age), which then cannot operate; accepting commercial vehicles without a certified speed limiter, so they fail inspection; importing used or non-GCC vehicles to save money and then facing MoIAT rejection or registration delays; comparing quotes for different trims because the RFQ did not fix the variant (one pickup ranges from AED 115,900 to AED 155,900 by engine and trim); ignoring warranty and service-network coverage for vehicles based in remote emirates; tinting windows beyond the legal limit across a fleet; and wrapping vehicles with advertising without the required permit. Each of these is avoided by a written specification that states legal limits, compliance documents and the exact variant, and by requiring the supplier to certify compliance of the finished vehicle, not only the base chassis.",
-   "body_ar": "أخطاء شائعة ومكلفة: شراء شاحنة وفق تصنيف الشاصي دون التحقق من الحمولة القانونية بعد تركيب الهيكل، ثم السير بوزن زائد على الطرق الاتحادية حيث تصل الغرامة إلى 600 درهم عن كل طن زائد (بحد أقصى 15,000 درهم) إضافة إلى 1,500 درهم لكل محور زائد الحمولة، وطلب هياكل أو معدات سقف تتجاوز بالمركبة حد العرض 2.6 متر أو الارتفاع 4.6 متر، وشراء أو استئجار حافلات مدرسية لا تستوفي لائحة دبي (الأصفر RAL 1018 وذراع التوقف والتتبع ومحدد 80 كم/ساعة وتكييف 24 درجة والأحزمة وعمر أقصى 15 سنة) فلا يمكن تشغيلها، وقبول مركبات تجارية دون محدد سرعة معتمد فتفشل في الفحص، واستيراد مركبات مستعملة أو غير خليجية توفيراً ثم مواجهة رفض الوزارة أو تأخر التسجيل، ومقارنة عروض لفئات مختلفة لأن طلب العرض لم يثبّت النسخة (فأحد طرازات البيك أب يتراوح بين 115,900 و155,900 درهم بحسب المحرك والفئة)، وإهمال تغطية الضمان وشبكة الخدمة للمركبات العاملة في الإمارات البعيدة، وتظليل النوافذ بما يتجاوز الحد القانوني على مستوى الأسطول، وتغليف المركبات بإعلانات دون التصريح المطلوب. ويمكن تجنب كل ذلك بمواصفة مكتوبة تذكر الحدود القانونية ومستندات الامتثال والنسخة الدقيقة، وبإلزام المورّد بإثبات مطابقة المركبة المكتملة لا الشاصي الأساسي فقط.",
-   "sources": [
-    "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced",
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html",
-    "https://speed.resolute-dynamics.com/blog/speed-limiter-certificate-dubai-rta-process-cost/",
-    "https://moiat.gov.ae/en/services/issue-product-status-statement-for-used-imported-vehicles",
-    "https://www.toyota.ae/en/new-cars/hilux/",
-    "https://www.cars24.ae/news/en/buyers-guide/tinting-laws-in-the-uae/",
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "vehicles_fleet:warranty-service",
-   "topic": "Warranty and after-sales terms for fleet vehicles",
-   "kind": "warranty",
-   "body_en": "For a fleet the after-sales package often matters more than a small difference in purchase price. Items to fix in writing: manufacturer warranty period and mileage for the vehicle, and separately for powertrain, body, air-conditioning and, for electric and hybrid models, the high-voltage battery; whether warranty is honoured by the local authorised distributor (normally only for vehicles supplied through the authorised channel); service contract or pre-paid maintenance (intervals, parts and labour included, consumables such as tyres and brakes excluded or included); service network locations in the emirates where the fleet operates, mobile service for trucks and buses, and guaranteed turnaround times; replacement vehicle during extended repairs; parts availability commitments for commercial models; recall and campaign handling; and warranty on third-party bodies and conversions, which is usually the body builder's, not the chassis maker's. Distributors publish monthly finance figures and list prices on their websites, but detailed warranty terms were generally not shown on the pages reviewed in this research, and standard UAE warranty periods by brand were therefore not established. Ask each bidder for its warranty booklet and service price list, and compare total cost over the planned holding period rather than headline price.",
-   "body_ar": "بالنسبة للأسطول كثيراً ما تكون باقة ما بعد البيع أهم من فرق بسيط في سعر الشراء. والبنود التي يجب تثبيتها كتابياً: مدة ضمان الصانع ومسافته للمركبة، وبشكل منفصل لمجموعة الحركة والهيكل والتكييف، وللطرازات الكهربائية والهجينة لبطارية الجهد العالي، وهل يلتزم الموزع المعتمد المحلي بالضمان (وعادة يكون ذلك فقط للمركبات المورّدة عبر القناة المعتمدة)، وعقد الخدمة أو الصيانة المدفوعة مسبقاً (الفترات والقطع والعمالة المشمولة، والمستهلكات مثل الإطارات والفرامل مشمولة أم مستثناة)، ومواقع شبكة الخدمة في الإمارات التي يعمل فيها الأسطول، والخدمة المتنقلة للشاحنات والحافلات، وأوقات الإنجاز المضمونة، والمركبة البديلة أثناء الإصلاحات الطويلة، والتزامات توفر قطع الغيار للطرازات التجارية، ومعالجة الاستدعاءات والحملات، والضمان على الهياكل والتحويلات من أطراف ثالثة الذي يكون عادة على مصنّع الهيكل لا صانع الشاصي. وينشر الموزعون أرقام التمويل الشهري وأسعار القوائم على مواقعهم، لكن شروط الضمان التفصيلية لم تظهر عموماً في الصفحات التي تمت مراجعتها في هذا البحث، ولذا لم تثبت مدد الضمان المعتادة لكل علامة في الدولة. اطلب من كل متقدم كتيّب الضمان وقائمة أسعار الخدمة، وقارن الكلفة الإجمالية خلال فترة الاحتفاظ المخططة لا السعر الظاهر.",
-   "sources": [
-    "https://www.toyota.ae/en/new-cars/hilux/",
-    "https://www.byduae.ae/en/",
-    "https://www.moet.gov.ae/en/product-recall1"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "vehicles_fleet:price-drivers",
-   "topic": "What drives vehicle and fleet prices in the UAE",
-   "kind": "price_driver",
-   "body_en": "Price drivers a buyer can see and negotiate: model and trim level, which can move price by a third or more within one nameplate (published examples: a compact sedan from AED 61,500 to AED 81,500 across four trims; a pickup from AED 115,900 for the 2.7 L to AED 155,900 for the 4.0 L adventure trim; a van from AED 99,900 to AED 131,900); engine and drivetrain (V6 versus four-cylinder, 4x4 versus 4x2); body and seat count for buses (listings show a 26-seat minibus at AED 139,000 and a 63-seat bus at AED 212,000); body type for trucks (new light-truck listings run from about AED 69,800 for a basic cab-chassis to AED 139,900 for a tipper); air-conditioning, safety and telematics equipment; upfitting and conversion; model year and stock availability (runout stock versus factory order); fleet volume and delivery phasing; registration, insurance, speed limiter certification and accessories included or not; warranty and service packages; finance or lease terms; and trade-in value of old units. VAT applies on top of many listed prices; check whether a quote is inclusive. Marketplace listings are asking prices and vary between sellers, so treat them as indicators and request formal quotations. Fleet discounts off list are commercial and not published.",
-   "body_ar": "محركات السعر التي يستطيع المشتري رؤيتها والتفاوض عليها: الطراز والفئة، وقد يتحرك السعر بثلث أو أكثر داخل الاسم الواحد (أمثلة منشورة: سيدان صغيرة من 61,500 إلى 81,500 درهم عبر أربع فئات، وبيك أب من 115,900 درهم لمحرك 2.7 لتر إلى 155,900 لفئة المغامرة 4.0 لتر، وفان من 99,900 إلى 131,900 درهم)، والمحرك ونظام الدفع (V6 مقابل أربع أسطوانات، ورباعي مقابل ثنائي)، والهيكل وعدد المقاعد في الحافلات (تُظهر الإعلانات حافلة صغيرة 26 مقعداً بسعر 139,000 درهم وحافلة 63 مقعداً بسعر 212,000 درهم)، ونوع الهيكل في الشاحنات (تتراوح إعلانات الشاحنات الخفيفة الجديدة من نحو 69,800 درهم لشاصي أساسي إلى 139,900 لقلاب)، والتكييف وتجهيزات السلامة والتتبع، والتجهيز والتحويل، وسنة الطراز والتوفر في المخزون (مخزون نهاية الطراز مقابل الطلب من المصنع)، وحجم الأسطول وتوزيع التسليم، وهل يشمل العرض التسجيل والتأمين وشهادة محدد السرعة والإكسسوارات، وباقات الضمان والخدمة، وشروط التمويل أو التأجير، وقيمة استبدال الوحدات القديمة. وتُضاف ضريبة القيمة المضافة إلى كثير من الأسعار المعلنة، فتحقق مما إذا كان العرض شاملاً. وأسعار الأسواق الإلكترونية أسعار طلب تختلف بين البائعين، فاعتبرها مؤشرات واطلب عروضاً رسمية. أما خصومات الأساطيل على سعر القائمة فتجارية وغير منشورة.",
-   "sources": [
-    "https://www.zigwheels.ae/new-cars/nissan/sunny/price-dubai",
-    "https://www.toyota.ae/en/new-cars/hilux/",
-    "https://www.toyota.ae/en/new-cars/hiace/",
-    "https://www.dubicars.com/uae/new/ashok-leyland/bus",
-    "https://www.dubicars.com/uae/new/isuzu/npr"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "vehicles_fleet:lead-times",
-   "topic": "Lead times for fleet vehicles",
-   "kind": "lead_time",
-   "body_en": "Lead time depends on whether the exact variant is in UAE stock, needs a factory order, or needs upfitting. Stock vehicles from distributors can often be registered and delivered quickly, and online listings show many new light trucks and buses \"available\" in Dubai, but factory orders for specific trims, colours or large fleet quantities, and heavy trucks built to specification, take longer; published manufacturer or distributor lead times were not found in the sources reviewed, so no standard figure is established here. Add time for: body building or conversion (reefer boxes, tippers, bus bodies, school-bus conversions), which depends on the builder's queue; conformity paperwork for imported units, although MoIAT's attestation and product-status services are published as instant and its conformity-certificate issuance as about one and a half working days once documents are complete; speed-limiter fitting and certification; registration and plates; branding permits and wrap installation; and any tint or accessory fitting. For a new school-year fleet or a project mobilisation date, work backwards and ask each bidder for a dated delivery schedule per unit, with liquidated damages or a replacement-vehicle obligation for late delivery, and confirm whether the quoted units are physical stock (with VINs) or allocations still to be built.",
-   "body_ar": "تعتمد مدة التوريد على ما إذا كانت النسخة المطلوبة متوفرة في مخزون الدولة أم تحتاج طلباً من المصنع أم تحتاج تجهيزاً. فالمركبات المتوفرة لدى الموزعين يمكن غالباً تسجيلها وتسليمها بسرعة، وتُظهر الإعلانات الإلكترونية كثيراً من الشاحنات الخفيفة والحافلات الجديدة \"متوفرة\" في دبي، أما طلبات المصنع لفئات أو ألوان محددة أو كميات أساطيل كبيرة، والشاحنات الثقيلة المصنعة حسب المواصفة، فتستغرق وقتاً أطول، ولم تُعثر على مدد توريد منشورة من المصنعين أو الموزعين في المصادر التي تمت مراجعتها، لذا لا يوجد رقم معياري ثابت هنا. وأضف وقتاً لما يلي: بناء الهياكل أو التحويل (صناديق التبريد والقلابات وهياكل الحافلات وتحويل الحافلات المدرسية) بحسب طابور المصنّع، وأوراق المطابقة للوحدات المستوردة مع أن خدمتي التصديق وبيان حالة المنتج لدى الوزارة معلنتان كخدمتين فوريتين وإصدار شهادة المطابقة بنحو يوم ونصف يوم عمل بعد اكتمال المستندات، وتركيب محدد السرعة واعتماده، والتسجيل واللوحات، وتصاريح الشعارات وتركيب التغليف، وأي تظليل أو إكسسوارات. ولأسطول بداية العام الدراسي أو موعد تعبئة مشروع، خطط عكسياً واطلب من كل متقدم جدول تسليم مؤرخاً لكل وحدة مع تعويض عن التأخير أو التزام بمركبة بديلة، وتأكد مما إذا كانت الوحدات المعروضة مخزوناً فعلياً (بأرقام هياكل) أم مخصصات لم تُصنع بعد.",
-   "sources": [
-    "https://www.dubicars.com/uae/new/isuzu/npr",
-    "https://www.dubicars.com/uae/new/ashok-leyland/bus",
-    "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
-    "https://moiat.gov.ae/en/services/issue-product-status-statement-for-used-imported-vehicles",
-    "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "vehicles_fleet:quote-red-flags",
-   "topic": "Red flags in vehicle and fleet quotations",
-   "kind": "quote_red_flag",
-   "body_en": "Warning signs in vehicle offers: no stated specification origin, or wording such as \"export spec\", \"US spec\" or \"Japan import\" for vehicles meant for UAE registration; no conformity certificate or MoIAT documents offered for imported units; a price far below the authorised distributor's published list for the same trim without explanation; missing VINs for vehicles described as \"in stock\"; warranty described as \"dealer warranty\" or \"company warranty\" rather than manufacturer warranty honoured by the local agent; used or \"zero-km\" units without a clear registration history; trucks quoted by chassis only with no statement of legal payload after the body, or bodies quoted without dimensions; buses without seat-belt type, A/C capacity, or school-bus bylaw compliance for school use; commercial vehicles without speed-limiter certification included or priced; tint quoted \"as dark as you want\"; prices that exclude registration, insurance, VAT or delivery without saying so; lease quotes without mileage allowance, maintenance scope, replacement vehicle, damage and return conditions or early termination terms; and deposits requested before a signed contract with delivery dates. Not every item means the supplier is dishonest, but each shifts cost or compliance risk to the buyer and should be resolved in writing before award.",
-   "body_ar": "علامات التحذير في عروض المركبات: عدم ذكر منشأ المواصفة، أو عبارات مثل \"مواصفات تصدير\" أو \"مواصفات أمريكية\" أو \"وارد اليابان\" لمركبات مخصصة للتسجيل في الدولة، وعدم تقديم شهادة مطابقة أو مستندات الوزارة للوحدات المستوردة، وسعر يقل كثيراً عن سعر القائمة المنشور لدى الموزع المعتمد للفئة نفسها دون تفسير، وغياب أرقام الهياكل لمركبات موصوفة بأنها \"متوفرة\"، ووصف الضمان بأنه \"ضمان الوكيل التجاري\" أو \"ضمان الشركة\" بدلاً من ضمان الصانع الذي يلتزم به الوكيل المحلي، ووحدات مستعملة أو \"صفر كيلومتر\" دون تاريخ تسجيل واضح، وتسعير الشاحنات بالشاصي فقط دون بيان الحمولة القانونية بعد الهيكل أو تسعير الهياكل دون أبعاد، وحافلات دون نوع الأحزمة أو قدرة التكييف أو المطابقة للائحة النقل المدرسي عند استخدامها للمدارس، ومركبات تجارية دون شهادة محدد السرعة مشمولة أو مسعّرة، وتظليل معروض \"بالدرجة التي تريدها\"، وأسعار تستثني التسجيل أو التأمين أو ضريبة القيمة المضافة أو التوصيل دون الإفصاح، وعروض تأجير دون حد المسافة ونطاق الصيانة والمركبة البديلة وشروط الأضرار والإرجاع والإنهاء المبكر، وطلب دفعات مقدمة قبل عقد موقّع بتواريخ تسليم. ولا يعني كل بند أن المورّد غير أمين، لكن كلاً منها ينقل كلفة أو مخاطر امتثال إلى المشتري ويجب حسمه كتابياً قبل الترسية.",
-   "sources": [
-    "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
-    "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
-    "https://moiat.gov.ae/en/services/issue-product-status-statement-for-used-imported-vehicles",
-    "https://www.toyota.ae/en/new-cars/hilux/",
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html",
-    "https://speed.resolute-dynamics.com/blog/speed-limiter-certificate-dubai-rta-process-cost/",
-    "https://www.cars24.ae/news/en/buyers-guide/tinting-laws-in-the-uae/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
+  "trade": "vehicles_fleet",
+  "entries": [
+    {
+      "id": "vehicles_fleet:gcc-spec-vs-non-gcc",
+      "topic": "GCC-spec vs non-GCC (imported) vehicles",
+      "kind": "comparison",
+      "body_en": "\"GCC spec\" means a vehicle built and certified to the Gulf technical regulations for motor vehicles issued by the GCC Standardization Organization (GSO). Since a 2004 decision GSO has run a common GCC conformity certificate scheme for new vehicles and tyres, and publishes each model year a list of the technical regulations that apply, covering items such as general requirements, conformity certificates, impact strength, safety belts, interior flammability, engine radiators, emissions limits for petrol and diesel engines, speed limiters, head lamps, laminated glass, noise and tyres for cars, trucks and buses. Vehicles bought from the official UAE distributor are normally GCC spec and come with the conformity certificate, local warranty and parts support. Non-GCC vehicles (for example US, Japanese or European market imports) may lack the cooling, filtration and specification items the regulations require and must be shown to conform before registration; MoIAT provides attestation of GSO conformity certificates for importers. For a fleet buyer the practical rule is to specify \"new, GCC specification, supplied by the authorised UAE distributor or with a valid GSO conformity certificate\", because a cheaper grey import can create registration delays, warranty refusal and resale discounts. Exact climate-related technical differences per model are manufacturer data and were not established here.",
+      "body_ar": "تعني \"المواصفات الخليجية\" أن المركبة مصنعة ومعتمدة وفق اللوائح الفنية الخليجية للمركبات الصادرة عن هيئة التقييس لدول مجلس التعاون الخليجي. ومنذ قرار عام 2004 تدير الهيئة نظام شهادة مطابقة خليجية موحدة للمركبات الجديدة والإطارات، وتنشر لكل سنة طراز قائمة باللوائح الفنية المطبقة، وتشمل المتطلبات العامة وشهادات المطابقة ومقاومة الصدمات وأحزمة الأمان وقابلية اشتعال المواد الداخلية ومشعات المحرك وحدود الانبعاثات لمحركات البنزين والديزل ومحددات السرعة والمصابيح الأمامية والزجاج الرقائقي والضوضاء وإطارات السيارات والشاحنات والحافلات. والمركبات المشتراة من الموزع الرسمي في الدولة تكون عادة بالمواصفات الخليجية ومعها شهادة المطابقة والضمان المحلي ودعم قطع الغيار. أما المركبات غير الخليجية (مثل الواردة من الأسواق الأمريكية أو اليابانية أو الأوروبية) فقد تفتقر إلى عناصر التبريد والترشيح والمواصفات التي تشترطها اللوائح، ويجب إثبات مطابقتها قبل التسجيل، وتقدم وزارة الصناعة والتكنولوجيا المتقدمة خدمة التصديق على شهادات المطابقة الخليجية للمستوردين. والقاعدة العملية لمشتري الأساطيل أن يحدد \"جديدة بالمواصفات الخليجية ومورّدة من الموزع المعتمد في الدولة أو مع شهادة مطابقة خليجية سارية\"، لأن الاستيراد الموازي الأرخص قد يسبب تأخير التسجيل ورفض الضمان وخصماً عند إعادة البيع. أما الفروق الفنية المناخية الدقيقة لكل طراز فهي بيانات مصنّعين ولم تثبت هنا.",
+      "sources": [
+        "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
+        "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:gso-technical-regulations",
+      "topic": "GSO technical regulations list for motor vehicles",
+      "kind": "standard",
+      "body_en": "The GCC Standardization Organization publishes, per model year, a \"List of GSO Technical Regulations for Motor Vehicles\" used by its conformity assessment department; the 2025 model-year list (MY2025-D2) is the current reference seen in this research. It groups regulations covering: lead-acid starter batteries; impact strength test methods for frontal, rear, side and roof strength, including a moving-barrier side-impact method aligned with US standards; front and rear protective devices (bumpers); general requirements for motor vehicles; conformity certificates, including a separate regulation for conformity certificates of vehicles manufactured in multiple stages; passenger-car tyres and multi-purpose vehicle, truck, bus and trailer tyres (nomenclature, dimensions, load capacity, test methods); safety belts and their tests; flammability of interior materials; sound signalling devices; engine radiators; allowable pollutant limits and test methods for heavy-duty diesel, light-duty diesel and unleaded petrol vehicles; dimensions and weights; door locks and hinges; rear-view mirrors; general requirements for ambulances; temporary-use spare tyres; protection against theft; head lamps; head restraints; noise emissions; speed limiters; and laminated safety glass. For procurement this list is the checklist behind \"GCC spec\": a tender can require the supplier to state conformity to the applicable GSO regulations for the model year and to provide the GCC conformity certificate, especially for special-purpose bodies such as ambulances.",
+      "body_ar": "تنشر هيئة التقييس الخليجية لكل سنة طراز \"قائمة اللوائح الفنية الخليجية للمركبات\" التي تستخدمها إدارة تقييم المطابقة لديها، وقائمة طراز 2025 (MY2025-D2) هي المرجع الحالي الذي تم الاطلاع عليه في هذا البحث. وتضم لوائح تغطي: بطاريات التشغيل الرصاصية الحمضية، وطرق اختبار مقاومة الصدمات الأمامية والخلفية والجانبية وقوة السقف بما فيها طريقة الصدم الجانبي بحاجز متحرك وفق المواصفات الأمريكية، وأجهزة الحماية الأمامية والخلفية (المصدات)، والمتطلبات العامة للمركبات، وشهادات المطابقة بما فيها لائحة مستقلة لشهادات مطابقة المركبات المصنعة على مراحل متعددة، وإطارات سيارات الركوب وإطارات المركبات متعددة الأغراض والشاحنات والحافلات والمقطورات (التسمية والأبعاد والحمولة وطرق الاختبار)، وأحزمة الأمان واختباراتها، وقابلية اشتعال المواد الداخلية، وأجهزة التنبيه الصوتي، ومشعات المحرك، وحدود الملوثات المسموح بها وطرق اختبارها لمركبات الديزل الثقيلة والخفيفة ومركبات البنزين الخالي من الرصاص، والأبعاد والأوزان، وأقفال الأبواب ومفصلاتها، والمرايا الخلفية، والمتطلبات العامة لسيارات الإسعاف، والإطارات الاحتياطية المؤقتة، والحماية من السرقة، والمصابيح الأمامية، ومساند الرأس، وانبعاثات الضوضاء، ومحددات السرعة، والزجاج الرقائقي الآمن. وهذه القائمة في المشتريات هي قائمة التحقق وراء عبارة \"مواصفات خليجية\"، إذ يمكن أن تشترط المناقصة على المورّد بيان مطابقة المركبة للوائح الخليجية المطبقة لسنة الطراز وتقديم شهادة المطابقة الخليجية، لا سيما للهياكل الخاصة مثل سيارات الإسعاف.",
+      "sources": [
+        "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:moiat-conformity",
+      "topic": "MoIAT conformity certificates and attestation for vehicles and tyres",
+      "kind": "authority_approval",
+      "body_en": "The Ministry of Industry and Advanced Technology (MoIAT) is the UAE authority for conformity of regulated products. Two services matter to vehicle importers and fleet suppliers. First, attestation of a conformity certificate issued by the GCC Standardization Organization: the importer submits a valid UAE trade or industrial licence and the GSO certificate number through MoIAT's digital platform and receives a certified copy; the published fee is AED 50 per certified copy and the service is instant. MoIAT's page describes it in the context of GSO tyre certificates and products under Gulf technical regulations. Second, issuance of UAE conformity certificates for regulated products: applicants upload the trade licence and an accredited laboratory test report; published fees are AED 600 document review, AED 620 technical review per certificate and AED 500 issuance, plus AED 2,500 per assessor-day if a technical assessment is needed, with a stated service time of one and a half working days. For buyers this means a supplier of imported vehicles, tyres or regulated automotive parts should be able to show the relevant GSO or MoIAT certificate; missing certificates delay customs clearance and registration. Which specific automotive items fall under each scheme is set in MoIAT's regulated-products list, which was not reviewed item by item here.",
+      "body_ar": "وزارة الصناعة والتكنولوجيا المتقدمة هي الجهة الاتحادية المختصة بمطابقة المنتجات الخاضعة للوائح. وتهم مستوردي المركبات وموردي الأساطيل خدمتان. الأولى التصديق على شهادة المطابقة الصادرة عن هيئة التقييس الخليجية: يقدم المستورد رخصة تجارية أو صناعية سارية في الدولة ورقم الشهادة الخليجية عبر المنصة الرقمية للوزارة، ويتسلم نسخة مصدقة، والرسم المعلن 50 درهماً للنسخة والخدمة فورية، وتصف صفحة الوزارة الخدمة في سياق شهادات الإطارات الخليجية والمنتجات الخاضعة للوائح الخليجية. والثانية إصدار شهادات المطابقة الإماراتية للمنتجات الخاضعة للوائح: يرفع المتقدم الرخصة التجارية وتقرير اختبار من مختبر معتمد، والرسوم المعلنة 600 درهم لمراجعة المستندات و620 درهماً للمراجعة الفنية لكل شهادة و500 درهم للإصدار، إضافة إلى 2,500 درهم عن كل يوم عمل للمقيّم إذا لزم تقييم فني، بمدة خدمة معلنة يوم ونصف يوم عمل. ويعني ذلك للمشتري أن مورّد المركبات أو الإطارات أو قطع السيارات الخاضعة للوائح يجب أن يتمكن من إبراز الشهادة الخليجية أو شهادة الوزارة ذات الصلة، فغيابها يؤخر التخليص الجمركي والتسجيل. أما تحديد البنود الخاصة بالسيارات الخاضعة لكل نظام فيرد في قائمة المنتجات الخاضعة للوائح لدى الوزارة، ولم تتم مراجعتها بنداً بنداً هنا.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:used-import-rules",
+      "topic": "Importing used vehicles: MoIAT product status statement and banned categories",
+      "kind": "authority_approval",
+      "body_en": "Used vehicles imported into the UAE are screened by MoIAT together with customs and insurance bodies. MoIAT issues a Product Status Statement for used imported vehicles confirming that the vehicle is eligible for traffic registration and lawful use; the applicant provides a UAE ID copy and the vehicle's unified identification number, the published fee is AED 200 and issuance is instant after payment. MoIAT reported blocking about 6,500 used vehicles in one year while approving around 35,000, and its system rejects several categories, including vehicles that fail registration, licensing and insurance requirements, damaged vehicles and vehicles with manufacturing defects; buyers can check eligibility on the ministry's website using the VIN before importing. Industry guides also describe age limits and a ban on burnt, flooded, scrapped or dismantled cars, but the precise legal age limit was not confirmed from a primary source in this research. For a fleet buyer, used imports rarely make sense for new operational fleets: registration risk, unknown history, no local warranty and possible non-GCC specification outweigh the price saving. If a buyer does purchase used imported units, the contract should make the seller responsible for obtaining the MoIAT statement and passing registration and inspection, with a refund if the vehicle is rejected.",
+      "body_ar": "تخضع المركبات المستعملة المستوردة إلى الدولة لفحص وزارة الصناعة والتكنولوجيا المتقدمة بالتعاون مع الجمارك وجهات التأمين. وتصدر الوزارة \"بيان حالة المنتج\" للمركبات المستعملة المستوردة الذي يؤكد أهلية المركبة للتسجيل المروري والاستخدام القانوني، ويقدم الطالب نسخة الهوية الإماراتية ورقم التعريف الموحد للمركبة، والرسم المعلن 200 درهم ويصدر البيان فوراً بعد الدفع. وقد أعلنت الوزارة حجب نحو 6,500 مركبة مستعملة في عام واحد مقابل اعتماد نحو 35,000، ويرفض نظامها عدة فئات منها المركبات التي لا تستوفي متطلبات التسجيل والترخيص والتأمين، والمركبات المتضررة، والمركبات ذات العيوب المصنعية، ويمكن للمشتري التحقق من الأهلية عبر موقع الوزارة برقم الهيكل قبل الاستيراد. وتذكر أدلة القطاع أيضاً حدوداً عمرية وحظراً للسيارات المحترقة أو الغارقة أو التالفة أو المفككة، لكن الحد العمري القانوني الدقيق لم يُؤكد من مصدر رسمي في هذا البحث. ونادراً ما يكون الاستيراد المستعمل خياراً منطقياً لأساطيل تشغيلية جديدة، فمخاطر التسجيل والتاريخ المجهول وغياب الضمان المحلي واحتمال عدم مطابقة المواصفات الخليجية تفوق التوفير في السعر. وإذا اشترى المشتري وحدات مستعملة مستوردة، فيجب أن يُلزم العقد البائع باستخراج بيان الوزارة واجتياز التسجيل والفحص مع استرداد الثمن إذا رُفضت المركبة.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-product-status-statement-for-used-imported-vehicles",
+        "https://www.khaleejtimes.com/uae/uae-blocked-import-of-6500-used-vehicles-last-year-heres-why"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:heavy-vehicle-weights",
+      "topic": "Maximum gross weights of heavy vehicles on UAE federal roads",
+      "kind": "standard",
+      "body_en": "The federal law regulating weights and dimensions of heavy vehicles, announced by the Ministry of Energy and Infrastructure, caps gross vehicle weight by number of axles: 21 tonnes for two axles, 34 for three, 45 for four, 56 for five and 65 tonnes for six axles, the maximum for any combination. Enforcement started in the first quarter of 2024 after 24 smart electronic weighing gates were installed. Fines published by the ministry are AED 400 per tonne or part of a tonne when the excess is under 10%, AED 500 per tonne for 10 to 20%, and AED 600 per tonne above 20%, capped at AED 15,000; AED 1,500 per axle for axle-weight violations; AED 3,000 for dimension violations; AED 5,000 for evading a weigh station; and AED 5,000 for invalid permit documents. For a truck buyer this means the specification must start from the payload the operation really needs and the legal gross weight of the chosen axle configuration, not from the chassis's technical rating alone. Tipper, tanker and trailer bodies add tare weight that reduces legal payload. Ask the supplier to provide a weight distribution calculation for the complete vehicle with body, showing tare, payload, axle loads and gross weight against these limits.",
+      "body_ar": "يحدد القانون الاتحادي المنظم لأوزان وأبعاد المركبات الثقيلة، الذي أعلنته وزارة الطاقة والبنية التحتية، الوزن الإجمالي للمركبة بحسب عدد المحاور: 21 طناً للمحورين، و34 لثلاثة محاور، و45 لأربعة، و56 لخمسة، و65 طناً لستة محاور وهو الحد الأقصى لأي تركيبة. وبدأ التطبيق في الربع الأول من 2024 بعد تركيب 24 بوابة وزن إلكترونية ذكية. والغرامات التي أعلنتها الوزارة: 400 درهم عن كل طن أو جزء منه إذا كانت الزيادة أقل من 10%، و500 درهم للطن من 10 إلى 20%، و600 درهم للطن فوق 20% بحد أقصى 15,000 درهم، و1,500 درهم لكل محور عند مخالفة وزن المحور، و3,000 درهم لمخالفة الأبعاد، و5,000 درهم للتهرب من محطة الوزن، و5,000 درهم لمستندات التصاريح غير السارية. ويعني ذلك لمشتري الشاحنات أن تبدأ المواصفة من الحمولة التي يحتاجها التشغيل فعلاً والوزن الإجمالي القانوني لتركيبة المحاور المختارة، لا من التصنيف الفني للشاصي وحده. وتضيف هياكل القلاب والصهريج والمقطورة وزناً فارغاً يقلل الحمولة القانونية. واطلب من المورّد حساب توزيع الأوزان للمركبة الكاملة مع الهيكل، مبيناً الوزن الفارغ والحمولة وأحمال المحاور والوزن الإجمالي مقارنة بهذه الحدود.",
+      "sources": [
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:heavy-vehicle-dimensions",
+      "topic": "Maximum dimensions of heavy vehicles and combinations",
+      "kind": "standard",
+      "body_en": "The same federal weights-and-dimensions regime sets maximum sizes. A single integrated vehicle may be up to 12.5 m long; a truck with semi-trailer up to 21 m; a truck with trailer and semi-trailer up to 28 m; and a vehicle carrying small vehicles (car transporter) up to 23 m. Maximum width is 2.6 m for all these categories, and maximum height is 4.6 m, except car transporters at 4.75 m. Exceeding a dimension carries an AED 3,000 fine, and operating with invalid permit documents AED 5,000. Loads that must exceed these limits need specific permits rather than being loaded \"a bit over\". Procurement implications: when ordering bodies (box, curtain-side, reefer, tanker, flatbed, crane-mounted), state the maximum overall length, width and height in the order and ask the body builder to confirm compliance including mirrors, reefer units and roof equipment; check that bus or coach heights with roof-mounted air-conditioning units are within the limit; and for car transporters specify the 23 m and 4.75 m envelope. Buyers of trailers should also fix kingpin, coupling and axle configuration so that the combination stays within both the dimension and the axle-based gross-weight limits for the intended route network.",
+      "body_ar": "يحدد النظام الاتحادي نفسه للأوزان والأبعاد المقاسات القصوى. فالمركبة المتكاملة الواحدة يصل طولها إلى 12.5 متر، والشاحنة مع نصف مقطورة إلى 21 متراً، والشاحنة مع مقطورة ونصف مقطورة إلى 28 متراً، والمركبة الناقلة للمركبات الصغيرة (ناقلة السيارات) إلى 23 متراً. والعرض الأقصى 2.6 متر لجميع هذه الفئات، والارتفاع الأقصى 4.6 متر باستثناء ناقلات السيارات 4.75 متر. ومخالفة الأبعاد غرامتها 3,000 درهم، والتشغيل بمستندات تصاريح غير سارية 5,000 درهم. والأحمال التي يجب أن تتجاوز هذه الحدود تحتاج إلى تصاريح خاصة لا إلى تحميل \"زائد قليلاً\". وانعكاسات ذلك على الشراء: عند طلب الهياكل (صندوق أو ستائر جانبية أو مبرد أو صهريج أو مسطح أو مزود برافعة) حدد الطول والعرض والارتفاع الكلي الأقصى في أمر الشراء، واطلب من مصنّع الهيكل تأكيد المطابقة بما في ذلك المرايا ووحدات التبريد ومعدات السقف، وتحقق من أن ارتفاع الحافلات المزودة بوحدات تكييف على السقف ضمن الحد، وحدد لناقلات السيارات غلاف 23 متراً و4.75 متر. وعلى مشتري المقطورات تحديد مسمار القطر ووصلة الربط وتركيبة المحاور بحيث تبقى التركيبة ضمن حدود الأبعاد والوزن الإجمالي القائم على المحاور لشبكة الطرق المقصودة.",
+      "sources": [
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:speed-limiters",
+      "topic": "Speed limiters for commercial and heavy vehicles",
+      "kind": "authority_approval",
+      "body_en": "Commercial and heavy vehicles in the UAE must be fitted with an approved speed-limiting device, and Gulf technical regulations include speed-limiter technical requirements and test methods in the GSO motor-vehicle list. Dubai's school-transport bylaw requires school buses to be restricted to 80 km/h by a control device. Fitment providers describe the scope in Dubai as heavy goods trucks, passenger buses, school buses, taxis and commercial vans and tankers, with heavy trucks typically calibrated at 80 km/h; private passenger cars are generally outside the requirement unless registered for commercial use. The device must be installed and sealed by an authorised fitment centre, which issues a speed-limiter certificate valid for one year; the certificate is presented at the annual vehicle inspection and registration renewal and is renewed after a verification check of function, tamper seals and connections. Exact per-category set speeds for all emirates, and the device approval list, were not confirmed from a primary authority page in this research. For procurement: require the supplier to deliver commercial units with an approved speed limiter fitted, calibrated to the required speed and certified, or quote it as a separate line with lead time, because a vehicle without a valid certificate cannot pass inspection and registration.",
+      "body_ar": "يجب تزويد المركبات التجارية والثقيلة في الدولة بجهاز معتمد للحد من السرعة، وتتضمن قائمة اللوائح الخليجية للمركبات متطلبات فنية وطرق اختبار لمحددات السرعة. وتشترط اللائحة التنفيذية للنقل المدرسي في دبي تقييد سرعة الحافلات المدرسية عند 80 كم/ساعة بجهاز تحكم. ويصف مزودو التركيب النطاق في دبي بأنه يشمل الشاحنات الثقيلة وحافلات الركاب والحافلات المدرسية وسيارات الأجرة والشاحنات الصغيرة التجارية والصهاريج، مع معايرة الشاحنات الثقيلة عادة عند 80 كم/ساعة، بينما تخرج سيارات الركوب الخاصة عموماً من هذا الاشتراط ما لم تُسجل للاستخدام التجاري. ويجب تركيب الجهاز وختمه لدى مركز تركيب معتمد يصدر شهادة محدد سرعة صالحة لسنة، تُقدَّم عند الفحص الفني السنوي وتجديد التسجيل، وتُجدَّد بعد فحص للأداء والأختام والتوصيلات. ولم تُؤكد السرعات المحددة لكل فئة في جميع الإمارات ولا قائمة الأجهزة المعتمدة من صفحة رسمية في هذا البحث. وفي الشراء: اشترط على المورّد تسليم الوحدات التجارية مزودة بمحدد سرعة معتمد ومعاير على السرعة المطلوبة ومعه الشهادة، أو تسعيره كبند مستقل بمدة توريد، لأن المركبة دون شهادة سارية لا تجتاز الفحص والتسجيل.",
+      "sources": [
+        "https://speed.resolute-dynamics.com/blog/speed-limiter-certificate-dubai-rta-process-cost/",
+        "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "vehicles_fleet:school-bus-dubai",
+      "topic": "Dubai school bus technical requirements",
+      "kind": "standard",
+      "body_en": "Dubai's school-transport rules (Administrative Resolution No. 196 of 2015, the implementing bylaw of Executive Council Resolution No. 2 of 2008) set technical requirements that any school-bus purchase or lease must meet. The bus must be painted yellow RAL 1018 (zinc yellow) with no other overlapping colour; \"School Bus\" must appear in black in Arabic and English on the front, rear and sides, with reflective identification at the corners; speed must be limited to 80 km/h by a control device; one or two fire extinguishers are required depending on capacity, plus a first-aid kit sized to the seating; a GPS tracking system is mandatory; an automatic stop arm with flashing red light must deploy at stops; the bus may not exceed 15 years from manufacture; multiple signed emergency exits are required; seats must be padded, shock-absorbing and fire-resistant; air-conditioning must hold the cabin at no more than 24 °C; aisles need anti-slip flooring; passenger seats need two-point belts, while the driver and nursery-bus passengers need three-point belts, with universal anchorages for child seats. The bylaw extract reviewed did not mention CCTV as a requirement. When buying, state \"compliant with Dubai school transport bylaw\" and list these items in the specification; other emirates have their own school-transport rules that must be checked separately.",
+      "body_ar": "تحدد قواعد النقل المدرسي في دبي (القرار الإداري رقم 196 لسنة 2015 بإصدار اللائحة التنفيذية لقرار المجلس التنفيذي رقم 2 لسنة 2008) متطلبات فنية يجب أن يستوفيها أي شراء أو استئجار لحافلة مدرسية. فيجب طلاء الحافلة باللون الأصفر RAL 1018 (أصفر الزنك) دون أي لون متداخل، وكتابة عبارة \"حافلة مدرسية\" باللون الأسود بالعربية والإنجليزية في الأمام والخلف والجانبين مع علامات تعريف عاكسة في الزوايا، وتحديد السرعة عند 80 كم/ساعة بجهاز تحكم، وتوفير طفاية حريق أو اثنتين بحسب السعة وحقيبة إسعافات أولية تناسب عدد المقاعد، ونظام تتبع بالأقمار الصناعية إلزامياً، وذراع توقف آلي بضوء أحمر وامض يُفتح عند التوقف، وألا يتجاوز عمر الحافلة 15 سنة من تاريخ الصنع، ومخارج طوارئ متعددة بعلامات واضحة، ومقاعد مبطنة ماصة للصدمات مقاومة للحريق، وتكييفاً يحافظ على حرارة المقصورة عند 24 درجة مئوية كحد أقصى، وأرضيات مانعة للانزلاق في الممرات، وأحزمة بنقطتين لمقاعد الركاب وبثلاث نقاط للسائق ولركاب حافلات الحضانة مع نقاط تثبيت عالمية لمقاعد الأطفال. ولم يذكر مقتطف اللائحة الذي تمت مراجعته كاميرات المراقبة كاشتراط. وعند الشراء اذكر \"مطابقة للائحة النقل المدرسي في دبي\" وأدرج هذه البنود في المواصفة، ولكل إمارة أخرى قواعدها للنقل المدرسي التي يجب التحقق منها بشكل مستقل.",
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:spec-passenger-cars",
+      "topic": "What to specify when buying passenger cars for a fleet",
+      "kind": "spec_checklist",
+      "body_en": "A car dealer or fleet desk can only quote exactly when the request fixes the variables. State: make and model or the class you will accept (compact sedan, mid-size sedan, SUV) with any brand restrictions; model year and \"new, GCC specification, from the authorised UAE distributor\"; exact trim or variant, since one model can span a wide range (for example a compact sedan listed from AED 61,500 for the base trim to AED 81,500 for the top trim); engine and fuel (petrol, hybrid, electric), transmission, and for EVs battery size and charging standard; quantity and delivery schedule; colour per unit; mandatory equipment (airbags, ESC, rear camera, cruise control, telematics provision); window tint within the legal limit; accessories and branding; registration in whose name and in which emirate, insurance, and whether plates, Salik tags and first registration are included; warranty and service package required (years, km, what is covered); delivery location; trade-in or disposal of old units; and payment terms or financing/lease alternative. Also state intended use (pool car, sales, chauffeur, rental), which affects trim and service intervals. For leased fleets, add term, annual mileage, maintenance, replacement vehicle and end-of-term conditions. Without these fields quotes will not be comparable.",
+      "body_ar": "لا يستطيع وكيل السيارات أو قسم الأساطيل التسعير بدقة إلا إذا ثبّت الطلب المتغيرات. حدّد: الطراز أو الفئة المقبولة (سيدان صغيرة أو متوسطة أو مركبة رياضية متعددة الاستخدامات) مع أي قيود على العلامة، وسنة الطراز وعبارة \"جديدة بالمواصفات الخليجية ومن الموزع المعتمد في الدولة\"، والفئة أو النسخة بدقة لأن الطراز الواحد قد يمتد عبر نطاق واسع (مثلاً سيدان صغيرة تبدأ من 61,500 درهم للفئة الأساسية وتصل إلى 81,500 للفئة العليا)، والمحرك والوقود (بنزين أو هجين أو كهرباء) وناقل الحركة، وللكهربائية حجم البطارية ومعيار الشحن، والكمية وجدول التسليم، واللون لكل وحدة، والتجهيزات الإلزامية (الوسائد الهوائية والتحكم الإلكتروني بالثبات والكاميرا الخلفية ومثبت السرعة وتجهيز التتبع)، وتظليل النوافذ ضمن الحد القانوني، والإكسسوارات والشعارات، والتسجيل باسم من وفي أي إمارة والتأمين، وهل تشمل اللوحات وملصقات سالك والتسجيل الأول، والضمان وباقة الصيانة المطلوبة (السنوات والكيلومترات والتغطية)، وموقع التسليم، واستبدال الوحدات القديمة أو التخلص منها، وشروط الدفع أو بديل التمويل أو التأجير. واذكر أيضاً الاستخدام المقصود (سيارة مشتركة أو مبيعات أو سائق أو تأجير) لأنه يؤثر في الفئة وفترات الصيانة. وللأساطيل المؤجرة أضف المدة والمسافة السنوية والصيانة والمركبة البديلة وشروط نهاية العقد. ودون هذه البنود لن تكون العروض قابلة للمقارنة.",
+      "required_specs": [
+        "Make/model or acceptable class",
+        "Model year; new; GCC spec; authorised distributor",
+        "Exact trim/variant",
+        "Engine/fuel/transmission (EV: battery, charging standard)",
+        "Quantity and delivery schedule",
+        "Colour per unit",
+        "Mandatory equipment list",
+        "Tint, accessories, branding",
+        "Registration name/emirate, insurance, plates, Salik",
+        "Warranty and service package",
+        "Delivery location",
+        "Trade-in/disposal",
+        "Payment/finance/lease terms",
+        "Intended use"
+      ],
+      "sources": [
+        "https://www.zigwheels.ae/new-cars/nissan/sunny/price-dubai",
+        "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "vehicles_fleet:spec-pickups-vans",
+      "topic": "What to specify when buying pickups and vans",
+      "kind": "spec_checklist",
+      "body_en": "Pickups and vans are ordered by payload, cab and body configuration, not by model name alone. Specify: vehicle type (single-cab or double-cab pickup, panel van, high-roof van, commuter/passenger van); engine and fuel (for example a popular pickup range offers 2.7 L four-cylinder and 4.0 L V6 petrol engines, and a common van range lists 2.7 L petrol, 2.8 L diesel and 3.5 L petrol options) and transmission (manual or automatic); 4x2 or 4x4; payload and gross vehicle weight required; seating capacity (for commuter vans, the exact number of passenger seats, for example 13 seats); roof height and cargo dimensions; body additions such as canopy, cargo box, racks, shelving, refrigeration, tipper or crane, and who supplies and certifies them; equipment such as air-conditioning for rear passengers, rear camera, tow bar, speed limiter and GPS for commercial registration; tyre type for sand or road; quantity, colour and branding; registration category (commercial or private) and emirate; warranty and service package; delivery location and date. Published UAE list prices show how much trim matters: one distributor lists a 2.7 L pickup from AED 115,900 and the 4.0 L adventure trim from AED 155,900, and vans from AED 99,900 (2.7 L) to AED 131,900 (3.5 L high-roof). State the variant precisely so quotes match.",
+      "body_ar": "تُطلب مركبات البيك أب والشاحنات الصغيرة (الفان) بحسب الحمولة وتكوين المقصورة والهيكل لا باسم الطراز وحده. حدّد: نوع المركبة (بيك أب بمقصورة مفردة أو مزدوجة، أو فان مغلق، أو فان بسقف مرتفع، أو فان ركاب)، والمحرك والوقود (مثلاً تقدم فئة بيك أب شائعة محركي بنزين 2.7 لتر رباعي الأسطوانات و4.0 لتر V6، وتعرض فئة فان شائعة خيارات بنزين 2.7 لتر وديزل 2.8 لتر وبنزين 3.5 لتر) وناقل الحركة (يدوي أو آلي)، والدفع الثنائي أو الرباعي، والحمولة والوزن الإجمالي المطلوبين، وعدد المقاعد (لفان الركاب العدد الدقيق لمقاعد الركاب مثل 13 مقعداً)، وارتفاع السقف وأبعاد صندوق الحمولة، وإضافات الهيكل مثل الغطاء والصندوق والحوامل والرفوف والتبريد والقلاب أو الرافعة ومن يوردها ويعتمدها، والتجهيزات مثل تكييف الركاب الخلفي والكاميرا الخلفية ووصلة القطر ومحدد السرعة وجهاز التتبع للتسجيل التجاري، ونوع الإطارات للرمل أو الطرق، والكمية واللون والشعارات، وفئة التسجيل (تجاري أو خاص) والإمارة، والضمان وباقة الصيانة، وموقع التسليم وتاريخه. وتُظهر أسعار القوائم المنشورة في الدولة أهمية الفئة: يعرض أحد الموزعين بيك أب 2.7 لتر من 115,900 درهم وفئة المغامرة 4.0 لتر من 155,900 درهم، وفان من 99,900 درهم (2.7 لتر) إلى 131,900 درهم (3.5 لتر بسقف مرتفع). حدّد النسخة بدقة حتى تتطابق العروض.",
+      "required_specs": [
+        "Vehicle type and cab/body style",
+        "Engine, fuel, transmission",
+        "4x2 or 4x4",
+        "Payload and GVW",
+        "Seating capacity (vans)",
+        "Roof height and cargo dimensions",
+        "Body additions and certifying supplier",
+        "Equipment incl. speed limiter/GPS for commercial use",
+        "Tyre type",
+        "Quantity, colour, branding",
+        "Registration category and emirate",
+        "Warranty/service package",
+        "Delivery location and date"
+      ],
+      "sources": [
+        "https://www.toyota.ae/en/new-cars/hilux/",
+        "https://www.toyota.ae/en/new-cars/hiace/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:spec-buses",
+      "topic": "What to specify when buying buses and coaches",
+      "kind": "spec_checklist",
+      "body_en": "Bus quotes vary widely with seat count, air-conditioning and body. Specify: application (staff transport, school bus, city bus, tourist coach); seating capacity including driver and attendant (UAE market bodies range from about 26-seat minibuses to 60 to 71-seat full-size buses); air-conditioned or non-air-conditioned, and the required cabin temperature performance for summer; engine emission standard and fuel; transmission; luggage space for coaches; seat type (standard, reclining, padded fire-resistant) and seat belts (two-point or three-point); doors, emergency exits and wheelchair access; safety items: ABS, engine-compartment fire suppression, fire extinguishers, first-aid kit, GPS tracking, CCTV if wanted, reversing camera, speed limiter with certificate; for school buses in Dubai, full compliance with the school transport bylaw (RAL 1018 yellow, bilingual \"School Bus\" markings, stop arm, 80 km/h limit, 24 °C air-conditioning, belts, age limit); overall height with roof A/C against the 4.6 m limit; livery; quantity, delivery schedule and registration; warranty (chassis, body, A/C) and service support location; and spare-parts package. Published UAE listings show for example a 26-seat minibus at AED 139,000 and a 63-seat full-size bus at AED 212,000, which illustrates how capacity and A/C drive price.",
+      "body_ar": "تتفاوت عروض الحافلات كثيراً بحسب عدد المقاعد والتكييف والهيكل. حدّد: الاستخدام (نقل موظفين أو حافلة مدرسية أو حافلة مدينة أو حافلة سياحية)، وعدد المقاعد شاملاً السائق والمرافق (تتراوح الهياكل في سوق الدولة من حافلات صغيرة بنحو 26 مقعداً إلى حافلات كاملة من 60 إلى 71 مقعداً)، ومكيفة أم غير مكيفة وأداء التبريد المطلوب في الصيف، ومعيار الانبعاثات للمحرك والوقود، وناقل الحركة، ومساحة الأمتعة للحافلات السياحية، ونوع المقاعد (عادية أو قابلة للإمالة أو مبطنة مقاومة للحريق) وأحزمة الأمان (بنقطتين أو بثلاث)، والأبواب ومخارج الطوارئ وإمكانية دخول الكراسي المتحركة، وعناصر السلامة: الفرامل المانعة للانغلاق، ونظام إطفاء حريق حجرة المحرك، وطفايات الحريق، وحقيبة الإسعاف، والتتبع بالأقمار الصناعية، وكاميرات المراقبة إن رغبت، وكاميرا الرجوع، ومحدد السرعة مع شهادته، وللحافلات المدرسية في دبي المطابقة الكاملة للائحة النقل المدرسي (اللون الأصفر RAL 1018 وعبارة \"حافلة مدرسية\" بلغتين وذراع التوقف وحد 80 كم/ساعة وتكييف 24 درجة والأحزمة وحد العمر)، والارتفاع الكلي مع التكييف العلوي مقارنة بحد 4.6 متر، والطلاء والشعارات، والكمية وجدول التسليم والتسجيل، والضمان (الشاصي والهيكل والتكييف) وموقع دعم الصيانة، وحزمة قطع الغيار. وتُظهر إعلانات منشورة في الدولة مثلاً حافلة صغيرة 26 مقعداً بسعر 139,000 درهم وحافلة كاملة 63 مقعداً بسعر 212,000 درهم، ما يوضح أثر السعة والتكييف في السعر.",
+      "required_specs": [
+        "Application (staff/school/city/coach)",
+        "Seating capacity incl. driver/attendant",
+        "A/C or non-A/C and cooling performance",
+        "Engine emission standard, fuel, transmission",
+        "Seat type and belt type",
+        "Doors, emergency exits, accessibility",
+        "Safety equipment list (ABS, fire suppression, GPS, CCTV, camera, speed limiter)",
+        "School-bus bylaw compliance (if applicable)",
+        "Overall height vs 4.6 m limit",
+        "Livery, quantity, delivery, registration",
+        "Warranty coverage and service location",
+        "Spare-parts package"
+      ],
+      "sources": [
+        "https://www.dubicars.com/uae/new/ashok-leyland/bus",
+        "https://www.alnaboodahvehicles.com/products/buses-and-coaches/ashokleyland/falcon",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html",
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:spec-trucks",
+      "topic": "What to specify when buying trucks",
+      "kind": "spec_checklist",
+      "body_en": "Truck RFQs fail when they name a model but not the duty. Specify: application and body (box, curtain-side, refrigerated, tipper, tanker, flatbed, crane, tractor head); required legal payload and the resulting gross vehicle weight and axle configuration, checked against the federal limits (21 t two axles up to 65 t six axles) and dimension limits (12.5 m rigid, 21 m articulated, 2.6 m wide, 4.6 m high); duty class (light, medium, heavy), for example one brand's light-duty range covers payloads of about 2.8 to 6 tonnes and its medium range about 8 to 13 tonnes; cab type (day, sleeper, single or crew cab); engine power, emission standard and fuel; transmission (manual or automated); wheelbase; tyres and spare; fuel tank capacity; PTO and hydraulics for body equipment; safety and compliance items including speed limiter certificate, reflective markings and GPS; air-conditioning; body builder and certification of the complete vehicle, including multi-stage conformity where the chassis and body come from different makers; quantity, delivery and registration; warranty and service coverage (network locations, mobile service, uptime commitments); and spare-parts stock. Ask each supplier for a weight calculation of the finished vehicle, not only the chassis brochure.",
+      "body_ar": "تفشل طلبات عروض الشاحنات عندما تذكر الطراز دون طبيعة العمل. حدّد: الاستخدام والهيكل (صندوق أو ستائر جانبية أو مبرد أو قلاب أو صهريج أو مسطح أو رافعة أو رأس قاطرة)، والحمولة القانونية المطلوبة وما يترتب عليها من وزن إجمالي وتركيبة محاور مع مقارنتها بالحدود الاتحادية (من 21 طناً للمحورين إلى 65 طناً لستة محاور) وحدود الأبعاد (12.5 متر للشاحنة المفردة و21 متراً للمفصلية وعرض 2.6 متر وارتفاع 4.6 متر)، وفئة العمل (خفيفة أو متوسطة أو ثقيلة)، فمثلاً تغطي الفئة الخفيفة لإحدى العلامات حمولات من نحو 2.8 إلى 6 أطنان والمتوسطة من نحو 8 إلى 13 طناً، ونوع المقصورة (نهارية أو بسرير أو مفردة أو مزدوجة)، وقدرة المحرك ومعيار الانبعاثات والوقود، وناقل الحركة (يدوي أو مؤتمت)، وقاعدة العجلات، والإطارات والاحتياطي، وسعة خزان الوقود، ومأخذ القدرة والهيدروليك لمعدات الهيكل، وعناصر السلامة والامتثال بما فيها شهادة محدد السرعة والعلامات العاكسة والتتبع، والتكييف، ومصنّع الهيكل واعتماد المركبة الكاملة بما في ذلك المطابقة متعددة المراحل عندما يكون الشاصي والهيكل من صانعين مختلفين، والكمية والتسليم والتسجيل، والضمان وتغطية الصيانة (مواقع الشبكة والخدمة المتنقلة والتزامات الجاهزية)، ومخزون قطع الغيار. واطلب من كل مورّد حساب أوزان المركبة المكتملة لا كتيّب الشاصي وحده.",
+      "required_specs": [
+        "Application and body type",
+        "Legal payload, GVW, axle configuration vs federal limits",
+        "Overall dimensions vs limits",
+        "Duty class",
+        "Cab type",
+        "Engine power, emission standard, fuel",
+        "Transmission",
+        "Wheelbase",
+        "Tyres and spare",
+        "Fuel tank capacity",
+        "PTO/hydraulics",
+        "Speed limiter, markings, GPS",
+        "Air-conditioning",
+        "Body builder and multi-stage conformity",
+        "Quantity, delivery, registration",
+        "Warranty and service network",
+        "Spare-parts stock"
+      ],
+      "sources": [
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced",
+        "https://www.isuzu-uae.ae/",
+        "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
+        "https://www.mercedes-benz-trucks.com/ae/en/trucks.html"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:spec-upfitting",
+      "topic": "What to specify for vehicle upfitting and conversions",
+      "kind": "spec_checklist",
+      "body_en": "Upfitting turns a base chassis or van into a working vehicle: refrigerated boxes, shelving, tool bodies, tippers, cranes, ambulances, mobile workshops, VIP or passenger conversions, school-bus conversions, emergency lighting and fleet branding. Specify: base vehicle make, model, year and whether you supply it or the upfitter does; the exact conversion scope with drawings; materials and dimensions; added weight and the resulting payload and gross weight against legal limits; electrical load and battery or alternator changes; refrigeration temperature range and unit make if relevant; seating changes and seat-belt anchorages for passenger conversions; compliance with the relevant GCC regulations, noting that the GSO list includes a regulation on conformity certificates for vehicles manufactured in multiple stages and general requirements for ambulances; approvals needed before and after the work, since Dubai requires modifications to be done by approved workshops and the vehicle to be re-inspected and its registration updated, which industry sources describe as RTA and ESMA/MoIAT-linked processes; impact on the base manufacturer's warranty; warranty on the conversion itself; lead time and vehicle downtime; and branding content, which as vehicle advertising needs a permit in Dubai. Ask the upfitter to confirm in writing who obtains the post-conversion inspection and updated registration. Detailed RTA modification-approval steps were not confirmed from a primary source here.",
+      "body_ar": "يحوّل التجهيز الشاصي أو الفان الأساسي إلى مركبة عاملة: صناديق مبردة، ورفوف، وهياكل عدد، وقلابات، ورافعات، وسيارات إسعاف، وورش متنقلة، وتحويلات كبار الشخصيات أو الركاب، وتحويل الحافلات المدرسية، وإضاءة الطوارئ، وشعارات الأسطول. حدّد: طراز المركبة الأساسية ونوعها وسنتها وهل تورّدها أنت أم المجهّز، ونطاق التحويل بدقة مع المخططات، والخامات والأبعاد، والوزن المضاف وما يترتب عليه من حمولة ووزن إجمالي مقارنة بالحدود القانونية، والحمل الكهربائي وتعديلات البطارية أو المولد، ومدى حرارة التبريد وعلامة وحدة التبريد عند الحاجة، وتعديلات المقاعد ونقاط تثبيت الأحزمة في تحويلات الركاب، والمطابقة للوائح الخليجية ذات الصلة علماً بأن القائمة الخليجية تتضمن لائحة لشهادات مطابقة المركبات المصنعة على مراحل متعددة ومتطلبات عامة لسيارات الإسعاف، والموافقات المطلوبة قبل العمل وبعده إذ تشترط دبي تنفيذ التعديلات في ورش معتمدة وإعادة فحص المركبة وتحديث تسجيلها، وتصف مصادر القطاع ذلك بإجراءات مرتبطة بهيئة الطرق والجهة الاتحادية للمواصفات، وأثر التحويل على ضمان الصانع الأصلي، والضمان على التحويل نفسه، ومدة التنفيذ وتوقف المركبة، ومحتوى الشعارات الذي يحتاج كإعلان على المركبات إلى تصريح في دبي. واطلب من المجهّز أن يؤكد كتابياً من يستخرج الفحص بعد التحويل والتسجيل المحدث. ولم تُؤكد خطوات موافقة التعديل لدى هيئة الطرق تفصيلاً من مصدر رسمي هنا.",
+      "required_specs": [
+        "Base vehicle and who supplies it",
+        "Conversion scope and drawings",
+        "Materials and dimensions",
+        "Added weight, payload, GVW",
+        "Electrical changes",
+        "Refrigeration range/unit (if any)",
+        "Seating and belt anchorages",
+        "GCC multi-stage conformity",
+        "Pre/post approvals, re-inspection, registration update",
+        "Effect on base warranty; conversion warranty",
+        "Lead time and downtime",
+        "Branding content and permit"
+      ],
+      "sources": [
+        "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "vehicles_fleet:buy-vs-lease",
+      "topic": "Buying vs long-term leasing a fleet",
+      "kind": "comparison",
+      "body_en": "Owning and leasing solve different problems. Buying outright or with bank finance gives full control, no mileage limits and residual value on sale, but ties up capital and leaves the company handling registration, insurance, servicing, tyres, breakdowns, replacement vehicles and disposal. An operational (full-service) lease bundles the vehicle with some or all of these services for a fixed monthly rental over a defined term, usually with an annual mileage allowance and return conditions; the lessor carries residual-value risk and remarketing. Short-term or monthly rental is the most flexible and most expensive per month. Choosing: lease where the fleet is standard cars or light commercials, use is predictable and the company prefers fixed operating cost; buy where vehicles are specialised (upfitted trucks, school buses, refrigerated bodies), kept long, heavily used beyond typical mileage caps, or where capital is cheap. Compare on total cost of ownership over the same period, including finance cost, depreciation, maintenance, insurance, downtime and admin, not on monthly rental versus list price. UAE lease market terms (typical durations, inclusions, rates) are commercial and were not established from a fetched primary source in this research; obtain written quotes that list every inclusion and exclusion.",
+      "body_ar": "يحل التملك والتأجير مشكلتين مختلفتين. فالشراء النقدي أو بتمويل مصرفي يمنح سيطرة كاملة ودون حدود للمسافة وقيمة متبقية عند البيع، لكنه يجمّد رأس المال ويترك للشركة التسجيل والتأمين والصيانة والإطارات والأعطال والمركبات البديلة والتخلص منها. أما التأجير التشغيلي (بخدمة شاملة) فيجمع المركبة مع بعض هذه الخدمات أو كلها مقابل إيجار شهري ثابت لمدة محددة، مع حد سنوي للمسافة وشروط إرجاع في العادة، ويتحمل المؤجر مخاطر القيمة المتبقية وإعادة البيع. والإيجار قصير الأجل أو الشهري هو الأكثر مرونة والأعلى كلفة شهرياً. وللاختيار: التأجير حيث يكون الأسطول سيارات قياسية أو مركبات تجارية خفيفة والاستخدام متوقعاً والشركة تفضل كلفة تشغيل ثابتة، والشراء حيث تكون المركبات متخصصة (شاحنات مجهزة أو حافلات مدرسية أو هياكل مبردة) أو تُحتفظ بها طويلاً أو تُستخدم بكثافة تتجاوز حدود المسافة المعتادة أو يكون رأس المال رخيصاً. وقارن على أساس الكلفة الإجمالية للتملك خلال المدة نفسها، شاملة كلفة التمويل والاستهلاك والصيانة والتأمين والتوقف والإدارة، لا الإيجار الشهري مقابل سعر القائمة. أما شروط سوق التأجير في الدولة (المدد المعتادة والمشمولات والأسعار) فتجارية ولم تثبت من مصدر رسمي في هذا البحث، فاطلب عروضاً مكتوبة تسرد كل مشمول ومستثنى.",
+      "sources": [
+        "https://www.toyota.ae/en/new-cars/hilux/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "vehicles_fleet:fuel-choice",
+      "topic": "Petrol vs diesel vs hybrid vs electric for UAE fleets",
+      "kind": "comparison",
+      "body_en": "Powertrain choice depends on duty, availability in the GCC-spec range and charging access. Many high-volume fleet models are petrol-only in the UAE; for example one widely used compact sedan is listed with a 1.6 L petrol engine and no diesel option. Light commercials offer a choice: one common van range is listed with 2.7 L petrol, 2.8 L diesel and 3.5 L petrol engines. Diesel suits high-mileage, heavily loaded or long-haul work and is standard in medium and heavy trucks and full-size buses, though emission standards vary by product (one bus range sold in the UAE advertises a Euro 3 engine). Hybrids reduce fuel use in urban stop-start driving without charging infrastructure. Battery-electric vehicles, now offered by several distributors including fully electric and plug-in \"super hybrid\" ranges, and electric trucks such as eActros appearing in distributor ranges, need depot or public charging and route planning. In Dubai DEWA operates the EV Green Charger public network; its published commercial tariff was 29 fils per kWh, but tariffs have since been revised and the current rate was not confirmed from a primary source here. Compare on total energy cost per km, maintenance, residual value, range against daily duty, and charging downtime, and specify powertrain explicitly in RFQs.",
+      "body_ar": "يعتمد اختيار نظام الدفع على طبيعة العمل وتوفره ضمن المواصفات الخليجية وإمكانية الشحن. فكثير من طرازات الأساطيل الأعلى مبيعاً في الدولة بنزين فقط، ومثال ذلك سيدان صغيرة شائعة الاستخدام معروضة بمحرك بنزين 1.6 لتر دون خيار ديزل. وتتيح المركبات التجارية الخفيفة خيارات، فإحدى فئات الفان الشائعة معروضة بمحركات بنزين 2.7 لتر وديزل 2.8 لتر وبنزين 3.5 لتر. ويناسب الديزل العمل كثيف المسافات أو الأحمال أو النقل الطويل، وهو المعتاد في الشاحنات المتوسطة والثقيلة والحافلات الكاملة، مع اختلاف معايير الانبعاثات بحسب المنتج (إذ تعلن فئة حافلات تباع في الدولة محركاً بمعيار يورو 3). ويقلل الهجين استهلاك الوقود في القيادة الحضرية المتقطعة دون بنية شحن. أما المركبات الكهربائية بالبطارية، التي يعرضها الآن عدة موزعين ضمن فئات كهربائية بالكامل وهجينة قابلة للشحن، والشاحنات الكهربائية التي بدأت تظهر في فئات الموزعين، فتحتاج إلى شحن في المستودع أو عام وتخطيط للمسارات. وفي دبي تشغّل هيئة كهرباء ومياه دبي شبكة \"الشاحن الأخضر\" العامة، وكانت تعرفتها التجارية المعلنة 29 فلساً للكيلوواط ساعة، لكن التعرفة عُدلت لاحقاً ولم تُؤكد القيمة الحالية من مصدر رسمي هنا. قارن على أساس كلفة الطاقة لكل كيلومتر والصيانة والقيمة المتبقية والمدى مقابل العمل اليومي وزمن الشحن، وحدد نظام الدفع صراحة في طلبات العروض.",
+      "sources": [
+        "https://www.zigwheels.ae/new-cars/nissan/sunny/price-dubai",
+        "https://www.toyota.ae/en/new-cars/hiace/",
+        "https://www.alnaboodahvehicles.com/products/buses-and-coaches/ashokleyland/falcon",
+        "https://www.byduae.ae/en/",
+        "https://www.mercedes-benz-trucks.com/ae/en/trucks.html",
+        "https://dubaisce.gov.ae/en/dewas-ev-green-charger-initiative/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "vehicles_fleet:ev-charging",
+      "topic": "EV fleet charging in Dubai (DEWA EV Green Charger)",
+      "topic_ar": "شحن أساطيل السيارات الكهربائية في دبي (الشاحن الأخضر من هيئة كهرباء ومياه دبي)",
+      "kind": "installation",
+      "body_en": "Dubai Electricity and Water Authority (DEWA) runs the EV Green Charger initiative, the emirate's main public charging network, with around 300 stations reported installed across Dubai including Hatta at the time of the source reviewed. Users register through DEWA's app or website; commercially registered customers such as companies and government entities were charged a published commercial tariff of 29 fils per kWh, while non-commercial users had free charging until the end of 2021. Tariffs have been revised since then and differ for AC and DC charging according to later reports, but the current figures were not confirmed from a DEWA primary page in this research and must be checked before budgeting. For a fleet operator planning electric vehicles: count daily kilometres per vehicle and compare with realistic summer range; decide whether charging will be at depot (needs a DEWA-approved installation, load assessment and possibly a supply upgrade) or on the public network; specify charger type (AC wallbox or DC fast charger), connector standard supported by the vehicles, number of charge points and smart-charging software; and plan for driver access cards and billing to the company account. Also confirm that each EV model carries MoIAT conformity and the distributor's battery warranty terms in writing.",
+      "body_ar": "تدير هيئة كهرباء ومياه دبي مبادرة \"الشاحن الأخضر\"، وهي الشبكة العامة الرئيسية لشحن المركبات الكهربائية في الإمارة، وقد أفاد المصدر الذي تمت مراجعته بتركيب نحو 300 محطة في أنحاء دبي بما فيها حتا. ويسجل المستخدمون عبر تطبيق الهيئة أو موقعها، وكان العملاء المسجلون تجارياً مثل الشركات والجهات الحكومية يدفعون تعرفة تجارية معلنة قدرها 29 فلساً للكيلوواط ساعة، بينما كان الشحن مجانياً لغير التجاريين حتى نهاية 2021. وقد عُدلت التعرفة منذ ذلك الحين وأصبحت تختلف بين الشحن المتردد والسريع وفق تقارير لاحقة، لكن القيم الحالية لم تُؤكد من صفحة رسمية للهيئة في هذا البحث ويجب التحقق منها قبل إعداد الميزانية. وعلى مشغل الأسطول الذي يخطط للمركبات الكهربائية: احتساب الكيلومترات اليومية لكل مركبة ومقارنتها بالمدى الواقعي صيفاً، وتحديد ما إذا كان الشحن في المستودع (ويحتاج إلى تركيب معتمد من الهيئة وتقييم للأحمال وربما رفع للقدرة) أم عبر الشبكة العامة، وتحديد نوع الشاحن (منزلي متردد أو سريع مستمر) ومعيار الموصل الذي تدعمه المركبات وعدد نقاط الشحن وبرمجيات الشحن الذكي، والتخطيط لبطاقات وصول السائقين والفوترة على حساب الشركة. وتأكد أيضاً من حصول كل طراز كهربائي على مطابقة الوزارة ومن شروط ضمان البطارية لدى الموزع كتابياً.",
+      "sources": [
+        "https://dubaisce.gov.ae/en/dewas-ev-green-charger-initiative/",
+        "https://www.byduae.ae/en/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "vehicles_fleet:window-tint",
+      "topic": "Window tint limits for fleet vehicles",
+      "kind": "standard",
+      "body_en": "Window tint is a frequent fleet add-on and a frequent fine. UAE rules allow tint on side and rear windows up to a limit expressed as visible light transmission (VLT), and the front windscreen must stay clear. The revised federal traffic law in force since 1 July 2017 raised the permitted tint from 30% to 50% on all windows except the front windscreen, which may not be tinted; trucks and taxis are not covered by this allowance and follow different rules. Reported fines start at AED 1,000 and vary by emirate and degree of excess, with consumer guides citing AED 1,500 and possible impoundment in serious cases; exemptions exist for medical reasons and security cases on approval. Sources differ on some details (for example separate limits for front side windows), so confirm the exact figure per window with the licensing authority before ordering. For fleet procurement: specify tint \"within the legal UAE limit for the registration category\", require the installer to use certified film and to provide the VLT value on the invoice, avoid tinting company vehicles that carry passengers for hire or school children unless the category permits it, and remember that windows covered by branding film must still meet visibility rules. A cheaper darker tint that triggers fines and re-work across a whole fleet is a false saving.",
+      "body_ar": "يُعد تظليل النوافذ إضافة شائعة للأساطيل وسبباً شائعاً للمخالفات. وتسمح قواعد الدولة بتظليل النوافذ الجانبية والخلفية حتى حد يُعبَّر عنه بنسبة نفاذ الضوء المرئي، ويجب أن يبقى الزجاج الأمامي شفافاً. وقد رفع قانون السير الاتحادي المعدل النافذ منذ الأول من يوليو 2017 نسبة التظليل المسموحة من 30% إلى 50% على جميع النوافذ عدا الزجاج الأمامي الذي لا يجوز تظليله، ولا تشمل هذه النسبة الشاحنات وسيارات الأجرة التي تخضع لقواعد مختلفة. وتبدأ الغرامات المعلنة من 1,000 درهم وتختلف بحسب الإمارة ومقدار التجاوز، وتذكر أدلة المستهلكين 1,500 درهم وإمكانية حجز المركبة في الحالات الجسيمة، وتوجد استثناءات لأسباب طبية وأمنية بعد الموافقة. وتختلف المصادر في بعض التفاصيل (مثل حدود منفصلة للنوافذ الجانبية الأمامية)، لذا أكد النسبة الدقيقة لكل نافذة لدى جهة الترخيص قبل الطلب. وفي مشتريات الأساطيل: حدد التظليل \"ضمن الحد القانوني في الدولة لفئة التسجيل\"، واشترط على المركّب استخدام فيلم معتمد وذكر نسبة النفاذ في الفاتورة، وتجنب تظليل مركبات الشركة التي تنقل ركاباً بأجر أو طلاب مدارس ما لم تسمح الفئة بذلك، وتذكّر أن النوافذ المغطاة بأفلام الشعارات يجب أن تستوفي قواعد الرؤية أيضاً. والتظليل الأغمق الأرخص الذي يجر مخالفات وإعادة عمل على أسطول كامل توفير زائف.",
+      "sources": [
+        "https://gulfnews.com/uae/transport/law-allowing-50-car-window-tinting-helps-motorists-stay-cool-1.2204274",
+        "https://www.cars24.ae/news/en/buyers-guide/tinting-laws-in-the-uae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:recalls",
+      "topic": "Vehicle recalls and consumer protection",
+      "kind": "warranty",
+      "body_en": "Recalls in the UAE are overseen by the Ministry of Economy's consumer protection function together with manufacturers and their UAE agents. The ministry's published recall procedure runs through detection of the defect, verification that the product is on the market, and withdrawal; suppliers submit a recall request with documentation, publish the notice through accredited press channels, and close the file with a report to the ministry. For a fleet owner, recalls are one of the strongest reasons to buy through the authorised distributor: the agent holds the VIN records, contacts registered owners and performs recall work under the manufacturer's campaign, while grey imports may never be notified. Fleet managers should register every vehicle in the company's name with the dealer, keep an up-to-date contact for recall notices, check open campaigns by VIN at each service, and write into supply contracts that recall and safety-campaign work is performed free of charge with a replacement vehicle if downtime exceeds an agreed period. Keep recall completion records in each vehicle's file, because they matter at resale and in any warranty dispute.",
+      "body_ar": "تشرف على عمليات الاستدعاء في الدولة إدارة حماية المستهلك في وزارة الاقتصاد بالتعاون مع المصنّعين ووكلائهم في الدولة. ويمر إجراء الاستدعاء المنشور لدى الوزارة بمراحل اكتشاف العيب، والتحقق من وجود المنتج في السوق، ثم سحبه، ويقدم المورّد طلب استدعاء بالمستندات، وينشر الإعلان عبر الصحف المعتمدة، ويغلق الملف بتقرير إلى الوزارة. وبالنسبة لمالك الأسطول، يُعد الاستدعاء من أقوى أسباب الشراء عبر الموزع المعتمد، إذ يحتفظ الوكيل بسجلات أرقام الهياكل ويتواصل مع الملاك المسجلين وينفذ أعمال الاستدعاء ضمن حملة الصانع، بينما قد لا يُبلَّغ مالكو السيارات المستوردة بشكل موازٍ أبداً. وعلى مديري الأساطيل تسجيل كل مركبة باسم الشركة لدى الوكيل، والاحتفاظ بجهة اتصال محدثة لإشعارات الاستدعاء، والتحقق من الحملات المفتوحة برقم الهيكل عند كل صيانة، والنص في عقود التوريد على تنفيذ أعمال الاستدعاء وحملات السلامة مجاناً مع مركبة بديلة إذا تجاوز التوقف مدة متفقاً عليها. واحتفظ بسجلات إتمام الاستدعاء في ملف كل مركبة لأهميتها عند إعادة البيع وفي أي نزاع على الضمان.",
+      "sources": [
+        "https://www.moet.gov.ae/en/product-recall1"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:authorised-vs-grey",
+      "topic": "Authorised distributor vs parallel (grey) supply",
+      "kind": "comparison",
+      "body_en": "Most mainstream brands in the UAE are sold through an appointed distributor, often an established family group, for example Toyota through Al-Futtaim, Hyundai, Kia, Genesis and Isuzu commercial vehicles through Juma Al Majid group companies (Isuzu trucks via GENAVCO), Ashok Leyland buses through Al Naboodah, King Long buses through Al Ghurair Motors, Volvo trucks and buses through Al-Futtaim, and BYD through Al-Futtaim's electric mobility arm; Mercedes-Benz trucks are supported by Daimler Truck Middle East Africa in Jebel Ali with a dealer network. Buying from the authorised channel normally gives GCC-spec vehicles with conformity certification, manufacturer warranty honoured locally, recall coverage, parts availability and service network. Parallel or grey supply (vehicles imported by independent traders, sometimes new, sometimes nearly new, sometimes non-GCC spec) can be cheaper or faster when the distributor has waiting lists, but brings risks: warranty may not be honoured by the local agent, specification may differ, conformity documents may be missing, and resale value is lower. Online marketplaces list both channels side by side, and listings for the same model can vary widely. For fleet tenders, require bidders to state whether they are the authorised distributor or a reseller, the vehicle origin and specification, and who provides warranty service.",
+      "body_ar": "تُباع معظم العلامات الرئيسية في الدولة عبر موزع معيّن، غالباً مجموعة عائلية عريقة، ومن الأمثلة تويوتا عبر الفطيم، وهيونداي وكيا وجينيسيس ومركبات إيسوزو التجارية عبر شركات مجموعة جمعة الماجد (شاحنات إيسوزو عبر جينافكو)، وحافلات أشوك ليلاند عبر النابودة، وحافلات كينغ لونغ عبر الغرير للسيارات، وشاحنات وحافلات فولفو عبر الفطيم، وBYD عبر ذراع التنقل الكهربائي للفطيم، وتدعم \"دايملر تراك الشرق الأوسط وأفريقيا\" في جبل علي شاحنات مرسيدس-بنز مع شبكة وكلاء. والشراء من القناة المعتمدة يمنح عادة مركبات بالمواصفات الخليجية مع شهادات المطابقة، وضمان الصانع المعتمد محلياً، وتغطية الاستدعاءات، وتوفر قطع الغيار وشبكة الخدمة. أما التوريد الموازي (مركبات يستوردها تجار مستقلون، جديدة أحياناً وشبه جديدة أحياناً وبمواصفات غير خليجية أحياناً) فقد يكون أرخص أو أسرع عند وجود قوائم انتظار لدى الموزع، لكنه يحمل مخاطر: قد لا يلتزم الوكيل المحلي بالضمان، وقد تختلف المواصفات، وقد تغيب مستندات المطابقة، وتنخفض قيمة إعادة البيع. وتعرض الأسواق الإلكترونية القناتين جنباً إلى جنب، وقد تتفاوت أسعار الطراز نفسه كثيراً. وفي مناقصات الأساطيل اشترط على المتقدمين بيان ما إذا كانوا الموزع المعتمد أم معيد بيع، ومنشأ المركبة ومواصفاتها، ومن يقدم خدمة الضمان.",
+      "sources": [
+        "https://www.toyota.ae/en/new-cars/hilux/",
+        "https://www.al-majid.com/group_businesses/commercial/automotive-heavy-equipment/",
+        "https://www.isuzu-uae.ae/",
+        "https://www.alnaboodahvehicles.com/products/buses-and-coaches/ashokleyland/falcon",
+        "https://kinglong.ae/home",
+        "https://www.mercedes-benz-trucks.com/ae/en/trucks.html",
+        "https://www.byduae.ae/en/",
+        "https://www.dubicars.com/uae/new/isuzu/npr"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:truck-classes",
+      "topic": "Truck classes and body types in the UAE market",
+      "kind": "glossary",
+      "body_en": "Terms used in truck quotes: light-duty trucks (for example the N-series class offered in the UAE covers payloads of roughly 2.8 to 6 tonnes) used for city distribution, often as cab-chassis for a box, pickup or tipper body; medium-duty trucks (the F-series class, roughly 8 to 13 tonnes payload) for heavier regional distribution and construction supply; heavy-duty rigid trucks and tractor heads for long haul and construction, for example distributor ranges that split into long-distance (Actros), distribution (Atego, Accelo), construction (Arocs) and special trucks (Zetros, Unimog, Econic), plus electric models; pickups (single or double cab) for light work. Configuration terms: cab-chassis, the bare chassis delivered for a body builder; wheelbase, the distance between axles, which sets body length; 4x2, 6x4, 8x4, describing total wheels and driven wheels; GVW or GCW, the gross vehicle or combination weight; payload, what remains after tare; PTO, power take-off to drive hydraulics. Body types: dry box, curtain-side, reefer, tipper, tanker, flatbed, crane-mounted, car carrier. UAE listings show light trucks in many forms, from cab-chassis to tipper and double-cab chassis, with prices varying by body and year. Always check that axle configuration and body fit within the federal weight and dimension limits.",
+      "body_ar": "مصطلحات تتكرر في عروض الشاحنات: الشاحنات الخفيفة (مثل فئة N المعروضة في الدولة التي تغطي حمولات من نحو 2.8 إلى 6 أطنان) لتوزيع المدن، وتورَّد غالباً كشاصي مع مقصورة لتركيب صندوق أو بيك أب أو قلاب، والشاحنات المتوسطة (فئة F بحمولات من نحو 8 إلى 13 طناً) للتوزيع الإقليمي الأثقل وتوريد مواد البناء، والشاحنات الثقيلة المفردة ورؤوس القاطرات للنقل الطويل والبناء، ومثالها فئات موزعين تنقسم إلى النقل الطويل (أكتروس) والتوزيع (أتيغو وأكسيلو) والبناء (أروكس) والشاحنات الخاصة (زيتروس ويونيموغ وإيكونيك) إضافة إلى طرازات كهربائية، ومركبات البيك أب (بمقصورة مفردة أو مزدوجة) للأعمال الخفيفة. ومصطلحات التكوين: الشاصي مع المقصورة، أي الهيكل المجرد المسلّم لمصنّع الهيكل، وقاعدة العجلات أي المسافة بين المحاور التي تحدد طول الهيكل، و4x2 و6x4 و8x4 لوصف إجمالي العجلات والعجلات الدافعة، والوزن الإجمالي للمركبة أو للتركيبة، والحمولة أي ما يتبقى بعد الوزن الفارغ، ومأخذ القدرة لتشغيل الهيدروليك. وأنواع الهياكل: صندوق جاف، وستائر جانبية، ومبرد، وقلاب، وصهريج، ومسطح، ومزود برافعة، وناقل سيارات. وتُظهر الإعلانات في الدولة الشاحنات الخفيفة بأشكال كثيرة من الشاصي إلى القلاب والشاصي بمقصورة مزدوجة، مع تفاوت الأسعار بحسب الهيكل والسنة. وتحقق دائماً من ملاءمة تركيبة المحاور والهيكل لحدود الأوزان والأبعاد الاتحادية.",
+      "sources": [
+        "https://www.isuzu-uae.ae/",
+        "https://www.mercedes-benz-trucks.com/ae/en/trucks.html",
+        "https://www.dubicars.com/uae/new/isuzu/npr",
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:bus-classes",
+      "topic": "Bus and coach categories in the UAE market",
+      "kind": "glossary",
+      "body_en": "Bus categories a buyer will meet: minibuses (roughly 14 to 30 seats) for small staff shuttles and hotel transfers, including van-based 13-seat commuters; medium buses; full-size buses of about 60 to 71 seats, the workhorse of labour and school transport, sold with or without air-conditioning; school buses built to school-transport bylaws; city buses with low floors and standing capacity; and luxury coaches with reclining seats, luggage holds and higher-spec air-conditioning for tourism and intercity work. In the UAE market, for example, Ashok Leyland's Falcon family (represented exclusively by Al Naboodah, with a sales and service facility in Ras Al Khaimah) is offered as A/C, non-A/C, 4x4 and school-bus versions with a Euro 3 engine and options such as ABS and engine fire suppression, and the distributor reports over a thousand Falcons in UAE school transport; King Long, distributed by Al Ghurair Motors since 2007, lists school buses, staff buses of about 40 to 60 seats, city buses and several coach models. Published listings show a 26-seat minibus around AED 139,000 and a 63-seat bus around AED 212,000, while many units are \"price on request\". Specify category, seat count and A/C explicitly; seat count alone does not define a bus.",
+      "body_ar": "فئات الحافلات التي سيقابلها المشتري: الحافلات الصغيرة (من نحو 14 إلى 30 مقعداً) لنقل الموظفين بأعداد صغيرة وتنقلات الفنادق، بما فيها فان الركاب ذو 13 مقعداً، والحافلات المتوسطة، والحافلات الكاملة من نحو 60 إلى 71 مقعداً وهي عماد نقل العمال والطلاب وتباع مكيفة أو غير مكيفة، والحافلات المدرسية المصنعة وفق لوائح النقل المدرسي، وحافلات المدن ذات الأرضية المنخفضة وسعة الوقوف، والحافلات السياحية الفاخرة بمقاعد قابلة للإمالة ومخازن أمتعة وتكييف أعلى مواصفة للسياحة والنقل بين المدن. ففي سوق الدولة مثلاً تُعرض عائلة \"فالكون\" من أشوك ليلاند (التي تمثلها النابودة حصرياً ولديها منشأة مبيعات وخدمة في رأس الخيمة) بنسخ مكيفة وغير مكيفة ودفع رباعي وحافلة مدرسية بمحرك يورو 3 وخيارات مثل الفرامل المانعة للانغلاق ونظام إطفاء حريق المحرك، ويذكر الموزع أن أكثر من ألف حافلة فالكون تعمل في النقل المدرسي في الدولة، وتعرض كينغ لونغ، التي توزعها الغرير للسيارات منذ 2007، حافلات مدرسية وحافلات موظفين من نحو 40 إلى 60 مقعداً وحافلات مدن وعدة طرازات سياحية. وتُظهر إعلانات منشورة حافلة صغيرة 26 مقعداً بنحو 139,000 درهم وحافلة 63 مقعداً بنحو 212,000 درهم، بينما كثير من الوحدات \"السعر عند الطلب\". حدد الفئة وعدد المقاعد والتكييف صراحة، فعدد المقاعد وحده لا يعرّف الحافلة.",
+      "sources": [
+        "https://www.alnaboodahvehicles.com/products/buses-and-coaches/ashokleyland/falcon",
+        "https://kinglong.ae/home",
+        "https://www.dubicars.com/uae/new/ashok-leyland/bus",
+        "https://www.toyota.ae/en/new-cars/hiace/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:mistake-overload-noncompliant",
+      "topic": "Buyer mistakes in vehicle and fleet purchasing",
+      "kind": "buyer_mistake",
+      "body_en": "Common and costly errors: buying a truck by chassis rating without checking legal payload after the body is fitted, then running overweight on federal roads where fines reach AED 600 per excess tonne (capped at AED 15,000) plus AED 1,500 per overloaded axle; ordering bodies or roof equipment that push a vehicle beyond the 2.6 m width or 4.6 m height limits; buying or leasing school buses that do not meet the Dubai bylaw (RAL 1018 yellow, stop arm, GPS, 80 km/h limiter, 24 °C A/C, belts, maximum 15 years age), which then cannot operate; accepting commercial vehicles without a certified speed limiter, so they fail inspection; importing used or non-GCC vehicles to save money and then facing MoIAT rejection or registration delays; comparing quotes for different trims because the RFQ did not fix the variant (one pickup ranges from AED 115,900 to AED 155,900 by engine and trim); ignoring warranty and service-network coverage for vehicles based in remote emirates; tinting windows beyond the legal limit across a fleet; and wrapping vehicles with advertising without the required permit. Each of these is avoided by a written specification that states legal limits, compliance documents and the exact variant, and by requiring the supplier to certify compliance of the finished vehicle, not only the base chassis.",
+      "body_ar": "أخطاء شائعة ومكلفة: شراء شاحنة وفق تصنيف الشاصي دون التحقق من الحمولة القانونية بعد تركيب الهيكل، ثم السير بوزن زائد على الطرق الاتحادية حيث تصل الغرامة إلى 600 درهم عن كل طن زائد (بحد أقصى 15,000 درهم) إضافة إلى 1,500 درهم لكل محور زائد الحمولة، وطلب هياكل أو معدات سقف تتجاوز بالمركبة حد العرض 2.6 متر أو الارتفاع 4.6 متر، وشراء أو استئجار حافلات مدرسية لا تستوفي لائحة دبي (الأصفر RAL 1018 وذراع التوقف والتتبع ومحدد 80 كم/ساعة وتكييف 24 درجة والأحزمة وعمر أقصى 15 سنة) فلا يمكن تشغيلها، وقبول مركبات تجارية دون محدد سرعة معتمد فتفشل في الفحص، واستيراد مركبات مستعملة أو غير خليجية توفيراً ثم مواجهة رفض الوزارة أو تأخر التسجيل، ومقارنة عروض لفئات مختلفة لأن طلب العرض لم يثبّت النسخة (فأحد طرازات البيك أب يتراوح بين 115,900 و155,900 درهم بحسب المحرك والفئة)، وإهمال تغطية الضمان وشبكة الخدمة للمركبات العاملة في الإمارات البعيدة، وتظليل النوافذ بما يتجاوز الحد القانوني على مستوى الأسطول، وتغليف المركبات بإعلانات دون التصريح المطلوب. ويمكن تجنب كل ذلك بمواصفة مكتوبة تذكر الحدود القانونية ومستندات الامتثال والنسخة الدقيقة، وبإلزام المورّد بإثبات مطابقة المركبة المكتملة لا الشاصي الأساسي فقط.",
+      "sources": [
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html",
+        "https://speed.resolute-dynamics.com/blog/speed-limiter-certificate-dubai-rta-process-cost/",
+        "https://moiat.gov.ae/en/services/issue-product-status-statement-for-used-imported-vehicles",
+        "https://www.toyota.ae/en/new-cars/hilux/",
+        "https://www.cars24.ae/news/en/buyers-guide/tinting-laws-in-the-uae/",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "vehicles_fleet:warranty-service",
+      "topic": "Warranty and after-sales terms for fleet vehicles",
+      "kind": "warranty",
+      "body_en": "For a fleet the after-sales package often matters more than a small difference in purchase price. Items to fix in writing: manufacturer warranty period and mileage for the vehicle, and separately for powertrain, body, air-conditioning and, for electric and hybrid models, the high-voltage battery; whether warranty is honoured by the local authorised distributor (normally only for vehicles supplied through the authorised channel); service contract or pre-paid maintenance (intervals, parts and labour included, consumables such as tyres and brakes excluded or included); service network locations in the emirates where the fleet operates, mobile service for trucks and buses, and guaranteed turnaround times; replacement vehicle during extended repairs; parts availability commitments for commercial models; recall and campaign handling; and warranty on third-party bodies and conversions, which is usually the body builder's, not the chassis maker's. Distributors publish monthly finance figures and list prices on their websites, but detailed warranty terms were generally not shown on the pages reviewed in this research, and standard UAE warranty periods by brand were therefore not established. Ask each bidder for its warranty booklet and service price list, and compare total cost over the planned holding period rather than headline price.",
+      "body_ar": "بالنسبة للأسطول كثيراً ما تكون باقة ما بعد البيع أهم من فرق بسيط في سعر الشراء. والبنود التي يجب تثبيتها كتابياً: مدة ضمان الصانع ومسافته للمركبة، وبشكل منفصل لمجموعة الحركة والهيكل والتكييف، وللطرازات الكهربائية والهجينة لبطارية الجهد العالي، وهل يلتزم الموزع المعتمد المحلي بالضمان (وعادة يكون ذلك فقط للمركبات المورّدة عبر القناة المعتمدة)، وعقد الخدمة أو الصيانة المدفوعة مسبقاً (الفترات والقطع والعمالة المشمولة، والمستهلكات مثل الإطارات والفرامل مشمولة أم مستثناة)، ومواقع شبكة الخدمة في الإمارات التي يعمل فيها الأسطول، والخدمة المتنقلة للشاحنات والحافلات، وأوقات الإنجاز المضمونة، والمركبة البديلة أثناء الإصلاحات الطويلة، والتزامات توفر قطع الغيار للطرازات التجارية، ومعالجة الاستدعاءات والحملات، والضمان على الهياكل والتحويلات من أطراف ثالثة الذي يكون عادة على مصنّع الهيكل لا صانع الشاصي. وينشر الموزعون أرقام التمويل الشهري وأسعار القوائم على مواقعهم، لكن شروط الضمان التفصيلية لم تظهر عموماً في الصفحات التي تمت مراجعتها في هذا البحث، ولذا لم تثبت مدد الضمان المعتادة لكل علامة في الدولة. اطلب من كل متقدم كتيّب الضمان وقائمة أسعار الخدمة، وقارن الكلفة الإجمالية خلال فترة الاحتفاظ المخططة لا السعر الظاهر.",
+      "sources": [
+        "https://www.toyota.ae/en/new-cars/hilux/",
+        "https://www.byduae.ae/en/",
+        "https://www.moet.gov.ae/en/product-recall1"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "vehicles_fleet:price-drivers",
+      "topic": "What drives vehicle and fleet prices in the UAE",
+      "kind": "price_driver",
+      "body_en": "Price drivers a buyer can see and negotiate: model and trim level, which can move price by a third or more within one nameplate (published examples: a compact sedan from AED 61,500 to AED 81,500 across four trims; a pickup from AED 115,900 for the 2.7 L to AED 155,900 for the 4.0 L adventure trim; a van from AED 99,900 to AED 131,900); engine and drivetrain (V6 versus four-cylinder, 4x4 versus 4x2); body and seat count for buses (listings show a 26-seat minibus at AED 139,000 and a 63-seat bus at AED 212,000); body type for trucks (new light-truck listings run from about AED 69,800 for a basic cab-chassis to AED 139,900 for a tipper); air-conditioning, safety and telematics equipment; upfitting and conversion; model year and stock availability (runout stock versus factory order); fleet volume and delivery phasing; registration, insurance, speed limiter certification and accessories included or not; warranty and service packages; finance or lease terms; and trade-in value of old units. VAT applies on top of many listed prices; check whether a quote is inclusive. Marketplace listings are asking prices and vary between sellers, so treat them as indicators and request formal quotations. Fleet discounts off list are commercial and not published.",
+      "body_ar": "محركات السعر التي يستطيع المشتري رؤيتها والتفاوض عليها: الطراز والفئة، وقد يتحرك السعر بثلث أو أكثر داخل الاسم الواحد (أمثلة منشورة: سيدان صغيرة من 61,500 إلى 81,500 درهم عبر أربع فئات، وبيك أب من 115,900 درهم لمحرك 2.7 لتر إلى 155,900 لفئة المغامرة 4.0 لتر، وفان من 99,900 إلى 131,900 درهم)، والمحرك ونظام الدفع (V6 مقابل أربع أسطوانات، ورباعي مقابل ثنائي)، والهيكل وعدد المقاعد في الحافلات (تُظهر الإعلانات حافلة صغيرة 26 مقعداً بسعر 139,000 درهم وحافلة 63 مقعداً بسعر 212,000 درهم)، ونوع الهيكل في الشاحنات (تتراوح إعلانات الشاحنات الخفيفة الجديدة من نحو 69,800 درهم لشاصي أساسي إلى 139,900 لقلاب)، والتكييف وتجهيزات السلامة والتتبع، والتجهيز والتحويل، وسنة الطراز والتوفر في المخزون (مخزون نهاية الطراز مقابل الطلب من المصنع)، وحجم الأسطول وتوزيع التسليم، وهل يشمل العرض التسجيل والتأمين وشهادة محدد السرعة والإكسسوارات، وباقات الضمان والخدمة، وشروط التمويل أو التأجير، وقيمة استبدال الوحدات القديمة. وتُضاف ضريبة القيمة المضافة إلى كثير من الأسعار المعلنة، فتحقق مما إذا كان العرض شاملاً. وأسعار الأسواق الإلكترونية أسعار طلب تختلف بين البائعين، فاعتبرها مؤشرات واطلب عروضاً رسمية. أما خصومات الأساطيل على سعر القائمة فتجارية وغير منشورة.",
+      "sources": [
+        "https://www.zigwheels.ae/new-cars/nissan/sunny/price-dubai",
+        "https://www.toyota.ae/en/new-cars/hilux/",
+        "https://www.toyota.ae/en/new-cars/hiace/",
+        "https://www.dubicars.com/uae/new/ashok-leyland/bus",
+        "https://www.dubicars.com/uae/new/isuzu/npr"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "vehicles_fleet:lead-times",
+      "topic": "Lead times for fleet vehicles",
+      "kind": "lead_time",
+      "body_en": "Lead time depends on whether the exact variant is in UAE stock, needs a factory order, or needs upfitting. Stock vehicles from distributors can often be registered and delivered quickly, and online listings show many new light trucks and buses \"available\" in Dubai, but factory orders for specific trims, colours or large fleet quantities, and heavy trucks built to specification, take longer; published manufacturer or distributor lead times were not found in the sources reviewed, so no standard figure is established here. Add time for: body building or conversion (reefer boxes, tippers, bus bodies, school-bus conversions), which depends on the builder's queue; conformity paperwork for imported units, although MoIAT's attestation and product-status services are published as instant and its conformity-certificate issuance as about one and a half working days once documents are complete; speed-limiter fitting and certification; registration and plates; branding permits and wrap installation; and any tint or accessory fitting. For a new school-year fleet or a project mobilisation date, work backwards and ask each bidder for a dated delivery schedule per unit, with liquidated damages or a replacement-vehicle obligation for late delivery, and confirm whether the quoted units are physical stock (with VINs) or allocations still to be built.",
+      "body_ar": "تعتمد مدة التوريد على ما إذا كانت النسخة المطلوبة متوفرة في مخزون الدولة أم تحتاج طلباً من المصنع أم تحتاج تجهيزاً. فالمركبات المتوفرة لدى الموزعين يمكن غالباً تسجيلها وتسليمها بسرعة، وتُظهر الإعلانات الإلكترونية كثيراً من الشاحنات الخفيفة والحافلات الجديدة \"متوفرة\" في دبي، أما طلبات المصنع لفئات أو ألوان محددة أو كميات أساطيل كبيرة، والشاحنات الثقيلة المصنعة حسب المواصفة، فتستغرق وقتاً أطول، ولم تُعثر على مدد توريد منشورة من المصنعين أو الموزعين في المصادر التي تمت مراجعتها، لذا لا يوجد رقم معياري ثابت هنا. وأضف وقتاً لما يلي: بناء الهياكل أو التحويل (صناديق التبريد والقلابات وهياكل الحافلات وتحويل الحافلات المدرسية) بحسب طابور المصنّع، وأوراق المطابقة للوحدات المستوردة مع أن خدمتي التصديق وبيان حالة المنتج لدى الوزارة معلنتان كخدمتين فوريتين وإصدار شهادة المطابقة بنحو يوم ونصف يوم عمل بعد اكتمال المستندات، وتركيب محدد السرعة واعتماده، والتسجيل واللوحات، وتصاريح الشعارات وتركيب التغليف، وأي تظليل أو إكسسوارات. ولأسطول بداية العام الدراسي أو موعد تعبئة مشروع، خطط عكسياً واطلب من كل متقدم جدول تسليم مؤرخاً لكل وحدة مع تعويض عن التأخير أو التزام بمركبة بديلة، وتأكد مما إذا كانت الوحدات المعروضة مخزوناً فعلياً (بأرقام هياكل) أم مخصصات لم تُصنع بعد.",
+      "sources": [
+        "https://www.dubicars.com/uae/new/isuzu/npr",
+        "https://www.dubicars.com/uae/new/ashok-leyland/bus",
+        "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
+        "https://moiat.gov.ae/en/services/issue-product-status-statement-for-used-imported-vehicles",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "vehicles_fleet:quote-red-flags",
+      "topic": "Red flags in vehicle and fleet quotations",
+      "kind": "quote_red_flag",
+      "body_en": "Warning signs in vehicle offers: no stated specification origin, or wording such as \"export spec\", \"US spec\" or \"Japan import\" for vehicles meant for UAE registration; no conformity certificate or MoIAT documents offered for imported units; a price far below the authorised distributor's published list for the same trim without explanation; missing VINs for vehicles described as \"in stock\"; warranty described as \"dealer warranty\" or \"company warranty\" rather than manufacturer warranty honoured by the local agent; used or \"zero-km\" units without a clear registration history; trucks quoted by chassis only with no statement of legal payload after the body, or bodies quoted without dimensions; buses without seat-belt type, A/C capacity, or school-bus bylaw compliance for school use; commercial vehicles without speed-limiter certification included or priced; tint quoted \"as dark as you want\"; prices that exclude registration, insurance, VAT or delivery without saying so; lease quotes without mileage allowance, maintenance scope, replacement vehicle, damage and return conditions or early termination terms; and deposits requested before a signed contract with delivery dates. Not every item means the supplier is dishonest, but each shifts cost or compliance risk to the buyer and should be resolved in writing before award.",
+      "body_ar": "علامات التحذير في عروض المركبات: عدم ذكر منشأ المواصفة، أو عبارات مثل \"مواصفات تصدير\" أو \"مواصفات أمريكية\" أو \"وارد اليابان\" لمركبات مخصصة للتسجيل في الدولة، وعدم تقديم شهادة مطابقة أو مستندات الوزارة للوحدات المستوردة، وسعر يقل كثيراً عن سعر القائمة المنشور لدى الموزع المعتمد للفئة نفسها دون تفسير، وغياب أرقام الهياكل لمركبات موصوفة بأنها \"متوفرة\"، ووصف الضمان بأنه \"ضمان الوكيل التجاري\" أو \"ضمان الشركة\" بدلاً من ضمان الصانع الذي يلتزم به الوكيل المحلي، ووحدات مستعملة أو \"صفر كيلومتر\" دون تاريخ تسجيل واضح، وتسعير الشاحنات بالشاصي فقط دون بيان الحمولة القانونية بعد الهيكل أو تسعير الهياكل دون أبعاد، وحافلات دون نوع الأحزمة أو قدرة التكييف أو المطابقة للائحة النقل المدرسي عند استخدامها للمدارس، ومركبات تجارية دون شهادة محدد السرعة مشمولة أو مسعّرة، وتظليل معروض \"بالدرجة التي تريدها\"، وأسعار تستثني التسجيل أو التأمين أو ضريبة القيمة المضافة أو التوصيل دون الإفصاح، وعروض تأجير دون حد المسافة ونطاق الصيانة والمركبة البديلة وشروط الأضرار والإرجاع والإنهاء المبكر، وطلب دفعات مقدمة قبل عقد موقّع بتواريخ تسليم. ولا يعني كل بند أن المورّد غير أمين، لكن كلاً منها ينقل كلفة أو مخاطر امتثال إلى المشتري ويجب حسمه كتابياً قبل الترسية.",
+      "sources": [
+        "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
+        "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
+        "https://moiat.gov.ae/en/services/issue-product-status-statement-for-used-imported-vehicles",
+        "https://www.toyota.ae/en/new-cars/hilux/",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html",
+        "https://speed.resolute-dynamics.com/blog/speed-limiter-certificate-dubai-rta-process-cost/",
+        "https://www.cars24.ae/news/en/buyers-guide/tinting-laws-in-the-uae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Should we accept US-spec pickups at a lower price for our fleet?",
+      "q_ar": "هل نقبل بيك أب بمواصفات أمريكية بسعر أقل لأسطولنا؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:gcc-spec-vs-non-gcc",
+        "vehicles_fleet:authorised-vs-grey"
+      ]
+    },
+    {
+      "q_en": "What is the maximum gross weight for a 3-axle tipper in the UAE?",
+      "q_ar": "ما الوزن الإجمالي الأقصى لقلاب بثلاثة محاور في الدولة؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:heavy-vehicle-weights",
+        "vehicles_fleet:spec-trucks"
+      ]
+    },
+    {
+      "q_en": "Our reefer body makes the truck 4.7 m high. Is that allowed?",
+      "q_ar": "هيكل التبريد يجعل ارتفاع الشاحنة 4.7 متر، هل هذا مسموح؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:heavy-vehicle-dimensions"
+      ]
+    },
+    {
+      "q_en": "What must a school bus have to operate in Dubai?",
+      "q_ar": "ما الذي يجب توفره في الحافلة المدرسية لتعمل في دبي؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:school-bus-dubai",
+        "vehicles_fleet:spec-buses"
+      ]
+    },
+    {
+      "q_en": "Do our delivery vans need speed limiters?",
+      "q_ar": "هل تحتاج شاحنات التوصيل الصغيرة لدينا إلى محددات سرعة؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:speed-limiters"
+      ]
+    },
+    {
+      "q_en": "Buy or lease 40 sedans for sales staff?",
+      "q_ar": "نشتري أم نستأجر 40 سيارة سيدان لموظفي المبيعات؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:buy-vs-lease",
+        "vehicles_fleet:spec-passenger-cars"
+      ]
+    },
+    {
+      "q_en": "Can we import 5-year-old used trucks from abroad?",
+      "q_ar": "هل يمكننا استيراد شاحنات مستعملة عمرها 5 سنوات من الخارج؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:used-import-rules",
+        "vehicles_fleet:moiat-conformity"
+      ]
+    },
+    {
+      "q_en": "Diesel or petrol for our 13-seat staff vans?",
+      "q_ar": "ديزل أم بنزين لفانات الموظفين ذات 13 مقعداً؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:fuel-choice",
+        "vehicles_fleet:spec-pickups-vans"
+      ]
+    },
+    {
+      "q_en": "What does a 63-seat bus cost in the UAE and what drives price?",
+      "q_ar": "كم تكلفة حافلة 63 مقعداً في الدولة وما محركات السعر؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:price-drivers",
+        "vehicles_fleet:bus-classes"
+      ]
+    },
+    {
+      "q_en": "How dark can we tint our company cars?",
+      "q_ar": "ما درجة التظليل المسموحة لسيارات الشركة؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:window-tint"
+      ]
+    },
+    {
+      "q_en": "We want to convert vans into mobile workshops. What approvals?",
+      "q_ar": "نريد تحويل فانات إلى ورش متنقلة، ما الموافقات المطلوبة؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:spec-upfitting"
+      ]
+    },
+    {
+      "q_en": "Supplier offers \"dealer warranty\" on cheap new cars. Risk?",
+      "q_ar": "المورد يعرض \"ضمان الوكيل التجاري\" على سيارات جديدة رخيصة، ما المخاطر؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:quote-red-flags",
+        "vehicles_fleet:warranty-service",
+        "vehicles_fleet:authorised-vs-grey"
+      ]
+    },
+    {
+      "q_en": "Why should a fleet buyer insist on GCC-spec vehicles in the UAE?",
+      "q_ar": "لماذا يجب أن يصر مشتري الأسطول على مركبات بالمواصفات الخليجية في الإمارات؟",
+      "expected_entry_ids": [
+        "vehicles_fleet:gcc-spec-vs-non-gcc"
+      ],
+      "why": "The GCC-spec entry explains why GCC-spec vehicles suit UAE conditions versus imported non-GCC vehicles.",
+      "origin": "real buyer question, moved from vehicles_fleet.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    }
+  ],
+  "verified": {
+    "fetched_urls": 24,
+    "claims_checked": 113,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "vehicles_fleet:speed-limiters",
+      "vehicles_fleet:spec-passenger-cars",
+      "vehicles_fleet:spec-upfitting",
+      "vehicles_fleet:buy-vs-lease",
+      "vehicles_fleet:fuel-choice",
+      "vehicles_fleet:ev-charging",
+      "vehicles_fleet:warranty-service",
+      "vehicles_fleet:price-drivers",
+      "vehicles_fleet:lead-times",
+      "vehicles_fleet:quote-red-flags"
+    ]
   }
- ],
- "eval": [
-  {
-   "q_en": "Should we accept US-spec pickups at a lower price for our fleet?",
-   "q_ar": "هل نقبل بيك أب بمواصفات أمريكية بسعر أقل لأسطولنا؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:gcc-spec-vs-non-gcc",
-    "vehicles_fleet:authorised-vs-grey"
-   ]
-  },
-  {
-   "q_en": "What is the maximum gross weight for a 3-axle tipper in the UAE?",
-   "q_ar": "ما الوزن الإجمالي الأقصى لقلاب بثلاثة محاور في الدولة؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:heavy-vehicle-weights",
-    "vehicles_fleet:spec-trucks"
-   ]
-  },
-  {
-   "q_en": "Our reefer body makes the truck 4.7 m high. Is that allowed?",
-   "q_ar": "هيكل التبريد يجعل ارتفاع الشاحنة 4.7 متر، هل هذا مسموح؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:heavy-vehicle-dimensions"
-   ]
-  },
-  {
-   "q_en": "What must a school bus have to operate in Dubai?",
-   "q_ar": "ما الذي يجب توفره في الحافلة المدرسية لتعمل في دبي؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:school-bus-dubai",
-    "vehicles_fleet:spec-buses"
-   ]
-  },
-  {
-   "q_en": "Do our delivery vans need speed limiters?",
-   "q_ar": "هل تحتاج شاحنات التوصيل الصغيرة لدينا إلى محددات سرعة؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:speed-limiters"
-   ]
-  },
-  {
-   "q_en": "Buy or lease 40 sedans for sales staff?",
-   "q_ar": "نشتري أم نستأجر 40 سيارة سيدان لموظفي المبيعات؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:buy-vs-lease",
-    "vehicles_fleet:spec-passenger-cars"
-   ]
-  },
-  {
-   "q_en": "Can we import 5-year-old used trucks from abroad?",
-   "q_ar": "هل يمكننا استيراد شاحنات مستعملة عمرها 5 سنوات من الخارج؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:used-import-rules",
-    "vehicles_fleet:moiat-conformity"
-   ]
-  },
-  {
-   "q_en": "Diesel or petrol for our 13-seat staff vans?",
-   "q_ar": "ديزل أم بنزين لفانات الموظفين ذات 13 مقعداً؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:fuel-choice",
-    "vehicles_fleet:spec-pickups-vans"
-   ]
-  },
-  {
-   "q_en": "What does a 63-seat bus cost in the UAE and what drives price?",
-   "q_ar": "كم تكلفة حافلة 63 مقعداً في الدولة وما محركات السعر؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:price-drivers",
-    "vehicles_fleet:bus-classes"
-   ]
-  },
-  {
-   "q_en": "How dark can we tint our company cars?",
-   "q_ar": "ما درجة التظليل المسموحة لسيارات الشركة؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:window-tint"
-   ]
-  },
-  {
-   "q_en": "We want to convert vans into mobile workshops. What approvals?",
-   "q_ar": "نريد تحويل فانات إلى ورش متنقلة، ما الموافقات المطلوبة؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:spec-upfitting"
-   ]
-  },
-  {
-   "q_en": "Supplier offers \"dealer warranty\" on cheap new cars. Risk?",
-   "q_ar": "المورد يعرض \"ضمان الوكيل التجاري\" على سيارات جديدة رخيصة، ما المخاطر؟",
-   "expected_entry_ids": [
-    "vehicles_fleet:quote-red-flags",
-    "vehicles_fleet:warranty-service",
-    "vehicles_fleet:authorised-vs-grey"
-   ]
-  }
- ],
- "verified": {
-  "fetched_urls": 24,
-  "claims_checked": 113,
-  "corrected": [],
-  "removed": [],
-  "still_unverified": [
-   "vehicles_fleet:speed-limiters",
-   "vehicles_fleet:spec-passenger-cars",
-   "vehicles_fleet:spec-upfitting",
-   "vehicles_fleet:buy-vs-lease",
-   "vehicles_fleet:fuel-choice",
-   "vehicles_fleet:ev-charging",
-   "vehicles_fleet:warranty-service",
-   "vehicles_fleet:price-drivers",
-   "vehicles_fleet:lead-times",
-   "vehicles_fleet:quote-red-flags"
-  ]
- }
 }

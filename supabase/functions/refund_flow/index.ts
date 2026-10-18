@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // refund_flow - the customer side of the unresponsive-supplier escalation.
 //
 //   reveal paid -> 1 WORKING DAY -> customer may press "Notify supplier"
@@ -23,7 +24,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 
-Deno.serve(observe('refund_flow', async (req) => {
+Deno.serve(siteCors(observe('refund_flow', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const auth = req.headers.get('Authorization') || '';
@@ -88,4 +89,4 @@ Deno.serve(observe('refund_flow', async (req) => {
 
     return J({ error: 'unknown_action', allowed: ['list', 'state', 'notify'] }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+})));
