@@ -131,10 +131,11 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   // redrawn from the database on every visit: a reload, another device or days later shows the whole conversation
   useEffect(() => {
     if (!token) return;
-    const wc = widgetConv();   // adopt is sent once, on this mount after sign-in; the widget id is then removed from the browser
+    const wc = widgetConv();   // adopt is sent on this mount after sign-in; the widget id is removed only after it succeeds
     fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ action: 'assist_history', ...(wc ? { widget_conv: wc, adopt: true } : {}) }) })
-      .then((r) => r.json()).then((j) => { if (wc) { try { localStorage.removeItem('qd-chat-conv'); } catch (_e) { /* storage blocked */ } } if (Array.isArray(j?.turns) && j.turns.length) setMsgs(j.turns); })
+      // the widget id is cleared only once the server answered and nothing is left to adopt (moved now, or already moved)
+      .then((r) => (r.ok ? r.json() : null)).then((j) => { if (wc && j && !j.error && !j.pending) { try { localStorage.removeItem('qd-chat-conv'); } catch (_e) { /* storage blocked */ } } if (Array.isArray(j?.turns) && j.turns.length) setMsgs(j.turns); })
       .catch(() => { /* the next turn still reads the whole conversation on the server */ });
   }, [token]);
 

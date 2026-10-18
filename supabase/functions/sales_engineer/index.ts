@@ -376,7 +376,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
       if (!acct) return J({ turns: [] });
       const c = await openConversation(admin, { account: acct, visitorConv: body.widget_conv, adopt: body.adopt === true });   // the portal sends adopt once, right after sign-in
-      return J({ turns: c.turns ?? [], adopted: c.adopted });
+      return J({ turns: c.turns ?? [], adopted: c.adopted, pending: !!c.pending });
     }
     if (action === 'assist') {
       const message = String(body.message || '').trim();

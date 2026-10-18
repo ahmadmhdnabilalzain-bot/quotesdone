@@ -85,7 +85,7 @@ export const convIdOf = (v: unknown): string => { const s = String(v ?? '').repl
 //   - A visitor's chat lives under v-<id>, the id kept in the browser's localStorage (survives a reload, a closed browser
 //     and a return days later); a signed-in person's under a-<account>, the same key on the widget and in the portal.
 //   - Signing up mid-conversation carries it over: the portal's first load after sign-in (assist_history with adopt)
-//     ADOPTS a visitor chat active in the last 24 hours into the account (conv_id rewritten, nothing deleted), so the sales engineer sees everything said before
+//     ADOPTS the visitor chat, however old, into the account (conv_id rewritten, nothing deleted), so the sales engineer sees everything said before
 //     sign-up, and the visitor id then reads nothing for anyone else.
 //   - Every turn reloads the whole conversation from assistant_logs, so a provider's prompt cache expiring changes the
 //     price of a turn, never what the model is given. Nothing here deletes a row; retention (fn_conversation_retention_
@@ -93,28 +93,24 @@ export const convIdOf = (v: unknown): string => { const s = String(v ?? '').repl
 // SECURITY (review of #1438, 19 Oct 2026): a visitor id is a bearer secret (whoever presents it reads that chat), so
 // only a full random UUID v4 (122 random bits, crypto.randomUUID in ChatWidget) is accepted. Anything else gets no stored
 // history and nothing is moved. Adoption into an account happens ONLY when the caller passes adopt (sales_engineer
-// 'assist_history', sent once by the portal right after sign-in), only if the visitor chat's newest turn is within
-// ADOPT_WINDOW_MS, and only once: adoption re-keys the rows, so a second account presenting the same id moves 0.
+// 'assist_history', sent once by the portal right after sign-in), and only once: adoption re-keys the rows, so a second
+// account presenting the same id moves 0. There is NO age limit (ruling 1255: a chat on Monday and a sign-up on Thursday
+// must still meet in the portal); the full UUID held in that browser's permanent storage is what proves the same visitor.
+// pending is true only when visitor rows may still be waiting (the move failed), so the portal keeps the id and retries.
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const visitorIdOf = (v: unknown): string => { const s = String(v ?? '').trim().toLowerCase(); return UUID_V4.test(s) ? s : ''; };
-export const ADOPT_WINDOW_MS = 24 * 3600 * 1000;
 export const visitorKey = (conv: unknown) => { const id = visitorIdOf(conv); return id ? 'v-' + id : ''; };
 export const accountKey = (kind: 'customer' | 'supplier', id: string) => (id ? 'a-' + (kind === 'supplier' ? 's' : 'c') + '-' + id : '');
 
 /** The key a new turn is written under, and every turn of the conversation so far. turns is null when unreadable. */
 // deno-lint-ignore no-explicit-any
-export async function openConversation(admin: any, o: { account?: string; visitorConv?: string; adopt?: boolean }, now = Date.now()): Promise<{ key: string; turns: ChatMsg[] | null; adopted: number }> {
+export async function openConversation(admin: any, o: { account?: string; visitorConv?: string; adopt?: boolean }): Promise<{ key: string; turns: ChatMsg[] | null; adopted: number; pending?: boolean }> {
   const v = visitorKey(o.visitorConv);
   if (!o.account) return { key: v, turns: v ? await loadTranscript(admin, v) : [], adopted: 0 };
-  let adopted = 0;
+  let adopted = 0, pending = false;
   if (v && o.adopt) {
-    const { data: last, error: e1 } = await admin.from('assistant_logs').select('created_at').eq('conv_id', v)
-      .order('created_at', { ascending: false }).limit(1);
-    const at = !e1 && last?.[0]?.created_at ? Date.parse(last[0].created_at) : NaN;
-    if (Number.isFinite(at) && now - at <= ADOPT_WINDOW_MS) {
-      const { data, error } = await admin.from('assistant_logs').update({ conv_id: o.account }).eq('conv_id', v).select('id');
-      if (!error) adopted = (data ?? []).length;
-    }
+    const { data, error } = await admin.from('assistant_logs').update({ conv_id: o.account }).eq('conv_id', v).select('id');
+    if (error) pending = true; else adopted = (data ?? []).length;
   }
-  return { key: o.account, turns: await loadTranscript(admin, o.account), adopted };
+  return { key: o.account, turns: await loadTranscript(admin, o.account), adopted, pending };
 }

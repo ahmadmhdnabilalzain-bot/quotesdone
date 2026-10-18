@@ -2,7 +2,7 @@
 // No network, no paid call: a stubbed model and an in-memory assistant_logs that answers the same supabase-js chain
 // loadTranscript uses. The model stub can only quote the wardrobe size if the size reached it in the turns it was given.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { ADOPT_WINDOW_MS, accountKey, fitHistory, loadTranscript, openConversation, transcriptFromRows, type ChatMsg } from './chat_history.ts';
+import { accountKey, fitHistory, loadTranscript, openConversation, transcriptFromRows, type ChatMsg } from './chat_history.ts';
 import { aiReply } from './ai_reply.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
 
@@ -162,16 +162,13 @@ Deno.test('a non-UUID id gets no stored history and nothing is moved', async () 
   assert(rows.every((r) => r.conv_id?.startsWith('v-')), 'no row was re-keyed');
 });
 
-Deno.test('a visitor chat whose newest turn is older than 24 hours is not moved', async () => {
-  const rows: Row[] = []; const now = Date.now();
-  seed(rows, 'v-' + V + '04', 4, new Date(now - ADOPT_WINDOW_MS - 60_000).toISOString());
-  const a = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-old'), visitorConv: V + '04', adopt: true }, now);
-  assertEquals([a.adopted, a.turns?.length], [0, 0]);
-  assert(rows.every((r) => r.conv_id === 'v-' + V + '04'));
-  // the same chat, its newest turn an hour ago, is moved whole
-  rows.push({ id: rows.length + 1, conv_id: 'v-' + V + '04', message: 'still here', reply: 'yes', created_at: new Date(now - 3600_000).toISOString() });
-  const b = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-old'), visitorConv: V + '04', adopt: true }, now);
-  assertEquals(b.adopted, 5);
+Deno.test('a chat from days before sign-up IS adopted (ruling 1255), and a second account still gets 0', async () => {
+  const rows: Row[] = [];
+  seed(rows, 'v-' + V + '04', 4, new Date(Date.now() - 3 * 24 * 3600_000).toISOString());   // Monday's chat, Thursday's sign-up
+  const a = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-old'), visitorConv: V + '04', adopt: true });
+  assertEquals([a.adopted, a.turns?.length, a.pending], [4, 8, false]);
+  const b = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-other'), visitorConv: V + '04', adopt: true });
+  assertEquals([b.adopted, b.turns?.length], [0, 0]);
 });
 
 Deno.test('a second account presenting the same id after adoption gets 0', async () => {
