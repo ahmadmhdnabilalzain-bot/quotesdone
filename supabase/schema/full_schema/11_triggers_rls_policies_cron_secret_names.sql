@@ -1350,6 +1350,13 @@ select cron.schedule('conversation_retention_daily','20 23 * * *',$CRON$select p
 select cron.schedule('pdpl_erasure_daily','50 23 * * *',$CRON$select public.fn_pdpl_tick();$CRON$);
 select cron.schedule('unfinished_signup_purge','*/5 * * * *',$CRON$select public.fn_unfinished_signup_purge(true)$CRON$);
 select cron.schedule('lead_sourcing_batch','*/10 * * * *',$CRON$select public.fn_lead_sourcing_kick();$CRON$);
+select cron.schedule('seat_duty:accountant.fraud_watch','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.fraud_watch');$CRON$);
+select cron.schedule('seat_duty:ceo.improvement','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.improvement');$CRON$);
+select cron.schedule('seat_duty:ceo.improvement_review','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.improvement_review');$CRON$);
+select cron.schedule('seat_duty:ceo.report_answer','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.report_answer');$CRON$);
+select cron.schedule('seat_duty:it_engineer.finding_chase','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.finding_chase');$CRON$);
+select cron.schedule('seat_duty:it_engineer.game_day','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.game_day');$CRON$);
+select cron.schedule('seat_duty:it_engineer.knowledge_recall','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.knowledge_recall');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1509,6 +1516,7 @@ select cron.schedule('lead_sourcing_batch','*/10 * * * *',$CRON$select public.fn
 --   founder_public_phone
 --   founding_free_limit
 --   github_token
+--   gmail_seed_refresh_token
 --   google_oauth_client_id
 --   google_oauth_client_secret
 --   inbound_secret
