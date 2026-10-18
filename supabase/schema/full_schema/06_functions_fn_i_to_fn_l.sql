@@ -5781,6 +5781,19 @@ begin
                   from public.ai_cost_log a where a.occurred_at > now() - interval '24 hours' group by 1 order by 2 desc limit 5) t)));
   end if;
 
+  -- UNPRICED CALLS (13 Oct 2026): a paid model call with no usage block has cost_aed NULL. sum() skips it, so the
+  -- idle floor above would read it as free; it is named here instead, with its count, so unknown never reads as zero.
+  for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, count(*) n, max(c.owner_seat) owner_seat
+             from public.ai_cost_log a left join public.it_model_consumer c on c.consumer = a.fn || ':' || coalesce(a.task_class, 'unclassified')
+            where a.occurred_at > now() - interval '24 hours' and a.cost_aed is null and a.cost_usd_reported is null
+              and not a.cached and coalesce(a.model_used, 'none') <> 'none'
+            group by 1 having count(*) >= 5 loop
+    v_items := v_items || jsonb_build_object('item', 'unpriced:' || x.k, 'owner_seat', coalesce(x.owner_seat, 'it_engineer'), 'subject', x.k,
+      'blast', 'internal', 'affected', x.n,
+      'title', x.k || ': ' || x.n || ' paid model call(s) in 24 h returned no usage, so their cost is unknown and is not in the spend totals',
+      'evidence', jsonb_build_object('calls_24h', x.n));
+  end loop;
+
   -- THE REPLAY BACKLOG: held questions drain once the hold lifts. Stalled = nothing claimed in 3 hours with the gate
   -- open; slow = at the last hour's rate it takes more than 48 hours; retries = 5 or more rows already tried twice.
   v_hold := coalesce(public.fn_kernel_paid_provider_gate('hold-probe/not-a-model') ->> 'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state');
@@ -10664,6 +10677,9 @@ declare v_cost numeric := 0; v_in numeric; v_out numeric; v_cr numeric; v_cw num
         v_plain int; v_read int; v_write int;
         v_alt_model text; v_alt_rate numeric; v_used_rate numeric;
         v_seat text; v_seat_basis text := 'unattributed';
+        -- UNKNOWN IS NOT ZERO (13 Oct 2026, #1391 follow-up): a model call whose provider returned no usage block
+        -- (a stream that ended or was abandoned before its usage chunk) is booked with NULL tokens and NULL cost.
+        v_unknown boolean := p_prompt_tokens is null and p_output_tokens is null and not coalesce(p_cached, false);
 begin
   v_class := coalesce(nullif(trim(coalesce(p_task_class,'')), ''), case
     when p_fn ~* 'agent_brain|dept_plan|exec_agents|reflect|conductor'   then 'agent_reasoning'
@@ -10688,7 +10704,9 @@ begin
   v_write := greatest(coalesce(p_cache_write,0), 0);
   v_plain := greatest(coalesce(p_prompt_tokens,0) - v_read - v_write, 0);
 
-  if not coalesce(p_cached,false) then
+  if v_unknown then
+    v_cost := null; v_read := null; v_write := null;
+  elsif not coalesce(p_cached,false) then
     select in_aed_per_mtok, out_aed_per_mtok, cache_read_aed_per_mtok, cache_write_aed_per_mtok
       into v_in, v_out, v_cr, v_cw
       from model_rate where model = p_model;
@@ -10726,7 +10744,7 @@ begin
     could_be_cheaper, cheaper_reason, ok, confidence, cached_in_tokens, cache_write_tokens,
     generation_id, cost_usd_reported, seat, seat_basis, prompt_hash)
   values (p_fn, p_dept, p_agent, v_class, p_model, p_because, p_tier,
-    coalesce(p_prompt_tokens,0), coalesce(p_output_tokens,0), coalesce(p_cached,false),
+    case when v_unknown then null else coalesce(p_prompt_tokens,0) end, case when v_unknown then null else coalesce(p_output_tokens,0) end, coalesce(p_cached,false),
     p_cache_key, p_latency_ms, v_cost, v_cheaper, v_reason, coalesce(p_ok,true),
     case when p_confidence is null then null
          when p_confidence >= 0 and p_confidence <= 1   then p_confidence

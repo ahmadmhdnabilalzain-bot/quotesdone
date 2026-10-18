@@ -91,7 +91,7 @@ export interface ThinkRequest {
   // synthesis and the validator run as always. Such a caller should also ask for stakes 'high', because without the
   // planner nobody judges the stakes, and the independent check then runs on every answer (12 Oct 2026). A decision
   // whose options are the whole of what it needs (priceQuestion: a trade from a given list) passes { steps: [] }.
-  plan?: { steps: { id: string; goal: string; query: string }[] };
+  plan?: { steps: { id: string; goal: string; query: string; needs_knowledge?: boolean }[] };
   // A caller's last-mile rewrite (support_reply.ts: the plain-language gate). Runs on the draft BEFORE the independent
   // check, so the checked text is the text sent; null keeps the draft. Only when the check runs.
   polish?: (answer: string) => Promise<string | null>;
@@ -131,7 +131,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h' }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -324,6 +324,20 @@ Return {"findings":[]} if the pages do not answer it.`;
 // (subject.fixture = true) and nothing is filed. Rows whose text carries the ZZ DEMO / @example.invalid convention are
 // expired by fn_reason_held_due before any claim (a_held_row_is_tried_three_times_and_the_build_test_backlog_is_expired.sql),
 // so they are never replayed either; the unit tests here may keep using fixture text and still see the queue work.
+/**
+ * A READER OF THE PERSON'S OWN TEXT (13 Oct 2026, measured live on a ZZ DEMO photographed quotation): the quotation's
+ * terms and line specs were each planned by a decompose call that wrote to the 900-token cap think() itself set (the
+ * routing policy allows 2,000 for routine_employee_reasoning and 4,000 for supplier_communication), and the decision JSON
+ * was cut at the same 900, so validity, delivery and warranty the photo stated were asked again, and the retries took
+ * the turn past 150 s. A reader has nothing to plan and nothing to look up: one fixed step with no knowledge retrieval,
+ * and room for the decision it writes. SYNTH_FOR_READERS stays under supplier_communication's policy cap.
+ * prevented by: _shared/think_reader.test.ts
+ */
+export const SYNTH_FOR_READERS = 3000;
+export function readerOfTheirOwnText(goal: string): Pick<ThinkRequest, 'plan' | 'maxTokens'> {
+  return { plan: { steps: [{ id: 'read', goal, query: goal, needs_knowledge: false }] }, maxTokens: { synthesise: SYNTH_FOR_READERS } };
+}
+
 export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
   return !!req.subject && (req.subject as Record<string, unknown>).fixture === true;
 }
@@ -592,7 +606,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
       // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
       const content = o.images?.length ? [{ role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] }] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {

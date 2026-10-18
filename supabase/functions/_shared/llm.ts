@@ -111,6 +111,10 @@ export interface LlmCallOpts {
   // own E2E traffic with the no-cost stub. Until now only the direct-fetch callers (quote_compare, inquiry_intake) sent
   // one, so every think() call and every caller of this module paid for a test once the hold lifted.
   subject?: Record<string, unknown> | null;
+  // The block shared by a whole family of prompts (the conversation replies' knowledge brief): its own cache breakpoint
+  // before sysStable, and the cache tier the caller asks for (ai_gateway/system_message.ts).
+  sysShared?: string;
+  cacheTtl?: '1h';
 }
 const EMPTY = (e: string | null, status = 0, used = true): LlmResult =>
   ({ content: null, message: null, tool_calls: [], finish_reason: null, truncated: false, used_llm: used, http_status: status, error: e });
@@ -222,6 +226,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           dept: def.dept ?? null,
           agent: def.agent ?? null,
           sys, sys_stable: sysStable, input, max,
+          ...(opts.sysShared ? { sys_shared: opts.sysShared } : {}), ...(opts.cacheTtl ? { cache_ttl: opts.cacheTtl } : {}),
           // THE GATEWAY ASKED FOR THIS AND NOBODY THROUGH THIS MODULE EVER SENT IT (11 Aug 2026).
           //
           // ai_gateway computes its wall as `declared > 5000 ? max(declared - 3000, 8000) : 55000`

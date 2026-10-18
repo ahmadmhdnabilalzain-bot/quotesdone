@@ -14,7 +14,7 @@
 //   - Code writes no reply text. If no model answers cleanly, the reply is '' and the caller sends nothing.
 // Suppliers are always answered in English; everyone else in their language.
 // prevented by: _shared/ai_reply.test.ts
-import { briefNumbers, companyBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete } from './company_brief.ts';
+import { briefNumbers, companyBrief, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { EVASION, substanceWords, type Seat, type ThinkDeps, type Turn } from './think.ts';
 
@@ -99,7 +99,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const sys = '\n\n' + aiSystem(r, replyLang);   // after the brief, which rides as the cached sys_stable block
   const convo = (r.conversation ?? []).slice(-8).map((t) => `${t.role}: ${t.text}`).join('\n');
   const input = (convo ? 'CONVERSATION SO FAR:\n' + convo + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000);
-  const opts = { taskClass: REPLY_CLASS, sysStable: brief, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  const opts = { taskClass: REPLY_CLASS, sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
   const call = async (prompt: string, counterpartModel: string | null) => {
