@@ -185,18 +185,9 @@ async function cleanupLearning(tag, ids, window) {
   // PDFs named only by the run's ids (agent-docs compare/<inquiry>/..., quote-files quotes/<lead>/<inquiry>/regenerated/...).
   // Removed by the run's own UUIDs anywhere in the name, and by its numeric lead ids only inside the lead-keyed folders.
   await del('qd_compare_cache', `delete from public.qd_compare_cache where inquiry_id::text in (${lst(ids.inquiries)})`);
-  // Run 321d13ae (18 Oct) left rows that features merged since run 4 write: the quotation chat thread (chat_threads), the
-  // WhatsApp turns of the run's demo sender (wa_turn, the tag is in their fact pack), and a seat task a demo rating raised
-  // (org_tasks) with its decision_trace and undo_log rows. Removed by the run's own ids or tag only; undo_log last,
-  // because deleting the task writes one more undo row.
+  // Run 321d13ae (18 Oct) left a quotation chat thread keyed only by the run's ids. The WhatsApp and seat-task rows it left
+  // carry the run's markers and are removed by cleanupAll's marker sweep (MARKER_TABLES), never by a bare tag.
   await del('chat_threads', `delete from public.chat_threads where inquiry_id::text in (${lst(ids.inquiries)}) or customer_id::text in (${lst(ids.customers)}) or supplier_id::text in (${lst(ids.leads)})`);
-  await del('wa_turn', `delete from public.wa_turn x where x::text like ${q('%' + tag + '%')}`);
-  const tasks = (await read(`select id from public.org_tasks t where t::text like ${q('%' + tag + '%')}`)).map((r) => String(r.id));
-  if (tasks.length) {
-    await del('decision_trace', `delete from public.decision_trace where entity_type = 'org_task' and entity_id::text in (${lst(tasks)})`);
-    await del('org_tasks', `delete from public.org_tasks where id::text in (${lst(tasks)})`);
-    await del('undo_log', `delete from public.undo_log where table_name = 'org_tasks' and row_id::text in (${lst(tasks)})`);
-  }
   {
     const uu = [...(ids.customers || []), ...(ids.inquiries || []), ...(ids.quotes || [])].map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
     const ld = (ids.leads || []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
@@ -1069,8 +1060,21 @@ async function cleanupAll(tag, manifest) {
   const swept = {};
   // The last marker is ai_gateway's blocked-call line in agent_runs / os_audit_log, which names the tag only
   // inside fn_ai_subject_is_fixture's phrase; the exact phrase with the tag cannot match another run's row.
-  const mk = (x) => [`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`, `an identity of harness run ${tag} (opened in rehearsal_window)`]
-    .map((m) => `${x}::text like ${q('%' + m.replace(/[\\%_]/g, '\\$&') + '%')}`).join(' or ');
+  // The last marker is the run's demo NAME shape, 'ZZ DEMO <words> <tag>' (supplier 'ZZ DEMO AL aluminium <tag>', customer
+  // 'ZZ DEMO C1 <tag>'), required whole: run 321d13ae's seat task named only those, so a bare 'ZZ DEMO <tag>' missed it.
+  const mk = (x) => [...[`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`, `an identity of harness run ${tag} (opened in rehearsal_window)`]
+    .map((m) => `${x}::text like ${q('%' + m.replace(/[\\%_]/g, '\\$&') + '%')}`), `${x}::text ~ ${q('ZZ DEMO [A-Za-z0-9 ]{1,60} ' + tag + '([^0-9a-f]|$)')}`].join(' or ');
+  // Tables the features merged since run 4 write for a demo run (review of #1464): removed by the markers only, in this
+  // order: decision_trace before the seat task it explains, undo_log after it (deleting a task writes one more undo row).
+  const MARKER_TABLES = ['decision_trace', 'org_tasks', 'undo_log', 'wa_answer_log', 'wa_turn', 'wa_messages', 'reasoning_held_question'];
+  for (const t of MARKER_TABLES) {
+    try {
+      const r = await write(t === 'decision_trace'
+        ? `with d as (delete from public.decision_trace x where ${mk('x')} or (x.entity_type = 'org_task' and x.entity_id::text in (select id::text from public.org_tasks o where ${mk('o')})) returning 1) select count(*)::int n from d`
+        : `with d as (delete from public.${t} x where ${mk('x')} returning 1) select count(*)::int n from d`, `stage2 markers ${t}`);
+      swept[t] = r?.[0]?.n ?? 0;
+    } catch (e) { swept[t] = /42P01|does not exist/.test(String(e.message)) ? 'table absent' : 'ERROR ' + String(e.message).slice(0, 100); }
+  }
   // SUPPORT CASES FIRST (tag b12d9559 left 30 rows, 7 Oct 2026): support_case carries no run marker of its own,
   // only customer_profile_id, so the profile (which carries the run's email) was refused by the FK. Delete the
   // run's cases, and their children, through the run's profiles before the sweep reaches the profiles.
