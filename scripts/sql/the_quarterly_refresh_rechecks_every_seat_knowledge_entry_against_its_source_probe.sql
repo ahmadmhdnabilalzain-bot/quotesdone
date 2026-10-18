@@ -12,7 +12,7 @@
 --
 -- VERDICT: PROBE OK only if
 --   1. the first run re-checks all six seats;
---   2. THE DAILY CAP holds: the questions filed today (the quarter's five aside) are at most 2 for ceo and 20 for
+--   2. THE DAILY CAP holds: every question filed today (the quarter's five INCLUDED) is at most 2 for ceo and 20 for
 --      the other seats, and exactly the cap for a class that still has unfiled stale entries;
 --   3. THE CEO SUMMARY: one it.finding handoff to ceo for the quarter, carrying all six seats' results, and the
 --      marketing seat (which owns the old demo entry) has its own notice;
@@ -23,11 +23,14 @@
 --   7. the next day (filed_at moved back a day; every other unfiled row removed inside this transaction so the demo
 --      rows are next) the no-source entry is filed in the it_engineer queue and the marketing entry in its own;
 --   8. reasoning the filed question resolves the stale row;
---   9. and puts the agent_knowledge entry back to the status it had before it was marked stale.
+--   9. and puts the agent_knowledge entry back to the status it had before it was marked stale;
+--  10. the finding is BEHIND PACE, not merely long: 40 days open raises none, 60 days with the ceo unanswered raises the ceo's.
+-- Steps 1-2 open the quarter afresh (its rows and questions removed inside this transaction), so the cap is proved
+-- on day 1 with the quarter's five counted in it.
 do $probe$
 declare v_q date := date_trunc('quarter', (now() at time zone 'Asia/Dubai'))::date;
   v_today_start timestamptz := ((now() at time zone 'Asia/Dubai')::date)::timestamp at time zone 'Asia/Dubai';
-  v_ak bigint; r1 jsonb; r2 jsonb; r3 jsonb; fails text := ''; st1 public.seat_knowledge_stale; st2 public.seat_knowledge_stale;
+  v_ak bigint; r1 jsonb; r2 jsonb; r3 jsonb; r4 jsonb; fails text := ''; st1 public.seat_knowledge_stale; st2 public.seat_knowledge_stale;
   v_tag text; v_rc jsonb; v_rs jsonb; n_stale int; n_held int; n_stale2 int; n_held2 int; v_app jsonb; v_tot jsonb;
   f_ceo int; f_oth int; u_ceo int; u_oth int; n_ho int; n_ho2 int; v_ceo jsonb;
 begin
@@ -40,18 +43,27 @@ begin
   if (select coalesce(updated_at, created_at) from public.agent_knowledge where id = v_ak) > now() - interval '199 days' then
     fails := fails || ' 0:could_not_age_the_demo_entry'; end if;
 
-  r1 := public.fn_it_engineer_knowledge_refresh();
-  if (r1->>'rechecked')::int <> 6 then fails := fails || ' 1:rechecked=' || coalesce(r1->>'rechecked', 'null'); end if;
+  -- DAY 1 OF THE QUARTER: this quarter's rows and its questions are removed inside this transaction, so the run
+  -- opens the quarter afresh and must file the five under the same cap as the stale entries.
+  delete from public.seat_knowledge_stale where quarter = v_q;
+  delete from public.seat_knowledge_refresh where quarter = v_q;
+  delete from public.reasoning_held_question where dedupe_key like 'krefresh:' || v_q || ':%' or dedupe_key like 'krecheck:' || v_q || ':%';
 
-  -- 2. the cap (the quarter's five reuse their own question and are not counted)
-  select count(*) filter (where s.seat = 'ceo' and s.held_id is not null), count(*) filter (where s.seat <> 'ceo' and s.held_id is not null),
-         count(*) filter (where s.seat = 'ceo' and s.held_id is null), count(*) filter (where s.seat <> 'ceo' and s.held_id is null)
-    into f_ceo, f_oth, u_ceo, u_oth
-    from public.seat_knowledge_stale s
-   where s.quarter = v_q and (s.held_id is null or s.filed_at >= v_today_start)
-     and not exists (select 1 from public.seat_knowledge_refresh r, jsonb_array_elements(r.items) x
-                      where r.seat = s.seat and r.quarter = s.quarter and x->>'item_key' = s.item_key);
-  if f_ceo > 2 or f_oth > 20 or (u_ceo > 0 and f_ceo <> 2) or (u_oth > 0 and f_oth <> 20) then
+  r1 := public.fn_it_engineer_knowledge_refresh();
+  if (r1->>'rechecked')::int <> 6 or (r1->>'opened')::int <> 6 then fails := fails || ' 1:opened/rechecked=' || coalesce(r1::text, 'null'); end if;
+
+  -- 2. the cap holds for EVERY question filed today, the quarter's five included, and is used in full when work remains
+  select count(*) filter (where h.seat = 'ceo'), count(*) filter (where h.seat <> 'ceo') into f_ceo, f_oth
+    from public.reasoning_held_question h
+   where h.created_at >= v_today_start and (h.dedupe_key like 'krefresh:%' or h.dedupe_key like 'krecheck:%');
+  select count(*) filter (where r.seat = 'ceo'), count(*) filter (where r.seat <> 'ceo') into u_ceo, u_oth
+    from public.seat_knowledge_refresh r, jsonb_array_elements(r.items) x
+   where r.quarter = v_q and (x->>'held_id') is null;
+  u_ceo := u_ceo + (select count(*) from public.seat_knowledge_stale s where s.quarter = v_q and s.seat = 'ceo' and s.held_id is null);
+  u_oth := u_oth + (select count(*) from public.seat_knowledge_stale s where s.quarter = v_q and s.seat <> 'ceo' and s.held_id is null);
+  if f_ceo > 2 or f_oth > 20 or (u_ceo > 0 and f_ceo <> 2) or (u_oth > 0 and f_oth <> 20)
+     or (select count(*) from public.seat_knowledge_refresh r, jsonb_array_elements(r.items) x
+          where r.quarter = v_q and r.seat = 'ceo' and (x->>'held_id') is not null) <> 2 then
     fails := fails || ' 2:cap(ceo ' || f_ceo || ' filed/' || u_ceo || ' left, other ' || f_oth || ' filed/' || u_oth || ' left)'; end if;
 
   -- 3. the ceo summary and the owner's notice
@@ -94,7 +106,10 @@ begin
   delete from public.seat_knowledge_stale where quarter = v_q and held_id is null
      and item_key not in ('it_engineer_knowledge:zz_demo_probe_t4_nosrc', 'agent_knowledge:' || v_ak);
   update public.seat_knowledge_stale set filed_at = filed_at - interval '1 day' where quarter = v_q and filed_at is not null;
+  update public.reasoning_held_question set created_at = created_at - interval '1 day'
+   where created_at >= v_today_start and (dedupe_key like 'krefresh:%' or dedupe_key like 'krecheck:%');
   r3 := public.fn_it_engineer_knowledge_refresh();
+  if (r3->>'filed_today')::int > 22 then fails := fails || ' 7:day2_over_cap(' || r3::text || ')'; end if;
   select * into st1 from public.seat_knowledge_stale where quarter = v_q and item_key = 'it_engineer_knowledge:zz_demo_probe_t4_nosrc';
   select * into st2 from public.seat_knowledge_stale where quarter = v_q and item_key = 'agent_knowledge:' || v_ak;
   if st1.item_key is null or not ('no_source' = any(st1.reasons)) or st1.seat <> 'it_engineer' or st1.held_id is null
@@ -115,9 +130,21 @@ begin
      or (select validation_status from public.agent_knowledge where id = v_ak) <> 'unvalidated' then
     fails := fails || ' 9:status_not_restored(' || coalesce(v_app::text, 'null') || ')'; end if;
 
+  -- 10. BEHIND PACE, NOT MERELY LONG: 40 days open is inside the 45 days to reason, so no finding for this quarter;
+  -- 60 days open with the ceo's questions still unanswered is behind (due = least(total, 2 x 15)), so the ceo's fires.
+  update public.seat_knowledge_refresh set opened_at = now() - interval '40 days' where quarter = v_q;
+  r4 := public.fn_it_engineer_knowledge_refresh();
+  if exists (select 1 from public.it_engineer_finding where issue_key like 'knowledge_refresh:%:' || v_q and closed_at is null) then
+    fails := fails || ' 10:finding_inside_pace(' || r4::text || ')'; end if;
+  update public.seat_knowledge_refresh set opened_at = now() - interval '60 days' where quarter = v_q and seat = 'ceo';
+  r4 := public.fn_it_engineer_knowledge_refresh();
+  if not exists (select 1 from public.it_engineer_finding where issue_key = 'knowledge_refresh:ceo:' || v_q and closed_at is null
+                  and title like '%behind its daily pace%') then
+    fails := fails || ' 10:ceo_behind_pace_not_raised(' || r4::text || ')'; end if;
+
   select jsonb_object_agg(seat, recheck - 'at') into v_tot from public.seat_knowledge_refresh where quarter = v_q;
   raise exception 'CHK<<%>>', case when fails = '' then
     'PROBE OK stale=' || n_stale || ' filed_day1(ceo ' || f_ceo || ', other ' || f_oth || ') unfiled_day1(ceo ' || u_ceo || ', other ' || u_oth
-      || ') ceo_summary=yes per_seat=' || v_tot::text
+      || ') ceo_summary=yes pace_finding=ceo_only per_seat=' || v_tot::text
     else 'PROBE FAILED:' || fails end;
 end $probe$;

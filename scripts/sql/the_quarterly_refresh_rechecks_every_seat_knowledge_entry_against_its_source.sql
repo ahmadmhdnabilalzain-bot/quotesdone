@@ -27,7 +27,7 @@
 --   stays on) - NOT all at once: see THE DAILY CAP below. The per-quarter result (checked / stale / per reason / filed) is written on the seat's
 --   seat_knowledge_refresh row as `recheck`.
 --   VERIFY: a quarter is complete only when its five are done AND every stale entry it found was re-researched
---   (the apply stamps resolved_at). Not complete in 45 days stays the existing finding, now counting both.
+--   (the apply stamps resolved_at). The finding is now BEHIND PACE, not "45 days old" (see the routine).
 --
 -- THE DAILY CAP (review of #1189: the re-check must stay inside the idle LLM ceiling, USD 1-2/day).
 --   Each re-research question, once the hold lifts, is reasoned by resilience_ping's replay through think().
@@ -37,14 +37,16 @@
 --     ceo (judgement on Opus)  3 questions  AED 1.31765  mean AED 0.4392 (USD 0.1196)  max AED 0.8023 (USD 0.2185)
 --     the other seats          7 questions  AED 0.32077  mean AED 0.0458 (USD 0.0125)  max AED 0.0865 (USD 0.0236)
 --     (AED 3.6725 = USD 1)
---   CAP: at most 2 ceo and 20 other-seat re-check questions are filed per Dubai day (the quarter's five are not
---   counted: they are filed once at the quarter's start, as before).
+--   CAP: at most 2 ceo and 20 other-seat questions are filed per Dubai day, the quarter's five INCLUDED (re-review
+--   of #1189: filed outside the cap, day 1 carried 30 more, 5 of them the ceo's). The count is read from the queue
+--   (every krefresh:/krecheck: question created since Dubai midnight); the five go first, then the stale entries.
 --     at the measured means:   2 x 0.1196 + 20 x 0.0125 = USD 0.49/day
 --     at the measured maxima:  2 x 0.2185 + 20 x 0.0236 = USD 0.91/day  -> inside USD 1/day even then
 --   Over a ~91-day quarter that is up to 182 ceo and 1,820 other questions, one batch a day, oldest flag first and
 --   no_source before review_overdue before source_old. ponytail: two fixed count caps from a measured cost; a
 --   spend-reading budget (today's resilience_ping cost) is the upgrade if the per-question cost moves.
---   Entries not reached in the quarter stay unfiled, so the quarter does not verify and the 45-day finding says so.
+--   Entries not reached in the quarter stay unfiled and the quarter does not verify; it is a finding only when its
+--   class falls behind the pace the cap allows (the routine's BEHIND PACE block).
 --
 -- THE CEO SEES THE QUARTER (review of #1189). When all six seats are re-checked, the ceo seat receives ONE
 -- summary per quarter (per seat: checked, stale, by reason) on the existing it_engineer -> ceo 'it.finding'
@@ -128,25 +130,18 @@ declare s text; i record; k record; v_q date := date_trunc('quarter', (now() at 
   v_today date := (now() at time zone 'Asia/Dubai')::date; v_items jsonb; v_held bigint;
   v_opened int := 0; v_verified int := 0; v_overdue int := 0; v_rechecked int := 0; f record; v_text text;
   v_reasons text[]; v_checked int; v_stale int; v_filed int := 0; v_nosrc int; v_due int; v_old int; v_prior text;
-  v_sum jsonb; v_st public.seat_knowledge_stale; v_title text; v_content text; v_today_start timestamptz; v_cap_ceo int; v_cap_other int;
+  v_sum jsonb; v_behind text[] := '{}'; v_st public.seat_knowledge_stale; v_title text; v_content text; v_today_start timestamptz; v_cap_ceo int; v_cap_other int;
   c_cap_ceo constant int := 2;     -- measured: a ceo question mean USD 0.1196, max 0.2185 (THE DAILY CAP above)
   c_cap_other constant int := 20;  -- measured: another seat's question mean USD 0.0125, max 0.0236
 begin
   foreach s in array array['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] loop
     if not exists (select 1 from public.seat_knowledge_refresh where seat = s and quarter = v_q) then
       v_items := '[]'::jsonb;
-      for i in select k2.item_key, k2.title, k2.content from public.fn_seat_knowledge_items(s) k2
+      -- the quarter's five are CHOSEN here and FILED under THE DAILY CAP below (review of #1189: on day 1 they
+      -- were 30 extra questions, 5 of them the ceo's, outside the cap)
+      for i in select k2.item_key, k2.title from public.fn_seat_knowledge_items(s) k2
                 order by k2.updated_at nulls first, k2.item_key limit 5 loop
-        v_text := 'Quarterly knowledge refresh (' || to_char(v_q, 'YYYY "Q"Q') || '). Is this still correct and current in the '
-               || 'UAE today? Check the authoritative source and state precisely what has changed, if anything. Item: '
-               || coalesce(i.title, '') || E'\n' || left(i.content, 1500);
-        v_held := public.fn_reason_hold(s, s || '.knowledge_refresh', v_text,
-          jsonb_build_object('seat', s, 'surface', s || '.knowledge_refresh', 'question', v_text, 'research', true, 'stakes', 'high',
-            'context', jsonb_build_object('audience', 'internal'),
-            'subject', jsonb_build_object('item_key', i.item_key, 'quarter', v_q), 'dedupeKey', 'krefresh:' || v_q || ':' || i.item_key),
-          jsonb_build_object('filed_by', 'it_engineer.knowledge_refresh'), jsonb_build_object('item_key', i.item_key, 'quarter', v_q),
-          'seat_duty', 'krefresh:' || v_q || ':' || i.item_key);
-        v_items := v_items || jsonb_build_object('item_key', i.item_key, 'title', left(i.title, 200), 'held_id', v_held, 'done_at', null);
+        v_items := v_items || jsonb_build_object('item_key', i.item_key, 'title', left(i.title, 200), 'held_id', null, 'done_at', null);
       end loop;
       insert into public.seat_knowledge_refresh (seat, quarter, items) values (s, v_q, v_items);
       v_opened := v_opened + 1;
@@ -211,16 +206,44 @@ begin
     end loop;
   end if;
 
-  -- THE DAILY CAP: today's batch of this quarter's unfiled stale entries (the quarter's five are not counted).
+  -- THE DAILY CAP: EVERY question this duty files counts, the quarter's five included. Today's count is read from
+  -- the queue itself (every krefresh:/krecheck: question created since Dubai midnight), so no day exceeds 2 + 20.
   v_today_start := v_today::timestamp at time zone 'Asia/Dubai';
-  select c_cap_ceo - count(*) filter (where st2.seat = 'ceo'), c_cap_other - count(*) filter (where st2.seat <> 'ceo')
+  select c_cap_ceo - count(*) filter (where h.seat = 'ceo'), c_cap_other - count(*) filter (where h.seat <> 'ceo')
     into v_cap_ceo, v_cap_other
-    from public.seat_knowledge_stale st2
-   where st2.filed_at >= v_today_start and st2.held_id is not null
-     and not exists (select 1 from public.seat_knowledge_refresh r, jsonb_array_elements(r.items) x
-                      where r.seat = st2.seat and r.quarter = st2.quarter and x->>'item_key' = st2.item_key);
+    from public.reasoning_held_question h
+   where h.created_at >= v_today_start and (h.dedupe_key like 'krefresh:%' or h.dedupe_key like 'krecheck:%');
+  -- first the quarter's five (any quarter still open), ceo and others each within their own cap
+  for i in select r.seat, r.quarter, x->>'item_key' item_key, o from public.seat_knowledge_refresh r,
+                  jsonb_array_elements(r.items) with ordinality t(x, o)
+            where r.verified_at is null and (x->>'held_id') is null and (x->>'done_at') is null
+            order by r.quarter, r.seat, o loop
+    exit when v_cap_ceo <= 0 and v_cap_other <= 0;
+    continue when (i.seat = 'ceo' and v_cap_ceo <= 0) or (i.seat <> 'ceo' and v_cap_other <= 0);
+    select k2.title, k2.content into v_title, v_content from public.fn_seat_knowledge_items(i.seat) k2 where k2.item_key = i.item_key;
+    v_text := 'Quarterly knowledge refresh (' || to_char(i.quarter, 'YYYY "Q"Q') || '). Is this still correct and current in the '
+           || 'UAE today? Check the authoritative source and state precisely what has changed, if anything. Item: '
+           || coalesce(v_title, i.item_key) || E'\n' || left(coalesce(v_content, ''), 1500);
+    v_held := public.fn_reason_hold(i.seat, i.seat || '.knowledge_refresh', v_text,
+      jsonb_build_object('seat', i.seat, 'surface', i.seat || '.knowledge_refresh', 'question', v_text, 'research', true, 'stakes', 'high',
+        'context', jsonb_build_object('audience', 'internal'),
+        'subject', jsonb_build_object('item_key', i.item_key, 'quarter', i.quarter), 'dedupeKey', 'krefresh:' || i.quarter || ':' || i.item_key),
+      jsonb_build_object('filed_by', 'it_engineer.knowledge_refresh'), jsonb_build_object('item_key', i.item_key, 'quarter', i.quarter),
+      'seat_duty', 'krefresh:' || i.quarter || ':' || i.item_key);
+    update public.seat_knowledge_refresh r
+       set items = jsonb_set(r.items, array[(i.o - 1)::text, 'held_id'], to_jsonb(v_held))
+     where r.seat = i.seat and r.quarter = i.quarter;
+    -- a stale entry that is one of the five shares this question
+    update public.seat_knowledge_stale set held_id = v_held, filed_at = now()
+     where quarter = i.quarter and item_key = i.item_key and held_id is null;
+    if i.seat = 'ceo' then v_cap_ceo := v_cap_ceo - 1; else v_cap_other := v_cap_other - 1; end if;
+    v_filed := v_filed + 1;
+  end loop;
+  -- then this quarter's stale entries that are not among the five
   for v_st in select * from public.seat_knowledge_stale x
              where x.quarter = v_q and x.held_id is null
+               and not exists (select 1 from public.seat_knowledge_refresh r, jsonb_array_elements(r.items) y
+                                where r.seat = x.seat and r.quarter = x.quarter and y->>'item_key' = x.item_key)
              order by x.flagged_at, ('no_source' <> all(x.reasons)), ('review_overdue' <> all(x.reasons)), x.item_key loop
     exit when v_cap_ceo <= 0 and v_cap_other <= 0;
     continue when (v_st.seat = 'ceo' and v_cap_ceo <= 0) or (v_st.seat <> 'ceo' and v_cap_other <= 0);
@@ -263,20 +286,48 @@ begin
     perform public.fn_seat_handoff_complete(f.id, (coalesce(f.evidence, '{}'::jsonb) - 'waiting')
       || jsonb_build_object('verified_by', 'it_engineer', 'verified_at', now()));
   end loop;
-  for f in select * from public.seat_knowledge_refresh where verified_at is null and opened_at < now() - interval '45 days' loop
+  -- BEHIND PACE, NOT MERELY LONG (review of #1189): a capped backlog (the ceo's ~210 at 2 a day) runs past 45 days
+  -- by design. A seat-quarter is a finding when its CLASS (ceo, or the other seats sharing 20) has re-researched
+  -- fewer questions than the cap could have delivered since the quarter opened, allowing the same 45 days for a
+  -- question to be reasoned once filed: due = least(total, cap x (days open - 45)). A small quarter (the five plus
+  -- a few) is due in full on day 46, exactly as before.
+  for f in with per_seat as (
+             select r.seat, r.quarter, r.opened_at, r.verified_at, r.items, r.recheck, (r.seat = 'ceo') is_ceo,
+                    jsonb_array_length(r.items)
+                      + (select count(*) from public.seat_knowledge_stale x where x.seat = r.seat and x.quarter = r.quarter
+                            and not exists (select 1 from jsonb_array_elements(r.items) y where y->>'item_key' = x.item_key)) total,
+                    (select count(*) from jsonb_array_elements(r.items) y where y->>'done_at' is not null)
+                      + (select count(*) from public.seat_knowledge_stale x where x.seat = r.seat and x.quarter = r.quarter and x.resolved_at is not null
+                            and not exists (select 1 from jsonb_array_elements(r.items) y where y->>'item_key' = x.item_key)) done
+               from public.seat_knowledge_refresh r),
+           per_class as (
+             select quarter, is_ceo, sum(total)::int total, sum(done)::int done,
+                    least(sum(total), (case when is_ceo then c_cap_ceo else c_cap_other end)
+                          * greatest(0, extract(day from now() - min(opened_at))::int - 45))::int due
+               from per_seat group by quarter, is_ceo)
+           select p.*, c.total class_total, c.done class_done, c.due class_due
+             from per_seat p join per_class c using (quarter, is_ceo)
+            where p.verified_at is null and c.done < c.due loop
     v_overdue := v_overdue + 1;
+    v_behind := v_behind || ('knowledge_refresh:' || f.seat || ':' || f.quarter);
     perform public.fn_it_engineer_finding_upsert('knowledge_refresh:' || f.seat || ':' || f.quarter,
-      'The ' || f.seat || ' seat''s knowledge refresh for ' || to_char(f.quarter, 'YYYY "Q"Q') || ' is not complete after 45 days',
+      'The ' || f.seat || ' seat''s knowledge refresh for ' || to_char(f.quarter, 'YYYY "Q"Q') || ' is behind its daily pace: '
+        || f.class_done || ' of ' || f.class_due || ' due re-researched',
       'public.seat_knowledge_refresh / public.seat_knowledge_stale', 'agent_facing',
       (select count(*)::int from jsonb_array_elements(f.items) x where x->>'done_at' is null)
         + (select count(*)::int from public.seat_knowledge_stale st where st.seat = f.seat and st.quarter = f.quarter and st.resolved_at is null),
-      jsonb_build_object('seat', f.seat, 'quarter', f.quarter, 'owner_seat', f.seat, 'recheck', f.recheck), '{}'::text[],
+      jsonb_build_object('seat', f.seat, 'quarter', f.quarter, 'owner_seat', f.seat, 'recheck', f.recheck,
+                         'class', case when f.is_ceo then 'ceo' else 'other' end, 'class_total', f.class_total,
+                         'class_done', f.class_done, 'class_due', f.class_due), '{}'::text[],
       array['whether the model hold or a failing research step keeps the questions held'], 'it_engineer');
   end loop;
-  update public.it_engineer_finding fi set closed_at = now(), close_note = 'the quarter''s refresh completed'
-   where fi.issue_key like 'knowledge_refresh:%' and fi.closed_at is null
-     and exists (select 1 from public.seat_knowledge_refresh r
-                  where 'knowledge_refresh:' || r.seat || ':' || r.quarter = fi.issue_key and r.verified_at is not null);
+  update public.it_engineer_finding fi
+     set closed_at = now(),
+         close_note = case when exists (select 1 from public.seat_knowledge_refresh r
+                                         where 'knowledge_refresh:' || r.seat || ':' || r.quarter = fi.issue_key and r.verified_at is not null)
+                           then 'the quarter''s refresh completed' else 'the quarter''s refresh is back on its daily pace' end
+   where fi.issue_key like 'knowledge_refresh:%' and fi.closed_at is null and not (fi.issue_key = any(v_behind))
+     and exists (select 1 from public.seat_knowledge_refresh r where 'knowledge_refresh:' || r.seat || ':' || r.quarter = fi.issue_key);
   return jsonb_build_object('quarter', v_q, 'opened', v_opened, 'rechecked', v_rechecked, 'filed_today', v_filed,
                             'verified', v_verified, 'overdue', v_overdue);
 end $fn$;
@@ -323,6 +374,6 @@ grant execute on function public.fn_it_engineer_knowledge_refreshed(bigint, json
 update public.seat_duty
    set what = 'Each quarter, every seat''s five stalest items AND every entry with no source, a passed review date or a source '
            || 'older than a quarter are re-researched in the seat''s own queue, at most 2 ceo and 20 other questions a day '
-           || '(stale entries marked; the ceo gets the quarter''s summary); not complete in 45 days is a finding.',
+           || '(stale entries marked; the ceo gets the quarter''s summary); behind the pace the cap allows (after 45 days to reason) is a finding.',
        owner_file = 'scripts/sql/the_quarterly_refresh_rechecks_every_seat_knowledge_entry_against_its_source.sql'
  where duty = 'it_engineer.knowledge_refresh';

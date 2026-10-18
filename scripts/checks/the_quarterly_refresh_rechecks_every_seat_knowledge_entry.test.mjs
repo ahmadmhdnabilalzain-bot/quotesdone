@@ -39,7 +39,16 @@ test('static: every entry is re-checked, flagged, marked and filed', () => {
   assert.match(fn, /c_cap_ceo constant int := 2;/, 'the ceo daily cap is gone or changed without re-measuring');
   assert.match(fn, /c_cap_other constant int := 20;/, 'the other-seat daily cap is gone or changed without re-measuring');
   assert.match(fn, /exit when v_cap_ceo <= 0 and v_cap_other <= 0;/, 'the filing loop no longer stops at the cap');
-  assert.match(fn, /st2\.filed_at >= v_today_start/, 'the cap no longer counts what was already filed today');
+  // every question this duty files today counts, the quarter's five included (re-review of #1189)
+  assert.match(fn, /from public\.reasoning_held_question h\s+where h\.created_at >= v_today_start and \(h\.dedupe_key like 'krefresh:%' or h\.dedupe_key like 'krecheck:%'\)/,
+    'the cap no longer counts every question filed today, the quarter\'s five included');
+  const open = fn.slice(0, fn.indexOf('THE FULL RE-CHECK'));
+  assert.doesNotMatch(open, /fn_reason_hold\(/, 'the quarter\'s five are filed at opening again, outside the daily cap');
+  assert.match(fn, /fn_reason_hold\(i\.seat, i\.seat \|\| '\.knowledge_refresh'[\s\S]{0,800}'krefresh:'/, 'the quarter\'s five are no longer filed under the cap');
+  // the finding is behind pace, not 45 days old
+  assert.doesNotMatch(fn, /opened_at < now\(\) - interval '45 days'/, 'the finding fires on age again (a capped ceo backlog would fire every quarter)');
+  assert.match(fn, /least\(sum\(total\), \(case when is_ceo then c_cap_ceo else c_cap_other end\)\s+\* greatest\(0, extract\(day from now\(\) - min\(opened_at\)\)::int - 45\)\)::int due/,
+    'the finding no longer compares progress with the pace the cap allows');
   assert.match(src, /MEASURED on production[\s\S]{0,600}ai_cost_log\.cost_aed[\s\S]{0,900}USD 0\.91\/day/, 'the measured cost and the cap arithmetic left the comment');
   // THE CEO SEES THE QUARTER: one summary on the existing it_engineer -> ceo it.finding handoff.
   assert.match(fn, /fn_seat_handoff\('it_engineer', 'ceo', 'it\.finding', 'seat_knowledge_stale', 'knowledge_recheck:' \|\| v_q,/, 'the ceo no longer receives the quarter\'s summary');
