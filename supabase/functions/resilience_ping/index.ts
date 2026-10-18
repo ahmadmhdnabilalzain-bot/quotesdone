@@ -1284,6 +1284,10 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     const told = await sendHeldNotices(owed ?? [], liveDeliveryIO(admin), (id, d) => rpc('fn_reason_held_notice_record', { p_id: id, p_delivery: d }));
     return { escalated: (rows ?? []).length, told };
   });
+  // A WHATSAPP TURN THAT CRASHED (customer_support, 19 Oct 2026): a wa_messages row still at stage 'received' after 5 minutes
+  // goes to customer_support once, as a held_question; never replayed, so no second reply can go out
+  // (scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql).
+  await step('wa_arrival_sweep', async () => ({ escalated: ((await rpc('fn_wa_arrival_sweep', { p_limit: 20 })) as unknown[] | null ?? []).length }));
   // THE SUPPLIER TRADE BACKFILL (sales_engineer, 23 Sep 2026): files at most the daily cap of leads for reasoning,
   // and NOTHING unless app_secrets.lead_reclassify_backfill = 'go' (the cost is quoted beside the gate).
   await step('lead_reclassify', async () => rpc('fn_lead_reclassify_tick', { p_limit: 20 }));

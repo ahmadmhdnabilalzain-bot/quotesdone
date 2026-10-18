@@ -394,6 +394,7 @@ async function handleInbound(req: Request): Promise<Response> {
   // Every wa_messages write goes through waRow (wa_row.ts): created_at = arrival, replied_at = reply sent.
   // Prevented by: arrival_is_stored_first.test.ts.
   let arrivalId: number | null = null;
+  let crashed = false, MessageSidSeen = '';
   const waInsert = (rcv: string, row: Record<string, unknown>) => {
     const id = arrivalId; arrivalId = null;
     return id != null ? admin.from('wa_messages').update(waRow(rcv, row)).eq('id', id) : admin.from('wa_messages').insert(waRow(rcv, row));
@@ -514,7 +515,7 @@ async function handleInbound(req: Request): Promise<Response> {
         lang: /[؀-ۿ]/.test(Body) ? 'ar' : 'en', escalated: false, sent: false,
         meta: { stage: 'received', provenance_verified: true, message_sid: MessageSid || null, media: media.length } })).select('id').single();
       if (arrErr) await logRun('error', { arrival_saved: 0 }, 'wa_inbound could not store an authenticated message on arrival: ' + arrErr.message + '. The turn continues and writes its row at the end, as before.');
-      else arrivalId = (arr as { id: number }).id;
+      else { arrivalId = (arr as { id: number }).id; MessageSidSeen = MessageSid; }
     }
 
     // ---- THE WORDS OF EVERY CONVERSATION REPLY (rulings 1195/1196/1197, 12 Oct 2026) ----------------------------
@@ -669,8 +670,9 @@ async function handleInbound(req: Request): Promise<Response> {
           .gte('created_at', new Date(Date.now() - 86400e3).toISOString()).order('created_at', { ascending: false }).limit(5);
         // A message we refused at the door (bad signature, unverified) was never a conversation we were in.
         return ((data || []) as Array<{ meta: Record<string, unknown> | null; lang: string | null }>)
-          // ...nor is a row still at 'received' (this very message, or one whose turn never completed): it has no route yet.
-          .filter((r) => !r.meta?.no_autoreply_reason && r.meta?.stage !== 'received')
+          // ...nor is an arrival row ('received': this very message or a crashed turn; 'handled': a branch that kept no row,
+          // which before 19 Oct 2026 left no row at all): neither carries a route.
+          .filter((r) => !r.meta?.no_autoreply_reason && r.meta?.stage !== 'received' && r.meta?.stage !== 'handled')
           .map((r) => ({ route: (r.meta?.route as string) || null, await: (r.meta?.menu_await as string) || null,
                          lang: r.lang === 'ar' ? 'ar' : r.lang === 'en' ? 'en' : null }));
       },
@@ -1304,7 +1306,14 @@ async function handleInbound(req: Request): Promise<Response> {
 
     return TW(200);
   } catch (e) {
-    await logRun('error', {}, 'exception (message dropped, Twilio still got 200): ' + String((e as Error)?.message || e));
+    crashed = true;
+    await logRun('error', {}, 'exception (the arrival row stays at stage received; fn_wa_arrival_sweep hands it to customer_support): ' + String((e as Error)?.message || e));
     return TW(200);
+  } finally {
+    // A turn that FINISHED but wrote no row of its own (a branch that answers without waInsert) closes its arrival row,
+    // so only a crashed or killed turn is left at 'received' for fn_wa_arrival_sweep (5 minutes, once, to customer_support).
+    if (!crashed && arrivalId != null) {
+      try { await admin.from('wa_messages').update({ meta: { stage: 'handled', message_sid: MessageSidSeen || null } }).eq('id', arrivalId); } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
+    }
   }
 }
