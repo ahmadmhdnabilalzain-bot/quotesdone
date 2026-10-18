@@ -31,7 +31,13 @@ test('the canonical distil scrubs the lesson before it is stored anywhere', () =
   assert.match(body, /v_answer := public\.fn_lesson_scrub\(/);
   assert.ok(body.indexOf('fn_lesson_scrub(') < body.indexOf('insert into public.reasoning_knowledge_candidate'), 'scrubbed after it was stored');
   // a new routine is granted to PUBLIC by CREATE: revoked in the same file, with a pinned search_path
-  assert.match(src, /revoke execute on function public\.fn_lesson_scrub\(text\) from public, anon, authenticated;/);
+  for (const sig of ['fn_lesson_scrub\\(text\\)', 'fn_lesson_scrub_backfill\\(\\)', 'fn_reason_apply_ceo__lesson_reapproval\\(bigint, jsonb\\)']) {
+    assert.match(src, new RegExp(`revoke execute on function public\\.${sig} from public, anon, authenticated;`), sig + ' keeps the PUBLIC grant CREATE gives it');
+  }
+  // an approved lesson is never edited in place: the backfill writes a new version and asks the CEO seat
+  assert.doesNotMatch(src, /update public\.agent_knowledge\s+set content\s*=/, 'an approved lesson is edited in place');
+  assert.match(src, /supersedes_id/);
+  assert.match(src, /fn_reason_hold\('ceo', 'ceo\.lesson_reapproval'/);
   assert.match(src, /function public\.fn_lesson_scrub\(p_text text\)\s+returns text language sql immutable parallel safe set search_path/);
 });
 
