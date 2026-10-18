@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-18T18:56:52.698Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-18T18:37:14.999Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -11017,7 +11017,7 @@ ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_scope_
 ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_gmail_folder_check CHECK ((gmail_folder = ANY (ARRAY['inbox'::text, 'spam'::text, 'trash'::text, 'other'::text, 'not_found'::text])));
 ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_gmail_to_check CHECK ((gmail_to = 'ahmadmhdnabilalzain@gmail.com'::text));
 ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_outlook_folder_check CHECK ((outlook_folder = ANY (ARRAY['inbox'::text, 'spam'::text, 'trash'::text, 'other'::text, 'not_found'::text])));
-ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_outlook_to_check CHECK ((outlook_to = 'management@quotesdone.com'::text)) NOT VALID;
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_outlook_to_check CHECK ((outlook_to = 'management@doratajewelries.com'::text));
 ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_token_check CHECK ((token ~ '^QD[0-9A-F]{10}$'::text));
 ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_verdict_check CHECK ((verdict = ANY (ARRAY['pending'::text, 'inbox'::text, 'spam'::text, 'elsewhere'::text, 'not_found'::text, 'unread'::text, 'not_sent'::text])));
 ALTER TABLE public.it_access_known ADD CONSTRAINT it_access_known_accepted_by_check CHECK ((btrim(accepted_by) <> ''::text));
