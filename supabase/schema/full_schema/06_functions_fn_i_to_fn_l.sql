@@ -705,7 +705,7 @@ begin
                       '{{link}}', v_site || '/en/portal?t=00000000-0000-0000-0000-000000000000');
 
     insert into public.invite_placement_check(dubai_day, token, from_address, subject, gmail_to, outlook_to, queued_at)
-    values (v_day, v_token, v_from, v_subject, 'ahmadmhdnabilalzain@gmail.com', 'management@doratajewelries.com', p_now)
+    values (v_day, v_token, v_from, v_subject, 'ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com', p_now)
     returning * into r;
 
     insert into public.notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
@@ -7018,29 +7018,12 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_tick()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text; x jsonb;
+declare f record; o jsonb := '{}'::jsonb; n_open int := 0; n_left int := 0; v_err jsonb := '[]'::jsonb; v_step text; x jsonb;
+        v_deadline timestamptz := statement_timestamp() + interval '3.5 seconds';
+        v_floor_until timestamptz := statement_timestamp() + interval '4.5 seconds';
 begin
-  -- ONE DEFINITION OF OPEN, CALLED, NOT COPIED (22 Sep 2026, it_engineer, UNSOLVED-11). The predicate
-  -- (unclosed, and not 'warn' by fn_it_engineer_severity) now lives in fn_it_open_findings, defined in
-  -- the_founder_gets_one_it_digest_per_tick.sql, which the founder's brief counts as well — the brief used
-  -- to keep its own copy and said 9-10 where this loop said 8. The extra condition below is this loop's own
-  -- and stays here: it is about what to RAISE on this tick, not about what is open.
-  for f in select q.issue_key, q.started_at from public.fn_it_open_findings() q
-            where not exists (select 1 from public.agent_actions a
-                               where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
-                                 and a.detail->>'issue_key' = q.issue_key
-                                 and (a.detail->>'occurrence_started_at')::timestamptz = q.started_at)
-            order by q.started_at loop
-    begin
-      continue when public.fn_it_playbook_first(f.issue_key, f.started_at);
-      perform public.fn_it_loop_open(f.issue_key);
-      n_open := n_open + 1;
-    exception when others then
-      v_err := v_err || jsonb_build_object('step', 'open', 'issue_key', f.issue_key, 'error', sqlerrm);
-    end;
-  end loop;
-  o := o || jsonb_build_object('opened', n_open);
-
+  -- 1. ESCALATION AND THE SWEEPS FIRST. Before 18 Oct 2026 the open step ran first and unbounded; with
+  --    409 findings unopened it took 42 s, PostgREST cancelled the tick at 8 s, and nothing escalated.
   begin o := o || jsonb_build_object('reverify', public.fn_it_loop_reverify());
   exception when others then v_err := v_err || jsonb_build_object('step', 'reverify', 'error', sqlerrm); end;
   begin
@@ -7062,11 +7045,47 @@ begin
   begin o := o || jsonb_build_object('ceo_accountant', public.fn_ceo_accountant_reports_sweep(),
                                      'accountant_completed', public.fn_accountant_reports_complete());
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_accountant', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
+  -- The silence watch re-asks the CEO decider for every overdue report (2.1 s measured 18 Oct). Hourly is
+  -- enough for a reminder whose founder notice is once a day; its last run is a registered scanner beat,
+  -- so section B of the alert tick raises a finding if it stops running for 2 hours.
+  begin
+    if coalesce((select s.last_beat_at < now() - interval '55 minutes' from public.it_engineer_scanner s
+                  where s.scanner = 'it_ceo_silence_watch'), true) then
+      o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
+      perform public.fn_it_engineer_scanner_beat('it_ceo_silence_watch', null, 120);
+    else
+      o := o || jsonb_build_object('ceo_silence', 'not due');
+    end if;
+  exception when others then
+    v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm);
+    perform public.fn_it_engineer_scanner_beat('it_ceo_silence_watch', sqlerrm, 120);
+  end;
   begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
   exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
-  -- Last, so everything this tick escalated leaves in the one message.
+
+  -- 2. OPEN, OLDEST FIRST, WITHIN WHAT IS LEFT OF THE BUDGET. One definition of open, called, not copied
+  --    (fn_it_open_findings, 22 Sep 2026). At least one per tick, so a slow day still drains the queue.
+  for f in select q.issue_key, q.started_at from public.fn_it_open_findings() q
+            where not exists (select 1 from public.agent_actions a
+                               where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
+                                 and a.detail->>'issue_key' = q.issue_key
+                                 and (a.detail->>'occurrence_started_at')::timestamptz = q.started_at)
+            order by q.started_at loop
+    if n_open >= 50 or clock_timestamp() > v_floor_until or (n_open >= 1 and clock_timestamp() > v_deadline) then
+      n_left := n_left + 1;
+      continue;
+    end if;
+    begin
+      continue when public.fn_it_playbook_first(f.issue_key, f.started_at);
+      perform public.fn_it_loop_open(f.issue_key);
+      n_open := n_open + 1;
+    exception when others then
+      v_err := v_err || jsonb_build_object('step', 'open', 'issue_key', f.issue_key, 'error', sqlerrm);
+    end;
+  end loop;
+  o := o || jsonb_build_object('opened', n_open, 'left_for_next_tick', n_left);
+
+  -- 3. Last, so everything this tick escalated or opened leaves in the one message.
   begin o := o || jsonb_build_object('digest', public.fn_customer_support_sends_the_it_digest());
   exception when others then v_err := v_err || jsonb_build_object('step', 'digest', 'error', sqlerrm); end;
 
@@ -7970,6 +7989,7 @@ AS $function$
              'evidence', jsonb_build_object('ai_cost_log_ids', jsonb_agg(id order by id), 'authors', jsonb_agg(distinct counterpart_model))) x
       from public.ai_cost_log
      where coalesce(model_used, 'none') = 'none' and model_selected_because like 'AUTHOR UNKNOWN:%'
+       and e2e_run_tag is null              -- 18 Oct 2026: a rehearsal's own refusal is that run's report, not a finding
        and occurred_at > now() - interval '7 days'
      group by coalesce(fn, task_class), task_class, fn
   )
