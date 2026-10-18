@@ -219,7 +219,7 @@ const T = [
     en: 'who told you i am a supplier?', ar: 'من قال لك إنني مورد؟',
     must: { en: ["nobody|no one|not assum|don't assum"], ar: ['لم يقل|لا أفترض|لم أفترض'] },
     good: { en: 'No one did, and I do not assume it. Whether you buy or sell, I am happy to explain how QuotesDone works for you.', ar: 'لم يقل أحد ذلك، ولا أفترضه. سواء كنت تشتري أو تبيع، يسعدني شرح طريقة عمل QuotesDone.' },
-    bad: { en: 'As a supplier, you can register at the supplier portal.', ar: 'بصفتك موردًا، يمكنك التسجيل عبر بوابة الموردين.' }, forbid: ['\\bas a supplier,|you are a supplier|بصفتك مورد'] },
+    bad: { en: 'As a supplier, you can register at the supplier portal.', ar: 'بصفتك موردًا، يمكنك التسجيل عبر بوابة الموردين.' }, forbid: ["(?<!(?:register|registering|sign up|signing up|join|joining) )\\bas a supplier\\b(?! (?:portal|account|sign|registration))|\\byou(?:'re| are) a supplier|بصفتك (?:ال)?مورد|(?:لأنك|كونك|أنت|انت) مورد"] },
 ];
 
 export function buildScenarios() {
@@ -316,7 +316,7 @@ async function answerLive(s) {
   const r = await fetch(base + '/functions/v1/site_assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: s.message, channel: s.channel, path: s.audience === 'supplier' ? '/suppliers' : '/', lang: s.lang, conv: 'zzdemo-suite-' + s.id.replace(/[^a-z0-9]/gi, '') }) });
   const j = await r.json().catch(() => ({}));
-  return { reply: String(j.reply || ''), seat: j.routed === 'reasoned' ? (j.routed_seat ?? null) : null };
+  return { reply: String(j.reply || ''), seat: j.routed === 'reasoned' || j.routed === 'brief' ? (j.routed_seat ?? null) : null };   // 'brief': the widget's model-written reply (rulings 1195/1196); a no-model exit returns no routed
 }
 
 // --stub: the real supportReply() and think() with a STUBBED model that returns each topic's known-good answer

@@ -374,6 +374,6 @@ RULES:
     // The gateway's rate limit for this visitor: the same polite system notice the local limiter gives (not a reply).
     if (!reply && a.error === 'rate_limited') return J({ reply: RL_REPLY, rate_limited: true });
     if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', attempts: a.attempts }, 503); }
-    return J({ reply, scope: live ? audience : 'public', routed: 'brief', model: a.model, attempts: a.attempts });
+    return J({ reply, scope: live ? audience : 'public', routed: 'brief', routed_seat: seatForSurface ?? 'customer_support', model: a.model, attempts: a.attempts });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }
