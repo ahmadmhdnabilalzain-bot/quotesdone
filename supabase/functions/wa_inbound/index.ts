@@ -381,14 +381,23 @@ Deno.serve(observe('wa_inbound', async (req) => {
   return ackThenWork(TW(200), () => handleInbound(copy), 'wa_inbound');
 }));
 
-// Every wa_messages write goes through waRow (wa_row.ts): created_at = arrival, replied_at = reply sent.
-function waInsert(receivedAt: string, row: Record<string, unknown>) {
-  return admin.from('wa_messages').insert(waRow(receivedAt, row));
-}
-
 async function handleInbound(req: Request): Promise<Response> {
   const logRun = mkLog(Date.now());
   const receivedAt = new Date().toISOString();   // the inbound's arrival: wa_messages.created_at, so replied_at - created_at is the first-reply time
+  // THE MESSAGE IS STORED ON ARRIVAL, NOT AFTER THE REPLY (19 Oct 2026, seat customer_support; sandbox run 5, S19).
+  // Since #1335 the reply is model-written, and the turn's wa_messages row was written only once the model chain
+  // finished: 73 s for the run-5 demo message (llm_failed after the hold). For those 73 s the customer's words
+  // existed nowhere but in a waitUntil isolate, and an isolate killed by its wall-clock or CPU cap lost them for
+  // good (wa_inbound_seen already held the MessageSid, so Twilio's redelivery was dropped as a duplicate).
+  // arrivalId is the row written the moment the sender is authenticated (STORED ON ARRIVAL below); the FIRST
+  // waInsert of the turn completes that row in place, later ones (a second row in one turn) insert as before.
+  // Every wa_messages write goes through waRow (wa_row.ts): created_at = arrival, replied_at = reply sent.
+  // Prevented by: arrival_is_stored_first.test.ts.
+  let arrivalId: number | null = null;
+  const waInsert = (rcv: string, row: Record<string, unknown>) => {
+    const id = arrivalId; arrivalId = null;
+    return id != null ? admin.from('wa_messages').update(waRow(rcv, row)).eq('id', id) : admin.from('wa_messages').insert(waRow(rcv, row));
+  };
   try {
     let From = '', Body = '', Profile = '', MessageSid = '';
     // An interactive list or button reply names the option chosen (the menu, 22 Sep 2026).
@@ -496,6 +505,16 @@ async function handleInbound(req: Request): Promise<Response> {
         }
         return TW(200);
       }
+    }
+
+    // ---- STORED ON ARRIVAL (see arrivalId above): before any model call, before any branch can return ----
+    {
+      const { data: arr, error: arrErr } = await admin.from('wa_messages').insert(waRow(receivedAt, {
+        wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '',
+        lang: /[؀-ۿ]/.test(Body) ? 'ar' : 'en', escalated: false, sent: false,
+        meta: { stage: 'received', provenance_verified: true, message_sid: MessageSid || null, media: media.length } })).select('id').single();
+      if (arrErr) await logRun('error', { arrival_saved: 0 }, 'wa_inbound could not store an authenticated message on arrival: ' + arrErr.message + '. The turn continues and writes its row at the end, as before.');
+      else arrivalId = (arr as { id: number }).id;
     }
 
     // ---- THE WORDS OF EVERY CONVERSATION REPLY (rulings 1195/1196/1197, 12 Oct 2026) ----------------------------
@@ -650,7 +669,8 @@ async function handleInbound(req: Request): Promise<Response> {
           .gte('created_at', new Date(Date.now() - 86400e3).toISOString()).order('created_at', { ascending: false }).limit(5);
         // A message we refused at the door (bad signature, unverified) was never a conversation we were in.
         return ((data || []) as Array<{ meta: Record<string, unknown> | null; lang: string | null }>)
-          .filter((r) => !r.meta?.no_autoreply_reason)
+          // ...nor is a row still at 'received' (this very message, or one whose turn never completed): it has no route yet.
+          .filter((r) => !r.meta?.no_autoreply_reason && r.meta?.stage !== 'received')
           .map((r) => ({ route: (r.meta?.route as string) || null, await: (r.meta?.menu_await as string) || null,
                          lang: r.lang === 'ar' ? 'ar' : r.lang === 'en' ? 'en' : null }));
       },
