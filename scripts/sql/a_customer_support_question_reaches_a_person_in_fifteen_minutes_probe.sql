@@ -2,14 +2,15 @@
 -- Pure probe, run in the SAME query after a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql so the
 -- whole thing aborts; never applied. Files three ZZ-probe held questions 20 minutes old (a reachable person, an
 -- anonymous visitor, a fixture), runs the router, and checks: the reachable one is handed over and its action
--- escalated; the anonymous one is dismissed with a reason; the fixture is tagged for the purge and NOT deleted;
+-- escalated and a CEO item filed, no notification written; the anonymous one is dismissed with a reason; the fixture is tagged for the purge and NOT deleted;
 -- no other real row changed status.
 do $probe$
 declare v_real int; v_real2 int; a_id bigint; b_id bigint; c_id bigint; ra text; rb text; rc text; esc boolean;
-        c_left int; v_err text;
+        c_left int; v_err text; v_fnd int;
 begin
   begin
-    select count(*) into v_real from public.agent_actions where status = 'pending' and agent <> 'customer_support';
+    select count(*) into v_real from public.agent_actions where status = 'pending' and agent not in ('customer_support', 'ceo');
+    select count(*) into v_fnd from public.notifications;
     insert into public.reasoning_held_question (seat, surface, question, request, subject, reason, status, created_at)
     values ('customer_support', 'probe.person', 'probe question one',
             '{"context":{"audience":"customer","customer_id":"00000000-0000-0000-0000-000000000000"}}', '{}', 'probe', 'held',
@@ -30,16 +31,20 @@ begin
     select result ->> 'demo_purge' into rc from public.reasoning_held_question where id = c_id;
     select count(*) into c_left from public.reasoning_held_question where id = c_id;
     select escalated into esc from public.agent_actions where target_id = a_id::text and kind = 'held_question';
-    select count(*) into v_real2 from public.agent_actions where status = 'pending' and agent <> 'customer_support';
+    if not exists (select 1 from public.agent_actions where agent = 'ceo' and kind = 'support_question_handover'
+                    and target_id = a_id::text) then esc := false; end if;
+    select count(*) into v_real2 from public.agent_actions where status = 'pending' and agent not in ('customer_support', 'ceo');
+    v_fnd := (select count(*) from public.notifications) - v_fnd;
     raise exception 'ZZPROBE rollback';
   exception when others then v_err := sqlerrm;
   end;
   if v_err <> 'ZZPROBE rollback' then raise exception 'CHK<<PROBE FAILED the router raised: %>>', v_err;
-  elsif ra is distinct from 'handed_to_founder' or not coalesce(esc, false) then
+  elsif ra is distinct from 'handed_to_ceo' or not coalesce(esc, false) then
     raise exception 'CHK<<PROBE FAILED reachable question: route %, escalated %>>', ra, esc;
   elsif rb is distinct from 'dismissed' then raise exception 'CHK<<PROBE FAILED anonymous visitor: %>>', rb;
   elsif rc is null or c_left <> 1 then raise exception 'CHK<<PROBE FAILED fixture tag % kept %>>', rc, c_left;
   elsif v_real2 <> v_real then raise exception 'CHK<<PROBE FAILED other seats changed: % -> %>>', v_real, v_real2;
+  elsif v_fnd <> 0 then raise exception 'CHK<<PROBE FAILED % notifications written (nothing may reach the founder)>>', v_fnd;
   end if;
   raise exception 'CHK<<PROBE OK handed=%, anonymous=%, fixture kept and tagged>>', ra, rb;
 end $probe$;

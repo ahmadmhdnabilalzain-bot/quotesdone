@@ -19,10 +19,16 @@
 --   3. an internal seat duty (audience internal, or a customer_support.* surface) older than 7 days -> 'dismissed':
 --      the duty re-files itself on its next run, so the old copy waits for nothing.
 --   4. a visitor with no contact on the request                -> 'dismissed', reason named: no route to the person.
---   5. ANYONE ELSE (a reachable customer or supplier)         -> handed to the founder within 15 minutes through
---      fn_notify_founder kind whatsapp_human_request (founder_instruction 759: a person who needs a human reaches him),
---      once per question; still unanswered 4 hours later -> a second, overdue alert, once.
+--   5. ANYONE ELSE (a reachable customer or supplier)         -> customer_support's for 15 minutes, then handed to the
+--      CEO seat (agent_actions agent 'ceo', kind support_question_handover), once; still unanswered 4 hours later -> a
+--      second, high-risk overdue item for the CEO, once. Never the founder: rulings 1254 and 8 Sep keep his WhatsApp for
+--      a person who explicitly asks for one, which the WhatsApp "Talk to a person" menu already routes.
 -- It never sends anything to the customer or supplier: a reply needs a person.
+--
+-- THE FIXTURES FOR THE #1348 PURGE (ruling 1199), by exact key, measured 19 Oct 2026. Tagged result.demo_purge here,
+-- deleted by nothing here; it_engineer adds them to fn_demo_purge_run's scope:
+--   public.reasoning_held_question id 23995, 24298, 24299, 24356, 24357
+--   plus any later row with result ->> 'demo_purge' = 'founder ruling 1199: the #1348 purge list'.
 --
 -- Prevented by: scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql (verdict probe,
 -- aborted transaction: a reachable question is handed over, an anonymous one is not, a fixture is tagged not deleted).
@@ -64,22 +70,22 @@ begin
         then 'dismissed'
       when r.audience = 'internal' or r.surface like 'customer_support.%' then null   -- a fresh duty: its seat works it
       when not r.reachable then 'dismissed'
-      when coalesce(r.result ->> 'cs_route', '') = 'handed_to_founder'
+      when coalesce(r.result ->> 'cs_route', '') = 'handed_to_ceo'
            and (r.result ->> 'cs_route_at')::timestamptz < now() - interval '4 hours' then 'overdue_alerted'
-      when coalesce(r.result ->> 'cs_route', '') = 'handed_to_founder' then null
-      when r.created_at < now() - interval '15 minutes' then 'handed_to_founder'
+      when coalesce(r.result ->> 'cs_route', '') = 'handed_to_ceo' then null
+      when r.created_at < now() - interval '15 minutes' then 'handed_to_ceo'
       else null end;
     continue when v_out is null;
 
-    if v_out in ('handed_to_founder', 'overdue_alerted') then
-      -- no personal data in the alert: the id and the surface; the founder opens the OS for the rest
-      perform public.fn_notify_founder(
-        case when v_out = 'overdue_alerted' then 'OVERDUE: a customer_support question has waited 4 hours for a person'
-             else 'A customer_support question needs a person' end,
-        'Held question ' || r.id || ' on ' || r.surface || ', asked ' || to_char(r.created_at, 'DD Mon HH24:MI')
-          || ' UTC. The model could not answer it (' || coalesce(r.reason, 'no reason recorded')
-          || '). Reply to the person, then mark the question answered.',
-        'high', 'whatsapp_human_request', 'cs_held:' || v_out || ':' || r.id, 'customer_support');
+    if v_out in ('handed_to_ceo', 'overdue_alerted') then
+      -- no personal data in the item: the id and the surface; the CEO opens the held question for the rest
+      insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, escalated, escalation_reason)
+      values ('ceo', 'support_question_handover', 'pending', case when v_out = 'overdue_alerted' then 'high' else 'medium' end,
+              case when v_out = 'overdue_alerted' then 'OVERDUE: a customer_support question has waited 4 hours for a person'
+                   else 'A customer_support question needs a person' end,
+              jsonb_build_object('held_id', r.id, 'surface', r.surface, 'asked_at', r.created_at, 'model_reason', r.reason,
+                                 'needed', 'reply to the person who asked, then mark the held question answered'),
+              'reasoning_held_question', r.id::text, true, 'from customer_support: ' || v_out);
     end if;
 
     update public.reasoning_held_question h
@@ -93,15 +99,15 @@ begin
        set status = case when v_out = 'done' then 'done' when v_out = 'dismissed' then 'dismissed' else a.status end,
            decided_at = case when v_out in ('done', 'dismissed') then now() else a.decided_at end,
            decided_by = case when v_out in ('done', 'dismissed') then 'customer_support:fn_cs_held_question_route' else a.decided_by end,
-           escalated = a.escalated or v_out in ('handed_to_founder', 'overdue_alerted'),
+           escalated = a.escalated or v_out in ('handed_to_ceo', 'overdue_alerted'),
            escalation_reason = case
              when v_out = 'done' then 'answered by its own surface'
              when r.fixture then 'test fixture: listed for the ruling 1199 purge, not deleted'
              when v_out = 'dismissed' and not r.reachable and r.audience <> 'internal' and r.surface not like 'customer_support.%'
                then 'no contact on the request: there is no route to the person who asked'
              when v_out = 'dismissed' then 'internal seat duty older than 7 days: its next run re-files it'
-             when v_out = 'handed_to_founder' then 'handed to the founder (whatsapp_human_request) at ' || now()
-             else 'overdue: unanswered 4 hours after it was handed to the founder' end
+             when v_out = 'handed_to_ceo' then 'handed to the ceo seat at ' || now()
+             else 'overdue: unanswered 4 hours after it was handed to the ceo seat' end
      where a.target_table = 'reasoning_held_question' and a.target_id = r.id::text
        and a.kind like 'held_question%' and a.status = 'pending';
 
@@ -115,7 +121,7 @@ grant execute on function public.fn_cs_held_question_route() to service_role;
 select cron.schedule('cs_held_question_route', '*/5 * * * *', $CRON$select public.fn_cs_held_question_route()$CRON$);
 insert into public.cron_registry (jobname, human_name, category, purpose) values
   ('cs_held_question_route', 'customer_support held questions reach a person', 'Support',
-   'Every 5 minutes. A customer_support question the model could not answer is handed to the founder within 15 minutes '
+   'Every 5 minutes. A customer_support question the model could not answer is handed to the CEO seat within 15 minutes '
    || 'when the person who asked can be reached, flagged again if unanswered after 4 hours; fixtures are tagged for the '
    || 'ruling 1199 purge, anonymous widget turns and stale internal duties are closed with their reason.')
 on conflict (jobname) do update
