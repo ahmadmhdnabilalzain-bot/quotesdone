@@ -90,7 +90,7 @@ const HOME_KEY: Record<string, string> = { license: 'trade_licence', profile: 'c
 // way fn_supplier_certifications, fn_supplier_document_impact and fn_supplier_twin now see it.
 async function listDocuments(supId: number) {
   // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
-  const cols = new Set<string>(['catalog_doc_paths', 'verified']);
+  const cols = new Set<string>(['catalog_doc_paths', 'verified', 'licence_gate_reason']);
   for (const k of Object.values(DOC_KINDS)) { cols.add(k.pathCol); if (k.nameCol) cols.add(k.nameCol); if (k.expCol) cols.add(k.expCol); }
   const [{ data: l }, { data: homeRows }, { data: vers }, expiries] = await Promise.all([
     admin.from('leads').select([...cols].join(',')).eq('id', supId).maybeSingle(),
