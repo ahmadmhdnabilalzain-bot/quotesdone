@@ -45,10 +45,10 @@ test('static: every entry is re-checked, flagged, marked and filed', () => {
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
 test('production, aborted: the probe prints PROBE OK', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql } = await import('../lib/safe_replay.mjs');
   const replay = pending(FILE) ? read(FILE) : '';
   let verdict;
-  try { await sql(replay + '\n' + read(PROBE_FILE), { retry: false }); }
+  try { await replaySql(replay + '\n' + read(PROBE_FILE), { label: PROBE_FILE, retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
