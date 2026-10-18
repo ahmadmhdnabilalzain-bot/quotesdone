@@ -155,12 +155,15 @@ begin
     declare
       k_b text := 'duty:journey:b zzprobe:' || replace(gen_random_uuid()::text, '-', '');
       k_a text := 'duty:journey:a zzprobe:' || replace(gen_random_uuid()::text, '-', '');
-      v_fail text; v_open_b boolean; v_open_a boolean;
+      k_f text := 'duty:journey:f-drawings/zzprobe:' || replace(gen_random_uuid()::text, '-', '');
+      v_fail text; v_open_b boolean; v_open_a boolean; v_open_f boolean;
       pass jsonb := jsonb_build_array(jsonb_build_object('journey', 'a zzprobe', 'name', 'probe step', 'status', 'PASS', 'detail', ''));
     begin
       perform public.fn_it_engineer_finding_upsert(k_a, 'PROBE a', 'IT engineer duty: journey', 'agent_facing', 0,
         jsonb_build_object('duty', 'journey', 'probe', true, 'demo', true), '{}'::text[], '{}'::text[], 'it_engineer.journey');
       perform public.fn_it_engineer_finding_upsert(k_b, 'PROBE b', 'IT engineer duty: journey', 'agent_facing', 0,
+        jsonb_build_object('duty', 'journey', 'probe', true, 'demo', true), '{}'::text[], '{}'::text[], 'it_engineer.journey');
+      perform public.fn_it_engineer_finding_upsert(k_f, 'PROBE f', 'IT engineer duty: journey', 'agent_facing', 0,
         jsonb_build_object('duty', 'journey', 'probe', true, 'demo', true), '{}'::text[], '{}'::text[], 'it_engineer.journey');
       -- A complete run of journey a only: closes a's stale key, carries b's.
       perform public.fn_it_journey_ingest(jsonb_build_object('tag', 'zzprobe', 'complete', true,
@@ -169,6 +172,17 @@ begin
       select closed_at is null into v_open_b from public.it_engineer_finding where issue_key = k_b;
       if v_open_a then v_fail := 'a complete run of journey a left a stale a-key open';
       elsif not v_open_b then v_fail := 'a run of journey a closed a key of journey b it never ran';
+      end if;
+      select closed_at is null into v_open_f from public.it_engineer_finding where issue_key = k_f;
+      if v_fail is null and not v_open_f then v_fail := 'a run of journey a closed an f-drawings key'; end if;
+      -- A complete run that finished journey f settles its f-drawings/* keys.
+      if v_fail is null then
+        perform public.fn_it_journey_ingest(jsonb_build_object('tag', 'zzprobe', 'complete', true,
+          'journeys', jsonb_build_array('f'), 'steps', pass));
+        select closed_at is null into v_open_f from public.it_engineer_finding where issue_key = k_f;
+        select closed_at is null into v_open_b from public.it_engineer_finding where issue_key = k_b;
+        if v_open_f then v_fail := 'a finished journey f left its f-drawings key open';
+        elsif not v_open_b then v_fail := 'a run of journey f closed a key of journey b'; end if;
       end if;
       -- A report without journeys (older run.json) still settles everything.
       if v_fail is null then

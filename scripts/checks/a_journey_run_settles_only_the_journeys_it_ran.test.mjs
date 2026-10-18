@@ -1,8 +1,8 @@
 // A harness run is complete once it attempted every journey it asked for, and it settles only the
-// journeys it ran to their end (coordinator ruling, 19 Oct 2026). The harness also opens its rehearsal
-// window with the models on (rulings 1244/1247), the way document_intake_accuracy.mjs does.
+// journeys it ran to their end (coordinator ruling, 19 Oct 2026).
+// (The AI-on harness window is #1430's.)
 // Fails if: completeness goes back to "every journey in ORDER", a crashed or skipped journey counts as
-// attempted, the ingests stop carrying the journeys a run did not finish, or the window opens models-off.
+// attempted, the ingests stop carrying the journeys a run did not finish.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -39,9 +39,13 @@ test('both ingests carry the journeys a complete run did not finish (the canonic
   assert.match(sql, /'carried', true/);
 });
 
-test('the harness window opens with the models on', () => {
-  const fx = read('scripts/e2e/fixtures.mjs');
-  const open = fx.slice(fx.indexOf('export async function openRun'), fx.indexOf('export async function openRun') + 1500);
-  assert.match(open, /models_allowed, cap_usd, expires_at\)/);
-  assert.match(open, /true, 15, now\(\) \+ interval '2 hours'/);
+test('a finished journey f settles its f-drawings/* keys; other letters are carried', () => {
+  const sql = read('scripts/sql/a_journey_run_settles_only_the_journeys_it_ran.sql');
+  // the journey letter is the key's first character, followed by a space or a dash
+  const letter = (key) => (key.match(/^duty:journey:([a-h])[ -]/) || [])[1] ?? null;
+  assert.equal(letter('duty:journey:f-drawings/drawing_reaches_suppliers:the_run_completed'), 'f');
+  assert.equal(letter('duty:journey:b supplier audit:x'), 'b');
+  assert.equal(letter('duty:journey:fixtures:x'), null);   // harness keys belong to no journey
+  assert.ok(sql.includes("'^duty:' || p_duty || ':([a-h])[ -]'"), 'the carried scope reads the journey letter as the first character before a space or dash');
+  assert.ok(sql.includes("k_f text := 'duty:journey:f-drawings/zzprobe:'"), 'the probe proves an f-drawings key closes on a finished journey f');
 });

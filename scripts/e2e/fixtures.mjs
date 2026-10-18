@@ -43,14 +43,8 @@ export async function openRun(opts = {}) {
   if (process.env.QD_FIXTURES !== '1') process.env.QD_FIXTURES = '1';   // this module IS the fixture door
   const run = newRun({ quiet: true, ...opts });
   run.ids = { inquiries: new Set(), quotes: new Set(), leads: new Set(), customers: new Set(), storage: [] };
-  // THE HARNESS RUNS WITH THE MODELS ON (rulings 1244 and 1247: every test runs with the AI on; a test
-  // run has no spending cap). Opened with models_allowed=false, every reasoning step of the nightly and
-  // the post-deploy smoke was refused fixture_no_spend and failed or held on a product that was right.
-  // Same shape as document_intake_accuracy.mjs. cap_usd is the table's ceiling (CHECK cap <= 15) and the
-  // expiry its two-hour limit; ruling 986's idle cap is about idle spend, not test runs. closeRun ends it.
-  await write(`insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, cap_usd, expires_at)
-               values (${q('qd_run:' + run.tag)}, 'scripts/e2e/run.mjs', 'e2e harness run (models on, rulings 1244/1247)',
-                       true, 15, now() + interval '2 hours')`, 'rehearsal window');
+  await write(`insert into public.rehearsal_window (run_tag, opened_by, note)
+               values (${q('qd_run:' + run.tag)}, 'scripts/e2e/run.mjs', 'e2e harness run')`, 'rehearsal window');
   return run;
 }
 
