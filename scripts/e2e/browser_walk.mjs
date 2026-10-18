@@ -22,7 +22,7 @@
 import { chromium, devices } from 'playwright';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
-import { launch, signedInPage, realErrors, IGNORABLE_CONSOLE } from './browser.mjs';
+import { launch, signedInPage, realErrors, IGNORABLE_CONSOLE, measureInquiryBox } from './browser.mjs';
 
 export const OUT = process.env.QD_WALK_OUT || 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/browser';
 const SITE = process.env.QD_SITE || 'https://quotesdone.com';
@@ -381,6 +381,13 @@ export async function openNewRequest(page, lang) {
     await page.getByRole('button', { name: lang === 'ar' ? /طلب جديد/ : /new request/i }).first().click({ timeout: 10000 });
     await box.waitFor({ state: 'visible', timeout: 20000 });
   }
+  // PLAYWRIGHT "VISIBLE" IS NOT SEEN (founder, 18 Oct 2026). waitFor visible means a non-empty bounding box and
+  // no visibility:hidden; a textarea clipped to 7px by the panel's overflow:hidden passed it, so S26 walked a
+  // page whose box the founder could not see. The box is now measured as a person sees it and a hidden one
+  // fails the step that opened it (scripts/e2e/inquiry_box_visible.mjs walks all five viewports, both languages).
+  await box.scrollIntoViewIfNeeded().catch(() => {});
+  const { problems } = await page.evaluate(measureInquiryBox);
+  if (problems.length) throw new Error('the inquiry box is not usable: ' + problems.join(' | '));
   return box;
 }
 

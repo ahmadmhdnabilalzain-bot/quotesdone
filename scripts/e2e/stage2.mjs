@@ -949,6 +949,11 @@ async function realRun(pre) {
         save(`browser/${mode}.log`, (r.stdout || '') + (r.stderr || ''));
         A(`browser walk ${mode} ran to the end`, r.status === 0 && !/SKIP (journeys|portals)/.test(r.stdout || ''), `exit ${r.status} ${(r.stdout || '').split('\n').filter((l) => /SKIP|FAIL/.test(l)).slice(0, 4).join(' | ')}`);
       }
+      // The inquiry box at 1440/1366/1280/768/375, EN and AR, measured as SEEN (founder, 18 Oct 2026: the box was
+      // clipped and this scenario passed). Writes browser/inquiry_box.json, which the loop below judges.
+      { const r = spawnSync(process.execPath, [join(REPO, 'scripts/e2e/inquiry_box_visible.mjs'), idsPath], { encoding: 'utf8', timeout: 20 * 60000, cwd: REPO, env: { ...process.env, QD_WALK_OUT: bout, QD_FIXTURES: '1' } });
+        save('browser/inquiry_box.log', (r.stdout || '') + (r.stderr || ''));
+        A('inquiry box usable at every viewport, EN + AR', r.status === 0, (r.stdout || '').split('\n').filter((l) => /FAIL|usable/.test(l)).slice(0, 4).join(' | ')); }
       spawnSync(process.execPath, [join(REPO, 'scripts/e2e/browser_walk.mjs'), 'index'], { encoding: 'utf8', cwd: REPO, env: { ...process.env, QD_WALK_OUT: bout } });
       const { readdirSync } = await import('node:fs');
       for (const f of readdirSync(bout).filter((x) => x.endsWith('.json') && x !== 'ids.json' && !x.startsWith('public'))) {
