@@ -220,7 +220,7 @@ export async function closeRehearsalWindow(tag) {
 
 export async function withRun(fn, opts = {}) {
   // AI ON, CAPPED (founder ruling 18 Oct 2026): the window lets this run's tagged model calls through up to capUsd.
-  const { capUsd = 0.25, minutes = 60, ...rest } = opts;
+  const { capUsd = 15, minutes = 120, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
   const run = newRun(rest);
   run.log(`demo run ${run.tag} on ${REF}`);
   // DECLARE THE WINDOW (3 Sep 2026). Every function this run exercises logs into agent_runs like a

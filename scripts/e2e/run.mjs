@@ -96,8 +96,8 @@ const DEADLINE = t0 + DEADLINE_MS;
 // plainly whether it looked at everything, and the ingest only settles when it did.
 const state = { truncated: false };
 const outOfTime = () => { if (Date.now() <= DEADLINE) return false; state.truncated = true; return true; };
-// USD 0.50: run.mjs-tagged runs measured avg 0.146, max 0.431 in ai_cost_log (13 runs, 30 days to 18 Oct 2026).
-const run = await openRun({ keep: KEEP, capUsd: 0.5, minutes: 120 });
+// Ledger 1247: no spend limit on tests (USD 15 = the CHECK maximum). Measured: avg 0.146, max 0.431 per run (13 runs, 30 days to 18 Oct 2026).
+const run = await openRun({ keep: KEEP });
 const ctx = { run, rep, dir: DIR, consoleErrors: [], fx: {}, deadline: DEADLINE, outOfTime };
 let browser = null, closed = null, fatal = null;
 // Set when the harness's OWN session died mid-run (browser.mjs HarnessSignedOut). It is kept apart

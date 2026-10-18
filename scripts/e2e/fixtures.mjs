@@ -48,7 +48,7 @@ export { demoMobile };
  */
 export async function openRun(opts = {}) {
   if (process.env.QD_FIXTURES !== '1') process.env.QD_FIXTURES = '1';   // this module IS the fixture door
-  const { capUsd = 0.25, minutes = 60, ...rest } = opts;
+  const { capUsd = 15, minutes = 120, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
   const run = newRun({ quiet: true, ...rest });
   run.ids = { inquiries: new Set(), quotes: new Set(), leads: new Set(), customers: new Set(), storage: [] };
   await write(`insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, cap_usd, expires_at)
