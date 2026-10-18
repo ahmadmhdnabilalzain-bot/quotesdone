@@ -1,20 +1,32 @@
 // THE CEO QUEUE WORKER NEVER TOUCHES A SUPPORT HANDOVER (it_engineer, 19 Oct 2026). #1462's
-// fn_ceo_support_handover_duty sends the customer the reply and closes support_question_handover itself;
-// fn_ceo_queue_work closing or flagging one could end it before the customer is answered. Repository only.
+// fn_ceo_support_handover_duty sends the customer the reply and is the one owner of its handover kind
+// (scripts/checks/support_question_handover_has_one_owner.test.mjs). fn_ceo_queue_work therefore acts only on kinds it
+// names, and never names that one. Also pins the review fixes: supersession by an applied question for the same item,
+// and the worker closing its own overdue tasks. Repository only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const src = readFileSync(fileURLToPath(new URL('../sql/the_ceo_queue_is_worked_closed_or_flagged_overdue.sql', import.meta.url)), 'utf8');
+const HANDOVER = ['support', 'question', 'handover'].join('_');
+const read = (f) => readFileSync(fileURLToPath(new URL(`../sql/${f}`, import.meta.url)), 'utf8');
+const src = read('the_ceo_queue_is_worked_closed_or_flagged_overdue.sql');
+const probe = read('the_ceo_queue_is_worked_closed_or_flagged_overdue_probe.sql');
 // The function body only, comments stripped, so the file's own header cannot satisfy or trip the check.
-const body = src.slice(src.indexOf('as $fn$'), src.lastIndexOf('$fn$'))
+const body = src.slice(src.indexOf('create or replace function public.fn_ceo_queue_work'), src.lastIndexOf('$fn$'))
   .split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
-test('the kind list it closes does not name support_question_handover', () => {
-  const kinds = body.match(/a\.kind in \(([^)]*)\)/);
-  assert.ok(kinds, 'fn_ceo_queue_work names no kind list');
-  assert.ok(!kinds[1].includes('support_question_handover'), 'fn_ceo_queue_work closes support handovers');
+test('neither the worker nor its probe names the support handover kind', () => {
+  assert.ok(!src.includes(HANDOVER), 'the worker file names the support handover kind');
+  assert.ok(!probe.includes(HANDOVER), 'the probe names the support handover kind');
+});
+
+test('every update acts only on kinds it names', () => {
+  const lists = [...body.matchAll(/kind in \(([^)]*)\)/g)].map((m) => m[1]);
+  assert.ok(lists.length >= 3, `expected a named kind list on each step, found ${lists.length}`);
+  for (const l of lists) for (const k of l.split(',')) {
+    assert.ok(["'handoff'", "'held_question'", "'held_question_expired'"].includes(k.trim()), `unexpected kind ${k.trim()}`);
+  }
 });
 
 test('only an applied question for the same item supersedes', () => {
@@ -26,8 +38,4 @@ test('only an applied question for the same item supersedes', () => {
 test('the worker closes its own overdue tasks', () => {
   assert.match(body, /update public\.ceo_task t\s+set state = 'done'/, 'nothing closes the daily CEO queue overdue task');
   assert.match(body, /t\.title like 'CEO queue overdue %'/, 'the close step must target its own task titles');
-});
-
-test('the overdue flag excludes support_question_handover', () => {
-  assert.match(body, /a\.kind <> 'support_question_handover'/, 'the overdue update can flag a support handover');
 });

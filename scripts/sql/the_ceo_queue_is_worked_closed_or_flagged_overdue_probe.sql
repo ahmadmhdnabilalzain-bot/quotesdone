@@ -4,7 +4,7 @@
 --   b  zzprobe_exp:9:1 failed, zzprobe_exp:9:2 applied later (same item)    -> dismissed
 --   d  zzprobe_exp:8:1 failed, only the OTHER item (9) applied later        -> pending + flagged (never dismissed)
 --   e  zzprobe_k:2026-07-01:x failed, zzprobe_k:2026-10-01:x only 'reasoned' -> pending + flagged (only 'applied' supersedes)
---   s  support_question_handover, 9 days old                                -> untouched (#1462 owns it)
+--   s  a kind the worker does not name (as #1462's handover kind), 9 days old -> untouched
 --   an earlier day's open overdue task -> closed (superseded); today's task opened; then, once no listed item is
 --   pending, a second run closes today's task. No notification.
 -- Also reports, read-only, how many live CEO held questions have no superseding question for their own item.
@@ -39,7 +39,7 @@ begin
     select a.id into d_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'zzprobe_exp:8:1' and a.agent = 'ceo';
     select a.id into e_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'zzprobe_k:2026-07-01:x' and a.agent = 'ceo';
     insert into public.agent_actions (agent, kind, status, risk, title, created_at)
-    values ('ceo', 'support_question_handover', 'pending', 'medium', 'ZZ DEMO probe', now() - interval '9 days') returning id into s_id;
+    values ('ceo', 'zz_probe_unnamed_kind', 'pending', 'medium', 'ZZ DEMO probe', now() - interval '9 days') returning id into s_id;
     delete from public.ceo_task where title = v_today;   -- rolled back: lets the probe see today's task opened fresh
     old_t := public.fn_ceo_task_open('CEO queue overdue 2000-01-01', '#' || d_id || ' held_question: ZZ DEMO probe');
 
@@ -71,11 +71,11 @@ begin
   elsif se is distinct from 'pending' or not coalesce(se_esc, false) then
     raise exception 'CHK<<PROBE FAILED a reasoned-only later question superseded: %, %>>', se, se_esc;
   elsif ss is distinct from 'pending' or coalesce(ss_esc, false) then
-    raise exception 'CHK<<PROBE FAILED support handover touched: %, %>>', ss, ss_esc;
+    raise exception 'CHK<<PROBE FAILED unnamed kind touched: %, %>>', ss, ss_esc;
   elsif old_state is distinct from 'done' then raise exception 'CHK<<PROBE FAILED earlier day task not closed: %>>', old_state;
   elsif today_state1 is distinct from 'open' then raise exception 'CHK<<PROBE FAILED today task not opened: %>>', today_state1;
   elsif today_state2 is distinct from 'done' then raise exception 'CHK<<PROBE FAILED today task not closed once its items settled: %>>', today_state2;
   elsif v_fnd <> 0 then raise exception 'CHK<<PROBE FAILED % notifications written>>', v_fnd;
   end if;
-  raise exception 'CHK<<PROBE OK same-item dismissed, unrelated and reasoned-only kept+flagged, handover untouched, tasks opened and closed, no notification; live unsuperseded=%; live run incl. fixtures: %>>', n_unsuperseded, live;
+  raise exception 'CHK<<PROBE OK same-item dismissed, unrelated and reasoned-only kept+flagged, unnamed kind untouched, tasks opened and closed, no notification; live unsuperseded=%; live run incl. fixtures: %>>', n_unsuperseded, live;
 end $probe$;

@@ -32,7 +32,7 @@
 -- those stay pending and are flagged overdue instead.
 --
 -- WHAT THIS ADDS: fn_ceo_queue_work(), the CEO duty ceo.queue_work, every hour. For agent='ceo', status='pending':
---   0. support_question_handover is NEVER touched (not closed, not flagged): #1462's fn_ceo_support_handover_duty
+--   0. #1462's support handover kind is NEVER touched (not closed, not flagged): #1462's fn_ceo_support_handover_duty
 --      sends the customer the reply and closes it, so it can never close before the customer is answered.
 --   1. held_question / held_question_expired (keyed on the held question id in target_id): its question
 --      applied -> 'done'; superseded by a later applied question for the same item -> 'dismissed'.
@@ -103,7 +103,7 @@ begin
                    when a.detail ? 'awaiting' then '; awaiting ' || (a.detail->>'awaiting')
                    else '' end, 500)
    where a.agent = 'ceo' and a.status = 'pending' and not coalesce(a.escalated, false)
-     and a.kind <> 'support_question_handover'  -- #1462's fn_ceo_support_handover_duty owns these end to end
+     and a.kind in ('handoff', 'held_question', 'held_question_expired')  -- named kinds only: #1462 owns its handover kind
      and a.created_at < now() - interval '7 days';
   get diagnostics n_overdue = row_count;
 
@@ -122,7 +122,7 @@ begin
   get diagnostics n_task_closed = row_count;
   select string_agg('#' || a.id || ' ' || a.kind || ': ' || a.escalation_reason, E'\n' order by a.id) into v_list
     from (select * from public.agent_actions
-           where agent = 'ceo' and status = 'pending' and escalated and kind <> 'support_question_handover'
+           where agent = 'ceo' and status = 'pending' and escalated and kind in ('handoff', 'held_question', 'held_question_expired')
            order by id limit 60) a;
   if v_list is not null and not exists (select 1 from public.ceo_task where title = v_title) then
     v_task := public.fn_ceo_task_open(v_title,
