@@ -41,8 +41,10 @@
 -- Every message goes only to a CONFIRMED contact (verified email; OTP-confirmed WhatsApp number), once per kind per
 -- question (notifications.dedupe_key <kind>:<held_id>, on conflict do nothing). No confirmed contact -> nothing is sent
 -- and the question is dismissed as unreachable.
--- RUNS ON resilience_ping's heartbeat (step ceo_support_replies: route, duty, gate), not pg_cron: the last pg_cron run
--- recorded is 18 Oct 21:35 UTC.
+-- RUNS ON resilience_ping's heartbeat (step ceo_support_replies: route, duty, gate), not pg_cron (which is running:
+-- 12 active jobs, 51 runs in the 30 minutes to 21:44 UTC on 18 Oct). Two reasons: the reply gate is TypeScript
+-- (customerReplyGate) and must run in an edge function, so route, pick-up and gate run in one step, in order; and the
+-- founder's 7 Sep instruction keeps new schedules out of cron.schedule in repo code (resilience_ping's own header).
 --
 -- THE FIXTURES FOR THE #1348 PURGE (ruling 1199), by exact key, re-measured 19 Oct 2026 after review: the only
 -- customer_support fixture held questions that exist are
