@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -59,8 +60,14 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 for (const f of ['the_ceo_weekly_review_acts_on_every_missed_target', 'every_seat_reviews_itself_every_month']) {
   const skip = !hasToken ? 'no Supabase management token' : !applied(f) ? `${f}.sql is not applied yet (pending)` : false;
   test(`${f}: the rolled-back rehearsal answers PROBE OK`, { skip }, async () => {
-    const { sql } = await import('../lib/db.mjs');
-    const r = await sql(R(`scripts/sql/${f}_probe.sql`), { retry: false });
+    // while the sweep fix (fn_ceo_weekly_review reports 'carried') is pending, it is replayed inside the probe's own
+    // transaction; replaySql blanks the probe's begin/commit and always rolls the whole text back
+    const FIX = 'the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run';
+    let body = R(`scripts/sql/${f}_probe.sql`);
+    if (f === 'the_ceo_weekly_review_acts_on_every_missed_target' && !applied(FIX)) {
+      body = body.replace(/^begin;$/m, () => 'begin;\n' + R(`scripts/sql/${FIX}.sql`));
+    }
+    const r = await replaySql(body, { retry: false, rows: true, label: `${f}_probe` });
     const verdict = Array.isArray(r) && r[0] ? String(r[0].verdict) : JSON.stringify(r).slice(0, 500);
     assert.match(verdict, /^PROBE OK/, verdict);
   });

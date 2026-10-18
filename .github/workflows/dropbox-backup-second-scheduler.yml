@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   kick:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7

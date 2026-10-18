@@ -38,6 +38,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "vehicle_leasing:full-maintenance-lease-inclusions",
+      "topic": "Full-maintenance operating lease inclusions",
+      "kind": "glossary",
+      "body_en": "In the UAE, LeasePlan describes its business leasing services as including scheduled maintenance plans for all vehicles, tyre management, and management of all aspects of vehicle registration and insurance. Because inclusions vary between lessors, a quote request should list each item explicitly (servicing, tyres, registration, insurance level, replacement car, roadside assistance, mileage band) so offers are comparable. Not established here: whether roadside assistance, a replacement vehicle or fleet reporting are standard, and which costs (fuel, Salik, fines, excess kilometres) are excluded.",
+      "body_ar": "في الإمارات، تصف شركة ليس بلان (LeasePlan) خدمات التأجير للشركات لديها بأنها تشمل خطط صيانة مجدولة لجميع المركبات، وإدارة الإطارات، وإدارة جميع جوانب تسجيل المركبة وتأمينها. ولأن ما يشمله العقد يختلف بين المؤجرين، ينبغي أن يذكر طلب عرض السعر كل بند صراحةً (الصيانة، والإطارات، والتسجيل، ومستوى التأمين، والسيارة البديلة، والمساعدة على الطريق، وشريحة الكيلومترات) لتكون العروض قابلة للمقارنة. غير مثبت هنا: ما إذا كانت المساعدة على الطريق أو السيارة البديلة أو تقارير الأسطول ضمن الباقة القياسية، وأي التكاليف مستثناة (الوقود وسالك والمخالفات والكيلومترات الزائدة).",
+      "sources": [
+        "https://leaseplan.com/en-ae/business"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -54,6 +67,15 @@
       "expected_entry_ids": [
         "vehicle_leasing:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is included in a full-maintenance corporate car lease?",
+      "q_ar": "ما المشمول في تأجير سيارات الشركات بالصيانة الكاملة؟",
+      "expected_entry_ids": [
+        "vehicle_leasing:full-maintenance-lease-inclusions"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither lists what a full-maintenance lease includes (servicing, tyres, insurance, registration, replacement car); missing: lease inclusions entry). vehicle_leasing:full-maintenance-lease-inclusions was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from vehicle_leasing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "vehicle_leasing:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "vehicle_leasing:full-maintenance-lease-inclusions"
+    ]
   }
 }

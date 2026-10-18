@@ -1,0 +1,2 @@
+A PROBE, so it is never applied at all: it always rolls back every row it writes and returns one verdict row. It is run
+after a_supplier_whose_licence_could_not_be_read_is_held_never_approved.sql is applied, and must print PROBE OK. This note therefore stays for the life of the file. Seat: sales_engineer.

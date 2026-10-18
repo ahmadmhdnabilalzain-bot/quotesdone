@@ -39,6 +39,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "legal_services:onshore-rights-of-audience",
+      "topic": "Rights of audience before UAE onshore courts",
+      "kind": "regulatory_restriction",
+      "body_en": "Generally, no. Foreign law firms may operate in the UAE as legal consultancies but generally cannot appear in court for clients, because rights of audience are held by Arab attorneys (UAE nationals and attorneys from certain other Arab countries who meet licensing criteria). To appear before the federal courts an attorney must be licensed by the Ministry of Justice, and to appear before the Dubai and Ras Al Khaimah courts an attorney must be licensed as an advocate by that emirate's Ruler's Court. The same source notes that in Dubai certain expatriate attorneys may represent clients at all court levels. In practice a foreign firm instructs a locally licensed advocate for onshore hearings. The DIFC is a separate jurisdiction with its own courts, where foreign attorneys may act if registered with the DIFC Courts. These points come from a law-firm survey (2015 data); the federal advocacy law itself, ADGM rules and Ministerial Resolution 972/2017 were not read here.",
+      "body_ar": "بشكل عام، لا. يجوز لمكاتب المحاماة الأجنبية العمل في الإمارات بصفة مكاتب استشارات قانونية، لكنها لا تستطيع عموماً المثول أمام المحاكم نيابةً عن العملاء، لأن حق الترافع مقصور على المحامين العرب (المواطنين الإماراتيين ومحامين من دول عربية معينة يستوفون شروط الترخيص). وللمثول أمام المحاكم الاتحادية يجب أن يكون المحامي مرخصاً من وزارة العدل، وللمثول أمام محاكم دبي ورأس الخيمة يجب أن يكون مرخصاً محامياً من ديوان الحاكم في الإمارة المعنية. ويذكر المصدر نفسه أنه يجوز في دبي لبعض المحامين الوافدين تمثيل العملاء أمام المحاكم بجميع درجاتها. وعملياً يكلّف المكتب الأجنبي محامياً مرخصاً محلياً للجلسات أمام المحاكم المحلية. ومركز دبي المالي العالمي ولاية قضائية مستقلة لها محاكمها، ويجوز فيها للمحامين الأجانب الترافع إذا كانوا مسجلين لدى محاكم المركز. هذه النقاط مأخوذة من مسح أعدّه مكتب محاماة (بيانات 2015)؛ ولم يُطّلع هنا على قانون المحاماة الاتحادي نفسه ولا على قواعد سوق أبوظبي العالمي ولا على القرار الوزاري 972/2017.",
+      "sources": [
+        "https://www.lw.com/admin/Upload/Documents/Global Pro Bono Survey/pro-bono-in-the-united-arab-emirates.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "legal_services:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Can a foreign law firm represent us in a Dubai onshore court?",
+      "q_ar": "هل يمكن لمكتب محاماة أجنبي تمثيلنا أمام محكمة دبي المحلية؟",
+      "expected_entry_ids": [
+        "legal_services:onshore-rights-of-audience"
+      ],
+      "why": "No entry of this pack answered it (Spec-checklist only lists 'rights of audience' as a field; no entry says foreign firms cannot appear in onshore courts; missing). legal_services:onshore-rights-of-audience was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from legal_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "legal_services:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "legal_services:onshore-rights-of-audience"
+    ]
   }
 }

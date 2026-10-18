@@ -26,8 +26,8 @@ test('a replied it.finding handoff whose finding is still open is a finding afte
   const body = `do $p$ declare hid bigint; k text := 'zz:test:handoff_sla_24h'; o jsonb := '{}'; begin
       insert into public.it_engineer_finding (issue_key, title, where_it_is, blast, affected, evidence, raised_by, started_at, last_seen_at)
       values (k, 'test finding', 'test', 'monitor', 1, '{}'::jsonb, 'it_engineer', now() - interval '26 hours', now());
-      insert into public.agent_actions (agent, kind, status, title, detail, created_at)
-      values ('ceo', 'handoff', 'pending', 'it.finding test handoff',
+      insert into public.agent_actions (agent, kind, status, title, target_id, detail, created_at)
+      values ('ceo', 'handoff', 'pending', 'it.finding test handoff', 'it.finding:' || k,
               jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'to', 'ceo', 'issue_key', k,
                                  'replied_at', now() - interval '24 hours', 'occurrence_started_at', now() - interval '26 hours'),
               now() - interval '25 hours') returning id into hid;

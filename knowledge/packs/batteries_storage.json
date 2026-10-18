@@ -45,6 +45,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "batteries_storage:lfp-vs-nmc-home-battery-heat",
+      "topic": "LFP vs NMC for home solar batteries",
+      "kind": "buyer_guidance",
+      "body_en": "A home-battery manufacturer states that LFP (lithium iron phosphate) cathodes are generally more thermally stable than NMC (nickel manganese cobalt) cathodes, and that when a failure occurs LFP tends to resist escalation longer, while higher-energy chemistries can accelerate faster once decomposition starts. NMC delivers higher energy density, which matters in EVs, but for home storage that advantage can matter less than fault tolerance. The same source stresses that chemistry is only one safety layer: the battery management system, inverter integration, sensor coverage and installation location also decide risk. For hot sites, ask suppliers for the chemistry, the rated operating temperature range and the derating above it. Not established here: measured thermal-runaway temperatures, cycle-life figures, or performance data at UAE ambient temperatures.",
+      "body_ar": "تذكر إحدى الشركات المصنّعة لبطاريات المنازل أن كاثودات فوسفات الحديد الليثيوم (LFP) أكثر استقراراً حرارياً بشكل عام من كاثودات النيكل والمنغنيز والكوبالت (NMC)، وأنه عند حدوث عطل تميل LFP إلى مقاومة التصاعد لفترة أطول، بينما قد تتسارع الكيميائيات الأعلى طاقة بشكل أسرع بمجرد بدء التحلل. وتوفّر NMC كثافة طاقة أعلى، وهو أمر مهم في السيارات الكهربائية، لكن هذه الميزة قد تكون أقل أهمية في التخزين المنزلي مقارنةً بتحمّل الأعطال. ويؤكد المصدر نفسه أن الكيمياء طبقة أمان واحدة فقط، إذ يحدد المخاطرَ أيضاً نظامُ إدارة البطارية والتكامل مع العاكس وتغطية الحساسات وموقع التركيب. للمواقع الحارة، اطلب من الموردين نوع الكيمياء ونطاق درجة حرارة التشغيل المقنّن وخفض الأداء فوقه. غير مثبت هنا: درجات حرارة الانفلات الحراري المقاسة، وأرقام عمر الدورات، وبيانات الأداء في درجات الحرارة المحيطة في الإمارات.",
+      "sources": [
+        "https://www.solaxpower.com/blogs/lfp-vs-nmc-home-batteries-which-is-safer-and-why-it-matters.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -61,6 +74,15 @@
       "expected_entry_ids": [
         "batteries_storage:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which battery chemistry is best for a solar home battery in UAE heat?",
+      "q_ar": "ما كيمياء البطارية الأنسب لبطارية منزلية شمسية في حرارة الإمارات؟",
+      "expected_entry_ids": [
+        "batteries_storage:lfp-vs-nmc-home-battery-heat"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry compares LFP vs NMC or lead-acid performance in heat; spec-checklist only lists \"battery chemistry\" as a field). batteries_storage:lfp-vs-nmc-home-battery-heat was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from batteries_storage.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -77,6 +99,9 @@
       "batteries_storage:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "batteries_storage:lfp-vs-nmc-home-battery-heat"
+    ]
   }
 }

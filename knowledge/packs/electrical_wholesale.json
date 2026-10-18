@@ -41,6 +41,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "electrical_wholesale:mcb-trip-curves-motor-loads",
+      "topic": "MCB trip curves B, C and D",
+      "kind": "technical_guidance",
+      "body_en": "MCB curves B, C and D share the same rated current (In) and thermal overload protection; the curve letter only changes the instantaneous magnetic trip threshold. Type B trips at about 3-5 x In and suits low-inrush loads such as resistive circuits. Type C trips at about 5-10 x In and is the general-purpose choice for mixed loads. Type D trips at about 10-20 x In and suits high-inrush loads such as motors and transformers. If a correctly sized motor trips a Type C breaker at start-up, consider a Type D curve or dedicated motor protection rather than increasing In, which risks breaking the Ib <= In <= Iz rule. Curve, breaking capacity and Ib <= In <= Iz are separate checks. Not established here: the governing standard clause and thermal trip points.",
+      "body_ar": "تشترك القواطع المصغّرة (MCB) من المنحنيات B وC وD في التيار المقنن نفسه (In) وفي الحماية الحرارية من الحمل الزائد؛ ولا يغيّر حرف المنحنى سوى عتبة الفصل المغناطيسي اللحظي. يفصل النوع B عند نحو 3-5 أضعاف In ويناسب الأحمال ذات تيار البدء المنخفض مثل الدوائر المقاومية. ويفصل النوع C عند نحو 5-10 أضعاف In وهو الخيار العام للأحمال المختلطة. ويفصل النوع D عند نحو 10-20 ضعف In ويناسب الأحمال ذات تيار البدء العالي مثل المحركات والمحوّلات. إذا فصل محرك محدد المقاس بشكل صحيح قاطعاً من النوع C عند بدء التشغيل، ففكّر في منحنى من النوع D أو في حماية مخصصة للمحرك بدلاً من رفع In، لأن ذلك قد يخالف قاعدة Ib <= In <= Iz. واختيار المنحنى وسعة القطع وقاعدة Ib <= In <= Iz فحوص منفصلة. غير ثابت هنا: بند المعيار الحاكم ونقاط الفصل الحراري.",
+      "sources": [
+        "https://open-exam-prep.com/study-guides/au-qld-electrical-licence/circuit-protection/breaker-curves-breaking"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "electrical_wholesale:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which MCB curve should I buy for motor loads?",
+      "q_ar": "ما منحنى القاطع MCB المناسب لأحمال المحركات؟",
+      "expected_entry_ids": [
+        "electrical_wholesale:mcb-trip-curves-motor-loads"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains MCB B/C/D trip curves; missing: MCB curve selection for motor loads). electrical_wholesale:mcb-trip-curves-motor-loads was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from electrical_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "electrical_wholesale:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "electrical_wholesale:mcb-trip-curves-motor-loads"
+    ]
   }
 }

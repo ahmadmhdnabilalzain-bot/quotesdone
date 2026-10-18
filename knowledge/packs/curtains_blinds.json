@@ -44,6 +44,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "curtains_blinds:sunscreen-openness-factor",
+      "topic": "Openness factor of sunscreen roller-blind fabrics",
+      "kind": "spec_guide",
+      "body_en": "Openness describes the tightness of a solar-shade fabric's weave and so how much light passes through: lower percentages block more UV and give more privacy, higher percentages admit more light and view. Typical values: 1% for maximum privacy and light blocking; 3-5% for balanced UV protection with moderate visibility; 10% for more natural light and outdoor view; 14% and above for maximum brightness. Colour matters: darker fabrics give sharper views and better glare control, while white or light fabrics may reduce visibility. For offices needing clear views without excessive brightness, the guide recommends darker fabrics at 3-5% openness, and lower openness on south-facing facades. Check the manufacturer's solar data for the chosen fabric. Not established here: any UAE standard for openness.",
+      "body_ar": "تصف نسبة الانفتاح مدى إحكام نسيج قماش الستائر الشمسية، وبالتالي كمية الضوء التي تمر عبره: النسب الأقل تحجب المزيد من الأشعة فوق البنفسجية وتمنح خصوصية أكبر، والنسب الأعلى تسمح بمرور ضوء أكثر ورؤية أوضح. القيم المعتادة: 1% لأقصى خصوصية وحجب للضوء؛ و3-5% لحماية متوازنة من الأشعة فوق البنفسجية مع رؤية معتدلة؛ و10% لمزيد من الضوء الطبيعي والرؤية الخارجية؛ و14% فأكثر لأقصى سطوع. وللّون أهمية: الأقمشة الداكنة تمنح رؤية أوضح وتحكماً أفضل في الوهج، بينما قد تقلل الأقمشة البيضاء أو الفاتحة من وضوح الرؤية. وللمكاتب التي تحتاج إلى رؤية واضحة دون سطوع مفرط، يوصي الدليل بأقمشة داكنة بنسبة انفتاح 3-5%، وبنسبة انفتاح أقل على الواجهات الجنوبية. تحقّق من البيانات الشمسية للقماش المختار لدى الشركة المصنعة. غير مثبت هنا: أي مواصفة إماراتية لنسبة الانفتاح.",
+      "sources": [
+        "https://jclicht.com/blogs/window-treatments/solar-shades-openness-percentage"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +73,15 @@
       "expected_entry_ids": [
         "curtains_blinds:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What openness factor should we choose for sunscreen roller blinds in an office?",
+      "q_ar": "ما نسبة الانفتاح التي يجب أن نختارها للستائر الدوارة الشمسية في مكتب؟",
+      "expected_entry_ids": [
+        "curtains_blinds:sunscreen-openness-factor"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry covers openness factor (1/3/5/10%) for sunscreen fabrics). curtains_blinds:sunscreen-openness-factor was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from curtains_blinds.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +98,9 @@
       "curtains_blinds:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "curtains_blinds:sunscreen-openness-factor"
+    ]
   }
 }

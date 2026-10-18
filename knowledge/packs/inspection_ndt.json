@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "inspection_ndt:ut-personnel-certification-iso-9712",
+      "topic": "NDT personnel certification for ultrasonic weld testing",
+      "kind": "personnel_qualification",
+      "body_en": "Personnel certification for ultrasonic testing (UT) is commonly to ISO 9712; for example CSWIP, run by TWI Certification Ltd, which is accredited by UKAS to ISO/IEC 17024. Certification is by method, level (1, 2, 3) and sector. A Level 1 works to written instructions under Level 2 or 3 supervision and does not choose the technique or assess results. A Level 2 has shown competence to choose techniques, set up and verify equipment, interpret and evaluate results against applicable codes, standards and specifications, and organise and report results, so Level 2 UT is the usual level to ask for when welds must be evaluated. Each examination has a general and a sector-specific part, each with written and practical elements. Automated ultrasonic testing (AUT) of girth welds and phased array UT (PAUT) are separate certifications; holders of a valid ISO 9712 UT Level 2 are exempt from the general theory paper for them. Not established here: pass marks, validity and renewal periods, and any UAE-specific requirement; ask for the certificate and check it with the issuing body.",
+      "body_ar": "تكون شهادة أفراد الفحص بالموجات فوق الصوتية (UT) عادةً وفق المواصفة ISO 9712؛ ومثال ذلك نظام CSWIP الذي تديره شركة TWI Certification Ltd المعتمدة من UKAS وفق ISO/IEC 17024. تُمنح الشهادة حسب الطريقة والمستوى (1، 2، 3) والقطاع. يعمل حامل المستوى 1 وفق تعليمات مكتوبة تحت إشراف المستوى 2 أو 3، ولا يختار التقنية ولا يقيّم النتائج. أما حامل المستوى 2 فقد أثبت كفاءته في اختيار التقنيات، وضبط المعدات والتحقق منها، وتفسير النتائج وتقييمها وفق الأكواد والمواصفات المعمول بها، وتنظيم النتائج وإعداد تقاريرها، ولذلك فإن المستوى 2 في UT هو المستوى المعتاد طلبه عند تقييم اللحامات. يتضمن كل امتحان جزءاً عاماً وجزءاً خاصاً بالقطاع، ولكل منهما شق كتابي وشق عملي. ويُعد الفحص الآلي بالموجات فوق الصوتية (AUT) للحامات المحيطية والفحص بالمصفوفة المرحلية (PAUT) شهادتين منفصلتين، ويُعفى حامل شهادة UT المستوى 2 السارية وفق ISO 9712 من ورقة النظرية العامة فيهما. غير مثبت هنا: درجات النجاح، ومدد الصلاحية والتجديد، وأي اشتراط إماراتي خاص؛ اطلب الشهادة وتحقق منها لدى الجهة المانحة.",
+      "sources": [
+        "https://www.cswip.com/microsites/cswip/pdfs/schemes/NDT-scheme-docs/CSWIP-ISO-NDT-11-93-R-NDT-Personnel-ISO-9712-11th-Edition-July-2026.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "inspection_ndt:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What certification should an NDT technician hold for UT on pipeline welds?",
+      "q_ar": "ما الشهادة التي يجب أن يحملها فني الاختبارات غير الإتلافية للفحص بالموجات فوق الصوتية على لحامات خطوط الأنابيب؟",
+      "expected_entry_ids": [
+        "inspection_ndt:ut-personnel-certification-iso-9712"
+      ],
+      "why": "No entry of this pack answered it (the standards entry covers EIAC body accreditation, not personnel certification (ISO 9712 / ASNT Level II) for UT). inspection_ndt:ut-personnel-certification-iso-9712 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from inspection_ndt.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "inspection_ndt:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "inspection_ndt:ut-personnel-certification-iso-9712"
+    ]
   }
 }

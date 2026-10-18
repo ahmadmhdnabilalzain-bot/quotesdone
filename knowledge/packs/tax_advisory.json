@@ -54,6 +54,15 @@
       "expected_entry_ids": [
         "tax_advisory:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Do we need an FTA-registered tax agent to handle our corporate tax audit?",
+      "q_ar": "هل نحتاج إلى وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب للتعامل مع تدقيق ضريبة الشركات؟",
+      "expected_entry_ids": [
+        "tax_advisory:uae-standards-and-approvals"
+      ],
+      "why": "States the FTA keeps a tax agent register and anyone representing a taxpayer before the FTA must be registered.",
+      "origin": "real buyer question, moved from tax_advisory.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
