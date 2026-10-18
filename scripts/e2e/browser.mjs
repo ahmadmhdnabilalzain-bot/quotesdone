@@ -281,7 +281,9 @@ export function measureInquiryBox() {
   if (r.width < 120) problems.push(`box is only ${Math.round(r.width)}px wide`);
   const covered = [];
   if (visH > 4 && visW > 4) {
-    const pts = [[(vis.left + vis.right) / 2, (vis.top + vis.bottom) / 2], [vis.left + 3, vis.top + 3], [vis.right - 3, vis.top + 3], [vis.left + 3, vis.bottom - 3], [vis.right - 3, vis.bottom - 3]];
+    // Corner probes sit inside the rounded corner (a point in the cut-away corner hits the parent, not the box).
+    const k = Math.max(4, parseFloat(cs.borderTopLeftRadius) || 0);
+    const pts = [[(vis.left + vis.right) / 2, (vis.top + vis.bottom) / 2], [vis.left + k, vis.top + k], [vis.right - k, vis.top + k], [vis.left + k, vis.bottom - k], [vis.right - k, vis.bottom - k]];
     for (const [x, y] of pts) {
       const hit = document.elementFromPoint(x, y);
       if (hit !== el && !el.contains(hit)) covered.push(`${Math.round(x)},${Math.round(y)} -> ${hit ? hit.tagName.toLowerCase() + (hit.id ? '#' + hit.id : '') + '.' + String(hit.className).slice(0, 60) : 'nothing'}`);
