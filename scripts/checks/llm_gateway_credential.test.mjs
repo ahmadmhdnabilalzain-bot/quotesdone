@@ -121,3 +121,27 @@ test('every function that imports _shared/llm.ts has a credential minted for it'
     'these functions import _shared/llm.ts but are not in the credential migration, so each one falls back to ' +
     'the shared inbound_secret on every model call: ' + missing.join(', '));
 });
+
+// THE CLASS, SECOND DOOR (19 Oct 2026, finding llm_gateway_auth). public_site, inquiry_intake and
+// marketing_social_inbox never import llm.ts; they reach it through _shared/think.ts
+// defaultDeps(admin, '<fn>'), which passes its own fn name to makeLlmRich. The test above only sees
+// textual importers, so these ran on the inactive shared secret and got 403 on every model call.
+// Every fn name handed to defaultDeps must be issued a credential by some SQL file.
+test('every fn name passed to defaultDeps has a credential issued for it', () => {
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(join(d, e.name)) : /\.ts$/.test(e.name) && !/\.test\.ts$/.test(e.name) ? [join(d, e.name)] : []);
+  const names = new Set();
+  for (const f of walk(FNDIR)) {
+    for (const m of readFileSync(f, 'utf8').matchAll(/defaultDeps\(\s*\w+\s*,\s*'([a-z0-9_]+)'\s*\)/g)) names.add(m[1]);
+  }
+  assert.ok(names.size > 0, "no defaultDeps(admin, 'fn') call found - this guard is now testing nothing");
+  const sqlDirs = ['scripts/sql', 'supabase/migrations', 'supabase/migrations_history'].map((d) => join(root, d));
+  const issuing = sqlDirs.flatMap((d) => {
+    try { return readdirSync(d).filter((n) => n.endsWith('.sql')).map((n) => readFileSync(join(d, n), 'utf8')); }
+    catch { return []; }
+  }).filter((s) => /fn_internal_credential_(issue|rotate)/.test(s)).join('\n');
+  const missing = [...names].filter((n) => !new RegExp("'(fn\\.)?" + n + "'").test(issuing)).sort();
+  assert.deepEqual(missing, [],
+    'these fn names reach ai_gateway through defaultDeps but no SQL file issues them a credential, so each '
+    + 'falls back to the shared inbound_secret (403 while it is inactive): ' + missing.join(', '));
+});
