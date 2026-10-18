@@ -26,6 +26,9 @@ export type Labelled = {
   warranty?: string | null; payment_terms?: string | null; exclusions?: string | null;
   itemised?: boolean; expired?: boolean; source?: string;
   completeness?: { score: number | null; passed: boolean | null; missing_mandatory: number | null };
+  /** Ruling 1207: the supplier's discount and VAT as stated. `price` is ALWAYS the price after the stated discount,
+   * excluding VAT (ruling 1208) — the one basis this ranking and our fee both use. */
+  gross_amount?: number | null; discount_amount?: number | null; vat_treatment?: string | null; vat_amount?: number | null;
 };
 
 export const RULES_DISCLAIMER_EN = "This is QuotesDone's impartial recommendation, prepared to make your decision easier. From all the quotes you received, we have shortlisted three, ranked on the price, completeness, lead time, warranty and payment terms each supplier stated, and compared those in detail. You remain completely free to reveal and choose any supplier from your full list of quotes.";
@@ -94,6 +97,7 @@ export type RosterRow = {
   quote_id: string | null; label: string; price: number | null; lead_time: string | null;
   warranty: string | null; status: 'shortlisted' | 'received' | 'held'; rank: number | null;
   missing_mandatory: number | null; expired: boolean;
+  gross_amount?: number | null; discount_amount?: number | null; vat_treatment?: string | null; vat_amount?: number | null;
 };
 export function rosterOf(labelled: Array<Labelled & { quote_id?: string | null }>, top3: Array<{ label: string; rank?: number }>): RosterRow[] {
   const rankOf = new Map<string, number>();
@@ -107,6 +111,7 @@ export function rosterOf(labelled: Array<Labelled & { quote_id?: string | null }
       status: rank !== null ? 'shortlisted' : incomplete ? 'held' : 'received', rank,
       missing_mandatory: typeof q.completeness?.missing_mandatory === 'number' ? q.completeness.missing_mandatory : null,
       expired: !!q.expired,
+      gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, vat_treatment: q.vat_treatment ?? null, vat_amount: q.vat_amount ?? null,
     };
   });
 }

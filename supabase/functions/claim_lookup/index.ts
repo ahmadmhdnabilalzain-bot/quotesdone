@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // claim_lookup v2 - public "is this your company?" check for the supplier claim flow.
 //
 // SECURITY FIX 19 Jul 2026 ---------------------------------------------------------------------
@@ -21,7 +22,8 @@
 //     https://quotesdone.com/claim?t=<leads.claim_token>
 // Never put leads.id in a supplier invitation.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { observe } from '../_shared/observe.ts';
+import { observe, annotate } from '../_shared/observe.ts';
+import { probeCaller } from '../_shared/probe_caller.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -37,7 +39,7 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-Deno.serve(observe('claim_lookup', async (req) => {
+Deno.serve(siteCors(observe('claim_lookup', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
   // what needs exercising. See warmPortal() in resilience_ping/index.ts.
@@ -54,7 +56,10 @@ Deno.serve(observe('claim_lookup', async (req) => {
     }
 
     if (!token || !UUID_RE.test(token)) {
-      return J({ ok: false, error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation.' }, 400);
+      // Our own hourly launch-path probe is marked fixture by its credential, never by its say-so
+      // (_shared/probe_caller.ts; 7 Oct 2026, handoff 100487: 24 of 24 refusals in a day were that probe).
+      return annotate(J({ ok: false, error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation.' }, 400),
+        await probeCaller(admin, req, 'claim_lookup'));
     }
 
     const { data: l, error } = await admin.from('leads')
@@ -96,4 +101,4 @@ Deno.serve(observe('claim_lookup', async (req) => {
     await logRun('error', { unhandled_exception: 1 }, 'claim_lookup threw an unhandled exception: ' + String((e as Error)?.message || e).slice(0, 200) + ' - a supplier trying to claim their listing was blocked for an internal reason.');
     return J({ ok: false, error: 'error' }, 500);
   }
-}));
+})));

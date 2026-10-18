@@ -1,4 +1,5 @@
 'use client';
+import { photoToDataUrl } from '@/lib/chatPhoto';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
@@ -16,12 +17,14 @@ const T = {
         ph: 'Ask about QuotesDone…', send: 'Send', thinking: 'Typing…',
         greet: 'Hi! Ask me what a trade typically costs in the UAE, which documents a supplier will need, or how anonymous quotes work. Try one of these:',
         chips: ['What does gypsum ceiling cost per sqm in Dubai?', 'Which documents will a fit-out supplier need?', 'كم تكلفة أرضيات SPC للمتر؟'],
-        err: 'Sorry — something went wrong. Please try again, or email management@quotesdone.com.' },
+        err: 'Sorry — something went wrong. Please try again, or email management@quotesdone.com.',
+        photo: 'Photo', photoAdd: 'Add a photo or drawing', photoOn: 'Photo attached', photoOnly: '(photo)' },
   ar: { title: 'مساعد QuotesDone', sub: 'مدعوم بالمحرك الذكي', open: 'اسأل QuotesDone', close: 'إغلاق',
         ph: 'اسأل عن QuotesDone…', send: 'إرسال', thinking: 'يكتب…',
         greet: 'مرحباً! اسألني عن التكلفة المعتادة لأي نشاط في الإمارات، أو عن المستندات التي يحتاجها المورّد، أو عن طريقة عمل عروض الأسعار السرّية. جرّب أحد هذه الأسئلة:',
         chips: ['كم تكلفة السقف الجبسي للمتر المربع في دبي؟', 'ما المستندات التي يحتاجها مورّد التشطيبات؟', 'كم تكلفة أرضيات SPC للمتر؟'],
-        err: 'عذراً، حدث خطأ. يُرجى المحاولة مرة أخرى أو مراسلتنا على management@quotesdone.com.' }
+        err: 'عذراً، حدث خطأ. يُرجى المحاولة مرة أخرى أو مراسلتنا على management@quotesdone.com.',
+        photo: 'صورة', photoAdd: 'أرفق صورة أو مخططًا', photoOn: 'تم إرفاق الصورة', photoOnly: '(صورة)' }
 };
 
 // Render text safely: escape, then linkify emails / URLs / internal paths.
@@ -50,6 +53,12 @@ export function ChatWidget() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [val, setVal] = useState('');
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  // A PHOTO OR DRAWING (founder ruling 1200): resized in the browser to at most 1280 px as a JPEG, so it stays under
+  // the server's cap (_shared/chat_images.ts), and sent with the next message. One at a time.
+  const [photo, setPhoto] = useState('');
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const pickPhoto = async (f: File | undefined) => { const d = await photoToDataUrl(f); if (d) setPhoto(d); };
   const boxRef = useRef<HTMLDivElement | null>(null);
   const inpRef = useRef<HTMLInputElement | null>(null);
 
@@ -85,25 +94,51 @@ export function ChatWidget() {
   if (/(^|\/)(os|me|portal|supplier-app)(\/|$)/.test(pathname)) return null;
 
   const send = async (preset?: string) => {
-    const m = (preset ?? val).trim();
+    const m = (preset ?? val).trim() || (photo ? t.photoOnly : '');
     if (!m || busy) return;
+    const images = photo ? [photo] : [];
+    setPhoto('');
     setVal('');
     const next = [...msgs, { role: 'user' as const, content: m }];
     setMsgs(next); setBusy(true);
+    const show = (content: string) => setMsgs([...next, { role: 'assistant', content }]);
     try {
       const r = await fetch(FN, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+        // THE ANSWER STREAMS (12 Oct 2026, site_assistant/stream_reply.ts): a status line at once, then the finished,
+        // checked reply a few words at a time. A server that does not stream answers JSON, read below as before.
+        headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
         // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
         // was unreachable code. useLocale() already knows; the value simply never left the browser.
-        body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname, lang: locale, conv: conv.current })
+        body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname, lang: locale, conv: conv.current, ...(images.length ? { images } : {}) })
       });
-      const j = await r.json();
-      setMsgs([...next, { role: 'assistant', content: (j && j.reply) || t.err }]);
+      if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
+        const rd = r.body.getReader(); const dec = new TextDecoder();
+        let buf = '', text = '', final = '';
+        for (;;) {
+          const { done, value } = await rd.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let k: number;
+          while ((k = buf.indexOf('\n')) >= 0) {
+            const line = buf.slice(0, k); buf = buf.slice(k + 1);
+            if (!line.trim()) continue;
+            const e = JSON.parse(line);
+            if (e.t === 'status') setStatus(e.text);
+            else if (e.t === 'reset') text = '';
+            else if (e.t === 'delta') { text += e.text; setStatus(''); show(text); }
+            else if (e.t === 'done') final = e.reply || '';
+          }
+        }
+        show(final || text || t.err);
+      } else {
+        const j = await r.json();
+        show((j && j.reply) || t.err);
+      }
     } catch (_e) {
-      setMsgs([...next, { role: 'assistant', content: t.err }]);
-    } finally { setBusy(false); }
+      show(t.err);
+    } finally { setBusy(false); setStatus(''); }
   };
 
   const side = rtl ? { left: 18 } : { right: 18 };
@@ -148,9 +183,13 @@ export function ChatWidget() {
                 ))}
               </div>
             )}
-            {busy && <div dir="auto" style={{ ...bubble('assistant'), opacity: .7, fontStyle: 'italic' }}>{t.thinking}</div>}
+            {busy && msgs[msgs.length - 1]?.role === 'user' && <div dir="auto" style={{ ...bubble('assistant'), opacity: .7, fontStyle: 'italic' }}>{status || t.thinking}</div>}
           </div>
           <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid rgba(255,255,255,.10)' }}>
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+            <button type="button" onClick={() => fileRef.current?.click()} aria-label={t.photoAdd} title={photo ? t.photoOn : t.photoAdd} disabled={busy}
+              style={{ background: photo ? 'rgba(45,212,191,.25)' : 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.14)', color: '#EAF4F2',
+                borderRadius: 10, padding: '0 10px', fontSize: 12.5, cursor: busy ? 'default' : 'pointer' }}>{photo ? t.photoOn : t.photo}</button>
             <input ref={inpRef} dir="auto" value={val} onChange={(e) => setVal(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') send(); }} placeholder={t.ph} aria-label={t.ph}
               style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.14)',

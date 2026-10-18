@@ -673,6 +673,16 @@
       "expected_entry_ids": [
         "gypsum:fire-finish-classes-2018"
       ]
+    },
+    {
+      "q_en": "What board should I use for a bathroom ceiling?",
+      "q_ar": "ما نوع اللوح المناسب لسقف حمام؟",
+      "expected_entry_ids": [
+        "gypsum:standard-vs-mr-vs-fire-vs-impact",
+        "gypsum:humidity-and-sagging"
+      ],
+      "why": "The board-type entry says moisture-resistant (type H) board is for bathrooms and humid rooms, and the humidity entry explains sagging/mould of standard board in humid ceiling voids.",
+      "origin": "real buyer question, moved from gypsum.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

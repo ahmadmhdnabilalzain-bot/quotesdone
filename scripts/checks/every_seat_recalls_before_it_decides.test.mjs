@@ -26,6 +26,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
+import { withRetry } from '../lib/retry.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -36,7 +38,7 @@ export const DECISION_PATHS = [
   ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'assist', "admin.rpc('fn_sales_assist'"],
   ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'match', "admin.rpc('fn_match_capability'"],
   ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'spec_offer', "admin.rpc('fn_spec_offer_open'"],
-  ['supabase/functions/site_assistant/index.ts', 'customer_support', 'reply', 'const sys = `You are the QuotesDone website assistant.'],
+  ['supabase/functions/site_assistant/index.ts', 'customer_support', 'reply', 'const sys = `You are QuotesDone'],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'decide', "admin.from('ceo_approval').insert("],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'judgement', 'await llm('],
   ['supabase/functions/accountant/index.ts', 'accountant', 'assist', "admin.rpc('fn_accountant_assist'"],
@@ -44,9 +46,9 @@ export const DECISION_PATHS = [
   ['supabase/functions/it_engineer/index.ts', 'it_engineer', 'assist', "return J({ ok: true, seat: 'it_engineer', ...r"],
   ['supabase/functions/it_engineer/index.ts', 'it_engineer', 'triage', "return J({ ok: true, seat: 'it_engineer', issue_key"],
   ['supabase/functions/marketing/index.ts', 'marketing', 'assist', 'return error ? J('],
-  ['supabase/functions/marketing_social_inbox/index.ts', 'marketing', 'social_reply', 'const d = decide(ev.text'],
+  ['supabase/functions/marketing_social_inbox/index.ts', 'marketing', 'social_reply', 'const text = await writeSocial(ev.text'],
   // The comment answer is think() (socialReply) since #898; the recall still comes first and rides with the question.
-  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'await socialReply(defaultDeps(admin'],
+  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'const a = await aiReply(defaultDeps(admin'],
   ['supabase/functions/marketing_channels/index.ts', 'marketing', 'plan', "admin.rpc('fn_marketing_campaign_hash'"],
 ];
 export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
@@ -106,10 +108,21 @@ test('a reworded case from another customer recalls the finalised one, masked; a
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
   const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
   assert.ok(secret, 'no cred_fn_ai in app_secrets');
+  // The edge runtime answers a bare 503 now and then before ai_gateway's own code runs. Measured 6 Oct 2026 from
+  // function_edge_logs: three POST ai_gateway 503s 7-20 s apart at 00:33:55-00:34:23Z and again at 02:24:12-39Z on
+  // 5 Oct -- the shape of this test's three embeds -- and every other ai_gateway POST in the 24 hours answered 200.
+  // An embed is a read, so a gateway-level 502/503/504/546 is retried as a blip (lib/retry.mjs); any other status,
+  // or a 200 without an embedding, fails at once as before.
+  const BLIP = new Set([502, 503, 504, 546]);
   const embed = async (text) => {
-    const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: secret, fn: 'check_case_recall', action: 'embed', text }) });
+    const r = await withRetry(async () => {
+      const res = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: secret, fn: 'check_case_recall', action: 'embed', text }) });
+      if (BLIP.has(res.status)) throw new Error(`ai_gateway answered ${res.status}`);
+      return res;
+    });
+    assert.equal(r.status, 200, `ai_gateway embed answered ${r.status}`);
     const j = await r.json();
     assert.ok(j?.embedding, 'ai_gateway returned no embedding');
     return typeof j.embedding === 'string' ? j.embedding : JSON.stringify(j.embedding);
@@ -120,7 +133,7 @@ test('a reworded case from another customer recalls the finalised one, masked; a
   const live = (await sql(`select to_regclass('public.seat_case_memory') is not null as ok`))[0].ok;
   const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
   const run = async (body) => {
-    try { await sql((live ? '' : read(SQL_FILE) + '\n') + body, { retry: false }); }
+    try { await replaySql((live ? '' : read(SQL_FILE) + '\n') + body, { retry: false }); }
     catch (e) {
       const m = String(e.message).match(/CHK<<(.*?)>>/s);
       if (!m) throw e;

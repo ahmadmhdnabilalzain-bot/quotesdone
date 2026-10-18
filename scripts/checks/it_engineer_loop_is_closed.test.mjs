@@ -44,16 +44,36 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { manifestWithPending, manifestLines } from '../lib/pending_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
+
+// THE REGISTER AS IT WILL BE, NOT ONLY AS IT IS (it_engineer, ceo, 6 Oct 2026). Tests 1 and 2 read
+// public.seat_handoff_kind. A committed-but-unapplied file that changes that register (a scripts/sql/pending
+// note) is replayed first, inside one rolled-back request (safe_replay), and the same query or probe runs after
+// it in that request - so a PR is measured against the rows it will apply, and a PR that registers a one-way
+// conversation fails here before it reaches main. The assertions are the same either way.
+const REPO = fileURLToPath(new URL('../..', import.meta.url));
+const applied = new Set(manifestLines());
+const PENDING_REGISTER = manifestWithPending().filter((f) => !applied.has(f))
+  .map((f) => readFileSync(join(REPO, f), 'utf8')).filter((t) => /seat_handoff_kind/.test(t));
+const withPending = (tail) => [...PENDING_REGISTER, tail].join('\n;\n');
+async function rows(query) {
+  return PENDING_REGISTER.length ? replaySql(withPending(query), { rows: true, label: 'pending seat_handoff_kind' }) : sql(query);
+}
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 // Runs a block that must end in `raise exception 'CHK<<json>>'` and returns the parsed json.
-async function probe(body) {
+async function probe(body, { pending = false } = {}) {
   try {
-    await sql(`do $p$ ${body} $p$;`);
+    const block = `do $p$ ${body} $p$;`;
+    if (pending && PENDING_REGISTER.length) await replaySql(withPending(block), { label: 'pending seat_handoff_kind' });
+    else await sql(block);
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));
@@ -66,15 +86,22 @@ async function probe(body) {
 // receiver completes its step and a delivery.result conversation carries the outcome back to the
 // it_engineer, which checks it (fn_originator_checks_delivery).
 test('every conversation the it_engineer starts has a reply window and comes back to it', { skip: SKIP }, async () => {
-  const types = await sql(`select k.type, k.to_seat, k.reply_within::text reply_within, k.originator_closes,
+  const types = await rows(`select k.type, k.to_seat, k.reply_within::text reply_within, k.originator_closes,
                                   exists (select 1 from public.seat_handoff_kind r
                                            where r.type = 'delivery.result' and r.from_seat = k.to_seat
-                                             and r.to_seat = 'it_engineer') result_comes_back
+                                             and r.to_seat = 'it_engineer') result_comes_back,
+                                  exists (select 1 from public.seat_handoff_kind r
+                                           where r.type = 'ceo.decision_closed' and r.from_seat = k.to_seat
+                                             and r.to_seat = 'it_engineer') decision_comes_back
                              from public.seat_handoff_kind k
                             where k.from_seat = 'it_engineer' order by 1, 2`);
   assert.ok(types.length > 0, 'fn_seat_handoff_types lists no it_engineer conversation at all');
+  // A third shape (founder_instruction 1059, a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql):
+  // ceo.decision_owed is closed by the CEO's decision, which can only be replace or withdraw, and every such decision
+  // goes back to the originating seat as ceo.decision_closed with its reasons. It counts only while that return exists.
   const bad = types.filter((t) => !t.reply_within || !(t.originator_closes === true
-    || (t.type === 'delivery.request' && t.result_comes_back === true)));
+    || (t.type === 'delivery.request' && t.result_comes_back === true)
+    || (t.type === 'ceo.decision_owed' && t.decision_comes_back === true)));
   assert.deepEqual(bad, [], 'it_engineer conversations without a reply window, or that the receiver can close with nothing coming back');
 });
 
@@ -105,7 +132,7 @@ test('a receiving seat cannot close an it_engineer handoff; the it_engineer can'
         if found then closed := closed + 1; end if;
       end loop;
       raise exception 'CHK<<%>>', json_build_object('conversations', n, 'refused', refused, 'originator_closed', closed);
-    end`);
+    end`, { pending: true });
   assert.ok(r.conversations > 0);
   assert.equal(r.refused, r.conversations, 'a receiving seat closed an it_engineer handoff');
   assert.equal(r.originator_closed, r.conversations, 'the it_engineer could not close its own handoff');
@@ -253,23 +280,34 @@ test('a registered policy refusal on the counted telemetry row is not a customer
 // -- a parked handoff whose class the playbook covers must close, and one whose class it does not
 // must stay parked -- because a gate that opens for everything is the failure this build could cause.
 test('a parked handoff closes from the playbook, and an unknown class still refuses', { skip: SKIP }, async () => {
+  // 13 Oct 2026: covered_by_playbook used to count only handoffs ALREADY parked (awaiting_learning),
+  // while fn_it_loop_reverify fills from the playbook every handoff whose finding has CLEARED --
+  // parked or clearing in this very pass. Two handoffs that cleared since the last tick made it
+  // learned 2 / covered 0 and turned the check red on a correct run. It now counts the population the
+  // routine acts on (the routine's own cleared test), and asserts the real invariant directly:
+  // after the pass, no parked handoff is one the playbook covers.
   const r = await probe(`
-    declare v jsonb; v_before int; v_after int; v_known int; v_unknown int;
+    declare v jsonb; v_after int; v_known int; v_unknown int; v_parked_covered int;
     begin
       set local statement_timeout = '60s';
-      select count(*) filter (where true),
-             count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null),
+      select count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null),
              count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is null)
-        into v_before, v_known, v_unknown
+        into v_known, v_unknown
+        from public.agent_actions a
+        left join public.it_engineer_finding f on f.issue_key = a.detail->>'issue_key'
+       where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+         and a.status in ('pending','failed')
+         and (f.issue_key is null or f.closed_at is not null
+              or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz);
+      v := public.fn_it_loop_reverify();
+      select count(*),
+             count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null)
+        into v_after, v_parked_covered
         from public.agent_actions a
        where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
          and a.status in ('pending','failed') and a.detail ? 'awaiting_learning';
-      v := public.fn_it_loop_reverify();
-      select count(*) into v_after from public.agent_actions a
-       where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
-         and a.status in ('pending','failed') and a.detail ? 'awaiting_learning';
       raise exception 'CHK<<%>>', json_build_object(
-        'parked_before', v_before, 'parked_after', v_after,
+        'parked_after', v_after, 'parked_after_but_covered', v_parked_covered,
         'covered_by_playbook', v_known, 'not_covered', v_unknown,
         'closed', (v->>'closed')::int, 'learned_from_playbook', (v->>'learned_from_playbook')::int,
         'known_class', (public.fn_it_playbook_for('duty:heartbeat:ZZ DEMO probe step')).failure_class,
@@ -282,9 +320,8 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
     'a key whose own class has no written cause borrowed a broader class: the gate opened on a guess');
   assert.equal(r.known_class, 'heartbeat_step', 'the playbook no longer covers duty:heartbeat:');
   assert.equal(r.learned_from_playbook, r.covered_by_playbook,
-    'a parked handoff whose class the playbook covers was not filled from it');
-  assert.equal(r.parked_after, r.not_covered,
-    'the handoffs left parked are not exactly the ones no playbook class covers');
+    'a cleared handoff whose class the playbook covers was not filled from it');
+  assert.equal(r.parked_after_but_covered, 0, 'a handoff the playbook covers is still parked after the pass');
   // Deliberately NO assertion that either count is above zero. Both are a snapshot of production's
   // backlog: a floor on them would turn a drained queue -- the thing this build is for -- into a red
   // check. The refusal path is proved by the three lookups above, which do not depend on the backlog.

@@ -46,6 +46,9 @@
 // model, embedder and database as `deps`, so think.test.ts runs every path with a mocked model.
 import { heldFromGate, HOLD_PROBE_MODEL, type GateAnswer } from './llm_hold.ts';
 import { recallCases } from './case_recall.ts';
+import { e2eRunTag } from './e2e_run.ts';
+import { rehearsalLetsFixtureThrough } from './spend_guards.ts';
+import { gteReads } from './ml_embed_recipe.ts';
 
 export const SEATS = ['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] as const;
 export type Seat = typeof SEATS[number];
@@ -83,6 +86,21 @@ export interface ThinkRequest {
   // A caller that answers a customer or visitor (support_reply.ts only) may accept a short, clear refusal of a
   // manipulation or an out-of-scope ask as the answer. Off for every other caller: their drafts keep the evasion check.
   allowDecline?: boolean;
+  // A caller that has ALREADY narrowed the knowledge for this exact message (the website widget: its own corpus search
+  // is the topic) may hand over the plan instead of asking a model for one. The decompose call is skipped; retrieval,
+  // synthesis and the validator run as always. Such a caller should also ask for stakes 'high', because without the
+  // planner nobody judges the stakes, and the independent check then runs on every answer (12 Oct 2026). A decision
+  // whose options are the whole of what it needs (priceQuestion: a trade from a given list) passes { steps: [] }.
+  plan?: { steps: { id: string; goal: string; query: string; needs_knowledge?: boolean }[] };
+  // A caller's last-mile rewrite (support_reply.ts: the plain-language gate). Runs on the draft BEFORE the independent
+  // check, so the checked text is the text sent; null keeps the draft. Only when the check runs.
+  polish?: (answer: string) => Promise<string | null>;
+  // One more choice made IN the answering call, so it costs no chain of its own (the widget: which published trade, if
+  // any, they ask the price of). Comes back as result.extra (null if not one of the ids).
+  ask?: { key: string; options: { id: string; meaning: string }[] };
+  // Output ceilings for a caller whose reply is short (the widget: ~70 words). With a verify ceiling the reviewer is
+  // also told to return the strict JSON verdict only. A truncated output is a failed pass, never a fragment sent.
+  maxTokens?: { synthesise?: number; verify?: number };
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -102,6 +120,7 @@ export interface ThinkResult {
   held_id?: number | null;
   reason?: string;
   route?: string | null;
+  extra?: string | null;
 }
 
 export interface LlmReply { content: string | null; model?: string | null; error?: string | null; used_llm?: boolean }
@@ -112,7 +131,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h' }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -164,7 +183,7 @@ export function authoritative(url: string): boolean {
 // Deferral and refusal as the founder heard them from us (903). EN and AR. Only the shape of an
 // evasion is listed; a draft that ALSO carries substance (enough words beyond the deferral) passes
 // the phrase test, and is then judged by the other rules.
-const EVASION = [
+export const EVASION = [
   /\b(get|come) back to you\b/i, /\bi (will|'ll|need to|have to|must) (check|confirm|verify|find out|look into)\b/i,
   /\b(can ?not|can't|unable to|not able to|won't be able to) (answer|help|advise|say|provide|share|give)\b/i,
   /\bi (do not|don't) (know|have (that|this|the) information)\b/i, /\bno information (is )?available\b/i,
@@ -259,7 +278,7 @@ Return ONE JSON object:
  "high_stakes":<true if the answer states a legal or regulatory limit, money, or safety>,
  "trade":"<the ONE trade the question is about, as a lowercase taxonomy code (e.g. hvac, plumbing, glazing), or null when it is about no single trade>",
  "kind":"<what the question asks for, one of: ${ENTRY_KINDS.join(', ')}; or null>"}
-At most ${MAX_STEPS} steps. Fill a fact's value ONLY from what you were given; never guess it.`;
+At most ${MAX_STEPS} steps and 4 facts; keep every string short and in English (the whole object must fit in 600 tokens). Fill a fact's value ONLY from what you were given; never guess it.`;
 }
 
 export function synthesisPrompt(seat: Seat, audience: string, language: string, decision?: DecisionSpec, route?: { id: string; meaning: string }[], allowDecline = false): string {
@@ -294,8 +313,8 @@ Return {"findings":[]} if the pages do not answer it.`;
 // routine_employee_reasoning; a seat's own answer or decision is internal_judgement; a reply a customer, a
 // visitor or a supplier reads, and any Arabic reply, keeps its audience class. The model is chosen in the
 // database from the seat (sent as `agent`): fn_ai_route takes a seat's own '<seat>__<class>' row where one
-// exists (the CEO's judgement on Opus, while its planning runs on Gemini) and otherwise gives the seat its own
-// plan B (gpt-6-luna for the sales engineer and the CEO, DeepSeek for every other seat); the class logged stays
+// exists (the CEO's judgement on Opus, while its planning runs on luna) and otherwise gives the seat its own
+// plan B (google/gemini-3.8-flash for every seat since matrix v2, 5 Oct 2026); the class logged stays
 // the one named here (scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql). Verify stays
 // knowledge_validation: routed through counterpart_model to a reviewer of ANOTHER family than the author.
 // A FIXTURE QUESTION IS NEVER QUEUED (it_engineer, 24 Sep 2026). The gateway stubs a fixture call, but a question
@@ -305,8 +324,30 @@ Return {"findings":[]} if the pages do not answer it.`;
 // (subject.fixture = true) and nothing is filed. Rows whose text carries the ZZ DEMO / @example.invalid convention are
 // expired by fn_reason_held_due before any claim (a_held_row_is_tried_three_times_and_the_build_test_backlog_is_expired.sql),
 // so they are never replayed either; the unit tests here may keep using fixture text and still see the queue work.
+/**
+ * A READER OF THE PERSON'S OWN TEXT (13 Oct 2026, measured live on a ZZ DEMO photographed quotation): the quotation's
+ * terms and line specs were each planned by a decompose call that wrote to the 900-token cap think() itself set (the
+ * routing policy allows 2,000 for routine_employee_reasoning and 4,000 for supplier_communication), and the decision JSON
+ * was cut at the same 900, so validity, delivery and warranty the photo stated were asked again, and the retries took
+ * the turn past 150 s. A reader has nothing to plan and nothing to look up: one fixed step with no knowledge retrieval,
+ * and room for the decision it writes. SYNTH_FOR_READERS stays under supplier_communication's policy cap.
+ * prevented by: _shared/think_reader.test.ts
+ */
+export const SYNTH_FOR_READERS = 3000;
+export function readerOfTheirOwnText(goal: string): Pick<ThinkRequest, 'plan' | 'maxTokens'> {
+  return { plan: { steps: [{ id: 'read', goal, query: goal, needs_knowledge: false }] }, maxTokens: { synthesise: SYNTH_FOR_READERS } };
+}
+
 export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
   return !!req.subject && (req.subject as Record<string, unknown>).fixture === true;
+}
+
+/** A fixture may reason only for a proven run tag whose rehearsal window the database reports open. */
+export async function fixtureInOpenWindow(deps: Pick<ThinkDeps, 'rpc'>): Promise<boolean> {
+  const tag = e2eRunTag();
+  if (!tag) return false;
+  try { const { data, error } = await deps.rpc('fn_e2e_run_tag_open', { p_tag: tag }); return rehearsalLetsFixtureThrough(tag, data, error); }
+  catch (_e) { return false; }
 }
 
 export function taskClassFor(phase: Phase, audience: string, _deciding: boolean, language = 'en'): string {
@@ -365,7 +406,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // fixture already kept it out of the queue; the model was still called, and would be paid the day the hold lifts
   // (measured: 26 line_specs.assess and 1 postmortem fixture rows in 4 days, each a full think() run). Every other
   // call carries its subject, so the gateway's own fixture check can stub what this flag does not know about.
-  if (isFixtureRequest(req)) {
+  // ...EXCEPT inside a proven, open sandbox window (it_engineer, 7 Oct 2026; spend_guards.rehearsalLetsFixtureThrough).
+  if (isFixtureRequest(req) && !(await fixtureInOpenWindow(deps))) {
     steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
     return await hold('fixture_no_spend', {});
   }
@@ -379,10 +421,20 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const d0 = await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
-    JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
-    { taskClass: taskClassFor('decompose', audience, deciding), seat: req.seat, max: 900 });
-  const plan = parseJson<{ steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean; trade?: string | null; kind?: string | null }>(d0.content);
+  const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
+    : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
+      JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
+      { taskClass: taskClassFor('decompose', audience, deciding), seat: req.seat, max: 900 });
+  type Plan = { steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean; trade?: string | null; kind?: string | null };
+  let plan = parseJson<Plan>(d0.content);
+  // A PLAN CUT OFF AT THE OUTPUT CAP IS STILL A MODEL THAT ANSWERED (customer_support, 12 Oct 2026). Measured on
+  // production (ai_cost_log 17:30Z, 17:38Z): an Arabic portal question with the customer's profile made the planner
+  // write 900 tokens, the gateway's cap; the JSON was truncated and the whole reply fell to "could not read your
+  // account". The plan only narrows retrieval, so a model that wrote one still answers, from one step on the question.
+  if ((!plan || !Array.isArray(plan.steps)) && String(d0.content ?? '').trim()) {
+    plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [], high_stakes: true };   // an unplanned answer is always cross-checked
+    steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: 'unparseable plan; one-step plan used' });
+  }
   if (!plan || !Array.isArray(plan.steps)) {
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error ?? 'no plan' });
     return await hold(/circuit_open|open-circuit|founder_hold/.test(String(d0.error ?? '')) ? 'model_hold' : 'model_failed: decompose', {});
@@ -404,14 +456,21 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // The space is asked once per run. If the multilingual embedder cannot answer, this run falls back to
   // gte-small and the gte routines: a slower-to-improve answer, never a vector put to the wrong space.
   let space: EmbedSpace = deps.space ? await deps.space().catch(() => 'gte' as EmbedSpace) : 'gte';
+  // One embedding per text per run (12 Oct 2026): a plan step whose query IS the question re-embedded it remotely,
+  // 1-3 s each on the widget path (measured per stage).
+  const memo = new Map<string, Promise<number[] | null>>();
+  const emb = (t: string, sp: EmbedSpace) => { const k = sp + '\u0001' + t; if (!memo.has(k)) memo.set(k, deps.embed(t, sp)); return memo.get(k)!; };
   const embedIn = async (t: string): Promise<{ v: number[] | null; r: typeof ROUTINES[EmbedSpace] }> => {
     if (space === 'ml') {
-      const v = await deps.embed(t, 'ml');
+      const v = await emb(t, 'ml');
       if (v) return { v, r: ROUTINES.ml };
       space = 'gte';
     }
-    return { v: await deps.embed(t, 'gte'), r: ROUTINES.gte };
+    return { v: await emb(t, 'gte'), r: ROUTINES.gte };
   };
+  // A caller's plan is known now: its step queries are embedded (remotely, in embed_ml — no work in this worker) while
+  // the question is, not after the recall (12 Oct 2026: 1.7-8 s of embedding in a row on the widget, measured per stage).
+  if (req.plan && space === 'ml') for (const s of req.plan.steps) emb(s.query, 'ml').catch(() => null);
   const q0 = await embedIn(req.question);
   const qVec = q0.v;
   // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
@@ -428,8 +487,9 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     const { v, r: rt } = await embedIn(s.query);
     if (!v) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'failed', detail: 'embedding_unavailable' }); thin.push(s); continue; }
     // The multilingual search fuses both spaces (fn_reason_retrieve_ml), so it takes the gte-small vector too;
-    // without one it ranks by the multilingual space alone.
-    const vg = rt === ROUTINES.ml ? await deps.embed(s.query, 'gte') : null;
+    // without one it ranks by the multilingual space alone. An Arabic question gets none: gte-small is English-only
+    // and its vector for Arabic text pulled the fused ranking down (gteReads, _shared/ml_embed_recipe.ts).
+    const vg = rt === ROUTINES.ml && gteReads(s.query) ? await deps.embed(s.query, 'gte') : null;
     // The right area first (knowledge_lookup_goes_to_the_trade_first.sql): the routine resolves the trade and the
     // area exactly and ranks only that trade's entries / that area's rows plus the seat's general ones. Each is sent
     // only when known, so a call without them is the call it always was.
@@ -466,12 +526,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // e. SYNTHESISE, with the validator forcing re-passes
   const missing = facts.filter((f) => !f.value);
   const sourceIds = new Set(sources.map((s) => s.id));
-  const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true);
+  const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true)
+    + (req.ask && !deciding ? `
+Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '');
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? 900 });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = 'no reply'; break; }
     refusal = refuse(draft, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true });
@@ -484,8 +546,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   let verified: ThinkResult['verified'] = { status: 'not_needed', by: null, notes: '' };
   let confidence = Math.max(0, Math.min(1, Number(draft.confidence) || 0));
   if (req.stakes === 'high' || (!deciding && plan.high_stakes === true)) {
-    const v = await deps.llm('verify', VERIFY_PROMPT, JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
-      { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: 600 });
+    // The caller's rewrite runs BEFORE the check, one after the other, so the text the reviewer reads is the text
+    // that goes out (12 Oct 2026: a rewrite after the check sent unchecked words; beside it, it killed the worker).
+    if (!deciding && req.polish) {
+      const p = await req.polish(String(draft.answer ?? '')).catch(() => null);
+      if (p) { draft = { ...draft, answer: p }; steps.push({ id: 'polish', kind: 'synthesise', goal: "the caller's rewrite, before the check", status: 'done' }); }
+    }
+    const v = await deps.llm('verify', VERIFY_PROMPT + (req.maxTokens?.verify ? '\nReturn ONLY that JSON object, no other text: "problems" is [] when you agree, else at most two short items.' : ''), JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
+      { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: req.maxTokens?.verify ?? 600 });
     const vj = parseJson<{ verdict?: string; problems?: string[] }>(v.content);
     if (!vj || !v.content) {
       verified = { status: 'not_run', by: v.model ?? null, notes: String(v.error ?? 'no independent reviewer answered') };
@@ -495,7 +563,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? 900 });
       const fixed = parseJson<Draft>(r.content);
       if (fixed && !refuse(fixed, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true })) { draft = fixed; model = r.model ?? model; }
       verified = { status: 'disagreed', by: v.model ?? null, notes: (vj.problems ?? []).join(' | ').slice(0, 1000) };
@@ -522,6 +590,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     missing_context: missing, sources: sources.filter((s) => (draft!.cited ?? []).includes(s.id)),
     confidence, asked_back: draft.asked_back ? String(draft.asked_back) : null, verified, model,
     route: req.route?.some((o) => o.id === String(draft!.route ?? '')) ? String(draft!.route) : null,
+    extra: req.ask?.options.some((o) => o.id === String((draft as unknown as Record<string, unknown>)[req.ask!.key] ?? '')) ? String((draft as unknown as Record<string, unknown>)[req.ask.key]) : null,
   };
 }
 
@@ -533,8 +602,11 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2 });
-      const r = await call(system, input, o.max ?? 900, '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2, ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
+      // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
+      const content = o.images?.length ? [{ role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] }] : input;
+      // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {
@@ -544,29 +616,21 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     },
     space: async () => { const { readSpace } = await import('./ml_embed_client.ts'); return await readSpace(admin); },
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
-    search: webSearch,
+    search: (q) => webSearch(admin, q),
     read: readPage,
   };
 }
 
-// The search engine: DuckDuckGo's HTML endpoint, no key, restricted to the authorities with site:.
-// Its result list is parsed as a FORMAT (anchor tags), and every URL still has to pass authoritative().
-export async function webSearch(query: string): Promise<{ url: string; title: string }[]> {
+// The search engine: Serper, through web_search.ts (cap, private-name guard, official UAE sources only).
+// Without a key, over the cap or on a failure it returns no hits and think() reasons from the knowledge base.
+export async function webSearch(admin: Admin, query: string): Promise<{ url: string; title: string }[]> {
+  const { serperSearch } = await import('./web_search.ts');
   const { timedFetch } = await import('./timed_fetch.ts');
-  const q = `${query} site:gov.ae OR site:u.ae OR site:dm.gov.ae OR site:dcd.gov.ae OR site:uaelegislation.gov.ae`;
-  const r = await timedFetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q), { headers: { 'User-Agent': 'QuotesDone-research/1.0 (+https://www.quotesdone.ae)' } }, 10_000);
-  if (!r.ok) return [];
-  return parseSearchResults(await r.text());
-}
-export function parseSearchResults(html: string): { url: string; title: string }[] {
-  const out: { url: string; title: string }[] = [];
-  for (const m of html.matchAll(/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
-    let url = m[1].replace(/&amp;/g, '&');
-    const redirect = url.match(/[?&]uddg=([^&]+)/);
-    if (redirect) url = decodeURIComponent(redirect[1]);
-    if (authoritative(url)) out.push({ url, title: m[2].replace(/<[^>]+>/g, '').trim() });
-  }
-  return out;
+  return await serperSearch(query, {
+    key: Deno.env.get('SERPER_API_KEY'),
+    fetch: (u, i) => timedFetch(u, i, 10_000),
+    rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
+  });
 }
 export async function readPage(url: string): Promise<string | null> {
   if (!authoritative(url)) return null;
@@ -586,26 +650,70 @@ export function htmlText(html: string): string {
 // resilience_ping calls this each tick. fn_reason_held_due claims the oldest held rows (and does
 // nothing while the gate refuses); each is re-run through think() and handed to fn_reason_held_resolve,
 // which applies the effect the owning surface registered (see the SQL) and records the result.
-export type HeldRow = { id: number; seat: string; surface: string; request: ThinkRequest; subject: Record<string, unknown> | null };
-export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>): Promise<unknown> {
+export type HeldRow = { id: number; seat: string; surface: string; request: ThinkRequest; subject: Record<string, unknown> | null; created_at?: string };
+// THE BACKLOG CLEARS IN ABOUT AN HOUR (7 Oct 2026, ledger 1175 lifted the hold). Until then one tick claimed 3 rows, so
+// 206 held questions took ~17 hours at the 15-minute tick. Now a tick claims `limit` rows at a time, reasons each claim
+// concurrently, and claims again until the claim comes back short, MAX_ROWS are done, or the time budget is spent - so
+// the tick stays inside the edge function's wall clock and the spend per tick is bounded by MAX_ROWS answers.
+// Only status 'held' rows under 3 tries are claimed (fn_reason_held_due); expired/answered rows are never re-asked, and
+// the sweep before it closes what has expired. A STALE answer (question older than STALE_MS) is stored but never sent
+// to a person unreviewed: it goes to the owning seat as held_for_review instead of out on the channel.
+// 12 Oct 2026 (it_engineer, release operator): measured after #1287 on production, the replay rides the itlater step,
+// whose cost rose to ewma 84 s / last 119 s, so the tick plan deferred it on most ticks (5 deferrals in a row) and 6 of
+// 32 ticks ended 546 with 10 concurrent think() calls in flight. The held queue fell 253 -> 248 in eight hours.
+// A smaller slice that fits every tick drains faster than a large one that rarely runs.
+export const REPLAY_MAX_ROWS = 20;
+export const REPLAY_BUDGET_MS = 25_000;
+export const REPLAY_CLAIM = 5;
+export const REPLAY_STALE_MS = 24 * 3600_000;
+export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>,
+  opts: { maxRows?: number; budgetMs?: number; staleMs?: number; now?: () => number } = {}): Promise<unknown> {
   const d = deps ?? defaultDeps(admin, 'resilience_ping');
-  if (heldFromGate(await d.gate().catch(() => null))) return { replayed: 0, reason: 'model_hold' };
-  const { data, error } = await d.rpc('fn_reason_held_due', { p_limit: limit });
-  if (error) return { replayed: 0, error: error.message };
+  const now = opts.now ?? Date.now;
+  const t0 = now();
+  const maxRows = opts.maxRows ?? limit;            // a caller that does not opt in keeps the old one-claim behaviour
+  const budget = opts.budgetMs ?? REPLAY_BUDGET_MS;
+  const staleMs = opts.staleMs ?? REPLAY_STALE_MS;
+  // The sweep runs on every tick, hold or not (5 Oct 2026): until then it ran inside fn_reason_held_due, which this
+  // function never reached while the hold was on, so fixture and stale rows piled up for the day the hold lifts.
+  // A failed sweep never stops the replay: it is retried on the next tick, and fn_reason_held_due sweeps again.
+  const swept = await d.rpc('fn_reason_held_sweep', {}).then((r) => r?.data ?? r?.error?.message ?? null, (e) => String(e));
+  if (heldFromGate(await d.gate().catch(() => null))) return { replayed: 0, reason: 'model_hold', swept };
   const out: unknown[] = [];
-  for (const row of (data ?? []) as HeldRow[]) {
+  const send = async (row: HeldRow, r: ThinkResult) => {
+    let delivery: unknown;
+    // fail closed: a row that does not say when it was asked is treated as stale, never sent unreviewed
+    const asked = row.created_at ? Date.parse(row.created_at) : NaN;
+    const age = Number.isFinite(asked) ? now() - asked : Infinity;
+    if (age > staleMs) delivery = { delivered: false, via: 'held_for_review', detail: `stale: asked ${Number.isFinite(age) ? Math.round(age / 3600_000) + ' h ago' : 'at an unknown time'}; the seat reviews before anything reaches a person` };
+    else try { delivery = await deliver!(row, r); } catch (err) { delivery = { delivered: false, via: 'error', detail: String((err as Error)?.message || err).slice(0, 200) }; }
+    // recording the delivery never aborts the rest of the batch
+    await d.rpc('fn_reason_held_delivered', { p_id: row.id, p_delivery: delivery }).then(() => null, () => null);
+    return delivery;
+  };
+  const one = async (row: HeldRow) => {
     // One row's failure never abandons the batch: a throw is resolved as still held, and counted.
     let r: ThinkResult;
     try { r = await think(d, { ...row.request, queueWhenHeld: false }); }
     catch (err) { r = { status: 'held', answer: '', steps: [], context_used: {}, missing_context: [], sources: [], confidence: 0, reason: 'threw: ' + String((err as Error)?.message || err).slice(0, 200) }; }
     const { data: res, error: e } = await d.rpc('fn_reason_held_resolve', { p_id: row.id, p_result: r });
-    // The answer goes back on the channel it came from (_shared/reasoned_delivery.ts).
+    // The answer goes back on the channel it came from (_shared/reasoned_delivery.ts) - for this row and for every row
+    // that waited on the same question (fn_reason_held_resolve fans one paid answer out to all of them).
     let delivery: unknown = null;
+    const fanned = ((res as { fanned?: HeldRow[] } | null)?.fanned ?? []);
     if (!e && r.status === 'answered' && deliver) {
-      try { delivery = await deliver(row, r); } catch (err) { delivery = { delivered: false, via: 'error', detail: String((err as Error)?.message || err).slice(0, 200) }; }
-      await d.rpc('fn_reason_held_delivered', { p_id: row.id, p_delivery: delivery });
+      delivery = await send(row, r);
+      for (const f of fanned) await send({ ...f, created_at: f.created_at ?? row.created_at }, r);
     }
-    out.push({ id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, delivery, error: e?.message });
+    return { id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, fanned: fanned.length, delivery, error: e?.message };
+  };
+  let error: string | undefined;
+  while (out.length < maxRows && now() - t0 < budget) {
+    const { data, error: ce } = await d.rpc('fn_reason_held_due', { p_limit: Math.min(limit, maxRows - out.length) });
+    if (ce) { error = ce.message; break; }
+    const rows = (data ?? []) as HeldRow[];
+    out.push(...await Promise.all(rows.map(one)));
+    if (rows.length < limit) break;               // the queue is drained (or the claim was short)
   }
-  return { replayed: out.length, rows: out };
+  return error && !out.length ? { replayed: 0, error, swept } : { replayed: out.length, rows: out, swept, ...(error ? { error } : {}) };
 }

@@ -24,3 +24,15 @@ test('a real supplier, a lookalike and a smuggled address are refused', () => {
     assert.equal(seedAddressAllowed(a), false, String(a));
   }
 });
+
+// 5 Oct 2026 (ledger 1115): --lane=m365 routes the seed to the Microsoft 365 lane by marking its kind. The marker
+// must be exactly send_outbox/m365_lane.ts's M365_SEED_KIND, and only the two known lanes are accepted.
+test('--lane=m365 marks the seed with the kind send_outbox routes on; nothing else is a lane', async () => {
+  const { LANES, seedKind } = await import('../invitation_inbox_check.mjs');
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../../supabase/functions/send_outbox/m365_lane.ts', import.meta.url), 'utf8');
+  const kind = /M365_SEED_KIND = '([a-z0-9_]+)'/.exec(src)?.[1];
+  assert.equal(seedKind('m365'), `'${kind}'`);
+  assert.equal(seedKind('resend'), 'null');
+  assert.deepEqual(LANES, ['resend', 'm365']);
+});

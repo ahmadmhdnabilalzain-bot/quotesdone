@@ -7,9 +7,10 @@
     {
       "id": "marble_stone:uae-market-products",
       "topic": "Marble, granite & natural stone: products, variants and grades sold in the UAE",
+      "topic_ar": "الرخام والجرانيت والحجر الطبيعي: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Natural stone sold in the UAE: marbles (Carrara, Calacatta, Statuario, Botticino, Crema Marfil, Emperador, Greek Thassos and Volakas, Turkish Afyon, Omani and Iranian marbles), granites (Absolute Black, Tan Brown, Black Galaxy, Kashmir White, Chinese G603/G654), limestones (Jerusalem stone, Egyptian Galala and Sinai Pearl, Portuguese Moleanos, Omani stone), travertine, sandstone, onyx, slate, and engineered stone (quartz surfaces, sintered stone/porcelain slabs). Finishes: polished, honed, brushed, leathered, flamed, bush-hammered, sandblasted. Uses: flooring, wall cladding (dry-fixed with stainless steel anchors on façades), countertops, stairs, pool copings. Specs: stone name and origin, grade/selection, thickness, finish, water absorption and flexural strength (EN 1469/EN 12058), and sealing.",
-      "body_ar": "الحجر الطبيعي المباع في الإمارات: الرخام (كرارا، كالاكاتا، ستاتواريو، بوتيتشينو، كريما مارفيل، إمبرادور، ثاسوس وفولاكاس اليوناني، أفيون التركي، الرخام العُماني والإيراني)، والجرانيت (أبسولوت بلاك، تان براون، بلاك جالاكسي، كشمير وايت، الصيني G603/G654)، والحجر الجيري (حجر القدس، الجلالة وسيناء بيرل المصري، موليانوس البرتغالي، الحجر العُماني)، والترافرتين، والحجر الرملي، والأونيكس، والأردواز، والحجر الهندسي (أسطح الكوارتز، والحجر الملبّد/ألواح البورسلان). التشطيبات: مصقول، مطفي، مفرّش، جلدي، محروق باللهب، مطروق، مرمل. الاستخدامات: الأرضيات، وتكسية الجدران (تثبيت جاف بمراسي فولاذ مقاوم للصدأ على الواجهات)، وأسطح العمل، والسلالم، وحواف المسابح. المواصفات: اسم الحجر ومنشؤه، والدرجة/الانتقاء، والسماكة، والتشطيب، وامتصاص الماء ومقاومة الانحناء (EN 1469/EN 12058)، والعزل.",
+      "body_en": "Natural stone in the UAE includes marbles, granites, limestones, travertine, onyx and engineered quartz or sintered slabs in many finishes, for flooring, cladding, countertops and stairs, specified by stone, origin, grade, thickness and finish. Natural stone sold in the UAE: marbles (Carrara, Calacatta, Statuario, Botticino, Crema Marfil, Emperador, Greek Thassos and Volakas, Turkish Afyon, Omani and Iranian marbles), granites (Absolute Black, Tan Brown, Black Galaxy, Kashmir White, Chinese G603/G654), limestones (Jerusalem stone, Egyptian Galala and Sinai Pearl, Portuguese Moleanos, Omani stone), travertine, sandstone, onyx, slate, and engineered stone (quartz surfaces, sintered stone/porcelain slabs). Finishes: polished, honed, brushed, leathered, flamed, bush-hammered, sandblasted. Uses: flooring, wall cladding (dry-fixed with stainless steel anchors on façades), countertops, stairs, pool copings. Specs: stone name and origin, grade/selection, thickness, finish, water absorption and flexural strength (EN 1469/EN 12058), and sealing.",
+      "body_ar": "يشمل الحجر الطبيعي في الإمارات الرخام والجرانيت والحجر الجيري والترافرتين والأونكس، وألواح الكوارتز الصناعي أو الألواح الملبَّدة بتشطيبات متعددة، للأرضيات والتكسية وأسطح المطابخ والدرج، وتُحدَّد بنوع الحجر ومنشئه ودرجته وسماكته وتشطيبه. الحجر الطبيعي المباع في الإمارات: الرخام (كرارا، كالاكاتا، ستاتواريو، بوتيتشينو، كريما مارفيل، إمبرادور، ثاسوس وفولاكاس اليوناني، أفيون التركي، الرخام العُماني والإيراني)، والجرانيت (أبسولوت بلاك، تان براون، بلاك جالاكسي، كشمير وايت، الصيني G603/G654)، والحجر الجيري (حجر القدس، الجلالة وسيناء بيرل المصري، موليانوس البرتغالي، الحجر العُماني)، والترافرتين، والحجر الرملي، والأونيكس، والأردواز، والحجر الهندسي (أسطح الكوارتز، والحجر الملبّد/ألواح البورسلان). التشطيبات: مصقول، مطفي، مفرّش، جلدي، محروق باللهب، مطروق، مرمل. الاستخدامات: الأرضيات، وتكسية الجدران (تثبيت جاف بمراسي فولاذ مقاوم للصدأ على الواجهات)، وأسطح العمل، والسلالم، وحواف المسابح. المواصفات: اسم الحجر ومنشؤه، والدرجة/الانتقاء، والسماكة، والتشطيب، وامتصاص الماء ومقاومة الانحناء (EN 1469/EN 12058)، والعزل.",
       "sources": [
         "https://rathathmarble.com/",
         "https://en.wikipedia.org/wiki/Khor_Khwair",
@@ -25,9 +26,10 @@
     {
       "id": "marble_stone:uae-market-brands",
       "topic": "Marble, granite & natural stone: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "الرخام والجرانيت والحجر الطبيعي: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Processors, distributors and brands: Rathath Marble, Independent Marble Factory, Glaze, Caesarstone, Silestone, Dekton, Compac, Technistone, Neolith, Laminam, Lapitec. Stone is imported as blocks and slabs from Italy, Spain, Turkey, Greece, India, China, Egypt, Iran, Oman, Portugal and Brazil and processed in Sharjah, Ajman, Ras Al Khaimah and Dubai factories; aggregates and local stone come from Khor Khwair (RAK). Only Glaze was checked as a local distributor (for Caesarstone).",
-      "body_ar": "المعالجون والموزعون والعلامات: Rathath Marble، Independent Marble Factory، Glaze، Caesarstone، Silestone، Dekton، Compac، Technistone، Neolith، Laminam، Lapitec. ويُستورد الحجر كتلاً وألواحاً من إيطاليا وإسبانيا وتركيا واليونان والهند والصين ومصر وإيران وعُمان والبرتغال والبرازيل ويُعالج في مصانع الشارقة وعجمان ورأس الخيمة ودبي؛ ويأتي الركام والحجر المحلي من خور خوير (رأس الخيمة). ولم يُتحقق من موزع محلي إلا Glaze (لـCaesarstone).",
+      "body_en": "Stone is supplied by processors and brands such as Rathath Marble, Independent Marble Factory, Caesarstone, Silestone, Dekton and Neolith, imported from countries including Italy, Spain, Turkey and India and processed in UAE factories. Processors, distributors and brands: Rathath Marble, Independent Marble Factory, Glaze, Caesarstone, Silestone, Dekton, Compac, Technistone, Neolith, Laminam, Lapitec. Stone is imported as blocks and slabs from Italy, Spain, Turkey, Greece, India, China, Egypt, Iran, Oman, Portugal and Brazil and processed in Sharjah, Ajman, Ras Al Khaimah and Dubai factories; aggregates and local stone come from Khor Khwair (RAK). Only Glaze was checked as a local distributor (for Caesarstone).",
+      "body_ar": "يورِّد الحجر مصانع وعلامات مثل رثاث للرخام وIndependent Marble Factory وCaesarstone وSilestone وDekton وNeolith، ويُستورد من دول منها إيطاليا وإسبانيا وتركيا والهند ويُعالَج في مصانع داخل الإمارات. المعالجون والموزعون والعلامات: Rathath Marble، Independent Marble Factory، Glaze، Caesarstone، Silestone، Dekton، Compac، Technistone، Neolith، Laminam، Lapitec. ويُستورد الحجر كتلاً وألواحاً من إيطاليا وإسبانيا وتركيا واليونان والهند والصين ومصر وإيران وعُمان والبرتغال والبرازيل ويُعالج في مصانع الشارقة وعجمان ورأس الخيمة ودبي؛ ويأتي الركام والحجر المحلي من خور خوير (رأس الخيمة). ولم يُتحقق من موزع محلي إلا Glaze (لـCaesarstone).",
       "sources": [
         "https://rathathmarble.com/",
         "https://en.wikipedia.org/wiki/Khor_Khwair",
@@ -43,9 +45,10 @@
     {
       "id": "marble_stone:uae-market-sizes",
       "topic": "Marble, granite & natural stone: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "الرخام والجرانيت والحجر الطبيعي: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Slabs are sold per m2 (typical slab about 2.8-3.2 x 1.6-2.0 m, 18-20 mm or 30 mm thick); tiles cut-to-size 600 x 600, 600 x 300, 800 x 800 mm, 20 mm thick; façade cladding 30-40 mm. Countertops per linear metre (600 mm deep) or per m2 with edge profiles and cut-outs as extras. Installed flooring per m2 including polishing and sealing; stairs per step (tread and riser). Price depends heavily on selection grade (first choice, commercial) and vein-matching (bookmatch) requirements.",
-      "body_ar": "تُباع الألواح بالمتر المربع (اللوح النموذجي نحو 2.8-3.2 × 1.6-2.0 م، بسماكة 18-20 مم أو 30 مم)؛ والبلاط المقطوع حسب المقاس 600 × 600 و600 × 300 و800 × 800 مم بسماكة 20 مم؛ وتكسية الواجهات 30-40 مم. وأسطح العمل بالمتر الطولي (عمق 600 مم) أو بالمتر المربع مع إضافات لتشكيل الحواف والفتحات. والأرضيات المركبة بالمتر المربع شاملة الجلي والعزل؛ والسلالم بالدرجة (النائمة والقائمة). ويعتمد السعر كثيراً على درجة الانتقاء (الفرز الأول، التجاري) ومتطلبات مطابقة العروق (بوك ماتش).",
+      "body_en": "Stone slabs and tiles are sold per m2 in set thicknesses, countertops per linear metre or m2, and stairs per step, with price driven by selection grade and vein-matching. Slabs are sold per m2 (typical slab about 2.8-3.2 x 1.6-2.0 m, 18-20 mm or 30 mm thick); tiles cut-to-size 600 x 600, 600 x 300, 800 x 800 mm, 20 mm thick; façade cladding 30-40 mm. Countertops per linear metre (600 mm deep) or per m2 with edge profiles and cut-outs as extras. Installed flooring per m2 including polishing and sealing; stairs per step (tread and riser). Price depends heavily on selection grade (first choice, commercial) and vein-matching (bookmatch) requirements.",
+      "body_ar": "تُباع ألواح الحجر وبلاطه بالمتر المربع بسماكات محددة، وأسطح المطابخ بالمتر الطولي أو المربع، والدرج بالدرجة، ويتحدد السعر بدرجة الاختيار ومطابقة العروق. تُباع الألواح بالمتر المربع (اللوح النموذجي نحو 2.8-3.2 × 1.6-2.0 م، بسماكة 18-20 مم أو 30 مم)؛ والبلاط المقطوع حسب المقاس 600 × 600 و600 × 300 و800 × 800 مم بسماكة 20 مم؛ وتكسية الواجهات 30-40 مم. وأسطح العمل بالمتر الطولي (عمق 600 مم) أو بالمتر المربع مع إضافات لتشكيل الحواف والفتحات. والأرضيات المركبة بالمتر المربع شاملة الجلي والعزل؛ والسلالم بالدرجة (النائمة والقائمة). ويعتمد السعر كثيراً على درجة الانتقاء (الفرز الأول، التجاري) ومتطلبات مطابقة العروق (بوك ماتش).",
       "sources": [
         "https://rathathmarble.com/",
         "https://en.wikipedia.org/wiki/Khor_Khwair",
@@ -61,11 +64,15 @@
   ],
   "eval": [
     {
-      "q_en": "What is the difference between quartz and sintered stone for a countertop?",
-      "q_ar": "ما الفرق بين الكوارتز والحجر الملبّد لسطح عمل المطبخ؟",
+      "q_en": "Which quarried slabs for floors or counters can I find in yards around town these days?",
+      "q_ar": "شو ألواح الحجر الطبيعي للأرضيات أو الكاونترات اللي أقدر ألقاها في الساحات هنا هالأيام؟",
       "expected_entry_ids": [
         "marble_stone:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the marble, granite, limestone and other natural stones sold, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.167,
+      "word_overlap_after_enrichment": 0.167
     }
   ],
   "verified": {

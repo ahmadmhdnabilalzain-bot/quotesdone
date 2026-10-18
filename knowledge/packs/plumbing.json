@@ -826,6 +826,15 @@
         "plumbing:abu-dhabi-tank-design-rules",
         "plumbing:spec-water-tank"
       ]
+    },
+    {
+      "q_en": "Which pipe is normally used for hot and cold water inside UAE buildings?",
+      "q_ar": "ما الأنبوب المستخدم عادة للمياه الساخنة والباردة داخل مباني الإمارات؟",
+      "expected_entry_ids": [
+        "plumbing:ppr-vs-cpvc"
+      ],
+      "why": "States PPR and CPVC are the two dominant pipes for internal hot and cold water in UAE villas and towers and compares them.",
+      "origin": "real buyer question, moved from plumbing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

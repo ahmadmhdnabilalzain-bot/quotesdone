@@ -1,524 +1,535 @@
 {
- "trade": "marketing_advertising",
- "entries": [
-  {
-   "id": "marketing_advertising:advertiser-permit",
-   "topic": "UAE Media Council Advertiser Permit (influencers and content creators)",
-   "kind": "authority_approval",
-   "body_en": "Since 1 February 2026 anyone publishing advertising content online from within the UAE, paid or unpaid, on social media, websites, blogs or other digital platforms, needs an Advertiser Permit from the UAE Media Council. The legal basis is Federal Decree-Law No. 55 of 2023 on Media Regulation, with enforcement detail in Cabinet Resolution No. 42 of 2025. For UAE citizens and residents the permit is issued for one year, renewable, and is free for the first three years. Visiting (non-resident) creators cannot apply directly: a licensed UAE agency must file a Visitor Advertiser Permit for them, valid three months and renewable once. Purely personal, non-commercial posts and people promoting their own registered business are excluded. For a buyer commissioning an agency this matters in three ways. First, the agency must check that every influencer it books holds a valid permit, because the brand and agency are exposed if content runs without one. Second, if a foreign creator is flown in, the agency should quote the visitor-permit handling as a line item and allow lead time. Third, the influencer also needs a trade or freelance licence. Reported fines for operating without a licence start around AED 5,000, and serious content breaches can reach AED 1,000,000. A quote that says nothing about permits for named creators is incomplete.",
-   "body_ar": "منذ الأول من فبراير 2026 أصبح كل من ينشر محتوى إعلانياً عبر الإنترنت من داخل الدولة، مدفوعاً كان أو مجانياً، على منصات التواصل أو المواقع أو المدونات، ملزماً بالحصول على \"تصريح معلن\" من مجلس الإمارات للإعلام. ويستند ذلك إلى المرسوم بقانون اتحادي رقم 55 لسنة 2023 بشأن تنظيم الإعلام، وتفصّل آليات التطبيق قرار مجلس الوزراء رقم 42 لسنة 2025. يُمنح التصريح للمواطنين والمقيمين لمدة سنة قابلة للتجديد، ويكون مجانياً في السنوات الثلاث الأولى. أما صانع المحتوى الزائر غير المقيم فلا يتقدّم بنفسه، بل تتقدّم عنه وكالة مرخّصة في الدولة بطلب \"تصريح معلن زائر\" مدته ثلاثة أشهر يُجدد مرة واحدة. ويُستثنى المحتوى الشخصي غير التجاري ومن يروّج لنشاطه التجاري المسجّل. وبالنسبة للمشتري الذي يتعاقد مع وكالة، فهذا يعني: أولاً على الوكالة التحقق من سريان تصريح كل مؤثر تتعاقد معه، لأن العلامة التجارية والوكالة معرّضتان للمساءلة إن نُشر المحتوى دون تصريح. ثانياً إذا استُقدم مؤثر من الخارج فيجب أن يتضمن العرض بند استخراج تصريح الزائر مع مهلة زمنية كافية. ثالثاً يحتاج المؤثر أيضاً إلى رخصة تجارية أو رخصة عمل حر. وتبدأ الغرامات المعلنة لممارسة النشاط دون ترخيص من نحو 5,000 درهم، وقد تصل مخالفات المحتوى الجسيمة إلى مليون درهم. وأي عرض لا يذكر التصاريح للمؤثرين المسمّين يُعد عرضاً ناقصاً.",
-   "sources": [
-    "https://www.middleeastbriefing.com/news/uae-influencers-must-obtain-advertiser-permit-under-new-media-law/",
-    "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:media-content-standards",
-   "topic": "UAE media content standards and penalty bands (Cabinet Decision 42 of 2025)",
-   "kind": "standard",
-   "body_en": "Cabinet Decision No. 42 of 2025, in force from 29 May 2025, operationalises the federal media law and applies to individuals, media institutions and platforms, which includes advertising content produced by agencies. It groups twenty content violations into categories and grades them by severity from first to fourth degree. Published fine bands include: disrespect of religion AED 100,000 to 1,000,000; disrespect of the state, its symbols or institutions AED 50,000 to 500,000; harming foreign relations AED 30,000 to 250,000; promoting sectarianism, violence or terrorism AED 100,000 to 500,000; immoral or misleading content AED 10,000 to 100,000; breaches of privacy or children's rights AED 5,000 to 100,000; and age-classification or identity failures AED 5,000 to 100,000. Unlicensed media activity attracts administrative fines starting at AED 5,000, rising for repeats. Practical consequences for a brand buying creative: misleading claims are a finable content violation, not just a consumer-law issue; the agency should run a compliance review of scripts, visuals and claims before publishing; and contracts should state who bears regulatory risk if content is taken down. Ask the agency to name the person responsible for regulatory sign-off and to keep substantiation for every factual or comparative claim in the campaign.",
-   "body_ar": "يُفعّل قرار مجلس الوزراء رقم 42 لسنة 2025، الساري منذ 29 مايو 2025، قانون الإعلام الاتحادي، وينطبق على الأفراد والمؤسسات الإعلامية والمنصات، بما في ذلك المحتوى الإعلاني الذي تنتجه الوكالات. ويصنّف القرار عشرين مخالفة محتوى في فئات ويدرّجها من الدرجة الأولى إلى الرابعة بحسب الجسامة. ومن نطاقات الغرامات المعلنة: الإساءة إلى الأديان من 100 ألف إلى مليون درهم، والإساءة إلى الدولة ورموزها ومؤسساتها من 50 ألفاً إلى 500 ألف، والإضرار بالعلاقات الخارجية من 30 ألفاً إلى 250 ألفاً، والترويج للطائفية أو العنف أو الإرهاب من 100 ألف إلى 500 ألف، والمحتوى المنافي للآداب أو المضلل من 10 آلاف إلى 100 ألف، وانتهاك الخصوصية أو حقوق الطفل من 5 آلاف إلى 100 ألف، وإخفاقات التصنيف العمري أو الهوية من 5 آلاف إلى 100 ألف. وتبدأ غرامات ممارسة النشاط الإعلامي دون ترخيص من 5,000 درهم وتزيد عند التكرار. والنتيجة العملية للعلامة التجارية التي تشتري أعمالاً إبداعية أن الادعاء المضلل مخالفة محتوى تستوجب الغرامة وليس مسألة حماية مستهلك فقط، وأن على الوكالة مراجعة النصوص والمرئيات والادعاءات قبل النشر، وأن يحدد العقد من يتحمّل المخاطر التنظيمية عند حذف المحتوى. واطلب من الوكالة تسمية المسؤول عن الاعتماد التنظيمي والاحتفاظ بما يثبت كل ادعاء واقعي أو مقارن في الحملة.",
-   "sources": [
-    "https://www.clydeco.com/en/insights/2025/05/uae-media-regulations-framework"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:dubai-ad-permit-decree-6",
-   "topic": "Dubai outdoor advertising permits under Decree No. 6 of 2020",
-   "kind": "authority_approval",
-   "body_en": "Dubai Decree No. 6 of 2020 states that no advertisement may be displayed in any advertising space in the emirate without first obtaining a permit, issued through a central electronic system. The competent entity depends on location: Dubai Municipality for vacant land, buildings, coastal and desert areas; the RTA for road rights-of-way, public transport and vehicles; the economic department (now DET) for shop façades, leaflets and stickers; and specialised authorities for airports, ports and free zones. The decree covers boards, fences, pillars, balloons, aircraft, vehicles and vessels, but not newspapers, magazines, websites, radio, TV or cinema, which fall under media regulation instead. Content must respect Sharia, public order, morals and local traditions, must not obstruct views or create hazards, and Arabic must be the primary language. Permits are time-bound; on expiry or revocation the holder must remove the medium and restore the site at its own cost. Fines run AED 1,000 to 15,000 per violation, doubled for a repeat within a year up to AED 30,000, with a 25% administrative charge (minimum AED 2,000) if the authority removes the medium itself. Buyers should confirm in writing which party (media owner, agency or advertiser) holds the permit and who pays if a campaign is pulled.",
-   "body_ar": "ينص مرسوم دبي رقم 6 لسنة 2020 على عدم جواز عرض أي إعلان في أي مساحة إعلانية في الإمارة قبل الحصول على تصريح يصدر عبر نظام إلكتروني موحّد. وتتحدد الجهة المختصة بحسب الموقع: بلدية دبي للأراضي الفضاء والمباني والمناطق الساحلية والصحراوية، وهيئة الطرق والمواصلات لحرم الطرق والمواصلات العامة والمركبات، ودائرة الاقتصاد لواجهات المحال والنشرات والملصقات، والجهات المتخصصة للمطارات والموانئ والمناطق الحرة. ويشمل المرسوم اللوحات والأسوار والأعمدة والبالونات والطائرات والمركبات والسفن، ولا يشمل الصحف والمجلات والمواقع الإلكترونية والإذاعة والتلفزيون والسينما التي تخضع لتنظيم الإعلام. ويجب أن يراعي المحتوى أحكام الشريعة والنظام العام والآداب والتقاليد، وألا يحجب الرؤية أو يشكّل خطراً، وأن تكون العربية هي اللغة الأساسية. والتصاريح محددة المدة، وعند انتهائها أو إلغائها يلتزم حاملها بإزالة الوسيلة وإعادة الموقع إلى حالته على نفقته. وتتراوح الغرامة بين 1,000 و15,000 درهم للمخالفة، وتضاعف عند التكرار خلال سنة بحد أقصى 30,000 درهم، مع رسوم إدارية 25% (بحد أدنى 2,000 درهم) إذا أزالت الجهة الوسيلة بنفسها. وعلى المشتري أن يثبت كتابياً أي طرف يحمل التصريح (مالك الوسيلة أو الوكالة أو المعلن) ومن يتحمّل الكلفة إذا أوقفت الحملة.",
-   "sources": [
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html",
-    "https://ooh.ae/our-work/articles/ooh-advertising-permits-in-the-uae"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:arabic-language-rule",
-   "topic": "Arabic-language requirement on Dubai outdoor advertisements",
-   "kind": "standard",
-   "body_en": "Decree No. 6 of 2020 requires Arabic to be used as the primary language of an advertisement in Dubai, occupying at least half of the advertising medium. For agencies this is a design constraint, not an afterthought: layouts built in English and then \"translated\" often fail because the Arabic copy is squeezed into a corner. A compliant artwork plans Arabic and English as equal or Arabic-led from the first concept, uses a proper Arabic typeface rather than a machine-set fallback, and has the Arabic copy written by a native copywriter so that the message reads naturally rather than as a literal translation. Brand names and trademarks are usually shown as registered, but the descriptive message around them should be in Arabic. Buyers should ask the agency to confirm, before production, that the final artwork meets the Arabic requirement for the specific emirate and medium; other emirates and free-zone authorities apply their own signage and content rules, which should be checked separately rather than assumed identical to Dubai. The same principle affects vehicle branding, hoardings and building wraps that fall under the decree. A rejected artwork costs time twice: resubmission to the authority and reprinting. Build the review into the timeline and keep the approved artwork file as the production master.",
-   "body_ar": "يشترط مرسوم دبي رقم 6 لسنة 2020 أن تكون اللغة العربية هي اللغة الأساسية في الإعلان، وأن تشغل نصف الوسيلة الإعلانية على الأقل. وهذا بالنسبة للوكالات قيد تصميمي من البداية لا إضافة لاحقة، فالتصاميم التي تُبنى بالإنجليزية ثم \"تُترجم\" كثيراً ما تُرفض لأن النص العربي يُحشر في زاوية. والتصميم المطابق يخطط للعربية والإنجليزية بالتساوي أو بتقديم العربية منذ الفكرة الأولى، ويستخدم خطاً عربياً احترافياً لا خطاً بديلاً آلياً، ويكتب النص العربي كاتب إعلانات يتقن العربية حتى تُقرأ الرسالة بسلاسة لا كترجمة حرفية. وتُعرض الأسماء والعلامات التجارية عادة كما هي مسجلة، لكن الرسالة الوصفية حولها يجب أن تكون بالعربية. وعلى المشتري أن يطلب من الوكالة تأكيد مطابقة التصميم النهائي لاشتراط اللغة العربية في الإمارة والوسيلة المعنية قبل الإنتاج، إذ تطبق الإمارات الأخرى وسلطات المناطق الحرة قواعدها الخاصة للافتات والمحتوى، ويجب التحقق منها بشكل مستقل لا افتراض تطابقها مع دبي. وينطبق المبدأ نفسه على تغليف المركبات والأسوار الإعلانية وتغليف المباني الخاضعة للمرسوم. والتصميم المرفوض يكلّف الوقت مرتين: إعادة التقديم للجهة ثم إعادة الطباعة، لذا أدرج المراجعة في الجدول الزمني واحتفظ بملف التصميم المعتمد كنسخة إنتاج رئيسية.",
-   "sources": [
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:dda-freezone-permit",
-   "topic": "Advertising permits in Dubai Development Authority (TECOM) free zones",
-   "kind": "authority_approval",
-   "body_en": "Inside the Dubai Development Authority's free-zone communities (the TECOM areas), advertising permits are issued by DDA rather than Dubai Municipality; applicants outside those areas are directed to Dubai Municipality after any DDA structural review. DDA's service covers building signage (wall-mounted, wraps, rooftop, window stickers, shop fronts), billboards (unipoles, hoardings, megacoms, mupis, lamppost signs), construction fencing, inflatables, bridge banners, roundabout branding, flags and free-standing units. Typical submissions are a location map or site plan, trade licence, mock-ups showing the existing façade and the proposed design with dimensions, structural calculations and drawings where relevant, owner or contractor authorisation, and clearances from sector regulators where the content requires it (for example real-estate, tourism or education regulators). Illuminated signs, electrical installations and signs above 2.5 m need a risk assessment. DDA publishes annual fees such as AED 5,000 for premium signage, AED 2,500 for parapet signs, AED 1,500 for flags or standalone units, AED 1,000 for window stickers and AED 500 for ground-floor shop signage, plus AED 20 knowledge and innovation fees, with a stated service time of four working days. Buyers should ask the agency which authority governs each site before quoting, because the wrong route wastes weeks.",
-   "body_ar": "داخل مجتمعات المناطق الحرة التابعة لسلطة دبي للتطوير (مناطق تيكوم) تصدر تصاريح الإعلان من السلطة لا من بلدية دبي، أما المتقدمون من خارج هذه المناطق فيُحالون إلى بلدية دبي بعد المراجعة الإنشائية لدى السلطة عند الحاجة. وتشمل الخدمة لافتات المباني (المثبتة على الجدران والتغليف ولافتات الأسطح وملصقات النوافذ وواجهات المحال)، واللوحات الإعلانية (الأعمدة الأحادية والأسوار والميغاكوم والموبي ولافتات أعمدة الإنارة)، وأسوار مواقع البناء والمجسمات القابلة للنفخ ولافتات الجسور وتزيين الدوارات والأعلام والوحدات القائمة بذاتها. ويُطلب عادة مخطط الموقع والرخصة التجارية وتصاميم توضيحية للواجهة الحالية والتصميم المقترح بأبعاده، والحسابات والمخططات الإنشائية عند اللزوم، وتفويض المالك أو المقاول، وموافقات الجهات القطاعية إذا تطلب المحتوى ذلك مثل جهات العقارات أو السياحة أو التعليم. وتحتاج اللافتات المضيئة والتركيبات الكهربائية واللافتات التي يزيد ارتفاعها على 2.5 متر إلى تقييم مخاطر. وتعلن السلطة رسوماً سنوية منها 5,000 درهم للافتات المميزة و2,500 للافتات الحاجز العلوي و1,500 للأعلام والوحدات المستقلة و1,000 لملصقات النوافذ و500 للافتات المحال الأرضية، إضافة إلى 20 درهماً رسوم المعرفة والابتكار، بمدة خدمة معلنة أربعة أيام عمل. وعلى المشتري أن يسأل الوكالة عن الجهة المختصة بكل موقع قبل التسعير، لأن اختيار المسار الخاطئ يضيّع أسابيع.",
-   "sources": [
-    "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:abu-dhabi-other-emirates",
-   "topic": "Outdoor advertising approvals outside Dubai (Abu Dhabi, Sharjah)",
-   "kind": "authority_approval",
-   "body_en": "Outside Dubai each emirate runs its own outdoor-advertising approvals. In Abu Dhabi the Department of Municipalities and Transport handles permits, and Sharjah operates its own municipal approval system. For business signage on buildings, Abu Dhabi's DMT publishes Commercial Signage Regulations (version 5) that define permitted sign typologies by building type and level (ground floor, mezzanine, building body, colonnades, villas, malls, warehouses and industrial complexes), with limits such as light fixtures protruding no more than 15 cm from an illuminated sign, phone numbers or websites covering at most 10% of a sign, and caps on sign area relative to façade or wall. Across emirates the typical stack of approvals is: a municipal permit for the structure or display; the transport authority where the site is on a road corridor or transit asset; confirmation of the advertiser's and agency's trade licensing; the landlord's no-objection for private sites; and content pre-clearance for sensitive material such as celebrity endorsements, political messaging or culturally sensitive themes. Industry sources describe temporary campaign permits lasting roughly two weeks to one month with extension options, but the exact durations, fees and document lists for Abu Dhabi and Sharjah were not established from a primary authority page during this research and must be confirmed with the authority or the media owner for each booking. Sector regulators add their own layer, for example real-estate advertising regulators in each emirate. In practice, established media owners usually hold the structure permits for their own sites and advise on campaign content approvals, while temporary or ad-hoc installations require the agency or advertiser to apply. Ask the quoting party to list every approval it will obtain and which ones remain the advertiser's responsibility.",
-   "body_ar": "خارج دبي تدير كل إمارة موافقات الإعلانات الخارجية بنفسها، ففي أبوظبي تتولى دائرة البلديات والنقل التصاريح، وللشارقة نظام موافقات بلدي خاص. وتتكون حزمة الموافقات المعتادة في الإمارات من: تصريح بلدي للمنشأة أو وسيلة العرض، وموافقة جهة النقل إذا كان الموقع على محور طرق أو أصل من أصول النقل، والتحقق من الترخيص التجاري للمعلن والوكالة، وعدم ممانعة المالك في المواقع الخاصة، والموافقة المسبقة على المحتوى الحساس مثل ظهور المشاهير أو الرسائل السياسية أو الموضوعات ذات الحساسية الثقافية. وتذكر مصادر القطاع أن تصاريح الحملات المؤقتة تمتد عادة من أسبوعين إلى شهر مع إمكانية التمديد، لكن المدد والرسوم وقوائم المستندات الدقيقة في أبوظبي والشارقة لم تثبت من صفحة رسمية أثناء هذا البحث، ويجب التأكد منها لدى الجهة أو مالك الوسيلة في كل حجز. أما لافتات الأنشطة التجارية على المباني فتنشر دائرة البلديات والنقل في أبوظبي \"لائحة اللافتات التجارية\" (الإصدار الخامس) التي تحدد أنواع اللافتات المسموح بها بحسب نوع المبنى والمستوى (الطابق الأرضي والميزانين وجسم المبنى والأروقة والفلل والمراكز التجارية والمستودعات والمجمعات الصناعية)، ومن حدودها ألا تبرز وحدات الإضاءة أكثر من 15 سم عن اللافتة المضيئة، وألا تتجاوز أرقام الهاتف أو المواقع الإلكترونية 10% من اللافتة، مع سقوف لمساحة اللافتة نسبة إلى الواجهة أو الجدار. وتضيف الجهات القطاعية طبقة أخرى، مثل جهات تنظيم الإعلانات العقارية في كل إمارة. وعملياً يحمل ملاك الوسائل المعروفون تصاريح منشآتهم عادة ويقدّمون المشورة في موافقات محتوى الحملات، أما التركيبات المؤقتة فتتقدم لها الوكالة أو المعلن. اطلب من مقدّم العرض أن يسرد كل موافقة سيستخرجها وما يبقى على عاتق المعلن.",
-   "sources": [
-    "https://ooh.ae/our-work/articles/ooh-advertising-permits-in-the-uae",
-    "https://www.dmt.gov.ae/-/media/Project/DMT/DMT/E-Library/10-22/Commercial-Signage-Regulations---Version-5.pdf"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:real-estate-trakheesi",
-   "topic": "Real-estate advertising permit (DLD Trakheesi) for property campaigns in Dubai",
-   "kind": "authority_approval",
-   "body_en": "Any real-estate advertising in Dubai needs a Dubai Land Department advertising permit issued through the Trakheesi system before it runs. The permit covers fourteen activity types: newspaper, SMS, outdoor, vehicle, printed, electronic and billboard advertisements, promotional campaigns, open-house events, classified ads, real-estate exhibitions, project-launch events, promotion platforms and seminars. DLD publishes a fee of AED 1,000 per permit (AED 5,000 for a project-launch event) plus AED 20 knowledge and innovation fees, with a service time of one working day; exhibition bookings have separate fees. Required documents vary by type, for example the advertisement form, relevant contracts, no-objection letters or platform designs. For an agency running a developer or brokerage campaign, this means the permit number must be obtained per advertisement and shown on the creative, the agency cannot publish property creative on a client's behalf without it, and every channel (social, outdoor, SMS) is in scope. Abu Dhabi has its own real-estate advertising rules under its real-estate regulator; those were not verified here. Buyers should require the agency to include the Trakheesi reference in the approval workflow and never to schedule media before the permit is issued.",
-   "body_ar": "يتطلب أي إعلان عقاري في دبي تصريحاً إعلانياً من دائرة الأراضي والأملاك يصدر عبر نظام \"ترخيصي\" قبل نشره. ويشمل التصريح أربعة عشر نوعاً من الأنشطة: إعلانات الصحف والرسائل النصية والإعلانات الخارجية وعلى المركبات والمطبوعة والإلكترونية واللوحات، والحملات الترويجية، وفعاليات البيت المفتوح، والإعلانات المبوبة، والمعارض العقارية، وفعاليات إطلاق المشاريع، ومنصات الترويج، والندوات العقارية. وتعلن الدائرة رسماً قدره 1,000 درهم للتصريح (و5,000 درهم لفعالية إطلاق مشروع) إضافة إلى 20 درهماً رسوم المعرفة والابتكار، بمدة خدمة يوم عمل واحد، وللمعارض رسوم مستقلة. وتختلف المستندات بحسب النوع، مثل نموذج الإعلان والعقود ذات الصلة وخطابات عدم الممانعة أو تصاميم المنصات. وبالنسبة للوكالة التي تدير حملة لمطوّر أو وسيط، فهذا يعني استخراج رقم تصريح لكل إعلان وإظهاره على التصميم، وعدم نشر أي محتوى عقاري نيابة عن العميل دونه، وأن جميع القنوات (التواصل الاجتماعي والإعلانات الخارجية والرسائل) مشمولة. ولأبوظبي قواعدها الخاصة للإعلانات العقارية لدى جهة تنظيم العقارات فيها، ولم يتم التحقق منها هنا. وعلى المشتري أن يلزم الوكالة بإدراج رقم \"ترخيصي\" في مسار الاعتماد، وألا تُجدول أي مساحة إعلانية قبل صدور التصريح.",
-   "sources": [
-    "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:medical-ads",
-   "topic": "Healthcare and medical advertising in Dubai (DHA standards)",
-   "kind": "authority_approval",
-   "body_en": "Healthcare advertising is one of the most regulated categories an agency will handle. The Dubai Health Authority's Standards for Medical Advertisement Content on Social Media (version 1.1, effective October 2022) apply to DHA-licensed facilities and professionals. Key rules: the facility's medical director is responsible for approving social media advertisement content; documented written consent is required from any patient or individual shown, limited to the purpose and period consented; before-and-after pictures must show the same person, same lens and no retouching, with a statement that results vary; and the prohibited list includes guaranteed or miraculous outcomes, treatments promising full recovery, testimonials without written patient consent, and discounts or inducements that cannot be met. At federal level, medical products cannot be advertised in the UAE until MOHAP has issued a marketing authorisation, prescription-only medicines may not be promoted to the public at all, and advertisements for permitted products need prior approval; emirate health authorities may also review, and digital channels additionally fall under the media law. For a clinic or pharma client the agency must build regulator approval into the timeline, avoid influencer \"reviews\" of treatments unless compliant, and keep consent records. Quotes that promise fast launch of medical creative without approval steps are a warning sign.",
-   "body_ar": "يُعد الإعلان الصحي من أشد الفئات تنظيماً التي تتعامل معها الوكالات. وتسري \"معايير محتوى الإعلانات الطبية على وسائل التواصل الاجتماعي\" الصادرة عن هيئة الصحة بدبي (الإصدار 1.1 النافذ منذ أكتوبر 2022) على المنشآت والمهنيين المرخّصين من الهيئة. ومن أهم أحكامها: أن المدير الطبي للمنشأة مسؤول عن اعتماد محتوى الإعلان، وأنه يلزم الحصول على موافقة خطية موثقة من أي مريض أو شخص يظهر في الإعلان ومقصورة على الغرض والمدة المحددين، وأن صور \"قبل وبعد\" يجب أن تكون للشخص نفسه وبالعدسة نفسها ودون تعديل مع عبارة تفيد بأن النتائج تختلف، وتشمل قائمة المحظورات ادعاء نتائج مضمونة أو خارقة، والعلاجات التي تعد بالشفاء التام، وشهادات المرضى دون موافقة خطية، والخصومات أو الحوافز التي لا يمكن الوفاء بها. وعلى المستوى الاتحادي لا يجوز الإعلان عن أي منتج طبي قبل حصوله على إذن تسويق من وزارة الصحة ووقاية المجتمع، ويُحظر الترويج للأدوية التي تُصرف بوصفة طبية للجمهور، وتحتاج إعلانات المنتجات المسموح بها إلى موافقة مسبقة، وقد تراجعها الجهات الصحية المحلية، وتخضع القنوات الرقمية كذلك لقانون الإعلام. وعلى الوكالة التي تخدم عيادة أو شركة دوائية أن تُدرج موافقة الجهة التنظيمية في الجدول الزمني، وأن تتجنب \"مراجعات\" المؤثرين للعلاجات ما لم تكن مطابقة، وأن تحتفظ بسجلات الموافقات. والعروض التي تعد بإطلاق سريع لمحتوى طبي دون خطوات الموافقة علامة تحذير.",
-   "sources": [
-    "https://dha.gov.ae/uploads/042022/Standards%20for%20Medical%20Advertisement%20Content%20in%20Social%20Media2022433965.pdf",
-    "https://cms.law/en/int/expert-guides/cms-expert-guide-to-advertising-of-medicines-and-medical-devices/united-arab-emirates"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:pdpl-marketing-data",
-   "topic": "Personal data and direct marketing under the UAE PDPL",
-   "kind": "standard",
-   "body_en": "Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data came into force on 2 January 2022 and applies to processing of personal data by electronic or other means, inside or outside the UAE. As a general rule it prohibits processing personal data without the data subject's consent, subject to listed exceptions, and gives individuals rights to correct inaccurate data and to restrict or stop processing. The UAE Data Office is the federal regulator. Separately, the federal consumer protection law restricts suppliers from using consumer data for marketing without authorisation. The DIFC has its own data protection law, so campaigns processing data in financial free zones follow different rules. For agencies this touches CRM campaigns, lead-generation forms, retargeting audiences, SMS and email blasts, and influencer giveaways that collect contact details. A compliant brief states the lawful basis for each dataset, who is controller and processor, where data is hosted, retention periods, and how opt-outs are honoured. Detailed PDPL executive regulations and specific marketing-consent formalities were not verified from a primary source in this research and should be confirmed by counsel. Buyers should never hand over or buy contact lists without proof of consent, and should include a data processing clause in the agency contract.",
-   "body_ar": "صدر المرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية ودخل حيز النفاذ في 2 يناير 2022، ويسري على معالجة البيانات الشخصية إلكترونياً أو بغير ذلك داخل الدولة أو خارجها. والقاعدة العامة فيه حظر معالجة البيانات الشخصية دون موافقة صاحبها مع استثناءات محددة، ويمنح الأفراد حق تصحيح البيانات غير الدقيقة وتقييد المعالجة أو إيقافها. ومكتب الإمارات للبيانات هو الجهة الاتحادية المنظِّمة. وبشكل منفصل يقيّد قانون حماية المستهلك الاتحادي استخدام المورّدين لبيانات المستهلكين في التسويق دون إذن. ولمركز دبي المالي العالمي قانون خاص لحماية البيانات، لذا تخضع الحملات التي تعالج البيانات في المناطق الحرة المالية لقواعد مختلفة. ويمس ذلك عمل الوكالات في حملات إدارة علاقات العملاء ونماذج جمع العملاء المحتملين وجماهير إعادة الاستهداف والرسائل النصية والبريدية الجماعية ومسابقات المؤثرين التي تجمع بيانات الاتصال. والموجز المطابق يحدد الأساس القانوني لكل مجموعة بيانات، ومن هو المتحكم ومن هو المعالج، ومكان الاستضافة، ومدد الاحتفاظ، وآلية تنفيذ طلبات إلغاء الاشتراك. ولم يتم التحقق من اللائحة التنفيذية التفصيلية للقانون ولا من شكليات موافقة التسويق من مصدر رسمي في هذا البحث، ويجب تأكيدها مع مستشار قانوني. ولا ينبغي للمشتري تسليم قوائم اتصال أو شراؤها دون إثبات الموافقة، وعليه تضمين بند لمعالجة البيانات في عقد الوكالة.",
-   "sources": [
-    "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "technical"
-  },
-  {
-   "id": "marketing_advertising:telemarketing-rules",
-   "topic": "Telemarketing and marketing messages (Cabinet Resolutions 56 and 57 of 2024)",
-   "kind": "authority_approval",
-   "body_en": "Cabinet Resolutions No. 56 and 57 of 2024 regulate telemarketing in the UAE and took effect on 27 August 2024. Telemarketing is defined broadly to include marketing calls, marketing text messages and marketing messages sent through social media applications. Key obligations: prior approval from the competent authority before carrying out telemarketing; use of local numbers registered under the company's commercial licence; calls only between 9:00 am and 6:00 pm; no contact with numbers on the Do Not Call Registry (DNCR) run by the telecom regulator; disclosure of the caller's identity and purpose; explicit consumer consent; records of marketing calls kept in the authority's forms; and staff training. Resolution 57 sets administrative penalties ranging from warnings and fines to licence suspension or cancellation according to severity and repetition; specific fine amounts were not confirmed from the source fetched. For a buyer outsourcing lead generation or SMS campaigns, the agency or call centre must show its approval, number registration and DNCR scrubbing process, and the contract should state who is liable for violations. Cheap \"blast\" SMS packages sent from unregistered senders or foreign numbers are a direct compliance risk to the brand.",
-   "body_ar": "ينظم قرارا مجلس الوزراء رقم 56 و57 لسنة 2024 التسويق عبر الهاتف في الدولة، وقد دخلا حيز النفاذ في 27 أغسطس 2024. ويُعرَّف التسويق الهاتفي تعريفاً واسعاً يشمل المكالمات والرسائل النصية التسويقية والرسائل التسويقية عبر تطبيقات التواصل الاجتماعي. ومن أهم الالتزامات: الحصول على موافقة مسبقة من الجهة المختصة قبل مزاولة التسويق الهاتفي، واستخدام أرقام محلية مسجلة باسم الرخصة التجارية للشركة، وإجراء المكالمات بين التاسعة صباحاً والسادسة مساءً فقط، وعدم الاتصال بالأرقام المسجلة في \"سجل عدم الإزعاج\" الذي تديره الجهة المنظمة للاتصالات، والإفصاح عن هوية المتصل والغرض من الاتصال، والحصول على موافقة صريحة من المستهلك، والاحتفاظ بسجلات المكالمات التسويقية على النماذج المعتمدة، وتدريب الموظفين. ويحدد القرار 57 جزاءات إدارية تتدرج من الإنذار والغرامة إلى وقف الترخيص أو إلغائه بحسب الجسامة والتكرار، ولم تُؤكد مبالغ الغرامات من المصدر الذي تم الاطلاع عليه. وعلى المشتري الذي يسند توليد العملاء أو حملات الرسائل النصية إلى جهة خارجية أن يطلب من الوكالة أو مركز الاتصال إثبات الموافقة وتسجيل الأرقام وآلية تنقية القوائم من سجل عدم الإزعاج، وأن يحدد العقد المسؤول عن المخالفات. وباقات الرسائل الجماعية الرخيصة المرسلة من معرّفات غير مسجلة أو أرقام أجنبية خطر امتثال مباشر على العلامة التجارية.",
-   "sources": [
-    "https://rouse.com/insights/news/2024/new-telemarketing-regulations-introduced-in-uae"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:brief-brand-identity",
-   "topic": "What to specify when requesting brand identity and creative work",
-   "kind": "spec_checklist",
-   "body_en": "Brand identity quotes vary more than almost any other service because \"a logo\" can mean a two-day sketch or a months-long strategic programme. A supplier can only quote exactly if the buyer defines the scope. State whether you need strategy (research, positioning, naming) or only visual execution; the exact deliverables (logo master and variants, colour palette, typography, iconography, brand guidelines document, stationery, templates, signage and vehicle applications); whether an Arabic logotype and Arabic typography must be designed rather than adapted, since UAE outdoor rules make Arabic the primary language on signage; the number of initial concepts and revision rounds included; file formats to be delivered (vector AI/EPS/SVG, PDF, PNG, CMYK/RGB/Pantone references); who owns the intellectual property and whether full copyright assignment and source files are included; any trademark search responsibility; timeline and approval gates; and who in your company signs off. Also state the sector, because regulated sectors (health, real estate, finance) need claims and imagery checked. Without these fields, compare quotes by deliverable list, not by headline price; the cheapest bid often excludes guidelines, Arabic design or source files, which then reappear as change orders. Ownership terms are commercial and must be negotiated in the contract.",
-   "body_ar": "تتفاوت عروض أسعار الهوية المؤسسية أكثر من أي خدمة أخرى تقريباً، لأن \"الشعار\" قد يعني رسماً في يومين أو برنامجاً استراتيجياً يمتد أشهراً، ولا يمكن للمورّد أن يسعّر بدقة إلا إذا حدد المشتري النطاق. حدّد ما إذا كنت تحتاج استراتيجية (بحث وتموضع وتسمية) أم تنفيذاً بصرياً فقط، والمخرجات بدقة (الشعار الرئيسي وصيغه، ولوحة الألوان، والخطوط، والأيقونات، ودليل الهوية، والقرطاسية، والقوالب، وتطبيقات اللافتات والمركبات)، وهل يلزم تصميم شعار وخط عربيين أصيلين لا مجرد تكييف، علماً بأن قواعد الإعلانات الخارجية في الدولة تجعل العربية لغة أساسية على اللافتات، وعدد المقترحات الأولية وجولات التعديل المشمولة، وصيغ الملفات المسلّمة (ملفات متجهة AI/EPS/SVG وPDF وPNG ومرجعيات CMYK وRGB وبانتون)، ومن يملك حقوق الملكية الفكرية وهل يشمل العرض التنازل الكامل عن حقوق المؤلف والملفات المصدرية، والمسؤول عن البحث في العلامات التجارية، والجدول الزمني ومراحل الاعتماد، ومن يعتمد في شركتك. واذكر القطاع أيضاً، فالقطاعات المنظمة (الصحة والعقار والمال) تتطلب مراجعة الادعاءات والصور. ودون هذه البنود قارن العروض بقائمة المخرجات لا بالسعر الإجمالي، فالعرض الأرخص كثيراً ما يستبعد الدليل أو التصميم العربي أو الملفات المصدرية، ثم تعود كأوامر تغيير. وشروط الملكية تجارية ويجب التفاوض عليها في العقد.",
-   "required_specs": [
-    "Scope: strategy / naming / visual identity only",
-    "Deliverables list (logo set, palette, typography, guidelines, templates, applications)",
-    "Arabic logotype and Arabic typography required (Y/N)",
-    "Number of concepts and revision rounds",
-    "Delivery file formats and colour references (vector, PDF, CMYK/RGB/Pantone)",
-    "IP ownership and source-file handover",
-    "Trademark search responsibility",
-    "Sector (regulated or not)",
-    "Timeline and approval gates",
-    "Client sign-off authority"
-   ],
-   "sources": [
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:brief-media-buying",
-   "topic": "What to specify when requesting a media plan and media buying",
-   "kind": "spec_checklist",
-   "body_en": "A media agency can only return a comparable plan if the brief fixes the variables. State the campaign objective (awareness, consideration, leads, sales) and the primary KPI with its target; the total budget and whether it includes or excludes agency fees, production and VAT; flight dates and any blackout periods such as Ramadan scheduling preferences; target audience (demographics, nationalities, languages Arabic/English, emirates or cities); channels in or out of scope (TV, radio, print, outdoor, cinema, digital display, search, social, programmatic, influencer); whether the agency buys in its own name or on the client's accounts (for example the brand's own ad-platform accounts); the compensation basis (commission on media, fixed fee, retainer, or hybrid) and whether platform rebates or volume bonuses are passed back; reporting frequency and the metrics and verification tools required; creative formats the plan assumes, with specs; and approvals that gate launch (media council, sector permits such as DLD or health authority approvals). Ask for the plan to show net media cost, fees and production separately. Industry research by the US Association of National Advertisers shows commissions remain more common for media than for creative services, so clarify transparency terms explicitly.",
-   "body_ar": "لا يمكن لوكالة الإعلام أن تقدم خطة قابلة للمقارنة إلا إذا ثبّت الموجز المتغيرات. حدّد هدف الحملة (الوعي أو الاهتمام أو العملاء المحتملون أو المبيعات) ومؤشر الأداء الرئيسي وقيمته المستهدفة، وإجمالي الميزانية وهل تشمل أتعاب الوكالة والإنتاج وضريبة القيمة المضافة أم لا، وتواريخ الحملة وأي فترات توقف مثل تفضيلات الجدولة في رمضان، والجمهور المستهدف (الفئات العمرية والجنسيات واللغتان العربية والإنجليزية والإمارات أو المدن)، والقنوات المشمولة أو المستبعدة (التلفزيون والإذاعة والصحف والإعلانات الخارجية والسينما والإعلانات الرقمية والبحث ومنصات التواصل والشراء الآلي والمؤثرون)، وهل تشتري الوكالة باسمها أم عبر حسابات العميل على المنصات الإعلانية، وأساس الأتعاب (عمولة على قيمة المساحات أو أتعاب ثابتة أو اشتراك شهري أو نموذج مختلط) وهل تُعاد الحسومات أو مكافآت الحجم إلى العميل، ودورية التقارير والمقاييس وأدوات التحقق المطلوبة، وصيغ المواد الإبداعية التي تفترضها الخطة ومواصفاتها، والموافقات التي يتوقف عليها الإطلاق (مجلس الإعلام وتصاريح القطاعات مثل دائرة الأراضي أو الجهات الصحية). واطلب أن تُظهر الخطة صافي كلفة المساحات والأتعاب والإنتاج كلاً على حدة. وتُظهر أبحاث رابطة المعلنين الوطنيين الأمريكية أن العمولات لا تزال أكثر شيوعاً في خدمات الإعلام منها في الخدمات الإبداعية، لذا وضّح شروط الشفافية صراحة.",
-   "required_specs": [
-    "Objective and primary KPI with target",
-    "Total budget and what it includes (fees, production, VAT)",
-    "Flight dates and blackout periods",
-    "Audience: demographics, language, emirates",
-    "Channels in/out of scope",
-    "Buying entity: agency accounts vs client-owned accounts",
-    "Compensation model and rebate pass-back",
-    "Reporting frequency, metrics, verification tools",
-    "Creative formats and specs assumed",
-    "Regulatory approvals required before launch"
-   ],
-   "sources": [
-    "https://www.ana.net/content/show/id/44647",
-    "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:brief-ooh-campaign",
-   "topic": "What to specify when requesting an outdoor (OOH) campaign",
-   "kind": "spec_checklist",
-   "body_en": "Outdoor quotes depend on exact site, size and duration, so a vague request (\"billboards on Sheikh Zayed Road for a month\") cannot be priced exactly. Specify: emirate and corridors or landmarks wanted, or the audience and reach target if you want the media owner to propose sites; format type (unipole, bridge banner, lamppost, mega-com, mupi, digital screen, mall, transit, vehicle branding, construction hoarding) and whether static or digital; for digital, the slot length, loop length and share of voice; campaign start date and duration, noting that permits are time-bound; number of faces; who produces and installs the print or supplies the digital file, including material type for static (flex, vinyl, mesh) and illumination; artwork delivery deadline and file specifications per face; permit responsibility for the structure and for content (municipality or RTA in Dubai, DDA in its free zones, DMT in Abu Dhabi, plus sector permits such as DLD Trakheesi for property ads); the Arabic-language requirement for Dubai outdoor creative; proof of posting (photos, dates) and monitoring; and cancellation or substitution terms if a site is unavailable or a permit is refused. Ask the media owner to confirm that its structure permits are valid for the whole flight.",
-   "body_ar": "تعتمد عروض الإعلانات الخارجية على الموقع والمقاس والمدة بدقة، لذا لا يمكن تسعير طلب مبهم مثل \"لوحات على شارع الشيخ زايد لمدة شهر\" بشكل دقيق. حدّد: الإمارة والمحاور أو المعالم المطلوبة، أو الجمهور ومستهدف الوصول إذا أردت أن يقترح مالك الوسيلة المواقع، ونوع الوسيلة (عمود أحادي أو لافتة جسر أو عمود إنارة أو ميغاكوم أو موبي أو شاشة رقمية أو مركز تسوق أو وسائل نقل أو تغليف مركبات أو سور موقع بناء) وهل هي ثابتة أم رقمية، وللرقمية مدة الإعلان وطول الدورة وحصة الظهور، وتاريخ البدء والمدة علماً بأن التصاريح محددة المدة، وعدد الأوجه، ومن ينتج المطبوعة ويركّبها أو يسلّم الملف الرقمي بما في ذلك نوع الخامة للثابتة (فلكس أو فينيل أو شبك) والإضاءة، وموعد تسليم التصاميم ومواصفات الملف لكل وجه، ومسؤولية التصاريح للمنشأة وللمحتوى (البلدية أو هيئة الطرق في دبي، وسلطة دبي للتطوير في مناطقها الحرة، ودائرة البلديات والنقل في أبوظبي، إضافة إلى تصاريح القطاعات مثل \"ترخيصي\" للإعلانات العقارية)، واشتراط اللغة العربية في التصاميم الخارجية في دبي، وإثبات العرض (صور وتواريخ) والمتابعة، وشروط الإلغاء أو الاستبدال إذا تعذر الموقع أو رُفض التصريح. واطلب من مالك الوسيلة تأكيد سريان تصاريح منشآته طوال مدة الحملة.",
-   "required_specs": [
-    "Emirate and corridors/landmarks or audience target",
-    "Format type and static vs digital",
-    "Digital: slot length, loop, share of voice",
-    "Start date and duration",
-    "Number of faces",
-    "Production and installation responsibility, material, illumination",
-    "Artwork deadline and file specs per face",
-    "Structure and content permit responsibility (DM/RTA/DDA/DMT, sector permits)",
-    "Arabic-language compliance",
-    "Proof of posting and monitoring",
-    "Cancellation/substitution terms"
-   ],
-   "sources": [
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html",
-    "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
-    "https://www.backlitemedia.com/ooh/dubai"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:brief-print-production",
-   "topic": "What to specify for printed marketing material and large-format print",
-   "kind": "spec_checklist",
-   "body_en": "Print suppliers quote from exact physical specs. State: item type (brochure, flyer, roll-up, backdrop, flex banner, vinyl sticker, fabric print); finished size and, for folded items, flat size and fold type; quantity per version; material or paper stock and weight, coating or lamination, and finishing (die-cut, spot UV, eyelets, pole pockets); print sides and colours; hardware included (for a roll-up: stand type and carry bag); indoor or outdoor use, since UV resistance and material change; delivery location and date; installation if needed; and artwork supply format. UAE printers commonly ask for print-ready PDF at 300 DPI at final size for small-format work, CMYK colour, 3 mm bleed and embedded fonts. For large format a common Dubai guideline is about 150 DPI at final size for viewing at 1 to 3 m and lower for distant viewing, bleed of 3 to 5 mm for small items rising to 10 to 20 mm for big banners, CMYK except dye-sublimation fabric which is often RGB, and fonts outlined; press-ready PDF/X-1a or PDF/X-4 is preferred over JPEG or PNG. Published examples show roll-ups from about AED 150 including stand in Dubai with one-day turnaround, but prices vary with size and materials.",
-   "body_ar": "يسعّر موردو الطباعة بناءً على مواصفات مادية دقيقة. حدّد: نوع المادة (كتيّب أو نشرة أو رول أب أو خلفية أو بنر فلكس أو ملصق فينيل أو طباعة على قماش)، والمقاس النهائي، وللمواد المطوية المقاس المفرود ونوع الطي، والكمية لكل نسخة، والخامة أو نوع الورق ووزنه والطلاء أو التغليف، والتشطيب (قص بالقالب أو ورنيش موضعي أو حلقات أو جيوب للأعمدة)، وعدد الأوجه والألوان، والملحقات المشمولة (للرول أب: نوع الحامل وحقيبة الحمل)، والاستخدام داخلي أم خارجي لأن مقاومة الأشعة فوق البنفسجية والخامة تتغير، وموقع التسليم وتاريخه، والتركيب إن لزم، وصيغة تسليم التصاميم. وتطلب المطابع في الدولة عادة ملف PDF جاهزاً للطباعة بدقة 300 نقطة في البوصة بالمقاس النهائي للمطبوعات الصغيرة، وبنظام ألوان CMYK، وهامش قص 3 ملم، مع تضمين الخطوط. وفي الطباعة كبيرة الحجم يتداول في دبي معيار نحو 150 نقطة في البوصة بالمقاس النهائي للمشاهدة من متر إلى ثلاثة أمتار وأقل للمشاهدة البعيدة، وهامش قص من 3 إلى 5 ملم للمطبوعات الصغيرة يرتفع إلى 10 إلى 20 ملم للبنرات الكبيرة، ونظام CMYK عدا الطباعة الحرارية على القماش التي تكون غالباً RGB، مع تحويل الخطوط إلى مسارات، ويُفضَّل ملف PDF/X-1a أو PDF/X-4 على JPEG أو PNG. وتُظهر أمثلة منشورة أسعار رول أب تبدأ من نحو 150 درهماً شاملة الحامل في دبي مع تسليم خلال يوم، لكن الأسعار تتغير بحسب المقاس والخامات.",
-   "required_specs": [
-    "Item type",
-    "Finished size (and flat size/fold for folded items)",
-    "Quantity per version",
-    "Material/paper stock and weight",
-    "Coating, lamination, finishing",
-    "Print sides and colours",
-    "Hardware included (stand, bag)",
-    "Indoor or outdoor use",
-    "Artwork format (PDF/X, resolution, CMYK, bleed, fonts)",
-    "Delivery location/date and installation"
-   ],
-   "sources": [
-    "https://colorspotprints.com/product/roll-up-banner-printing-dubai/",
-    "https://www.ambert.ae/post/how-to-prepare-design-files-for-large-format-printing-dubai"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:digital-ad-formats",
-   "topic": "Standard digital display ad formats and file weights (IAB)",
-   "kind": "standard",
-   "body_en": "For display advertising the reference is the IAB Technology Laboratory's New Standard Ad Unit Portfolio. It moved the industry from fixed pixel sizes towards aspect-ratio based, flexible units, while keeping common fixed sizes such as 728x90 leaderboard, 970x250 billboard, 320x50 mobile banner, 300x250 medium rectangle, 160x600 skyscraper and 300x600 half page for legacy inventory. Every ad in the portfolio is meant to be a LEAN ad: light, encrypted, AdChoices-supported and non-invasive. The specification separates initial load (everything requested before the page's load event) from host-initiated subload and user-initiated load, sets maximum kilobyte weights per size group for each, and limits initial load to ten file requests. Audio and expanding behaviour should be user-initiated. For a buyer this means the creative brief to the agency must list the exact placements and sizes the media plan uses, the maximum file weights the publishers accept, static backup images, HTML5 versus static formats, click-tag conventions and Arabic and English versions. Platforms such as social networks and search engines publish their own specs, which override the IAB baseline for their inventory. Ask the agency for a format matrix that ties each deliverable to a placement so nothing is produced twice or forgotten.",
-   "body_ar": "المرجع في الإعلانات الرقمية المصورة هو \"حافظة وحدات الإعلان القياسية الجديدة\" الصادرة عن مختبر التقنية التابع لمكتب الإعلانات التفاعلية IAB، وقد نقلت القطاع من المقاسات الثابتة بالبكسل إلى وحدات مرنة قائمة على نسب الأبعاد، مع إبقاء المقاسات الشائعة للمخزون القائم مثل 728x90 و970x250 و320x50 للجوال و300x250 و160x600 و300x600. ويُفترض أن يكون كل إعلان في الحافظة إعلاناً من نوع LEAN أي خفيفاً ومشفراً وداعماً لخيارات الإعلان وغير متطفل. وتفصل المواصفة بين التحميل الأولي (كل ما يُطلب قبل حدث اكتمال تحميل الصفحة) والتحميل اللاحق الذي تبادر إليه الصفحة والتحميل الذي يبادر إليه المستخدم، وتحدد أقصى حجم بالكيلوبايت لكل مجموعة مقاسات، وتقصر التحميل الأولي على عشرة طلبات ملفات. ويجب أن يكون الصوت والتوسّع بمبادرة من المستخدم. ويعني ذلك للمشتري أن الموجز الإبداعي للوكالة يجب أن يسرد المواقع والمقاسات الدقيقة في خطة الإعلام، وأقصى أحجام الملفات التي يقبلها الناشرون، والصور البديلة الثابتة، وصيغ HTML5 مقابل الثابتة، وأعراف روابط النقر، والنسختين العربية والإنجليزية. وتنشر منصات التواصل ومحركات البحث مواصفاتها الخاصة التي تتقدم على مرجع IAB في مخزونها. واطلب من الوكالة مصفوفة صيغ تربط كل مخرج بموقع إعلاني حتى لا يُنتج شيء مرتين أو يُنسى.",
-   "sources": [
-    "https://www.iab.com/wp-content/uploads/2019/07/IABNewAdPortfolio_FINAL_0719.pdf"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:compensation-models",
-   "topic": "Agency fee models: commission vs fee vs retainer",
-   "kind": "comparison",
-   "body_en": "Agencies are paid in a few basic ways and the choice changes both price and incentives. The historic model was a media commission, classically 15% of media cost, where the agency's income rose with the client's spend. Labour-based fees (hourly or FTE-based) became the most common method; project fees fix a price for a defined deliverable; retainers pay a monthly amount for an agreed scope and team; and value- or performance-based models tie part of the payment to results. The US Association of National Advertisers' 2017 study found labour-based fees declining for the first time since 2006 though still most used, traditional commissions returning mainly for media and programmatic buying, value-based pay used by only a small minority, and performance incentives declining because respondents found them complex and not clearly effective. It also found finance and senior management far more involved in agency negotiations after the media-transparency debate. Choosing: a retainer suits continuous social and content work with steady volume; a project fee suits a rebrand or launch; commission or percentage-of-spend is common for media buying but should come with full disclosure of net costs and rebates. UAE-specific market rates are not published and were not established in this research.",
-   "body_ar": "تتقاضى الوكالات أتعابها بطرق أساسية قليلة، واختيار الطريقة يغيّر السعر والحوافز معاً. فالنموذج التاريخي هو عمولة الإعلام، وتقليدياً 15% من كلفة المساحات، حيث يرتفع دخل الوكالة مع إنفاق العميل. ثم أصبحت الأتعاب القائمة على العمل (بالساعة أو بعدد الموظفين المكافئين) الأكثر شيوعاً، والأتعاب الثابتة للمشروع تحدد سعراً لمخرج معرّف، والاشتراك الشهري يدفع مبلغاً ثابتاً لنطاق وفريق متفق عليهما، ونماذج القيمة أو الأداء تربط جزءاً من الدفع بالنتائج. ووجدت دراسة رابطة المعلنين الوطنيين الأمريكية لعام 2017 أن الأتعاب القائمة على العمل تراجعت لأول مرة منذ 2006 مع بقائها الأكثر استخداماً، وأن العمولات التقليدية عادت أساساً في شراء الإعلام والشراء الآلي، وأن الدفع القائم على القيمة لا تستخدمه إلا أقلية صغيرة، وأن حوافز الأداء تراجعت لأن المشاركين وجدوها معقدة وغير واضحة الفاعلية. كما وجدت أن الإدارة المالية والعليا أصبحت أكثر انخراطاً في التفاوض مع الوكالات بعد نقاش شفافية الإعلام. وللاختيار: الاشتراك الشهري يناسب العمل المستمر في منصات التواصل والمحتوى بحجم ثابت، والأتعاب الثابتة تناسب إعادة الهوية أو الإطلاق، والعمولة أو النسبة من الإنفاق شائعة في شراء الإعلام لكن يجب أن تقترن بإفصاح كامل عن صافي الكلفة والحسومات. أما أسعار السوق في الدولة فغير منشورة ولم تثبت في هذا البحث.",
-   "sources": [
-    "https://www.ana.net/content/show/id/44647"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:agency-types",
-   "topic": "Full-service vs creative vs media vs digital/performance agencies",
-   "kind": "comparison",
-   "body_en": "Buyers often ask \"an agency\" for everything and receive quotes that cover different things. A full-service agency offers strategy, creative, production and often media under one contract; convenient for integrated campaigns but harder to benchmark line by line. A creative or branding agency develops ideas, identity, copy and artwork but usually does not buy media, so media must be planned separately. A media agency plans and buys space across channels and negotiates rates; its compensation is often tied to spend, which is why commissions remain more common for media than for creative services according to the US Association of National Advertisers. A digital or performance agency runs search, social and programmatic campaigns against measurable targets such as cost per lead, and often works inside the client's own ad accounts. Production houses, printers and OOH media owners are suppliers rather than agencies but may be booked directly. Specialist UAE services include permit handling for outdoor, vehicle and property advertising, and influencer management, which now requires checking creators' Media Council Advertiser Permits. Choose by the problem: integrated launch, full-service or lead agency; brand refresh, creative agency; efficiency of large spend, media agency; lead volume, performance agency. Always define who owns accounts, data and creative files.",
-   "body_ar": "كثيراً ما يطلب المشترون من \"وكالة\" كل شيء، فتصلهم عروض تغطي أموراً مختلفة. فالوكالة الشاملة تقدم الاستراتيجية والإبداع والإنتاج وغالباً شراء الإعلام في عقد واحد، وهي مريحة للحملات المتكاملة لكن يصعب مقارنتها بنداً بنداً. ووكالة الإبداع أو الهوية تطور الأفكار والهوية والنصوص والتصاميم لكنها عادة لا تشتري المساحات الإعلانية، فيلزم تخطيط الإعلام بشكل منفصل. ووكالة الإعلام تخطط وتشتري المساحات عبر القنوات وتفاوض على الأسعار، وغالباً ترتبط أتعابها بالإنفاق، ولهذا تبقى العمولات أكثر شيوعاً في الإعلام منها في الإبداع وفق رابطة المعلنين الوطنيين الأمريكية. ووكالة التسويق الرقمي أو الأداء تدير حملات البحث ومنصات التواصل والشراء الآلي وفق أهداف قابلة للقياس مثل كلفة العميل المحتمل، وتعمل غالباً داخل حسابات العميل الإعلانية. أما دور الإنتاج والمطابع وملاك وسائل الإعلانات الخارجية فهم موردون لا وكالات، ويمكن التعاقد معهم مباشرة. ومن الخدمات المتخصصة في الدولة إدارة تصاريح الإعلانات الخارجية وإعلانات المركبات والعقارات، وإدارة المؤثرين التي تتطلب الآن التحقق من \"تصريح المعلن\" الصادر عن مجلس الإمارات للإعلام. اختر بحسب المشكلة: الإطلاق المتكامل لوكالة شاملة أو رئيسية، وتجديد الهوية لوكالة إبداعية، وكفاءة الإنفاق الكبير لوكالة إعلام، وحجم العملاء المحتملين لوكالة أداء. وحدد دائماً من يملك الحسابات والبيانات والملفات الإبداعية.",
-   "sources": [
-    "https://www.ana.net/content/show/id/44647",
-    "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:ooh-formats",
-   "topic": "Outdoor (OOH) format glossary for the UAE",
-   "kind": "glossary",
-   "body_en": "Common outdoor formats a UAE buyer will see in proposals: unipole, a large double- or single-sided billboard on a single steel column, typical along highways and first introduced in the UAE by a Dubai media owner in 1996; bridge banner or bridge signage, spanning road bridges and overpasses; lamppost signs, pairs of small panels on street-light poles along corridors; mega-com, a large free-standing backlit panel; mupi, a pedestrian-scale backlit panel often in bus shelters or streetscape; hoarding, advertising on construction-site fencing; building wrap and rooftop signs on buildings; digital screens, LED formats selling time slots in a rotation loop; mall and retail media inside shopping centres; transit media on metro, tram, buses and taxis; and vehicle branding on commercial fleets. Dubai Development Authority's permit list names unipoles, hoardings, mega-coms, mupis, lamppost signs, bridge banners, roundabout branding, building signage, flags and inflatables, which is a useful checklist of formats that need permits. Large Dubai media owners group premium Sheikh Zayed Road unipoles, bridges and digital landmark screens into collections and generally do not publish rate cards. Static formats involve print production and installation costs; digital formats involve file delivery, slot length and share of loop instead.",
-   "body_ar": "من صيغ الإعلانات الخارجية الشائعة في عروض الدولة: العمود الأحادي (يونيبول)، وهو لوحة كبيرة بوجه أو وجهين على عمود فولاذي واحد، منتشر على الطرق السريعة، وقد أدخله إلى الدولة مالك وسائل في دبي عام 1996، ولافتات الجسور الممتدة على الجسور والمعابر العلوية، ولافتات أعمدة الإنارة وهي أزواج من الألواح الصغيرة على أعمدة الإنارة على امتداد المحاور، والميغاكوم وهو لوح كبير قائم بذاته مضاء من الخلف، والموبي وهو لوح مضاء بمقياس المشاة غالباً في مظلات الحافلات، والأسوار الإعلانية على أسوار مواقع البناء، وتغليف المباني ولافتات الأسطح، والشاشات الرقمية بتقنية LED التي تبيع فترات زمنية ضمن دورة عرض، وإعلانات مراكز التسوق، وإعلانات وسائل النقل في المترو والترام والحافلات وسيارات الأجرة، وتغليف أساطيل المركبات التجارية. وتذكر قائمة تصاريح سلطة دبي للتطوير الأعمدة الأحادية والأسوار والميغاكوم والموبي ولافتات أعمدة الإنارة ولافتات الجسور وتزيين الدوارات ولافتات المباني والأعلام والمجسمات القابلة للنفخ، وهي قائمة مفيدة بالصيغ التي تتطلب تصاريح. ويجمع كبار ملاك الوسائل في دبي الأعمدة الأحادية المميزة على شارع الشيخ زايد والجسور والشاشات الرقمية المعلَمية في مجموعات، ولا ينشرون عادة قوائم أسعار. وتتضمن الصيغ الثابتة كلفة طباعة وتركيب، بينما تتضمن الرقمية تسليم الملفات ومدة الفترة وحصة الدورة.",
-   "sources": [
-    "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
-    "https://www.backlitemedia.com/ooh/dubai"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:large-format-resolution",
-   "topic": "Large-format artwork: resolution, bleed and colour",
-   "kind": "installation",
-   "body_en": "Most rejected or poor outdoor prints trace back to artwork, not the printer. Resolution should be judged at final printed size and by viewing distance: a common Dubai large-format guideline is about 150 DPI at final size for displays viewed from 1 to 3 m, dropping to around 72 DPI for very distant viewing such as billboards seen from 5 m or more. Small-format items (brochures, roll-ups) are normally supplied at 300 DPI. Bleed grows with the size of the piece: 3 to 5 mm for small items and 10 to 20 mm for large banners, with backgrounds extended into the bleed and important text kept well inside the safe area. Supply CMYK files for most substrates; dye-sublimation fabric printing often works from RGB. Vector artwork (AI) or press-ready PDF/X-1a or PDF/X-4 is preferred, fonts must be outlined or embedded, and Word, PowerPoint, JPEG or PNG files should be avoided for professional output. Minimum text heights scale with distance, for example around 20 pt for close viewing, 40 pt for medium and 80 pt for distant displays. For Dubai outdoor creative remember the Arabic-primary rule. Ask the printer for a proof and confirm colour references (Pantone to CMYK conversion) before a full run.",
-   "body_ar": "تعود معظم المطبوعات الخارجية المرفوضة أو الرديئة إلى ملف التصميم لا إلى المطبعة. فالدقة تُقاس بالمقاس النهائي للطباعة وبمسافة المشاهدة: والمعيار المتداول في دبي للطباعة الكبيرة نحو 150 نقطة في البوصة بالمقاس النهائي لما يُشاهد من متر إلى ثلاثة أمتار، وتنخفض إلى نحو 72 للمشاهدة البعيدة جداً كاللوحات التي تُرى من خمسة أمتار فأكثر. أما المطبوعات الصغيرة (الكتيبات والرول أب) فتُسلَّم عادة بدقة 300. ويزداد هامش القص مع حجم القطعة: من 3 إلى 5 ملم للمطبوعات الصغيرة ومن 10 إلى 20 ملم للبنرات الكبيرة، مع مد الخلفيات داخل الهامش وإبقاء النصوص المهمة داخل المنطقة الآمنة. وسلّم ملفات CMYK لمعظم الخامات، أما الطباعة الحرارية على القماش فتعمل غالباً بملفات RGB. ويُفضَّل التصميم المتجه (AI) أو ملف PDF/X-1a أو PDF/X-4 الجاهز للطباعة، مع تحويل الخطوط أو تضمينها، وتجنب ملفات Word وPowerPoint وJPEG وPNG في الطباعة الاحترافية. ويزداد الحد الأدنى لارتفاع النص مع المسافة، مثل نحو 20 نقطة للمشاهدة القريبة و40 للمتوسطة و80 للبعيدة. وتذكّر في التصاميم الخارجية في دبي قاعدة أولوية اللغة العربية. واطلب من المطبعة نسخة تجريبية وأكد مرجعيات الألوان (تحويل بانتون إلى CMYK) قبل الطباعة الكاملة.",
-   "sources": [
-    "https://www.ambert.ae/post/how-to-prepare-design-files-for-large-format-printing-dubai",
-    "https://colorspotprints.com/product/roll-up-banner-printing-dubai/",
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:influencer-campaigns",
-   "topic": "Running influencer campaigns compliantly in the UAE",
-   "kind": "installation",
-   "body_en": "Influencer marketing is now a licensed activity. The practical delivery sequence an agency should follow: shortlist creators and verify, before contracting, that each holds a valid Media Council Advertiser Permit and a trade or freelance licence; for any non-resident creator, have a licensed UAE agency apply for a Visitor Advertiser Permit (three months, renewable once) and allow time for it; clear the content brief against the national media content standards, which make misleading or immoral content and privacy or children's-rights breaches finable, with bands published under Cabinet Decision 42 of 2025; add sector approvals where relevant, such as DLD Trakheesi numbers for property promotions or health-authority rules for clinics, which prohibit testimonials without written consent and guaranteed results; ensure sponsored posts are clearly identified as advertising; collect written consent and data-handling terms for any giveaway that gathers personal data; and contract usage rights, exclusivity, deliverables per platform, posting dates and reporting metrics. Reported sanctions under the permit regime include fines from about AED 5,000 for unlicensed activity up to AED 1,000,000 for serious content violations. A buyer should ask for the permit number of every creator in the proposal and treat \"we'll sort permits later\" as a red flag.",
-   "body_ar": "أصبح التسويق عبر المؤثرين نشاطاً مرخصاً. وتسلسل التنفيذ العملي الذي ينبغي للوكالة اتباعه: وضع قائمة مختصرة بالمؤثرين والتحقق قبل التعاقد من أن كلاً منهم يحمل \"تصريح معلن\" سارياً من مجلس الإمارات للإعلام ورخصة تجارية أو رخصة عمل حر، وتقديم وكالة مرخصة في الدولة طلب \"تصريح معلن زائر\" لأي مؤثر غير مقيم (ثلاثة أشهر يجدد مرة) مع إتاحة الوقت لذلك، ومراجعة موجز المحتوى وفق معايير المحتوى الإعلامي الوطنية التي تجعل المحتوى المضلل أو المنافي للآداب وانتهاك الخصوصية أو حقوق الطفل مخالفات تستوجب غرامات حددها قرار مجلس الوزراء 42 لسنة 2025، وإضافة موافقات القطاعات عند اللزوم مثل أرقام \"ترخيصي\" للعروض العقارية أو قواعد الجهة الصحية للعيادات التي تحظر الشهادات دون موافقة خطية وادعاء النتائج المضمونة، والتأكد من تمييز المنشورات الممولة بوضوح كإعلان، وجمع الموافقات الخطية وشروط التعامل مع البيانات في أي مسابقة تجمع بيانات شخصية، والتعاقد على حقوق الاستخدام والحصرية والمخرجات لكل منصة وتواريخ النشر ومقاييس التقارير. ومن الجزاءات المعلنة في نظام التصاريح غرامات تبدأ من نحو 5,000 درهم للنشاط غير المرخص وتصل إلى مليون درهم لمخالفات المحتوى الجسيمة. وعلى المشتري أن يطلب رقم التصريح لكل مؤثر في العرض، وأن يعتبر عبارة \"سنستخرج التصاريح لاحقاً\" علامة تحذير.",
-   "sources": [
-    "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938",
-    "https://www.middleeastbriefing.com/news/uae-influencers-must-obtain-advertiser-permit-under-new-media-law/",
-    "https://www.clydeco.com/en/insights/2025/05/uae-media-regulations-framework",
-    "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/",
-    "https://dha.gov.ae/uploads/042022/Standards%20for%20Medical%20Advertisement%20Content%20in%20Social%20Media2022433965.pdf"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:mistake-permits-last",
-   "topic": "Buyer mistake: treating permits and approvals as the last step",
-   "kind": "buyer_mistake",
-   "body_en": "The most expensive mistake in UAE advertising is booking media and producing creative before the approvals exist. Examples: property ads scheduled before the DLD Trakheesi permit is issued, although every property advertisement in Dubai needs one and the permit covers social, SMS, outdoor and print; clinic campaigns produced with before-and-after images or patient testimonials that DHA standards restrict; outdoor artwork designed in English with a small Arabic line, despite the Dubai rule that Arabic be primary and occupy at least half the medium; a foreign influencer flown in before the Visitor Advertiser Permit is arranged; and temporary banners or vehicle wraps installed without the location's permit, exposing the holder to AED 1,000 to 15,000 fines and removal at its cost under Decree 6 of 2020. The fix is simple: in the brief, list the regulators for the sector, emirate and channel; ask the agency for an approval plan with owners and lead times (for example DLD permits are stated as one working day and DDA signage permits four working days, while other emirates vary); and make media payment milestones conditional on approvals. Keep approved artworks and permit numbers in one file so audits and renewals are quick.",
-   "body_ar": "أكثر الأخطاء كلفة في الإعلان داخل الدولة حجز المساحات وإنتاج المواد الإبداعية قبل صدور الموافقات. ومن الأمثلة: جدولة إعلانات عقارية قبل صدور تصريح \"ترخيصي\" من دائرة الأراضي، مع أن كل إعلان عقاري في دبي يتطلبه ويشمل التواصل الاجتماعي والرسائل والإعلانات الخارجية والمطبوعات، وإنتاج حملات عيادات تتضمن صور \"قبل وبعد\" أو شهادات مرضى تقيدها معايير هيئة الصحة بدبي، وتصميم إعلانات خارجية بالإنجليزية مع سطر عربي صغير رغم قاعدة دبي بأن تكون العربية أساسية وتشغل نصف الوسيلة على الأقل، واستقدام مؤثر أجنبي قبل ترتيب \"تصريح المعلن الزائر\"، وتركيب بنرات مؤقتة أو تغليف مركبات دون تصريح الموقع، ما يعرّض الحامل لغرامات من 1,000 إلى 15,000 درهم والإزالة على نفقته بموجب المرسوم 6 لسنة 2020. والعلاج بسيط: اذكر في الموجز الجهات التنظيمية للقطاع والإمارة والقناة، واطلب من الوكالة خطة موافقات بالمسؤولين والمدد (مثلاً تصاريح دائرة الأراضي معلنة بيوم عمل وتصاريح لافتات سلطة دبي للتطوير بأربعة أيام عمل، بينما تختلف الإمارات الأخرى)، واجعل دفعات الإعلام مشروطة بصدور الموافقات. واحتفظ بالتصاميم المعتمدة وأرقام التصاريح في ملف واحد لتسهيل التدقيق والتجديد.",
-   "sources": [
-    "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/",
-    "https://dha.gov.ae/uploads/042022/Standards%20for%20Medical%20Advertisement%20Content%20in%20Social%20Media2022433965.pdf",
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html",
-    "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
-    "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938"
-   ],
-   "confidence": "high",
-   "as_of": "2026-09-23"
-  },
-  {
-   "id": "marketing_advertising:quote-red-flags",
-   "topic": "Red flags in agency and media quotes",
-   "kind": "quote_red_flag",
-   "body_en": "Warning signs when comparing marketing and advertising quotes: a single lump sum with no split between net media cost, agency fee, production and VAT; \"media value\" or \"impressions\" promised without stating the source, verification tool or placement list; no statement on whether platform rebates, volume bonuses or free spots are passed back to the client, a known transparency concern in media buying; ad accounts, pixels and audience data created in the agency's name with no handover clause; creative quoted with unlimited revisions but no deliverable list, or with source files and IP excluded in the small print; influencer line items without creators' Advertiser Permit numbers; property, health or pharma creative quoted without the relevant regulator approval step; outdoor quotes without site codes, face sizes, flight dates, permit responsibility or proof-of-posting; print quotes without material, finishing and quantity; SMS or telemarketing packages with no DNCR scrubbing, sender registration or time-window compliance; and long lock-in retainers with no performance review or exit clause. None of these automatically means a bad supplier, but each hides cost or risk. UAE market price levels for agency services are not published and were not established here, so compare quotes on scope and terms rather than assuming a \"normal\" rate.",
-   "body_ar": "علامات التحذير عند مقارنة عروض التسويق والإعلان: مبلغ إجمالي واحد دون فصل بين صافي كلفة المساحات وأتعاب الوكالة والإنتاج وضريبة القيمة المضافة، والوعد بـ\"قيمة إعلامية\" أو \"مرات ظهور\" دون ذكر المصدر أو أداة التحقق أو قائمة المواقع، وعدم بيان ما إذا كانت حسومات المنصات أو مكافآت الحجم أو الفترات المجانية تُعاد للعميل وهي مسألة شفافية معروفة في شراء الإعلام، وإنشاء الحسابات الإعلانية وأكواد التتبع وبيانات الجماهير باسم الوكالة دون بند تسليم، وتسعير الأعمال الإبداعية بتعديلات غير محدودة دون قائمة مخرجات أو باستبعاد الملفات المصدرية والملكية الفكرية في التفاصيل، وبنود المؤثرين دون أرقام تصاريحهم، وتسعير محتوى عقاري أو صحي أو دوائي دون خطوة موافقة الجهة المنظمة، وعروض الإعلانات الخارجية دون رموز المواقع ومقاسات الأوجه وتواريخ الحملة ومسؤولية التصاريح وإثبات العرض، وعروض الطباعة دون الخامة والتشطيب والكمية، وباقات الرسائل أو التسويق الهاتفي دون تنقية من سجل عدم الإزعاج أو تسجيل المعرّف أو الالتزام بالفترة الزمنية، وعقود الاشتراك الطويلة دون مراجعة أداء أو بند خروج. ولا يعني أي منها بالضرورة أن المورّد سيئ، لكن كلاً منها يخفي كلفة أو مخاطرة. ومستويات أسعار خدمات الوكالات في الدولة غير منشورة ولم تثبت هنا، لذا قارن العروض بالنطاق والشروط لا بافتراض سعر \"طبيعي\".",
-   "sources": [
-    "https://www.ana.net/content/show/id/44647",
-    "https://rouse.com/insights/news/2024/new-telemarketing-regulations-introduced-in-uae",
-    "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:price-drivers",
-   "topic": "What drives the price of agency, media and production work",
-   "kind": "price_driver",
-   "body_en": "Price drivers, not prices, are what a buyer can control. For creative and branding: seniority of the team, depth of strategy and research, number of concepts and revision rounds, whether Arabic and English are original work or adaptation, number of deliverables and applications, and whether IP and source files transfer. For media: total spend and flight length, channel mix, premium inventory (for example landmark outdoor sites or prime-time slots), targeting precision, seasonality, and the compensation model (percentage of spend versus fixed fee). For outdoor: site quality and traffic, format size, static versus digital share of loop, number of faces, production materials and illumination, installation and removal, and permit fees, which authorities publish (for example DDA's annual signage fees from AED 500 to AED 5,000 and DLD's AED 1,000 per property-ad permit). For print: size, quantity, substrate, finishing and turnaround; published Dubai examples start around AED 150 for a standard roll-up with stand. For influencer work: creator reach and engagement, usage rights and exclusivity, number of posts, and visitor-permit handling. Regulated sectors add compliance review time. Typical UAE agency day rates, retainer levels and media rate cards are not publicly published and were not established in this research; request itemised quotes instead.",
-   "body_ar": "ما يستطيع المشتري التحكم فيه هو محركات السعر لا الأسعار نفسها. ففي الإبداع والهوية: خبرة الفريق، وعمق الاستراتيجية والبحث، وعدد المقترحات وجولات التعديل، وهل النسختان العربية والإنجليزية عمل أصيل أم تكييف، وعدد المخرجات والتطبيقات، وهل تنتقل الملكية الفكرية والملفات المصدرية. وفي الإعلام: إجمالي الإنفاق ومدة الحملة، ومزيج القنوات، والمخزون المميز (مثل المواقع الخارجية المعلَمية أو أوقات الذروة)، ودقة الاستهداف، والموسمية، ونموذج الأتعاب (نسبة من الإنفاق أو أتعاب ثابتة). وفي الإعلانات الخارجية: جودة الموقع وحركة المرور، ومقاس الوسيلة، والحصة من الدورة في الرقمية مقابل الثابتة، وعدد الأوجه، وخامات الإنتاج والإضاءة، والتركيب والإزالة، ورسوم التصاريح التي تنشرها الجهات (مثل رسوم لافتات سلطة دبي للتطوير السنوية من 500 إلى 5,000 درهم ورسم دائرة الأراضي 1,000 درهم لتصريح الإعلان العقاري). وفي الطباعة: المقاس والكمية والخامة والتشطيب ومدة التسليم، وتبدأ أمثلة منشورة في دبي من نحو 150 درهماً للرول أب القياسي مع الحامل. وفي عمل المؤثرين: حجم الوصول والتفاعل، وحقوق الاستخدام والحصرية، وعدد المنشورات، وإجراءات تصريح الزائر. وتضيف القطاعات المنظمة وقتاً لمراجعة الامتثال. أما أسعار اليوم للوكالات ومستويات الاشتراكات وقوائم أسعار الإعلام في الدولة فغير منشورة ولم تثبت في هذا البحث، فاطلب عروضاً مفصلة بنداً بنداً.",
-   "sources": [
-    "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
-    "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/",
-    "https://colorspotprints.com/product/roll-up-banner-printing-dubai/",
-    "https://www.ana.net/content/show/id/44647"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:lead-times",
-   "topic": "Typical lead times for campaigns, permits and production",
-   "kind": "lead_time",
-   "body_en": "Plan timelines backwards from the launch date and include approvals. Published authority service times include: DLD real-estate advertising permit, one working day; DDA free-zone advertising permit, four working days. Industry sources describe municipal temporary campaign permits in the UAE as lasting about two weeks to a month, and some agencies quote around one to two weeks for RTA advertising NOCs in Dubai, but these were not confirmed from a primary authority page and should be treated as indicative. Visitor Advertiser Permits for foreign influencers must be applied for through a licensed agency and need time before the creator posts. Health and pharmaceutical advertising needs prior regulator approval and should be treated as the critical path. Print production is fast for standard items (one Dubai printer states one business day for roll-ups, with same-day options), while large-format outdoor printing, installation windows and digital file acceptance depend on the media owner. Creative development lead time depends on scope and revision rounds and is not standardised. A realistic brief states the launch date, lists the approvals required, and asks the agency to return a Gantt with approval gates, artwork deadlines per medium, and a contingency if a permit is refused or a site becomes unavailable.",
-   "body_ar": "خطّط الجدول الزمني عكسياً من تاريخ الإطلاق مع إدراج الموافقات. ومن مدد الخدمة المعلنة لدى الجهات: تصريح الإعلان العقاري من دائرة الأراضي والأملاك يوم عمل واحد، وتصريح الإعلان في المناطق الحرة التابعة لسلطة دبي للتطوير أربعة أيام عمل. وتصف مصادر القطاع تصاريح الحملات المؤقتة لدى البلديات في الدولة بأنها تمتد من أسبوعين إلى شهر تقريباً، وتذكر بعض الوكالات نحو أسبوع إلى أسبوعين لشهادات عدم الممانعة الإعلانية من هيئة الطرق في دبي، لكن ذلك لم يُؤكد من صفحة رسمية ويجب اعتباره تقديرياً. ويجب التقدم بطلب \"تصريح المعلن الزائر\" للمؤثرين الأجانب عبر وكالة مرخصة مع إتاحة الوقت قبل النشر. ويحتاج الإعلان الصحي والدوائي إلى موافقة مسبقة من الجهة المنظمة ويجب اعتباره المسار الحرج. والطباعة سريعة للمواد القياسية (تذكر مطبعة في دبي يوم عمل واحد للرول أب مع خيار التسليم في اليوم نفسه)، بينما تعتمد الطباعة الخارجية الكبيرة ونوافذ التركيب وقبول الملفات الرقمية على مالك الوسيلة. ومدة تطوير الأعمال الإبداعية تعتمد على النطاق وجولات التعديل وليست موحدة. والموجز الواقعي يحدد تاريخ الإطلاق ويسرد الموافقات المطلوبة ويطلب من الوكالة جدولاً زمنياً بمراحل الموافقة ومواعيد تسليم التصاميم لكل وسيلة وخطة بديلة إذا رُفض تصريح أو تعذر موقع.",
-   "sources": [
-    "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/",
-    "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
-    "https://ooh.ae/our-work/articles/ooh-advertising-permits-in-the-uae",
-    "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938",
-    "https://cms.law/en/int/expert-guides/cms-expert-guide-to-advertising-of-medicines-and-medical-devices/united-arab-emirates",
-    "https://colorspotprints.com/product/roll-up-banner-printing-dubai/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:ip-and-accounts",
-   "topic": "Ownership of creative, ad accounts and data",
-   "kind": "warranty",
-   "body_en": "Marketing contracts rarely carry a \"warranty\" in the product sense; the equivalent protections are ownership, handover and service levels. Before signing, a buyer should settle: who owns the copyright in logos, artwork, copy, photography and video, and whether rights are assigned outright or licensed for a period, territory or media (stock images, music and talent usage rights are often time-limited and must be renewed or the material withdrawn); delivery of editable source files at the end of each project; ownership of advertising accounts, analytics properties, pixels, social pages and customer audiences, ideally created in the client's name with the agency given access rather than the reverse; data-protection responsibilities for personal data collected through campaigns, in line with the federal PDPL's consent principle; confidentiality; service levels such as response times and reporting dates; and termination and transition assistance. Influencer contracts should also fix content usage rights, exclusivity windows and takedown obligations if content breaches the media content standards. These are commercial terms negotiated per contract; no UAE-specific statutory defaults for agency IP ownership were established in this research, so agree them in writing rather than assuming that paying for creative means owning it.",
-   "body_ar": "نادراً ما تتضمن عقود التسويق \"ضماناً\" بالمعنى المعروف في المنتجات، والحماية المقابلة هي الملكية والتسليم ومستويات الخدمة. وقبل التوقيع ينبغي للمشتري حسم: من يملك حقوق المؤلف في الشعارات والتصاميم والنصوص والصور والفيديو، وهل تُنقل الحقوق نهائياً أم تُرخّص لمدة أو إقليم أو وسيلة محددة (فحقوق استخدام الصور الجاهزة والموسيقى والمواهب غالباً محدودة المدة ويجب تجديدها أو سحب المادة)، وتسليم الملفات المصدرية القابلة للتعديل عند انتهاء كل مشروع، وملكية الحسابات الإعلانية وخصائص التحليلات وأكواد التتبع والصفحات الاجتماعية وجماهير العملاء، والأفضل أن تُنشأ باسم العميل وتُمنح الوكالة صلاحية الوصول لا العكس، ومسؤوليات حماية البيانات الشخصية المجمعة عبر الحملات بما يتفق مع مبدأ الموافقة في القانون الاتحادي لحماية البيانات، والسرية، ومستويات الخدمة مثل أوقات الاستجابة ومواعيد التقارير، والإنهاء والمساعدة في الانتقال. ويجب أن تحدد عقود المؤثرين أيضاً حقوق استخدام المحتوى وفترات الحصرية والتزامات الحذف إذا خالف المحتوى معايير المحتوى الإعلامي. وهذه شروط تجارية يُتفاوض عليها في كل عقد، ولم تثبت في هذا البحث قواعد قانونية افتراضية خاصة بالدولة لملكية الوكالة للأعمال الإبداعية، فاتفق عليها كتابياً ولا تفترض أن دفع ثمن العمل الإبداعي يعني تملّكه.",
-   "sources": [
-    "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
-    "https://www.clydeco.com/en/insights/2025/05/uae-media-regulations-framework"
-   ],
-   "confidence": "low",
-   "as_of": "2026-09-23",
-   "gap_kind": "commercial"
-  },
-  {
-   "id": "marketing_advertising:vehicle-branding-ads",
-   "topic": "Vehicle branding (fleet wraps) as advertising",
-   "kind": "product",
-   "body_en": "Branding company vans, trucks and cars is one of the cheapest ways to get constant local visibility, but in Dubai it is regulated advertising. Decree No. 6 of 2020 lists vehicles among advertising media and assigns permits for advertisements on vehicles and public transport to the RTA, and the general rules apply: a permit is needed before display, content must respect public order, morals and local traditions, and Arabic must be the primary language on the advertisement. Property promotions on vehicles also need a DLD Trakheesi permit, since vehicle advertisements are one of its listed categories. When buying fleet branding, specify: vehicle make, model and year for each type; coverage (full wrap, partial wrap, decals, door logos, rear panel); film type (cast or calendered vinyl, reflective or perforated window film), lamination and expected outdoor life under UAE sun; whether windows are covered, since visibility and tint rules apply; design for each side and the Arabic content; permit handling by the supplier or the owner; removal at the end of the term and paint-safe adhesive; and installation location and downtime per vehicle. Specific RTA vehicle-advertising permit fees and window-coverage limits were not confirmed from a primary source in this research.",
-   "body_ar": "يُعد تغليف مركبات الشركة من شاحنات صغيرة وكبيرة وسيارات من أرخص وسائل الظهور المحلي المستمر، لكنه في دبي إعلان منظّم. فالمرسوم رقم 6 لسنة 2020 يدرج المركبات ضمن وسائل الإعلان ويسند تصاريح الإعلان على المركبات والمواصلات العامة إلى هيئة الطرق والمواصلات، وتنطبق القواعد العامة: الحصول على تصريح قبل العرض، ومراعاة المحتوى للنظام العام والآداب والتقاليد، وأن تكون العربية اللغة الأساسية في الإعلان. كما تحتاج العروض العقارية على المركبات إلى تصريح \"ترخيصي\" من دائرة الأراضي لأن إعلانات المركبات من فئاته المدرجة. وعند شراء خدمة تغليف الأسطول حدّد: الطراز والنوع وسنة الصنع لكل فئة مركبة، ونطاق التغطية (تغليف كامل أو جزئي أو ملصقات أو شعارات الأبواب أو اللوح الخلفي)، ونوع الفيلم (فينيل مصبوب أو مدرفل، أو فيلم نوافذ عاكس أو مثقب) والتغليف الواقي والعمر المتوقع تحت شمس الدولة، وهل تُغطى النوافذ لأن قواعد الرؤية والتظليل تنطبق، والتصميم لكل جانب والمحتوى العربي، ومسؤولية التصاريح على المورّد أو المالك، والإزالة في نهاية المدة ولاصقاً آمناً على الطلاء، وموقع التركيب ومدة توقف كل مركبة. ولم تُؤكد رسوم تصريح الإعلان على المركبات لدى هيئة الطرق ولا حدود تغطية النوافذ من مصدر رسمي في هذا البحث.",
-   "sources": [
-    "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html",
-    "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/"
-   ],
-   "confidence": "medium",
-   "as_of": "2026-09-23",
-   "gap_kind": "technical"
+  "trade": "marketing_advertising",
+  "entries": [
+    {
+      "id": "marketing_advertising:advertiser-permit",
+      "topic": "UAE Media Council Advertiser Permit (influencers and content creators)",
+      "kind": "authority_approval",
+      "body_en": "Since 1 February 2026 anyone publishing advertising content online from within the UAE, paid or unpaid, on social media, websites, blogs or other digital platforms, needs an Advertiser Permit from the UAE Media Council. The legal basis is Federal Decree-Law No. 55 of 2023 on Media Regulation, with enforcement detail in Cabinet Resolution No. 42 of 2025. For UAE citizens and residents the permit is issued for one year, renewable, and is free for the first three years. Visiting (non-resident) creators cannot apply directly: a licensed UAE agency must file a Visitor Advertiser Permit for them, valid three months and renewable once. Purely personal, non-commercial posts and people promoting their own registered business are excluded. For a buyer commissioning an agency this matters in three ways. First, the agency must check that every influencer it books holds a valid permit, because the brand and agency are exposed if content runs without one. Second, if a foreign creator is flown in, the agency should quote the visitor-permit handling as a line item and allow lead time. Third, the influencer also needs a trade or freelance licence. Reported fines for operating without a licence start around AED 5,000, and serious content breaches can reach AED 1,000,000. A quote that says nothing about permits for named creators is incomplete.",
+      "body_ar": "منذ الأول من فبراير 2026 أصبح كل من ينشر محتوى إعلانياً عبر الإنترنت من داخل الدولة، مدفوعاً كان أو مجانياً، على منصات التواصل أو المواقع أو المدونات، ملزماً بالحصول على \"تصريح معلن\" من مجلس الإمارات للإعلام. ويستند ذلك إلى المرسوم بقانون اتحادي رقم 55 لسنة 2023 بشأن تنظيم الإعلام، وتفصّل آليات التطبيق قرار مجلس الوزراء رقم 42 لسنة 2025. يُمنح التصريح للمواطنين والمقيمين لمدة سنة قابلة للتجديد، ويكون مجانياً في السنوات الثلاث الأولى. أما صانع المحتوى الزائر غير المقيم فلا يتقدّم بنفسه، بل تتقدّم عنه وكالة مرخّصة في الدولة بطلب \"تصريح معلن زائر\" مدته ثلاثة أشهر يُجدد مرة واحدة. ويُستثنى المحتوى الشخصي غير التجاري ومن يروّج لنشاطه التجاري المسجّل. وبالنسبة للمشتري الذي يتعاقد مع وكالة، فهذا يعني: أولاً على الوكالة التحقق من سريان تصريح كل مؤثر تتعاقد معه، لأن العلامة التجارية والوكالة معرّضتان للمساءلة إن نُشر المحتوى دون تصريح. ثانياً إذا استُقدم مؤثر من الخارج فيجب أن يتضمن العرض بند استخراج تصريح الزائر مع مهلة زمنية كافية. ثالثاً يحتاج المؤثر أيضاً إلى رخصة تجارية أو رخصة عمل حر. وتبدأ الغرامات المعلنة لممارسة النشاط دون ترخيص من نحو 5,000 درهم، وقد تصل مخالفات المحتوى الجسيمة إلى مليون درهم. وأي عرض لا يذكر التصاريح للمؤثرين المسمّين يُعد عرضاً ناقصاً.",
+      "sources": [
+        "https://www.middleeastbriefing.com/news/uae-influencers-must-obtain-advertiser-permit-under-new-media-law/",
+        "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:media-content-standards",
+      "topic": "UAE media content standards and penalty bands (Cabinet Decision 42 of 2025)",
+      "kind": "standard",
+      "body_en": "Cabinet Decision No. 42 of 2025, in force from 29 May 2025, operationalises the federal media law and applies to individuals, media institutions and platforms, which includes advertising content produced by agencies. It groups twenty content violations into categories and grades them by severity from first to fourth degree. Published fine bands include: disrespect of religion AED 100,000 to 1,000,000; disrespect of the state, its symbols or institutions AED 50,000 to 500,000; harming foreign relations AED 30,000 to 250,000; promoting sectarianism, violence or terrorism AED 100,000 to 500,000; immoral or misleading content AED 10,000 to 100,000; breaches of privacy or children's rights AED 5,000 to 100,000; and age-classification or identity failures AED 5,000 to 100,000. Unlicensed media activity attracts administrative fines starting at AED 5,000, rising for repeats. Practical consequences for a brand buying creative: misleading claims are a finable content violation, not just a consumer-law issue; the agency should run a compliance review of scripts, visuals and claims before publishing; and contracts should state who bears regulatory risk if content is taken down. Ask the agency to name the person responsible for regulatory sign-off and to keep substantiation for every factual or comparative claim in the campaign.",
+      "body_ar": "يُفعّل قرار مجلس الوزراء رقم 42 لسنة 2025، الساري منذ 29 مايو 2025، قانون الإعلام الاتحادي، وينطبق على الأفراد والمؤسسات الإعلامية والمنصات، بما في ذلك المحتوى الإعلاني الذي تنتجه الوكالات. ويصنّف القرار عشرين مخالفة محتوى في فئات ويدرّجها من الدرجة الأولى إلى الرابعة بحسب الجسامة. ومن نطاقات الغرامات المعلنة: الإساءة إلى الأديان من 100 ألف إلى مليون درهم، والإساءة إلى الدولة ورموزها ومؤسساتها من 50 ألفاً إلى 500 ألف، والإضرار بالعلاقات الخارجية من 30 ألفاً إلى 250 ألفاً، والترويج للطائفية أو العنف أو الإرهاب من 100 ألف إلى 500 ألف، والمحتوى المنافي للآداب أو المضلل من 10 آلاف إلى 100 ألف، وانتهاك الخصوصية أو حقوق الطفل من 5 آلاف إلى 100 ألف، وإخفاقات التصنيف العمري أو الهوية من 5 آلاف إلى 100 ألف. وتبدأ غرامات ممارسة النشاط الإعلامي دون ترخيص من 5,000 درهم وتزيد عند التكرار. والنتيجة العملية للعلامة التجارية التي تشتري أعمالاً إبداعية أن الادعاء المضلل مخالفة محتوى تستوجب الغرامة وليس مسألة حماية مستهلك فقط، وأن على الوكالة مراجعة النصوص والمرئيات والادعاءات قبل النشر، وأن يحدد العقد من يتحمّل المخاطر التنظيمية عند حذف المحتوى. واطلب من الوكالة تسمية المسؤول عن الاعتماد التنظيمي والاحتفاظ بما يثبت كل ادعاء واقعي أو مقارن في الحملة.",
+      "sources": [
+        "https://www.clydeco.com/en/insights/2025/05/uae-media-regulations-framework"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:dubai-ad-permit-decree-6",
+      "topic": "Dubai outdoor advertising permits under Decree No. 6 of 2020",
+      "kind": "authority_approval",
+      "body_en": "Dubai Decree No. 6 of 2020 states that no advertisement may be displayed in any advertising space in the emirate without first obtaining a permit, issued through a central electronic system. The competent entity depends on location: Dubai Municipality for vacant land, buildings, coastal and desert areas; the RTA for road rights-of-way, public transport and vehicles; the economic department (now DET) for shop façades, leaflets and stickers; and specialised authorities for airports, ports and free zones. The decree covers boards, fences, pillars, balloons, aircraft, vehicles and vessels, but not newspapers, magazines, websites, radio, TV or cinema, which fall under media regulation instead. Content must respect Sharia, public order, morals and local traditions, must not obstruct views or create hazards, and Arabic must be the primary language. Permits are time-bound; on expiry or revocation the holder must remove the medium and restore the site at its own cost. Fines run AED 1,000 to 15,000 per violation, doubled for a repeat within a year up to AED 30,000, with a 25% administrative charge (minimum AED 2,000) if the authority removes the medium itself. Buyers should confirm in writing which party (media owner, agency or advertiser) holds the permit and who pays if a campaign is pulled.",
+      "body_ar": "ينص مرسوم دبي رقم 6 لسنة 2020 على عدم جواز عرض أي إعلان في أي مساحة إعلانية في الإمارة قبل الحصول على تصريح يصدر عبر نظام إلكتروني موحّد. وتتحدد الجهة المختصة بحسب الموقع: بلدية دبي للأراضي الفضاء والمباني والمناطق الساحلية والصحراوية، وهيئة الطرق والمواصلات لحرم الطرق والمواصلات العامة والمركبات، ودائرة الاقتصاد لواجهات المحال والنشرات والملصقات، والجهات المتخصصة للمطارات والموانئ والمناطق الحرة. ويشمل المرسوم اللوحات والأسوار والأعمدة والبالونات والطائرات والمركبات والسفن، ولا يشمل الصحف والمجلات والمواقع الإلكترونية والإذاعة والتلفزيون والسينما التي تخضع لتنظيم الإعلام. ويجب أن يراعي المحتوى أحكام الشريعة والنظام العام والآداب والتقاليد، وألا يحجب الرؤية أو يشكّل خطراً، وأن تكون العربية هي اللغة الأساسية. والتصاريح محددة المدة، وعند انتهائها أو إلغائها يلتزم حاملها بإزالة الوسيلة وإعادة الموقع إلى حالته على نفقته. وتتراوح الغرامة بين 1,000 و15,000 درهم للمخالفة، وتضاعف عند التكرار خلال سنة بحد أقصى 30,000 درهم، مع رسوم إدارية 25% (بحد أدنى 2,000 درهم) إذا أزالت الجهة الوسيلة بنفسها. وعلى المشتري أن يثبت كتابياً أي طرف يحمل التصريح (مالك الوسيلة أو الوكالة أو المعلن) ومن يتحمّل الكلفة إذا أوقفت الحملة.",
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html",
+        "https://ooh.ae/our-work/articles/ooh-advertising-permits-in-the-uae"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:arabic-language-rule",
+      "topic": "Arabic-language requirement on Dubai outdoor advertisements",
+      "kind": "standard",
+      "body_en": "Decree No. 6 of 2020 requires Arabic to be used as the primary language of an advertisement in Dubai, occupying at least half of the advertising medium. For agencies this is a design constraint, not an afterthought: layouts built in English and then \"translated\" often fail because the Arabic copy is squeezed into a corner. A compliant artwork plans Arabic and English as equal or Arabic-led from the first concept, uses a proper Arabic typeface rather than a machine-set fallback, and has the Arabic copy written by a native copywriter so that the message reads naturally rather than as a literal translation. Brand names and trademarks are usually shown as registered, but the descriptive message around them should be in Arabic. Buyers should ask the agency to confirm, before production, that the final artwork meets the Arabic requirement for the specific emirate and medium; other emirates and free-zone authorities apply their own signage and content rules, which should be checked separately rather than assumed identical to Dubai. The same principle affects vehicle branding, hoardings and building wraps that fall under the decree. A rejected artwork costs time twice: resubmission to the authority and reprinting. Build the review into the timeline and keep the approved artwork file as the production master.",
+      "body_ar": "يشترط مرسوم دبي رقم 6 لسنة 2020 أن تكون اللغة العربية هي اللغة الأساسية في الإعلان، وأن تشغل نصف الوسيلة الإعلانية على الأقل. وهذا بالنسبة للوكالات قيد تصميمي من البداية لا إضافة لاحقة، فالتصاميم التي تُبنى بالإنجليزية ثم \"تُترجم\" كثيراً ما تُرفض لأن النص العربي يُحشر في زاوية. والتصميم المطابق يخطط للعربية والإنجليزية بالتساوي أو بتقديم العربية منذ الفكرة الأولى، ويستخدم خطاً عربياً احترافياً لا خطاً بديلاً آلياً، ويكتب النص العربي كاتب إعلانات يتقن العربية حتى تُقرأ الرسالة بسلاسة لا كترجمة حرفية. وتُعرض الأسماء والعلامات التجارية عادة كما هي مسجلة، لكن الرسالة الوصفية حولها يجب أن تكون بالعربية. وعلى المشتري أن يطلب من الوكالة تأكيد مطابقة التصميم النهائي لاشتراط اللغة العربية في الإمارة والوسيلة المعنية قبل الإنتاج، إذ تطبق الإمارات الأخرى وسلطات المناطق الحرة قواعدها الخاصة للافتات والمحتوى، ويجب التحقق منها بشكل مستقل لا افتراض تطابقها مع دبي. وينطبق المبدأ نفسه على تغليف المركبات والأسوار الإعلانية وتغليف المباني الخاضعة للمرسوم. والتصميم المرفوض يكلّف الوقت مرتين: إعادة التقديم للجهة ثم إعادة الطباعة، لذا أدرج المراجعة في الجدول الزمني واحتفظ بملف التصميم المعتمد كنسخة إنتاج رئيسية.",
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:dda-freezone-permit",
+      "topic": "Advertising permits in Dubai Development Authority (TECOM) free zones",
+      "kind": "authority_approval",
+      "body_en": "Inside the Dubai Development Authority's free-zone communities (the TECOM areas), advertising permits are issued by DDA rather than Dubai Municipality; applicants outside those areas are directed to Dubai Municipality after any DDA structural review. DDA's service covers building signage (wall-mounted, wraps, rooftop, window stickers, shop fronts), billboards (unipoles, hoardings, megacoms, mupis, lamppost signs), construction fencing, inflatables, bridge banners, roundabout branding, flags and free-standing units. Typical submissions are a location map or site plan, trade licence, mock-ups showing the existing façade and the proposed design with dimensions, structural calculations and drawings where relevant, owner or contractor authorisation, and clearances from sector regulators where the content requires it (for example real-estate, tourism or education regulators). Illuminated signs, electrical installations and signs above 2.5 m need a risk assessment. DDA publishes annual fees such as AED 5,000 for premium signage, AED 2,500 for parapet signs, AED 1,500 for flags or standalone units, AED 1,000 for window stickers and AED 500 for ground-floor shop signage, plus AED 20 knowledge and innovation fees, with a stated service time of four working days. Buyers should ask the agency which authority governs each site before quoting, because the wrong route wastes weeks.",
+      "body_ar": "داخل مجتمعات المناطق الحرة التابعة لسلطة دبي للتطوير (مناطق تيكوم) تصدر تصاريح الإعلان من السلطة لا من بلدية دبي، أما المتقدمون من خارج هذه المناطق فيُحالون إلى بلدية دبي بعد المراجعة الإنشائية لدى السلطة عند الحاجة. وتشمل الخدمة لافتات المباني (المثبتة على الجدران والتغليف ولافتات الأسطح وملصقات النوافذ وواجهات المحال)، واللوحات الإعلانية (الأعمدة الأحادية والأسوار والميغاكوم والموبي ولافتات أعمدة الإنارة)، وأسوار مواقع البناء والمجسمات القابلة للنفخ ولافتات الجسور وتزيين الدوارات والأعلام والوحدات القائمة بذاتها. ويُطلب عادة مخطط الموقع والرخصة التجارية وتصاميم توضيحية للواجهة الحالية والتصميم المقترح بأبعاده، والحسابات والمخططات الإنشائية عند اللزوم، وتفويض المالك أو المقاول، وموافقات الجهات القطاعية إذا تطلب المحتوى ذلك مثل جهات العقارات أو السياحة أو التعليم. وتحتاج اللافتات المضيئة والتركيبات الكهربائية واللافتات التي يزيد ارتفاعها على 2.5 متر إلى تقييم مخاطر. وتعلن السلطة رسوماً سنوية منها 5,000 درهم للافتات المميزة و2,500 للافتات الحاجز العلوي و1,500 للأعلام والوحدات المستقلة و1,000 لملصقات النوافذ و500 للافتات المحال الأرضية، إضافة إلى 20 درهماً رسوم المعرفة والابتكار، بمدة خدمة معلنة أربعة أيام عمل. وعلى المشتري أن يسأل الوكالة عن الجهة المختصة بكل موقع قبل التسعير، لأن اختيار المسار الخاطئ يضيّع أسابيع.",
+      "sources": [
+        "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:abu-dhabi-other-emirates",
+      "topic": "Outdoor advertising approvals outside Dubai (Abu Dhabi, Sharjah)",
+      "topic_ar": "موافقات الإعلانات الخارجية خارج دبي (أبوظبي والشارقة)",
+      "kind": "authority_approval",
+      "body_en": "Outside Dubai each emirate runs its own outdoor-advertising approvals. In Abu Dhabi the Department of Municipalities and Transport handles permits, and Sharjah operates its own municipal approval system. For business signage on buildings, Abu Dhabi's DMT publishes Commercial Signage Regulations (version 5) that define permitted sign typologies by building type and level (ground floor, mezzanine, building body, colonnades, villas, malls, warehouses and industrial complexes), with limits such as light fixtures protruding no more than 15 cm from an illuminated sign, phone numbers or websites covering at most 10% of a sign, and caps on sign area relative to façade or wall. Across emirates the typical stack of approvals is: a municipal permit for the structure or display; the transport authority where the site is on a road corridor or transit asset; confirmation of the advertiser's and agency's trade licensing; the landlord's no-objection for private sites; and content pre-clearance for sensitive material such as celebrity endorsements, political messaging or culturally sensitive themes. Industry sources describe temporary campaign permits lasting roughly two weeks to one month with extension options, but the exact durations, fees and document lists for Abu Dhabi and Sharjah were not established from a primary authority page during this research and must be confirmed with the authority or the media owner for each booking. Sector regulators add their own layer, for example real-estate advertising regulators in each emirate. In practice, established media owners usually hold the structure permits for their own sites and advise on campaign content approvals, while temporary or ad-hoc installations require the agency or advertiser to apply. Ask the quoting party to list every approval it will obtain and which ones remain the advertiser's responsibility.",
+      "body_ar": "خارج دبي تدير كل إمارة موافقات الإعلانات الخارجية بنفسها، ففي أبوظبي تتولى دائرة البلديات والنقل التصاريح، وللشارقة نظام موافقات بلدي خاص. وتتكون حزمة الموافقات المعتادة في الإمارات من: تصريح بلدي للمنشأة أو وسيلة العرض، وموافقة جهة النقل إذا كان الموقع على محور طرق أو أصل من أصول النقل، والتحقق من الترخيص التجاري للمعلن والوكالة، وعدم ممانعة المالك في المواقع الخاصة، والموافقة المسبقة على المحتوى الحساس مثل ظهور المشاهير أو الرسائل السياسية أو الموضوعات ذات الحساسية الثقافية. وتذكر مصادر القطاع أن تصاريح الحملات المؤقتة تمتد عادة من أسبوعين إلى شهر مع إمكانية التمديد، لكن المدد والرسوم وقوائم المستندات الدقيقة في أبوظبي والشارقة لم تثبت من صفحة رسمية أثناء هذا البحث، ويجب التأكد منها لدى الجهة أو مالك الوسيلة في كل حجز. أما لافتات الأنشطة التجارية على المباني فتنشر دائرة البلديات والنقل في أبوظبي \"لائحة اللافتات التجارية\" (الإصدار الخامس) التي تحدد أنواع اللافتات المسموح بها بحسب نوع المبنى والمستوى (الطابق الأرضي والميزانين وجسم المبنى والأروقة والفلل والمراكز التجارية والمستودعات والمجمعات الصناعية)، ومن حدودها ألا تبرز وحدات الإضاءة أكثر من 15 سم عن اللافتة المضيئة، وألا تتجاوز أرقام الهاتف أو المواقع الإلكترونية 10% من اللافتة، مع سقوف لمساحة اللافتة نسبة إلى الواجهة أو الجدار. وتضيف الجهات القطاعية طبقة أخرى، مثل جهات تنظيم الإعلانات العقارية في كل إمارة. وعملياً يحمل ملاك الوسائل المعروفون تصاريح منشآتهم عادة ويقدّمون المشورة في موافقات محتوى الحملات، أما التركيبات المؤقتة فتتقدم لها الوكالة أو المعلن. اطلب من مقدّم العرض أن يسرد كل موافقة سيستخرجها وما يبقى على عاتق المعلن.",
+      "sources": [
+        "https://ooh.ae/our-work/articles/ooh-advertising-permits-in-the-uae",
+        "https://www.dmt.gov.ae/-/media/Project/DMT/DMT/E-Library/10-22/Commercial-Signage-Regulations---Version-5.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:real-estate-trakheesi",
+      "topic": "Real-estate advertising permit (DLD Trakheesi) for property campaigns in Dubai",
+      "kind": "authority_approval",
+      "body_en": "Any real-estate advertising in Dubai needs a Dubai Land Department advertising permit issued through the Trakheesi system before it runs. The permit covers fourteen activity types: newspaper, SMS, outdoor, vehicle, printed, electronic and billboard advertisements, promotional campaigns, open-house events, classified ads, real-estate exhibitions, project-launch events, promotion platforms and seminars. DLD publishes a fee of AED 1,000 per permit (AED 5,000 for a project-launch event) plus AED 20 knowledge and innovation fees, with a service time of one working day; exhibition bookings have separate fees. Required documents vary by type, for example the advertisement form, relevant contracts, no-objection letters or platform designs. For an agency running a developer or brokerage campaign, this means the permit number must be obtained per advertisement and shown on the creative, the agency cannot publish property creative on a client's behalf without it, and every channel (social, outdoor, SMS) is in scope. Abu Dhabi has its own real-estate advertising rules under its real-estate regulator; those were not verified here. Buyers should require the agency to include the Trakheesi reference in the approval workflow and never to schedule media before the permit is issued.",
+      "body_ar": "يتطلب أي إعلان عقاري في دبي تصريحاً إعلانياً من دائرة الأراضي والأملاك يصدر عبر نظام \"ترخيصي\" قبل نشره. ويشمل التصريح أربعة عشر نوعاً من الأنشطة: إعلانات الصحف والرسائل النصية والإعلانات الخارجية وعلى المركبات والمطبوعة والإلكترونية واللوحات، والحملات الترويجية، وفعاليات البيت المفتوح، والإعلانات المبوبة، والمعارض العقارية، وفعاليات إطلاق المشاريع، ومنصات الترويج، والندوات العقارية. وتعلن الدائرة رسماً قدره 1,000 درهم للتصريح (و5,000 درهم لفعالية إطلاق مشروع) إضافة إلى 20 درهماً رسوم المعرفة والابتكار، بمدة خدمة يوم عمل واحد، وللمعارض رسوم مستقلة. وتختلف المستندات بحسب النوع، مثل نموذج الإعلان والعقود ذات الصلة وخطابات عدم الممانعة أو تصاميم المنصات. وبالنسبة للوكالة التي تدير حملة لمطوّر أو وسيط، فهذا يعني استخراج رقم تصريح لكل إعلان وإظهاره على التصميم، وعدم نشر أي محتوى عقاري نيابة عن العميل دونه، وأن جميع القنوات (التواصل الاجتماعي والإعلانات الخارجية والرسائل) مشمولة. ولأبوظبي قواعدها الخاصة للإعلانات العقارية لدى جهة تنظيم العقارات فيها، ولم يتم التحقق منها هنا. وعلى المشتري أن يلزم الوكالة بإدراج رقم \"ترخيصي\" في مسار الاعتماد، وألا تُجدول أي مساحة إعلانية قبل صدور التصريح.",
+      "sources": [
+        "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:medical-ads",
+      "topic": "Healthcare and medical advertising in Dubai (DHA standards)",
+      "kind": "authority_approval",
+      "body_en": "Healthcare advertising is one of the most regulated categories an agency will handle. The Dubai Health Authority's Standards for Medical Advertisement Content on Social Media (version 1.1, effective October 2022) apply to DHA-licensed facilities and professionals. Key rules: the facility's medical director is responsible for approving social media advertisement content; documented written consent is required from any patient or individual shown, limited to the purpose and period consented; before-and-after pictures must show the same person, same lens and no retouching, with a statement that results vary; and the prohibited list includes guaranteed or miraculous outcomes, treatments promising full recovery, testimonials without written patient consent, and discounts or inducements that cannot be met. At federal level, medical products cannot be advertised in the UAE until MOHAP has issued a marketing authorisation, prescription-only medicines may not be promoted to the public at all, and advertisements for permitted products need prior approval; emirate health authorities may also review, and digital channels additionally fall under the media law. For a clinic or pharma client the agency must build regulator approval into the timeline, avoid influencer \"reviews\" of treatments unless compliant, and keep consent records. Quotes that promise fast launch of medical creative without approval steps are a warning sign.",
+      "body_ar": "يُعد الإعلان الصحي من أشد الفئات تنظيماً التي تتعامل معها الوكالات. وتسري \"معايير محتوى الإعلانات الطبية على وسائل التواصل الاجتماعي\" الصادرة عن هيئة الصحة بدبي (الإصدار 1.1 النافذ منذ أكتوبر 2022) على المنشآت والمهنيين المرخّصين من الهيئة. ومن أهم أحكامها: أن المدير الطبي للمنشأة مسؤول عن اعتماد محتوى الإعلان، وأنه يلزم الحصول على موافقة خطية موثقة من أي مريض أو شخص يظهر في الإعلان ومقصورة على الغرض والمدة المحددين، وأن صور \"قبل وبعد\" يجب أن تكون للشخص نفسه وبالعدسة نفسها ودون تعديل مع عبارة تفيد بأن النتائج تختلف، وتشمل قائمة المحظورات ادعاء نتائج مضمونة أو خارقة، والعلاجات التي تعد بالشفاء التام، وشهادات المرضى دون موافقة خطية، والخصومات أو الحوافز التي لا يمكن الوفاء بها. وعلى المستوى الاتحادي لا يجوز الإعلان عن أي منتج طبي قبل حصوله على إذن تسويق من وزارة الصحة ووقاية المجتمع، ويُحظر الترويج للأدوية التي تُصرف بوصفة طبية للجمهور، وتحتاج إعلانات المنتجات المسموح بها إلى موافقة مسبقة، وقد تراجعها الجهات الصحية المحلية، وتخضع القنوات الرقمية كذلك لقانون الإعلام. وعلى الوكالة التي تخدم عيادة أو شركة دوائية أن تُدرج موافقة الجهة التنظيمية في الجدول الزمني، وأن تتجنب \"مراجعات\" المؤثرين للعلاجات ما لم تكن مطابقة، وأن تحتفظ بسجلات الموافقات. والعروض التي تعد بإطلاق سريع لمحتوى طبي دون خطوات الموافقة علامة تحذير.",
+      "sources": [
+        "https://dha.gov.ae/uploads/042022/Standards%20for%20Medical%20Advertisement%20Content%20in%20Social%20Media2022433965.pdf",
+        "https://cms.law/en/int/expert-guides/cms-expert-guide-to-advertising-of-medicines-and-medical-devices/united-arab-emirates"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:pdpl-marketing-data",
+      "topic": "Personal data and direct marketing under the UAE PDPL",
+      "kind": "standard",
+      "body_en": "Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data came into force on 2 January 2022 and applies to processing of personal data by electronic or other means, inside or outside the UAE. As a general rule it prohibits processing personal data without the data subject's consent, subject to listed exceptions, and gives individuals rights to correct inaccurate data and to restrict or stop processing. The UAE Data Office is the federal regulator. Separately, the federal consumer protection law restricts suppliers from using consumer data for marketing without authorisation. The DIFC has its own data protection law, so campaigns processing data in financial free zones follow different rules. For agencies this touches CRM campaigns, lead-generation forms, retargeting audiences, SMS and email blasts, and influencer giveaways that collect contact details. A compliant brief states the lawful basis for each dataset, who is controller and processor, where data is hosted, retention periods, and how opt-outs are honoured. Detailed PDPL executive regulations and specific marketing-consent formalities were not verified from a primary source in this research and should be confirmed by counsel. Buyers should never hand over or buy contact lists without proof of consent, and should include a data processing clause in the agency contract.",
+      "body_ar": "صدر المرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية ودخل حيز النفاذ في 2 يناير 2022، ويسري على معالجة البيانات الشخصية إلكترونياً أو بغير ذلك داخل الدولة أو خارجها. والقاعدة العامة فيه حظر معالجة البيانات الشخصية دون موافقة صاحبها مع استثناءات محددة، ويمنح الأفراد حق تصحيح البيانات غير الدقيقة وتقييد المعالجة أو إيقافها. ومكتب الإمارات للبيانات هو الجهة الاتحادية المنظِّمة. وبشكل منفصل يقيّد قانون حماية المستهلك الاتحادي استخدام المورّدين لبيانات المستهلكين في التسويق دون إذن. ولمركز دبي المالي العالمي قانون خاص لحماية البيانات، لذا تخضع الحملات التي تعالج البيانات في المناطق الحرة المالية لقواعد مختلفة. ويمس ذلك عمل الوكالات في حملات إدارة علاقات العملاء ونماذج جمع العملاء المحتملين وجماهير إعادة الاستهداف والرسائل النصية والبريدية الجماعية ومسابقات المؤثرين التي تجمع بيانات الاتصال. والموجز المطابق يحدد الأساس القانوني لكل مجموعة بيانات، ومن هو المتحكم ومن هو المعالج، ومكان الاستضافة، ومدد الاحتفاظ، وآلية تنفيذ طلبات إلغاء الاشتراك. ولم يتم التحقق من اللائحة التنفيذية التفصيلية للقانون ولا من شكليات موافقة التسويق من مصدر رسمي في هذا البحث، ويجب تأكيدها مع مستشار قانوني. ولا ينبغي للمشتري تسليم قوائم اتصال أو شراؤها دون إثبات الموافقة، وعليه تضمين بند لمعالجة البيانات في عقد الوكالة.",
+      "sources": [
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "marketing_advertising:telemarketing-rules",
+      "topic": "Telemarketing and marketing messages (Cabinet Resolutions 56 and 57 of 2024)",
+      "kind": "authority_approval",
+      "body_en": "Cabinet Resolutions No. 56 and 57 of 2024 regulate telemarketing in the UAE and took effect on 27 August 2024. Telemarketing is defined broadly to include marketing calls, marketing text messages and marketing messages sent through social media applications. Key obligations: prior approval from the competent authority before carrying out telemarketing; use of local numbers registered under the company's commercial licence; calls only between 9:00 am and 6:00 pm; no contact with numbers on the Do Not Call Registry (DNCR) run by the telecom regulator; disclosure of the caller's identity and purpose; explicit consumer consent; records of marketing calls kept in the authority's forms; and staff training. Resolution 57 sets administrative penalties ranging from warnings and fines to licence suspension or cancellation according to severity and repetition; specific fine amounts were not confirmed from the source fetched. For a buyer outsourcing lead generation or SMS campaigns, the agency or call centre must show its approval, number registration and DNCR scrubbing process, and the contract should state who is liable for violations. Cheap \"blast\" SMS packages sent from unregistered senders or foreign numbers are a direct compliance risk to the brand.",
+      "body_ar": "ينظم قرارا مجلس الوزراء رقم 56 و57 لسنة 2024 التسويق عبر الهاتف في الدولة، وقد دخلا حيز النفاذ في 27 أغسطس 2024. ويُعرَّف التسويق الهاتفي تعريفاً واسعاً يشمل المكالمات والرسائل النصية التسويقية والرسائل التسويقية عبر تطبيقات التواصل الاجتماعي. ومن أهم الالتزامات: الحصول على موافقة مسبقة من الجهة المختصة قبل مزاولة التسويق الهاتفي، واستخدام أرقام محلية مسجلة باسم الرخصة التجارية للشركة، وإجراء المكالمات بين التاسعة صباحاً والسادسة مساءً فقط، وعدم الاتصال بالأرقام المسجلة في \"سجل عدم الإزعاج\" الذي تديره الجهة المنظمة للاتصالات، والإفصاح عن هوية المتصل والغرض من الاتصال، والحصول على موافقة صريحة من المستهلك، والاحتفاظ بسجلات المكالمات التسويقية على النماذج المعتمدة، وتدريب الموظفين. ويحدد القرار 57 جزاءات إدارية تتدرج من الإنذار والغرامة إلى وقف الترخيص أو إلغائه بحسب الجسامة والتكرار، ولم تُؤكد مبالغ الغرامات من المصدر الذي تم الاطلاع عليه. وعلى المشتري الذي يسند توليد العملاء أو حملات الرسائل النصية إلى جهة خارجية أن يطلب من الوكالة أو مركز الاتصال إثبات الموافقة وتسجيل الأرقام وآلية تنقية القوائم من سجل عدم الإزعاج، وأن يحدد العقد المسؤول عن المخالفات. وباقات الرسائل الجماعية الرخيصة المرسلة من معرّفات غير مسجلة أو أرقام أجنبية خطر امتثال مباشر على العلامة التجارية.",
+      "sources": [
+        "https://rouse.com/insights/news/2024/new-telemarketing-regulations-introduced-in-uae"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:brief-brand-identity",
+      "topic": "What to specify when requesting brand identity and creative work",
+      "kind": "spec_checklist",
+      "body_en": "Brand identity quotes vary more than almost any other service because \"a logo\" can mean a two-day sketch or a months-long strategic programme. A supplier can only quote exactly if the buyer defines the scope. State whether you need strategy (research, positioning, naming) or only visual execution; the exact deliverables (logo master and variants, colour palette, typography, iconography, brand guidelines document, stationery, templates, signage and vehicle applications); whether an Arabic logotype and Arabic typography must be designed rather than adapted, since UAE outdoor rules make Arabic the primary language on signage; the number of initial concepts and revision rounds included; file formats to be delivered (vector AI/EPS/SVG, PDF, PNG, CMYK/RGB/Pantone references); who owns the intellectual property and whether full copyright assignment and source files are included; any trademark search responsibility; timeline and approval gates; and who in your company signs off. Also state the sector, because regulated sectors (health, real estate, finance) need claims and imagery checked. Without these fields, compare quotes by deliverable list, not by headline price; the cheapest bid often excludes guidelines, Arabic design or source files, which then reappear as change orders. Ownership terms are commercial and must be negotiated in the contract.",
+      "body_ar": "تتفاوت عروض أسعار الهوية المؤسسية أكثر من أي خدمة أخرى تقريباً، لأن \"الشعار\" قد يعني رسماً في يومين أو برنامجاً استراتيجياً يمتد أشهراً، ولا يمكن للمورّد أن يسعّر بدقة إلا إذا حدد المشتري النطاق. حدّد ما إذا كنت تحتاج استراتيجية (بحث وتموضع وتسمية) أم تنفيذاً بصرياً فقط، والمخرجات بدقة (الشعار الرئيسي وصيغه، ولوحة الألوان، والخطوط، والأيقونات، ودليل الهوية، والقرطاسية، والقوالب، وتطبيقات اللافتات والمركبات)، وهل يلزم تصميم شعار وخط عربيين أصيلين لا مجرد تكييف، علماً بأن قواعد الإعلانات الخارجية في الدولة تجعل العربية لغة أساسية على اللافتات، وعدد المقترحات الأولية وجولات التعديل المشمولة، وصيغ الملفات المسلّمة (ملفات متجهة AI/EPS/SVG وPDF وPNG ومرجعيات CMYK وRGB وبانتون)، ومن يملك حقوق الملكية الفكرية وهل يشمل العرض التنازل الكامل عن حقوق المؤلف والملفات المصدرية، والمسؤول عن البحث في العلامات التجارية، والجدول الزمني ومراحل الاعتماد، ومن يعتمد في شركتك. واذكر القطاع أيضاً، فالقطاعات المنظمة (الصحة والعقار والمال) تتطلب مراجعة الادعاءات والصور. ودون هذه البنود قارن العروض بقائمة المخرجات لا بالسعر الإجمالي، فالعرض الأرخص كثيراً ما يستبعد الدليل أو التصميم العربي أو الملفات المصدرية، ثم تعود كأوامر تغيير. وشروط الملكية تجارية ويجب التفاوض عليها في العقد.",
+      "required_specs": [
+        "Scope: strategy / naming / visual identity only",
+        "Deliverables list (logo set, palette, typography, guidelines, templates, applications)",
+        "Arabic logotype and Arabic typography required (Y/N)",
+        "Number of concepts and revision rounds",
+        "Delivery file formats and colour references (vector, PDF, CMYK/RGB/Pantone)",
+        "IP ownership and source-file handover",
+        "Trademark search responsibility",
+        "Sector (regulated or not)",
+        "Timeline and approval gates",
+        "Client sign-off authority"
+      ],
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:brief-media-buying",
+      "topic": "What to specify when requesting a media plan and media buying",
+      "kind": "spec_checklist",
+      "body_en": "A media agency can only return a comparable plan if the brief fixes the variables. State the campaign objective (awareness, consideration, leads, sales) and the primary KPI with its target; the total budget and whether it includes or excludes agency fees, production and VAT; flight dates and any blackout periods such as Ramadan scheduling preferences; target audience (demographics, nationalities, languages Arabic/English, emirates or cities); channels in or out of scope (TV, radio, print, outdoor, cinema, digital display, search, social, programmatic, influencer); whether the agency buys in its own name or on the client's accounts (for example the brand's own ad-platform accounts); the compensation basis (commission on media, fixed fee, retainer, or hybrid) and whether platform rebates or volume bonuses are passed back; reporting frequency and the metrics and verification tools required; creative formats the plan assumes, with specs; and approvals that gate launch (media council, sector permits such as DLD or health authority approvals). Ask for the plan to show net media cost, fees and production separately. Industry research by the US Association of National Advertisers shows commissions remain more common for media than for creative services, so clarify transparency terms explicitly.",
+      "body_ar": "لا يمكن لوكالة الإعلام أن تقدم خطة قابلة للمقارنة إلا إذا ثبّت الموجز المتغيرات. حدّد هدف الحملة (الوعي أو الاهتمام أو العملاء المحتملون أو المبيعات) ومؤشر الأداء الرئيسي وقيمته المستهدفة، وإجمالي الميزانية وهل تشمل أتعاب الوكالة والإنتاج وضريبة القيمة المضافة أم لا، وتواريخ الحملة وأي فترات توقف مثل تفضيلات الجدولة في رمضان، والجمهور المستهدف (الفئات العمرية والجنسيات واللغتان العربية والإنجليزية والإمارات أو المدن)، والقنوات المشمولة أو المستبعدة (التلفزيون والإذاعة والصحف والإعلانات الخارجية والسينما والإعلانات الرقمية والبحث ومنصات التواصل والشراء الآلي والمؤثرون)، وهل تشتري الوكالة باسمها أم عبر حسابات العميل على المنصات الإعلانية، وأساس الأتعاب (عمولة على قيمة المساحات أو أتعاب ثابتة أو اشتراك شهري أو نموذج مختلط) وهل تُعاد الحسومات أو مكافآت الحجم إلى العميل، ودورية التقارير والمقاييس وأدوات التحقق المطلوبة، وصيغ المواد الإبداعية التي تفترضها الخطة ومواصفاتها، والموافقات التي يتوقف عليها الإطلاق (مجلس الإعلام وتصاريح القطاعات مثل دائرة الأراضي أو الجهات الصحية). واطلب أن تُظهر الخطة صافي كلفة المساحات والأتعاب والإنتاج كلاً على حدة. وتُظهر أبحاث رابطة المعلنين الوطنيين الأمريكية أن العمولات لا تزال أكثر شيوعاً في خدمات الإعلام منها في الخدمات الإبداعية، لذا وضّح شروط الشفافية صراحة.",
+      "required_specs": [
+        "Objective and primary KPI with target",
+        "Total budget and what it includes (fees, production, VAT)",
+        "Flight dates and blackout periods",
+        "Audience: demographics, language, emirates",
+        "Channels in/out of scope",
+        "Buying entity: agency accounts vs client-owned accounts",
+        "Compensation model and rebate pass-back",
+        "Reporting frequency, metrics, verification tools",
+        "Creative formats and specs assumed",
+        "Regulatory approvals required before launch"
+      ],
+      "sources": [
+        "https://www.ana.net/content/show/id/44647",
+        "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:brief-ooh-campaign",
+      "topic": "What to specify when requesting an outdoor (OOH) campaign",
+      "kind": "spec_checklist",
+      "body_en": "Outdoor quotes depend on exact site, size and duration, so a vague request (\"billboards on Sheikh Zayed Road for a month\") cannot be priced exactly. Specify: emirate and corridors or landmarks wanted, or the audience and reach target if you want the media owner to propose sites; format type (unipole, bridge banner, lamppost, mega-com, mupi, digital screen, mall, transit, vehicle branding, construction hoarding) and whether static or digital; for digital, the slot length, loop length and share of voice; campaign start date and duration, noting that permits are time-bound; number of faces; who produces and installs the print or supplies the digital file, including material type for static (flex, vinyl, mesh) and illumination; artwork delivery deadline and file specifications per face; permit responsibility for the structure and for content (municipality or RTA in Dubai, DDA in its free zones, DMT in Abu Dhabi, plus sector permits such as DLD Trakheesi for property ads); the Arabic-language requirement for Dubai outdoor creative; proof of posting (photos, dates) and monitoring; and cancellation or substitution terms if a site is unavailable or a permit is refused. Ask the media owner to confirm that its structure permits are valid for the whole flight.",
+      "body_ar": "تعتمد عروض الإعلانات الخارجية على الموقع والمقاس والمدة بدقة، لذا لا يمكن تسعير طلب مبهم مثل \"لوحات على شارع الشيخ زايد لمدة شهر\" بشكل دقيق. حدّد: الإمارة والمحاور أو المعالم المطلوبة، أو الجمهور ومستهدف الوصول إذا أردت أن يقترح مالك الوسيلة المواقع، ونوع الوسيلة (عمود أحادي أو لافتة جسر أو عمود إنارة أو ميغاكوم أو موبي أو شاشة رقمية أو مركز تسوق أو وسائل نقل أو تغليف مركبات أو سور موقع بناء) وهل هي ثابتة أم رقمية، وللرقمية مدة الإعلان وطول الدورة وحصة الظهور، وتاريخ البدء والمدة علماً بأن التصاريح محددة المدة، وعدد الأوجه، ومن ينتج المطبوعة ويركّبها أو يسلّم الملف الرقمي بما في ذلك نوع الخامة للثابتة (فلكس أو فينيل أو شبك) والإضاءة، وموعد تسليم التصاميم ومواصفات الملف لكل وجه، ومسؤولية التصاريح للمنشأة وللمحتوى (البلدية أو هيئة الطرق في دبي، وسلطة دبي للتطوير في مناطقها الحرة، ودائرة البلديات والنقل في أبوظبي، إضافة إلى تصاريح القطاعات مثل \"ترخيصي\" للإعلانات العقارية)، واشتراط اللغة العربية في التصاميم الخارجية في دبي، وإثبات العرض (صور وتواريخ) والمتابعة، وشروط الإلغاء أو الاستبدال إذا تعذر الموقع أو رُفض التصريح. واطلب من مالك الوسيلة تأكيد سريان تصاريح منشآته طوال مدة الحملة.",
+      "required_specs": [
+        "Emirate and corridors/landmarks or audience target",
+        "Format type and static vs digital",
+        "Digital: slot length, loop, share of voice",
+        "Start date and duration",
+        "Number of faces",
+        "Production and installation responsibility, material, illumination",
+        "Artwork deadline and file specs per face",
+        "Structure and content permit responsibility (DM/RTA/DDA/DMT, sector permits)",
+        "Arabic-language compliance",
+        "Proof of posting and monitoring",
+        "Cancellation/substitution terms"
+      ],
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html",
+        "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
+        "https://www.backlitemedia.com/ooh/dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:brief-print-production",
+      "topic": "What to specify for printed marketing material and large-format print",
+      "kind": "spec_checklist",
+      "body_en": "Print suppliers quote from exact physical specs. State: item type (brochure, flyer, roll-up, backdrop, flex banner, vinyl sticker, fabric print); finished size and, for folded items, flat size and fold type; quantity per version; material or paper stock and weight, coating or lamination, and finishing (die-cut, spot UV, eyelets, pole pockets); print sides and colours; hardware included (for a roll-up: stand type and carry bag); indoor or outdoor use, since UV resistance and material change; delivery location and date; installation if needed; and artwork supply format. UAE printers commonly ask for print-ready PDF at 300 DPI at final size for small-format work, CMYK colour, 3 mm bleed and embedded fonts. For large format a common Dubai guideline is about 150 DPI at final size for viewing at 1 to 3 m and lower for distant viewing, bleed of 3 to 5 mm for small items rising to 10 to 20 mm for big banners, CMYK except dye-sublimation fabric which is often RGB, and fonts outlined; press-ready PDF/X-1a or PDF/X-4 is preferred over JPEG or PNG. Published examples show roll-ups from about AED 150 including stand in Dubai with one-day turnaround, but prices vary with size and materials.",
+      "body_ar": "يسعّر موردو الطباعة بناءً على مواصفات مادية دقيقة. حدّد: نوع المادة (كتيّب أو نشرة أو رول أب أو خلفية أو بنر فلكس أو ملصق فينيل أو طباعة على قماش)، والمقاس النهائي، وللمواد المطوية المقاس المفرود ونوع الطي، والكمية لكل نسخة، والخامة أو نوع الورق ووزنه والطلاء أو التغليف، والتشطيب (قص بالقالب أو ورنيش موضعي أو حلقات أو جيوب للأعمدة)، وعدد الأوجه والألوان، والملحقات المشمولة (للرول أب: نوع الحامل وحقيبة الحمل)، والاستخدام داخلي أم خارجي لأن مقاومة الأشعة فوق البنفسجية والخامة تتغير، وموقع التسليم وتاريخه، والتركيب إن لزم، وصيغة تسليم التصاميم. وتطلب المطابع في الدولة عادة ملف PDF جاهزاً للطباعة بدقة 300 نقطة في البوصة بالمقاس النهائي للمطبوعات الصغيرة، وبنظام ألوان CMYK، وهامش قص 3 ملم، مع تضمين الخطوط. وفي الطباعة كبيرة الحجم يتداول في دبي معيار نحو 150 نقطة في البوصة بالمقاس النهائي للمشاهدة من متر إلى ثلاثة أمتار وأقل للمشاهدة البعيدة، وهامش قص من 3 إلى 5 ملم للمطبوعات الصغيرة يرتفع إلى 10 إلى 20 ملم للبنرات الكبيرة، ونظام CMYK عدا الطباعة الحرارية على القماش التي تكون غالباً RGB، مع تحويل الخطوط إلى مسارات، ويُفضَّل ملف PDF/X-1a أو PDF/X-4 على JPEG أو PNG. وتُظهر أمثلة منشورة أسعار رول أب تبدأ من نحو 150 درهماً شاملة الحامل في دبي مع تسليم خلال يوم، لكن الأسعار تتغير بحسب المقاس والخامات.",
+      "required_specs": [
+        "Item type",
+        "Finished size (and flat size/fold for folded items)",
+        "Quantity per version",
+        "Material/paper stock and weight",
+        "Coating, lamination, finishing",
+        "Print sides and colours",
+        "Hardware included (stand, bag)",
+        "Indoor or outdoor use",
+        "Artwork format (PDF/X, resolution, CMYK, bleed, fonts)",
+        "Delivery location/date and installation"
+      ],
+      "sources": [
+        "https://colorspotprints.com/product/roll-up-banner-printing-dubai/",
+        "https://www.ambert.ae/post/how-to-prepare-design-files-for-large-format-printing-dubai"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:digital-ad-formats",
+      "topic": "Standard digital display ad formats and file weights (IAB)",
+      "kind": "standard",
+      "body_en": "For display advertising the reference is the IAB Technology Laboratory's New Standard Ad Unit Portfolio. It moved the industry from fixed pixel sizes towards aspect-ratio based, flexible units, while keeping common fixed sizes such as 728x90 leaderboard, 970x250 billboard, 320x50 mobile banner, 300x250 medium rectangle, 160x600 skyscraper and 300x600 half page for legacy inventory. Every ad in the portfolio is meant to be a LEAN ad: light, encrypted, AdChoices-supported and non-invasive. The specification separates initial load (everything requested before the page's load event) from host-initiated subload and user-initiated load, sets maximum kilobyte weights per size group for each, and limits initial load to ten file requests. Audio and expanding behaviour should be user-initiated. For a buyer this means the creative brief to the agency must list the exact placements and sizes the media plan uses, the maximum file weights the publishers accept, static backup images, HTML5 versus static formats, click-tag conventions and Arabic and English versions. Platforms such as social networks and search engines publish their own specs, which override the IAB baseline for their inventory. Ask the agency for a format matrix that ties each deliverable to a placement so nothing is produced twice or forgotten.",
+      "body_ar": "المرجع في الإعلانات الرقمية المصورة هو \"حافظة وحدات الإعلان القياسية الجديدة\" الصادرة عن مختبر التقنية التابع لمكتب الإعلانات التفاعلية IAB، وقد نقلت القطاع من المقاسات الثابتة بالبكسل إلى وحدات مرنة قائمة على نسب الأبعاد، مع إبقاء المقاسات الشائعة للمخزون القائم مثل 728x90 و970x250 و320x50 للجوال و300x250 و160x600 و300x600. ويُفترض أن يكون كل إعلان في الحافظة إعلاناً من نوع LEAN أي خفيفاً ومشفراً وداعماً لخيارات الإعلان وغير متطفل. وتفصل المواصفة بين التحميل الأولي (كل ما يُطلب قبل حدث اكتمال تحميل الصفحة) والتحميل اللاحق الذي تبادر إليه الصفحة والتحميل الذي يبادر إليه المستخدم، وتحدد أقصى حجم بالكيلوبايت لكل مجموعة مقاسات، وتقصر التحميل الأولي على عشرة طلبات ملفات. ويجب أن يكون الصوت والتوسّع بمبادرة من المستخدم. ويعني ذلك للمشتري أن الموجز الإبداعي للوكالة يجب أن يسرد المواقع والمقاسات الدقيقة في خطة الإعلام، وأقصى أحجام الملفات التي يقبلها الناشرون، والصور البديلة الثابتة، وصيغ HTML5 مقابل الثابتة، وأعراف روابط النقر، والنسختين العربية والإنجليزية. وتنشر منصات التواصل ومحركات البحث مواصفاتها الخاصة التي تتقدم على مرجع IAB في مخزونها. واطلب من الوكالة مصفوفة صيغ تربط كل مخرج بموقع إعلاني حتى لا يُنتج شيء مرتين أو يُنسى.",
+      "sources": [
+        "https://www.iab.com/wp-content/uploads/2019/07/IABNewAdPortfolio_FINAL_0719.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:compensation-models",
+      "topic": "Agency fee models: commission vs fee vs retainer",
+      "kind": "comparison",
+      "body_en": "Agencies are paid in a few basic ways and the choice changes both price and incentives. The historic model was a media commission, classically 15% of media cost, where the agency's income rose with the client's spend. Labour-based fees (hourly or FTE-based) became the most common method; project fees fix a price for a defined deliverable; retainers pay a monthly amount for an agreed scope and team; and value- or performance-based models tie part of the payment to results. The US Association of National Advertisers' 2017 study found labour-based fees declining for the first time since 2006 though still most used, traditional commissions returning mainly for media and programmatic buying, value-based pay used by only a small minority, and performance incentives declining because respondents found them complex and not clearly effective. It also found finance and senior management far more involved in agency negotiations after the media-transparency debate. Choosing: a retainer suits continuous social and content work with steady volume; a project fee suits a rebrand or launch; commission or percentage-of-spend is common for media buying but should come with full disclosure of net costs and rebates. UAE-specific market rates are not published and were not established in this research.",
+      "body_ar": "تتقاضى الوكالات أتعابها بطرق أساسية قليلة، واختيار الطريقة يغيّر السعر والحوافز معاً. فالنموذج التاريخي هو عمولة الإعلام، وتقليدياً 15% من كلفة المساحات، حيث يرتفع دخل الوكالة مع إنفاق العميل. ثم أصبحت الأتعاب القائمة على العمل (بالساعة أو بعدد الموظفين المكافئين) الأكثر شيوعاً، والأتعاب الثابتة للمشروع تحدد سعراً لمخرج معرّف، والاشتراك الشهري يدفع مبلغاً ثابتاً لنطاق وفريق متفق عليهما، ونماذج القيمة أو الأداء تربط جزءاً من الدفع بالنتائج. ووجدت دراسة رابطة المعلنين الوطنيين الأمريكية لعام 2017 أن الأتعاب القائمة على العمل تراجعت لأول مرة منذ 2006 مع بقائها الأكثر استخداماً، وأن العمولات التقليدية عادت أساساً في شراء الإعلام والشراء الآلي، وأن الدفع القائم على القيمة لا تستخدمه إلا أقلية صغيرة، وأن حوافز الأداء تراجعت لأن المشاركين وجدوها معقدة وغير واضحة الفاعلية. كما وجدت أن الإدارة المالية والعليا أصبحت أكثر انخراطاً في التفاوض مع الوكالات بعد نقاش شفافية الإعلام. وللاختيار: الاشتراك الشهري يناسب العمل المستمر في منصات التواصل والمحتوى بحجم ثابت، والأتعاب الثابتة تناسب إعادة الهوية أو الإطلاق، والعمولة أو النسبة من الإنفاق شائعة في شراء الإعلام لكن يجب أن تقترن بإفصاح كامل عن صافي الكلفة والحسومات. أما أسعار السوق في الدولة فغير منشورة ولم تثبت في هذا البحث.",
+      "sources": [
+        "https://www.ana.net/content/show/id/44647"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:agency-types",
+      "topic": "Full-service vs creative vs media vs digital/performance agencies",
+      "kind": "comparison",
+      "body_en": "Buyers often ask \"an agency\" for everything and receive quotes that cover different things. A full-service agency offers strategy, creative, production and often media under one contract; convenient for integrated campaigns but harder to benchmark line by line. A creative or branding agency develops ideas, identity, copy and artwork but usually does not buy media, so media must be planned separately. A media agency plans and buys space across channels and negotiates rates; its compensation is often tied to spend, which is why commissions remain more common for media than for creative services according to the US Association of National Advertisers. A digital or performance agency runs search, social and programmatic campaigns against measurable targets such as cost per lead, and often works inside the client's own ad accounts. Production houses, printers and OOH media owners are suppliers rather than agencies but may be booked directly. Specialist UAE services include permit handling for outdoor, vehicle and property advertising, and influencer management, which now requires checking creators' Media Council Advertiser Permits. Choose by the problem: integrated launch, full-service or lead agency; brand refresh, creative agency; efficiency of large spend, media agency; lead volume, performance agency. Always define who owns accounts, data and creative files.",
+      "body_ar": "كثيراً ما يطلب المشترون من \"وكالة\" كل شيء، فتصلهم عروض تغطي أموراً مختلفة. فالوكالة الشاملة تقدم الاستراتيجية والإبداع والإنتاج وغالباً شراء الإعلام في عقد واحد، وهي مريحة للحملات المتكاملة لكن يصعب مقارنتها بنداً بنداً. ووكالة الإبداع أو الهوية تطور الأفكار والهوية والنصوص والتصاميم لكنها عادة لا تشتري المساحات الإعلانية، فيلزم تخطيط الإعلام بشكل منفصل. ووكالة الإعلام تخطط وتشتري المساحات عبر القنوات وتفاوض على الأسعار، وغالباً ترتبط أتعابها بالإنفاق، ولهذا تبقى العمولات أكثر شيوعاً في الإعلام منها في الإبداع وفق رابطة المعلنين الوطنيين الأمريكية. ووكالة التسويق الرقمي أو الأداء تدير حملات البحث ومنصات التواصل والشراء الآلي وفق أهداف قابلة للقياس مثل كلفة العميل المحتمل، وتعمل غالباً داخل حسابات العميل الإعلانية. أما دور الإنتاج والمطابع وملاك وسائل الإعلانات الخارجية فهم موردون لا وكالات، ويمكن التعاقد معهم مباشرة. ومن الخدمات المتخصصة في الدولة إدارة تصاريح الإعلانات الخارجية وإعلانات المركبات والعقارات، وإدارة المؤثرين التي تتطلب الآن التحقق من \"تصريح المعلن\" الصادر عن مجلس الإمارات للإعلام. اختر بحسب المشكلة: الإطلاق المتكامل لوكالة شاملة أو رئيسية، وتجديد الهوية لوكالة إبداعية، وكفاءة الإنفاق الكبير لوكالة إعلام، وحجم العملاء المحتملين لوكالة أداء. وحدد دائماً من يملك الحسابات والبيانات والملفات الإبداعية.",
+      "sources": [
+        "https://www.ana.net/content/show/id/44647",
+        "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:ooh-formats",
+      "topic": "Outdoor (OOH) format glossary for the UAE",
+      "kind": "glossary",
+      "body_en": "Common outdoor formats a UAE buyer will see in proposals: unipole, a large double- or single-sided billboard on a single steel column, typical along highways and first introduced in the UAE by a Dubai media owner in 1996; bridge banner or bridge signage, spanning road bridges and overpasses; lamppost signs, pairs of small panels on street-light poles along corridors; mega-com, a large free-standing backlit panel; mupi, a pedestrian-scale backlit panel often in bus shelters or streetscape; hoarding, advertising on construction-site fencing; building wrap and rooftop signs on buildings; digital screens, LED formats selling time slots in a rotation loop; mall and retail media inside shopping centres; transit media on metro, tram, buses and taxis; and vehicle branding on commercial fleets. Dubai Development Authority's permit list names unipoles, hoardings, mega-coms, mupis, lamppost signs, bridge banners, roundabout branding, building signage, flags and inflatables, which is a useful checklist of formats that need permits. Large Dubai media owners group premium Sheikh Zayed Road unipoles, bridges and digital landmark screens into collections and generally do not publish rate cards. Static formats involve print production and installation costs; digital formats involve file delivery, slot length and share of loop instead.",
+      "body_ar": "من صيغ الإعلانات الخارجية الشائعة في عروض الدولة: العمود الأحادي (يونيبول)، وهو لوحة كبيرة بوجه أو وجهين على عمود فولاذي واحد، منتشر على الطرق السريعة، وقد أدخله إلى الدولة مالك وسائل في دبي عام 1996، ولافتات الجسور الممتدة على الجسور والمعابر العلوية، ولافتات أعمدة الإنارة وهي أزواج من الألواح الصغيرة على أعمدة الإنارة على امتداد المحاور، والميغاكوم وهو لوح كبير قائم بذاته مضاء من الخلف، والموبي وهو لوح مضاء بمقياس المشاة غالباً في مظلات الحافلات، والأسوار الإعلانية على أسوار مواقع البناء، وتغليف المباني ولافتات الأسطح، والشاشات الرقمية بتقنية LED التي تبيع فترات زمنية ضمن دورة عرض، وإعلانات مراكز التسوق، وإعلانات وسائل النقل في المترو والترام والحافلات وسيارات الأجرة، وتغليف أساطيل المركبات التجارية. وتذكر قائمة تصاريح سلطة دبي للتطوير الأعمدة الأحادية والأسوار والميغاكوم والموبي ولافتات أعمدة الإنارة ولافتات الجسور وتزيين الدوارات ولافتات المباني والأعلام والمجسمات القابلة للنفخ، وهي قائمة مفيدة بالصيغ التي تتطلب تصاريح. ويجمع كبار ملاك الوسائل في دبي الأعمدة الأحادية المميزة على شارع الشيخ زايد والجسور والشاشات الرقمية المعلَمية في مجموعات، ولا ينشرون عادة قوائم أسعار. وتتضمن الصيغ الثابتة كلفة طباعة وتركيب، بينما تتضمن الرقمية تسليم الملفات ومدة الفترة وحصة الدورة.",
+      "sources": [
+        "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
+        "https://www.backlitemedia.com/ooh/dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:large-format-resolution",
+      "topic": "Large-format artwork: resolution, bleed and colour",
+      "kind": "installation",
+      "body_en": "Most rejected or poor outdoor prints trace back to artwork, not the printer. Resolution should be judged at final printed size and by viewing distance: a common Dubai large-format guideline is about 150 DPI at final size for displays viewed from 1 to 3 m, dropping to around 72 DPI for very distant viewing such as billboards seen from 5 m or more. Small-format items (brochures, roll-ups) are normally supplied at 300 DPI. Bleed grows with the size of the piece: 3 to 5 mm for small items and 10 to 20 mm for large banners, with backgrounds extended into the bleed and important text kept well inside the safe area. Supply CMYK files for most substrates; dye-sublimation fabric printing often works from RGB. Vector artwork (AI) or press-ready PDF/X-1a or PDF/X-4 is preferred, fonts must be outlined or embedded, and Word, PowerPoint, JPEG or PNG files should be avoided for professional output. Minimum text heights scale with distance, for example around 20 pt for close viewing, 40 pt for medium and 80 pt for distant displays. For Dubai outdoor creative remember the Arabic-primary rule. Ask the printer for a proof and confirm colour references (Pantone to CMYK conversion) before a full run.",
+      "body_ar": "تعود معظم المطبوعات الخارجية المرفوضة أو الرديئة إلى ملف التصميم لا إلى المطبعة. فالدقة تُقاس بالمقاس النهائي للطباعة وبمسافة المشاهدة: والمعيار المتداول في دبي للطباعة الكبيرة نحو 150 نقطة في البوصة بالمقاس النهائي لما يُشاهد من متر إلى ثلاثة أمتار، وتنخفض إلى نحو 72 للمشاهدة البعيدة جداً كاللوحات التي تُرى من خمسة أمتار فأكثر. أما المطبوعات الصغيرة (الكتيبات والرول أب) فتُسلَّم عادة بدقة 300. ويزداد هامش القص مع حجم القطعة: من 3 إلى 5 ملم للمطبوعات الصغيرة ومن 10 إلى 20 ملم للبنرات الكبيرة، مع مد الخلفيات داخل الهامش وإبقاء النصوص المهمة داخل المنطقة الآمنة. وسلّم ملفات CMYK لمعظم الخامات، أما الطباعة الحرارية على القماش فتعمل غالباً بملفات RGB. ويُفضَّل التصميم المتجه (AI) أو ملف PDF/X-1a أو PDF/X-4 الجاهز للطباعة، مع تحويل الخطوط أو تضمينها، وتجنب ملفات Word وPowerPoint وJPEG وPNG في الطباعة الاحترافية. ويزداد الحد الأدنى لارتفاع النص مع المسافة، مثل نحو 20 نقطة للمشاهدة القريبة و40 للمتوسطة و80 للبعيدة. وتذكّر في التصاميم الخارجية في دبي قاعدة أولوية اللغة العربية. واطلب من المطبعة نسخة تجريبية وأكد مرجعيات الألوان (تحويل بانتون إلى CMYK) قبل الطباعة الكاملة.",
+      "sources": [
+        "https://www.ambert.ae/post/how-to-prepare-design-files-for-large-format-printing-dubai",
+        "https://colorspotprints.com/product/roll-up-banner-printing-dubai/",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:influencer-campaigns",
+      "topic": "Running influencer campaigns compliantly in the UAE",
+      "kind": "installation",
+      "body_en": "Influencer marketing is now a licensed activity. The practical delivery sequence an agency should follow: shortlist creators and verify, before contracting, that each holds a valid Media Council Advertiser Permit and a trade or freelance licence; for any non-resident creator, have a licensed UAE agency apply for a Visitor Advertiser Permit (three months, renewable once) and allow time for it; clear the content brief against the national media content standards, which make misleading or immoral content and privacy or children's-rights breaches finable, with bands published under Cabinet Decision 42 of 2025; add sector approvals where relevant, such as DLD Trakheesi numbers for property promotions or health-authority rules for clinics, which prohibit testimonials without written consent and guaranteed results; ensure sponsored posts are clearly identified as advertising; collect written consent and data-handling terms for any giveaway that gathers personal data; and contract usage rights, exclusivity, deliverables per platform, posting dates and reporting metrics. Reported sanctions under the permit regime include fines from about AED 5,000 for unlicensed activity up to AED 1,000,000 for serious content violations. A buyer should ask for the permit number of every creator in the proposal and treat \"we'll sort permits later\" as a red flag.",
+      "body_ar": "أصبح التسويق عبر المؤثرين نشاطاً مرخصاً. وتسلسل التنفيذ العملي الذي ينبغي للوكالة اتباعه: وضع قائمة مختصرة بالمؤثرين والتحقق قبل التعاقد من أن كلاً منهم يحمل \"تصريح معلن\" سارياً من مجلس الإمارات للإعلام ورخصة تجارية أو رخصة عمل حر، وتقديم وكالة مرخصة في الدولة طلب \"تصريح معلن زائر\" لأي مؤثر غير مقيم (ثلاثة أشهر يجدد مرة) مع إتاحة الوقت لذلك، ومراجعة موجز المحتوى وفق معايير المحتوى الإعلامي الوطنية التي تجعل المحتوى المضلل أو المنافي للآداب وانتهاك الخصوصية أو حقوق الطفل مخالفات تستوجب غرامات حددها قرار مجلس الوزراء 42 لسنة 2025، وإضافة موافقات القطاعات عند اللزوم مثل أرقام \"ترخيصي\" للعروض العقارية أو قواعد الجهة الصحية للعيادات التي تحظر الشهادات دون موافقة خطية وادعاء النتائج المضمونة، والتأكد من تمييز المنشورات الممولة بوضوح كإعلان، وجمع الموافقات الخطية وشروط التعامل مع البيانات في أي مسابقة تجمع بيانات شخصية، والتعاقد على حقوق الاستخدام والحصرية والمخرجات لكل منصة وتواريخ النشر ومقاييس التقارير. ومن الجزاءات المعلنة في نظام التصاريح غرامات تبدأ من نحو 5,000 درهم للنشاط غير المرخص وتصل إلى مليون درهم لمخالفات المحتوى الجسيمة. وعلى المشتري أن يطلب رقم التصريح لكل مؤثر في العرض، وأن يعتبر عبارة \"سنستخرج التصاريح لاحقاً\" علامة تحذير.",
+      "sources": [
+        "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938",
+        "https://www.middleeastbriefing.com/news/uae-influencers-must-obtain-advertiser-permit-under-new-media-law/",
+        "https://www.clydeco.com/en/insights/2025/05/uae-media-regulations-framework",
+        "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/",
+        "https://dha.gov.ae/uploads/042022/Standards%20for%20Medical%20Advertisement%20Content%20in%20Social%20Media2022433965.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:mistake-permits-last",
+      "topic": "Buyer mistake: treating permits and approvals as the last step",
+      "kind": "buyer_mistake",
+      "body_en": "The most expensive mistake in UAE advertising is booking media and producing creative before the approvals exist. Examples: property ads scheduled before the DLD Trakheesi permit is issued, although every property advertisement in Dubai needs one and the permit covers social, SMS, outdoor and print; clinic campaigns produced with before-and-after images or patient testimonials that DHA standards restrict; outdoor artwork designed in English with a small Arabic line, despite the Dubai rule that Arabic be primary and occupy at least half the medium; a foreign influencer flown in before the Visitor Advertiser Permit is arranged; and temporary banners or vehicle wraps installed without the location's permit, exposing the holder to AED 1,000 to 15,000 fines and removal at its cost under Decree 6 of 2020. The fix is simple: in the brief, list the regulators for the sector, emirate and channel; ask the agency for an approval plan with owners and lead times (for example DLD permits are stated as one working day and DDA signage permits four working days, while other emirates vary); and make media payment milestones conditional on approvals. Keep approved artworks and permit numbers in one file so audits and renewals are quick.",
+      "body_ar": "أكثر الأخطاء كلفة في الإعلان داخل الدولة حجز المساحات وإنتاج المواد الإبداعية قبل صدور الموافقات. ومن الأمثلة: جدولة إعلانات عقارية قبل صدور تصريح \"ترخيصي\" من دائرة الأراضي، مع أن كل إعلان عقاري في دبي يتطلبه ويشمل التواصل الاجتماعي والرسائل والإعلانات الخارجية والمطبوعات، وإنتاج حملات عيادات تتضمن صور \"قبل وبعد\" أو شهادات مرضى تقيدها معايير هيئة الصحة بدبي، وتصميم إعلانات خارجية بالإنجليزية مع سطر عربي صغير رغم قاعدة دبي بأن تكون العربية أساسية وتشغل نصف الوسيلة على الأقل، واستقدام مؤثر أجنبي قبل ترتيب \"تصريح المعلن الزائر\"، وتركيب بنرات مؤقتة أو تغليف مركبات دون تصريح الموقع، ما يعرّض الحامل لغرامات من 1,000 إلى 15,000 درهم والإزالة على نفقته بموجب المرسوم 6 لسنة 2020. والعلاج بسيط: اذكر في الموجز الجهات التنظيمية للقطاع والإمارة والقناة، واطلب من الوكالة خطة موافقات بالمسؤولين والمدد (مثلاً تصاريح دائرة الأراضي معلنة بيوم عمل وتصاريح لافتات سلطة دبي للتطوير بأربعة أيام عمل، بينما تختلف الإمارات الأخرى)، واجعل دفعات الإعلام مشروطة بصدور الموافقات. واحتفظ بالتصاميم المعتمدة وأرقام التصاريح في ملف واحد لتسهيل التدقيق والتجديد.",
+      "sources": [
+        "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/",
+        "https://dha.gov.ae/uploads/042022/Standards%20for%20Medical%20Advertisement%20Content%20in%20Social%20Media2022433965.pdf",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html",
+        "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
+        "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "marketing_advertising:quote-red-flags",
+      "topic": "Red flags in agency and media quotes",
+      "kind": "quote_red_flag",
+      "body_en": "Warning signs when comparing marketing and advertising quotes: a single lump sum with no split between net media cost, agency fee, production and VAT; \"media value\" or \"impressions\" promised without stating the source, verification tool or placement list; no statement on whether platform rebates, volume bonuses or free spots are passed back to the client, a known transparency concern in media buying; ad accounts, pixels and audience data created in the agency's name with no handover clause; creative quoted with unlimited revisions but no deliverable list, or with source files and IP excluded in the small print; influencer line items without creators' Advertiser Permit numbers; property, health or pharma creative quoted without the relevant regulator approval step; outdoor quotes without site codes, face sizes, flight dates, permit responsibility or proof-of-posting; print quotes without material, finishing and quantity; SMS or telemarketing packages with no DNCR scrubbing, sender registration or time-window compliance; and long lock-in retainers with no performance review or exit clause. None of these automatically means a bad supplier, but each hides cost or risk. UAE market price levels for agency services are not published and were not established here, so compare quotes on scope and terms rather than assuming a \"normal\" rate.",
+      "body_ar": "علامات التحذير عند مقارنة عروض التسويق والإعلان: مبلغ إجمالي واحد دون فصل بين صافي كلفة المساحات وأتعاب الوكالة والإنتاج وضريبة القيمة المضافة، والوعد بـ\"قيمة إعلامية\" أو \"مرات ظهور\" دون ذكر المصدر أو أداة التحقق أو قائمة المواقع، وعدم بيان ما إذا كانت حسومات المنصات أو مكافآت الحجم أو الفترات المجانية تُعاد للعميل وهي مسألة شفافية معروفة في شراء الإعلام، وإنشاء الحسابات الإعلانية وأكواد التتبع وبيانات الجماهير باسم الوكالة دون بند تسليم، وتسعير الأعمال الإبداعية بتعديلات غير محدودة دون قائمة مخرجات أو باستبعاد الملفات المصدرية والملكية الفكرية في التفاصيل، وبنود المؤثرين دون أرقام تصاريحهم، وتسعير محتوى عقاري أو صحي أو دوائي دون خطوة موافقة الجهة المنظمة، وعروض الإعلانات الخارجية دون رموز المواقع ومقاسات الأوجه وتواريخ الحملة ومسؤولية التصاريح وإثبات العرض، وعروض الطباعة دون الخامة والتشطيب والكمية، وباقات الرسائل أو التسويق الهاتفي دون تنقية من سجل عدم الإزعاج أو تسجيل المعرّف أو الالتزام بالفترة الزمنية، وعقود الاشتراك الطويلة دون مراجعة أداء أو بند خروج. ولا يعني أي منها بالضرورة أن المورّد سيئ، لكن كلاً منها يخفي كلفة أو مخاطرة. ومستويات أسعار خدمات الوكالات في الدولة غير منشورة ولم تثبت هنا، لذا قارن العروض بالنطاق والشروط لا بافتراض سعر \"طبيعي\".",
+      "sources": [
+        "https://www.ana.net/content/show/id/44647",
+        "https://rouse.com/insights/news/2024/new-telemarketing-regulations-introduced-in-uae",
+        "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:price-drivers",
+      "topic": "What drives the price of agency, media and production work",
+      "topic_ar": "ما يحدد سعر أعمال الوكالات الإعلانية والإعلام والإنتاج",
+      "kind": "price_driver",
+      "body_en": "Price drivers, not prices, are what a buyer can control. For creative and branding: seniority of the team, depth of strategy and research, number of concepts and revision rounds, whether Arabic and English are original work or adaptation, number of deliverables and applications, and whether IP and source files transfer. For media: total spend and flight length, channel mix, premium inventory (for example landmark outdoor sites or prime-time slots), targeting precision, seasonality, and the compensation model (percentage of spend versus fixed fee). For outdoor: site quality and traffic, format size, static versus digital share of loop, number of faces, production materials and illumination, installation and removal, and permit fees, which authorities publish (for example DDA's annual signage fees from AED 500 to AED 5,000 and DLD's AED 1,000 per property-ad permit). For print: size, quantity, substrate, finishing and turnaround; published Dubai examples start around AED 150 for a standard roll-up with stand. For influencer work: creator reach and engagement, usage rights and exclusivity, number of posts, and visitor-permit handling. Regulated sectors add compliance review time. Typical UAE agency day rates, retainer levels and media rate cards are not publicly published and were not established in this research; request itemised quotes instead.",
+      "body_ar": "ما يستطيع المشتري التحكم فيه هو محركات السعر لا الأسعار نفسها. ففي الإبداع والهوية: خبرة الفريق، وعمق الاستراتيجية والبحث، وعدد المقترحات وجولات التعديل، وهل النسختان العربية والإنجليزية عمل أصيل أم تكييف، وعدد المخرجات والتطبيقات، وهل تنتقل الملكية الفكرية والملفات المصدرية. وفي الإعلام: إجمالي الإنفاق ومدة الحملة، ومزيج القنوات، والمخزون المميز (مثل المواقع الخارجية المعلَمية أو أوقات الذروة)، ودقة الاستهداف، والموسمية، ونموذج الأتعاب (نسبة من الإنفاق أو أتعاب ثابتة). وفي الإعلانات الخارجية: جودة الموقع وحركة المرور، ومقاس الوسيلة، والحصة من الدورة في الرقمية مقابل الثابتة، وعدد الأوجه، وخامات الإنتاج والإضاءة، والتركيب والإزالة، ورسوم التصاريح التي تنشرها الجهات (مثل رسوم لافتات سلطة دبي للتطوير السنوية من 500 إلى 5,000 درهم ورسم دائرة الأراضي 1,000 درهم لتصريح الإعلان العقاري). وفي الطباعة: المقاس والكمية والخامة والتشطيب ومدة التسليم، وتبدأ أمثلة منشورة في دبي من نحو 150 درهماً للرول أب القياسي مع الحامل. وفي عمل المؤثرين: حجم الوصول والتفاعل، وحقوق الاستخدام والحصرية، وعدد المنشورات، وإجراءات تصريح الزائر. وتضيف القطاعات المنظمة وقتاً لمراجعة الامتثال. أما أسعار اليوم للوكالات ومستويات الاشتراكات وقوائم أسعار الإعلام في الدولة فغير منشورة ولم تثبت في هذا البحث، فاطلب عروضاً مفصلة بنداً بنداً.",
+      "sources": [
+        "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
+        "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/",
+        "https://colorspotprints.com/product/roll-up-banner-printing-dubai/",
+        "https://www.ana.net/content/show/id/44647"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:lead-times",
+      "topic": "Typical lead times for campaigns, permits and production",
+      "kind": "lead_time",
+      "body_en": "Plan timelines backwards from the launch date and include approvals. Published authority service times include: DLD real-estate advertising permit, one working day; DDA free-zone advertising permit, four working days. Industry sources describe municipal temporary campaign permits in the UAE as lasting about two weeks to a month, and some agencies quote around one to two weeks for RTA advertising NOCs in Dubai, but these were not confirmed from a primary authority page and should be treated as indicative. Visitor Advertiser Permits for foreign influencers must be applied for through a licensed agency and need time before the creator posts. Health and pharmaceutical advertising needs prior regulator approval and should be treated as the critical path. Print production is fast for standard items (one Dubai printer states one business day for roll-ups, with same-day options), while large-format outdoor printing, installation windows and digital file acceptance depend on the media owner. Creative development lead time depends on scope and revision rounds and is not standardised. A realistic brief states the launch date, lists the approvals required, and asks the agency to return a Gantt with approval gates, artwork deadlines per medium, and a contingency if a permit is refused or a site becomes unavailable.",
+      "body_ar": "خطّط الجدول الزمني عكسياً من تاريخ الإطلاق مع إدراج الموافقات. ومن مدد الخدمة المعلنة لدى الجهات: تصريح الإعلان العقاري من دائرة الأراضي والأملاك يوم عمل واحد، وتصريح الإعلان في المناطق الحرة التابعة لسلطة دبي للتطوير أربعة أيام عمل. وتصف مصادر القطاع تصاريح الحملات المؤقتة لدى البلديات في الدولة بأنها تمتد من أسبوعين إلى شهر تقريباً، وتذكر بعض الوكالات نحو أسبوع إلى أسبوعين لشهادات عدم الممانعة الإعلانية من هيئة الطرق في دبي، لكن ذلك لم يُؤكد من صفحة رسمية ويجب اعتباره تقديرياً. ويجب التقدم بطلب \"تصريح المعلن الزائر\" للمؤثرين الأجانب عبر وكالة مرخصة مع إتاحة الوقت قبل النشر. ويحتاج الإعلان الصحي والدوائي إلى موافقة مسبقة من الجهة المنظمة ويجب اعتباره المسار الحرج. والطباعة سريعة للمواد القياسية (تذكر مطبعة في دبي يوم عمل واحد للرول أب مع خيار التسليم في اليوم نفسه)، بينما تعتمد الطباعة الخارجية الكبيرة ونوافذ التركيب وقبول الملفات الرقمية على مالك الوسيلة. ومدة تطوير الأعمال الإبداعية تعتمد على النطاق وجولات التعديل وليست موحدة. والموجز الواقعي يحدد تاريخ الإطلاق ويسرد الموافقات المطلوبة ويطلب من الوكالة جدولاً زمنياً بمراحل الموافقة ومواعيد تسليم التصاميم لكل وسيلة وخطة بديلة إذا رُفض تصريح أو تعذر موقع.",
+      "sources": [
+        "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/",
+        "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
+        "https://ooh.ae/our-work/articles/ooh-advertising-permits-in-the-uae",
+        "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938",
+        "https://cms.law/en/int/expert-guides/cms-expert-guide-to-advertising-of-medicines-and-medical-devices/united-arab-emirates",
+        "https://colorspotprints.com/product/roll-up-banner-printing-dubai/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:ip-and-accounts",
+      "topic": "Ownership of creative, ad accounts and data",
+      "kind": "warranty",
+      "body_en": "Marketing contracts rarely carry a \"warranty\" in the product sense; the equivalent protections are ownership, handover and service levels. Before signing, a buyer should settle: who owns the copyright in logos, artwork, copy, photography and video, and whether rights are assigned outright or licensed for a period, territory or media (stock images, music and talent usage rights are often time-limited and must be renewed or the material withdrawn); delivery of editable source files at the end of each project; ownership of advertising accounts, analytics properties, pixels, social pages and customer audiences, ideally created in the client's name with the agency given access rather than the reverse; data-protection responsibilities for personal data collected through campaigns, in line with the federal PDPL's consent principle; confidentiality; service levels such as response times and reporting dates; and termination and transition assistance. Influencer contracts should also fix content usage rights, exclusivity windows and takedown obligations if content breaches the media content standards. These are commercial terms negotiated per contract; no UAE-specific statutory defaults for agency IP ownership were established in this research, so agree them in writing rather than assuming that paying for creative means owning it.",
+      "body_ar": "نادراً ما تتضمن عقود التسويق \"ضماناً\" بالمعنى المعروف في المنتجات، والحماية المقابلة هي الملكية والتسليم ومستويات الخدمة. وقبل التوقيع ينبغي للمشتري حسم: من يملك حقوق المؤلف في الشعارات والتصاميم والنصوص والصور والفيديو، وهل تُنقل الحقوق نهائياً أم تُرخّص لمدة أو إقليم أو وسيلة محددة (فحقوق استخدام الصور الجاهزة والموسيقى والمواهب غالباً محدودة المدة ويجب تجديدها أو سحب المادة)، وتسليم الملفات المصدرية القابلة للتعديل عند انتهاء كل مشروع، وملكية الحسابات الإعلانية وخصائص التحليلات وأكواد التتبع والصفحات الاجتماعية وجماهير العملاء، والأفضل أن تُنشأ باسم العميل وتُمنح الوكالة صلاحية الوصول لا العكس، ومسؤوليات حماية البيانات الشخصية المجمعة عبر الحملات بما يتفق مع مبدأ الموافقة في القانون الاتحادي لحماية البيانات، والسرية، ومستويات الخدمة مثل أوقات الاستجابة ومواعيد التقارير، والإنهاء والمساعدة في الانتقال. ويجب أن تحدد عقود المؤثرين أيضاً حقوق استخدام المحتوى وفترات الحصرية والتزامات الحذف إذا خالف المحتوى معايير المحتوى الإعلامي. وهذه شروط تجارية يُتفاوض عليها في كل عقد، ولم تثبت في هذا البحث قواعد قانونية افتراضية خاصة بالدولة لملكية الوكالة للأعمال الإبداعية، فاتفق عليها كتابياً ولا تفترض أن دفع ثمن العمل الإبداعي يعني تملّكه.",
+      "sources": [
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "https://www.clydeco.com/en/insights/2025/05/uae-media-regulations-framework"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "marketing_advertising:vehicle-branding-ads",
+      "topic": "Vehicle branding (fleet wraps) as advertising",
+      "kind": "product",
+      "body_en": "Branding company vans, trucks and cars is one of the cheapest ways to get constant local visibility, but in Dubai it is regulated advertising. Decree No. 6 of 2020 lists vehicles among advertising media and assigns permits for advertisements on vehicles and public transport to the RTA, and the general rules apply: a permit is needed before display, content must respect public order, morals and local traditions, and Arabic must be the primary language on the advertisement. Property promotions on vehicles also need a DLD Trakheesi permit, since vehicle advertisements are one of its listed categories. When buying fleet branding, specify: vehicle make, model and year for each type; coverage (full wrap, partial wrap, decals, door logos, rear panel); film type (cast or calendered vinyl, reflective or perforated window film), lamination and expected outdoor life under UAE sun; whether windows are covered, since visibility and tint rules apply; design for each side and the Arabic content; permit handling by the supplier or the owner; removal at the end of the term and paint-safe adhesive; and installation location and downtime per vehicle. Specific RTA vehicle-advertising permit fees and window-coverage limits were not confirmed from a primary source in this research.",
+      "body_ar": "يُعد تغليف مركبات الشركة من شاحنات صغيرة وكبيرة وسيارات من أرخص وسائل الظهور المحلي المستمر، لكنه في دبي إعلان منظّم. فالمرسوم رقم 6 لسنة 2020 يدرج المركبات ضمن وسائل الإعلان ويسند تصاريح الإعلان على المركبات والمواصلات العامة إلى هيئة الطرق والمواصلات، وتنطبق القواعد العامة: الحصول على تصريح قبل العرض، ومراعاة المحتوى للنظام العام والآداب والتقاليد، وأن تكون العربية اللغة الأساسية في الإعلان. كما تحتاج العروض العقارية على المركبات إلى تصريح \"ترخيصي\" من دائرة الأراضي لأن إعلانات المركبات من فئاته المدرجة. وعند شراء خدمة تغليف الأسطول حدّد: الطراز والنوع وسنة الصنع لكل فئة مركبة، ونطاق التغطية (تغليف كامل أو جزئي أو ملصقات أو شعارات الأبواب أو اللوح الخلفي)، ونوع الفيلم (فينيل مصبوب أو مدرفل، أو فيلم نوافذ عاكس أو مثقب) والتغليف الواقي والعمر المتوقع تحت شمس الدولة، وهل تُغطى النوافذ لأن قواعد الرؤية والتظليل تنطبق، والتصميم لكل جانب والمحتوى العربي، ومسؤولية التصاريح على المورّد أو المالك، والإزالة في نهاية المدة ولاصقاً آمناً على الطلاء، وموقع التركيب ومدة توقف كل مركبة. ولم تُؤكد رسوم تصريح الإعلان على المركبات لدى هيئة الطرق ولا حدود تغطية النوافذ من مصدر رسمي في هذا البحث.",
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2020/Decree%20No.%20(6)%20of%202020%20Regulating%20Advertisements%20in%20the%20Emirate%20of%20Dubai.html",
+        "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Does an influencer I hire for a Dubai launch need a permit?",
+      "q_ar": "هل يحتاج المؤثر الذي أتعاقد معه لإطلاق في دبي إلى تصريح؟",
+      "expected_entry_ids": [
+        "marketing_advertising:advertiser-permit",
+        "marketing_advertising:influencer-campaigns"
+      ]
+    },
+    {
+      "q_en": "We want to fly in a European creator for two weeks. What permit and who applies?",
+      "q_ar": "نريد استقدام صانع محتوى أوروبي لأسبوعين، ما التصريح ومن يتقدم به؟",
+      "expected_entry_ids": [
+        "marketing_advertising:advertiser-permit"
+      ]
+    },
+    {
+      "q_en": "Who issues billboard permits in Dubai and what are the fines if we skip it?",
+      "q_ar": "من يصدر تصاريح اللوحات الإعلانية في دبي وما غرامات تجاهلها؟",
+      "expected_entry_ids": [
+        "marketing_advertising:dubai-ad-permit-decree-6"
+      ]
+    },
+    {
+      "q_en": "Can our Dubai billboard be English-only with a small Arabic tagline?",
+      "q_ar": "هل يمكن أن تكون لوحتنا في دبي بالإنجليزية فقط مع شعار عربي صغير؟",
+      "expected_entry_ids": [
+        "marketing_advertising:arabic-language-rule"
+      ]
+    },
+    {
+      "q_en": "What does a DLD Trakheesi permit cost and does it apply to Instagram ads?",
+      "q_ar": "كم تكلفة تصريح ترخيصي وهل ينطبق على إعلانات إنستغرام؟",
+      "expected_entry_ids": [
+        "marketing_advertising:real-estate-trakheesi"
+      ]
+    },
+    {
+      "q_en": "Can our clinic post before-and-after photos and patient reviews?",
+      "q_ar": "هل يمكن لعيادتنا نشر صور قبل وبعد وآراء المرضى؟",
+      "expected_entry_ids": [
+        "marketing_advertising:medical-ads"
+      ]
+    },
+    {
+      "q_en": "Retainer or project fee for our rebrand?",
+      "q_ar": "اشتراك شهري أم أتعاب مشروع لإعادة هويتنا؟",
+      "expected_entry_ids": [
+        "marketing_advertising:compensation-models",
+        "marketing_advertising:agency-types"
+      ]
+    },
+    {
+      "q_en": "What must I put in an RFQ for outdoor billboards?",
+      "q_ar": "ماذا يجب أن أضع في طلب عرض أسعار للوحات الخارجية؟",
+      "expected_entry_ids": [
+        "marketing_advertising:brief-ooh-campaign",
+        "marketing_advertising:ooh-formats"
+      ]
+    },
+    {
+      "q_en": "What file do printers need for a 6 m banner?",
+      "q_ar": "ما الملف الذي تحتاجه المطبعة لبنر بطول 6 أمتار؟",
+      "expected_entry_ids": [
+        "marketing_advertising:large-format-resolution",
+        "marketing_advertising:brief-print-production"
+      ]
+    },
+    {
+      "q_en": "Can our SMS campaign go out at 8 pm to a bought list?",
+      "q_ar": "هل يمكن إرسال حملة رسائلنا الساعة الثامنة مساءً إلى قائمة مشتراة؟",
+      "expected_entry_ids": [
+        "marketing_advertising:telemarketing-rules",
+        "marketing_advertising:pdpl-marketing-data"
+      ]
+    },
+    {
+      "q_en": "The media agency quote is one lump sum. What should I ask?",
+      "q_ar": "عرض وكالة الإعلام مبلغ إجمالي واحد، ماذا أسأل؟",
+      "expected_entry_ids": [
+        "marketing_advertising:quote-red-flags",
+        "marketing_advertising:brief-media-buying"
+      ]
+    },
+    {
+      "q_en": "Which banner sizes should my agency produce for display ads?",
+      "q_ar": "ما مقاسات البنرات التي يجب أن تنتجها الوكالة للإعلانات الرقمية؟",
+      "expected_entry_ids": [
+        "marketing_advertising:digital-ad-formats"
+      ]
+    },
+    {
+      "q_en": "Who issues permits for a billboard campaign in Dubai?",
+      "q_ar": "من يصدر تصاريح حملة لوحات إعلانية في دبي؟",
+      "expected_entry_ids": [
+        "marketing_advertising:dubai-ad-permit-decree-6"
+      ],
+      "why": "states Decree No. 6 of 2020 requires a permit for every advertisement, and that the issuing entity depends on location (Dubai Municipality, RTA, economic department).",
+      "origin": "real buyer question, moved from marketing_advertising.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    }
+  ],
+  "verified": {
+    "fetched_urls": 16,
+    "claims_checked": 120,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "marketing_advertising:abu-dhabi-other-emirates",
+      "marketing_advertising:pdpl-marketing-data",
+      "marketing_advertising:brief-brand-identity",
+      "marketing_advertising:brief-media-buying",
+      "marketing_advertising:brief-ooh-campaign",
+      "marketing_advertising:compensation-models",
+      "marketing_advertising:agency-types",
+      "marketing_advertising:ooh-formats",
+      "marketing_advertising:quote-red-flags",
+      "marketing_advertising:price-drivers",
+      "marketing_advertising:lead-times",
+      "marketing_advertising:ip-and-accounts",
+      "marketing_advertising:vehicle-branding-ads"
+    ]
   }
- ],
- "eval": [
-  {
-   "q_en": "Does an influencer I hire for a Dubai launch need a permit?",
-   "q_ar": "هل يحتاج المؤثر الذي أتعاقد معه لإطلاق في دبي إلى تصريح؟",
-   "expected_entry_ids": [
-    "marketing_advertising:advertiser-permit",
-    "marketing_advertising:influencer-campaigns"
-   ]
-  },
-  {
-   "q_en": "We want to fly in a European creator for two weeks. What permit and who applies?",
-   "q_ar": "نريد استقدام صانع محتوى أوروبي لأسبوعين، ما التصريح ومن يتقدم به؟",
-   "expected_entry_ids": [
-    "marketing_advertising:advertiser-permit"
-   ]
-  },
-  {
-   "q_en": "Who issues billboard permits in Dubai and what are the fines if we skip it?",
-   "q_ar": "من يصدر تصاريح اللوحات الإعلانية في دبي وما غرامات تجاهلها؟",
-   "expected_entry_ids": [
-    "marketing_advertising:dubai-ad-permit-decree-6"
-   ]
-  },
-  {
-   "q_en": "Can our Dubai billboard be English-only with a small Arabic tagline?",
-   "q_ar": "هل يمكن أن تكون لوحتنا في دبي بالإنجليزية فقط مع شعار عربي صغير؟",
-   "expected_entry_ids": [
-    "marketing_advertising:arabic-language-rule"
-   ]
-  },
-  {
-   "q_en": "What does a DLD Trakheesi permit cost and does it apply to Instagram ads?",
-   "q_ar": "كم تكلفة تصريح ترخيصي وهل ينطبق على إعلانات إنستغرام؟",
-   "expected_entry_ids": [
-    "marketing_advertising:real-estate-trakheesi"
-   ]
-  },
-  {
-   "q_en": "Can our clinic post before-and-after photos and patient reviews?",
-   "q_ar": "هل يمكن لعيادتنا نشر صور قبل وبعد وآراء المرضى؟",
-   "expected_entry_ids": [
-    "marketing_advertising:medical-ads"
-   ]
-  },
-  {
-   "q_en": "Retainer or project fee for our rebrand?",
-   "q_ar": "اشتراك شهري أم أتعاب مشروع لإعادة هويتنا؟",
-   "expected_entry_ids": [
-    "marketing_advertising:compensation-models",
-    "marketing_advertising:agency-types"
-   ]
-  },
-  {
-   "q_en": "What must I put in an RFQ for outdoor billboards?",
-   "q_ar": "ماذا يجب أن أضع في طلب عرض أسعار للوحات الخارجية؟",
-   "expected_entry_ids": [
-    "marketing_advertising:brief-ooh-campaign",
-    "marketing_advertising:ooh-formats"
-   ]
-  },
-  {
-   "q_en": "What file do printers need for a 6 m banner?",
-   "q_ar": "ما الملف الذي تحتاجه المطبعة لبنر بطول 6 أمتار؟",
-   "expected_entry_ids": [
-    "marketing_advertising:large-format-resolution",
-    "marketing_advertising:brief-print-production"
-   ]
-  },
-  {
-   "q_en": "Can our SMS campaign go out at 8 pm to a bought list?",
-   "q_ar": "هل يمكن إرسال حملة رسائلنا الساعة الثامنة مساءً إلى قائمة مشتراة؟",
-   "expected_entry_ids": [
-    "marketing_advertising:telemarketing-rules",
-    "marketing_advertising:pdpl-marketing-data"
-   ]
-  },
-  {
-   "q_en": "The media agency quote is one lump sum. What should I ask?",
-   "q_ar": "عرض وكالة الإعلام مبلغ إجمالي واحد، ماذا أسأل؟",
-   "expected_entry_ids": [
-    "marketing_advertising:quote-red-flags",
-    "marketing_advertising:brief-media-buying"
-   ]
-  },
-  {
-   "q_en": "Which banner sizes should my agency produce for display ads?",
-   "q_ar": "ما مقاسات البنرات التي يجب أن تنتجها الوكالة للإعلانات الرقمية؟",
-   "expected_entry_ids": [
-    "marketing_advertising:digital-ad-formats"
-   ]
-  }
- ],
- "verified": {
-  "fetched_urls": 16,
-  "claims_checked": 120,
-  "corrected": [],
-  "removed": [],
-  "still_unverified": [
-   "marketing_advertising:abu-dhabi-other-emirates",
-   "marketing_advertising:pdpl-marketing-data",
-   "marketing_advertising:brief-brand-identity",
-   "marketing_advertising:brief-media-buying",
-   "marketing_advertising:brief-ooh-campaign",
-   "marketing_advertising:compensation-models",
-   "marketing_advertising:agency-types",
-   "marketing_advertising:ooh-formats",
-   "marketing_advertising:quote-red-flags",
-   "marketing_advertising:price-drivers",
-   "marketing_advertising:lead-times",
-   "marketing_advertising:ip-and-accounts",
-   "marketing_advertising:vehicle-branding-ads"
-  ]
- }
 }

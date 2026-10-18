@@ -20,12 +20,21 @@ const IDENT = /[A-Za-z0-9_$]/;
 // The code of a SQL text, with every literal, quoted identifier, dollar-quoted body and comment
 // replaced by a neutral placeholder ('' for strings, "" for identifiers, $$ for bodies, a space for
 // comments), so keyword tests see only statements.
-export function sqlStatements(sql) {
+export const sqlStatements = (sql) => scan(sql, false);
+
+// The same scan, LENGTH-PRESERVING: every character that is not code becomes a space (newlines kept), so an
+// offset in the mask is the same offset in the original. scripts/lib/safe_replay.mjs splits statements on the
+// mask and cuts the original at the same offsets (it_engineer, 30 Sep 2026).
+export const maskSql = (sql) => scan(sql, true);
+
+function scan(sql, mask) {
   const s = String(sql); const n = s.length; let out = ''; let i = 0;
+  // The non-code span [from, i): its placeholder, or the same span blanked to spaces.
+  const put = (from, placeholder) => { out += mask ? s.slice(from, i).replace(/[^\n]/g, ' ') : placeholder; };
   while (i < n) {
-    const c = s[i], d = s[i + 1];
+    const c = s[i], d = s[i + 1], f = i;
     if (c === '-' && d === '-') {                                   // -- to end of line
-      const e = s.indexOf('\n', i); i = e < 0 ? n : e; out += ' '; continue;
+      const e = s.indexOf('\n', i); i = e < 0 ? n : e; put(f, ' '); continue;
     }
     if (c === '/' && d === '*') {                                   // /* ... */, nested
       let depth = 1; i += 2;
@@ -34,7 +43,7 @@ export function sqlStatements(sql) {
         else if (s[i] === '*' && s[i + 1] === '/') { depth--; i += 2; }
         else i++;
       }
-      out += ' '; continue;
+      put(f, ' '); continue;
     }
     if ((c === 'E' || c === 'e') && d === "'" && !IDENT.test(s[i - 1] ?? ' ')) {   // E'...' : \ escapes
       i += 2;
@@ -43,23 +52,23 @@ export function sqlStatements(sql) {
         if (s[i] === "'") { if (s[i + 1] === "'") { i += 2; continue; } i++; break; }
         i++;
       }
-      out += "''"; continue;
+      put(f, "''"); continue;
     }
     if (c === "'") {                                                // '...' : '' escapes
       i++;
       while (i < n) { if (s[i] === "'") { if (s[i + 1] === "'") { i += 2; continue; } i++; break; } i++; }
-      out += "''"; continue;
+      put(f, "''"); continue;
     }
     if (c === '"') {                                                // "identifier" : "" escapes
       i++;
       while (i < n) { if (s[i] === '"') { if (s[i + 1] === '"') { i += 2; continue; } i++; break; } i++; }
-      out += '""'; continue;
+      put(f, '""'); continue;
     }
     if (c === '$' && !IDENT.test(s[i - 1] ?? ' ')) {                // $tag$ ... $tag$ (not $1, not a$b)
       const m = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(s.slice(i, i + 80));
       if (m) {
         const e = s.indexOf(m[0], i + m[0].length);
-        i = e < 0 ? n : e + m[0].length; out += '$$'; continue;
+        i = e < 0 ? n : e + m[0].length; put(f, '$$'); continue;
       }
     }
     out += c; i++;

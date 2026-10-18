@@ -15,7 +15,7 @@
 //   npm i --no-save @huggingface/transformers@3.8.1
 //   node scripts/kb/run_ml_embed_backfill.mjs [--minutes=40] [--claim=64]
 import { sql, lit, PROJECT_REF } from '../lib/db.mjs';
-import { ML_MODEL, modelHost, ML_PASSAGE_PREFIX, ML_QUERY_PREFIX, rowText } from './ml_embed_recipe.mjs';
+import { ML_MODEL, modelHost, mlRowText, rowText } from './ml_embed_recipe.mjs';
 
 const arg = (n, d) => (process.argv.find((a) => a.startsWith(`--${n}=`)) || `--${n}=${d}`).split('=').slice(1).join('=');
 const MINUTES = Number(arg('minutes', 40));
@@ -48,7 +48,7 @@ while (!stop && Date.now() < deadline) {
   if (!rows.length) { stop = 'queue empty'; break; }
   for (let i = 0; i < rows.length; i += 16) {
     const part = rows.slice(i, i + 16);
-    const texts = part.map((r) => (r.src === 'seat_case_memory' ? ML_QUERY_PREFIX : ML_PASSAGE_PREFIX) + rowText(r.title, r.body));
+    const texts = part.map((r) => mlRowText(r.src, r.title, r.body));
     const v = (await embed(texts, { pooling: 'mean', normalize: true })).tolist();
     const calls = [];
     for (const [k, r] of part.entries()) {

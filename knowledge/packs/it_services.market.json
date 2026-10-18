@@ -7,9 +7,10 @@
     {
       "id": "it_services:uae-market-products",
       "topic": "IT & Network Services: products, variants and grades sold in the UAE",
+      "topic_ar": "خدمات تقنية المعلومات والشبكات: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "IT services in the UAE include managed IT services (helpdesk, desktop support, patching, monitoring), network design and installation (structured cabling Cat6/Cat6A and fibre, switching, Wi-Fi 6/6E/7, SD-WAN, firewalls), server and data centre services, cloud services (Microsoft Azure UAE North/Central regions, AWS Middle East UAE region, Oracle Cloud Dubai/Abu Dhabi, Google Cloud Doha/Dammam region access, G42/Core42 sovereign cloud), Microsoft 365 and Google Workspace deployment, backup and disaster recovery, cybersecurity (SOC/MDR, penetration testing, vulnerability assessments, ISO 27001 readiness, UAE IA Standards compliance for government), IT AMC contracts, CCTV/access control integration, ERP implementation (SAP, Oracle, Microsoft Dynamics, Odoo), IT outsourcing and staff augmentation, and IT procurement. Buyers ask about SLAs, response times, certifications (Microsoft, Cisco, Fortinet partner levels), data residency (UAE data laws and sector rules, e.g. CBUAE, DHA health data law requiring health data to stay in the UAE), and TDRA/NESA (UAE Cybersecurity Council) requirements for critical sectors.",
-      "body_ar": "تشمل خدمات تقنية المعلومات في الإمارات الخدمات المُدارة (مكتب المساعدة، ودعم الحواسيب المكتبية، والتحديثات، والمراقبة)، وتصميم الشبكات وتركيبها (الكابلات الهيكلية Cat6/Cat6A والألياف الضوئية، والمحولات، وشبكات واي فاي 6/6E/7، وSD-WAN، والجدران النارية)، وخدمات الخوادم ومراكز البيانات، والخدمات السحابية (مناطق مايكروسوفت أزور شمال/وسط الإمارات، ومنطقة AWS الشرق الأوسط في الإمارات، وأوراكل كلاود دبي/أبوظبي، وخدمات جوجل كلاود الإقليمية، والسحابة السيادية لدى G42/Core42)، ونشر مايكروسوفت 365 وجوجل ووركسبيس، والنسخ الاحتياطي والتعافي من الكوارث، والأمن السيبراني (مراكز العمليات الأمنية/الكشف والاستجابة المُدارة، واختبار الاختراق، وتقييم الثغرات، والجاهزية لـ ISO 27001، والامتثال لمعايير ضمان المعلومات الإماراتية للجهات الحكومية)، وعقود الصيانة السنوية لتقنية المعلومات، وتكامل كاميرات المراقبة/التحكم في الدخول، وتطبيق أنظمة تخطيط موارد المؤسسات (ساب، وأوراكل، ومايكروسوفت دايناميكس، وأودو)، والاستعانة الخارجية لتقنية المعلومات وتعزيز الموظفين، ومشتريات تقنية المعلومات. يسأل المشترون عن اتفاقيات مستوى الخدمة، وأوقات الاستجابة، والشهادات (مستويات الشراكة مع مايكروسوفت وسيسكو وفورتينت)، وموقع حفظ البيانات (قوانين البيانات الإماراتية والقواعد القطاعية، مثل المصرف المركزي، وقانون البيانات الصحية الذي يشترط بقاء البيانات الصحية داخل الدولة)، ومتطلبات هيئة تنظيم الاتصالات/مجلس الأمن السيبراني للقطاعات الحيوية.",
+      "body_en": "This entry covers IT services in the UAE: managed IT, networks and cabling, cloud and data centres, Microsoft 365, backup, cybersecurity, ERP, outsourcing and procurement, and what buyers ask about. IT services in the UAE include managed IT services (helpdesk, desktop support, patching, monitoring), network design and installation (structured cabling Cat6/Cat6A and fibre, switching, Wi-Fi 6/6E/7, SD-WAN, firewalls), server and data centre services, cloud services (Microsoft Azure UAE North/Central regions, AWS Middle East UAE region, Oracle Cloud Dubai/Abu Dhabi, Google Cloud Doha/Dammam region access, G42/Core42 sovereign cloud), Microsoft 365 and Google Workspace deployment, backup and disaster recovery, cybersecurity (SOC/MDR, penetration testing, vulnerability assessments, ISO 27001 readiness, UAE IA Standards compliance for government), IT AMC contracts, CCTV/access control integration, ERP implementation (SAP, Oracle, Microsoft Dynamics, Odoo), IT outsourcing and staff augmentation, and IT procurement. Buyers ask about SLAs, response times, certifications (Microsoft, Cisco, Fortinet partner levels), data residency (UAE data laws and sector rules, e.g. CBUAE, DHA health data law requiring health data to stay in the UAE), and TDRA/NESA (UAE Cybersecurity Council) requirements for critical sectors.",
+      "body_ar": "تشمل خدمات تقنية المعلومات في الإمارات الخدمات المُدارة والشبكات والتمديدات، والحوسبة السحابية ومراكز البيانات، وMicrosoft 365 والنسخ الاحتياطي والأمن السيبراني وأنظمة ERP والإسناد الخارجي والمشتريات، مع ما يسأل عنه المشتري عادةً. تشمل خدمات تقنية المعلومات في الإمارات الخدمات المُدارة (مكتب المساعدة، ودعم الحواسيب المكتبية، والتحديثات، والمراقبة)، وتصميم الشبكات وتركيبها (الكابلات الهيكلية Cat6/Cat6A والألياف الضوئية، والمحولات، وشبكات واي فاي 6/6E/7، وSD-WAN، والجدران النارية)، وخدمات الخوادم ومراكز البيانات، والخدمات السحابية (مناطق مايكروسوفت أزور شمال/وسط الإمارات، ومنطقة AWS الشرق الأوسط في الإمارات، وأوراكل كلاود دبي/أبوظبي، وخدمات جوجل كلاود الإقليمية، والسحابة السيادية لدى G42/Core42)، ونشر مايكروسوفت 365 وجوجل ووركسبيس، والنسخ الاحتياطي والتعافي من الكوارث، والأمن السيبراني (مراكز العمليات الأمنية/الكشف والاستجابة المُدارة، واختبار الاختراق، وتقييم الثغرات، والجاهزية لـ ISO 27001، والامتثال لمعايير ضمان المعلومات الإماراتية للجهات الحكومية)، وعقود الصيانة السنوية لتقنية المعلومات، وتكامل كاميرات المراقبة/التحكم في الدخول، وتطبيق أنظمة تخطيط موارد المؤسسات (ساب، وأوراكل، ومايكروسوفت دايناميكس، وأودو)، والاستعانة الخارجية لتقنية المعلومات وتعزيز الموظفين، ومشتريات تقنية المعلومات. يسأل المشترون عن اتفاقيات مستوى الخدمة، وأوقات الاستجابة، والشهادات (مستويات الشراكة مع مايكروسوفت وسيسكو وفورتينت)، وموقع حفظ البيانات (قوانين البيانات الإماراتية والقواعد القطاعية، مثل المصرف المركزي، وقانون البيانات الصحية الذي يشترط بقاء البيانات الصحية داخل الدولة)، ومتطلبات هيئة تنظيم الاتصالات/مجلس الأمن السيبراني للقطاعات الحيوية.",
       "sources": [
         "https://csc.gov.ae/en/",
         "https://www.helpag.com/",
@@ -26,9 +27,10 @@
     {
       "id": "it_services:uae-market-brands",
       "topic": "IT & Network Services: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "خدمات تقنية المعلومات والشبكات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Confirmed UAE providers and major platform vendors: Help AG, Khazna Data Centers, Microsoft, AWS, Oracle, Cisco, Fortinet. The vendors' UAE cloud regions and partners were not checked on opened pages.",
-      "body_ar": "المزودون المؤكدون في الإمارات وكبار موردي المنصات: Help AG، Khazna Data Centers، Microsoft، AWS، Oracle، Cisco، Fortinet. ولم يُتحقق من المناطق السحابية للموردين وشركائهم في الإمارات عبر صفحات مفتوحة.",
+      "body_en": "This entry names confirmed UAE IT providers and major platform vendors: Help AG, Khazna Data Centers, Microsoft, AWS, Oracle, Cisco and Fortinet. Confirmed UAE providers and major platform vendors: Help AG, Khazna Data Centers, Microsoft, AWS, Oracle, Cisco, Fortinet. The vendors' UAE cloud regions and partners were not checked on opened pages.",
+      "body_ar": "من مزودي تقنية المعلومات المؤكدين في الإمارات وكبار موردي المنصات Help AG وخزنة لمراكز البيانات وMicrosoft وAWS وOracle وCisco وFortinet. المزودون المؤكدون في الإمارات وكبار موردي المنصات: Help AG، Khazna Data Centers، Microsoft، AWS، Oracle، Cisco، Fortinet. ولم يُتحقق من المناطق السحابية للموردين وشركائهم في الإمارات عبر صفحات مفتوحة.",
       "sources": [
         "https://csc.gov.ae/en/",
         "https://www.helpag.com/",
@@ -45,9 +47,10 @@
     {
       "id": "it_services:uae-market-sizes",
       "topic": "IT & Network Services: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "خدمات تقنية المعلومات والشبكات: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Managed services priced per user or per device per month (with tiers for on-site support), per server/VM per month, or as fixed monthly retainers; projects (network installation, migrations, ERP) as fixed price per SOW or T&M at daily/hourly rates by role; structured cabling per network point (per data point including cable, faceplate, patching, testing); AMCs per year; cybersecurity SOC per endpoint/log volume per month; pen tests per scope (IPs/apps).",
-      "body_ar": "تُسعّر الخدمات المُدارة لكل مستخدم أو لكل جهاز شهرياً (مع مستويات للدعم في الموقع)، أو لكل خادم/جهاز افتراضي شهرياً، أو كأتعاب شهرية ثابتة؛ والمشاريع (تركيب الشبكات، والترحيل، وأنظمة تخطيط الموارد) بسعر ثابت وفق نطاق العمل أو بالوقت والمواد بأسعار يومية/بالساعة حسب الدور؛ والكابلات الهيكلية لكل نقطة شبكة (لكل نقطة بيانات شاملة الكابل واللوحة والتوصيل والاختبار)؛ وعقود الصيانة سنوياً؛ ومراكز العمليات الأمنية لكل نقطة نهاية/حجم سجلات شهرياً؛ واختبارات الاختراق حسب النطاق (عناوين IP/التطبيقات).",
+      "body_en": "This entry explains how IT services are priced: managed services per user or device per month, projects fixed price or by daily rate, cabling per network point, AMCs per year. Managed services priced per user or per device per month (with tiers for on-site support), per server/VM per month, or as fixed monthly retainers; projects (network installation, migrations, ERP) as fixed price per SOW or T&M at daily/hourly rates by role; structured cabling per network point (per data point including cable, faceplate, patching, testing); AMCs per year; cybersecurity SOC per endpoint/log volume per month; pen tests per scope (IPs/apps).",
+      "body_ar": "تُسعَّر خدمات تقنية المعلومات كالتالي: الخدمات المُدارة بالمستخدم أو بالجهاز شهريًا، والمشاريع بسعر ثابت أو بأجر يومي، والتمديدات بنقطة الشبكة، وعقود الصيانة السنوية (AMC) بالسنة. كيف يتقاضى مزودو خدمات تقنية المعلومات في الإمارات أجورهم: الدعم الفني المُدار يُحتسب شهرياً لكل مستخدم أو لكل جهاز (مع باقات تشمل الدعم في الموقع)، أو شهرياً لكل خادم أو جهاز افتراضي، أو كمبلغ شهري ثابت متفق عليه. المشاريع (تمديد وتركيب الشبكات، ونقل الأنظمة، وأنظمة ERP) إما بسعر مقطوع حسب نطاق العمل المكتوب، أو بالوقت والمواد بسعر يومي أو بالساعة حسب تخصص الفني. تمديدات الشبكات والكابلات المهيكلة تُسعَّر لكل نقطة شبكة (النقطة تشمل الكابل والواجهة والتوصيل في اللوحة والفحص). عقود الصيانة السنوية (AMC) تُحتسب بالسنة. مراقبة الأمن السيبراني (SOC) شهرياً لكل جهاز طرفي أو حسب حجم السجلات. واختبار الاختراق حسب النطاق (عدد عناوين IP أو التطبيقات).",
       "sources": [
         "https://csc.gov.ae/en/",
         "https://www.helpag.com/",
@@ -64,11 +67,14 @@
   ],
   "eval": [
     {
-      "q_en": "Is structured cabling priced per data point, and what does that include?",
-      "q_ar": "هل تُسعّر الكابلات الهيكلية لكل نقطة بيانات، وما الذي يشمله ذلك؟",
+      "q_en": "How do IT and network services providers in the UAE usually bill, per seat, per site or a recurring subscription?",
+      "q_ar": "مزودين خدمات تقنية المعلومات والشبكات في الإمارات كيف يحاسبون عادةً، على كل مستخدم ولا كل موقع ولا اشتراك متكرر؟",
       "expected_entry_ids": [
         "it_services:uae-market-sizes"
-      ]
+      ],
+      "why": "The sizes entry explains IT support pricing per user, per device or as a monthly fixed plan.",
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0.167
     }
   ],
   "verified": {

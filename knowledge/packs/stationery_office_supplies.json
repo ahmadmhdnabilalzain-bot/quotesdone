@@ -38,6 +38,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "stationery_office_supplies:copy-paper-pack-and-price-basis",
+      "topic": "Copy paper pack units and price basis",
+      "kind": "pricing_reference",
+      "body_en": "A4 copy paper is sold in 500-sheet reams packed 5 reams per carton; one supplier delivers a pallet for orders of 60 cartons. 80 gsm paper is offered for both single- and double-sided printing. Not established here: the price basis used in the UAE, price drivers, and current carton prices for named brands; obtain live quotes per carton delivered, with brand and gsm fixed.",
+      "body_ar": "يُباع ورق التصوير مقاس A4 في رزم من 500 ورقة، تُعبأ 5 رزم في الكرتونة؛ ويورّد أحد الموردين منصة نقالة كاملة للطلبات البالغة 60 كرتونة. يُعرض ورق 80 غرام/م² للطباعة على وجه واحد وعلى الوجهين. غير مثبت هنا: أساس التسعير المعتمد في الإمارات، وعوامل السعر، والأسعار الحالية للكرتونة من العلامات التجارية المسماة؛ اطلب عروض أسعار حية لكل كرتونة شاملة التوصيل مع تثبيت العلامة التجارية والوزن.",
+      "sources": [
+        "https://www.officemax.co.nz/Paper/Paper/A4-Copy-Paper/PaperOne-A4-80gsm-All-Purpose-Copy-Paper-Carton-of-5-Reams-12340473"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -54,6 +67,15 @@
       "expected_entry_ids": [
         "stationery_office_supplies:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is A4 copy paper priced for a corporate account?",
+      "q_ar": "كيف يُسعّر ورق التصوير A4 لحساب شركة؟",
+      "expected_entry_ids": [
+        "stationery_office_supplies:copy-paper-pack-and-price-basis"
+      ],
+      "why": "No entry of this pack answered it (No entry covers copy paper pricing; missing). stationery_office_supplies:copy-paper-pack-and-price-basis was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from stationery_office_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "stationery_office_supplies:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "stationery_office_supplies:copy-paper-pack-and-price-basis"
+    ]
   }
 }

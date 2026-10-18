@@ -16,9 +16,39 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const SHARED = fileURLToPath(new URL('../../supabase/functions/_shared/', import.meta.url));
 const CACHE = join(tmpdir(), 'qd_service_vectors_cache.json');
 
-/** embed_ml over HTTP: 'gte' (Supabase.ai gte-small) or 'query' (multilingual e5), with a 503 retried. */
+// THE MULTILINGUAL SPACE IS EMBEDDED HERE, NOT BY embed_ml (12 Oct 2026, it_engineer). Every cold embed_ml worker
+// downloads the 47.8 MB model from the public ml-models bucket, and Storage counts each download as cached egress.
+// Measured 11 Oct 2026 21:00-23:00 UTC: 7,150 embed_ml calls from a bulk run of this file started 2,248 workers,
+// i.e. 2,248 model downloads, ~107 GB in two hours; the cycle from 27 Sep reached 970 GB of the Pro plan's 250 GB
+// and the organisation was told it will be restricted from 15 Oct. With transformers.js installed (as
+// .github/workflows/ml-embed-backfill.yml does) the model loads ONCE per process from the same bucket and the
+// vector is the same model, dtype and prefix as _shared/ml_embed.ts embedQueryMl. Without it, the HTTP path below.
+let localMl;
+async function localMlEmbedder(PROJECT_REF) {
+  if (localMl === undefined) {
+    localMl = (async () => {
+      try {
+        const { pipeline, env } = await import('@huggingface/transformers');
+        const R = await import('../kb/ml_embed_recipe.mjs');
+        env.allowLocalModels = false;
+        Object.assign(env, R.modelHost(R.ML_MODEL, `https://${PROJECT_REF}.supabase.co`));
+        const f = await pipeline('feature-extraction', R.ML_MODEL, { dtype: 'q8' });
+        return async (text) => {
+          const t = String(text ?? '').trim();
+          if (!t) return null;
+          const v = (await f([R.ML_QUERY_PREFIX + t.slice(0, 2000)], { pooling: 'mean', normalize: true })).tolist()[0];
+          return Array.isArray(v) && v.length === 384 ? v : null;
+        };
+      } catch { return null; }   // not installed: the HTTP path
+    })();
+  }
+  return await localMl;
+}
+
+/** 'gte' (Supabase.ai gte-small, over HTTP) or 'ml' (multilingual e5: in-process when possible, else embed_ml). */
 export function embedMl(PROJECT_REF, secret, caller) {
   return async (text, space) => {
+    if (space === 'ml') { const local = await localMlEmbedder(PROJECT_REF); if (local) return await local(text); }
     for (let attempt = 1; attempt <= 4; attempt++) {
       try {
         const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/embed_ml`, {

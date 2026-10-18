@@ -38,6 +38,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "furniture_repair:three-seater-reupholstery-fabric-metres",
+      "topic": "Fabric quantity for reupholstering a three-seater sofa",
+      "kind": "buyer_guidance",
+      "body_en": "A fabric supplier's sofa estimator states that a three-seater sofa generally needs 16 to 18 metres of fabric for reupholstery. It converts measured square metres into running metres using a fabric width of usually 1.4 metres, and advises checking the pattern repeat on patterned fabric because extra fabric may be needed to line the design up across cushions and panels. Ask the upholsterer to state the metres they will use, the fabric width assumed, and whether fabric is in their price or supplied by you. Not established here: whether UAE upholsterers usually include fabric in the reupholstery price, and the exact extra percentage for patterned fabric.",
+      "body_ar": "يذكر مقدّر الكنب لدى أحد موردي الأقمشة أن الكنبة ذات المقاعد الثلاثة تحتاج عادةً من 16 إلى 18 متراً من القماش لإعادة التنجيد. ويحوّل المساحة المقاسة بالمتر المربع إلى أمتار طولية على أساس عرض قماش يبلغ عادةً 1.4 متر، وينصح بالتحقق من تكرار النقشة في الأقمشة المنقوشة لأنه قد يلزم قماش إضافي لمطابقة التصميم عبر الوسائد والألواح. اطلب من المنجّد تحديد عدد الأمتار التي سيستخدمها وعرض القماش المفترض، وما إذا كان القماش مشمولاً في سعره أم ستوفّره أنت. غير مثبت هنا: ما إذا كان المنجّدون في الإمارات يشملون القماش عادةً في سعر إعادة التنجيد، والنسبة الإضافية الدقيقة للأقمشة المنقوشة.",
+      "sources": [
+        "https://www.loomefabrics.co.uk/pages/sofa-fabric-estimator"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -54,6 +67,15 @@
       "expected_entry_ids": [
         "furniture_repair:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Is fabric included in the reupholstery price, and how many metres does a three-seater sofa need?",
+      "q_ar": "هل القماش مشمول في سعر إعادة التنجيد، وكم متراً تحتاج الأريكة ذات المقاعد الثلاثة؟",
+      "expected_entry_ids": [
+        "furniture_repair:three-seater-reupholstery-fabric-metres"
+      ],
+      "why": "No entry of this pack answered it (no entry on whether fabric is included or fabric metres for a three-seater). furniture_repair:three-seater-reupholstery-fabric-metres was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from furniture_repair.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "furniture_repair:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "furniture_repair:three-seater-reupholstery-fabric-metres"
+    ]
   }
 }

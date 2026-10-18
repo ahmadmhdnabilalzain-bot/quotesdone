@@ -15,8 +15,7 @@ function io(windowOpen: boolean) {
     reportToCeo: (k) => { log.push('ceo ' + k); return Promise.resolve(); },
     socialHandoff: (s) => { log.push('social ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     socialCommentHandoff: (s) => { log.push('comment ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
-    waIntentReply: (p, _q, intent) => { log.push('intent ' + p + ' ' + intent); return Promise.resolve(intent === 'pricing' ? 'Posting a request is free.' : null); },
-    waTrades: () => Promise.resolve([{ code: 'hvac', label: 'HVAC & air conditioning', label_ar: 'التكييف والتهوية', aliases: [] }]),
+    writeReply: (q, lang, o) => { log.push('write ' + lang + ' ' + (o?.channel ?? '') + ' ' + q); return Promise.resolve('MODEL: ' + q); },
     socialReply: (s, meaning) => { log.push('reply ' + s.platform + ' ' + s.message_id + ' ' + meaning); return Promise.resolve({ ok: true }); },
     accountantSweep: (id) => { log.push('sweep ' + id); return Promise.resolve({ ok: true, found: true, verdict: 'booked' }); },
     receiptToBookkeeper: (id) => { log.push('bookkeeper ' + id); return Promise.resolve({ ok: true }); },
@@ -83,12 +82,35 @@ Deno.test('escalated at 48 hours: a WhatsApp customer is told a person is handli
   assertEquals(log.length, 1);
 });
 
-Deno.test('a held ANSWER on WhatsApp goes back as the answer, under the same window rule', async () => {
+// Review of #1335: no model reply reaches a person unguarded. think()'s answer is a DRAFT handed to aiReply (writeReply)
+// as a fact to check; only what aiReply returns is sent, and nothing is sent when no reply passes the guard.
+Deno.test('a held ANSWER on WhatsApp goes back only through the guarded writer, under the same window rule', async () => {
   const { x, log } = io(false);
+  const seen: Record<string, unknown>[] = [];
+  const w = x.writeReply; x.writeReply = (q, l, o) => { seen.push(o ?? {}); return w(q, l, o); };
   const d = await deliverReasoned(row('think.answer', 'what depth can my pool be?', { channel: 'whatsapp', phone: '+971500000001' }, false),
     answered(null, 'In Dubai private pools need a DM permit; which emirate is the villa in?'), x);
   assertEquals(d.via, 'whatsapp_template');
-  assertMatch(log[0], /\[what depth can my pool be\?\] In Dubai/);
+  assertMatch(log[0], /^write en WhatsApp what depth can my pool be\?/);
+  assertMatch(String(seen[0].facts), /REASONED DRAFT TO CHECK[\s\S]*In Dubai private pools/);
+  assertEquals(log.some((l) => l.includes('MODEL: what depth can my pool be?')), true, 'what went out is the guarded writer text');
+  assertEquals(log.some((l) => /\] In Dubai/.test(l)), false, 'the raw draft was sent');
+
+  const refused = io(false); refused.x.writeReply = () => Promise.resolve(null);
+  const n = await deliverReasoned(row('think.answer', 'what depth can my pool be?', { channel: 'whatsapp', phone: '+971500000001' }, false),
+    answered(null, 'In Dubai private pools need a DM permit.'), refused.x);
+  assertEquals([n.delivered, n.via], [false, 'none']);
+  assertEquals(refused.log.filter((l) => !l.startsWith('write')), [], 'nothing reached the person');
+});
+
+Deno.test('an unwritten quotation-chat turn is posted into its thread only through the guarded writer', async () => {
+  const { x, log } = io(false);
+  const posted: string[] = []; x.postQuoteReview = (id, t) => { posted.push(id + ':' + t); return Promise.resolve({ ok: true }); };
+  const q = "Write the sales engineer's next message.\n\nWHAT THE REVIEW DECIDED (facts):\nSTATE: awaiting_choice\n\nTHEIR MESSAGE:\nmake it for me";
+  const d = await deliverReasoned(row('supplier_api.quote_review_unwritten', q, { channel: 'portal', review_id: 'r-1' }, false), answered(null, 'I will generate it.'), x);
+  assertEquals([d.delivered, d.via], [true, 'portal']);
+  assertEquals(posted, ['r-1:MODEL: make it for me']);
+  assertMatch(log[0], /^write en the supplier portal quotation chat make it for me$/);
 });
 
 // ── a held MEANING (reasoned_channels.ts): the answer the reasoned meaning selects, once ────────────
@@ -97,19 +119,18 @@ const meaningRow = (surface: string, question: string, subject: Record<string, u
   request: { seat: 'customer_support', surface, question, decision: { name: 'q', options: [{ id: 'none', meaning: '' }] } },
 });
 
-Deno.test('WhatsApp meaning: an intent is answered by the database, a trade from the live list, size by the statement', async () => {
+// Rulings 1195/1196 (12 Oct 2026): whatever the held meaning, the reply is written by a model now (io.writeReply); the
+// database intent answer, the trade-list sentence and the capability statement are gone. Outside the window: the template.
+Deno.test('WhatsApp meaning: an intent, a trade or size is answered by a model, on the channel rule', async () => {
   const wa = { channel: 'whatsapp', phone: '+971500000021' };
   const a = io(true);
   const i = await deliverReasoned(meaningRow('wa_inbound.intent_table', 'is it free?', wa), answered('intent:pricing'), a.x);
   assertEquals([i.delivered, i.via], [true, 'whatsapp_text']);
-  assertEquals(a.log, ['intent +971500000021 pricing', 'text +971500000021 Posting a request is free.']);
-  const b = io(true);
-  await deliverReasoned(meaningRow('wa_inbound.intent_table', 'هل تقدمون أعمال التكييف', wa), answered('trade:hvac'), b.x);
-  assertMatch(b.log[0], /^text \+971500000021 نعم، التكييف والتهوية من التخصصات/);
+  assertEquals(a.log, ['write en WhatsApp is it free?', 'text +971500000021 MODEL: is it free?']);
   const c = io(false);
   const s = await deliverReasoned(meaningRow('wa_inbound.intent_table', 'how many suppliers do you have', wa), answered('size'), c.x);
-  assertEquals(s.via, 'whatsapp_template'); // outside the window: the template, never free text
-  assertMatch(c.log[0], /^template \+971500000021 en \[how many suppliers do you have\] Thank you for your interest in QuotesDone/);
+  assertEquals(s.via, 'whatsapp_template');
+  assertMatch(c.log[1], /^template \+971500000021 en \[how many suppliers do you have\] MODEL: /);
 });
 
 Deno.test('WhatsApp meaning: nothing more is sent for none, for a person (its own held row delivers that), or with no phone', async () => {
@@ -226,8 +247,7 @@ function replayRig(o: { stored?: Partial<Record<SocialPlatform, Record<string, u
   const store = (tokenFor: (ev: CommentEvent) => Promise<string | null>): Store => ({
     insertInbound: () => Promise.resolve(1), release: () => Promise.resolve(), threadAllowed: () => Promise.resolve(true),
     record: () => Promise.resolve(), handoff: () => Promise.resolve(null), switchOn: () => Promise.resolve(true),
-    library: () => Promise.resolve('Thank you for the kind words.'), deterministic: () => Promise.resolve({ kind: 'unknown', key: 'unknown', text: '' }),
-    draft: () => Promise.resolve(null),
+    write: () => Promise.resolve('Thank you for the kind words.'),
     async reply(ev, text) { const t = await tokenFor(ev); return t ? await call(f, replyRequest(ev, text, t)) : { ok: false, error: 'no credential for ' + ev.platform }; },
     async hide() { return { ok: false, error: 'not in this test' }; },
   });
@@ -415,8 +435,9 @@ Deno.test('e-mail: an unverified answer is not sent; a reasoned request for a pe
   assertEquals(d1.delivered, false);
   const d2 = await deliverReasoned(row('email_triage.needs_a_person', 'let me talk to a human', { message_id: 42, channel: 'email' }), answered('needs_a_person'), x);
   assertEquals([d2.delivered, d2.via], [true, 'email']);
-  assertMatch(log[0], /^mail 42 true .*member of our team/s);
+  assertMatch(log[0], /^write en e-mail let me talk to a human/);
+  assertMatch(log[1], /^mail 42 true Hello,\n\nMODEL: let me talk to a human/);
   const d3 = await deliverReasoned(row('email_triage.needs_a_person', 'when do I pay', { message_id: 42, channel: 'email' }), answered('no_person'), x);
   assertEquals(d3.delivered, false);
-  assertEquals(log.length, 1);
+  assertEquals(log.length, 2);
 });

@@ -17,6 +17,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -64,7 +65,7 @@ test('production, aborted: a ZZ DEMO week is reviewed and its unanswered questio
   const { sql } = await import('../lib/db.mjs');
   const replay = (pending(FILE) ? read(FILE) : '') + '\n' + (pending(FILE2) ? read(FILE2) : '');
   let o;
-  try { await sql(replay + '\n' + PROBE, { retry: false }); }
+  try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
