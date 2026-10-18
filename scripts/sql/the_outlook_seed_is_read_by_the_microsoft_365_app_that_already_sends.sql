@@ -88,10 +88,23 @@ end
 $function$
 ;
 
+-- management@quotesdone.com is admin_emails, so a10_notifications_founder_mail_policy turns any notification to it
+-- whose kind founder_mail_policy does not allow into a routed task and returns NULL: the seed would never be sent
+-- (measured 18 Oct 2026: a supplier_invite_seed insert to that address returned 0 rows). The seed is the founder's
+-- own placement test (ledger 993: "placement is read in his Gmail and his Outlook"); one a sending day, and the
+-- invite_placement_check CHECKs pin it to his two inboxes.
+insert into public.founder_mail_policy (kind, allowed_to_email, reason, owner_role, updated_at)
+values ('supplier_invite_seed', true,
+  'Ledger 993 (24 Sep 2026): the morning invitation seed is placement-tested in the founder''s own Gmail and Outlook; since 18 Oct 2026 the Outlook seed is management@quotesdone.com. One seed a sending day, pinned by the invite_placement_check CHECKs.',
+  'customer_support', now())
+on conflict (kind) do update set allowed_to_email = excluded.allowed_to_email, reason = excluded.reason, updated_at = now();
+
 -- Verdict: the routine queues the new address, and the constraint refuses the old one on a new row.
 select case
   when position('''management@quotesdone.com'', p_now' in pg_get_functiondef('public.fn_invite_placement_due(timestamptz)'::regprocedure)) = 0
     then 'PROBE FAILED: fn_invite_placement_due does not queue management@quotesdone.com'
   when (select pg_get_constraintdef(oid) from pg_constraint where conname = 'invite_placement_check_outlook_to_check') not like '%management@quotesdone.com%'
     then 'PROBE FAILED: the outlook_to CHECK does not pin management@quotesdone.com'
+  when not coalesce((select allowed_to_email from public.founder_mail_policy where kind = 'supplier_invite_seed'), false)
+    then 'PROBE FAILED: founder_mail_policy would swallow the seed to management@quotesdone.com'
   else 'PROBE OK' end as verdict;

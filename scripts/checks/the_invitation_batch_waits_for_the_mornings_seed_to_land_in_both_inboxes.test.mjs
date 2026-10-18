@@ -89,6 +89,8 @@ test('the seed is supplier_invite_seed to exactly the two allowlisted inboxes, i
   const ol = TS.match(/export const SEED_OUTLOOK = '([^']+)'/)?.[1];
   assert.equal(gm, 'ahmadmhdnabilalzain@gmail.com');
   assert.equal(ol, 'management@quotesdone.com');
+  // management@quotesdone.com is admin_emails: without this row the founder-mail trigger swallows the seed (0 rows).
+  assert.match(MOVED, /insert into public\.founder_mail_policy[\s\S]*?values \('supplier_invite_seed', true,/, 'the founder-mail policy would swallow the Outlook seed');
   assert.match(TS, /M365_SECRET_NAMES = \["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET"\]/, 'the Outlook reader no longer uses the M365 app that sends');
   assert.doesNotMatch(TS, /sec\('ms_graph_|graph\.microsoft\.com\/v1\.0\/me\b/, 'a delegated Graph read came back');
   assert.match(TS, /export const PLACEMENT_SEEDS: readonly string\[\] = \[SEED_GMAIL, SEED_OUTLOOK\];/);
