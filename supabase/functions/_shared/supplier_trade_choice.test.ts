@@ -84,3 +84,26 @@ Deno.test('an answer in a code fence or after a sentence is still read; a failur
   const bad = checkChoice('I cannot answer that {not json}', DOC, DEFS);
   assert(!bad.ok && /I cannot answer/.test(bad.error), JSON.stringify(bad));
 });
+
+// H01, held-out set (review of #1412, 18 Oct 2026): an image-only aluminium and glass profile. Its trades were chosen
+// from the vision model's own SUMMARY of services ("Plumbing and sanitary installation", "Painting, tiling and building
+// cleaning"), so every quote matched text the model itself had written and six trades it does not sell got through.
+// The picture's trades are now chosen only from the lines it PRINTS (license_extract profile.lines, verbatim); a quote
+// from a summary is not in those lines and is refused. Lines below are ZZ DEMO paraphrases of the file's kind.
+Deno.test('an image-only profile proposes only what its printed lines quote; a summary phrase proposes nothing (H01)', async () => {
+  const { modelReadText } = await import('./supplier_doc_trades.ts');
+  const lines = ['ZZ DEMO Aluminium works, Glass works, UPVC windows & doors', 'Glass Partitions', 'Doors & windows'];
+  const deps: TradeResolveDeps = { normTrades: async () => ({}), services: [], embed: async () => null, budget: { left: 0 },
+    chooseTrades: async (t) => checkChoice(JSON.stringify({ trades: [
+      { code: 'doors', quote: 'Doors & windows', reason: 'printed service' },
+      { code: 'fire_fighting', quote: 'Plumbing and sanitary installation', reason: 'from the summary' },   // not a printed line
+    ] }), t, DEFS) };
+  const ev = await readDocForTrades({ path: 'p', name: 'p.pdf', kind: 'profile', photo_text: modelReadText('profile', lines) }, deps);
+  assertEquals(ev.trades.map((t) => t.code), ['doors']);
+});
+
+Deno.test('the profile reading asks for printed lines verbatim, never from a certificate or letter', async () => {
+  const LX = await import('./licence_extract.ts');
+  assert(/copied EXACTLY as printed/.test(LX.SYS_PROFILE) && /never from a certificate, a letter of recommendation/.test(LX.SYS_PROFILE));
+  assertEquals(LX.profileExtractRequest({ images: [] }, null).sys, LX.SYS_PROFILE);
+});

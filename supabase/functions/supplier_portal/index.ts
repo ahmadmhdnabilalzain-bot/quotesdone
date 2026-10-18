@@ -540,7 +540,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
             const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', images: [{ b64: String(it.original_b64), mime: stored.mime }] }) });
             const jd = await r.json().catch(() => null);
             const q = readQueue.find((x) => x.kind === 'profile');
-            if (q && jd?.ok) q.photo_text = modelReadText('profile', jd.profile?.services);
+            if (q && jd?.ok) q.photo_text = modelReadText('profile', jd.profile?.lines);
           } catch (_e) { /* the document stays needs_ocr: never a false "no trades" */ }
         }
         if (kindStr === 'license' && docRead) {

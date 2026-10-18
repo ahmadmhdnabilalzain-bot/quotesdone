@@ -399,9 +399,6 @@
     "painting",
     "swimming_pools"
    ],
-   "H06": [
-    "design_consultancy"
-   ],
    "H09": [
     "electrical",
     "plumbing"
@@ -409,19 +406,21 @@
    "H15": [
     "fencing_shades",
     "road_works"
+   ],
+   "H01": [
+    "joinery"
    ]
   },
   "why_blind_truth_missed_them": "the blind truth was written from the opening pages; these are listed later in each file (activity lists, licence activities, service tables)",
-  "still_wrong": {
-   "H01": [
-    "cleaning",
-    "electrical",
-    "flooring",
-    "gypsum",
-    "painting",
-    "plumbing"
+  "overturned_by_reviewer": {
+   "H06": [
+    "design_consultancy"
    ]
   },
-  "still_wrong_why": "H01 is image-only; the no-text path sends it to the profile model, which returns codes with no quotes, so the quote rule never ran. No page seen offers these."
+  "h01_quotes": {
+   "joinery": "Glass folding doors are our speciality... offering excellent aluminium partition, ACP cladding, structural glazing, and kitchen cabinets. (page Aluminium Glass Folding Doors)",
+   "hvac": "Aluminium works, Glass works, UPVC windows & doors and Air conditioning services. (About page; hvac already in trades_also)"
+  },
+  "h01_before_guard": "6 wrong (cleaning, electrical, flooring, gypsum, painting, plumbing), chosen from the vision model summary; their words are on two ISO certificate scope pages, not in the company's own description. Fixed by the guard: trades are chosen only from printed lines, never from a certificate."
  }
 }
