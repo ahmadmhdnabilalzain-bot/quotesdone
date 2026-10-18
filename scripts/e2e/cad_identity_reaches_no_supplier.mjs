@@ -83,15 +83,26 @@ try {
     : /ceiling|partition/i.test(m) ? 'None.' : /air conditioning|split|ducted|cassette/i.test(m) ? 'Ducted fan coil units, as drawn.'
     : /used for|how big|size of|area/i.test(m) ? 'Offices, about 600 square metres.' : /install/i.test(m) ? 'Supply and installation.' : 'Standard commercial specification.';
   let intake = await runIntake({ ...cust, jwt: cust.jwt, email: cust.email }, answers, answers.length);
-  for (let turn = 0; turn < 6 && intake.status !== 'ready' && intake.intakeId; turn++) {
+  // A HELD intake ends the interview (runIntake says why). Re-asking it overwrote "held (fixture_no_spend; ...)" with a
+  // bare "held", and the reason - the gateway never sends harness traffic to a paid model - was lost (18 Oct 2026).
+  for (let turn = 0; turn < 6 && intake.status !== 'ready' && !String(intake.status).startsWith('held') && intake.intakeId; turn++) {
     const r = await call('inquiry_intake', cust.jwt, { intake_id: intake.intakeId, text: intake.missing.map(reply).join(' '), email: cust.email, drawing_boq: res.boq });
     intake = { ...intake, status: r.json?.status ?? intake.status, missing: Array.isArray(r.json?.missing) ? r.json.missing.map(String) : [], turns: intake.turns + 1 };
   }
-  check('the intake reached ready', intake.status === 'ready', `${intake.status}, missing ${intake.missing.join(', ')}`);
+  // NO MODEL FOR HARNESS TRAFFIC (ai_gateway outcome fixture_no_spend): the intake cannot reach ready without one, by
+  // design, so create_inquiry's 428 intake_required on 18 Oct was the product refusing an unready intake, correctly.
+  // Without a model window the request half of this journey cannot be proven: it is SKIPPED with the reason, and the
+  // refusal itself is asserted. With a window (models_allowed) the full path runs as before.
+  const noSpend = /fixture_no_spend/.test(String(intake.status));
+  if (noSpend) console.log(`SKIP  the intake reached ready - ${intake.status}`);
+  else check('the intake reached ready', intake.status === 'ready', `${intake.status}, missing ${intake.missing.join(', ')}`);
   const drawing = { drawing_file_path: res.drawing_file_path, drawing_file_name: res.drawing_file_name, drawing_redacted_paths: pages, redaction_job_id: res.redaction_job_id || null, boq: res.boq, brief_source: 'drawing' };
   const ci = await call('customer_api', cust.jwt, { action: 'create_inquiry', intake_id: intake.intakeId, category: 'hvac', emirate: 'Dubai', trades: ['hvac'], scope_type: 'single', summary: 'ZZ DEMO HVAC per CAD take-off', raw_input: answers.join('\n'), spec: {}, drawing }, 120000);
   const iid = ci.json?.id ?? ci.json?.inquiry_id ?? null;
-  check('create_inquiry posted the request', !!iid, `HTTP ${ci.status} ${ci.text?.slice(0, 200)}`);
+  if (noSpend) {
+    check('create_inquiry refuses an intake that is not ready (428 intake_required)', !iid && ci.status === 428 && ci.json?.error === 'intake_required', `HTTP ${ci.status} ${ci.text?.slice(0, 200)}`);
+    console.log('SKIP  create_inquiry posted the request - no model window for harness traffic, so the intake is held by design');
+  } else check('create_inquiry posted the request', !!iid, `HTTP ${ci.status} ${ci.text?.slice(0, 200)}`);
   if (iid) {
     run.ids.inquiries.add(iid);
     const matched = await waitFor(async () => { const m = await read(`select m.supplier_id, l.is_demo from public.inquiry_matches m join public.leads l on l.id = m.supplier_id where m.inquiry_id = '${iid}'`); return m.some((x) => String(x.supplier_id) === String(hvac.leadId)) ? m : null; }, { timeoutMs: 90000, everyMs: 15000 }).catch(() => null);

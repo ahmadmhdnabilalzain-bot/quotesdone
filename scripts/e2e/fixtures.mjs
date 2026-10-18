@@ -23,7 +23,7 @@
 //   The EMAIL verification still runs through the real login_otp endpoint (the code is seeded hashed,
 //   exactly as login_otp stores it; only delivery is skipped). The MOBILE verification is recorded
 //   directly: Twilio Verify cannot be driven without sending an SMS, and the number is fake by design.
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile, EMIRATES } from '../lib/demo_factory.mjs';
 import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
@@ -43,6 +43,11 @@ export async function openRun(opts = {}) {
   if (process.env.QD_FIXTURES !== '1') process.env.QD_FIXTURES = '1';   // this module IS the fixture door
   const run = newRun({ quiet: true, ...opts });
   run.ids = { inquiries: new Set(), quotes: new Set(), leads: new Set(), customers: new Set(), storage: [] };
+  // THE JOB KNOWS EVERY WINDOW IT OPENED (18 Oct 2026). A script killed from outside never reaches closeRun's finally:
+  // every_drawing_format_is_read was SIGTERMed at drawing_journeys_into_report's 12-minute ceiling every night 13-18 Oct
+  // (qd_run:566956ec ... ad52831d stayed open past expires_at). With QD_E2E_RUN_TAGS set the tag is written BEFORE the
+  // window opens, so the parent and the workflow's always() step tear it down and close it by its exact tag.
+  if (process.env.QD_E2E_RUN_TAGS) appendFileSync(process.env.QD_E2E_RUN_TAGS, run.tag + '\n');
   await write(`insert into public.rehearsal_window (run_tag, opened_by, note)
                values (${q('qd_run:' + run.tag)}, 'scripts/e2e/run.mjs', 'e2e harness run')`, 'rehearsal window');
   return run;

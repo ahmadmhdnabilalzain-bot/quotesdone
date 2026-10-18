@@ -76,7 +76,10 @@ try {
       console.log('INFO  worker:', (w.stdout || '').trim().split('\n').filter((l) => !/peer|resolved|Learn more|──/.test(l)).join(' | '));
     }
     let st = null; const t0 = Date.now();
-    for (let i = 0; i < 60 && !(st?.json?.status === 'done' || st?.json?.status === 'failed'); i++) {
+    // 4 minutes, not 10 (18 Oct 2026): 60 x 10 s of polling plus the run's calls and teardown passed the parent's
+    // 12-minute ceiling (drawing_journeys_into_report PER_SCRIPT_MS), the process was SIGTERMed inside its finally and
+    // its rehearsal window stayed open every night 13-18 Oct. A job the worker has not taken in 4 minutes is the finding.
+    for (let i = 0; i < 24 && !(st?.json?.status === 'done' || st?.json?.status === 'failed'); i++) {
       if (i) await new Promise((r) => setTimeout(r, 10000));
       st = await call('customer_api', cust.jwt, { action: 'cad_read_status', job_id: job });
     }
