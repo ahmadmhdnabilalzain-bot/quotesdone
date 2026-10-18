@@ -51,7 +51,7 @@ create or replace function public.fn_accountant_receipt_bank_match()
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path to 'public', 'pg_temp'
 as $$
 declare
   v_days int; v_pct numeric; v_floor numeric; v_usd numeric;
@@ -119,7 +119,7 @@ begin
              || v_pct || '% (floor AED ' || v_floor || '), USD at ' || v_usd || ', value date ' || '-1..+' || v_days
              || ' days, vendor word in the line preferred. Bank charges book themselves and are not expected to carry a receipt. Nothing was posted to the ledger.');
 end $$;
-revoke all on function public.fn_accountant_receipt_bank_match() from public, anon, authenticated;
+revoke execute on function public.fn_accountant_receipt_bank_match() from public, anon, authenticated;
 grant execute on function public.fn_accountant_receipt_bank_match() to service_role;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values

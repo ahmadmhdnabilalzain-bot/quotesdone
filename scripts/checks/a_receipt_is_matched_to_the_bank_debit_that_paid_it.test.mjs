@@ -13,6 +13,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
@@ -62,12 +63,9 @@ end $probe$;`;
 
 test('receipts pair with their bank debits and the unmatched are listed (rolled back)', async (t) => {
   if (!token) { t.skip('no management token'); return; }
-  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: readFileSync(FILE, 'utf8') + '\n' + PROBE }),
-  });
-  const text = await r.text();
-  assert.ok(!r.ok, 'the probe must always raise, so nothing is committed');
+  let text = 'the probe returned without raising, so it did not roll back';
+  try { await replaySql(readFileSync(FILE, 'utf8') + '\n' + PROBE, { label: 'the receipt-match probe', retry: false }); }
+  catch (e) { text = String(e.message); }
   assert.match(text, /PROBE OK/, text);
 });
 
