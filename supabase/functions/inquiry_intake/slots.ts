@@ -189,3 +189,20 @@ export function stampTurn(turns: any[], snap: TurnSlots): void {
     if (turns[i] && turns[i].role === 'assistant') { turns[i].slots = { ...snap, at: new Date().toISOString() }; return; }
   }
 }
+
+// ---- the open key and the hold's reason (stage2 run 321d13ae, 18 Oct 2026) ----------------------
+/** The slot state's first askable question and its key, or null (exhausted keys are never asked). */
+export function slotAskOf(sl: SlotState): { key: string; text: string } | null {
+  const askKeys = sl.missingKeys.filter((k) => !sl.exhausted.includes(k));
+  return askKeys.length && sl.missing.length ? { key: askKeys[0], text: sl.missing[0] } : null;
+}
+/** The key goes with the question only on an EXACT match with the state's question: a question the
+ *  model wrote in its own words has no key we can vouch for. */
+export function slotKeyFor(ask: { key: string; text: string } | null, question: string): string | null {
+  return ask && question === ask.text ? ask.key : null;
+}
+/** Only our own harness subject (@example.invalid) is told why an intake is held; a customer never is. */
+export function heldReasonFor(status: string, email: string, exhausted: string[]): { held_reason: string } | Record<string, never> {
+  return status === 'held' && String(email || '').toLowerCase().endsWith('@example.invalid')
+    ? { held_reason: 'specs_unanswered: ' + (exhausted.join(',') || 'unknown') } : {};
+}
