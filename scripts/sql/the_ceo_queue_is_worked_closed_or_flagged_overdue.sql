@@ -15,19 +15,31 @@
 --   * 25 held_question (CEO internal surfaces: experiment_approval, knowledge_refresh, management_review,
 --     marketing_month_plan, target_forecast, learning.distil; 25 Sep - 10 Oct). Filed by fn_reason_held_escalate; NO
 --     routine reads agent_actions kind held_question. 14 of their questions were since applied, 5 expired, 6 failed.
+--   * agent_actions.escalated: no routine ACTS on it (only fn_ops_dashboard / fn_os_list display it). The CEO's acting
+--     list is ceo_task, read by fn_ceo_daily_run and fn_ceo_week_plan_vs_actual.
 --   CAUSE: held_question has no worker at all; it.finding handoffs have a worker that escalates once and then never
 --   flags the wait again. Not a dead duty.
 --
+-- WHY A DISMISSAL CANNOT LOSE A QUESTION: fn_reason_hold dedupes on dedupe_key and keeps a failed/expired row closed,
+-- so an age-based dismissal could leave a period that is never re-asked. This file therefore dismisses ONLY a question
+-- that a LATER question on the same surface has superseded by being applied. Measured 19 Oct 2026 on the 11 unapplied:
+-- every dedupe_key is period-scoped (ceo_exp_approve:<exp>:<iter>, krefresh:<quarter>:<item>, ceo_mreview:<week>,
+-- ceo_forecast:<week>), and each has a later applied question on its surface - including ceo.management_review and
+-- ceo.target_forecast, whose duties were dead 15-18 Oct and filed fresh questions (ceo_mreview / ceo_forecast) on 15 Oct
+-- that were applied. A question with no later applied one stays pending and is flagged overdue instead.
+--
 -- WHAT THIS ADDS: fn_ceo_queue_work(), the CEO duty ceo.queue_work, every hour. For agent='ceo', status='pending':
---   1. held_question / held_question_expired / support_question_handover (#1462 files the last one; keyed on the held
---      question id in target_id): its question applied/answered/closed -> 'done'. A CEO internal duty question
---      (surface ceo.* or learning.*) still unapplied after 7 days -> 'dismissed': the duty re-files on its next run.
---   2. any pending item older than 7 days that step 1 did not settle -> escalated=true with escalation_reason, ONCE
---      (the overdue alert; the CEO daily run and seat audit read escalated). Never the founder: rulings 1254 and
---      8 Sep keep him for what only he can do, and nothing here is that.
+--   0. support_question_handover is NEVER touched (not closed, not flagged): #1462's fn_ceo_support_handover_duty
+--      sends the customer the reply and closes it, so it can never close before the customer is answered.
+--   1. held_question / held_question_expired (keyed on the held question id in target_id): its question
+--      applied/answered/closed -> 'done'; superseded by a later applied question on the same surface -> 'dismissed'.
+--   2. any pending item older than 7 days that step 1 did not settle -> escalated=true with escalation_reason, ONCE,
+--      and one ceo_task a day ('CEO queue overdue <date>') listing them, which the CEO daily run acts on. Never the
+--      founder: rulings 1254 and 8 Sep keep him for what only he can do, and nothing here is that.
 --   It never closes an it.finding handoff: only fn_it_loop_reverify may, so the learning gate (z62) stands.
 --
--- Prevented by: scripts/sql/the_ceo_queue_is_worked_closed_or_flagged_overdue_probe.sql (aborted transaction).
+-- Prevented by: scripts/sql/the_ceo_queue_is_worked_closed_or_flagged_overdue_probe.sql (aborted transaction) and
+-- scripts/checks/the_ceo_queue_worker_never_touches_a_support_handover.test.mjs.
 
 create or replace function public.fn_ceo_queue_work()
 returns jsonb
@@ -35,18 +47,18 @@ language plpgsql
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare n_done int; n_dismissed int; n_overdue int;
+declare n_done int; n_dismissed int; n_overdue int; v_task bigint; v_title text; v_list text;
 begin
   if not pg_try_advisory_xact_lock(hashtext('fn_ceo_queue_work')) then
     return jsonb_build_object('skipped', 'another run is going');
   end if;
 
   with q as (
-    select a.id, h.status hs, h.surface, a.created_at
+    select a.id, h.id hid, h.status hs, h.surface
       from public.agent_actions a
       join public.reasoning_held_question h on h.id::text = a.target_id
      where a.agent = 'ceo' and a.status = 'pending'
-       and a.kind in ('held_question', 'held_question_expired', 'support_question_handover')
+       and a.kind in ('held_question', 'held_question_expired')
   ), done as (
     update public.agent_actions a
        set status = 'done', decided_at = now(), decided_by = 'ceo',
@@ -56,11 +68,13 @@ begin
   ), dis as (
     update public.agent_actions a
        set status = 'dismissed', decided_at = now(), decided_by = 'ceo',
-           evidence = coalesce(a.evidence, '{}'::jsonb) || jsonb_build_object('verdict',
-             'a CEO internal duty question (' || q.surface || ', ' || q.hs || ') older than 7 days: the duty re-files on its next run',
-             'closed_by', 'fn_ceo_queue_work')
-      from q where a.id = q.id and q.hs not in ('applied', 'answered', 'closed')
-       and (q.surface like 'ceo.%' or q.surface like 'learning.%') and q.created_at < now() - interval '7 days'
+           evidence = coalesce(a.evidence, '{}'::jsonb) || jsonb_build_object(
+             'verdict', 'superseded: held question ' || s.sid || ' on ' || q.surface || ' was applied after this one (' || q.hs || ')',
+             'superseded_by', s.sid, 'closed_by', 'fn_ceo_queue_work')
+      from q
+      cross join lateral (select max(n.id) sid from public.reasoning_held_question n
+                           where n.surface = q.surface and n.id > q.hid and n.status in ('applied', 'answered', 'closed')) s
+     where a.id = q.id and q.hs not in ('applied', 'answered', 'closed') and s.sid is not null
     returning a.id
   )
   select (select count(*) from done), (select count(*) from dis) into n_done, n_dismissed;
@@ -74,10 +88,24 @@ begin
                    when a.detail ? 'awaiting' then '; awaiting ' || (a.detail->>'awaiting')
                    else '' end, 500)
    where a.agent = 'ceo' and a.status = 'pending' and not coalesce(a.escalated, false)
+     and a.kind <> 'support_question_handover'  -- #1462's fn_ceo_support_handover_duty owns these end to end
      and a.created_at < now() - interval '7 days';
   get diagnostics n_overdue = row_count;
 
-  return jsonb_build_object('done', n_done, 'dismissed', n_dismissed, 'flagged_overdue', n_overdue);
+  -- The flag alone is read by nothing that acts: put the overdue list on the CEO's own task list, once a day.
+  v_title := 'CEO queue overdue ' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+  select string_agg('#' || a.id || ' ' || a.kind || ': ' || a.escalation_reason, E'\n' order by a.id) into v_list
+    from (select * from public.agent_actions
+           where agent = 'ceo' and status = 'pending' and escalated and kind <> 'support_question_handover'
+           order by id limit 60) a;
+  if v_list is not null and not exists (select 1 from public.ceo_task where title = v_title) then
+    v_task := public.fn_ceo_task_open(v_title,
+      'Pending CEO queue items older than 7 days (first 60). Each is an open IT finding, a cleared finding whose '
+      || 'incident lacks cause/fix/regression check, or an answer still awaited. Decide the remedy or record why it waits.'
+      || E'\n' || v_list);
+  end if;
+
+  return jsonb_build_object('done', n_done, 'dismissed', n_dismissed, 'flagged_overdue', n_overdue, 'ceo_task', v_task);
 end
 $fn$;
 
@@ -86,7 +114,7 @@ grant execute on function public.fn_ceo_queue_work() to service_role;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('ceo.queue_work', 'ceo', interval '1 hour', 'fn_ceo_queue_work',
-   'Closes CEO queue items whose held question settled, dismisses stale internal-duty questions, flags anything older than 7 days overdue once.',
+   'Closes CEO queue items whose held question settled or was superseded, flags anything older than 7 days overdue once and lists it on a daily ceo_task.',
    'scripts/sql/the_ceo_queue_is_worked_closed_or_flagged_overdue.sql')
 on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
   what = excluded.what, owner_file = excluded.owner_file;
