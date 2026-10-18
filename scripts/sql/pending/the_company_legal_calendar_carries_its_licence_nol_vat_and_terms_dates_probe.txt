@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all: it has no DDL and no writes of its own. The check
+scripts/checks/the_company_legal_calendar_carries_its_licence_nol_vat_and_terms_dates.test.mjs sends
+the_company_legal_calendar_carries_its_licence_nol_vat_and_terms_dates.sql followed by this probe in ONE request
+through scripts/lib/safe_replay.mjs replaySql({ rows: true }), which always rolls back; the verdict row must start
+'PROBE OK'. This note stays for the life of the file. Seat: accountant.

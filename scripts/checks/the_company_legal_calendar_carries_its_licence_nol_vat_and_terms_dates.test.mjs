@@ -11,10 +11,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const NAME = 'the_company_legal_calendar_carries_its_licence_nol_vat_and_terms_dates';
 const FILE = new URL(`../sql/${NAME}.sql`, import.meta.url);
 const PENDING = new URL(`../sql/pending/${NAME}.txt`, import.meta.url);
+const PROBE = new URL(`../sql/${NAME}_probe.sql`, import.meta.url);
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
@@ -37,6 +39,17 @@ test('the VAT watch reports at 80% and 100% of AED 375,000', async (t) => {
   assert.equal(Number(r.f80), 0.8);
   assert.equal(Number(r.f100), 1);
   assert.equal(r.flow, null);
+});
+
+// The file and its probe in ONE request that always rolls back (safe_replay): before the apply this proves the
+// file writes the rows, after it proves a replay still lands them. Production is unchanged either way.
+test('the probe: file plus probe, rolled back, verdict PROBE OK', async (t) => {
+  if (!token) { t.skip('no management token'); return; }
+  const text = readFileSync(FILE, 'utf8') + '\n;\n' + readFileSync(PROBE, 'utf8');
+  const rows = await replaySql(text, { label: NAME, rows: true });
+  const verdict = String(rows?.[0]?.verdict ?? '');
+  console.log(verdict);
+  assert.match(verdict, /^PROBE OK /);
 });
 
 test('once applied, both expiries remind at 90/60/30 and the four calendar rows exist', async (t) => {
