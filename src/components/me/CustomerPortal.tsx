@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
+import { forgetWidgetConv } from '@/lib/widgetConv';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -325,6 +326,7 @@ function CustomerPortalView() {
   const signOutBusy = useBusy();
   const doSignOut = () => signOutBusy.run('out', async () => {
     try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {}
+    forgetWidgetConv();   // a pending widget chat must never be retried into the next account on this browser
     try { await SB().auth.signOut(); } catch (_e) {}
     setToken(''); setPhase('login');
   });
