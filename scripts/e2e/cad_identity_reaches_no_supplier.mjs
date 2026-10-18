@@ -22,6 +22,7 @@
 // demo request is never matched to a real supplier (the database's demo guards).
 import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, call, waitFor } from './fixtures.mjs';
 import { runIntake } from '../lib/demo_factory.mjs';
+import { cadRedactionShape } from './cad_redacted_paths.mjs';
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok: !!ok, detail }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' - ' + detail : ''}`); return !!ok; };
@@ -69,12 +70,13 @@ try {
   const q = (re) => lines.filter((l) => re.test(String(l.description))).map((l) => l.qty);
   check('every quantity survives (FCU 24, diffusers 12, fans 6)', q(/FCU/)[0] === 24 && q(/DIFFUSERS/)[0] === 12 && q(/EXHAUST FANS/)[0] === 6, JSON.stringify([q(/FCU/), q(/DIFFUSERS/), q(/EXHAUST FANS/)]));
   const pages = Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths : [];
-  // The redacted preview, plus the anonymised CAD file when its own verifier proved it (customer_api redactCad, 28 Sep):
-  // one or two pages, each from its own recorded run (redaction_job_ids), never the original upload.
+  // Since #1056 the anonymised DXF rides beside the preview, so 1 or 2 recorded paths (cad_redacted_paths.mjs),
+  // each from its own recorded run (redaction_job_ids), never the original upload.
   const jobIds = Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids : [];
-  check('the CAD drawing is drawn for suppliers with its identity left out (recorded pages, not held)', res.redaction_complete === true && pages.length >= 1 && pages.length <= 2
+  const shape = cadRedactionShape(pages);
+  check('the CAD drawing is drawn for suppliers with its identity left out (one recorded preview page plus its anonymised file, not held)', res.redaction_complete === true && shape.ok
     && jobIds.length === pages.length && !pages.includes(res.drawing_file_path) && res.drawing_held === false,
-    `redaction_complete ${res.redaction_complete}, ${pages.length} page(s), held ${res.drawing_held}`);
+    `redaction_complete ${res.redaction_complete}, ${shape.detail}, held ${res.drawing_held}`);
 
   const answers = [
     'Budget around AED 90,000. HVAC only: supply and install ductwork, fan coil units, diffusers and exhaust fans in an existing office in Dubai, as per the attached CAD take-off.',
@@ -104,8 +106,9 @@ try {
     const item = (inbox.json?.inquiries || [])[0];
     check('the supplier sees the request', !!item, `HTTP ${inbox.status}`);
     check('no name from the file anywhere in what the supplier is served', !!item && leaked(item).length === 0, JSON.stringify(leaked(item)));
-    check('the supplier is served the redacted drawing page, not the CAD file', Array.isArray(item?.drawing_pages) && item.drawing_pages.length === pages.length && item?.drawing_withheld !== true,
-      `${item?.drawing_pages?.length ?? 0} page(s), drawing_withheld ${item?.drawing_withheld}`);
+    const served = cadRedactionShape(item?.drawing_pages);
+    check('the supplier is served the redacted preview page and at most the anonymised DXF, never the original', Array.isArray(item?.drawing_pages) && served.ok && served.files === shape.files && item?.drawing_withheld !== true,
+      `${served.detail}, drawing_withheld ${item?.drawing_withheld}`);
     check('the supplier still receives the take-off', Array.isArray(item?.boq?.boq) && item.boq.boq.length > 0, `${item?.boq?.boq?.length ?? 0} lines, withheld ${item?.boq_withheld}`);
     const pdfR = await call('supplier_api', hvac.jwt, { action: 'inquiry_pdf', inquiry_id: iid, lang: 'en' }, 120000);
     if (pdfR.json?.url) {
