@@ -42,6 +42,11 @@ create policy expense_bank_match_service_role on public.expense_bank_match
   for all to service_role using (true) with check (true);
 revoke all on public.expense_bank_match from public, anon, authenticated;
 
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('expense_bank_match', true, 'company', 'which Mashreq statement debit paid each expense receipt, and how close the amount and date were', 'accountant')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 create or replace function public.fn_accountant_receipt_bank_match()
 returns jsonb
 language plpgsql
