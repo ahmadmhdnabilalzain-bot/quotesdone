@@ -69,7 +69,11 @@ try {
   const q = (re) => lines.filter((l) => re.test(String(l.description))).map((l) => l.qty);
   check('every quantity survives (FCU 24, diffusers 12, fans 6)', q(/FCU/)[0] === 24 && q(/DIFFUSERS/)[0] === 12 && q(/EXHAUST FANS/)[0] === 6, JSON.stringify([q(/FCU/), q(/DIFFUSERS/), q(/EXHAUST FANS/)]));
   const pages = Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths : [];
-  check('the CAD drawing is drawn for suppliers with its identity left out (one recorded page, not held)', res.redaction_complete === true && pages.length === 1 && res.drawing_held === false,
+  // The redacted preview, plus the anonymised CAD file when its own verifier proved it (customer_api redactCad, 28 Sep):
+  // one or two pages, each from its own recorded run (redaction_job_ids), never the original upload.
+  const jobIds = Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids : [];
+  check('the CAD drawing is drawn for suppliers with its identity left out (recorded pages, not held)', res.redaction_complete === true && pages.length >= 1 && pages.length <= 2
+    && jobIds.length === pages.length && !pages.includes(res.drawing_file_path) && res.drawing_held === false,
     `redaction_complete ${res.redaction_complete}, ${pages.length} page(s), held ${res.drawing_held}`);
 
   const answers = [
@@ -88,7 +92,7 @@ try {
     intake = { ...intake, status: r.json?.status ?? intake.status, missing: Array.isArray(r.json?.missing) ? r.json.missing.map(String) : [], turns: intake.turns + 1 };
   }
   check('the intake reached ready', intake.status === 'ready', `${intake.status}, missing ${intake.missing.join(', ')}`);
-  const drawing = { drawing_file_path: res.drawing_file_path, drawing_file_name: res.drawing_file_name, drawing_redacted_paths: pages, redaction_job_id: res.redaction_job_id || null, boq: res.boq, brief_source: 'drawing' };
+  const drawing = { drawing_file_path: res.drawing_file_path, drawing_file_name: res.drawing_file_name, drawing_redacted_paths: pages, redaction_job_id: res.redaction_job_id || null, redaction_job_ids: jobIds, boq: res.boq, brief_source: 'drawing' };
   const ci = await call('customer_api', cust.jwt, { action: 'create_inquiry', intake_id: intake.intakeId, category: 'hvac', emirate: 'Dubai', trades: ['hvac'], scope_type: 'single', summary: 'ZZ DEMO HVAC per CAD take-off', raw_input: answers.join('\n'), spec: {}, drawing }, 120000);
   const iid = ci.json?.id ?? ci.json?.inquiry_id ?? null;
   check('create_inquiry posted the request', !!iid, `HTTP ${ci.status} ${ci.text?.slice(0, 200)}`);
@@ -100,7 +104,7 @@ try {
     const item = (inbox.json?.inquiries || [])[0];
     check('the supplier sees the request', !!item, `HTTP ${inbox.status}`);
     check('no name from the file anywhere in what the supplier is served', !!item && leaked(item).length === 0, JSON.stringify(leaked(item)));
-    check('the supplier is served the redacted drawing page, not the CAD file', Array.isArray(item?.drawing_pages) && item.drawing_pages.length === 1 && item?.drawing_withheld !== true,
+    check('the supplier is served the redacted drawing page, not the CAD file', Array.isArray(item?.drawing_pages) && item.drawing_pages.length === pages.length && item?.drawing_withheld !== true,
       `${item?.drawing_pages?.length ?? 0} page(s), drawing_withheld ${item?.drawing_withheld}`);
     check('the supplier still receives the take-off', Array.isArray(item?.boq?.boq) && item.boq.boq.length > 0, `${item?.boq?.boq?.length ?? 0} lines, withheld ${item?.boq_withheld}`);
     const pdfR = await call('supplier_api', hvac.jwt, { action: 'inquiry_pdf', inquiry_id: iid, lang: 'en' }, 120000);
