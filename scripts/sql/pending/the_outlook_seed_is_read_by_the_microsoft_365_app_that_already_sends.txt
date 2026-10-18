@@ -1,1 +1,0 @@
-Committed 18 Oct 2026 by it_engineer (for marketing), PR moving the Outlook placement seed to management@quotesdone.com read app-only by the M365 app. Applied by the release operator at merge (apply at merge, never before); then delete this note and append the .sql to the END of MANIFEST.txt in the same commit.

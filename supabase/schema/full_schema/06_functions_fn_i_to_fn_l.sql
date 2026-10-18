@@ -705,7 +705,7 @@ begin
                       '{{link}}', v_site || '/en/portal?t=00000000-0000-0000-0000-000000000000');
 
     insert into public.invite_placement_check(dubai_day, token, from_address, subject, gmail_to, outlook_to, queued_at)
-    values (v_day, v_token, v_from, v_subject, 'ahmadmhdnabilalzain@gmail.com', 'management@doratajewelries.com', p_now)
+    values (v_day, v_token, v_from, v_subject, 'ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com', p_now)
     returning * into r;
 
     insert into public.notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
