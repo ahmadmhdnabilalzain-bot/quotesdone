@@ -603,18 +603,19 @@ export async function journeyPayment(ctx) {
   rep.step(J, 'the reveal is recorded from a real TEST payment', tx?.fee_status === 'paid' ? 'PASS' : 'FAIL',
     JSON.stringify({ fee_status: tx?.fee_status, payment_ref: String(tx?.payment_ref || '').slice(0, 5) + '…' }));
   if (!tx) return;
-  // #616's formula (_shared/reveal_fee.ts revealCharge on main): base = round(rate x quote) to the fils;
-  // total = ceil((base + fixed) / (1 - pct)), where the Checkout Session charges the safest
-  // (international) basis: pct = (3.9% card + 0.5% invoicing) x 1.05 VAT on Stripe's fees = 4.62%,
-  // fixed = AED 1.00 x 1.05 = AED 1.05. Measured 14 Sep 2026: 118,500 x 3% = 3,555 -> 3,728.30.
+  // The reveal charge is ONE line: round(rate x quote) to the fils, processing_fee 0, total = base
+  // (_shared/reveal_fee.ts revealCharge; stripe_checkout refuses any non-zero processing line with
+  // card_surcharge_refused since 24 Sep, Cabinet Res. 66/2023 Art. 5(3); ruling 1208: 3% of the final
+  // pre-VAT price, nothing added). #616's "3% + card processing" formula was retired by the 24 Sep
+  // one-line rule; this step still expected AED 191.47 of surcharge
+  // on 17 Oct (run 39079803518) against a correct 0.00.
   const rate = Number((await read('select standard_reveal_rate r from public.pricing_config where id = 1'))[0].r);
-  const PCT = (0.039 + 0.005) * 1.05, FIXED_F = 105;
   const baseF = Math.round(Number(tx.quote_amount) * rate * 100);
-  const totalF = Math.ceil((baseF + FIXED_F) / (1 - PCT) - 1e-9);
-  const ok = Math.round(Number(tx.reveal_fee) * 100) === baseF && Math.round(Number(tx.total_charged) * 100) === totalF
-    && Math.round((Number(tx.reveal_fee) + Number(tx.processing_fee)) * 100) === totalF;
+  const ok = Math.round(Number(tx.reveal_fee) * 100) === baseF && Math.round(Number(tx.processing_fee) * 100) === 0
+    && Math.round(Number(tx.total_charged) * 100) === baseF;
+  // Step name kept: fn_it_duty_settle closes the open finding by this exact name.
   rep.step(J, "the fee matches #616's formula (3% + card processing, no VAT)", ok ? 'PASS' : 'FAIL',
-    `quote ${tx.quote_amount} x ${rate}: expected base ${baseF / 100} + processing ${(totalF - baseF) / 100} = ${totalF / 100}; recorded ${tx.reveal_fee} + ${tx.processing_fee} = ${tx.total_charged}`);
+    `quote ${tx.quote_amount} x ${rate}: expected ${baseF / 100} + 0.00 = ${baseF / 100}; recorded ${tx.reveal_fee} + ${tx.processing_fee} = ${tx.total_charged}`);
 }
 
 // ---- e. invoice and refund ladder ------------------------------------------------------------------

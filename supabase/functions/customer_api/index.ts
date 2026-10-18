@@ -451,8 +451,23 @@ async function dispatchCadWorker(jobId: string): Promise<void> {
     const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
       method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
       body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
-    if (r.status !== 204) console.warn(`[cad] worker dispatch answered ${r.status} for job ${jobId}`);
-  } catch (_e) { console.warn(`[cad] worker dispatch failed for job ${jobId}`); }
+    if (r.status !== 204) { console.warn(`[cad] worker dispatch answered ${r.status} for job ${jobId}`); await cadDispatchRefused(jobId, `HTTP ${r.status}`); }
+  } catch (_e) { console.warn(`[cad] worker dispatch failed for job ${jobId}`); await cadDispatchRefused(jobId, 'network'); }
+}
+// 18 Oct 2026 (run 39079803518): every dispatch since at least 15 Oct answered 403 - app_secrets.github_token
+// can read the repository but has no Actions: write - so no CAD job was ever started by its queue; the
+// 2.1 MB DWG sat 637 s queued, and a customer's DWG waits up to 6 h for the schedule. That was a
+// console.warn nobody reads. A refused dispatch is now the sales_engineer's finding, one per day.
+async function cadDispatchRefused(jobId: string, why: string): Promise<void> {
+  try {
+    await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: 'sales_engineer:cad_dispatch_refused:' + new Date().toISOString().slice(0, 10),
+      p_title: 'The CAD worker could not be dispatched; queued drawings wait for its 6-hourly schedule',
+      p_where: 'customer_api dispatchCadWorker -> cad-read-worker.yml', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { job_id: jobId, answer: why, fix: 'github_token needs Actions: read and write on the quotesdone repository', at: new Date().toISOString() },
+      p_raised_by: 'sales_engineer',
+    });
+  } catch (_e) { /* the job stays queued for the schedule either way */ }
 }
 /** A polled job that should have started by now: queued past 2 minutes, or running with no word for 30. */
 function cadJobNeedsRedispatch(job: { status: string; created_at: string; claimed_at: string | null }, now = Date.now()): boolean {
