@@ -2,6 +2,7 @@ import createMiddleware from 'next-intl/middleware';
 import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
 import { AE_DOMAIN_SERVES_SITE, aeRedirectTarget } from './lib/domains';
+import { buildCsp } from './lib/csp.mjs';
 
 const intl = createMiddleware(routing);
 
@@ -32,7 +33,26 @@ export default function middleware(req: NextRequest) {
     search: req.nextUrl.search,
     userAgent: req.headers.get('user-agent'),
   });
-  return to ? NextResponse.redirect(to, 308) : intl(req);
+  return to ? NextResponse.redirect(to, 308) : withNonce(req, intl(req));
+}
+
+// A PER-REQUEST NONCE IN PLACE OF script-src 'unsafe-inline' (it_engineer, 19 Oct 2026; policy in
+// src/lib/csp.mjs). Next stamps the nonce on its own scripts only when it finds it in the REQUEST's
+// CSP header, so the policy goes on the request as well as the response. next-intl has already built
+// the response, so the request headers are forwarded the way NextResponse.next({ request }) does it:
+// x-middleware-override-headers names the full header set and x-middleware-request-<name> carries
+// each value. If next-intl overrode headers itself, its list is kept and ours appended.
+function withNonce(req: NextRequest, res: NextResponse) {
+  const nonce = btoa(crypto.randomUUID());
+  const csp = buildCsp(nonce);
+  const ours: Record<string, string> = { 'content-security-policy': csp, 'x-nonce': nonce };
+  const existing = res.headers.get('x-middleware-override-headers');
+  const names = new Set(existing ? existing.split(',') : []);
+  if (!existing) req.headers.forEach((v, k) => { names.add(k); res.headers.set(`x-middleware-request-${k}`, v); });
+  for (const [k, v] of Object.entries(ours)) { names.add(k); res.headers.set(`x-middleware-request-${k}`, v); }
+  res.headers.set('x-middleware-override-headers', [...names].join(','));
+  res.headers.set('Content-Security-Policy', csp);
+  return res;
 }
 
 export const config = {

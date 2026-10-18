@@ -3,6 +3,7 @@ import { preload } from 'react-dom';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { routing } from '@/i18n/routing';
 import { CookieConsent } from '@/components/CookieConsent';
 import { FirstTouch } from '@/components/FirstTouch';
@@ -60,6 +61,11 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
 
   if (!routing.locales.includes(locale as 'en' | 'ar')) notFound();
   setRequestLocale(locale);
+  // EVERY PAGE RENDERS PER REQUEST (it_engineer, 19 Oct 2026). The CSP's script nonce is minted per
+  // request in src/middleware.ts and Next can only stamp it on HTML it renders for that request; a
+  // prerendered page would carry no nonce and every script on it would be blocked. Reading the
+  // request headers here is what opts the whole [locale] tree out of static prerendering.
+  await headers();
   const messages = await getMessages();
   const lang = locale === 'ar' ? 'ar' : 'en';
   for (const f of FONTS[lang]) preload(`/fonts/${f}.woff2`, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });

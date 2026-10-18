@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 // THE OVERVIEW'S SIX READS START WHEN THE HTML IS PARSED, NOT WHEN 1.35 MB OF JAVASCRIPT HAS LANDED.
 //
 // prefetch.ts already moved the five dashboard reads out from behind the kyc gate (14 Sep 2026).
@@ -76,7 +77,10 @@ window.__qdBoot={token:t,m:m};
 // optimisation applies exactly where the serialisation exists (a typed URL, a bookmark, a refresh,
 // the OTP redirect, and the e2e harness's page.goto) and is a no-op, falling straight back to
 // warmDashboard's own request, where it does not.
-export function BootPrefetch() {
+// The CSP has no script-src 'unsafe-inline' (src/lib/csp.mjs), so the script carries the request's
+// nonce, set by src/middleware.ts.
+export async function BootPrefetch() {
   if (!SUPA_FN || SUPA_FN.startsWith('/')) return null; // a preview with no Supabase target: nothing to call
-  return <script id="qd-boot-prefetch" dangerouslySetInnerHTML={{ __html: BOOT(SUPA_FN, FN_REGION) }} />;
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  return <script id="qd-boot-prefetch" nonce={nonce} dangerouslySetInnerHTML={{ __html: BOOT(SUPA_FN, FN_REGION) }} />;
 }
