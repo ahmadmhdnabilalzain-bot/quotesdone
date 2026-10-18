@@ -1,0 +1,1 @@
+Committed, not applied. The release operator applies it at merge, outside 04:30-13:00 UTC. It rewrites fn_it_loop_tick so the alert tick fits PostgREST's 8 s statement timeout (measured 42.6 s on 18 Oct 2026, with 409 unopened findings) and so escalation runs before the open step. On apply: delete this note and append the file to the end of MANIFEST.txt.
