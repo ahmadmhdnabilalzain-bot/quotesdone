@@ -14,7 +14,7 @@
 --     separately); so this file brings its OWN CEO duty for the one kind it files.
 --
 -- WHAT THIS ADDS
--- A. fn_cs_held_question_route(), every 5 minutes. For every customer_support held question not applied, closed or
+-- A. fn_cs_held_question_route(), every heartbeat. For every customer_support held question not applied, closed or
 --    answered, and every pending held_question* action on it:
 --   1. its question was applied/answered by its own surface   -> the action is 'done'.
 --   2. a fixture (ZZ DEMO / example.invalid / qd_run)          -> tagged result.demo_purge (ruling 1199, the #1348 list);
@@ -25,17 +25,24 @@
 --   5. ANYONE ELSE (a reachable customer or supplier)         -> customer_support's for 15 minutes, then:
 --      - the person is ACKNOWLEDGED once through the outbox (email, else WhatsApp) in their language: a supplier always
 --        English (ruling 1008), a customer the language of the request (context.language, else the question's script);
---      - a support_question_handover item is filed for the CEO seat, once; still unanswered 4 hours later -> a second,
---        high-risk overdue item, once.
+--      - a support_question_handover item is filed for the CEO seat, once; still unanswered 4 hours later -> a
+--        high-risk overdue alert on the same open item, once.
 --      Never the founder: rulings 1254 and 8 Sep keep his WhatsApp for a person who explicitly asks for one, which the
 --      WhatsApp "Talk to a person" menu already routes.
--- B. fn_ceo_support_handover_duty(), every 5 minutes, the CEO's duty for support_question_handover:
+-- B. fn_ceo_support_handover_duty(), the CEO's duty for support_question_handover, its ONLY owner (rows claimed FOR
+--    UPDATE SKIP LOCKED; scripts/checks/support_question_handover_has_one_owner.test.mjs):
 --   - the held question was answered meanwhile             -> the handover is 'done'.
---   - not yet picked up                                     -> a ceo.support_handover reasoning is filed (fn_seat_duty_reason),
---                                                              its id recorded on the item (picked up).
---   - that reasoning came back                              -> its answer is sent to the person through the outbox in their
---                                                              language, the held question is marked answered, the item
---                                                              'done'; 'reply_and_refer' also files a sales_engineer item.
+--   - not yet picked up                                     -> a ceo.support_handover reasoning is filed (fn_seat_duty_reason)
+--                                                              with context.audience customer/supplier (#1441's leak rule).
+-- C. THE REPLY GATE: a returned answer is never sent from SQL. fn_ceo_support_reply_due hands it to resilience_ping's
+--    step ceo_support_replies, which runs _shared/ai_reply.ts customerReplyGate (the leak, canned/deferral, policy and
+--    language checks every customer reply passes) and records the verdict in fn_ceo_support_reply_record: passed ->
+--    sent once, question applied, item done; failed -> held, problems recorded, the item STAYS OPEN.
+-- Every message goes only to a CONFIRMED contact (verified email; OTP-confirmed WhatsApp number), once per kind per
+-- question (notifications.dedupe_key <kind>:<held_id>, on conflict do nothing). No confirmed contact -> nothing is sent
+-- and the question is dismissed as unreachable.
+-- RUNS ON resilience_ping's heartbeat (step ceo_support_replies: route, duty, gate), not pg_cron: the last pg_cron run
+-- recorded is 18 Oct 21:35 UTC.
 --
 -- THE FIXTURES FOR THE #1348 PURGE (ruling 1199), by exact key, re-measured 19 Oct 2026 after review: the only
 -- customer_support fixture held questions that exist are
@@ -61,12 +68,14 @@ begin
   if h.id is null then return null; end if;
   c := coalesce(h.request -> 'context', '{}'::jsonb) || coalesce(h.subject, '{}'::jsonb);
   v_supplier := coalesce(c ->> 'audience', '') = 'supplier' or c ? 'lead_id' or c ? 'supplier_id';
-  v_email := coalesce(nullif(c ->> 'email', ''),
-    (select email from public.customers where id::text = c ->> 'customer_id'),
-    (select email from public.leads where id::text = coalesce(c ->> 'lead_id', c ->> 'supplier_id')));
-  v_phone := coalesce(nullif(c ->> 'phone', ''), nullif(c ->> 'phone_e164', ''), nullif(c ->> 'wa_from', ''),
-    (select phone from public.customers where id::text = c ->> 'customer_id'),
-    (select phone from public.leads where id::text = coalesce(c ->> 'lead_id', c ->> 'supplier_id')));
+  -- ONLY A CONFIRMED CONTACT (review of #1462): an email only when the account verified it, WhatsApp only to the
+  -- OTP-confirmed number (whatsapp_verified_at). A contact typed into a chat or carried on the request is never used.
+  v_email := coalesce(
+    (select email from public.customers where id::text = c ->> 'customer_id' and email_verified is true),
+    (select email from public.leads where id::text = coalesce(c ->> 'lead_id', c ->> 'supplier_id') and owner_email_verified is true));
+  v_phone := coalesce(
+    (select phone from public.customers where id::text = c ->> 'customer_id' and whatsapp_verified_at is not null),
+    (select phone from public.leads where id::text = coalesce(c ->> 'lead_id', c ->> 'supplier_id') and whatsapp_verified_at is not null));
   v_lang := case when v_supplier then 'en'                                         -- ruling 1008: suppliers English
                  when c ->> 'language' in ('ar', 'en') then c ->> 'language'
                  when h.question ~ '[؀-ۿ]' then 'ar' else 'en' end;
@@ -75,7 +84,12 @@ end $fn$;
 revoke execute on function public.fn_cs_held_question_contact(bigint) from public, anon, authenticated;
 grant execute on function public.fn_cs_held_question_contact(bigint) to service_role;
 
--- One message to the person behind a held question, through the outbox (email, else WhatsApp). Returns the row id.
+-- ONE message per kind per question (review of #1462: a retry never double-sends): dedupe_key <kind>:<held_id>.
+alter table public.notifications add column if not exists dedupe_key text;
+create unique index if not exists notifications_dedupe_key_uidx on public.notifications (dedupe_key) where dedupe_key is not null;
+
+-- One message to the person behind a held question, through the outbox (email, else WhatsApp), to a CONFIRMED
+-- contact only. Returns the row id; null when there is no confirmed contact or the message was already queued.
 create or replace function public.fn_cs_held_question_message(p_id bigint, p_kind text, p_subject text, p_body text)
 returns bigint
 language plpgsql
@@ -85,10 +99,12 @@ as $fn$
 declare k jsonb := public.fn_cs_held_question_contact(p_id); v bigint;
 begin
   if k is null or (k ->> 'email' is null and k ->> 'phone' is null) then return null; end if;
-  insert into public.notifications (type, kind, channel, to_email, to_phone, subject, body, lang, sender, requested_by)
+  insert into public.notifications (type, kind, channel, to_email, to_phone, subject, body, lang, sender, requested_by, dedupe_key)
   values (p_kind, p_kind, case when k ->> 'email' is not null then 'email' else 'whatsapp' end,
           k ->> 'email', case when k ->> 'email' is null then k ->> 'phone' end, p_subject, p_body, k ->> 'lang',
-          'customer_support', 'customer_support')   -- requested_by must be an active seat
+          'customer_support', 'customer_support',   -- requested_by must be an active seat
+          p_kind || ':' || p_id)
+  on conflict (dedupe_key) where dedupe_key is not null do nothing
   returning id into v;
   return v;
 end $fn$;
@@ -158,7 +174,10 @@ begin
                    else 'A customer_support question needs a person' end,
               jsonb_build_object('held_id', r.id, 'surface', r.surface, 'asked_at', r.created_at, 'model_reason', r.reason,
                                  'needed', 'reply to the person who asked, then mark the held question answered'),
-              'reasoning_held_question', r.id::text, true, 'from customer_support: ' || v_out);
+              'reasoning_held_question', r.id::text, true, 'from customer_support: ' || v_out)
+      -- one pending item per question (agent_actions_dedupe): the overdue alert RAISES the open item, a retry is a no-op
+      on conflict (agent, kind, target_id) where status = 'pending'
+      do update set risk = excluded.risk, title = excluded.title, escalation_reason = excluded.escalation_reason;
     end if;
 
     update public.reasoning_held_question h
@@ -191,66 +210,50 @@ end $fn$;
 revoke execute on function public.fn_cs_held_question_route() from public, anon, authenticated;
 grant execute on function public.fn_cs_held_question_route() to service_role;
 
--- THE CEO'S DUTY for support_question_handover: pick it up, have it reasoned, reply, close.
+-- THE CEO'S DUTY for support_question_handover: pick it up and have it reasoned; close it when the question is
+-- answered. ONE OWNER (review of #1462): only this duty and fn_ceo_support_reply_record settle this kind, and both claim
+-- the item FOR UPDATE SKIP LOCKED, so a general CEO worker running at the same moment can never settle it twice
+-- (scripts/checks/support_question_handover_has_one_owner.test.mjs asserts no other routine names the kind).
 create or replace function public.fn_ceo_support_handover_duty()
 returns jsonb
 language plpgsql
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare a record; h public.reasoning_held_question; q public.reasoning_held_question; v_rid bigint; v_lang text;
+declare a record; h public.reasoning_held_question; v_rid bigint; v_lang text; v_aud text;
         n jsonb := '{}'::jsonb; v_out text;
 begin
-  if not pg_try_advisory_xact_lock(hashtext('fn_ceo_support_handover_duty')) then
-    return jsonb_build_object('skipped', 'another run is going');
-  end if;
   for a in select * from public.agent_actions
-            where agent = 'ceo' and kind = 'support_question_handover' and status = 'pending' order by created_at
+            where agent = 'ceo' and kind = 'support_question_handover' and status = 'pending'
+            order by created_at
+            for update skip locked
   loop
     select * into h from public.reasoning_held_question where id = (a.detail ->> 'held_id')::bigint;
-    v_rid := nullif(a.detail ->> 'reasoning_id', '')::bigint;
-    q := null;
-    if v_rid is not null then select * into q from public.reasoning_held_question where id = v_rid; end if;
     v_out := null;
-
-    if h.id is null or h.status in ('answered', 'applied', 'closed') then
-      v_out := 'done';                                    -- answered by a person or its own surface meanwhile
-    elsif v_rid is null then
+    if h.id is null or h.status = 'applied' then
+      v_out := 'done';                                    -- answered by a person, its own surface or the reply gate
+    elsif nullif(a.detail ->> 'reasoning_id', '') is null then
       v_lang := public.fn_cs_held_question_contact(h.id) ->> 'lang';
+      v_aud := case when (public.fn_cs_held_question_contact(h.id) ->> 'supplier')::boolean then 'supplier' else 'customer' end;
       v_rid := public.fn_seat_duty_reason('ceo', 'ceo.support_handover',
-        'A ' || coalesce(h.request -> 'context' ->> 'audience', 'customer') || ' asked customer_support a question the '
-          || 'model could not answer, and is waiting. Write the reply they will receive, in '
-          || case when v_lang = 'ar' then 'Arabic' else 'English' end || ', from what the company knows; say plainly what '
-          || 'is not known. Choose reply_and_refer when the sales engineer must also act on it. The question: '
-          || left(h.question, 2000),
+        'A ' || v_aud || ' asked customer_support a question the model could not answer, and is waiting. Write the '
+          || 'reply they will receive, in ' || case when v_lang = 'ar' then 'Arabic' else 'English' end
+          || ', from what the company knows; say plainly what is not known. Choose reply_and_refer when the sales '
+          || 'engineer must also act on it. The question: ' || left(h.question, 2000),
         ('[{"id":"reply","meaning":"the reply answers the question"},'
         || '{"id":"reply_and_refer","meaning":"reply, and the sales engineer must also act on it"}]')::jsonb,
         jsonb_build_object('held_id', h.id, 'surface', h.surface, 'question', left(h.question, 2000), 'language', v_lang),
         jsonb_build_object('handover_id', a.id, 'held_id', h.id), 'ceo_support_handover:' || h.id);
+      -- the answer goes to a person outside the company: think() reads it as that audience, so no other party's case
+      -- text reaches the prompt (#1441's rule keys on context.audience)
+      update public.reasoning_held_question
+         set request = jsonb_set(request, '{context,audience}', to_jsonb(v_aud))
+       where id = v_rid;
       update public.agent_actions set detail = detail || jsonb_build_object('reasoning_id', v_rid, 'picked_up_at', now())
        where id = a.id;
       v_out := 'picked_up';
-    elsif q.status in ('reasoned', 'applied') and coalesce(q.result ->> 'answer', '') <> '' then
-      v_lang := public.fn_cs_held_question_contact(h.id) ->> 'lang';
-      perform public.fn_cs_held_question_message(h.id, 'support_question_reply',
-        case when v_lang = 'ar' then 'الرد على سؤالكم' else 'The answer to your question' end, q.result ->> 'answer');
-      update public.reasoning_held_question
-         set status = 'applied', applied_at = now(), result = coalesce(result, '{}'::jsonb)
-                                           || jsonb_build_object('cs_route', 'done', 'answered_by', 'ceo', 'answer_from', q.id)
-       where id = h.id;
-      update public.reasoning_held_question set status = 'applied', applied_at = now() where id = q.id;
-      if q.result -> 'decision' ->> 'choice' = 'reply_and_refer' then
-        insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
-        values ('sales_engineer', 'support_referral', 'pending', 'medium', 'The CEO answered a support question and refers it to you',
-                jsonb_build_object('held_id', h.id, 'ceo_reasoning', q.id), 'reasoning_held_question', h.id::text);
-      end if;
-      v_out := 'done';
     end if;
-
     if v_out = 'done' then
-      update public.agent_actions set status = 'done', decided_at = now(), decided_by = 'ceo:fn_ceo_support_handover_duty'
-       where id = a.id;
-      -- the overdue twin of the same question closes with it
       update public.agent_actions set status = 'done', decided_at = now(), decided_by = 'ceo:fn_ceo_support_handover_duty'
        where agent = 'ceo' and kind = 'support_question_handover' and status = 'pending' and target_id = a.target_id;
     end if;
@@ -261,13 +264,74 @@ end $fn$;
 revoke execute on function public.fn_ceo_support_handover_duty() from public, anon, authenticated;
 grant execute on function public.fn_ceo_support_handover_duty() to service_role;
 
-select cron.schedule('cs_held_question_route', '*/5 * * * *',
-  $CRON$select public.fn_cs_held_question_route(); select public.fn_ceo_support_handover_duty();$CRON$);
-insert into public.cron_registry (jobname, human_name, category, purpose) values
-  ('cs_held_question_route', 'customer_support held questions reach a person', 'Support',
-   'Every 5 minutes. A customer_support question the model could not answer is acknowledged to the person and handed '
-   || 'to the CEO seat within 15 minutes when the person can be reached, flagged again if unanswered after 4 hours; '
-   || 'the CEO duty then has it reasoned, replies through the outbox and closes it. Fixtures are tagged for the ruling '
-   || '1199 purge; anonymous widget turns and stale internal duties are closed with their reason.')
-on conflict (jobname) do update
-  set human_name = excluded.human_name, category = excluded.category, purpose = excluded.purpose;
+-- THE REPLY GATE (review of #1462). A reasoned CEO answer is NOT sent from SQL: resilience_ping's step
+-- ceo_support_replies takes these rows, runs the same customer-reply gate as every other reply
+-- (_shared/ai_reply.ts customerReplyGate: replyProblems' leak, canned/deferral and policy checks, plus the language
+-- check) and records the verdict through fn_ceo_support_reply_record. A row is offered again only when its answer
+-- changed since the gate last held it.
+create or replace function public.fn_ceo_support_reply_due(p_limit integer default 10)
+returns jsonb
+language plpgsql stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  return coalesce((select jsonb_agg(jsonb_build_object('handover_id', a.id, 'held_id', h.id, 'answer', q.result ->> 'answer',
+                                                        'lang', k ->> 'lang', 'supplier', (k ->> 'supplier')::boolean))
+    from public.agent_actions a
+    join public.reasoning_held_question h on h.id = (a.detail ->> 'held_id')::bigint
+    join public.reasoning_held_question q on q.id = nullif(a.detail ->> 'reasoning_id', '')::bigint
+    cross join lateral (select public.fn_cs_held_question_contact(h.id) k) kk
+   where a.agent = 'ceo' and a.kind = 'support_question_handover' and a.status = 'pending'
+     and h.status <> 'applied' and q.status in ('reasoned', 'applied') and coalesce(q.result ->> 'answer', '') <> ''
+     and coalesce(a.detail ->> 'gate_held_md5', '') <> md5(q.result ->> 'answer')
+   limit greatest(1, least(coalesce(p_limit, 10), 50))), '[]'::jsonb);
+end $fn$;
+revoke execute on function public.fn_ceo_support_reply_due(integer) from public, anon, authenticated;
+grant execute on function public.fn_ceo_support_reply_due(integer) to service_role;
+
+-- The gate's verdict. Passed: the answer is queued to the person (once, dedupe key), the held question is applied,
+-- the handover and its overdue twin are done. Held: the problems are recorded on the item, which STAYS OPEN.
+create or replace function public.fn_ceo_support_reply_record(p_handover_id bigint, p_problems jsonb)
+returns text
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare a public.agent_actions; q public.reasoning_held_question; v_lang text;
+begin
+  select * into a from public.agent_actions
+   where id = p_handover_id and agent = 'ceo' and kind = 'support_question_handover' and status = 'pending'
+   for update skip locked;
+  if a.id is null then return 'not pending or claimed elsewhere'; end if;
+  select * into q from public.reasoning_held_question where id = nullif(a.detail ->> 'reasoning_id', '')::bigint;
+  if q.id is null or coalesce(q.result ->> 'answer', '') = '' then return 'no answer yet'; end if;
+
+  if jsonb_typeof(p_problems) = 'array' and jsonb_array_length(p_problems) > 0 then
+    update public.agent_actions
+       set detail = detail || jsonb_build_object('gate_held', p_problems, 'gate_held_at', now(),
+                                                 'gate_held_md5', md5(q.result ->> 'answer'))
+     where id = a.id;
+    return 'held';
+  end if;
+
+  v_lang := public.fn_cs_held_question_contact((a.detail ->> 'held_id')::bigint) ->> 'lang';
+  perform public.fn_cs_held_question_message((a.detail ->> 'held_id')::bigint, 'support_question_reply',
+    case when v_lang = 'ar' then 'الرد على سؤالكم' else 'The answer to your question' end, q.result ->> 'answer');
+  update public.reasoning_held_question
+     set status = 'applied', applied_at = now(),
+         result = coalesce(result, '{}'::jsonb) || jsonb_build_object('cs_route', 'done', 'answered_by', 'ceo', 'answer_from', q.id)
+   where id = (a.detail ->> 'held_id')::bigint;
+  update public.reasoning_held_question set status = 'applied', applied_at = now() where id = q.id;
+  if q.result -> 'decision' ->> 'choice' = 'reply_and_refer' then
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('sales_engineer', 'support_referral', 'pending', 'medium', 'The CEO answered a support question and refers it to you',
+            jsonb_build_object('held_id', a.detail ->> 'held_id', 'ceo_reasoning', q.id), 'reasoning_held_question', a.detail ->> 'held_id');
+  end if;
+  update public.agent_actions set status = 'done', decided_at = now(), decided_by = 'ceo:fn_ceo_support_reply_record'
+   where agent = 'ceo' and kind = 'support_question_handover' and status = 'pending' and target_id = a.target_id;
+  return 'sent';
+end $fn$;
+revoke execute on function public.fn_ceo_support_reply_record(bigint, jsonb) from public, anon, authenticated;
+grant execute on function public.fn_ceo_support_reply_record(bigint, jsonb) to service_role;
+

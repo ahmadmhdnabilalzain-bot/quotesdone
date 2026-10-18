@@ -33,6 +33,7 @@ import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROW
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
+import { customerReplyGate } from '../_shared/ai_reply.ts';
 import { envCoverage as vercelEnvCoverage, snapshot as vercelSnapshot } from '../_shared/vercel_snapshot.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -1276,6 +1277,20 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
   // row stays held and is still replayed above the moment the hold lifts.
+  // A customer_support question the model could not answer (customer_support, #1462): routed (acknowledged to a
+  // confirmed contact and handed to the CEO), the CEO duty picks it up, and a returned answer passes the customer-reply
+  // gate before it is sent; a held answer leaves the item open (a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql).
+  await step('ceo_support_replies', async () => {
+    const routed = await rpc('fn_cs_held_question_route');
+    const picked = await rpc('fn_ceo_support_handover_duty');
+    const due = ((await rpc('fn_ceo_support_reply_due', { p_limit: 10 })) ?? []) as { handover_id: number; answer: string; lang: 'en' | 'ar'; supplier: boolean }[];
+    const verdicts: Record<string, unknown>[] = [];
+    for (const d of due) {
+      const problems = await customerReplyGate((fn, args) => admin.rpc(fn, args), d.answer, d.lang, d.supplier);
+      verdicts.push({ id: d.handover_id, verdict: await rpc('fn_ceo_support_reply_record', { p_handover_id: d.handover_id, p_problems: problems }), problems });
+    }
+    return { routed, picked, verdicts };
+  });
   await step('reasoning_escalate', async () => {
     const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as unknown[] | null;
     // The notices owed — the rows just escalated AND any earlier one whose send failed — come from the queue, not
