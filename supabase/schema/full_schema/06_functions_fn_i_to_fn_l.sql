@@ -7989,6 +7989,7 @@ AS $function$
              'evidence', jsonb_build_object('ai_cost_log_ids', jsonb_agg(id order by id), 'authors', jsonb_agg(distinct counterpart_model))) x
       from public.ai_cost_log
      where coalesce(model_used, 'none') = 'none' and model_selected_because like 'AUTHOR UNKNOWN:%'
+       and e2e_run_tag is null              -- 18 Oct 2026: a rehearsal's own refusal is that run's report, not a finding
        and occurred_at > now() - interval '7 days'
      group by coalesce(fn, task_class), task_class, fn
   )

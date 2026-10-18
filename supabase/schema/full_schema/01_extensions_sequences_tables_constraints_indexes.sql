@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-18T18:58:12.420Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-18T21:32:13.392Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -4286,7 +4286,8 @@ CREATE TABLE IF NOT EXISTS public.it_founder_decision_class (
   issue_key_like text NOT NULL,
   to_founder boolean NOT NULL,
   why text NOT NULL,
-  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+  founder_category text
 );
 
 CREATE TABLE IF NOT EXISTS public.it_game_day_run (
@@ -11044,6 +11045,7 @@ ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_kind_check CHECK ((kind = ANY (ARRAY['licence'::text, 'domain'::text, 'tls'::text, 'token'::text])));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_never_expires_ck CHECK ((NOT (never_expires AND (expires_on IS NOT NULL))));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_warn_days_ck CHECK (((cardinality(warn_days) > 0) AND (0 < ALL (warn_days))));
+ALTER TABLE public.it_founder_decision_class ADD CONSTRAINT it_founder_decision_class_only_his_categories CHECK (((NOT to_founder) OR (founder_category = ANY (ARRAY['money'::text, 'destructive_production_change'::text, 'fact_only_he_holds'::text]))));
 ALTER TABLE public.it_game_day_run ADD CONSTRAINT it_game_day_run_run_month_check CHECK ((run_month = (date_trunc('month'::text, (run_month)::timestamp with time zone))::date));
 ALTER TABLE public.it_game_day_run ADD CONSTRAINT it_game_day_run_scenario_check CHECK ((scenario = ANY (ARRAY['email_provider_down'::text, 'whatsapp_down'::text, 'edge_function_slow'::text, 'db_connection'::text, 'credential_expired'::text])));
 ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_consumer_check CHECK ((consumer ~ '^[a-z0-9_]+[:.][a-z0-9_]+$'::text));
