@@ -7,6 +7,18 @@
 export function noAcceptanceRunStatus(email: unknown): 'skipped' | 'error' {
   return /@example\.invalid$/i.test(String(email ?? '').trim()) ? 'skipped' : 'error';
 }
+
+// isRegisterRow (12 Oct 2026, final sandbox test): the company's customer register (signed-terms/registers
+// and the Dropbox copy at Customers/customers-register.xlsx) listed 3 ZZ DEMO customers beside the real
+// ones, one of them a harness customer already deleted from the database. The register is the company's
+// legal record of who accepted the Terms; a fixture is never in it. Demo = is_demo, an @example.invalid
+// address, or a ZZ DEMO name (any one is enough), and a sign-up is a customer only once it accepted (1181).
+export function isRegisterRow(c: Record<string, unknown>): boolean {
+  if (!c.tos_accepted_at || c.is_demo === true) return false;
+  if (String(c.email ?? '').trim().toLowerCase().endsWith('@example.invalid')) return false;
+  return !/^[ ]*zz[ _-]?demo([^a-z]|$)/i.test(String(c.full_name ?? ''));
+}
+
 //
 // Two defects found by the campaign registration walk of 21 Sep 2026 live here now:
 //

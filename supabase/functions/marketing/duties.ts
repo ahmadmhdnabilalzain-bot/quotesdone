@@ -17,6 +17,7 @@ import { makeLlmRich } from '../_shared/llm.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { type Deps, runStep, type Step } from '../_shared/marketing_judgement.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import type { AskModel } from './lead_sourcing.ts';
 import { call, linkedinComments, processComment, tiktokComments, unhideRequest, youtubeComments, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
 import { commentClass } from '../_shared/reasoned_social.ts';
 import { accessToken, type SocialPlatform } from '../_shared/marketing_social_oauth.ts';
@@ -317,6 +318,18 @@ async function graphBase(ctx: DutyContext): Promise<string> {
   return 'https://graph.facebook.com/' + (/^v\d+\.\d+$/.test(v) ? v : DEFAULT_GRAPH_VERSION);
 }
 
+/** The lead sourcing batch's model client (./lead_sourcing.ts, founder 1175): the seat's own callModel on the routine
+ *  class, the founder's hold asked first, and the gateway's charge handed back so the batch can hold its USD cap.
+ *  Every answer lands in lead_prospect.model_answer. */
+export function marketingAsk(admin: Admin): AskModel {
+  const deps = marketingDeps({ admin, sec: () => Promise.resolve(undefined), now: new Date() });
+  return async (prompt) => {
+    if (await deps.held()) return { content: null, cost_usd: 0 };
+    const r = await deps.callModel('routine_employee_reasoning', 300, [{ role: 'user', content: prompt }], []);
+    return { content: r.content, cost_usd: r.cost_usd ?? 0 };
+  };
+}
+
 /** The seat's model client: its own class per step, charged to the marketing ceiling. */
 function marketingDeps(ctx: DutyContext): Deps {
   return {
@@ -325,7 +338,7 @@ function marketingDeps(ctx: DutyContext): Deps {
     callModel: async (taskClass, max, messages, requireCaps) => {
       const llm = makeLlmRich(undefined, { fn: 'marketing', taskClass, dept: 'marketing', agent: 'marketing', max, timeoutMs: 45000, temperature: 0.2 });
       const r = await llm('', '', max, '', { messages, requireCaps });
-      return { content: r.content, error: r.error, truncated: r.truncated, model: r.model ?? null };
+      return { content: r.content, error: r.error, truncated: r.truncated, model: r.model ?? null, cost_usd: r.cost_usd ?? null };
     },
     download: async (bucket, path) => {
       const { data, error } = await ctx.admin.storage.from(bucket).download(path);
@@ -441,7 +454,7 @@ export const trendWatch: Duty = {
 export const geoAudit: Duty = {
   name: 'geo_audit',
   owner_seat: 'marketing',
-  // GEO = visibility INSIDE AI answer engines (28 Sep 2026). The DuckDuckGo scrape was refused by a bot-check from
+  // GEO = visibility INSIDE AI answer engines (28 Sep 2026). The keyless search scrape was refused by a bot-check from
   // every datacenter call and never recorded a row, so the engines are asked directly through ai_gateway:
   //   answer_search  task class marketing_geo_search  -> perplexity/sonar (a web-search answer engine)
   //   answer_online  task class marketing_geo_online  -> a routed model's :online (web-grounded) variant

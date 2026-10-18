@@ -4,9 +4,10 @@
     {
       "id": "machinery_spare_parts:spec-checklist",
       "topic": "Machinery spare parts - what the buyer must state",
+      "topic_ar": "قطع غيار الآلات والمعدات: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
       "body_en": "For machinery spare parts (trade code machinery_spare_parts only), every quoted line must state: Machine make and model; Part number; OEM, genuine or aftermarket; Material and dimensions; Country of origin; Certificate of conformity; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط قطع غيار الآلات (رمز النشاط machinery_spare_parts فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: صانع الآلة وطرازها؛ رقم القطعة؛ أصلية من المصنّع أو بديلة؛ المادة والأبعاد؛ بلد المنشأ؛ شهادة المطابقة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_ar": "عند طلب عروض أسعار لقطع غيار الآلات والمعدات (رمز النشاط machinery_spare_parts فقط)، يجب أن يذكر كل بند: ماركة الآلة وموديلها؛ رقم القطعة؛ هل هي من الشركة المصنعة (OEM) أو أصلية أو بديلة؛ الخامة والمقاسات؛ بلد المنشأ؛ شهادة المطابقة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم ومكانه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض الموردين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
       "required_specs": [
         "Machine make and model",
         "Part number",
@@ -40,6 +41,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "machinery_spare_parts:genuine-part-verification",
+      "topic": "Verifying genuine OEM spare parts",
+      "topic_ar": "كيف تتأكد أن قطعة غيار الآلة أصلية من الشركة المصنعة",
+      "kind": "buyer_guidance",
+      "body_en": "Counterfeit spare parts are a recognised risk. Where the manufacturer offers it, authentication can be done by scanning the packaging with a smartphone: some brands embed invisible cryptographic signatures in packaging artwork that a scan can verify at factories, distributors, repair shops and dealerships. Aftermarket parts are a legitimate market channel; the risk is counterfeits infiltrating it. Not established here: a checklist covering authorised dealers, part-number checks against the OEM catalogue, invoices and warranty terms, UAE seizure figures, or any UAE government register for verifying individual parts.",
+      "body_ar": "كيف تعرف أن قطعة الغيار أصلية: قطع الغيار المقلدة خطر معروف. وإذا كانت الشركة المصنعة توفر ذلك، يمكن التأكد من أصالة القطعة بمسح العبوة بالهاتف الذكي، فبعض العلامات التجارية تضع في تصميم العبوة تواقيع مشفرة غير مرئية يمكن التحقق منها بالمسح في المصانع ولدى الموزعين وورش الصيانة والوكلاء. وقطع الغيار البديلة قناة مشروعة في السوق، والخطر هو دخول القطع المقلدة إليها. غير ثابت هنا: قائمة تحقق تشمل الوكلاء المعتمدين، ومطابقة رقم القطعة مع كتالوج الشركة المصنعة، والفواتير وشروط الضمان، وأرقام المضبوطات في الإمارات، أو أي سجل حكومي إماراتي للتحقق من القطع واحدة واحدة.",
+      "sources": [
+        "https://ennoventure.com/blogs/how-to-find-a-counterfeit-fake-spare-part/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -56,6 +71,15 @@
       "expected_entry_ids": [
         "machinery_spare_parts:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How do I know a spare part is genuine?",
+      "q_ar": "كيف أعرف أن قطعة الغيار أصلية؟",
+      "expected_entry_ids": [
+        "machinery_spare_parts:genuine-part-verification"
+      ],
+      "why": "No entry of this pack answered it (no entry explains how to verify a genuine part; the checklist only lists OEM/genuine/aftermarket as a field). machinery_spare_parts:genuine-part-verification was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from machinery_spare_parts.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +95,9 @@
       "machinery_spare_parts:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "machinery_spare_parts:genuine-part-verification"
+    ]
   }
 }

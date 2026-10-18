@@ -1,5 +1,5 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, whatsappUnavailable } from './whatsapp_choice.ts';
+import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, whatsappUnavailable, voiceAfterSms } from './whatsapp_choice.ts';
 
 const NOW = '2026-09-14T10:00:00.000Z';
 
@@ -110,4 +110,25 @@ Deno.test('state: an unverified phone is reported as no phone; asked covers opt 
   assertEquals(whatsappState({ whatsapp_asked_at: NOW }), { opt: null, phone: null, verified: false, asked: true });
   assertEquals(whatsappState({ whatsapp_opt: 'other', whatsapp_phone: '+971559999999', whatsapp_verified_at: NOW }), { opt: 'other', phone: '+971559999999', verified: true, asked: true });
   assertEquals(whatsappState({ whatsapp_opt: 'bogus' }).opt, null);
+});
+
+// ---- SMS, then voice (customer_support, 6 Oct 2026)
+
+const sent = (ok: boolean, jd: unknown) => ({ r: { ok, status: ok ? 201 : 400 }, jd, refused: null, ok, channel: ok ? 'sms' : null }) as never;
+Deno.test('voice: SMS that cannot reach the number (landline 60205) -> one call, channel call', async () => {
+  const calls: string[] = [];
+  const res = await voiceAfterSms(sent(false, { code: 60205 }), (ch) => { calls.push(ch); return Promise.resolve({ r: { ok: true, status: 201 }, jd: { status: 'pending' } }); });
+  assertEquals([calls, res.ok, res.channel], [['call'], true, 'call']);
+});
+Deno.test('voice: a delivered SMS, a fraud block or a rate limit is never retried by voice', async () => {
+  for (const first of [sent(true, { status: 'pending' }), sent(false, { code: 60410 }), sent(false, { code: 60203 }), sent(false, { code: 60200 })]) {
+    const calls: string[] = [];
+    const res = await voiceAfterSms(first, (ch) => { calls.push(ch); return Promise.resolve({ r: { ok: true, status: 201 }, jd: {} }); });
+    assertEquals(calls, []);
+    assertEquals(res, first);
+  }
+});
+Deno.test('voice: a refused call is a failure, not a false sent', async () => {
+  const res = await voiceAfterSms(sent(false, { code: 21614 }), () => Promise.resolve({ r: { ok: false, status: 400 }, jd: { code: 60200 } }));
+  assertEquals([res.ok, res.channel], [false, null]);
 });

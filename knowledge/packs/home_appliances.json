@@ -61,6 +61,15 @@
       "expected_entry_ids": [
         "home_appliances:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does a washing machine need an energy star label to be sold in the UAE?",
+      "q_ar": "هل تحتاج الغسالة إلى بطاقة نجوم كفاءة الطاقة لبيعها في الإمارات؟",
+      "expected_entry_ids": [
+        "home_appliances:uae-standards-and-approvals"
+      ],
+      "why": "The standards entry states MoIAT runs the UAE efficiency labels and conformity marks, which answers that the UAE label (not Energy Star) applies.",
+      "origin": "real buyer question, moved from home_appliances.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

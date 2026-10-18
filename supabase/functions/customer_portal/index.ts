@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // customer_portal — the customer's entry payload. Customer-authed (own customers row).
 //
 // WHAT THIS FILE SERVES AND WHY EACH PIECE IS HERE (spec file #4, sections 1, 2, 20, 21):
@@ -36,7 +37,7 @@ async function rpc(name: string, args: Record<string, unknown>): Promise<{ data:
   } catch (e) { return { data: null, err: String((e as Error)?.message || e) }; }
 }
 
-Deno.serve(observe('customer_portal', async (req) => {
+Deno.serve(siteCors(observe('customer_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
@@ -265,4 +266,4 @@ Deno.serve(observe('customer_portal', async (req) => {
 
     return J({ error: 'unknown_action', action }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+})));

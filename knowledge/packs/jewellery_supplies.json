@@ -40,6 +40,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "jewellery_supplies:gold-caratage-fineness-marks",
+      "topic": "Gold caratage and millesimal fineness hallmarks",
+      "kind": "standard_reference",
+      "body_en": "22K gold jewellery in the UAE is marked 916, meaning 91.6% pure gold. For reference: 24K is 99.9% pure, 21K is 87.5% and 18K is 75%. 22K is common in jewellery because it is strong enough for regular use. A UAE hallmark shows the karat (purity), the manufacturer's mark and an official certification number. In Dubai, the Dubai Central Laboratory (Dubai Municipality) enforces hallmarking, conducts unannounced inspections, calibrates retailers' weighing scales and awards the Bareeq certification to compliant retailers. Not established here: the federal law number governing hallmarking.",
+      "body_ar": "تُختم مشغولات الذهب عيار 22 في الدولة بالرقم 916، أي بنقاء 91.6% من الذهب الخالص. وللمقارنة: عيار 24 بنقاء 99.9%، وعيار 21 بنقاء 87.5%، وعيار 18 بنقاء 75%. ويشيع عيار 22 في المجوهرات لأنه متين بما يكفي للاستخدام المنتظم. تتضمن الدمغة في الدولة العيار (النقاء) وعلامة الصانع ورقم شهادة رسمياً. وفي دبي، يتولى مختبر دبي المركزي (بلدية دبي) إنفاذ الدمغ، ويجري عمليات تفتيش مفاجئة، ويعاير موازين تجار التجزئة، ويمنح شهادة «بريق» لتجار التجزئة الملتزمين. لم يثبت هنا: رقم القانون الاتحادي المنظِّم للدمغ.",
+      "sources": [
+        "https://gulfnews.com/business/retail/buying-gold-in-the-uae-heres-what-hallmarking-rules-mean-for-shoppers-1.500210288"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "jewellery_supplies:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What fineness number is stamped on 22K gold jewellery in the UAE?",
+      "q_ar": "ما رقم النقاوة المدموغ على مجوهرات الذهب عيار 22 في الإمارات؟",
+      "expected_entry_ids": [
+        "jewellery_supplies:gold-caratage-fineness-marks"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither gives the 916 hallmark fineness for 22K; missing: gold caratage/fineness hallmark entry). jewellery_supplies:gold-caratage-fineness-marks was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from jewellery_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "jewellery_supplies:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "jewellery_supplies:gold-caratage-fineness-marks"
+    ]
   }
 }

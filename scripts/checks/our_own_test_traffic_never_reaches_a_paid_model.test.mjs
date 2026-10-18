@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -41,14 +42,15 @@ test('the fixture marker is one only the harness can set, never a name, domain o
 const NAMES_SUBJECT = {
   'supabase/functions/quote_compare/index.ts': /fn: 'quote_compare', subject: \{ inquiry_id/,
   'supabase/functions/inquiry_intake/index.ts': /fn: 'inquiry_intake', subject,/,
-  'supabase/functions/site_assistant/index.ts': /fn: 'site_assistant', agent: seat, \.\.\.\(who \? \{ subject: \{ email: who\.email \} \}/,
+  // 12 Oct 2026 (ruling 1196): the widget's one model call (answerFromBrief) names the signed-in party as its subject
+  'supabase/functions/site_assistant/index.ts': /fn: 'site_assistant', agent: seatForSurface,[\s\S]{0,400}subject: who \? \{ email: who\.email[\s\S]{0,120}\{ fixture: true, conv \}/,
   'supabase/functions/quote_extract/index.ts': /fn: 'quote_extract', subject: body\.subject/,
   'supabase/functions/license_extract/index.ts': /fn: 'license_extract', subject: body\.subject/,
 };
 test('every consumer the E2E harness drives names its subject to the gateway', () => {
   for (const [f, re] of Object.entries(NAMES_SUBJECT)) assert.match(read(f), re, `${f} no longer names its subject`);
   const api = read('supabase/functions/supplier_api/index.ts');
-  assert.equal((api.match(/subject: \{ supplier_id: \(?sup/g) || []).length, 3, 'supplier_api must name the supplier on all three reader calls');
+  assert.equal((api.match(/subject: \{ supplier_id: \(?sup/g) || []).length, 4, 'supplier_api must name the supplier on all four reader calls (the fourth: extract_quote reading through read_every_attachment, ruling 1177)');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
@@ -56,6 +58,6 @@ test('production: the fixture check agrees with the estate and never stubs a cus
   const { sql } = await import('../lib/db.mjs');
   const [live] = await sql(`select to_regprocedure('public.fn_ai_subject_is_fixture(jsonb)') is not null as applied`);
   if (!live.applied) { t.skip('our_own_test_traffic_never_reaches_a_paid_model.sql is not applied yet'); return; }
-  const [row] = await sql(read('scripts/sql/our_own_test_traffic_never_reaches_a_paid_model_probe.sql'));
+  const [row] = await replaySql(read('scripts/sql/our_own_test_traffic_never_reaches_a_paid_model_probe.sql'), { rows: true });
   assert.equal(row.verdict, 'PROBE OK', row.detail);
 });

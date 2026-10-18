@@ -41,7 +41,7 @@ test('static: nothing in the code reads the negotiation policy', () => {
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
 test('production, aborted: no table, no reader, savings unchanged', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql: sql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   const replay = pending() ? read(FILE) + '\n' : '';
   let o;
   try {

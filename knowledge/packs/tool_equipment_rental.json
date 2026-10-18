@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "tool_equipment_rental:weekly-hire-rate-structure",
+      "topic": "Weekly hire rate structure",
+      "kind": "pricing_structure",
+      "body_en": "A weekly hire rate is usually a multiple of the daily rate: in UK plant hire practice the weekly rate typically costs three to four times the daily rate, which makes it the better option for hires of four days or more. Charges do not stop when you finish using the kit; they stop when you off-hire it. When off-hiring, obtain the supplier's off-hire reference number and record the date, time, item and reference as evidence against disputed charges. Add-ons such as delivery (charged per leg), a damage waiver (10-15%) and marked-up fuel refills should be priced in. These points come from UK hire practice; published UAE rate cards were not established, so ask suppliers for day, week and month rates side by side with all add-ons.",
+      "body_ar": "عادةً ما يكون سعر الاستئجار الأسبوعي مضاعفاً للسعر اليومي: ففي ممارسات تأجير المعدات في المملكة المتحدة يبلغ السعر الأسبوعي عادةً ثلاثة إلى أربعة أضعاف السعر اليومي، ما يجعله الخيار الأفضل للاستئجار لمدة أربعة أيام أو أكثر. ولا تتوقف الرسوم عند انتهائك من استخدام المعدات، بل عند إنهاء الاستئجار رسمياً (Off-hire). وعند إنهاء الاستئجار، احصل على الرقم المرجعي لإنهاء الاستئجار من المورّد وسجّل التاريخ والوقت والمعدّة والرقم المرجعي دليلاً في مواجهة أي رسوم متنازع عليها. وينبغي احتساب الإضافات مثل التوصيل (يُحتسب لكل رحلة) وتنازل الأضرار (10-15%) وإعادة تعبئة الوقود بأسعار مرتفعة. هذه النقاط مستمدة من ممارسات التأجير في المملكة المتحدة؛ ولم تُثبت قوائم أسعار منشورة في الإمارات، لذا اطلب من الموردين أسعار اليوم والأسبوع والشهر جنباً إلى جنب مع جميع الإضافات.",
+      "sources": [
+        "https://www.trade2base.com/blog/trade-business-plant-hire-uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "tool_equipment_rental:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is a weekly tool rental usually priced?",
+      "q_ar": "كيف يُسعّر تأجير العدد أسبوعياً عادة؟",
+      "expected_entry_ids": [
+        "tool_equipment_rental:weekly-hire-rate-structure"
+      ],
+      "why": "No entry of this pack answered it (no entry on weekly rental pricing; the checklist only lists rate basis as a field). tool_equipment_rental:weekly-hire-rate-structure was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from tool_equipment_rental.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "tool_equipment_rental:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "tool_equipment_rental:weekly-hire-rate-structure"
+    ]
   }
 }

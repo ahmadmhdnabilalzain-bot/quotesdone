@@ -16,6 +16,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -87,7 +88,13 @@ test('fn_suppression_stops answers what suppressionStops answers, on every reaso
 });
 
 test('the rolled-back rehearsal on production answers PROBE OK', { skip: SKIP }, async () => {
-  const r = await sql(PROBE, { retry: false });
-  const verdict = Array.isArray(r) && r[0] ? String(r[0].verdict) : JSON.stringify(r).slice(0, 500);
+  // A deadlock with the live resilience_ping tick is contention, not a finding (12 Oct 2026: 3 of ~10 CI runs). The
+  // probe rolls back everything it writes, so it is re-run, at most three times, on that one error and no other.
+  let verdict = "";
+  for (let i = 0; i < 3; i++) {
+    const r = await replaySql(PROBE, { retry: false, rows: true });
+    verdict = Array.isArray(r) && r[0] ? String(r[0].verdict) : JSON.stringify(r).slice(0, 500);
+    if (!/deadlock detected/.test(verdict)) break;
+  }
   assert.match(verdict, /^PROBE OK/, verdict);
 });

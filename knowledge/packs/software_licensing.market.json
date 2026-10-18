@@ -7,9 +7,10 @@
     {
       "id": "software_licensing:uae-market-products",
       "topic": "Software licensing: products, variants and grades sold in the UAE",
+      "topic_ar": "تراخيص برمجيات: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Software licensing in the UAE covers Microsoft licensing (Microsoft 365 Business/Enterprise E3/E5, Windows, Windows Server, SQL Server, Azure subscriptions via CSP, Enterprise Agreements and MCA-E), Adobe (Creative Cloud, Acrobat, VIP/ETLA), Autodesk (AutoCAD, Revit, BIM Collaborate, AEC Collection named-user subscriptions), Oracle and SAP licences and support, cybersecurity software (Fortinet, Palo Alto, CrowdStrike, Microsoft Defender, Sophos, Trend Micro, Kaspersky, ESET), backup (Veeam, Commvault), virtualisation (VMware by Broadcom, Microsoft Hyper-V, Nutanix), ERP/accounting (Tally, Zoho, QuickBooks, Sage), engineering software (Bentley, Primavera P6, ETABS/CSI, ANSYS), and SaaS subscriptions. Buyers ask about licence model (perpetual vs subscription, per user vs per core/device), term (monthly vs annual commitment), government/education/non-profit pricing, true-up and compliance audits, licence transfer, and local reseller authorisation. Using unlicensed software is an offence under UAE copyright law, and vendors conduct audits via BSA/local partners.",
-      "body_ar": "تشمل تراخيص البرمجيات في الإمارات تراخيص مايكروسوفت (مايكروسوفت 365 للأعمال/المؤسسات E3/E5، وويندوز، وويندوز سيرفر، وSQL سيرفر، واشتراكات أزور عبر برنامج مزودي الحلول السحابية، واتفاقيات المؤسسات وMCA-E)، وأدوبي (كرييتف كلاود، وأكروبات، وبرامج VIP/ETLA)، وأوتوديسك (أوتوكاد، وريفيت، وBIM كولابوريت، ومجموعة AEC باشتراكات المستخدم المسمى)، وتراخيص أوراكل وساب ودعمها، وبرمجيات الأمن السيبراني (فورتينت، وبالو ألتو، وكراود سترايك، ومايكروسوفت ديفندر، وسوفوس، وتريند مايكرو، وكاسبرسكي، وإيسيت)، والنسخ الاحتياطي (فيم، وكومفولت)، والمحاكاة الافتراضية (VMware من برودكوم، ومايكروسوفت Hyper-V، ونوتانكس)، وأنظمة تخطيط الموارد والمحاسبة (تالي، وزوهو، وكويك بوكس، وسيج)، والبرمجيات الهندسية (بنتلي، وبريمافيرا P6، وETABS/CSI، وANSYS)، واشتراكات البرمجيات كخدمة. يسأل المشترون عن نموذج الترخيص (دائم مقابل اشتراك، ولكل مستخدم مقابل لكل نواة/جهاز)، والمدة (التزام شهري مقابل سنوي)، وأسعار الحكومة/التعليم/المؤسسات غير الربحية، والتسويات وتدقيقات الامتثال، ونقل التراخيص، وتفويض الموزع المحلي. ويُعد استخدام البرمجيات غير المرخصة مخالفة بموجب قانون حقوق المؤلف الإماراتي، ويجري الموردون عمليات تدقيق عبر BSA/الشركاء المحليين.",
+      "body_en": "This entry covers software licensing in the UAE: Microsoft, Adobe, Autodesk, Oracle and SAP, cybersecurity, backup, virtualisation, ERP and engineering software and SaaS, with licence models, terms and compliance audits. Software licensing in the UAE covers Microsoft licensing (Microsoft 365 Business/Enterprise E3/E5, Windows, Windows Server, SQL Server, Azure subscriptions via CSP, Enterprise Agreements and MCA-E), Adobe (Creative Cloud, Acrobat, VIP/ETLA), Autodesk (AutoCAD, Revit, BIM Collaborate, AEC Collection named-user subscriptions), Oracle and SAP licences and support, cybersecurity software (Fortinet, Palo Alto, CrowdStrike, Microsoft Defender, Sophos, Trend Micro, Kaspersky, ESET), backup (Veeam, Commvault), virtualisation (VMware by Broadcom, Microsoft Hyper-V, Nutanix), ERP/accounting (Tally, Zoho, QuickBooks, Sage), engineering software (Bentley, Primavera P6, ETABS/CSI, ANSYS), and SaaS subscriptions. Buyers ask about licence model (perpetual vs subscription, per user vs per core/device), term (monthly vs annual commitment), government/education/non-profit pricing, true-up and compliance audits, licence transfer, and local reseller authorisation. Using unlicensed software is an offence under UAE copyright law, and vendors conduct audits via BSA/local partners.",
+      "body_ar": "تشمل تراخيص البرمجيات في الإمارات برامج Microsoft وAdobe وAutodesk وOracle وSAP، والأمن السيبراني، والنسخ الاحتياطي، والمحاكاة الافتراضية، وبرامج ERP والبرامج الهندسية، والبرمجيات كخدمة (SaaS)، مع نماذج الترخيص وشروطه وتدقيقات الامتثال. تشمل تراخيص البرمجيات في الإمارات تراخيص مايكروسوفت (مايكروسوفت 365 للأعمال/المؤسسات E3/E5، وويندوز، وويندوز سيرفر، وSQL سيرفر، واشتراكات أزور عبر برنامج مزودي الحلول السحابية، واتفاقيات المؤسسات وMCA-E)، وأدوبي (كرييتف كلاود، وأكروبات، وبرامج VIP/ETLA)، وأوتوديسك (أوتوكاد، وريفيت، وBIM كولابوريت، ومجموعة AEC باشتراكات المستخدم المسمى)، وتراخيص أوراكل وساب ودعمها، وبرمجيات الأمن السيبراني (فورتينت، وبالو ألتو، وكراود سترايك، ومايكروسوفت ديفندر، وسوفوس، وتريند مايكرو، وكاسبرسكي، وإيسيت)، والنسخ الاحتياطي (فيم، وكومفولت)، والمحاكاة الافتراضية (VMware من برودكوم، ومايكروسوفت Hyper-V، ونوتانكس)، وأنظمة تخطيط الموارد والمحاسبة (تالي، وزوهو، وكويك بوكس، وسيج)، والبرمجيات الهندسية (بنتلي، وبريمافيرا P6، وETABS/CSI، وANSYS)، واشتراكات البرمجيات كخدمة. يسأل المشترون عن نموذج الترخيص (دائم مقابل اشتراك، ولكل مستخدم مقابل لكل نواة/جهاز)، والمدة (التزام شهري مقابل سنوي)، وأسعار الحكومة/التعليم/المؤسسات غير الربحية، والتسويات وتدقيقات الامتثال، ونقل التراخيص، وتفويض الموزع المحلي. ويُعد استخدام البرمجيات غير المرخصة مخالفة بموجب قانون حقوق المؤلف الإماراتي، ويجري الموردون عمليات تدقيق عبر BSA/الشركاء المحليين.",
       "sources": [
         "https://mindware.net/",
         "https://www.crayon.com/ae/",
@@ -24,9 +25,10 @@
     {
       "id": "software_licensing:uae-market-brands",
       "topic": "Software licensing: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "تراخيص برمجيات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Confirmed distributors and major software vendors: Mindware, Redington, Microsoft, Adobe, Autodesk, Oracle, SAP, Fortinet, Veeam. Which distributor holds each vendor and reseller partner levels were not checked.",
-      "body_ar": "الموزعون المؤكدون وكبار موردي البرمجيات: Mindware، Redington، Microsoft، Adobe، Autodesk، Oracle، SAP، Fortinet، Veeam. ولم يُتحقق من الموزع الذي يحمل كل مورد ولا من مستويات شراكة الموزعين.",
+      "body_en": "This entry names the distributors Mindware and Redington and the major software vendors Microsoft, Adobe, Autodesk, Oracle, SAP, Fortinet and Veeam. Confirmed distributors and major software vendors: Mindware, Redington, Microsoft, Adobe, Autodesk, Oracle, SAP, Fortinet, Veeam. Which distributor holds each vendor and reseller partner levels were not checked.",
+      "body_ar": "من موزعي البرمجيات Mindware وRedington، ومن كبرى شركات البرمجيات Microsoft وAdobe وAutodesk وOracle وSAP وFortinet وVeeam. الموزعون المؤكدون وكبار موردي البرمجيات: Mindware، Redington، Microsoft، Adobe، Autodesk، Oracle، SAP، Fortinet، Veeam. ولم يُتحقق من الموزع الذي يحمل كل مورد ولا من مستويات شراكة الموزعين.",
       "sources": [
         "https://mindware.net/",
         "https://www.crayon.com/ae/",
@@ -41,9 +43,10 @@
     {
       "id": "software_licensing:uae-market-sizes",
       "topic": "Software licensing: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "تراخيص برمجيات: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Subscriptions are priced per user per month or per year (annual commitment usually cheaper than monthly), per device/core for server products, per named user for engineering software, and as annual support/maintenance (commonly a percentage of licence value, e.g. around 20-22% for Oracle/SAP). Enterprise agreements run 3 years. Resellers quote in USD or AED; FX and VAT (5%) apply.",
-      "body_ar": "تُسعّر الاشتراكات لكل مستخدم شهرياً أو سنوياً (الالتزام السنوي عادةً أرخص من الشهري)، ولكل جهاز/نواة لمنتجات الخوادم، ولكل مستخدم مسمى للبرمجيات الهندسية، وكدعم/صيانة سنوية (عادةً نسبة من قيمة الترخيص، مثل نحو 20-22% لأوراكل/ساب). وتمتد اتفاقيات المؤسسات 3 سنوات. ويقدم الموزعون الأسعار بالدولار أو الدرهم؛ وتُطبق أسعار الصرف وضريبة القيمة المضافة (5%).",
+      "body_en": "This entry explains how software is priced: subscriptions per user per month or year, server products per device or core, engineering software per named user, and annual support as a percentage of licence value. Subscriptions are priced per user per month or per year (annual commitment usually cheaper than monthly), per device/core for server products, per named user for engineering software, and as annual support/maintenance (commonly a percentage of licence value, e.g. around 20-22% for Oracle/SAP). Enterprise agreements run 3 years. Resellers quote in USD or AED; FX and VAT (5%) apply.",
+      "body_ar": "تُسعَّر البرمجيات كالتالي: الاشتراكات لكل مستخدم شهريًا أو سنويًا، ومنتجات السيرفرات لكل جهاز أو لكل نواة (core)، والبرامج الهندسية لكل مستخدم مسمّى، والدعم السنوي نسبةً من قيمة الترخيص. تُسعّر الاشتراكات لكل مستخدم شهرياً أو سنوياً (الالتزام السنوي عادةً أرخص من الشهري)، ولكل جهاز/نواة لمنتجات الخوادم، ولكل مستخدم مسمى للبرمجيات الهندسية، وكدعم/صيانة سنوية (عادةً نسبة من قيمة الترخيص، مثل نحو 20-22% لأوراكل/ساب). وتمتد اتفاقيات المؤسسات 3 سنوات. ويقدم الموزعون الأسعار بالدولار أو الدرهم؛ وتُطبق أسعار الصرف وضريبة القيمة المضافة (5%).",
       "sources": [
         "https://mindware.net/",
         "https://www.crayon.com/ae/",
@@ -58,11 +61,17 @@
   ],
   "eval": [
     {
-      "q_en": "Is Microsoft 365 cheaper on a monthly or annual commitment?",
-      "q_ar": "هل مايكروسوفت 365 أرخص بالتزام شهري أم سنوي؟",
+      "q_en": "Are programs licensed by person, by machine, or through a plan renewed each twelve months?",
+      "q_ar": "البرامج ترخيصها يكون على كل شخص، ولا كل جهاز، ولا باشتراك يتجدد كل سنة؟",
       "expected_entry_ids": [
-        "software_licensing:uae-market-sizes"
-      ]
+        "software_licensing:uae-market-sizes",
+        "software_licensing:uae-market-products"
+      ],
+      "why": "The sizes entry says subscriptions are priced per user, per device/core or per named user, monthly or yearly; the products entry also names the licence models per user vs per core/device and monthly vs annual commitment terms.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.1,
+      "expected_mode": "any",
+      "word_overlap_after_enrichment": 0.1
     }
   ],
   "verified": {

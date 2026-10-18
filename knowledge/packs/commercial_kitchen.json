@@ -49,6 +49,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "commercial_kitchen:hood-wet-chemical-suppression",
+      "topic": "Hood and duct wet chemical suppression standards",
+      "kind": "technical_reference",
+      "body_en": "Wet chemical kitchen suppression systems are listed among the key fire requirements for F&B premises in Dubai, where commercial units need a Dubai Civil Defence (DCD) completion certificate before occupancy and the UAE Fire and Life Safety Code of Practice governs safety specifications. Recognised system standards are UL 300 and EN 17446:2021, Fire extinguishing systems in commercial kitchens: system design, documentation and test requirements. BSI states it can offer certificates of conformity for kitchen suppression systems in the UAE. Ask for the system's UL 300 listing or EN 17446 certification and its DCD approval. Not established here: the exact UAE Fire Code clause, which standard or NFPA edition DCD names for hoods, and the hood, plenum and duct coverage it requires.",
+      "body_ar": "تُدرج أنظمة الإطفاء الكيميائي الرطب للمطابخ ضمن متطلبات الحريق الأساسية لمنشآت الأغذية والمشروبات في دبي، حيث تحتاج الوحدات التجارية إلى شهادة إنجاز من الدفاع المدني في دبي قبل الإشغال، ويحكم «كود الإمارات لسلامة الحياة والحماية من الحريق» مواصفات السلامة. ومن معايير الأنظمة المعترف بها UL 300 وEN 17446:2021 «أنظمة الإطفاء في المطابخ التجارية: متطلبات تصميم النظام والتوثيق والاختبار». وتذكر BSI أنها تقدم شهادات مطابقة لأنظمة إطفاء المطابخ في الإمارات. اطلب إدراج النظام وفق UL 300 أو شهادة EN 17446 وموافقة الدفاع المدني عليه. غير مثبت هنا: البند الدقيق في كود الحريق الإماراتي، والمعيار أو إصدار NFPA الذي يسميه الدفاع المدني للشفاطات، ومتطلبات تغطية الشفاط وحجرة التجميع والمجاري.",
+      "sources": [
+        "https://page.bsigroup.com/l/73472/2025-04-08/2cd316j",
+        "https://westgatedubai.com/fire-safety-hse-requirements-commercial-premises-dubai/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -65,6 +79,15 @@
       "expected_entry_ids": [
         "commercial_kitchen:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What fire suppression standard does Civil Defence require for a kitchen hood in Dubai?",
+      "q_ar": "ما معيار نظام إطفاء الحريق الذي يشترطه الدفاع المدني لشفاط المطبخ في دبي؟",
+      "expected_entry_ids": [
+        "commercial_kitchen:hood-wet-chemical-suppression"
+      ],
+      "why": "No entry of this pack answered it (MISSING: the pack has no hood suppression standard; UL 300 wet chemical is only in fire_fighting:kitchen-wet-chemical, and the spec-checklist only lists \"hood and fire suppression scope\"). commercial_kitchen:hood-wet-chemical-suppression was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from commercial_kitchen.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -80,6 +103,9 @@
       "commercial_kitchen:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "commercial_kitchen:hood-wet-chemical-suppression"
+    ]
   }
 }

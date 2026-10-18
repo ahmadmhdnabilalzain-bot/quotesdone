@@ -34,7 +34,7 @@ export const STEPS: Record<Step, { seat: Seat; taskClass: string; table: string 
 
 export const MAX_VIDEO_BYTES = 8 * 1024 * 1024; // the 12 masters are 3.0-4.1 MB; a bigger file is refused, not sent
 
-export interface ModelAnswer { content: string | null; error: string | null; truncated: boolean; model?: string | null }
+export interface ModelAnswer { content: string | null; error: string | null; truncated: boolean; model?: string | null; cost_usd?: number | null }
 // deno-lint-ignore no-explicit-any
 export type CallModel = (taskClass: string, max: number, messages: any[], requireCaps: string[]) => Promise<ModelAnswer>;
 export interface Deps {

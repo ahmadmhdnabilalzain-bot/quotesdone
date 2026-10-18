@@ -20,11 +20,12 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
 import { observe } from '../_shared/observe.ts';
 import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
-import { CORROBORATION_FLOOR, defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
+import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
 import { composeMailReply, noAutoReply } from '../_shared/customer_mail.ts';
-import { isArabic, langOf } from '../_shared/chat_answers.ts';
+import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { aiReply } from '../_shared/ai_reply.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -35,17 +36,6 @@ const SYS = `You are the inbox assistant for QuotesDone, a UAE B2B anonymous quo
 
 type Mail = { id: number; from_email: string | null; to_email: string | null; subject: string | null; body: string | null; owner_role: string | null; raw: Record<string, unknown> | null };
 
-/** A reviewed passage of the company knowledge close enough to stand as the answer on its own: no model,
- *  so it works under the hold. Same floor and same routine think() retrieves with. */
-async function groundedPassage(deps: ThinkDeps, q: string, lang: 'en' | 'ar'): Promise<string | null> {
-  const v = await deps.embed(q, 'gte').catch(() => null);
-  if (!v) return null;
-  const { data } = await deps.rpc('fn_reason_retrieve', { p_seat: 'customer_support', p_embedding: '[' + v.join(',') + ']', p_k: 6 });
-  const hit = (Array.isArray(data) ? data : []).find((r: { trust?: string; similarity?: number; excerpt?: string }) =>
-    r.trust !== 'pending_review' && Number(r.similarity) >= CORROBORATION_FLOOR && !!r.excerpt && isArabic(String(r.excerpt)) === (lang === 'ar'));
-  return hit ? String(hit.excerpt) : null;
-}
-
 /** customer_support answers the mail in its thread. Returns how it was answered. */
 async function answer(m: Mail, deps: ThinkDeps): Promise<string> {
   const q = ('Subject: ' + (m.subject || '') + '\n\n' + String(m.body || '')).slice(0, 4000);
@@ -54,17 +44,27 @@ async function answer(m: Mail, deps: ThinkDeps): Promise<string> {
   const subject = { message_id: m.id, channel: 'email', ...(/@example\.invalid$/i.test(String(m.from_email || '')) ? { fixture: true } : {}) };
   const person = await needsAPerson(deps, { seat: 'customer_support', surface: 'email_triage.needs_a_person', message: q,
     audience: 'customer', dedupeKey: 'email_person:' + m.id, subject });
+  // EVERY E-MAIL REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026): the reasoned, independently checked answer
+  // when it agrees; otherwise a direct model reply from the company brief (aiReply). The quoted knowledge passage, the
+  // person-handoff sentence and the "we received it" receipt are gone. No model at all: nothing is sent (it throws, and
+  // the message stays unanswered for the next run).
   let text: string, how: string;
-  if (person.value === true) { text = composeMailReply({ lang, person: true }); how = 'person'; }
-  else {
+  const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience: 'customer', lang, message: q,
+    subject, rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
+  if (person.value === true) {
+    const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
+    if (!body) throw new Error('no model answered the e-mail');
+    text = composeMailReply({ lang, answer: body }); how = 'person';
+  } else {
     const r = await think(deps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
       question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
         + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
       context: { audience: 'customer', language: lang } });
     const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() ? r.answer.trim() : null;
-    const passage = verified ? null : await groundedPassage(deps, q, lang);
-    text = composeMailReply({ lang, answer: verified, passage });
-    how = verified ? 'reasoned' : passage ? 'knowledge_passage' : 'receipt';
+    const body = verified ?? await direct('');
+    if (!body) throw new Error('no model answered the e-mail');
+    text = composeMailReply({ lang, answer: body });
+    how = verified ? 'reasoned' : 'direct';
   }
   const { data: sent, error } = await admin.rpc('fn_inbox_send', { p_id: m.id, p_body: text, p_by: 'customer_support' });
   if (error || (sent as { error?: string } | null)?.error) throw new Error('fn_inbox_send: ' + (error?.message ?? (sent as { error?: string }).error));

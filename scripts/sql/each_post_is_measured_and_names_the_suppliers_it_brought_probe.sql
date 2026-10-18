@@ -9,7 +9,7 @@
 -- the account's median, and says so in words; (3) the scorecard is stored once per period.
 do $probe$
 declare
-  p1 bigint; p2 bigint; p3 bigint; v_lead bigint; r jsonb; v_fail text := '';
+  p1 bigint; p2 bigint; p3 bigint; v_lead bigint; v_junk bigint; r jsonb; v_fail text := '';
   v_top bigint; v_verdict text; v_er numeric; v_med numeric; v_rows int; v_real_before int; v_real_after int;
 begin
   select count(*) into v_real_before from public.marketing_first_touch;
@@ -53,7 +53,14 @@ begin
   if (r->>'recorded')::boolean then v_fail := v_fail || ' a second touch overwrote the first'; end if;
   if (select utm_source from public.marketing_first_touch where lead_id = v_lead) <> 'instagram' then v_fail := v_fail || ' utm_source not normalised'; end if;
   r := public.fn_marketing_first_touch_record(v_lead, '{"utm_source":"<script>"}');
-  if (r->>'reason') <> 'no valid utm_source' then v_fail := v_fail || ' junk touch accepted: ' || r::text; end if;
+  -- a junk touch is REFUSED (ok:false, reason no_utm) and records nothing (outcome audit 30 Sep 2026). v_lead
+  -- already has its first touch, so use a second ZZ DEMO lead with none and no opened invitation.
+  insert into public.leads (company_name, business_role, claimed, source)
+  values ('ZZ DEMO probe 865 junk', 'supplier', false, 'self_registered') returning id into v_junk;
+  r := public.fn_marketing_first_touch_record(v_junk, '{"utm_source":"<script>"}');
+  if coalesce((r->>'ok')::boolean, true) or r->>'reason' is distinct from 'no_utm' or coalesce((r->>'recorded')::boolean, true)
+     or exists (select 1 from public.marketing_first_touch where lead_id = v_junk) then
+    v_fail := v_fail || ' junk touch accepted: ' || r::text; end if;
 
   -- (2) the scorecard over the ZZ DEMO month
   select post_id into v_top from public.fn_marketing_scorecard('2031-01', true) where platform = 'instagram' and rank = 1 limit 1;

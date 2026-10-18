@@ -35,6 +35,9 @@ test('targets, weekly drill, RPO/RTO misses, rotation age, full-restore compare,
         'drill_every_days', (select extract(day from every) from public.it_duty_schedule where duty = 'restore_table'),
         'duties', (select count(*) from public.seat_duty where enabled and duty in ('it_engineer.backup_objectives',
                      'it_engineer.credential_rotation_age','it_engineer.dr_review','it_engineer.capacity_review','it_engineer.code_health')));
+      -- Drills have passed on time since 29 Sep, so the miss is staged here (rolled back) the same way the
+      -- rotation case below is: a negative cadence puts every drill outside its window.
+      update public.it_threshold set value = -30 where key = 'restore_drill_every_days';
       r := public.fn_it_engineer_backup_objectives();
       o := o || jsonb_build_object('bo', r, 'bo_keys', (select jsonb_agg(issue_key) from public.it_engineer_finding
                                       where closed_at is null and issue_key like 'duty:backup\\_objectives:%'));
@@ -65,7 +68,7 @@ test('targets, weekly drill, RPO/RTO misses, rotation age, full-restore compare,
   assert.equal(Number(r.duties), 5, 'all five seat duties are scheduled');
   assert.ok(r.bo?.rpo?.target_hours != null && r.bo?.rpo?.hours_since_export != null, JSON.stringify(r.bo));
   const keys = r.bo_keys ?? [];
-  // Production on 28 Sep: last drill 15 Sep, none ever restored a row. Both must be raised.
+  // A drill outside its window (production's real state on 28 Sep; staged above since) raises both.
   assert.ok(keys.includes('duty:backup_objectives:drill_stale'), JSON.stringify(keys));
   assert.ok(keys.includes('duty:backup_objectives:rto_unproven'), JSON.stringify(keys));
   assert.ok(Number(r.rot_overdue) > 0, 'a credential past its rotation age is raised');

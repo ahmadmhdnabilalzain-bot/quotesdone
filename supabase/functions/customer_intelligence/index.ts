@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // customer_intelligence — spec §11 (procurement forecast, savings by category, supplier
 // performance figures), §13 (per-customer supplier relationship) and §20 (predictive intelligence).
 //
@@ -45,7 +46,7 @@ async function revealed(customerId: string): Promise<number[]> {
   return [...new Set((data || []).map((t: Record<string, unknown>) => Number(t.supplier_id)).filter(Boolean))];
 }
 
-Deno.serve(observe('customer_intelligence', async (req) => {
+Deno.serve(siteCors(observe('customer_intelligence', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -137,4 +138,4 @@ Deno.serve(observe('customer_intelligence', async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-}));
+})));
