@@ -24,7 +24,8 @@
 --      categories that genuinely need him (CHECK constraint). review_independence and
 --      deliberation_independence become seat findings (CEO / IT), never founder decisions.
 --   2. fn_it_review_independence_items skips rehearsal rows in the unknown-author watch.
---   3. Closes review_hold 71 and the two findings with what was done; records the ruling as standing.
+--   3. Closes review_hold 71 and the two findings with what was done. The founder's own words are ledger row 1254
+--      (founder_instruction, 18 Oct 2026: his complaint about the digest's "2 decisions for you"); this file implements it.
 -- prevented by: scripts/checks/a_technical_item_is_never_a_decision_for_the_founder.test.mjs
 
 alter table public.it_founder_decision_class add column if not exists founder_category text;
@@ -100,15 +101,6 @@ select public.fn_it_engineer_finding_close('duty:review_independence:review_auth
   '18 Oct 2026, it_engineer: e2e drill 2d02a7bd judged a turn whose agent had not answered (author unknown). The drill now skips '
   || 'the judge when no agent model answered; rehearsal rows are excluded from the watch. Never a founder decision.');
 
-insert into public.founder_instruction (said_at, instruction, subject, status, closed_at, note)
-select now(),
-       'Technical decisions never go to the founder. Held reviews, unregistered models and every other technical item are '
-       || 'findings the CEO and IT engineer seats resolve; only money, a destructive production change or a fact only he holds may be '
-       || '"a decision for you".',
-       'founder routing', 'standing', now(),
-       'The IT daily digest of 18 Oct 2026 18:46 UTC (notifications 101206) violated this by routing two review_independence items '
-       || 'to him under the #880 coordinator ruling. Fixed by a_technical_item_is_never_a_decision_for_the_founder.sql.'
- where not exists (select 1 from public.founder_instruction where subject = 'founder routing' and note like '%notifications 101206%');
 
 select case when (select count(*) from public.it_founder_decision_class
                    where to_founder and issue_key_like like 'duty:%independence%') = 0
