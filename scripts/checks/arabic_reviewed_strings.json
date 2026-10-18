@@ -6544,5 +6544,10 @@
  ],
  "supabase/functions/wa_inbound/model_says.ts": [
   "036a6e41b969"
+ ],
+ "scripts/sql/a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql": [
+  "0ad679a262b2",
+  "1390254fa3fe",
+  "6795f24f47d7"
  ]
 }
