@@ -219,7 +219,7 @@ const T = [
     en: 'who told you i am a supplier?', ar: 'من قال لك إنني مورد؟',
     must: { en: ["nobody|no one|not assum|don't assum"], ar: ['لم يقل|لا أفترض|لم أفترض'] },
     good: { en: 'No one did, and I do not assume it. Whether you buy or sell, I am happy to explain how QuotesDone works for you.', ar: 'لم يقل أحد ذلك، ولا أفترضه. سواء كنت تشتري أو تبيع، يسعدني شرح طريقة عمل QuotesDone.' },
-    bad: { en: 'As a supplier, you can register at the supplier portal.', ar: 'بصفتك موردًا، يمكنك التسجيل عبر بوابة الموردين.' }, forbid: ['as a supplier|بصفتك مورد'] },
+    bad: { en: 'As a supplier, you can register at the supplier portal.', ar: 'بصفتك موردًا، يمكنك التسجيل عبر بوابة الموردين.' }, forbid: ['bas a supplier,|you are a supplier|بصفتك مورد'] },
 ];
 
 export function buildScenarios() {
