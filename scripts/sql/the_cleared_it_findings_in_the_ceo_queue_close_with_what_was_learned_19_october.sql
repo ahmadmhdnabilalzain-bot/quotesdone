@@ -32,28 +32,20 @@
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_cleared_it_findings_in_the_ceo_queue_close_with_what_was_learned_19_october.sql --apply --ddl
 
+-- books_stale, backup_prune_blocked and marketing_media_below_recommended are #1415's (applied first; checked below).
+do $need$ begin
+  if (select count(*) from public.it_playbook where failure_class in ('books_stale','backup_prune_blocked','marketing_media_below_recommended')) <> 3 then
+    raise exception 'apply #1415 first: it owns the books_stale, backup_prune_blocked and marketing_media_below_recommended classes';
+  end if;
+end $need$;
+
 -- ── 1. PLAYBOOK ENTRIES FOR THE FAILURE CLASSES THAT HAD NONE ──────────────────────────────────────
 insert into public.it_playbook (failure_class, issue_prefix, typical_cause, remedy, not_automatable_reason, regression_check, added_by, added_at)
 values
-  ('books_stale', 'acct:books:',
-   'Nothing reached the expenses mailbox for days, so the accountant had nothing to post and the books aged past 2 days.',
-   null, 'The remedy is mail arriving (or the founder forwarding receipts); no routine can create it.',
-   'fn_accountant_books_duty (scripts/sql/the_accountant_runs_its_duties_every_hour.sql) re-raises the key',
-   'it_engineer (19 Oct 2026)', now()),
   ('marketing_plan_review_stalled', 'ceo:marketing_plan_review_stalled:',
    'The CEO''s review of a marketing plan waited on a reasoning question under the model hold.',
    null, 'The review is the CEO''s judgement through the model; it runs when the question is reasoned.',
    'fn_ceo_marketing_plan_watch (scripts/sql/a_month_an_approved_calendar_already_covers_is_not_a_late_plan.sql) re-raises the key',
-   'it_engineer (19 Oct 2026)', now()),
-  ('backup_prune_lag', 'duty:backup_prune:',
-   'Retention flags every delete-mode day older than 2 days that storage has not removed yet; the worker removes a batch per pass, so a long queue is flagged before its turn. If it persists, the tick itself is failing (see duty:heartbeat:backupPrune).',
-   null, 'Lag clears as the worker drains; a stuck tick is a heartbeat_step fault with its own remedy.',
-   'fn_backup_prune_tick settles duty:backup_prune and re-raises the key',
-   'it_engineer (19 Oct 2026)', now()),
-  ('media_below_recommended', 'duty:marketing_media_below_recommended:',
-   'Informational: a published video is below the platform''s recommended bitrate. Never a refusal; the duty looks at the last 7 days only, so it clears by age.',
-   null, 'Information, not a fault: nothing to remediate.',
-   'supplier-facing settle in supabase/functions/marketing_channels/index.ts (7-day window) re-raises the key',
    'it_engineer (19 Oct 2026)', now()),
   ('review_independence', 'duty:review_independence:',
    'A review row named no author model, or a review was held for want of an independent reviewer; seen when a rehearsal outlived its window or a drill judged a turn no model answered.',
@@ -112,24 +104,24 @@ begin
      'The CEO''s review of the November plan waited on reasoning_held_question 10579 under the model hold (escalated 2 Oct, 3 attempts); the review could not run while the hold was on.',
      'No code: 10579 was reasoned and applied 12 Oct 22:32Z (verdict: rejected for revision); the next watch pass closed the key 13 Oct 20:31Z. Open gap, not closed here: the plan still reads ceo_reviewing.',
      'fn_ceo_marketing_plan_watch (scripts/sql/a_month_an_approved_calendar_already_covers_is_not_a_late_plan.sql) re-raises the key', 'marketing_plan_review_stalled'),
-    (150241, 'duty:backup_prune:storage:2026-08-15', null, 'bp', 'bp', 'backup_prune_lag'),
-    (150242, 'duty:backup_prune:storage:2026-08-16', null, 'bp', 'bp', 'backup_prune_lag'),
-    (150243, 'duty:backup_prune:storage:2026-08-17', null, 'bp', 'bp', 'backup_prune_lag'),
-    (150244, 'duty:backup_prune:storage:2026-08-18', null, 'bp', 'bp', 'backup_prune_lag'),
-    (150245, 'duty:backup_prune:storage:2026-08-19', null, 'bp', 'bp', 'backup_prune_lag'),
-    (150246, 'duty:backup_prune:storage:2026-08-20', null, 'bp', 'bp', 'backup_prune_lag'),
-    (150247, 'duty:backup_prune:storage:2026-08-21', null, 'bp', 'bp', 'backup_prune_lag'),
-    (150248, 'duty:backup_prune:storage:2026-08-22', null, 'bp', 'bp', 'backup_prune_lag'),
-    (150249, 'duty:backup_prune:storage:2026-08-23', null, 'bp', 'bp', 'backup_prune_lag'),
+    (150241, 'duty:backup_prune:storage:2026-08-15', null, 'bp', 'bp', 'backup_prune_blocked'),
+    (150242, 'duty:backup_prune:storage:2026-08-16', null, 'bp', 'bp', 'backup_prune_blocked'),
+    (150243, 'duty:backup_prune:storage:2026-08-17', null, 'bp', 'bp', 'backup_prune_blocked'),
+    (150244, 'duty:backup_prune:storage:2026-08-18', null, 'bp', 'bp', 'backup_prune_blocked'),
+    (150245, 'duty:backup_prune:storage:2026-08-19', null, 'bp', 'bp', 'backup_prune_blocked'),
+    (150246, 'duty:backup_prune:storage:2026-08-20', null, 'bp', 'bp', 'backup_prune_blocked'),
+    (150247, 'duty:backup_prune:storage:2026-08-21', null, 'bp', 'bp', 'backup_prune_blocked'),
+    (150248, 'duty:backup_prune:storage:2026-08-22', null, 'bp', 'bp', 'backup_prune_blocked'),
+    (150249, 'duty:backup_prune:storage:2026-08-23', null, 'bp', 'bp', 'backup_prune_blocked'),
     (126390, 'duty:marketing_duties:reviews',
      'fn_marketing_reviews_tick filed the CEO handoff inside the UPDATE that stores its id, and filing writes back to the same marketing_review row: SQLSTATE 27000, tuple already modified (336 sightings).',
      'Commit e28a344 (#1305, 12 Oct 11:52Z): the handoff id is filed into a variable first, then stored. The key closed 12 Oct 12:01Z.',
      'scripts/checks/no_routine_files_a_handoff_inside_the_update_that_stores_its_id.test.mjs', 'marketing_duty_failing'),
-    (134400, 'duty:marketing_media_below_recommended:m1-03-youtube', 'media', 'media', 'media', 'media_below_recommended'),
-    (126869, 'duty:marketing_media_below_recommended:m1-04-youtube', 'media', 'media', 'media', 'media_below_recommended'),
-    (149452, 'duty:marketing_media_below_recommended:m1-05-youtube', 'media', 'media', 'media', 'media_below_recommended'),
-    (149928, 'duty:marketing_media_below_recommended:m1-07-youtube', 'media', 'media', 'media', 'media_below_recommended'),
-    (126356, 'duty:marketing_media_below_recommended:m1-11-youtube', 'media', 'media', 'media', 'media_below_recommended'),
+    (134400, 'duty:marketing_media_below_recommended:m1-03-youtube', 'media', 'media', 'media', 'marketing_media_below_recommended'),
+    (126869, 'duty:marketing_media_below_recommended:m1-04-youtube', 'media', 'media', 'media', 'marketing_media_below_recommended'),
+    (149452, 'duty:marketing_media_below_recommended:m1-05-youtube', 'media', 'media', 'media', 'marketing_media_below_recommended'),
+    (149928, 'duty:marketing_media_below_recommended:m1-07-youtube', 'media', 'media', 'media', 'marketing_media_below_recommended'),
+    (126356, 'duty:marketing_media_below_recommended:m1-11-youtube', 'media', 'media', 'media', 'marketing_media_below_recommended'),
     (159904, 'duty:review_independence:review_author_unknown:sales_engineer_conversation_drill',
      'E2E drill 2d02a7bd judged a turn the agent never answered, so the review recorded its author as unknown (ai_cost_log 19198).',
      'Commit 912fc78 (on main 18 Oct 19:25Z): the drill skips the judge when no agent model answered, and the unknown-author watch ignores rehearsal rows. The key closed 18 Oct 20:24Z.',
