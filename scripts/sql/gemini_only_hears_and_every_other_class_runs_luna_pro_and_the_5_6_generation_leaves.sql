@@ -49,6 +49,10 @@ on conflict (model_id) do update set provider = excluded.provider, tier = exclud
   supports_vision = excluded.supports_vision, supports_audio = excluded.supports_audio,
   supports_tools = excluded.supports_tools, note = excluded.note, updated_at = now();
 
+-- 1b. perplexity/sonar context length is 127,072 tokens (OpenRouter catalogue, 19 Oct 2026). Idempotent.
+update public.model_registry set context_len = 127072, updated_at = now()
+ where model_id = 'perplexity/sonar' and context_len is distinct from 127072;
+
 insert into public.model_rate (model, tier, in_aed_per_mtok, out_aed_per_mtok, note, usd_per_m_prompt, usd_per_m_output,
                                id_verified, source_url, verified_at)
 select m, 'small', 0.367250, 1.836250,
