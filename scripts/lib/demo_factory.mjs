@@ -1329,7 +1329,9 @@ export async function teardown(run) {
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${CUST}`],
     ['company_event (customer)', `delete from public.company_event where entity_type='customer' and entity_id in (select id::text from public.customers where id in ${CUST})`],
-    ...(await fkChildren('customers')).map(([t, c]) => [`${t} (fk ${c} -> customers)`, `delete from public.${t} where ${c} in ${CUST}`]),
+    // support_customer_profile is NOT taken by customer id here (review of #1464): stage2's marker sweep removes the run's
+    // profiles (and their cases first) by the run's own markers only.
+    ...(await fkChildren('customers')).filter(([t]) => t !== 'support_customer_profile').map(([t, c]) => [`${t} (fk ${c} -> customers)`, `delete from public.${t} where ${c} in ${CUST}`]),
     ['customers', `delete from public.customers where id in ${CUST}`],
     ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.%'`],
     ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.%'`],
