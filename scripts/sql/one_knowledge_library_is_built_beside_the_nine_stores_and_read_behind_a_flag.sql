@@ -141,7 +141,7 @@ language plpgsql immutable
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  v_lang constant text := 'case when %s like ''%%@ar'' or %s ~ ''^[^A-Za-z]*[ء-ي]'' then ''ar'' else ''en'' end';
+  v_lang constant text := 'case when %s like ''%%@ar'' or %s ~ ''^[^A-Za-z]*[\u0621-\u064A]'' then ''ar'' else ''en'' end';
 begin
   case p_store
   when 'kb_chunks' then
