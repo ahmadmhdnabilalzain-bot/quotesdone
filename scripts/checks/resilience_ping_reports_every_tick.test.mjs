@@ -47,7 +47,14 @@ const stepRun = () => {
 test('every tick the file defines is a step the handler runs', () => {
   const defined = [...src.matchAll(/async function (\w+Tick)\(/g)].map((m) => m[1]);
   assert.ok(defined.length >= 10, `only ${defined.length} ticks found; the pattern no longer matches the file`);
-  const listed = new Set([...stepRun().matchAll(/run: (\w+Tick)\b/g)].map((m) => m[1]));
+  // A slow step is KICKED from STEP_RUN and run from the DETACHED map in its own invocation (12 Oct 2026),
+  // so a tick named there is run too; the map is the one place, its kick is STEP_RUN's `kickDetached('<name>')`.
+  const dOpen = src.indexOf('const DETACHED: Record<');
+  const detached = dOpen > 0 ? src.slice(dOpen, src.indexOf('\n};', dOpen)) : '';
+  const listed = new Set([...(stepRun() + detached).matchAll(/run: (\w+Tick)\b/g)].map((m) => m[1]));
+  for (const [, k] of detached.matchAll(/^ {2}(\w+): \{ run:/gm)) {
+    assert.ok(stepRun().includes(`kickDetached('${k}')`), `detached step ${k} is never kicked from STEP_RUN`);
+  }
   assert.deepEqual(defined.filter((t) => !listed.has(t)), [], 'ticks defined but never run');
 });
 

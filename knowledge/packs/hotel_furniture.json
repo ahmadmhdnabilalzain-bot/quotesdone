@@ -46,6 +46,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "hotel_furniture:contract-upholstery-abrasion-and-ignition",
+      "topic": "Contract upholstery: Martindale and ignition tests",
+      "kind": "spec_checklist",
+      "body_en": "Upholstery abrasion resistance is quoted in Martindale rubs. A contract-fabric supplier's hospitality guidance gives a minimum of 40,000 rubs for hotel bedroom seating, 25,000 for headboards, 60,000 for restaurant dining and bar seating (80,000+ for high-volume bar stools), and 60,000 to 100,000 for lobby seating depending on the lobby's function. For fire, BS 5852 Crib 5 tests upholstered seating with cigarette, match and wooden crib ignition sources and evaluates the complete composite (fabric, foam and interliner together), not the fabric alone; BS 7176 Medium Hazard, the applicable standard for most UK hotels, adds a water-soak procedure and documents the specific foam used. Inherently flame-retardant fibres keep their rating after cleaning; topical back-coatings can degrade with cleaning. Not established here: a UAE Civil Defence clause requiring a specific upholstery test; the operator's brand standard usually governs.",
+      "body_ar": "تُقاس مقاومة أقمشة التنجيد للاحتكاك بعدد دورات اختبار مارتنديل. وتنص إرشادات أحد موردي أقمشة المشاريع لقطاع الضيافة على حد أدنى قدره 40,000 دورة لمقاعد غرف الفنادق، و25,000 لألواح رؤوس الأسرّة، و60,000 لمقاعد المطاعم والبارات (80,000 فأكثر لكراسي البار عالية الاستخدام)، ومن 60,000 إلى 100,000 لمقاعد الردهة بحسب وظيفة الردهة. ومن ناحية الحريق، يختبر معيار BS 5852 Crib 5 المقاعد المنجدة بمصادر اشتعال هي السيجارة وعود الثقاب والكومة الخشبية، ويقيّم التجميعة المركبة كاملة (القماش والإسفنج والبطانة الوسيطة معاً) لا القماش وحده؛ أما BS 7176 فئة الخطورة المتوسطة، وهو المعيار المطبق في معظم فنادق المملكة المتحدة، فيضيف إجراء النقع بالماء ويوثّق نوع الإسفنج المستخدم. وتحتفظ الألياف المقاومة للهب بطبيعتها بتصنيفها بعد التنظيف، في حين قد تتدهور الطبقات الخلفية المعالجة سطحياً مع التنظيف. غير مثبت هنا: بند من الدفاع المدني في الإمارات يشترط اختباراً محدداً للتنجيد؛ وعادةً ما يسري معيار العلامة التجارية للمشغّل.",
+      "sources": [
+        "https://www.kothea.com/tag/hospitality-upholstery/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -62,6 +75,15 @@
       "expected_entry_ids": [
         "hotel_furniture:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What rub count and fire standard should upholstery meet for hotel lobby sofas?",
+      "q_ar": "ما مقاومة الاحتكاك ومعيار الحريق الذي يجب أن يستوفيه التنجيد لأرائك ردهة الفندق؟",
+      "expected_entry_ids": [
+        "hotel_furniture:contract-upholstery-abrasion-and-ignition"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry gives rub-count (Martindale) targets or upholstery fire standards (BS 5852 / CAL 117); spec-checklist only lists fire performance as a field). hotel_furniture:contract-upholstery-abrasion-and-ignition was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from hotel_furniture.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -78,6 +100,9 @@
       "hotel_furniture:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "hotel_furniture:contract-upholstery-abrasion-and-ignition"
+    ]
   }
 }

@@ -11,6 +11,7 @@
 //             held credentials are SET (presence only; a value never leaves the database).
 //   duties  — resilience_ping's 30-minute call: every entry in ./duties.ts, then fn_marketing_tick (the daily
 //             report to the CEO and the ad-spend loops). A failing duty is an IT finding owned by marketing.
+//   lead_sourcing — one supplier lead sourcing batch (./lead_sourcing.ts), started by pg_cron lead_sourcing_batch.
 //   assist  — company knowledge for a question (fn_marketing_assist, gte-small in-region, no paid model).
 //
 // MODEL CALLS: only through ./duties.ts -> _shared/marketing_judgement.ts (one class per step, dept 'marketing',
@@ -19,9 +20,10 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { signedInUser } from '../_shared/signed_in_user.ts';
-import { DUTIES } from './duties.ts';
+import { DUTIES, marketingAsk } from './duties.ts';
 import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { recallCases } from '../_shared/case_recall.ts';
+import { runLeadBatch } from './lead_sourcing.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -143,5 +145,17 @@ Deno.serve(observe('marketing', async (req) => {
     return error ? J({ error: error.message }, 500) : J({ ...(data as Record<string, unknown>), precedent: memory });
   }
 
-  return J({ error: 'unknown action', actions: ['health', 'duties', 'assist'] }, 400);
+  if (action === 'lead_sourcing') {
+    // pg_cron lead_sourcing_batch -> fn_lead_sourcing_kick, every 10 minutes, on its OWN schedule (never the
+    // resilience tick). 202 at once; the batch runs in the background under the 150 s cap and logs its own row.
+    if (caller.kind !== 'marketing') return J({ error: 'lead sourcing runs under the seat credential only' }, 403);
+    const batch = runLeadBatch(admin, marketingAsk(admin))   // the seat's own model client (duties.ts), cost per call
+      .then((r) => run('lead_sourcing', r.ok === false ? 'error' : 'ok', r, r.ok === false ? String(r.error) : undefined))
+      .catch((e) => run('lead_sourcing', 'error', {}, String((e as Error)?.message || e)));
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil ? (globalThis as any).EdgeRuntime.waitUntil(batch) : await batch;
+    return J({ started: true }, 202);
+  }
+
+  return J({ error: 'unknown action', actions: ['health', 'duties', 'assist', 'lead_sourcing'] }, 400);
 }));

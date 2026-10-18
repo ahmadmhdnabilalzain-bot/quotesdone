@@ -43,6 +43,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "cold_chain_logistics:frozen-pallet-storage-pricing",
+      "topic": "Pricing structure for frozen pallet storage",
+      "kind": "pricing_basis",
+      "body_en": "Cold storage capacity exists near Jebel Ali: Maersk opened its first UAE cold store in Dubai Industrial City near Jebel Ali Port, a 13,000 square metre facility with about 12,500 pallet positions serving frozen and refrigerated food, with value-added services such as co-packing, repacking, labelling and last-mile delivery. Not established here: how frozen pallet storage is priced (per pallet position or otherwise), handling charges, minimums, and any current rate; general Jebel Ali warehouse listings seen were priced per square foot per month and gave no cold-storage rates, so pricing must come from operator quotes.",
+      "body_ar": "تتوفر سعة تخزين مبرد بالقرب من جبل علي: فقد افتتحت ميرسك أول مخزن مبرد لها في الإمارات في مدينة دبي الصناعية بالقرب من ميناء جبل علي، بمساحة 13,000 متر مربع ونحو 12,500 موقع منصة نقالة، يخدم الأغذية المجمدة والمبردة مع خدمات ذات قيمة مضافة مثل إعادة التعبئة والتغليف ووضع الملصقات والتوصيل إلى الوجهة النهائية. لم يُثبت هنا: طريقة تسعير تخزين المنصات المجمدة (لكل موقع منصة أو غير ذلك)، ورسوم المناولة، والحدود الدنيا، وأي سعر حالي؛ فقوائم المستودعات العامة في جبل علي التي اطُّلع عليها مسعّرة لكل قدم مربع شهرياً ولم تذكر أسعار التخزين المبرد، لذا يجب الحصول على الأسعار من عروض المشغّلين.",
+      "sources": [
+        "https://enterpriseam.com/logistics/2023/07/06/maersk-opens-first-cold-store-in-uae/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "cold_chain_logistics:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is cold storage priced for frozen food pallets in Jebel Ali?",
+      "q_ar": "كيف يُسعّر التخزين المبرد لمنصات الأغذية المجمدة في جبل علي؟",
+      "expected_entry_ids": [
+        "cold_chain_logistics:frozen-pallet-storage-pricing"
+      ],
+      "why": "No entry of this pack answered it (Spec-checklist lists 'pricing basis' as a field only; no per-pallet storage pricing content; missing). cold_chain_logistics:frozen-pallet-storage-pricing was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from cold_chain_logistics.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "cold_chain_logistics:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "cold_chain_logistics:frozen-pallet-storage-pricing"
+    ]
   }
 }

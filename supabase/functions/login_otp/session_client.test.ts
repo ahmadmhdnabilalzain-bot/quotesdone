@@ -22,7 +22,7 @@ async function world(delayVerifyFor?: string) {
   const rest: { path: string; auth: string }[] = [];
   const stub: Stub = {
     rows: { email_verifications: [{ id: 1, token_hash: await hmac('123456'), attempts: 0, expires_at: new Date(Date.now() + 600e3).toISOString() }] },
-    rpc: { auth_uid_by_email: 'uid-existing' },
+    rpc: { auth_uid_by_email: 'uid-existing', rl_check: true, fn_login_otp_email_verify: 'ok' },
     handle: async (req, u) => {
       if (u.pathname.startsWith('/rest/v1/')) { rest.push({ path: u.pathname, auth: req.headers.get('authorization') || '' }); return undefined; }
       const body = await req.clone().json().catch(() => ({}));

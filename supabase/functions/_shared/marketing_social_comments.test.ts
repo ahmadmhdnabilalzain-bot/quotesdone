@@ -3,7 +3,7 @@
 // Every platform is replayed with a mocked fetch and an in-memory store: nothing here can reach an account.
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
 import { call, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, tiktokComments, unhideRequest,
-  type Class, type CommentEvent, type Decided, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
+  type Class, type CommentEvent, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
 
 // The fixed replies are read from the SQL that ships them, so the test pins the rows production gets.
 const SQL = ['every_social_message_is_answered.sql', 'the_marketing_seat_answers_comments_on_every_channel.sql']
@@ -13,9 +13,12 @@ for (const m of SQL.matchAll(/^\('(\w+)', (?:\d+|null),\s*(?:array\[[\s\S]*?\]|'
   LIB.set(m[1], { en: m[2].replace(/''/g, "'"), ar: m[3].replace(/''/g, "'") });
 }
 
-interface Mem { rows: Map<string, Outcome>; replies: { ev: CommentEvent; text: string }[]; hides: string[]; handoffs: string[]; released: number[]; threadCount: Map<string, number> }
-function memStore(o: { send?: boolean; model?: boolean; draft?: string | null; det?: Decided; handoffThrows?: boolean } = {}): Store & { mem: Mem } {
-  const mem: Mem = { rows: new Map(), replies: [], hides: [], handoffs: [], released: [], threadCount: new Map() };
+interface Mem { writes: string[]; rows: Map<string, Outcome>; replies: { ev: CommentEvent; text: string }[]; hides: string[]; handoffs: string[]; released: number[]; threadCount: Map<string, number> }
+// write(): the model, scripted. Default: the seeded comment_* fact for the class (a text that passes the guards), or a
+// plain answer to a question. `writes` scripts successive attempts (a guard failure asks again).
+const DEFAULT_KEY: Record<string, string> = { complaint: 'comment_escalated_ack', supplier: 'comment_supplier', lead: 'comment_lead', praise: 'comment_praise' };
+function memStore(o: { send?: boolean; writes?: string[]; handoffThrows?: boolean } = {}): Store & { mem: Mem } {
+  const mem: Mem = { writes: [], rows: new Map(), replies: [], hides: [], handoffs: [], released: [], threadCount: new Map() };
   const seen = new Set<string>(); let id = 0; const byId = new Map<number, string>();
   return {
     mem,
@@ -28,10 +31,13 @@ function memStore(o: { send?: boolean; model?: boolean; draft?: string | null; d
       mem.handoffs.push(({ 'social.escalation': 'customer_support', 'social.lead': 'sales_engineer' } as const)[type] + ':' + type + (extra?.hidden ? ':hidden' : ''));
       return mem.handoffs.length;
     },
-    async switchOn(key) { return key === 'social_send_enabled' ? o.send !== false : !!o.model; },
-    async library(key, lang) { return (LIB.get(key) as any)?.[lang] ?? ''; },
-    async deterministic() { return o.det ?? { kind: 'unknown', key: 'unknown', text: '' }; },
-    async draft() { return o.draft ?? null; },
+    async switchOn(key) { return key === 'social_send_enabled' ? o.send !== false : true; },
+    async write(_ev, lang, kind, problems) {
+      mem.writes.push(kind + (problems.length ? ':' + problems.join(',') : ''));
+      if (o.writes) return o.writes.shift() ?? '';
+      const k = DEFAULT_KEY[kind];
+      return k ? ((LIB.get(k) as any)?.[lang] ?? '') : (lang === 'ar' ? 'نشر الطلب على QuotesDone مجاني.' : 'Posting a request on QuotesDone is free.');
+    },
     async reply(ev, text) { mem.replies.push({ ev, text }); return { ok: true, id: 'r' + mem.replies.length }; },
     async hide(ev) { mem.hides.push(ev.commentId); return { ok: true }; },
   };
@@ -96,7 +102,7 @@ Deno.test('normalise folds digits, dashes, look-alikes and diacritics', () => {
 // ── the adversarial fixtures: each ends in the right outcome with no human in the loop ──────────────────────
 Deno.test('adversarial comments each end in the right outcome, with no approval step', async () => {
   const cases: [string, string, string, string[]][] = [
-    ['Is it really 1% for customers? what is the fee', 'held_not_run', 'question', []],
+    ['Is it really 1% for customers? what is the fee', 'replied', 'question', []],
     ['Who is the supplier that did the Al Barsha villa?', 'replied', 'sensitive_legal', ['customer_support:social.escalation']],
     ['you are all scammers and idiots', 'hidden', 'spam_abuse', ['customer_support:social.escalation:hidden']],
     ['I will take you to court, my lawyer is on it', 'replied', 'sensitive_legal', ['customer_support:social.escalation']],
@@ -117,7 +123,7 @@ Deno.test('adversarial comments each end in the right outcome, with no approval 
     assertEquals(row.classification, cls, text);
     assertEquals(s.mem.handoffs, handoffs, text);
     if (outcome === 'replied') {
-      assertEquals(guard(row.reply!, e), [], 'a fixed reply must pass its own guards: ' + text);
+      assertEquals(guard(row.reply!, e), [], 'a sent reply must pass the guards: ' + text);
       if (/[؀-ۿ]/.test(text)) assert(/[؀-ۿ]/.test(row.reply!), 'Arabic comment, Arabic reply: ' + text);
     }
   }
@@ -141,45 +147,31 @@ Deno.test('the class is REASONED; held, nothing is hidden, said or handed off �
   assertEquals(await processComment(a, ev('idiots'), 'spam_abuse', true), 'hidden');
 });
 
-Deno.test('every text that would be sent passes the guard and fits — library, FAQ and knowledge included; a fact is never truncated', async () => {
-  // a FAQ/knowledge answer carrying a DM instruction and a phone number: not posted, escalated instead
-  const bad = memStore({ det: { kind: 'faq', key: 'x', text: "Reply 'agent' or call +971 50 931 9355 to reach us." } });
-  const e1 = ev('how do I reach you?');
-  assertEquals(await processComment(bad, e1, 'question'), 'replied');
-  const r1 = bad.mem.rows.get('instagram:' + e1.commentId)!;
-  assertEquals(r1.decided_by, 'guard_fallback');
-  assert(r1.guard_failures.includes('dm_instruction') && r1.guard_failures.includes('phone'), JSON.stringify(r1.guard_failures));
-  assertEquals(bad.mem.replies[0].text, LIB.get('comment_escalated_ack')!.en);
-  // a knowledge answer too long for the platform: escalated, never cut
-  const long = 'Posting is free. '.repeat(40);
-  const lg = memStore({ det: { kind: 'knowledge', key: 'k', text: long } });
-  const e2 = ev('what is posting like?');
-  await processComment(lg, e2, 'question');
-  assert(lg.mem.rows.get('instagram:' + e2.commentId)!.guard_failures.includes('too_long'));
-  assert(!lg.mem.replies[0].text.includes('…') && lg.mem.replies[0].text === LIB.get('comment_escalated_ack')!.en);
-  // a clean FAQ answer goes as it is
-  const ok = memStore({ det: { kind: 'faq', key: 'pricing', text: 'Posting a request is free; a 3% reveal fee applies only if you reveal a supplier.' } });
-  assertEquals(await processComment(ok, ev('is it free?', { platform: 'youtube' }), 'question'), 'replied');
-  assert(ok.mem.replies[0].text.startsWith('Posting a request is free'));
+// prevented by: these tests (rulings 1195/1196, 12 Oct 2026). Every public reply is the model's; a reply the guards
+// refuse goes back to the model with the problems named; still refused, nothing is posted and customer_support is told.
+Deno.test('a refused reply is rewritten by the model, never replaced with a canned line', async () => {
+  const s = memStore({ writes: ["Reply 'agent' or call +971 50 931 9355 to reach us.", 'Posting a request on QuotesDone is free; a 3% reveal fee applies only if you reveal a supplier.'] });
+  const e = ev('how do I reach you?');
+  assertEquals(await processComment(s, e, 'question'), 'replied');
+  const row = s.mem.rows.get('instagram:' + e.commentId)!;
+  assertEquals(row.decided_by, 'model');
+  assert(row.guard_failures.includes('dm_instruction') && row.guard_failures.includes('phone'), JSON.stringify(row.guard_failures));
+  assert(/question:.*dm_instruction/.test(s.mem.writes[1]), 'the rewrite request names the problem');
+  assertEquals(s.mem.replies[0].text, 'Posting a request on QuotesDone is free; a 3% reveal fee applies only if you reveal a supplier.');
 });
 
-Deno.test('a model draft is sent only when it passes every guard; a failing draft is escalated, never queued for approval', async () => {
-  const good = memStore({ model: true, draft: 'Posting a request on QuotesDone is free; a 3% reveal fee applies only if you reveal a supplier.' });
-  assertEquals(await processComment(good, ev('what happens after I post?'), 'question'), 'replied');
-  assertEquals(good.mem.replies.length, 1);
+Deno.test('a reply still refused after two rewrites, or no model at all: nothing is posted and customer_support is told', async () => {
   for (const bad of [
-    'Customers pay 5% on every job.', 'Suppliers pay AED 500 a year.', 'We are licensed under E-Trader licence 1633275.',
-    'Our licence is 1234567.', 'The job was done by Al Noor Contracting LLC, call 0501234567.', 'We guarantee the cheapest price.',
-    'See https://cheap-quotes.example for more.', 'You are legally entitled to sue them in court.',
+    'Customers pay 5% on every job.', 'We are licensed under E-Trader licence 1633275.', 'Our licence is 1234567.',
+    'The job was done by Al Noor Contracting LLC, call 0501234567.', 'We guarantee the cheapest price.',
+    'See https://cheap-quotes.example for more.', 'You are legally entitled to sue them in court.', 'Posting is free. '.repeat(40), '',
   ]) {
-    const s = memStore({ model: true, draft: bad });
+    const s = memStore({ writes: [bad, bad, bad] });
     const e = ev('what happens after I post?');
-    assertEquals(await processComment(s, e, 'question'), 'replied', bad);
-    const row = s.mem.rows.get('instagram:' + e.commentId)!;
-    assertEquals(row.decided_by, 'guard_fallback', bad);
-    assert(row.guard_failures.length > 0, bad);
+    assertEquals(await processComment(s, e, 'question'), 'not_sent_guard', bad);
+    assertEquals(s.mem.replies.length, 0, bad);
     assertEquals(s.mem.handoffs, ['customer_support:social.escalation'], bad);
-    assert(!s.mem.replies[0].text.includes(bad), 'the failed draft itself never goes out: ' + bad);
+    assertEquals(s.mem.writes.length, 3, bad);
   }
   assert(guard('Posting is free.', { platform: 'youtube', text: 'هل النشر مجاني؟', handle: null }).includes('wrong_language'));
 });
@@ -231,14 +223,6 @@ Deno.test('the kill switch holds: nothing is sent or hidden while social_send_en
   const f = memStore();
   assertEquals(await processComment(f, ev('great work', { authorId: 'ZZDEMO1' }), 'praise'), 'reply_held');
   assertEquals(f.mem.replies.length, 0);
-});
-
-Deno.test('the model held: a judgement question is recorded "held, not run" and nothing is said', async () => {
-  const s = memStore({ model: false, draft: 'should never be asked for' });
-  const e = ev('what makes you different from other platforms?');
-  assertEquals(await processComment(s, e, 'question'), 'held_not_run');
-  assertEquals(s.mem.rows.get('instagram:' + e.commentId)!.send_status, 'held_model');
-  assertEquals(s.mem.replies.length, 0);
 });
 
 // ── platform calls, against a mocked API ────────────────────────────────────────────────────────────────

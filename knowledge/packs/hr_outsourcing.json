@@ -39,6 +39,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "hr_outsourcing:eor-cost-build-up-uae",
+      "topic": "Employer-of-record cost build-up in the UAE",
+      "kind": "commercial_reference",
+      "body_en": "A UAE employer-of-record invoice combines the employment cost with the provider's fee. Employment cost covers base salary and allowances (housing is typically 25-40% of base salary; transport commonly AED 1,000-3,000 a month), mandatory health insurance in Dubai and Abu Dhabi, first-year government costs for work permit, residence visa, medical test and Emirates ID of about USD 836-1,708, and end-of-service gratuity: 21 days' base salary per year for the first five years and 30 days per year after that, capped at two years' base salary. The provider's own charge is a monthly per-employee fee, and some providers add a one-time setup fee. Ask for each item quoted on its own line and whether gratuity is funded or only accrued. Not established here: a market-standard EOR fee level and which extras (visa cancellation, attestation, relocation) a given provider bills separately.",
+      "body_ar": "تجمع فاتورة صاحب العمل المسجَّل (EOR) في الإمارات بين تكلفة التوظيف ورسوم مقدم الخدمة. تشمل تكلفة التوظيف الراتب الأساسي والبدلات (بدل السكن عادةً 25-40% من الراتب الأساسي، وبدل المواصلات غالباً 1,000-3,000 درهم شهرياً)، والتأمين الصحي الإلزامي في دبي وأبوظبي، والتكاليف الحكومية للسنة الأولى لتصريح العمل وتأشيرة الإقامة والفحص الطبي والهوية الإماراتية بنحو 836-1,708 دولاراً أمريكياً، ومكافأة نهاية الخدمة: أجر 21 يوماً من الراتب الأساسي عن كل سنة من السنوات الخمس الأولى و30 يوماً عن كل سنة بعدها، بحد أقصى أجر سنتين من الراتب الأساسي. أما رسوم مقدم الخدمة فهي رسوم شهرية عن كل موظف، ويضيف بعض المقدمين رسوم تأسيس لمرة واحدة. اطلب تسعير كل بند في سطر مستقل، واسأل هل تُموَّل المكافأة في صندوق أم تُستحق محاسبياً فقط. غير مثبت هنا: مستوى رسوم EOR المعياري في السوق، والبنود الإضافية (إلغاء التأشيرة والتصديق والانتقال) التي يحتسبها كل مقدم على حدة.",
+      "sources": [
+        "https://www.remotepass.com/blog/cost-of-hiring-in-uae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "hr_outsourcing:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What costs are included in an employer-of-record monthly fee?",
+      "q_ar": "ما التكاليف المشمولة في الرسوم الشهرية لخدمة صاحب العمل المسجل؟",
+      "expected_entry_ids": [
+        "hr_outsourcing:eor-cost-build-up-uae"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither breaks down an EOR monthly fee (salary, visa, insurance, gratuity, margin); missing: EOR fee build-up entry). hr_outsourcing:eor-cost-build-up-uae was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from hr_outsourcing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "hr_outsourcing:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "hr_outsourcing:eor-cost-build-up-uae"
+    ]
   }
 }

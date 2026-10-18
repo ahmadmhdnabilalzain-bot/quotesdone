@@ -43,6 +43,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "general_contracting:payment-structure-and-retention",
+      "topic": "Construction contract payment structure and retention in Dubai",
+      "kind": "commercial_reference",
+      "body_en": "Dubai construction contracts commonly use FIDIC-based standards, in which retention clauses are standard. Retention is typically 5-10% of progress payments, held to ensure defects are remedied. Half is usually released at practical completion and the balance after the defects liability period, typically 12 months, if issues are resolved. Example: on AED 50 million at 10%, AED 5 million is held, AED 2.5 million is released at handover and AED 2.5 million after the defects period. Not established here: advance payment percentages and guarantees, a Dubai Municipality standard villa contract, or a market-standard stage-payment schedule for private villas; these are set in each contract.",
+      "body_ar": "تعتمد عقود البناء في دبي عادةً على نماذج فيديك (FIDIC)، وتُعد بنود المحتجزات فيها أمراً معتاداً. وتتراوح نسبة المحتجزات عادةً بين 5% و10% من الدفعات المرحلية، وتُحجز لضمان إصلاح العيوب. ويُفرج عادةً عن نصفها عند الإنجاز العملي وعن الباقي بعد انتهاء فترة المسؤولية عن العيوب، وهي غالباً 12 شهراً، إذا عولجت الملاحظات. مثال: في مشروع بقيمة 50 مليون درهم بنسبة 10% يُحتجز 5 ملايين درهم، يُفرج عن 2.5 مليون منها عند التسليم و2.5 مليون بعد فترة العيوب. غير مثبت هنا: نسب الدفعة المقدمة وضماناتها، أو عقد فلل نموذجي صادر عن بلدية دبي، أو جدول دفعات مرحلية معياري في السوق للفلل الخاصة؛ إذ تُحدَّد هذه في كل عقد.",
+      "sources": [
+        "https://joinoliva.com/en/learn/glossary/retention-money"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "general_contracting:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What payment terms are normal for a villa construction contract in Dubai?",
+      "q_ar": "ما شروط الدفع المعتادة لعقد بناء فيلا في دبي؟",
+      "expected_entry_ids": [
+        "general_contracting:payment-structure-and-retention"
+      ],
+      "why": "No entry of this pack answered it (No entry covers villa contract payment terms (advance, progress stages, retention); missing). general_contracting:payment-structure-and-retention was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from general_contracting.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +97,9 @@
       "general_contracting:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "general_contracting:payment-structure-and-retention"
+    ]
   }
 }

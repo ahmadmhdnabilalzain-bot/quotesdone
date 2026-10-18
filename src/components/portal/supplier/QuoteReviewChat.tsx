@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { srvMsg } from './serverCopy';
 import { failed, fileToBase64, openPdf as openPdfUrl, qr, REVIEW_STATE, type Issue, type Lang, type MessageView, type ThreadView } from './quoteReviewApi';
+import { photoToDataUrl } from '@/lib/chatPhoto';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { Ltr } from '@/lib/Ltr';
 
@@ -25,6 +26,8 @@ import { Ltr } from '@/lib/Ltr';
 // "11 نقاط مفتوحة" for everything above ten, where Arabic takes the accusative singular.
 
 const ACCEPT = 'application/pdf,.pdf,.xlsx,.xls,.csv,.ods,.doc,.docx,.odt,.rtf,.txt,.eml,.msg,.zip';
+// A photo or document sent WITH a message (the supplier side of #1342): read on the server (ruling 1177).
+const ACCEPT_CHAT = 'image/*,' + ACCEPT;
 const EASE = [0.16, 1, 0.3, 1] as const;
 const COPY = {
   en: {
@@ -36,6 +39,7 @@ const COPY = {
     adjustment: 'Adjustment', clarification: 'Clarification', choice: 'Your choice', line: (n: number) => `Your line ${n}`, boq: (n: number) => `BOQ line ${n}`,
     closed: 'This conversation is closed.', submitted: 'Submitted to the job. The customer sees your quotation without your name until they reveal it.',
     download: 'Download', pdf: 'Open the standardised quotation (PDF)', pdfEn: 'Open the quotation in English (PDF)', pdfAr: 'Open the quotation in Arabic (PDF)', loading: 'Opening the conversation…', err: 'Something went wrong. Please try again.', pdfFailed: 'The document could not be prepared. Please try again.', pdfHeld: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
+    chatFile: 'Photo or document', chatFileOn: (n: string) => `Attached: ${n}`, chatFileTip: 'Send a photo or document with your message — we read it.',
     fileTip: 'PDF with text, Excel, Word, CSV or email — up to 10 MB.', label: 'Message to the sales engineer', log: 'Conversation with the sales engineer',
   },
   ar: {
@@ -47,6 +51,7 @@ const COPY = {
     adjustment: 'تعديل', clarification: 'استيضاح', choice: 'اختياركم', line: (n: number) => `بندكم ${n}`, boq: (n: number) => `البند ${n} من الجدول`,
     closed: 'أُغلقت هذه المحادثة.', submitted: 'قُدّم العرض إلى الطلب. يطّلع العميل على عرضكم دون أن يظهر اسمكم إلى أن يكشف عنه.',
     download: 'تنزيل', pdf: 'فتح العرض الموحّد (PDF)', pdfEn: 'فتح العرض بالإنجليزية (PDF)', pdfAr: 'فتح العرض بالعربية (PDF)', loading: 'جارٍ فتح المحادثة…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.', pdfHeld: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.',
+    chatFile: 'صورة أو مستند', chatFileOn: (n: string) => `مرفق: ${n}`, chatFileTip: 'أرسلوا صورة أو مستندًا مع رسالتكم، وسنقرؤه.',
     fileTip: 'ملف PDF نصي أو Excel أو Word أو CSV أو رسالة بريد إلكتروني، بحجم أقصاه 10 ميغابايت.', label: 'رسالة إلى مهندس المبيعات', log: 'المحادثة مع مهندس المبيعات',
   },
 };
@@ -126,9 +131,9 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
           <div key={`${a.kind}:${a.name}:${a.quote_id ?? ''}`} className={cn('flex flex-wrap items-center gap-2', body ? 'mt-2.5' : '')}>
             <span aria-hidden className="rounded-sm border border-(--line2) px-1.5 py-0.5 font-mono text-[10.5px] uppercase text-muted-foreground">{(a.name.split('.').pop() || 'file').slice(0, 4)}</span>
             <span className="min-w-0 truncate text-[12.5px] text-foreground"><Ltr>{a.name}</Ltr></span>
-            {a.kind === 'quotation_file' && safeUrl(a.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={safeUrl(a.url)!} target="_blank" rel="noopener noreferrer">{t.download}</a> : null}
-            {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!, a.lang ?? lang)}>{a.lang === 'ar' ? t.pdfAr : a.lang === 'en' ? t.pdfEn : t.pdf}</Button> : null}
-            {a.kind === 'standard_quote' && pdfNote ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{pdfNote === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
+            {(a.kind === 'quotation_file' || a.kind === 'chat_file') && safeUrl(a.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={safeUrl(a.url)!} target="_blank" rel="noopener noreferrer">{t.download}</a> : null}
+            {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!, a.lang ?? lang)}>{a.lang === 'en' ? t.pdfEn : t.pdf}</Button> : null}
+            {a.kind === 'standard_quote' && pdfNote ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
           </div>
         ))}
       </div>
@@ -195,7 +200,23 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
     await run('upload', () => qr.upload(token, inquiryId, { b64, filename: f.name, mime: f.type || '' }, lang, note || undefined));
     if (fileRef.current) fileRef.current.value = '';
   };
-  const send = async () => { const v = text.trim(); if (!v) return; setText(''); await run('send', () => qr.message(token, inquiryId, v, lang)); };
+  // The file for the next message: a photo is resized in the browser (the customer chat's chatPhoto.ts), a document
+  // goes as it is; the server scans it and reads it either way.
+  const [chatFile, setChatFile] = useState<{ b64: string; filename: string; mime: string } | null>(null);
+  const chatFileRef = useRef<HTMLInputElement | null>(null);
+  const onChatFile = async (f: File | undefined) => {
+    if (chatFileRef.current) chatFileRef.current.value = '';
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) { setErr(lang === 'ar' ? 'الملف أكبر من 10 ميغابايت.' : 'That file is larger than 10 MB.'); return; }
+    const photo = f.type.startsWith('image/') ? await photoToDataUrl(f) : '';
+    if (photo) setChatFile({ b64: photo.replace(/^data:[^;]*;base64,/, ''), filename: f.name.replace(/\.[^.]+$/, '') + '.jpg', mime: 'image/jpeg' });
+    else setChatFile({ b64: await fileToBase64(f), filename: f.name, mime: f.type || '' });
+  };
+  const send = async () => {
+    const v = text.trim(); const file = chatFile; if (!v && !file) return;
+    setText(''); setChatFile(null);
+    await run('send', () => qr.message(token, inquiryId, v, lang, file || undefined));
+  };
 
   if (!th) return <div className="rounded-panel border border-(--line) p-4 text-[13px] text-muted-foreground" aria-busy="true">{err || t.loading}</div>;
   const st = REVIEW_STATE[th.state];
@@ -258,7 +279,12 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
                 <Button variant={th.file ? 'outline' : 'default'} disabled={!th.can_upload || !!busy || th.reviewing} onClick={() => fileRef.current?.click()}>{th.file ? t.attachNew : t.attach}</Button>
                 <span className="text-[11.5px] text-muted-foreground">{t.fileTip}</span>
               </div>
-              <Button variant="outline" disabled={!text.trim() || !th.can_write || !!busy || th.reviewing} onClick={send}>{busy === 'send' ? t.sending : t.send}</Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <input ref={chatFileRef} type="file" accept={ACCEPT_CHAT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => onChatFile(e.target.files?.[0])} disabled={!th.can_write || !!busy} />
+                <Button variant={chatFile ? 'secondary' : 'ghost'} title={t.chatFileTip} disabled={!th.can_write || !!busy || th.reviewing}
+                  onClick={() => (chatFile ? setChatFile(null) : chatFileRef.current?.click())}>{chatFile ? t.chatFileOn(chatFile.filename) : t.chatFile}</Button>
+                <Button variant="outline" disabled={(!text.trim() && !chatFile) || !th.can_write || !!busy || th.reviewing} onClick={send}>{busy === 'send' ? t.sending : t.send}</Button>
+              </div>
             </div>
           </>
         )}

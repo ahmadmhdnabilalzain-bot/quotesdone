@@ -69,7 +69,7 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 const SKIP = hasToken ? false : 'no Supabase management token';
 
 test('production, aborted: nothing enterprise remains and every other sales_engineer duty still runs', { skip: SKIP }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql: sql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   const pending = !manifestHas(FILE);
   const block = String.raw`
 do $$ declare o jsonb := '{}'; d record; v jsonb; runs jsonb := '[]'; begin

@@ -40,6 +40,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "machinery_repair:motor-rewind-scope-and-price-drivers",
+      "topic": "Electric motor rewind scope and price drivers",
+      "kind": "pricing_reference",
+      "body_en": "EASA's Good Practice Guide to Maintain Motor Efficiency, based on its 2003 and 2019 rewind studies of premium-efficiency, energy-efficient, IE2 and IE3 motors, covers repair of three-phase random-wound induction motors (much of it also applies to form-wound stators of similar size): preliminary inspection, dismantling, removing the old winding and cleaning the core, rewinding, reassembly and confirming repair integrity. A related study concluded that premium-efficiency/IE3 motors can be rewound without degrading efficiency. EASA refers to ANSI/EASA AR100 for repair practice. Not established here: price drivers and current UAE AED rates; obtain itemised quotes naming the procedure followed.",
+      "body_ar": "يستند دليل الممارسات الجيدة للحفاظ على كفاءة المحركات الصادر عن EASA إلى دراستيها لإعادة اللف لعامي 2003 و2019 على المحركات عالية الكفاءة والموفرة للطاقة وفئتي IE2 وIE3، ويغطي إصلاح المحركات الحثية ثلاثية الطور ذات اللف العشوائي (وينطبق كثير منه أيضًا على الأجزاء الثابتة ذات اللف المُشكَّل بأحجام مماثلة): الفحص الأولي، والتفكيك، وإزالة اللف القديم وتنظيف القلب، وإعادة اللف، وإعادة التجميع، والتحقق من سلامة الإصلاح. وخلصت دراسة ذات صلة إلى أن المحركات عالية الكفاءة/IE3 يمكن إعادة لفها دون تراجع في الكفاءة. وتحيل EASA إلى المواصفة ANSI/EASA AR100 لممارسات الإصلاح. غير مثبت هنا: عوامل التسعير والأسعار الحالية بالدرهم في الإمارات؛ اطلب عروض أسعار مفصلة تذكر الإجراء المتبع.",
+      "sources": [
+        "https://easa.com/resources/resource-library/good-practice-guide-to-maintain-motor-efficiency"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "machinery_repair:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is an electric motor rewind priced?",
+      "q_ar": "كيف تُسعّر إعادة لف محرك كهربائي؟",
+      "expected_entry_ids": [
+        "machinery_repair:motor-rewind-scope-and-price-drivers"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains motor rewind pricing (by kW/frame, poles, voltage, extras); missing: rewind pricing entry). machinery_repair:motor-rewind-scope-and-price-drivers was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from machinery_repair.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "machinery_repair:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "machinery_repair:motor-rewind-scope-and-price-drivers"
+    ]
   }
 }

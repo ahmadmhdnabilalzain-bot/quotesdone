@@ -7,7 +7,7 @@
 // non-committal thing, never a keyword guess. Where the answer has an effect in the database, the held
 // question is queued under its surface and fn_reason_apply_<surface> (scripts/sql/
 // prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql) applies it when the hold lifts.
-import { think, type ThinkDeps } from './think.ts';
+import { readerOfTheirOwnText, think, type ThinkDeps } from './think.ts';
 import type { Reasoned } from './reasoned_decisions.ts';
 
 const answered = (r: { status: string }) => r.status === 'answered';
@@ -34,6 +34,7 @@ export async function quoteTerms(deps: ThinkDeps, o: { text: string }): Promise<
     seat: 'sales_engineer', surface: 'quote_extract.document', question: o.text.slice(0, 6000), queueWhenHeld: false,
     context: { audience: 'supplier', conversation: [{ role: 'supplier', text: o.text.slice(0, 6000) }] },
     decision: { name: 'quotation_terms', fields: QUOTE_TERMS.map((t) => ({ key: t.key, question: t.question })) },
+    ...readerOfTheirOwnText('read the terms the quotation states'),
   });
   if (!answered(result)) return { value: null, result };
   const out: Partial<Record<QuoteTermKey, string>> = {};
@@ -52,6 +53,9 @@ export type PriceReading = { trade: string | null; asks_price: boolean; item: st
 export async function priceQuestion(deps: ThinkDeps, o: { question: string; trades: string[]; audience?: 'visitor' | 'customer' | 'supplier' }): Promise<Reasoned<PriceReading>> {
   const result = await think(deps, {
     seat: 'sales_engineer', surface: 'sql.fn_price_guidance', question: o.question.slice(0, 2000), queueWhenHeld: false,
+    // THE CHOICE IS OVER THE LIST GIVEN HERE, so there is nothing to plan or retrieve: no decompose call (12 Oct 2026,
+    // customer_support — this ran beside every widget reply and, at two serial calls, was its slowest leg: 14-21 s).
+    plan: { steps: [] },
     context: { audience: o.audience ?? 'visitor', conversation: [{ role: o.audience ?? 'visitor', text: o.question.slice(0, 2000) }] },
     decision: {
       name: 'price_trade',

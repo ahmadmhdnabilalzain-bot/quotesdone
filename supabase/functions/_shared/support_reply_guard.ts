@@ -11,9 +11,11 @@
 // the wording that will leak"). It runs on EVERY outgoing text, model or not:
 //   licence   a sentence naming the licence number is dropped (the rest of the reply stands);
 //   ai_word   "AI" / "artificial intelligence" / its Arabic becomes "smart" (profile-copy rule);
-//   internal  an error, stack trace, routine, vendor or credential name → the whole reply is replaced;
-//   prompt    wording from our own system prompts → the whole reply is replaced.
-// A replaced reply is a courteous one in the person's language with the published contact.
+//   internal  an error, stack trace, routine, vendor or credential name → the reply is REFUSED (text '');
+//   prompt    wording from our own system prompts → the reply is REFUSED (text '').
+// 12 Oct 2026 (founder rulings 1195/1196, review of #1330): code no longer substitutes a canned reply. A refused reply
+// goes BACK TO THE MODEL for a rewrite — callers check replyViolations() first and ask aiReply (_shared/ai_reply.ts),
+// which rewrites with the problems named. guardSupportReply is the last line only: a refusal it still sees sends nothing.
 // It does NOT judge tone, grounding or routing — the scenario suite grades those.
 
 export type GuardLang = 'en' | 'ar';
@@ -31,14 +33,6 @@ const INTERNAL = /circuit_open|openrouter|supabase|service_role|app_secrets|\bfn
 // Headings and phrases that exist only inside our system prompts.
 const PROMPT = /SHARED FACTS|CUSTOMER-SIDE FACTS|SUPPLIER-SIDE FACTS|AUDIENCE RULES|FORMAT RULES|GENERAL RULES|COMPANY BLOCK|FAQ CONTEXT|PRICE GUIDANCE:|system prompt|my instructions (?:are|say)|I (?:was|am) instructed to/i;
 
-const CONTACT_EN = 'call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com';
-const CONTACT_AR = 'تواصل معنا اتصالًا أو عبر واتساب على\n+971 50 931 9355\n(من الاثنين إلى الجمعة، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)، أو راسلنا على\nmanagement@quotesdone.com';
-
-export function safeReply(lang: GuardLang): string {
-  return lang === 'ar'
-    ? 'يسعدني الرد على أسئلتك حول آلية عمل QuotesDone، والرسوم، وتقديم الطلبات، والانضمام كمورّد. وللتحدث مع أحد فريقنا مباشرة، ' + CONTACT_AR + '.'
-    : 'I can help with how QuotesDone works, fees, posting a job, or joining as a supplier. To speak with someone directly, ' + CONTACT_EN + '.';
-}
 
 /** What is wrong with a reply, without changing it. The scenario suite grades with this too. */
 export function replyViolations(text: string): Violation[] {
@@ -55,7 +49,8 @@ export function replyViolations(text: string): Violation[] {
 export function guardSupportReply(text: string, lang: GuardLang): { text: string; violations: Violation[] } {
   const violations = replyViolations(text);
   if (!violations.length) return { text, violations };
-  if (violations.includes('internal') || violations.includes('prompt')) return { text: safeReply(lang), violations };
+  void lang;
+  if (violations.includes('internal') || violations.includes('prompt')) return { text: '', violations };
   let out = String(text);
   if (violations.includes('licence')) {
     // Drop the sentence (or line) that names it; a parenthesis holding it goes with its sentence.
@@ -66,7 +61,7 @@ export function guardSupportReply(text: string, lang: GuardLang): { text: string
   if (violations.includes('ai_word')) {
     out = out.replace(AI_EN, 'smart').replace(AI_AR, 'التقنية الذكية');
   }
-  // Nothing sensible left once the offending sentence is gone: say something true instead of nothing.
-  if (out.replace(/\s/g, '').length < 12) out = safeReply(lang);
+  // Nothing sensible left once the offending sentence is gone: send nothing (the caller asks the model again).
+  if (out.replace(/\s/g, '').length < 12) out = '';
   return { text: out, violations };
 }

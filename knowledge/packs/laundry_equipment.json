@@ -42,6 +42,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "laundry_equipment:hotel-laundry-capacity-sizing",
+      "topic": "Sizing on-premise hotel laundry washer-extractors",
+      "kind": "sizing_rule",
+      "body_en": "On-premise laundry equipment is sized by weighing soiled linen to find the load, not from room count alone; American Laundry News cites a select-service hotel generating about 30 lb (around 13.6 kg) of laundry per room, varying by facility type and service level. Its guidance: two smaller washer-extractors are generally better than one larger machine; buy identical units to simplify staff training; match washer and dryer controls; and consult local distributors for sizing. Dryer capacity depends on extraction: about 2:1 dryer-to-washer capacity for 100 G machines and 1.25:1 for 300 G-plus machines. For a 150-room hotel, a firm machine size cannot be given without measured linen weights, occupancy and shift hours. Not established here: a per-hour sizing formula or UAE-specific guidance.",
+      "body_ar": "تُحدَّد سعة معدات المغسلة الداخلية بوزن البياضات المتسخة لمعرفة الحمولة، لا بعدد الغرف وحده؛ وتذكر مجلة American Laundry News أن الفندق متوسط الخدمة (select-service) ينتج نحو 30 رطلاً (حوالي 13.6 كغ) من الغسيل لكل غرفة، ويختلف ذلك حسب نوع المنشأة ومستوى الخدمة. ومن إرشاداتها: غسالتان-عصّارتان أصغر أفضل عموماً من آلة واحدة أكبر؛ واشترِ وحدات متطابقة لتبسيط تدريب الموظفين؛ ووحّد أنظمة التحكم في الغسالات والمجففات؛ واستشر الموزعين المحليين في تحديد السعة. وتعتمد سعة المجفف على قوة العصر: نحو 2:1 بين سعة المجفف والغسالة للآلات بقوة 100 G، و1.25:1 للآلات بقوة 300 G فأكثر. ولا يمكن تحديد حجم آلة نهائي لفندق من 150 غرفة دون أوزان بياضات مقيسة ونسبة الإشغال وساعات الورديات. غير مثبت هنا: معادلة تحديد السعة بالساعة أو إرشادات خاصة بالإمارات.",
+      "sources": [
+        "https://americanlaundrynews.com/node/67774"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "laundry_equipment:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What capacity washer-extractor does a 150-room hotel laundry typically need?",
+      "q_ar": "ما سعة الغسالة-العصارة التي تحتاجها عادةً مغسلة فندق من 150 غرفة؟",
+      "expected_entry_ids": [
+        "laundry_equipment:hotel-laundry-capacity-sizing"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry gives sizing of washer-extractor capacity per room count or kg of linen per day). laundry_equipment:hotel-laundry-capacity-sizing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from laundry_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "laundry_equipment:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "laundry_equipment:hotel-laundry-capacity-sizing"
+    ]
   }
 }

@@ -14,6 +14,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -40,7 +41,7 @@ test('production, aborted: every run label of the last 7 days and every cron job
   const replay = [WA_FLUSH, FILE].filter(pending).map(read).join('\n');
   let o;
   try {
-    await sql(replay + `
+    await replaySql(replay + `
 do $$ begin
   raise exception 'CHK<<%>>', coalesce((select jsonb_agg(jsonb_build_object('kind', kind, 'name', name, 'runs', runs)) from public.fn_writers_without_a_seat(7)), '[]'::jsonb)::text;
 end $$;`, { retry: false });

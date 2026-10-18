@@ -21,6 +21,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -28,6 +29,9 @@ const FILE = 'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.
 // The founder's model matrix (founder_instruction 1056) moves the review classes and the pool. Replayed first when it is
 // not applied yet, like FILE, so the assertions below read the routes the matrix sets.
 const MATRIX = 'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql';
+// Matrix v2 (5 Oct 2026): replayed while its pending note exists, so the assertions read the routes it sets.
+const V2 = 'every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing';
+const V2_REPLAY = existsSync(join(REPO, 'scripts/sql/pending', `${V2}.txt`)) ? read(`scripts/sql/${V2}.sql`) + '\n' : '';
 
 test('the gateway routes a review away from its author and refuses one that names no author model', () => {
   const gw = read('supabase/functions/ai_gateway/index.ts');
@@ -187,15 +191,30 @@ begin
   perform public.fn_seat_deliberation_record(v_id, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel));
   begin
     perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', upper(v_steel),
-              'agreements', 'the split', 'disagreements', 'none'));
+              'agreements', 'the split between search and social fits the lead volume we measured', 'disagreements', 'none'));
     e := 'ACCEPTED';
   exception when others then e := left(sqlerrm, 16); end;
   o := o || jsonb_build_object('compare_repeats_blind_steelman', e);
   begin
-    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2));
+    -- the CEO's 'reasoning' sentence satisfies a04_ceo_turn_carries_its_reasons (1059), so the turn guard's
+    -- missing-agreements rule is what refuses it
+    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2,
+              'reasoning', 'the split between search and social fits the lead volume we measured'));
     e := 'ACCEPTED';
   exception when others then e := left(sqlerrm, 16); end;
   o := o || jsonb_build_object('compare_without_agreements', e);
+  begin
+    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2));
+    e := 'ACCEPTED';
+  exception when others then e := left(sqlerrm, 16); end;
+  o := o || jsonb_build_object('compare_reasonless', e);
+  -- valid reasons (passes the 1059 trigger) but no disagreements: the turn guard's own MALFORMED_REVIEW rule
+  begin
+    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2,
+              'agreements', 'the split between search and social fits the lead volume we measured'));
+    e := 'ACCEPTED';
+  exception when others then e := left(sqlerrm, 16); end;
+  o := o || jsonb_build_object('compare_without_disagreements', e);
   -- A CEO decision carries its reasons (founder_instruction 1059, a_rejection_never_ends_the_cycle_...sql): the
   -- agreements are the approval's logic, so they are a sentence, and once that file is applied the author closes an
   -- approved deliberation the moment the CEO's decision reaches it. Both states read the same here.
@@ -223,7 +242,9 @@ begin
     'monitor_marketing', (select jsonb_build_object('reviews', x->'evidence'->'reviews', 'approvals', x->'evidence'->'approvals') from jsonb_array_elements(v) x where x->>'item' = 'rubber_stamp:ceo:marketing'));
 
   -- UNHEALTHY OTHER FAMILY: Opus's breaker tripped by a real failure class -> no fallback to Sol
-  update public.llm_route_health set opened_class = 'provider_error' where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna', 'qwen/qwen3.7-plus', 'deepseek/deepseek-v4.1-flash');  -- every family but the author's (third-family last resort, #880)
+  -- Ledger 1175 (7 Oct 2026): no founder hold, so a trip is a real breaker: opened_class AND a cooldown in minutes.
+  perform set_config('app.change_reason', 'probe:a_seat_is_never_reviewed_by_a_model_of_its_own_family', true);
+  update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '15 minutes' where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');  -- every family but the author's (third-family last resort, #880; the two retired models are inactive)
   v := public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo');
   o := o || jsonb_build_object('tripped_route', concat_ws(':', v->>'use_llm', v->>'no_independent_reviewer', coalesce(v->>'model', 'none')));
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO tripped', v_ev, v_pr, c_sol, null, null, null, true);
@@ -233,7 +254,7 @@ begin
 
   -- NO PAIR CEILING (24 Sep 2026, founder_instruction 987): marketing -> ceo has spent AED 60 this month (a rolled-back
   -- row, above the old AED 50 cap) and the review is still NOT held for spend
-  update public.llm_route_health set opened_class = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna', 'qwen/qwen3.7-plus', 'deepseek/deepseek-v4.1-flash');
+  update public.llm_route_health set opened_class = null, open_until = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');
   insert into public.ai_cost_log (fn, dept_key, agent_key, task_class, model_used, cost_aed, ok)
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
@@ -243,6 +264,7 @@ begin
     'no_ceil_why', public.fn_seat_deliberation_budget('accountant', 'ceo')->>'why', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
   -- A DEMO NEVER REACHES call_model, even with the hold lifted (inside this rolled-back transaction only)
   delete from public.ai_cost_log where task_class = 'seat_deliberation_blind' and agent_key = 'ceo' and cost_aed = 60;
+  perform set_config('app.change_reason', 'probe:a_seat_is_never_reviewed_by_a_model_of_its_own_family', true);  -- the founder-hold guard admits an aborted probe by name
   update public.llm_route_health set open_until = null;
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO no hold', v_ev, v_pr, c_sol, null, null, null, true);
   o := o || jsonb_build_object('demo_unheld', (select left(why, 32) from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'));
@@ -256,12 +278,12 @@ test('production, in one aborted transaction: independence, blind first, steelma
   const { sql } = await import('../lib/db.mjs');
   const [r] = await sql(`select to_regprocedure('public.fn_ai_route_review(text,text,text,text,text)') is not null applied,
     exists (select 1 from public.model_policy where task_class = 'internal_judgement') matrix_applied`, { readOnly: true });
-  const body = (r.applied ? '' : read(FILE) + '\n') + (r.matrix_applied ? '' : read(MATRIX) + '\n') + PROBE;
+  const body = (r.applied ? '' : read(FILE) + '\n') + (r.matrix_applied ? '' : read(MATRIX) + '\n') + V2_REPLAY + PROBE;
   let out;
   try {
-    await sql(body, { retry: false });
+    await replaySql(body, { retry: false });
   } catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    const m = String(e.body ?? e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;
     const full = { '~MR': 'MALFORMED_REVIEW', '~BL': 'BLIND_PASS_LEAK', '~AU': 'AUTHOR_MODEL_UNPROVEN', '~SF': 'SAME_FAMILY_REVIEW', '~H ': 'held, not run: ' };
     out = JSON.parse(m[1].replace(/\\"/g, '"').replace(/~MR|~BL|~AU|~SF|~H /g, (k) => full[k]));
@@ -271,9 +293,10 @@ test('production, in one aborted transaction: independence, blind first, steelma
 
   assert.equal(out.sol_rev, 'anthropic/claude-opus-5.5', 'an author on Sol is reviewed by Opus');
   // founder_instruction 1056: seat_deliberation is the CEO's review, Opus with gpt-6-luna as its own fallback. An Opus
-  // author is therefore reviewed by luna, and a Sol author's fallback skips luna (Sol's family) for DeepSeek.
+  // author is therefore reviewed by luna, and a Sol author's fallback skips luna (Sol's family) for the pool's first
+  // model, Gemini (matrix v2, 5 Oct 2026: DeepSeek left the pool and Gemini leads it).
   assert.equal(out.opus_rev, 'openai/gpt-6-luna', 'an author on Opus is reviewed by the class\'s own fallback, luna');
-  assert.equal(out.sol_author_fallback, 'deepseek/deepseek-v4.1-flash', 'no fallback may lie in the author\'s family (luna is Sol\'s)');
+  assert.equal(out.sol_author_fallback, 'google/gemini-3.8-flash', 'no fallback may lie in the author\'s family (luna is Sol\'s)');
 
   assert.equal(out.held_turn.status, 'held_not_run', 'under the hold the blind step records held, not run');
   assert.equal(out.held_turn.provider, 'anthropic');
@@ -313,6 +336,11 @@ test('production, in one aborted transaction: independence, blind first, steelma
 
   assert.equal(out.approval_without_steelman, 'MALFORMED_REVIEW');
   assert.equal(out.compare_without_agreements, 'MALFORMED_REVIEW');
+  // founder_instruction 1059 added a04_ceo_turn_carries_its_reasons, which fires before trg_seat_deliberation_turn_guard
+  // (name order). Fixtures that test the turn guard carry a reasons sentence so they reach it; with no reasons at all
+  // the CEO's comparison is refused first as a reasonless decision.
+  assert.equal(out.compare_reasonless, 'REASONLESS_DECIS', 'a CEO comparison with no reasons is refused (founder_instruction 1059)');
+  assert.equal(out.compare_without_disagreements, 'MALFORMED_REVIEW', 'a comparison with reasons but no disagreements is malformed (turn guard)');
   assert.equal(out.reviewed, 'reviewed');
   assert.equal(out.compare_provider, 'anthropic');
   assert.equal(out.close, 'approve');

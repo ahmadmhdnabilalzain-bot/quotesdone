@@ -39,6 +39,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "business_centres:flexi-desk-tenancy-and-visa-quota",
+      "topic": "Flexi-desk tenancy registration and visa quota",
+      "kind": "regulatory_note",
+      "body_en": "A flexi-desk is a co-working space granted to a client on a limited-duration basis per week. In Dubai, an Ejari-registered lease is reported to carry an unlimited visa quota, whereas the Estidama (sustainability) virtual-lease option, which lets smaller companies obtain a trade licence without renting a physical office, allows a maximum of four visas. Companies on flexi-desks may face difficulties opening a business bank account or obtaining residence visas for employees without an official physical address. Not established here: whether a specific flexi-desk contract is accepted for Ejari registration and the exact visa allowance per desk, including in free zones; obtain both in writing from the business centre and the licensing authority before signing.",
+      "body_ar": "المكتب المرن (فليكسي ديسك) هو مساحة عمل مشتركة تُمنح للعميل لمدة محدودة أسبوعياً. في دبي، يُذكر أن عقد الإيجار المسجّل في نظام إيجاري لا يخضع لحدّ في حصة التأشيرات، بينما يسمح خيار الإيجار الافتراضي «استدامة»، الذي يتيح للشركات الصغيرة الحصول على رخصة تجارية دون استئجار مكتب فعلي، بأربع تأشيرات كحد أقصى. وقد تواجه الشركات التي تستخدم المكاتب المرنة صعوبات في فتح حساب مصرفي تجاري أو استخراج تأشيرات إقامة للموظفين دون عنوان فعلي رسمي. لم يثبت هنا: ما إذا كان عقد مكتب مرن بعينه يُقبل للتسجيل في إيجاري، ولا عدد التأشيرات المسموح به لكل مكتب، بما في ذلك في المناطق الحرة؛ يجب الحصول على كليهما كتابياً من مركز الأعمال وجهة الترخيص قبل التوقيع.",
+      "sources": [
+        "https://gulfnews.com/living-in-uae/ask-us/starting-a-business-in-the-uae-do-i-always-need-an-office-space-1.1662477533606"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "business_centres:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Can a flexi-desk in a business centre be used for Ejari and how many visas does it allow?",
+      "q_ar": "هل يمكن استخدام مكتب مرن في مركز أعمال لتسجيل إيجاري وكم عدد التأشيرات التي يسمح بها؟",
+      "expected_entry_ids": [
+        "business_centres:flexi-desk-tenancy-and-visa-quota"
+      ],
+      "why": "No entry of this pack answered it (the standards entry states the sources set no business-centre rule; nothing on Ejari eligibility of flexi-desks or visa quotas). business_centres:flexi-desk-tenancy-and-visa-quota was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from business_centres.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "business_centres:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "business_centres:flexi-desk-tenancy-and-visa-quota"
+    ]
   }
 }

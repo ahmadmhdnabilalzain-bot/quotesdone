@@ -535,6 +535,15 @@
       "expected_entry_ids": [
         "waterproofing:warranties"
       ]
+    },
+    {
+      "q_en": "How long should a roof waterproofing warranty be in the UAE?",
+      "q_ar": "كم يجب أن تكون مدة ضمان عزل السطح في الإمارات؟",
+      "expected_entry_ids": [
+        "waterproofing:warranties"
+      ],
+      "why": "The warranties entry covers manufacturer vs contractor waterproofing warranties in the UAE.",
+      "origin": "real buyer question, moved from waterproofing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -8,7 +8,6 @@
 -- THE ITEMS ARE REAL RETRIEVAL: zzdemo-01 carries the stored vector of one live accountant_knowledge row and a fact
 -- taken from that row's first 1,200 characters, so fn_reason_retrieve must put it in the top 5 with the fact (PASS);
 -- zzdemo-02 asks the same with a fact that is nowhere (FAIL: facts missing); zzdemo-03 has no vector (FAIL).
-begin;
 
 do $$
 declare
@@ -98,4 +97,3 @@ end $$;
 
 select coalesce(current_setting('qd.probe_verdict', true), 'PROBE FAILED (the block set no verdict)') as verdict;
 
-commit;
