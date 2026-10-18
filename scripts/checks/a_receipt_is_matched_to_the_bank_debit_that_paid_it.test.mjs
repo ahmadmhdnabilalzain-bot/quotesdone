@@ -22,7 +22,7 @@ const FILE = 'scripts/sql/the_accountant_matches_every_expense_receipt_to_its_ba
 
 const PROBE = `
 do $probe$
-declare r jsonb; r2 jsonb; l1 bigint; l2 bigint; l3 bigint; l4 bigint; e1 bigint; e2 bigint; e3 bigint; m record; bad text := '';
+declare r jsonb; r2 jsonb; r3 jsonb; l1 bigint; l2 bigint; l3 bigint; l4 bigint; l5 bigint; l6 bigint; l7 bigint; l8 bigint; l9 bigint; e1 bigint; e2 bigint; e3 bigint; e4 bigint; e5 bigint; e6 bigint; e7 bigint; m record; bad text := '';
 begin
   insert into public.bank_statement_intake (source_ref, account, state) values ('zz_demo_t6', 'zz_demo', 'parsed');
   insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash) values
@@ -52,6 +52,37 @@ begin
   if not (r->'bank_debits_unmatched' @> jsonb_build_array(jsonb_build_object('line', l2))
       and r->'bank_debits_unmatched' @> jsonb_build_array(jsonb_build_object('line', l3))) then bad := bad || 'an unmatched debit is not listed; '; end if;
   if r->'bank_debits_unmatched' @> jsonb_build_array(jsonb_build_object('line', l4)) then bad := bad || 'a bank charge is listed as needing a receipt; '; end if;
+  -- Review of #1178: ambiguity is listed, never booked; order never steals a later receipt's debit.
+  insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash)
+    values ('zz_demo', 'zz_demo_t6', date '2026-02-02', 'ZZ DEMO CARD ACME ONE', -50, 'zz_demo_t6_6') returning id into l5;
+  insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash)
+    values ('zz_demo', 'zz_demo_t6', date '2026-02-03', 'ZZ DEMO CARD ACME TWO', -50, 'zz_demo_t6_7') returning id into l6;
+  insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash)
+    values ('zz_demo', 'zz_demo_t6', date '2026-03-02', 'ZZ DEMO CARD XYZ', -70, 'zz_demo_t6_8') returning id into l7;
+  insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash)
+    values ('zz_demo', 'zz_demo_t6', date '2026-03-31', 'ZZ DEMO CARD DELTA A', -80, 'zz_demo_t6_9') returning id into l8;
+  insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash)
+    values ('zz_demo', 'zz_demo_t6', date '2026-04-01', 'ZZ DEMO CARD DELTA B', -80, 'zz_demo_t6_10') returning id into l9;
+  insert into public.expense_entries (vendor, amount, currency, charged_on, source)
+    values ('ZZ DEMO Acme', 50, 'AED', date '2026-02-01', 'receipt') returning id into e4;
+  insert into public.expense_entries (vendor, amount, currency, charged_on, source)
+    values ('ZZ DEMO Zeta', 70, 'AED', date '2026-03-01', 'receipt') returning id into e5;
+  -- e6 (1 Apr) fits l8 and l9 and is nearer l9; e7 (2 Apr) fits only l9. A greedy pass gave l9 to e6.
+  insert into public.expense_entries (vendor, amount, currency, charged_on, source)
+    values ('ZZ DEMO Delta', 80, 'AED', date '2026-04-01', 'receipt') returning id into e6;
+  insert into public.expense_entries (vendor, amount, currency, charged_on, source)
+    values ('ZZ DEMO Delta', 80, 'AED', date '2026-04-02', 'receipt') returning id into e7;
+  r3 := public.fn_accountant_receipt_bank_match();
+  if exists (select 1 from public.expense_bank_match where expense_entry_id in (e4, e5) or bank_line_id in (l5, l6, l7))
+    then bad := bad || 'an ambiguous receipt was booked; '; end if;
+  if not r3->'ambiguous' @> jsonb_build_array(jsonb_build_object('expense_entry', e4, 'reason', 'several_debits'))
+    then bad := bad || 'two vendor-word debits for one receipt are not listed several_debits; '; end if;
+  if not r3->'ambiguous' @> jsonb_build_array(jsonb_build_object('expense_entry', e5, 'reason', 'no_vendor_word'))
+    then bad := bad || 'a debit with no vendor word is not listed no_vendor_word; '; end if;
+  if not exists (select 1 from public.expense_bank_match where expense_entry_id = e6 and bank_line_id = l8)
+     or not exists (select 1 from public.expense_bank_match where expense_entry_id = e7 and bank_line_id = l9)
+    then bad := bad || 'the earlier receipt took the debit the later receipt needed; '; end if;
+
   r2 := public.fn_accountant_receipt_bank_match();
   if (r2->>'matched_now')::int <> 0 then bad := bad || 'a second run matched again; '; end if;
   if not exists (select 1 from public.seat_duty where duty = 'accountant.receipt_bank_match' and enabled

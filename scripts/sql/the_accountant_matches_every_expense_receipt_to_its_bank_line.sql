@@ -10,8 +10,11 @@
 --   * public.fn_accountant_receipt_bank_match(): deterministic, no model. A receipt matches the
 --     unmatched debit whose |amount| is within tolerance of the receipt in AED (USD at gl_settings
 --     usd_to_aed) and whose value_date is within receipt_match_days after (1 day before) charged_on.
---     Among candidates, a debit whose description carries the vendor's first word wins, then the
---     nearest date, then the nearest amount. ZZ DEMO receipts match only the zz_demo account and back.
+--     Only a debit whose text carries the vendor's first word can be booked, and only when the pairing
+--     is unique (review of #1178): two such debits for one receipt, no vendor word at all, or a debit
+--     that is the only option of two receipts are listed under 'ambiguous' and never booked. Order
+--     decides nothing: forced pairs are booked and the rest re-read, so an earlier receipt cannot take
+--     the debit a later receipt needs. ZZ DEMO receipts match only the zz_demo account and back.
 --   * It returns the unmatched on both sides inside the statement's coverage as the duty result
 --     (seat_duty.last_result), which is where the accountant reads it. It raises no finding: until
 --     29 Sep 2026 subscriptions were paid on the founder's personal card, so most receipts have no
@@ -55,7 +58,7 @@ set search_path to 'public', 'pg_temp'
 as $$
 declare
   v_days int; v_pct numeric; v_floor numeric; v_usd numeric;
-  e record; l record; n_matched int := 0; v_aed numeric; v_token text;
+  e int; n_matched int := 0;
 begin
   select num_value::int into v_days  from public.gl_settings where key = 'receipt_match_days';
   select num_value      into v_pct   from public.gl_settings where key = 'receipt_match_tolerance_pct';
@@ -65,34 +68,69 @@ begin
     raise exception 'fn_accountant_receipt_bank_match: a receipt_match_* window or usd_to_aed is missing from gl_settings';
   end if;
 
-  for e in select x.* from public.expense_entries x
-            where x.amount > 0 and upper(x.currency) in ('AED', 'USD')
-              and not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = x.id)
-            order by x.charged_on, x.id loop
-    v_aed := round(e.amount * case when upper(e.currency) = 'USD' then v_usd else 1 end, 2);
-    -- The vendor's first word of 3+ characters, after any ZZ DEMO prefix (else every demo word is "demo").
-    v_token := lower(substring(regexp_replace(coalesce(e.vendor, ''), '^\s*ZZ DEMO\s*', '', 'i') from '[A-Za-z0-9]{3,}'));
-    select bl.id, -bl.amount_aed as aed, bl.value_date - e.charged_on as gap,
-           (v_token is not null and position(v_token in lower(coalesce(bl.description, '') || ' ' || coalesce(bl.reference, ''))) > 0) as hit
-      into l
-      from public.bank_statement_line bl
-     where bl.amount_aed < 0
-       and ((bl.account = 'zz_demo') = (e.vendor ilike 'ZZ DEMO%'))
-       and abs(-bl.amount_aed - v_aed) <= greatest(v_floor, v_aed * v_pct / 100)
-       and bl.value_date between e.charged_on - 1 and e.charged_on + v_days
-       and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = bl.id)
-     order by 4 desc, abs(bl.value_date - e.charged_on), abs(-bl.amount_aed - v_aed), bl.id
-     limit 1;
-    if found then
+  -- Every (unmatched receipt, unmatched debit) pair that fits on account, amount and date, with whether
+  -- the debit's text carries the receipt vendor's first 3+ character word (after any ZZ DEMO prefix).
+  drop table if exists pg_temp.rbm_cand;
+  create temp table rbm_cand on commit drop as
+  select x.id as eid, bl.id as lid, r.aed as receipt_aed, -bl.amount_aed as bank_aed,
+         bl.value_date - x.charged_on as gap,
+         (r.tok is not null and position(r.tok in lower(coalesce(bl.description, '') || ' ' || coalesce(bl.reference, ''))) > 0) as hit
+    from public.expense_entries x
+    cross join lateral (select round(x.amount * case when upper(x.currency) = 'USD' then v_usd else 1 end, 2) as aed,
+                               lower(substring(regexp_replace(coalesce(x.vendor, ''), '^\s*ZZ DEMO\s*', '', 'i')
+                                               from '[A-Za-z0-9]{3,}')) as tok) r
+    join public.bank_statement_line bl
+      on bl.amount_aed < 0
+     and (bl.account = 'zz_demo') = (x.vendor ilike 'ZZ DEMO%')
+     and abs(-bl.amount_aed - r.aed) <= greatest(v_floor, r.aed * v_pct / 100)
+     and bl.value_date between x.charged_on - 1 and x.charged_on + v_days
+   where x.amount > 0 and upper(x.currency) in ('AED', 'USD')
+     and not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = x.id)
+     and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = bl.id);
+
+  -- A receipt whose fitting debits carry no vendor word is never booked: it is listed ambiguous.
+  -- Only vendor-word pairs can be booked, and only when the pairing is forced, never by order:
+  -- a receipt with exactly one such debit takes it unless another receipt has that same debit as
+  -- ITS only one too (contested). Each booking removes both sides and the rest is re-read, so a
+  -- later receipt whose only debit an earlier receipt could also use gets it, and the earlier one
+  -- is left with its own. Whatever is still open is ambiguous for the accountant.
+  drop table if exists pg_temp.rbm_open;
+  create temp table rbm_open on commit drop as select * from rbm_cand where hit;
+  loop
+    with only_one as (
+      select eid, min(lid) as lid from rbm_open group by eid having count(*) = 1
+    ), forced as (
+      select o.eid, o.lid from only_one o
+       where (select count(*) from only_one o2 where o2.lid = o.lid) = 1
+    ), booked as (
       insert into public.expense_bank_match (expense_entry_id, bank_line_id, receipt_aed, bank_aed, day_gap, vendor_in_text)
-      values (e.id, l.id, v_aed, l.aed, l.gap, l.hit);
-      n_matched := n_matched + 1;
-    end if;
+      select c.eid, c.lid, c.receipt_aed, c.bank_aed, c.gap, true
+        from forced f join rbm_open c on c.eid = f.eid and c.lid = f.lid
+      returning expense_entry_id, bank_line_id
+    ), gone as (
+      delete from rbm_open c using booked b where c.eid = b.expense_entry_id or c.lid = b.bank_line_id
+      returning 1
+    )
+    select count(*) into e from booked;
+    exit when e = 0;
+    n_matched := n_matched + e;
   end loop;
 
   return jsonb_build_object(
     'matched_now', n_matched,
     'matched', (select count(*) from public.expense_bank_match),
+    -- Receipts with a fitting debit that were NOT booked, for the accountant to decide: never posted.
+    'ambiguous', (select coalesce(jsonb_agg(jsonb_build_object('expense_entry', a.eid,
+                     'reason', case when not bool_or_hit then 'no_vendor_word'
+                                    when open_n > 1 then 'several_debits' else 'contested' end,
+                     'lines', a.lines) order by a.eid), '[]'::jsonb)
+                    from (select c.eid, bool_or(c.hit) as bool_or_hit,
+                                 (select count(*) from rbm_open o where o.eid = c.eid) as open_n,
+                                 jsonb_agg(c.lid order by c.lid) as lines
+                            from rbm_cand c
+                           where not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = c.eid)
+                             and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = c.lid)
+                           group by c.eid) a),
     'receipts_not_matchable', (select count(*) from public.expense_entries x
                                 where not (x.amount > 0 and upper(coalesce(x.currency, '')) in ('AED', 'USD'))),
     -- Receipts inside a statement's coverage (and past the window) with no debit: paid elsewhere, or missing.
@@ -101,6 +139,8 @@ begin
                              from public.expense_entries x
                             where x.amount > 0 and upper(x.currency) in ('AED', 'USD')
                               and not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = x.id)
+                              and not exists (select 1 from rbm_cand c where c.eid = x.id
+                                                and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = c.lid))
                               and exists (select 1 from public.bank_statement_line bl
                                            where (bl.account = 'zz_demo') = (x.vendor ilike 'ZZ DEMO%')
                                              and bl.value_date <= x.charged_on - 1)
