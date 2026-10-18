@@ -32,7 +32,7 @@ import { precedentBlock, recallCases, type CaseMemory } from '../_shared/case_re
 import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
-import { accountKey, clientHistory, convIdOf, fitHistory, openConversation } from '../_shared/chat_history.ts';
+import { accountKey, clientHistory, fitHistory, openConversation, visitorIdOf } from '../_shared/chat_history.ts';
 import { STATUS, streamReply, wantsStream } from './stream_reply.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
@@ -173,7 +173,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // for its conversation and shows every turn. Read-only; the same resolver the reply uses (_shared/chat_history.ts).
     if (b.action === 'history') {
       const w = await identify(req);
-      const c = await openConversation(admin, { account: w ? accountKey(w.audience, w.id) : '', visitorConv: b.conv });
+      const c = await openConversation(admin, { account: w ? accountKey(w.audience, w.id) : '', visitorConv: b.conv });   // no adopt: site_assistant never moves a chat
       return J({ turns: c.turns ?? [], adopted: c.adopted });
     }
     if (message.length < 1) return J({ error: 'empty' }, 400);
@@ -206,9 +206,9 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     //   - a hard per-IP message ceiling   (site_assistant_ip_hard_hour, default 80), so a script that
     //     forges a fresh id on every call cannot escape the IP bucket.
     // Callers without a conv id (older clients) keep the original per-IP message bucket.
-    const conv = convIdOf(b.conv);   // 8-64 characters or none: a short id must never read another visitor's stored turns (review of #1438)
+    const conv = visitorIdOf(b.conv);   // a full random UUID v4 or none: a guessable id must never read another visitor's turns (review of #1438)
     const firstTurn = !Array.isArray(b.history) || b.history.filter((h: any) => h && h.role === 'user').length <= 1;
-    const hasConv = !who && conv.length >= 8;
+    const hasConv = !who && !!conv;
     // rlKey / rlLimit are also handed to ai_gateway (rate_key below), so the gateway spends from the
     // same bucket rather than re-imposing the old flat per-IP cap on a conversation.
     const rlKey = who ? 'site_assistant_acct:' + who.email
@@ -235,7 +235,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // so the founder's wardrobe dimensions were gone by the fourth turn. Every turn is stored in assistant_logs under
     // conv_id and read back here; the browser's copy is used only while the database has none yet.
     // ruling 1255: one conversation per person; a visitor's turns are adopted into the account the moment they sign in
-    const pConvo = openConversation(admin, { account: who ? accountKey(who.audience, who.id) : '', visitorConv: conv });
+    const pConvo = openConversation(admin, { account: who ? accountKey(who.audience, who.id) : '', visitorConv: conv });   // no adopt: site_assistant never moves a chat
 
     // A VERIFIED SESSION OUTRANKS BOTH HEURISTICS. Guessing the audience from the URL and the
     // wording is what you do when you do not know; when you know, you do not guess.

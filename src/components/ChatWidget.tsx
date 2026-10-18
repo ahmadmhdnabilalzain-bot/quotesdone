@@ -72,10 +72,12 @@ export function ChatWidget() {
   const conv = useRef('');
   useEffect(() => {
     try {
-      conv.current = localStorage.getItem('qd-chat-conv') || sessionStorage.getItem('qd-chat-conv') || '';
-      if (!conv.current) conv.current = crypto.randomUUID();
-      localStorage.setItem('qd-chat-conv', conv.current);
-    } catch (_e) { conv.current = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+      // only a full random UUID v4 is ever used (the server refuses anything weaker); no crypto.randomUUID, no id
+      const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const kept = localStorage.getItem('qd-chat-conv') || '';
+      conv.current = UUID_V4.test(kept) ? kept : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '');
+      if (conv.current) localStorage.setItem('qd-chat-conv', conv.current); else localStorage.removeItem('qd-chat-conv');
+    } catch (_e) { conv.current = ''; }
   }, []);
   // redrawn when the chat is opened (not on every page view): only a visitor who has one gets turns back
   const restored = useRef(false);

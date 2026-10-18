@@ -102,13 +102,13 @@ const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
 // refusal arrives as a normal reply that says so and hands off to Support; the widget needs no
 // special case for it.
 // THE CUSTOMER'S ONE CONVERSATION (founder ruling 1255): sales_engineer keeps every turn under the account, and the
-// website-widget chat they had before signing up (its id in localStorage) is carried in as widget_conv.
+// website-widget chat they had before signing up (its id in localStorage) is adopted once, by assist_history on mount.
 const widgetConv = () => { try { return localStorage.getItem('qd-chat-conv') || ''; } catch (_e) { return ''; } };
 async function askAssistant(message, history, token, lang, path, images = []) {
   const r = await fetch(fnUrl('sales_engineer'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, widget_conv: widgetConv(), ...(images.length ? { images } : {}) }),
+    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, ...(images.length ? { images } : {}) }),
   });
   return r.json();
 }
@@ -131,9 +131,10 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   // redrawn from the database on every visit: a reload, another device or days later shows the whole conversation
   useEffect(() => {
     if (!token) return;
+    const wc = widgetConv();   // adopt is sent once, on this mount after sign-in; the widget id is then removed from the browser
     fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ action: 'assist_history', widget_conv: widgetConv() }) })
-      .then((r) => r.json()).then((j) => { if (Array.isArray(j?.turns) && j.turns.length) setMsgs(j.turns); })
+      body: JSON.stringify({ action: 'assist_history', ...(wc ? { widget_conv: wc, adopt: true } : {}) }) })
+      .then((r) => r.json()).then((j) => { if (wc) { try { localStorage.removeItem('qd-chat-conv'); } catch (_e) { /* storage blocked */ } } if (Array.isArray(j?.turns) && j.turns.length) setMsgs(j.turns); })
       .catch(() => { /* the next turn still reads the whole conversation on the server */ });
   }, [token]);
 

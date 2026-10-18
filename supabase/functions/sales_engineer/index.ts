@@ -375,7 +375,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
     if (action === 'assist_history') {
       const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
       if (!acct) return J({ turns: [] });
-      const c = await openConversation(admin, { account: acct, visitorConv: body.widget_conv });
+      const c = await openConversation(admin, { account: acct, visitorConv: body.widget_conv, adopt: body.adopt === true });   // the portal sends adopt once, right after sign-in
       return J({ turns: c.turns ?? [], adopted: c.adopted });
     }
     if (action === 'assist') {
@@ -387,9 +387,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // was asked for again one turn later (assistant_logs 3695). Every turn is stored under conv_id, scoped to the
       // caller the session resolved (never the body), and read back whole; the browser's copy only fills the first turn.
       // ruling 1255: ONE conversation per customer (the same key the widget writes when they are signed in), and the
-      // visitor chat they had before signing up (widget_conv) is adopted into it, so nothing said before sign-up is lost.
+      // visitor chat from before sign-up was adopted into it by assist_history (adopt flag), never here.
       const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
-      const pConvo = acct ? openConversation(admin, { account: acct, visitorConv: body.widget_conv }) : Promise.resolve({ key: '', turns: null, adopted: 0 });
+      const pConvo = acct ? openConversation(admin, { account: acct }) : Promise.resolve({ key: '', turns: null, adopted: 0 });
 
       // ── A QUESTION ABOUT THE CUSTOMER'S OWN QUOTE IS ANSWERED FROM THAT QUOTE (21 Sep 2026) ──
       // Measured in the portal audit: "the quote excludes scaffolding above 4 m, but my ceilings

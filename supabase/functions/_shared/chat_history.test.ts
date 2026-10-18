@@ -2,22 +2,24 @@
 // No network, no paid call: a stubbed model and an in-memory assistant_logs that answers the same supabase-js chain
 // loadTranscript uses. The model stub can only quote the wardrobe size if the size reached it in the turns it was given.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { accountKey, fitHistory, loadTranscript, openConversation, transcriptFromRows, type ChatMsg } from './chat_history.ts';
+import { ADOPT_WINDOW_MS, accountKey, fitHistory, loadTranscript, openConversation, transcriptFromRows, type ChatMsg } from './chat_history.ts';
 import { aiReply } from './ai_reply.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
 
-type Row = { id: number; conv_id: string | null; message: string | null; reply: string | null };
+type Row = { id: number; conv_id: string | null; message: string | null; reply: string | null; created_at?: string };
 function fakeAdmin(rows: Row[]) {
   return {
     from: (_t: string) => ({
-      insert: (r: Omit<Row, 'id'>) => { rows.push({ id: rows.length + 1, ...r }); return Promise.resolve({ error: null }); },
+      insert: (r: Omit<Row, 'id'>) => { rows.push({ id: rows.length + 1, created_at: new Date().toISOString(), ...r }); return Promise.resolve({ error: null }); },
       update: (patch: Partial<Row>) => ({ eq: (_k: string, v: string) => ({ select: () => {
         const hit = rows.filter((r) => r.conv_id === v); hit.forEach((r) => Object.assign(r, patch));
         return Promise.resolve({ data: hit.map((r) => ({ id: r.id })), error: null }); } }) }),
       select: (_c: string) => {
-        let conv = ''; const q = {
+        let conv = ''; let desc = false; const q = {
           eq: (_k: string, v: string) => { conv = v; return q; },
-          order: () => q,
+          order: (_k: string, o?: { ascending?: boolean }) => { desc = o?.ascending === false; return q; },
+          limit: (n: number) => Promise.resolve({ data: rows.filter((r) => r.conv_id === conv)
+            .sort((x, y) => desc ? String(y.created_at).localeCompare(String(x.created_at)) : x.id - y.id).slice(0, n), error: null }),
           range: (a: number, b: number) => Promise.resolve({ data: rows.filter((r) => r.conv_id === conv).sort((x, y) => x.id - y.id).slice(a, b + 1), error: null }),
         }; return q;
       },
@@ -129,7 +131,7 @@ Deno.test('signing up mid-conversation carries the whole widget chat into the po
   for (let i = 1; i <= 12; i++) await turn(fakeAdmin(rows), replyDeps(seen), { visitorConv: visitor }, i === 1 ? FIRST : 'widget detail ' + i);
   const account = accountKey('customer', 'cust-uuid-1');
   // first portal call after sign-up (assist_history or assist), presenting the widget id from localStorage
-  const portal = await openConversation(fakeAdmin(rows), { account, visitorConv: visitor });
+  const portal = await openConversation(fakeAdmin(rows), { account, visitorConv: visitor, adopt: true });
   assertEquals(portal.adopted, 12);
   assertEquals(portal.turns?.length, 24);
   assertEquals(portal.turns?.[0].content, FIRST);
@@ -141,6 +143,51 @@ Deno.test('signing up mid-conversation carries the whole widget chat into the po
   assertEquals((await loadTranscript(fakeAdmin(rows), account))?.length, 40);
   // the visitor id now reads nothing for anyone else, and another account presenting it adopts nothing
   assertEquals((await openConversation(fakeAdmin(rows), { visitorConv: visitor })).turns, []);
-  const other = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'cust-uuid-2'), visitorConv: visitor });
+  const other = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'cust-uuid-2'), visitorConv: visitor, adopt: true });
   assertEquals([other.adopted, other.turns?.length], [0, 0]);
+});
+
+// ── SECURITY (review of #1438): only a full random id, only on the portal's adopt, only a recent chat, only once ──
+const V = '7c1d2f40-aaaa-4bbb-8ccc-0000000000';
+const seed = (rows: Row[], conv: string, n: number, at: string) => { for (let i = 0; i < n; i++) rows.push({ id: rows.length + 1, conv_id: conv, message: 'm' + i, reply: 'r' + i, created_at: at }); };
+
+Deno.test('a non-UUID id gets no stored history and nothing is moved', async () => {
+  const rows: Row[] = []; const now = new Date().toISOString();
+  for (const bad of ['abcdefgh', 'deadbeef-dead', '7c1d2f40-aaaa-1bbb-8ccc-000000000003', 'v-' + V + '03']) {
+    seed(rows, 'v-' + bad, 3, now);
+    assertEquals((await openConversation(fakeAdmin(rows), { visitorConv: bad })).turns, []);
+    const a = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-bad'), visitorConv: bad, adopt: true });
+    assertEquals([a.adopted, a.turns?.length], [0, 0]);
+  }
+  assert(rows.every((r) => r.conv_id?.startsWith('v-')), 'no row was re-keyed');
+});
+
+Deno.test('a visitor chat whose newest turn is older than 24 hours is not moved', async () => {
+  const rows: Row[] = []; const now = Date.now();
+  seed(rows, 'v-' + V + '04', 4, new Date(now - ADOPT_WINDOW_MS - 60_000).toISOString());
+  const a = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-old'), visitorConv: V + '04', adopt: true }, now);
+  assertEquals([a.adopted, a.turns?.length], [0, 0]);
+  assert(rows.every((r) => r.conv_id === 'v-' + V + '04'));
+  // the same chat, its newest turn an hour ago, is moved whole
+  rows.push({ id: rows.length + 1, conv_id: 'v-' + V + '04', message: 'still here', reply: 'yes', created_at: new Date(now - 3600_000).toISOString() });
+  const b = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-old'), visitorConv: V + '04', adopt: true }, now);
+  assertEquals(b.adopted, 5);
+});
+
+Deno.test('a second account presenting the same id after adoption gets 0', async () => {
+  const rows: Row[] = [];
+  seed(rows, 'v-' + V + '05', 6, new Date().toISOString());
+  const first = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-1'), visitorConv: V + '05', adopt: true });
+  assertEquals(first.adopted, 6);
+  const second = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-2'), visitorConv: V + '05', adopt: true });
+  assertEquals([second.adopted, second.turns?.length], [0, 0]);
+  assertEquals((await loadTranscript(fakeAdmin(rows), accountKey('customer', 'c-1')))?.length, 12);
+});
+
+Deno.test('a signed-in call without the adopt flag moves nothing (assist, site_assistant)', async () => {
+  const rows: Row[] = [];
+  seed(rows, 'v-' + V + '06', 3, new Date().toISOString());
+  const a = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-3'), visitorConv: V + '06' });
+  assertEquals([a.adopted, a.turns?.length], [0, 0]);
+  assert(rows.every((r) => r.conv_id === 'v-' + V + '06'));
 });
