@@ -54,17 +54,20 @@ Deno.serve(siteCors(observe('project_api', async (req) => {
     if (action === 'dashboard') {
       const cid = cust.id;
       // ONE WAVE, NOT TWO (coordinator ruling G5, 19 Oct 2026). The quotes read used to wait for the
-      // inquiries read so it could pass their ids. Every read here is sub-millisecond in Postgres
-      // (EXPLAIN of the joined quotes read: 0.16 ms), so what it cost was one more edge-to-database
-      // round trip on the overview's critical path. The quotes are joined to their inquiry by customer
-      // and start with the other three; the 300-inquiry window is applied in memory, so the answer is
-      // unchanged.
-      const [{ data: inq }, { data: tx }, { data: projs }, { data: qAll }] = await Promise.all([
-        admin.from('inquiries').select('id,category,status,expected_value,hired_supplier_id,created_at').eq('customer_id', cid).order('created_at', { ascending: false }).limit(300),
+      // inquiries read so it could pass their ids, one more edge-to-database round trip on the
+      // overview's critical path. The quotes are now embedded in the windowed inquiries read itself, so
+      // they are exactly the quotes of the latest 300 inquiries: the row limit bounds the inquiries, and
+      // an embedded resource is not cut by PostgREST's max-rows (review of #1471: a separate customer-wide
+      // quotes read could be truncated silently past that limit).
+      // A failed read is an error, never an overview that looks complete (review of #1471).
+      const reads = await Promise.all([
+        admin.from('inquiries').select('id,category,status,expected_value,hired_supplier_id,created_at,quotes(inquiry_id,quote_amount,created_at)').eq('customer_id', cid).order('created_at', { ascending: false }).limit(300),
         admin.from('transactions').select('supplier_id,reveal_fee,quote_amount,revealed_at').eq('customer_id', cid),
         admin.from('project_summary').select('*').eq('customer_id', cid),
-        admin.from('quotes').select('inquiry_id,quote_amount,created_at,inquiries!inner(customer_id)').eq('inquiries.customer_id', cid),
       ]);
+      const failed = reads.find((r) => r.error);
+      if (failed) return J({ error: 'dashboard_read_failed', message: failed.error!.message }, 500);
+      const [{ data: inq }, { data: tx }, { data: projs }] = reads;
       const inqs = inq || []; const txs = tx || [];
       const closed = ['completed', 'cancelled', 'closed', 'won', 'lost'];
       const active = inqs.filter((i: any) => !closed.includes(String(i.status || ''))).length;
@@ -73,9 +76,8 @@ Deno.serve(siteCors(observe('project_api', async (req) => {
       const byStatus: Record<string, number> = {}; for (const i of inqs) { const k = i.status || 'unknown'; byStatus[k] = (byStatus[k] || 0) + 1; }
       let avgResp: number | null = null; let savingsPct: number | null = null;
       try {
-        const inWindow = new Set(inqs.map((i: any) => String(i.id)));
-        if (inWindow.size) {
-          const q = (qAll || []).filter((r: any) => inWindow.has(String(r.inquiry_id)));
+        if (inqs.length) {
+          const q = inqs.flatMap((i: any) => i.quotes || []);
           const first: Record<string, number> = {}; const byRfq: Record<string, number[]> = {};
           for (const r of (q || [])) {
             const t = +new Date((r as any).created_at); const iid = (r as any).inquiry_id;

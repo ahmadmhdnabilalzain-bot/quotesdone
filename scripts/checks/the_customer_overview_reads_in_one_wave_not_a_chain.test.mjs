@@ -29,3 +29,18 @@ test('customer_api my_inquiries does not chain the sanctions read and the quote 
   assert.doesNotMatch(body, /=\s*await\s+itemsByQuote\(/, 'itemsByQuote awaited on its own');
   assert.doesNotMatch(body, /await Promise\.all\(\[admin\.from\('leads'\)/, 'supplier rows awaited as their own wave');
 });
+
+// Review of #1471: the quotes must be bounded to the windowed inquiries in the same round trip
+// (a customer-wide quotes read could be truncated silently past PostgREST's max-rows).
+test('dashboard quotes are embedded in the windowed inquiries read, not a customer-wide read', () => {
+  const body = slice('supabase/functions/project_api/index.ts', "action === 'dashboard'", "action === 'create'");
+  assert.doesNotMatch(body, /from\('quotes'\)/, 'separate quotes read is unbounded by the 300-inquiry window');
+  assert.match(body, /from\('inquiries'\)\.select\('[^']*quotes\([^)]*\)'\)[^;]*\.limit\(300\)/, 'quotes must be embedded in the limited inquiries read');
+});
+
+// Review of #1471: a failed read must surface, not render an overview that looks complete.
+test('dashboard surfaces a failed read as an error', () => {
+  const body = slice('supabase/functions/project_api/index.ts', "action === 'dashboard'", "action === 'create'");
+  assert.match(body, /reads\.find\(\(r\) => r\.error\)/, 'every read result must be checked for error');
+  assert.match(body, /if \(failed\) return J\(\{ error: 'dashboard_read_failed'[^}]*\}, 500\)/, 'a failed read must return an error status');
+});
