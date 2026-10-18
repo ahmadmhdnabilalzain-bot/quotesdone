@@ -6545,5 +6545,13 @@
  ],
  "supabase/functions/wa_inbound/model_says.ts": [
   "036a6e41b969"
+ ],
+ "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
+  "2d40f052e0dc",
+  "8e9efb918bad",
+  "8f2b4b5cab7b",
+  "952398d7142e",
+  "bafd773faf8b",
+  "cda600d8f764"
  ]
 }
