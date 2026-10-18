@@ -130,7 +130,7 @@
      "file": "supabase/functions/marketing_social_inbox/index.ts",
      "must_contain": [
       "needsAPerson(defaultDeps(admin, 'marketing_social_inbox')",
-      "person.value === true, meaning)",
+      "writeSocial(ev.text, ev.platform, ev.channel, person.value === true",
       "action === 'reasoned_handoff'"
      ]
     }
@@ -194,7 +194,7 @@
      "file": "supabase/functions/_shared/reasoned_delivery.ts",
      "must_contain": [
       "row.surface === 'wa_inbound.intent_table'",
-      "await io.waIntentReply(phone, question, choice.slice(7))"
+      "await io.writeReply(question, lang, { channel: 'WhatsApp', subject })"
      ]
     }
    ]
@@ -300,7 +300,7 @@
     {
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
-      "if (asked === 'size')"
+      "await answerFromBrief({"
      ],
      "must_not_contain": [
       "isSizeQuestion("
@@ -343,7 +343,7 @@
     {
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
-      "widgetMeaning(defaultDeps(admin, 'site_assistant')"
+      "await answerFromBrief({"
      ],
      "must_not_contain": [
       "routeQuestion("
@@ -384,7 +384,7 @@
     {
      "file": "supabase/functions/marketing_social_inbox/index.ts",
      "must_contain": [
-      "socialMeaning(deps, {",
+      "await writeSocial(ev.text, ev.platform, ev.channel, false",
       "j.action === 'reasoned_reply'"
      ]
     },
@@ -437,7 +437,7 @@
     {
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
-      "if (wm.side) { audience = wm.side; source = 'text'; }"
+      "Read from their words whether they buy (a customer) or sell (a supplier)"
      ],
      "must_not_contain": [
       "SUP_RE",
@@ -1093,7 +1093,7 @@
     {
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
-      "priceGuidanceFor(defaultDeps(admin, 'site_assistant')"
+      "await answerFromBrief({"
      ],
      "must_not_contain": [
       "admin.rpc('fn_price_guidance'"
@@ -2381,7 +2381,7 @@
     {
      "file": "supabase/functions/sales_engineer/index.ts",
      "must_contain": [
-      "portalPassage(defaultDeps(admin, 'sales_engineer')"
+      "const sr = await supportReply(defaultDeps(admin, 'sales_engineer')"
      ],
      "must_not_contain": [
       "onTopic("
@@ -2410,8 +2410,8 @@
     {
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
-      "asked?.startsWith('kb:') ? packRows[Number(asked.slice(3))]",
-      "passages: packRows"
+      "await answerFromBrief({",
+      "companyBrief(rpc, (faqs || []) as FaqRow[]"
      ],
      "must_not_contain": [
       "function tok(",
@@ -2695,7 +2695,7 @@
     {
      "file": "supabase/functions/_shared/supplier_doc_trades.ts",
      "must_contain": [
-      "await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only })",
+      "await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names })",
       "await liveTradeDeps(admin)"
      ],
      "must_not_contain": [
@@ -2709,7 +2709,8 @@
      "file": "supabase/functions/_shared/trade_resolve.ts",
      "must_contain": [
       "admin.rpc('fn_norm_trades_many'",
-      "proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly })"
+      "proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, codeWords })",
+      "await deps.normTrades(raw)"
      ],
      "must_not_contain": [
       "termPattern(",

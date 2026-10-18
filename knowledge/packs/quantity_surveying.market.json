@@ -7,9 +7,10 @@
     {
       "id": "quantity_surveying:uae-market-products",
       "topic": "Quantity surveying & cost consultancy: products, variants and grades sold in the UAE",
+      "topic_ar": "حساب الكميات واستشارات التكلفة: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Quantity surveying and cost consultancy in the UAE include cost planning and estimates at each design stage, bills of quantities (BOQ) preparation using POMI (Principles of Measurement International) or NRM (RICS New Rules of Measurement) or CESMM for civil works, tender documentation and tender analysis, contract administration (FIDIC Red/Yellow/Silver Book and bespoke government contracts), interim valuations and payment certificates, variation assessment, final accounts, claims preparation and defence (extension of time, loss and expense, delay analysis), value engineering, life-cycle costing, reinstatement cost assessments for insurance, bank monitoring and lender's QS, and contractor-side commercial management. Buyers ask about RICS-accredited staff (MRICS/FRICS), use of CostX, Candy, Excel-based tools, BIM 5D, and familiarity with Dubai Municipality/ADM tender requirements. QS firms operate as engineering consultancies (DM/ADM registration) or as licensed cost consultants.",
-      "body_ar": "تشمل خدمات حساب الكميات واستشارات التكاليف في الإمارات تخطيط التكاليف والتقديرات في كل مرحلة تصميم، وإعداد جداول الكميات باستخدام مبادئ القياس الدولية (POMI) أو قواعد القياس الجديدة لـ RICS (NRM) أو CESMM للأعمال المدنية، ووثائق المناقصات وتحليلها، وإدارة العقود (كتب فيديك الأحمر/الأصفر/الفضي وعقود حكومية خاصة)، والتقييمات المرحلية وشهادات الدفع، وتقييم الأوامر التغييرية، والحسابات الختامية، وإعداد المطالبات والدفاع عنها (تمديد المدة، والخسائر والمصاريف، وتحليل التأخير)، والهندسة القيمية، وتكلفة دورة الحياة، وتقييمات تكلفة إعادة البناء للتأمين، ومراقبة المشاريع للبنوك ومساح كميات المقرض، والإدارة التجارية لدى المقاول. يسأل المشترون عن الموظفين المعتمدين من RICS (MRICS/FRICS)، واستخدام CostX وCandy وأدوات Excel، ونمذجة معلومات البناء خماسية الأبعاد، والإلمام بمتطلبات مناقصات بلدية دبي/أبوظبي. وتعمل شركات حساب الكميات كمكاتب استشارات هندسية (تسجيل لدى البلدية) أو كاستشاريي تكاليف مرخصين.",
+      "body_en": "This covers the quantity surveying and cost consultancy services offered in the UAE, from cost plans and BOQs to contract administration, claims and lender monitoring, and what buyers ask. Quantity surveying and cost consultancy in the UAE include cost planning and estimates at each design stage, bills of quantities (BOQ) preparation using POMI (Principles of Measurement International) or NRM (RICS New Rules of Measurement) or CESMM for civil works, tender documentation and tender analysis, contract administration (FIDIC Red/Yellow/Silver Book and bespoke government contracts), interim valuations and payment certificates, variation assessment, final accounts, claims preparation and defence (extension of time, loss and expense, delay analysis), value engineering, life-cycle costing, reinstatement cost assessments for insurance, bank monitoring and lender's QS, and contractor-side commercial management. Buyers ask about RICS-accredited staff (MRICS/FRICS), use of CostX, Candy, Excel-based tools, BIM 5D, and familiarity with Dubai Municipality/ADM tender requirements. QS firms operate as engineering consultancies (DM/ADM registration) or as licensed cost consultants.",
+      "body_ar": "تشمل خدمات حساب الكميات واستشارات التكلفة في الإمارات خطط التكلفة وجداول الكميات (BOQ)، وإدارة العقود والمطالبات والمراقبة لصالح الجهات الممولة، مع ما يسأل عنه المشتري عادةً. تشمل خدمات حساب الكميات واستشارات التكاليف في الإمارات تخطيط التكاليف والتقديرات في كل مرحلة تصميم، وإعداد جداول الكميات باستخدام مبادئ القياس الدولية (POMI) أو قواعد القياس الجديدة لـ RICS (NRM) أو CESMM للأعمال المدنية، ووثائق المناقصات وتحليلها، وإدارة العقود (كتب فيديك الأحمر/الأصفر/الفضي وعقود حكومية خاصة)، والتقييمات المرحلية وشهادات الدفع، وتقييم الأوامر التغييرية، والحسابات الختامية، وإعداد المطالبات والدفاع عنها (تمديد المدة، والخسائر والمصاريف، وتحليل التأخير)، والهندسة القيمية، وتكلفة دورة الحياة، وتقييمات تكلفة إعادة البناء للتأمين، ومراقبة المشاريع للبنوك ومساح كميات المقرض، والإدارة التجارية لدى المقاول. يسأل المشترون عن الموظفين المعتمدين من RICS (MRICS/FRICS)، واستخدام CostX وCandy وأدوات Excel، ونمذجة معلومات البناء خماسية الأبعاد، والإلمام بمتطلبات مناقصات بلدية دبي/أبوظبي. وتعمل شركات حساب الكميات كمكاتب استشارات هندسية (تسجيل لدى البلدية) أو كاستشاريي تكاليف مرخصين.",
       "sources": [
         "https://www.rics.org",
         "https://fidic.org",
@@ -23,9 +24,10 @@
     {
       "id": "quantity_surveying:uae-market-brands",
       "topic": "Quantity surveying & cost consultancy: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "حساب الكميات واستشارات التكلفة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Professional bodies and international cost consultancies: RICS, FIDIC, AECOM, Arcadis, Turner & Townsend, Currie & Brown, Gleeds, Linesight, HKA. The consultancies' UAE offices were not checked on opened pages.",
-      "body_ar": "الهيئات المهنية واستشاريو التكاليف الدوليون: RICS، FIDIC، AECOM، Arcadis، Turner & Townsend، Currie & Brown، Gleeds، Linesight، HKA. ولم يُتحقق من مكاتب الاستشاريين في الإمارات عبر صفحات مفتوحة.",
+      "body_en": "This lists the professional bodies RICS and FIDIC and the international cost consultancies, such as AECOM, Arcadis, Turner & Townsend and Currie & Brown. Professional bodies and international cost consultancies: RICS, FIDIC, AECOM, Arcadis, Turner & Townsend, Currie & Brown, Gleeds, Linesight, HKA. The consultancies' UAE offices were not checked on opened pages.",
+      "body_ar": "من الهيئات المهنية في حساب الكميات RICS وFIDIC، ومن شركات استشارات التكاليف الدولية AECOM وArcadis وTurner & Townsend وCurrie & Brown. الهيئات المهنية واستشاريو التكاليف الدوليون: RICS، FIDIC، AECOM، Arcadis، Turner & Townsend، Currie & Brown، Gleeds، Linesight، HKA. ولم يُتحقق من مكاتب الاستشاريين في الإمارات عبر صفحات مفتوحة.",
       "sources": [
         "https://www.rics.org",
         "https://fidic.org",
@@ -39,9 +41,10 @@
     {
       "id": "quantity_surveying:uae-market-sizes",
       "topic": "Quantity surveying & cost consultancy: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "حساب الكميات واستشارات التكلفة: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Fees are a percentage of construction value, a lump sum per stage (cost plan, BOQ, tender, post-contract), a monthly fee for post-contract services, or hourly/daily rates for claims and expert witness work. BOQ preparation alone may be priced per project by size. Lender monitoring is priced per monthly report.",
-      "body_ar": "تكون الأتعاب نسبة من قيمة البناء، أو مبلغاً مقطوعاً لكل مرحلة (خطة التكاليف، وجدول الكميات، والمناقصة، وما بعد التعاقد)، أو رسوماً شهرية لخدمات ما بعد التعاقد، أو أسعاراً بالساعة/اليوم للمطالبات وعمل الخبير. وقد يُسعّر إعداد جدول الكميات وحده لكل مشروع حسب الحجم. وتُسعّر مراقبة المقرض لكل تقرير شهري.",
+      "body_en": "This explains how quantity surveying fees are set: a percentage of construction value, a lump sum per stage, a monthly fee, or hourly and daily rates. Fees are a percentage of construction value, a lump sum per stage (cost plan, BOQ, tender, post-contract), a monthly fee for post-contract services, or hourly/daily rates for claims and expert witness work. BOQ preparation alone may be priced per project by size. Lender monitoring is priced per monthly report.",
+      "body_ar": "تُحدَّد أتعاب حساب الكميات كنسبة من قيمة الإنشاء، أو بمبلغ مقطوع لكل مرحلة، أو بأتعاب شهرية، أو بسعر الساعة أو اليوم. تكون الأتعاب نسبة من قيمة البناء، أو مبلغاً مقطوعاً لكل مرحلة (خطة التكاليف، وجدول الكميات، والمناقصة، وما بعد التعاقد)، أو رسوماً شهرية لخدمات ما بعد التعاقد، أو أسعاراً بالساعة/اليوم للمطالبات وعمل الخبير. وقد يُسعّر إعداد جدول الكميات وحده لكل مشروع حسب الحجم. وتُسعّر مراقبة المقرض لكل تقرير شهري.",
       "sources": [
         "https://www.rics.org",
         "https://fidic.org",
@@ -55,11 +58,15 @@
   ],
   "eval": [
     {
-      "q_en": "Which measurement standard is used for BOQs in UAE building projects?",
-      "q_ar": "ما معيار القياس المستخدم لجداول الكميات في مشاريع المباني في الإمارات؟",
+      "q_en": "What do QS practices and estimators offer to clients around here?",
+      "q_ar": "شو اللي تقدمه مكاتب حساب الكميات والمقدّرين للعملاء هنا؟",
       "expected_entry_ids": [
         "quantity_surveying:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists the cost planning, BOQ, tender and contract administration services offered by QS firms, which answers what is available.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0,
+      "word_overlap_after_enrichment": 0
     }
   ],
   "verified": {

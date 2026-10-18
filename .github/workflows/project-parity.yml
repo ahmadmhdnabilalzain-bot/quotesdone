@@ -44,6 +44,12 @@ on:
     - cron: '41 5 * * *'
   workflow_dispatch:
 
+# Deno reads only the npm: specifiers the edge functions import, never the Next.js app's package.json: with
+# --no-lock it resolved that whole tree fresh and failed on a platform package the registry mirror had not
+# served yet ("Could not find npm package @swc/core-darwin-arm64 1.16.18", 12 Oct 2026, 5 jobs, 3 PRs).
+env:
+  DENO_NO_PACKAGE_JSON: "1"
+
 jobs:
   # 17 AUG 2026 — THE CROSSWALK, IN TWO JOBS ON PURPOSE.
   #
@@ -63,10 +69,13 @@ jobs:
   # own anything.
   parity:
     name: the database is running what this repository says
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        # full history: canonical_routine_manifest dates each pending/ note with git log (outcome audit 30 Sep)
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -96,6 +105,7 @@ jobs:
       - name: One canonical file per routine, and it is what is deployed
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          QD_REQUIRE_GIT_HISTORY: '1'   # this job checks out full history, so an undatable pending note is a finding
         run: node scripts/checks/canonical_routine_manifest.mjs --all
       # 28 SEP 2026 (it_engineer) — THE FUNCTION HALF OF "PRODUCTION RUNS ONLY MAIN". The step above
       # fails when a live routine differs from main's canonical file; this fails when a deployed edge
@@ -206,7 +216,7 @@ jobs:
     concurrency:
       group: kernel-gate-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: false
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-8' }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7

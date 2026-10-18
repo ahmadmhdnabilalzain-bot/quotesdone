@@ -42,6 +42,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "leather_footwear:en-iso-20345-s1p-vs-s3",
+      "topic": "EN ISO 20345 classes S1P and S3",
+      "kind": "standard_reference",
+      "body_en": "EN ISO 20345:2022 replaces the 2012 edition for safety footwear. S1 = protective toe cap, closed heel, electrical resistance, heel energy absorption and mandatory slip resistance. S1P = S1 plus nail-penetration (puncture) protection; many S1P models have small ventilation openings that keep feet cool. S3 adds water protection of the upper: WRU (water-repellent upper) under the 2012 edition, WPA (water penetration and absorption) under 2022. The deciding factor is water: if the job does not need a water-repellent upper, S3 is not needed and S1P is enough, so dry indoor warehouses usually suit S1P while wet areas call for S3. Not established: toe-cap energy, sole marking variants, any UAE rule mandating a class for warehouses; the employer's risk assessment decides.",
+      "body_ar": "حلّت المواصفة EN ISO 20345:2022 محل إصدار 2012 لأحذية السلامة. الفئة S1 = مقدمة واقية لأصابع القدم، وكعب مغلق، ومقاومة كهربائية، وامتصاص الطاقة في منطقة الكعب، ومقاومة انزلاق إلزامية. الفئة S1P = S1 مع حماية من اختراق المسامير (الثقب)؛ وكثير من طُرز S1P مزودة بفتحات تهوية صغيرة تحافظ على برودة القدم. وتضيف الفئة S3 حماية الجزء العلوي من الماء: WRU (جزء علوي طارد للماء) في إصدار 2012، وWPA (مقاومة نفاذ الماء وامتصاصه) في إصدار 2022. العامل الحاسم هو الماء: إذا لم يتطلب العمل جزءًا علويًا طاردًا للماء فلا حاجة إلى S3 وتكفي S1P، لذا تناسب S1P عادةً المستودعات الداخلية الجافة بينما تتطلب المناطق الرطبة S3. غير مثبت: طاقة اختبار مقدمة الأصابع، ورموز تمييز النعل، وأي قاعدة إماراتية تفرض فئة معينة للمستودعات؛ ويحسم ذلك تقييم المخاطر لدى صاحب العمل.",
+      "sources": [
+        "https://ejendals.com/blog/do-you-need-s3--or-s1p-safety-rating/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "leather_footwear:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which safety shoe class should warehouse staff wear, S1P or S3?",
+      "q_ar": "ما فئة حذاء السلامة التي يجب أن يرتديها موظفو المستودع، S1P أم S3؟",
+      "expected_entry_ids": [
+        "leather_footwear:en-iso-20345-s1p-vs-s3"
+      ],
+      "why": "No entry of this pack answered it (the checklist only lists safety class as a field; no entry explains S1P vs S3 (EN ISO 20345)). leather_footwear:en-iso-20345-s1p-vs-s3 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from leather_footwear.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "leather_footwear:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "leather_footwear:en-iso-20345-s1p-vs-s3"
+    ]
   }
 }

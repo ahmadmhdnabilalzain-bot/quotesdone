@@ -14,6 +14,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const SRC = readFileSync(join(REPO, 'scripts/sql/an_external_cause_closes_only_on_a_recovered_probe.sql'), 'utf8');
@@ -62,7 +63,7 @@ end $p$;`;
 test('production: a % and _ reference matches literally; only a recovered probe closes the cause', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let message = '';
-  try { await sql(SRC + '\n' + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; }
+  try { await replaySql(SRC + '\n' + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; }
   catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 1500));

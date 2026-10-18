@@ -88,6 +88,13 @@ export const SAFE_OFFICE = [
   'application/rtf',
   'text/plain',
 ] as const;
+// A SUPPLIER'S OWN PAPERS (12 Oct 2026, stage-2 run f4294be8). Company profiles and catalogues are
+// written in Word and PowerPoint as often as in PDF. process_docs allowed only SAFE_UPLOAD for them, so
+// a .docx/.pptx profile refused the WHOLE request with 415 - the licence beside it was never read and
+// the gate fell to reg_licence (5 of 9 suppliers). doc_read reads both; sniff() still refuses macros.
+export const SAFE_SUPPLIER_PAPERS = [...SAFE_UPLOAD,
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation'] as const;
 export const SAFE_MAIL = ['message/rfc822', 'application/vnd.ms-outlook'] as const;      // eml, msg
 // Founder ruling 1000 (28 Sep 2026): drawings are PDF, DWG and DXF only. IFC, Revit and DGN v7 are still
 // SNIFFED below, so each is refused as what it is and never misread as CSV or a spreadsheet, but no

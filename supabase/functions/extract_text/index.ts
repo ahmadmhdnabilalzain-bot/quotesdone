@@ -50,6 +50,16 @@ Deno.serve(observe('extract_text', async (req) => {
       if (jd?.truncated === true || jd?.finish_reason === 'length') modelTruncated = true;
       const c = jd?.content; if(c && String(c).trim().length>5){ text = String(c).trim(); } else last = jd?.detail || jd?.error || jd?.why || 'empty:gateway';
     }catch(e){ last='exc:gateway:'+String((e as Error)?.message||e).slice(0,80); }
+    // RULING 1177 (12 Oct 2026): the 'pdf-text' engine reads only a text layer, so a SCANNED PDF came back empty. It is
+    // asked once more with the file itself and no text-only plugin, so the vision model reads the page.
+    if(!text){
+      try{
+        const r = await fetch(GW, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'extract_text', input: [{ role:'user', content }] }), signal: AbortSignal.timeout(110_000) });
+        const jd = await r.json();
+        if (jd?.truncated === true || jd?.finish_reason === 'length') modelTruncated = true;
+        const c = jd?.content; if(c && String(c).trim().length>5){ text = String(c).trim(); } else last = jd?.detail || jd?.error || jd?.why || last;
+      }catch(e){ last='exc:gateway_retry:'+String((e as Error)?.message||e).slice(0,80); }
+    }
     if(!text) return J({ ok:false, error:'extract_failed', detail:last }, 200);
     // The buffer stays - a caller asking for a document's text should not be handed an unbounded
     // string - but a truncated result is now LABELLED. "Extract ALL text" returning a silently

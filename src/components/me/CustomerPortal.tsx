@@ -64,6 +64,7 @@ import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/port
 const SpatialModule = dynamic(() => import('@/components/portal/spatial').then((m) => m.SpatialModule), { ssr: false, loading: ModuleLoading });
 const DocumentVault = dynamic(() => import('@/components/portal/documents').then((m) => m.DocumentVault), { ssr: false, loading: ModuleLoading });
 import { RevealPayment } from './RevealPayment';
+import { PrivacyControls } from '@/components/portal/PrivacyControls';
 const CommunicationCenter = dynamic(() => import('@/components/portal/comms').then((m) => m.CommunicationCenter), { ssr: false, loading: ModuleLoading });
 const OrdersList = dynamic(() => import('@/components/portal/approvals').then((m) => m.OrdersList), { ssr: false, loading: ModuleLoading });
 const PredictiveIntelligence = dynamic(() => import('@/components/portal/predict').then((m) => m.PredictiveIntelligence), { ssr: false, loading: ModuleLoading });
@@ -395,7 +396,6 @@ function Login({ onAuth, lang }) {
   // An empty press says so, and a sign-up address is checked for shape AND for reserved names that
   // can never receive a code (src/lib/signupEmail.ts; audit 21 Sep 2026, items 26 and 28).
   const send = async () => { const v = id.trim(); if (!v) { setMsg(t(lang, isSignup ? 'err_need_email' : 'err_need_id')); return; } if (isSignup) { const p = signupEmailProblem(v); if (p) { setMsg(t(lang, p)); return; } } setBusy(true); setMsg('');
-    try { const g = await call('role_guard', { user_kind: 'customer', identifier: v }); if (g && g.conflict === 'supplier') { setBusy(false); setMsg(t(lang, 'conflict_supplier')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(errText(j, lang, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim(), lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; }
     // THE BUTTON UN-BUSIED WHILE THE PORTAL WAS STILL BOOTING. setBusy(false) fired BEFORE onAuth,
@@ -1535,7 +1535,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   const revealedFacts = (r) => !!(r && r.already_revealed && r.supplier);
   const unlock = (r) => {
     if (!revealedFacts(r)) { setState('settling'); return false; }
-    setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); setState('revealed'); setJustRevealed(true); return true;
+    setContact({ supplier: r.supplier }); setState('revealed'); setJustRevealed(true); return true;
   };
   // The settling card's own button: one more ask, no reload, no second payment.
   const [recheckBusy, setRecheckBusy] = useState(false);
@@ -1578,7 +1578,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   // It falls back to the settling card, which says why and carries the Check again button.
   const showContactData = async () => {
     const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null);
-    if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name });
+    if (r && r.supplier) setContact({ supplier: r.supplier });
     else setState('settling');
   };
   const settling = state === 'settling';
@@ -1595,6 +1595,11 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     </div>
     <div className="mt-0.5 text-[11.5px] text-muted-foreground">{[q.lead_time ? t(lang, 'q_lead') + ': ' + q.lead_time : '', q.warranty ? t(lang, 'q_warranty') + ': ' + durationLabel(q.warranty, lang) : '', q.payment_terms ? t(lang, 'q_terms') + ': ' + q.payment_terms : '', q.win_rate != null ? t(lang, 'q_win') + ' ' + Math.round(q.win_rate) + '%' : ''].filter(Boolean).join(' · ')}</div>
     {/* W9: anonymous facts about the supplier, served per quote; each badge hides when its value is absent. */}
+    {/* Rulings 1207/1208: the supplier's price exactly as stated ("AED 2,000, after discount AED 1,700") and its VAT as
+        stated, served by my_inquiries from _shared/stated_price.ts; QuotesDone is not responsible for those details. */}
+    {q.discount_amount ? <div className={cn(S.sub, 'mt-1 font-medium text-foreground')}>{lang === 'ar' ? q.price_stated_ar : q.price_stated}</div> : null}
+    {q.vat_stated ? <div className={cn(S.sub, 'mt-0.5')}>{lang === 'ar' ? q.vat_stated_ar : q.vat_stated}</div> : null}
+    <div className={cn(S.sub, 'mt-0.5 italic')}>{t(lang, 'q_not_responsible')}</div>
     {q.badges ? <div className="mt-1.5"><QuoteBadges f={q.badges} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
     {q.scope && <div className={cn(S.sub, 'mt-1')}>{q.scope}</div>}
     {q.notes &&<div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_note') + q.notes}</div>}
@@ -1614,7 +1619,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
         : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)
       : (<div className="mt-3 flex flex-col items-stretch gap-2.5 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Stacked below sm: beside the button the fee sentence was squeezed to 1-2 words a line at 375px. */}
-          <div className={cn(S.sub, 'min-w-0 sm:flex-1')}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}</div>
+          <div className={cn(S.sub, 'min-w-0 sm:flex-1')}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}{q.fee_basis ? <div className="mt-0.5">{lang === 'ar' ? q.fee_basis_ar : q.fee_basis}</div> : null}</div>
           {/* Gold: the one action in the product that unseals an identity. */}
           <Button variant="reveal" aria-busy={revealSpin || undefined} disabled={busy || concluded} onClick={reveal}>{revealSpin ? <Spinner /> : <Lock aria-hidden />}{busy ? t(lang, leaving ? 'q_redirecting' : 'q_wait') : t(lang, 'q_reveal')}</Button>
         </div>)}
@@ -1684,11 +1689,6 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
         {s.email && <a href={'mailto:' + s.email} className="font-semibold text-primary">✉ <bdi dir="ltr">{s.email}</bdi></a>}
         {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_website')}</a>}
       </div>
-      {/* The supplier's own quotation file: View / Download; Replace / Remove say it is the supplier's (instruction 524). */}
-      {c.file_url && <div className="mt-1.5">
-        <div className={cn(S.sub, 'mb-1')}>{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</div>
-        <DocActions lang={lang} name={c.file_name} url={c.file_url} sealed="suppliers_file" />
-      </div>}
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         {/* A11Y (5 Aug 2026): real buttons carrying their value, in a labelled group. */}
         {/* The stars stay after a rating (audit 21 Sep 2026, item 18): rate_supplier upserts the one
@@ -1871,8 +1871,11 @@ function AccountSettings({ token, lang, onChanged }) {
   // A refusal was printed in the same muted grey as "Saved" and never announced (e2e forms probe, 23 Sep
   // 2026: name emptied -> kyc 400 enter_name -> a grey line). An error is an alert now.
   const [msgErr, setMsgErr] = useState(false);
+  // THE TERMS VERSION ON FILE vs THE CURRENT ONE (6 Oct 2026, release review of #1240): shown here with an accept
+  // button, so a customer is never sent to a page that cannot act. customer_api accept_terms records it.
+  const [termsV, setTermsV] = useState(''); const [termsTick, setTermsTick] = useState(false);
   const load = () => call('customer_api', { action: 'me' }, token)
-    .then((j) => { if (j && j.customer) { setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); setDob(String(j.customer.date_of_birth || '').slice(0, 10)); } else setErr(t(lang, 'acct_failed')); })
+    .then((j) => { if (j && j.customer) { setTermsV(j.terms_current_version || ''); setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); setDob(String(j.customer.date_of_birth || '').slice(0, 10)); } else setErr(t(lang, 'acct_failed')); })
     .catch(() => setErr(t(lang, 'acct_failed')));
   // DO NOT ASK AN AUTHENTICATED ENDPOINT WHO WE ARE BEFORE WE HAVE A TOKEN. This ran on the first
   // render, when `token` is still '' because it is read from localStorage and from
@@ -1956,6 +1959,15 @@ function AccountSettings({ token, lang, onChanged }) {
         <div className="text-[12.5px] font-medium text-muted-foreground">{waText(lang, 'row_label')}</div>
         <div className="min-w-0"><WhatsAppChoice token={token} lang={lang} mode="settings" current={wa} mobile={me.phone} onDone={loadWa} /></div>
       </div> : null}
+      {termsV && me.tos_accepted_at ? <Row label={t(lang, 'acct_terms')}>
+        {me.tos_version === termsV
+          ? <div className="text-[13px] text-foreground">{tf(lang, 'acct_terms_ok', { v: termsV })}</div>
+          : <div className="flex flex-col gap-2">
+              <div className="text-[13px] text-warn-fg">{tf(lang, 'acct_terms_old', { old: me.tos_version || '—', v: termsV })}</div>
+              <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground"><input type="checkbox" checked={termsTick} onChange={(e) => setTermsTick(e.target.checked)} /> <a href={lang === 'ar' ? '/ar/terms' : '/terms'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_read')}</a></label>
+              <div><Button size="sm" disabled={!termsTick || busy === 'terms'} onClick={async () => { setBusy('terms'); setMsg(''); const j = await call('customer_api', { action: 'accept_terms' }, token); setBusy(''); setMsgErr(!(j && j.ok)); if (j && j.ok) { setMsg(t(lang, 'terms_accepted_ok')); setTermsTick(false); load(); } else setMsg(errText(j, lang, 'acct_failed')); }}>{t(lang, 'terms_accept_btn')}</Button></div>
+            </div>}
+      </Row> : null}
       <Row label={t(lang, 'acct_since')}><div className="text-[13px] text-foreground">{since || '—'}</div></Row>
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3.5">
         <Button size="sm" disabled={!dirty || busy === 'save'} onClick={saveProfile}>{busy === 'save' ? t(lang, 'saving') : t(lang, 'save_details')}</Button>
@@ -1963,6 +1975,7 @@ function AccountSettings({ token, lang, onChanged }) {
       </div>
     </Card>
     <p className={S.hint}>{t(lang, 'acct_device_note')}</p>
+    <PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} />
   </div>);
 }
 

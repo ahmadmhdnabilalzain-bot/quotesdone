@@ -1,226 +1,207 @@
-// IS WHAT THE REPO SAYS ACTUALLY RUNNING? — on staging AND production.
+// IS WHAT main SAYS ACTUALLY RUNNING? Every source file of every function, not a sample.
 //
-// This is the gate that did not exist, and its absence is why "13/13 applied" could be true while
-// five changed functions were unverified. verify_prod_readiness carries NEGATIVE signatures: three
-// defect strings that must be ABSENT from production. That proves three old fixes left. It cannot
-// prove new code ARRIVED, and it does not look at staging at all.
+// ── WHY THE SIGNATURE SAMPLE WAS REPLACED (13 Oct 2026, it_engineer) ─────────────────────────────
+// The previous version took the 25 longest string literals of a function's index.ts and asserted
+// each was present in the deployed bundle. Two overlapping main runs of deploy-functions.yml (#1382
+// started 02:47, #1393 started 02:50) let the OLDER run finish last: at 02:52 it deployed
+// supplier_portal v288 from the older tree over #1393's fix. This check reported nothing, because
+// #1393's change was not among the 25 sampled strings, and it never looked at _shared at all.
 //
-// WHY A WHOLE-FILE COMPARISON CANNOT WORK, AND WHAT DOES.
-// The deployed bundle is transpiled JavaScript, not TypeScript. verify_prod_readiness.mjs:65-75
-// measured this directly: the longest matching prefix of doc_extract was 432 chars of 17,317 and of
-// customer_api 211 of 81,594, both diverging at the imports. So "is the source a substring of the
-// bundle" reports "differs" for every function both before AND after a clean deploy — a check that
-// can only ever fail.
+// ── WHAT IT DOES NOW ─────────────────────────────────────────────────────────────────────────────
+// GET /v1/projects/<ref>/functions/<slug>/body returns the deployed ESZIP (v2.x). Measured on
+// supplier_portal: its sources section carries Deno's TRANSPILED JavaScript of every first-party
+// module, and each module's source map carries the ORIGINAL TypeScript in sourcesContent. The original
+// is compared, in full, with main's file after normalising line endings and trailing whitespace only;
+// a module with no usable map falls back to comparing the transpiled text through norm().
+// Remote modules (jsr:, npm:, https:) are dependency resolution, not this repo's code, and are
+// not compared.
 //
-// But that same measurement records what DOES survive: string literals and comments. Type
-// annotations, non-null assertions and rewritten imports do not. So the signature is the set of
-// string literals and object keys in the CURRENT source, asserted PRESENT in the deployed bundle.
-// A deployment running older code is missing whatever the source has gained since — no diff base
-// required, which matters because after a merge to main the branch diff is empty and a
-// diff-derived signature silently degrades to "nothing to check", i.e. a green that means nothing.
+//   MATCH       every deployed first-party file equals main's
+//   STALE       at least one differs or is absent on main; the files are listed
+//   UNVERIFIED  the body could not be read or parsed; the reason is printed. Never counted as a pass.
 //
-// Read-only by construction: every call is a GET against /functions/<slug>/body.
+// Exits 1 on any STALE (and on any UNVERIFIED, which is not evidence of parity). Read-only: GETs.
 //
-//   node scripts/verify_deploy_parity.mjs                 # functions touched in the last 20 commits
-//   node scripts/verify_deploy_parity.mjs --since=HEAD~50  # wider window
-//   node scripts/verify_deploy_parity.mjs --all            # every function in the repo
-//
-// `--staging-only` WAS REMOVED WITH THE STAGING PROJECT (15 Aug 2026), rather than left pointing at
-// a ref that no longer resolves. Kept, it would have been the worst kind of flag: every GET against
-// the dead project 404s, 404 is read as NOT DEPLOYED, and the run would have failed 202 out of 202
-// functions — or, had the 404 been treated as a skip instead, printed "DEPLOY PARITY OK" over an
-// empty set of projects. A flag whose only remaining behaviour is to measure nothing is worse than
-// no flag: it reads exactly like a scoped check. Passing it now exits non-zero and says why.
+//   node scripts/verify_deploy_parity.mjs --all                 # every function in the repo
+//   node scripts/verify_deploy_parity.mjs supplier_portal ...    # named functions
+//   node scripts/verify_deploy_parity.mjs --since=HEAD~50        # functions touched in a window
 import { execSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const FN_DIR = 'supabase/functions';
 
-const argv = process.argv.slice(2);
-const arg = (k, d) => (argv.find((a) => a.startsWith(`--${k}=`)) || `--${k}=${d}`).split('=')[1];
-const has = (k) => argv.includes(`--${k}`);
-
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
-const H = { Authorization: 'Bearer ' + token };
-
-if (has('staging-only')) {
-  console.error('--staging-only was removed with the staging project on 15 Aug 2026. There is one');
-  console.error(`project (${PROD_REF}); scoping this check to the other one can only measure nothing.`);
-  process.exit(2);
-}
-const REFS = { production: PROD_REF };
-
-// ---- which functions to check -------------------------------------------------------------------
-function slugsToCheck() {
-  if (has('all')) {
-    return readdirSync(FN_DIR, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && e.name !== '_shared')
-      .filter((e) => existsSync(`${FN_DIR}/${e.name}/index.ts`))
-      .map((e) => e.name).sort();
+/**
+ * Parse an ESZIP v2.x buffer into Map<specifier, { text, original }> of the modules that carry source.
+ * `text` is the ORIGINAL TypeScript when the module's source map carries it in sourcesContent
+ * (original: true; measured on dropbox_backup 13 Oct: every first-party module does), else Deno's
+ * transpiled JavaScript from the sources section (original: false).
+ */
+export function parseEszip(buf) {
+  if (buf.toString('latin1', 0, 6) !== 'ESZIP2') throw new Error(`not an eszip v2 (magic ${JSON.stringify(buf.toString('latin1', 0, 8))})`);
+  const minor = buf.toString('latin1', 6, 8);
+  let p = 8;
+  const u32 = () => { const v = buf.readUInt32BE(p); p += 4; return v; };
+  let hashSize = 32; // v2.0/2.1: sha256 after each section
+  if (minor !== '\0\0' && minor !== '.1') {
+    const ol = u32();
+    const opts = buf.subarray(p, p + ol); p += ol;
+    hashSize = 0;
+    for (let i = 0; i + 1 < opts.length; i += 2) {
+      if (opts[i] === 0) hashSize = opts[i + 1] === 0 ? 0 : 32;
+      if (opts[i] === 1) hashSize = opts[i + 1];
+    }
+    p += hashSize;
   }
-  const since = arg('since', 'HEAD~20');
-
-  // A SHALLOW CHECKOUT MUST NOT BECOME A SILENT PASS, AND IT MUST NOT CRASH EITHER. GitHub
-  // Actions fetches a limited depth, so `HEAD~20` stops resolving as soon as the fetched history
-  // is shorter than the window. Measured 2026-08-20: "fatal: bad revision 'HEAD~20...HEAD'" took
-  // the whole parity job down with an unhandled execSync throw.
-  //
-  // Returning [] instead would be WORSE: zero slugs reads as "nothing to check" and the gate
-  // reports OK over an estate it never looked at. Error and empty must not be the same value.
-  //
-  // So a range that does not resolve falls back to checking EVERY function, and says so on
-  // stdout. Checking all of them is slower and always safe; checking none is fast and a lie.
-  let touchedRaw;
-  try {
-    touchedRaw = execSync(`git diff --name-only ${since}...HEAD -- ${FN_DIR}/`,
-      { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
-  } catch (e) {
-    console.log(`NOTE: ${since}...HEAD does not resolve in this checkout `
-      + `(${String(e.message).split('\n')[0]}).`);
-    console.log('      Falling back to EVERY edge function rather than to an empty list.');
-    return readdirSync(FN_DIR, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && e.name !== '_shared')
-      .filter((e) => existsSync(`${FN_DIR}/${e.name}/index.ts`))
-      .map((e) => e.name).sort();
+  const headerEnd = p + 4 + buf.readUInt32BE(p); p += 4;
+  const mods = [];
+  while (p < headerEnd) {
+    const sl = u32(); const spec = buf.toString('utf8', p, p + sl); p += sl;
+    const kind = buf[p++];
+    if (kind === 0) { mods.push({ spec, so: u32(), sl: u32(), mo: u32(), ml: u32() }); p += 1; } // + module kind
+    else if (kind === 1) { const tl = u32(); p += tl; } // redirect
+    else if (kind === 2) { p += 4; } // npm specifier -> package id
+    else throw new Error(`unknown module entry kind ${kind} at ${p - 1}`);
   }
-  const touched = touchedRaw.split('\n')
-    .map((l) => (l.match(/^supabase\/functions\/([^/]+)\//) || [])[1])
-    .filter(Boolean);
-  return [...new Set(touched)].filter((s) => s !== '_shared' && existsSync(`${FN_DIR}/${s}/index.ts`)).sort();
+  p = headerEnd + hashSize;
+  if (minor !== '\0\0') { const nl = u32(); p += nl + hashSize; } // npm snapshot (v2.1+)
+  const srcLen = u32(); const base = p;
+  if (base + srcLen > buf.length) throw new Error('sources section runs past the end of the body');
+  // The source-maps section follows the sources section (and its hash), length-prefixed.
+  const mp = base + srcLen + hashSize;
+  const mapBase = mp + 4 <= buf.length ? mp + 4 : -1;
+  const mapEnd = mapBase < 0 ? -1 : mapBase + buf.readUInt32BE(mp);
+  const out = new Map();
+  for (const m of mods) {
+    if (!m.sl) continue;
+    let original = null;
+    if (m.ml && mapBase >= 0 && mapBase + m.mo + m.ml <= mapEnd) {
+      try {
+        const map = JSON.parse(buf.toString('utf8', mapBase + m.mo, mapBase + m.mo + m.ml));
+        if (map.sources?.length === 1 && typeof map.sourcesContent?.[0] === 'string') original = map.sourcesContent[0];
+      } catch { /* an unreadable map falls back to the transpiled text */ }
+    }
+    out.set(m.spec, original != null ? { text: original, original: true }
+      : { text: buf.toString('utf8', base + m.so, base + m.so + m.sl), original: false });
+  }
+  return out;
 }
 
-// ---- signatures ---------------------------------------------------------------------------------
-// Deliberately conservative. A false STALE sends someone to redeploy something that is already
-// live, which burns trust in the gate faster than a missed staleness does.
-//   - skip comment lines: they survive transpilation, but a signature that matches its own
-//     explanatory comment is exactly the defect verify_prod_readiness hit on 5 Aug 2026
-//   - skip template literals containing ${}: the bundle splits them
-//   - skip anything with a URL or an env-var shape: those get rewritten
-const GENERIC = new Set([
-  'application/json', 'Content-Type', 'content-type', 'Authorization', 'authorization',
-  'access-control-allow-origin', 'Access-Control-Allow-Origin', 'apikey', 'utf-8',
-  'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
-]);
+// The deployed sources are Deno's TRANSPILED JavaScript (types stripped, layout changed), so a raw
+// text compare reports every file as different. Both sides are therefore put through the same
+// TypeScript printer (type syntax and comments removed, one canonical layout) and compared whole.
+// JavaScript is valid input, so the deployed side round-trips; the TS side loses exactly what
+// Deno's emit loses. A change in code or in a string literal survives this and is reported.
+export function norm(src) {
+  const js = ts.transpileModule(src.replace(/^\uFEFF/, ''), {
+    // useDefineForClassFields: false. Deno's emit moves class field initialisers into the constructor
+    // (`refreshes = 0;` -> `refreshes; constructor(){ ...; this.refreshes = 0; }`, measured on
+    // dropbox_backup/dropbox.ts TokenCache, 13 Oct). With [[Define]] semantics TS kept them as fields
+    // and an identical file read STALE. [[Set]] semantics puts both sides' initialisers in the
+    // constructor and drops bare field declarations on both.
+    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, removeComments: true, useDefineForClassFields: false },
+    reportDiagnostics: false,
+  }).outputText;
+  // Deno's emit also drops trailing commas and redundant parentheses ((a && b) ? x : y), and wraps a
+  // nested single-statement body in braces (`if (x) for (...) if (y) z;` -> `if(x){for ...}`;
+  // measured on pdf_text_positions.ts, unchanged since 29 Sep). Both sides lose every
+  // comma-before-closer, parenthesis and brace, symmetrically.
+  // ponytail: a change that ONLY moves parens/braces reads MATCH; compare ASTs if that ever matters.
+  const tight = (s) => s.replace(/\s+/g, ' ').replace(/ ?([{}()[\],;:=<>+\-*/!?&|.]) ?/g, '$1');
+  return tight(tight(js).replace(/,([\]})])/g, '$1').replace(/[(){}]/g, ' ')).trim();
+}
+
+// Line endings, trailing whitespace and a BOM only: an original-source compare is otherwise exact.
+const plain = (s) => s.replace(/^﻿/, '').replace(/\r\n?/g, '\n').replace(/[ \t]+$/gm, '').trimEnd();
 
 /**
- * The string literals on ONE line, found by walking it once and tracking which quote opened the
- * current string.
- *
- * THE REGEX THIS REPLACES PRODUCED A PERMANENT FALSE STALE, and a false STALE is the failure this
- * file's own header calls the worse one. `/'([^'\\\n]{14,})'|"([^"\\\n]{14,})"/g` has no idea which
- * quotes are open. On procurement_api's line
- *
- *     if (decision !== 'approved' && decision !== 'rejected') return J({ error: "decision must be …
- *
- * every real literal is too short to qualify, so the scan reached the quote CLOSING 'rejected',
- * treated it as an opening quote, ran 38 characters of code to the next quote — the one opening
- * 'approved' inside the double-quoted string — and emitted
- *
- *     ") return J({ error: \"decision must be"
- *
- * as a signature. That is source code, not a literal; the bundler re-quotes strings, so it can
- * never appear in a deployed bundle and the function reported STALE on both projects forever, on
- * two occasions after being redeployed. Verified by hashing the deployed body: the code was live.
- *
- * A quote inside a string of the other kind ("it's") is now what it actually is — part of the
- * string — instead of a delimiter.
+ * A deployed specifier as a path under supabase/, or null when it is not this repo's code.
+ * A bundle built from supabase/ keys modules 'functions/<slug>/x.ts'; one built from
+ * supabase/functions/ (site_error_ingest, stripe_setup_page, voice_otp_capture, measured 13 Oct)
+ * keys the same files '<slug>/x.ts'. Schemes (jsr:, npm:, https:, vfs:) and '---' markers are not.
  */
-function stringLiterals(line) {
-  const out = [];
-  let quote = null, buf = '', escaped = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (quote) {
-      // A LITERAL CONTAINING AN ESCAPE IS DROPPED, not repaired. The old regex excluded backslashes
-      // for a reason the first version of this rewrite forgot: the signature is compared against a
-      // BUNDLE, and the bundler re-encodes escapes, so \n in source is a real newline in the
-      // bundle. Substituting a placeholder produced signatures like "xxLANGUAGE: Write ALL…" and
-      // took the gate from one false STALE to six.
-      if (c === '\\') { escaped = true; i++; continue; }
-      if (c === quote) { if (!escaped) out.push(buf.trim()); quote = null; buf = ''; escaped = false; continue; }
-      buf += c;
-    } else if (c === '"' || c === "'" || c === '`') {
-      quote = c; buf = ''; escaped = false;
+export function firstPartyPath(spec) {
+  if (spec.startsWith('---') || /^[a-z][a-z0-9+.-]*:/i.test(spec)) return null;
+  return spec.startsWith('functions/') ? spec : `functions/${spec}`;
+}
+
+/** Compare deployed first-party sources with main. readMain(path under supabase/) -> string | null. */
+export function compareSources(sources, readMain) {
+  const firstParty = [...sources.keys()].filter((s) => firstPartyPath(s)).sort();
+  if (!firstParty.length) return { state: 'UNVERIFIED', reason: 'body carries no first-party source', files: 0 };
+  const differ = [];
+  for (const spec of firstParty) {
+    const path = firstPartyPath(spec);
+    const main = readMain(path);
+    const dep = sources.get(spec);
+    const { text, original } = typeof dep === 'string' ? { text: dep, original: false } : dep;
+    if (main == null) differ.push(`${path} (not on main)`);
+    else if (original ? plain(main) !== plain(text) : norm(main) !== norm(text)) differ.push(path);
+  }
+  return { state: differ.length ? 'STALE' : 'MATCH', differ, files: firstParty.length };
+}
+
+function allSlugs() {
+  return readdirSync(FN_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && e.name !== '_shared' && existsSync(`${FN_DIR}/${e.name}/index.ts`))
+    .map((e) => e.name).sort();
+}
+
+function slugsToCheck(argv) {
+  const named = argv.filter((a) => !a.startsWith('--'));
+  if (named.length) return named;
+  if (argv.includes('--all')) return allSlugs();
+  const since = (argv.find((a) => a.startsWith('--since=')) || '--since=HEAD~20').split('=')[1];
+  let raw;
+  try {
+    raw = execSync(`git diff --name-only ${since}...HEAD -- ${FN_DIR}/`, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
+  } catch (e) {
+    // A range that does not resolve (shallow checkout) must not become an empty, green list.
+    console.log(`NOTE: ${since}...HEAD does not resolve (${String(e.message).split('\n')[0]}); checking EVERY function.`);
+    return allSlugs();
+  }
+  // A _shared change can stale any importer, so it widens the window to every function.
+  if (/^supabase\/functions\/_shared\//m.test(raw)) return allSlugs();
+  const touched = raw.split('\n').map((l) => (l.match(/^supabase\/functions\/([^/]+)\//) || [])[1]).filter(Boolean);
+  return [...new Set(touched)].filter((s) => existsSync(`${FN_DIR}/${s}/index.ts`)).sort();
+}
+
+async function main() {
+  const argv = process.argv.slice(2);
+  if (argv.includes('--staging-only')) {
+    console.error(`--staging-only was removed with the staging project on 15 Aug 2026; there is one project (${PROD_REF}).`);
+    process.exit(2);
+  }
+  const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  const slugs = slugsToCheck(argv);
+  console.log(`\nDEPLOY PARITY — ${slugs.length} function(s) on ${PROD_REF}, full first-party source vs main\n`);
+  const readMain = (spec) => { const f = `supabase/${spec}`; return existsSync(f) ? readFileSync(f, 'utf8') : null; };
+  const rows = [];
+  for (const slug of slugs) {
+    let row;
+    try {
+      const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/functions/${slug}/body`,
+        { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) row = { state: 'UNVERIFIED', reason: `GET body -> HTTP ${r.status}` };
+      else row = compareSources(parseEszip(Buffer.from(await r.arrayBuffer())), readMain);
+    } catch (e) {
+      row = { state: 'UNVERIFIED', reason: String(e.message || e).split('\n')[0] };
     }
+    rows.push({ slug, ...row });
+    const detail = row.state === 'MATCH' ? `${row.files} file(s)`
+      : row.state === 'STALE' ? `${row.differ.length}/${row.files} differ: ${row.differ.join(', ')}`
+      : row.reason;
+    console.log(`${slug.padEnd(32)} ${row.state.padEnd(10)} ${detail}`);
   }
-  // An unterminated quote means the literal spans lines (or the line was cut). Nothing is emitted:
-  // a partial string is exactly the kind of not-really-a-literal that caused the defect above.
-  return out.filter((s) => s.length >= 14 && !s.includes('${'));
+  const stale = rows.filter((r) => r.state === 'STALE');
+  const unv = rows.filter((r) => r.state === 'UNVERIFIED');
+  console.log(`\n${'='.repeat(96)}`);
+  console.log(`MATCH ${rows.length - stale.length - unv.length}   STALE ${stale.length}   UNVERIFIED ${unv.length}   of ${rows.length}`);
+  if (stale.length) console.log(`STALE: ${stale.map((r) => r.slug).join(' ')}`);
+  if (unv.length) console.log(`UNVERIFIED: ${unv.map((r) => r.slug).join(' ')}`);
+  process.exitCode = stale.length || unv.length ? 1 : 0;
 }
 
-function signatures(slug) {
-  const src = readFileSync(`${FN_DIR}/${slug}/index.ts`, 'utf8');
-  const out = new Set();
-  let block = false;
-  for (const raw of src.split('\n')) {
-    const line = raw.trim();
-    if (block) { if (line.includes('*/')) block = false; continue; }
-    if (line.startsWith('/*')) { if (!line.includes('*/')) block = true; continue; }
-    if (line.startsWith('//') || line.startsWith('*')) continue;
-    for (const s of stringLiterals(line)) {
-      if (!s || GENERIC.has(s)) continue;
-      if (s.includes('://') || /^[A-Z_]{6,}$/.test(s)) continue;
-      if (/^[\s.,;:%*+\-/\\|]+$/.test(s)) continue;
-      out.add(s);
-    }
-  }
-  // Longest first: the most distinctive strings are the least likely to collide across versions.
-  return [...out].sort((a, b) => b.length - a.length).slice(0, 25);
-}
-
-// ---- run ----------------------------------------------------------------------------------------
-const slugs = slugsToCheck();
-const scope = has('all') ? 'every function in the repo' : `functions touched since ${arg('since', 'HEAD~20')}`;
-console.log(`\nDEPLOY PARITY — ${slugs.length} function(s), ${scope}`);
-console.log(`checking: ${Object.entries(REFS).map(([k, v]) => `${k} ${v}`).join('  |  ')}\n`);
-
-const rows = [];
-let checked = 0;
-for (const slug of slugs) {
-  const sigs = signatures(slug);
-  const per = {};
-  for (const [env, ref] of Object.entries(REFS)) {
-    const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/functions/${slug}/body`, { headers: H });
-    if (!r.ok) { per[env] = { state: 'NOT DEPLOYED', missing: [] }; continue; }
-    const body = await r.text();
-    if (!sigs.length) { per[env] = { state: 'NO SIGNATURE', missing: [] }; continue; }
-    const missing = sigs.filter((s) => !body.includes(s));
-    per[env] = { state: missing.length ? 'STALE' : 'LIVE', missing, sigs: sigs.length };
-  }
-  rows.push({ slug, sigs: sigs.length, per });
-  checked++;
-  const cells = Object.entries(per).map(([env, v]) =>
-    `${env}=${v.state}${v.state === 'STALE' ? ` ${v.sigs - v.missing.length}/${v.sigs}` : ''}`);
-  console.log(`${slug.padEnd(24)} sigs=${String(sigs.length).padStart(2)}  ${cells.join('   ')}`);
-  for (const [env, v] of Object.entries(per)) {
-    if (v.state === 'STALE') {
-      console.log(`${' '.repeat(26)}${env} missing: ${v.missing.slice(0, 3).map((s) => JSON.stringify(s.slice(0, 64))).join(' | ')}`);
-    }
-  }
-}
-
-const bad = rows.filter((r) => Object.values(r.per).some((v) => v.state === 'STALE' || v.state === 'NOT DEPLOYED'));
-const nosig = rows.filter((r) => Object.values(r.per).some((v) => v.state === 'NO SIGNATURE'));
-
-console.log(`\n${'='.repeat(96)}`);
-if (nosig.length) {
-  // Reported, never silently passed: "no signature derivable" reads exactly like a pass and is not
-  // one. The first cut of this check used a 24-char floor and reported customer_api that way, whose
-  // whole added signature was 'original_stored' — 15 chars.
-  console.log(`NOTE  ${nosig.length} function(s) yielded no usable signature: ${nosig.map((r) => r.slug).join(', ')}`);
-  console.log(`      These are UNVERIFIED, not verified. Add a distinctive string literal if it matters.`);
-}
-if (bad.length === 0) {
-  console.log(`DEPLOY PARITY OK — ${checked} function(s) carry the repo's current code on ${Object.keys(REFS).join(' and ')}`);
-} else {
-  console.log(`DEPLOY PARITY FAILED — ${bad.length} of ${checked} function(s) are not running the repo's code:`);
-  for (const r of bad) {
-    for (const [env, v] of Object.entries(r.per)) {
-      if (v.state === 'STALE' || v.state === 'NOT DEPLOYED') console.log(`  ${r.slug} on ${env}: ${v.state}`);
-    }
-  }
-  console.log(`\nRedeploy with: npx supabase functions deploy <slug> --project-ref <ref>`);
-}
-process.exitCode = bad.length ? 1 : 0;
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();

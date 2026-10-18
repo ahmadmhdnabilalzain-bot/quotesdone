@@ -40,6 +40,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "corporate_training:khda-educational-services-permit",
+      "topic": "KHDA Educational Services Permit for training institutes",
+      "kind": "regulatory_permit",
+      "body_en": "In Dubai, investors who set up and run a training institute need an Educational Services Permit from the Knowledge and Human Development Authority (KHDA). The investor first obtains a trade name reservation and Initial Approval from the Department of Economy and Tourism (mainland) or the free zone authority, then applies through the KHDA portal or the Invest in Dubai platform. Required documents include a list of course names and descriptions, awarding-body approval for professional-certification courses, and sector approvals where relevant (for example, the Dubai Health Authority for medical courses). After the commercial licence is issued, it is uploaded to KHDA to receive the permit. KHDA fees by number of activities: AED 15,020 for 1-2, AED 18,020 for 3-4, AED 20,020 for 5-6 and AED 25,020 for 7 or more. Processing takes 8 working days, and the Initial Approval is valid for six months from its date. Not established here: whether in-house training for a company's own staff or a one-off visiting trainer needs a permit. Buyers can ask the provider for its KHDA permit.",
+      "body_ar": "في دبي، يحتاج المستثمرون الذين يؤسسون معهد تدريب ويديرونه إلى تصريح خدمات تعليمية من هيئة المعرفة والتنمية البشرية (KHDA). يحصل المستثمر أولاً على حجز الاسم التجاري والموافقة المبدئية من دائرة الاقتصاد والسياحة (للبر الرئيسي) أو من سلطة المنطقة الحرة، ثم يقدّم الطلب عبر بوابة الهيئة أو منصة Invest in Dubai. تشمل المستندات المطلوبة قائمة بأسماء الدورات وأوصافها، وموافقة الجهة المانحة لدورات الشهادات المهنية، وموافقات القطاع عند الاقتضاء (مثل هيئة الصحة بدبي للدورات الطبية). وبعد إصدار الرخصة التجارية تُرفع إلى الهيئة للحصول على التصريح. رسوم الهيئة بحسب عدد الأنشطة: 15,020 درهماً لنشاط أو نشاطين، و18,020 درهماً لثلاثة أو أربعة، و20,020 درهماً لخمسة أو ستة، و25,020 درهماً لسبعة أو أكثر. تستغرق المعالجة 8 أيام عمل، وتسري الموافقة المبدئية ستة أشهر من تاريخها. غير ثابت هنا: هل يحتاج التدريب الداخلي لموظفي الشركة أو المدرّب الزائر لمرة واحدة إلى تصريح. يمكن للمشترين طلب تصريح الهيئة من مقدّم التدريب.",
+      "sources": [
+        "https://web.khda.gov.ae/en/Services/Training-Institute-Permit-Services/Issuing-an-Educational-Services-Permit-for-a-Train"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "corporate_training:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does a training provider in Dubai need a KHDA permit?",
+      "q_ar": "هل يحتاج مقدم التدريب في دبي إلى تصريح من هيئة المعرفة والتنمية البشرية؟",
+      "expected_entry_ids": [
+        "corporate_training:khda-educational-services-permit"
+      ],
+      "why": "No entry of this pack answered it (the standards entry says the sources set no corporate-training rule; KHDA permit for training providers is not covered). corporate_training:khda-educational-services-permit was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from corporate_training.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "corporate_training:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "corporate_training:khda-educational-services-permit"
+    ]
   }
 }

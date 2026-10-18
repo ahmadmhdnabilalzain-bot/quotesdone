@@ -8,12 +8,13 @@
 --
 -- THE BIDDERS ARE DEMO LEADS BECAUSE THE ESTATE SAYS SO. public.a01_quote_demo_and_real_never_pair
 -- (fn_demo_and_real_never_pair) refuses a quote whose supplier and inquiry disagree about being demo,
--- so a probe bidding on a ZZ DEMO enquiry must use leads with leads.is_demo = true — 129923 / 130027 /
--- 130029, none of which any real party owns. Reader 126512 is demo too. Their leads.source is
--- 'demo_factory', not 'qd_demo_fixture', so the routine's own demo fence is unaffected. Every write happens inside a block that always
--- raises, so all of it is rolled back. The bidders are the reserved ZZ DEMO fixtures 129923 / 130027 /
--- 130029 and the reader is ZZ DEMO supplier 126512 on its own demo enquiry; no real party is touched and
--- nothing here can notify anybody (quotes rows queue nothing, and pg_net sends only committed rows).
+-- so a probe bidding on a ZZ DEMO enquiry must use leads with leads.is_demo = true. Since the outcome audit of
+-- 30 Sep 2026 the three bidders are CHOSEN AT RUN TIME (the three lowest-id is_demo 'ZZ DEMO%' demo_factory
+-- leads other than the reader): the hard-coded 130027 had left the demo pool and a01 refused the set-up, so the
+-- property went unproven. Reader 126512 and the enquiry are asserted demo before any write. Every write happens
+-- inside a block that always raises, so all of it is rolled back; no real party is touched and nothing here can
+-- notify anybody (quotes rows queue nothing, and pg_net sends only committed rows). Bids are sent through the
+-- quote QC gate (z40) and released as its 24 h clock would, since a held draft is not a bid.
 --
 -- VERDICT: PROBE OK only if
 --   1. an enquiry with no inquiry_matches row for this supplier answers available=false, reason=not_found
@@ -47,32 +48,64 @@ declare
   me        bigint := 126512;
   inq       uuid   := 'd958e1ea-54f4-45a1-9214-d622ac52dce1';
   nope      uuid   := '00000000-0000-0000-0000-000000000001';
+  b         bigint[];   -- three ZZ DEMO bidders, chosen at run time (outcome audit 30 Sep 2026)
+  qs        uuid[];
   r_nomatch jsonb; r_thin jsonb; r_ok jsonb; r_oneco jsonb; o_me jsonb; o_none jsonb; ws jsonb;
   leaked    int := 0; checked int := 0; names text[]; v_err text;
   q_before  bigint; q_after bigint; bids_in_payload int;
 begin
   select count(*) into q_before from public.quotes;
   begin
+    -- ALL ZZ DEMO, never a hard-coded id: the first version named 130027, which has since left the demo pool,
+    -- and a01 (demo and real never pair) refused the set-up, so the property went unproven. The reader and the
+    -- enquiry must be demo too, or nothing below runs.
+    select array_agg(id order by id) into b
+      from (select l.id from public.leads l
+             where l.is_demo and l.company_name ilike 'ZZ DEMO%' and l.source = 'demo_factory' and l.id <> me
+               -- b[1] must be matched to nothing (o_none asserts count 0), and no bidder may already bid here
+               and not exists (select 1 from public.inquiry_matches m where m.supplier_id = l.id)
+               and not exists (select 1 from public.quotes q where q.supplier_id = l.id and q.inquiry_id = inq)
+             order by l.id limit 3) x;
+    if coalesce(array_length(b, 1), 0) < 3 or not public.fn_inquiry_is_demo(inq)
+       or not exists (select 1 from public.leads where id = me and is_demo and company_name ilike 'ZZ DEMO%') then
+      raise exception 'fixture: ZZ DEMO bidders=%, enquiry demo=%, reader demo=%', coalesce(array_length(b, 1), 0),
+        public.fn_inquiry_is_demo(inq), exists (select 1 from public.leads where id = me and is_demo);
+    end if;
+
     r_nomatch := public.fn_supplier_quote_recommend(me, nope);
 
+    -- A bid is SENT the way the estate sends it: z40 (the quote QC gate) holds a figure-only fixture as a draft,
+    -- and the probe releases it as its 24 h clock would ('waited_24h'), then submits it again.
+    qs := array[gen_random_uuid()];
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status)
-    values (gen_random_uuid(), inq, 129923, 50000, 'form', 9, 'submitted');
+    values (qs[1], inq, b[1], 50000, 'form', 9, 'draft');
+    update public.quotes set status = 'submitted' where id = any(qs);
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = any(qs) and released_at is null;
+    update public.quotes set status = 'submitted' where id = any(qs);
     r_thin := public.fn_supplier_quote_recommend(me, inq);
 
     -- THREE OPTIONS FROM ONE COMPANY ARE ONE COMPANY. count(*) would clear a three-bid floor here.
+    qs := array[gen_random_uuid(), gen_random_uuid()];
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status) values
-      (gen_random_uuid(), inq, 129923, 50500, 'form', 10, 'submitted'),
-      (gen_random_uuid(), inq, 129923, 51000, 'form', 11, 'submitted');
+      (qs[1], inq, b[1], 50500, 'form', 10, 'draft'),
+      (qs[2], inq, b[1], 51000, 'form', 11, 'draft');
+    update public.quotes set status = 'submitted' where id = any(qs);
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = any(qs) and released_at is null;
+    update public.quotes set status = 'submitted' where id = any(qs);
     r_oneco := public.fn_supplier_quote_recommend(me, inq);
-    delete from public.quotes where inquiry_id = inq and supplier_id = 129923 and option_no in (10, 11);
+    delete from public.quotes where id = any(qs);
 
+    qs := array[gen_random_uuid(), gen_random_uuid()];
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status) values
-      (gen_random_uuid(), inq, 130027, 61000, 'form', 9, 'submitted'),
-      (gen_random_uuid(), inq, 130029, 72000, 'form', 9, 'submitted'),
-      (gen_random_uuid(), inq, 129923, 999999, 'form', 8, 'draft');   -- a draft is not a bid
+      (qs[1], inq, b[2], 61000, 'form', 9, 'draft'),
+      (qs[2], inq, b[3], 72000, 'form', 9, 'draft'),
+      (gen_random_uuid(), inq, b[1], 999999, 'form', 8, 'draft');   -- a draft is not a bid
+    update public.quotes set status = 'submitted' where id = any(qs);
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = any(qs) and released_at is null;
+    update public.quotes set status = 'submitted' where id = any(qs);
     r_ok   := public.fn_supplier_quote_recommend(me, inq);
     o_me   := public.fn_supplier_opportunities(me);
-    o_none := public.fn_supplier_opportunities(129923);
+    o_none := public.fn_supplier_opportunities(b[1]);
     ws     := public.fn_supplier_workspaces(me);
 
     -- EVERY BID AMOUNT, looked for in the payload as a bare substring. The guarantee the file states is

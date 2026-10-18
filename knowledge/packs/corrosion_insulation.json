@@ -45,6 +45,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "corrosion_insulation:pipe-insulation-pricing-basis",
+      "topic": "Pricing basis for industrial pipe insulation",
+      "kind": "pricing_basis",
+      "body_en": "ASTM C1409, the standard guide for measuring and estimating quantities of insulated piping and components, sets the basis used in unit-price contracts: straight pipe is measured by linear length for each pipe size, insulation type, thickness and jacketing, while fittings and other components are either priced as unit items or converted using component factors (multipliers) that relate them to straight-pipe length. A bill of quantities should therefore list run lengths and fitting counts per size and specification. Not established here: the factor values used by UAE contractors, wastage allowances, and how access, scaffolding and surface preparation are priced.",
+      "body_ar": "تحدد المواصفة ASTM C1409، وهي الدليل القياسي لقياس وتقدير كميات الأنابيب المعزولة ومكوناتها، الأساسَ المعتمد في عقود أسعار الوحدات: إذ تُقاس الأنابيب المستقيمة بالطول لكل قطر أنبوب ونوع عزل وسماكة وتغليف، أما التجهيزات والمكونات الأخرى فتُسعَّر إما كبنود وحدات مستقلة أو تُحوَّل باستخدام معاملات المكونات التي تربطها بطول الأنبوب المستقيم. لذا ينبغي أن يتضمن جدول الكميات أطوال المسارات وأعداد التجهيزات لكل قطر ومواصفة. لم يُثبت هنا: قيم المعاملات المستخدمة لدى مقاولي الإمارات، ونسب الهدر، وطريقة تسعير الوصول والسقالات وتحضير الأسطح.",
+      "sources": [
+        "https://www.dinmedia.de/en/standard/astm-c-1409/168865179"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -61,6 +74,15 @@
       "expected_entry_ids": [
         "corrosion_insulation:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is pipe insulation priced in an industrial project?",
+      "q_ar": "كيف يُسعّر عزل الأنابيب في مشروع صناعي؟",
+      "expected_entry_ids": [
+        "corrosion_insulation:pipe-insulation-pricing-basis"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry gives how pipe insulation is priced (per linear metre by size and thickness, fittings counted as equivalent lengths); spec-checklist only says to state a \"pricing basis\"). corrosion_insulation:pipe-insulation-pricing-basis was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from corrosion_insulation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -77,6 +99,9 @@
       "corrosion_insulation:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "corrosion_insulation:pipe-insulation-pricing-basis"
+    ]
   }
 }

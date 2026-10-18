@@ -710,6 +710,15 @@
         "security_systems:spec-cctv",
         "security_systems:resolution-dori"
       ]
+    },
+    {
+      "q_en": "How many days of CCTV recording does SIRA require in Dubai?",
+      "q_ar": "كم يوماً من تسجيل الكاميرات تشترط سيرا في دبي؟",
+      "expected_entry_ids": [
+        "security_systems:sira-retention-and-technical"
+      ],
+      "why": "gives the SIRA Preventive Systems Manual CCTV retention period and the technical requirements in Dubai.",
+      "origin": "real buyer question, moved from security_systems.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

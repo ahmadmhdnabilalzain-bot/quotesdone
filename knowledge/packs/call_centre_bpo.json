@@ -43,6 +43,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "call_centre_bpo:outsourced-contact-centre-pricing-models",
+      "topic": "Outsourced contact centre pricing models",
+      "kind": "pricing_basis",
+      "body_en": "Both exist, alongside other models. Pay-per-hour bills the agent's time at a fixed hourly rate regardless of outcomes; published 2026 ranges are about USD 7-16 per agent hour in India, the Philippines and Pakistan, USD 12-19 in Latin America and USD 29.40-42 in the United States. A fixed price is a predetermined monthly, quarterly or annual fee based on estimated volume, support hours, complexity and languages, and is typically more expensive because providers build in a risk premium. Pay-per-resolution charges only when an issue is fully resolved, about USD 1-7 per resolution. A request should state channels, languages, coverage hours, forecast volume and SLAs. Not established here: per-FTE-month and per-minute rates, and UAE onshore rates.",
+      "body_ar": "كلا النموذجين موجود إلى جانب نماذج أخرى. ففي نموذج الدفع بالساعة يُحتسب وقت الموظف بسعر ساعي ثابت بغض النظر عن النتائج، وتبلغ النطاقات المنشورة لعام 2026 نحو 7-16 دولاراً أمريكياً لساعة الموظف في الهند والفلبين وباكستان، و12-19 دولاراً في أمريكا اللاتينية، و29.40-42 دولاراً في الولايات المتحدة. أما السعر الثابت فهو رسم محدد مسبقاً شهرياً أو ربع سنوي أو سنوياً يستند إلى الحجم المتوقع وساعات الدعم والتعقيد واللغات، وعادةً ما يكون أغلى لأن المزوّد يضيف هامش مخاطرة. وفي نموذج الدفع مقابل الحل لا يُحتسب الرسم إلا عند حل المشكلة بالكامل، بنحو 1-7 دولارات لكل حل. ينبغي أن يحدد الطلب القنوات واللغات وساعات التغطية والحجم المتوقع واتفاقيات مستوى الخدمة. لم يُثبت هنا: أسعار الموظف المتفرغ شهرياً والدفع بالدقيقة، وأسعار التنفيذ داخل الإمارات.",
+      "sources": [
+        "https://www.crescendo.ai/blog/outsourced-call-center-pricing-guide?pp=iaqb"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "call_centre_bpo:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Is an outsourced call centre agent priced per hour or per month?",
+      "q_ar": "هل يُسعّر وكيل مركز الاتصال الخارجي بالساعة أم بالشهر؟",
+      "expected_entry_ids": [
+        "call_centre_bpo:outsourced-contact-centre-pricing-models"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither states pricing models (spec checklist only lists 'pricing basis'); missing: per-hour vs per-FTE-month pricing entry). call_centre_bpo:outsourced-contact-centre-pricing-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from call_centre_bpo.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +97,9 @@
       "call_centre_bpo:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "call_centre_bpo:outsourced-contact-centre-pricing-models"
+    ]
   }
 }
