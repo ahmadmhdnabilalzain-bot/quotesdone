@@ -196,7 +196,8 @@ Deno.serve(observe('send_outbox', async (req) => {
     const carries = (r: any) => m365Carries({ enabled: m365Enabled, type: r.type, kind: r.kind, supplierSide: r.to_role === 'supplier' });
     const fileFinding = async (args: Record<string, unknown>) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; };
     let m365 = await resolveM365({ needed: rows.some(carries), mailbox: await setting('invite_m365_mailbox'), env: (k) => Deno.env.get(k),
-      fetchFn: (u, i) => timedFetch(u, i || {}, 10_000), fileFinding });
+      fetchFn: (u, i) => timedFetch(u, i || {}, 10_000), fileFinding,
+      closeFinding: async (k, note) => { const { error } = await admin.rpc('fn_it_engineer_finding_close', { p_issue_key: k, p_note: note }); if (error) throw error; } });
     let cappedSentToday = 0, m365SentToday = 0, m365ProofAt: string | null = null;
     if (m365.active) {
       // Reply-To is dropped only while the reply reader is proven (m365ReplyTo); an unreadable row keeps the old one.

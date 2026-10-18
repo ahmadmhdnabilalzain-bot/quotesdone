@@ -198,3 +198,15 @@ Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, rea
   assert(/m365Mime\(\{[^}]*reply: m365ReplyTo\(\{ proofAt: m365ProofAt, now, fallback: reply \}\)/.test(src), 'the lane MIME no longer asks m365ReplyTo');
   assert(src.includes(".eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1')"), 'the proof read no longer selects the reader rows');
 });
+
+Deno.test('a token issued closes the refusal finding; a refusal does not', async () => {
+  const closed: [string, string][] = []; const closeFinding = async (k: string, n: string) => { closed.push([k, n]); };
+  const g = findings();
+  const ok = await resolveM365({ needed: true, mailbox: 'supplier@quotesdone.com', env: env(ENV), fetchFn: fake({ status: 200, body: { access_token: 't' } }).fetchFn, fileFinding: g.fileFinding, closeFinding });
+  assert(ok.active); assertEquals(closed.length, 1); assertEquals(closed[0][0], M365_REFUSED_ISSUE);
+  const bad = await resolveM365({ needed: true, mailbox: 'supplier@quotesdone.com', env: env(ENV), fetchFn: fake({ status: 401, body: { error: 'invalid_client' } }).fetchFn, fileFinding: g.fileFinding, closeFinding });
+  assert(bad.refused); assertEquals(closed.length, 1);
+  const thrower = async () => { throw new Error('rpc down'); };
+  const still = await resolveM365({ needed: true, mailbox: 'supplier@quotesdone.com', env: env(ENV), fetchFn: fake({ status: 200, body: { access_token: 't' } }).fetchFn, fileFinding: g.fileFinding, closeFinding: thrower });
+  assert(still.active, 'a failed close never stops the lane');
+});

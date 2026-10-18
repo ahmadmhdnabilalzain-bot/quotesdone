@@ -38,6 +38,8 @@ export const HOLD_M365_MS = 30 * 60_000;
 
 export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 export type FileFinding = (args: Record<string, unknown>) => Promise<unknown>;
+/** fn_it_engineer_finding_close(p_issue_key, p_note). */
+export type CloseFinding = (issueKey: string, note: string) => Promise<unknown>;
 export type M365 = { active: boolean; refused: boolean; mailbox: string; token: string; why: string };
 export const M365_OFF: M365 = { active: false, refused: false, mailbox: '', token: '', why: 'invite_m365_enabled is not true' };
 
@@ -74,7 +76,7 @@ export function refusalFinding(mailbox: string, refusal: string, secretsPresent:
  * carried by the lane, so a normal poll with the switch off makes no call.
  */
 export async function resolveM365(o: {
-  needed: boolean; mailbox: string | undefined; env: (k: string) => string | undefined; fetchFn: Fetch; fileFinding: FileFinding;
+  needed: boolean; mailbox: string | undefined; env: (k: string) => string | undefined; fetchFn: Fetch; fileFinding: FileFinding; closeFinding?: CloseFinding;
 }): Promise<M365> {
   if (!o.needed) return M365_OFF;
   const mailbox = String(o.mailbox || '').trim().toLowerCase();
@@ -99,6 +101,10 @@ export async function resolveM365(o: {
   let j: { access_token?: string; error?: string; error_description?: string } = {};
   try { j = await r.json(); } catch { /* handled below */ }
   if (!r.ok || !j.access_token) return await refuse(`token refused (HTTP ${r.status}${j.error ? ', ' + j.error : ''})`);
+  // 19 Oct 2026: the refusal finding was filed on a refused token and never closed after a later success, so it
+  // stayed open forever. A token issued is the condition the finding names as missing; close it here.
+  try { await o.closeFinding?.(M365_REFUSED_ISSUE, 'closed by send_outbox: a later run was issued a Microsoft 365 token'); }
+  catch (_e) { /* closing is bookkeeping; the lane still runs */ }
   return { active: true, refused: false, mailbox, token: j.access_token, why: 'token issued' };
 }
 
