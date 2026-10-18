@@ -56,5 +56,25 @@ test("5. the handoff SLA does not repeat the open-finding queue (only 'unanswere
 test('6. no-reply senders and the calendar+ inbox are not unanswered email', () => {
   const b = body('fn_support_reply_watch_tick');
   assert.match(b, /to_email, ''\) !~\* '\^calendar\\\+'/);
-  assert.match(b, /from_email, ''\) !~\* 'no-\?reply'/);
+  assert.ok(b.includes(`coalesce(substring(m.from_email from '([^<>\\s"]+)@'), '') !~* '^(no-?reply|do-?not-?reply)'`),
+    'the no-reply rule reads the local part only, anchored at its start');
+});
+
+test('6b. a customer whose address merely contains noreply is still counted', () => {
+  // the routine's two patterns replayed in JS (POSIX ~* is case-insensitive)
+  const local = (a) => (a.match(/([^<>\s"]+)@/) || [, ''])[1];
+  const dropped = (a) => /^(no-?reply|do-?not-?reply)/i.test(local(a));
+  assert.equal(dropped('alice.noreply.fan@gmail.com'), false);
+  assert.equal(dropped('info@noreply-studio.ae'), false);
+  assert.equal(dropped('noreply@github.com'), true);
+  assert.equal(dropped('Billing <Do-Not-Reply@bank.ae>'), true);
+});
+
+test('4b. an answered info finding is closed, not left open unwatched', () => {
+  const b = body('fn_it_loop_reverify');
+  const at = b.indexOf("ilike 'info:%' and h.detail ? 'replied_at' then");
+  assert.ok(at > 0, 'the answered-info branch exists');
+  const branch = b.slice(at, b.indexOf('elsif', at));
+  assert.match(branch, /fn_it_engineer_finding_close\(f\.issue_key/);
+  assert.match(branch, /fn_seat_handoff_complete\(h\.id/);
 });

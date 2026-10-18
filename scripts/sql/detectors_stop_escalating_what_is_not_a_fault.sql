@@ -420,7 +420,16 @@ begin
              completion_note = 'IT engineer re-verified: ' || coalesce(f.close_note, 'the finding is no longer open') || ' (handoff ' || h.id || ').'
        where idempotency_key = 'it_loop:' || h.id and status = 'accepted';
       n_closed := n_closed + 1;
-    -- 19 Oct 2026: an info finding (affected 0, title 'info:...') is a note, not a fault; it waits, never escalates.
+    -- 19 Oct 2026: an info finding (affected 0, title 'info:...') is a note, not a fault. Once its handoff is
+    -- answered the note has been read: the finding and the handoff close here, so nothing stays open unwatched.
+    elsif coalesce(f.affected, 1) = 0 and coalesce(f.title, '') ilike 'info:%' and h.detail ? 'replied_at' then
+      perform public.fn_it_engineer_finding_close(f.issue_key, 'info finding: the owning seat answered handoff ' || h.id);
+      perform set_config('qd.handoff_closer', 'it_engineer', true);
+      perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+        'verified_by', 'it_engineer', 'verified_at', now(), 'verdict', 'info finding answered and closed'));
+      perform set_config('qd.handoff_closer', '', true);
+      n_closed := n_closed + 1;
+    -- An unanswered info finding waits for its reply; it never escalates.
     elsif not (h.detail ? 'escalated_report_id') and now() > h.created_at + v_window
           and not (coalesce(f.affected, 1) = 0 and coalesce(f.title, '') ilike 'info:%') then
       v_rep := public.fn_support_report_to_ceo(
@@ -533,7 +542,9 @@ begin
        where m.created_at > now() - interval '30 days' and m.created_at < v_cut and m.replied_at is null
          and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
          -- 19 Oct 2026: a no-reply sender cannot be answered, and calendar+ is the founder's own approval inbox.
-         and coalesce(m.to_email, '') !~* '^calendar\+' and coalesce(m.from_email, '') !~* 'no-?reply'
+         -- Only the sender's local part is matched, so a real customer whose address merely contains the word stays counted.
+         and coalesce(m.to_email, '') !~* '^calendar\+'
+         and coalesce(substring(m.from_email from '([^<>\s"]+)@'), '') !~* '^(no-?reply|do-?not-?reply)'
          and not public.fn_is_demo_email(m.from_email);
       select percentile_cont(0.5) within group (order by extract(epoch from m.replied_at - m.created_at) / 60) into v_median
         from public.inbound_messages m
@@ -597,5 +608,11 @@ select case when array_length(f.why, 1) is null then 'PROBE OK' else 'PROBE FAIL
     case when exists (select 1 from jsonb_array_elements(public.fn_it_handoff_sla_items()) e where e->>'item' like '%:open_over_24h')
          then 'handoff SLA still repeats open findings' end,
     case when (select prosrc from pg_proc where oid = 'public.fn_support_reply_watch_tick()'::regprocedure) !~ 'calendar'
-         then 'reply watch still counts no-reply and calendar+ mail' end
+         then 'reply watch still counts no-reply and calendar+ mail' end,
+    case when (select prosrc from pg_proc where oid = 'public.fn_support_reply_watch_tick()'::regprocedure) !~ 'substring\(m\.from_email'
+           or coalesce(substring('alice.noreply.fan@x.com' from '([^<>\s"]+)@') ~* '^(no-?reply|do-?not-?reply)', true)
+           or not coalesce(substring('Billing <no-reply@x.com>' from '([^<>\s"]+)@') ~* '^(no-?reply|do-?not-?reply)', false)
+         then 'no-reply exclusion does not match the local part only' end,
+    case when (select prosrc from pg_proc where oid = 'public.fn_it_loop_reverify()'::regprocedure) !~ 'info finding answered and closed'
+         then 'an answered info finding has no close path' end
   ], null) why) f;
