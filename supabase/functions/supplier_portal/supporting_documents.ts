@@ -12,11 +12,14 @@
 //     bucket's own limits apply (25 MB, its MIME list) on top of sanitizeAndScan (type decided from the
 //     bytes, malware scan) — the same upload path save_documents uses.
 //   - the record: one row in public.documents, ref_table 'supplier_supporting', ref_id the supplier id,
-//     kind 'supporting:<type>', file_name the label the supplier chose, status 'received'.
+//     kind 'supporting:<type>', file_name the label the supplier chose, status 'pending' (see below).
 //       * NOT ref_table 'leads': fn_customer_document_refs shows every 'leads' document to a customer who
 //         revealed that supplier, and a supplier's supporting file is theirs until they choose otherwise.
-//       * NOT status 'pending': doc_extract claims pending rows for OCR and extraction, and nobody asked
-//         for these to be read. documents.extracted is doc_extract's alone, so the label is not put there.
+//       * status 'pending' SINCE 12 OCT 2026 (founder ruling 1177: "it should always read ... the same applies to any
+//         attachment"). It was 'received' so doc_extract never read them. doc_extract now reads every pending row, code
+//         first then the vision model; a replaced file goes back to 'pending' so the new copy is read automatically.
+//         It indexes only ref_table 'leads' rows, so a supporting file is read but never answered to a stranger.
+//         documents.extracted is doc_extract's alone, so the label is not put there.
 //   - Dropbox: measured 15 Sep 2026, fn_backup_source_registry lists supplier-docs as swept by the
 //     STORAGE SWEEP of fn_enqueue_doc_backups, and fn_backup_sweep_objects owns a supplier-docs path whose
 //     second segment is digits as supplier:<id>. supporting/<id>/... therefore reaches Dropbox under its
@@ -110,6 +113,7 @@ export async function saveSupporting(admin: Admin, supId: number, b: SaveRequest
     const up = await d.upload(path, sc.bytes, sc.mime);
     if (up.error) return R(502, { ok: false, error: 'upload_failed' });
     upd.path = path; upd.mime = sc.mime; upd.processed_at = new Date((d.now || Date.now)()).toISOString();
+    upd.status = 'pending'; upd.attempts = 0;   // a new or replaced file is read (ruling 1177)
   }
   if (label) upd.file_name = label;
   if (type) upd.kind = 'supporting:' + type;
@@ -121,7 +125,7 @@ export async function saveSupporting(admin: Admin, supId: number, b: SaveRequest
     if (error || !data) return R(502, { ok: false, error: 'save_failed' });
     return R(200, { ok: true, replaced: !!b64, document: await shape(data as Row, d.sign) });
   }
-  const { data, error } = await admin.from('documents').insert({ bucket: BUCKET, ref_table: REF_TABLE, ref_id: String(supId), status: 'received',
+  const { data, error } = await admin.from('documents').insert({ bucket: BUCKET, ref_table: REF_TABLE, ref_id: String(supId), status: 'pending',
     kind: 'supporting:' + (type || 'other'), ...upd }).select('id,path,file_name,kind,mime,created_at,processed_at').maybeSingle();
   if (error || !data) return R(502, { ok: false, error: 'save_failed' });
   return R(200, { ok: true, document: await shape(data as Row, d.sign) });

@@ -31,6 +31,7 @@
     {
       "id": "logistics_moving:uae-standards-and-approvals",
       "topic": "Logistics and moving - UAE standards and approvals",
+      "topic_ar": "الخدمات اللوجستية ونقل البضائع: المعايير والموافقات في الإمارات",
       "kind": "standard",
       "body_en": "Authorities and approvals relevant to logistics and moving in the UAE: Federal laws, including the Personal Data Protection Law (Federal Decree-Law No. 45 of 2021), are published on the UAE legislation portal; the portal refused automated reading on 2026-09-28, so the exact articles that apply must be checked there. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for logistics and moving. State the grade and the standard explicitly on each line.",
       "body_ar": "الجهات والموافقات ذات الصلة بنشاط الخدمات اللوجستية والنقل في الإمارات: تُنشر القوانين الاتحادية، ومنها قانون حماية البيانات الشخصية (المرسوم بقانون اتحادي رقم 45 لسنة 2021)، على بوابة التشريعات الإماراتية؛ وقد رفضت البوابة القراءة الآلية في 28 سبتمبر 2026، لذا يجب التحقق من المواد المنطبقة مباشرة منها. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط الخدمات اللوجستية والنقل. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
@@ -40,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "logistics_moving:air-freight-chargeable-weight",
+      "topic": "Air freight volumetric and chargeable weight",
+      "kind": "calculation_rule",
+      "body_en": "Air cargo is billed on chargeable weight: the higher of the actual gross weight and the volumetric weight. Air freight commonly uses a divisor of 6,000 cm³ per kg, so volumetric weight in kg = length × width × height in cm ÷ 6,000, which is about 167 kg per cubic metre. For example, a 1 m³ carton weighing 60 kg is charged as 167 kg. Measure the packed dimensions including the pallet and any overhang, because carriers re-measure and re-rate shipments. Confirm in each quote which divisor is used. Not established here: rounding rules, express-courier divisors or any Dubai-specific variation.",
+      "body_ar": "يُحتسب أجر الشحن الجوي على أساس الوزن المحتسب: وهو الأعلى بين الوزن الإجمالي الفعلي والوزن الحجمي. يستخدم الشحن الجوي عادةً معامل قسمة قدره 6,000 سم³ لكل كيلوغرام، أي أن الوزن الحجمي بالكيلوغرام = الطول × العرض × الارتفاع بالسنتيمتر ÷ 6,000، وهو ما يعادل نحو 167 كغ لكل متر مكعب. فمثلاً، يُحتسب كرتون حجمه 1 م³ ووزنه 60 كغ على أنه 167 كغ. قِس الأبعاد بعد التغليف بما فيها المنصة النقالة وأي بروز، لأن الناقلين يعيدون القياس والتسعير. تأكد في كل عرض سعر من معامل القسمة المستخدم. غير ثابت هنا: قواعد التقريب، ومعاملات القسمة لدى شركات البريد السريع، وأي اختلاف خاص بدبي.",
+      "sources": [
+        "https://cargolinked.com/glossary/volumetric-weight"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +70,15 @@
       "expected_entry_ids": [
         "logistics_moving:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is air freight chargeable weight calculated from Dubai?",
+      "q_ar": "كيف يُحسب الوزن الخاضع للرسوم في الشحن الجوي من دبي؟",
+      "expected_entry_ids": [
+        "logistics_moving:air-freight-chargeable-weight"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither gives the volumetric/chargeable weight rule (L x W x H / 6000); missing: air freight chargeable weight entry). logistics_moving:air-freight-chargeable-weight was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from logistics_moving.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +95,9 @@
       "logistics_moving:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "logistics_moving:air-freight-chargeable-weight"
+    ]
   }
 }

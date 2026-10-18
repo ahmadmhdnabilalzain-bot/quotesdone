@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // messages_api — the customer's unified inbox, the post-reveal customer<->supplier chat, and the
 // pre-reveal anonymous Q&A (clarify_*).
 //
@@ -15,6 +16,7 @@ import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 // The supplier's alias on this job is the same one its own quotation prints (audit 21 Sep 2026, finding 29).
 import { jobAlias } from '../_shared/quote_labels.ts';
+import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
@@ -157,11 +159,20 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     const { data: me } = await admin.from('customers').select('full_name').eq('id', cust.id).maybeSingle();
     const text = stripContact(b.text, [me?.full_name]);
     if (text.replace(/\[removed\]/g, '').trim().length < 1) return R(400, { error: 'text_required' });
-    const { error } = await admin.from('rfq_clarification').update({ answer: text, answered_at: new Date().toISOString() }).eq('id', id).is('answered_at', null);
+    // Every matched supplier reads this answer, and suppliers read English only (_shared/supplier_english.ts):
+    // Arabic is kept as written and the supplier copy is held until the model route writes its English.
+    const nowIso = new Date().toISOString();
+    if (hasArabic(text)) {
+      const { data: upd, error } = await admin.from('rfq_clarification').update({ answer_as_written: text, english_held_at: nowIso, answered_at: nowIso })
+        .eq('id', id).is('answered_at', null).select('id');
+      if (error) return R(500, { error: 'save_failed' });
+      if (!upd?.length) return R(409, { error: 'already_answered' });
+      try { await holdForEnglish(admin, id, text); } catch (_e) { return R(500, { error: 'save_failed' }); }
+      return R(200, { ok: true, id, answer: text, notified: 0, held_for_english: true, notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en });
+    }
+    const { error } = await admin.from('rfq_clarification').update({ answer: text, answered_at: nowIso }).eq('id', id).is('answered_at', null);
     if (error) return R(500, { error: 'save_failed' });
-    const notified = await notifyMatched(String(row.inquiry_id), inq, 'clarification_answered',
-      'The customer answered a question on a request you were invited to quote',
-      'On the ' + (inq.category || 'request') + (inq.emirate ? ' job in ' + inq.emirate : ' job') + ' you were invited to quote, a supplier asked:\n\n"' + String(row.question || '') + '"\n\nThe customer answered:\n\n"' + text + '"\n\nThis answer is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.');
+    const notified = await mailMatched(admin, String(row.inquiry_id), supplierMail('question', inq, row.question, text));
     return R(200, { ok: true, id, answer: text, notified });
   }
 
@@ -205,11 +216,16 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
   }
 
   if (action === 'clarify_list') {
-    const { data: rows, error } = await admin.from('rfq_clarification').select('id,supplier_id,kind,question,answer,asked_at,answered_at').eq('inquiry_id', inquiry_id).order('asked_at', { ascending: true }).limit(200);
+    const { data: rows, error } = await admin.from('rfq_clarification').select('id,supplier_id,kind,question,answer,answer_as_written,english_held_at,asked_at,answered_at').eq('inquiry_id', inquiry_id).order('asked_at', { ascending: true }).limit(200);
     if (error) return R(500, { error: 'load_failed' });
-    const visible = (rows || []).filter((r: any) => isOwner || r.kind === 'note' || Number(r.supplier_id) === Number(supLead?.id) || r.answered_at);
+    // A supplier never sees a text whose English is still held: it reads as not answered yet, and a held note is not
+    // listed. The customer sees what they wrote, as written.
+    const forSupplier = (r: any) => (r.english_held_at ? { ...r, answer: null, answered_at: null } : r);
+    const shaped = (rows || []).map((r: any) => (isOwner ? { ...r, answer: r.answer_as_written ?? r.answer } : forSupplier(r)));
+    const visible = shaped.filter((r: any) => isOwner || (r.kind === 'note' && r.answer) || Number(r.supplier_id) === Number(supLead?.id) || r.answered_at);
     const items = visible.map((r: any) => ({
       id: r.id, kind: r.kind, question: r.question ?? null, answer: r.answer ?? null, asked_at: r.asked_at, answered_at: r.answered_at ?? null,
+      held_for_english: isOwner && !!r.english_held_at,
       supplier_label: r.supplier_id == null ? null : jobAlias(order, Number(r.supplier_id)),
       mine: !isOwner && Number(r.supplier_id) === Number(supLead?.id),
     }));
@@ -218,21 +234,7 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
   return R(400, { error: 'unknown action' });
 }
 
-// The same notification path matchAndNotify uses for the original invitation: one queued email
-// per matched supplier, addressed to the lead, carrying only text that has been through the
-// stripper above. Returns how many were queued so the caller can say so truthfully.
-async function notifyMatched(inquiry_id: string, _inq: unknown, type: string, subject: string, body: string): Promise<number> {
-  const { data: ms } = await admin.from('inquiry_matches').select('supplier_id').eq('inquiry_id', inquiry_id);
-  const ids = [...new Set((ms || []).map((m: { supplier_id: number }) => Number(m.supplier_id)).filter(Boolean))];
-  if (!ids.length) return 0;
-  const { data: ls } = await admin.from('leads').select('id,email,claimed_by,banned').in('id', ids);
-  const rows = (ls || []).filter((l: any) => l.banned !== true).map((l: any) => ({ id: l.id, to: String(l.claimed_by || l.email || '') })).filter((l) => /@/.test(l.to))
-    .map((l) => ({ type, to_email: l.to, to_role: 'supplier', lead_id: l.id, inquiry_id, channel: 'email', status: 'queued', subject, body }));
-  await notify(rows);
-  return rows.length;
-}
-
-Deno.serve(observe('messages_api', async (req) => {
+Deno.serve(siteCors(observe('messages_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
@@ -445,4 +447,4 @@ Deno.serve(observe('messages_api', async (req) => {
 
     return J({ error: 'unknown action' }, 400);
   } catch (e) { console.error('messages_api: unhandled —', String((e as Error)?.message || e)); return J({ error: 'Something went wrong. Please try again.', code: 'unexpected_error' }, 500); }
-}));
+})));

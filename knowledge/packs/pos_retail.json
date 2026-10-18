@@ -490,6 +490,16 @@
         "pos_retail:rfid-inventory",
         "pos_retail:electronic-shelf-labels"
       ]
+    },
+    {
+      "q_en": "Does our restaurant POS need to print VAT-compliant tax invoices in Arabic?",
+      "q_ar": "هل يجب أن يطبع نظام نقاط البيع في مطعمنا فواتير ضريبية متوافقة مع ضريبة القيمة المضافة باللغة العربية؟",
+      "expected_entry_ids": [
+        "pos_retail:uae-tax-invoice-content",
+        "pos_retail:arabic-receipts"
+      ],
+      "why": "Tax-invoice entry gives required VAT invoice content and arabic-receipts covers Arabic/bilingual printing on POS printers.",
+      "origin": "real buyer question, moved from pos_retail.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

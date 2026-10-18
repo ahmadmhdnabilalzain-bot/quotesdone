@@ -70,6 +70,15 @@ Deno.test('a total the customer was not shown is never charged: nothing is creat
   assertEquals(f.calls.map((c) => c.path), ['confirmation_tokens/ctoken_zzdemo']);
 });
 
+Deno.test('an unreadable reveal rate is refused and nothing is created at Stripe', async () => {
+  for (const rate of [NaN, 0, undefined as unknown as number]) {
+    const f = fakeStripe(card('AE'));
+    const r = await payReveal(f.stripe, { ...args(0), rate });
+    assertEquals([r.status, 'error' in r ? r.error : ''], ['failed', 'invalid_fee'], String(rate));
+    assertEquals(f.calls.map((c) => c.path), ['confirmation_tokens/ctoken_zzdemo'], 'only the token is read');
+  }
+});
+
 Deno.test('a declined card leaves no open invoice behind', async () => {
   const f = fakeStripe(card('AE'), 'declined');
   const r = await payReveal(f.stripe, args(30000));

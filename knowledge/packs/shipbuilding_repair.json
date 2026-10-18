@@ -55,6 +55,15 @@
       "expected_entry_ids": [
         "shipbuilding_repair:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is drydocking priced for a 60 m offshore supply vessel?",
+      "q_ar": "كيف يُسعّر الإرساء في الحوض الجاف لسفينة إمداد بحرية بطول 60 م؟",
+      "expected_entry_ids": [
+        "shipbuilding_repair:spec-checklist"
+      ],
+      "why": "The checklist lists the drydock pricing drivers: dock days, steel renewal tonnes, coating area, class survey and scope.",
+      "origin": "real buyer question, moved from shipbuilding_repair.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

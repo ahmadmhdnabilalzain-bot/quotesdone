@@ -41,6 +41,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "mannequins_visual_merchandising:female-mannequin-sizing",
+      "topic": "Female display mannequin sizing",
+      "kind": "sizing_reference",
+      "body_en": "Standard female fashion mannequins have traditionally been made in UK size 8-10, even though research cited in the same report puts the average woman at UK size 18-20. Some retailers have commissioned 'real-life' figures; one was scanned from a 6-foot customer in UK size 14 with 97 cm chest, 79 cm waist and 102 cm hips. Display mannequin dimensions vary by maker, so specify the garment size the figure must wear, bust, waist and hip in cm, overall height and head style, and ask for the maker's measurement sheet. Not established here: standard heights or body measurements for a size 8-10 mannequin, or EU size equivalents.",
+      "body_ar": "تُصنع عارضات الأزياء النسائية القياسية تقليدياً بمقاس بريطاني 8-10، رغم أن بحثاً مذكوراً في التقرير نفسه يضع متوسط مقاس المرأة عند 18-20 بالمقاس البريطاني. وقد طلبت بعض شركات التجزئة عارضات «واقعية»؛ إحداها مأخوذة بالمسح من زبونة طولها 6 أقدام بمقاس بريطاني 14، بمحيط صدر 97 سم وخصر 79 سم وورك 102 سم. تختلف أبعاد عارضات العرض باختلاف الصانع، لذا حدّد مقاس الملابس التي يجب أن ترتديها العارضة، ومحيط الصدر والخصر والورك بالسنتيمتر، والطول الكلي، ونوع الرأس، واطلب ورقة القياسات من الصانع. غير ثابت هنا: الأطوال أو قياسات الجسم القياسية لعارضة بمقاس 8-10، ولا ما يقابلها في المقاسات الأوروبية.",
+      "sources": [
+        "https://fashionunited.uk/news/retail/long-tall-sally-launches-debut-real-life-mannequin/2016092821959"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "mannequins_visual_merchandising:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What sizes do standard female mannequins come in?",
+      "q_ar": "ما المقاسات التي تتوفر بها عارضات الأزياء النسائية القياسية؟",
+      "expected_entry_ids": [
+        "mannequins_visual_merchandising:female-mannequin-sizing"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry gives standard female mannequin size ranges (UK 8-10 / EU 36-38)). mannequins_visual_merchandising:female-mannequin-sizing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from mannequins_visual_merchandising.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "mannequins_visual_merchandising:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "mannequins_visual_merchandising:female-mannequin-sizing"
+    ]
   }
 }

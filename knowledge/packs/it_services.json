@@ -325,6 +325,7 @@
     {
       "id": "it_services:price-drivers-it",
       "topic": "Price drivers for IT and network projects",
+      "topic_ar": "ما يحدد سعر مشاريع تقنية المعلومات والشبكات",
       "kind": "price_driver",
       "body_en": "Cabling: copper prices (cable cost follows the copper market), category and shielding (Cat6A shielded costs markedly more than Cat6 UTP and takes more tray space), LSZH vs PVC jacket, brand system with warranty vs generic, termination labour per point, working hours (night work in malls and occupied offices), ceiling type and height, containment scope, and certification. Fibre: core count, armoured/outdoor construction, termination method and civil works. Active equipment: brand tier, port speeds (multigig, 10/25G uplinks), PoE budget, redundancy (stacking, dual PSU, HA pairs), and above all subscription licences and support terms, which can equal or exceed hardware over five years. Managed services: user/device count, SLA hours and response times, on-site frequency, and security tooling included. Exchange-rate movement and USD list pricing also affect quotes. No fixed market price is established here; compare BOQs line by line. Project management, design drawings, site surveys and after-hours supervision are separate cost lines that some suppliers include and others omit. So check whether they are included before comparing totals. Verification note (23 Sep 2026): no prices are stated.",
       "body_ar": "الكابلات: أسعار النحاس (تتبع تكلفة الكابل سوق النحاس)، والفئة والتدريع (فكابل Cat6A المدرع أغلى بوضوح من Cat6 غير المدرع ويشغل مساحة أكبر في الحوامل)، والغلاف LSZH مقابل PVC، ونظام علامة بضمان مقابل منتج عام، وأجور التطريف لكل نقطة، وساعات العمل (العمل الليلي في المراكز التجارية والمكاتب المشغولة)، ونوع السقف وارتفاعه، ونطاق المسارات، والاعتماد بالفحص. الألياف: عدد الشعيرات، والتركيب المدرع أو الخارجي، وطريقة التطريف، والأعمال المدنية. الأجهزة النشطة: فئة العلامة، وسرعات المنافذ (متعددة السرعات وروابط 10/25 غيغابت)، وميزانية PoE، والاحتياط (التكديس، ومزوّد طاقة مزدوج، وأزواج التوافر العالي)، وقبل كل شيء تراخيص الاشتراك وشروط الدعم التي قد تساوي قيمة الأجهزة أو تتجاوزها على مدى خمس سنوات. الخدمات المُدارة: عدد المستخدمين والأجهزة، وساعات اتفاقية الخدمة وأزمنة الاستجابة، وتكرار الزيارات، وأدوات الأمن المشمولة. كما تؤثر تقلبات أسعار الصرف والتسعير بالدولار على العروض. ولا يوجد هنا سعر سوقي ثابت؛ قارن جداول الكميات بنداً بنداً. وإدارة المشروع ومخططات التصميم والمسوحات الميدانية والإشراف خارج الدوام بنود تكلفة منفصلة يدرجها بعض الموردين ويحذفها آخرون، فتحقق من شمولها قبل مقارنة المجاميع. ملاحظة التحقق (23 سبتمبر 2026): لا توجد أسعار.",
@@ -475,6 +476,16 @@
         "it_services:quote-red-flags-it",
         "it_services:price-drivers-it"
       ]
+    },
+    {
+      "q_en": "Is structured cabling priced per data point, and what does that include?",
+      "q_ar": "هل تُسعّر الكابلات الهيكلية لكل نقطة بيانات، وما الذي يشمله ذلك؟",
+      "expected_entry_ids": [
+        "it_services:price-drivers-it",
+        "it_services:spec-structured-cabling"
+      ],
+      "why": "price-drivers-it names termination labour per point and the cabling cost drivers, and spec-structured-cabling lists what a per-point price includes or leaves out (outlets, patch cords, containment, racks, certification).",
+      "origin": "real buyer question, moved from it_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

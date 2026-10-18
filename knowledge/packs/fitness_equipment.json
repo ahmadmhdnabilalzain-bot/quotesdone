@@ -41,6 +41,20 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "fitness_equipment:treadmill-usage-class-s-vs-h",
+      "topic": "Treadmill usage classes under ISO 20957 (S, H, I)",
+      "kind": "standard_explainer",
+      "body_en": "ISO 20957-6:2021 specifies safety requirements and test methods for power-driven and manually driven treadmills, in addition to the general requirements of ISO 20957-1, and applies to treadmills of classes S, H and I and accuracy classes A, B and C. Not established here: the definitions of classes S, H and I and how they map to a residential tower gym, because no opened page carried the class definitions; the buyer should obtain the manufacturer's declared ISO 20957 class and confirm with the supplier that the unit and its warranty are intended for shared, owner-managed use.",
+      "body_ar": "يحدد المعيار ISO 20957-6:2021 متطلبات السلامة وطرق الاختبار لأجهزة المشي الكهربائية واليدوية، إضافة إلى المتطلبات العامة في ISO 20957-1، ويسري على أجهزة المشي من الفئات S وH وI وفئات الدقة A وB وC. غير مثبت هنا: تعريفات الفئات S وH وI وكيفية انطباقها على صالة رياضية في برج سكني، إذ لم تتضمن أي صفحة مفتوحة تعريفات هذه الفئات؛ وينبغي للمشتري الحصول على فئة ISO 20957 التي يعلنها المصنّع والتأكد من المورّد أن الجهاز وضمانه مخصصان للاستخدام المشترك الذي تديره الجهة المالكة.",
+      "sources": [
+        "https://online.standard.no/en/iso-20957-6-2021",
+        "https://bsmd.moic.gov.bh/store/standards/iso:pub:std:IS:80969/ISO%2020957-6:2021?lang=en"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -57,6 +71,15 @@
       "expected_entry_ids": [
         "fitness_equipment:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the difference between a commercial and home treadmill for a residential tower gym?",
+      "q_ar": "ما الفرق بين جهاز المشي التجاري والمنزلي لصالة رياضية في برج سكني؟",
+      "expected_entry_ids": [
+        "fitness_equipment:treadmill-usage-class-s-vs-h"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains commercial vs home treadmill differences; spec checklist only says to state 'commercial or home rating' and ISO 20957; missing: commercial vs home rating explainer). fitness_equipment:treadmill-usage-class-s-vs-h was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from fitness_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +95,9 @@
       "fitness_equipment:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "fitness_equipment:treadmill-usage-class-s-vs-h"
+    ]
   }
 }

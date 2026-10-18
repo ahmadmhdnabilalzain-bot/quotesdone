@@ -7,9 +7,10 @@
     {
       "id": "retail_shelving:uae-market-products",
       "topic": "Retail shelving & display fixtures: products, variants and grades sold in the UAE",
+      "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Retail shelving sold in the UAE includes gondola shelving (single and double-sided, back panels perforated or plain, base decks and adjustable shelves), wall shelving, supermarket fruit and vegetable racks, pharmacy shelving, mobile phone and electronics display units, slatwall and gridwall panels, garment racks and fixtures, checkout counters, wire shelving, promotional end caps, pallet racking for back stores and hypermarkets, and shopfitting joinery. Buyers specify height (1.35-2.4 m typical), bay width (usually 1,000, 1,250 or 1,330 mm), shelf depth (300-600 mm), load per shelf (typically 60-150 kg), steel thickness, powder coat colour (RAL), accessories (price strips, dividers, hooks), and compatibility with existing systems. Racking for warehouses and stores should follow EN 15512/EN 15635 design and inspection guidance, and Civil Defence rules apply for storage heights and sprinkler clearance.",
-      "body_ar": "تشمل رفوف البيع بالتجزئة المباعة في الإمارات رفوف الجندولا (أحادية ومزدوجة الجانب، بألواح خلفية مثقبة أو سادة، وقواعد ورفوف قابلة للتعديل)، والرفوف الجدارية، ورفوف الفواكه والخضار في السوبرماركت، ورفوف الصيدليات، ووحدات عرض الهواتف والإلكترونيات، والألواح المشقوقة والشبكية، وعلاقات وتجهيزات الملابس، وكاونترات الدفع، والرفوف السلكية، ونهايات الممرات الترويجية، ورفوف المنصات للمخازن الخلفية والهايبر ماركت، وأعمال النجارة لتجهيز المتاجر. يحدد المشترون الارتفاع (1.35-2.4 م عادةً)، وعرض الوحدة (عادةً 1000 أو 1250 أو 1330 مم)، وعمق الرف (300-600 مم)، والحمولة لكل رف (عادةً 60-150 كغ)، وسماكة الفولاذ، ولون الطلاء بالمسحوق (RAL)، والإكسسوارات (شرائط الأسعار، والفواصل، والخطافات)، والتوافق مع الأنظمة القائمة. وينبغي أن تتبع رفوف المستودعات والمتاجر إرشادات التصميم والفحص EN 15512/EN 15635، وتنطبق قواعد الدفاع المدني على ارتفاعات التخزين والمسافة عن رشاشات الحريق.",
+      "body_en": "This entry covers retail shelving sold in the UAE: gondola and wall shelving, produce and pharmacy racks, display units, slatwall, garment fixtures, checkouts and pallet racking, with the heights, bay widths and shelf loads buyers specify. Retail shelving sold in the UAE includes gondola shelving (single and double-sided, back panels perforated or plain, base decks and adjustable shelves), wall shelving, supermarket fruit and vegetable racks, pharmacy shelving, mobile phone and electronics display units, slatwall and gridwall panels, garment racks and fixtures, checkout counters, wire shelving, promotional end caps, pallet racking for back stores and hypermarkets, and shopfitting joinery. Buyers specify height (1.35-2.4 m typical), bay width (usually 1,000, 1,250 or 1,330 mm), shelf depth (300-600 mm), load per shelf (typically 60-150 kg), steel thickness, powder coat colour (RAL), accessories (price strips, dividers, hooks), and compatibility with existing systems. Racking for warehouses and stores should follow EN 15512/EN 15635 design and inspection guidance, and Civil Defence rules apply for storage heights and sprinkler clearance.",
+      "body_ar": "تشمل رفوف التجزئة المباعة في الإمارات رفوف الجندولا والرفوف الجدارية، ورفوف الخضار والصيدليات، ووحدات العرض، والسلات وول، وتجهيزات عرض الملابس، وكاونترات الدفع، ورفوف الطبليات، مع الارتفاعات وعروض الوحدات وأحمال الرفوف التي يحددها المشترون. تشمل رفوف البيع بالتجزئة المباعة في الإمارات رفوف الجندولا (أحادية ومزدوجة الجانب، بألواح خلفية مثقبة أو سادة، وقواعد ورفوف قابلة للتعديل)، والرفوف الجدارية، ورفوف الفواكه والخضار في السوبرماركت، ورفوف الصيدليات، ووحدات عرض الهواتف والإلكترونيات، والألواح المشقوقة والشبكية، وعلاقات وتجهيزات الملابس، وكاونترات الدفع، والرفوف السلكية، ونهايات الممرات الترويجية، ورفوف المنصات للمخازن الخلفية والهايبر ماركت، وأعمال النجارة لتجهيز المتاجر. يحدد المشترون الارتفاع (1.35-2.4 م عادةً)، وعرض الوحدة (عادةً 1000 أو 1250 أو 1330 مم)، وعمق الرف (300-600 مم)، والحمولة لكل رف (عادةً 60-150 كغ)، وسماكة الفولاذ، ولون الطلاء بالمسحوق (RAL)، والإكسسوارات (شرائط الأسعار، والفواصل، والخطافات)، والتوافق مع الأنظمة القائمة. وينبغي أن تتبع رفوف المستودعات والمتاجر إرشادات التصميم والفحص EN 15512/EN 15635، وتنطبق قواعد الدفاع المدني على ارتفاعات التخزين والمسافة عن رشاشات الحريق.",
       "sources": [
         "https://daralnaseeb.com/blog/warehouse-racking-approval-dubai-guide-2026",
         "https://www.creative-display.com/supermarket-shelving",
@@ -25,9 +26,10 @@
     {
       "id": "retail_shelving:uae-market-brands",
       "topic": "Retail shelving & display fixtures: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Confirmed UAE shelving suppliers and a racking maker with a UAE inspection service: Creative Display, Al Khaleej (Sharjah), Abazar Shelving, BITO. Other international racking brands and European gondola systems are imported; their UAE representation was not checked. Shopfitters cluster in the Sharjah Industrial Areas, Deira and Al Quoz.",
-      "body_ar": "موردو الرفوف المؤكدون في الإمارات ومصنع رفوف يقدم خدمة فحص فيها: Creative Display، Al Khaleej (Sharjah)، Abazar Shelving، BITO. وتُستورد علامات الرفوف الدولية الأخرى وأنظمة الجندولا الأوروبية ولم يُتحقق من تمثيلها في الإمارات. ويتجمع مجهزو المتاجر في المناطق الصناعية بالشارقة وديرة والقوز.",
+      "body_en": "This entry names UAE shelving suppliers Creative Display, Al Khaleej, Abazar Shelving and the racking maker BITO, and where shopfitters cluster. Confirmed UAE shelving suppliers and a racking maker with a UAE inspection service: Creative Display, Al Khaleej (Sharjah), Abazar Shelving, BITO. Other international racking brands and European gondola systems are imported; their UAE representation was not checked. Shopfitters cluster in the Sharjah Industrial Areas, Deira and Al Quoz.",
+      "body_ar": "من موردي رفوف المتاجر في الإمارات Creative Display وAl Khaleej وAbazar Shelving، ومن مصنعي أنظمة التخزين BITO، مع بيان أماكن تركز شركات تجهيز المحلات. موردو الرفوف المؤكدون في الإمارات ومصنع رفوف يقدم خدمة فحص فيها: Creative Display، Al Khaleej (Sharjah)، Abazar Shelving، BITO. وتُستورد علامات الرفوف الدولية الأخرى وأنظمة الجندولا الأوروبية ولم يُتحقق من تمثيلها في الإمارات. ويتجمع مجهزو المتاجر في المناطق الصناعية بالشارقة وديرة والقوز.",
       "sources": [
         "https://daralnaseeb.com/blog/warehouse-racking-approval-dubai-guide-2026",
         "https://www.creative-display.com/supermarket-shelving",
@@ -43,9 +45,10 @@
     {
       "id": "retail_shelving:uae-market-sizes",
       "topic": "Retail shelving & display fixtures: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Gondola shelving is priced per bay (by height, width, number of shelves and single/double side) or per running metre; accessories per piece; pallet racking per bay or per pallet position. Store fit-outs are quoted as a lump sum with layout drawing, delivery and installation. Local manufacturers can often supply standard bays within 1-3 weeks; imports 4-8 weeks.",
-      "body_ar": "تُسعّر رفوف الجندولا لكل وحدة (حسب الارتفاع والعرض وعدد الرفوف وكونها أحادية أو مزدوجة الجانب) أو لكل متر طولي؛ والإكسسوارات لكل قطعة؛ ورفوف المنصات لكل وحدة أو لكل موقع منصة. وتُسعّر تجهيزات المتاجر كمبلغ مقطوع مع رسم المخطط والتوصيل والتركيب. ويمكن للمصنعين المحليين غالباً توريد الوحدات القياسية خلال 1-3 أسابيع، والواردات خلال 4-8 أسابيع.",
+      "body_en": "This entry explains how shelving is priced: gondola per bay or running metre, accessories per piece, pallet racking per bay or pallet position, and store fit-outs as a lump sum, with local and import lead times. Gondola shelving is priced per bay (by height, width, number of shelves and single/double side) or per running metre; accessories per piece; pallet racking per bay or per pallet position. Store fit-outs are quoted as a lump sum with layout drawing, delivery and installation. Local manufacturers can often supply standard bays within 1-3 weeks; imports 4-8 weeks.",
+      "body_ar": "تُسعَّر رفوف المتاجر كالتالي: الجندولا لكل وحدة أو بالمتر الطولي، والإكسسوارات بالقطعة، ورفوف البالِت لكل وحدة أو لكل موقع بالِت، وتجهيز المحلات بمبلغ مقطوع، مع مدد التوريد المحلي والمستورد. تُسعّر رفوف الجندولا لكل وحدة (حسب الارتفاع والعرض وعدد الرفوف وكونها أحادية أو مزدوجة الجانب) أو لكل متر طولي؛ والإكسسوارات لكل قطعة؛ ورفوف المنصات لكل وحدة أو لكل موقع منصة. وتُسعّر تجهيزات المتاجر كمبلغ مقطوع مع رسم المخطط والتوصيل والتركيب. ويمكن للمصنعين المحليين غالباً توريد الوحدات القياسية خلال 1-3 أسابيع، والواردات خلال 4-8 أسابيع.",
       "sources": [
         "https://daralnaseeb.com/blog/warehouse-racking-approval-dubai-guide-2026",
         "https://www.creative-display.com/supermarket-shelving",
@@ -61,11 +64,14 @@
   ],
   "eval": [
     {
-      "q_en": "What bay width and shelf load are standard for supermarket gondolas?",
-      "q_ar": "ما عرض الوحدة وحمولة الرف القياسيان لرفوف الجندولا في السوبرماركت؟",
+      "q_en": "What retail shelving and display fixtures do suppliers in the UAE offer to shops?",
+      "q_ar": "شو رفوف ووحدات العرض اللي يقدمها الموردين في الإمارات للمحلات؟",
       "expected_entry_ids": [
         "retail_shelving:uae-market-products"
-      ]
+      ],
+      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Retail shelving sold in the UAE includes gondola shelving (single and double-sided, back panels perforated or plain, base decks and adjustable shelves), wall shelving, supermarket fruit and vegetable racks, pharmacy shel...\".",
+      "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
+      "word_overlap_excluding_label": 0
     }
   ],
   "verified": {

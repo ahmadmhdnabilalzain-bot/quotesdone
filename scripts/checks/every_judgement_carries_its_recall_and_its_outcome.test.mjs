@@ -24,6 +24,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -152,7 +153,7 @@ begin
     'lessons_on_cases', (select count(*) from public.seat_case_memory where id = any(v_c) and cardinality(lessons) > 0))::text;
 end $p$;`;
   let r;
-  try { await sql((live ? '' : read(SQL_FILE) + '\n') + probe, { retry: false }); }
+  try { await replaySql((live ? '' : read(SQL_FILE) + '\n') + probe, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;

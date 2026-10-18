@@ -14,8 +14,8 @@
 //   * the IT tick calls the digest.
 // LIVE (token): the policy's it_engineer kinds allowed to reach him are exactly the emergency class plus
 // the digest; and ONE transaction that always rolls back (ZZ DEMO subjects, the founder stub on, a day in
-// 2099 so no real digest day is touched) proves: too early -> nothing; a decision and a 30-hour fault are
-// told; a 3-hour fault waits; a closed fault is completed as fixed; a CEO-silence report stays internal;
+// 2099 so no real digest day is touched) proves: too early -> nothing; a decision is told; a fault of any age (30 hours,
+// 3 hours) stays internal on the OS (ruling of 4 Oct 2026, the_originator_closes_what_was_answered_and_the_digest_carries_only_his_decisions.sql); a closed fault is completed as fixed; a CEO-silence report stays internal;
 // a day already decided is not decided twice; 0 rows are queued to the founder. Until the file is applied
 // the same transaction first runs the file itself, so this rehearses the change before it goes live.
 //
@@ -26,6 +26,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/the_founder_hears_from_it_once_a_day.sql';
@@ -124,7 +125,7 @@ begin
   d := public.fn_customer_support_sends_the_it_digest(v_at + interval '1 hour');
   raise exception 'CHK<<%>>', jsonb_build_object('held', k, 'early', w->>'reason', 'again', d->>'reason', 'states', e,
     'event', v->>'event', 'told_decision', v->>'detail' ~ 'DECISION: ZZ DEMO credential refused. Only you can decide this',
-    'told_old', v->>'detail' ~ 'ZZ DEMO old fault, open since 3[01] Dec. Nothing inside the company fixed it; the sales engineer has it',
+    'told_old', v->>'detail' ~ 'ZZ DEMO old fault',
     'told_young_or_closed', v->>'detail' ~ 'ZZ DEMO (young|closed)', 'told_ruled_out', v->>'detail' ~ 'ZZ DEMO (no cap|campaign)',
     'founder_rows', (select count(*) from public.notifications where id > v_max))::text;
 end $p$;`;
@@ -139,23 +140,23 @@ test('production: the IT kinds that reach the founder at once are exactly the em
   assert.deepEqual(r[0].k, ['backup_failed_after_retry', 'integration_reauth_needed', 'it_daily_digest', 'platform_down', 'security_critical', 'uptime_alert']);
 });
 
-test('production: one digest a day carries only decisions and day-old faults, and reaches nobody in a test', { skip: SKIP }, async () => {
+test('production: one digest a day carries only his decisions, and reaches nobody in a test', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const live = (await sql(`select to_regprocedure('public.fn_customer_support_sends_the_it_digest(timestamptz)') is not null as live`))[0].live;
   // Not applied yet: rehearse the file itself in the same rolled-back transaction.
   const pre = live ? '' : `begin;\n${readFileSync(join(REPO, FILE), 'utf8')}\n`;
   let message = '';
-  try { await sql(pre + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  try { await replaySql(pre + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 1500));
   const o = JSON.parse(chk[1].replace(/\\"/g, '"'));
   assert.equal(o.held, 7, 'the seven requests were not all held for the digest');
   assert.match(o.early, /19:00 Dubai/);
   assert.match(o.again, /already decided/);
-  assert.deepEqual(o.states, { 1: 'sent', 2: 'sent', 3: 'pending', 4: 'fixed', 5: 'internal', 6: 'internal', 7: 'internal' });
+  assert.deepEqual(o.states, { 1: 'sent', 2: 'internal', 3: 'internal', 4: 'fixed', 5: 'internal', 6: 'internal', 7: 'internal' });
   assert.equal(o.told_ruled_out, false, 'the digest told him something he ruled is not his');
   assert.equal(o.told_decision, true);
-  assert.equal(o.told_old, true, JSON.stringify(o));
+  assert.equal(o.told_old, false, 'a day-old fault was emailed: since 4 Oct 2026 the digest carries only his decisions ' + JSON.stringify(o));
   assert.equal(o.told_young_or_closed, false);
   assert.equal(o.founder_rows, 0, 'a test queued a row to the founder');
 });

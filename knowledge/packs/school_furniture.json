@@ -40,6 +40,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "school_furniture:en-1729-size-marks-by-age",
+      "topic": "EN 1729-1 size marks by age band",
+      "kind": "sizing_reference",
+      "body_en": "EN 1729-1 defines eight size marks (0 to 7) for school chairs and tables, each with a colour code. The size marks are defined by popliteal height and stature range, not by the user's age: stature runs from 800-950 mm for size mark 0 up to 1740-2070 mm for size mark 7. The published indicative age ranges are: 0 white, under 4 years; 1 orange, 3-4; 2 violet, 4-5; 3 yellow, 6-7; 4 red, 8-10; 5 green, 11-13; 6 blue, 14-18; 7 brown, 18 and over. Grade 5 pupils, typically about 10-11 years old, fall on the boundary between size mark 4 (red) and size mark 5 (green), so choose by measuring pupils' stature rather than by grade. Not established here: the full stature and seat/table height table for each mark, which is in the paid standard.",
+      "body_ar": "تحدد المواصفة EN 1729-1 ثماني علامات مقاس (من 0 إلى 7) للكراسي والطاولات المدرسية، لكل منها رمز لوني. تُحدَّد علامات المقاس بارتفاع ما خلف الركبة (الارتفاع المأبضي) ونطاق طول القامة، لا بعمر المستخدم: يتراوح طول القامة من 800-950 مم لعلامة المقاس 0 حتى 1740-2070 مم لعلامة المقاس 7. نطاقات الأعمار الإرشادية المنشورة: 0 أبيض، أقل من 4 سنوات؛ 1 برتقالي، 3-4؛ 2 بنفسجي، 4-5؛ 3 أصفر، 6-7؛ 4 أحمر، 8-10؛ 5 أخضر، 11-13؛ 6 أزرق، 14-18؛ 7 بني، 18 فأكثر. يقع طلاب الصف الخامس، وأعمارهم عادةً نحو 10-11 سنة، على الحد بين علامة المقاس 4 (أحمر) وعلامة المقاس 5 (أخضر)، لذا يُختار المقاس بقياس أطوال الطلاب لا بحسب الصف. غير ثابت هنا: الجدول الكامل لأطوال القامة وارتفاعات المقعد والطاولة لكل علامة، الوارد في المواصفة المدفوعة.",
+      "sources": [
+        "https://www.satra.com/spotlight/article.php?id=500",
+        "https://catas.com/uploads/media/catas-chairs-tables-school-eng.pdf?v3.1"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +70,15 @@
       "expected_entry_ids": [
         "school_furniture:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What furniture size mark suits Grade 5 students?",
+      "q_ar": "ما علامة مقاس الأثاث المناسبة لطلاب الصف الخامس؟",
+      "expected_entry_ids": [
+        "school_furniture:en-1729-size-marks-by-age"
+      ],
+      "why": "No entry of this pack answered it (checklist and standards name EN 1729 size marks but no entry maps a size mark to Grade 5 age/height). school_furniture:en-1729-size-marks-by-age was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from school_furniture.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +95,9 @@
       "school_furniture:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "school_furniture:en-1729-size-marks-by-age"
+    ]
   }
 }

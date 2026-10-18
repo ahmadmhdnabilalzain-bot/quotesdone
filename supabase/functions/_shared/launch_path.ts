@@ -106,7 +106,7 @@ export function launchPathProbes(anon: string, probeSecret?: string): Probe[] {
     judge: (s, b, _u, h) => (s === 401 && json(b).error === 'unauthorized' ? inRegion(h) : `HTTP ${s} ${b.slice(0, 120)}`),
   });
   probes.push({
-    id: 'api:claim_lookup', url: fnUrl('claim_lookup'), init: post(anon, { t: 'launch-path-probe' }),
+    id: 'api:claim_lookup', url: fnUrl('claim_lookup'), init: withProbe(post(anon, { t: 'launch-path-probe' }), probeSecret),
     judge: (s, b, _u, h) => (s === 400 && json(b).error === 'invalid_link' ? inRegion(h) : `HTTP ${s} ${b.slice(0, 120)}`),
   });
   probes.push({

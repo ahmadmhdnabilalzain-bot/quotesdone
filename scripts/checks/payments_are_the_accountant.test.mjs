@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { canonicalReplay, definitions } from '../lib/canonical_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
@@ -86,6 +87,18 @@ function kindRows() {
         rows.push({ type, from, to, handler: named ?? `fn_${to}_acts_on_handoff` });
       }
     }
+    // 6 Oct 2026: the aliased union shape — SELECT 'type' [as type], 'from' | s.seat, s.seat | 'to', '<meaning>',
+    // 'fn_handler' ... FROM unnest(array[...]) s(seat) [UNION ALL ...] — was invisible to both parsers above, so the
+    // fifteen ceo.revise / ceo.decision_closed / ceo.decision_owed rows (MANIFEST 1894, founder_instruction 1059) were
+    // live in production and absent from payment_handoffs.ts with this static test green. Read it too.
+    for (const t of m[0].matchAll(/select\s+'([a-z_.]+)'(?:\s+as\s+\w+)?,\s*(?:'([a-z_]+)'|s\.seat)(?:\s+as\s+\w+)?,\s*(?:'([a-z_]+)'|s\.seat)(?:\s+as\s+\w+)?,\s*'(?:[^']|'')*'(?:\s+as\s+\w+)?(?:,\s*'(fn_[a-z0-9_]+)')?[\s\S]*?from\s+unnest\(array\[([^\]]*)\]\)\s+s\(seat\)/g)) {
+      const [, type, fixedFrom, fixedTo, named, seats] = t;
+      if (!!fixedFrom === !!fixedTo) continue; // exactly one side is the unnested seat
+      for (const [, s] of seats.matchAll(/'([a-z_]+)'/g)) {
+        const from = fixedFrom ?? s, to = fixedTo ?? s;
+        rows.push({ type, from, to, handler: named ?? `fn_${to}_acts_on_handoff` });
+      }
+    }
   }
   return rows;
 }
@@ -145,6 +158,10 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       // the year-one plan names (#923)
       || (type === 'ceo.root_cause' && allSql.includes("fn_seat_handoff('ceo', p.owner_seat, 'ceo.root_cause'"))
       || (type === 'ceo.month_directive' && allSql.includes("fn_seat_handoff('ceo', s, 'ceo.month_directive'"))
+      // a rejection never ends the cycle (founder_instruction 1059): the CEO answers the seat that submitted the item
+      || (type === 'ceo.revise' && from === 'ceo' && allSql.includes("fn_seat_handoff('ceo', p_originator, 'ceo.revise'"))
+      || (type === 'ceo.decision_closed' && from === 'ceo' && allSql.includes("fn_seat_handoff('ceo', new.originator_seat, 'ceo.decision_closed'"))
+      || (type === 'ceo.decision_owed' && to === 'ceo' && allSql.includes("fn_seat_handoff(p_originator, 'ceo', 'ceo.decision_owed'"))
       || (type === 'ceo.improvement' && allSql.includes("fn_seat_handoff('ceo', p_seat, 'ceo.improvement'"))
       // a recurring support cause goes to the seat support_category names as its owner (instruction 1009)
       || (type === 'support.root_cause' && from === 'customer_support'
@@ -207,7 +224,7 @@ test('production: the whole refund ladder on ZZ DEMO fixtures, rolled back', { s
   const batch = [sqlText, ...(ledgerPending ? [read(join(REPO, LEDGER))] : []),
     read(join(REPO, 'scripts', 'checks', 'refund_ladder_fixtures.sql'))].join('\n;\n');
   let message = '';
-  try { await sql(batch); message = 'the fixture batch returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  try { await replaySql(batch); message = 'the fixture batch returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));
