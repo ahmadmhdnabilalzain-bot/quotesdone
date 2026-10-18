@@ -40,6 +40,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "mining_quarry_supplies:manganese-grades-crusher-liners",
+      "topic": "Manganese steel grades for jaw and cone crusher liners",
+      "kind": "material_selection",
+      "body_en": "Crusher jaw plates are cast in manganese steel. Kleemann (Wirtgen Group) offers jaw plates with 18%, 20% and 24% manganese content and an MT-BITE tooth profile designed primarily for hard rock crushing such as granite and basalt. Not established here: a general grade-to-rock selection rule from an opened source, or any manufacturer guidance naming gabbro; the manganese grade and tooth profile should be confirmed with the crusher OEM against the feed.",
+      "body_ar": "تُصبّ ألواح فكّ الكسارات من فولاذ المنغنيز. وتقدّم شركة Kleemann (مجموعة Wirtgen) ألواح فكّ بمحتوى منغنيز 18% و20% و24%، وشكل أسنان MT-BITE المصمَّم أساساً لتكسير الصخور الصلبة كالغرانيت والبازلت. غير مثبت هنا: قاعدة عامة لاختيار درجة المنغنيز حسب نوع الصخر من مصدر مفتوح، أو أي توجيه من مصنّع يذكر صخر الغابرو تحديداً؛ وينبغي تأكيد درجة المنغنيز وشكل الأسنان مع الشركة المصنّعة للكسارة وفق المادة المغذّاة.",
+      "sources": [
+        "https://www.wirtgen-group.com/en-us/magazine/the-rock/at-wirtgen-group/customer-support-part-9-kleemann-crusher-jaw-plates-ideal-for-every-application/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "mining_quarry_supplies:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which manganese grade should jaw crusher plates be for gabbro?",
+      "q_ar": "ما درجة المنغنيز المناسبة لألواح كسارة الفك للغابرو؟",
+      "expected_entry_ids": [
+        "mining_quarry_supplies:manganese-grades-crusher-liners"
+      ],
+      "why": "No entry of this pack answered it (No entry covers manganese steel grades for crusher liners; missing). mining_quarry_supplies:manganese-grades-crusher-liners was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from mining_quarry_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "mining_quarry_supplies:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "mining_quarry_supplies:manganese-grades-crusher-liners"
+    ]
   }
 }

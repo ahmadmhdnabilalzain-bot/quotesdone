@@ -19,6 +19,11 @@ export const INVITE_REPLY_QUESTION =
 const ARABIC = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 // The founder's rule: the word is never used in anything a customer or supplier reads; say "smart".
 const THE_FORBIDDEN_WORD = /\bai\b/i;
+// NO DATES IN THE COPY (founder ruling 6 Sep 2026; coordinator finding 5 Oct 2026: the live invite_body still said
+// the offer was free "until" a 2027 date, then a subscription from the next day). A year, or a month name beside a
+// day or year, fails. The offer is "free permanently for the first 1,000 supplier registrations", with no date.
+const MONTH = '(?:jan(?:uary)?|feb(?:ruary)?|march|april|may|june|july|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+export const A_DATE = new RegExp(`\\b(?:19|20)\\d\\d\\b|\\b${MONTH}\\s+\\d{1,4}\\b|\\b\\d{1,2}\\s+${MONTH}\\b`, 'i');
 
 /** The last non-empty paragraph of a plain-text body, trimmed. */
 export function lastParagraph(body: string): string {
@@ -75,6 +80,7 @@ export function invitationCopyLint(o: { lang: string; subject: string; body: str
   const last = lastParagraph(o.body);
   const qAt = o.body.lastIndexOf(last);
   const linkAt = o.link ? o.body.indexOf(o.link) : -1;
+  const dated = fields.filter(([, v]) => A_DATE.test(v)).map(([k]) => k);
   return [
     { rule: 'the invitation is English only', ok: o.lang === 'en' && arabic.length === 0,
       detail: o.lang !== 'en' ? `lang=${o.lang}` : `Arabic script in ${arabic.join(', ')}` },
@@ -83,5 +89,6 @@ export function invitationCopyLint(o: { lang: string; subject: string; body: str
       detail: `last paragraph: "${last.slice(-160)}"` },
     { rule: 'the question comes after the portal link', ok: !o.link || (linkAt >= 0 && qAt > linkAt),
       detail: linkAt < 0 ? 'portal link not found in the body' : 'the question sits above the link' },
+    { rule: 'no date in the copy (founder ruling 6 Sep 2026)', ok: dated.length === 0, detail: `a date in ${dated.join(', ')}` },
   ];
 }

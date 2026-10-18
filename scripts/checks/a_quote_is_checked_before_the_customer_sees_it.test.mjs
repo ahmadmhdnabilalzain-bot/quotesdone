@@ -15,6 +15,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -98,7 +99,7 @@ test('production, aborted: ZZ DEMO quotes are flagged, held, sent their fixes an
   const { sql } = await import('../lib/db.mjs');
   const block = (pending ? src + '\n' : '') + read(`scripts/sql/${NAME}_probe.sql`);
   let msg = '';
-  try { await sql(block, { retry: false }); msg = 'the probe committed instead of rolling back'; } catch (e) { msg = String(e.message); }
+  try { await replaySql(block, { retry: false }); msg = 'the probe committed instead of rolling back'; } catch (e) { msg = String(e.message); }
   const m = msg.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(m, 'the probe failed before it could report: ' + msg.slice(0, 1500));
   const out = JSON.parse(m[1].replace(/\\"/g, '"'));

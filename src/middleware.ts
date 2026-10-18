@@ -57,6 +57,8 @@ export const config = {
     // on both hosts without the /ar prefix, because only the bare /supplier-agreement was matched.
     // Prevented by: scripts/checks/every_page_is_routed_and_every_sitemap_url_is_a_page.test.mjs.
     '/supplier-agreement/:path*', '/(ar|en)/supplier-agreement/:path*',
+    // Superseded Customer Terms versions (/terms/v9 from 6 Oct 2026), for the same reason.
+    '/terms/:path*', '/(ar|en)/terms/:path*',
     '/blog/:path*', '/(ar|en)/blog/:path*'
   ]
 };

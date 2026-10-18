@@ -56,6 +56,7 @@ export function workingFromSubmit(body: SubmitBody, scrubbed: { notes: string; s
   return {
     lines, amount: num(body.amount), subtotal: num(body.subtotal), vat_amount: num(body.vat_amount),
     vat_treatment: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: num(body.price_ex_vat), trn,
+    gross_amount: num(body.gross_amount), discount_amount: num(body.discount_amount), discount_label: body.discount_label ? str(body.discount_label).slice(0, 80) : null,
     lead_time, validity, payment_terms, warranty,
     scope: scrubbed.scope, conditions: scrubbed.conditions, exclusions: scrubbed.exclusions, notes: scrubbed.notes,
     terms_spec, masked_terms, option_totals: body.option_totals && typeof body.option_totals === 'object' ? body.option_totals : {},
@@ -84,6 +85,7 @@ export function workingFromStoredQuote(q: any, rows: any[]): Working {
   return {
     lines, amount: num(q?.quote_amount) ?? num(q?.amount_as_stated), subtotal: null, vat_amount: num(q?.vat_amount),
     vat_treatment: q?.vat_treatment ? String(q.vat_treatment) : null, price_ex_vat: num(q?.price_ex_vat), trn: q?.supplier_trn ?? null,
+    gross_amount: num(q?.gross_amount), discount_amount: num(q?.discount_amount), discount_label: q?.discount_label ? str(q.discount_label) : null,
     lead_time: str(q?.lead_time), validity: str(q?.validity), payment_terms: str(q?.payment_terms), warranty: str(q?.warranty),
     scope: str(q?.scope), conditions: str(q?.conditions), exclusions: str(q?.exclusions), notes: str(q?.notes),
     terms_spec: (q?.terms_spec ?? {}) as TermsSpec, masked_terms: Array.isArray(q?.masked_terms) ? q.masked_terms : [],

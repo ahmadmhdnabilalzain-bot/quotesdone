@@ -32,11 +32,14 @@
 //
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
+import { cacheTokens, tapUsage } from './stream_usage.ts';
+import { sendWithTtlFallback, systemMessage } from './system_message.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { annotate, observe } from '../_shared/observe.ts';
-import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, subjectOf } from '../_shared/spend_guards.ts';
+import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, subjectOf } from '../_shared/spend_guards.ts';
+import { e2eRunTag } from '../_shared/e2e_run.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
 
@@ -156,6 +159,8 @@ interface Body {
   counterpart_model?: string;   // the model that wrote what this call reviews (fn_ai_route_review)
   sys?: string;
   sys_stable?: string;                    // the byte-stable half of the system prompt; only this is marked cacheable
+  sys_shared?: string;                    // a byte-stable block shared by a family of prompts, cached first (system_message.ts)
+  cache_ttl?: '1h';                       // Anthropic's 1-hour cache tier, asked for by the chat callers only
   input?: string | Msg[];
   messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
   max?: number; temperature?: number; confidence?: number;
@@ -224,8 +229,27 @@ function inferCaps(msgs: Msg[], tools?: any[]): { caps: string[]; hasBinary: boo
   return { caps: Array.from(caps), hasBinary };
 }
 
+// THE CALLER IS ON EVERY RUN ROW, REFUSED OR NOT (it_engineer, 5 Oct 2026; LLM burn audit R6). 11,686 runs on
+// 28-29 Sep carried only http/method/path, so the burst had no name until the edge logs were read: one Node client on
+// a UAE address re-embedding ~6,200 knowledge rows through {action:'embed'}, free and never routed to a model. Each
+// run row now says which fn the caller CLAIMS to be, the action and the task class it asked for. Claimed, not proven:
+// these keys are for attribution only and decide nothing (observe.statusOf reads only the handler's own 'held').
+const claimedCaller = (b: Record<string, unknown>) => ({
+  claimed_fn: String(b?.fn ?? 'unknown').slice(0, 80),
+  claimed_action: String(b?.action ?? 'chat').slice(0, 20),
+  claimed_task_class: b?.task_class == null ? null : String(b.task_class).slice(0, 60),
+});
 Deno.serve(observe('ai_gateway', async (req) => {
+  const claimed = claimedCaller(await req.clone().json().catch(() => ({})));
+  return annotate(await handle(req), claimed);
+}));
+
+async function handle(req: Request): Promise<Response> {
   const t0 = Date.now();
+  // The prompt hash on every ai_cost_log row (fn + system + conversation; the FAQ path hashes its question). The
+  // model-spend duty's repeat rule keys on it: cache_hit_key was null on all 3,397 rows of 30 days (burn audit).
+  let promptHash: string | null = null;
+  const llmLog = (args: Record<string, unknown>) => rpcSafe('fn_llm_log', { ...args, p_prompt_hash: promptHash });
   try {
     const body = (await req.json().catch(() => ({}))) as Body;
       // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -269,12 +293,13 @@ Deno.serve(observe('ai_gateway', async (req) => {
     // Semantic matching included, because keyword search missed 2 of 5 realistic questions.
     if (body.try_faq) {
       const q = String(body.faq_text ?? (typeof body.input === 'string' ? body.input : '') ?? '');
+      promptHash = await sha256('faq ' + fnName + ' ' + q);
       const qEmb = q.length > 2 ? await embed(q) : null;
       const { data: faq } = await admin.rpc('fn_faq_answer', {
         p_text: q, p_min_rank: 0.15, p_embedding: qEmb, p_min_similarity: 0.86,
       });
       if (faq && faq.answered === true) {
-        await rpcSafe('fn_llm_log', {
+        await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: 'level0_' + String(faq.source), p_model: 'none',
           p_because: 'Answered with no model: ' + faq.source + ' (confidence ' + faq.confidence + ')',
@@ -302,7 +327,15 @@ Deno.serve(observe('ai_gateway', async (req) => {
     //
     // Callers that know which half of their prompt is stable now say so. sys_stable is prepended to
     // sys and is the ONLY block marked cacheable; sys keeps whatever changes per call.
-    const sysStable = String(body.sys_stable || '');
+    // THE SHARED PREFIX (13 Oct 2026, sales_engineer; coordinator's options a and c). sys_shared is a byte-stable block
+    // that is the SAME for every caller of a family of prompts (the ~250k-char knowledge brief every conversation reply
+    // carries); it goes first with its own cache breakpoint, so a reply in any language on any channel reads it from the
+    // cache even when the caller's own stable half differs. sysStable below holds both halves for hashing and lengths.
+    const sysShared = String(body.sys_shared || '');
+    // cache_ttl '1h': Anthropic's 1-hour cache tier (2x write instead of 1.25x). Asked for only by the chat callers,
+    // whose traffic is too sparse for 5 minutes; every other caller keeps the default (see NO ttl FIELD below).
+    const cacheTtl = body.cache_ttl === '1h' ? '1h' : null;
+    const sysStable = sysShared + String(body.sys_stable || '');
     const sys = String(body.sys || '');
     const explicit = Array.isArray(body.messages) ? body.messages : null;
     const convo: Msg[] = explicit
@@ -311,6 +344,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
           ? [{ role: 'user', content: body.input }]
           : (Array.isArray(body.input) ? body.input as Msg[] : []));
 
+    promptHash = await sha256([fnName, sysStable, sys, JSON.stringify(convo)].join(' '));
     const { caps: inferred, hasBinary } = inferCaps(convo, body.tools);
     const caps = Array.isArray(body.require_caps) && body.require_caps.length
       ? Array.from(new Set([...body.require_caps, ...inferred]))
@@ -382,7 +416,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
 
     // ---- 4. REFUSALS: deterministic work, or no capable model (no budget halt: founder_instruction 987) ---
     if (route.use_llm === false) {
-      await rpcSafe('fn_llm_log', {
+      await llmLog({
         p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
         p_task_class: route.task_class ?? null, p_model: 'none', p_because: route.why,
         p_tier: route.tier ?? 'none', p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
@@ -438,7 +472,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
       });
       if (hit && hit.hit === true) {
-        await rpcSafe('fn_llm_log', {
+        await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: route.task_class ?? null, p_model: hit.model ?? model,
           p_because: hit.kind + ' cache hit (similarity ' + hit.similarity + ')',
@@ -486,7 +520,17 @@ Deno.serve(observe('ai_gateway', async (req) => {
       const subject = subjectOf((body as { subject?: unknown }).subject);
       let ownWork = ownWorkByName(fnName)
         ? 'the calling function "' + fnName + '" is our own automated work (probe, rehearsal, smoke or eval)' : '';
-      if (!ownWork && subject) {
+      // A proven sandbox run inside its open window is the one case a fixture subject may be answered
+      // (spend_guards.rehearsalLetsFixtureThrough). The paid gate below still enforces the window's cap.
+      let inWindow = false;
+      const runTag = e2eRunTag();
+      if (!ownWork && subject && runTag) {
+        let open: unknown = null; let openErr: unknown = null;
+        try { const res = await admin.rpc('fn_e2e_run_tag_open', { p_tag: runTag }); open = res.data; openErr = res.error; }
+        catch (e) { openErr = e; }
+        inWindow = rehearsalLetsFixtureThrough(runTag, open, openErr);
+      }
+      if (!ownWork && subject && !inWindow) {
         let fx: unknown = null; let fxErr: unknown = null;
         try { const res = await admin.rpc('fn_ai_subject_is_fixture', { p_subject: subject }); fx = res.data; fxErr = res.error; }
         catch (e) { fxErr = e; }
@@ -494,7 +538,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
         if (v.stub) ownWork = v.why;
       }
       if (ownWork) {
-        await rpcSafe('fn_llm_log', {
+        await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: route.task_class ?? null, p_model: 'none',
           p_because: route.why + ' | FIXTURE: ' + ownWork + ' — answered with the no-cost stub, no provider call was made',
@@ -528,24 +572,19 @@ Deno.serve(observe('ai_gateway', async (req) => {
     // is right for a caller whose whole prompt genuinely is stable and wrong only for one that
     // silently mixes, which is exactly what sys_stable exists to fix.
     //
-    // NO ttl FIELD. The 1-hour tier works (probe 11 Aug 2026 returned 200) and loses money on this
+    // NO ttl FIELD BY DEFAULT (a caller may send cache_ttl '1h': only the sparse chat callers do, system_message.ts).
+    // The 1-hour tier works (probe 11 Aug 2026 returned 200) and loses money on this
     // workload: it bills 2x to write against 1.25x for the default, and the hourly loop repeats at
     // ~65 minutes — just outside the window. See scripts/sql/prompt_cache_accounting.sql for the
     // arithmetic and the measured hit rates.
     const cacheBlock = sysStable || sys;
     const useCache = route.cache === true && promptCacheOn && cacheBlock.length >= CACHE_MIN_CHARS;
-    const sysText = sysStable ? (sysStable + sys) : sys;
-    const sysMsg = useCache
-      ? { role: 'system', content: sysStable
-            ? [{ type: 'text', text: sysStable, cache_control: { type: 'ephemeral' } },
-               ...(sys ? [{ type: 'text', text: sys }] : [])]
-            : [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }] }
-      : { role: 'system', content: sysText };
+    const sysMsg = systemMessage({ shared: useCache ? sysShared : '', stable: useCache ? sysStable.slice(sysShared.length) : sysStable, sys, useCache, ttl: cacheTtl });
     // An empty system message is not free - it is a message the provider still tokenises, and on
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,
     // and never when the caller already supplied its own system turn inside `messages`.
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
-    const outbound: Msg[] = (sysText && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
+    const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
 
     // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to
     // about 100 seconds, while _shared/llm.ts abandons a plain call after 30. On 29 Jul five
@@ -644,7 +683,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
       // refusal above is logged — model 'none', zero tokens, the rationale in words — so spend,
       // failure and confidence instruments see a policy answer, not a call, and the routing
       // rationale names the model it would have used and the rule that held it.
-      await rpcSafe('fn_llm_log', {
+      await llmLog({
         p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
         p_task_class: route.task_class ?? null, p_model: 'none',
         p_because: route.why + ' | HELD: routed to ' + model + ' by policy, no provider call was made — '
@@ -682,7 +721,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
           // "this attempt was free" indistinguishable from "nobody recorded what it cost".
           prompt_tokens: u?.prompt_tokens ?? null,
           output_tokens: u?.completion_tokens ?? null,
-          cached_in_tokens: det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0,
+          cached_in_tokens: u ? (det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0) : null,
         }});
       } catch (_e) { /* the ledger must not take down the call; its absence shows in the report */ }
     };
@@ -780,25 +819,47 @@ Deno.serve(observe('ai_gateway', async (req) => {
           if (body.tools && body.tools.length) payload.tools = body.tools;
           if (body.tool_choice != null) payload.tool_choice = body.tool_choice;
 
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload), signal: ac.signal,
-          });
+          // THE 1-HOUR TIER IS ASKED FOR, NEVER REQUIRED (13 Oct 2026): if the route refuses the ttl field, the same
+          // request goes once more on the default 5-minute tier, breakpoints kept (system_message.ts).
+          const r = await sendWithTtlFallback((msgs) => {
+            payload.messages = msgs;
+            return fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload), signal: ac.signal,
+            });
+          }, outbound, cacheTtl);
 
           if (wantStream) {
             // Hand the stream straight back. The caller can abandon it, which stops generation
             // and stops billing - that is the whole point of streaming for cost.
             clearTimeout(to);
             if (r.ok && r.body) {
-              await rpcSafe('fn_llm_log', {
-                p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
-                p_task_class: route.task_class ?? null, p_model: m,
-                p_because: route.why + ' | streamed (token counts not available on the stream path)',
-                p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
-                p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+              // The real usage comes in the stream's final chunk (stream_usage.ts): the ledger is written
+              // when the stream ends or is abandoned, with the tokens, cache reads/writes and OpenRouter's charge.
+              const startedAt = attemptStartedAt;
+              const tapped = tapUsage(r.body, async (s) => {
+                const u = s.usage;
+                const { cachedIn: sIn, cacheWrite: sWr } = cacheTokens(u);
+                // Only a real stream error is a failure (it may trip the breaker). A stream that ended or was
+                // abandoned without its usage chunk delivered its words: ok, with the tokens unknown (null).
+                const okStream = !s.error;
+                await recordAttempt(m, okStream, Date.now() - startedAt, s.error ?? '', s.finish ?? undefined, u ?? undefined);
+                await llmLog({
+                  p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+                  p_task_class: route.task_class ?? null, p_model: m,
+                  p_because: route.why + ' | streamed'
+                             + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): ' + sIn + ' tokens read from cache, ' + sWr + ' written' : '')
+                             + (s.cancelled ? ' | abandoned by the caller' : '')
+                             + (u ? '' : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
+                             + (s.finish === 'length' ? ' | TRUNCATED at the ' + sentMaxTok + '-token ceiling' : ''),
+                  p_tier: route.tier ?? null, p_prompt_tokens: u?.prompt_tokens ?? null, p_output_tokens: u?.completion_tokens ?? null,
+                  p_cached: false, p_cached_in: sIn ?? 0, p_cache_write: sWr ?? 0,
+                  p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: okStream,
+                  p_generation_id: s.id, p_cost_usd_reported: Number.isFinite(Number(u?.cost)) ? Number(u!.cost) : null,
+                });
               });
-              return new Response(r.body, {
+              return new Response(tapped, {
                 headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache',
                            'X-QD-Model': m, 'X-QD-Tier': String(route.tier) },
               });
@@ -872,7 +933,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
       costUsd = data == null ? null : Number(data);
     } catch (_e) { /* pricing is reporting, not a gate */ }
 
-    await rpcSafe('fn_llm_log', {
+    await llmLog({
       p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
       p_task_class: route.task_class ?? null, p_model: used,
       p_because: route.why + (used !== model ? ' [fell back from ' + model + ']' : '')
@@ -946,4 +1007,4 @@ Deno.serve(observe('ai_gateway', async (req) => {
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);
   }
-}));
+}

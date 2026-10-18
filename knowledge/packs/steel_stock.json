@@ -40,6 +40,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "steel_stock:uae-steel-price-validity",
+      "topic": "Steel price setting and quote validity in the UAE",
+      "kind": "commercial_terms",
+      "body_en": "Trade press from the Arab Iron and Steel Union reports Emirates Steel Arkan rebar prices month by month, quoted CPT Abu Dhabi and CPT Dubai, Sharjah and the Northern Emirates and excluding 5% VAT. It also reports that for May 2024 the mill moved from a unified market price to prices agreed with individual customers. Not established here: how long a steel quote is usually valid in the UAE; no opened source gives a validity period. Ask each supplier for the validity date, whether the price is fixed or tied to the mill price, and the delivery basis.",
+      "body_ar": "تفيد منشورات الاتحاد العربي للحديد والصلب بأسعار حديد التسليح لدى شركة الإمارات للصلب أركان شهراً بشهر، مسعّرةً على أساس النقل المدفوع إلى أبوظبي (CPT) وإلى دبي والشارقة والإمارات الشمالية، دون ضريبة القيمة المضافة البالغة 5%. وتفيد أيضاً بأن المصنع انتقل في مايو 2024 من سعر سوقي موحّد إلى أسعار يُتفق عليها مع كل عميل على حدة. غير ثابت هنا: المدة المعتادة لسريان عرض سعر الحديد في الإمارات؛ إذ لا يذكر أي مصدر مفتوح مدة سريان. اطلب من كل مورّد تاريخ انتهاء السريان، وما إذا كان السعر ثابتاً أو مرتبطاً بسعر المصنع، وأساس التسليم.",
+      "sources": [
+        "https://aisusteel.org/?p=27368"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "steel_stock:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How long is a steel price quote usually valid in the UAE?",
+      "q_ar": "كم تبقى صلاحية عرض سعر الحديد عادة في الإمارات؟",
+      "expected_entry_ids": [
+        "steel_stock:uae-steel-price-validity"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither states quote validity periods; missing: steel price validity / price-adjustment entry). steel_stock:uae-steel-price-validity was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from steel_stock.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "steel_stock:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "steel_stock:uae-steel-price-validity"
+    ]
   }
 }

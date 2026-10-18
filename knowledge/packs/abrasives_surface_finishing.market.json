@@ -7,9 +7,10 @@
     {
       "id": "abrasives_surface_finishing:uae-market-products",
       "topic": "Abrasives & surface finishing: products, variants and grades sold in the UAE",
+      "topic_ar": "المواد الكاشطة وتشطيب الأسطح: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Abrasives and surface finishing in the UAE: bonded abrasives (cutting and grinding discs for steel and stainless/INOX, 115-230 mm, EN 12413 with max RPM marked; depressed-centre and flat), flap discs (zirconia, ceramic, aluminium oxide; grits 40-120), coated abrasives (sanding belts, rolls, sheets, velcro discs), non-woven surface conditioning (Scotch-Brite type), wire brushes, diamond blades and cup wheels for concrete and stone, blasting media (garnet, copper slag, steel grit and shot, glass bead, aluminium oxide) for ISO 8501-1 Sa 2.5 preparation, blasting and painting equipment (blast pots, dust collectors, airless sprayers), and polishing compounds. Buyers specify abrasive grain, grit, disc size and bore (22.23 mm), thickness (1.0-1.6 mm for cutting), material to be worked and safety marking (oSa).",
-      "body_ar": "المواد الكاشطة وتشطيب الأسطح في الإمارات: الكاشطات الملتصقة (أقراص القطع والجلخ للحديد والستانلس، 115-230 مم، وفق EN 12413 مع أقصى سرعة دوران مدونة؛ مقعرة الوسط ومسطحة)، والأقراص الريشية (زركونيا، سيراميك، أكسيد الألمنيوم؛ خشونة 40-120)، والكاشطات المغلفة (أحزمة الصنفرة واللفائف والأوراق وأقراص الفلكرو)، وتهيئة الأسطح غير المنسوجة، وفرش السلك، وأقراص وأكواب الألماس للخرسانة والحجر، ووسائط السفع (الجارنت، وخبث النحاس، وحبيبات وكرات الحديد، والخرز الزجاجي، وأكسيد الألمنيوم) لتحضير Sa 2.5 وفق ISO 8501-1، ومعدات السفع والدهان (أوعية السفع، ومجمعات الغبار، والرشاشات عالية الضغط)، ومركبات التلميع. يحدد المشتري حبيبات الكاشط والخشونة ومقاس القرص والثقب (22.23 مم) والسماكة (1.0-1.6 مم للقطع) والمادة المشغولة وعلامة السلامة oSa.",
+      "body_en": "This entry covers the abrasives range sold in the UAE, from cutting and grinding discs and flap discs to sanding belts, blasting media and blasting equipment, and what buyers specify. Abrasives and surface finishing in the UAE: bonded abrasives (cutting and grinding discs for steel and stainless/INOX, 115-230 mm, EN 12413 with max RPM marked; depressed-centre and flat), flap discs (zirconia, ceramic, aluminium oxide; grits 40-120), coated abrasives (sanding belts, rolls, sheets, velcro discs), non-woven surface conditioning (Scotch-Brite type), wire brushes, diamond blades and cup wheels for concrete and stone, blasting media (garnet, copper slag, steel grit and shot, glass bead, aluminium oxide) for ISO 8501-1 Sa 2.5 preparation, blasting and painting equipment (blast pots, dust collectors, airless sprayers), and polishing compounds. Buyers specify abrasive grain, grit, disc size and bore (22.23 mm), thickness (1.0-1.6 mm for cutting), material to be worked and safety marking (oSa).",
+      "body_ar": "تشمل المواد الكاشطة المتوفرة في السوق الإماراتي أقراص القطع والجلخ وأقراص الصنفرة الريشية (flap discs)، مروراً بأحزمة الصنفرة ومواد السفع ومعدات السفع، مع المواصفات التي يحددها المشتري عند الطلب. المواد الكاشطة وتشطيب الأسطح في الإمارات: الكاشطات الملتصقة (أقراص القطع والجلخ للحديد والستانلس، 115-230 مم، وفق EN 12413 مع أقصى سرعة دوران مدونة؛ مقعرة الوسط ومسطحة)، والأقراص الريشية (زركونيا، سيراميك، أكسيد الألمنيوم؛ خشونة 40-120)، والكاشطات المغلفة (أحزمة الصنفرة واللفائف والأوراق وأقراص الفلكرو)، وتهيئة الأسطح غير المنسوجة، وفرش السلك، وأقراص وأكواب الألماس للخرسانة والحجر، ووسائط السفع (الجارنت، وخبث النحاس، وحبيبات وكرات الحديد، والخرز الزجاجي، وأكسيد الألمنيوم) لتحضير Sa 2.5 وفق ISO 8501-1، ومعدات السفع والدهان (أوعية السفع، ومجمعات الغبار، والرشاشات عالية الضغط)، ومركبات التلميع. يحدد المشتري حبيبات الكاشط والخشونة ومقاس القرص والثقب (22.23 مم) والسماكة (1.0-1.6 مم للقطع) والمادة المشغولة وعلامة السلامة oSa.",
       "sources": [
         "https://www.osa-abrasives.org",
         "https://www.cencenelec.eu",
@@ -22,9 +23,10 @@
     {
       "id": "abrasives_surface_finishing:uae-market-brands",
       "topic": "Abrasives & surface finishing: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "المواد الكاشطة وتشطيب الأسطح: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Brands in the market: 3M, Norton, Klingspor, Pferd, Tyrolit, Bosch, Makita, DeWalt, Flexovit, Rhodius, Cumi, Awuko, Mirka, Sia, Graco, Clemco, Blastline. Which UAE distributor carries each brand was not checked. Distribution clusters in Deira (Naif, Al Ras), Sharjah Industrial Area, Al Quoz and Musaffah.",
-      "body_ar": "العلامات في السوق: 3M، Norton، Klingspor، Pferd، Tyrolit، Bosch، Makita، DeWalt، Flexovit، Rhodius، Cumi، Awuko، Mirka، Sia، Graco، Clemco، Blastline. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع التوزيع في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح.",
+      "body_en": "This entry lists the abrasive and blasting brands found in the UAE, such as 3M, Norton, Klingspor and Pferd, and where distribution clusters. Brands in the market: 3M, Norton, Klingspor, Pferd, Tyrolit, Bosch, Makita, DeWalt, Flexovit, Rhodius, Cumi, Awuko, Mirka, Sia, Graco, Clemco, Blastline. Which UAE distributor carries each brand was not checked. Distribution clusters in Deira (Naif, Al Ras), Sharjah Industrial Area, Al Quoz and Musaffah.",
+      "body_ar": "أبرز علامات المواد الكاشطة ومعدات السفع الرملي المتوفرة في الإمارات هي 3M وNorton وKlingspor وPferd، مع بيان المناطق التي يتركز فيها موزعوها. العلامات في السوق: 3M، Norton، Klingspor، Pferd، Tyrolit، Bosch، Makita، DeWalt، Flexovit، Rhodius، Cumi، Awuko، Mirka، Sia، Graco، Clemco، Blastline. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع التوزيع في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح.",
       "sources": [
         "https://www.osa-abrasives.org",
         "https://www.cencenelec.eu",
@@ -37,9 +39,10 @@
     {
       "id": "abrasives_surface_finishing:uae-market-sizes",
       "topic": "Abrasives & surface finishing: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "المواد الكاشطة وتشطيب الأسطح: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Discs sold per piece or per box (25 or 50 pieces); flap discs per box of 10; belts per piece by size (e.g. 75 x 533 mm, 100 x 915 mm); rolls by width x 50 m; blasting media per 25 kg bag or per tonne (1 t jumbo bags). Blasting and painting services are quoted per m2 of surface by preparation grade and coating system. Distributor pricing is list less discount by volume.",
-      "body_ar": "تُباع الأقراص بالقطعة أو بالعلبة (25 أو 50 قطعة)؛ والأقراص الريشية بعلبة 10؛ والأحزمة بالقطعة حسب المقاس (مثل 75 × 533 مم و100 × 915 مم)؛ واللفائف حسب العرض × 50 م؛ ووسائط السفع بكيس 25 كغ أو بالطن (أكياس جامبو طن). وتُسعّر خدمات السفع والدهان بالمتر المربع حسب درجة التحضير ونظام الطلاء. وتسعير الموزع سعر القائمة ناقص خصم حسب الكمية.",
+      "body_en": "This entry explains how abrasives are packed and priced: discs per piece or box, belts and rolls by size, blasting media per bag or tonne, and blasting services per m2. Discs sold per piece or per box (25 or 50 pieces); flap discs per box of 10; belts per piece by size (e.g. 75 x 533 mm, 100 x 915 mm); rolls by width x 50 m; blasting media per 25 kg bag or per tonne (1 t jumbo bags). Blasting and painting services are quoted per m2 of surface by preparation grade and coating system. Distributor pricing is list less discount by volume.",
+      "body_ar": "تُعبَّأ المواد الكاشطة في الإمارات وتُسعَّر كالتالي: الأقراص بالحبة أو بالعلبة، والأحزمة واللفات حسب المقاس، ومواد السفع بالكيس أو بالطن، وخدمات السفع بالمتر المربع. تُباع الأقراص بالقطعة أو بالعلبة (25 أو 50 قطعة)؛ والأقراص الريشية بعلبة 10؛ والأحزمة بالقطعة حسب المقاس (مثل 75 × 533 مم و100 × 915 مم)؛ واللفائف حسب العرض × 50 م؛ ووسائط السفع بكيس 25 كغ أو بالطن (أكياس جامبو طن). وتُسعّر خدمات السفع والدهان بالمتر المربع حسب درجة التحضير ونظام الطلاء. وتسعير الموزع سعر القائمة ناقص خصم حسب الكمية.",
       "sources": [
         "https://www.osa-abrasives.org",
         "https://www.cencenelec.eu",
@@ -52,11 +55,15 @@
   ],
   "eval": [
     {
-      "q_en": "Which cutting disc thickness is best for stainless steel?",
-      "q_ar": "ما سماكة قرص القطع الأنسب للفولاذ المقاوم للصدأ؟",
+      "q_en": "What scratchy pads, spinning cutters for metal and shiny-finish pastes might a small workshop pick up around town?",
+      "q_ar": "شو أنواع الليف الخشن وأقراص القص الدوارة للحديد ومعاجين التلميع اللي تقدر ورشة صغيرة تلقاها في السوق هنا؟",
       "expected_entry_ids": [
         "abrasives_surface_finishing:uae-market-products"
-      ]
+      ],
+      "why": "Products entry lists bonded cutting/grinding discs, flap discs, coated abrasives and polishing compounds sold in the UAE.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0,
+      "word_overlap_after_enrichment": 0
     }
   ],
   "verified": {

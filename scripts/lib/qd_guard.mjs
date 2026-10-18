@@ -99,7 +99,7 @@ async function post(ref, sql, attempt = 0) {
   }
   if (!r.ok) {
     const e = new Error(`management API ${r.status}: ${body.slice(0, 300)}`);
-    e.status = r.status; e.body = body.slice(0, 2000);
+    e.status = r.status; e.body = body.slice(0, 200000);   // a verdict-raising probe carries its whole result here (document_intake_accuracy)
     throw e;
   }
   return body ? JSON.parse(body) : null;

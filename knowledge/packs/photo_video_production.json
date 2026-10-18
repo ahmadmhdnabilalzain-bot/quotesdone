@@ -55,6 +55,15 @@
       "expected_entry_ids": [
         "photo_video_production:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Do we need a permit to film a corporate video on a public beach in Dubai?",
+      "q_ar": "هل نحتاج إلى تصريح لتصوير فيديو لشركة على شاطئ عام في دبي؟",
+      "expected_entry_ids": [
+        "photo_video_production:uae-standards-and-approvals"
+      ],
+      "why": "The standards entry states filming in public places needs a permit from the emirate authority, e.g. the Dubai Film and TV Commission.",
+      "origin": "real buyer question, moved from photo_video_production.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

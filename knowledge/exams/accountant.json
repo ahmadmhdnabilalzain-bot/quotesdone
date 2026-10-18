@@ -30,13 +30,13 @@
     {
       "id": "accountant-exam-03",
       "checklist": "ACC-02",
-      "q_en": "How is the processing part of the charge worked out so we still keep 3%?",
-      "q_ar": "كيف تُحسب رسوم المعالجة بحيث نحتفظ بـ3% كاملة؟",
+      "q_en": "Is anything added to the reveal fee for paying by card, and who bears Stripe's fee?",
+      "q_ar": "هل يُضاف أي مبلغ على رسوم الكشف عند الدفع بالبطاقة، ومن يتحمّل رسوم Stripe؟",
       "expected_entry_ids": [
         "accountant:company-pricing-and-fee-arithmetic"
       ],
       "expected_facts": [
-        "grossed up onto the customer",
+        "nothing is added for paying by card",
         "2.9% plus AED 1"
       ]
     },

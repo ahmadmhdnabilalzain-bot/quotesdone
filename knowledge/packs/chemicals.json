@@ -45,6 +45,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "chemicals:hot-weather-concrete-retarding-admixtures",
+      "topic": "Set-retarding admixtures for hot-weather concreting",
+      "kind": "product_guide",
+      "body_en": "For pouring in hot weather, the usual chemical aid is a water-reducing and set-retarding admixture classified under ASTM C494 (Type B retarding, Type D water-reducing and retarding). Example: Sika Plastiment meets ASTM C494 Types B and D, delays cement hydration and controls heat generation, which is particularly beneficial in hot-weather concreting; the typical dosage is up to 260 mL per 100 kg of cement or cementitious material, varying with project conditions and materials. Not established here: the maximum fresh-concrete temperature set by Dubai Municipality or the project; take it from the contract specification.",
+      "body_ar": "للصبّ في الطقس الحار، يُستخدم عادةً مُضاف خرساني مخفِّض للماء ومؤخِّر للشكّ مصنَّف وفق المواصفة ASTM C494 (النوع B مؤخِّر، والنوع D مخفِّض للماء ومؤخِّر). مثال: يستوفي منتج Sika Plastiment متطلبات النوعين B وD من ASTM C494، ويؤخّر إماهة الإسمنت ويتحكم في توليد الحرارة، وهو مفيد خصوصاً في صبّ الخرسانة في الطقس الحار؛ والجرعة المعتادة حتى 260 مل لكل 100 كغ من الإسمنت أو المواد الإسمنتية، وتختلف بحسب ظروف المشروع والمواد. لم يثبت هنا: الحد الأقصى لدرجة حرارة الخرسانة الطازجة الذي تحدده بلدية دبي أو المشروع؛ يُؤخذ من مواصفات العقد.",
+      "sources": [
+        "https://usa.sika.com/en/construction/concrete/concrete-admixtures/set-control-hardening-accelerators/sika-plastiment.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -61,6 +74,15 @@
       "expected_entry_ids": [
         "chemicals:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which concrete admixture helps pouring in UAE summer heat?",
+      "q_ar": "ما إضافة الخرسانة المناسبة للصب في حرارة صيف الإمارات؟",
+      "expected_entry_ids": [
+        "chemicals:hot-weather-concrete-retarding-admixtures"
+      ],
+      "why": "No entry of this pack answered it (Chemicals pack is generic (CAS, SDS, ECAS); no concrete admixture or hot-weather retarder content; missing). chemicals:hot-weather-concrete-retarding-admixtures was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from chemicals.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -77,6 +99,9 @@
       "chemicals:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "chemicals:hot-weather-concrete-retarding-admixtures"
+    ]
   }
 }

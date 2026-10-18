@@ -4,9 +4,10 @@
     {
       "id": "testing_labs:spec-checklist",
       "topic": "Testing laboratories - what the buyer must state",
+      "topic_ar": "مختبرات الاختبار: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
       "body_en": "For testing laboratories quotes to be compared like-for-like, every quoted line (services) must state: (1) sample type and number of samples; (2) tests required and test methods; (3) accreditation to ISO/IEC 17025 for those tests; (4) authority recognition (municipality or MoIAT); (5) sampling by lab or client; (6) turnaround time; (7) report format and language; (8) price per test; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the testing_labs trade.",
-      "body_ar": "لكي تُقارن عروض مختبرات الاختبار على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع العينة وعددها؛ (2) الاختبارات المطلوبة وطرقها؛ (3) الاعتماد وفق ISO/IEC 17025 لتلك الاختبارات؛ (4) الاعتراف من الجهة المختصة (البلدية أو الوزارة)؛ (5) أخذ العينات من المختبر أو العميل؛ (6) مدة إنجاز النتائج؛ (7) صيغة التقرير ولغته؛ (8) السعر لكل اختبار؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة testing_labs فقط.",
+      "body_ar": "حتى تُقارن عروض مختبرات الاختبار على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) نوع العينة وعدد العينات؛ (2) الاختبارات المطلوبة وطرق الاختبار؛ (3) اعتماد المختبر وفق ISO/IEC 17025 لهذه الاختبارات؛ (4) اعتراف الجهة المختصة (البلدية أو الوزارة)؛ (5) من يأخذ العينات: المختبر أم العميل؛ (6) مدة صدور النتائج؛ (7) شكل التقرير ولغته؛ (8) السعر لكل اختبار؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأوقات الاستجابة؛ (11) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة testing_labs فقط.",
       "required_specs": [
         "sample type and number of samples",
         "tests required and test methods",
@@ -31,9 +32,10 @@
     {
       "id": "testing_labs:uae-standards-and-approvals",
       "topic": "Testing laboratories - UAE standards, authorities and approvals",
+      "topic_ar": "مختبرات الاختبار: الاعتماد والموافقات والجهات في الإمارات",
       "kind": "standard",
       "body_en": "Testing laboratories are accredited to ISO/IEC 17025; MoIAT registers and designates conformity assessment bodies, and Dubai Municipality operates and recognises laboratories for construction and food testing. What the cited sources do not establish: The sources read do not list which labs are recognised for which test; the buyer must require the accreditation scope covering each test.",
-      "body_ar": "تُعتمد مختبرات الاختبار وفق ISO/IEC 17025؛ وتسجل وزارة الصناعة والتكنولوجيا المتقدمة جهات تقويم المطابقة وتعيّنها، وتشغّل بلدية دبي مختبرات وتعترف بمختبرات لاختبارات البناء والغذاء. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تذكر المختبرات المعترف بها لكل اختبار؛ على المشتري أن يطلب نطاق اعتماد يغطي كل اختبار.",
+      "body_ar": "مختبرات الاختبار تُعتمد وفق ISO/IEC 17025؛ ووزارة الصناعة والتكنولوجيا المتقدمة تسجل جهات تقويم المطابقة وتعيّنها، وبلدية دبي تشغّل مختبرات وتعترف بمختبرات لاختبارات البناء والغذاء. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تذكر أي المختبرات معترف بها لأي اختبار؛ على المشتري أن يطلب نطاق اعتماد يغطي كل اختبار.",
       "source_note": "The sources read do not list which labs are recognised for which test; the buyer must require the accreditation scope covering each test.",
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -58,6 +60,16 @@
       "expected_entry_ids": [
         "testing_labs:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does the lab testing our concrete cubes need to be approved by Dubai Municipality?",
+      "q_ar": "هل يجب أن يكون المختبر الذي يختبر مكعبات الخرسانة معتمداً من بلدية دبي؟",
+      "expected_entry_ids": [
+        "testing_labs:spec-checklist",
+        "testing_labs:uae-standards-and-approvals"
+      ],
+      "why": "The standards entry says Dubai Municipality operates and recognises labs for construction testing under ISO/IEC 17025, and the checklist requires 17025 scope and authority recognition.",
+      "origin": "real buyer question, moved from testing_labs.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

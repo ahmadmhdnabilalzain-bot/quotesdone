@@ -1,3 +1,9 @@
+// RETIRED 5 Oct 2026 (it_engineer) WITH ITS SUBJECT. A supply gap no longer waits in 'deciding' for the model: the LLM
+// burn audit of 5 Oct 2026 (R8) measured 77 gaps holding one identical question with demand 0, and
+// scripts/sql/a_held_question_is_paid_for_once_and_test_traffic_never_waits_for_a_model.sql defers a gap nobody waits
+// on by rule (rule:nobody_waiting) and files nothing. What replaces this check:
+// scripts/checks/a_held_question_is_paid_for_once.test.mjs ("a supply gap nobody waits on is decided by code").
+//
 // A SUPPLY GAP IN 'deciding' WAITS ONLY ON THE MODEL HOLD, AND RESUMES WHEN IT LIFTS (it_engineer, 29 Sep 2026).
 //
 // MEASURED 29 Sep 2026 20:00 UTC: supply_gap held 70 rows in 'deciding' (140 open, 7 recruit). All 70 point at a

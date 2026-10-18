@@ -41,6 +41,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "pharma_packaging:tatmeen-serialisation",
+      "topic": "Tatmeen serialisation and aggregation",
+      "kind": "regulatory_note",
+      "body_en": "The UAE requires human medicines to comply with Tatmeen, the national traceability system operated by EVOTEQ for the Ministry of Health. Every sellable pack must carry a GS1 2D DataMatrix encoding GTIN, serial number, batch number and expiry date, with human-readable data matching the barcode; cases and pallets carry SSCC barcodes so parent-child (aggregation) hierarchies can be reported. Reporting covers commissioning, aggregation, shipping, receiving, import clearance, pharmacy supply, returns and decommissioning, typically in near real time to avoid customs delays. Reported timeline: serialisation mandatory from June 2022, aggregation and movement reporting from December 2022, strict enforcement from 2023. For packaging lines this means printing serialised barcodes during packaging and building SSCC hierarchies before dispatch. These points come from a compliance-vendor summary; the MOHAP/Tatmeen source was not opened.",
+      "body_ar": "تشترط الإمارات امتثال الأدوية البشرية لنظام «تتبّع» (Tatmeen)، وهو نظام التتبع الوطني الذي تشغّله شركة EVOTEQ لصالح وزارة الصحة. يجب أن تحمل كل عبوة قابلة للبيع رمز GS1 ثنائي الأبعاد من نوع DataMatrix يتضمن رقم GTIN والرقم التسلسلي ورقم التشغيلة وتاريخ الانتهاء، مع بيانات مقروءة مطابقة للرمز؛ وتحمل الكراتين والمنصات رموز SSCC حتى يمكن الإبلاغ عن التسلسل الهرمي للتجميع (الأصل والفرع). ويشمل الإبلاغ التفعيل والتجميع والشحن والاستلام والتخليص الجمركي للاستيراد والتوريد للصيدليات والمرتجعات والإيقاف، وعادةً بشكل شبه فوري لتجنب التأخير الجمركي. الجدول الزمني المذكور: التسلسل إلزامي منذ يونيو 2022، ومتطلبات التجميع والإبلاغ عن الحركة منذ ديسمبر 2022، والتطبيق الصارم منذ 2023. ويعني ذلك لخطوط التعبئة طباعة الرموز التسلسلية أثناء التعبئة وبناء تسلسلات SSCC الهرمية قبل الإرسال. هذه النقاط مأخوذة من ملخص لمورّد حلول امتثال؛ ولم يُفتح مصدر الوزارة أو منصة «تتبّع».",
+      "sources": [
+        "https://lspedia.com/regulation/uae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +70,15 @@
       "expected_entry_ids": [
         "pharma_packaging:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What serialisation is needed on medicine packs sold in the UAE?",
+      "q_ar": "ما الترقيم التسلسلي المطلوب على عبوات الأدوية المباعة في الإمارات؟",
+      "expected_entry_ids": [
+        "pharma_packaging:tatmeen-serialisation"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry covers UAE/MOHAP GS1 2D DataMatrix serialisation requirements (Tatmeen)). pharma_packaging:tatmeen-serialisation was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from pharma_packaging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "pharma_packaging:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "pharma_packaging:tatmeen-serialisation"
+    ]
   }
 }

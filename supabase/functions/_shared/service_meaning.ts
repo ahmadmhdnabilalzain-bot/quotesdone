@@ -47,7 +47,7 @@
 // adds is a proposal the supplier confirms, shown with the line that supports it.
 import { arNorm } from './alias_pattern.ts';
 import { isInstallWork, isStop, servicePattern, type ServiceTerm } from './service_rewrite.ts';
-import { saysInstallWork } from './catalogue_read.ts';
+import { saysInstallWork, supplyOnlyOf } from './catalogue_read.ts';
 
 export type Vec = number[];
 /** Which vector space a line is read in: gte-small (English) or the multilingual e5 (Arabic). */
@@ -56,7 +56,7 @@ export type MeaningService = ServiceTerm & { vec: Vec | null; vec_ml?: Vec | nul
 export type MeaningLine = { text: string; vec: Vec | null; space?: Space };
 export type MeaningProposal = {
   key: string; trade: string; label_en: string; label_ar: string; similarity: number;
-  because: 'head_word' | 'alias'; word: string | null; lines: string[];
+  because: 'head_word' | 'alias' | 'trade_word' | 'trade_code'; word: string | null; lines: string[];
 };
 
 // Calibrated 21 Sep 2026 on gte-small (numbers above and in service_meaning.test.ts).
@@ -186,10 +186,10 @@ export function corroborate(s: MeaningService, words: Set<string>, norm: string,
 
 /** The proposals, strongest first. `stated` are the keys already found exactly (never re-proposed). */
 export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[],
-  opts: { stated?: string[]; supplyOnly?: boolean; floor?: number; mlFloor?: number } = {}): MeaningProposal[] {
+  opts: { stated?: string[]; supplyOnly?: boolean; floor?: number; mlFloor?: number; tradeLabels?: Record<string, string>; codeWords?: Record<string, string> } = {}): MeaningProposal[] {
   const stated = new Set(opts.stated || []);
   const eligible = services.filter((s) => !(opts.supplyOnly && isInstallWork(s)));
-  type Cand = { s: MeaningService; sim: number; line: string; because: 'head_word' | 'alias' | null; word: string | null };
+  type Cand = { s: MeaningService; sim: number; line: string; because: 'head_word' | 'alias' | 'trade_word' | 'trade_code' | null; word: string | null };
   const byKey = new Map<string, Cand[]>();
   for (const line of lines.slice(0, MEANING_MAX_LINES)) {
     if (!line.vec) continue;
@@ -209,22 +209,72 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
     // above the floor, the first a name word corroborates — measured 29 Sep 2026, the multilingual space ranks the
     // right service 1st-5th (الدهانات: forgings 0.854, then painting 0.850), and noise scores as high, so the
     // corroborating word decides and the vector only shortlists.
-    const shortlist = ranked.slice(0, ml ? ML_TOP : 1).filter(([c]) => c >= floor);
+    // 7 Oct 2026 (opt-in, supplier_doc_trades only, through opts.tradeLabels): English shortlists 3, like Arabic does,
+    // and the corroborating word decides - "Painting Contracting" lands 1st on a fleet body-paint service and 2nd on
+    // exterior painting, whose head word the line holds. Without tradeLabels nothing changes (the Services tab).
+    const shortlist = ranked.slice(0, ml ? ML_TOP : (opts.tradeLabels ? 3 : 1)).filter(([c]) => c >= floor);
     const words = new Set(contentWords(line.text));
     const norm = arNorm(line.text);
-    const pick = shortlist.find(([, s]) => corroborate(s, words, norm, ml).because) ?? shortlist[0];
+    // A TRADE, NOT A SERVICE (7 Oct 2026, accuracy suite ledger 1162; opt-in). A licence or a profile names its trade
+    // in general: "Plumbing works", "Landscaping Works". The nearest service is then a specific service of the RIGHT
+    // trade (plumbing.maintenance) whose own head word the line lacks, and the trade was proposed by nothing. With
+    // tradeLabels, a line holding a WHOLE part of that service's TRADE name ("Plumbing & sanitary" -> plumbing)
+    // corroborates the trade: the same rule one level up, English only, and the service itself is never claimed by it.
+    // A part counts only whole ("Lighting fixtures" needs both words: a footer saying "fixture" is not a lighting
+    // company). And the other way: when the corroborating word is the whole name of ANOTHER trade, the line is
+    // ambiguous for this service and it is passed over - "Aluminium works" lands nearest an aluminium SHEET service of
+    // non_ferrous_metals, but "aluminium" is the aluminium trade's own name. Exact trade or none.
+    const parts = (code: string) => String(opts.tradeLabels?.[code] ?? '').toLowerCase().split(/[&,()/]| and /).map((x) => contentWords(x)).filter((x) => x.length);
+    const judgeOf = (s: MeaningService): { because: Cand['because']; word: string | null } => {
+      let { because, word }: { because: Cand['because']; word: string | null } = corroborate(s, words, norm, ml);
+      if (ml || !opts.tradeLabels) return { because, word };
+      if (!because) { const whole = parts(s.trade_code).find((x) => x.every((w) => words.has(w))); if (whole) { because = 'trade_word'; word = whole.join(' '); } }
+      if (because && word && Object.keys(opts.tradeLabels).some((code) => code !== s.trade_code && parts(code).some((x) => x.length === 1 && x[0] === word))) return { because: null, word: null };
+      return { because, word };
+    };
+    // A WORD THE DATABASE RESOLVES TO ONE TRADE (12 Oct 2026, accuracy suite: 0 of 9 aluminium suppliers reached).
+    // THIS IS WORD-TO-TRADE MATCHING, under the founder's no-word-matching rule (ruling 890), on the same footing as the
+    // trade_word corroboration above: a word decides which trade, and the vector only confirms. It is confined so that
+    // it cannot fire on a name or a trader:
+    //   * the word is one public.fn_norm_trades resolves to exactly ONE trade (opts.codeWords, built by trade_resolve
+    //     from the line's own words: a live code "aluminium", or a stored intake alias such as "aluminum") - the
+    //     database's definition of exact, no list here;
+    //   * the line names WORK and is not supply-only (catalogue_read's own notion: works, contracting, installation);
+    //   * one of that trade's services clears the floor.
+    // Why: "Aluminium Works Contracting" shortlists maintenance and general contracting (0.864, 0.860), "Aluminium works"
+    // the non_ferrous_metals sheet service, and "aluminium" is a whole part of BOTH trade names, so trade_word refused it.
+    // Measured on the live vectors for every one-word code (12 Oct 2026): the floor alone does NOT separate a company
+    // name from an activity - "Legal Name: ZZ DEMO Falcon Glazing LLC" reached glazing at 0.821, and name lines of
+    // signage, upholstery and laundry and trader lines ("Flooring Trading LLC" 0.856) cleared it too. The work gate
+    // refuses all of them; the activity lines keep their trade.
+    // NOT ARABIC: the e5 space scores an Arabic name (0.850) and trader (0.862) as high as an activity (0.868).
+    const worksLine = !ml && opts.codeWords && saysInstallWork(line.text) && !supplyOnlyOf(line.text).supply_only;
+    if (worksLine) {
+      for (const word of words) {
+        const code = opts.codeWords![word];
+        if (!code) continue;
+        const own = ranked.filter(([, s]) => s.trade_code === code)[0];
+        if (!own || own[0] < floor) continue;
+        const key = `${own[1].trade_code}.${own[1].code}`;
+        if (stated.has(key)) continue;
+        const list = byKey.get(key) || [];
+        list.push({ s: own[1], sim: own[0], line: line.text, because: 'trade_code', word });
+        byKey.set(key, list);
+      }
+    }
+    const pick = shortlist.find(([, s]) => judgeOf(s).because) ?? shortlist[0];
     if (!pick) continue;
     const [sim, best] = pick;
     const key = `${best.trade_code}.${best.code}`;
     if (stated.has(key)) continue;
-    const { because, word } = corroborate(best, words, norm, ml);
+    const { because, word } = judgeOf(best);
     const list = byKey.get(key) || [];
     list.push({ s: best, sim, line: line.text, because, word });
     byKey.set(key, list);
   }
   const out: MeaningProposal[] = [];
   for (const [key, cands] of byKey) {
-    const worded = cands.find((c) => c.because);
+    const worded = cands.find((c) => c.because && c.because !== 'trade_code') ?? cands.find((c) => c.because);
     const because = worded?.because;
     if (!worded || !because) continue;   // a nearest neighbour is never accepted, however many lines find it
     out.push({

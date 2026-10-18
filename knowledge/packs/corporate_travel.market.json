@@ -7,9 +7,10 @@
     {
       "id": "corporate_travel:uae-market-products",
       "topic": "Corporate travel: products, variants and grades sold in the UAE",
+      "topic_ar": "السفر للشركات: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Corporate travel services in the UAE include travel management (air tickets, hotels, car rental, rail), online booking tools, travel policy design and compliance, visa processing and document services (UAE entry permits for visitors, outbound visas via VFS/embassies), MICE and group travel, Hajj and Umrah packages, travel insurance, duty of care and traveller tracking, expense reporting integration, and reporting on spend and carbon emissions. Buyers ask about GDS access (Amadeus, Sabre, Travelport), negotiated airline and hotel rates, service fees per transaction, 24/7 emergency support, and payment options (lodge cards, credit terms). Travel agencies in the UAE must be licensed by the emirate's tourism authority (DET in Dubai, DCT in Abu Dhabi) and IATA accredited to issue tickets; Hajj and Umrah operators require specific approvals from the relevant UAE authority.",
-      "body_ar": "تشمل خدمات سفر الشركات في الإمارات إدارة السفر (تذاكر الطيران، والفنادق، وتأجير السيارات، والقطارات)، وأدوات الحجز الإلكتروني، وتصميم سياسة السفر والامتثال لها، ومعالجة التأشيرات وخدمات المستندات (أذونات الدخول للزوار إلى الإمارات، والتأشيرات الخارجية عبر VFS/السفارات)، والاجتماعات والحوافز والمؤتمرات والمعارض والسفر الجماعي، وباقات الحج والعمرة، وتأمين السفر، وخدمات الاستقبال والمساعدة في المطار (مثل خدمات مرحبا)، وواجب الرعاية وتتبع المسافرين، والتكامل مع تقارير النفقات، وتقارير الإنفاق وانبعاثات الكربون. يسأل المشترون عن الوصول إلى أنظمة التوزيع العالمية (أماديوس، سيبر، ترافل بورت)، وأسعار الطيران والفنادق المتفاوض عليها، ورسوم الخدمة لكل معاملة، والدعم الطارئ على مدار الساعة، وخيارات الدفع (بطاقات الإيداع، والائتمان). ويجب أن تكون وكالات السفر في الإمارات مرخصة من سلطة السياحة في الإمارة (دائرة الاقتصاد والسياحة في دبي، ودائرة الثقافة والسياحة في أبوظبي) ومعتمدة من الاتحاد الدولي للنقل الجوي لإصدار التذاكر؛ ويتطلب مشغلو الحج والعمرة موافقات خاصة من الجهة الإماراتية المختصة.",
+      "body_en": "This entry covers the corporate travel services sold in the UAE, including air, hotel and car bookings, visa processing, MICE, insurance and traveller tracking, and what buyers ask about. Corporate travel services in the UAE include travel management (air tickets, hotels, car rental, rail), online booking tools, travel policy design and compliance, visa processing and document services (UAE entry permits for visitors, outbound visas via VFS/embassies), MICE and group travel, Hajj and Umrah packages, travel insurance, duty of care and traveller tracking, expense reporting integration, and reporting on spend and carbon emissions. Buyers ask about GDS access (Amadeus, Sabre, Travelport), negotiated airline and hotel rates, service fees per transaction, 24/7 emergency support, and payment options (lodge cards, credit terms). Travel agencies in the UAE must be licensed by the emirate's tourism authority (DET in Dubai, DCT in Abu Dhabi) and IATA accredited to issue tickets; Hajj and Umrah operators require specific approvals from the relevant UAE authority.",
+      "body_ar": "تشمل خدمات سفر الشركات في الإمارات حجوزات الطيران والفنادق والسيارات، وإنجاز التأشيرات، وفعاليات MICE، والتأمين، وتتبّع المسافرين، مع ما يسأل عنه المشترون عادةً. وتضم: إدارة السفر (تذاكر الطيران، والفنادق، وتأجير السيارات، والقطارات)، وأدوات الحجز الإلكتروني، وإعداد سياسة السفر ومتابعة الالتزام بها، وإنجاز التأشيرات وخدمات الوثائق (أذونات دخول الزوار إلى الإمارات، وتأشيرات السفر للخارج عبر VFS أو السفارات)، وفعاليات MICE وسفر المجموعات، وباقات الحج والعمرة، وتأمين السفر، وواجب الرعاية وتتبع المسافرين، والربط مع أنظمة تقارير المصروفات، وتقارير الإنفاق وانبعاثات الكربون. يسأل المشترون عن الوصول إلى أنظمة GDS (Amadeus وSabre وTravelport)، والأسعار التفاوضية مع شركات الطيران والفنادق، ورسوم الخدمة لكل معاملة، والدعم الطارئ على مدار الساعة، وخيارات الدفع (بطاقات Lodge والدفع الآجل). يجب أن تكون وكالات السفر في الإمارات مرخصة من جهة السياحة في الإمارة (DET في دبي، وDCT في أبوظبي) ومعتمدة من IATA لإصدار التذاكر، ويحتاج منظمو الحج والعمرة إلى موافقات خاصة من الجهة المختصة في الدولة.",
       "sources": [
         "https://www.iata.org/en/services/travel-agency-program/accreditation-travel/country-requirements/a52w0000000fy8waaq/pax/",
         "https://www.dnata.com/en/our-services/travel/dnata-travel-management/",
@@ -25,9 +26,10 @@
     {
       "id": "corporate_travel:uae-market-brands",
       "topic": "Corporate travel: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "السفر للشركات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Confirmed UAE travel management company, UAE-based airlines, a visa centre operator and GDS providers: dnata Travel Management, Emirates, Etihad Airways, flydubai, Air Arabia, VFS Global, Amadeus, Sabre. Other TMCs were not checked.",
-      "body_ar": "شركة إدارة السفر المؤكدة في الإمارات، وشركات الطيران الإماراتية، ومشغل مراكز التأشيرات، وأنظمة التوزيع العالمية: dnata Travel Management، Emirates، Etihad Airways، flydubai، Air Arabia، VFS Global، Amadeus، Sabre. ولم يُتحقق من شركات إدارة السفر الأخرى.",
+      "body_en": "This entry names the travel management company dnata, UAE airlines such as Emirates and Etihad, the visa centre operator VFS Global and GDS providers Amadeus and Sabre. Confirmed UAE travel management company, UAE-based airlines, a visa centre operator and GDS providers: dnata Travel Management, Emirates, Etihad Airways, flydubai, Air Arabia, VFS Global, Amadeus, Sabre. Other TMCs were not checked.",
+      "body_ar": "من أبرز الأسماء في سفر الشركات بالإمارات شركة إدارة السفر dnata، وشركات الطيران Emirates وEtihad، ومشغل مراكز التأشيرات VFS Global، ومزودا أنظمة الحجز العالمية (GDS) Amadeus وSabre. والأسماء المؤكدة من شركات إدارة السفر في الإمارات وشركات الطيران الإماراتية ومشغلي مراكز التأشيرات ومزودي أنظمة GDS: dnata Travel Management وEmirates وEtihad Airways وflydubai وAir Arabia وVFS Global وAmadeus وSabre. ولم نتحقق من شركات إدارة السفر (TMC) الأخرى.",
       "sources": [
         "https://www.iata.org/en/services/travel-agency-program/accreditation-travel/country-requirements/a52w0000000fy8waaq/pax/",
         "https://www.dnata.com/en/our-services/travel/dnata-travel-management/",
@@ -43,9 +45,10 @@
     {
       "id": "corporate_travel:uae-market-sizes",
       "topic": "Corporate travel: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "السفر للشركات: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "TMCs charge a transaction/service fee per booking (per air ticket, per hotel booking, higher for offline/agent-assisted than online), a monthly management fee, or a hybrid; fares and hotel rates are passed through. Visa services are priced per application plus government/embassy fees. MICE and group packages are priced per person. Corporate credit terms (e.g. 30 days) require a credit agreement.",
-      "body_ar": "تتقاضى شركات إدارة السفر رسوم معاملة/خدمة لكل حجز (لكل تذكرة طيران، ولكل حجز فندقي، وأعلى للحجز عبر الموظف مقارنة بالحجز الإلكتروني)، أو رسوم إدارة شهرية، أو نموذجاً مختلطاً؛ وتُمرر الأسعار الفعلية للتذاكر والفنادق. وتُسعّر خدمات التأشيرات لكل طلب إضافة إلى الرسوم الحكومية/القنصلية. وتُسعّر باقات المؤتمرات والمجموعات لكل شخص. وتتطلب شروط الائتمان للشركات (مثل 30 يوماً) اتفاقية ائتمان.",
+      "body_en": "This entry explains how travel management companies charge, through per-booking service fees, monthly management fees or a hybrid, and how visas and group packages are priced. TMCs charge a transaction/service fee per booking (per air ticket, per hotel booking, higher for offline/agent-assisted than online), a monthly management fee, or a hybrid; fares and hotel rates are passed through. Visa services are priced per application plus government/embassy fees. MICE and group packages are priced per person. Corporate credit terms (e.g. 30 days) require a credit agreement.",
+      "body_ar": "تتقاضى شركات إدارة سفر الشركات أتعابها عبر رسوم خدمة لكل حجز، أو رسوم إدارة شهرية، أو مزيج من الاثنين، وتُسعَّر التأشيرات والباقات الجماعية بطريقتها الخاصة. تتقاضى شركات إدارة السفر (TMC) رسم معاملة أو خدمة لكل حجز (لكل تذكرة طيران ولكل حجز فندقي، وأعلى للحجز عبر الموظف (offline) منه للحجز الإلكتروني)، أو رسوم إدارة شهرية، أو مزيجًا منهما، وتُمرَّر أسعار التذاكر والفنادق كما هي. وتُسعَّر خدمات التأشيرات لكل طلب مضافًا إليها الرسوم الحكومية أو رسوم السفارة. وتُسعَّر باقات MICE والمجموعات بالشخص. ويتطلب الدفع الآجل للشركات (مثل 30 يومًا) اتفاقية ائتمان.",
       "sources": [
         "https://www.iata.org/en/services/travel-agency-program/accreditation-travel/country-requirements/a52w0000000fy8waaq/pax/",
         "https://www.dnata.com/en/our-services/travel/dnata-travel-management/",
@@ -61,11 +64,15 @@
   ],
   "eval": [
     {
-      "q_en": "How do travel management companies charge for corporate bookings?",
-      "q_ar": "كيف تتقاضى شركات إدارة السفر رسوم حجوزات الشركات؟",
+      "q_en": "How do business trip agents bill firms around here: a set amount for each ticket, or a margin added?",
+      "q_ar": "وكالات سفر رحلات العمل هنا شلون تحاسب الشركات: مبلغ ثابت على كل تذكرة ولا نسبة فوق السعر؟",
       "expected_entry_ids": [
         "corporate_travel:uae-market-sizes"
-      ]
+      ],
+      "why": "Sizes entry says TMCs charge a transaction fee per booking, a management fee or hybrid, fares passed through.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0.182,
+      "word_overlap_after_enrichment": 0.182
     }
   ],
   "verified": {

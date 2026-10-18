@@ -574,6 +574,16 @@
         "plastics_pipes:pex-pipes",
         "plastics_pipes:hdpe-vs-ppr-building"
       ]
+    },
+    {
+      "q_en": "What does SDR 11 PE100 mean on an HDPE pipe?",
+      "q_ar": "ماذا يعني SDR 11 PE100 على أنبوب HDPE؟",
+      "expected_entry_ids": [
+        "plastics_pipes:pn-sdr-ratings",
+        "plastics_pipes:hdpe-pe100"
+      ],
+      "why": "PN/SDR entry explains SDR as the diameter-to-wall ratio tied to pressure class, and the HDPE entry explains the PE100 material class.",
+      "origin": "real buyer question, moved from plastics_pipes.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
