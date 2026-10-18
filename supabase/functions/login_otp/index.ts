@@ -8,7 +8,7 @@ import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
-import { sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { channelOfRow, nextChannel, sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
@@ -219,9 +219,15 @@ async function otherRoleByPhone(kind: string, e164: string): Promise<'supplier' 
 const ROLE_CONFLICT_MSG = { supplier: 'This mobile number is registered to a supplier account. Please use the Supplier portal to sign in.', customer: 'This mobile number is registered to a customer account. Please use the customer app to sign in.' };
 const AMBIGUOUS_MSG = 'More than one QuotesDone account uses this mobile number, so we cannot tell which one is yours. Please sign in with your email address instead.';
 
-// THE SIGN-IN CODE MAY GO BY WHATSAPP (founder, 18 Sep 2026), AND ONLY TO A NUMBER THE ACCOUNT
-// ITSELF CONFIRMED IS ON WHATSAPP.
+// THE SIGN-IN CODE GOES BY WHATSAPP FIRST (it_engineer, 18 Oct 2026 - superseding "only to a number the
+// account confirmed", 18 Sep). A Verify SMS to +971 measured USD 0.1176 against USD 0.0157 for WhatsApp
+// (both plus Verify's USD 0.05 per approved code), and the founder found USD 0.17 a code too expensive.
+// What made the old gate necessary - WhatsApp to a number not on WhatsApp fails rather than falling back -
+// is now handled by _shared/whatsapp_choice.ts nextChannel: asking again after a WhatsApp code sends SMS.
+// whatsAppElsewhere answers the narrower question: did the account TELL us its WhatsApp is not on this
+// number (opt 'none', or 'other' with a different number)? Then the first send is SMS.
 //
+// HISTORY, 18 Sep 2026:
 // kyc's whatsapp_* actions (14 Sep) already prove a WhatsApp number by sending a code over WhatsApp
 // to it, and write whatsapp_phone only together with whatsapp_verified_at. This reads that proof and
 // nothing else: an unconfirmed mobile keeps going by SMS. Asking Verify for Channel=whatsapp on a
@@ -232,18 +238,18 @@ const AMBIGUOUS_MSG = 'More than one QuotesDone account uses this mobile number,
 // channels, exactly as the SMS path already works, so switching channel cannot leak a credential.
 // 'admin' is deliberately absent: the founder is neither a customers row nor a claimed lead, and
 // app_secrets.admin_mfa_phone carries no WhatsApp confirmation, so his sign-in stays on SMS.
-async function confirmedWhatsApp(kind: string, email: string, e164: string): Promise<boolean> {
-  if (kind !== 'customer' && kind !== 'supplier') return false;
+async function whatsAppElsewhere(kind: string, email: string, e164: string): Promise<boolean> {
+  if (kind !== 'customer' && kind !== 'supplier') return true;   // admin stays on SMS (see above)
   const last9 = e164.replace(/\D/g, '').slice(-9);
-  if (last9.length < 9) return false;
   try {
     const q = kind === 'supplier'
-      ? admin.from('leads').select('whatsapp_phone,whatsapp_verified_at').eq('claimed_by', email).limit(5)
-      : admin.from('customers').select('whatsapp_phone,whatsapp_verified_at').eq('email', email).limit(5);
+      ? admin.from('leads').select('whatsapp_phone,whatsapp_opt').eq('claimed_by', email).limit(5)
+      : admin.from('customers').select('whatsapp_phone,whatsapp_opt').eq('email', email).limit(5);
     const { data } = await q;
-    return (data || []).some((r: { whatsapp_phone?: string | null; whatsapp_verified_at?: string | null }) =>
-      !!r.whatsapp_verified_at && String(r.whatsapp_phone || '').replace(/\D/g, '').slice(-9) === last9);
-  } catch (_e) { return false; }   // a read failure means SMS, never a lost sign-in
+    const rows = (data || []) as { whatsapp_phone?: string | null; whatsapp_opt?: string | null }[];
+    if (rows.some((r) => String(r.whatsapp_phone || '').replace(/\D/g, '').slice(-9) === last9)) return false;
+    return rows.some((r) => r.whatsapp_opt === 'none' || r.whatsapp_opt === 'other');
+  } catch (_e) { return false; }   // a read failure tries WhatsApp; a resend then goes by SMS
 }
 
 Deno.serve(siteCors(observe('login_otp', async (req) => {
@@ -394,6 +400,13 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       const since = new Date(Date.now() - 3600e3).toISOString();
       const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', e164).gte('created_at', since);
       if ((count || 0) >= 6) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
+      // WhatsApp first, SMS on failover, resends spaced (_shared/whatsapp_choice.ts nextChannel). No 'asked'
+      // channel here: an anonymous caller cannot steer a paid channel.
+      const { data: lastRow } = await admin.from('phone_verifications').select('code,created_at').eq('phone', e164)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const pick = nextChannel({ e164, lastChannel: channelOfRow(lastRow?.code), lastAtMs: lastRow ? Date.parse(lastRow.created_at) : null, nowMs: Date.now(),
+        waElsewhere: acctEmail ? await whatsAppElsewhere(kind, acctEmail, e164) : true });
+      if ('wait' in pick) return J({ error: 'A code is on its way. Please wait a few seconds before asking for another.', code: 'resend_too_soon', retry_after: pick.wait }, 429);
       try {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
         const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail || '' }, body.lang);
@@ -405,14 +418,13 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // channel itself (a missing sender or an unapproved Authentication template — the three codes
         // in _shared/whatsapp_choice.ts), which means no code was delivered on the first attempt. Any
         // other Verify refusal is a send failure and is reported as one, never retried on the second
-        // channel. An account that has not confirmed a WhatsApp number goes straight to SMS as before.
+        // channel. Which channel goes first is pick.channel (nextChannel above).
         const smsOnly = async (): Promise<VerifySent> => {
           const x = await send('sms');
           return x.r.ok && x.jd?.status !== 'canceled'
             ? { ...x, refused: null, ok: true, channel: 'sms' } : { ...x, refused: null, ok: false, channel: null };
         };
-        const wantsWa = acctEmail ? await confirmedWhatsApp(kind, acctEmail, e164) : false;
-        const res = await voiceAfterSms(wantsWa ? await sendWhatsAppFirst(send) : await smsOnly(), send);
+        const res = await voiceAfterSms(pick.channel === 'whatsapp' ? await sendWhatsAppFirst(send) : await smsOnly(), send);
         // A WHATSAPP REFUSAL IS ONE FINDING, NOT A LOG LINE PER CODE (customer_support, 6 Oct 2026). Verify
         // refused its WhatsApp channel (sender or Authentication template), so this code went by SMS or voice.
         // The upsert is keyed by the refusal code, so a thousand sign-ins raise one open finding.

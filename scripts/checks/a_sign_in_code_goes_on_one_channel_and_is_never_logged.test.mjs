@@ -42,18 +42,28 @@ test('the SMS fallback fires only on the three "WhatsApp was never attempted" co
   assert.ok(!codes.includes(60410), 'Fraud Guard (60410) must never fall back to the second channel');
 });
 
-test('login_otp asks for WhatsApp only for a number the account itself confirmed', () => {
-  const start = OTP.indexOf('async function confirmedWhatsApp');
-  assert.ok(start > 0, 'confirmedWhatsApp is gone');
-  // The gate reads stored proof (whatsapp_verified_at) and nothing from the request.
+// 18 Oct 2026 (it_engineer): WhatsApp became the FIRST channel for every UAE mobile (USD 0.0657 a code
+// against USD 0.1676 by SMS, measured), with SMS as the failover (ruling 994). The properties this test
+// held for the old "confirmed number only" gate still hold for the new one: the choice is made from
+// STORED rows (the account's own WhatsApp answer, the last code's channel), never from the request, so an
+// anonymous caller cannot steer which paid channel is used.
+test('login_otp picks the channel from stored rows only, never from the request', () => {
+  const start = OTP.indexOf('async function whatsAppElsewhere');
+  assert.ok(start > 0, 'whatsAppElsewhere is gone');
   const gate = OTP.slice(start, OTP.indexOf('Deno.serve(', start));
-  assert.match(gate, /whatsapp_verified_at/, 'the gate must require a verified WhatsApp number');
   assert.ok(!/\bbody\.|\breq\./.test(strip(gate)), 'the gate must not read anything from the request');
+  const at = OTP.indexOf('const pick = nextChannel(');
+  assert.ok(at > 0, 'login_otp no longer chooses the channel with nextChannel');
+  const pick = OTP.slice(at, OTP.indexOf(';', OTP.indexOf('waElsewhere', at)));
+  assert.ok(!/asked:/.test(pick) && !/\bbody\./.test(pick), 'an anonymous caller must not be able to ask for a channel');
+  // the shared rule: WhatsApp only to a UAE mobile, SMS once a WhatsApp code was asked for again
+  assert.ok(CHOICE.includes("if (o.lastChannel === 'whatsapp') return { channel: 'sms' };"));
+  assert.ok(CHOICE.includes(String.raw`/^\+9715\d{8}$/`), 'WhatsApp goes only to a UAE mobile');
 });
 
 test('the WhatsApp branch runs after every existing refusal and rate limit', () => {
   const at = (s) => { const i = OTP.indexOf(s); assert.ok(i > 0, `missing: ${s}`); return i; };
-  const wa = at('const wantsWa = acctEmail ? await confirmedWhatsApp');
+  const wa = at('const pick = nextChannel(');
   for (const guard of [
     "if (owner && 'ambiguous' in owner)",   // a shared number may not select a person
     'if (!acctEmail && !otherRole) {',     // no account in either role -> no paid send

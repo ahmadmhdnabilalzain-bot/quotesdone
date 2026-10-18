@@ -132,3 +132,31 @@ Deno.test('voice: a refused call is a failure, not a false sent', async () => {
   const res = await voiceAfterSms(sent(false, { code: 21614 }), () => Promise.resolve({ r: { ok: false, status: 400 }, jd: { code: 60200 } }));
   assertEquals([res.ok, res.channel], [false, null]);
 });
+
+// it_engineer, 18 Oct 2026: WhatsApp first for a UAE mobile, SMS only as the failover (ruling 994).
+import { channelOfRow, nextChannel, RESEND_GAP_S } from './whatsapp_choice.ts';
+Deno.test('a UAE mobile code goes by WhatsApp first and by SMS only on failover', () => {
+  const now = 1_000_000_000;
+  assertEquals(nextChannel({ e164: '+971501234567', nowMs: now }), { channel: 'whatsapp' });
+  // asking again after a WhatsApp code = it did not arrive -> SMS
+  assertEquals(nextChannel({ e164: '+971501234567', lastChannel: 'whatsapp', lastAtMs: now - 60e3, nowMs: now }), { channel: 'sms' });
+  // a code that went by SMS and is asked for again tries WhatsApp again (the cheap channel is retried)
+  assertEquals(nextChannel({ e164: '+971501234567', lastChannel: 'sms', lastAtMs: now - 60e3, nowMs: now }), { channel: 'whatsapp' });
+  // a landline or a foreign number never gets WhatsApp
+  assertEquals(nextChannel({ e164: '+97142587734', nowMs: now }), { channel: 'sms' });
+  assertEquals(nextChannel({ e164: '+447700900000', nowMs: now }), { channel: 'sms' });
+  // the account said its WhatsApp is elsewhere / none
+  assertEquals(nextChannel({ e164: '+971501234567', waElsewhere: true, nowMs: now }), { channel: 'sms' });
+  // explicit asks are honoured
+  assertEquals(nextChannel({ e164: '+971501234567', asked: 'call', nowMs: now }), { channel: 'call' });
+  assertEquals(nextChannel({ e164: '+971501234567', asked: 'whatsapp-no', nowMs: now }), { channel: 'whatsapp' });
+});
+Deno.test('a resend inside the gap is refused before Twilio is asked', () => {
+  const now = 1_000_000_000;
+  assertEquals(nextChannel({ e164: '+971501234567', lastChannel: 'whatsapp', lastAtMs: now - 5e3, nowMs: now }), { wait: RESEND_GAP_S - 5 });
+  assertEquals(nextChannel({ e164: '+971501234567', asked: 'sms', lastAtMs: now - 1, nowMs: now }), { wait: RESEND_GAP_S });
+  assert('channel' in nextChannel({ e164: '+971501234567', lastAtMs: now - RESEND_GAP_S * 1000, nowMs: now }));
+  assertEquals(channelOfRow('twilio:whatsapp'), 'whatsapp');
+  assertEquals(channelOfRow('twilio'), null);
+  assertEquals(channelOfRow(null), null);
+});

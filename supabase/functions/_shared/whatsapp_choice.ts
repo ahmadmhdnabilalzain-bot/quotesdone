@@ -97,6 +97,38 @@ export async function voiceAfterSms(first: VerifySent, send: (channel: 'call') =
     : { ...res, refused: first.refused, ok: false, channel: null };
 }
 
+// WHATSAPP IS THE FIRST CHANNEL FOR EVERY UAE MOBILE CODE (it_engineer, 18 Oct 2026). The founder found
+// USD 0.17 per sign-in code too expensive. Measured that day on this account: a Verify SMS to +971 costs
+// USD 0.1176 (Pricing API, Etisalat/du/other alike) and a Verify WhatsApp Authentication-template send
+// USD 0.0157 (the 5 Oct attempt, converted); Verify adds USD 0.05 per approved code on either channel. So a
+// code is USD 0.1676 by SMS and USD 0.0657 by WhatsApp. Ruling 994 (standing): never rely on WhatsApp
+// alone, so SMS stays - but only as the failover:
+//   - the caller asked for 'sms' or 'call' explicitly                     -> that channel
+//   - the last code to this number (10 min) went by WhatsApp               -> 'sms': asking again IS the
+//     signal it did not arrive (a number not on WhatsApp fails silently, Verify does not fall back)
+//   - the number is not a UAE mobile (+9715XXXXXXXX; a landline has no WhatsApp)  -> 'sms'
+//   - the account said its WhatsApp is on another number, or it has none   -> 'sms'
+//   - otherwise                                                            -> 'whatsapp'
+// RESENDS ARE SPACED: a second code to the same number within RESEND_GAP_S is refused before Twilio is
+// asked, so a double click or a mashed "resend" never pays twice. The hourly per-number, per-account and
+// per-IP ceilings in kyc and login_otp still apply on top.
+export const RESEND_GAP_S = 30;
+export type FirstChannel = 'whatsapp' | 'sms' | 'call';
+export function nextChannel(o: {
+  e164: string; asked?: unknown; lastChannel?: string | null; lastAtMs?: number | null; nowMs: number; waElsewhere?: boolean;
+}): { channel: FirstChannel } | { wait: number } {
+  if (o.lastAtMs != null && o.nowMs - o.lastAtMs < RESEND_GAP_S * 1000) return { wait: Math.ceil(RESEND_GAP_S - (o.nowMs - o.lastAtMs) / 1000) };
+  if (o.asked === 'sms' || o.asked === 'call') return { channel: o.asked };
+  if (o.lastChannel === 'whatsapp') return { channel: 'sms' };
+  if (!/^\+9715\d{8}$/.test(o.e164) || o.waElsewhere) return { channel: 'sms' };
+  return { channel: 'whatsapp' };
+}
+// phone_verifications.code holds 'twilio:<delivered channel>' (login_otp since 18 Sep, kyc from today).
+export function channelOfRow(code: string | null | undefined): string | null {
+  const m = /^twilio:(\w+)$/.exec(String(code || ''));
+  return m ? m[1] : null;
+}
+
 export type Patch = Record<string, string | boolean | null>;
 
 // whatsapp_choose. Caller has already refused 'same' when the mobile is not verified; verifiedMobile

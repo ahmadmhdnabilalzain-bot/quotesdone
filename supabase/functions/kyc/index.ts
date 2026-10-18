@@ -9,7 +9,7 @@ import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_
 import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
-import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { askedPatch, channelOfRow, choosePatch, nextChannel, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
@@ -368,11 +368,23 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // "we are calling you" instead of asking him to watch for an SMS that cannot arrive.
       // Locale: the SMS or voice call speaks the registered language (founder, 14 Sep 2026).
       const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
-      let channel = String(b.channel || 'sms'); if (channel !== 'sms' && channel !== 'call') channel = 'sms';
-      let { r, jd } = await verifySend(tw, phone, channel, vLocale);
-      if (jd?.code === 21635 && channel === 'sms') { channel = 'call'; ({ r, jd } = await verifySend(tw, phone, channel, vLocale)); }
-      if (!r.ok || jd?.status === 'canceled') { await logRun('error', { action, kind, http: r.status, channel }, 'twilio verify send failed on channel ' + channel + ': ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: 'Could not send the code. Please try again in a minute.', code: 'sms_send_failed' }, 502); }
-      await admin.from('phone_verifications').insert({ email, phone, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+      // WHATSAPP FIRST, SMS AS THE FAILOVER (it_engineer, 18 Oct 2026; _shared/whatsapp_choice.ts nextChannel).
+      // The last code to this number decides a resend: one that went by WhatsApp and is asked for again goes
+      // by SMS, and a resend inside RESEND_GAP_S is refused before Twilio is asked.
+      const { data: lastRow } = await admin.from('phone_verifications').select('code,created_at').eq('phone', phone)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const pick = nextChannel({ e164: phone, asked: b.channel, lastChannel: channelOfRow(lastRow?.code), lastAtMs: lastRow ? Date.parse(lastRow.created_at) : null, nowMs: Date.now() });
+      if ('wait' in pick) return J({ error: 'A code is on its way. You can ask for another in ' + pick.wait + ' seconds.', code: 'resend_too_soon', retry_after: pick.wait }, 429);
+      const send = async (c: 'whatsapp' | 'sms' | 'call') => verifySend(tw, phone, c, vLocale);
+      let res: VerifySent;
+      if (pick.channel === 'whatsapp') res = await sendWhatsAppFirst(send);
+      else { const x = await send(pick.channel); res = x.r.ok && x.jd?.status !== 'canceled' ? { ...x, refused: null, ok: true, channel: pick.channel } : { ...x, refused: null, ok: false, channel: null }; }
+      // 21635 is the landline refusal kept from 12 Aug; voiceAfterSms covers the other SMS-unreachable codes.
+      if (!res.ok && res.jd?.code === 21635 && pick.channel === 'sms') { const x = await send('call'); res = x.r.ok && x.jd?.status !== 'canceled' ? { ...x, refused: null, ok: true, channel: 'call' } : { ...x, refused: null, ok: false, channel: null }; }
+      res = await voiceAfterSms(res, send);
+      const { r, jd } = res; const channel = res.channel || pick.channel;
+      if (!res.ok) { await logRun('error', { action, kind, http: r.status, channel }, 'twilio verify send failed on channel ' + channel + ': ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: 'Could not send the code. Please try again in a minute.', code: 'sms_send_failed' }, 502); }
+      await admin.from('phone_verifications').insert({ email, phone, code: 'twilio:' + channel, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       await logRun('ok', { action, kind, channel }, '');
       return J({ ok: true, channel });
     }
