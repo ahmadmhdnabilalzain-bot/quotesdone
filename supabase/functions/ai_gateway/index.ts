@@ -669,7 +669,9 @@ async function handle(req: Request): Promise<Response> {
     // a wall and reporting it as a model failure.
     // A REVIEW WHOSE REVIEWER CANNOT BE CALLED IS HELD, NOT SKIPPED (#880 review, item 6). Every route open-circuit for a
     // reason other than the founder's hold (which holds everything, reviewed or not) is recorded as a review_hold.
-    if (counterpart && !ladder.length && fullLadder.length && skipped.some((x) => !/^(founder_hold|exception):/.test(x.reason))) {
+    // A sandbox call whose rehearsal window closed is refused on EVERY model, reviewed or not: that is the test run's
+    // own end, not a missing reviewer (18 Oct 2026: hold 71 reached the founder's digest this way).
+    if (counterpart && !ladder.length && fullLadder.length && skipped.some((x) => !/^(founder_hold|exception|rehearsal_window_closed):/.test(x.reason))) {
       await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? null, p_fn: fnName, p_agent_key: body.agent ?? null,
         p_counterpart_model: counterpart, p_why: 'reviewer unreachable: ' + skipped.map((x) => x.route + ' (' + x.reason + ')').join('; ') });
     }
