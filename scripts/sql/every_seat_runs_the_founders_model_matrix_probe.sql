@@ -435,6 +435,12 @@ begin
   if n_gem > 0 then
     bad := bad || to_jsonb(n_gem || ' route(s) or routine(s) still name a 5.6 model or plain luna');
   end if;
+  -- the WhatsApp conversation chain is the 'chat' pair (ruling 1219): Sonnet, then Luna Pro, then code
+  if (select string_agg(model, '>' order by rung) from public.model_fallback_chain where purpose = 'whatsapp_conversation' and active)
+     is distinct from c_son || '>' || c_lp || '>deterministic' then
+    bad := bad || to_jsonb('the WhatsApp conversation chain is ' || coalesce((select string_agg(model, '>' order by rung)
+             from public.model_fallback_chain where purpose = 'whatsapp_conversation' and active), 'empty'));
+  end if;
   -- the router itself: a class whose pair cannot do a capability is never handed an off-pair model, unless it must hear
   v := public.fn_ai_route('general_drafting', null, null, 'zz_probe_caps', false, array['vision'], null);
   if v->>'model' is not null and v->>'model' not in (c_lp, c_son) then

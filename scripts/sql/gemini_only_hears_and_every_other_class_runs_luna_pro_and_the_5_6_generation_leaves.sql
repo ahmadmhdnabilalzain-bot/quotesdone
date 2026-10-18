@@ -111,13 +111,14 @@ insert into public.review_pool (model_id, rank, active, note) values
   ('openai/gpt-6-luna-pro', 3, true, '18 Oct 2026, matrix v3: the reviewer of every author on an Anthropic model.')
 on conflict (model_id) do update set rank = excluded.rank, active = true, note = excluded.note;
 
--- 5. The WhatsApp conversation chain: Luna Pro, then Sonnet, then the deterministic answer. The voice-note chain keeps Gemini.
-update public.model_fallback_chain set model = 'openai/gpt-6-luna-pro',
-       rationale = '18 Oct 2026, ruling 1218: Luna Pro replaces luna. ' || rationale
- where purpose = 'whatsapp_conversation' and model = 'openai/gpt-6-luna';
+-- 5. The WhatsApp conversation chain: Sonnet 5.5 (ruling 1219: every customer conversation reply), then Luna Pro, then
+--    the deterministic answer - the same pair as the 'chat' route. The voice-note chain keeps Gemini.
 update public.model_fallback_chain set model = 'anthropic/claude-sonnet-5.5',
-       rationale = '18 Oct 2026, ruling 1241: Gemini only hears; Sonnet 5.5 is the backup. ' || rationale
- where purpose = 'whatsapp_conversation' and model = 'google/gemini-3.8-flash';
+       rationale = '18 Oct 2026, ruling 1219: a conversation reply runs on Sonnet 5.5. ' || rationale
+ where purpose = 'whatsapp_conversation' and rung = 1 and model = 'openai/gpt-6-luna';
+update public.model_fallback_chain set model = 'openai/gpt-6-luna-pro',
+       rationale = '18 Oct 2026, rulings 1241 + 1218: Gemini only hears; Luna Pro is the backup. ' || rationale
+ where purpose = 'whatsapp_conversation' and rung = 2 and model = 'google/gemini-3.8-flash';
 
 update public.paid_route_exception set model_id = 'anthropic/claude-sonnet-5.5',
        note = note || ' | 18 Oct 2026 (ruling 1241): model gemini-3.8-flash -> claude-sonnet-5.5, the confirm''s new primary. Still OFF.',
