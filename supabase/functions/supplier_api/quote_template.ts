@@ -10,11 +10,18 @@
 export const TEMPLATE_TEXT_KEYS = ['terms', 'warranty', 'validity', 'inclusions', 'exclusions', 'payment_terms'] as const;
 export type QuoteTemplate = { name: string; line_headings: string[] } & Record<(typeof TEMPLATE_TEXT_KEYS)[number], string>;
 
-// Kept in step with the CHECK in the SQL file (fn_text_states_a_price). A percentage ("50% advance")
-// and a duration ("30 days") are not prices; a figure beside a currency or a per-unit rate is.
-// The Arabic word for dirham is written as \u escapes: this pattern only refuses input, it is never
-// shown to a supplier, and the supplier files must carry no Arabic script (founder ruling 1008).
-const PRICE_RE = /(\b(aed|dhs?|dirhams?|usd|eur|gbp|sar)\b\s*[0-9])|([0-9][0-9,.]*\s*(\/-|\b(aed|dhs?|dirhams?|usd|eur|gbp|sar)\b))|(\u062F\u0631\u0647\u0645\s*[0-9]|[0-9][0-9,.]*\s*\u062F\u0631\u0647\u0645)|([0-9][0-9,.]*\s*\/\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)\b)/i;
+// THE ONE PRICE PATTERN, byte-identical to the one in fn_text_states_a_price (the SQL file). The deno
+// test reads the SQL literal and asserts it equals PRICE_PATTERN character for character, and that
+// it uses no construct the two engines read differently, so the two cannot drift. It uses only
+// syntax JavaScript (flag i) and Postgres ARE (~*) read the same way. A word boundary (\b, \y) let
+// "AED45", "45AED" and "Dh45" through, so the letter boundary is written out: (^|[^a-z]) on the left,
+// (?![a-z]) on the right. Refused: a figure beside a currency in either order, with or without a space
+// (AED 45, AED45, 45AED, Dh45, $45, €45, 45 dirhams, 500/-), and a per-unit rate (45/m2, 45 per sqm).
+// Not refused: "50% advance", "30 days", "12 mm", "width 5".
+// The next line holds the Arabic word for dirham. It is on nothing_a_supplier_reads_can_be_arabic's
+// gated list: a detector, never shown.
+export const PRICE_PATTERN = String.raw`(^|[^a-z])(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)\s*[0-9]|[$€£]\s*[0-9]|درهم\s*[0-9]|[0-9][0-9,.]*\s*(/-|[$€£]|درهم)|[0-9][0-9,.]*\s*(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)(?![a-z])|[0-9][0-9,.]*\s*(/|per)\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)(?![a-z])`;
+const PRICE_RE = new RegExp(PRICE_PATTERN, 'i');
 export const statesAPrice = (s: string): boolean => PRICE_RE.test(s);
 
 const txt = (v: unknown, max: number) => (typeof v === 'string' ? v : '').replace(/\s+/g, ' ').trim().slice(0, max);

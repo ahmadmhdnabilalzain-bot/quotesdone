@@ -3,8 +3,8 @@
 -- validity, inclusions, exclusions, payment terms) and applies them to a new quote. The founder
 -- removed reusable price lists, so a template must never carry a price: the table has no numeric
 -- column, and a CHECK refuses any text that states a figure beside a currency or a per-unit rate.
--- The same rule is in supabase/functions/supplier_api/quote_template.ts (statesAPrice); the deno
--- test there fails if either side drops it. Written only by supplier_api (service role).
+-- The pattern below is character for character PRICE_PATTERN in supabase/functions/supplier_api/
+-- quote_template.ts; its deno test fails if the two differ. Written only by supplier_api (service role).
 
 create or replace function public.fn_text_states_a_price(p text)
 returns boolean
@@ -12,7 +12,7 @@ language sql
 immutable
 set search_path = 'public', 'pg_temp'
 as $$
-  select coalesce(p, '') ~* '(\y(aed|dhs?|dirhams?|usd|eur|gbp|sar)\y\s*[0-9])|([0-9][0-9,.]*\s*(/-|\y(aed|dhs?|dirhams?|usd|eur|gbp|sar)\y))|(درهم\s*[0-9]|[0-9][0-9,.]*\s*درهم)|([0-9][0-9,.]*\s*/\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)\y)';
+  select coalesce(p, '') ~* '(^|[^a-z])(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)\s*[0-9]|[$€£]\s*[0-9]|درهم\s*[0-9]|[0-9][0-9,.]*\s*(/-|[$€£]|درهم)|[0-9][0-9,.]*\s*(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)(?![a-z])|[0-9][0-9,.]*\s*(/|per)\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)(?![a-z])';
 $$;
 revoke execute on function public.fn_text_states_a_price(text) from public, anon, authenticated;
 
