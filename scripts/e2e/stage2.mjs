@@ -544,9 +544,15 @@ async function realRun(pre) {
       A('a declined TEST card is refused and reveals nothing', bad.json?.ok === false && bad.json?.status === 'failed' && tx0 === 0, JSON.stringify(bad.json).slice(0, 200));
       const good = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: qGood.t, expected_total_fils: qGood.r.json?.total_fils });
       A('the paid TEST card is charged exactly the total it was quoted', good.json?.status === 'succeeded' && good.json?.total_fils === qGood.r.json?.total_fils, JSON.stringify(good.json).slice(0, 200));
-      const tx = (await read(`select * from public.transactions where quote_id=${q(top.id)}`))[0];
-      if (tx) run.ids.transactions.add(String(tx.id));
-      A('a paid TEST card reveals: transaction paid, invoice recorded', tx?.fee_status === 'paid' && tx.stripe_invoice_id, `fee_status=${tx?.fee_status} invoice=${tx?.stripe_invoice_number} total=${tx?.total_charged} processing=${tx?.processing_fee}`);
+      const tx0paid = (await read(`select * from public.transactions where quote_id=${q(top.id)}`))[0];
+      if (tx0paid) run.ids.transactions.add(String(tx0paid.id));
+      // The sale carries its invoice reference from the first write (reveal_sale.ts invoiceId). Run 5
+      // printed stripe_invoice_number here, which only the webhook fills, and read a NULL id because
+      // the id was then webhook-only too: the invoice existed (RCZLAGA7-0002), the read was too early.
+      A('a paid TEST card reveals: transaction paid, invoice recorded', tx0paid?.fee_status === 'paid' && /^in_/.test(tx0paid.stripe_invoice_id || ''), `fee_status=${tx0paid?.fee_status} invoice=${tx0paid?.stripe_invoice_id} total=${tx0paid?.total_charged} processing=${tx0paid?.processing_fee}`);
+      // The filed invoice (number + PDF in finance-docs) arrives on stripe_webhook invoice.paid.
+      const tx = (await waitFor(async () => (await read(`select * from public.transactions where quote_id=${q(top.id)} and doc_path is not null`))[0], { timeoutMs: 90000, everyMs: 3000 })) || tx0paid;
+      A('the invoice is filed: number and PDF stored', !!tx?.doc_path && !!tx?.stripe_invoice_number, `number=${tx?.stripe_invoice_number} doc=${tx?.doc_path}`);
       A('no card surcharge recorded', !Number(tx?.processing_fee), `processing_fee=${tx?.processing_fee}`);
       const dir = `customers/${cu.cfg.label}_${cu.cfg.locale}_${safe(cu.cfg.emirate)}/inquiry_aluminium`;
       save(`${dir}/reveal_transaction.json`, tx || good.json);
@@ -555,14 +561,41 @@ async function realRun(pre) {
       const toCust = n.filter((x) => x.to_email === cu.email), toSup = n.filter((x) => x.to_email !== cu.email);
       A('both parties notified', toCust.length > 0 && toSup.length > 0, `customer ${toCust.length}, supplier ${toSup.length}`);
       fx.revealed = { tx, top, inq };
+      // THE CUSTOMER IN AR. The aluminium request belongs to C1 (en), so an Arabic request is quoted and
+      // revealed too: its exact-trade supplier quotes in full and the Arabic customer pays with the TEST visa.
+      // Run 5 had no Arabic reveal at all; production had never sent an Arabic reveal_receipt (review of #1456).
+      const arInq = Object.values(fx.inq).find((x) => x.cu.cfg.locale === 'ar' && x.lang === 'ar' && x.trade !== 'aluminium'
+        && fx.suppliers.some((s) => s.trade === x.trade));
+      const arSup = arInq && fx.suppliers.find((s) => s.trade === arInq.trade);
+      let arReceipts = [];
+      if (arInq) {
+        run.ids.inquiries.add(String(arInq.id));
+        const sq = await call('supplier_api', arSup.jwt, quotePayload(arInq.id, 42000, 'ZZ DEMO quote for the Arabic customer'));
+        const arQ = (await read(`select id, status from public.quotes where inquiry_id=${q(arInq.id)} and supplier_id=${Number(arSup.leadId)} order by created_at desc limit 1`))[0];
+        if (arQ) run.ids.quotes.add(String(arQ.id));
+        if (arQ?.status === 'submitted') {
+          const t = await ct('pm_card_visa');
+          const pq = await call('stripe_checkout', arInq.cu.jwt, { action: 'element_quote', quote_id: arQ.id, confirmation_token: t });
+          const pay = await call('stripe_checkout', arInq.cu.jwt, { action: 'element_pay', quote_id: arQ.id, confirmation_token: t, expected_total_fils: pq.json?.total_fils });
+          const arTx = (await read(`select id from public.transactions where quote_id=${q(arQ.id)}`))[0];
+          if (arTx) run.ids.transactions.add(String(arTx.id));
+          A('the Arabic customer reveals with the TEST card', pay.json?.status === 'succeeded' && !!arTx, JSON.stringify(pay.json).slice(0, 200));
+          arReceipts = await read(`select id, channel, lang, subject, body from public.notifications where type='reveal_receipt' and quote_id=${q(arQ.id)}`);
+        } else A('the Arabic customer reveals with the TEST card', false, `quote HTTP ${sq.status} status=${arQ?.status} on ${arInq.trade}`);
+      }
+      A('the Arabic customer\'s reveal receipt is in Arabic', arReceipts.length > 0 && arReceipts.every((x) => x.lang === 'ar' && /[؀-ۿ]{3,}/.test(`${x.subject} ${x.body}`)),
+        arInq ? `${arReceipts.length} reveal_receipt(s), langs ${[...new Set(arReceipts.map((x) => x.lang))].join(',') || 'none'}` : 'no Arabic request with an exact-trade supplier reached S10');
+      fx.revealedAr = arReceipts;
     },
     S11: async () => {
       const { tx, inq } = need(fx.revealed?.tx && fx.revealed, 'no paid reveal (S10), so there is no transaction to refund');
       const w0 = await costWatermark();
-      const r = await call('customer_api', inq.cu.jwt, { action: 'request_refund', transaction_id: tx.id, reason_code: 'supplier_unresponsive', reason_note: 'ZZ DEMO refund path' });
+      // customer_api request_refund is keyed on quote_id (index.ts: body.quote_id -> the sale). Run 5 sent
+      // transaction_id, so the handler looked up quote '' and answered 404 'Transaction not found'.
+      const r = await call('customer_api', inq.cu.jwt, { action: 'request_refund', quote_id: tx.quote_id, reason_code: 'supplier_unresponsive', reason_note: 'ZZ DEMO refund path' });
       const rf = (await read(`select r.id, r.status, c.state, c.decision, c.decision_rationale from public.refunds r left join public.refund_case c on c.refund_id=r.id where r.transaction_id=${q(tx.id)}`))[0];
       if (rf) run.ids.refunds.add(String(rf.id));
-      A('the refund request opens a case for the accountant', r.status === 200 && rf, JSON.stringify(rf));
+      A('the refund request opens a case for the accountant', r.status === 200 && rf, `HTTP ${r.status} ${JSON.stringify(r.json).slice(0, 200)} case=${JSON.stringify(rf ?? null)}`);
       const ceo = (await costSince(w0)).filter((x) => x.task_class === 'ceo_approval_decision');
       A('the CEO decision is taken on the Opus route, with reasons', ceo.every((x) => x.model_used === 'anthropic/claude-opus-5.5') && (rf?.decision_rationale || ceo.length >= 0), `rows=${ceo.length} decision=${rf?.decision}`, ceo.map((x) => x.model_used).join(','));
       save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/refund.json`, rf || r.json);
@@ -570,7 +603,7 @@ async function realRun(pre) {
     S12: async () => {
       const { tx } = fx.revealed || {};
       const w = (await read(`select * from public.supplier_response_watch where transaction_id=${q(tx?.id)}`))[0];
-      A('a non-response watch is open on the revealed supplier', w && !w.first_response_at, JSON.stringify(w));
+      A('a non-response watch is open on the revealed supplier', w && Number(w.lead_id) === Number(tx.supplier_id) && !w.first_response_at, JSON.stringify(w ?? null));
     },
     S13: async () => {
       const chats = [];
@@ -619,10 +652,21 @@ async function realRun(pre) {
           where to_email like ${q('qd-' + tag + '-%')} or inquiry_id::text in (${[...run.ids.inquiries].map(q).join(',') || 'null'}) order by id`);
       for (const x of n) save(`notifications/${x.id}_${x.channel}_${safe(x.type)}.json`, x);
       A('every notice the run caused was captured, none sent', n.length > 0 && n.every((x) => !['sent', 'queued', 'pending'].includes(x.status)), `${n.length} notices, statuses ${[...new Set(n.map((x) => x.status))].join(',')}`);
-      const arCust = new Set(fx.customers.filter((c) => c.cfg.locale === 'ar').map((c) => c.email));
+      // Each customer is answered in THEIR language. Run 5 asserted "an Arabic customer receives Arabic"
+      // and counted 0: by S15 the only customer events (new quotes, reveal, invoice) belong to the
+      // aluminium request, whose owner is C1 (en); no Arabic customer had been sent anything yet. That
+      // hid a product gap: production had never sent an Arabic reveal_receipt (5 of 5 are en), and
+      // invoice_ready followed the registered locale, not the inquiry's (fixed by
+      // a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql; the only Arabic notice
+      // run 5 produced, 101749, is a pdpl_verification). So the language rule is asserted here on every
+      // customer notice that exists, S10 reveals for an Arabic customer, and S24 requires an Arabic
+      // reveal_receipt to an Arabic customer.
+      const localeOf = new Map(fx.customers.map((c) => [String(c.email).toLowerCase(), c.cfg.locale]));
       const supMails = new Set(fx.suppliers.map((s) => s.email));
-      const ar = n.filter((x) => arCust.has(x.to_email)), sup = n.filter((x) => supMails.has(x.to_email));
-      A('an Arabic customer receives Arabic', ar.length > 0 && ar.every((x) => /[\u0600-\u06FF]/.test(x.body || x.html || '')), `${ar.length} notices`);
+      const cust = n.filter((x) => localeOf.has(String(x.to_email).toLowerCase())), sup = n.filter((x) => supMails.has(x.to_email));
+      const wrong = cust.filter((x) => { const t = `${x.subject || ''} ${x.body || x.html || ''}`;
+        return localeOf.get(String(x.to_email).toLowerCase()) === 'ar' ? !/[\u0600-\u06FF]{3,}/.test(t) : /[\u0600-\u06FF]{8,}/.test(t); });
+      A('every customer receives their registered language', cust.length > 0 && wrong.length === 0, `${cust.length} customer notices (${cust.filter((x) => localeOf.get(String(x.to_email).toLowerCase()) === 'ar').length} to Arabic customers); wrong language: ${wrong.map((x) => `${x.id}:${x.type}`).join(',') || 'none'}`);
       A('suppliers receive English only', sup.length > 0 && sup.every((x) => !/[\u0600-\u06FF]/.test(x.subject || '') && !/[\u0600-\u06FF]{8,}/.test(x.body || '')), `${sup.length} notices`);
     },
     S16: async () => {
@@ -964,6 +1008,13 @@ async function realRun(pre) {
     },
     // ---- S24: answers judged by another family; nothing reached a real person -----------------------
     S24: async () => {
+      // The Arabic half of S15, at the end of the run when Arabic customers have been sent something.
+      const arMails = fx.customers.filter((c) => c.cfg.locale === 'ar').map((c) => String(c.email).toLowerCase());
+      const arN = arMails.length ? await read(`select id, type, lang, subject, body, html from public.notifications where lower(to_email) in (${arMails.map(q).join(',')})`) : [];
+      const arReveal = arN.filter((x) => x.type === 'reveal_receipt');
+      A('an Arabic customer receives Arabic, including an Arabic reveal_receipt', arReveal.length > 0 && arN.length > 0
+        && arN.every((x) => /[؀-ۿ]{3,}/.test(`${x.subject || ''} ${x.body || x.html || ''}`)),
+        `${arN.length} notices to Arabic customers, ${arReveal.length} reveal_receipt (${[...new Set(arN.map((x) => x.type))].join(',') || 'none'})`);
       const fam = (m) => String(m || '').split('/')[0];
       const samples = (fx.chats || []).map((c) => ({ what: `${c.who} chat (${c.lang})`, q: c.msg, a: String(c.reply?.reply || c.reply?.answer || c.reply?.text || ''), producer: (c.route || '').split(' ').map((x) => x.split(':')[1]).filter(Boolean)[0] || 'openai/gpt-6-luna', lang: c.lang }));
       const alu = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
