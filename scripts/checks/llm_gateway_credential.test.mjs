@@ -131,24 +131,32 @@ test('every fn name passed to defaultDeps has a credential issued for it', () =>
   const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? walk(join(d, e.name)) : /\.ts$/.test(e.name) && !/\.test\.ts$/.test(e.name) ? [join(d, e.name)] : []);
   const names = new Set();
+  // Three doors, each derived from the code: think.ts defaultDeps(admin, '<fn>'); makeLlm/makeLlmRich
+  // with { fn: '<fn>' } (llm.ts presents cred_fn_<fn>); and a direct gateway post, which presents
+  // whatever sec('cred_fn_<x>') it reads. A direct post's own `fn:` label is attribution only - the
+  // gateway authenticates __secret - so for that door the credential it READS is what must exist.
   for (const f of walk(FNDIR)) {
-    for (const m of readFileSync(f, 'utf8').matchAll(/defaultDeps\(\s*\w+\s*,\s*'([a-z0-9_]+)'\s*\)/g)) names.add(m[1]);
+    const src = readFileSync(f, 'utf8');
+    for (const m of src.matchAll(/defaultDeps\(\s*\w+\s*,\s*'([a-z0-9_]+)'\s*\)/g)) names.add(m[1]);
+    for (const m of src.matchAll(/makeLlm(?:Rich)?\([^;]*?\bfn:\s*'([a-z0-9_]+)'/g)) names.add(m[1]);
+    if (/ai_gateway/.test(src)) for (const m of src.matchAll(/sec\('cred_fn_([a-z0-9_]+)'\)/g)) names.add(m[1]);
   }
   assert.ok(names.size > 0, "no defaultDeps(admin, 'fn') call found - this guard is now testing nothing");
   const sqlDirs = ['scripts/sql', 'supabase/migrations', 'supabase/migrations_history'].map((d) => join(root, d));
   const issuing = sqlDirs.flatMap((d) => {
     try { return readdirSync(d).filter((n) => n.endsWith('.sql')).map((n) => readFileSync(join(d, n), 'utf8')); }
     catch { return []; }
-  }).filter((s) => /fn_internal_credential_(issue|rotate)/.test(s));
+  }).filter((s) => /fn_internal_credential_(issue|rotate)|insert\s+into\s+public\.internal_credential/.test(s));
   // Only text that mints counts: the callers array a mint loop iterates, or a direct issue('fn.<name>'.
   // A bare 'fn.<name>' elsewhere (a verdict query, a comment) must not satisfy this guard.
   const minted = issuing.flatMap((s) => [
     ...[...s.matchAll(/callers\s+text\[\]\s*:=\s*array\[([\s\S]*?)\]/g)].map((m) => m[1]),
+    ...[...s.matchAll(/foreach\s+\w+\s+in\s+array\s+array\[([\s\S]*?)\]/g)].map((m) => m[1]),
     ...[...s.matchAll(/fn_internal_credential_issue\(\s*'fn\.([a-z0-9_]+)'/g)].map((m) => "'" + m[1] + "'"),
     ...[...s.matchAll(/'cred_fn_([a-z0-9_]+)'/g)].map((m) => "'" + m[1] + "'"),
   ]).join('\n');
   const missing = [...names].filter((n) => !minted.includes("'" + n + "'")).sort();
   assert.deepEqual(missing, [],
-    'these fn names reach ai_gateway through defaultDeps but no SQL file issues them a credential, so each '
+    'these fn names reach ai_gateway (defaultDeps, makeLlm fn:, or a direct post) but no SQL file issues them a credential, so each '
     + 'falls back to the shared inbound_secret (403 while it is inactive): ' + missing.join(', '));
 });
