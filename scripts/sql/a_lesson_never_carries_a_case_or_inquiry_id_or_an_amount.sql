@@ -145,6 +145,68 @@ end $fn$;
 revoke execute on function public.fn_reason_apply_ceo__lesson_reapproval(bigint, jsonb) from public, anon, authenticated;
 grant execute on function public.fn_reason_apply_ceo__lesson_reapproval(bigint, jsonb) to service_role;
 
+-- A RE-APPROVAL NEVER LAPSES SILENTLY (review of #1443 at 21c19a8). A held question EXPIRES (14 days after its first
+-- attempt with the model open, fn_reason_held_expire, which hands off only non-internal questions) or FAILS (3 attempts).
+-- Either would leave the new version quarantined and the original retired with nobody told. Restoring the original is
+-- not an option: it is the text that carries the identifiers. So the lapse is ESCALATED: a registered handoff to the CEO
+-- seat (ceo.lesson_reapproval_overdue), whose handler asks the question again and closes once the CEO has decided.
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
+select 'ceo.lesson_reapproval_overdue', 'it_engineer', 'ceo',
+       'A lesson version waiting for CEO re-approval lapsed (its held question expired or failed): the lesson stays withheld until the CEO approves or rejects it. The handler asks again and closes when the CEO has decided.',
+       'fn_lesson_reapproval_overdue_act', interval '72 hours', false,
+       'scripts/sql/a_lesson_never_carries_a_case_or_inquiry_id_or_an_amount.sql'
+ where not exists (select 1 from public.seat_handoff_kind
+                    where type = 'ceo.lesson_reapproval_overdue' and from_seat = 'it_engineer' and to_seat = 'ceo');
+
+-- The handler: decided -> the handoff completes with the decision; otherwise the question is filed again (fn_reason_hold
+-- reopens an expired row at once and a failed one after 24 hours) and the handoff waits on the CEO.
+create or replace function public.fn_lesson_reapproval_overdue_act(p_id bigint)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare a public.agent_actions; q public.reasoning_held_question; v_again bigint;
+begin
+  select * into a from public.agent_actions where id = p_id;
+  select * into q from public.reasoning_held_question where id = nullif(a.detail->>'held_id', '')::bigint;
+  if q.id is null then return jsonb_build_object('closed', 'the held question is gone', 'held_id', a.detail->>'held_id'); end if;
+  if q.status = 'applied' then
+    return jsonb_build_object('decided', q.result->'decision'->>'choice', 'held_id', q.id, 'knowledge_id', q.subject->>'knowledge_id');
+  end if;
+  if q.status in ('expired', 'failed') then
+    -- an expired or failed row stays closed by design (R3), so the question is filed afresh under its own key and the
+    -- handoff follows it. A question that FAILED in the last 7 days is not re-asked (the 3-try limit holds across
+    -- re-filings, fn_reason_hold returns the failed row): the handoff then stays pending with the CEO, which is the alert.
+    v_again := public.fn_reason_hold(q.seat, q.surface, q.question, q.request, '{}'::jsonb, q.subject, 'overdue_reasked',
+                                     split_part(q.dedupe_key, ':reask:', 1) || ':reask:' || to_char(now() at time zone 'utc', 'YYYYMMDDHH24MISS'));
+    if v_again is not null and v_again <> q.id then
+      update public.agent_actions set detail = detail || jsonb_build_object('held_id', v_again, 'reasked_from', q.id) where id = p_id;
+      select * into q from public.reasoning_held_question where id = v_again;
+    end if;
+  end if;
+  return jsonb_build_object('waiting', 'the CEO seat to approve or reject lesson version #' || (q.subject->>'knowledge_id')
+                                       || ' (held question ' || q.id || ', ' || q.status || ')',
+                            'held_id', q.id, 'held_status', q.status, 'reasked', q.status = 'held');
+end $fn$;
+revoke execute on function public.fn_lesson_reapproval_overdue_act(bigint) from public, anon, authenticated;
+grant execute on function public.fn_lesson_reapproval_overdue_act(bigint) to service_role;
+
+create or replace function public.fn_lesson_reapproval_lapse_escalates()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+begin
+  perform public.fn_seat_handoff('it_engineer', 'ceo', 'ceo.lesson_reapproval_overdue', 'agent_knowledge',
+    -- one escalation per lapse: a second lapse after a re-ask is a new handoff, never deduplicated into a closed one
+    coalesce(new.subject->>'knowledge_id', 'held:' || new.id) || ':lapsed:' || new.status || ':' || to_char(now() at time zone 'utc', 'YYYYMMDDHH24MISS'),
+    jsonb_build_object('held_id', new.id, 'lapsed_as', new.status, 'question', left(new.question, 1500),
+                       'knowledge_id', new.subject->>'knowledge_id', 'supersedes_id', new.subject->>'supersedes_id',
+                       'waiting_for', 'the CEO seat to approve or reject the cleaned lesson; until then it is withheld'));
+  return null;
+end $fn$;
+revoke execute on function public.fn_lesson_reapproval_lapse_escalates() from public, anon, authenticated;
+drop trigger if exists lesson_reapproval_lapse_escalates on public.reasoning_held_question;
+create trigger lesson_reapproval_lapse_escalates
+  after update of status on public.reasoning_held_question
+  for each row when (new.surface = 'ceo.lesson_reapproval' and new.status in ('expired', 'failed')
+                     and old.status is distinct from new.status)
+  execute function public.fn_lesson_reapproval_lapse_escalates();
+
 -- THE ROWS ALREADY WRITTEN (measured 18 Oct 2026: 11 candidates, 7 approved lessons, 69 case rows; no batching needed).
 create or replace function public.fn_lesson_scrub_backfill()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $backfill$
@@ -206,8 +268,12 @@ begin
       'subject', jsonb_build_object('knowledge_id', v_new, 'supersedes_id', k.id,
                                     'candidate_id', nullif(substring(k.source_ref from '^lesson:(\d+)$'), '')::bigint),
       'dedupeKey', 'lesson_reapproval:' || v_new);
-    perform public.fn_reason_hold('ceo', 'ceo.lesson_reapproval', v_req->>'question', v_req, '{}'::jsonb, v_req->'subject',
-                                  'sql_caller', v_req->>'dedupeKey');
+    -- the lesson is withheld only while the CEO is asked: no question filed, no backfill (review of #1443)
+    if public.fn_reason_hold('ceo', 'ceo.lesson_reapproval', v_req->>'question', v_req, '{}'::jsonb, v_req->'subject',
+                             'sql_caller', v_req->>'dedupeKey') is null then
+      raise exception 'lesson % v%: the CEO re-approval question was not filed (fn_reason_hold returned no id); nothing is withheld unasked',
+        k.id, coalesce(k.version, 1) + 1;
+    end if;
     v_versioned := v_versioned + 1;
   end loop;
 

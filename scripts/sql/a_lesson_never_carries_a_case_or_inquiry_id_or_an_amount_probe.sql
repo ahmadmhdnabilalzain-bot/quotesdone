@@ -14,6 +14,7 @@ do $probe$
 declare
   v_fail text := ''; v_ids bigint[]; v jsonb; v_find text; v_ak text; v_les text; v_left int; v_bf jsonb;
   t record; v_out text; v_a bigint; v_b bigint; v_ak_a bigint; v_ak_b bigint; v_new record; v_held bigint; v_n int;
+  v_c bigint; v_d bigint; v_ak_c bigint; v_ak_d bigint; v_held_c bigint; v_held_d bigint; v_hand_c bigint;
   v_planted text := 'ZZ DEMO probe lesson: in case 16269 and cases 384 and 387, Case #368, rfq 158556, RFQ-158557, 158558 rfq, '
     || 'quote 12, QD-RF-ZZ1 and inquiry 474a37be-4dd5-47ec-be6a-a12f1800d20c, the supplier priced AED 3,728.30 then 118,500 AED '
     || '(Dhs26.99, USD 1.2k, بسعر ٣٬٧٢٨ درهم, طلب ١٥٨٥٥٦); contact zz.demo@example.invalid or +971 50 123 4567 or 0501234567. '
@@ -73,6 +74,20 @@ begin
   values ('it_engineer', 'ZZ DEMO probe lesson B', 'ZZ DEMO probe dup: chase the supplier on day 2 (case 222).', 'experience', 'lesson:' || v_b, 'it_engineer', 1, 'author_verified', 'probe')
   returning id into v_ak_b;
 
+  -- two more approved lessons whose re-approval will lapse: C expires, D fails
+  insert into public.reasoning_knowledge_candidate (seat, question, finding, sources, status, reviewed_by, reviewed_at)
+  values ('it_engineer', 'ZZ DEMO probe', 'ZZ DEMO probe lapse C: escalate a silent supplier after 48 hours (case 333).', '[{"kind":"probe"}]', 'approved', 'probe', now())
+  returning id into v_c;
+  insert into public.agent_knowledge (agent_key, topic, content, layer, source_ref, owner_agent, version, validation_status, supporting_evidence)
+  values ('it_engineer', 'ZZ DEMO probe lesson C', 'ZZ DEMO probe lapse C: escalate a silent supplier after 48 hours (case 333).', 'experience', 'lesson:' || v_c, 'it_engineer', 1, 'author_verified', 'probe')
+  returning id into v_ak_c;
+  insert into public.reasoning_knowledge_candidate (seat, question, finding, sources, status, reviewed_by, reviewed_at)
+  values ('it_engineer', 'ZZ DEMO probe', 'ZZ DEMO probe lapse D: re-read the drawing before pricing (rfq 444).', '[{"kind":"probe"}]', 'approved', 'probe', now())
+  returning id into v_d;
+  insert into public.agent_knowledge (agent_key, topic, content, layer, source_ref, owner_agent, version, validation_status, supporting_evidence)
+  values ('it_engineer', 'ZZ DEMO probe lesson D', 'ZZ DEMO probe lapse D: re-read the drawing before pricing (rfq 444).', 'experience', 'lesson:' || v_d, 'it_engineer', 1, 'author_verified', 'probe')
+  returning id into v_ak_d;
+
   begin
     v_bf := public.fn_lesson_scrub_backfill();
   exception when others then
@@ -103,6 +118,38 @@ begin
       v_fail := v_fail || ' the CEO''s approve did not make version 2 live: ' || v::text || ';'; end if;
     if not exists (select 1 from public.reasoning_knowledge_candidate where id = v_a and status = 'approved' and reviewed_by like 'ceo:lesson_reapproval:%') then
       v_fail := v_fail || ' the CEO''s approve did not close the candidate;'; end if;
+  end if;
+
+  -- 4b. A LAPSE IS ESCALATED, NEVER SILENT. C's question expires through the real expiry routine (internal: it files no
+  --     handoff itself); D's fails. Each must open a pending ceo.lesson_reapproval_overdue handoff to the CEO seat. Acting
+  --     on C's re-asks the question and waits; once the CEO has decided, acting again completes it.
+  select h.id into v_held_c from public.reasoning_held_question h join public.agent_knowledge k on k.id = (h.subject->>'knowledge_id')::bigint
+   where h.surface = 'ceo.lesson_reapproval' and k.supersedes_id = v_ak_c;
+  select h.id into v_held_d from public.reasoning_held_question h join public.agent_knowledge k on k.id = (h.subject->>'knowledge_id')::bigint
+   where h.surface = 'ceo.lesson_reapproval' and k.supersedes_id = v_ak_d;
+  if v_held_c is null or v_held_d is null then v_fail := v_fail || ' lapse lessons C/D were not held for the CEO;';
+  else
+    perform public.fn_reason_held_expire(array[v_held_c], 'probe', 'ZZ DEMO probe: 14 days passed');
+    update public.reasoning_held_question set status = 'failed', attempts = 3 where id = v_held_d;
+    select id into v_hand_c from public.agent_actions where kind = 'handoff' and agent = 'ceo' and status = 'pending'
+       and detail->>'type' = 'ceo.lesson_reapproval_overdue'
+       and v_held_c in ((detail->>'held_id')::bigint, (detail->>'reasked_from')::bigint);   -- the handler may already have re-asked
+    if v_hand_c is null then v_fail := v_fail || ' an expired re-approval was not escalated to the CEO: held ' || v_held_c || ' status ' || (select status from public.reasoning_held_question where id = v_held_c) || ', held rows ' || (select string_agg(h.id || '=' || h.status || '/k' || (h.subject->>'knowledge_id') || '/sup' || (h.subject->>'supersedes_id'), ' ') from public.reasoning_held_question h where h.surface = 'ceo.lesson_reapproval') || ' akc ' || v_ak_c || ' akd ' || v_ak_d || ', handoffs ' || coalesce((select string_agg(status || '/' || (detail->>'held_id') || '/' || coalesce(detail->>'error',''), ', ') from public.agent_actions where kind = 'handoff' and detail->>'type' = 'ceo.lesson_reapproval_overdue'), 'none') || ';'; end if;
+    if not exists (select 1 from public.agent_actions where kind = 'handoff' and agent = 'ceo' and status = 'pending'
+                    and detail->>'type' = 'ceo.lesson_reapproval_overdue' and (detail->>'held_id')::bigint = v_held_d) then
+      v_fail := v_fail || ' a failed re-approval was not escalated to the CEO;'; end if;
+    if v_hand_c is not null then
+      v := public.fn_seat_handoff_act(v_hand_c);
+      select (detail->>'held_id')::bigint into v_held_c from public.agent_actions where id = v_hand_c;   -- the re-filed question
+      if not exists (select 1 from public.reasoning_held_question where id = v_held_c and status = 'held' and surface = 'ceo.lesson_reapproval')
+         or not (v ? 'waiting') then
+        v_fail := v_fail || ' acting on the escalation did not ask the CEO again: ' || coalesce(v::text, 'null') || ';'; end if;
+      perform public.fn_reason_held_resolve(v_held_c, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO probe',
+                                                                         'decision', jsonb_build_object('choice', 'reject')));
+      v := public.fn_seat_handoff_act(v_hand_c);
+      if not exists (select 1 from public.agent_actions where id = v_hand_c and status = 'done') then
+        v_fail := v_fail || ' the escalation did not close once the CEO decided: ' || coalesce(v::text, 'null') || ';'; end if;
+    end if;
   end if;
 
   -- 5. nothing live still carries one
