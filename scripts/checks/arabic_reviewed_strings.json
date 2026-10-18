@@ -456,6 +456,12 @@
   "496a302c86b0",
   "ec42828d58cb"
  ],
+ "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql": [
+  "3c2dc612880a",
+  "7741094dd3ef",
+  "d0466f61047f",
+  "fae3d0feb457"
+ ],
  "scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql": [
   "2fcc300bc0ca",
   "4c605fe5b5ab",
@@ -5501,7 +5507,8 @@
  ],
  "supabase/functions/_shared/ai_reply.ts": [
   "2ad26f4e1be5",
-  "f50238aec3f2"
+  "f50238aec3f2",
+  "fa3890266f5e"
  ],
  "supabase/functions/_shared/ar_days.ts": [
   "5857bc86ba2e",

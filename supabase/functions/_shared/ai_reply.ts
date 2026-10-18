@@ -103,6 +103,21 @@ export function replyProblems(text: string, known: Set<string>, o: { allowed?: s
   return out;
 }
 
+/** The customer-reply gate for a reply written OUTSIDE aiReply (the CEO's answer to a support handover, #1462): the
+ *  same replyProblems checks against the company brief, plus the language rule: a supplier and an English reply carry
+ *  no Arabic (ruling 1008); an Arabic reply is mostly Arabic. Empty = it may be sent. */
+export async function customerReplyGate(rpc: Parameters<typeof companyBrief>[0], text: string, lang: 'en' | 'ar', supplier: boolean): Promise<string[]> {
+  const want: 'en' | 'ar' = supplier ? 'en' : lang;
+  const brief = await companyBrief(rpc, [], '', want);
+  const allowed = figureSource(brief);
+  const out = text.trim() ? replyProblems(text, briefNumbers(allowed), { allowed }) : ['the reply is empty'];
+  const ar = (text.match(/[؀-ۿ]/g) ?? []).length;
+  const latin = (text.match(/[A-Za-z]/g) ?? []).length;
+  if (want === 'en' && ar > 0) out.push('it is not in English (' + (supplier ? 'a supplier is always answered in English' : 'the inquiry language') + ')');
+  if (want === 'ar' && ar <= latin) out.push('it is not in Arabic (the inquiry language)');
+  return out;
+}
+
 const actionOf = (r: AiReplyRequest, content: string | null | undefined): string | null => {
   const a = String(json(content).action ?? '');
   return r.actions?.some((x) => x.id === a) ? a : null;
