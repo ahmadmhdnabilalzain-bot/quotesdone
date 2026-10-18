@@ -53,7 +53,10 @@ const OWNING_SQLS = [
   'scripts/sql/haiku_latest_costs_what_the_catalogue_charges_on_12_october.sql',
   // anthropic/claude-sonnet-5.5, every conversation reply (founder ruling 1219, 13 Oct 2026).
   'scripts/sql/every_conversation_reply_runs_on_sonnet_5_5_with_gemini_behind.sql',
+  // openai/gpt-6-luna-pro registered; gpt-5.6-sol, gpt-5.6-luna and gpt-6-luna retired (rulings 1240, 1241, 1218; 18 Oct 2026).
+  'scripts/sql/gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql',
 ];
+const V3_SQL = 'scripts/sql/gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql';
 const V2_SQL = 'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql';
 const RETIRING_SQL = 'scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql';
 const OWNING_SQL = OWNING_SQLS.join(' + ');
@@ -106,14 +109,16 @@ const claimed = () => {
   // Every file must contribute what it registers. The size floor alone cannot see a later file's row
   // stop parsing: the first file clears 10 on its own, so a reshaped Sol row would vanish silently
   // and this check would stay green (measured in the review of PR #867).
-  assert.ok(out.has('openai/gpt-5.6-sol'),
-    'openai/gpt-5.6-sol was not parsed out of its registering file, so its price is not being checked');
+  // Matrix v3 (18 Oct 2026): the 5.6 generation and plain luna are retired by V3_SQL, which registers Luna Pro.
+  for (const id of ['openai/gpt-5.6-sol', 'openai/gpt-5.6-luna', 'openai/gpt-6-luna']) {
+    assert.ok(retired.get(id) === V3_SQL && !out.has(id), `${id} was not parsed as retired by ${V3_SQL}`);
+  }
   // The matrix v2 retirement must parse, or the two retired models' stale claims come back and block CI.
   for (const id of ['deepseek/deepseek-v4.1-flash', 'qwen/qwen3.7-plus']) {
     assert.ok(retired.get(id) === V2_SQL && !out.has(id),
       `${id} was not parsed as retired by ${V2_SQL}, so a model no route can name is still being compared`);
   }
-  assert.ok(out.has('openai/gpt-6-luna'), 'openai/gpt-6-luna, every seat\'s main model, is not being checked');
+  assert.ok(out.has('openai/gpt-6-luna-pro'), 'openai/gpt-6-luna-pro, every seat\'s main model, is not being checked');
   // The retirement must parse too, or the retired model's stale claim comes back and blocks CI again.
   assert.ok([...retired.values()].includes(RETIRING_SQL),
     `no retirement was parsed out of ${RETIRING_SQL}, so a retired model is being compared as if a route could name it`);
@@ -183,10 +188,6 @@ test('the capabilities the registry file claims are the ones the catalogue adver
     return;
   }
   const expect = {
-    // openai/gpt-5.6-sol (founder_instruction 854, replacing qwen3.8-max). If it stops being vision-capable,
-    // every extraction and drawing class silently gets substituted for something nobody chose; and its
-    // audio:false is the measured fact that keeps speech_transcription on gemini.
-    'openai/gpt-5.6-sol': { image: true, audio: false },
     'anthropic/claude-opus-5.5': { image: true, audio: false },
     'anthropic/claude-sonnet-5': { image: true, audio: false },
     // The ONLY model any policy routes audio to since founder_instruction 854 retired
@@ -195,7 +196,7 @@ test('the capabilities the registry file claims are the ones the catalogue adver
     'google/gemini-3.8-flash': { image: true, audio: true },
     // Every seat's main model since matrix v2 (5 Oct 2026): image:true is what lets a vision or file call run on it;
     // audio:false is why speech_transcription and marketing_watch stay on Gemini with no fallback at all.
-    'openai/gpt-6-luna': { image: true, audio: false },
+    'openai/gpt-6-luna-pro': { image: true, audio: false },
   };
   const wrong = [];
   for (const [id, want] of Object.entries(expect)) {
