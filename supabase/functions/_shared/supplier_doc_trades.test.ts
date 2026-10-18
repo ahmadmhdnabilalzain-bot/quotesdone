@@ -303,7 +303,9 @@ Deno.test('a file over 25 MB is refused before pdf.js opens it, and is held unre
   const r = await pdfjsText(big);
   assertEquals([r.status, r.pages], ['failed', 0]);
   assert(/over the .* read limit/.test(r.detail || ''), r.detail);
-  const ev = await readDocForTrades({ path: 'profiles/1/big.pdf', name: 'big.pdf', kind: 'profile', bytes: big, mime: 'application/pdf' }, deps());
+  // A supplier's paper is read up to 100 MB (19 Oct 2026, LIMITS.maxPaperBytes); past that it is held unreadable too.
+  const huge = new Uint8Array(LIMITS.maxPaperBytes + 1); huge.set(new TextEncoder().encode('%PDF-1.4\n'));
+  const ev = await readDocForTrades({ path: 'profiles/1/big.pdf', name: 'big.pdf', kind: 'profile', bytes: huge, mime: 'application/pdf' }, deps());
   assertEquals(ev.status, 'unreadable');
   assert(/file_too_large/.test(ev.reason || ''), ev.reason);
 });

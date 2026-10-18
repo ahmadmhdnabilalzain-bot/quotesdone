@@ -60,6 +60,8 @@ export type ReadContext = {
   /** Words only: skip the drawing measurement. A supplier's profile or catalogue is read for what it
    *  says, and measuring 40 pages of vector art spends CPU an edge function does not have. */
   textOnly?: boolean;
+  /** The byte ceiling for this read: LIMITS.maxBytes unless the caller passed LIMITS.maxPaperBytes. */
+  maxBytes?: number;
 };
 
 export const empty = (kind: string, notes: string[] = [], needs: Extracted['needs'] = null): Extracted =>
@@ -77,6 +79,19 @@ export const LIMITS = {
   // The same 25 MB the upload accepts (attachment.sanitizeUpload's default): until 13 Oct 2026 this was 20 MB, so a
   // 21-25 MB company profile was stored and then never read (2 of 29 real UAE profiles, ACCURACY_real_profiles.md).
   maxBytes: 25 * 1024 * 1024,
+  // A SUPPLIER'S PROFILE OR CATALOGUE, UPLOADED STRAIGHT TO STORAGE, IS READ UP TO 100 MB (19 Oct 2026, sales_engineer).
+  // Only the words-only supplier path asks for it (readDocument opts.maxBytes, _shared/supplier_docs_later.ts); every
+  // other read keeps maxBytes. Above maxBytes pdf.js is handed the buffer itself, not a copy (doc_read/pdf.ts), which is
+  // what keeps it inside the edge's 256 MB. Measured locally with deno, 19 Oct 2026, peak RSS of the whole background read
+  // - streamed from a local server in the same process (supplier_docs_later.fetchStored), type gate, sha256
+  // (malware.sha256Hex), readDocument - with the modules loaded at 57-58 MB; every page read, text in characters:
+  //   A08 EMT prequalification  30.2 MB, 183 pages -> 129 MB, 68,674 characters
+  //   B05 Al Shirawi brochure   84.9 MB,  22 pages -> 203 MB, 36,958 characters
+  //   C05 BCG Arabic brochure   38.0 MB,  69 pages -> 132 MB, 57,302 characters
+  // What the two changes saved on B05: with crypto.subtle.digest (which copies its input) the pipeline peaked at 255 MB;
+  // pdf.js alone, handed a copy instead of the buffer, peaked at 265 MB. The in-process server's buffers are counted, so
+  // these are upper bounds.
+  maxPaperBytes: 100 * 1024 * 1024,
   maxTextChars: 400_000,
   maxZipEntries: 512,
   maxZipTotalBytes: 64 * 1024 * 1024,

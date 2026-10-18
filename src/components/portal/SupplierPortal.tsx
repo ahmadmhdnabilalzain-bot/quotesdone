@@ -125,6 +125,15 @@ const missingLabel = (lang, m) => (MISSING[m] ? MISSING[m][lang === 'ar' ? 1 : 0
 // Every format the quotation reader opens (supabase/functions/_shared/doc_read READERS, #591), the same
 // list the customer's composer accepts. A DWG is accepted and stored; it is read once converted.
 const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.xml,.x83,.x84,.x86,.zip';
+// UPLOADS UP TO 100 MB GO STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer). Vercel caps a request body at 4.5 MB, so a
+// company profile or catalogue is not sent as base64: supplier_api upload_url signs a path in the supplier's own folder,
+// the file goes to it, and process_docs / save_documents are given the path (the server gates the stored bytes).
+const uploadDirect = async (kind, file, token) => {
+  const u = await call('supplier_api', { action: 'upload_url', kind, filename: file.name, mime: file.type }, token);
+  if (!(u && u.ok && u.path && u.token)) return { error: u };
+  const { error } = await SB().storage.from('supplier-docs').uploadToSignedUrl(u.path, u.token, file, { contentType: file.type });
+  return error ? { error: { code: 'direct_upload_failed' } } : { path: u.path, filename: file.name, mime: file.type };
+};
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
 // STRIPE CAME BACK AND THE PAGE SAID NOTHING (audit 2026-09-14). supplier_pay and pay_registration
 // return the supplier to /portal?dues_paid=… or ?registration_paid=…, and nothing read either query
@@ -1399,6 +1408,16 @@ function Documents({ token, lang, onSaved = null, onExpired = null }) {
   // from the row as it is NOW. A second `documents` round trip used to race the write.
   const take = (j) => { if (j && Array.isArray(j.documents)) setData({ ok: true, documents: j.documents, expiries: j.expiries || [], summary: j.summary }); else load(); };
   useEffect(() => { load(); }, [token]);
+  // READ AFTER THE ANSWER (19 Oct 2026): while the list says a profile or catalogue is still being read, ask again
+  // every 5 seconds (for at most 10 minutes) so the tab refreshes to the result by itself.
+  const readingNow = !!(data && Array.isArray(data.reading) && data.reading.length);
+  const polls = useRef(0);
+  useEffect(() => {
+    if (!readingNow) { polls.current = 0; return; }
+    if (polls.current >= 120) return;
+    const id = setTimeout(() => { polls.current += 1; load(); }, 5000);
+    return () => clearTimeout(id);
+  }, [readingNow, data]);
   // `err` is a string or, for an Arabic per-file failure, a small JSX fragment; it is only rendered.
   const [err, setErr] = useState('');
   // What the server READ off each uploaded file (instruction 524): the expiry it found, or that it
@@ -1409,8 +1428,13 @@ function Documents({ token, lang, onSaved = null, onExpired = null }) {
   // nothing had been written. Surface it instead of reloading over the top of it.
   const upload = async (kind, file, expiry) => {
     setBusy(kind); setErr('');
-    const b64 = await fileToB64(file);
-    const j = await call('supplier_portal', { action: 'save_documents', items: [{ kind, original_b64: b64, filename: file.name, mime: file.type, expiry }] }, token);
+    let item;
+    if (kind === 'profile' || kind === 'catalogs') {
+      const d = await uploadDirect(kind === 'profile' ? 'profile' : 'catalogue', file, token);
+      if (d.error) { setBusy(''); setErr(srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; }
+      item = { kind, path: d.path, filename: d.filename, mime: d.mime, expiry };
+    } else item = { kind, original_b64: await fileToB64(file), filename: file.name, mime: file.type, expiry };
+    const j = await call('supplier_portal', { action: 'save_documents', items: [item] }, token);
     setBusy('');
     if (j && j.read) setReads((o) => ({ ...o, ...j.read }));
     const failed = (j && j.failed) || [];
@@ -1472,6 +1496,7 @@ function Documents({ token, lang, onSaved = null, onExpired = null }) {
         {!!missingReq.length && <Badge variant="destructive">{missingReq.length} {lang === 'ar' ? 'مطلوب ومفقود' : (missingReq.length === 1 ? 'required document missing' : 'required documents missing')}</Badge>}
         {!!attention.length && <Badge variant="warn">{attention.length} {lang === 'ar' ? 'بحاجة إلى انتباه' : 'needs attention'}</Badge>}
       </div>}
+      {readingNow && <div className={cn(S.sub, 'mt-3')} role="status">{srvText(lang, 'documents_reading_now')}</div>}
       {err && <div className={cn(S.err, 'mt-3')}>{err}</div>}
     </Card>
     {DOC_GROUPS.map((g) => {
@@ -1829,8 +1854,10 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     try {
       // A retry after a certificate failure does not upload the same files again (review of #695).
       if (!docsSent && (profileFile || catalogFiles.length)) {
-        const prof = profileFile ? { original_b64: await fileToB64(profileFile), filename: profileFile.name, mime: profileFile.type } : undefined;
-        const cats = []; for (const cf of catalogFiles.slice(0, 5)) cats.push({ original_b64: await fileToB64(cf), filename: cf.name, mime: cf.type });
+        let prof;
+        if (profileFile) { const d = await uploadDirect('profile', profileFile, token); if (d.error) { setBusy(false); setMsg(srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; } prof = d; }
+        const cats = [];
+        for (const cf of catalogFiles.slice(0, 5)) { const d = await uploadDirect('catalogue', cf, token); if (d.error) { setBusy(false); setMsg(srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; } cats.push(d); }
         const pj = await call('supplier_api', { action: 'process_docs', company_profile: prof, catalogs: cats }, token);
         if (!(pj && pj.ok)) { setBusy(false); setMsg(srvMsg(lang, pj, t(lang, 'save_error'))); return; }
         setDocsSent(true);

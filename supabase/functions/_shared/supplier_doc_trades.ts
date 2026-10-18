@@ -30,7 +30,7 @@
 // false zero — and a document whose meaning could not be read records why (meaning: embedding_unavailable,
 // budget_spent), so an empty proposal is never mistaken for a document that names nothing.
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
-import type { Extracted } from './doc_read/types.ts';
+import { type Extracted, LIMITS } from './doc_read/types.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
 import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, tradesOfText, type ExactState, type MeaningState, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
@@ -48,11 +48,16 @@ export type DocKind = 'licence' | 'profile' | 'catalogue';
 // upload, read through the same path, and the evidence says it came from a photo.
 export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string;
   /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
-  names?: (string | null)[] };
+  names?: (string | null)[];
+  /** set by supplier_docs_later.gateStored when the stored bytes failed the type / malware gate: recorded, never read */
+  refused?: string };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
-  /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing */
-  status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable' | 'reading';
+  /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing.
+   *  'refused': a file uploaded straight to storage failed the type / malware gate; it was removed and never read. */
+  status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable' | 'reading' | 'refused';
+  /** a 'reading' mark set by the sweep's one re-read (supplier_docs_later.rereadStuck); a second stall is escalated */
+  retry?: boolean;
   reason?: string; format?: string; trades: TradeHit[]; read_at: string;
   source?: 'document_text' | 'photo_text'; supply_only?: boolean;
   /** how each path fared on this document (reader @3 on) */
@@ -183,7 +188,8 @@ ${whole}`;
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
     return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
   };
-  const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true }) : null);
+  if (doc.refused) return { ...base, status: 'refused', reason: doc.refused.slice(0, 200), trades: [] };
+  const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes }) : null);
   const text = r && r.ok ? allText(r) : '';
   // The file's own text layer wins; the photo text is read only when the file has none of its own.
   if (!text.trim() && photo.trim()) return await found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
@@ -237,20 +243,20 @@ export const proposedFrom = (docs: DocEvidence[]): string[] =>
  * mark; a killed one leaves the document held ('reading', no trades), visible as not read rather than silently absent.
  * Never throws; a failed write is returned for the caller to report.
  */
-export async function markReading(admin: Admin, supplierId: number, docs: { path: string; name: string; kind: DocKind }[]): Promise<string | null> {
+export async function markReading(admin: Admin, supplierId: number, docs: { path: string; name: string; kind: DocKind }[], retry = false): Promise<string | null> {
   try {
     if (!docs.length) return null;
     const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const at = new Date().toISOString();
-    const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: [], read_at: at }));
+    const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: [], read_at: at, ...(retry ? { retry } : {}) }));
     const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], marks);
     const { error } = await admin.from('supplier_capabilities').upsert({ supplier_id: supplierId, source_docs: { ...prevSrc, reader: READER, docs: merged } }, { onConflict: 'supplier_id' });
     return error ? `mark: ${error.message}` : null;
   } catch (e) { return String((e as Error)?.message || e).slice(0, 200); }
 }
 
-export async function proposeTradesFromDocs(admin: Admin, supplierId: number, docs: DocIn[], deps?: TradeResolveDeps):
+export async function proposeTradesFromDocs(admin: Admin, supplierId: number, docs: DocIn[], deps?: TradeResolveDeps, retry = false):
   Promise<{ ok: true; proposed_trades: string[]; docs: DocEvidence[] } | { ok: false; error: string }> {
   try {
     if (!docs.length) return { ok: true, proposed_trades: [], docs: [] };
@@ -260,12 +266,12 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     // (code's reading, or the model's where code read none). Read once; a failed read only means fewer names.
     const { data: who } = await admin.from('leads').select('company_name,licence_legal_name').eq('id', supplierId).maybeSingle();
     const known = [who?.company_name ?? null, who?.licence_legal_name ?? null];
-    const markErr = await markReading(admin, supplierId, docs);
+    const markErr = await markReading(admin, supplierId, docs.filter((d) => !d.refused), retry);
     if (markErr) console.error(JSON.stringify({ at: 'supplier_doc_trades.markReading', supplier: supplierId, error: markErr }));
     const fresh: DocEvidence[] = [];
     for (const d of docs) {
       let bytes = d.bytes;
-      if (!bytes && !d.read) {
+      if (!bytes && !d.read && !d.refused) {
         const { data: blob } = await admin.storage.from('supplier-docs').download(d.path);
         if (blob) bytes = new Uint8Array(await blob.arrayBuffer());
       }
