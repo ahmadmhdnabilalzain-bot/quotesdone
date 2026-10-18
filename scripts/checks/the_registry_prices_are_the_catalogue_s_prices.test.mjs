@@ -2,7 +2,7 @@
 //
 // UNTIL 5 OCT 2026 this check re-read https://openrouter.ai/api/v1/models and failed whenever a price or a context
 // length the SQL files claimed differed from it. The provider moves prices without telling us, so it went red on
-// every move (glm 28 Sep, glm again, deepseek 30 Sep, deepseek again 5 Oct) and a person wrote one more correcting file
+// every move (28 Sep, again on 29 Sep, 30 Sep, and again on 4 and 5 Oct) and a person wrote one more correcting file
 // each time. A check that fails on somebody else's price list is a check about the provider, not about the estate.
 //
 // WHAT IS ASSERTED NOW (scripts/sql/the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day.sql):
