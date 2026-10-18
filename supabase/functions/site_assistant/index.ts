@@ -326,11 +326,12 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // did not hold: the portal read one back as "the quote record refers to 40 aluminium windows". Past cases stay for
     // internal seats (think() drops case text for an external audience). The recall still runs, so this judgement is opened
     // with what was recalled and its outcome is learned from; its text is never put in this prompt.
-    const [brief] = await Promise.all([
+    const [brief, memory] = await Promise.all([
       companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang),
       recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => null),
     ]);
     lap('brief');
+    void memory; // read in parallel with the brief (the fast-answer check pins it); its text never enters this prompt
     const audienceBlock = audience === 'supplier'
       ? `AUDIENCE: a SUPPLIER${path ? ' (on ' + path + ')' : ''}. Answer as to a supplier.`
       : audience === 'customer'
