@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, sweepStaleRuns, read, REF } from './fixtures.mjs';
 import { launch, SITE, HARNESS_SIGNED_OUT } from './browser.mjs';
 import { JOURNEYS } from './journeys.mjs';
+import { runIsComplete } from './run_scope.mjs';
 import { newRun, teardown, closeRehearsalWindow } from '../lib/demo_factory.mjs';
 
 const argv = process.argv.slice(2);
@@ -103,6 +104,11 @@ let browser = null, closed = null, fatal = null;
 // from `fatal` because it says something different: not "the run broke" but "the run's evidence is
 // not about the product". It makes the run INCOMPLETE below, so no finding may be closed on it.
 let harnessDead = null;
+// What the run did per journey. `attempted` = started, not cut by the deadline or a dead harness;
+// `finished` = returned without throwing. COMPLETE needs every journey asked for attempted
+// (run_scope.mjs); the ingest settles ONLY the keys of finished journeys (run.json journeys), so a
+// crash or a --journey subset never closes a finding of a journey that did not run to its end.
+const attempted = new Set(), finished = new Set();
 try {
   // Runs that are OVER still holding fixtures go first, by their exact tags (fixtures.mjs staleRunTags):
   // on 22 Sep two such runs' ZZ DEMO suppliers took all three routing slots for this run's request.
@@ -131,7 +137,8 @@ try {
   for (const k of ORDER) {
     if (!only.includes(k)) continue;
     if (outOfTime()) { rep.step(`${k}`, 'journey not started', 'SKIP', `the ${Math.round((DEADLINE - t0) / 60000)}-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer`); continue; }
-    try { await JOURNEYS[k](ctx); }
+    attempted.add(k);
+    try { await JOURNEYS[k](ctx); finished.add(k); }
     catch (e) {
       // A DEAD HARNESS SESSION IS NOT A PRODUCT DEFECT, AND MUST NOT BE COUNTED AS ONE. Folded into
       // "journey crashed" it becomes one more FAIL in a tally that is read as N defects — the same
@@ -191,7 +198,8 @@ writeFileSync(join(DIR, 'steps.json'), JSON.stringify(steps, null, 1));
 // A run whose own session died is INCOMPLETE for the same reason a truncated one is: the steps after
 // it stopped say nothing about the defects they would have found, so nothing may be closed on their
 // silence — and here the steps BEFORE it are suspect too, which is why it is reported, not hidden.
-const COMPLETE = !state.truncated && !harnessDead && ORDER.every((k) => only.includes(k));
+const COMPLETE = runIsComplete({ truncated: state.truncated, harnessDead, only, attempted });
+const RAN = ORDER.filter((k) => finished.has(k));
 const result = {
   version: 1, ok: count('FAIL') === 0 && !fatal && COMPLETE, complete: COMPLETE, truncated: state.truncated,
   harness_signed_out: harnessDead,
@@ -203,7 +211,7 @@ const result = {
 writeFileSync(join(DIR, 'result.json'), JSON.stringify(result, null, 1));
 if (argv.includes('--json')) console.log(JSON.stringify({ ...result, steps: undefined, result: join(DIR, 'result.json') }));
 // Read by scripts/e2e/report_to_it_engineer.mjs, which hands this run to the IT engineer.
-writeFileSync(join(DIR, 'run.json'), JSON.stringify({ tag: run.tag, kept: KEEP, leftovers: closed?.leftovers ?? null, complete: COMPLETE, harness_signed_out: harnessDead }));
+writeFileSync(join(DIR, 'run.json'), JSON.stringify({ tag: run.tag, kept: KEEP, leftovers: closed?.leftovers ?? null, complete: COMPLETE, journeys: RAN, harness_signed_out: harnessDead }));
 console.log(`\nE2E ${count('PASS')} passed, ${count('FAIL')} failed, ${count('HELD')} held, ${count('SKIP')} skipped - report ${join(DIR, 'report.md')}`);
 // The same verdict result.ok carries, so the two cannot drift apart: a truncated run is not a pass,
 // whoever is reading. (The nightly workflow runs this step with continue-on-error, because a failed
