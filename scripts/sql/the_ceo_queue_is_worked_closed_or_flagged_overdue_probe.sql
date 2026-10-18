@@ -1,15 +1,17 @@
 -- PROBE for the_ceo_queue_is_worked_closed_or_flagged_overdue.sql. Aborted transaction, ends in CHK<<...>>.
 -- Run after the .sql in the same query. Fixture rows only (ZZ DEMO); every write rolls back.
 --   a  question applied                                                   -> done
---   b  zzprobe_exp:9:1 failed, zzprobe_exp:9:2 applied later (same item)    -> dismissed
---   d  zzprobe_exp:8:1 failed, only the OTHER item (9) applied later        -> pending + flagged (never dismissed)
---   e  zzprobe_k:2026-07-01:x failed, zzprobe_k:2026-10-01:x only 'reasoned' -> pending + flagged (only 'applied' supersedes)
+--   b  ceo_exp_approve:909:1 failed, ceo_exp_approve:909:2 applied later (same item)     -> dismissed
+--   d  ceo_exp_approve:908:1 failed, only the OTHER experiment (909) applied later -> pending + flagged (never dismissed)
+--   e  krefresh:2026-07-01:zzprobe_x failed, krefresh:2026-10-01:zzprobe_x only 'reasoned' -> pending + flagged (only 'applied' supersedes)
+--   f  krefresh:2026-07-01:907 failed; only item 912 applied later, in the SAME quarter and the next (numeric ids)
+--      -> pending + flagged: the stem keeps the item, so item 912 never dismisses item 907
 --   s  a kind the worker does not name (as #1462's handover kind), 9 days old -> untouched
 --   an earlier day's open overdue task -> closed (superseded); today's task opened; then, once no listed item is
 --   pending, a second run closes today's task. No notification.
 -- Also reports, read-only, how many live CEO held questions have no superseding question for their own item.
 do $probe$
-declare h jsonb := '{}'; a_id bigint; b_id bigint; d_id bigint; e_id bigint; s_id bigint; old_t bigint; live jsonb; v_id bigint;
+declare f_id bigint; sf text; sf_esc boolean; a_id bigint; b_id bigint; d_id bigint; e_id bigint; s_id bigint; old_t bigint; live jsonb; v_id bigint;
   sa text; sb text; sd text; sd_esc boolean; se text; se_esc boolean; ss text; ss_esc boolean;
   old_state text; today_state1 text; today_state2 text; v_err text; v_fnd int; n_unsuperseded int; v_today text;
 begin
@@ -25,19 +27,21 @@ begin
     v_fnd := (select count(*) from public.notifications);
     insert into public.reasoning_held_question (seat, surface, question, request, subject, reason, status, dedupe_key, created_at)
     select 'ceo', 'ceo.zz_probe', 'ZZ DEMO probe ' || k, '{}', '{}', 'probe', st, k, now() - interval '9 days'
-      from (values ('zzprobe_app:1', 'applied'), ('zzprobe_exp:9:1', 'failed'), ('zzprobe_exp:8:1', 'failed'),
-                   ('zzprobe_k:2026-07-01:x', 'failed')) v(k, st);
+      from (values ('zzprobe_app:1', 'applied'), ('ceo_exp_approve:909:1', 'failed'), ('ceo_exp_approve:908:1', 'failed'),
+                   ('krefresh:2026-07-01:zzprobe_x', 'failed'), ('krefresh:2026-07-01:907', 'failed')) v(k, st);
     insert into public.reasoning_held_question (seat, surface, question, request, subject, reason, status, dedupe_key, created_at)
     select 'ceo', 'ceo.zz_probe', 'ZZ DEMO probe ' || k, '{}', '{}', 'probe', st, k, now() - interval '8 days'
-      from (values ('zzprobe_exp:9:2', 'applied'), ('zzprobe_k:2026-10-01:x', 'reasoned')) v(k, st);
-    for v_id in select id from public.reasoning_held_question where dedupe_key in ('zzprobe_app:1', 'zzprobe_exp:9:1', 'zzprobe_exp:8:1', 'zzprobe_k:2026-07-01:x') loop
+      from (values ('ceo_exp_approve:909:2', 'applied'), ('krefresh:2026-10-01:zzprobe_x', 'reasoned'), ('krefresh:2026-10-01:912', 'applied'),
+                   ('krefresh:2026-07-01:912', 'applied')) v(k, st);
+    for v_id in select id from public.reasoning_held_question where dedupe_key in ('zzprobe_app:1', 'ceo_exp_approve:909:1', 'ceo_exp_approve:908:1', 'krefresh:2026-07-01:zzprobe_x', 'krefresh:2026-07-01:907') loop
       insert into public.agent_actions (agent, kind, status, risk, title, target_table, target_id, created_at)
       values ('ceo', 'held_question', 'pending', 'low', 'ZZ DEMO probe', 'reasoning_held_question', v_id::text, now() - interval '9 days');
     end loop;
     select a.id into a_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'zzprobe_app:1' and a.agent = 'ceo';
-    select a.id into b_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'zzprobe_exp:9:1' and a.agent = 'ceo';
-    select a.id into d_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'zzprobe_exp:8:1' and a.agent = 'ceo';
-    select a.id into e_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'zzprobe_k:2026-07-01:x' and a.agent = 'ceo';
+    select a.id into b_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'ceo_exp_approve:909:1' and a.agent = 'ceo';
+    select a.id into d_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'ceo_exp_approve:908:1' and a.agent = 'ceo';
+    select a.id into e_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'krefresh:2026-07-01:zzprobe_x' and a.agent = 'ceo';
+    select a.id into f_id from public.agent_actions a join public.reasoning_held_question q on q.id::text = a.target_id where q.dedupe_key = 'krefresh:2026-07-01:907' and a.agent = 'ceo';
     insert into public.agent_actions (agent, kind, status, risk, title, created_at)
     values ('ceo', 'zz_probe_unnamed_kind', 'pending', 'medium', 'ZZ DEMO probe', now() - interval '9 days') returning id into s_id;
     delete from public.ceo_task where title = v_today;   -- rolled back: lets the probe see today's task opened fresh
@@ -50,6 +54,7 @@ begin
     select status, escalated into sd, sd_esc from public.agent_actions where id = d_id;
     select status, escalated into se, se_esc from public.agent_actions where id = e_id;
     select status, escalated into ss, ss_esc from public.agent_actions where id = s_id;
+    select status, escalated into sf, sf_esc from public.agent_actions where id = f_id;
     select state into old_state from public.ceo_task where task_id = old_t;
     select state into today_state1 from public.ceo_task where title = v_today;
 
@@ -70,6 +75,8 @@ begin
     raise exception 'CHK<<PROBE FAILED an unrelated item was dismissed or not flagged: %, %>>', sd, sd_esc;
   elsif se is distinct from 'pending' or not coalesce(se_esc, false) then
     raise exception 'CHK<<PROBE FAILED a reasoned-only later question superseded: %, %>>', se, se_esc;
+  elsif sf is distinct from 'pending' or not coalesce(sf_esc, false) then
+    raise exception 'CHK<<PROBE FAILED knowledge item 907 dismissed by item 912: %, %>>', sf, sf_esc;
   elsif ss is distinct from 'pending' or coalesce(ss_esc, false) then
     raise exception 'CHK<<PROBE FAILED unnamed kind touched: %, %>>', ss, ss_esc;
   elsif old_state is distinct from 'done' then raise exception 'CHK<<PROBE FAILED earlier day task not closed: %>>', old_state;

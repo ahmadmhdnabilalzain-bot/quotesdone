@@ -45,12 +45,15 @@
 -- Prevented by: scripts/sql/the_ceo_queue_is_worked_closed_or_flagged_overdue_probe.sql (aborted transaction) and
 -- scripts/checks/the_ceo_queue_worker_never_touches_a_support_handover.test.mjs.
 
--- The item a dedupe_key names, without its period: ISO-date segments removed (krefresh:<quarter>:<item>,
--- ceo_mreview:<week>, ceo_forecast:<week>), else the trailing numeric iteration (ceo_exp_approve:<exp>:<iter>).
+-- The item a dedupe_key names, without its period, per known prefix: krefresh:<quarter>:<item> -> krefresh:<item>;
+-- ceo_exp_approve:<exp>:<iter> -> ceo_exp_approve:<exp>; ceo_mreview:<week> / ceo_forecast:<week> -> the prefix.
 create or replace function public.fn_ceo_queue_dedupe_stem(p_key text)
 returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select case when p_key ~ ':[0-9]{4}-[0-9]{2}-[0-9]{2}' then regexp_replace(p_key, ':[0-9]{4}-[0-9]{2}-[0-9]{2}', '', 'g')
-              when p_key ~ ':[0-9]+$' then regexp_replace(p_key, ':[0-9]+$', '') end
+  -- Only the known period of each known prefix is stripped; the item part is always kept; any other key -> null
+  -- (never dismissed).
+  select case when p_key ~ '^krefresh:[0-9]{4}-[0-9]{2}-[0-9]{2}:.+$' then regexp_replace(p_key, '^krefresh:[0-9]{4}-[0-9]{2}-[0-9]{2}:', 'krefresh:')
+              when p_key ~ '^ceo_exp_approve:[0-9]+:[0-9]+$' then regexp_replace(p_key, ':[0-9]+$', '')
+              when p_key ~ '^(ceo_mreview|ceo_forecast):[0-9]{4}-[0-9]{2}-[0-9]{2}$' then split_part(p_key, ':', 1) end
 $fn$;
 revoke execute on function public.fn_ceo_queue_dedupe_stem(text) from public, anon, authenticated;
 grant execute on function public.fn_ceo_queue_dedupe_stem(text) to service_role;

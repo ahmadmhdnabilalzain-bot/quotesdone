@@ -35,6 +35,14 @@ test('only an applied question for the same item supersedes', () => {
   assert.doesNotMatch(body, /'closed'|'answered'/, 'reasoning_held_question has no closed/answered status');
 });
 
+test('the dedupe stem strips only the known period of each known prefix', () => {
+  const stem = src.slice(src.indexOf('function public.fn_ceo_queue_dedupe_stem'), src.indexOf('create or replace function public.fn_ceo_queue_work'));
+  for (const p of ['\\^krefresh:', '\\^ceo_exp_approve:', 'ceo_mreview\\|ceo_forecast']) {
+    assert.match(stem, new RegExp(p), `the stem has no branch for ${p}`);
+  }
+  assert.doesNotMatch(stem, /'g'\)/, 'a global strip can remove an item id, not only the period');
+});
+
 test('the worker closes its own overdue tasks', () => {
   assert.match(body, /update public\.ceo_task t\s+set state = 'done'/, 'nothing closes the daily CEO queue overdue task');
   assert.match(body, /t\.title like 'CEO queue overdue %'/, 'the close step must target its own task titles');
