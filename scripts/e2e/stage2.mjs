@@ -262,7 +262,10 @@ async function preconditions({ forRun }) {
   c('unsubscribe signing key present', sk.some((r) => r.key === 'unsubscribe_signing_key'), 'app_secrets');
   const pr = await prices();
   const matrix = ['inquiry_qualification_conversation', 'rfq_routing', 'document_extraction', 'json_extraction', 'visitor_chat', 'support_ai'].map((t) => pr.pol[t]);
-  c('matrix v2: Luna main, Gemini backup on the working classes', matrix.every((p) => p?.model_primary === 'openai/gpt-6-luna' && p?.model_fallback === 'google/gemini-3.8-flash'), matrix.map((p) => p ? `${p.task_class}:${p.model_primary}/${p.model_fallback}` : 'missing').join(' '));
+  // The founder's matrix as it stands: #1380 (13 Oct) put every conversation reply (the intake interview and the widget)
+  // on Sonnet 5.5; the other working classes stay on Luna. Gemini is the backup on all of them. Pinned exactly, as before.
+  const want = { inquiry_qualification_conversation: 'anthropic/claude-sonnet-5.5', visitor_chat: 'anthropic/claude-sonnet-5.5' };
+  c('matrix: Sonnet 5.5 on conversations (#1380), Luna on the other working classes, Gemini backup on all', matrix.every((p) => p?.model_primary === (want[p.task_class] || 'openai/gpt-6-luna') && p?.model_fallback === 'google/gemini-3.8-flash'), matrix.map((p) => p ? `${p.task_class}:${p.model_primary}/${p.model_fallback}` : 'missing').join(' '));
   c('matrix v2: Opus on the comparison report', pr.pol.quote_comparison?.model_primary === 'anthropic/claude-opus-5.5', JSON.stringify(pr.pol.quote_comparison));
   const missing = SCENARIOS.flatMap((s) => s.calls.map((x) => x[0])).filter((t) => !pr.pol[t]);
   c('every task class the scenarios use has an active policy', !missing.length, missing.join(', ') || 'all present');
