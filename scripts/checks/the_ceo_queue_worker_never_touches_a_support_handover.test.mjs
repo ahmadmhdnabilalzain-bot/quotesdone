@@ -17,6 +17,17 @@ test('the kind list it closes does not name support_question_handover', () => {
   assert.ok(!kinds[1].includes('support_question_handover'), 'fn_ceo_queue_work closes support handovers');
 });
 
+test('only an applied question for the same item supersedes', () => {
+  assert.match(body, /n\.status = 'applied'/, 'supersession must count only applied questions');
+  assert.match(body, /fn_ceo_queue_dedupe_stem\(n\.dedupe_key\) = q\.stem/, 'supersession must match the dedupe_key stem');
+  assert.doesNotMatch(body, /'closed'|'answered'/, 'reasoning_held_question has no closed/answered status');
+});
+
+test('the worker closes its own overdue tasks', () => {
+  assert.match(body, /update public\.ceo_task t\s+set state = 'done'/, 'nothing closes the daily CEO queue overdue task');
+  assert.match(body, /t\.title like 'CEO queue overdue %'/, 'the close step must target its own task titles');
+});
+
 test('the overdue flag excludes support_question_handover', () => {
   assert.match(body, /a\.kind <> 'support_question_handover'/, 'the overdue update can flag a support handover');
 });

@@ -1,3 +1,3 @@
 Not applied: the release operator applies it at merge (apply-at-merge rule); then this note goes and the file is appended to the END of MANIFEST.txt.
 Measured 19 Oct 2026: 130 ceo agent_actions pending (105 handoff, 25 held_question); held_question has no reader; nothing acts on agent_actions.escalated.
-Probe re-run after review (superseded-only dismissal, support handovers excluded, overdue list on a daily ceo_task), one aborted query, 19 Oct 2026: PROBE OK; live unsuperseded=0; on the live queue it resolves done=14, dismissed=11, flagged_overdue=63, one ceo_task, no notification.
+Probe re-run after the second review (supersession by dedupe_key stem and status 'applied' only; the worker closes its own overdue tasks), one aborted query, 19 Oct 2026: PROBE OK; live unsuperseded=4; on the live queue it resolves done=14, dismissed=7, flagged_overdue=67, one ceo_task, no notification.
