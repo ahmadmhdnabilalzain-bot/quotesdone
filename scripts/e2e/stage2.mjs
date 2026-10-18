@@ -503,7 +503,7 @@ async function realRun(pre) {
     S09: async () => {
       const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const dir = `customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium`;
-      const live = Number((await read(`select count(*) n from public.quotes where inquiry_id=${q(inq.id)} and status='submitted'`))[0]?.n || 0);
+      const live = Number((await read(`select count(*) n from public.quotes where inquiry_id=${q(inq.id)} and status <> 'draft'`))[0]?.n || 0);
       for (const lang of ['en', 'ar']) {
         const w0 = await costWatermark();
         const r = await call('customer_api', inq.cu.jwt, { action: 'compare_pdf', inquiry_id: inq.id, lang }, 240000);
@@ -940,7 +940,11 @@ async function realRun(pre) {
       const ar = fx.customers.find((c) => c.cfg.locale === 'ar');
       const su = fx.suppliers[0];
       const who = (c, k, l) => ({ kind: k, email: c.email, label: l });
-      const ids = { tag, customer: who(en, 'customer', en.cfg.label), customerAr: who(ar, 'customer', ar.cfg.label), supplier: who(su, 'supplier', 'AL'),
+      // THE AR JOURNEY WALKS THE CUSTOMER WHOSE REQUEST HAS QUOTES (run 5, 321d13ae): only the aluminium request
+      // is quoted (S07), so the first AR customer (C2, electrical, 0 quotes) could never show one. The journey's
+      // language is its own argument; the portals walk (`walk`) still covers the AR customer.
+      const qc = alu?.cu || ar;
+      const ids = { tag, customer: who(en, 'customer', en.cfg.label), customerAr: who(qc, 'customer', qc.cfg.label), supplier: who(su, 'supplier', 'AL'),
         walk: [who(en, 'customer', en.cfg.label), who(ar, 'customer', ar.cfg.label), who(su, 'supplier', 'AL')] };
       const idsPath = save('browser/ids.json', ids);
       const bout = join(OUT, 'browser');
@@ -967,7 +971,7 @@ async function realRun(pre) {
         const { pdfFactsFromBytes } = await import('./pdf_facts.mjs');
         const p = join(OUT, `customers/${alu.cu.cfg.label}_${alu.cu.cfg.locale}_${safe(alu.cu.cfg.emirate)}/inquiry_aluminium/comparison_en.pdf`);
         const txt = existsSync(p) ? String((await pdfFactsFromBytes(readFileSync(p)).catch(() => ({})))?.text || '') : '';
-        const quotes = await read(`select q.quote_amount::float a, l.company_name s, q.price_ex_vat::float ex_vat, q.validity, q.warranty, q.lead_time, q.payment_terms, q.exclusions, q.terms_spec, (select jsonb_agg(to_jsonb(li) - 'quote_id') from public.quote_items li where li.quote_id::text = q.id::text) lines from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status in ('submitted','accepted') order by 1`);
+        const quotes = await read(`select q.quote_amount::float a, l.company_name s, q.price_ex_vat::float ex_vat, q.validity, q.warranty, q.lead_time, q.payment_terms, q.exclusions, q.terms_spec, (select jsonb_agg(to_jsonb(li) - 'quote_id') from public.quote_items li where li.quote_id::text = q.id::text) lines from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status <> 'draft' order by 1`);
         samples.push({ what: 'comparison report (EN)', q: `Compare these quotes for aluminium works, cheapest first. These are the stored quotes the report was built from (supplier names may appear masked in the report); anything in the report that these rows support is NOT invented: ${JSON.stringify(quotes)}`, a: txt.slice(0, 6000), producer: 'anthropic/claude-opus-5.5', lang: 'en' });
       }
       const judged = [];
