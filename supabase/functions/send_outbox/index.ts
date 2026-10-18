@@ -196,8 +196,10 @@ Deno.serve(observe('send_outbox', async (req) => {
     const carries = (r: any) => m365Carries({ enabled: m365Enabled, type: r.type, kind: r.kind, supplierSide: r.to_role === 'supplier' });
     const fileFinding = async (args: Record<string, unknown>) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; };
     let m365 = await resolveM365({ needed: rows.some(carries), mailbox: await setting('invite_m365_mailbox'), env: (k) => Deno.env.get(k),
-      fetchFn: (u, i) => timedFetch(u, i || {}, 10_000), fileFinding,
-      closeFinding: async (k, note) => { const { error } = await admin.rpc('fn_it_engineer_finding_close', { p_issue_key: k, p_note: note }); if (error) throw error; } });
+      fetchFn: (u, i) => timedFetch(u, i || {}, 10_000), fileFinding });
+    // The refusal finding closes on the first 2xx sendMail of the run (graphSend), never on a token alone.
+    let m365Closed = false;
+    const closeFinding = async (k: string, note: string) => { if (m365Closed) return; const { error } = await admin.rpc('fn_it_engineer_finding_close', { p_issue_key: k, p_note: note }); if (error) throw error; m365Closed = true; };
     let cappedSentToday = 0, m365SentToday = 0, m365ProofAt: string | null = null;
     if (m365.active) {
       // Reply-To is dropped only while the reply reader is proven (m365ReplyTo); an unreadable row keeps the old one.
@@ -295,7 +297,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         const now = new Date(); const mid = messageIdFor(n.id, now);
         const mime = m365Mime({ from: 'QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: n.subject || 'QuotesDone', text: m365Text(mBody, unsub), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
         try {
-          const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid);
+          const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
           if (r.ok) {
             await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
             sent++; m365SentToday++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;

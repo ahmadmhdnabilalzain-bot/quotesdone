@@ -76,7 +76,7 @@ export function refusalFinding(mailbox: string, refusal: string, secretsPresent:
  * carried by the lane, so a normal poll with the switch off makes no call.
  */
 export async function resolveM365(o: {
-  needed: boolean; mailbox: string | undefined; env: (k: string) => string | undefined; fetchFn: Fetch; fileFinding: FileFinding; closeFinding?: CloseFinding;
+  needed: boolean; mailbox: string | undefined; env: (k: string) => string | undefined; fetchFn: Fetch; fileFinding: FileFinding;
 }): Promise<M365> {
   if (!o.needed) return M365_OFF;
   const mailbox = String(o.mailbox || '').trim().toLowerCase();
@@ -101,10 +101,7 @@ export async function resolveM365(o: {
   let j: { access_token?: string; error?: string; error_description?: string } = {};
   try { j = await r.json(); } catch { /* handled below */ }
   if (!r.ok || !j.access_token) return await refuse(`token refused (HTTP ${r.status}${j.error ? ', ' + j.error : ''})`);
-  // 19 Oct 2026: the refusal finding was filed on a refused token and never closed after a later success, so it
-  // stayed open forever. A token issued is the condition the finding names as missing; close it here.
-  try { await o.closeFinding?.(M365_REFUSED_ISSUE, 'closed by send_outbox: a later run was issued a Microsoft 365 token'); }
-  catch (_e) { /* closing is bookkeeping; the lane still runs */ }
+  // A token alone does not close M365_REFUSED_ISSUE: Graph may still refuse the send. graphSend closes it on a 2xx.
   return { active: true, refused: false, mailbox, token: j.access_token, why: 'token issued' };
 }
 
@@ -220,12 +217,18 @@ export function m365Text(body: string, unsub: string): string { return plainText
 
 export type SendResult = { ok: true; providerId: string } | { ok: false; refused: true; status: string } | { ok: false; refused: false; status: string };
 
-/** POST the MIME. 202 = accepted. A refusal is returned (the caller holds + files); a throw means no answer came. */
-export async function graphSend(fetchFn: Fetch, m365: M365, mime: string, messageId: string): Promise<SendResult> {
+/** POST the MIME. 202 = accepted. A refusal is returned (the caller holds + files); a throw means no answer came.
+ *  19 Oct 2026 (review of #1473): M365_REFUSED_ISSUE closes only here, on a 2xx sendMail, never on a token issued,
+ *  so the finding cannot flap shut while Graph is still refusing sends. */
+export async function graphSend(fetchFn: Fetch, m365: M365, mime: string, messageId: string, closeFinding?: CloseFinding): Promise<SendResult> {
   const r = await fetchFn(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(m365.mailbox)}/sendMail`, {
     method: 'POST', headers: { Authorization: `Bearer ${m365.token}`, 'Content-Type': 'text/plain' }, body: mime,
   });
-  if (r.status === 202 || r.ok) return { ok: true, providerId: M365_ID_PREFIX + messageId };
+  if (r.status === 202 || r.ok) {
+    try { await closeFinding?.(M365_REFUSED_ISSUE, 'closed by send_outbox: Graph sendMail accepted a message (HTTP ' + r.status + ')'); }
+    catch (_e) { /* closing is bookkeeping; the send already happened */ }
+    return { ok: true, providerId: M365_ID_PREFIX + messageId };
+  }
   let detail = '';
   try { const j = await r.json(); detail = String(j?.error?.code || '') + ' ' + String(j?.error?.message || ''); } catch { /* status alone */ }
   return { ok: false, refused: true, status: `Graph sendMail answered HTTP ${r.status} ${detail}`.trim().slice(0, 300) };
