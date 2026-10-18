@@ -34,7 +34,16 @@ test('static: every entry is re-checked, flagged, marked and filed', () => {
   for (const r of ['no_source', 'review_overdue', 'source_old']) assert.match(fn, new RegExp(`then '${r}' end`), `reason ${r} is no longer flagged`);
   assert.match(fn, /insert into public\.seat_knowledge_stale/, 'the stale status is not recorded');
   assert.match(fn, /update public\.agent_knowledge set validation_status = 'stale'/, 'agent_knowledge is not marked stale (the prompt tag would not show)');
-  assert.match(fn, /fn_reason_hold\(s, s \|\| '\.knowledge_refresh'[\s\S]{0,700}'krecheck:'/, 'stale entries are not filed in the seat\'s own queue');
+  assert.match(fn, /fn_reason_hold\(v_st\.seat, v_st\.seat \|\| '\.knowledge_refresh'[\s\S]{0,800}'krecheck:'/, 'stale entries are not filed in the seat\'s own queue');
+  // THE DAILY CAP (review of #1189): the filing loop is bounded by two measured caps, counted per Dubai day.
+  assert.match(fn, /c_cap_ceo constant int := 2;/, 'the ceo daily cap is gone or changed without re-measuring');
+  assert.match(fn, /c_cap_other constant int := 20;/, 'the other-seat daily cap is gone or changed without re-measuring');
+  assert.match(fn, /exit when v_cap_ceo <= 0 and v_cap_other <= 0;/, 'the filing loop no longer stops at the cap');
+  assert.match(fn, /st2\.filed_at >= v_today_start/, 'the cap no longer counts what was already filed today');
+  assert.match(src, /MEASURED on production[\s\S]{0,600}ai_cost_log\.cost_aed[\s\S]{0,900}USD 0\.91\/day/, 'the measured cost and the cap arithmetic left the comment');
+  // THE CEO SEES THE QUARTER: one summary on the existing it_engineer -> ceo it.finding handoff.
+  assert.match(fn, /fn_seat_handoff\('it_engineer', 'ceo', 'it\.finding', 'seat_knowledge_stale', 'knowledge_recheck:' \|\| v_q,/, 'the ceo no longer receives the quarter\'s summary');
+  assert.match(fn, /fn_seat_handoff\('it_engineer', f\.seat, 'it\.finding'/, 'the owning seat no longer receives its notice');
   assert.match(fn, /set recheck = jsonb_build_object\('checked'/, 'the per-quarter result is not written');
   assert.match(fn, /recheck is not null[\s\S]{0,300}seat_knowledge_stale st where[\s\S]{0,120}resolved_at is null/, 'verify no longer waits on the stale entries');
   assert.match(src, /update public\.seat_knowledge_stale set resolved_at = now\(\)/, 'reasoning the question does not resolve the stale row');
@@ -56,4 +65,5 @@ test('production, aborted: the probe prints PROBE OK', { skip: hasToken ? false 
   }
   assert.ok(verdict, 'the probe did not raise its verdict (did something commit?)');
   assert.match(verdict, /^PROBE OK/, verdict.slice(0, 1500));
+  console.log(verdict.slice(0, 1500));
 });
