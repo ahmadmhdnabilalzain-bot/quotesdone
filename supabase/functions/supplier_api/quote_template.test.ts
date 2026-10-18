@@ -16,12 +16,13 @@ Deno.test('price fields on the input are dropped, never stored', () => {
 export const PRICES = [
   'AED 45', 'AED45', '45AED', '45 AED', 'Dh45', 'dh 45', '1,200 dhs', '45 dirhams', 'USD 20', 'Paint USD 20',
   '$45', '$ 45', '45$', '€45', '45 €', '£45', '45 euros', 'EUR45', '300 درهم', 'درهم 300',
+  '٤٥ درهم', 'درهم ٤٥', 'AED ٤٥', '۴۵ AED', '٤٥/m2',
   'Tiling 45/m2', '45 / sqm', '45 per sqm', '45 per m2', '12 per unit', '45 AED per sqm', '500/-',
 ];
 export const NOT_PRICES = [
   '50% advance, 50% on completion', '30 days', '1 year on workmanship', 'Excludes MEP works',
   'Grade 60 rebar, 12 mm', 'width 5 m', 'Validity 30 days from date', '50 per cent on order',
-  'Payment within 45 days', 'Saradar works, 2 floors', 'Thickness 20 mm', 'Euro-standard fittings, 3 sets',
+  'Payment within 45 days', 'Saradar works, 2 floors', 'Thickness 20 mm', '٤٥ يوم', 'Euro-standard fittings, 3 sets',
 ];
 
 Deno.test('a price written into any text is refused', () => {

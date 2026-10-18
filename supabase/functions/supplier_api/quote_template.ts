@@ -20,7 +20,7 @@ export type QuoteTemplate = { name: string; line_headings: string[] } & Record<(
 // Not refused: "50% advance", "30 days", "12 mm", "width 5".
 // The next line holds the Arabic word for dirham. It is on nothing_a_supplier_reads_can_be_arabic's
 // gated list: a detector, never shown.
-export const PRICE_PATTERN = String.raw`(^|[^a-z])(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)\s*[0-9]|[$€£]\s*[0-9]|درهم\s*[0-9]|[0-9][0-9,.]*\s*(/-|[$€£]|درهم)|[0-9][0-9,.]*\s*(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)(?![a-z])|[0-9][0-9,.]*\s*(/|per)\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)(?![a-z])`;
+export const PRICE_PATTERN = String.raw`(^|[^a-z])(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)\s*[0-9٠-٩۰-۹]|[$€£]\s*[0-9٠-٩۰-۹]|درهم\s*[0-9٠-٩۰-۹]|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(/-|[$€£]|درهم)|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)(?![a-z])|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(/|per)\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)(?![a-z])`;
 const PRICE_RE = new RegExp(PRICE_PATTERN, 'i');
 export const statesAPrice = (s: string): boolean => PRICE_RE.test(s);
 

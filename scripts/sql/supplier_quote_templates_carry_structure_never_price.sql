@@ -12,7 +12,7 @@ language sql
 immutable
 set search_path = 'public', 'pg_temp'
 as $$
-  select coalesce(p, '') ~* '(^|[^a-z])(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)\s*[0-9]|[$€£]\s*[0-9]|درهم\s*[0-9]|[0-9][0-9,.]*\s*(/-|[$€£]|درهم)|[0-9][0-9,.]*\s*(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)(?![a-z])|[0-9][0-9,.]*\s*(/|per)\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)(?![a-z])';
+  select coalesce(p, '') ~* '(^|[^a-z])(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)\s*[0-9٠-٩۰-۹]|[$€£]\s*[0-9٠-٩۰-۹]|درهم\s*[0-9٠-٩۰-۹]|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(/-|[$€£]|درهم)|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)(?![a-z])|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(/|per)\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)(?![a-z])';
 $$;
 revoke execute on function public.fn_text_states_a_price(text) from public, anon, authenticated;
 
