@@ -158,53 +158,105 @@ select 'ceo.lesson_reapproval_overdue', 'it_engineer', 'ceo',
  where not exists (select 1 from public.seat_handoff_kind
                     where type = 'ceo.lesson_reapproval_overdue' and from_seat = 'it_engineer' and to_seat = 'ceo');
 
--- The handler: decided -> the handoff completes with the decision; otherwise the question is filed again (fn_reason_hold
--- reopens an expired row at once and a failed one after 24 hours) and the handoff waits on the CEO.
+-- DECIDED is read from the LESSON, never from the question's status (review 3 of #1443): a question can end 'applied'
+-- with nothing applied (an answer without approve/reject) or 'reasoned' with apply_error (a fanned row whose apply
+-- failed). The version is decided when the CEO made it live (author_verified) or refused it (valid_until set).
+create or replace function public.fn_lesson_reapproval_decided(p_knowledge_id bigint)
+returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select case when k.validation_status <> 'quarantined' then 'approved'
+              when k.valid_until is not null then 'rejected' end
+    from public.agent_knowledge k where k.id = p_knowledge_id
+$fn$;
+revoke execute on function public.fn_lesson_reapproval_decided(bigint) from public, anon, authenticated;
+
+-- The handler. Decided -> the handoff completes. Otherwise, if the question it follows is no longer open (expired,
+-- failed, or ended without a decision), it is filed afresh under its own key, AT MOST 3 TIMES per handoff; past the
+-- cap, or while the 3-try limit refuses a recently failed question, nothing is re-asked and the handoff stays pending
+-- with the CEO: that is the alert. ONE handoff per lesson version carries every lapse (see the trigger).
 create or replace function public.fn_lesson_reapproval_overdue_act(p_id bigint)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare a public.agent_actions; q public.reasoning_held_question; v_again bigint;
+declare a public.agent_actions; q public.reasoning_held_question; v_again bigint; v_dec text; v_reasks int; v_cap constant int := 3;
 begin
   select * into a from public.agent_actions where id = p_id;
-  select * into q from public.reasoning_held_question where id = nullif(a.detail->>'held_id', '')::bigint;
-  if q.id is null then return jsonb_build_object('closed', 'the held question is gone', 'held_id', a.detail->>'held_id'); end if;
-  if q.status = 'applied' then
-    return jsonb_build_object('decided', q.result->'decision'->>'choice', 'held_id', q.id, 'knowledge_id', q.subject->>'knowledge_id');
+  v_dec := public.fn_lesson_reapproval_decided(nullif(a.detail->>'knowledge_id', '')::bigint);
+  if v_dec is not null then
+    return jsonb_build_object('decided', v_dec, 'knowledge_id', a.detail->>'knowledge_id', 'held_id', a.detail->>'held_id');
   end if;
-  if q.status in ('expired', 'failed') then
-    -- an expired or failed row stays closed by design (R3), so the question is filed afresh under its own key and the
-    -- handoff follows it. A question that FAILED in the last 7 days is not re-asked (the 3-try limit holds across
-    -- re-filings, fn_reason_hold returns the failed row): the handoff then stays pending with the CEO, which is the alert.
+  select * into q from public.reasoning_held_question where id = nullif(a.detail->>'held_id', '')::bigint;
+  v_reasks := coalesce((a.detail->>'reasks')::int, 0);
+  if q.id is not null and q.status <> 'held' and v_reasks < v_cap then
+    -- an expired or failed row stays closed by design (R3): the question is filed afresh; a question that failed in the
+    -- last 7 days comes back as that failed row (the 3-try limit holds across re-filings) and is not counted as asked
     v_again := public.fn_reason_hold(q.seat, q.surface, q.question, q.request, '{}'::jsonb, q.subject, 'overdue_reasked',
-                                     split_part(q.dedupe_key, ':reask:', 1) || ':reask:' || to_char(now() at time zone 'utc', 'YYYYMMDDHH24MISS'));
+                                     split_part(q.dedupe_key, ':reask:', 1) || ':reask:' || (v_reasks + 1));
     if v_again is not null and v_again <> q.id then
-      update public.agent_actions set detail = detail || jsonb_build_object('held_id', v_again, 'reasked_from', q.id) where id = p_id;
+      v_reasks := v_reasks + 1;
+      update public.agent_actions set detail = detail || jsonb_build_object('held_id', v_again, 'reasked_from', q.id, 'reasks', v_reasks)
+       where id = p_id;
       select * into q from public.reasoning_held_question where id = v_again;
     end if;
   end if;
-  return jsonb_build_object('waiting', 'the CEO seat to approve or reject lesson version #' || (q.subject->>'knowledge_id')
-                                       || ' (held question ' || q.id || ', ' || q.status || ')',
-                            'held_id', q.id, 'held_status', q.status, 'reasked', q.status = 'held');
+  return jsonb_build_object('waiting', 'the CEO seat to approve or reject lesson version #' || (a.detail->>'knowledge_id')
+                              || ' (held question ' || coalesce(q.id::text, '?') || ', ' || coalesce(q.status, 'gone') || ', re-asked '
+                              || v_reasks || ' of ' || v_cap
+                              || case when v_reasks >= v_cap then '; the cap is reached: the CEO must decide it directly' else '' end || ')',
+                            'held_id', q.id, 'held_status', q.status, 'reasks', v_reasks, 'cap_reached', v_reasks >= v_cap,
+                            'apply_error', q.result->>'apply_error');
 end $fn$;
 revoke execute on function public.fn_lesson_reapproval_overdue_act(bigint) from public, anon, authenticated;
 grant execute on function public.fn_lesson_reapproval_overdue_act(bigint) to service_role;
 
+-- The trigger: a question that lapses (expired, failed, applied with nothing applied, or reasoned with apply_error)
+-- while its lesson version is still undecided. ONE open handoff per version: when one is open, it is acted on again
+-- (its handler re-asks, under the cap) instead of a second being opened, so lapses never multiply. A NEW handoff is
+-- opened only when none is open, keyed by the version and a generation number (never deduplicated into a closed one).
+-- NOTHING here may abort the statement that fired it: fn_reason_held_expire and the replay update every surface's rows
+-- in one statement, so an error is caught, logged as an it_engineer finding, and the update goes on.
 create or replace function public.fn_lesson_reapproval_lapse_escalates()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_k bigint; v_open bigint; v_gen int;
 begin
-  perform public.fn_seat_handoff('it_engineer', 'ceo', 'ceo.lesson_reapproval_overdue', 'agent_knowledge',
-    -- one escalation per lapse: a second lapse after a re-ask is a new handoff, never deduplicated into a closed one
-    coalesce(new.subject->>'knowledge_id', 'held:' || new.id) || ':lapsed:' || new.status || ':' || to_char(now() at time zone 'utc', 'YYYYMMDDHH24MISS'),
-    jsonb_build_object('held_id', new.id, 'lapsed_as', new.status, 'question', left(new.question, 1500),
-                       'knowledge_id', new.subject->>'knowledge_id', 'supersedes_id', new.subject->>'supersedes_id',
-                       'waiting_for', 'the CEO seat to approve or reject the cleaned lesson; until then it is withheld'));
+  begin
+    v_k := nullif(new.subject->>'knowledge_id', '')::bigint;
+    if v_k is null or public.fn_lesson_reapproval_decided(v_k) is not null then return null; end if;
+    perform pg_advisory_xact_lock(hashtext('lesson_reapproval_overdue:' || v_k));
+    select id into v_open from public.agent_actions
+     where kind = 'handoff' and agent = 'ceo' and detail->>'type' = 'ceo.lesson_reapproval_overdue'
+       and detail->>'knowledge_id' = v_k::text and status not in ('done', 'failed')
+     order by id limit 1;
+    if v_open is not null then
+      update public.agent_actions set detail = detail || jsonb_build_object('held_id', new.id, 'lapsed_as', new.status) where id = v_open;
+      perform public.fn_seat_handoff_act(v_open);
+      return null;
+    end if;
+    select count(*) + 1 into v_gen from public.agent_actions
+     where kind = 'handoff' and detail->>'type' = 'ceo.lesson_reapproval_overdue' and detail->>'knowledge_id' = v_k::text;
+    perform public.fn_seat_handoff('it_engineer', 'ceo', 'ceo.lesson_reapproval_overdue', 'agent_knowledge', v_k || ':g' || v_gen,
+      jsonb_build_object('held_id', new.id, 'lapsed_as', new.status, 'question', left(new.question, 1500),
+                         'knowledge_id', v_k::text, 'supersedes_id', new.subject->>'supersedes_id', 'reasks', 0,
+                         'waiting_for', 'the CEO seat to approve or reject the cleaned lesson; until then it is withheld'));
+  exception when others then
+    begin
+      perform public.fn_it_engineer_finding_upsert(
+        'monitor:lesson_reapproval_escalation_failed:' || coalesce(new.subject->>'knowledge_id', new.id::text),
+        'A lapsed lesson re-approval could not be escalated to the CEO',
+        'public.fn_lesson_reapproval_lapse_escalates (held question ' || new.id || ')', 'agent_facing', 1,
+        jsonb_build_object('held_id', new.id, 'status', new.status, 'knowledge_id', new.subject->>'knowledge_id',
+                           'error', left(sqlerrm, 500), 'owner_seat', 'it_engineer'),
+        '{}'::text[], array['why the handoff could not be opened or acted on'], 'fn_lesson_reapproval_lapse_escalates');
+    exception when others then
+      raise warning 'lesson re-approval escalation for held % failed and could not be logged: %', new.id, sqlerrm;
+    end;
+  end;
   return null;
 end $fn$;
 revoke execute on function public.fn_lesson_reapproval_lapse_escalates() from public, anon, authenticated;
 drop trigger if exists lesson_reapproval_lapse_escalates on public.reasoning_held_question;
 create trigger lesson_reapproval_lapse_escalates
   after update of status on public.reasoning_held_question
-  for each row when (new.surface = 'ceo.lesson_reapproval' and new.status in ('expired', 'failed')
-                     and old.status is distinct from new.status)
+  for each row when (new.surface = 'ceo.lesson_reapproval' and old.status is distinct from new.status
+                     and (new.status in ('expired', 'failed', 'applied')
+                          or (new.status = 'reasoned' and new.result ? 'apply_error')))
   execute function public.fn_lesson_reapproval_lapse_escalates();
 
 -- THE ROWS ALREADY WRITTEN (measured 18 Oct 2026: 11 candidates, 7 approved lessons, 69 case rows; no batching needed).

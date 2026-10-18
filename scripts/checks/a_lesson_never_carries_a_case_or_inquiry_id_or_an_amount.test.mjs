@@ -40,7 +40,12 @@ test('the canonical distil scrubs the lesson before it is stored anywhere', () =
   assert.match(src, /if public\.fn_reason_hold\('ceo', 'ceo\.lesson_reapproval'[\s\S]{0,300}?is null then\s+raise exception/,
     'a lesson withheld while its CEO question was never filed (fn_reason_hold returned null) must abort the backfill');
   // a lapsed re-approval (expired / failed) is escalated to the CEO seat by a registered handoff, never left silent
-  assert.match(src, /after update of status on public\.reasoning_held_question[\s\S]{0,300}new\.surface = 'ceo\.lesson_reapproval' and new\.status in \('expired', 'failed'\)/);
+  assert.match(src, /after update of status on public\.reasoning_held_question[\s\S]{0,300}new\.surface = 'ceo\.lesson_reapproval'[\s\S]{0,200}new\.status in \('expired', 'failed', 'applied'\)/);
+  // one open handoff per version, re-asks capped, and an escalation error never aborts the statement that fired it
+  const trig = src.slice(src.indexOf('function public.fn_lesson_reapproval_lapse_escalates()'));
+  assert.match(trig, /status not in \('done', 'failed'\)[\s\S]{0,400}perform public\.fn_seat_handoff_act\(v_open\);\s+return null;/);
+  assert.match(trig, /exception when others then[\s\S]{0,200}fn_it_engineer_finding_upsert/);
+  assert.match(src, /v_cap constant int := 3;/);
   assert.match(src, /insert into public\.seat_handoff_kind[\s\S]{0,120}'ceo\.lesson_reapproval_overdue', 'it_engineer', 'ceo'/);
   assert.match(src, /revoke execute on function public\.fn_lesson_reapproval_overdue_act\(bigint\) from public, anon, authenticated;/);
   assert.match(src, /function public\.fn_lesson_scrub\(p_text text\)\s+returns text language sql immutable parallel safe set search_path/);
