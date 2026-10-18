@@ -58,7 +58,7 @@ const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const RL_IP_HOUR_DEFAULT = 10;
 const RL_ACCT_HOUR_DEFAULT = 60;
 const RL_GLOBAL_DAY_DEFAULT = 1500;
-const RL_REPLY = 'I can only take a few questions at a time from each visitor, and you have reached that for now. Please try again a little later, or reach a person directly:\n+971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST)\nmanagement@quotesdone.com\nأستقبل عددًا محدودًا من الأسئلة من كل زائر، وقد بلغتَ هذا الحد مؤقتًا. يُرجى المحاولة بعد قليل، أو التواصل معنا مباشرة:\n+971 50 931 9355 (اتصال أو واتساب، من الاثنين إلى الجمعة، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)\nmanagement@quotesdone.com';
+const RL_REPLY = 'I can only take a few questions at a time from each visitor, and you have reached that for now. If you have a job to price, sign up free and post it; the conversation carries on there:\nquotesdone.com/me\nOr try again a little later, or reach a person directly:\n+971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST)\nmanagement@quotesdone.com\nأستقبل عددًا محدودًا من الأسئلة من كل زائر، وقد بلغتَ هذا الحد مؤقتًا. إن كان لديك عمل تريد تسعيره، فسجّل مجانًا وانشر طلبك، ونكمل معك هناك:\nquotesdone.com/me\nأو حاول مجددًا بعد قليل، أو تواصل معنا مباشرة:\n+971 50 931 9355 (اتصال أو واتساب، من الاثنين إلى الجمعة، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)\nmanagement@quotesdone.com';
 // Every limit in ONE read (D5, 30 Sep 2026): five per-key reads were five sequential round trips before any answer.
 async function secNums<K extends string>(dflt: Record<K, number>): Promise<Record<K, number>> {
   const out = { ...dflt };
