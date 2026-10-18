@@ -35,6 +35,8 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql';
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const SQL = code(read(FILE));
+// 18 Oct 2026: the Outlook seed moved to management@quotesdone.com, read app-only by the M365 app send_outbox sends with.
+const MOVED = code(read('scripts/sql/the_outlook_seed_is_read_by_the_microsoft_365_app_that_already_sends.sql'));
 const TS = read('supabase/functions/_shared/inbox_placement.ts');
 const PING = read('supabase/functions/resilience_ping/index.ts');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
@@ -79,13 +81,18 @@ test('the seed is supplier_invite_seed to exactly the two allowlisted inboxes, i
   const due = body('fn_invite_placement_due');
   const inserts = [...due.matchAll(/insert into public\.notifications[\s\S]*?values \('([a-z_]+)'/g)].map((m) => m[1]);
   assert.deepEqual(inserts, ['supplier_invite_seed', 'supplier_invite_seed'], 'the seed is not a supplier_invite_seed (it would spend the cap)');
-  assert.match(due, /'ahmadmhdnabilalzain@gmail\.com', 'management@doratajewelries\.com'/);
+  assert.match(due, /'ahmadmhdnabilalzain@gmail\.com', 'management@doratajewelries\.com'/, 'the original file changed; the move is in MOVED');
+  assert.match(MOVED, /CREATE OR REPLACE FUNCTION public\.fn_invite_placement_due[\s\S]*'ahmadmhdnabilalzain@gmail\.com', 'management@quotesdone\.com', p_now/, 'the seed is not queued to management@quotesdone.com');
   assert.match(SQL, /gmail_to\s+text not null check \(gmail_to = 'ahmadmhdnabilalzain@gmail\.com'\)/, 'the Gmail seed is not fixed by the schema');
-  assert.match(SQL, /outlook_to\s+text not null check \(outlook_to = 'management@doratajewelries\.com'\)/, 'the Outlook seed is not fixed by the schema');
+  assert.match(MOVED, /add constraint invite_placement_check_outlook_to_check\s+check \(outlook_to = 'management@quotesdone\.com'\)/, 'the Outlook seed is not fixed by the schema');
   const gm = TS.match(/export const SEED_GMAIL = '([^']+)'/)?.[1];
   const ol = TS.match(/export const SEED_OUTLOOK = '([^']+)'/)?.[1];
   assert.equal(gm, 'ahmadmhdnabilalzain@gmail.com');
-  assert.equal(ol, 'management@doratajewelries.com');
+  assert.equal(ol, 'management@quotesdone.com');
+  // management@quotesdone.com is admin_emails: without this row the founder-mail trigger swallows the seed (0 rows).
+  assert.match(MOVED, /insert into public\.founder_mail_policy[\s\S]*?values \('supplier_invite_seed', true,/, 'the founder-mail policy would swallow the Outlook seed');
+  assert.match(TS, /M365_SECRET_NAMES = \["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET"\]/, 'the Outlook reader no longer uses the M365 app that sends');
+  assert.doesNotMatch(TS, /sec\('ms_graph_|graph\.microsoft\.com\/v1\.0\/me\b/, 'a delegated Graph read came back');
   assert.match(TS, /export const PLACEMENT_SEEDS: readonly string\[\] = \[SEED_GMAIL, SEED_OUTLOOK\];/);
   assert.doesNotMatch(TS, /endsWith\(|SEED_DOMAINS/, 'the reader matches a domain instead of an exact address');
   const founder = read('scripts/invitation_inbox_check.mjs').match(/export const FOUNDER_INBOXES = \[([^\]]+)\]/)?.[1] || '';
@@ -235,7 +242,7 @@ test('production, aborted: queue from 04:30, wait, junk sends and hands off, inb
   assert.equal(o.early, 'idle', 'the seed was queued before 04:30 UTC');
   assert.equal(o.queued, 'queued');
   assert.equal(o.queued_leaks, false, 'the due answer carries the token or notification ids');
-  assert.deepEqual(o.seeds, ['ahmadmhdnabilalzain@gmail.com', 'management@doratajewelries.com']);
+  assert.deepEqual(o.seeds, ['ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com']);
   assert.deepEqual(o.types, ['supplier_invite_seed']);
   assert.equal(o.gate_wait, 'wait');
   assert.equal(o.spam, 'spam');
@@ -329,7 +336,7 @@ begin
 
   begin
     insert into invite_placement_check(dubai_day, token, from_address, subject, gmail_to, outlook_to)
-    values (d[5], 'QD0000000000', 'x', 'x', 'someone.else@gmail.com', 'management@doratajewelries.com');
+    values (d[5], 'QD0000000000', 'x', 'x', 'someone.else@gmail.com', 'management@quotesdone.com');
     o := o || jsonb_build_object('refused', false);
   exception when check_violation then o := o || jsonb_build_object('refused', true);
   end;

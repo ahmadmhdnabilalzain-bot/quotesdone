@@ -458,6 +458,12 @@
   "496a302c86b0",
   "ec42828d58cb"
  ],
+ "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql": [
+  "3c2dc612880a",
+  "7741094dd3ef",
+  "d0466f61047f",
+  "fae3d0feb457"
+ ],
  "scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql": [
   "2fcc300bc0ca",
   "4c605fe5b5ab",
@@ -741,11 +747,11 @@
   "ff4b6d7b4671"
  ],
  "scripts/sql/demo_data_is_purged_by_its_marker_and_no_seat_duty_reads_it.sql": [
-  "fb15ef2ad341",
   "1ddbe22a20cf",
   "25831966a970",
   "71425d07f632",
-  "735f3f9ff862"
+  "735f3f9ff862",
+  "fb15ef2ad341"
  ],
  "scripts/sql/every_arabic_message_is_written_not_translated.sql": [
   "031d0af3af9c",
@@ -5514,7 +5520,8 @@
  ],
  "supabase/functions/_shared/ai_reply.ts": [
   "2ad26f4e1be5",
-  "f50238aec3f2"
+  "f50238aec3f2",
+  "fa3890266f5e"
  ],
  "supabase/functions/_shared/ar_days.ts": [
   "5857bc86ba2e",
@@ -6120,6 +6127,7 @@
   "9621cf0393b6",
   "a30bf6242239",
   "c73b02e4b5e8",
+  "caa9d0149589",
   "d098b2f4595a",
   "d8fa797cf5b7"
  ],
@@ -6514,7 +6522,8 @@
   "c09183a62789",
   "caa8dfdaf4f5",
   "cb974acf7755",
-  "e687fbf0ba76"
+  "e687fbf0ba76",
+  "f00b7f659d1a"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
   "027ef5367e8d",
@@ -6612,5 +6621,18 @@
   "cfa563ec3771",
   "de2f9e06f9ad",
   "e99cf34c18d0"
+ ],
+ "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
+  "2d40f052e0dc",
+  "8e9efb918bad",
+  "8f2b4b5cab7b",
+  "952398d7142e",
+  "bafd773faf8b",
+  "cda600d8f764"
+ ],
+ "scripts/sql/a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql": [
+  "0ad679a262b2",
+  "1390254fa3fe",
+  "6795f24f47d7"
  ]
 }

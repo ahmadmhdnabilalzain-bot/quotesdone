@@ -1,7 +1,7 @@
 // The folder classification, the exact allowlist and the fail-closed reader of inbox_placement.ts.
 //   deno test supabase/functions/_shared/inbox_placement.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { addressOf, authVerdicts, forefront, gmailFolder, gmailIsOwnCopy, graphFolder, MAX_PAGES, placementTick, readGmail, readOutlook, SEED_GMAIL, SEED_OUTLOOK, seedAllowed, worstFolder } from './inbox_placement.ts';
+import { addressOf, authVerdicts, forefront, gmailFolder, gmailIsOwnCopy, graphFolder, MAX_PAGES, placementTick, readGmail, readOutlook as readOutlookWith, SEED_GMAIL, SEED_OUTLOOK, seedAllowed, worstFolder } from './inbox_placement.ts';
 
 const TOKEN = 'QD0123456789';
 const SENDER = 'info@quotesdone.com';
@@ -12,6 +12,10 @@ const creds: Record<string, string> = {
 const sec = (over: Record<string, string> = {}) => async (k: string) => ({ ...creds, ...over })[k] ?? '';
 const ok = (o: unknown) => new Response(JSON.stringify(o), { status: 200 });
 const since = () => new Date().toISOString();
+// readOutlook reads the M365 app from the edge environment; the tests hand it one through its env parameter. Never
+// Deno.env.set: `npm test` runs the Deno suite without --allow-env, and a top-level set is an uncaught NotCapable.
+const M365_ENV: Record<string, string> = { MS_TENANT_ID: 'tid', MS_CLIENT_ID: 'mid', MS_CLIENT_SECRET: 'msec' };
+const readOutlook = (...a: Parameters<typeof readOutlookWith>) => readOutlookWith(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7] ?? ((k) => M365_ENV[k]));
 
 type GMsg = { labels: string[]; from?: string };
 // A fake Gmail: the profile says `who`, and the token matches these messages (labels + From header).
@@ -94,9 +98,9 @@ Deno.test('several copies: the worst decides; none: not_found; a From is compare
 });
 
 Deno.test('the allowlist is two exact addresses, each tied to its provider', () => {
-  assert(seedAllowed(SEED_GMAIL, 'gmail') && seedAllowed(' Management@DorataJewelries.com ', 'outlook'));
-  for (const bad of ['ahmadmhdnabilalzain+x@gmail.com', 'management@quotesdone.com', 'test-abc@srv1.mail-tester.com',
-    'management@doratajewelries.com.evil.example', 'x@doratajewelries.com', '', null, 'someone@gmail.com']) {
+  assert(seedAllowed(SEED_GMAIL, 'gmail') && seedAllowed(' Management@QuotesDone.com ', 'outlook'));
+  for (const bad of ['ahmadmhdnabilalzain+x@gmail.com', 'management@doratajewelries.com', 'supplier@quotesdone.com', 'test-abc@srv1.mail-tester.com',
+    'management@quotesdone.com.evil.example', 'x@quotesdone.com', '', null, 'someone@gmail.com']) {
     assert(!seedAllowed(bad), `accepted ${bad}`);
   }
   assert(!seedAllowed(SEED_OUTLOOK, 'gmail') && !seedAllowed(SEED_GMAIL, 'outlook'), 'an address was accepted for the other provider');
@@ -106,7 +110,7 @@ Deno.test('a refused address is refused before any network call', async () => {
   let called = 0;
   const f = async () => { called++; return ok({}); };
   const g = await readGmail(f, sec(), 'someone@gmail.com', TOKEN, SENDER);
-  const o = await readOutlook(f, sec(), 'management@quotesdone.com', TOKEN, since(), SENDER);
+  const o = await readOutlook(f, sec(), 'management@doratajewelries.com', TOKEN, since(), SENDER);
   assertEquals([g.folder, o.folder], [null, null]);
   assert(String(g.detail.error).startsWith('refused') && String(o.detail.error).startsWith('refused'));
   assertEquals(called, 0);
@@ -161,25 +165,10 @@ Deno.test('Outlook: a busy mailbox is paged, and a listing cut at the bound is u
   assertEquals(endless.calls.filter((u) => u.includes('/messages')).length, 2 * MAX_PAGES);
 });
 
-Deno.test('Outlook (delegated): the mailbox must be the seed; a rotated token is kept, and a failed store is recorded without it', async () => {
-  const saved: string[] = [];
-  const r = await readOutlook(graph([{ subject: 'x (ref ' + TOKEN + ')', parent: 'F-inbox' }]).f,
-    sec({ ms_graph_seed_refresh_token: 'rt' }), SEED_OUTLOOK, TOKEN, since(), SENDER, async (_k, v) => { saved.push(v); return { error: null }; });
-  assertEquals(r.folder, 'inbox');
-  assertEquals(saved, ['RT-NEW-SECRET']);
-  assertEquals(r.detail.refresh_token_rotation, 'stored');
-  const bad = await readOutlook(graph([{ subject: subj, parent: 'F-inbox' }]).f, sec({ ms_graph_seed_refresh_token: 'rt' }), SEED_OUTLOOK, TOKEN, since(), SENDER,
-    async () => ({ error: { message: 'permission denied for table app_secrets' } }));
-  assert(String(bad.detail.refresh_token_rotation).includes('NOT stored'));
-  assert(!JSON.stringify(bad.detail).includes('RT-NEW-SECRET'), 'the token leaked into the evidence');
-  const other = await readOutlook(graph([], { me: 'someone@doratajewelries.com' }).f, sec({ ms_graph_seed_refresh_token: 'rt' }), SEED_OUTLOOK, TOKEN, since(), SENDER);
-  assertEquals(other.folder, null);
-});
-
 Deno.test('FAIL CLOSED: missing credentials, an HTTP error, a thrown fetch or no sender never read as inbox', async () => {
   const noG = await readGmail(gmail([['INBOX']]).f, sec({ gmail_seed_refresh_token: '' }), SEED_GMAIL, TOKEN, SENDER);
   assertEquals(noG.folder, null); assert(String(noG.detail.error).includes('gmail_seed_refresh_token'));
-  assertEquals((await readOutlook(graph([]).f, sec({ ms_graph_client_secret: '' }), SEED_OUTLOOK, TOKEN, since(), SENDER)).folder, null);
+  assertEquals((await readOutlook(graph([]).f, sec(), SEED_OUTLOOK, TOKEN, since(), SENDER, undefined, () => '')).folder, null);
   const e400 = async () => new Response('{"error":"invalid_grant"}', { status: 400 });
   assertEquals((await readGmail(e400, sec(), SEED_GMAIL, TOKEN, SENDER)).folder, null);
   assertEquals((await readOutlook(e400, sec(), SEED_OUTLOOK, TOKEN, since(), SENDER)).folder, null);
@@ -261,13 +250,18 @@ Deno.test('header parsers: forefront and Authentication-Results', () => {
   assertEquals(authVerdicts('spf=none; dkim=fail; dmarc=temperror'), { spf: 'none', dkim: 'fail', dmarc: 'temperror', compauth: null });
 });
 
-Deno.test('Outlook (delegated, public client): no client secret, the refresh carries none, the reading still works', async () => {
+Deno.test('Outlook reads app-only with the M365 app send_outbox sends with: MS_* edge secrets, client_credentials, /users/<seed>', async () => {
   const bodies: string[] = [];
   const base = graph([{ subject: subj, parent: 'F-inbox' }]);
-  const f = async (u: string, init?: RequestInit) => { if (u.startsWith('https://login.microsoftonline.com/')) bodies.push(String(init?.body)); return base.f(u, init); };
-  const r = await readOutlook(f, sec({ ms_graph_client_secret: '', ms_graph_seed_refresh_token: 'rt' }), SEED_OUTLOOK, TOKEN, since(), SENDER);
+  const f = async (u: string, init?: RequestInit) => { if (u.startsWith('https://login.microsoftonline.com/T/')) bodies.push(String(init?.body)); return base.f(u, init); };
+  const r = await readOutlook(f, sec(), SEED_OUTLOOK, TOKEN, since(), SENDER, undefined, (k) => ({ MS_TENANT_ID: 'T', MS_CLIENT_ID: 'C', MS_CLIENT_SECRET: 'S' } as Record<string, string>)[k]);
   assertEquals(r.folder, 'inbox');
-  assert(!bodies[0].includes('client_secret') && bodies[0].includes('grant_type=refresh_token'));
-  const app = await readOutlook(graph([]).f, sec({ ms_graph_client_secret: '' }), SEED_OUTLOOK, TOKEN, since(), SENDER);
-  assertEquals(app.folder, null, 'application mode without a secret must fail closed');
+  assertEquals(bodies.length, 1, 'the token was not asked of the MS_TENANT_ID tenant');
+  assert(bodies[0].includes('grant_type=client_credentials') && bodies[0].includes('client_id=C') && !bodies[0].includes('refresh_token'));
+  assert(!base.calls.some((u) => u.includes('/v1.0/me')), 'no delegated /me read is left');
+  for (const gone of ['MS_TENANT_ID', 'MS_CLIENT_ID', 'MS_CLIENT_SECRET']) {
+    const m = await readOutlook(graph([{ subject: subj, parent: 'F-inbox' }]).f, sec(), SEED_OUTLOOK, TOKEN, since(), SENDER, undefined,
+      (k) => k === gone ? '' : 'x');
+    assertEquals(m.folder, null, gone + ' missing must fail closed'); assert(String(m.detail.error).includes(gone));
+  }
 });
