@@ -79,6 +79,14 @@ test('the sales engineer seat reads the whole record, and the heartbeat archives
   const call = rp.indexOf('await runSteps(steps'), early = rp.indexOf('if (healthy) return J(');
   assert.ok(call > 0 && early > 0 && call < early, 'resilience_ping must call the archiver before the healthy early return');
   assert.match(rp, /\/conversation_archive'/, 'archiveTick no longer calls conversation_archive');
+  // 6 Oct 2026: one sweep of 4 a beat (16 an hour) left 27 messages past the 2-hour line after a
+  // 106-mail invitation run. The beat runs several sweeps in parallel over disjoint offsets.
+  const n = Number(rp.match(/ARCHIVE_SWEEPS = (\d+)/)?.[1] ?? 0);
+  assert.ok(n >= 4, 'archiveTick must run at least 4 parallel sweeps a beat (64 PDFs an hour)');
+  assert.match(rp, /Promise\.all\(Array\.from\(\{ length: ARCHIVE_SWEEPS \}/, 'the archive sweeps are not run in parallel');
+  const ca = readFileSync(join(ROOT, 'supabase', 'functions', 'conversation_archive', 'index.ts'), 'utf8');
+  assert.match(ca, /p_limit: offset \+ limit/, 'conversation_archive does not take a disjoint offset slice');
+  assert.match(ca, /\.slice\(offset\)/, 'conversation_archive does not take a disjoint offset slice');
 });
 
 test('no routine or cron job purges a conversation store', { skip: SKIP }, async () => {

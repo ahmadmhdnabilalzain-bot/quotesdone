@@ -41,7 +41,7 @@ test('static: one contractor is the default everywhere the choice is made', () =
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
 test('production, aborted: a split without the customer\'s recorded choice is refused', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const { sql } = await import('../lib/db.mjs');
+  const { replaySql: sql } = await import('../lib/safe_replay.mjs');   // the one door: cannot commit
   const replay = pending() ? read(FILE) + '\n' : '';
   let o;
   try {

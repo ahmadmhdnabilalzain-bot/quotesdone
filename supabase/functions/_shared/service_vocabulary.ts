@@ -64,6 +64,23 @@ export async function serviceVocab(admin: Admin): Promise<MeaningService[]> {
     ({ ...s, vec: parseVec(embedding_gte), vec_ml: mlOf.get(`${s.trade_code}.${s.code}`) ?? null }) as MeaningService);
 }
 
+/** Each active trade's English NAME (taxonomy_trade.label; never its aliases), read once per request. It is how
+ *  service_meaning.proposeByMeaning corroborates a line that names a trade in general (7 Oct 2026, ledger 1162);
+ *  undefined when it could not be read, and meaning then works exactly as without it. */
+// deno-lint-ignore no-explicit-any
+export async function tradeLabelVocab(admin: any): Promise<Record<string, string> | undefined> {
+  const { data, error } = await admin.from('taxonomy_trade').select('code,label').eq('active', true);
+  return error ? undefined : Object.fromEntries((data || []).map((r: { code: string; label: string }) => [r.code, r.label]));
+}
+
+/** Each active trade's ARABIC name (taxonomy_trade.label_ar), for trade_resolve's exact-name path; undefined when unread. */
+// deno-lint-ignore no-explicit-any
+export async function tradeArNameVocab(admin: any): Promise<Record<string, string> | undefined> {
+  const { data, error } = await admin.from('taxonomy_trade').select('code,label_ar').eq('active', true);
+  return error ? undefined : Object.fromEntries((data || []).filter((r: { label_ar: string | null }) => r.label_ar)
+    .map((r: { code: string; label_ar: string }) => [r.code, r.label_ar]));
+}
+
 export type ServiceKeysState = 'nothing_to_read' | 'exact' | 'on' | 'too_long' | 'service_vectors_missing' | 'embedding_unavailable';
 export type ServiceKeys = { keys: string[]; state: ServiceKeysState; complete: boolean; parts_read: number };
 export type ServiceKeysDeps = { services: MeaningService[]; embed: Embedder };

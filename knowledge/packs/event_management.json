@@ -58,6 +58,15 @@
       "expected_entry_ids": [
         "event_management:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What permits does a corporate outdoor event in Dubai need?",
+      "q_ar": "ما التصاريح التي تحتاجها فعالية خارجية لشركة في دبي؟",
+      "expected_entry_ids": [
+        "event_management:uae-standards-and-approvals"
+      ],
+      "why": "The standards entry states Dubai DET requires an event permit via its ePermits system for business events.",
+      "origin": "real buyer question, moved from event_management.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

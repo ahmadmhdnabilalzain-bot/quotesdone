@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { annotate, observe } from '../_shared/observe.ts';
@@ -7,7 +8,7 @@ import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
-import { sendWhatsAppFirst, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
@@ -27,6 +28,7 @@ function code6() { const b = new Uint32Array(1); crypto.getRandomValues(b); retu
 // capped, so verify is limited per issued code AND per caller.
 const EMAIL_VERIFY_MAX_ATTEMPTS = 5;
 const EMAIL_VERIFY_PER_IP_HOUR = 30;
+const EMAIL_VERIFY_PER_EMAIL_HOUR = 10;
 // Sign-in codes are stored as HMAC-SHA256(code, server key), never a bare hash. A 6-digit code
 // has only 10^6 possibilities, so an unsalted SHA-256 of the code is reversible from a single
 // table leak by precomputing all a million hashes. The HMAC key (app_secrets.otp_hmac_key) makes
@@ -44,17 +46,9 @@ async function otpHash(code: string): Promise<string> {
   const mac = await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode(code));
   return Array.from(new Uint8Array(mac)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
-// 18 Sep 2026 (security review): `===` on a secret short-circuits at the first differing byte, so the
-// time it takes leaks how much of the value was right. The attempt caps already bound guessing here,
-// but this is the one comparison in the sign-in path that touches a secret-bearing value, and a
-// constant-time compare costs nothing. Length is compared first and separately on purpose: both
-// operands are fixed-width (a 64-char hex HMAC, or a 6-digit legacy token), so length is not a secret.
-function eqConstantTime(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
+// The code compare itself lives in public.fn_login_otp_email_verify since 6 Oct 2026 (H1): it compares
+// the keyed HMAC of the guess, whose bytes a caller cannot choose without otp_hmac_key, so the timing of
+// the compare reveals nothing about the stored value. See the header of that SQL file.
 async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const secret = await sec('twilio_api_key_secret'); const va = await sec('twilio_verify_service_sid'); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
 // ONE RETRY ON 429 (21 Sep 2026). Resend allows 10 requests a second per team, shared with send_outbox
 // draining a campaign on the same key; a code refused for a busy second is retried once rather than lost.
@@ -87,16 +81,50 @@ async function isSuppressed(email: string): Promise<boolean> {
 // even if someone scripts it. A legitimate person signing up never comes close to either.
 const SMS_PER_IP_HOUR = 10;
 const SMS_SIGNUP_GLOBAL_HOUR = 60;
-async function rl(key: string, limit: number, seconds: number): Promise<boolean> {
-  try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
-  catch (_e) { return true; } // limiter unavailable must not lock legitimate users out of sign-in
+// THE LIMITER FAILS CLOSED (pre-launch security pass, 6 Oct 2026, M1). It used to answer "allowed"
+// when rl_check errored or threw, so a database fault removed the cap on code guesses AND on billable
+// SMS sends at the same moment. On a sign-in endpoint a limiter that cannot answer is a refusal: the
+// person is told to retry in a minute, and the IT engineer gets one finding per key family per hour
+// so the outage is seen without paging on every request.
+type Gate = 'ok' | 'limited' | 'down';
+async function rl(key: string, limit: number, seconds: number): Promise<Gate> {
+  let why = '';
+  try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (!error) return data === false ? 'limited' : 'ok'; why = error.message; }
+  catch (e) { why = String((e as Error)?.message || e); }
+  const family = key.split(':')[0];
+  try {
+    await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: 'login_otp_limiter_unavailable:' + family,
+      p_title: 'The sign-in rate limiter could not answer, so sign-in requests were refused',
+      p_where: 'supabase/functions/login_otp rl() -> public.rl_check',
+      p_blast: 'Every sign-in code send or check that needs this limiter is refused with 503 until rl_check answers again.',
+      p_affected: 1, p_evidence: { key_family: family, error: why.slice(0, 300) } });
+  } catch (_e) { /* the refusal below stands even if the finding cannot be written */ }
+  return 'down';
 }
+// A refusal because the limiter is down says "retry", not "you tried too often".
+const LIMITER_DOWN = { error: 'Sign-in is briefly unavailable. Please try again in a minute.', code: 'limiter_unavailable' };
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
   try { await admin.from('agent_runs').insert({ agent: 'login_otp', status, counts, note: String(note || '').slice(0, 500), finished_at: new Date().toISOString() }); } catch (_e) { /* */ }
 }
 
+// Which other role already owns this address (leads.claimed_by = supplier, customers.email = customer).
+// Only asked AFTER the code is verified, so the answer goes to the mailbox owner and nobody else.
+async function roleConflict(kind: string, email: string): Promise<'supplier' | 'customer' | null> {
+  if (kind === 'admin') return null;
+  const [{ data: s }, { data: c }] = await Promise.all([
+    admin.from('leads').select('id').eq('claimed_by', email).limit(1),
+    admin.from('customers').select('id').eq('email', email).limit(1)]);
+  const isSup = !!(s && s.length), isCust = !!(c && c.length);
+  if (kind === 'customer' && isSup && !isCust) return 'supplier';
+  if (kind === 'supplier' && isCust && !isSup) return 'customer';
+  return null;
+}
 async function uidByEmail(email: string): Promise<string | null> { try { const { data } = await admin.rpc('auth_uid_by_email', { p_email: email }); return (data as string) || null; } catch { return null; } }
-async function ensureUser(email: string) { let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
+// A USER IS CREATED OR CONFIRMED ONLY ON A PROVEN EMAIL (13 Oct 2026, security review). createUser sets
+// email_confirm: true, so the caller must say the address is proven; both callers reach here only after an
+// email code (verify) or a phone code on a row whose phone AND email are verified.
+async function ensureUser(email: string, emailProven: boolean) { if (!emailProven) return null; let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
 // SIGN-IN NEVER BORROWS THE SYSTEM'S DATABASE CLIENT (15 Sep 2026). verifyOtp stores the session
 // it gets back on the client it ran on, and supabase-js then sends that session's token on every
 // later database call from that client. This ran on `admin`, so from the first verify onwards the
@@ -112,10 +140,11 @@ async function ensureUser(email: string) { let uid = await uidByEmail(email); if
 // a supplier or customer session, and a third caller written next year inherits the refusal for
 // free. It is asked of public.sanctions_ban, not of leads.banned: a supplier banned for unpaid dues
 // must still be able to sign in and pay them.
-async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
+async function mintSession(email: string, emailProven: boolean): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
   try {
     if (await sanctionedEmail(admin, email)) return 'sanctioned';
-    await ensureUser(email);
+    if (!emailProven) return null;
+    await ensureUser(email, emailProven);
     const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
     const th = (data as any)?.properties?.hashed_token; if (!th) return null;
     const once = createClient(SB_URL, SB_SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -157,19 +186,37 @@ async function resolveAdminEmailByPhone(e164: string): Promise<string | null> {
 // see the comment on the column. The consequence of allowing it to repeat is that a phone may
 // only ever CONFIRM an identity, never SELECT one: if a number maps to more than one account we
 // refuse and ask for the email rather than guess which person is holding the handset.
+// A PHONE MATCHES ONLY A ROW WHOSE PHONE AND EMAIL ARE BOTH VERIFIED (13 Oct 2026, security review).
+// kyc save_customer stores an unverified number and a supplier claim keeps the scraped leads.phone, so
+// anyone could put a victim's number on their own account and capture or lock out the victim's phone
+// sign-in. otherRoleByPhone applies the same rule.
 type PhoneOwner = { email: string } | { ambiguous: true } | null;
 async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwner> {
   if (kind === 'admin') { const e = await resolveAdminEmailByPhone(e164); return e ? { email: e } : null; }
   const last9 = e164.replace(/\D/g, '').slice(-9);
   const col = kind === 'supplier' ? 'claimed_by' : 'email';
   const q = kind === 'supplier'
-    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(5)
-    : admin.from('customers').select('email').not('email', 'is', null).ilike('phone', '%' + last9).limit(5);
+    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).ilike('phone', '%' + last9).limit(5)
+    : admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).ilike('phone', '%' + last9).limit(5);
   const { data } = await q;
   const owners = [...new Set((data || []).map((r: any) => String(r[col] || '').trim().toLowerCase()).filter(Boolean))];
   if (owners.length > 1) return { ambiguous: true };
   return owners.length ? { email: owners[0] } : null;
 }
+// THE CROSS-ROLE CHECK ON THE PHONE PATH (6 Oct 2026, review of #1245). role_guard used to refuse a
+// customer sign-in on a supplier's number (and the reverse) before any code was sent. That answer now
+// comes only after the code proves the handset: send texts the number when the OTHER role holds it, and
+// verify answers role_conflict instead of a session. Asked of the account tables only, like the resolver.
+async function otherRoleByPhone(kind: string, e164: string): Promise<'supplier' | 'customer' | null> {
+  if (kind !== 'customer' && kind !== 'supplier') return null;
+  const last9 = e164.replace(/\D/g, '').slice(-9);
+  if (last9.length < 9) return null;
+  const { data } = kind === 'customer'
+    ? await admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).ilike('phone', '%' + last9).limit(1)
+    : await admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).ilike('phone', '%' + last9).limit(1);
+  return data && data.length ? (kind === 'customer' ? 'supplier' : 'customer') : null;
+}
+const ROLE_CONFLICT_MSG = { supplier: 'This mobile number is registered to a supplier account. Please use the Supplier portal to sign in.', customer: 'This mobile number is registered to a customer account. Please use the customer app to sign in.' };
 const AMBIGUOUS_MSG = 'More than one QuotesDone account uses this mobile number, so we cannot tell which one is yours. Please sign in with your email address instead.';
 
 // THE SIGN-IN CODE MAY GO BY WHATSAPP (founder, 18 Sep 2026), AND ONLY TO A NUMBER THE ACCOUNT
@@ -199,7 +246,7 @@ async function confirmedWhatsApp(kind: string, email: string, e164: string): Pro
   } catch (_e) { return false; }   // a read failure means SMS, never a lost sign-in
 }
 
-Deno.serve(observe('login_otp', async (req) => {
+Deno.serve(siteCors(observe('login_otp', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   // OUR OWN TRAFFIC IS MARKED BY THE SERVER, NOT BY THE CALLER (22 Sep 2026). Every harness and probe
   // signs in on the reserved fixture block (+971 50 000 00xx, isDemoPhone), which no real person can
@@ -254,7 +301,10 @@ Deno.serve(observe('login_otp', async (req) => {
         const { count } = await admin.from('email_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
         if ((count || 0) >= 8) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
         const c = code6();
-        await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'login', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        // A RESEND RETIRES EVERY EARLIER CODE, in the same transaction as the new one is written
+        // (public.fn_login_otp_email_issue, review of #1245), so only the newest code can ever verify.
+        const { error: issueErr } = await admin.rpc('fn_login_otp_email_issue', { p_email: email, p_hash: await otpHash(c), p_kind: kind, p_ttl_seconds: 600 });
+        if (issueErr) { console.error('login_otp: issue routine failed —', issueErr.message); return J({ error: 'Could not send the email code. Please try again in a minute.', code: 'email_not_sent' }, 502); }
         const codeAr = (await registeredLocale(admin, { role: kind, email }, body.lang)) === 'ar';
         const mail = codeEmail('signin', c, codeAr);
         // A code that did not leave is not "sent" (21 Sep 2026). The result was discarded, so a Resend
@@ -302,7 +352,8 @@ Deno.serve(observe('login_otp', async (req) => {
       // that key on email, and nothing a second device could ever sign in with. A phone confirms
       // an identity; it cannot mint one. So the sign-up path is email, and the refusal now happens
       // before the spend and says what to do instead.
-      if (!acctEmail) {
+      const otherRole = acctEmail ? null : await otherRoleByPhone(kind, e164);
+      if (!acctEmail && !otherRole) {
         if (allowSignup) {
           // 'skipped' for the same reason as the ambiguity refusal above: expected, routine, and
           // not a fault. This one fires every time somebody tries to sign up with a phone number.
@@ -328,8 +379,10 @@ Deno.serve(observe('login_otp', async (req) => {
       // the fallback when that read fails, never a reason to refuse sign-in.
       const perIp = await otpCeiling(admin, 'otp_sms_per_ip_hour', SMS_PER_IP_HOUR);
       const perHour = await otpCeiling(admin, 'otp_signup_global_hour', SMS_SIGNUP_GLOBAL_HOUR);
-      const ipOk = await rl('login_otp_sms_ip:' + ip, perIp, 3600);
-      const globalOk = (!acctEmail && allowSignup) ? await rl('login_otp_sms_signup_global', perHour, 3600) : true;
+      const ipGate = await rl('login_otp_sms_ip:' + ip, perIp, 3600);
+      const globalGate: Gate = (!acctEmail && allowSignup) ? await rl('login_otp_sms_signup_global', perHour, 3600) : 'ok';
+      if (ipGate === 'down' || globalGate === 'down') return J(LIMITER_DOWN, 503);
+      const ipOk = ipGate === 'ok', globalOk = globalGate === 'ok';
       if (!ipOk || !globalOk) {
         await log('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'signup_global', signup_path: !acctEmail && allowSignup ? 1 : 0, guard_error: pb.error ?? null },
           !ipOk
@@ -343,8 +396,8 @@ Deno.serve(observe('login_otp', async (req) => {
       if ((count || 0) >= 6) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
       try {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
-        const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail }, body.lang);
-        const send = async (channel: 'whatsapp' | 'sms') => {
+        const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail || '' }, body.lang);
+        const send = async (channel: 'whatsapp' | 'sms' | 'call') => {
           const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: channel, Locale: smsLocale }) });
           return { r, jd: await r.json() };
         };
@@ -358,8 +411,20 @@ Deno.serve(observe('login_otp', async (req) => {
           return x.r.ok && x.jd?.status !== 'canceled'
             ? { ...x, refused: null, ok: true, channel: 'sms' } : { ...x, refused: null, ok: false, channel: null };
         };
-        const wantsWa = await confirmedWhatsApp(kind, acctEmail, e164);
-        const res = wantsWa ? await sendWhatsAppFirst(send) : await smsOnly();
+        const wantsWa = acctEmail ? await confirmedWhatsApp(kind, acctEmail, e164) : false;
+        const res = await voiceAfterSms(wantsWa ? await sendWhatsAppFirst(send) : await smsOnly(), send);
+        // A WHATSAPP REFUSAL IS ONE FINDING, NOT A LOG LINE PER CODE (customer_support, 6 Oct 2026). Verify
+        // refused its WhatsApp channel (sender or Authentication template), so this code went by SMS or voice.
+        // The upsert is keyed by the refusal code, so a thousand sign-ins raise one open finding.
+        if (res.refused) {
+          await admin.rpc('fn_it_engineer_finding_upsert', {
+            p_issue_key: 'login_otp:whatsapp_refused:' + res.refused,
+            p_title: 'Sign-in codes cannot go by WhatsApp: Twilio Verify refused the channel (' + res.refused + ')',
+            p_where: 'login_otp -> Twilio Verify', p_blast: 'customer_facing', p_affected: 1,
+            p_evidence: { refused_code: res.refused, delivered_by: res.channel, effect: 'the code fell back to the next channel; no sign-in was lost' },
+            p_ruled_out: [], p_undetermined: ['whether the Verify WhatsApp sender or its Authentication template is the missing piece'],
+            p_raised_by: 'customer_support' }).then(() => {}, () => {});
+        }
         if (!res.ok) return J({ error: 'Could not send the sign-in code. Please try again in a minute.', code: 'sms_send_failed' }, 502);
         // The delivered channel is recorded in phone_verifications.code (the column only ever held the
         // marker 'twilio'; no reader compares it), the same convention kyc's whatsapp_send_code uses,
@@ -382,34 +447,36 @@ Deno.serve(observe('login_otp', async (req) => {
       if (!code) return J({ error: 'Enter the code you received.', code: 'enter_code' }, 400);
       if (emailOk(idRaw)) {
         const email = idRaw.toLowerCase();
-        // Cap guesses per caller before touching the row at all.
-        if (!(await rl('login_otp_verify_ip:' + ip, EMAIL_VERIFY_PER_IP_HOUR, 3600))) {
-          await log('error', { rate_limited: 1, scope: 'verify_ip' }, 'login_otp blocked a caller making more than ' + EMAIL_VERIFY_PER_IP_HOUR + ' code-verification attempts in an hour. A real person never reaches this; sustained hits mean someone is guessing codes.');
-          return J({ error: 'Too many attempts. Please request a new code.', code: 'too_many_attempts' }, 429);
+        // Cap guesses per caller AND per address before touching the row at all. The per-address cap is
+        // the one an attacker cannot spread across IPs (pre-launch security pass, 6 Oct 2026, H1): ten
+        // checks an hour for one email, whoever sends them, and the address is locked until the oldest
+        // of those ten leaves the hour window. A person who mistypes twice and asks for a new code
+        // never comes near it.
+        const ipGate = await rl("login_otp_verify_ip:" + ip, EMAIL_VERIFY_PER_IP_HOUR, 3600);
+        const idGate = ipGate === "ok" ? await rl("login_otp_verify_email:" + email, EMAIL_VERIFY_PER_EMAIL_HOUR, 3600) : ipGate;
+        if (ipGate === "down" || idGate === "down") return J(LIMITER_DOWN, 503);
+        if (ipGate !== "ok" || idGate !== "ok") {
+          await log("error", { rate_limited: 1, scope: ipGate !== "ok" ? "verify_ip" : "verify_email" }, ipGate !== "ok"
+            ? "login_otp blocked a caller making more than " + EMAIL_VERIFY_PER_IP_HOUR + " code-verification attempts in an hour. A real person never reaches this; sustained hits mean someone is guessing codes."
+            : "login_otp locked an address after " + EMAIL_VERIFY_PER_EMAIL_HOUR + " code-verification attempts in an hour, from any number of callers. The address can be verified again once the hour window clears; sustained hits mean someone is guessing that account's codes.");
+          return J({ error: "Too many attempts. Please request a new code.", code: "too_many_attempts" }, 429);
         }
-        // Fetch the newest live code for this email, then compare in code so a
-        // wrong guess can be counted (a WHERE on the token cannot be).
-        // NOTE: limit(1) + [0], NOT maybeSingle(). A user who clicks "resend"
-        // has two un-used codes inside the 10-minute window; maybeSingle()
-        // errors on >1 row and returns null, which rejected BOTH codes as
-        // "Incorrect or expired" until the older expired - a self-inflicted
-        // login lockout. limit(1) deterministically takes the newest.
-        const { data: rows } = await admin.from('email_verifications').select('*').eq('email', email).eq('purpose', 'login').is('used_at', null).order('created_at', { ascending: false }).limit(1);
-        const row = rows && rows[0];
-        if (!row) return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
-        if (new Date(row.expires_at) < new Date()) return J({ error: 'That code has expired. Please request a new one.', code: 'code_expired' }, 400);
-        if ((row.attempts || 0) >= EMAIL_VERIFY_MAX_ATTEMPTS) {
-          await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
-          return J({ error: 'Too many incorrect attempts. Please request a new code.', code: 'code_burned' }, 429);
-        }
-        const givenHash = await otpHash(code);
-        // row.token is only set for codes issued before hashing shipped
-        const match = row.token_hash ? eqConstantTime(givenHash, row.token_hash) : (!!row.token && eqConstantTime(code, row.token));
-        if (!match) {
-          await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id);
-          return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
-        }
-        await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
+        // ONE STATEMENT DECIDES (H1). public.fn_login_otp_email_verify locks the newest live code,
+        // refuses it expired, burns it at the cap, counts the guess, compares the HMAC and spends the
+        // code only where it is still unspent, then answers one word. The old read-compare-write here
+        // let parallel guesses share one counter value and let one code mint two sessions.
+        // scripts/sql/a_sign_in_code_is_counted_compared_and_spent_in_one_statement.sql
+        const { data: verdict, error: vErr } = await admin.rpc("fn_login_otp_email_verify", { p_email: email, p_hash: await otpHash(code), p_code: code, p_max_attempts: EMAIL_VERIFY_MAX_ATTEMPTS });
+        if (vErr) { console.error("login_otp: verify routine failed —", vErr.message); return J({ error: "Verification failed, please try again.", code: "verify_failed" }, 502); }
+        if (verdict === "expired") return J({ error: "That code has expired. Please request a new one.", code: "code_expired" }, 400);
+        if (verdict === "burned") return J({ error: "Too many incorrect attempts. Please request a new code.", code: "code_burned" }, 429);
+        if (verdict !== "ok") return J({ error: "Incorrect or expired code.", code: "wrong_code" }, 400);
+        // ONE IDENTITY PER ROLE, DECIDED AFTER THE CODE (6 Oct 2026, M3). role_guard used to tell any
+        // anonymous caller, before a code was sent, that an address belonged to the other role. The
+        // same refusal now happens here, once the caller has proved they hold the mailbox, so it tells
+        // them nothing they do not already own. No session is minted and no row is written.
+        const conflict = await roleConflict(kind, email);
+        if (conflict) return J({ error: conflict === "supplier" ? "This email is registered as a supplier. Please use the Supplier portal to sign in." : "This email is registered as a customer. Please use the customer app to sign in.", code: "role_conflict", conflict }, 409);
         // A FIRST-TIME CUSTOMER HAS NO ROW TO UPDATE (12 Aug 2026). This recorded proof of email
         // ownership with an UPDATE, and for someone signing in for the very first time there is
         // nothing to update: login_otp never creates a customers row, and the row that appears
@@ -440,7 +507,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
         // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
         // into the else and ran an UPDATE on leads.claimed_by for the admin address.
-        const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+        const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.', code: 'bad_mobile' }, 400);
@@ -462,10 +529,14 @@ Deno.serve(observe('login_otp', async (req) => {
       const owner = await resolveEmailByPhone(kind, e164);
       if (owner && 'ambiguous' in owner) return annotate(J({ error: AMBIGUOUS_MSG, code: 'ambiguous_phone', ambiguous: true }, 409), { ambiguous_phone: 1 });
       const email = owner ? owner.email : '';
+      if (!email) {
+        const other = await otherRoleByPhone(kind, e164);
+        if (other) return J({ error: ROLE_CONFLICT_MSG[other], code: 'role_conflict_phone', conflict: other }, 409);
+      }
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.', code: 'no_account_for_number' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);
-      const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+      const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
       return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
     }
 
@@ -475,4 +546,4 @@ Deno.serve(observe('login_otp', async (req) => {
 // isolate and logs every refusal, and refusal_rate divides refusals by the rows it finds -- so on a busy
 // minute the successes it could not see made the share of people turned away read higher than it was.
 // Sign-in traffic is small; the true denominator is worth one row per request.
-}, { okEveryMs: 0 }));
+}, { okEveryMs: 0 })));

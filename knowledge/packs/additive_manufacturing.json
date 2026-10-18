@@ -42,6 +42,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "additive_manufacturing:nylon-process-sls-mjf-fdm",
+      "topic": "Additive processes for nylon parts: SLS, MJF and FDM",
+      "kind": "process_comparison",
+      "body_en": "Selective laser sintering (SLS) and HP Multi Jet Fusion (MJF) are both powder-bed nylon processes: SLS melts material with a laser, while MJF uses an inkjet-style array to apply fusing and detailing agents. According to Protolabs, both produce isotropic parts with consistent properties in all directions. SLS parts tend to be stronger and more durable than MJF parts, SLS offers a broader material range (multiple nylons, TPU and polypropylene) and a larger build envelope (19 x 19 x 17 in versus 11.1 x 14.9 x 14.9 in for MJF), while MJF gives a smoother surface finish and faster builds that reduce cost, and offers PA 12 and glass-filled PA 12. For strong functional nylon parts, SLS is therefore the stronger choice, with MJF preferred where surface finish and cost matter. Quotes should state process, exact material grade and build orientation. Not established here: published tensile figures and a comparison with filament (FDM) printing.",
+      "body_ar": "تُعدّ تقنيتا التلبيد الانتقائي بالليزر (SLS) والدمج متعدد النفثات (MJF) من HP عمليتين لدمج مسحوق النايلون في حوض: تصهر SLS المادة بالليزر، بينما تستخدم MJF مصفوفة شبيهة بالطباعة النافثة لوضع عوامل الدمج والتفصيل. ووفقاً لشركة Protolabs، تُنتج التقنيتان قطعاً متجانسة الخواص في جميع الاتجاهات. وتميل قطع SLS إلى أن تكون أقوى وأكثر متانة من قطع MJF، كما توفّر SLS نطاقاً أوسع من المواد (أنواع متعددة من النايلون وTPU والبولي بروبيلين) وحجم بناء أكبر (19 × 19 × 17 بوصة مقابل 11.1 × 14.9 × 14.9 بوصة لـ MJF)، بينما تمنح MJF تشطيباً سطحياً أنعم وسرعة بناء أعلى تخفّض التكلفة، وتوفّر PA 12 وPA 12 المدعّم بالزجاج. لذلك تُعدّ SLS الخيار الأقوى للقطع الوظيفية المتينة من النايلون، مع تفضيل MJF حين يكون التشطيب السطحي والتكلفة هما الأهم. ينبغي أن تحدد عروض الأسعار العملية ودرجة المادة الدقيقة واتجاه البناء. غير مثبت هنا: قيم الشد المنشورة والمقارنة مع الطباعة بالخيوط (FDM).",
+      "sources": [
+        "https://www.protolabs.com/resources/blog/comparing-multi-jet-fusion-to-selective-laser-sintering/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +71,15 @@
       "expected_entry_ids": [
         "additive_manufacturing:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which 3D printing process gives strong functional nylon parts?",
+      "q_ar": "ما عملية الطباعة ثلاثية الأبعاد التي تعطي قطع نايلون وظيفية قوية؟",
+      "expected_entry_ids": [
+        "additive_manufacturing:nylon-process-sls-mjf-fdm"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry compares SLS/MJF/FDM processes for nylon strength; spec-checklist only lists \"printing process\" as a field). additive_manufacturing:nylon-process-sls-mjf-fdm was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from additive_manufacturing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +95,9 @@
       "additive_manufacturing:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "additive_manufacturing:nylon-process-sls-mjf-fdm"
+    ]
   }
 }

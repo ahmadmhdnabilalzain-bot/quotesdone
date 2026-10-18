@@ -40,6 +40,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "insurance_brokerage:dubai-law-11-2013-employer-health-cover",
+      "topic": "Dubai Law No. 11 of 2013 on health insurance",
+      "kind": "regulatory_reference",
+      "body_en": "Dubai Law No. 11 of 2013 regulates health insurance in the emirate and applies to nationals, residents, visitors, employers and sponsors (Article 4). Under Article 10 the employer bears the complete cost of employees' health insurance coverage, ensures its validity, provides each employee with a health insurance card, and bears the cost of emergency treatment for workers not covered by a policy. Under Article 9 sponsors must provide basic health insurance for sponsored persons who have no employer. So yes: cover is mandatory and the employer pays for employees. Not established here: the administering authority's current rules, the basic plan's benefits and premium levels, and penalty amounts.",
+      "body_ar": "ينظم قانون دبي رقم 11 لسنة 2013 التأمين الصحي في الإمارة، ويسري على المواطنين والمقيمين والزوار وأصحاب العمل والكفلاء (المادة 4). وبموجب المادة 10 يتحمل صاحب العمل كامل تكلفة التغطية التأمينية الصحية لموظفيه، ويضمن سريانها، ويزوّد كل موظف ببطاقة تأمين صحي، ويتحمل تكاليف العلاج الطارئ للعمال غير المشمولين بوثيقة تأمين. وبموجب المادة 9 يجب على الكفلاء توفير تأمين صحي أساسي للمكفولين الذين لا صاحب عمل لهم. وعليه: التغطية إلزامية ويدفعها صاحب العمل عن موظفيه. غير مثبت هنا: القواعد الحالية للجهة المشرفة، ومزايا الخطة الأساسية ومستويات أقساطها، وقيم الغرامات.",
+      "sources": [
+        "https://gulfmigration.grc.net/uae-law-no-11-of-2013-regarding-health-insurance-in-the-emirate-of-dubai/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "insurance_brokerage:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Is health insurance mandatory for employees in Dubai, and who must pay for it?",
+      "q_ar": "هل التأمين الصحي إلزامي للموظفين في دبي، ومن يجب أن يدفعه؟",
+      "expected_entry_ids": [
+        "insurance_brokerage:dubai-law-11-2013-employer-health-cover"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry covers the Dubai mandatory health insurance law (employer pays for employees)). insurance_brokerage:dubai-law-11-2013-employer-health-cover was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from insurance_brokerage.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "insurance_brokerage:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "insurance_brokerage:dubai-law-11-2013-employer-health-cover"
+    ]
   }
 }

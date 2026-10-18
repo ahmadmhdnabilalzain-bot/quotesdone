@@ -12,6 +12,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/fn_decide_reads_its_prior_outcomes_inline.sql';
@@ -40,7 +41,7 @@ begin
   raise exception 'CHK<<%>>', o::text;
 end $p$;`;
   let out;
-  try { await sql(src + '\n' + block, { retry: false }); }
+  try { await replaySql(src + '\n' + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));

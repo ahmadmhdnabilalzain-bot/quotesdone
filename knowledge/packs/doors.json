@@ -569,6 +569,16 @@
         "doors:automatic-doors-en16005",
         "doors:quote-red-flags-doors"
       ]
+    },
+    {
+      "q_en": "What thickness should a 60-minute fire door be and what certificate must it have in the UAE?",
+      "q_ar": "ما سماكة باب الحريق 60 دقيقة وما الشهادة المطلوبة له في الإمارات؟",
+      "expected_entry_ids": [
+        "doors:fire-door-ratings-fd-vs-ei",
+        "doors:civil-defence-approval"
+      ],
+      "why": "Ratings entry explains what a 60-minute FD/EI rating means and civil-defence entry states the UAE certificate/approval required; thickness itself is not stated in either (set by the tested door-set).",
+      "origin": "real buyer question, moved from doors.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

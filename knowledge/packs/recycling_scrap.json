@@ -4,9 +4,10 @@
     {
       "id": "recycling_scrap:spec-checklist",
       "topic": "Recycling and scrap - what the buyer must state",
+      "topic_ar": "إعادة التدوير والخردة: ما يجب أن يحدده البائع أو المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
       "body_en": "For recycling and scrap quotes to be compared like-for-like, every quoted line (services) must state: (1) material type and grade (ferrous, non-ferrous, paper, plastic, e-waste); (2) estimated quantity in tonnes; (3) collection location and frequency; (4) price basis (per tonne, index-linked); (5) weighing method and weighbridge ticket; (6) containers or bins provided; (7) recycler licence from the environment authority; (8) certificate of recycling or destruction; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the recycling_scrap trade.",
-      "body_ar": "لكي تُقارن عروض إعادة التدوير والخردة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المادة ودرجتها (حديدية، أو غير حديدية، أو ورق، أو بلاستيك، أو نفايات إلكترونية)؛ (2) الكمية التقديرية بالأطنان؛ (3) موقع الجمع وتكراره؛ (4) أساس السعر (لكل طن، أو مرتبط بمؤشر)؛ (5) طريقة الوزن وتذكرة الميزان؛ (6) الحاويات المقدمة؛ (7) ترخيص معيد التدوير من جهة البيئة؛ (8) شهادة إعادة التدوير أو الإتلاف؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة recycling_scrap فقط.",
+      "body_ar": "حتى تُقارن عروض إعادة التدوير وبيع الخردة على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) نوع المادة ودرجتها (حديد، أو معادن غير حديدية، أو ورق، أو بلاستيك، أو نفايات إلكترونية)؛ (2) الكمية التقديرية بالطن؛ (3) موقع الجمع وعدد مراته؛ (4) أساس السعر (للطن، أو مرتبط بمؤشر سعر)؛ (5) طريقة الوزن وتذكرة الميزان؛ (6) الحاويات المقدمة؛ (7) ترخيص شركة إعادة التدوير من جهة البيئة؛ (8) شهادة إعادة التدوير أو الإتلاف؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأوقات الاستجابة؛ (11) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة recycling_scrap فقط.",
       "required_specs": [
         "material type and grade (ferrous, non-ferrous, paper, plastic, e-waste)",
         "estimated quantity in tonnes",
@@ -30,9 +31,10 @@
     {
       "id": "recycling_scrap:uae-standards-and-approvals",
       "topic": "Recycling and scrap - UAE standards, authorities and approvals",
+      "topic_ar": "إعادة التدوير والخردة: الترخيص والموافقات والجهات في الإمارات",
       "kind": "standard",
       "body_en": "Waste and recycling activities are licensed by the emirate authority (Dubai Municipality in Dubai; Tadweer in Abu Dhabi) under Federal Law No. 12 of 2018 on integrated waste management; hazardous waste such as e-waste needs specific handling. What the cited sources do not establish: The Dubai Municipality page read confirms its waste-management remit but not the licence categories; state the material and ask for the recycler licence.",
-      "body_ar": "ترخص جهة الإمارة أنشطة النفايات وإعادة التدوير (بلدية دبي في دبي، ومركز إدارة النفايات تدوير في أبوظبي) وفق القانون الاتحادي رقم 12 لسنة 2018 بشأن الإدارة المتكاملة للنفايات؛ وتحتاج النفايات الخطرة مثل النفايات الإلكترونية إلى تعامل خاص. ما لا تثبته المصادر المذكورة: صفحة بلدية دبي المقروءة تؤكد اختصاصها بإدارة النفايات لكنها لا تذكر فئات الترخيص؛ حدد المادة واطلب ترخيص معيد التدوير.",
+      "body_ar": "أنشطة النفايات وإعادة التدوير وتجارة الخردة ترخصها جهة الإمارة (بلدية دبي في دبي، ومركز إدارة النفايات تدوير في أبوظبي) وفق القانون الاتحادي رقم 12 لسنة 2018 بشأن الإدارة المتكاملة للنفايات، والنفايات الخطرة مثل النفايات الإلكترونية تحتاج تعاملاً خاصاً. ما لا تثبته المصادر المذكورة: صفحة بلدية دبي المقروءة تؤكد اختصاصها بإدارة النفايات لكنها لا تذكر فئات الترخيص؛ حدد المادة واطلب ترخيص شركة إعادة التدوير.",
       "source_note": "The Dubai Municipality page read confirms its waste-management remit but not the licence categories; state the material and ask for the recycler licence.",
       "sources": [
         "https://www.dm.gov.ae/",
@@ -56,6 +58,15 @@
       "expected_entry_ids": [
         "recycling_scrap:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is scrap copper cable priced when a company sells it?",
+      "q_ar": "كيف يُسعّر كابل النحاس الخردة عندما تبيعه شركة؟",
+      "expected_entry_ids": [
+        "recycling_scrap:spec-checklist"
+      ],
+      "why": "partly answers: it lists the price basis as per tonne or index-linked, with weighbridge tickets; MISSING the copper-grade / LME-linked recovery basis for cable scrap.",
+      "origin": "real buyer question, moved from recycling_scrap.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

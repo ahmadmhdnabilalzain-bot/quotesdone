@@ -63,6 +63,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { manifestWithPending } from '../lib/pending_sql.mjs';
+import { compileBrief } from '../kb/compile_brief.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LIST = 'scripts/checks/arabic_reviewed_strings.json';
@@ -187,7 +188,13 @@ export function surfaces() {
     ? fs.readdirSync(path.join(ROOT, 'docs/marketing')).filter((n) => n.endsWith('.json')).map((n) => 'docs/marketing/' + n) : [];
   // The company's public profile description on every platform (instruction 920, #883).
   const profile = 'supabase/functions/marketing/profile_text.json';
-  return [...new Set(['messages/ar.json', profile, ...calendars, ...code, ...sqlAfterAnchor()])]
+  // The cached agent brief (#1333): _shared/brief.generated.ts holds the whole brief as ONE string, so one
+  // edited Arabic word would surface as one opaque hash. Its Arabic is reviewed line by line in the
+  // knowledge/brief/*.md sources it is compiled from (the_agent_brief_is_compiled_and_traced proves they agree).
+  const BRIEF_GEN = 'supabase/functions/_shared/brief.generated.ts';
+  // The compiler's own file list, so a new folder (knowledge/brief/conversation, #1352) is scanned the day it is compiled.
+  const briefSources = code.includes(BRIEF_GEN) ? compileBrief().files.map((f) => 'knowledge/brief/' + f) : [];
+  return [...new Set(['messages/ar.json', profile, ...calendars, ...code.filter((f) => f !== BRIEF_GEN), ...briefSources, ...sqlAfterAnchor()])]
     .filter((f) => fs.existsSync(path.join(ROOT, f))).sort();
 }
 

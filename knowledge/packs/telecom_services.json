@@ -38,6 +38,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "telecom_services:business-fibre-operators-and-sla",
+      "topic": "Licensed operators for business fibre and SLAs",
+      "kind": "market_reference",
+      "body_en": "e& (formerly Etisalat) sells business dedicated internet in the UAE as Dedicated Internet IDA+, with symmetric speeds from 5 Mbps to 10 Gbps and a stated 99.95% internet availability. When comparing offers, check committed bandwidth, availability %, fault response and restoration times, service credits, static IPs, contract term and whether the building is already served. Not established here: the full list of licensed fixed operators in Dubai, and du's business fibre and SLA terms.",
+      "body_ar": "تقدم e& (اتصالات سابقاً) خدمة الإنترنت المخصص للأعمال في الإمارات باسم Dedicated Internet IDA+، بسرعات متماثلة من 5 ميغابت في الثانية حتى 10 غيغابت في الثانية، ونسبة توافر معلنة للإنترنت تبلغ 99.95%. عند مقارنة العروض، تحقق من عرض النطاق الملتزم به ونسبة التوافر وأوقات الاستجابة للأعطال واستعادة الخدمة وتعويضات الخدمة وعناوين IP الثابتة ومدة العقد ومدى تخديم المبنى مسبقاً. لم يُثبت هنا: القائمة الكاملة للمشغلين المرخصين للخدمات الثابتة في دبي، وشروط الألياف واتفاقية مستوى الخدمة لدى du.",
+      "sources": [
+        "https://www.eand.ae/en/smb/connectivity-talk/dedicated-internet/internet-dedicated-access.html"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -54,6 +67,15 @@
       "expected_entry_ids": [
         "telecom_services:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which operators can provide a business fibre line with an SLA in Dubai?",
+      "q_ar": "ما المشغلون الذين يمكنهم توفير خط ألياف للأعمال مع اتفاقية مستوى خدمة في دبي؟",
+      "expected_entry_ids": [
+        "telecom_services:business-fibre-operators-and-sla"
+      ],
+      "why": "No entry of this pack answered it (MISSING: uae-standards names only TDRA as regulator; no entry names the licensed operators (e& and du) offering business fibre with an SLA). telecom_services:business-fibre-operators-and-sla was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from telecom_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -69,6 +91,9 @@
       "telecom_services:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "telecom_services:business-fibre-operators-and-sla"
+    ]
   }
 }

@@ -60,6 +60,15 @@
       "expected_entry_ids": [
         "cleaning_chemicals:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does a disinfectant need Dubai Municipality registration before it can be sold in Dubai?",
+      "q_ar": "هل يحتاج المطهر إلى تسجيل لدى بلدية دبي قبل بيعه في دبي؟",
+      "expected_entry_ids": [
+        "cleaning_chemicals:spec-checklist"
+      ],
+      "why": "The checklist requires Dubai Municipality product registration for each cleaning-chemical line, the closest trade answer; a dedicated entry on DM registration of disinfectants is missing.",
+      "origin": "real buyer question, moved from cleaning_chemicals.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

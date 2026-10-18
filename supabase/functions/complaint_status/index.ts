@@ -1,3 +1,4 @@
+import { siteCors } from '../_shared/site_origins.ts';
 // complaint_status - public complaint ticket lookup behind /complaints/status. verify_jwt=false.
 // POST { ticket, email } -> fn_complaint_lookup (service role). A wrong email and a missing ticket
 // get the SAME answer, so the endpoint never confirms a ticket exists. Rate limited through the
@@ -15,7 +16,7 @@ async function rl(key: string): Promise<boolean> {
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: LIMIT, p_seconds: WINDOW_S }); if (error) return true; return data !== false; }
   catch (_e) { return true; } // limiter unavailable must not hide a customer's own ticket from them
 }
-Deno.serve(observe('complaint_status', async (req) => {
+Deno.serve(siteCors(observe('complaint_status', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return J({ ok: false, error: 'method_not_allowed' }, 405);
   try {
@@ -38,4 +39,4 @@ Deno.serve(observe('complaint_status', async (req) => {
       decision_ref: d.decision_ref ?? null, decided_by: d.decided_by ?? null,
       acknowledge_days_left: d.acknowledge_days_left, respond_days_left: d.respond_days_left });
   } catch (_e) { return J({ ok: false, error: 'unavailable' }, 500); }
-}));
+})));

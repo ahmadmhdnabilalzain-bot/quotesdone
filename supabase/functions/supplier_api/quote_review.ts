@@ -27,12 +27,13 @@
 // WHAT IT DOES NOT DO: it never decides a price is too high or too low, never compares a supplier to
 // another supplier, and never tells a supplier anything about the customer beyond the scrubbed
 // inquiry the inbox already serves. Pure: no I/O, no clock, no model — except readWorking, which takes its model as deps.
-import { assessQuote, readDelivery, readInstallation, readWarranty, requirementsOf, type Line, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
+import { assessQuote, readDelivery, readInstallation, validityOf, readWarranty, requirementsOf, type Line, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
 import { normText, VAGUE } from '../_shared/line_specs/model.ts';
 import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { OPTION_HEAD } from '../_shared/line_specs/options.ts';
 import { readVat, type VatTreatment } from '../_shared/line_specs/vat.ts';
+import { readDiscount, statedPrice } from '../_shared/stated_price.ts';
 import { arDuration, jobNoOf } from '../_shared/quote_documents.ts';
 // A period the supplier typed, read back in Arabic where the glossary knows it (audit 21 Sep 2026, finding 26:
 // the Arabic acknowledgement said "الصلاحية 30 days"). A period it does not know stays in the supplier's words.
@@ -64,6 +65,8 @@ export type WLine = {
 export type Working = {
   lines: WLine[]; amount: number | null; subtotal: number | null; vat_amount: number | null;
   vat_treatment: string | null; price_ex_vat: number | null; trn: string | null;
+  /** Ruling 1207: the supplier's discount, as stated — a price field, never folded into the conditions. */
+  gross_amount?: number | null; discount_amount?: number | null; discount_label?: string | null;
   lead_time: string; validity: string; payment_terms: string; warranty: string;
   scope: string; conditions: string; exclusions: string; notes: string;
   terms_spec: TermsSpec; masked_terms: string[]; option_totals: Record<string, number>;
@@ -130,7 +133,7 @@ export function workingFromProposal(p: Proposal, fileText = ''): Working {
   });
   return {
     lines, amount: p.amount, subtotal: p.subtotal, vat_amount: p.vat_amount, vat_treatment: p.vat_treatment ?? null,
-    price_ex_vat: p.price_ex_vat, trn: p.trn, lead_time: p.lead_time || '', validity: p.validity || '', payment_terms: p.payment_terms || '',
+    price_ex_vat: p.price_ex_vat, trn: p.trn, gross_amount: p.gross_amount ?? null, discount_amount: p.discount_amount ?? null, discount_label: p.discount_label ?? null, lead_time: p.lead_time || '', validity: p.validity || '', payment_terms: p.payment_terms || '',
     warranty: p.warranty || '', scope: p.scope || '', conditions: p.conditions || '', exclusions: p.exclusions || '', notes: '',
     terms_spec: {}, masked_terms: p.masked_terms || [], option_totals: p.option_totals || {},
     foreign_currency: foreignCurrency(fileText), boq_excluded: {}, qty_explained: {}, corrections: [],
@@ -212,7 +215,7 @@ export async function readWorking(think: ThinkDeps, inq: SafeInquiry, w: Working
   return { ...w, terms_spec: ap.terms_spec, lines: w.lines.map((l, i) => ({ ...l, spec: ap.lines[i].spec ?? l.spec, spec_source: ap.lines[i].spec_source ?? l.spec_source })) };
 }
 
-export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
+export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Date()): Review {
   const issues: Issue[] = [];
   const boq = inq.boq_withheld ? [] : (inq.boq_rows || []).filter((r) => normText(String(r.description ?? '')));
   const lines = w.lines;
@@ -265,7 +268,9 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
   // 6. The VAT basis. The price the customer compares is the price excluding VAT (vat.ts).
   const vatText = [w.notes, w.scope, w.conditions, w.exclusions, w.payment_terms].join('\n');
   const stated = w.vat_treatment && w.vat_treatment !== 'not_stated' ? w.vat_treatment : null;
-  const vat = readVat({ amount: w.amount, subtotal: w.subtotal, vat_amount: w.vat_amount, text: vatText, stated, price_ex_vat: w.price_ex_vat });
+  // Rulings 1207/1208: read after the supplier's stated discount; price_ex_vat is the after-discount, ex-VAT figure.
+  const vat = statedPrice({ amount: w.amount, subtotal: w.subtotal, vat_amount: w.vat_amount, text: vatText, stated, price_ex_vat: w.price_ex_vat,
+    gross_amount: w.gross_amount ?? null, discount_amount: w.discount_amount ?? null, discount_label: w.discount_label ?? null });
   const vatIssue = vat.treatment === 'not_stated' || (vat.treatment === 'inclusive' && !vat.price_ex_vat);
   if (vat.treatment === 'not_stated') {
     issues.push(I('vat_basis', 'adjustment', null, null, 'vat',
@@ -280,7 +285,8 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
 
   // 4. The lines add up to the total (a single-option quotation only; options are totalled apiece).
   const sum = lines.filter((l) => !heading(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0);
-  const totals = [exVat, w.amount, w.subtotal].filter((x): x is number => Number(x) > 0);
+  // A stated discount explains the difference: the lines may add up to the price BEFORE the discount.
+  const totals = [exVat, w.amount, w.subtotal, vat.gross_amount].filter((x): x is number => Number(x) > 0);
   if (sum > 0 && totals.length && !w.qty_explained?.total && Object.keys(w.option_totals || {}).length < 2 && !totals.some((t) => Math.abs(t - sum) <= Math.max(1, t * 0.01))) {
     issues.push(I('total_mismatch', 'clarification', null, null, 'total',
       `Your line amounts add up to AED ${fmt(Math.round(sum * 100) / 100)}, but the quotation's total is AED ${fmt(totals[0])}. Correct the lines or the total, or tell me what the difference is (for example a discount).`,
@@ -288,7 +294,8 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
   }
 
   // 7. Validity.
-  if (!readDelivery(w.validity)) {
+  // The hold desk's reader (assess.ts validityOf): a positive period or a date not yet passed, so release and desk agree.
+  if (!validityOf(w.validity || '', now)) {
     issues.push(I('validity', 'adjustment', null, null, 'validity',
       'State how long your prices are valid, as a number of days or a date (for example: "validity 30 days").',
       'يُرجى ذكر مدة صلاحية أسعاركم بعدد الأيام أو بتاريخ محدد (مثال: «الصلاحية 30 يومًا»).'));
@@ -435,7 +442,7 @@ const TYPE_IT_EN = 'Or type it here instead: one line per item — description, 
 const TYPE_IT_AR = 'أو اكتبوه هنا بدلًا من ذلك: سطر لكل بند — الوصف والكمية والوحدة والسعر — ثم الإجمالي. '
   + 'أقرأ الأسطر المكتوبة تمامًا كما أقرأ الملف، والمراجعة هي نفسها.';
 export const unreadableSaid = (kind: string): Said => kind === 'image'
-  ? { en: 'That is a photo or a scan, and I read quotations by their text. Please attach the quotation as a PDF with text, an Excel or Word file, or a CSV. ' + TYPE_IT_EN, ar: 'هذا الملف صورة أو مسح ضوئي، بينما أقرأ العروض من نصّها. يُرجى إرفاق العرض بصيغة PDF نصية، أو ملف Excel أو Word أو CSV. ' + TYPE_IT_AR }
+  ? { en: 'I could not read that photo or scan clearly, even with a second look. Please send a clearer copy — a sharp photo of the whole page, or the quotation as a PDF, Excel, Word or CSV file — and I will read it as soon as it arrives. ' + TYPE_IT_EN, ar: 'تعذّر عليّ قراءة هذه الصورة أو المسح الضوئي بوضوح حتى بعد محاولة ثانية. يُرجى إرسال نسخة أوضح — صورة واضحة للصفحة كاملة، أو العرض بصيغة PDF أو Excel أو Word أو CSV — وسأقرؤها فور وصولها. ' + TYPE_IT_AR }
   : { en: 'I could not find a priced list or a total in that file. Please attach the quotation with its line items and total — a PDF with text, an Excel or Word file, or a CSV. ' + TYPE_IT_EN, ar: 'لم أجد في هذا الملف بنودًا مسعّرة ولا إجماليًا. يُرجى إرفاق العرض ببنوده وإجماليه بصيغة PDF نصية، أو ملف Excel أو Word أو CSV. ' + TYPE_IT_AR };
 /** The typed lines themselves carried no priced item: the same answer, without asking for a file. */
 export const typedUnreadableSaid = (): Said => ({
@@ -664,7 +671,22 @@ export function applyCorrections(w0: Working, cs: Correction[], boq: BoqRow[] = 
       }
       case 'total_explained': {
         w.qty_explained = { ...w.qty_explained, total: c.value };
-        w.conditions = [w.conditions, c.value].filter(Boolean).join('; ').slice(0, 2000);
+        // Ruling 1207: a discount is a structured price field (gross, discount, final), not a condition. A difference
+        // explained by something that is not a discount stays the supplier's words in the conditions.
+        const d = readDiscount(c.value);
+        const linesSum = w.lines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+        if (d) {
+          // The price before the discount is the larger of the lines and the stated total; the price after it is
+          // that less the discount, and it becomes the quotation's ex-VAT figure (ruling 1208: never the gross).
+          const gross = w.gross_amount ?? (Math.max(linesSum, Number(w.price_ex_vat ?? w.amount) || 0) || null);
+          const disc = d.amount ?? (d.pct != null && gross != null ? r2(gross * d.pct / 100) : null);
+          w.discount_label = d.label;
+          if (gross != null && disc != null && disc < gross) {
+            w.gross_amount = r2(gross); w.discount_amount = disc;
+            const fin = r2(gross - disc);
+            w.amount = fin; if (w.price_ex_vat != null) w.price_ex_vat = fin;
+          }
+        } else w.conditions = [w.conditions, c.value].filter(Boolean).join('; ').slice(0, 2000);
         log('total_explained', c.value); break;
       }
       case 'component': {
@@ -728,7 +750,12 @@ export function applyCorrections(w0: Working, cs: Correction[], boq: BoqRow[] = 
  */
 function retotal(w: Working) {
   const sum = r2(w.lines.filter((l) => !heading(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0));
-  w.amount = sum; if (w.subtotal != null) w.subtotal = sum; if (w.price_ex_vat != null) w.price_ex_vat = sum;
+  // A stated discount still applies to the new lines (ruling 1208: the price after the discount, never the gross).
+  // The subtotal stays the BEFORE-discount figure, as the file wrote it; the final figures are after the discount.
+  const disc = Number(w.discount_amount) > 0 && Number(w.discount_amount) < sum ? Number(w.discount_amount) : 0;
+  if (disc) w.gross_amount = sum;
+  const fin = r2(sum - disc);
+  w.amount = fin; if (w.subtotal != null) w.subtotal = sum; if (w.price_ex_vat != null) w.price_ex_vat = fin;
   w.vat_amount = null;
 }
 

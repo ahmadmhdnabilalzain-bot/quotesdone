@@ -124,18 +124,17 @@ test('no stylesheet sets a direction on html, body or :root', () => {
   assert.deepEqual(bad, []);
 });
 
-test('both portals start from the URL, adopt the registered language, and write <html> through the one helper', () => {
-  for (const f of ['components/me/CustomerPortal.tsx', 'components/portal/SupplierPortal.tsx']) {
+// The supplier portal left this rule on 12 Oct 2026: suppliers are always English (founder ruling 1008),
+// guarded by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
+test('the customer portal starts from the URL, adopts the registered language, and writes <html> through the one helper', () => {
+  for (const f of ['components/me/CustomerPortal.tsx']) {
     const s = read(join(SRC, f));
     assert.match(s, /urlLocale\(window\.location\.pathname\)/, f + ' must start from the URL');
     assert.match(s, /applyDocumentLocale\(lang\)/, f + ' must write the root element through applyDocumentLocale');
     assert.match(s, /onAuth\(j\.access_token, j\.refresh_token, j\.locale\)/, f + ' must take the account language at sign-in');
     assert.match(s, /const onAuth = \(access, refresh, locale\) => \{ (onServedLocale\(locale\)|adoptLocale\(locale, setLang\));/, f + ' must adopt it before the first paint');
   }
-  const sup = read(join(SRC, 'components/portal/SupplierPortal.tsx'));
-  assert.match(sup, /if \(l === 'ar' \|\| l === 'en'\) adoptLocale\(l, setLang\);/, 'SupplierPortal must apply leads.locale after sign-in like the customer portal');
-  assert.doesNotMatch(sup, /switchLang\(/, 'the reloading switchLang must be gone');
-  assert.match(sup, /action: 'save_settings', locale: l/, 'switching while signed in must save leads.locale');
+  assert.match(read(join(SRC, 'components/portal/SupplierPortal.tsx')), /applyDocumentLocale\(lang\)/, 'SupplierPortal still writes <html> through the one helper');
   assert.match(read(join(SRC, 'components/me/CustomerPortal.tsx')), /const onServedLocale = [^\n]*\n[^\n]*\n[^\n]*\n\s*adoptLocale\(l, setLangState\);/, 'CustomerPortal must adopt the served locale');
 });
 
@@ -150,7 +149,4 @@ test('each language switch carries the note, in both languages', () => {
   assert.match(read(join(SRC, 'components/me/PortalShell.tsx')), /title=\{t\('lang_note'\)\}/);
   assert.match(read(join(SRC, 'components/me/PortalShell.tsx')), /\{t\('lang_note'\)\}<\/p>/);
   assert.match(read(join(SRC, 'components/me/CustomerPortal.tsx')), /\{t\(lang, 'lang_note'\)\}/);
-  const ss = read(join(SRC, 'components/portal/supplier/SupplierSettings.tsx'));
-  assert.equal((ss.match(/langNote:/g) || []).length, 2); assert.match(ss, /t\(lang, 'langNote'\)/);
-  assert.match(read(join(SRC, 'components/portal/SupplierPortal.tsx')), /title=\{token \? LANG_NOTE\[/);
 });

@@ -1,7 +1,7 @@
 // think() with a mocked model, embedder and database. No network, no env, no paid call.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { GateAnswer } from './llm_hold.ts';
-import { authoritative, isFixtureRequest, parseSearchResults, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
+import { authoritative, isFixtureRequest, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
 
 type Call = { phase: Phase; system: string; input: string; o: Record<string, unknown> };
 function mock(o: {
@@ -24,7 +24,7 @@ function mock(o: {
       if (fn === 'fn_reason_retrieve') return Promise.resolve({ data: o.retrieve ?? [], error: null });
       if (fn === 'fn_case_recall') return Promise.resolve({ data: { cases: [] }, error: null });
       if (fn === 'fn_reason_hold') return Promise.resolve({ data: 42, error: null });
-      if (fn === 'fn_reason_held_due') return Promise.resolve({ data: [{ id: 42, request: { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt work' }, { id: 'ask', meaning: 'a question' }] } } }], error: null });
+      if (fn === 'fn_reason_held_due') return Promise.resolve({ data: [{ id: 42, created_at: new Date().toISOString(), request: { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt work' }, { id: 'ask', meaning: 'a question' }] } } }], error: null });
       return Promise.resolve({ data: 1, error: null });
     },
     search: () => Promise.resolve(o.search ?? []),
@@ -186,8 +186,6 @@ Deno.test('only authority hosts over https are read', () => {
   assert(!authoritative('http://www.dm.gov.ae/x'));
   assert(!authoritative('https://dm.gov.ae.evil.com/x'));
   assert(!authoritative('https://169.254.169.254/latest'));
-  const html = '<a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.dm.gov.ae%2Fpools&amp;rut=1">DM <b>pools</b></a><a class="result__a" href="https://spam.com">x</a>';
-  assertEquals(parseSearchResults(html), [{ url: 'https://www.dm.gov.ae/pools', title: 'DM pools' }]);
 });
 
 Deno.test('replayHeld reasons a held row once the hold lifts and hands the result to the resolver', async () => {
@@ -199,6 +197,68 @@ Deno.test('replayHeld reasons a held row once the hold lifts and hands the resul
   assertEquals(res[1].p_id, 42);
   assertEquals((res[1].p_result as { decision: { choice: string } }).decision.choice, 'stop');
   assert(!m.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a replay must not re-queue itself');
+});
+
+Deno.test('replayHeld sweeps every tick, and one paid answer is delivered to every row that waited on the same question', async () => {
+  const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'read it', needs_knowledge: false }], facts: [] })],
+    synthesise: [J({ answer: 'He is halting work in flight.', decision: { choice: 'stop' } })] } });
+  const base = m.deps.rpc;
+  const twin = { id: 43, seat: 'ceo', surface: 'ceo.command_intent', request: { seat: 'ceo' }, subject: { command_id: 8 } };
+  m.deps.rpc = (fn, args) => fn === 'fn_reason_held_resolve'
+    ? (m.rpcs.push([fn, args]), Promise.resolve({ data: { id: 42, status: 'applied', fanned: [twin] }, error: null }))
+    : base(fn, args);
+  const delivered: number[] = [];
+  const out = await replayHeld(null, 3, m.deps, (row) => { delivered.push(row.id); return Promise.resolve({ delivered: true }); }) as { replayed: number };
+  assertEquals(out.replayed, 1);
+  assertEquals(m.rpcs[0][0], 'fn_reason_held_sweep', 'the sweep runs first, before the gate can return');
+  assertEquals(delivered, [42, 43], 'the answer reaches the leader and the row that waited on it');
+  assertEquals(m.calls.filter((c) => c.phase === 'synthesise').length, 1, 'the model answered once');
+});
+
+// 7 Oct 2026 (ledger 1175): the backlog drains in about an hour - claims repeat while full, bounded by rows and time.
+Deno.test('replayHeld claims again while each claim comes back full, and stops at maxRows', async () => {
+  const m = mock({ replies: { decompose: Array(20).fill(J({ steps: [{ id: 's1', goal: 'g', needs_knowledge: false }], facts: [] })),
+    synthesise: Array(20).fill(J({ answer: 'ZZ answer.', decision: { choice: 'stop' } })) } });
+  const base = m.deps.rpc; let next = 100;
+  const row = () => ({ id: next++, seat: 'ceo', surface: 'ceo.command_intent', request: { seat: 'ceo', question: 'ZZ', decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt' }] } } });
+  m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
+    ? (m.rpcs.push([fn, args]), Promise.resolve({ data: Array.from({ length: Number(args.p_limit) }, row), error: null }))
+    : base(fn, args);
+  const out = await replayHeld(null, 2, m.deps, undefined, { maxRows: 5 }) as { replayed: number };
+  assertEquals(out.replayed, 5, 'two full claims of 2, then a last claim of 1');
+  assertEquals(m.rpcs.filter(([f]) => f === 'fn_reason_held_due').map(([, a]) => a.p_limit), [2, 2, 1]);
+});
+
+Deno.test('replayHeld stops claiming when the time budget is spent', async () => {
+  const m = mock({ replies: { decompose: Array(5).fill(J({ steps: [{ id: 's1', goal: 'g', needs_knowledge: false }], facts: [] })),
+    synthesise: Array(5).fill(J({ answer: 'ZZ answer.', decision: { choice: 'stop' } })) } });
+  const base = m.deps.rpc; let t = 0;
+  m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
+    ? (t += 1000, Promise.resolve({ data: [{ id: t, seat: 'ceo', surface: 'ceo.command_intent', request: { seat: 'ceo' } }], error: null }))
+    : base(fn, args);
+  const out = await replayHeld(null, 1, m.deps, undefined, { maxRows: 50, budgetMs: 2500, now: () => t }) as { replayed: number };
+  assertEquals(out.replayed, 3, 'claims at t=1000, 2000, 3000; the budget (2500) stops the fourth');
+});
+
+Deno.test('a stale held answer is stored, never sent unreviewed', async () => {
+  const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'g', needs_knowledge: false }], facts: [] })],
+    synthesise: [J({ answer: 'ZZ answer.', decision: { choice: 'stop' } })] } });
+  const base = m.deps.rpc; const T = Date.parse('2026-10-07T04:00:00Z');
+  m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
+    ? (m.rpcs.push([fn, args]), Promise.resolve({ data: [{ id: 7, seat: 'ceo', surface: 'wa_inbound.intent_table', created_at: '2026-10-05T04:00:00Z', request: { seat: 'ceo', question: 'ZZ', decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt' }] } } }], error: null }))
+    : base(fn, args);
+  const sent: number[] = [];
+  await replayHeld(null, 3, m.deps, (r) => { sent.push(r.id); return Promise.resolve({ delivered: true }); }, { now: () => T });
+  assertEquals(sent, [], 'a 48-hour-old answer never reaches the person unreviewed');
+  const rec = m.rpcs.find(([f]) => f === 'fn_reason_held_delivered');
+  assertEquals((rec?.[1].p_delivery as { via: string }).via, 'held_for_review');
+});
+
+Deno.test('under the hold replayHeld still sweeps and claims nothing', async () => {
+  const m = mock({ gate: { allowed: false, rule: 'founder_hold', held: 1, routes: 8 }, replies: {} });
+  const out = await replayHeld(null, 3, m.deps) as { replayed: number; reason: string };
+  assertEquals(out.reason, 'model_hold');
+  assertEquals(m.rpcs.map(([f]) => f), ['fn_reason_held_sweep']);
 });
 
 // ── THE LEARNING LOOP: every judgement is opened by its recall and closed with what it decided ──────
@@ -260,4 +320,75 @@ Deno.test('a fixture question is held but never queued for a paid replay (e2e jo
   await think(real.deps, { seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x' } });
   assert(real.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a real subject is still filed');
   assertEquals(isFixtureRequest({ subject: { intake_id: 'x' } }), false);
+});
+
+// Stage-2 sandbox run #1230 was aborted because a fixture was stubbed even inside its own open window (it_engineer, 7 Oct 2026).
+Deno.test('a fixture inside a proven, open sandbox window makes a model call; outside it, or unproven, it is stubbed', async () => {
+  const { E2E_RUN } = await import('./e2e_run.ts');
+  const opts = { name: 'trade', options: [{ id: 'aluminium', meaning: 'aluminium work' }, { id: 'glazing', meaning: 'glazing work' }] };
+  const req = { seat: 'sales_engineer' as const, surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } };
+  const run = (open: unknown, tag: string | null) => {
+    const m = mock({ gate: { allowed: true, rule: 'allowed' }, replies: {} });
+    const rpc = m.deps.rpc;
+    m.deps.rpc = (fn, args) => fn === 'fn_e2e_run_tag_open' ? Promise.resolve({ data: open, error: null }) : rpc(fn, args);
+    const go = () => think(m.deps, req);
+    return (tag ? E2E_RUN.run({ tag, secret: null }, go) : go()).then((r) => ({ r, m }));
+  };
+  const inside = await run(true, 'ab12cd34');
+  assert(inside.m.calls.length > 0, 'inside an open window the fixture reaches the model');
+  assert(inside.r.reason !== 'fixture_no_spend');
+  for (const [open, tag] of [[false, 'ab12cd34'], [true, null], [null, 'ab12cd34']] as [unknown, string | null][]) {
+    const out = await run(open, tag);
+    assertEquals(out.r.reason, 'fixture_no_spend', `open=${open} tag=${tag}`);
+    assertEquals(out.m.calls.length, 0);
+  }
+});
+
+// 12 Oct 2026 (#1287 review): a held row that does not say when it was asked is held for review, never sent.
+Deno.test('replayHeld fails closed: a row without created_at is held for review, not delivered', async () => {
+  const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'read it', needs_knowledge: false }], facts: [] })],
+    synthesise: [J({ answer: 'ZZ answer.', decision: { choice: 'stop' } })] } });
+  const base = m.deps.rpc;
+  m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
+    ? (m.rpcs.push([fn, args]), Promise.resolve({ data: [{ id: 9, seat: 'ceo', surface: 'ceo.command_intent', request: { seat: 'ceo', question: 'ZZ', decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt' }] } } }], error: null }))
+    : base(fn, args);
+  const delivered: number[] = [];
+  await replayHeld(null, 3, m.deps, (row) => { delivered.push(row.id); return Promise.resolve({ delivered: true }); });
+  assertEquals(delivered, [], 'nothing reaches a person');
+  const rec = m.rpcs.find(([f]) => f === 'fn_reason_held_delivered');
+  assertEquals((rec?.[1] as { p_delivery: { via: string } }).p_delivery.via, 'held_for_review');
+});
+
+// prevented by: this test (customer_support, 12 Oct 2026). The widget hands think() its plan: no planning call is
+// bought, the step it gave is retrieved, and with stakes 'high' the independent check still runs on the answer.
+Deno.test('a caller-supplied plan skips the decompose call, keeps retrieval, and the check still runs', async () => {
+  const m = mock({ gate: { allowed: true }, retrieve: KB, replies: {
+    synthesise: [J({ answer: 'The reveal fee is 3% of the quote you choose.', reasoning: ['s1'], cited: ['kb_chunks:7'], confidence: 0.8 })],
+    verify: [J({ verdict: 'agree', problems: [] })],
+  } });
+  const r = await think(m.deps, { seat: 'customer_support', surface: 'support_reply.widget', question: 'How much is the reveal fee?', context: { audience: 'visitor' },
+    plan: { steps: [{ id: 's1', goal: 'answer from company knowledge', query: 'How much is the reveal fee?' }] }, stakes: 'high' });
+  assertEquals(r.status, 'answered');
+  assertEquals(m.calls.filter((c) => c.phase === 'decompose').length, 0);
+  assertEquals(r.steps.filter((s) => s.kind === 'retrieve' && s.status === 'done').length, 1);
+  assertEquals(r.verified?.status, 'agreed');
+});
+
+Deno.test('a plan cut off at the output cap still answers, from a one-step plan on the question (12 Oct 2026)', async () => {
+  const cut = J({ steps: [{ id: 's1', goal: 'where quotes appear', query: 'customer portal my requests quotes' }], facts: [] }).slice(0, 60);
+  const m = mock({ retrieve: KB, replies: {
+    decompose: [cut],
+    synthesise: [J({ answer: 'Open "My requests" in your portal and select the request: every quote received for it is listed there, anonymous, with the top-3 comparison report. The supplier\'s name unlocks when you pay the 3% reveal fee on the quote you choose.', reasoning: ['s1'], cited: ['kb_chunks:7'], confidence: 0.8 })],
+    verify: [J({ verdict: 'agree', problems: [] })],
+  } });
+  const r = await think(m.deps, { seat: 'customer_support', surface: 'support_reply.portal', question: 'أين أجد عروض الأسعار؟', context: { audience: 'customer', language: 'ar' } });
+  assertEquals(r.status, 'answered');
+  assert(r.steps.some((s) => s.kind === 'decompose' && s.detail === 'unparseable plan; one-step plan used'));
+  // the fallback plan is high-stakes, so the cross-family verify runs on it
+  assertEquals(m.calls.filter((c) => c.phase === 'verify').length, 1);
+  assertEquals(r.verified?.status, 'agreed');
+  // a model that returned nothing at all is still not answered
+  const none = mock({ replies: { decompose: [{ content: null, error: 'all_models_failed' }] } });
+  const r2 = await think(none.deps, { seat: 'customer_support', surface: 'support_reply.portal', question: 'q', context: { audience: 'customer' } });
+  assert(r2.status !== 'answered');
 });

@@ -44,6 +44,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "polymers_resins:pe-pipe-grades-pe80-pe100",
+      "topic": "Polyethylene pipe material grades PE80, PE100, PE100-RC",
+      "kind": "material_grade",
+      "body_en": "Polyethylene for pressure pipes is classified by its long-term strength, the Minimum Required Strength (MRS), under ISO 12162. MRS is calculated by regression analysis of long-term pressure test data to ISO 9080, predicting minimum strength over 50 years at 20 °C. PE80 has an MRS of 8.0 MPa; PE100 has 10.0 MPa. PE100-RC (resistant to cracking) has the same 10.0 MPa MRS but meets stricter slow-crack-growth requirements (for example over 8,760 hours in the notched pipe test against 500+ hours for conventional PE100), which allows trenchless installation such as directional drilling and direct backfill without sand bedding. When buying resin, name the grade class (PE100 or PE100-RC). Not established here: the governing water-pipe product standard and UAE utility approvals for named compounds.",
+      "body_ar": "يُصنَّف البولي إيثيلين المستخدم في أنابيب الضغط حسب مقاومته طويلة الأمد، أي الحد الأدنى للمقاومة المطلوبة (MRS)، وفق المواصفة ISO 12162. تُحسب قيمة MRS بتحليل انحداري لبيانات اختبارات الضغط طويلة الأمد وفق ISO 9080، للتنبؤ بالحد الأدنى للمقاومة على مدى 50 عاماً عند 20 °م. تبلغ قيمة MRS لدرجة PE80 مقدار 8.0 ميغاباسكال، ولدرجة PE100 مقدار 10.0 ميغاباسكال. وتمتلك درجة PE100-RC (المقاومة للتشقق) قيمة MRS نفسها البالغة 10.0 ميغاباسكال، لكنها تفي بمتطلبات أشد لمقاومة النمو البطيء للشقوق (مثلاً أكثر من 8,760 ساعة في اختبار الأنبوب المحزوز مقابل أكثر من 500 ساعة لدرجة PE100 التقليدية)، مما يسمح بالتركيب دون حفر مثل الحفر الاتجاهي والردم المباشر دون فرشة رملية. عند شراء الراتنج، حدِّد فئة الدرجة (PE100 أو PE100-RC). غير مثبت هنا: مواصفة المنتج الحاكمة لأنابيب المياه، واعتمادات هيئات المرافق الإماراتية لمركبات بعينها.",
+      "sources": [
+        "https://www.pe100plus.com/cn/PE-Pipes/PE-technical-guidance/model/Materials/MRS/PE-80-PE-100-i254.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -60,6 +73,15 @@
       "expected_entry_ids": [
         "polymers_resins:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which PE grade is used for making water pipes?",
+      "q_ar": "ما درجة البولي إيثيلين المستخدمة لصناعة أنابيب المياه؟",
+      "expected_entry_ids": [
+        "polymers_resins:pe-pipe-grades-pe80-pe100"
+      ],
+      "why": "No entry of this pack answered it (the standards entry says sources set no grade per application; nothing on PE80/PE100 pipe grades). polymers_resins:pe-pipe-grades-pe80-pe100 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from polymers_resins.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -76,6 +98,9 @@
       "polymers_resins:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "polymers_resins:pe-pipe-grades-pe80-pe100"
+    ]
   }
 }

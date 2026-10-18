@@ -47,6 +47,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "joinery:moisture-resistant-carcass-boards",
+      "topic": "Moisture-resistant boards for kitchen carcasses",
+      "kind": "material_selection",
+      "body_en": "For kitchen cabinets in humid interiors, a common board is moisture-resistant MDF meeting EN 622-5 type MDF.H1, the class for interior humid conditions; the manufacturer of MEDITE MR describes it as suited to kitchens, bathrooms and other interior spaces where moisture levels demand greater dimensional stability. It is moisture resistant, not an exterior board: the manufacturer states it should not be used in external environments. It is supplied in thicknesses including 15, 18 and 22 mm. A quote should state the board type and standard, thickness and facing. Not established here: grades for parts in direct water contact (e.g. plywood or marine plywood), and any UAE mandate on cabinet board grade.",
+      "body_ar": "لخزائن المطابخ في الأماكن الداخلية الرطبة، يُستخدم عادةً لوح MDF مقاوم للرطوبة مطابق للمواصفة EN 622-5 من النوع MDF.H1، وهي فئة الظروف الداخلية الرطبة؛ ويصف مُصنّع لوح MEDITE MR منتجه بأنه مناسب للمطابخ والحمامات وغيرها من الأماكن الداخلية التي تتطلب فيها الرطوبة ثباتاً أكبر في الأبعاد. وهو لوح مقاوم للرطوبة وليس لوحاً خارجياً، إذ يذكر المُصنّع أنه لا ينبغي استخدامه في البيئات الخارجية. ويتوفر بسماكات منها 15 و18 و22 مم. ينبغي أن يحدد عرض السعر نوع اللوح ومواصفته وسماكته والكسوة. لم يُثبت هنا: الدرجات المناسبة للأجزاء المعرضة للماء مباشرة (مثل الخشب الرقائقي أو الخشب البحري)، وأي اشتراط إماراتي لدرجة ألواح الخزائن.",
+      "sources": [
+        "https://mdfosb.com/en/products/medite-mr"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -63,6 +76,15 @@
       "expected_entry_ids": [
         "joinery:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What board should kitchen cabinets be made of in a humid UAE apartment?",
+      "q_ar": "من أي لوح يجب أن تُصنع خزائن المطبخ في شقة رطبة بالإمارات؟",
+      "expected_entry_ids": [
+        "joinery:moisture-resistant-carcass-boards"
+      ],
+      "why": "No entry of this pack answered it (no entry on moisture-resistant MDF or marine ply for kitchen cabinets in humid apartments). joinery:moisture-resistant-carcass-boards was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from joinery.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -78,6 +100,9 @@
       "joinery:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "joinery:moisture-resistant-carcass-boards"
+    ]
   }
 }

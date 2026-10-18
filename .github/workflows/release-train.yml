@@ -43,7 +43,7 @@ permissions:
 jobs:
   release:
     name: release one pull request
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
