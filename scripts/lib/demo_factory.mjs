@@ -1312,6 +1312,21 @@ export async function teardown(run) {
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
+    // A RUN'S SUPPORT PROFILE GOES WITH ITS PEOPLE (19 Oct 2026). support_customer_profile points at customers and
+    // leads ON DELETE SET NULL, and support_case/feedback point at the profile with no cascade, so the fkChildren
+    // step below always failed 23503 ("deferred"), the customer delete then nulled the link, and every run left a
+    // profile and its case behind: 29 such rows on 19 Oct, all @example.invalid. Scoped by the run's customers,
+    // leads or own address; the case's children go first.
+    ...((P, C) => [
+      ['support_case (unlink recovery)', `update public.support_case set recovery_of_case_id = null where recovery_of_case_id in ${C}`],
+      ['support_notification', `delete from public.support_notification where case_id in ${C}`],
+      ['refund_case (support case)', `delete from public.refund_case where case_id in ${C}`],
+      ['support_document_intake', `delete from public.support_document_intake where case_id in ${C}`],
+      ['feedback', `delete from public.feedback where profile_id in ${P} or case_id in ${C}`],
+      ['support_case', `delete from public.support_case where customer_profile_id in ${P}`],
+      ['support_customer_profile', `delete from public.support_customer_profile where id in ${P}`],
+    ])(`(select id from public.support_customer_profile where customer_id in ${CUST} or lead_id in ${LEAD} or email like 'qd-${tag}-%@example.%')`,
+       `(select case_id from public.support_case where customer_profile_id in (select id from public.support_customer_profile where customer_id in ${CUST} or lead_id in ${LEAD} or email like 'qd-${tag}-%@example.%'))`),
     // EVERY OTHER TABLE THAT POINTS AT leads (12 Oct 2026, stage2 run 1c94fa6a: licence_renewal_ask, added that day,
     // refused the leads delete and stranded the run). Found from the catalogue at teardown time, so a table added
     // tomorrow is covered too; only rows of THIS run's own lead ids are removed.
