@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import ts from 'typescript';
+import ts from 'typescript-js-api'; // TypeScript 7 (the native compiler) ships no JS API; the parser stays on 5.x
 
 const SRC = join(import.meta.dirname, '..');
 // 2451 cannot redeclare a block-scoped variable; 2300 duplicate identifier; 2323 cannot redeclare an

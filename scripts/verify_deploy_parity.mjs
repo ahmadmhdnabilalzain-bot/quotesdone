@@ -28,7 +28,7 @@
 import { execSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
+import ts from 'typescript-js-api'; // TypeScript 7 (the native compiler) ships no JS API; the parser stays on 5.x
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const FN_DIR = 'supabase/functions';
