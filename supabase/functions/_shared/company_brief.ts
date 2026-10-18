@@ -20,6 +20,15 @@ import { BRIEF_TEXT } from './brief.generated.ts';
  *  informs the answer but never licenses a money figure. */
 export const figureSource = (brief: string): string => brief.replace(BRIEF_TEXT, '');
 
+/** ONE CACHED PREFIX FOR EVERY LANGUAGE AND CHANNEL (13 Oct 2026, coordinator's option a). The knowledge block is the
+ *  brief's FIRST part and identical for every caller, so it is sent as the gateway's sys_shared with its own cache
+ *  breakpoint; the rest (company block, price guide, FAQ, the caller's facts) is sys_stable. Language rules live in the
+ *  caller's sys, after both breakpoints. */
+export const BRIEF_SHARED = BRIEF_TEXT;
+export function splitBrief(brief: string): { shared: string; stable: string } {
+  return brief.startsWith(BRIEF_TEXT) ? { shared: BRIEF_TEXT, stable: brief.slice(BRIEF_TEXT.length) } : { shared: '', stable: brief };
+}
+
 export const FAQ_CAP = 16_000;
 export const BRIEF_TTL_MS = 5 * 60_000;
 
@@ -29,8 +38,9 @@ type Faq = { id?: unknown; question?: unknown; answer?: unknown; language?: unkn
 // MORE CACHED BLOCKS: a second knowledge block (next: the UAE regulations digest, mandatory codes per trade) is passed
 // as `blocks` — each is appended after the FAQ inside the same byte-stable, cacheable prefix. Its numbers become figures
 // the check accepts, so a block must hold published facts only.
-export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; lang: 'en' | 'ar'; blocks?: string[] }): string {
-  const mine = o.faqs.filter((f) => (f.language ?? 'en') === o.lang && f.question && f.answer)
+/** One language's published FAQ, by id, capped at FAQ_CAP (the same rows that language's asker always received). */
+function faqSection(faqs: Faq[], lang: 'en' | 'ar'): string {
+  const mine = faqs.filter((f) => (f.language ?? 'en') === lang && f.question && f.answer)
     .sort((a, b) => Number(a.id ?? 0) - Number(b.id ?? 0));
   let faq = '';
   for (const f of mine) {
@@ -38,11 +48,21 @@ export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; l
     if (faq.length + line.length > FAQ_CAP) break;
     faq += line;
   }
+  return faq.trim();
+}
+
+// lang 'all' (13 Oct 2026, #1407 review): ONE brief for every language that loses nothing. The Arabic FAQ is not a
+// provable translation of the English one (measured: 150 English rows, 152 Arabic, no shared id, section, sort or
+// source key), so both sections ride in the one brief, each exactly as its own asker received it before.
+export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; lang: 'en' | 'ar' | 'all'; blocks?: string[] }): string {
+  const faq = o.lang === 'all' ? faqSection(o.faqs, 'en') : faqSection(o.faqs, o.lang);
+  const faqAr = o.lang === 'all' ? faqSection(o.faqs, 'ar') : '';
   return [
     '# QUOTESDONE COMPANY BRIEF — everything you state about the company, its fees, terms, rules and contacts comes from here.',
     o.company.trim(),
     o.facts.trim(),
-    '## PUBLISHED FAQ (the approved answers)\n' + faq.trim(),
+    '## PUBLISHED FAQ (the approved answers)\n' + faq,
+    ...(faqAr ? ['## PUBLISHED FAQ IN ARABIC (the approved Arabic answers; the same rules apply)\n' + faqAr] : []),
     ...(o.blocks ?? []).map((b) => b.trim()),
   ].filter(Boolean).join('\n\n');
 }
@@ -54,8 +74,11 @@ export function fnv1a(s: string): string {
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
   return h.toString(16) + ':' + s.length;
 }
-/** The brief for a language, rebuilt from the live sources at most every BRIEF_TTL_MS per worker. */
-export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: 'en' | 'ar', blocks: string[] = [], now = Date.now()): Promise<string> {
+/** The brief, rebuilt from the live sources at most every BRIEF_TTL_MS per worker. ONE brief for every language
+ *  (13 Oct 2026): the published FAQ in both languages, each as its asker always received it (FAQ_CAP each), and the
+ *  model answers in the person's language, set by the caller's rules after the cache breakpoints. `_lang` is kept for callers. */
+export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 'en' | 'ar', blocks: string[] = [], now = Date.now()): Promise<string> {
+  const lang = 'all' as const;
   // Keyed on the CONTENT (review of #1330): two callers whose facts or blocks differ only in wording never share a
   // brief. The FAQ list is the same live table for every caller; its edits reach the brief within BRIEF_TTL_MS.
   const key = lang + ':' + fnv1a([facts, ...blocks].join('\u0001'));
@@ -67,9 +90,10 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: '
   const [cc, pb] = await Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})]);
   const company = String((cc as { block?: string } | null)?.block || '');
   const prices = typeof pb === 'string' ? pb : '';
-  const brief = composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks, BRIEF_TEXT].filter(Boolean) });
+  // BRIEF_TEXT FIRST, byte-identical for every caller: splitBrief() hands it to the gateway as its own cached block.
+  const brief = BRIEF_TEXT + '\n\n' + composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks].filter(Boolean) });
   // BRIEF_TEXT (scripts/kb/compile_brief.mjs, sales_engineer, rulings 1195-1200): the authored company brief, the UAE
-  // regulation digests and every trade's conversation playbook, ~60k tokens, byte-stable, so it sits last in the cached
+  // regulation digests and every trade's conversation playbook, ~60k tokens, byte-stable, so it sits FIRST in the cached
   // prefix for every caller (aiReply, site_assistant) instead of being passed by each one.
   cache.set(key, { at: now, brief });
   return brief;

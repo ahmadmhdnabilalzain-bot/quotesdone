@@ -10,7 +10,7 @@
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
 // prevented by: _shared/brief_answer.test.ts
 import { withImages } from './chat_images.ts';
-import { briefNumbers, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
+import { briefNumbers, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, splitBrief, takeSentences } from './company_brief.ts';
 
 export type Msg = { role: 'user' | 'assistant'; content: string };
 export interface BriefCall {
@@ -28,7 +28,10 @@ const withLastImages = (input: Msg[], images?: string[]) => !images?.length || !
   : [...input.slice(0, -1), { ...input[input.length - 1], content: withImages(input[input.length - 1].content, images) }];
 
 const body = (c: BriefCall, extra: Record<string, unknown>) => JSON.stringify({
-  __secret: c.secret, fn: c.fn, agent: c.agent, task_class: c.taskClass, sys_stable: c.brief, sys: c.sys, input: withLastImages(c.input, c.images),
+  __secret: c.secret, fn: c.fn, agent: c.agent, task_class: c.taskClass,
+  // one cached prefix for every language and channel: the knowledge block (sys_shared), then the caller's stable half,
+  // both on the 1-hour cache tier (ai_gateway/system_message.ts); the language rules ride in sys, after them
+  sys_shared: splitBrief(c.brief).shared, sys_stable: splitBrief(c.brief).stable, cache_ttl: '1h', sys: c.sys, input: withLastImages(c.input, c.images),
   max: c.max, temperature: 0.3, cache_ttl_min: 0, try_faq: false, ...(c.subject ? { subject: c.subject } : {}),
   ...(c.rateKey ? { rate_key: c.rateKey, rate_limit: c.rateLimit, rate_window_s: 3600 } : {}), ...extra,
 });

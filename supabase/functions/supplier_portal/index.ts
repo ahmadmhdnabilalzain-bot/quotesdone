@@ -166,7 +166,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
     // Our own hourly launch-path probe is marked fixture by its credential, never by its say-so (_shared/probe_caller.ts).
     if (!who.ok) return annotate(J(refusalBody(who), who.status), await probeCaller(admin, req, 'supplier_portal'));
     const { email } = who;
-    const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from').eq('claimed_by', email).maybeSingle();
+    const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle();
     // `code` IS WHAT THE PORTAL READS (13 Oct 2026, ruling 1230 walk, it_engineer). Without it the shared call()
     // (src/components/portal/supplier/api.ts) stamps every non-2xx answer `load_failed`, so Dashboard never saw
     // no_company and a supplier with no company yet (signed up without an invitation, or whose claim was refused)
@@ -650,12 +650,11 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
     // refused above the switch. Catalogues: one path out of the array, the same way.
     if (action === 'remove_document') {
       const kindStr = String(b.kind || '');
-      const ar = String(b.lang || '') === 'ar';
       if (kindStr === 'catalogs') {
         const path = String(b.path || '');
         const { data: cur } = await admin.from('leads').select('catalog_doc_paths').eq('id', sup.id).maybeSingle();
         const list: string[] = Array.isArray(cur?.catalog_doc_paths) ? (cur!.catalog_doc_paths as string[]) : [];
-        if (!path || !list.includes(path)) { const r = removeRefusal({ kind: kindStr, known: true, onFile: false, required: false, approval_status: sup.approval_status })!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, 409); }
+        if (!path || !list.includes(path)) { const r = removeRefusal({ kind: kindStr, known: true, onFile: false, required: false, approval_status: sup.approval_status })!; return J({ ok: false, error: 'remove_refused', code: r.code, message: r.message }, 409); }
         const { error } = await admin.from('leads').update({ catalog_doc_paths: list.filter((p) => p !== path), portal_updated_at: new Date().toISOString() }).eq('id', sup.id);
         if (error) return failed('remove_document', 'remove_failed', 'We could not remove that document. Please try again.', error, 502);
         const snap: VersionSnapshot = { event: 'removed', kind: 'catalogs', path, name: path.split('/').pop() || null, expiry: null, at: new Date().toISOString() };
@@ -669,7 +668,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
       const row = (cur || {}) as Record<string, unknown>;
       const prev = kind ? (row[kind.pathCol] as string | null) : null;
       const refusal = removeRefusal({ kind: kindStr, known: !!kind, onFile: !!prev, required: REQUIRED_DOC_KEYS.includes(kindStr), approval_status: sup.approval_status });
-      if (refusal || !kind || !prev) { const r = refusal!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, r.code === 'mandatory_of_approved' ? 409 : 400); }
+      if (refusal || !kind || !prev) { const r = refusal!; return J({ ok: false, error: 'remove_refused', code: r.code, message: r.message }, r.code === 'mandatory_of_approved' ? 409 : 400); }
       const clear: Record<string, unknown> = { [kind.pathCol]: null, portal_updated_at: new Date().toISOString() };
       if (kind.nameCol) clear[kind.nameCol] = null;
       if (kind.expCol) clear[kind.expCol] = null;
