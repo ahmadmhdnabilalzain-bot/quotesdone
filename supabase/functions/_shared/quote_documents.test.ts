@@ -17,6 +17,7 @@
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
+import { NOT_RESPONSIBLE } from './stated_price.ts';
 import { DOC_VERSION, quoteDocument, compareDocument, compareTable, inquiryDocument, jobNoOf, quoteRef, arDuration, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv, type Item } from './quote_documents.ts';
 import { footerLines, footerLinesAr, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
@@ -160,12 +161,14 @@ function assertNoIdentity(body: unknown, c: CaseKey) {
   assert(!/example\.invalid/i.test(s), 'a supplier email or website reached the page');
   assert(!/\+?971[\s-]?50[\s-]?000/.test(s), 'a supplier phone number reached the page');
 }
-// VAT: the one neutral line is the only mention; no rate, amount or TRN anywhere, in either language.
-function assertNoVat(body: unknown, lang: Lang) {
+// VAT (ruling 1207, superseding 14 Sep 2026): the supplier's VAT is shown as stated, so the old blanket line
+// "Prices shown exclude VAT" is never printed beside a supplier price; "no VAT" is said only beside OUR fee; the
+// page says QuotesDone is not responsible for the supplier's quotation details; and a TRN never reaches the page.
+function assertVatAsStated(body: unknown, lang: Lang) {
   const s = JSON.stringify(body);
-  assertStringIncludes(s, lang === 'ar' ? VAT_LINE.ar : VAT_LINE.en);
-  const rest = s.split(VAT_LINE.en).join('').split(VAT_LINE.ar).join('');
-  assert(!VAT_RE.test(rest), 'a VAT or TRN detail reached the customer page: ' + (rest.match(VAT_RE) || [])[0]);
+  assert(!s.includes(VAT_LINE.en) && !s.includes(VAT_LINE.ar), 'the blanket ex-VAT line reached a supplier price');
+  assertStringIncludes(s, lang === 'ar' ? NOT_RESPONSIBLE.ar : NOT_RESPONSIBLE.en);
+  assertStringIncludes(s, lang === 'ar' ? 'ولا ضريبة قيمة مضافة على رسومنا' : 'no VAT on our fee');
   assert(!/100123456700003/.test(s), 'the supplier TRN reached the page');
 }
 function assertNoMachinery(body: unknown) {
@@ -329,7 +332,7 @@ Deno.test('contacts are masked and VAT / TRN sentences are dropped from supplier
 
 for (const c of ['hvac', 'fitout'] as const) {
   for (const lang of ['en', 'ar'] as const) {
-    Deno.test(`quotation ${c} (${lang.toUpperCase()}): sections, figures, four checks, no identity, no VAT, renders`, async () => {
+    Deno.test(`quotation ${c} (${lang.toUpperCase()}): sections, figures, four checks, no identity, VAT as stated, renders`, async () => {
       // deno-lint-ignore no-explicit-any
       const body: any = quoteBody(c, lang);
       const s = JSON.stringify(body);
@@ -346,7 +349,7 @@ for (const c of ['hvac', 'fitout'] as const) {
       assertEquals(blocksOf(body, 'link')[0].link, deep(c, lang, q.id));
       if (lang === 'en') assert(!/[؀-ۿ]/.test(s), 'Arabic in the English quotation');
       else assertFullyArabic(body);
-      assertNoIdentity(body, c); assertNoVat(body, lang); assertNoMachinery(body);
+      assertNoIdentity(body, c); assertVatAsStated(body, lang); assertNoMachinery(body);
       const out = await assertRenders(body, lang);
       if (out && out.ok && (lang === 'en' || out.meta.fonts.arabic)) assert((await linksIn(out.bytes)).includes(deep(c, lang, q.id)), 'the quotation links back to its quote');
     });
@@ -368,7 +371,7 @@ Deno.test('quotation (fit-out): every line carries its specification and its pri
 
 for (const c of ['hvac', 'fitout'] as const) {
   for (const lang of ['en', 'ar'] as const) {
-    Deno.test(`comparison ${c} (${lang.toUpperCase()}): sections, every quote listed, held quote without details, technical table, no identity, no VAT, renders`, async () => {
+    Deno.test(`comparison ${c} (${lang.toUpperCase()}): sections, every quote listed, held quote without details, technical table, no identity, VAT as stated, renders`, async () => {
       // deno-lint-ignore no-explicit-any
       const body: any = compareBody(c, lang);
       const s = JSON.stringify(body);
@@ -398,7 +401,7 @@ for (const c of ['hvac', 'fitout'] as const) {
       assert(flags.includes('match') && flags.includes('differs') && flags.includes('missing'), 'the table marks matches, differences and gaps');
       assertStringIncludes(body.control, DOC_VERSION);
       if (lang === 'ar') { assertFullyArabic(body); assert(!s.includes('"Supplier '), 'an untranslated supplier label on the Arabic report'); }
-      assertNoIdentity(body, c); assertNoVat(body, lang); assertNoMachinery(body);
+      assertNoIdentity(body, c); assertVatAsStated(body, lang); assertNoMachinery(body);
       await assertRenders(body, lang);
     });
   }

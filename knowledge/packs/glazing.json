@@ -562,6 +562,15 @@
         "glazing:mirrors",
         "glazing:shower-screens"
       ]
+    },
+    {
+      "q_en": "Do façade tempered panes need heat-soak testing in the UAE?",
+      "q_ar": "هل يحتاج الزجاج المقسّى للواجهات اختبار الغمر الحراري في الإمارات؟",
+      "expected_entry_ids": [
+        "glazing:nis-heat-soak"
+      ],
+      "why": "Explains nickel-sulphide spontaneous breakage of tempered facade glass in UAE heat and EN 14179 heat-soak testing as the screen for it.",
+      "origin": "real buyer question, moved from glazing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -54,6 +54,15 @@
       "expected_entry_ids": [
         "pro_government_services:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Are government fees included in the PRO company's visa price?",
+      "q_ar": "هل الرسوم الحكومية مشمولة في سعر التأشيرة لدى شركة المعقب؟",
+      "expected_entry_ids": [
+        "pro_government_services:spec-checklist"
+      ],
+      "why": "The checklist requires the PRO quote to state government fees included or excluded, separate from the service fee, which answers that it varies and must be stated.",
+      "origin": "real buyer question, moved from pro_government_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

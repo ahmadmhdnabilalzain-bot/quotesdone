@@ -3,7 +3,7 @@
 // an unreachable provider closes a finding, or a Postiz channel with refreshNeeded reads as connected.
 //   deno test supabase/functions/_shared/integration_watch.test.ts supabase/functions/_shared/marketing_channels.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { type Entry, integrationItems, isDue, REGISTRY, runEntry } from './integration_watch.ts';
+import { type Entry, founderMayBeAsked, integrationItems, isDue, REGISTRY, runEntry } from './integration_watch.ts';
 import { channelState, socialIntegrationItems } from './marketing_channels.ts';
 
 const noWait = () => Promise.resolve();
@@ -93,4 +93,18 @@ Deno.test('Postiz unreadable: the API is the finding and every channel is carrie
   const items = socialIntegrationItems({ status: 401, list: [], error: 'unauthorized' }, { state: 'unknown' });
   assertEquals(items[0].item, 'postiz:api');
   assert(items.slice(1).every((i) => i.carried));
+});
+
+// 5 Oct 2026 (notifications#84149): a keyless endpoint has no account holder, so it never reaches the founder.
+Deno.test('a keyless integration is never the founder\'s; an account-backed one still is', () => {
+  const keyless = { secrets: [], probe: { kind: 'http', auth: 'none' } };
+  assertEquals(founderMayBeAsked(keyless), false);
+  assertEquals(founderMayBeAsked({ probe: { kind: 'http' } }), false);
+  assertEquals(founderMayBeAsked({ secrets: [], probe: { kind: 'http', auth: 'bearer:resend_api_key' } }), true);
+  assertEquals(founderMayBeAsked({ secrets: ['x'], probe: { kind: 'http', auth: 'none' } }), true);
+  assertEquals(founderMayBeAsked({ secrets: [], probe: { kind: 'custom' } }), true);
+  assertEquals(founderMayBeAsked({ secrets: [], notify_founder: false, probe: { kind: 'http', auth: 'bearer:k' } }), false);
+  for (const [k, e] of Object.entries(REGISTRY.integrations)) {
+    if (e.probe.kind === 'http' && (e.probe.auth ?? 'none') === 'none' && !(e.secrets?.length)) assertEquals(founderMayBeAsked(e), false, k);
+  }
 });

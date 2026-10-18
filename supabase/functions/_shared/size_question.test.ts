@@ -36,10 +36,6 @@ Deno.test('777: the social inbox answers a reasoned size question with the state
   assertEquals(decide('how many suppliers do you have', library, [], [], false, null).kind, 'unknown');
 });
 
-Deno.test('777: the site assistant asks the reasoning before its FAQ route, the gateway and the model', async () => {
-  const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
-  const at = src.indexOf("if (asked === 'size')");
-  assert(at > 0 && src.indexOf('widgetMeaning(defaultDeps(admin') < at, 'site_assistant must reason the question first');
-  assert(at < src.indexOf('pickFaq(qType'), 'before the count/cost/timeline FAQ');
-  assert(at < src.indexOf("sec('cred_fn_ai')"), 'before the gateway credential');
-});
+// RETIRED 12 Oct 2026 (founder rulings 1195/1196): '777: the site assistant asks the reasoning before its FAQ route'.
+// Its subject, the widget's capability answer and FAQ route, was removed: every widget reply is now written by the
+// model from the company brief, so there is no stored answer for the reasoning to come before.

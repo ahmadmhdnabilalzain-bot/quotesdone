@@ -22,6 +22,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { manifestHas } from '../lib/pending_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -85,7 +86,7 @@ const SKIP = hasToken ? false : 'no Supabase management token';
 
 async function probe(block) {
   const { sql } = await import('../lib/db.mjs');
-  try { await sql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
+  try { await replaySql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(-1500));
@@ -145,7 +146,10 @@ do $$ declare o jsonb := '{}'; v jsonb; hb bigint; unk bigint; dl bigint; hid bi
     'seats', (select count(*) from jsonb_object_keys(v->'seats')), 'gate', v->'launch_gate' is not null and v->>'launch_gate' <> 'null',
     'text_runway', position('Runway' in v->>'text') > 0, 'text_gate', position('Customer launch gate' in v->>'text') > 0));
 
-  -- GAP 5: a late November plan is chased, then released when the plan arrives
+  -- GAP 5: a late November plan is chased, then released when the plan arrives.
+  -- Since 30 Sep 2026 production holds the REAL November plan (ceo_reviewing), so "no plan yet" is staged here,
+  -- inside this aborted transaction only: without it the watch rightly says not late and the case is never tested.
+  delete from public.marketing_month_plan where month = date '2026-11-01';
   v := public.fn_ceo_marketing_plan_watch(timestamptz '2026-10-27 10:00+04');
   imp := (v->>'improvement')::bigint;
   o := o || jsonb_build_object('mkt_late', jsonb_build_object('late', v->'late'), 'mkt_imp_seat', (select seat from public.ceo_improvement where id = imp));

@@ -63,11 +63,11 @@ Deno.test('the four classes the founder named are never answered', () => {
   assertEquals(noAutoReply(cust({ from_email: '' }), FOUNDER), 'no_reply');
 });
 
-Deno.test('the reply carries the answer, else a passage, else an honest receipt, in the asker\'s language', () => {
+// Rulings 1195/1196 (12 Oct 2026): the passage, receipt and person sentences were removed; the body is always the
+// model's reply and only the greeting and sign-off are code.
+Deno.test('the e-mail is the model reply between a fixed greeting and sign-off, in the asker\'s language', () => {
   const a = composeMailReply({ lang: 'en', answer: 'You pay 3% only when you reveal.' });
-  assertEquals(a.includes('You pay 3% only when you reveal.') && a.endsWith('The QuotesDone Team'), true);
-  assertEquals(composeMailReply({ lang: 'en', passage: 'PASSAGE' }).includes('PASSAGE'), true);
-  assertEquals(composeMailReply({ lang: 'en' }).includes('same thread'), true);
-  assertEquals(composeMailReply({ lang: 'ar' }).startsWith('مرحباً'), true);
-  assertEquals(composeMailReply({ lang: 'en', person: true, answer: 'x' }).includes('member of our team'), true);
+  assertEquals(a, 'Hello,\n\nYou pay 3% only when you reveal.\n\nKind regards,\nThe QuotesDone Team');
+  const ar = composeMailReply({ lang: 'ar', answer: 'تدفع 3% فقط عند الكشف.' });
+  assertEquals(ar.startsWith('مرحباً') && ar.includes('تدفع 3% فقط عند الكشف.'), true);
 });

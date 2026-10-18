@@ -10,7 +10,7 @@ import {
   applyCorrections, fromMissing, generatedSaid, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
   type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
-import { choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
+import { QR_HELD_NOTICE, choose, message, readQuotationFile, start, submit, submitPayload, thread, transcriptAsText, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
 import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_documents.ts';
@@ -55,6 +55,8 @@ const CASES: { name: string; inq?: Partial<SafeInquiry>; w: Partial<Working>; co
   { name: 'VAT included with no VAT amount', w: { vat_treatment: 'inclusive', price_ex_vat: null, notes: 'Prices include VAT' }, code: 'vat_ex_price', kind: 'adjustment' },
   { name: 'no validity', w: { validity: '' }, code: 'validity', kind: 'adjustment' },
   { name: 'a vague validity', w: { validity: 'as per standard terms' }, code: 'validity', kind: 'adjustment' },
+  { name: 'a validity of zero days', w: { validity: '0 days' }, code: 'validity', kind: 'adjustment' },
+  { name: 'a validity date already passed', w: { validity: 'valid until 1 Jan 2020' }, code: 'validity', kind: 'adjustment' },
   { name: 'a line without its exact specification', w: { lines: [{ description: 'Jotun Fenomastic emulsion, internal walls', qty: '450', unit: 'm2', unit_price: 20, amount: 9000 }] }, code: 'spec', kind: 'adjustment', line: 1 },
   { name: 'no delivery date or lead time', w: { lead_time: '' }, code: 'delivery', kind: 'adjustment' },
   { name: 'no warranty period', w: { warranty: '' }, code: 'warranty_period', kind: 'adjustment' },
@@ -157,6 +159,7 @@ const pdfModel = () => Promise.resolve(PDF_TERMS);
 function harness(inq = inquiry()) {
   const mem = memoryReviewRepo(() => new Date('2026-09-15T10:00:00Z'));
   const submitted: Record<string, unknown>[] = [];
+  const written: string[] = []; const noModel = { on: false }; const holds: string[] = []; const voices: Parameters<ReviewDeps['voice']>[0][] = [];
   const deps: ReviewDeps = {
     inquiry: (id) => Promise.resolve(id === inq.id ? inq : null),
     scan(data, filename, mime) {
@@ -168,15 +171,27 @@ function harness(inq = inquiry()) {
     quotePdf: () => Promise.resolve({ url: 'https://example.invalid/q.pdf', ref: 'QD-3F2A9C1E-S' }),
     now: () => new Date('2026-09-15T10:00:00Z'),
     readWorking: (i, w) => Promise.resolve(readFixture(i, w)),
+    // THE MODEL, faked (rulings 1195-1197): it writes the engineer's message from what the review decided (here: the
+    // facts themselves, so the assertions below read what it was told), and reads the supplier's next step from their
+    // words the way a model does. Every text it wrote is kept: a test proves each engineer message is one of them.
+    hold: (v) => { holds.push(v.reviewId); return Promise.resolve(); },
+    voice: (v) => { voices.push(v);
+      const t = '[sales engineer] ' + v.situation; written.push(t);
+      const m = String(v.supplierMessage || ''); const ids = (v.actions || []).map((x) => x.id);
+      const action = ids.includes('submit') && /submit/i.test(m) ? 'submit'
+        : ids.includes('generate') && /generat/i.test(m) ? 'generate'
+        : ids.includes('reupload') && /upload|new version/i.test(m) ? 'reupload' : null;
+      return Promise.resolve(noModel.on ? { text: '', action: null } : { text: t, action });
+    },
   };
-  return { mem, deps, submitted, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
+  return { mem, deps, submitted, written, noModel, holds, voices, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
 }
 const ok = (v: unknown): ThreadView => { assert((v as ThreadView).ok, JSON.stringify(v)); return v as ThreadView; };
 
 Deno.test('the conversation: incomplete file → points raised → answered in text → approved → generate → submitted', async () => {
-  const { mem, deps, submitted, ctx } = harness();
+  const { mem, deps, submitted, ctx, written } = harness();
   const t0 = ok(await start(mem.repo, deps, ctx, INQ_ID));
-  assertEquals(t0.state, 'open'); assertEquals(t0.messages.length, 1); assert(ARABIC.test(t0.messages[0].body_ar || ''));
+  assertEquals(t0.state, 'open'); assertEquals(t0.messages.length, 1); assert(written.includes(t0.messages[0].body_en!), 'the greeting is written by the model'); assertEquals(t0.messages[0].body_ar, null);
 
   const t1 = ok(await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'quote_incomplete.csv', mime: 'text/csv' }));
   assertEquals(t1.state, 'changes_requested');
@@ -186,7 +201,7 @@ Deno.test('the conversation: incomplete file → points raised → answered in t
 
   const t2 = ok(await message(mem.repo, deps, ctx, INQ_ID, 'validity 30 days. lead time 3 weeks. prices exclude VAT. warranty 2 years covering materials and workmanship'));
   assertEquals(t2.state, 'awaiting_choice', JSON.stringify(t2.open_requests));
-  assert(t2.messages.some((m) => /^Quotation approved for submission/.test(m.body_en || '')));
+  assert(t2.messages.some((m) => /Quotation approved for submission/.test(m.body_en || '')));
   assertEquals(t2.open_requests.map((q) => q.kind), ['choice']);
   assert(mem.requests.filter((q) => q.kind !== 'choice').every((q) => q.state === 'answered' && q.answered_message_id));
 
@@ -198,7 +213,7 @@ Deno.test('the conversation: incomplete file → points raised → answered in t
   const t2b = ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));
   assertEquals(t2b.state, 'ready_to_submit'); assert(t2b.can_submit);
   assertEquals(submitted.length, 0, 'the generated quotation was sent before the supplier saw it');
-  assert(t2b.messages.some((m) => /standardised QuotesDone quotation I have prepared/.test(m.body_en || '') && ARABIC.test(m.body_ar || '')),
+  assert(t2b.messages.some((m) => /standardised QuotesDone quotation I have prepared/.test(m.body_en || '')),
     'the generated quotation was not printed for the supplier');
 
   const t3 = ok(await submit(mem.repo, deps, ctx, INQ_ID));
@@ -300,12 +315,12 @@ Deno.test('a photo is answered, not guessed; a closed job refuses; another suppl
   await start(mem.repo, deps, ctx, INQ_ID);
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53, 0xde]);
   const t = ok(await upload(mem.repo, deps, ctx, INQ_ID, { b64: btoa(String.fromCharCode(...png)), filename: 'photo.png', mime: 'image/png' }));
-  assertEquals(t.state, 'open'); assertMatch(t.messages.at(-1)!.body_en || '', /photo or a scan/);
+  assertEquals(t.state, 'open'); assertMatch(t.messages.at(-1)!.body_en || "", /photo or scan clearly.*clearer copy/);
   // AND IT NAMES THE WAY FORWARD (finding SP-F-03, 22 Sep 2026). Under the model hold there is no
   // OCR, so a supplier whose quotation is a scan used to have nowhere to go but the quote form
   // outside this conversation — the door that skips the review entirely.
   assertMatch(t.messages.at(-1)!.body_en || '', /type it here instead/i);
-  assert(ARABIC.test(t.messages.at(-1)!.body_ar || ''));
+  assertEquals(t.messages.at(-1)!.body_ar, null); // suppliers are answered in English only (ruling 1008)
 
   const shut = harness(inquiry({ concluded: true }));
   assertEquals(((await start(shut.mem.repo, shut.deps, shut.ctx, INQ_ID)) as { code: string }).code, 'inquiry_closed');
@@ -506,13 +521,13 @@ Deno.test('finding 12: a revised file keeps what the chat settled; only what the
   assertEquals(keys, ['spec|3||board_type']);
   const t4 = ok(await message(mem.repo, deps, ctx, ID, 'line 3 board type: standard gypsum board'));
   assertEquals(t4.state, 'awaiting_choice', JSON.stringify(t4.open_requests));
-  // finding 28: "generate" produces the quotation in BOTH languages — printed for the supplier
-  // first (SP-F-07, 22 Sep 2026), and the PDFs attached once the supplier submits it.
+  // finding 28: "generate" produces the quotation — printed for the supplier first (SP-F-07, 22 Sep
+  // 2026) and attached once the supplier submits it. English only since 13 Oct 2026 (founder ruling 1008).
   ok(await choose(mem.repo, deps, ctx, ID, 'generate'));
   const t5 = ok(await submit(mem.repo, deps, ctx, ID));
   assertEquals(t5.state, 'submitted');
   const atts = t5.messages.find((m) => m.kind === 'submitted')!.attachments;
-  assertEquals(atts.map((a) => a.lang), ['en', 'ar']);
+  assertEquals(atts.map((a) => a.lang), ['en']);
   assert(atts.every((a) => a.kind === 'standard_quote' && a.quote_id === 'q-1'));
 });
 
@@ -536,7 +551,12 @@ Deno.test('finding 2: every open point closes from the chat — the supplier\'s 
   const open2 = rq(inq, w2).issues; assert(open2.some((i) => i.code === 'total_mismatch'));
   assert(!rq(inq, applyCorrections(w2, readReply('Total AED 66,560', open2).corrections)).issues.some((i) => i.code === 'total_mismatch'));
   const wd = applyCorrections(w2, readReply('We give a discount of AED 3,440.', open2).corrections);
-  assert(!rq(inq, wd).issues.some((i) => i.code === 'total_mismatch')); assertMatch(wd.conditions, /discount of AED 3,440/);
+  assert(!rq(inq, wd).issues.some((i) => i.code === 'total_mismatch')); 
+  // Ruling 1207: the discount is a structured price field (gross, discount, final), never folded into the conditions;
+  // ruling 1208: the after-discount figure is the quotation's ex-VAT price, the one our fee is taken on.
+  assertEquals([wd.gross_amount, wd.discount_amount, wd.price_ex_vat, wd.amount], [70000, 3440, 66560, 66560]);
+  assert(!/discount/i.test(wd.conditions), wd.conditions);
+  assertEquals(rq(inq, wd).price_ex_vat, 66560);
   // a material the customer named
   const withGlass: SafeInquiry = { ...inq, category: 'glass', boq_rows: [], spec: { customer_requirements: { version: 1, materials: [{ component: 'glass', label_en: 'Glass', label_ar: 'الزجاج' }] } } };
   const wg = good({ lines: [{ description: 'Shower screen, 8mm clear tempered, chrome hinges', qty: '1', unit: 'nos', unit_price: 9000, amount: 9000 }] });
@@ -602,3 +622,241 @@ Deno.test('Arabic acknowledgement: a stated period is read back in Arabic ("ال
   assertStringIncludes(said.en, 'validity 30 days');
 });
 
+
+// RULINGS 1195/1196/1197 (12 Oct 2026): every engineer message in the quotation chat is written by a model in the turn
+// it is added. Only the submission receipt is a notification. This drives both roads end to end and fails the moment
+// an engineer message is added that the (fake) model did not write in that same turn; with no model, the engineer
+// adds nothing but the receipt and the state machine still runs.
+// prevented by: this test (referenced from quote_review_flow.ts)
+Deno.test('1195-1197: no engineer message in the quotation chat is added unless a model wrote it in that turn', async () => {
+  for (const noModelRun of [false, true]) {
+    const h = harness(); h.noModel.on = noModelRun;
+    const turn = async (f: () => Promise<unknown>) => {
+      const before = h.mem.messages.length; const wroteBefore = h.written.length;
+      await f();
+      const all = h.mem.messages.slice(before).filter((m) => m.role === 'sales_engineer' && m.kind !== 'submitted');
+      const fresh = all.filter((m) => m.body !== QR_HELD_NOTICE);
+      const wroteNow = h.written.slice(wroteBefore);
+      for (const m of fresh) assert(wroteNow.includes(String(m.body)), 'an engineer message no model wrote this turn: ' + String(m.body).slice(0, 80));
+      if (noModelRun) {
+        assertEquals(fresh.length, 0, 'with no model, a conversation message was still added');
+        assert(all.length > 0, 'with no model the supplier was left silent: the held notice must be added');
+      }
+    };
+    await turn(() => start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    await turn(() => upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+    await turn(() => message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'what does VAT basis mean here?'));
+    await turn(() => message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'validity 30 days. lead time 3 weeks. prices exclude VAT. warranty 2 years covering materials and workmanship'));
+    await turn(() => message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'please generate it for me'));
+    await turn(() => message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'looks right, submit'));
+    if (!noModelRun) {
+      assertEquals(h.submitted.length, 1, 'the model read "submit" and the state machine submitted');
+      assert(h.mem.messages.some((m) => m.kind === 'submitted'), 'the receipt (a notification) is still sent');
+    } else {
+      // no model: nobody read "generate"/"submit" from words, so nothing was submitted on a guess; every turn was queued
+      assertEquals(h.submitted.length, 0);
+      assert(h.holds.length >= 4, 'each unwritten turn is queued for the model: ' + h.holds.length);
+    }
+  }
+});
+
+// THE SUPPLIER SIDE OF #1342 (13 Oct 2026): a photo or document sent WITH a chat message is read (ruling 1177) and
+// used; a file neither code nor the vision model could read is kept and a clearer copy is asked for, in English.
+const JPEG = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9]);
+const jpegB64 = btoa(String.fromCharCode(...JPEG));
+Deno.test('a photo or document sent in the chat is read and used; an unreadable one is held and a clearer copy asked', async () => {
+  // read: the vision model's transcription reaches the model as fenced data, and the photo itself as an image
+  {
+    const h = harness();
+    h.deps.readAttachment = () => Promise.resolve({ status: 'read', by: 'model', text: 'Site photo: alcove 2.4 m wide, 2.7 m high, power socket on the left wall', kind: 'image', model_attempts: 1, reason: null, doc: null });
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'is this space enough?', { b64: jpegB64, filename: 'site.jpg', mime: 'image/jpeg' }));
+    const sent = t.messages.find((m) => m.role === 'supplier' && m.kind === 'file');
+    assert(sent && sent.attachments[0]?.kind === 'chat_file' && sent.attachments[0].url, 'the photo is kept in the thread');
+    const v = h.voices.at(-1)!;
+    assertStringIncludes(String(v.supplierMessage), 'alcove 2.4 m wide');
+    assertStringIncludes(String(v.supplierMessage), 'UNTRUSTED ATTACHMENT TEXT');
+    assertEquals(v.images?.length, 1); assertMatch(v.images![0], /^data:image\/jpeg;base64,/);
+    assert(h.written.includes(String(t.messages.at(-1)!.body_en)), 'the answer is the model\'s');
+  }
+  // unreadable: held, kept, and the supplier is asked in English for a clearer copy (model writes it; none → held notice)
+  for (const noModel of [false, true]) {
+    const h = harness(); h.noModel.on = noModel;
+    h.deps.readAttachment = () => Promise.resolve({ status: 'unreadable', by: null, text: '', kind: 'image', model_attempts: 2, reason: 'model_answer_too_thin', doc: null });
+    const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, '', { b64: jpegB64, filename: 'blurry.jpg', mime: 'image/jpeg' }));
+    assert(t.messages.some((m) => m.attachments[0]?.kind === 'chat_file'), 'an unreadable file is still kept');
+    const last = t.messages.at(-1)!;
+    if (noModel) assertEquals(last.body_en, QR_HELD_NOTICE);
+    else assertMatch(String(last.body_en), /could not read "blurry\.jpg" clearly\. Please send a clearer copy/);
+    assert(!/[؀-ۿ]/.test(String(last.body_en)), 'suppliers are always written in English');
+  }
+  // a document with a text layer is read by code (no model), and a refused file never enters the thread
+  {
+    const h = harness();
+    const doc = 'Technical data sheet: Jotun Fenomastic, 2 coats, coverage 10 m2 per litre';
+    ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'data sheet attached', { b64: b64(doc), filename: 'datasheet.txt', mime: 'text/plain' }));
+    assertStringIncludes(String(h.voices.at(-1)!.supplierMessage), 'coverage 10 m2 per litre');
+    assertEquals(h.voices.at(-1)!.images?.length ?? 0, 0);
+    const bad = await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'x', { b64: btoa('MZ\x90\x00 not a document'), filename: 'run.exe', mime: 'application/octet-stream' });
+    assertEquals((bad as { ok: boolean }).ok, false);
+  }
+});
+Deno.test('a quotation photographed into the chat, nothing read yet, is reviewed like an attached one', async () => {
+  const h = harness();
+  h.deps.readAttachment = () => Promise.resolve({ status: 'read', by: 'model', text: INCOMPLETE_CSV, kind: 'image', model_attempts: 1, reason: null, doc: null });
+  const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'our quotation', { b64: jpegB64, filename: 'quote.jpg', mime: 'image/jpeg' }));
+  assertEquals(t.state, 'changes_requested', JSON.stringify(t.open_requests));
+  assert(t.open_requests.some((q) => q.code === 'validity'));
+});
+
+// THE VISION MODEL'S TRANSCRIPTION IS MARKDOWN (13 Oct 2026, measured on production with a ZZ DEMO photo): the table
+// came back with pipes and the price reader found no quotation, so the photo was answered as a conversation.
+const MD_QUOTE = `# ZZ DEMO P painting
+Tel 050 123 4567 · sales@zzdemo-paint.example.invalid
+
+---
+
+### QUOTATION
+
+| Description | Qty | Unit | Rate | Amount |
+|---|---|---|---|---|
+| Jotun Fenomastic emulsion 2 coats internal walls | 450 | m2 | 20.00 | 9,000.00 |
+| Jotun Fenomastic emulsion 2 coats ceiling painting | 120 | m2 | 18.00 | 2,160.00 |
+| **Total (excluding VAT)** | | | | **11,160.00** |
+
+Validity: 30 days
+Lead time: 3 weeks
+Warranty: 2 years materials and workmanship
+Prices exclude VAT`;
+Deno.test('a photographed quotation transcribed as a markdown table is priced', async () => {
+  const flat = transcriptAsText(MD_QUOTE);
+  assert(!/\|/.test(flat) && !/\*\*/.test(flat), flat);
+  assertStringIncludes(flat, 'Jotun Fenomastic emulsion 2 coats internal walls,450,m2,20.00,9000.00');
+  // through the upload path's reader: the model's transcription goes to the same parser
+  const vision = () => Promise.resolve({ ok: true, text: MD_QUOTE });
+  const r = await readQuotationFile(JPEG, 'quote.jpg', 'image/jpeg', [], mockedModel, vision);
+  assert(r.proposal, 'no quotation read from the markdown transcription: ' + JSON.stringify(r).slice(0, 300));
+  assertEquals(r.proposal!.line_items.filter((l) => l.amount != null).map((l) => l.amount), [9000, 2160]);
+  // and through the chat
+  const h = harness();
+  h.deps.readAttachment = () => Promise.resolve({ status: 'read', by: 'model', text: MD_QUOTE, kind: 'image', model_attempts: 1, reason: null, doc: null });
+  const t = ok(await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'our quotation', { b64: jpegB64, filename: 'quote.jpg', mime: 'image/jpeg' }));
+  assert(['changes_requested', 'awaiting_choice'].includes(t.state), 'the photographed quotation was not reviewed: ' + t.state);
+});
+Deno.test('transcriptAsText: only table rows change, and no price is ever corrupted (review of #1396)', () => {
+  // non-table text passes through byte for byte: headings, emphasis, rules, a "--" line
+  const prose = '# QUOTATION\n**Validity:** 30 days\n---\n-- prices exclude VAT --\n__Warranty__ 2 years\nTotal 1,5 kg';
+  assertEquals(transcriptAsText(prose), prose);
+  const row = (r: string) => transcriptAsText(r);
+  // a thousands separator goes; the number is otherwise untouched
+  assertEquals(row('| Walls | 450 | m2 | 20.00 | 9,000.00 |'), 'Walls,450,m2,20.00,9000.00');
+  assertEquals(row('| Big | 1 | lot | 1,234,567.50 | 1,234,567.50 |'), 'Big,1,lot,1234567.50,1234567.50');
+  // a currency cell keeps its currency and loses only the separator
+  assertEquals(row('| Walls | 450 | m2 | AED 20.00 | AED 9,000.00 |'), 'Walls,450,m2,AED 20.00,AED 9000.00');
+  // decimal commas are never read as thousands: 1,5 is not 15 and 12,50 is not 1250
+  assertEquals(row('| Paint | 1,5 | l | 12,50 | 18,75 |'), 'Paint,"1,5",l,"12,50","18,75"');
+  // Arabic-Indic digits with the Arabic thousands (٬) and decimal (٫) separators
+  assertEquals(row('| دهان | ٤٥٠ | م٢ | ٢٠٫٠٠ | ٩٬٠٠٠٫٠٠ |'), 'دهان,450,م2,20.00,9000.00');
+  // an escaped pipe stays inside its cell: the prices do not move a column
+  assertEquals(row(String.raw`| Gypsum \| board 12 mm | 10 | m2 | 5.00 | 50.00 |`), 'Gypsum | board 12 mm,10,m2,5.00,50.00');
+  // a short or merged row keeps the cells it has, and its total
+  assertEquals(row('| **Total (excluding VAT)** | | **11,160.00** |'), 'Total (excluding VAT),,11160.00');
+  // the separator row of a table goes; one outside a table (no pipes) was kept above
+  assertEquals(row('|---|:---:|---|'), '');
+});
+
+// THE REVIEW RUNS OFF THE REQUEST (13 Oct 2026, measured live: the photo turn's review passed the edge runtime's 150 s).
+Deno.test('a review runs off the request: the turn answers at once, a failure ends held for the seat, a killed job never stays reviewing', async () => {
+  // 1. answered at once in 'reviewing'; the job finishes after the response
+  {
+    const h = harness(); const jobs: Promise<void>[] = [];
+    h.deps.background = (j) => { jobs.push(j); };
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const t = ok(await upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+    assertEquals(t.state, 'reviewing'); assert(t.reviewing);
+    assertEquals(jobs.length, 1);
+    await jobs[0];
+    assertEquals(ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID)).state, 'changes_requested');
+  }
+  // 2. a job that FAILS goes back, adds the held notice and is queued for the sales_engineer seat - never stuck
+  {
+    const h = harness(); const jobs: Promise<void>[] = [];
+    h.deps.background = (j) => { jobs.push(j); };
+    h.deps.readWorking = () => Promise.reject(new Error('reader down'));
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    ok(await upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+    await jobs[0];
+    const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assert(t.state !== 'reviewing' && !t.reviewing, 'a failed review left the turn reviewing: ' + t.state);
+    assertEquals(t.messages.at(-1)!.body_en, QR_HELD_NOTICE);
+    assert(h.holds.length >= 1, 'the failed turn was not queued for the seat');
+  }
+  // 3. a job the runtime KILLED (no catch ran): once stale, the next load resolves it to held for the seat
+  {
+    const h = harness();
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const r = h.mem.reviews[0];
+    await h.mem.repo.updateReview(r.id, { status: 'reviewing', reviewing_since: '2026-09-15T09:00:00Z' });
+    const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assert(t.state !== 'reviewing', 'a killed review stayed reviewing');
+    assertEquals(t.messages.at(-1)!.body_en, QR_HELD_NOTICE);
+    assert(h.holds.length >= 1);
+    const again = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assertEquals(again.messages.length, t.messages.length, 'resolved once, not on every poll');
+  }
+});
+
+// REVIEW OF #1413: a LIVE job is never declared dead, and a second turn never starts a second job or loses a result.
+Deno.test('a live review older than the old threshold is NOT resolved; a resubmit or a concurrent turn never starts a second job', async () => {
+  // 1. 6.5 minutes old: older than the old 360 s, younger than STALE_MS (480 s), still within what a live job may take
+  {
+    const h = harness();
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const r = h.mem.reviews[0];
+    await h.mem.repo.updateReview(r.id, { status: 'reviewing', reviewing_since: '2026-09-15T09:53:30Z' });
+    const before = h.mem.messages.length;
+    const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assertEquals(t.state, 'reviewing'); assert(t.reviewing);
+    assertEquals(h.mem.messages.length, before, 'a live review was resolved as killed');
+    assertEquals(h.holds.length, 0);
+  }
+  // 2. resubmitting while the review runs: refused, nothing stored, the running job's result arrives intact
+  {
+    const h = harness(); const jobs: Promise<void>[] = [];
+    h.deps.background = (j) => { jobs.push(j); };
+    let release!: () => void; const gate = new Promise<void>((r) => { release = r; });
+    const read0 = h.deps.read; h.deps.read = async (...a) => { await gate; return read0(...a); };   // the first review is still RUNNING
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    ok(await upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q1.csv', mime: 'text/csv' }));
+    const files = h.mem.files.size;
+    const again = await upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'q2.csv', mime: 'text/csv' });
+    assertEquals((again as { code?: string }).code, 'reviewing');
+    const typedAgain = await typed(h.mem.repo, h.deps, h.ctx, INQ_ID, 'Gypsum partition 120 sqm 95\nPainting 450 sqm 20');
+    assertEquals((typedAgain as { code?: string }).code, 'reviewing');
+    const photoAgain = await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'and this', { b64: jpegB64, filename: 'p.jpg', mime: 'image/jpeg' });
+    assertEquals((photoAgain as { code?: string }).code, 'reviewing');
+    assertEquals(jobs.length, 1, 'a second review job started');
+    assertEquals(h.mem.files.size, files, 'a refused turn still stored its file');
+    release(); await jobs[0];
+    const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    assertEquals(t.state, 'changes_requested');
+    assertEquals(t.file?.name, 'q1.csv', 'the running review\'s file was replaced');
+  }
+  // 3. two turns sent at the same moment: exactly one review starts
+  {
+    const h = harness(); const jobs: Promise<void>[] = [];
+    h.deps.background = (j) => { jobs.push(j); };
+    let release!: () => void; const gate = new Promise<void>((r) => { release = r; });
+    const read0 = h.deps.read; h.deps.read = async (...a) => { await gate; return read0(...a); };   // the first review is still RUNNING
+    ok(await start(h.mem.repo, h.deps, h.ctx, INQ_ID));
+    const both = await Promise.all([
+      upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'a.csv', mime: 'text/csv' }),
+      upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'b.csv', mime: 'text/csv' }),
+    ]);
+    assertEquals(both.filter((x) => (x as { ok?: boolean }).ok === true).length, 1, JSON.stringify(both.map((x) => (x as { code?: string }).code ?? 'ok')));
+    assertEquals(both.filter((x) => (x as { code?: string }).code === 'reviewing').length, 1);
+    assertEquals(jobs.length, 1);
+    release(); await jobs[0];
+    assert(ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID)).state !== 'reviewing');
+  }
+});

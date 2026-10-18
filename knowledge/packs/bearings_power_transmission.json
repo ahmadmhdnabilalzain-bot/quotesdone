@@ -43,6 +43,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "bearings_power_transmission:bearing-designation-6205-2rs-c3",
+      "topic": "Decoding a bearing designation: 6205-2RS C3",
+      "kind": "technical_reference",
+      "body_en": "In 6205-2RS C3, '62' is the bearing series and '05' is the bore code; for this code the bore is the code multiplied by 5, so 05 = 25 mm bore. A bare 6205 means normal clearance, no seals, a stamped steel cage and standard tolerance; each suffix modifies that baseline. '2RS' (SKF writes 2RS1) means a contact seal of NBR rubber, with the leading 2 meaning both sides are sealed. 'C3' means internal clearance greater than normal, specified when the bearing will run hot, has tight shaft fits, or sees a large temperature difference between inner and outer rings. When ordering, quote the full designation and accept a brand-equivalent only if seal type and clearance class match.",
+      "body_ar": "في التسمية 6205-2RS C3، يشير \"62\" إلى سلسلة المحمل و\"05\" إلى رمز القطر الداخلي؛ ولهذا الرمز يُضرب في 5، أي أن 05 = قطر داخلي 25 مم. وتعني 6205 دون لاحقة خلوصاً عادياً، دون موانع تسرب، وقفصاً من الفولاذ المكبوس، وتفاوتاً قياسياً؛ وكل لاحقة تعدّل هذا الأساس. وتعني \"2RS\" (تكتبها SKF بصيغة 2RS1) مانع تسرب تلامسياً من مطاط NBR، ويدل الرقم 2 في أولها على إحكام الجانبين. وتعني \"C3\" خلوصاً داخلياً أكبر من العادي، ويُحدَّد عندما يعمل المحمل ساخناً أو يُركَّب بتداخل محكم على العمود أو يتعرض لفرق كبير في درجة الحرارة بين الحلقتين الداخلية والخارجية. عند الطلب، اذكر التسمية كاملة ولا تقبل بديلاً من علامة أخرى إلا إذا تطابق نوع مانع التسرب وفئة الخلوص.",
+      "sources": [
+        "https://partmatch.io/blog/skf-bearing-suffix-decoder"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "bearings_power_transmission:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What does 6205-2RS C3 mean on a bearing?",
+      "q_ar": "ماذا يعني الرمز 6205-2RS C3 على المحمل؟",
+      "expected_entry_ids": [
+        "bearings_power_transmission:bearing-designation-6205-2rs-c3"
+      ],
+      "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither decodes bearing designations; missing: bearing designation/suffix (2RS, C3) explainer). bearings_power_transmission:bearing-designation-6205-2rs-c3 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from bearings_power_transmission.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +96,9 @@
       "bearings_power_transmission:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "bearings_power_transmission:bearing-designation-6205-2rs-c3"
+    ]
   }
 }

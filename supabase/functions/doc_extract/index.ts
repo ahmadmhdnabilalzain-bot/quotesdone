@@ -15,6 +15,8 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 // documents.extracted, so customer_documents has been reading a column with no writer since.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { readDocument } from '../_shared/doc_read/index.ts';
+import { textOfRead } from '../_shared/read_every_attachment.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -81,15 +83,19 @@ async function llmJSON(apiKey:string, content:unknown):Promise<any>{
     const payload = (typeof content==='string')
       ? {__secret:key,fn:'doc_extract',sys,input:content,temperature:0}
       : {__secret:key,fn:'doc_extract',sys,input:[{role:'user',content}],temperature:0};
+    // ONE MORE ASKING (ruling 1177, 12 Oct 2026): an empty or unparseable answer is asked once more; the gateway
+    // itself falls to the route's second model on a provider failure.
+    for(let attempt=1; attempt<=2; attempt++){
     const r=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/ai_gateway',{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)});
-    if(!r.ok){return null;}
-    const d=await r.json();
-    if(d?.ok===false){return null;}
+    if(!r.ok) continue;
+    const d=await r.json().catch(()=>null);
+    if(!d || d?.ok===false) continue;
     let t=d?.content||'';
     t=String(t).replace(/^```(json)?/i,'').replace(/```$/,'').trim();
-    const m=t.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]);
+    const m=t.match(/\{[\s\S]*\}/); if(m){ try{ return JSON.parse(m[0]); }catch(_p){ /* asked again */ } }
+    }
   }catch(_e){/*fall through to null*/}
   return null;
 }
@@ -233,7 +239,14 @@ Deno.serve(observe('doc_extract', async (req) => {
                 }
               }
             }
-          } catch (_e) { /* fall through to the original skip */ }
+          } catch (_e) { /* fall through to the model reading the PDF itself */ }
+          // RULING 1177 (12 Oct 2026): with no CloudConvert key, or when the render failed, the scanned PDF itself goes to
+          // the vision model as a file. Skipped only when that fails too.
+          if (!ocrOk) {
+            const pdfBuf = new Uint8Array(ab); let pbin = ''; for (let i = 0; i < pdfBuf.length; i += 0x8000) pbin += String.fromCharCode(...pdfBuf.subarray(i, i + 0x8000));
+            extracted = await llmJSON(apiKey, [{ type: 'text', text: 'This is a scanned document. Extract the fields.' }, { type: 'file', file: { filename: (doc.file_name || 'doc.pdf'), file_data: 'data:application/pdf;base64,' + btoa(pbin) } }]);
+            ocrOk = !!extracted;
+          }
           if (ocrOk) { mime = 'application/pdf'; }
           else { await sb.from('documents').update({status:'skipped',error:'scanned_pdf_no_text_ocr_failed',processed_at:new Date().toISOString()}).eq('id',doc.id); await logThrottled('skipped_scanned_pdf',60,'error',{stage:'pdf',document_id:doc.id,kind:doc.kind},'Document '+doc.id+' is a scanned PDF and the OCR fallback did not produce text, so it was skipped: this supplier document will never be read into the knowledge base and its specs and certifications are invisible to matching.'); return j({ok:true,id:doc.id,status:'skipped'}); }
         }
@@ -243,6 +256,16 @@ Deno.serve(observe('doc_extract', async (req) => {
       const txt=(await fr.text()).slice(0,12000);
       extracted=await llmJSON(apiKey,`Extract the fields from this document text:\n\n${txt}`);
       mime=ct||'text/plain';
+    } else if((extracted = await (async()=>{
+      // CODE FIRST for every other type (Word, Excel, PowerPoint, ODF, RTF, e-mail, zip): _shared/doc_read reads the
+      // words and the model only structures them (ruling 1177). Skipped only when the reader finds nothing.
+      const rd = await readDocument(new Uint8Array(await fr.arrayBuffer()), name, ct, 0, { textOnly: true });
+      const txt = rd.ok ? textOfRead(rd).trim() : '';
+      if (!txt) return null;
+      mime = (rd.ok && rd.mime) || ct;
+      return await llmJSON(apiKey, 'Extract the fields from this document text:\n\n' + txt.slice(0, 12000));
+    })())){
+      /* read by code above */
     } else {
       await sb.from('documents').update({status:'skipped',error:'unsupported_mime:'+ct,processed_at:new Date().toISOString()}).eq('id',doc.id);
       await logThrottled('skipped_unsupported_mime',60,'error',{stage:'mime',document_id:doc.id,kind:doc.kind,mime:ct},'Document '+doc.id+' has an unsupported content type ('+ct+') and was skipped, so a supplier document that was accepted at upload is never extracted or indexed.');

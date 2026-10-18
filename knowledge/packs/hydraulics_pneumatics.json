@@ -42,6 +42,22 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "hydraulics_pneumatics:en853-2sn-vs-en856-4sh-hose",
+      "topic": "Braided EN 853 2SN versus spiral EN 856 4SH hydraulic hose",
+      "kind": "technical_explainer",
+      "body_en": "EN 853 covers four types of wire-braid reinforced hydraulic hoses (1SN, 2SN, 1ST, 2ST) in nominal bores 5 to 76. Type 2SN has a synthetic rubber tube resistant to hydraulic fluids, two braids of high-tensile steel wire and an abrasion- and ozone-resistant cover, and is equivalent to SAE 100R2 and ISO 1436 2SN; a Semperit datasheet gives 400 bar working pressure at DN6 down to 80 bar at DN51, at -40 °C to +100 °C (intermittent 120 °C). EN 856 covers four types of spiral-wire reinforced hoses (4SP, 4SH, R13, R15) in nominal bores 6 to 51, with -40 °C to +100 °C for 4SP/4SH. Type 4SH has four high-tensile steel spirals; a Vincke datasheet gives 420 bar at 3/4 in (19 mm) down to 250 bar at 2 in (50.8 mm), with a minimum bend radius of 280 mm at 3/4 in. In short, 2SN covers small-to-large bores with pressure falling steeply as bore grows, while 4SH holds much higher pressure at large bores. Not established here: fitting-type requirements for spiral hose.",
+      "body_ar": "يغطّي المعيار EN 853 أربعة أنواع من الخراطيم الهيدروليكية المقوّاة بجديلة سلكية (1SN و2SN و1ST و2ST) بأقطار اسمية من 5 إلى 76. ويتكوّن النوع 2SN من أنبوب داخلي من المطاط الصناعي المقاوم للسوائل الهيدروليكية، وجديلتين من أسلاك الفولاذ عالي الشد، وغلاف خارجي مقاوم للتآكل والأوزون، ويعادل SAE 100R2 وISO 1436 2SN؛ وتحدد نشرة بيانات Semperit ضغط تشغيل 400 بار عند DN6 ينخفض إلى 80 باراً عند DN51، ضمن مدى حرارة من -40 إلى +100 °م (120 °م بشكل متقطع). أما المعيار EN 856 فيغطّي أربعة أنواع من الخراطيم المقوّاة بأسلاك حلزونية (4SP و4SH وR13 وR15) بأقطار اسمية من 6 إلى 51، بمدى حرارة من -40 إلى +100 °م للنوعين 4SP و4SH. ويحتوي النوع 4SH على أربع طبقات حلزونية من الفولاذ عالي الشد؛ وتحدد نشرة بيانات Vincke ضغط 420 باراً عند 3/4 بوصة (19 مم) ينخفض إلى 250 باراً عند 2 بوصة (50.8 مم)، مع نصف قطر انحناء أدنى 280 مم عند 3/4 بوصة. باختصار، يغطّي 2SN الأقطار الصغيرة إلى الكبيرة مع انخفاض حاد في الضغط كلما زاد القطر، بينما يحافظ 4SH على ضغط أعلى بكثير في الأقطار الكبيرة. غير مثبت هنا: متطلبات نوع الوصلات للخراطيم الحلزونية.",
+      "sources": [
+        "https://www.evs.ee/en/evs-en-853-2026",
+        "https://www.evs.ee/en/evs-en-856-2026",
+        "https://hoses.semperitgroup.com/products/hydraulic-pressure-washer-hoses/braided-spiral-hoses/din-en-853-2-sn-sae-100-r-2-s/",
+        "https://www.flowfitonline.com/uploads/PDFproducts/en856-4sh-hose.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -58,6 +74,15 @@
       "expected_entry_ids": [
         "hydraulics_pneumatics:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What is the difference between 2SN and 4SH hydraulic hose?",
+      "q_ar": "ما الفرق بين الخرطوم الهيدروليكي 2SN و4SH؟",
+      "expected_entry_ids": [
+        "hydraulics_pneumatics:en853-2sn-vs-en856-4sh-hose"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry explains the EN 853 2SN vs EN 856 4SH hose constructions and pressure ratings). hydraulics_pneumatics:en853-2sn-vs-en856-4sh-hose was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from hydraulics_pneumatics.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -74,6 +99,9 @@
       "hydraulics_pneumatics:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "hydraulics_pneumatics:en853-2sn-vs-en856-4sh-hose"
+    ]
   }
 }

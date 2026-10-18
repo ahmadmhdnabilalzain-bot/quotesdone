@@ -39,6 +39,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "land_survey:dld-accredited-surveyors",
+      "topic": "Dubai Land Department accredited surveyors",
+      "kind": "regulatory_licensing",
+      "body_en": "In Dubai, the Dubai Land Department (DLD) provides property survey services through accredited survey companies. Applications are made at the DLD main headquarters or through the Oqood system, and the process takes up to 3 working days from application to delivery. Published DLD survey fees are AED 500 for a land survey, AED 600 for a villa or residential unit, AED 2,000 for a business centre and AED 3,000 for a building, plus AED 20 in knowledge and innovation fees. DLD-approved surveyors named publicly include Emarat Survey Services, described as the first DLD-accredited company (established 2011), and Al Yamama Real Estate Survey Services. A boundary survey that will support registration should therefore be done by a DLD-accredited firm; ask for the firm's DLD accreditation. Not established here: the DLD's own surveyor licensing rules.",
+      "body_ar": "في دبي، تقدّم دائرة الأراضي والأملاك خدمات مسح العقارات من خلال شركات مسح معتمدة. تُقدَّم الطلبات في المقر الرئيسي للدائرة أو عبر نظام عقود (Oqood)، وتستغرق العملية حتى 3 أيام عمل من تقديم الطلب حتى التسليم. رسوم المسح المنشورة: 500 درهم لمسح الأرض، و600 درهم للفيلا أو الوحدة السكنية، و2,000 درهم لمركز الأعمال، و3,000 درهم للمبنى، إضافة إلى 20 درهماً رسوم المعرفة والابتكار. ومن المسّاحين المعتمدين المذكورين علناً شركة الإمارات لخدمات المساحة، الموصوفة بأنها أول شركة معتمدة من الدائرة (تأسست عام 2011)، وشركة اليمامة لخدمات المساحة العقارية. لذا ينبغي أن تُنفَّذ أعمال مسح الحدود التي ستدعم التسجيل لدى شركة معتمدة من الدائرة؛ اطلب ما يثبت اعتمادها. غير ثابت هنا: قواعد ترخيص المسّاحين الصادرة عن الدائرة نفسها.",
+      "sources": [
+        "https://www.dubizzle.com/blog/property/property-survey-dubai/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -55,6 +68,15 @@
       "expected_entry_ids": [
         "land_survey:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does a boundary survey in Dubai need a licensed surveyor?",
+      "q_ar": "هل يحتاج مسح الحدود في دبي إلى مساح مرخص؟",
+      "expected_entry_ids": [
+        "land_survey:dld-accredited-surveyors"
+      ],
+      "why": "No entry of this pack answered it (the standards entry says sources do not establish surveyor licensing; nothing on Dubai Land Department licensed surveyors). land_survey:dld-accredited-surveyors was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from land_survey.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -70,6 +92,9 @@
       "land_survey:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "land_survey:dld-accredited-surveyors"
+    ]
   }
 }

@@ -81,9 +81,17 @@ Deno.test('a dense sheet cannot exhaust the CPU cap: an indexed measure up to th
     return { width: 2592, height: 1728, rotate: 0, runs: [{ text: 'SCALE: 1/8" = 1\'-0"', x: 0.5, y: 0.95, w: 0.1, h: 0.01 }], layers: { 'M-HVAC-DUCT': segs } };
   };
   const at = sheet(MAX_MEASURED_LINES / 200);                                   // exactly the ceiling
-  let t0 = performance.now();
-  assert(measureDucts(at, null, scaleLabels(at, null)).length > 0, 'measured at the ceiling');
-  const ms = performance.now() - t0;
+  // The MEDIAN of three timed runs, against the same 1000 ms budget. Measured 6 Oct 2026: one run alone failed 1 in
+  // 3 on this laptop (769 ms, ~900 ms, 1242 ms) -- a wall clock on a shared machine, not the measure growing. A
+  // median still fails when the measure itself is slow, because then two of three runs are.
+  let t0 = 0;
+  const times: number[] = [];
+  for (let k = 0; k < 3; k++) {
+    t0 = performance.now();
+    assert(measureDucts(at, null, scaleLabels(at, null)).length > 0, 'measured at the ceiling');
+    times.push(performance.now() - t0);
+  }
+  const ms = times.sort((a, b) => a - b)[1];
   assert(ms < 1000, `the ceiling itself took ${Math.round(ms)} ms`);
   const over = sheet(100);                                                      // 20,000 lines
   assert(tooDense(over, null));

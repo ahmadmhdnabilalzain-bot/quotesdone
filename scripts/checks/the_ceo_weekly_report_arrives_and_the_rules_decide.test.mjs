@@ -40,12 +40,9 @@ async function rows(q) {
 // So the two states are asserted separately, and the uninstrumented one against a NAMED exemption:
 // a rule may be un-instrumented only while it is listed here with the reason and what would close
 // it. The list can only get shorter — an exemption that stops applying fails this test.
-export const UNINSTRUMENTED = {
-  spend_against_constraint:
-    'No table attributes spend to a funnel stage (checked 22 Sep 2026: department_budget, budgets, '
-    + 'budget_lines, budget_vs_actual, it_spend_daily, marketing_ad_spend_day, accountant_spend_report). '
-    + 'Closed by adding the stage attribution, or by the CEO setting ceo_decision.active = false.',
-};
+// spend_against_constraint left this list when spend_against_the_constraint_is_measured_from_the_books.sql
+// (28 Sep 2026, applied) gave it an instrument: gl_account_funnel_stage over the accountant's posted journal.
+export const UNINSTRUMENTED = {};
 
 test('every active CEO decision rule is evaluated, or is a named exemption', { skip: SKIP }, async () => {
   const [r] = await rows(`select public.fn_ceo_decisions_evaluate(true) as e`);

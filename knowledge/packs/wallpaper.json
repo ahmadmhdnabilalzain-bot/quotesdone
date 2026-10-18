@@ -596,6 +596,16 @@
       "expected_entry_ids": [
         "wallpaper:fire-finish-classes-2018"
       ]
+    },
+    {
+      "q_en": "What wallpaper type is required for a hotel corridor?",
+      "q_ar": "ما نوع ورق الجدران المطلوب لممر فندق؟",
+      "expected_entry_ids": [
+        "wallpaper:commercial-vinyl-types",
+        "wallpaper:fire-finish-classes-2018"
+      ],
+      "why": "commercial-vinyl-types gives the Type I/II/III (ASTM F793) durability classes that set the wallcovering type for heavy-traffic hotel corridors, and fire-finish-classes-2018 gives the required interior finish fire class for corridors.",
+      "origin": "real buyer question, moved from wallpaper.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
