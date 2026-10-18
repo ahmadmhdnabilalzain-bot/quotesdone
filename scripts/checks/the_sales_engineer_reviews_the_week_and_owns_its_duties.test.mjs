@@ -14,6 +14,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/the_sales_engineer_reviews_the_week_owns_licences_the_ladder_and_enterprise_accounts.sql';
@@ -51,7 +52,7 @@ do $$ declare o jsonb := '{}'; v jsonb; cid uuid; inq uuid; q uuid; begin
   raise exception 'CHK<<%>>', o;
 end $$;`;
   let o;
-  try { await sql((pending ? src + '\n' : '') + block, { retry: false }); assert.fail('the probe committed'); }
+  try { await replaySql((pending ? src + '\n' : '') + block, { retry: false }); assert.fail('the probe committed'); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));

@@ -7,7 +7,7 @@
 // scripts/eval/reasoning_bank.json, the same cases score the real reasoning (reasoning_eval.mjs --live) and the
 // engine and scorer on every one of them in CI (mock mode).
 import { assertEquals, assert } from 'jsr:@std/assert@1';
-import { pickFaq, quoteAnswer, notYet, langOf, type QuestionType } from './chat_answers.ts';
+import { pickFaq, quoteAnswer, langOf, type QuestionType } from './chat_answers.ts';
 import { quoteOptions, SITE_OPTIONS } from './reasoned_channels.ts';
 
 type Case = { surface: string; q: string; options?: { id: string }[]; expect: { choice: string; faq_id?: number } };
@@ -89,5 +89,4 @@ Deno.test('a passage that does not answer the question is off topic; one that do
   for (const c of p) assert(c.options!.some((o) => o.id === c.expect.choice));
   assertEquals(langOf('hello', 'ar'), 'ar');
   assertEquals(langOf('مرحبا'), 'ar');
-  assert(/task #12/.test(notYet('en', 12, 'sales_engineer')) && /المهمة رقم 12/.test(notYet('ar', 12, 'sales_engineer')));
 });

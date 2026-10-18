@@ -8,6 +8,10 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+// The licence request and its reading live in one module so the accuracy suite measures exactly this (7 Oct 2026).
+import { SYS_LICENSE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages } from '../_shared/licence_extract.ts';
+import { pagesBlank } from '../_shared/licence_page_ink.ts';
+import { pdfText } from '../_shared/document_expiry.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -35,16 +39,6 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 //
 // The approval gate itself is NOT touched — another effort owns that. This only stops the input
 // to it from claiming a read that did not happen.
-function parseJson(t: string): Record<string, unknown> | null {
-  const take = (s: string) => { try { const v = JSON.parse(s); return (v && typeof v === 'object' && !Array.isArray(v)) ? v as Record<string, unknown> : null; } catch { return null; } };
-  return take(t) ?? (t.match(/\{[\s\S]*\}/) ? take(t.match(/\{[\s\S]*\}/)![0]) : null);
-}
-function dataUrl(b64: string, mime: string) { return `data:${mime};base64,${String(b64).replace(/^data:[^;]+;base64,/, '')}`; }
-function normDate(s: unknown): string | null { const v = String(s || '').trim(); if (!v) return null; let m = v.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/); if (m) { const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); return isNaN(d.getTime()) ? null : `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`; } m = v.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/); if (m) { return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`; } const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10); }
-const EMIRATES = ['Dubai','Abu Dhabi','Sharjah','Ajman','Umm Al Quwain','Ras Al Khaimah','Fujairah'];
-function normEmirate(s: unknown): string { const t = String(s || '').toLowerCase(); for (const e of EMIRATES) if (t.includes(e.toLowerCase())) return e; if (/rak/.test(t)) return 'Ras Al Khaimah'; if (/uaq|umm al/.test(t)) return 'Umm Al Quwain'; if (/auh|abu/.test(t)) return 'Abu Dhabi'; return ''; }
-
-const SYS_LICENSE = `You are a meticulous UAE corporate-registry document controller. You read an official UAE TRADE LICENCE (DED / DET / free-zone / e-trader) and extract its registration data EXACTLY as printed. Read every line; do not guess. Return STRICT JSON only:\n{\"legal_name\":string,\"license_number\":string,\"license_authority\":string,\"emirate\":string,\"city\":string,\"issue_date\":\"YYYY-MM-DD\",\"expiry_date\":\"YYYY-MM-DD\",\"activities\":[string],\"trn\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}\nlegal_name = the exact licensed company / establishment name as printed (English). license_number = the licence / register number. license_authority = issuing authority (e.g. 'Dubai Department of Economy and Tourism', 'Sharjah Economic Development Department', 'Abu Dhabi DED', 'Ajman Free Zone'). emirate = one of Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah. city = city/area if shown else the emirate. activities = listed business activities. trn = VAT TRN if present else ''. Dates as printed, output YYYY-MM-DD. If a value is not visible use an empty string and lower the confidence. This is NOT a tax/AML check - it is commercial onboarding verification only.`;
 const SYS_PROFILE = `You read a UAE supplier's COMPANY PROFILE and/or PRODUCT CATALOG and summarise what the company actually does, so QuotesDone can match it to relevant customer requests. Be factual; use only what the documents show. Return STRICT JSON only:\n{\"summary\":string,\"services\":[string],\"products\":[string],\"sectors\":[string],\"emirates\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\nsummary = 2-4 plain sentences describing the business, its core offering and strengths. services = the services they provide. products = product lines they supply (generic, no need to keep brand names). sectors = the trade categories they fit (e.g. joinery, MEP, fit-out, flooring, signage, landscaping). emirates = areas/emirates they serve if stated. Keep arrays concise (max ~12 each).`;
 const SYS_CERT = `You read a supplier's CERTIFICATE or LETTER - typically an insurance policy schedule, an ISO certificate, or a manufacturer/authorised-dealer letter - and pull out the dates and identifying details so the supplier never has to type them by hand.\n\nRULES\n1. expiry_date is the date the document STOPS being valid. On insurance schedules this is the 'period of insurance' TO date. On ISO certificates it is the 'expiry' or 'valid until' date, NOT the certification or surveillance-audit date. On dealer letters it is the stated validity end, if any.\n2. If several dates appear, choose the one that governs when this document lapses. Do not return an issue date as an expiry.\n3. If NO expiry is printed anywhere, return an empty string and set confidence 'low'. Never invent or estimate a date - a wrong expiry either suspends a valid supplier or lets a lapsed one keep trading.\n4. Dates may be printed as DD/MM/YYYY, DD-MMM-YYYY or written out. Output YYYY-MM-DD.\n\nReturn STRICT JSON only:\n{\"doc_type\":\"insurance\"|\"iso\"|\"manufacturer\"|\"other\",\"issuer\":string,\"reference\":string,\"issue_date\":\"YYYY-MM-DD\",\"expiry_date\":\"YYYY-MM-DD\",\"covers\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}\nissuer = the insurer, certification body, or manufacturer. reference = policy/certificate number. covers = one short line on what it covers or authorises.`;
 
@@ -54,15 +48,7 @@ function buildContent(mode: string, images: any[], body: any): any[] {
     : mode === 'cert'
       ? 'Read the attached certificate / letter (all pages) and return the extraction JSON. The expiry date is the important field.'
       : 'Read the attached company profile / catalog pages and return the summary JSON.';
-  const content: any[] = [{ type: 'text', text: intro }];
-  if (Array.isArray(images) && images.length) {
-    for (const im of images.slice(0, 10)) { const b = im?.b64 || im; const m = im?.mime || 'image/jpeg'; if (b) content.push({ type: 'image_url', image_url: { url: dataUrl(String(b), String(m)) } }); }
-  } else if (body.file_b64) {
-    const mime = String(body.mime || 'application/octet-stream');
-    if (/^image\//.test(mime)) content.push({ type: 'image_url', image_url: { url: dataUrl(String(body.file_b64), mime) } });
-    else content.push({ type: 'file', file: { filename: String(body.filename || 'document.pdf'), file_data: dataUrl(String(body.file_b64), mime || 'application/pdf') } });
-  }
-  return content;
+  return documentContent(intro, images, body);
 }
 
 Deno.serve(observe('license_extract', async (req) => {
@@ -76,6 +62,16 @@ Deno.serve(observe('license_extract', async (req) => {
     const mode = body.mode === 'profile' ? 'profile' : body.mode === 'cert' ? 'cert' : 'license';
     const images: any[] = Array.isArray(body.images) ? body.images : [];
     if (!images.length && !body.file_b64) return J({ error: 'no file' }, 400);
+    // The blank-image guard runs first, in code: no model is asked to read a page too small to hold print.
+    if (mode === 'license' && imagesTooSmallToRead(images, body)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_too_small' });
+    // ...and a page-sized image that carries no print (a white scan, a photo of a wall) is blank, measured by
+    // code (licence_page_ink): the model is not asked. inkProven = every image page decoded and one is printed.
+    let inkProven = false;
+    if (mode === 'license') {
+      const blank = await pagesBlank(licencePages(images, body));
+      if (blank === true) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_blank' });
+      inkProven = blank === false;
+    }
     const content = buildContent(mode, images, body);
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
     let ai: any = {};
@@ -106,19 +102,14 @@ Deno.serve(observe('license_extract', async (req) => {
     } catch (e) { return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 
     if (mode === 'license') {
-      const emirate = normEmirate(ai.emirate || ai.city);
-      const doc = {
-        legal_name: String(ai.legal_name || '').trim().slice(0, 200),
-        license_number: String(ai.license_number || '').trim().slice(0, 60),
-        license_authority: String(ai.license_authority || '').trim().slice(0, 160),
-        emirate,
-        city: String(ai.city || ai.emirate || '').trim().slice(0, 80) || emirate,
-        issue_date: normDate(ai.issue_date),
-        expiry_date: normDate(ai.expiry_date),
-        activities: Array.isArray(ai.activities) ? ai.activities.map((s: any) => String(s).slice(0, 120)).slice(0, 20) : [],
-        trn: String(ai.trn || '').replace(/\D/g, '').slice(0, 15),
-        confidence: ['low', 'medium', 'high'].includes(ai.confidence) ? ai.confidence : 'low',
-      };
+      const doc = normaliseLicence(ai);
+      // A 'low' read is stored only when code proved a real page was read: printed ink measured above, or its
+      // licence number found in the document's own text layer. Otherwise it is held for a person (unreadable).
+      let text: string | null = null;
+      if (doc.confidence === 'low' && !doc.unreadable && !inkProven && body.file_b64 && !/^image\//.test(String(body.mime || ''))) {
+        try { text = await pdfText(Uint8Array.from(atob(String(body.file_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0))); } catch { text = null; }
+      }
+      if (!lowReadProven(doc, inkProven, text)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'low_read_unproven' });
       return J({ ok: true, mode, doc });
     }
 

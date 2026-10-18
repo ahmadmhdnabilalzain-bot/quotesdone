@@ -43,6 +43,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "electronics_wholesale:tdra-type-approval-radio-equipment",
+      "topic": "TDRA type approval for radio and Bluetooth equipment",
+      "kind": "regulatory_requirement",
+      "body_en": "Yes. In the UAE, all telecommunications apparatus that connects directly to a public telecommunications network and/or has an intentional radio wave transmitter must comply with the type approval requirements of the Telecommunications and Digital Government Regulatory Authority (TDRA); Bluetooth equipment is listed among the regulated wireless devices, so a Bluetooth speaker is in scope. The scheme relies on sample testing, with no factory inspection. Two registrations apply: telecom supplier registration, valid 5 years, and equipment registration, valid 3 years. Buyers should ask the wholesaler for the TDRA registration certificate of the exact model. Not established here: official TDRA fees, lead times, and the relationship to other UAE conformity marks.",
+      "body_ar": "نعم. في دولة الإمارات، يجب أن تمتثل جميع أجهزة الاتصالات التي تتصل مباشرة بشبكة اتصالات عامة و/أو تحتوي على جهاز إرسال لاسلكي مقصود لمتطلبات اعتماد الطراز لدى هيئة تنظيم الاتصالات والحكومة الرقمية (TDRA)؛ وتُدرج أجهزة البلوتوث ضمن الأجهزة اللاسلكية الخاضعة للتنظيم، لذا تقع سماعة البلوتوث ضمن النطاق. ويعتمد النظام على اختبار العينات دون تفتيش للمصنع. ويلزم تسجيلان: تسجيل مورّد الاتصالات وصلاحيته 5 سنوات، وتسجيل الجهاز وصلاحيته 3 سنوات. وينبغي للمشتري أن يطلب من تاجر الجملة شهادة تسجيل TDRA للطراز المحدد نفسه. لم يُثبت هنا: الرسوم الرسمية للهيئة، ومدد الإنجاز، والعلاقة بعلامات المطابقة الإماراتية الأخرى.",
+      "sources": [
+        "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -59,6 +72,15 @@
       "expected_entry_ids": [
         "electronics_wholesale:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does a Bluetooth speaker need TDRA approval before it can be sold in the UAE?",
+      "q_ar": "هل يحتاج مكبر الصوت بتقنية بلوتوث إلى اعتماد من هيئة تنظيم الاتصالات قبل بيعه في الإمارات؟",
+      "expected_entry_ids": [
+        "electronics_wholesale:tdra-type-approval-radio-equipment"
+      ],
+      "why": "No entry of this pack answered it (no entry covers TDRA type approval for Bluetooth/radio equipment; standards entry is generic MoIAT). electronics_wholesale:tdra-type-approval-radio-equipment was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from electronics_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -75,6 +97,9 @@
       "electronics_wholesale:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "electronics_wholesale:tdra-type-approval-radio-equipment"
+    ]
   }
 }

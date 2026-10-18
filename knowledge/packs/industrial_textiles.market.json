@@ -7,9 +7,10 @@
     {
       "id": "industrial_textiles:uae-market-products",
       "topic": "Industrial textiles & geosynthetics: products, variants and grades sold in the UAE",
+      "topic_ar": "المنسوجات الصناعية والمواد التركيبية الأرضية: المنتجات والأنواع والدرجات المباعة في الإمارات",
       "kind": "uae_market_products",
-      "body_en": "Industrial textiles and geosynthetics in the UAE: geotextiles (non-woven needle-punched PP/PET by mass 150-1,000 g/m2 and woven PP for separation, filtration, reinforcement, protection), geomembranes (HDPE 1.0-2.5 mm smooth and textured for landfills, lagoons, tanks; LLDPE; GCL geosynthetic clay liners), geogrids (uniaxial and biaxial, PET and HDPE) for reinforced soil walls and road bases, geocells, drainage composites, erosion control mats, and technical textiles: shade and scaffolding nets, tarpaulins (PE and PVC), filter fabrics, conveyor fabrics, fire blankets and welding curtains. Road and infrastructure authorities (RTA, DMT) and consultants specify properties to ISO/EN/ASTM test methods (tensile strength, CBR puncture, opening size O90, permeability).",
-      "body_ar": "المنسوجات الصناعية والمواد الجيوتركيبية في الإمارات: الأقمشة الجيوتقنية (غير المنسوجة المثقبة بالإبر من PP/PET بوزن 150-1,000 غ/م2، والمنسوجة من PP للفصل والترشيح والتسليح والحماية)، والأغشية الجيوتقنية (HDPE بسماكة 1.0-2.5 مم ناعمة ومحببة للمكبات والبحيرات والخزانات؛ وLLDPE؛ والبطانات الطينية GCL)، والشبكات الجيوتقنية (أحادية وثنائية المحور من PET وHDPE) لجدران التربة المسلحة وقواعد الطرق، والخلايا الجيوتقنية، ومركبات التصريف، وحصائر مكافحة التعرية، والمنسوجات التقنية: شباك التظليل والسقالات، والمشمعات (PE وPVC)، وأقمشة الفلاتر، وأقمشة السيور، وبطانيات الحريق وستائر اللحام. وتحدد هيئات الطرق والبنية التحتية والاستشاريون الخصائص وفق طرق اختبار ISO/EN/ASTM (مقاومة الشد، والثقب CBR، وحجم الفتحة O90، والنفاذية).",
+      "body_en": "This entry covers industrial textiles and geosynthetics in the UAE: geotextiles, geomembranes, geogrids, geocells, drainage and erosion products, plus shade nets, tarpaulins and other technical textiles. Industrial textiles and geosynthetics in the UAE: geotextiles (non-woven needle-punched PP/PET by mass 150-1,000 g/m2 and woven PP for separation, filtration, reinforcement, protection), geomembranes (HDPE 1.0-2.5 mm smooth and textured for landfills, lagoons, tanks; LLDPE; GCL geosynthetic clay liners), geogrids (uniaxial and biaxial, PET and HDPE) for reinforced soil walls and road bases, geocells, drainage composites, erosion control mats, and technical textiles: shade and scaffolding nets, tarpaulins (PE and PVC), filter fabrics, conveyor fabrics, fire blankets and welding curtains. Road and infrastructure authorities (RTA, DMT) and consultants specify properties to ISO/EN/ASTM test methods (tensile strength, CBR puncture, opening size O90, permeability).",
+      "body_ar": "تشمل المنسوجات الصناعية والمواد الجيوتركيبية في الإمارات الجيوتكستايل والجيوممبرين والجيوجريد والجيوسيل ومنتجات التصريف ومكافحة الانجراف، إلى جانب شباك التظليل والطرابيل وغيرها من المنسوجات التقنية. وتضم: الجيوتكستايل (غير المنسوج المثقب بالإبر من PP/PET بوزن 150 إلى 1,000 جم/م2، والمنسوج من PP للفصل والترشيح والتسليح والحماية)، والجيوممبرين (HDPE بسماكة 1.0 إلى 2.5 مم أملس ومحبب لمكبات النفايات والبحيرات والخزانات؛ وLLDPE؛ وبطانات الطين الجيوتركيبية GCL)، والجيوجريد (أحادي وثنائي الاتجاه، من PET وHDPE) لجدران التربة المسلحة وطبقات أساس الطرق، والجيوسيل، والمركبات التصريفية، وحصائر مكافحة الانجراف، والمنسوجات التقنية: شباك التظليل والسقالات، والطرابيل (PE وPVC)، وأقمشة الفلاتر، وأقمشة السيور الناقلة، وبطانيات الحريق، وستائر اللحام. تحدد جهات الطرق والبنية التحتية (هيئة الطرق والمواصلات RTA، ودائرة البلديات والنقل DMT) والاستشاريون الخصائص وفق طرق اختبار ISO/EN/ASTM (مقاومة الشد، ومقاومة الثقب CBR، وحجم الفتحة O90، والنفاذية).",
       "sources": [
         "https://www.solmax.com/me/en",
         "https://www.iso.org",
@@ -23,9 +24,10 @@
     {
       "id": "industrial_textiles:uae-market-brands",
       "topic": "Industrial textiles & geosynthetics: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "المنسوجات الصناعية والمواد التركيبية الأرضية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Brands: Solmax, Naue, Huesker, Tensar, Maccaferri, Geofabrics, Propex, Agru, Atarfil, plus GCC, Chinese and Indian producers. Solmax, which owns TenCate and GSE, runs a Middle East site; the others' UAE channels were not checked. Geomembranes are installed by specialist welding contractors. Origins: Europe, Malaysia, Saudi Arabia, China, India, UAE.",
-      "body_ar": "العلامات: Solmax، Naue، Huesker، Tensar، Maccaferri، Geofabrics، Propex، Agru، Atarfil، إضافة إلى منتجين خليجيين وصينيين وهنود. ولـSolmax (مالكة TenCate وGSE) موقع للشرق الأوسط، ولم يُتحقق من قنوات البقية في الإمارات. ويركّب الأغشية مقاولو لحام متخصصون. المنشأ: أوروبا، ماليزيا، السعودية، الصين، الهند، الإمارات.",
+      "body_en": "This entry lists geosynthetic brands such as Solmax, Naue, Huesker and Tensar, notes that specialist contractors install geomembranes, and where the products come from. Brands: Solmax, Naue, Huesker, Tensar, Maccaferri, Geofabrics, Propex, Agru, Atarfil, plus GCC, Chinese and Indian producers. Solmax, which owns TenCate and GSE, runs a Middle East site; the others' UAE channels were not checked. Geomembranes are installed by specialist welding contractors. Origins: Europe, Malaysia, Saudi Arabia, China, India, UAE.",
+      "body_ar": "من علامات المواد الجيوتركيبية Solmax وNaue وHuesker وTensar، ويتولى تركيب الأغشية الأرضية (geomembranes) مقاولون متخصصون، مع بيان منشأ المنتجات. والعلامات: Solmax وNaue وHuesker وTensar وMaccaferri وGeofabrics وPropex وAgru وAtarfil، إضافة إلى منتجين خليجيين وصينيين وهنود. وتملك Solmax علامتي TenCate وGSE ولها موقع في الشرق الأوسط، ولم نتحقق من قنوات العلامات الأخرى في الإمارات. ويركّب الأغشية الأرضية مقاولو لحام متخصصون. وبلدان المنشأ: أوروبا وماليزيا والسعودية والصين والهند والإمارات.",
       "sources": [
         "https://www.solmax.com/me/en",
         "https://www.iso.org",
@@ -39,9 +41,10 @@
     {
       "id": "industrial_textiles:uae-market-sizes",
       "topic": "Industrial textiles & geosynthetics: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "المنسوجات الصناعية والمواد التركيبية الأرضية: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
       "kind": "uae_market_sizes",
-      "body_en": "Geotextiles and geomembranes are sold per m2 in rolls (e.g. 4-6 m wide x 50-100 m long for geotextile; geomembrane 5.8-7 m wide); geogrids per m2 by strength (e.g. 40/40 kN/m); tarpaulins per piece by size and GSM. Installation per m2 with welding QA (air-channel and spark tests) and panel layout. Quotes include test certificates and CE/manufacturer data sheets.",
-      "body_ar": "تُباع الأقمشة والأغشية الجيوتقنية بالمتر المربع في لفائف (مثل عرض 4-6 م وطول 50-100 م للقماش؛ وعرض 5.8-7 م للغشاء)؛ والشبكات بالمتر المربع حسب المقاومة (مثل 40/40 كيلونيوتن/م)؛ والمشمعات بالقطعة حسب المقاس والوزن. والتركيب بالمتر المربع مع ضمان جودة اللحام (اختبار قناة الهواء والشرارة) ومخطط الألواح. وتتضمن العروض شهادات الاختبار ونشرات البيانات.",
+      "body_en": "This entry explains how geosynthetics are sold: geotextiles and geomembranes per m2 in rolls, geogrids per m2 by strength, tarpaulins per piece, and installation per m2 with welding tests. Geotextiles and geomembranes are sold per m2 in rolls (e.g. 4-6 m wide x 50-100 m long for geotextile; geomembrane 5.8-7 m wide); geogrids per m2 by strength (e.g. 40/40 kN/m); tarpaulins per piece by size and GSM. Installation per m2 with welding QA (air-channel and spark tests) and panel layout. Quotes include test certificates and CE/manufacturer data sheets.",
+      "body_ar": "تُباع المواد التركيبية الأرضية كالتالي: الجيوتكستايل والجيوممبرين بالمتر المربع في لفات، والجيوجريد بالمتر المربع حسب المقاومة، والشوادر بالقطعة، والتركيب بالمتر المربع مع اختبارات اللحام. يُباع الجيوتكستايل والجيوممبرين بالمتر المربع في لفات (مثل عرض 4-6 م وطول 50-100 م للجيوتكستايل، وعرض 5.8-7 م للجيوممبرين)، والجيوجريد بالمتر المربع حسب المقاومة (مثل 40/40 كيلونيوتن/م)، والشوادر بالقطعة حسب المقاس والوزن (GSM). والتركيب بالمتر المربع مع ضبط جودة اللحام (اختبار قناة الهواء واختبار الشرارة) ومخطط توزيع الألواح. وتتضمن العروض شهادات الاختبار ونشرات البيانات الفنية CE أو الصادرة عن المصنع.",
       "sources": [
         "https://www.solmax.com/me/en",
         "https://www.iso.org",
@@ -55,11 +58,15 @@
   ],
   "eval": [
     {
-      "q_en": "What geomembrane thickness is used to line a landfill cell?",
-      "q_ar": "ما سماكة الغشاء الجيوتقني المستخدمة لتبطين خلية مكب؟",
+      "q_en": "Which ground stabilisation membranes and engineered cloths can I buy locally?",
+      "q_ar": "أي أغشية تثبيت التربة والأقمشة الهندسية أقدر أشتريها محلياً؟",
       "expected_entry_ids": [
         "industrial_textiles:uae-market-products"
-      ]
+      ],
+      "why": "The products entry lists geotextiles and technical fabrics sold.",
+      "written_blind": true,
+      "word_overlap_with_entry": 0,
+      "word_overlap_after_enrichment": 0
     }
   ],
   "verified": {

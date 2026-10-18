@@ -41,6 +41,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "water_dispensers:pou-vs-bottled-running-cost",
+      "topic": "Mains-fed (POU) vs 5-gallon bottled running cost",
+      "kind": "price_driver",
+      "body_en": "For 5-gallon bottled supply the running cost is driven by bottle count: a UAE comparison priced bottles at AED 8 each on a coupon book (10 bottles for AED 80, or 25 for AED 200) plus AED 450 for a dispenser, against a tap-water rate of AED 0.035 per 4.5 litres and a kitchen filtration system at AED 1,499 with AED 500 a year maintenance after the first year. A water-cooler supplier cites an NRDC estimate that 90% of bottled-water cost goes on bottling, packaging, shipping, marketing and retailing and only 10% on the water. A bottleless point-of-use unit therefore swaps a per-bottle cost for a fixed rental or purchase plus filter service; the more bottles a site uses, the stronger the case for it. Not established here: current UAE point-of-use rental rates, which must come from supplier quotes.",
+      "body_ar": "في إمدادات القوارير سعة 5 غالونات تتحدد التكلفة التشغيلية بعدد القوارير: قدّرت مقارنة إماراتية سعر القارورة بـ8 دراهم عند الشراء بدفتر قسائم (10 قوارير بـ80 درهماً أو 25 قارورة بـ200 درهم) إضافة إلى 450 درهماً لجهاز الموزّع، مقابل تعرفة مياه صنبور تبلغ 0.035 درهم لكل 4.5 لتر، ونظام ترشيح للمطبخ بسعر 1,499 درهماً مع صيانة سنوية قدرها 500 درهم بعد السنة الأولى. ويستشهد أحد موردي مبرّدات المياه بتقدير لمجلس الدفاع عن الموارد الطبيعية (NRDC) بأن 90% من تكلفة المياه المعبأة تذهب إلى التعبئة والتغليف والشحن والتسويق والبيع بالتجزئة و10% فقط إلى المياه نفسها. لذلك فإن جهاز نقطة الاستخدام دون قوارير يستبدل تكلفة القارورة الواحدة بإيجار ثابت أو سعر شراء مع خدمة الفلاتر؛ وكلما زاد عدد القوارير التي يستهلكها الموقع قويت الحجة لصالحه. غير مثبت هنا: أسعار الإيجار الحالية لأجهزة نقطة الاستخدام في الإمارات، ويجب الحصول عليها من عروض الموردين.",
+      "sources": [
+        "https://gulfnews.com/amp/gulfnews/your-money/saving-investment/how-much-money-will-filtered-tap-water-save-you-1.1582815501994",
+        "https://borgandoverstrom.com/en/blog/bottled-watercooler-vs-pou"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +71,15 @@
       "expected_entry_ids": [
         "water_dispensers:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Is it cheaper to rent a bottleless point-of-use dispenser or buy 5-gallon bottles?",
+      "q_ar": "هل استئجار موزع نقطة استخدام بدون عبوات أرخص أم شراء عبوات 5 غالونات؟",
+      "expected_entry_ids": [
+        "water_dispensers:pou-vs-bottled-running-cost"
+      ],
+      "why": "No entry of this pack answered it (No entry compares POU dispenser rental with bottled water cost; missing). water_dispensers:pou-vs-bottled-running-cost was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from water_dispensers.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +96,9 @@
       "water_dispensers:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "water_dispensers:pou-vs-bottled-running-cost"
+    ]
   }
 }

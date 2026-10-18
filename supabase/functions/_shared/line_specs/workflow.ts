@@ -30,7 +30,7 @@
 //
 // Written against a small repository interface so the workflow test runs entirely in memory: no
 // database, no network, and therefore no way to reach a real supplier.
-import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT, termItem, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
+import { approvalNotice, assessQuote, validityOf, holdNotice, lineText, releasedNotice, SEAT, termItem, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
 import { TRADES, type Attr } from './model.ts';
 import { applyReading, type QuoteReading } from '../reasoned_matching.ts';
 import { needsChecklist, withReasoned } from './reasoned_specs.ts';
@@ -81,6 +81,7 @@ export type Ctx = { category: string | null; requirements: Requirements; ref: st
   read?: (q: QuoteRow, lines: Line[]) => Promise<QuoteReading | null>;
   checklist?: Attr[]; reason?: (lines: Line[], checklist: Attr[]) => Promise<Record<number, Record<string, string>> | null> };
 const nowIso = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date()).toISOString();
+const nowOf = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date());
 const langOf = (s: Supplier): 'en' | 'ar' => (String(s.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
 
 /** One notice as delivery requests on every channel the supplier has: email and WhatsApp. */
@@ -151,6 +152,19 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
   await repo.log({ signal: 'spec_hold_opened', quote_id: quoteId, hold_id: hold.id, missing: a.missing.length, delivery_requests: ids.length, option_no: q.option_no },
     `Held quote ${quoteId}: ${a.missing.length} required detail(s) missing — ${a.missing.map((m) => m.scope === 'line' ? `line ${m.line_no} ${m.attr}` : m.attr).join(', ')}. ${ids.length} delivery request(s) to customer_support (email and WhatsApp) queued and dispatched at once.`);
   return { held: true as const, hold_id: hold.id, missing: a.missing, superseded, assessment: a, notification_ids: ids };
+}
+
+/**
+ * THE HOLD DESK ASKS EVERYTHING ITS RELEASE ASKS (stage-2 run 4, 13 Oct 2026). spec_approve's precheck runs the
+ * quotation review (quote_review.ts), whose rule 7 wants a concrete validity; assessQuote never asks it, so the
+ * form never showed it, validateTerm refused it as unknown_attribute, and a supplier who filled in every field
+ * was answered still_missing [validity] with no way to supply it. The desk (spec_hold, spec_fill, spec_approve)
+ * now asks it as one more quote-level term. The submission gate is unchanged: the review already asks it there.
+ */
+export function deskAssess(input: Parameters<typeof assessQuote>[0], validity: string | null | undefined, now: Date = new Date()): Assessment {
+  const a = assessQuote(input);
+  if (validityOf(String(validity ?? ''), now)) return a;
+  return { ...a, held: true, missing: [...a.missing, termItem('validity')] };
 }
 
 /**
@@ -266,7 +280,7 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const hold = await repo.liveHold(quoteId);
   if (!hold) return { ok: false as const, code: 'no_hold' as const };
   const lines = await repo.lines(quoteId);
-  const a0 = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
+  const a0 = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
   const errors: FillError[] = [];
   const next = lines.map((l) => ({ ...l, spec: { ...(l.spec ?? {}) }, spec_source: { ...(l.spec_source ?? {}) } }));
   for (const [ln, vals] of Object.entries(values.lines ?? {})) {
@@ -283,13 +297,14 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const t = values.terms ?? {}; const tv: Record<string, string> = {};
   for (const [attr, raw] of Object.entries(t)) {
     if (raw == null || String(raw).trim() === '') continue;
-    const v = validateTerm(attr, raw);
+    const v = validateTerm(attr, raw, nowOf(ctx));
     if (!v.ok) errors.push({ scope: 'quote', line_no: null, attr, code: v.code }); else tv[attr] = v.value;
   }
   if (errors.length) return { ok: false as const, code: 'invalid_values' as const, errors };
 
   const ts: TermsSpec = { ...(q.terms_spec ?? {}) };
   const patch: Record<string, unknown> = {};
+  if (tv.validity) patch.validity = tv.validity;
   if (tv.delivery) { ts.delivery = { value: tv.delivery, source: 'supplier_portal' }; patch.lead_time = tv.delivery; }
   if (tv.installation_included || tv.installation_detail) {
     const included = (tv.installation_included ?? ts.installation?.included ?? a0.terms.installation.included ?? 'yes') as 'yes' | 'no';
@@ -310,7 +325,7 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const history = [...(hold.supplier_values ?? []), { at: nowIso(ctx), by: 'supplier', values }];
 
   const q1 = { ...q, ...patch } as QuoteRow;
-  const a1 = assessQuote({ category: ctx.category, lines: next, terms: q1, requirements: ctx.requirements, checklist: ctx.checklist });
+  const a1 = deskAssess({ category: ctx.category, lines: next, terms: q1, requirements: ctx.requirements, checklist: ctx.checklist }, q1.validity, nowOf(ctx));
   if (a1.held) {
     await repo.updateHold(hold.id, { missing: a1.missing, state: 'open', supplier_values: history });
     return { ok: true as const, complete: false as const, missing: a1.missing, schema: formSchema(a1, next) };
@@ -369,7 +384,7 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   if (arabicPending(hold)) return { ok: false as const, code: 'arabic_pending' as const };
   if (confirm !== true) return { ok: false as const, code: 'confirm_required' as const };
   const lines = await repo.lines(quoteId);
-  const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
+  const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
   if (a.held) { await repo.updateHold(hold.id, { state: 'open', missing: a.missing }); return { ok: false as const, code: 'still_missing' as const, missing: a.missing }; }
   if (precheck) {
     const pre = await precheck(q);

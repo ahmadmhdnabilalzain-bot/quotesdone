@@ -4,9 +4,10 @@
     {
       "id": "facade_access_maintenance:spec-checklist",
       "topic": "Facade access and maintenance - what the buyer must state",
+      "topic_ar": "الوصول إلى الواجهات وصيانتها: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
       "body_en": "Each quoted service line for facade access and maintenance must state: building and facade area; access method; BMU or equipment inspection and certification; work scope and frequency; operator certification; method statement and risk assessment; working hours and permits; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الوصول إلى الواجهات وصيانتها: المبنى ومساحة الواجهة؛ طريقة الوصول؛ فحص واعتماد وحدة صيانة المبنى أو المعدات؛ نطاق العمل وتكراره؛ اعتماد المشغلين؛ بيان الطريقة وتقييم المخاطر؛ ساعات العمل والتصاريح؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_ar": "حتى يسعّر موردو الوصول إلى الواجهات وصيانتها العمل نفسه، يجب أن يذكر كل بند في عرض السعر: المبنى ومساحة الواجهة؛ طريقة الوصول إلى الواجهة؛ فحص واعتماد وحدة صيانة المبنى (BMU) أو المعدات؛ نطاق العمل وعدد مراته؛ شهادات المشغلين؛ بيان طريقة العمل وتقييم المخاطر؛ ساعات العمل والتصاريح؛ التراخيص التي يحملها المورد؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر كل معيار أو شهادة برقمه. أي بند ينقصه شيء من هذه المواصفات يُعلَّق ويُطلب من المورد استكماله؛ لا يُخمَّن شيء، ولا تُقارن العروض إلا إذا كانت على الأساس نفسه. هذه القائمة خاصة بفئة الوصول إلى الواجهات وصيانتها فقط.",
       "required_specs": [
         "building and facade area",
         "access method",
@@ -31,9 +32,10 @@
     {
       "id": "facade_access_maintenance:uae-standards-and-approvals",
       "topic": "Facade access and maintenance - UAE standards and approvals",
+      "topic_ar": "الوصول إلى الواجهات وصيانتها: الموافقات والمعايير والجهات في الإمارات",
       "kind": "standard",
       "body_en": "In Dubai, Dubai Municipality gives technical approval of construction materials and systems, certifies products through Dubai Central Laboratory and its factory assessment scheme, and requires compliance with the Dubai Building Code (Decree No. 45 of 2021) and the Al Sa'fat green building system. The provider must hold a valid UAE trade licence whose licensed activity covers this service, issued by the economic department of the emirate or by a free zone authority. The cited sources do not set a UAE-specific service standard, qualification level or rate for facade access and maintenance; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
-      "body_ar": "في دبي، تمنح بلدية دبي الاعتماد الفني لمواد وأنظمة البناء، وتعتمد المنتجات عبر مختبر دبي المركزي ونظام تقييم المصانع، وتشترط الامتثال لكود البناء في دبي (المرسوم رقم 45 لسنة 2021) ونظام السعفات للمباني الخضراء. يجب أن يحمل المزوّد رخصة تجارية إماراتية سارية يشمل نشاطها المرخّص هذه الخدمة، صادرة عن الدائرة الاقتصادية في الإمارة أو عن سلطة منطقة حرة. لا تحدد المصادر المذكورة معياراً أو مستوى تأهيل أو سعراً إماراتياً خاصاً بخدمة الوصول إلى الواجهات وصيانتها؛ يجب على المشتري ذكر المخرجات ومستويات الخدمة والمؤهلات صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "body_ar": "موافقات أعمال الواجهات في دبي: بلدية دبي تعطي الاعتماد الفني لمواد البناء وأنظمته، وتعتمد المنتجات عن طريق مختبر دبي المركزي ونظام تقييم المصانع، وتشترط الالتزام بكود البناء في دبي (المرسوم رقم 45 لسنة 2021) ونظام السعفات للمباني الخضراء. ويجب أن يحمل مزوّد خدمة الوصول إلى الواجهات وصيانتها رخصة تجارية إماراتية سارية يغطي نشاطها هذه الخدمة، صادرة عن الدائرة الاقتصادية في الإمارة أو عن سلطة منطقة حرة. المصادر المذكورة لا تحدد معياراً إماراتياً خاصاً بهذه الخدمة ولا مستوى تأهيل ولا سعراً؛ لذلك على المشتري أن يكتب المخرجات ومستوى الخدمة والمؤهلات صراحة، وأي بند لا يذكرها يُعلَّق.",
       "source_note": "The cited sources do not set a UAE-specific service standard, qualification level or rate for facade access and maintenance; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
       "sources": [
         "https://www.dm.gov.ae/municipality-business/",
@@ -41,6 +43,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "facade_access_maintenance:en-1808-cradle-inspection",
+      "topic": "EN 1808 suspended platforms and pre-use inspection",
+      "kind": "standard_and_certification",
+      "body_en": "Suspended cradles are inspected against BS EN 1808: an inspection body's accreditation scope published by MoIAT lists initial and periodic inspection of window/paint cradles to BS EN 1808:2015. Under UAE rules, when a cradle is received an independent safety company inspects it and issues a safety certificate before it can be used; that certificate is presented to the emirate's municipality to obtain authorisation to use the cradle. Workers in the cradle must wear a safety harness attached to an independent lifeline fixed separately to the building. Not established here: a fixed re-inspection interval and which bodies each municipality approves, so confirm both with the municipality or the inspection body.",
+      "body_ar": "تُفحص منصات العمل المعلّقة (السقالات المعلقة) وفق المواصفة BS EN 1808: إذ يتضمن نطاق اعتماد جهة تفتيش نشرته وزارة الصناعة والتكنولوجيا المتقدمة الفحص الأولي والدوري لمنصات تنظيف النوافذ والطلاء وفق المواصفة BS EN 1808:2015. وبموجب القواعد في الإمارات، تفحص شركة سلامة مستقلة المنصة عند استلامها وتصدر شهادة سلامة قبل استخدامها، وتُقدَّم هذه الشهادة إلى بلدية الإمارة للحصول على إذن الاستخدام. ويجب على العاملين في المنصة ارتداء حزام أمان متصل بحبل نجاة مستقل مثبت بالمبنى بشكل منفصل. غير ثابت هنا: فترة إعادة الفحص المحددة والجهات التي تعتمدها كل بلدية، لذا تأكد من الأمرين لدى البلدية أو جهة التفتيش.",
+      "sources": [
+        "https://www.moiat.gov.ae/-/media/site/moiat/accreditation-cabs-folder/acc-scope-nai-031.ashx",
+        "https://thenationalnews.com/uae/laws-exist-to-protect-cradle-workers-1.546622"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -57,6 +73,15 @@
       "expected_entry_ids": [
         "facade_access_maintenance:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which standard should a temporary suspended cradle comply with, and what certificate do we need before use?",
+      "q_ar": "ما المعيار الذي يجب أن يلتزم به المهد المعلق المؤقت، وما الشهادة المطلوبة قبل الاستخدام؟",
+      "expected_entry_ids": [
+        "facade_access_maintenance:en-1808-cradle-inspection"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry names the temporary suspended platform standard (EN 1808) or the third-party inspection certificate required before use). facade_access_maintenance:en-1808-cradle-inspection was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from facade_access_maintenance.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -73,6 +98,9 @@
       "facade_access_maintenance:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "added_2026_10_06": [
+      "facade_access_maintenance:en-1808-cradle-inspection"
+    ]
   }
 }

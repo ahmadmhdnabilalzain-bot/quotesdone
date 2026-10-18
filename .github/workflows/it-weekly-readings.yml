@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   readings:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
     timeout-minutes: 20
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

@@ -57,6 +57,15 @@
       "expected_entry_ids": [
         "pest_control:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Does a restaurant in Dubai have to use a Dubai Municipality approved pest control company?",
+      "q_ar": "هل يجب على مطعم في دبي استخدام شركة مكافحة آفات معتمدة من بلدية دبي؟",
+      "expected_entry_ids": [
+        "pest_control:uae-standards-and-approvals"
+      ],
+      "why": "States pest control in Dubai sits under Dubai Municipality's public-health remit (municipality-licensed company), which answers the approval question.",
+      "origin": "real buyer question, moved from pest_control.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

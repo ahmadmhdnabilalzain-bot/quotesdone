@@ -31,7 +31,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { observe } from '../_shared/observe.ts';
-import { certFields, certLang, certificate, noAcceptanceRunStatus, supplierEvidence, type Lang } from './certificate.ts';
+import { certFields, certLang, certificate, isRegisterRow, noAcceptanceRunStatus, supplierEvidence, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -74,16 +74,19 @@ async function renderCert(fields: Record<string, string>, kind: string, hash: st
 }
 
 async function buildRegister(): Promise<{ count: number; url: string | null; bytes: Uint8Array | null }> {
-  const { data } = await admin.from('customers').select('full_name,date_of_birth,phone,email,signed_terms_path,created_at,email_verified').order('created_at', { ascending: true });
-  const rows = (data || []);
+  // 12 Oct 2026 (founder audit against the 9 Sep spec): the register lists CUSTOMERS, and a sign-up is a customer only
+  // once the terms are accepted (ruling 1181), with the IP, the accepted version and the time, beside the link.
+  const { data } = await admin.from('customers').select('full_name,date_of_birth,phone,email,signed_terms_path,created_at,email_verified,tos_ip,tos_version,tos_accepted_at,is_demo')
+    .not('tos_accepted_at', 'is', null).eq('is_demo', false).order('created_at', { ascending: true });
+  const rows = (data || []).filter(isRegisterRow);
   const paths = rows.map((c: any) => c.signed_terms_path).filter(Boolean) as string[];
   const urlByPath: Record<string, string> = {};
   if (paths.length) { try { const { data: su } = await admin.storage.from(BUCKET).createSignedUrls(paths, TENYRS); for (const it of (su || [])) { if (it.path && it.signedUrl) urlByPath[it.path] = it.signedUrl; } } catch (_e) { } }
-  const header = ['Name', 'Date of birth', 'Mobile', 'Email', 'Signed T&C copy', 'Registered (UTC)', 'Email verified'];
+  const header = ['Name', 'Date of birth', 'Mobile', 'Email', 'Signed T&C copy', 'Registered (UTC)', 'Email verified', 'Terms version', 'Terms accepted (UTC)', 'IP address'];
   const aoa: any[][] = [header];
   const urls: (string | null)[] = [null];
-  for (const c of rows) { const u = c.signed_terms_path ? (urlByPath[c.signed_terms_path] || null) : null; aoa.push([c.full_name || '', c.date_of_birth || '', c.phone || '', c.email || '', u ? 'Open signed PDF' : '', (c.created_at || '').slice(0, 19).replace('T', ' '), c.email_verified ? 'Yes' : 'No']); urls.push(u); }
-  const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = [{ wch: 26 }, { wch: 14 }, { wch: 18 }, { wch: 30 }, { wch: 24 }, { wch: 20 }, { wch: 14 }];
+  for (const c of rows) { const u = c.signed_terms_path ? (urlByPath[c.signed_terms_path] || null) : null; aoa.push([c.full_name || '', c.date_of_birth || '', c.phone || '', c.email || '', u ? 'Open signed PDF' : '', (c.created_at || '').slice(0, 19).replace('T', ' '), c.email_verified ? 'Yes' : 'No', c.tos_version || '', (c.tos_accepted_at || '').slice(0, 19).replace('T', ' '), c.tos_ip || '']); urls.push(u); }
+  const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = [{ wch: 26 }, { wch: 14 }, { wch: 18 }, { wch: 30 }, { wch: 24 }, { wch: 20 }, { wch: 14 }, { wch: 12 }, { wch: 20 }, { wch: 18 }];
   for (let r = 1; r < aoa.length; r++) { const u = urls[r]; if (!u) continue; const ref = XLSX.utils.encode_cell({ c: 4, r }); ws[ref] = { t: 's', v: 'Open signed PDF', l: { Target: u, Tooltip: 'Open signed acceptance certificate (PDF)' } }; }
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Customers');
   const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }); const bytes = new Uint8Array(out);

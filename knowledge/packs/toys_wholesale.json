@@ -57,6 +57,15 @@
       "expected_entry_ids": [
         "toys_wholesale:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Do imported toys need ECAS certification before sale in the UAE?",
+      "q_ar": "هل تحتاج الألعاب المستوردة إلى شهادة نظام المطابقة الإماراتي قبل بيعها في الإمارات؟",
+      "expected_entry_ids": [
+        "toys_wholesale:uae-standards-and-approvals"
+      ],
+      "why": "States toys are a regulated category needing MoIAT (ex-ECAS) conformity certification before sale.",
+      "origin": "real buyer question, moved from toys_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

@@ -148,11 +148,4 @@ export function quoteAnswer(choice: string | null, quotes: QuoteForAnswer[], lan
   };
 }
 
-// ── 4. THE HONEST FALLBACK, IN THE ASKER'S LANGUAGE ──────────────────────────────────────────
-export function notYet(lang: Lang, taskId: number | string | null | undefined, seat: 'sales_engineer' | 'customer_support'): string {
-  const who = seat === 'sales_engineer' ? { en: 'the sales engineer', ar: 'مهندس المبيعات' } : { en: 'customer support', ar: 'خدمة العملاء' };
-  const t = taskId != null && taskId !== '' ? (lang === 'ar' ? ` (المهمة رقم ${taskId})` : ` (task #${taskId})`) : '';
-  return lang === 'ar'
-    ? `لا تتوفر لديّ هذه المعلومة حاليًا، ولا أودّ أن أجيبك بالتخمين. سجّلتُ سؤالك كما كتبته وأحلته إلى ${who.ar}${t}، وسيصلك الرد.`
-    : `I don't have that yet, and I won't guess. I've logged your question as you wrote it for ${who.en}${t}, and the answer will come back to you.`;
-}
+// 4. (removed 12 Oct 2026, rulings 1195/1196) notYet, the fixed "I don't have that yet" sentence: a model writes every reply.

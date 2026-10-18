@@ -40,6 +40,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "outdoor_furniture:coastal-frame-materials",
+      "topic": "Frame materials for salt-air outdoor furniture",
+      "kind": "technical_reference",
+      "body_en": "In salt air, chloride attack decides frame life. Grade 316 stainless steel contains two to three percent molybdenum, which gives it real resistance to chloride attack, better than grade 304. Marine aluminium such as alloy 3003 forms a self-healing oxide layer that resists salt corrosion without tea-staining, and weighs roughly a third of stainless steel. When comparing products, check the alloy number and gauge (not just 'aluminium'), which stainless grade each hardware part uses, and whether the finish is architectural-grade powder coating to AAMA 2604 or 2605. Not established here: teak or other timbers, a UAE standard, or independent salt-spray data ranking these materials for beachfront hotel loungers; the source discusses coastal outdoor kitchens.",
+      "body_ar": "في الهواء المشبع بالملح، يحدد هجوم الكلوريدات عمر الإطار. يحتوي الفولاذ المقاوم للصدأ من الدرجة 316 على اثنين إلى ثلاثة بالمئة من الموليبدينوم، ما يمنحه مقاومة حقيقية لهجوم الكلوريدات تفوق الدرجة 304. أما الألمنيوم البحري مثل السبيكة 3003 فيكوّن طبقة أكسيد ذاتية الالتئام تقاوم التآكل الملحي دون تبقّع، ويزن نحو ثلث وزن الفولاذ المقاوم للصدأ. عند مقارنة المنتجات، تحقق من رقم السبيكة وسماكتها (لا مجرد «ألمنيوم»)، ومن درجة الفولاذ المقاوم للصدأ في كل قطعة من الملحقات المعدنية، ومن أن التشطيب طلاء بودرة معماري وفق AAMA 2604 أو 2605. غير مثبت هنا: خشب الساج أو غيره من الأخشاب، أو معيار إماراتي، أو بيانات مستقلة لاختبار رذاذ الملح تقارن هذه المواد لكراسي الاسترخاء في الفنادق الشاطئية؛ إذ يتناول المصدر المطابخ الخارجية الساحلية.",
+      "sources": [
+        "https://stonooutdoor.com/blogs/news/marine-grade-aluminum-vs-316-stainless-which-holds-up-better-in-coastal-climates"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "outdoor_furniture:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Which frame material lasts best for beachfront hotel loungers?",
+      "q_ar": "ما مادة الهيكل الأكثر تحملاً لكراسي التشمس في الفنادق الشاطئية؟",
+      "expected_entry_ids": [
+        "outdoor_furniture:coastal-frame-materials"
+      ],
+      "why": "No entry of this pack answered it (Spec-checklist only names 'frame material and coating'; no comparison of materials for coastal use; missing). outdoor_furniture:coastal-frame-materials was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from outdoor_furniture.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "outdoor_furniture:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "outdoor_furniture:coastal-frame-materials"
+    ]
   }
 }

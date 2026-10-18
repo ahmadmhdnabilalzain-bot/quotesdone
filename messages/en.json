@@ -214,7 +214,7 @@
         "body": "A quote missing its price, lead time, validity or warranty is held, with notes telling the supplier exactly what to add. Only a complete quote is shared with you."
       },
       {
-        "title": "3% to reveal, plus the card fee",
+        "title": "3% of the selected quotation, nothing added for paying by card",
         "body": "Posting and comparing are free. You pay only to open the one quote you choose: 3% of it, shown in full before you pay, and nothing more. No VAT is charged on the reveal fee."
       },
       {
@@ -559,7 +559,7 @@
     ],
     "revealed": "Name, phone, licence no.",
     "rejected": "quotes without a removal line were held, with notes to their suppliers, and never shown.",
-    "revealCta": "Reveal for AED 1,162.50 (3%) + card fee",
+    "revealCta": "Reveal for AED 1,162.50 (3%), nothing added for paying by card",
     "note": "Sample data: a worked illustration of the steps on a fixed job, not a live request.",
     "moreListed": "+ 4 more quotes listed under the report · any of them can be chosen"
   },

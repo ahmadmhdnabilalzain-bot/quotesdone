@@ -22,7 +22,7 @@
 // which never touches the outbox. per_recipient_24h=1 applied here would answer "hi" and then refuse
 // the option they picked from our own list. wa_autoreply_enabled still governs every send.
 import {
-  type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, greetLine, type Lang, langOf, MENU_HINT, MENU_IDS, menuAsText, menuChoice, type MenuId, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
+  type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, type Lang, langOf, MENU_IDS, menuAsText, menuChoice, type MenuId, type MenuContext, optionReply, WELCOME_TAIL,
 } from './menu.ts';
 import { coverageReply, type Trade } from './coverage.ts';
 import { capabilityAnswer, figuresText, type Figures, isFiguresCommand } from './founder_queries.ts';
@@ -69,6 +69,12 @@ export type MenuDeps = {
   closeHuman(phone: string): Promise<number>;
   contentSid(key: string): Promise<string | null>;
   send(to: string, body: string, content?: Content): Promise<SendResult>;
+  /** THE WORDS (rulings 1195-1197): a model writes every conversation reply in this turn from `situation` (what code
+   *  decided) — wa_inbound/model_says.ts. '' when no model answered: then nothing conversational is sent. */
+  write(r: { situation: string; lang: Lang; audience: Audience; message: string }): Promise<string>;
+  /** No model answer: the HELD NOTICE (a fixed receipt, a notification) is sent and the turn is queued for a model
+   *  retry, escalated to customer_support after 15 minutes (model_says.ts holdUnwritten). Never silence. */
+  held(r: { situation: string; lang: Lang; audience: Audience; route: string }): Promise<{ notice: string; sent: boolean; err: string | null }>;
   record(row: { inbound: string; reply: string; lang: Lang; sent: boolean; route: string; await: string | null;
                 send_error: string | null; extra: Record<string, unknown> }): Promise<void>;
 };
@@ -97,6 +103,27 @@ async function reply(d: MenuDeps, inp: MenuInput, lang: Lang, route: string, tex
                    send_error: err, extra: { ...extra, via, autoreply_enabled: enabled } });
 }
 
+/** A conversation reply: the model writes it from `situation`; with no model answer nothing is sent, and the
+ *  turn is recorded as unsent (no_model_reply) so the team sees it. Returns whether anything went out. */
+async function talk(d: MenuDeps, inp: MenuInput, lang: Lang, route: string, situation: string, awaitNext: string | null,
+                    extra: Record<string, unknown>): Promise<boolean> {
+  const text = await d.write({ situation, lang, audience: inp.audience, message: String(inp.body || '').trim() });
+  if (!text) {
+    const h = await d.held({ situation, lang, audience: inp.audience, route });
+    await d.record({ inbound: String(inp.body || '').trim(), reply: h.notice, lang, sent: h.sent, route, await: awaitNext,
+                     send_error: h.err, extra: { ...extra, held_notice: true, autoreply_enabled: await d.autoreplyEnabled() } });
+    return false;
+  }
+  await reply(d, inp, lang, route, text, awaitNext, { ...extra, model_written: true });
+  return true;
+}
+
+/** Stored knowledge (coverage list / approved FAQ) is a FACT the model answers from, never the reply itself. */
+function groundedSituation(ans: string, lang: Lang): string {
+  return 'Our approved knowledge for this question (answer from it in your own words; keep every figure, link and rule exactly):\n'
+    + ans + '\nEnd by saying they can reply ' + (lang === 'ar' ? '«قائمة»' : 'MENU') + ' at any time to see the options.';
+}
+
 /** A question's answer: coverage from the live trade list first (it has an exact answer), then the
  *  approved FAQ. Null when neither has a confident one. */
 async function answerOf(d: MenuDeps, text: string): Promise<string | null> {
@@ -110,8 +137,19 @@ async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContex
   const key = contentKey(lang, ctx.audience);
   const sid = await d.contentSid(key);
   // Content body = {{1}} + WELCOME_TAIL, so the text we record is exactly what the list shows.
-  const line = lead ?? greetLine(lang, ctx.audience, ctx.name, salam);
-  const shown = lead === null ? welcomeText(lang, ctx.audience, ctx.name, salam) : line + '\n\n' + WELCOME_TAIL[lang];
+  // The interactive list is UI and stays; its opening line ({{1}}) is the model's, written from what this turn is.
+  let line = await d.write({ lang, audience: ctx.audience, message: String(inp.body || '').trim(),
+    situation: (lead ?? ('Greet them' + (ctx.name ? ' by name (' + ctx.name + ')' : '') + (salam ? ', returning the salam,' : '')
+      + ', and if they asked something, start answering it.'))
+      + '\nOne or two short sentences only. Our standing introduction and an interactive list of options (new request, follow a request, suppliers, a question, report a problem, talk to a person) are sent right after your words, so do not introduce the company or list the options.' });
+  if (!line) {
+    const h = await d.held({ situation: lead ?? 'They greeted us or asked for the menu.', lang, audience: ctx.audience, route });
+    await d.record({ inbound: String(inp.body || '').trim(), reply: h.notice, lang, sent: h.sent, route, await: null,
+                     send_error: h.err, extra: { ...more, held_notice: true, autoreply_enabled: await d.autoreplyEnabled() } });
+    return;
+  }
+  line = line.replace(/\s*\n+\s*/g, ' '); // a Content variable carries no line break
+  const shown = line + '\n\n' + WELCOME_TAIL[lang];
   await reply(d, inp, lang, route, shown, null, { ...more, audience: ctx.audience, content_key: key, content_sid: sid },
     sid ? { sid, variables: { '1': line } } : undefined, menuAsText(lang, ctx.audience, lead === null ? shown : line));
 }
@@ -181,7 +219,7 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   //     Whether it IS a size question is reasoned (think(), 23 Sep 2026), never matched; a menu choice is not
   //     reasoned at all. Held, it is not guessed: the message goes on, and is answered on replay if unanswered.
   if (!choice && (await d.intent(body)) === 'size') {
-    await reply(d, inp, lang, 'capability_answer', capabilityAnswer(lang), null, { audience: inp.audience, size_question: true });
+    await talk(d, inp, lang, 'capability_answer', 'They asked about our size or volumes. Never give any count or figure about suppliers, customers, requests, quotes or revenue. Say instead, professionally: ' + capabilityAnswer(lang), null, { audience: inp.audience, size_question: true });
     return { handled: true, route: 'capability_answer' };
   }
 
@@ -210,7 +248,7 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
     if (choice === 'qd_person') extra.founder_notified = await d.notifyHuman(inp.from, ctx, body);
     if (choice === 'qd_follow') extra.requests_listed = (ctx.requests || []).length;
     const next = choice === 'qd_problem' ? 'problem' : choice === 'qd_general' ? 'question' : null;
-    await reply(d, inp, lang, 'menu_' + choice, optionReply(choice, lang, ctx), next, extra);
+    await talk(d, inp, lang, 'menu_' + choice, 'They chose the menu option "' + choice + '". Tell them this in your own words, keeping every link, reference, status and hour exactly:\n' + optionReply(choice, lang, ctx), next, extra);
     return { handled: true, route: 'menu_' + choice };
   }
 
@@ -225,7 +263,7 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   if (awaiting === 'question' && body) {
     const ans = await answerOf(d, body);
     if (ans) {
-      await reply(d, inp, lang, 'menu_answer', ans + MENU_HINT[lang], null, { faq: true });
+      await talk(d, inp, lang, 'menu_answer', groundedSituation(ans, lang), null, { faq: true });
       return { handled: true, route: 'menu_answer' };
     }
   }
@@ -243,7 +281,7 @@ export async function welcomeFirstContact(d: MenuDeps, inp: MenuInput): Promise<
   const lang = langOf(body);
   const ctx = await d.context(inp.from);
   const ans = body ? await answerOf(d, body) : null;
-  if (ans) await reply(d, inp, lang, 'menu_first_answer', ans, null, { audience: ctx.audience, faq: true });
+  if (ans) await talk(d, inp, lang, 'menu_first_answer', groundedSituation(ans, lang), null, { audience: ctx.audience, faq: true });
   // Held (the hold): the welcome is not an answer, so the intent waits in the queue and the replay answers it.
   else if (body && (await d.intent(body)) === null) await d.queueIntent(body);
   await sendMenu(d, inp, lang, ctx, 'menu_welcome', null);
@@ -258,7 +296,7 @@ export async function answerFromFaq(d: MenuDeps, inp: MenuInput): Promise<boolea
   const ans = await answerOf(d, body);
   if (!ans) return false;
   const lang = langOf(body);
-  await reply(d, inp, lang, 'faq_answer', ans + MENU_HINT[lang], null, { faq: true, audience: inp.audience });
+  await talk(d, inp, lang, 'faq_answer', groundedSituation(ans, lang), null, { faq: true, audience: inp.audience });
   return true;
 }
 
@@ -283,6 +321,7 @@ export async function unanswered(d: MenuDeps, inp: MenuInput, reason: string): P
   // Unreasoned (the hold) is not unanswerable: the intent waits in the queue and the replay answers it here.
   if (body && (await d.intent(body)) === null) await d.queueIntent(body);
   const lang = langOf(body);
-  await sendMenu(d, inp, lang, { audience: inp.audience, name: null }, 'menu_reoffer', sorryLead(lang, recorded),
+  await sendMenu(d, inp, lang, { audience: inp.audience, name: null }, 'menu_reoffer',
+    'No stored knowledge answered their message' + (recorded ? ' and it has been recorded for the team' : '') + '. Answer what you can from your own expertise and the brief; then say a person can reply here if they choose "Talk to a person" from the options below.',
     { unanswered_reason: reason, gap_recorded: recorded });
 }

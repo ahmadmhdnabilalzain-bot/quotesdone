@@ -40,6 +40,19 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "records_management:offsite-storage-pricing-and-retrieval",
+      "topic": "Offsite box storage pricing model and retrieval service levels",
+      "kind": "pricing_benchmark",
+      "body_en": "Offsite records storage can be priced per archive box per month, with activity charged separately. One published records-centre schedule (a US university, in USD) shows USD 0.20 per standard 10x12x15 box per month (USD 0.50 climate-controlled), USD 2.25 per new box, USD 4.25 per file or box retrieval, a USD 15 rush charge, and indexing at USD 2.00 per box or USD 2.50 per file; imaging is priced per job. Not established here: UAE (AED) market rates and retrieval times in hours; ask the provider for its rate card, retrieval SLA and withdrawal or destruction fees.",
+      "body_ar": "يمكن تسعير تخزين السجلات خارج الموقع لكل صندوق أرشيف شهرياً، مع احتساب العمليات بشكل منفصل. يُظهر جدول رسوم منشور لأحد مراكز السجلات (جامعة أمريكية، بالدولار الأمريكي) 0.20 دولار لكل صندوق قياسي بمقاس 10×12×15 إنش شهرياً (0.50 دولار مع التحكم بالمناخ)، و2.25 دولار لكل صندوق جديد، و4.25 دولار لاسترجاع ملف أو صندوق، ورسماً للاستعجال قدره 15 دولاراً، والفهرسة بـ2.00 دولار لكل صندوق أو 2.50 دولار لكل ملف؛ ويُسعَّر التصوير الرقمي حسب كل طلب. لم يثبت هنا: أسعار السوق في الدولة بالدرهم، ولا أزمنة الاسترجاع بالساعات؛ اطلب من المزوّد قائمة أسعاره واتفاقية مستوى خدمة الاسترجاع ورسوم السحب أو الإتلاف.",
+      "sources": [
+        "https://www.unthealth.edu/academic-affairs/records-information-management/fees/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-06",
+      "verified": false
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "records_management:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "How is offsite archive storage priced and how quickly can we retrieve a file?",
+      "q_ar": "كيف يُسعّر تخزين الأرشيف خارج الموقع وما مدى سرعة استرجاع الملف؟",
+      "expected_entry_ids": [
+        "records_management:offsite-storage-pricing-and-retrieval"
+      ],
+      "why": "No entry of this pack answered it (the checklist lists retrieval time and services as fields but no entry explains per-box pricing or typical retrieval times). records_management:offsite-storage-pricing-and-retrieval was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
+      "origin": "real buyer question, moved from records_management.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -72,6 +94,9 @@
       "records_management:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "added_2026_10_06": [
+      "records_management:offsite-storage-pricing-and-retrieval"
+    ]
   }
 }

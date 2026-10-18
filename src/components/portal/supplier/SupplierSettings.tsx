@@ -10,6 +10,10 @@
 // platform decides, and a settings screen that appeared to let a supplier edit them would be
 // offering a control that silently does nothing.
 //
+// 12 Oct 2026 (founder ruling 1008, suppliers are always English): the interface-language select is
+// gone and save_settings no longer sends a locale; supplier_api stores 'en' whatever arrives.
+// Prevented by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
+//
 // 14 Sep 2026: the interface language saved here now also SWITCHES the interface (it only stored the
 // preference, so "Interface language: العربية → Save" left the page in English); the approval and
 // registration states render as words instead of raw codes ("action_required", "not_due"); the
@@ -17,6 +21,7 @@
 // reads; and the fetch is the portal's shared call() rather than a second copy.
 import React, { useEffect, useState } from 'react';
 import { call } from './api';
+import { PrivacyControls } from '../PrivacyControls';
 import { firstRead } from './tabPrefetch';
 import { WhatsAppChoice } from '../WhatsAppChoice';
 import type { WaState } from '../whatsappChoiceText';
@@ -98,13 +103,9 @@ function Fact({ k, children, tone }: { k: string; children: React.ReactNode; ton
   );
 }
 
-export default function SupplierSettings({ token, lang = 'en', onLang }: { token?: string | null; lang?: Lang; onLang?: (l: Lang) => void }) {
+export default function SupplierSettings({ token, lang = 'en' }: { token?: string | null; lang?: Lang }) {
   const [s, setS] = useState<Settings | null>(null);
   const [avail, setAvail] = useState<Availability | null>(null);
-  const [locale, setLocale] = useState<Lang>('en');
-  const [langTouched, setLangTouched] = useState(false);
-  // The header's EN/عربي switch changes `lang` without a reload; the select follows it (finding 43).
-  useEffect(() => { if (!langTouched) setLocale(lang); }, [lang]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -138,9 +139,6 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
         const x: Settings = j.settings || {};
         setS(x);
         setAvail(j.availability ?? null);
-        // Audit 21 Sep 2026, finding 43: this showed the STORED locale ("English") while the URL had
-        // put the interface in Arabic. The control names the language on screen; saving it stores it.
-        setLocale(lang);
         setShare(!!x.email_shared);
       } else setErr(t(lang, 'loadErr'));
     }).catch(() => { if (live.current) setErr(t(lang, 'loadErr')); });
@@ -152,13 +150,9 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
 
   const save = async () => {
     setBusy(true); setMsg(''); setErr('');
-    const j = await call('supplier_api', { action: 'save_settings', locale, email_shared: share }, token);
+    const j = await call('supplier_api', { action: 'save_settings', email_shared: share }, token);
     setBusy(false);
     if (!(j && j.ok)) { setErr(t(lang, 'saveErr')); return; }
-    // Switch the interface only when the supplier CHANGED the language here. A stored preference that
-    // differs from the page (an /ar visitor whose saved locale is en) must not throw them into another
-    // language because they saved a WhatsApp toggle — measured on the ZZ DEMO walk, 14 Sep 2026.
-    if (langTouched && locale !== lang && onLang) { onLang(locale); return; }
     setMsg(t(lang, 'saved'));
   };
 
@@ -181,16 +175,6 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
       <SupplierAvailability token={token} initial={avail} />
       <section className="qd-panel p-5">
         <h3 className="text-xs uppercase tracking-wide text-muted-foreground mb-3">{t(lang, 'prefs')}</h3>
-
-        <div className="mb-3">
-          <label className="block text-[13px] mb-1.5 text-foreground" htmlFor="qd-set-lang">{t(lang, 'language')}</label>
-          <select id="qd-set-lang" value={locale} onChange={(e) => { setLocale(e.target.value === 'ar' ? 'ar' : 'en'); setLangTouched(true); }}
-            className="w-full rounded-md border border-input bg-card text-foreground px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring">
-            <option value="en">{t(lang, 'english')}</option>
-            <option value="ar">{t(lang, 'arabic')}</option>
-          </select>
-          <p className="mt-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'langNote')}</p>
-        </div>
 
         <div className="pt-2 border-t border-border">
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">{t(lang, 'notifications')}</div>
@@ -225,6 +209,8 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
           ? <><Ltr>{date(lang, s.accepted_terms_at)}</Ltr>{s.accepted_terms_version ? <> · <bdi dir="ltr">v{String(s.accepted_terms_version).replace(/^v/i, '')}</bdi></> : null}</>
           : t(lang, 'never')}</Fact>
       </section>
+      {/* Suppliers are English only on every channel (standing rule), whatever the interface language. */}
+      <PrivacyControls token={token} lang="en" />
     </div>
   );
 }

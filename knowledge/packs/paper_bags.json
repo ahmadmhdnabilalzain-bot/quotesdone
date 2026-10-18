@@ -40,6 +40,19 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "paper_bags:kraft-gsm-for-retail-bags",
+      "topic": "Kraft paper grammage for retail bags",
+      "kind": "technical_guidance",
+      "body_en": "Kraft paper weight is stated in GSM; higher GSM means thicker paper. Industry guidance groups kraft bag grades as: 70-80 GSM, entry level for light dry goods or branded giveaways; 100-120 GSM, for dry food, retail and moderate loads; 150-180 GSM, extra-thick bags for industrial use. GSM alone does not set strength: multi-ply layers increase tear resistance and tensile strength, the bottom design (flat, block, square or valve) matters, with block bottoms improving volume and stacking for heavier loads, and PE or laminated linings add moisture protection. A buyer should state GSM, dimensions, handle type, printing and intended carry weight. Not established here: a UAE standard for retail bag GSM.",
+      "body_ar": "يُعبَّر عن وزن ورق الكرافت بوحدة GSM؛ وكلما ارتفعت القيمة زادت سماكة الورق. وتصنّف إرشادات القطاع درجات أكياس الكرافت كالتالي: 70-80 GSM مستوى أساسي للسلع الجافة الخفيفة أو الهدايا الترويجية؛ و100-120 GSM للأغذية الجافة والبيع بالتجزئة والأحمال المتوسطة؛ و150-180 GSM أكياس فائقة السماكة للاستخدام الصناعي. ولا تحدد قيمة GSM وحدها المتانة: فالطبقات المتعددة تزيد مقاومة التمزق وقوة الشد، ويؤثر تصميم القاعدة (مسطحة أو مكعبة أو مربعة أو بصمام)، إذ تحسّن القاعدة المكعبة السعة والتكديس للأحمال الأثقل، وتضيف البطانات من البولي إيثيلين أو المغلّفة حماية من الرطوبة. وينبغي للمشتري تحديد قيمة GSM والأبعاد ونوع المقبض والطباعة ووزن الحمل المقصود. لم يُثبت هنا: معيار إماراتي لقيمة GSM لأكياس التجزئة.",
+      "sources": [
+        "https://www.kimecopak.ca/blogs/news/strong-kraft-paper-bags-for-heavy-items"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-06",
+      "verified": true
     }
   ],
   "eval": [
@@ -56,6 +69,15 @@
       "expected_entry_ids": [
         "paper_bags:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "What GSM kraft paper is used for retail shopping bags?",
+      "q_ar": "ما وزن ورق الكرافت المستخدم لأكياس التسوق؟",
+      "expected_entry_ids": [
+        "paper_bags:kraft-gsm-for-retail-bags"
+      ],
+      "why": "No entry of this pack answered it (MISSING: no entry gives typical kraft GSM for retail bags (about 80-150 gsm); spec-checklist only lists \"Paper grade and weight\"). paper_bags:kraft-gsm-for-retail-bags was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
+      "origin": "real buyer question, moved from paper_bags.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {
@@ -71,6 +93,9 @@
       "paper_bags:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "added_2026_10_06": [
+      "paper_bags:kraft-gsm-for-retail-bags"
+    ]
   }
 }

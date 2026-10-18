@@ -18,7 +18,7 @@
 // RUN 23 Sep 2026. multilingual-e5-small: same case EN 0.876-0.954, AR 0.803-0.899; different case
 // 0.759-0.849 (0.873 for the other-trade pair) -> floor 0.85, 13/20 same-case pairs clear it (EN 10/10,
 // AR 3/10). gte-small: AR 0.722-0.849, so an Arabic situation never clears its deployed 0.84 floor.
-import { ML_MODEL, ML_QUERY_PREFIX, modelHost } from '../kb/ml_embed_recipe.mjs';
+import { ML_MODEL, mlQueryText, modelHost } from '../kb/ml_embed_recipe.mjs';
 import { PROJECT_REF } from '../lib/db.mjs';
 
 export const PAIRS = [
@@ -68,7 +68,7 @@ const { pipeline, env } = await import('@huggingface/transformers');
 const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
 const MODELS = [
   { model: 'Supabase/gte-small', q: (t) => t },
-  { model: ML_MODEL, q: (t) => ML_QUERY_PREFIX + t },
+  { model: ML_MODEL, q: (t) => mlQueryText(t) },
 ];
 for (const m of MODELS) {
   Object.assign(env, modelHost(m.model, `https://${PROJECT_REF}.supabase.co`));

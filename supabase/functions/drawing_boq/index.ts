@@ -15,6 +15,7 @@ import { boqFromDrawingSet, lengthsForSet, mergeLengths, type ScheduleTable } fr
 import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
+import { readEveryAttachment, gatewayVision, b64Bytes } from '../_shared/read_every_attachment.ts';
 import { DRAWING_KINDS, drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
@@ -133,13 +134,23 @@ Deno.serve(observe('drawing_boq', async (req) => {
       if (!r.ok) return J({ ok: false, error: r.error, detail: r.detail }, 422);
       // 22 Sep 2026 (redaction audit, #827): nothing a CAD file says about its own job reaches a BOQ line.
       // Every CAD reader (ASCII and binary DXF, DWG) hands back the DXF text it measured as dxf_text.
-      const boq = boqFromExtracted(r, hint, ocrText, drawing);
+      // RULING 1177 (12 Oct 2026): a photo or a scan with no browser OCR was answered with an empty take-off. It is now
+      // read by the vision model (_shared/read_every_attachment: one more asking, the gateway's second model), and held
+      // with a clearer-copy request only when both askings fail.
+      let seen = ocrText;
+      if (r.needs === 'ocr' && !ocrText.trim() && !drawing.lines?.length) {
+        const key = await sec('cred_fn_ai');
+        const a = await readEveryAttachment(b64Bytes(String(body.file_b64 || '')), String(body.filename || 'document'), String(body.mime || ''), key ? gatewayVision(GW, key, { subject: body.subject ?? null }) : null);
+        if (a.status !== 'read') return J({ ok: false, error: 'document_unreadable', detail: String(a.reason || '').slice(0, 200), held: 'unreadable_after_model' }, 422);
+        seen = a.text;
+      }
+      const boq = boqFromExtracted(r, hint, seen, drawing);
       // 23 Sep 2026 (founder 696/698/701/703): a DRAWING's take-off (DXF, DWG, PDF) is redacted
       // with the terms the file states about itself, then RE-READ; a line still naming a party is dropped and
       // identity left anywhere else withholds the take-off. See _shared/drawing_identity_gate.ts.
       const cad = r.dxf_text !== undefined;
       if (!cad && !DRAWING_KINDS.has(r.kind)) return J({ ok: true, boq: withCodeAuthor(boq), kind: r.kind, needs: r.needs });
-      const g = gateDrawingBoq(boq, drawingIdentityTerms(r.text, r.dxf_text), cad);
+      const g = gateDrawingBoq(boq, drawingIdentityTerms(r.text || seen, r.dxf_text), cad);
       return J({ ok: true, boq: g.boq ? withCodeAuthor(g.boq) : null, kind: r.kind, needs: r.needs, identity_dropped_lines: g.dropped_lines, ...(g.boq ? {} : { identity_held: true }) });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below

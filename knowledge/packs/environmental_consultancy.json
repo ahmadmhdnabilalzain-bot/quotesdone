@@ -58,6 +58,15 @@
       "expected_entry_ids": [
         "environmental_consultancy:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "Who approves an EIA for a project in Abu Dhabi?",
+      "q_ar": "من يعتمد تقييم الأثر البيئي لمشروع في أبوظبي؟",
+      "expected_entry_ids": [
+        "environmental_consultancy:uae-standards-and-approvals"
+      ],
+      "why": "The standards entry states the Environment Agency - Abu Dhabi registers consultancy offices and the EIA must be done by an EAD-registered office under the 2022 regulation.",
+      "origin": "real buyer question, moved from environmental_consultancy.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
     }
   ],
   "verified": {

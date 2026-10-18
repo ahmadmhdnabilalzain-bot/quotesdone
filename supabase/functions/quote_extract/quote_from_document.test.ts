@@ -89,3 +89,23 @@ Deno.test('a quotation with no readable price reports no amount rather than inve
   assert(r.ok);
   assertEquals(quoteFromExtracted(r).amount, null);
 });
+
+// Rulings 1207/1208 (13 Oct 2026): a discount row is the supplier's discount — not a priced line, not a condition —
+// and the ex-VAT price is the price AFTER it. Before, "Discount,,,,-300" was read as a priced line and the
+// subtotal before the discount (2,000) became the price the fee was taken on.
+Deno.test('a discount row: gross, discount and the after-discount ex-VAT price, with VAT as stated', async () => {
+  const csv = ['Description,Qty,Unit,Rate (AED),Amount (AED)', 'Gypsum partition,20,sqm,100,2000', 'Subtotal,,,,2000',
+    'Special discount 15%,,,,-300', 'Net total after discount,,,,1700', 'VAT 5%,,,,85', 'Grand Total,,,,1785'].join('\n');
+  const r = await readDocument(new TextEncoder().encode(csv), 'quote.csv', 'text/csv'); assert(r.ok);
+  const p = quoteFromExtracted(r);
+  assertEquals(p.line_items.map((l) => l.description), ['Gypsum partition']);
+  assertEquals([p.gross_amount, p.discount_amount, p.price_ex_vat, p.amount, p.vat_amount, p.total_incl_vat, p.vat_treatment], [2000, 300, 1700, 1700, 85, 1785, 'exclusive']);
+  assertEquals(p.discount_label, 'Special discount 15%');
+  assert(!/discount/i.test(p.conditions));
+});
+Deno.test('a discount written after the only total, prices excluding VAT: the fee base is after the discount', async () => {
+  const csv = ['Description,Qty,Unit,Rate (AED),Amount (AED)', 'Gypsum partition,20,sqm,100,2000', 'Total,,,,2000', 'Discount,,,,300', 'Prices exclude VAT,,,,'].join('\n');
+  const r = await readDocument(new TextEncoder().encode(csv), 'quote.csv', 'text/csv'); assert(r.ok);
+  const p = quoteFromExtracted(r);
+  assertEquals([p.gross_amount, p.discount_amount, p.price_ex_vat, p.vat_treatment], [2000, 300, 1700, 'exclusive']);
+});
