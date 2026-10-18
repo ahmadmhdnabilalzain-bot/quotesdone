@@ -15,6 +15,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { pendingNotes } from '../lib/pending_sql.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -52,7 +53,7 @@ test('production, rolled back, ZZ DEMO only: one message per quoted request, nev
   const { sql } = await import('../lib/db.mjs');
   const pre = pendingNotes().has(FILE) ? R(FILE) + '\n' : '';
   let verdict = null;
-  try { await sql(pre + R(PROBE), { retry: false }); } catch (e) {
+  try { await replaySql(pre + R(PROBE), { label: PROBE, retry: false }); } catch (e) {
     const m = String(e.message || e).match(/CHK<<([\s\S]*)>>/);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message || e).slice(0, 800));
     verdict = m[1];
