@@ -407,6 +407,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     let slotDetails: Record<string, string> | null = null;
     let slotMissingKeys: string[] = [];
     let slotExhausted: string[] = [];
+    let slotAsk: { key: string; text: string } | null = null;
     const slotLang = ar ? 'ar' : 'en';
     // Turn 1 has no stored trade, so the checklist is empty until the model names one: load the model's
     // trade's checklist here, or what the first message states is read against nothing and lost.
@@ -419,6 +420,9 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
       const settled = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns));
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
+      // The state's first askable question and its key: when that is the question asked, the key goes with it.
+      const askKeys = settled.missingKeys.filter((k) => !settled.exhausted.includes(k));
+      if (askKeys.length && settled.missing.length) slotAsk = { key: askKeys[0], text: settled.missing[0] };
     }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
@@ -759,7 +763,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     if (!readinessFields) readinessFields = { filled: status === 'ready' ? reqCount : Math.max(0, reqCount - (requiredGate ? requiredGate.missing_keys.length : (Array.isArray(out.missing) ? out.missing.length : reqCount))), required: reqCount };
     // The drawing's confirm question is the one question allowed beside a ready request (above).
     if (status === 'ready') { if (!nextQuestion || nextQuestion.key !== 'boq_check') nextQuestion = null; readinessFields = { filled: readinessFields.required, required: readinessFields.required }; }
-    else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) nextQuestion = { key: requiredGate ? requiredGate.missing_keys[0] || null : null, text: String(out.questions[0]), options: null };
+    else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) nextQuestion = { key: requiredGate ? requiredGate.missing_keys[0] || null
+      // Before a ready the gate is null; the slot state's key is named only when its question is the one asked
+      // (a question the model wrote in its own words has no key we can vouch for). Run 321d13ae: key was always null.
+      : (slotAsk && String(out.questions[0]) === slotAsk.text ? slotAsk.key : null), text: String(out.questions[0]), options: null };
     // The readiness bar counts the sales engineer's questions from the first turn, so it never reads
     // 100% while something is still going to be asked, and remaining_questions lists every open
     // question in the customer's language, so the composer can show exactly what is left.
