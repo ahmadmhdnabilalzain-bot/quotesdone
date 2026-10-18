@@ -139,8 +139,15 @@ test('every fn name passed to defaultDeps has a credential issued for it', () =>
   const issuing = sqlDirs.flatMap((d) => {
     try { return readdirSync(d).filter((n) => n.endsWith('.sql')).map((n) => readFileSync(join(d, n), 'utf8')); }
     catch { return []; }
-  }).filter((s) => /fn_internal_credential_(issue|rotate)/.test(s)).join('\n');
-  const missing = [...names].filter((n) => !new RegExp("'(fn\\.)?" + n + "'").test(issuing)).sort();
+  }).filter((s) => /fn_internal_credential_(issue|rotate)/.test(s));
+  // Only text that mints counts: the callers array a mint loop iterates, or a direct issue('fn.<name>'.
+  // A bare 'fn.<name>' elsewhere (a verdict query, a comment) must not satisfy this guard.
+  const minted = issuing.flatMap((s) => [
+    ...[...s.matchAll(/callers\s+text\[\]\s*:=\s*array\[([\s\S]*?)\]/g)].map((m) => m[1]),
+    ...[...s.matchAll(/fn_internal_credential_issue\(\s*'fn\.([a-z0-9_]+)'/g)].map((m) => "'" + m[1] + "'"),
+    ...[...s.matchAll(/'cred_fn_([a-z0-9_]+)'/g)].map((m) => "'" + m[1] + "'"),
+  ]).join('\n');
+  const missing = [...names].filter((n) => !minted.includes("'" + n + "'")).sort();
   assert.deepEqual(missing, [],
     'these fn names reach ai_gateway through defaultDeps but no SQL file issues them a credential, so each '
     + 'falls back to the shared inbound_secret (403 while it is inactive): ' + missing.join(', '));

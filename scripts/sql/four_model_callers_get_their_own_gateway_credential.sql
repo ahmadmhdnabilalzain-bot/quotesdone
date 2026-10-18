@@ -22,7 +22,7 @@ declare
   -- sales_engineer were issued at runtime and are live; naming them here is a no-op on production
   -- and keeps them on a rebuilt database.
   callers text[] := array['public_site','inquiry_intake','marketing_social_inbox','marketing_lead_sourcing',
-                          'reasoned_delivery','marketing_outreach','sales_engineer'];
+                          'reasoned_delivery','marketing_outreach','sales_engineer','accountant','quote_extract'];
   c text; v jsonb; v_id bigint; v_has_secret boolean; n_missing int;
 begin
   foreach c in array callers loop
