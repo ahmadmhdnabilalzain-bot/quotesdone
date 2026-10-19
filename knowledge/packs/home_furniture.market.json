@@ -9,19 +9,28 @@
       "topic": "Home furniture & mattresses: brands and makers in this category",
       "topic_ar": "أثاث المنازل والمراتب: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Somnigroup (United States) makes mattresses under brands including Sealy Posturepedic, Tempur-Pedic and Stearns & Foster. Simmons (United States) makes mattresses and bedding products. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Somnigroup (الولايات المتحدة) تصنع المراتب بعلامات منها Sealy Posturepedic وTempur-Pedic وStearns & Foster. Simmons (الولايات المتحدة) تصنع المراتب ومستلزمات الأسرة. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Somnigroup (United States) makes mattresses under brands including Sealy Posturepedic, Tempur-Pedic and Stearns & Foster. Simmons (United States) makes mattresses and bedding products. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Somnigroup (الولايات المتحدة) تصنع المراتب بعلامات منها Sealy Posturepedic وTempur-Pedic وStearns & Foster. Simmons (الولايات المتحدة) تصنع المراتب ومستلزمات الأسرة. ولم يُتحقق من الموزع المحلي لكل علامة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Tempur_Sealy",
         "https://en.wikipedia.org/wiki/Simmons_Bedding_Company"
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
       "source_note": "Sealy / Tempur-Pedic: https://en.wikipedia.org/wiki/Tempur_Sealy | Simmons: https://en.wikipedia.org/wiki/Simmons_Bedding_Company"
     }
   ],
-  "eval": [],
+  "eval": [
+    {
+      "q_en": "Which makes of home furniture & mattresses are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في أثاث المنازل والمراتب؟",
+      "expected_entry_ids": [
+        "home_furniture:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
   "verified": {
     "by": "sales_engineer",
     "on": "2026-10-19",

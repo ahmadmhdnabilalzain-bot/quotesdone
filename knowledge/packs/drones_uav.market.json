@@ -9,8 +9,8 @@
       "topic": "Drones & unmanned aircraft: brands and makers in this category",
       "topic_ar": "الطائرات بدون طيار (الدرون): العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): DJI (China) makes camera drones, agricultural spraying drones and gimbal and camera systems. Parrot (France) manufactures drones and has focused only on drones since 2017. Autel Robotics (China) makes consumer and commercial drones. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): DJI (الصين) تصنع طائرات التصوير وطائرات الرش الزراعي وأنظمة التثبيت والكاميرات. Parrot (فرنسا) تصنع الطائرات بدون طيار وتركز عليها حصراً منذ 2017. Autel Robotics (الصين) تصنع طائرات بدون طيار استهلاكية وتجارية. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): DJI (China) makes camera drones, agricultural spraying drones and gimbal and camera systems. Parrot (France) manufactures drones and has focused only on drones since 2017. Autel Robotics (China) makes consumer and commercial drones. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): DJI (الصين) تصنع طائرات التصوير وطائرات الرش الزراعي وأنظمة التثبيت والكاميرات. Parrot (فرنسا) تصنع الطائرات بدون طيار وتركز عليها حصراً منذ 2017. Autel Robotics (الصين) تصنع طائرات بدون طيار استهلاكية وتجارية. ولم يُتحقق من الموزع المحلي لكل علامة.",
       "sources": [
         "https://en.wikipedia.org/wiki/DJI",
         "https://en.wikipedia.org/wiki/Parrot_SA",
@@ -18,11 +18,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
       "source_note": "DJI: https://en.wikipedia.org/wiki/DJI | Parrot: https://en.wikipedia.org/wiki/Parrot_SA | Autel Robotics: https://en.wikipedia.org/wiki/Autel_Robotics"
     }
   ],
-  "eval": [],
+  "eval": [
+    {
+      "q_en": "Which makes of drones & unmanned aircraft are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في الطائرات بدون طيار (الدرون)؟",
+      "expected_entry_ids": [
+        "drones_uav:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
   "verified": {
     "by": "sales_engineer",
     "on": "2026-10-19",

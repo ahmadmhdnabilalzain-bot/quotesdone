@@ -9,19 +9,28 @@
       "topic": "Weighing scales & weighbridges: brands and makers in this category",
       "topic_ar": "موازين وجسور وزن: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Mettler Toledo (Switzerland) makes laboratory balances and industrial and retail scales. Avery Weigh-Tronix (United Kingdom) makes industrial scales and weighing equipment. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Mettler Toledo (سويسرا) تصنع الموازين المخبرية والموازين الصناعية وموازين التجزئة. Avery Weigh-Tronix (المملكة المتحدة) تصنع الموازين الصناعية ومعدات الوزن. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Mettler Toledo (Switzerland) makes laboratory balances and industrial and retail scales. Avery Weigh-Tronix (United Kingdom) makes industrial scales and weighing equipment. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Mettler Toledo (سويسرا) تصنع الموازين المخبرية والموازين الصناعية وموازين التجزئة. Avery Weigh-Tronix (المملكة المتحدة) تصنع الموازين الصناعية ومعدات الوزن. ولم يُتحقق من الموزع المحلي لكل علامة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Mettler_Toledo",
         "https://en.wikipedia.org/wiki/Avery_Weigh-Tronix"
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
       "source_note": "Mettler Toledo: https://en.wikipedia.org/wiki/Mettler_Toledo | Avery Weigh-Tronix: https://en.wikipedia.org/wiki/Avery_Weigh-Tronix"
     }
   ],
-  "eval": [],
+  "eval": [
+    {
+      "q_en": "Which makes of weighing scales & weighbridges are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في موازين وجسور وزن؟",
+      "expected_entry_ids": [
+        "weighing_systems:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
   "verified": {
     "by": "sales_engineer",
     "on": "2026-10-19",

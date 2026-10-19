@@ -9,8 +9,8 @@
       "topic": "Baby & nursery products: brands and makers in this category",
       "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Chicco (Italy) makes childcare products, toys and children's clothing. Dorel (Canada) makes juvenile products such as car seats and high chairs. Pampers is Procter & Gamble's brand of diapers, training pants and baby wipes. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Chicco (إيطاليا) تصنع منتجات رعاية الأطفال والألعاب وملابس الأطفال. Dorel (كندا) تصنع منتجات الأطفال مثل مقاعد السيارات والكراسي العالية. Pampers علامة Procter & Gamble للحفاضات وسراويل التدريب ومناديل الأطفال. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Chicco (Italy) makes childcare products, toys and children's clothing. Dorel (Canada) makes juvenile products such as car seats and high chairs. Pampers is Procter & Gamble's brand of diapers, training pants and baby wipes. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Chicco (إيطاليا) تصنع منتجات رعاية الأطفال والألعاب وملابس الأطفال. Dorel (كندا) تصنع منتجات الأطفال مثل مقاعد السيارات والكراسي العالية. Pampers علامة Procter & Gamble للحفاضات وسراويل التدريب ومناديل الأطفال. ولم يُتحقق من الموزع المحلي لكل علامة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Chicco",
         "https://en.wikipedia.org/wiki/Maxi-Cosi",
@@ -18,11 +18,20 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
       "source_note": "Chicco: https://en.wikipedia.org/wiki/Chicco | Dorel: https://en.wikipedia.org/wiki/Maxi-Cosi | Pampers: https://en.wikipedia.org/wiki/Pampers"
     }
   ],
-  "eval": [],
+  "eval": [
+    {
+      "q_en": "Which makes of baby & nursery products are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في منتجات الأطفال الرضع وغرف الأطفال؟",
+      "expected_entry_ids": [
+        "baby_nursery_products:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
   "verified": {
     "by": "sales_engineer",
     "on": "2026-10-19",
