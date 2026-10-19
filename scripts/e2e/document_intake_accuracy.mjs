@@ -72,9 +72,15 @@ console.log(`corpus: ${docs.length} documents in ${corpusDir}`);
 const { SERVICE } = await keys();
 const SB = { SUPABASE_URL: `https://${REF}.supabase.co`, SUPABASE_SERVICE_ROLE_KEY: SERVICE };
 const codePath = join(WORK, 'code.json');
-if (val('--reuse-code')) writeFileSync(codePath, readFileSync(val('--reuse-code')));
-else deno('document_intake_read.ts', [corpusDir, codePath], SB);
-const code = JSON.parse(readFileSync(codePath, 'utf8'));
+// The code stage runs INSIDE the model window when --model is given: a profile's or catalogue's trades are chosen by a
+// model (supplier_trade_choice.ts), tagged and capped like every other call of the run. Without --model the profile
+// trades are read by code alone (document_intake_read.ts leaves the chooser out), which is NOT what production does.
+const readCode = (env = {}) => {
+  if (val('--reuse-code')) writeFileSync(codePath, readFileSync(val('--reuse-code')));
+  else deno('document_intake_read.ts', [corpusDir, codePath], { ...SB, ...env });
+  return JSON.parse(readFileSync(codePath, 'utf8'));
+};
+let code = MODEL ? null : readCode();
 
 // ── 2. model, inside this run's own tagged window ────────────────────────────────────────────────────
 let model = { via: null, docs: [] }, spend = null, runTag = null;
@@ -84,8 +90,7 @@ else if (val('--reuse-model')) { writeFileSync(modelPath, readFileSync(val('--re
 else if (MODEL) {
   // Estimate first (the founder: quote the spend before running when it can exceed USD 5). Measured price of the
   // route's model is not in the repo, so the estimate is the cap, and the database enforces the cap.
-  const asked = code.docs.filter((d) => d.code && docs.find((x) => x.id === d.id)?.kind === 'licence').length;
-  console.log(`model stage: at most ${asked} licence reads, hard cap USD ${CAP_USD} (fn_kernel_paid_provider_gate)`);
+  console.log(`model stage: licences, profiles and catalogues, hard cap USD ${CAP_USD} (fn_kernel_paid_provider_gate)`);
   const run = newRun({ quiet: true });
   runTag = run.tag;
   await write(`insert into public.rehearsal_window (run_tag, opened_by, note) values (${q('qd_run:' + run.tag)}, 'scripts/e2e/document_intake_accuracy.mjs', 'document intake accuracy suite (ledger 1162)')`, 'rehearsal window');
@@ -93,6 +98,7 @@ else if (MODEL) {
     await write(`update public.rehearsal_window set models_allowed = true, cap_usd = ${CAP_USD}, expires_at = now() + interval '2 hours'
                  where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'accuracy window: models for this tag only');
     const subj = await makeSupplier(run, { trade: 'aluminium', withAuth: false, capability: false, company_name: `ZZ DEMO accuracy subject ${run.tag}` });
+    code = readCode({ QD_RUN_TAG: run.tag, QD_SUBJECT: JSON.stringify({ supplier_id: Number(subj.leadId), email: subj.email }), QD_E2E_SECRET: await internalCred() });
     const secret = MODEL === 'deployed'
       ? (await read(`select value from public.app_secrets where key='cred_fn_supplier_api'`))[0]?.value
       : (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value;
