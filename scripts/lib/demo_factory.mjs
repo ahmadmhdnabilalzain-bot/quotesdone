@@ -1220,7 +1220,12 @@ async function deleteObjects(bucket, paths) {
 }
 
 const delCount = async (label, sql) => {
-  const rows = await mgmtFixture(REF, `with d as (${sql} returning 1) select count(*)::int n from d`, label);
+  // A step that already opens with its own data-modifying CTE (the leads step's `with im as (delete ...) delete ...`) cannot be
+  // nested inside `with d as (...)`: Postgres refuses (0A000) and the teardown stopped, leaving the run's rows (19 Oct 2026).
+  // Its CTE is lifted to the top level beside d.
+  const m = /^with\s+(\w+)\s+as\s+\(([\s\S]*)\)\s+(delete[\s\S]*)$/i.exec(sql.trim());
+  const q = m ? `with ${m[1]} as (${m[2]}), d as (${m[3]} returning 1) select count(*)::int n from d` : `with d as (${sql} returning 1) select count(*)::int n from d`;
+  const rows = await mgmtFixture(REF, q, label);
   return Number(rows?.[0]?.n ?? 0);
 };
 

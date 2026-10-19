@@ -114,7 +114,7 @@ else if (MODEL) {
   runTag = run.tag;
   await write(`insert into public.rehearsal_window (run_tag, opened_by, note) values (${q('qd_run:' + run.tag)}, 'scripts/e2e/document_intake_accuracy.mjs', 'document intake accuracy suite (ledger 1162)')`, 'rehearsal window');
   try {
-    await write(`update public.rehearsal_window set models_allowed = true, cap_usd = ${CAP_USD}, expires_at = now() + interval '2 hours'
+    await write(`update public.rehearsal_window set models_allowed = true, cap_usd = ${CAP_USD}, expires_at = now() + interval '115 minutes'
                  where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'accuracy window: models for this tag only');
     const subj = await makeSupplier(run, { trade: 'aluminium', withAuth: false, capability: false, company_name: `ZZ DEMO accuracy subject ${run.tag}` });
     code = readCode({ QD_RUN_TAG: run.tag, QD_SUBJECT: JSON.stringify({ supplier_id: Number(subj.leadId), email: subj.email }), QD_E2E_SECRET: await internalCred() });
