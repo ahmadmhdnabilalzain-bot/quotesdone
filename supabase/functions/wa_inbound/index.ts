@@ -32,6 +32,7 @@ import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { fileReviewRequest } from '../_shared/review_request.ts';
 import { queueWhatsAppMeaning, whatsappMeaning, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
@@ -1159,6 +1160,13 @@ async function handleInbound(req: Request): Promise<Response> {
           dedupeKey: 'wa:' + (MessageSid || From + ':' + Body.slice(0, 40)), subject: { phone: From, message_sid: MessageSid || null },
         })).value;
       } catch (_e) { needsPerson = null; /* unreasoned is not "no": the route records it as held */ }
+    }
+    // A person asked to review an automated decision (ledger 1152): it is filed with the seat that owns that decision
+    // (review_route), decided by another model family. Only asked when the reasoning above already said a person.
+    if (needsPerson === true) {
+      await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
+        surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
+        audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From });
     }
     // Held is not "no". Until the reasoning runs, the CEO seat SEES the message (visibility, no page), so a
     // complaint is never silently parked; the replay then gives the contact on WhatsApp if a person is needed.

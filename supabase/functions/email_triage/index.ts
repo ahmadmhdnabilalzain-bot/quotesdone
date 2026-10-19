@@ -26,6 +26,7 @@ import { mailFacts } from './account_facts.ts';
 import { composeMailReply, noAutoReply } from '../_shared/customer_mail.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { fileReviewRequest } from '../_shared/review_request.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -61,6 +62,9 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
     const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
     if (!body) throw new Error('no model answered the e-mail');
     text = composeMailReply({ lang, answer: body }); how = 'person';
+    // a person asked to review an automated decision (ledger 1152): filed with the seat that owns it (review_route)
+    await fileReviewRequest(admin, deps, { channel: 'email', requester: String(m.from_email || 'unknown sender'), message: q,
+      surface: 'email_triage.review_of_decision', dedupeKey: String(m.id), subjectTable: 'inbound_messages', subjectId: String(m.id) });
   } else {
     const r = await think(deps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
       question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `

@@ -25,6 +25,7 @@ import { annotate, observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { fileReviewRequest } from '../_shared/review_request.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { companyBrief } from '../_shared/company_brief.ts';
@@ -313,10 +314,16 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
       const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
       const hour = new Date().toISOString().slice(0, 13);
-      return (await needsAPerson(defaultDeps(admin, 'site_assistant'), {
+      const person = (await needsAPerson(defaultDeps(admin, 'site_assistant'), {
         seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
         dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
       })).value;
+      // Ledger 1152 / ruling 1264: a contested decision goes to its owning seat; an explicit ask for a person to the founder.
+      if (person === true) {
+        await fileReviewRequest(admin, defaultDeps(admin, 'site_assistant'), { channel: 'site_chat', requester: 'site visitor ' + ip, message,
+          surface: 'site_assistant.review_of_decision', dedupeKey: ip + ':' + hour + ':' + msgKey });
+      }
+      return person;
     };
     const fileEffects = async (o: { grounded: boolean; answered: boolean; refusal: string }) => {
       const fx = await widgetReplyEffects(rpc, { message, live: !!live, ip, path, askedForAPerson, ...o });
