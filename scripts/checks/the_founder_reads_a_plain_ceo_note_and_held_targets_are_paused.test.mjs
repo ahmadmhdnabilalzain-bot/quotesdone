@@ -33,6 +33,10 @@ test('a target the founder has held is paused, driven by the hold register', () 
   const held = body('fn_held_targets');
   assert.match(held.text, /from public\.founder_hold/, `${held.file}: held targets must come from founder_hold`);
   assert.match(held.text, /flag_released_value/, `${held.file}: a hold must lift when its switch reads the released value`);
+  assert.doesNotMatch(held.text, /released_at/, `${held.file}: the flag is the only way a hold lifts`);
+  const guard = body('fn_founder_hold_is_lifted_only_by_its_flag');
+  assert.match(guard.text, /tg_op = 'DELETE'[\s\S]*raise exception[\s\S]*new\.flag_key is distinct from old\.flag_key[\s\S]*raise exception/, `${guard.file}: deleting a hold or re-pointing its flag must be refused`);
+  assert.match(readFileSync(held.file, 'utf8'), /before update or delete on public\.founder_hold/, 'the guard must be attached to founder_hold');
   const verdict = body('fn_ceo_target_daily_verdict');
   assert.match(verdict.text, /when p\.metric_key = any \(v_held\) then 'paused'[\s\S]*?else 'miss' end/, `${verdict.file}: a held target must grade paused before any miss branch`);
   assert.match(body('fn_ceo_year_plan_status').text, /fn_held_targets\(\)[\s\S]*then 'paused'/, 'the plan status must report a held target paused');

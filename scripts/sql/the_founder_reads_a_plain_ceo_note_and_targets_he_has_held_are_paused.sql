@@ -33,18 +33,37 @@ create table if not exists public.founder_hold (
   what_is_held        text not null check (btrim(what_is_held) <> ''),   -- plain words, as the founder would say it
   until_when          text not null check (btrim(until_when) <> ''),
   target_keys         text[] not null default '{}',                      -- targets that cannot move while it is held
-  flag_key            text,                                              -- app_secrets key that lifts the hold ...
-  flag_released_value text,                                              -- ... when it reads this value
-  released_at         timestamptz,
+  flag_key            text not null,                                     -- app_secrets key that lifts the hold ...
+  flag_released_value text not null,                                     -- ... when it reads this value, and only then
   recorded_at         timestamptz not null default now(),
   note                text);
 comment on table public.founder_hold is
   'What the founder has deliberately held. A target in target_keys is paused, never a miss, while the hold is active '
-  '(released_at is null and the flag, if any, does not read its released value). Read through fn_held_targets().';
+  '(its app_secrets flag does not read its released value). The flag is the ONLY way a hold lifts: the row cannot be '
+  'deleted and its flag cannot be re-pointed (trg_founder_hold_is_lifted_only_by_its_flag). Read through fn_held_targets().';
 alter table public.founder_hold enable row level security;
 drop policy if exists founder_hold_service_role_only on public.founder_hold;
 create policy founder_hold_service_role_only on public.founder_hold as permissive for all to public using (false) with check (false);
 revoke all on public.founder_hold from anon, authenticated;
+
+-- A hold lifts only when the founder's switch flips: deleting the row or re-pointing its flag would lift it silently.
+create or replace function public.fn_founder_hold_is_lifted_only_by_its_flag()
+ returns trigger language plpgsql
+ set search_path to 'public', 'pg_temp'
+as $function$
+begin
+  if tg_op = 'DELETE' then
+    raise exception 'founder_hold %: a hold is lifted only by its flag (%), never by deleting it', old.hold_key, old.flag_key;
+  end if;
+  if new.flag_key is distinct from old.flag_key or new.flag_released_value is distinct from old.flag_released_value then
+    raise exception 'founder_hold %: its flag (% = %) cannot be changed; the hold lifts only when that flag flips', old.hold_key, old.flag_key, old.flag_released_value;
+  end if;
+  return new;
+end $function$;
+revoke execute on function public.fn_founder_hold_is_lifted_only_by_its_flag() from public, anon, authenticated;
+drop trigger if exists trg_founder_hold_is_lifted_only_by_its_flag on public.founder_hold;
+create trigger trg_founder_hold_is_lifted_only_by_its_flag before update or delete on public.founder_hold
+  for each row execute function public.fn_founder_hold_is_lifted_only_by_its_flag();
 
 insert into public.founder_hold (hold_key, what_is_held, until_when, target_keys, flag_key, flag_released_value, note)
 values ('supplier_campaign', 'the supplier campaign is off', 'until you say the platform is ready',
@@ -82,9 +101,7 @@ create or replace function public.fn_held_targets()
 as $function$
   select k, h.hold_key, h.what_is_held, h.until_when
     from public.founder_hold h cross join lateral unnest(h.target_keys) k
-   where h.released_at is null
-     and (h.flag_key is null
-          or (select s.value from public.app_secrets s where s.key = h.flag_key) is distinct from h.flag_released_value)
+   where (select s.value from public.app_secrets s where s.key = h.flag_key) is distinct from h.flag_released_value
 $function$;
 revoke execute on function public.fn_held_targets() from public, anon, authenticated;
 
@@ -125,6 +142,11 @@ alter table public.target_daily_verdict add constraint target_daily_verdict_stat
 alter table public.ceo_directive drop constraint if exists ceo_directive_status_check;
 alter table public.ceo_directive add constraint ceo_directive_status_check check (status = any (array[
   'open', 'met', 'escalated', 'missed', 'paused']));
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('founder_hold', true, 'ceo', 'What the founder has deliberately held, the targets paused by it and the flag that lifts it.', 'ceo'),
+  ('target_label', true, 'ceo', 'Each CEO target in the plain words the founder reads.', 'ceo')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason, added_by = excluded.added_by;
 
 -- == 2. A HELD TARGET IS PAUSED, NEVER A MISS =========================================================
 CREATE OR REPLACE FUNCTION public.fn_ceo_year_plan_status(p_at timestamp with time zone DEFAULT now())
