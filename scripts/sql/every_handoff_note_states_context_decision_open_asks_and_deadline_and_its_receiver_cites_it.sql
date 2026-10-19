@@ -306,46 +306,8 @@ $fn$;
 
 revoke execute on function public.fn_handoff_note_citation(bigint) from public, anon, authenticated;
 
-create or replace function public.fn_seat_handoff_act(p_id bigint)
- returns jsonb
- language plpgsql
- security definer
- set search_path to 'public', 'pg_temp'
-as $function$
-declare a public.agent_actions; k public.seat_handoff_kind; v jsonb;
-begin
-  select * into a from public.agent_actions where id = p_id and kind = 'handoff' for update;
-  if not found then raise exception 'no handoff %', p_id; end if;
-  if a.status = 'done' then return a.evidence; end if;
-
-  select * into k from public.seat_handoff_kind
-   where type = a.detail->>'type' and from_seat = a.detail->>'from' and to_seat = a.agent;
-  if not found then
-    raise exception 'no conversation % from % to % in public.seat_handoff_kind', a.detail->>'type', a.detail->>'from', a.agent;
-  end if;
-  execute format('select public.%I($1)', k.handler) into v using p_id;
-  if v is null then raise exception '% answered nothing for handoff %', k.handler, p_id; end if;
-  -- 1013: the receiver's answer cites the note it was handed.
-  if jsonb_typeof(v) = 'object' and not v ? 'cites_note' then
-    v := v || jsonb_build_object('cites_note', public.fn_handoff_note_citation(p_id));
-  end if;
-
-  if v ? 'waiting' or k.originator_closes then
-    update public.agent_actions
-       set detail = detail || jsonb_build_object('awaiting', coalesce(v->>'waiting', a.detail->>'from' || ' re-verification'),
-                                                 'replied_at', now()),
-           evidence = v
-     where id = p_id;
-    perform public.fn_seat_handoff_event(p_id, 'waiting');
-    return v;
-  end if;
-  perform public.fn_seat_handoff_complete(p_id, v);
-  return v;
-end $function$;
-
--- CREATE OR REPLACE of an existing routine keeps its ACL (production 19 Oct: postgres + service_role only);
--- the revoke is repeated so the file stands alone and a future DROP/CREATE cannot reopen it.
-revoke execute on function public.fn_seat_handoff_act(bigint) from public, anon, authenticated;
+-- fn_seat_handoff_act cites the note too (1013); its body lives in its one owner,
+-- the_it_engineer_closes_every_loop_it_opens.sql (handoff_kinds_are_data.test.mjs), and was applied from here on 19 Oct 2026.
 
 create or replace function public.fn_seat_handoff_complete(p_id bigint, p_evidence jsonb)
  returns jsonb
