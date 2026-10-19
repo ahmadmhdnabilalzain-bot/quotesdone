@@ -438,3 +438,11 @@ Deno.test('customer A never sees customer B\'s quote case in the chat context; a
   const internal = await run('internal');
   assert(internal.leaked, 'an internal seat lost its case memory');
 });
+
+Deno.test('a choice among options is not refused for a question added beside it; an answer still is', () => {
+  const opts = { missing: [], sourceIds: new Set<string>(), conversationText: 'x' };
+  const decision = { name: 'n', options: [{ id: 'a', meaning: 'a' }, { id: 'b', meaning: 'b' }] };
+  const draft = { answer: 'They ask a general question, so b.', asked_back: 'Which emirate?', decision: { choice: 'b' } };
+  assertEquals(refuse(draft as never, { ...opts, decision }), null);
+  assert(refuse({ answer: 'Some answer with enough words to pass the other checks here today.', asked_back: 'Which emirate?', reasoning: ['s1: x'] } as never, opts)?.includes('asked back'));
+});
