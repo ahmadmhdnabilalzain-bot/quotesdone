@@ -202,8 +202,8 @@ ${whole}`;
   const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes }) : null);
   const text = r && r.ok ? allText(r) : '';
   // The file's own text layer wins; then code's OCR of the scan; the vision model's transcription only when neither exists.
-  // A SCAN WITH A STRAY TEXT LAYER (M12, 19 Oct 2026): the group profile is an image-only scan whose PDF still carries 20 to 246
-  // characters of text ("GLOBAL REACH 58"). That non-empty layer won over code's 15,179-character OCR, so the model was given
+  // A SCAN WITH A STRAY TEXT LAYER (M12, 19 Oct 2026): the group profile is an image-only scan whose PDF still carries a stray text
+  // layer: the reader reads 71 characters, 13 of them letters or digits ("58", "GLOBAL REACH"; measured 19 Oct 2026). That non-empty layer won over code's 15,179-character OCR, so the model was given
   // the stray words and named nothing (measured: 3 readings of {"trades":[]}; the same file with the OCR text read all 5 core
   // trades). Code's OCR now wins whenever the text layer holds fewer than 200 letters or digits and the OCR holds more.
   const layerChars = text.replace(/[^\p{L}\p{N}]/gu, '').length, ocrChars = ocr.replace(/[^\p{L}\p{N}]/gu, '').length;

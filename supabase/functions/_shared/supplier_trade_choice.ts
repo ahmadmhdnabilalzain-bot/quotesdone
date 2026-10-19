@@ -52,7 +52,7 @@ RULES
 2. Never from: the company's or another company's NAME, a client or project owner, another contractor on a project, a certificate or standard it holds (ISO, LEED), a policy, its staff, its equipment or vehicles, its offices, a sentence about quality, safety or values, a vision, mission or goal statement (what it hopes to offer), or a tool or method it uses in its own work (survey drones, design software) - only what it sells as a service or product. Work it does INSIDE a project of another trade names its own trade (plumbing done inside a hotel construction project is plumbing, not general contracting).
 3. A line that lists the company's own works as its title or tagline (for example under or beside its name: "Tiling, Gypsum Partitions & Ceiling Works") states what it does: name every trade it lists.
 4. Whose work it is. The company is the one the profile is about. Its own factory, workshop or division counts (an in-house "steel fabrication yard" is steel fabrication). Work done by a SISTER, partner or associated company ("our sister company", "by M/s ...", "a group company") is that other company's, not this one's - unless the whole document is the group's own brochure, the group itself being the company, and then each group company's described work counts.
-5. For EVERY code give "quotes": one to three lines copied EXACTLY, word for word, from the text - the lines that most directly name that service or product itself (for example "supply and installation of glass shopfronts", not a general sentence about the company), strongest first; when the company lists the service in a list of its own services, a title line or a services heading, include that line - and "reason": one short sentence. A code you cannot quote is not named.
+5. For EVERY code give "quotes": one to three objects {"text": a line copied EXACTLY, word for word, from the text, "form": what that line IS in the document - "list_item" (an item of a list of the company's services, activities or products), "heading" (a heading or section title the company gives a service), "title" (the company's name line, tagline or stated line of business), "capability_claim" (a sentence about what the company or its staff are able to do, their skills, experience or expertise, in any language), or "list_intro" (a line that only introduces a list)}. Give the lines - the lines that most directly name that service or product itself (for example "supply and installation of glass shopfronts", not a general sentence about the company), strongest first; when the company lists the service in a list of its own services, a title line or a services heading, include that line - and "reason": one short sentence. A code you cannot quote is not named.
 6. Prefer the specific trade the text names (fire fighting, HVAC, plumbing, electrical) and add mep_general only when the text offers combined MEP / electromechanical contracting.
 7. MAIN LINES OF BUSINESS ONLY. Read the whole text and name every trade the document presents as a line of business of the company's own: in its title or tagline, in its list of services, activities, divisions or products, or as a section or heading of its own. Do NOT name a trade from an item mentioned in passing, a sub-item or component of another service, a material or product it uses in its own work, a project description, or one word inside a long sentence. When you are not sure a trade is a main line of business, leave it out: a trade offered only in passing is not required.
 8. What a line IS before what it says: a contact mailbox or department name ("leasing@...", "Procurement Department"), a word in the company's name or in its logo artwork (a slogan such as "Build Smart" printed under a logo), a caption, or a heading of the brochure's own layout names no trade. A METHOD of delivering a service (working at height from cradles, night shifts, prefabrication off site) is not a trade of its own: the trade is the work done with it (cleaning done from a cradle is cleaning). The exception is a company whose business IS the access itself - it presents itself as a rope-access, BMU or gondola provider: facade_access_maintenance covers that access service, named beside the work it carries out. A product feature or a material used in its main work (the light fittings installed as part of a shop fit-out) is that main work's trade.
@@ -64,7 +64,7 @@ RULES
 13. A quote names the service itself, from a services or products list, a heading or a title. A line that only introduces a list ("Our main activities are on:", "We offer the following") names nothing: quote the list item. A sentence about what the company or its staff are able to do ("our skilled team is competent to carry out civil and structural jobs") is not an offer and names no trade.
 10. Design is named by what is designed. design_consultancy is architectural or interior design (its definition). Design or engineering of the company's own trade's works (a pool builder designing pools, an MEP contractor designing its MEP installations, a contractor's "contracting, engineering and design services") is part of that trade, not design_consultancy or engineering_consultancy - unless the company sells architectural, interior or engineering design as a consultancy service in its own right.
 
-Return STRICT JSON only: {"trades":[{"code":"...","quotes":["..."],"reason":"..."}]}`;
+Return STRICT JSON only: {"trades":[{"code":"...","quotes":[{"text":"...","form":"list_item"}],"reason":"..."}]}`;
 }
 
 export function choiceRequest(text: string, kind: 'profile' | 'catalogue', defs: TradeDef[], subject: unknown, company?: string | null) {
@@ -73,11 +73,8 @@ export function choiceRequest(text: string, kind: 'profile' | 'catalogue', defs:
     input: [{ role: 'user', content: [{ type: 'text', text: `${companyLine(company)}The company's ${kind === 'catalogue' ? 'catalogue' : 'profile'} text:\n\n${text.slice(0, CHOICE_TEXT_MAX)}` }] }] };
 }
 
-/** A sentence about what the company or its people are ABLE to do, not a line offering a service: its form, never its
- *  trade words ("competent to", "capable of", "expertise in", "experienced in", "skilled in", "qualified to", "able to"). */
-export function capabilitySentence(q: string): boolean {
-  return /\b(competent|capable|qualified|able|equipped)\s+(to|of)\b|\b(expertise|experience|experienced|skilled|specialised|specialized)\s+(in|to)\b/i.test(String(q ?? ''));
-}
+/** The forms of line a trade may be quoted from (the model labels each quote; review of #1483). */
+export const QUOTE_FORMS = new Set(['list_item', 'heading', 'title']);
 export const CHUNK_CHARS = 14_000;
 /** The text cut into chunks of at most CHUNK_CHARS, on line breaks. */
 export function textChunks(text: string, max = CHUNK_CHARS): string[] {
@@ -155,7 +152,11 @@ export function checkChoice(content: string, text: string, defs: TradeDef[]): Ch
     // "quotes" (up to 3, 19 Oct 2026) or the older single "quote": every line is proven on its own, and the code stands
     // when at least one is in the text. One quote only was the H08 miss: the model quoted its weakest line ("complimentary
     // 3D design") and the second look, seeing only that line, dropped a service the profile prints as its own heading.
-    const given = (Array.isArray(t?.quotes) ? t.quotes as unknown[] : [t?.quote]).map((x) => String(x ?? '').trim()).filter(Boolean).slice(0, 3);
+    // Each quote is {text, form}: the MODEL says what the line is in the document (review of #1483 - no word list decides it).
+    const items = (Array.isArray(t?.quotes) ? t.quotes as unknown[] : [t?.quote]).map((x) => (x && typeof x === 'object'
+      ? { text: String((x as Record<string, unknown>).text ?? '').trim(), form: String((x as Record<string, unknown>).form ?? '').trim() }
+      : { text: String(x ?? '').trim(), form: '' })).filter((x) => x.text).slice(0, 3);
+    const given = items.map((x) => x.text);
     if (!codes.has(code)) { rejected.push({ code, why: 'not an active trade code' }); continue; }
     if (!given.some((x) => quoteKey(x).length >= 3)) { rejected.push({ code, why: 'no quoted line' }); continue; }
     // A PDF breaks a sentence across lines, and the model may quote across the break: every line of the quote must
@@ -164,11 +165,13 @@ export function checkChoice(content: string, text: string, defs: TradeDef[]): Ch
       const q = quoteKey(dehyph(quote)), parts = dehyph(quote).split(/\r?\n/).map(quoteKey).filter((x) => x.length >= 3);
       return q.length >= 3 && (hay.includes(' ' + q + ' ') || (parts.length > 1 && parts.every((x) => hay.includes(' ' + x + ' '))));
     };
-    // A line that only introduces a list ("Our main activities are on :") names no trade (N04, 19 Oct 2026), and neither does
-    // a capability sentence (M04: "... skilled workers competent to carry out technical jobs & civil, structural ..."): a
-    // trade is quoted from a services or products list, a heading or a title, never from what the staff are able to do.
-    const proven = given.filter((x) => inText(x) && !/:\s*$/.test(x) && !capabilitySentence(x));
-    if (!proven.length) { rejected.push({ code, why: `the quote is not in the document: "${given[0].slice(0, 80)}"` }); continue; }
+    // A trade is quoted from a services or products list, a heading or a title (QUOTE_FORMS), as the model labels the line,
+    // never from a capability claim (M04: "... skilled workers competent to carry out technical jobs & civil, structural ...")
+    // or a line that only introduces a list (N04: "Our main activities are on :"). The line must also be in the document.
+    const inDoc = items.filter((x) => inText(x.text));
+    const proven = inDoc.filter((x) => QUOTE_FORMS.has(x.form) && !/:\s*$/.test(x.text)).map((x) => x.text);
+    if (!inDoc.length) { rejected.push({ code, why: `the quote is not in the document: "${given[0].slice(0, 80)}"` }); continue; }
+    if (!proven.length) { rejected.push({ code, why: `the quote's form is not a services list, heading or title (${inDoc.map((x) => x.form || 'no form given').join(', ')}): "${inDoc[0].text.slice(0, 80)}"` }); continue; }
     if (trades.some((x) => x.code === code)) continue;
     trades.push({ code, quote: proven[0].slice(0, 240), quotes: proven.map((x) => x.slice(0, 240)), reason });
   }

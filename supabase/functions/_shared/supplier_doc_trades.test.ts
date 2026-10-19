@@ -271,11 +271,11 @@ Deno.test('a read killed partway (the worker dies at its CPU cap) leaves the doc
 import { pdfjsText, PDFJS_BUDGET_MS } from './doc_read/pdf.ts';
 import { LIMITS } from './doc_read/types.ts';
 /** A PDF of `n` pages, each printing "Page k fire pumps" in Helvetica. */
-function pagesPdf(n: number): Uint8Array {
+function pagesPdf(n: number, line = (k: number) => `Page ${k} fire pumps`): Uint8Array {
   const objs: string[] = ['<< /Type /Catalog /Pages 2 0 R >>', ''];
   const kids: string[] = [];
   for (let k = 1; k <= n; k++) {
-    const ops = `BT /F1 12 Tf 72 700 Td (Page ${k} fire pumps) Tj ET`;
+    const ops = `BT /F1 12 Tf 72 700 Td (${line(k)}) Tj ET`;
     const page = objs.length + 1; kids.push(`${page} 0 R`);
     objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${page + 1} 0 R /Resources << /Font << /F1 ${3 + 2 * n} 0 R >> >> >>`);
     objs.push(`<< /Length ${ops.length} >>\nstream\n${ops}\nendstream`);
@@ -339,6 +339,7 @@ Deno.test('a scan with a stray text layer is read from the OCR, not from its 20 
   let seen = '';
   const deps = { chooseTrades: async (t: string) => { seen = t; return { ok: true as const, trades: [], rejected: [] }; } } as unknown as TradeResolveDeps;
   const ocr = 'ZZ DEMO Group of Companies. GENERAL CONTRACTING. TURNKEY CONTRACTS. Portable cabins, Camps & Mobile Houses. '.repeat(4);
-  await readDocForTrades({ path: 'profiles/9/s.pdf', name: 's.pdf', kind: 'profile', bytes: pagesPdf(1), mime: 'application/pdf', ocr_text: ocr }, deps);
+  // M12's real stray layer, as the reader reads it: "58" and "GLOBAL REACH" - 13 letters and digits, under the 200 threshold
+  await readDocForTrades({ path: 'profiles/9/s.pdf', name: 's.pdf', kind: 'profile', bytes: pagesPdf(1, () => '58 GLOBAL REACH'), mime: 'application/pdf', ocr_text: ocr }, deps);
   assert(seen.includes('Portable cabins'), seen.slice(0, 200));
 });
