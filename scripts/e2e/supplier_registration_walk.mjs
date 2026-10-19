@@ -39,7 +39,11 @@ const KEEP = argv.includes('--keep');
 const SHOTS = val('--shots', ''); let shotN = 0;
 const shot = async (p, m, name) => { if (!SHOTS) return; const f = join(SHOTS, `${m.replace('/', '_')}_${String(++shotN).padStart(2, '0')}_${name}.png`); await p.screenshot({ path: f, fullPage: true }).catch(() => {}); console.log('  shot', f); };
 const TMP = mkdtempSync(join(tmpdir(), 'qd-regwalk-'));
-const AR = (l) => l === 'ar';
+// SUPPLIERS ARE ALWAYS ENGLISH (founder, 28 Sep 2026): SupplierPortal rewrites /ar/portal to /portal and renders
+// English. The ar leg is kept to prove an /ar/ invitation link still lands, signs up and registers, so every
+// on-screen assertion expects English (19 Oct 2026, sales_engineer, ruling 1230 walk: the ar leg failed on
+// "Register as a supplier", then timed out on an Arabic Upload button the portal never shows).
+const AR = () => false;
 const results = [];
 const step = (m, name, ok, detail = '') => { results.push({ m, name, ok, detail }); console.log(`${ok ? 'PASS' : 'FAIL'} [${m}] ${name}${detail ? ' — ' + detail : ''}`); };
 

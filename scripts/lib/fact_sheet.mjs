@@ -13,8 +13,11 @@ import { TRADE_DEFS } from './trade_defs.mjs';
 // and the sales engineer's requirement keys (supabase/functions/_shared/intake_requirements.ts). A key
 // the sheet does not know is answered with the whole sheet: real facts, never filler.
 const SLOT_OF = {
-  element: 'element', item_type: 'element', floor_type: 'element', type: 'element', system_type: 'element',
-  dimensions_qty: 'lines', quantity_size: 'lines', 'quantity-unit': 'lines', fixture_count: 'lines', point_counts: 'lines',
+  // Run 321d13ae (18 Oct 2026): system_type answered with the element ("fan coil unit, AHU, ducting")
+  // and fixture_count with the door-sized lines; neither says split/ducted/central or how many
+  // bathrooms, so C4 hvac and C3 plumbing were held for specs unanswered three times. Each has its fact.
+  element: 'element', item_type: 'element', floor_type: 'element', type: 'element', system_type: 'system_type',
+  dimensions_qty: 'lines', quantity_size: 'lines', 'quantity-unit': 'lines', fixture_count: 'fixtures', point_counts: 'lines',
   stops: 'stops', capacity: 'capacity',
   location: 'location', location_floor: 'location',
   area_sqm: 'area', area: 'area', property_area: 'area', areas: 'purpose', application_area: 'purpose', safety_context: 'purpose',
@@ -52,6 +55,8 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
     material: notSure ? 'لست متأكداً' : 'درجة تجارية قياسية من علامة معروفة',
     leak: 'لا يوجد تسرب حالياً، العمل وقائي',
     finish: 'لامينيت / ميلامين',
+    system_type: 'نظام مركزي بالمياه المبردة: وحدات فان كويل مخفية بمجارٍ مع وحدات مناولة هواء',
+    fixtures: '4 حمامات ومطبخ واحد',
   } : {
     element: `${t.name}: ${p0}, ${p1} and ${p2}`,
     lines: `Line 1: ${p0} x 20, 1200 x 1500 mm each; Line 2: ${p1} x 10, 900 x 2100 mm each; Line 3: ${p2} x 5, 3000 x 2400 mm each`,
@@ -71,7 +76,12 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
     // material, which do not say either, and C9/C6 were asked 13 times. Each now has its own fact.
     leak: 'No leak at the moment, this is preventive',
     finish: 'Laminate / melamine',
+    system_type: 'Central chilled-water system: ducted concealed fan coil units with air handling units',
+    fixtures: '4 bathrooms and 1 kitchen',
   };
+  // Run 321d13ae cust23: landscaping area_sqm got "450 m2 built-up, 6 rooms", which is the house, not
+  // the garden, and the intake was held after three asks. Landscaping's area is the outdoor area.
+  if (trade === 'landscaping') v.area = lang === 'ar' ? 'مساحة الحديقة الخارجية حوالي 300 متر مربع' : 'Garden (outdoor) area of about 300 m2';
   const whole = () => Object.entries(v).map(([k, x]) => `${k}: ${x}`).join('. ') + '.';
   return {
     trade, lang, notSure, values: v,
@@ -82,7 +92,8 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
       const k0 = nq?.key ? String(nq.key) : null;
       if (k0 && REQ_VALUE[k0]) return REQ_VALUE[k0];
       if (k0 && k0.startsWith('material.')) return notSure ? v.material : (Array.isArray(nq.options) && nq.options[0]) || v.material;
-      const keys = [...new Set([k0, ...(r?.required_gate?.missing_keys || []),
+      // missing_keys: the open slot keys before a ready, when required_gate is null (inquiry_intake, 18 Oct 2026).
+      const keys = [...new Set([k0, ...(r?.required_gate?.missing_keys || []), ...(r?.missing_keys || []),
         ...(Array.isArray(r?.missing) ? r.missing : []).filter((m) => /^[a-z0-9_.-]+$/i.test(String(m)))]
         .filter(Boolean).map(String))];
       const parts = keys.filter((k) => v[SLOT_OF[k]]).map((k) => `${k}: ${v[SLOT_OF[k]]}`);
