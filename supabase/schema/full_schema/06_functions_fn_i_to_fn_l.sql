@@ -11514,6 +11514,31 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_llm_route_health_no_new_founder_hold()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if public.fn_llm_route_is_held(new.open_until, new.cooldown_seconds)
+     and (tg_op = 'INSERT' or new.open_until is distinct from old.open_until)
+     and not public.fn_founder_hold_change_allowed() then
+    raise exception 'RULING_1260: OpenRouter stays on; route % is held past its own breaker cooldown only by the founder (set local app.change_reason = ''founder:<ledger id>'').',
+      new.model_id using errcode = 'P0001';
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_llm_route_is_held(p_open_until timestamp with time zone, p_cooldown_seconds integer)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select coalesce(p_open_until > now() + make_interval(secs => greatest(coalesce(p_cooldown_seconds, 0), 0)) + interval '5 minutes', false) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_login_otp_email_issue(p_email text, p_hash text, p_kind text, p_ttl_seconds integer DEFAULT 600)
  RETURNS void
  LANGUAGE plpgsql
