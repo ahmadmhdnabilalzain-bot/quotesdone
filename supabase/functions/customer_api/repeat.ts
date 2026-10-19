@@ -22,7 +22,10 @@ export type Original = {
   project_id: string | null; lang: string | null; created_at: string; spec: Record<string, unknown> | null;
 };
 
-const DROP = new Set(['customer_requirements', 'boq_check', 'plausibility', 'provenance']);
+// ONLY ALLOWLISTED SPEC KEYS ARE COPIED (release review of #1180): the trade's own checklist keys (category_specs.fields,
+// passed in by the caller) plus the brief keys the intake writes for every trade. Anything else the old spec carries
+// (model notes, checks, provenance, keys of a retired checklist) stays behind; the customer can add it in the edit step.
+export const BRIEF_KEYS = ['quantity', 'products', 'scope', 'location', 'property_type', 'timeline', 'warranty', 'unit', 'finish', 'dimensions_qty'];
 const DAY = 86400e3;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -30,10 +33,11 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 export type RepeatEdits = { summary?: unknown; budget?: unknown; emirate?: unknown; required_by?: unknown };
 const txt = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
 
-export function repeatPlan(o: Original, now = new Date(), e: RepeatEdits = {}) {
+export function repeatPlan(o: Original, now = new Date(), e: RepeatEdits = {}, checklistKeys: string[] = []) {
   const spec = (o.spec && typeof o.spec === 'object') ? o.spec : {};
   const details: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(spec)) if (!DROP.has(k)) details[k] = v;
+  const allow = new Set([...BRIEF_KEYS, ...checklistKeys]);
+  for (const [k, v] of Object.entries(spec)) if (allow.has(k) && k !== 'customer_requirements') details[k] = v;
   const reqs = (spec.customer_requirements && typeof spec.customer_requirements === 'object') ? spec.customer_requirements as Record<string, any> : null;
   const trades = Array.isArray(o.trades) ? o.trades.map(String).filter(Boolean) : [];
   const scope = o.scope_type === 'turnkey' ? 'turnkey' : (o.scope_type === 'multi' && trades.length > 1 ? 'multi' : 'single');

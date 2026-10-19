@@ -60,3 +60,9 @@ Deno.test('no edits keeps every original value', () => {
   const p = repeatPlan(base, new Date('2026-09-10T10:00:00Z'), {});
   assertEquals([p.body.summary, p.body.budget, p.body.emirate], [base.summary, base.budget, base.emirate]);
 });
+
+Deno.test('only allowlisted spec keys are copied: checklist keys and brief keys stay, anything else is dropped', () => {
+  const o = { ...base, spec: { ...base.spec, glazing: 'double', injected: '<script>', supplier_note: 'x' } };
+  const p = repeatPlan(o, new Date('2026-09-10T10:00:00Z'), {}, ['glazing']);
+  assertEquals(p.brief.details, { quantity: 120, finish: 'matt', glazing: 'double' });
+});
