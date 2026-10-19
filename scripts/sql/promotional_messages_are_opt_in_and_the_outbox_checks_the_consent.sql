@@ -12,8 +12,10 @@
 --      (fn_notification_is_promotional). No type of that shape exists today (measured on the schema
 --      mirror and supabase/functions, 19 Oct 2026); every future offer/news message must use one. The
 --      supplier B2B invitation lane (supplier_invite, supplier_invite_nudge, supplier_registration_reminder,
---      supplier_rfq_widened_invite) is NOT in this class: it goes to role addresses of companies not yet
---      registered and is governed separately (email_suppressions + fn_opt_out_types). Every other type is
+--      supplier_rfq_widened_invite) is NOT in this class: business-to-business invitations to contact details
+--      the business itself published (PDPL Art. 4, data made public by its owner), one invitation plus at
+--      most three reminders, each with a one-click permanent opt-out (email_suppressions + fn_opt_out_types).
+--      They are not promotional messages to a registered user. Every other type is
 --      transactional/service and is untouched.
 --   3. THE GATE. A BEFORE INSERT OR UPDATE OF status trigger on notifications (one place, so email, SMS
 --      and WhatsApp senders are all covered) turns a queued promotional row into status 'suppressed' with
