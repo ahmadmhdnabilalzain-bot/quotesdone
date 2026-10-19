@@ -998,7 +998,10 @@ async function realRun(pre) {
       // THE AR JOURNEY WALKS THE CUSTOMER WHOSE REQUEST HAS QUOTES (run 5, 321d13ae): only the aluminium request
       // is quoted (S07), so the first AR customer (C2, electrical, 0 quotes) could never show one. The journey's
       // language is its own argument; the portals walk (`walk`) still covers the AR customer.
-      const qc = alu?.cu || ar;
+      // BUT ONLY IF THAT CUSTOMER IS ARABIC-REGISTERED (run 2, 19 Oct, it_engineer): the aluminium customer is C1 (en),
+      // and once signed in the registered language wins (src/lib/documentLocale.ts adoptLocale), so /ar/me rendered
+      // English and the AR journey and inquiry-box check waited 10 s for a "طلب جديد" button that never exists.
+      const qc = alu?.cu?.cfg.locale === 'ar' ? alu.cu : ar;
       const ids = { tag, customer: who(en, 'customer', en.cfg.label), customerAr: who(qc, 'customer', qc.cfg.label), supplier: who(su, 'supplier', 'AL'),
         walk: [who(en, 'customer', en.cfg.label), who(ar, 'customer', ar.cfg.label), who(su, 'supplier', 'AL')] };
       const idsPath = save('browser/ids.json', ids);

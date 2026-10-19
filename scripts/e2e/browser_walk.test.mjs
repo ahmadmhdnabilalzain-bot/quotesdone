@@ -28,6 +28,12 @@ test('a signed-in customer portal is judged in the registered language, and the 
   assert.match(SRC, /registered language \$\{want\} but the URL stayed/);
 });
 
+test('the Arabic journey identity is an Arabic-registered customer (run 2, 19 Oct: C1 en walked /ar/me in English)', () => {
+  const S2 = readFileSync(new URL('./stage2.mjs', import.meta.url), 'utf8');
+  assert.match(S2, /const qc = alu\?\.cu\?\.cfg\.locale === 'ar' \? alu\.cu : ar;/);
+  assert.match(S2, /customerAr: who\(qc, 'customer', qc\.cfg\.label\)/);
+});
+
 test('only visible nav items are pressed, on a real phone context, with the sheet opened only when needed', () => {
   assert.match(SRC, /const navSel = 'nav a:visible, nav button:visible';/);
   assert.match(SRC, /signedInPage\(browser, who, \{ lang, viewport: view \}\)/);
