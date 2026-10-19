@@ -11,7 +11,8 @@ the controls below on production).
   unopened invitation on day 3, 7 and 14 (#1149), under the same switch, cap and opt-out. The privacy policy (1.6, s9)
   states "one invitation and up to three reminders".
 - Recipients are **businesses**: `leads` rows built from published business listings (company name,
-  trade, business email on the company's own domain, measured MX). Mailboxes read by people outside the
+  trade, business email on the company's own domain, measured MX), and only a **role address** (info@,
+  sales@, enquiries@, office@ ... `fn_is_role_address`), never a person's mailbox. Mailboxes read by people outside the
   business (careers, hr, legal, privacy, webmaster, ...) are excluded.
 - Never to a demo fixture, a sanctioned or screened party, a banned or closed lead, or an address on
   `email_suppressions` for any reason.
@@ -22,9 +23,13 @@ the controls below on production).
 **UAE PDPL (Federal Decree-Law No. 45 of 2021).** The data processed is business contact data of a
 company: its published business email and name. The purpose is a single business-to-business offer
 (a free, commission-free supplier listing), made to the address the business itself published for
-enquiries. We rely on processing that is necessary for the legitimate business purpose of offering a
-commercial service to another business, limited to the minimum data, with an immediate and permanent
-opt-out. No personal data is sold or shared; nothing beyond the published listing is collected before
+enquiries. The basis is PDPL Art. 4: the data is data the business has itself made publicly available
+(founder decision, 19 Oct 2026, legal finding 3). We do NOT rely on legitimate interests. That basis holds
+only for a role mailbox the business publishes (info@, sales@, enquiries@ ...), so **only role addresses are
+contacted, never a named person's mailbox** (ahmed@, j.smith@): the rule is `public.fn_is_role_address(text)`,
+read by the invitation selection (`fn_supplier_invite_eligible`, `fn_supplier_invite_eligible_ids`) and by
+the reminders (`fn_supplier_invite_nudges_due`) - scripts/sql/supplier_invitations_go_only_to_role_addresses_never_a_persons_mailbox.sql.
+Processing is limited to the minimum data, with an immediate and permanent opt-out. No personal data is sold or shared; nothing beyond the published listing is collected before
 the business chooses to register. A PDPL access or erasure request is recorded in `pdpl_requests` and
 answered through `fn_pdpl_open` -> emailed code -> `fn_pdpl_verify` (or self-service `pdpl_request_me` for a signed-in, email-verified account); erasure has a 7-day cooling-off (`fn_pdpl_cancel`) and suppresses marketing only. Until 6 Oct 2026
 this line named functions that had been dropped on 7 Sep; see

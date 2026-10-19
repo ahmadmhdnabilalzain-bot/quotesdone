@@ -1,0 +1,4 @@
+Committed, not yet applied (ceo, 19 Oct 2026, founder decision on legal finding 3). Applies at merge by the release
+operator: node scripts/apply_sql.mjs scripts/sql/supplier_invitations_go_only_to_role_addresses_never_a_persons_mailbox.sql --apply --ddl,
+the last row must read PROBE OK; then delete this note and append the file to the END of MANIFEST.txt in the same commit.
+Measured read-only 19 Oct 2026: 12,577 of the 17,401 currently eligible leads have a non-role local part and leave the pool.
