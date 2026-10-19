@@ -1159,7 +1159,8 @@
   "ff154735736c"
  ],
  "supabase/functions/drawing_boq/boq_from_text.ts": [
-  "35ae99a3f9e2"
+  "35ae99a3f9e2",
+  "a4b46b147c49"
  ],
  "supabase/functions/quote_extract/quote_from_document.ts": [
   "0fed49358216",
@@ -1333,8 +1334,5 @@
   "5b18a29fa4d7",
   "afa6fc3ea96a",
   "c393ed6907b8"
- ],
- "supabase/functions/supplier_portal/overview.ts": [
-  "f2fbb42fc93f"
  ]
 }
