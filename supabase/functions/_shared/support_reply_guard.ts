@@ -50,15 +50,15 @@ const PROMPT = /SHARED FACTS|CUSTOMER-SIDE FACTS|SUPPLIER-SIDE FACTS|AUDIENCE RU
 // programme figures (the first 1,000 free; the fee from the 1,001st).
 const PEOPLE = String.raw`(?:suppliers?|vendors?|compan(?:y|ies)|businesses|customers?|clients?|buyers?|leads|registrations?|members|موردين|مورّدين|موردًا|مورد|عملاء|عميل|شركات|شركة)`;
 const NUM_WORD_UNIT = String.raw`(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?`;
-const BIG = String.raw`(?:[0-9٠-٩]{1,3}(?:[,٬][0-9٠-٩]{3})+|[0-9٠-٩]{4,}|[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:k|K|thousand|million)\b|(?:${NUM_WORD_UNIT}|a|one)[- ](?:thousand|million)|(?:thousands|millions|tens of thousands) of|[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:ألف|آلاف|مليون)|آلاف)\+?`;
+const BIG = String.raw`(?:[0-9٠-٩]{1,3}(?:[,٬   ][0-9٠-٩]{3})+|[0-9٠-٩]{4,}|[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:k|K|thousand|million)\b|(?:${NUM_WORD_UNIT}|a|one)[- ](?:thousand|million)|(?:thousands|millions|tens of thousands) of|[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:ألف|آلاف|مليون)|آلاف)\+?`;
 const MID = String.raw`(?:[0-9٠-٩]{3}|${NUM_WORD_UNIT}[- ]hundred|(?:a|one) hundred|hundreds of|مئات)\+?`;
 const near = (n: string) => new RegExp(String.raw`(?<![0-9٠-٩,٬.])${n}[^.!?؟\n]{0,40}?${PEOPLE}|${PEOPLE}[^.!?؟\n]{0,40}?(?<![0-9٠-٩,٬.])${n}(?![0-9٠-٩])`, 'iu');
 const BIG_NEAR_PEOPLE = near(BIG);
 const MID_NEAR_PEOPLE = near(MID);
 const OURS = /\b(?:we have|we've|we currently|we now have|our (?:network|platform|directory|database|base|community|list|system)|there are|registered|signed up|on (?:our|the) (?:platform|network|directory))\b|لدينا|منصتنا|شبكتنا|مسجل|مسجّل|مسجلين/iu;
+const PHONE = /\+?\(?\d{2,4}\)?[\s.-]\d{2,4}(?:[\s.-]\d{2,4}){0,3}\b/g;   // phone numbers, short ones too (7+ digits)
 const NOT_A_COUNT = [
   /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/g,                                                    // references: QD-10234, QD-S-KYUUSA
-  /\+?\(?\d{2,4}\)?[\s.-]\d{2,4}(?:[\s.-]\d{2,4}){0,3}\b/g,                             // phone numbers, short ones too
   /\b(?:19|20)\d{2}\b(?![,٬]\d)/g,                                                      // years
   /(?:AED|USD|Dhs?|درهم)\s*[0-9٠-٩][0-9٠-٩,٬.]*|[0-9٠-٩][0-9٠-٩,٬.]*\s*(?:AED|USD|Dhs?|درهم)/giu, // prices
   /[0-9٠-٩][0-9٠-٩,٬.]*\s*(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?|MB|KB|GB|km|m2|sqm|sq ft|يوم|أيام|ساعة|ساعات|شهر|أشهر)\b/giu, // durations, sizes
@@ -67,7 +67,8 @@ const NOT_A_COUNT = [
 ];
 function hasInternalNumber(s: string): boolean {
   return String(s || '').split(/(?<=[.!?؟])\s+|\n+/).some((sentence) => {
-    let t = sentence;
+    // a phone number has at least 7 digits; "19 900" (5) is a count, not a phone (third review of #1549)
+    let t = sentence.replace(PHONE, (m) => (m.replace(/[^0-9]/g, '').length >= 7 ? ' ' : m));
     for (const re of NOT_A_COUNT) t = t.replace(re, ' ');
     return BIG_NEAR_PEOPLE.test(t) || (OURS.test(t) && MID_NEAR_PEOPLE.test(t));
   });

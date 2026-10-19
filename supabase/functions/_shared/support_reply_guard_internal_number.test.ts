@@ -20,6 +20,9 @@ const LEAKS = [
   'لدينا 15 ألف مورد على منصتنا.',
   // bare counts, no 'we have' (second review of #1549)
   '19,901 suppliers.',
+  '19 900 suppliers.',
+  '19 901 suppliers.',
+  'We work with 19 901 suppliers across the UAE.',
   '19901 suppliers are listed.',
   '15k suppliers.',
   '1.9 thousand customers use it.',
