@@ -2,7 +2,7 @@
 // Regression fixtures from the 29 real UAE profiles measured on 13 Oct 2026 (ACCURACY_real_profiles.md), names
 // replaced by ZZ DEMO. deno test --no-lock --node-modules-dir=none supabase/functions/_shared/supplier_trade_choice.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { checkChoice, majority, needsThird, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
+import { capabilitySentence, checkChoice, majority, needsThird, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
 import { readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 
 const DEFS: TradeDef[] = [
@@ -170,4 +170,14 @@ Deno.test('two readings name the same code but code refused both quotes: held (n
   // joinery and fire_fighting have 1 vote each. mergeChoices finds no proven doors quote, so merged.trades is empty.
   // Mutation-checked 19 Oct 2026: without the 'merged.trades.length' guard this test fails.
   assertEquals(majority([r('joinery'), r('fire_fighting')]), null);
+});
+Deno.test('a capability sentence is not a quote; a services-list line is (M04 civil_works, 19 Oct 2026)', () => {
+  const text = 'ZZ DEMO Contracting LLC\nWe have professional experts, team of fully expertise skilled workers competent to carry out technical jobs & civil, structural works.\nOUR SERVICES\nSprinkler Systems, Foam System';
+  const r = checkChoice(JSON.stringify({ trades: [
+    { code: 'joinery', quotes: ['We have professional experts, team of fully expertise skilled workers competent to carry out technical jobs & civil, structural works.'], reason: 'r' },
+    { code: 'fire_fighting', quotes: ['Sprinkler Systems, Foam System'], reason: 'r' },
+  ] }), text, DEFS);
+  assert(r.ok);
+  assertEquals(r.trades.map((t) => t.code), ['fire_fighting']);
+  assert(capabilitySentence('skilled workers competent to carry out technical jobs') && !capabilitySentence('Supply & Installation of Doors'));
 });

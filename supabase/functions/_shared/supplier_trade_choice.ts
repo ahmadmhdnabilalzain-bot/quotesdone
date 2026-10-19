@@ -61,7 +61,7 @@ RULES
 11. GOODS ARE NOT WORKS. In a CATALOGUE every trade named is a goods or supply trade. A product is named by what it IS, never by a word in its name: "thermal insulation blocks" are concrete blocks (building_materials), "cable trays" and trunking are cable containment (electrical), not cables. A company that sells or trades goods (a catalogue, a trading or building-materials company) is named by the goods trades whose definitions cover what it sells (for example building_materials, electrical_wholesale, plastics_pipes, hand_power_tools), never by an installation or contracting trade (plumbing, electrical, hvac, painting) unless the text says it installs or carries out that work.
 14. A MAIN TRADE'S OWN SCOPE. Items a company lists as the scope of its main trade - ordinary parts of that work, such as landscape lighting, pergolas or plant nurseries in a landscaping company's list, or ceilings and partitions in a fit-out company's list - are that main trade's work, not trades of their own, unless the company gives the item its own heading or section as a separate business.
 12. ONE ITEM, ONE TRADE. When the definitions of two trades both cover the same item (shade structures, kitchen cabinets), name only the trade whose own listed services name it most closely, and only once.
-13. A quote names the service itself. A line that only introduces a list ("Our main activities are:", "We offer the following") names nothing: quote the list item.
+13. A quote names the service itself, from a services or products list, a heading or a title. A line that only introduces a list ("Our main activities are on:", "We offer the following") names nothing: quote the list item. A sentence about what the company or its staff are able to do ("our skilled team is competent to carry out civil and structural jobs") is not an offer and names no trade.
 10. Design is named by what is designed. design_consultancy is architectural or interior design (its definition). Design or engineering of the company's own trade's works (a pool builder designing pools, an MEP contractor designing its MEP installations, a contractor's "contracting, engineering and design services") is part of that trade, not design_consultancy or engineering_consultancy - unless the company sells architectural, interior or engineering design as a consultancy service in its own right.
 
 Return STRICT JSON only: {"trades":[{"code":"...","quotes":["..."],"reason":"..."}]}`;
@@ -73,6 +73,11 @@ export function choiceRequest(text: string, kind: 'profile' | 'catalogue', defs:
     input: [{ role: 'user', content: [{ type: 'text', text: `${companyLine(company)}The company's ${kind === 'catalogue' ? 'catalogue' : 'profile'} text:\n\n${text.slice(0, CHOICE_TEXT_MAX)}` }] }] };
 }
 
+/** A sentence about what the company or its people are ABLE to do, not a line offering a service: its form, never its
+ *  trade words ("competent to", "capable of", "expertise in", "experienced in", "skilled in", "qualified to", "able to"). */
+export function capabilitySentence(q: string): boolean {
+  return /\b(competent|capable|qualified|able|equipped)\s+(to|of)\b|\b(expertise|experience|experienced|skilled|specialised|specialized)\s+(in|to)\b/i.test(String(q ?? ''));
+}
 export const CHUNK_CHARS = 14_000;
 /** The text cut into chunks of at most CHUNK_CHARS, on line breaks. */
 export function textChunks(text: string, max = CHUNK_CHARS): string[] {
@@ -159,8 +164,10 @@ export function checkChoice(content: string, text: string, defs: TradeDef[]): Ch
       const q = quoteKey(dehyph(quote)), parts = dehyph(quote).split(/\r?\n/).map(quoteKey).filter((x) => x.length >= 3);
       return q.length >= 3 && (hay.includes(' ' + q + ' ') || (parts.length > 1 && parts.every((x) => hay.includes(' ' + x + ' '))));
     };
-    // A line that only introduces a list ("Our main activities are on :") names no trade (N04, 19 Oct 2026).
-    const proven = given.filter((x) => inText(x) && !/:\s*$/.test(x));
+    // A line that only introduces a list ("Our main activities are on :") names no trade (N04, 19 Oct 2026), and neither does
+    // a capability sentence (M04: "... skilled workers competent to carry out technical jobs & civil, structural ..."): a
+    // trade is quoted from a services or products list, a heading or a title, never from what the staff are able to do.
+    const proven = given.filter((x) => inText(x) && !/:\s*$/.test(x) && !capabilitySentence(x));
     if (!proven.length) { rejected.push({ code, why: `the quote is not in the document: "${given[0].slice(0, 80)}"` }); continue; }
     if (trades.some((x) => x.code === code)) continue;
     trades.push({ code, quote: proven[0].slice(0, 240), quotes: proven.map((x) => x.slice(0, 240)), reason });

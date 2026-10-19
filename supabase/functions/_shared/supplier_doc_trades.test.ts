@@ -335,3 +335,10 @@ Deno.test('a document whose readings agree on nothing is held, not unavailable, 
   const det = rows[0].detail as Record<string, unknown>;
   assertEquals([det.supplier_id, det.path, det.readings], [7, 'profiles/7/p.pdf', readings]);
 });
+Deno.test('a scan with a stray text layer is read from the OCR, not from its 20 stray characters (M12)', async () => {
+  let seen = '';
+  const deps = { chooseTrades: async (t: string) => { seen = t; return { ok: true as const, trades: [], rejected: [] }; } } as unknown as TradeResolveDeps;
+  const ocr = 'ZZ DEMO Group of Companies. GENERAL CONTRACTING. TURNKEY CONTRACTS. Portable cabins, Camps & Mobile Houses. '.repeat(4);
+  await readDocForTrades({ path: 'profiles/9/s.pdf', name: 's.pdf', kind: 'profile', bytes: pagesPdf(1), mime: 'application/pdf', ocr_text: ocr }, deps);
+  assert(seen.includes('Portable cabins'), seen.slice(0, 200));
+});
