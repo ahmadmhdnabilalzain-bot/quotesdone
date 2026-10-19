@@ -38,6 +38,46 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "staff_transport:product-distinctions",
+      "topic": "Staff transport: vehicle types, contract forms and compliance",
+      "topic_ar": "نقل الموظفين: أنواع المركبات وأشكال العقود والامتثال",
+      "kind": "product_distinctions",
+      "body_en": "Staff transport in the UAE ranges from 14-15 seat vans (Toyota Hiace), 22-30 seat coasters (Toyota Coaster, Nissan Civilian, Ashok Leyland Falcon), and 35-67 seat buses (Ashok Leyland, Tata, King Long, Yutong, MAN, Mercedes Tourismo for executive work) to luxury SUVs and sedans with drivers for executives. The distinctions buyers care about: air-conditioned versus non-AC (the labour-camp standard is AC, and the summer midday break applies to outdoor workers), a dedicated vehicle versus shared seats, a monthly contract with a driver and fuel versus a per-trip or per-day hire, and new versus older fleet (model year matters for AC reliability and the operator's RTA compliance). Operators carrying passengers need the correct licence and vehicle registration for the activity. In Dubai, RTA lists passenger-transport services, including registering vehicles under franchise contracts and short-term bus rental. Drivers need the right licence class (light or heavy bus), and school transport has its own stricter regime. Safety features matter: speed limiters, seat belts, CCTV, GPS tracking, and a fire extinguisher and first-aid kit.",
+      "body_ar": "يتراوح نقل الموظفين في الإمارات بين فانات 14-15 راكباً (تويوتا هايس)، وكوستر 22-30 راكباً (تويوتا كوستر، نيسان سيفيليان، أشوك ليلاند فالكون)، وحافلات 35-67 راكباً (أشوك ليلاند، تاتا، كينغ لونغ، يوتونغ، مان، ومرسيدس توريزمو للنقل التنفيذي)، وسيارات دفع رباعي وصالون فاخرة مع سائق للتنفيذيين. والفروق التي يهتم بها المشتري: مكيّف مقابل غير مكيّف (المعيار لسكن العمال هو المكيّف، ووقفة منتصف النهار الصيفية تنطبق على العمال في الهواء الطلق)، ومركبة مخصصة مقابل مقاعد مشتركة، وعقد شهري مع سائق ووقود مقابل تأجير بالرحلة أو باليوم، وأسطول جديد مقابل أقدم (سنة الموديل مهمة لموثوقية التكييف ولامتثال المشغّل لاشتراطات هيئة الطرق). ويحتاج المشغّل الناقل للركاب الترخيص والتسجيل الصحيح للنشاط. وفي دبي تدرج هيئة الطرق والمواصلات خدمات نقل الركاب، ومنها تسجيل المركبات بعقود امتياز وتأجير الحافلات قصير الأجل. ويحتاج السائقون فئة الرخصة المناسبة (حافلة خفيفة أو ثقيلة)، ولنقل الطلاب نظام خاص أشد. وخصائص السلامة مهمة: محددات السرعة، وأحزمة الأمان، والكاميرات، والتتبع بنظام GPS، وطفاية الحريق وحقيبة الإسعافات.",
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "source_note": "Pages opened 2026-10-19: RTA lists services for passenger-transport vehicles under franchise and short-term bus rental -> confirmed (operator licensing detail not on the page). Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+    },
+    {
+      "id": "staff_transport:lead-times",
+      "topic": "Staff transport & bus rental - typical lead times in the UAE",
+      "topic_ar": "نقل الموظفين وتأجير الحافلات: المدد المعتادة للتوريد والتنفيذ في الإمارات",
+      "kind": "lead_time",
+      "body_en": "Ad-hoc bus hire with a driver: same day to 48 hours, except during peak events such as Expo-type exhibitions, Dubai Airshow, GITEX, F1 Abu Dhabi and New Year, when 1-2 weeks notice is needed. A monthly dedicated contract for standard vans and buses starts within 3-10 days. A new fleet bought for a long contract (3-5 years) takes 2-6 months for vehicle delivery, branding and registration. Large camp-to-site rosters need 1-2 weeks of route planning.",
+      "body_ar": "تأجير حافلة مع سائق لمرة واحدة: في نفس اليوم حتى 48 ساعة، إلا في ذروة الفعاليات مثل المعارض الكبرى ومعرض دبي للطيران وجيتكس وسباق الفورمولا 1 في أبوظبي ورأس السنة، فيلزم إشعار قبل 1-2 أسبوع. العقد الشهري المخصص للفانات والحافلات القياسية: يبدأ خلال 3-10 أيام. أسطول جديد يُشترى لعقد طويل (3-5 سنوات): 2-6 أشهر لتسليم المركبات والتغليف والتسجيل. وجداول نقل كبيرة من السكن إلى المواقع تحتاج 1-2 أسبوع لتخطيط المسارات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "staff_transport:quotation-requirements",
+      "topic": "Staff transport & bus rental - what a supplier needs to quote and what a quote must state",
+      "topic_ar": "نقل الموظفين وتأجير الحافلات: ما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "body_en": "A transport operator needs: the number of passengers per shift, the pick-up and drop-off points (camps, sites, offices), the shift times and days per month, whether it is one-way or return, the vehicle type and AC requirement, the contract length, whether fuel, Salik tolls and parking are included, the standby or overtime rules, and any branding. A complete quote states: vehicle model and year, seats, the monthly rate per vehicle (or per trip or day) with the hours and km included, the excess hour and km rate, what is included (driver, fuel, Salik, maintenance, insurance, replacement vehicle on breakdown), the operator's licence and the vehicle registration for passenger transport, the driver licence class, VAT, the notice period, and validity. Red flags: private-registered vehicles used for paid transport, no replacement-vehicle clause, Salik and fuel excluded without saying so, or no named model year.",
+      "body_ar": "يحتاج مشغّل النقل: عدد الركاب لكل وردية، ونقاط الصعود والنزول (السكن، المواقع، المكاتب)، وأوقات الورديات والأيام شهرياً، واتجاه واحد أم ذهاب وعودة، ونوع المركبة واشتراط التكييف، ومدة العقد، وهل الوقود ورسوم سالك والمواقف مشمولة، وقواعد الانتظار والوقت الإضافي، وأي تغليف بالعلامة التجارية. ويذكر العرض الكامل: موديل المركبة وسنتها، وعدد المقاعد، والسعر الشهري لكل مركبة (أو للرحلة أو لليوم) مع الساعات والكيلومترات المشمولة، وسعر الساعة والكيلومتر الزائد، والمشمولات (السائق، الوقود، سالك، الصيانة، التأمين، مركبة بديلة عند العطل)، وترخيص المشغّل وتسجيل المركبة لنقل الركاب، وفئة رخصة السائق، وضريبة القيمة المضافة، ومدة الإشعار، والصلاحية. علامات التحذير: استخدام مركبات مسجلة خاصة للنقل بأجر، أو غياب بند المركبة البديلة، أو استثناء سالك والوقود دون ذكر ذلك، أو عدم تحديد سنة الموديل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
+      "gap_kind": "commercial"
     }
   ],
   "eval": [
@@ -54,6 +94,14 @@
       "expected_entry_ids": [
         "staff_transport:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "We need to move 120 workers from Sonapur to a site in Jebel Ali every day. Coasters or big buses?",
+      "q_ar": "نبي ننقل 120 عامل كل يوم من صونابور لموقع في جبل علي، كوستر ولا باصات كبيرة؟",
+      "expected_entry_ids": [
+        "staff_transport:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -70,6 +118,27 @@
       "staff_transport:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "staff_transport:product-distinctions",
+        "staff_transport:lead-times",
+        "staff_transport:quotation-requirements"
+      ],
+      "pages_opened": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

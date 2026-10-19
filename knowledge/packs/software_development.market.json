@@ -1,0 +1,84 @@
+{
+  "trade": "software_development",
+  "layer": "uae-market",
+  "label_en": "Software, web & app development",
+  "label_ar": "تطوير البرمجيات والمواقع والتطبيقات",
+  "entries": [
+    {
+      "id": "software_development:uae-market-products",
+      "topic": "Software, web & app development: products, variants and grades sold in the UAE",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: المنتجات والأنواع والدرجات المباعة في الإمارات",
+      "kind": "uae_market_products",
+      "body_en": "Software services bought in the UAE: corporate and bilingual websites, e-commerce stores, delivery and booking apps, customer portals, ERP/CRM implementation (Odoo is very common with SMEs; Dynamics 365 and SAP with larger firms), e-invoicing and VAT-ready accounting integrations, government-facing integrations (UAE PASS), chatbots and WhatsApp Business API, data dashboards, and support and maintenance retainers. Agencies cluster in Dubai Internet City, Dubai Silicon Oasis, DMCC, in64 and Abu Dhabi Hub71, with many offshore delivery centres in India, Pakistan, Egypt and Eastern Europe.",
+      "body_ar": "خدمات البرمجيات المشتراة في الإمارات: المواقع المؤسسية ثنائية اللغة، والمتاجر الإلكترونية، وتطبيقات التوصيل والحجز، وبوابات العملاء، وتطبيق أنظمة ERP/CRM (Odoo شائع جداً لدى الشركات الصغيرة والمتوسطة، وDynamics 365 وSAP لدى الشركات الأكبر)، وتكاملات المحاسبة الجاهزة للضريبة والفوترة الإلكترونية، والتكاملات مع الجهات الحكومية (UAE PASS)، وروبوتات المحادثة وواجهة WhatsApp Business، ولوحات البيانات، واشتراكات الدعم والصيانة. وتتركز الوكالات في مدينة دبي للإنترنت وواحة دبي للسيليكون ومركز دبي للسلع المتعددة وHub71 في أبوظبي، مع مراكز تنفيذ كثيرة في الهند وباكستان ومصر وأوروبا الشرقية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO/IEC_25010"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "source_note": "Pages opened 2026-10-19: the page (redirected to ISO/IEC 9126) names the quality characteristics functionality, reliability, usability, efficiency, maintainability, portability; ISO/IEC 25010 is its successor -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+    },
+    {
+      "id": "software_development:uae-market-brands",
+      "topic": "Software, web & app development: makes, brands, distributors and origins in the UAE",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
+      "kind": "uae_market_brands",
+      "body_en": "Platforms and partners commonly asked for: Shopify and Shopify Plus partners, WooCommerce, Adobe Commerce, Odoo partners, Microsoft Dynamics and Azure partners, AWS and Google Cloud partners (both run UAE cloud regions, as do Microsoft Azure and Oracle), Salesforce and Zoho partners, and Flutter or React Native app studios. Specific partner tiers were not checked.",
+      "body_ar": "المنصات والشركاء الأكثر طلباً: شركاء Shopify وShopify Plus، وWooCommerce، وAdobe Commerce، وشركاء Odoo، وشركاء Microsoft Dynamics وAzure، وشركاء AWS وGoogle Cloud (ولديهما مناطق سحابية في الإمارات، كما لدى Microsoft Azure وOracle)، وشركاء Salesforce وZoho، واستوديوهات تطبيقات Flutter أو React Native. لم يُتحقق من مستويات الشراكة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO/IEC_25010"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "source_note": "Pages opened 2026-10-19: the page (redirected to ISO/IEC 9126) names the quality characteristics functionality, reliability, usability, efficiency, maintainability, portability; ISO/IEC 25010 is its successor -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+    },
+    {
+      "id": "software_development:uae-market-sizes",
+      "topic": "Software, web & app development: typical sizes, units and how it is quoted in the UAE",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
+      "kind": "uae_market_sizes",
+      "body_en": "Quoted as a fixed price per milestone, as time and materials against a rate card (hourly or man-day rates by role), as a monthly dedicated-team fee, or as an annual support and maintenance retainer. Licences, hosting, domains and app store accounts are passed through as separate lines.",
+      "body_ar": "يُسعّر بسعر ثابت لكل مرحلة، أو بالوقت والمواد وفق جدول أسعار (بالساعة أو اليوم حسب الدور)، أو برسوم شهرية لفريق مخصص، أو باشتراك سنوي للدعم والصيانة. والتراخيص والاستضافة والنطاقات وحسابات متاجر التطبيقات بنود منفصلة تُمرر بتكلفتها.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO/IEC_25010"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "source_note": "Pages opened 2026-10-19: the page (redirected to ISO/IEC 9126) names the quality characteristics functionality, reliability, usability, efficiency, maintainability, portability; ISO/IEC 25010 is its successor -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Should our delivery app be built natively or with Flutter, and who owns the code afterwards?",
+      "q_ar": "تطبيق التوصيل حقنا نسويه native ولا Flutter؟ وبعدين الكود ملك مين؟",
+      "expected_entry_ids": [
+        "software_development:uae-market-products",
+        "software_development:product-distinctions"
+      ],
+      "expected_mode": "any",
+      "why": "The products entry names the variants sold in the UAE; the sibling distinctions entry explains the choice.",
+      "written_blind": true
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Brand names are well-known makes in the UAE market; local distributor appointments were not checked.",
+    "checks": [
+      {
+        "claim": "the page (redirected to ISO/IEC 9126) names the quality characteristics functionality, reliability, usability, efficiency, maintainability, portability; ISO/IEC 25010 is its successor -> confirmed",
+        "url": "https://en.wikipedia.org/wiki/ISO/IEC_25010",
+        "result": "confirmed on the page opened"
+      }
+    ],
+    "unverified": "Distributor appointments per brand.",
+    "ledger": [
+      893,
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ]
+  }
+}
