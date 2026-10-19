@@ -12106,7 +12106,7 @@ CREATE OR REPLACE FUNCTION public.fn_customer_support_takes_delivery(p_rows json
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r jsonb; v_seat text; v_id bigint; h public.agent_actions; v_out jsonb := '[]'::jsonb;
+declare r jsonb; v_seat text; v_id bigint; v_nid bigint; h public.agent_actions; v_out jsonb := '[]'::jsonb;
 begin
   if jsonb_typeof(p_rows) is distinct from 'array' then
     raise exception 'fn_customer_support_takes_delivery takes an array of notification rows';
@@ -12123,6 +12123,19 @@ begin
       jsonb_build_object('prepared', r - 'dedupe_key' - 'requested_by' - 'status' - 'sender',
                          'msg_type', r->>'type', 'recipient_role', r->>'to_role', 'to_email', r->>'to_email',
                          'supplier_id', r->'lead_id', 'inquiry_id', r->'inquiry_id', 'quote_id', r->'quote_id'));
+    if v_id is null then
+      -- demo work (ruling 1199): no handoff; the row is written and the demo capture suppresses it
+      insert into public.notifications (type, channel, to_email, to_phone, to_role, lead_id, inquiry_id, quote_id,
+                                        subject, body, html, kind, lang, attachments, cc_emails, reply_to, requested_by, status, last_error, dedupe_key)
+      select n.type, coalesce(n.channel, 'email'), n.to_email, n.to_phone, n.to_role, n.lead_id, n.inquiry_id, n.quote_id,
+             n.subject, n.body, n.html, n.kind, n.lang, n.attachments, coalesce(n.cc_emails, '{}'), n.reply_to, v_seat,
+             'suppressed', 'demo work (ruling 1199): written for the record, never sent', nullif(btrim(r->>'dedupe_key'), '')
+        from jsonb_populate_record(null::public.notifications, r) n
+      returning id into v_nid;
+      v_out := v_out || jsonb_build_array(jsonb_build_object('handoff_id', null, 'seat', v_seat, 'status', 'demo_captured',
+        'notification_id', v_nid, 'error', null));
+      continue;
+    end if;
     select * into h from public.agent_actions where id = v_id;
     v_out := v_out || jsonb_build_array(jsonb_build_object('handoff_id', v_id, 'seat', v_seat, 'status', h.status,
       'notification_id', h.evidence->'notification_id', 'error', h.detail->>'error'));

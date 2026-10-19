@@ -3126,6 +3126,7 @@ AS $function$
   select exists (select 1 from public.agent_actions a
                   where a.kind = 'handoff' and a.agent = 'customer_support'
                     and a.target_id = 'delivery.request:' || p_dedupe_key and a.status <> 'failed')
+      or exists (select 1 from public.notifications n where n.dedupe_key = p_dedupe_key)
 $function$
 
 
