@@ -349,6 +349,15 @@ create table if not exists public.sales_engineer_framework_proposal (
   created_at    timestamptz not null default now(),
   unique (customer_id, trade)
 );
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('sales_engineer_comparison_report', true, 'sales_engineer', 'Each quotation comparison the sales engineer levelled for a customer (ledger 1003).', 'sales_engineer'),
+  ('sales_engineer_framework_proposal', true, 'sales_engineer', 'Each framework-agreement proposal the sales engineer prepared (ledger 1003).', 'sales_engineer'),
+  ('sales_engineer_negotiation_round', true, 'sales_engineer', 'Each negotiation round the sales engineer ran on a quotation (ledger 1003).', 'sales_engineer'),
+  ('sales_engineer_onboarding_week', true, 'sales_engineer', 'The sales engineer''s weekly supplier onboarding record (ledger 1003).', 'sales_engineer'),
+  ('sales_engineer_win_loss_month', true, 'sales_engineer', 'The sales engineer''s monthly win/loss analysis (ledger 1003).', 'sales_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 alter table public.sales_engineer_framework_proposal enable row level security;
 drop policy if exists sales_engineer_framework_proposal_service_role_only on public.sales_engineer_framework_proposal;
 create policy sales_engineer_framework_proposal_service_role_only on public.sales_engineer_framework_proposal as permissive for all to public using (false) with check (false);

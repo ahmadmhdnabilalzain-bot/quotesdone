@@ -131,6 +131,12 @@ create table if not exists public.decision_review_request (
     check (status <> 'decided' or (verdict is not null and reviewer_model is not null and reviewer_seat is not null
                                and btrim(coalesce(verdict_reason, '')) <> '' and decided_at is not null))
 );
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('review_route', true, 'ceo', 'Which seat owns the review of each kind of automated decision (ledger 1152).', 'ceo'),
+  ('decision_review_request', true, 'ceo', 'Each request by a person to review an automated decision, and its outcome (ledger 1152).', 'ceo')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 create index if not exists decision_review_request_open_idx on public.decision_review_request (owner_seat) where status = 'open';
 alter table public.decision_review_request enable row level security;
 drop policy if exists decision_review_request_service_role_only on public.decision_review_request;

@@ -288,6 +288,12 @@ create table if not exists public.it_load_test_run (
   breakpoint    boolean not null default false,
   detail        jsonb not null default '{}'::jsonb
 );
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('it_finding_closure', true, 'it_engineer', 'How and when each IT finding was closed, and by what proof (ledger 1003).', 'it_engineer'),
+  ('it_load_test_run', true, 'it_engineer', 'Each load test the IT engineer ran and its measured result (ledger 1003).', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 alter table public.it_load_test_run enable row level security;
 drop policy if exists it_load_test_run_service_role_only on public.it_load_test_run;
 create policy it_load_test_run_service_role_only on public.it_load_test_run as permissive for all to public using (false) with check (false);

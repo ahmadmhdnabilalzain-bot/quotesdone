@@ -6691,5 +6691,18 @@
   "fac0ce17a45a",
   "fcd2fef42f11",
   "fe4c2faffc6c"
+ ],
+ "scripts/sql/the_sales_engineer_closes_the_loops_a_senior_sales_engineer_closes.sql": [
+  "3511d61a3589",
+  "fed9aced307d",
+  "e75410f81080",
+  "059aad16c776"
+ ],
+ "supabase/functions/_shared/given_trade_knowledge.ts": [
+  "99cdfb3a6f52",
+  "afa112b1cea4"
+ ],
+ "supabase/functions/send_outbox/m365_lane.ts": [
+  "83ed89be1b93"
  ]
 }

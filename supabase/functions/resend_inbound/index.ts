@@ -344,7 +344,9 @@ export const handler = observe('resend_inbound', async (req) => {
           : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
         // a reply handed in from the Microsoft 365 mailbox carries EOP's verdict, not SES's (suppression_policy.ts)
         const m365Reply = String(providerEmailId || '').startsWith('m365:');
-        if (!(m365Reply ? microsoftDomainAuthenticated : fromDomainAuthenticated)(hdrs?.['authentication-results'], from)) {
+        const authenticated = m365Reply ? microsoftDomainAuthenticated(hdrs?.['authentication-results'], from)
+          : fromDomainAuthenticated(hdrs?.['authentication-results'], from);
+        if (!authenticated) {
           why = 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
         } else {
           const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })

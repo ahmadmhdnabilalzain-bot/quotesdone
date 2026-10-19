@@ -210,6 +210,13 @@ create table if not exists public.accountant_vat_threshold_check (
   ceo_report_id       bigint,
   recorded_at         timestamptz not null default now()
 );
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('accountant_budget_variance', true, 'accountant', 'Each month''s budget-against-actual variance the accountant computes and acts on (ledger 1003).', 'accountant'),
+  ('accountant_cash_forecast_week', true, 'accountant', 'The accountant''s weekly cash forecast, one row per week (ledger 1003).', 'accountant'),
+  ('accountant_vat_threshold_check', true, 'accountant', 'Each check of taxable turnover against the VAT registration threshold (ledger 1003).', 'accountant')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 alter table public.accountant_vat_threshold_check enable row level security;
 drop policy if exists accountant_vat_threshold_check_service_role_only on public.accountant_vat_threshold_check;
 create policy accountant_vat_threshold_check_service_role_only on public.accountant_vat_threshold_check as permissive for all to public using (false) with check (false);

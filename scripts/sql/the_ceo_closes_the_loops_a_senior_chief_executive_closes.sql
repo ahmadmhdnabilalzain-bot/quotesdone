@@ -375,6 +375,13 @@ create table if not exists public.ceo_refund_decision_metric (
   awaiting_ceo_over_2d  int not null,
   recorded_at           timestamptz not null default now()
 );
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('ceo_month_close', true, 'ceo', 'The CEO''s month-end close record, one row per month (ledger 1003).', 'ceo'),
+  ('ceo_pricing_evidence', true, 'ceo', 'The evidence the CEO gathered for a pricing decision (ledger 1003).', 'ceo'),
+  ('ceo_refund_decision_metric', true, 'ceo', 'The CEO''s measured refund decisions, for the refund decision review (ledger 1003).', 'ceo')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 alter table public.ceo_refund_decision_metric enable row level security;
 drop policy if exists ceo_refund_decision_metric_service_role_only on public.ceo_refund_decision_metric;
 create policy ceo_refund_decision_metric_service_role_only on public.ceo_refund_decision_metric as permissive for all to public using (false) with check (false);
