@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "corporate_travel:product-distinctions",
+      "topic": "Corporate travel management: what a TMC does and how it charges",
+      "topic_ar": "إدارة السفر المؤسسي: ما تقدمه شركة إدارة السفر وكيف تتقاضى أتعابها",
+      "kind": "product_distinctions",
+      "body_en": "A travel management company (TMC) runs a company's business travel: air, hotel, car and rail booking through agents and an online booking tool and app, executive and VIP travel, group travel, meetings and events, visa assistance, travel policy set-up and enforcement (cabin class, hotel caps, advance booking, approval workflow), negotiated airline and hotel rates, and duty of care (traveller tracking, risk alerts, 24/7 emergency support). Reporting (spend by traveller, department, route and supplier; savings; unused tickets; carbon) is a core part of the value. Commercial models: transaction fees per booking (online cheaper than agent-assisted), a management fee (monthly or per traveller), or a hybrid; some markets still see the agency earn from airline and hotel commissions, which should be disclosed. Payment options: corporate card, lodge card, or credit with the TMC. Offers differ on fees, service levels (response times, after-hours support), the booking tool, content access (low-cost carriers, NDC fares, hotel rates), reporting, and the account management team.",
+      "body_ar": "تدير شركة إدارة السفر سفر أعمال الشركة: حجز الطيران والفنادق والسيارات والقطارات عبر الوكلاء وأداة الحجز الإلكتروني والتطبيق، والسفر التنفيذي وكبار الشخصيات، والسفر الجماعي، والاجتماعات والفعاليات، والمساعدة في التأشيرات، ووضع سياسة السفر وتطبيقها (درجة المقعد، سقوف الفنادق، الحجز المسبق، مسار الموافقات)، وأسعار متفاوض عليها مع شركات الطيران والفنادق، وواجب الرعاية (تتبع المسافرين، تنبيهات المخاطر، الدعم الطارئ على مدار الساعة). والتقارير (الإنفاق حسب المسافر والقسم والمسار والمورد؛ الوفورات؛ التذاكر غير المستخدمة؛ الانبعاثات) جزء أساسي من القيمة. ونماذج التعاقد: رسوم معاملة لكل حجز (الإلكتروني أرخص من الحجز بمساعدة وكيل)، أو رسوم إدارة (شهرية أو لكل مسافر)، أو مزيج؛ وفي بعض الأسواق ما زالت الوكالة تكسب عمولات من شركات الطيران والفنادق ويجب الإفصاح عنها. وخيارات الدفع: بطاقة الشركة، أو بطاقة مركزية، أو ائتمان لدى الشركة. وتختلف العروض في الرسوم، ومستويات الخدمة (أزمنة الاستجابة، الدعم بعد الدوام)، وأداة الحجز، والوصول إلى المحتوى (شركات الطيران منخفضة التكلفة، أسعار NDC، أسعار الفنادق)، والتقارير، وفريق إدارة الحساب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Travel_management_company"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: TMC services: online booking, mobile app, programme management, executive travel, meetings and events, reporting, duty of care -> confirmed."
+    },
+    {
+      "id": "corporate_travel:lead-times-and-quoting",
+      "topic": "Corporate travel - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "السفر المؤسسي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A TMC can usually be implemented in 2-6 weeks (profiles, policy, tool set-up, payment). It needs annual travel volume and spend, number of travellers, main routes, current policy, approval rules, payment method, and reporting needs. A proposal states the fee model and fee schedule, service levels, booking tool, duty-of-care services, supplier programme, reporting, implementation plan, term and exit, and validity.",
+      "body_ar": "يمكن عادة تطبيق خدمات شركة إدارة السفر خلال 2-6 أسابيع (ملفات المسافرين، السياسة، إعداد الأداة، الدفع). وتحتاج حجم السفر السنوي وإنفاقه، وعدد المسافرين، والمسارات الرئيسية، والسياسة الحالية، وقواعد الموافقة، وطريقة الدفع، واحتياجات التقارير. ويذكر العرض نموذج الرسوم وجدولها، ومستويات الخدمة، وأداة الحجز، وخدمات واجب الرعاية، وبرنامج الموردين، والتقارير، وخطة التطبيق، والمدة والخروج، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (Spec-checklist names 'fee model' only as a field; no explanation of TMC transaction/management fees; missing). corporate_travel:tmc-fee-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from corporate_travel.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should we compare between two travel management companies besides ticket prices?",
+      "q_ar": "وش نقارن بين شركتين لإدارة السفر غير أسعار التذاكر؟",
+      "expected_entry_ids": [
+        "corporate_travel:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "corporate_travel:tmc-fee-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "corporate_travel:product-distinctions"
+      ],
+      "stored_not_served": [
+        "corporate_travel:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Travel_management_company"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
