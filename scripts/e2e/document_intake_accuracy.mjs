@@ -69,6 +69,25 @@ const CORPUS = val('--corpus');
 const corpusDir = CORPUS ? resolve(CORPUS) : join(WORK, 'corpus');
 const docs = CORPUS ? JSON.parse(readFileSync(join(corpusDir, 'truth.json'), 'utf8')).docs : await buildCorpus(corpusDir);
 console.log(`corpus: ${docs.length} documents in ${corpusDir}`);
+// SCANS ARE READ BY CODE (19 Oct 2026): a profile or catalogue PDF with no text layer, or an image, is OCR'd here as the
+// supplier's browser does in the portal (scan_ocr.mjs), and the words go to the reader as ocr_text.
+const OCR_DIR = join(WORK, 'ocr'); mkdirSync(OCR_DIR, { recursive: true });
+if (CORPUS) {
+  const { ocrText } = await import('./scan_ocr.mjs');
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  for (const d of docs.filter((x) => x.file && ['profile', 'catalogue'].includes(x.kind))) {
+    const bytes = readFileSync(join(corpusDir, d.file));
+    let chars = 0;
+    if (/pdf/i.test(d.mime)) {
+      const doc = await pdfjs.getDocument({ data: new Uint8Array(bytes), isEvalSupported: false, disableFontFace: true }).promise;
+      for (let p = 1; p <= Math.min(doc.numPages, 20) && chars < 200; p++) chars += (await (await doc.getPage(p)).getTextContent()).items.map((i) => i.str).join('').replace(/\s/g, '').length;
+    }
+    if (chars >= 200) continue;
+    if (!existsSync(join(OCR_DIR, d.id + '.txt'))) writeFileSync(join(OCR_DIR, d.id + '.txt'), await ocrText(bytes, d.mime));
+    console.log(`ocr: ${d.id} ${readFileSync(join(OCR_DIR, d.id + '.txt'), 'utf8').length} characters read by code`);
+  }
+}
+process.env.QD_OCR_DIR = OCR_DIR;
 const { SERVICE } = await keys();
 const SB = { SUPABASE_URL: `https://${REF}.supabase.co`, SUPABASE_SERVICE_ROLE_KEY: SERVICE };
 const codePath = join(WORK, 'code.json');

@@ -309,3 +309,9 @@ Deno.test('a file over 25 MB is refused before pdf.js opens it, and is held unre
   assertEquals(ev.status, 'unreadable');
   assert(/file_too_large/.test(ev.reason || ''), ev.reason);
 });
+Deno.test('a busy worker that spends the budget opening the file still reads page 1, never calling a text PDF a scan (N01)', async () => {
+  let t = 0; const clock = () => (t += 5_000);   // the open alone is over budget
+  const r = await pdfjsText(pagesPdf(6), 250, PDFJS_BUDGET_MS, clock);
+  assertEquals(r.status, 'text');
+  assert(r.text.includes('Page 1 fire pumps'), r.text);
+});

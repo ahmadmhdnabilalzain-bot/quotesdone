@@ -64,6 +64,7 @@ begin
     ('SE quote_compare',               null,                          'quote_compare',           null,               c_opus, c_lp),
     ('SE quote_review',                null,                          'quote_review',            null,               c_opus, c_lp),
     ('SE quote_extract',               null,                          'quote_extract',           null,               c_lp,   c_son),
+    ('SE supplier_trade_choice',       'supplier_trade_choice',       'supplier_doc_trades',     null,               c_lp,   c_son),
     ('SE doc_extract',                 null,                          'doc_extract',             null,               c_lp,   c_son),
     ('SE license_extract',             null,                          'license_extract',         null,               c_lp,   c_son),
     ('SE extract_text',                null,                          'extract_text',            null,               c_lp,   c_son),
@@ -326,8 +327,7 @@ begin
       ('customer_portal_assistant', 'sales_engineer', 'chat'), ('inquiry_qualification_conversation', 'sales_engineer', 'chat'),
       ('rfq_routing', 'sales_engineer', 'main'), ('redaction_detection', 'sales_engineer', 'main'),
       ('drawing_and_boq_analysis', 'sales_engineer', 'main'), ('identity_redaction_verify', 'sales_engineer', 'review'),
-      ('supplier_trade_choice', 'sales_engineer', 'chat'),
-      ('supplier_trade_choice', 'sales_engineer', 'chat'),
+      ('supplier_trade_choice', 'sales_engineer', 'main'),   -- 19 Oct 2026, coordinator: Luna Pro first, Sonnet 5.5 behind (#1483)
       ('drawing_boq_confirm', 'sales_engineer', 'review'), ('speech_transcription', 'sales_engineer', 'hears'),
       ('sales_engineer__document_extraction', 'sales_engineer', 'main'), ('sales_engineer__json_extraction', 'sales_engineer', 'main'),
       ('sales_engineer__procurement_reasoning', 'sales_engineer', 'main'), ('sales_engineer__knowledge_validation', 'sales_engineer', 'review'),
