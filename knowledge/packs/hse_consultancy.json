@@ -56,6 +56,36 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "hse_consultancy:product-distinctions",
+      "topic": "HSE consultancy: services and deliverables",
+      "topic_ar": "استشارات الصحة والسلامة والبيئة: الخدمات والمخرجات",
+      "kind": "product_distinctions",
+      "body_en": "HSE consultants help organisations meet safety duties and manage risk: management systems to ISO 45001 (occupational health and safety, published 2018), often integrated with ISO 14001 and ISO 9001; hazard identification and risk assessments, job safety analyses and method statement reviews; HSE plans for construction projects; fire risk assessments and emergency response plans with drills; process safety studies (HAZID, HAZOP, SIL) for industrial sites; occupational hygiene monitoring (noise, dust, heat stress, chemical exposure); audits and inspections; incident investigation with root-cause analysis; and secondment of HSE officers and managers to sites. Training (first aid, fire warden, working at height, IOSH and NEBOSH courses) is often bundled. What separates offers: the consultants' qualifications and registrations (NEBOSH diploma, chartered membership, process safety credentials), the sector experience, whether the deliverable is a document set or an implemented system, the number of site visits, and whether certification audit support is included.",
+      "body_ar": "يساعد استشاريو الصحة والسلامة والبيئة المؤسسات على الوفاء بواجبات السلامة وإدارة المخاطر: أنظمة الإدارة وفق ISO 45001 (الصحة والسلامة المهنية، صدرت 2018)، وغالباً مدمجة مع ISO 14001 وISO 9001؛ وتحديد المخاطر وتقييمها، وتحليل سلامة الأعمال ومراجعة بيانات الطرق؛ وخطط الصحة والسلامة لمشاريع الإنشاء؛ وتقييم مخاطر الحريق وخطط الاستجابة للطوارئ مع التدريبات؛ ودراسات سلامة العمليات (HAZID، HAZOP، SIL) للمواقع الصناعية؛ ورصد الصحة المهنية (الضوضاء، الغبار، الإجهاد الحراري، التعرض للمواد الكيميائية)؛ والتدقيقات والتفتيش؛ والتحقيق في الحوادث مع تحليل الأسباب الجذرية؛ وإعارة مسؤولي ومديري السلامة إلى المواقع. وغالباً يُضاف التدريب (الإسعافات الأولية، مراقب الحريق، العمل على المرتفعات، دورات IOSH وNEBOSH). وما يميز العروض: مؤهلات الاستشاريين وتسجيلاتهم (دبلوم NEBOSH، العضوية المعتمدة، مؤهلات سلامة العمليات)، والخبرة في القطاع، وهل المخرج مجموعة وثائق أم نظام مطبق، وعدد زيارات الموقع، وهل يشمل دعم تدقيق الشهادة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO_45001"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: ISO 45001 (2018) as the occupational health and safety management standard addressing risks and opportunities -> confirmed."
+    },
+    {
+      "id": "hse_consultancy:lead-times-and-quoting",
+      "topic": "HSE consultancy - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "استشارات الصحة والسلامة والبيئة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A risk assessment or audit usually takes 1-3 weeks; an ISO 45001 system 3-6 months; seconded officers can start within days to weeks. A consultant needs the activities and sites, headcount, current system and incidents, the standard or regulator to satisfy, and deliverables. A quote states the scope, deliverables, consultant profiles, site days, timeline, fees per stage or per month, exclusions and validity.",
+      "body_ar": "يستغرق تقييم المخاطر أو التدقيق عادة 1-3 أسابيع؛ ونظام ISO 45001 من 3 إلى 6 أشهر؛ والمسؤولون المعارون يبدؤون خلال أيام إلى أسابيع. ويحتاج الاستشاري الأنشطة والمواقع، وعدد الموظفين، والنظام الحالي والحوادث، والمواصفة أو الجهة المنظمة المطلوب الوفاء بها، والمخرجات. ويذكر العرض النطاق، والمخرجات، وملفات الاستشاريين، وأيام الموقع، والجدول الزمني، والأتعاب لكل مرحلة أو شهرياً، والاستثناءات، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (the standards entry covers Civil Defence and Dubai Municipality but not Abu Dhabi OSHAD consultant registration). hse_consultancy:abu-dhabi-osh-practitioner-registration was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from hse_consultancy.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Do we need a full ISO 45001 system or just risk assessments for a 30-person workshop?",
+      "q_ar": "نحتاج نظام ISO 45001 كامل ولا بس تقييمات مخاطر لورشة فيها 30 شخص؟",
+      "expected_entry_ids": [
+        "hse_consultancy:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "hse_consultancy:abu-dhabi-osh-practitioner-registration"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "hse_consultancy:product-distinctions"
+      ],
+      "stored_not_served": [
+        "hse_consultancy:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/ISO_45001"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

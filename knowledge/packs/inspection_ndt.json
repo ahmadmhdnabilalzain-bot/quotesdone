@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "inspection_ndt:product-distinctions",
+      "topic": "Inspection and NDT: test methods, personnel levels and inspection types",
+      "topic_ar": "الفحص والاختبارات غير الإتلافية: طرق الاختبار ومستويات الكوادر وأنواع الفحص",
+      "kind": "product_distinctions",
+      "body_en": "Non-destructive testing finds defects without damaging the part: visual testing (VT), liquid penetrant (PT, surface cracks on any non-porous metal), magnetic particle (MT, surface and near-surface cracks in ferromagnetic steel), ultrasonic testing (UT, internal flaws and thickness; advanced phased array PAUT and TOFD for welds), radiographic testing (RT, internal weld defects on film or digital, with radiation-safety controls), eddy current (ET, tubes and surface cracks in non-ferrous), plus hardness, PMI (positive material identification) and ferrite testing. Technicians are certified by level (1, 2, 3) to ISO 9712 or ASNT schemes; the procedure and acceptance criteria come from the code (for example ASME, API, AWS D1.1). Third-party inspection (TPI) covers vendor inspection at the factory (inspection and test plans, witness of tests, release notes), lifting equipment and pressure-vessel thorough examination, welding inspection (CSWIP, AWS CWI), coating inspection, and expediting. What separates offers: accreditation of the inspection body (ISO/IEC 17020), technician certifications, equipment calibration, report format, day rates and travel, and turnaround.",
+      "body_ar": "يكشف الفحص غير الإتلافي العيوب دون إتلاف القطعة: الفحص البصري، والسائل النافذ (الشقوق السطحية في أي معدن غير مسامي)، والجسيمات المغناطيسية (الشقوق السطحية وتحت السطحية في الحديد المغناطيسي)، والفحص بالموجات فوق الصوتية (العيوب الداخلية والسماكة؛ والمتقدمة مثل المصفوفة المرحلية وزمن الطيران للحام)، والتصوير الإشعاعي (عيوب اللحام الداخلية على فيلم أو رقمياً مع ضوابط السلامة الإشعاعية)، والتيارات الدوامية (الأنابيب والشقوق السطحية في المعادن غير الحديدية)، إضافة إلى الصلادة، وتحديد المادة الإيجابي، وفحص الفيرايت. ويُعتمد الفنيون حسب المستوى (1، 2، 3) وفق ISO 9712 أو أنظمة ASNT؛ ويأتي الإجراء ومعايير القبول من الكود (مثل ASME وAPI وAWS D1.1). ويشمل الفحص من طرف ثالث فحص المورد في المصنع (خطط الفحص والاختبار، حضور الاختبارات، إشعارات الإفراج)، والفحص الشامل لمعدات الرفع وأوعية الضغط، وفحص اللحام (CSWIP، AWS CWI)، وفحص الطلاء، ومتابعة التوريد. وما يميز العروض: اعتماد جهة الفحص (ISO/IEC 17020)، وشهادات الفنيين، ومعايرة الأجهزة، وصيغة التقرير، وأسعار اليوم والسفر، ومدة الإنجاز.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Nondestructive_testing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: UT, RT, MT, PT and VT methods; personnel certification under ISO 9712 and ASNT schemes -> confirmed."
+    },
+    {
+      "id": "inspection_ndt:lead-times-and-quoting",
+      "topic": "Third-party inspection & NDT - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الفحص من طرف ثالث والفحص غير الإتلافي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "NDT crews and inspectors can usually mobilise within 1-5 days; vendor inspections are booked to the factory test date; RT needs radiation permits and exclusion zones. A provider needs the scope (methods, quantities of welds or items), the code and acceptance criteria, location and access, schedule, and report format. A quote states methods and technician levels, equipment, procedures, rates per day, joint or item, mobilisation, reports and certificates, accreditation and validity.",
+      "body_ar": "يمكن عادة أن تبدأ فرق الفحص والمفتشون خلال 1-5 أيام؛ وفحوص الموردين تُحجز حسب موعد اختبار المصنع؛ والتصوير الإشعاعي يحتاج تصاريح إشعاعية ومناطق عزل. ويحتاج المزود النطاق (الطرق، كميات اللحامات أو القطع)، والكود ومعايير القبول، والموقع والوصول، والجدول، وصيغة التقرير. ويذكر العرض الطرق ومستويات الفنيين والمعدات والإجراءات والأسعار لليوم أو للوصلة أو القطعة والتجهيز والتقارير والشهادات والاعتماد والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (the standards entry covers EIAC body accreditation, not personnel certification (ISO 9712 / ASNT Level II) for UT). inspection_ndt:ut-personnel-certification-iso-9712 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from inspection_ndt.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should our pipe welds be checked by radiography or ultrasonic testing?",
+      "q_ar": "لحامات الأنابيب عندنا نفحصها بالتصوير الإشعاعي ولا بالموجات فوق الصوتية؟",
+      "expected_entry_ids": [
+        "inspection_ndt:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "inspection_ndt:ut-personnel-certification-iso-9712"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "inspection_ndt:product-distinctions"
+      ],
+      "stored_not_served": [
+        "inspection_ndt:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Nondestructive_testing"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -40,6 +40,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "pharma_wholesale:product-distinctions",
+      "topic": "Pharmaceutical wholesale: product classes and what a compliant distributor must show",
+      "topic_ar": "تجارة الأدوية بالجملة: فئات المنتجات وما يجب أن يثبته الموزع الملتزم",
+      "kind": "product_distinctions",
+      "body_en": "Pharmaceutical wholesale handles prescription-only medicines, over-the-counter medicines, controlled and semi-controlled drugs (with their own licences and registers), biologicals and vaccines (cold chain at 2-8 °C), generics versus originator brands, and adjacent lines (medical consumables, supplements and cosmeceuticals, which follow different rules). Good distribution practice (GDP) is the system that keeps product quality from purchase to delivery: qualified suppliers and customers, temperature-mapped storage (15-25 °C ambient, 2-8 °C cold room and fridges with continuous monitoring and alarms), validated transport, batch traceability and recall procedures, first-expiry-first-out stock rotation, segregation of quarantined and returned goods, and a responsible pharmacist. What separates offers: the product registration status in the destination market, the batch and the remaining shelf life at delivery, the source (manufacturer or its authorised agent versus a secondary wholesaler), cold-chain proof (data logger records), and the return and recall terms.",
+      "body_ar": "تتعامل تجارة الأدوية بالجملة مع أدوية الوصفة الطبية، والأدوية دون وصفة، والأدوية المراقبة وشبه المراقبة (بتراخيص وسجلات خاصة بها)، والمنتجات الحيوية واللقاحات (سلسلة تبريد عند 2-8 درجات)، والأدوية الجنيسة مقابل العلامات الأصلية، وخطوط مجاورة (المستهلكات الطبية، والمكملات، ومستحضرات التجميل العلاجية، ولكل منها قواعد مختلفة). وممارسات التوزيع الجيدة هي النظام الذي يحفظ جودة المنتج من الشراء حتى التسليم: موردون وعملاء مؤهلون، وتخزين بخرائط حرارية (15-25 درجة للتخزين العادي، و2-8 درجات لغرف وثلاجات التبريد مع مراقبة مستمرة وإنذارات)، ونقل مُصادق عليه، وتتبع الدفعات وإجراءات الاستدعاء، وتدوير المخزون بحيث يخرج الأقرب انتهاءً أولاً، وفصل البضائع المحجورة والمرتجعة، وصيدلي مسؤول. وما يميز العروض: حالة تسجيل المنتج في السوق المقصودة، والدفعة والصلاحية المتبقية عند التسليم، والمصدر (الصانع أو وكيله المعتمد مقابل تاجر جملة ثانوي)، وإثبات سلسلة التبريد (سجلات مسجل البيانات)، وشروط الإرجاع والاستدعاء.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Good_distribution_practice"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: GDP as the system of procedures and practices that keeps medicine quality through buying, receiving, storing, shipping and export -> confirmed."
+    },
+    {
+      "id": "pharma_wholesale:lead-times-and-quoting",
+      "topic": "Pharmaceuticals wholesale - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تجارة الأدوية بالجملة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Registered stock lines are usually delivered within 1-3 days; tender and bulk orders 2-8 weeks; unregistered products need an import permit and take longer. A supplier needs the product names, strengths, dosage forms and pack sizes, quantities, the buyer's licence type, delivery points and cold-chain needs. A quote states per line the brand, manufacturer, registration status, batch shelf-life guarantee, pack, storage and delivery conditions, return and recall terms, payment terms and validity.",
+      "body_ar": "خطوط المخزون المسجلة تسلم عادة خلال 1-3 أيام؛ وطلبات المناقصات والكميات الكبيرة 2-8 أسابيع؛ والمنتجات غير المسجلة تحتاج تصريح استيراد وتستغرق أطول. ويحتاج المورد أسماء المنتجات وتراكيزها وأشكالها الصيدلانية وأحجام العبوات، والكميات، ونوع ترخيص المشتري، ونقاط التسليم، ومتطلبات التبريد. ويذكر العرض لكل بند العلامة والصانع وحالة التسجيل وضمان الصلاحية المتبقية والعبوة وشروط التخزين والتسليم وشروط الإرجاع والاستدعاء وشروط الدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -65,6 +95,14 @@
       ],
       "why": "States medicines must be registered in the UAE and handled by licensed establishments under MOHAP/EDE, which answers that a pharmacy cannot simply buy unregistered medicines direct from abroad.",
       "origin": "real buyer question, moved from pharma_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "How do I know a medicine wholesaler stores and ships vaccines properly?",
+      "q_ar": "كيف أعرف أن تاجر الأدوية بالجملة يخزن وينقل اللقاحات بالطريقة الصحيحة؟",
+      "expected_entry_ids": [
+        "pharma_wholesale:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -81,6 +119,27 @@
       "pharma_wholesale:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "pharma_wholesale:product-distinctions"
+      ],
+      "stored_not_served": [
+        "pharma_wholesale:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Good_distribution_practice"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

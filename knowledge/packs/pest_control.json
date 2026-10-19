@@ -41,6 +41,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "pest_control:product-distinctions",
+      "topic": "Pest control: service types and treatment methods",
+      "topic_ar": "مكافحة الآفات: أنواع الخدمة وطرق المعالجة",
+      "kind": "product_distinctions",
+      "body_en": "Pest control services split into general pest control (cockroaches, ants, bed bugs, flies, mosquitoes) on a one-off or contract basis, rodent control (bait stations, traps, proofing of entry points, monitored records), termite work (pre-construction soil treatment under slabs, physical barriers, and post-construction drilling-and-injection or baiting systems), fumigation of containers, warehouses and commodities (with gas-tight sealing and clearance testing), bird control (netting, spikes, gel), and disinfection. Methods are chemical (gels, baits, residual sprays, space sprays, fumigants), physical (traps, glue boards, insect light traps, exclusion and proofing), biological, and, in practice, integrated pest management (IPM): inspection, identifying the pest and its cause, sanitation and proofing first, targeted treatment second, and monitoring with records. Commercial kitchens, hotels and hospitals need an IPM contract with a pest log, trend reports and a site map of stations. Offers differ on the active ingredients and their registration, the warranty period (termite warranties run for years), the visit frequency, the response time to call-outs, and the re-entry time after treatment.",
+      "body_ar": "تنقسم خدمات مكافحة الآفات إلى المكافحة العامة (الصراصير، النمل، بق الفراش، الذباب، البعوض) لمرة واحدة أو بعقد، ومكافحة القوارض (محطات الطعوم، المصائد، سد منافذ الدخول، مع سجلات مراقبة)، وأعمال النمل الأبيض (معالجة التربة قبل البناء تحت البلاطات، والحواجز الفيزيائية، والحقن بعد البناء أو أنظمة الطعوم)، وتبخير الحاويات والمستودعات والبضائع (مع إحكام الإغلاق واختبار الخلو من الغاز)، ومكافحة الطيور (الشباك، الأشواك، الجل)، والتعقيم. والطرق كيميائية (الجل، الطعوم، الرش ذو الأثر الباقي، رش الفراغات، المبخرات)، وفيزيائية (المصائد، الألواح اللاصقة، صواعق الحشرات الضوئية، المنع والسد)، وحيوية، وفي التطبيق الإدارة المتكاملة للآفات: الفحص، وتحديد الآفة وسببها، والنظافة والسد أولاً، والمعالجة الموجهة ثانياً، والمراقبة مع السجلات. وتحتاج المطابخ التجارية والفنادق والمستشفيات عقد إدارة متكاملة مع سجل للآفات وتقارير اتجاهات وخريطة للمحطات. وتختلف العروض في المواد الفعالة وتسجيلها، ومدة الضمان (ضمانات النمل الأبيض تمتد سنوات)، وتكرار الزيارات، وزمن الاستجابة للبلاغات، ومدة العودة إلى المكان بعد المعالجة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Pest_control"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: integrated pest management; chemical, biological and physical control; fumigation -> confirmed (termite treatment detail not on the page)."
+    },
+    {
+      "id": "pest_control:lead-times-and-quoting",
+      "topic": "Pest control - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "مكافحة الآفات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "One-off treatments are usually booked within 1-3 days; termite pre-treatment is scheduled to the slab pour; contracts start within a week. A supplier needs the premises type and area, the pests seen, the history, access times, sensitive occupants (food, patients, pets), and contract or one-off. A quote states the method and products with their registration, visit frequency, call-out response time, the warranty, the reports supplied, re-entry instructions and validity.",
+      "body_ar": "المعالجات لمرة واحدة تُحجز عادة خلال 1-3 أيام؛ ومعالجة النمل الأبيض قبل البناء تُجدول مع صب البلاطة؛ والعقود تبدأ خلال أسبوع. ويحتاج المورد نوع المنشأة ومساحتها، والآفات المرصودة، والتاريخ السابق، وأوقات الدخول، والشاغلين الحساسين (طعام، مرضى، حيوانات أليفة)، وعقد أم مرة واحدة. ويذكر العرض الطريقة والمنتجات وتسجيلها، وتكرار الزيارات، وزمن الاستجابة للبلاغات، والضمان، والتقارير المقدمة، وتعليمات العودة إلى المكان، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -66,6 +96,14 @@
       ],
       "why": "States pest control in Dubai sits under Dubai Municipality's public-health remit (municipality-licensed company), which answers the approval question.",
       "origin": "real buyer question, moved from pest_control.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our restaurant keeps getting cockroaches after every spray. What should a proper pest contract include?",
+      "q_ar": "المطعم عندنا يرجع فيه الصراصير بعد كل رش، وش لازم يشمل عقد المكافحة الصحيح؟",
+      "expected_entry_ids": [
+        "pest_control:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -82,6 +120,27 @@
       "pest_control:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "pest_control:product-distinctions"
+      ],
+      "stored_not_served": [
+        "pest_control:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Pest_control"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

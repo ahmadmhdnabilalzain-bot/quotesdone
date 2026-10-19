@@ -53,6 +53,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "mining_quarry_supplies:product-distinctions",
+      "topic": "Quarry supplies: crushing equipment, wear parts and consumables",
+      "topic_ar": "مستلزمات المحاجر: معدات التكسير وقطع الاستهلاك والمستهلكات",
+      "kind": "product_distinctions",
+      "body_en": "Quarries and crushing plants run primary jaw crushers (with replaceable manganese-steel jaw plates), secondary and tertiary cone crushers (mantle and concave or bowl liners), horizontal shaft impactors (blow bars and impact plates) and vertical shaft impactors (rotor tips, anvils, for cubical aggregate and manufactured sand), screens (woven wire, polyurethane or rubber screen media by aperture), feeders and conveyors (belts, idlers, pulleys, scrapers), washing plants (sand screws, hydrocyclones), and mobile crushing and screening units. Wear parts are the largest recurring spend: manganese steel (14%, 18%, 22% Mn grades that work-harden under impact), chrome white iron and martensitic steels for abrasion, ceramic inserts, and rubber or polyurethane liners; the right grade depends on the rock (limestone, gabbro, granite are more abrasive) and the crusher setting. Other consumables: drilling bits, rods and hammers for blasting holes, explosives (licensed supply only), ground-engaging tools and bucket teeth for loaders and excavators, lubricants and filters, and dust suppression. Offers differ on OEM versus aftermarket wear parts with equivalent fit, metallurgy and hardness certificates, wear life guarantees, stock availability and fitting support.",
+      "body_ar": "تشغّل المحاجر ومحطات التكسير كسارات فكية أولية (بألواح فك قابلة للاستبدال من حديد المنغنيز)، وكسارات مخروطية ثانوية وثالثية (بطانات المخروط والوعاء)، وكسارات صدمية أفقية (قضبان الضرب وألواح الصدم) وكسارات صدمية رأسية (أطراف الدوار والسندانات، للركام المكعب والرمل المصنع)، وغرابيل (شبك سلكي منسوج، أو وسائط غربلة من البولي يوريثان أو المطاط حسب الفتحة)، ومغذيات وسيور ناقلة (السيور، البكرات الحاملة، البكرات، الكاشطات)، ووحدات غسيل (لوالب الرمل، الأعاصير المائية)، ووحدات تكسير وغربلة متنقلة. وقطع الاستهلاك أكبر إنفاق متكرر: حديد المنغنيز (درجات 14% و18% و22% منغنيز تتصلب بالعمل تحت الصدم)، والحديد الأبيض الكرومي والفولاذ المارتنزيتي للتآكل، والحشوات السيراميكية، وبطانات المطاط أو البولي يوريثان؛ والدرجة الصحيحة تعتمد على الصخر (الحجر الجيري، والجابرو والجرانيت أكثر كشطاً) وضبط الكسارة. ومستهلكات أخرى: رؤوس وقضبان ومطارق الحفر لثقوب التفجير، والمتفجرات (توريد مرخص فقط)، وأدوات التلامس مع الأرض وأسنان الجرافات والحفارات، والزيوت والفلاتر، ومكافحة الغبار. وتختلف العروض في قطع الاستهلاك الأصلية مقابل التجارية المكافئة في المقاس، وشهادات المعادن والصلادة، وضمانات عمر التآكل، وتوفر المخزون، ودعم التركيب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Crusher"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: jaw, gyratory, cone, horizontal and vertical shaft impact crushers and their manganese and wear-resistant liners and tips -> confirmed."
+    },
+    {
+      "id": "mining_quarry_supplies:lead-times-and-quoting",
+      "topic": "Mining & quarry supplies - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "مستلزمات المناجم والمحاجر: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Common wear parts: stock to 2 weeks; castings to drawing 4-10 weeks; new crushers and plants months. A supplier needs the crusher make and model, part numbers, rock type and feed size, current wear life, and quantities. A quote states part number and fit, material grade and hardness, certificates, expected wear life, availability, fitting support, delivery and validity.",
+      "body_ar": "قطع الاستهلاك الشائعة: من المخزون حتى أسبوعين؛ والمسبوكات حسب الرسم 4-10 أسابيع؛ والكسارات والمحطات الجديدة أشهراً. ويحتاج المورد ماركة الكسارة وموديلها، وأرقام القطع، ونوع الصخر وحجم التغذية، وعمر التآكل الحالي، والكميات. ويذكر العرض رقم القطعة والمطابقة ودرجة المادة والصلادة والشهادات وعمر التآكل المتوقع والتوفر ودعم التركيب والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers manganese steel grades for crusher liners; missing). mining_quarry_supplies:manganese-grades-crusher-liners was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from mining_quarry_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which manganese grade jaw plates last longer when crushing gabbro?",
+      "q_ar": "وش درجة المنغنيز لألواح الفك اللي تعيش أطول مع تكسير الجابرو؟",
+      "expected_entry_ids": [
+        "mining_quarry_supplies:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "mining_quarry_supplies:manganese-grades-crusher-liners"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "mining_quarry_supplies:product-distinctions"
+      ],
+      "stored_not_served": [
+        "mining_quarry_supplies:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Crusher"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

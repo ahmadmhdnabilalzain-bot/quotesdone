@@ -1,0 +1,7 @@
+A PROBE, so it is never applied at all. It always raises (CHK<<...>>), so nothing survives it. It is READ with the
+library file in front of it, BEFORE that file is applied (it refuses once the library exists: it drops and rebuilds
+the library's indexes). While it runs (~50 s) it holds the file's locks, ACCESS EXCLUSIVE on knowledge_vector_ml among
+them, so run it at night. Each run fits one management-API call (~100 s); raise `skip` by `per` for further slices
+and judge each seat on the sums. After the apply, the read-only exam over the filled library replaces it.
+
+This note therefore stays for the life of the file. Seat: it_engineer.

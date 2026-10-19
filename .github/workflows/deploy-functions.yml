@@ -111,6 +111,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: true   # later steps `git fetch origin main` from this private repo
           # deploy_functions.mjs --changed diffs against a base commit, so the runner needs more
           # than the shallow single commit actions/checkout fetches by default.
           fetch-depth: 0
@@ -125,11 +126,11 @@ jobs:
       # token, so a busy hour fails the deploy before it starts: PR #785 run 35627998129, "Failed to
       # resolve latest Supabase CLI release: rate limit exceeded". A pinned version downloads directly.
       # Raise it deliberately; scripts/checks/the_function_deploy_pins_its_supabase_cli.test.mjs refuses `latest`.
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: 2.117.0
 
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
 
@@ -139,10 +140,13 @@ jobs:
         id: scope
         env:
           GH_TOKEN: ${{ github.token }}
+          # Dispatch inputs reach the shell as env, never interpolated into the script (Aikido template-injection, 19 Oct 2026).
+          IN_TARGET: ${{ github.event.inputs.target }}
+          IN_SLUGS: ${{ github.event.inputs.slugs }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "ref=${{ github.event.inputs.target }}" >> "$GITHUB_OUTPUT"
-            echo "slugs=${{ github.event.inputs.slugs }}" >> "$GITHUB_OUTPUT"
+            echo "ref=$IN_TARGET" >> "$GITHUB_OUTPUT"
+            echo "slugs=$IN_SLUGS" >> "$GITHUB_OUTPUT"
             echo "base=${{ github.sha }}~1" >> "$GITHUB_OUTPUT"
             # A dispatch already names its own target, so it never promotes on top of it.
             echo "promote=false" >> "$GITHUB_OUTPUT"

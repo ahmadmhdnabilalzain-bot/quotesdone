@@ -110,7 +110,11 @@ Deno.test('a DWG past the edge ceiling is queued by the edge and read by the CAD
   const w = good(await readStored(b, 'x.dwg'));
   assertEquals([w.kind, w.needs], ['dwg', null]);
   assertEquals(w.notes[0], 'Read from DWG (AutoCAD 2018) by LibreDWG: 121 entities.');
-  assertEquals(w.quantities.length, 62);
+  // 62 before #1523/#1532 (19 Oct 2026): this file's 7 dynamic (*U) variants and 20 nested inserts were skipped. They now
+  // count as their real blocks, which adds 15 take-off rows, and the notes say so.
+  assertEquals(w.quantities.length, 77);
+  assert(w.notes.includes('7 dynamic block variant(s) (*U) were counted as the block they are drawn from.'), w.notes.join(' | '));
+  assert(w.notes.includes('20 block insert(s) nested inside other blocks were counted once per placement of their parent.'), w.notes.join(' | '));
 });
 
 // BINARY DXF (22 Sep 2026). LibreDWG's test-data carries the same drawing as binary DXF. example_2000.dxfb

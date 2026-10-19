@@ -42,6 +42,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "medical_equipment:product-distinctions",
+      "topic": "Medical equipment: device classes, categories and what separates offers",
+      "topic_ar": "المعدات الطبية: فئات الأجهزة وأنواعها وما يميز العروض",
+      "kind": "product_distinctions",
+      "body_en": "Medical devices are classed by risk: in the EU scheme Class I (low risk, such as examination couches and walking aids), IIa (such as hearing aids, diagnostic ultrasound), IIb (such as ventilators, infusion pumps, anaesthesia machines) and III (highest risk, such as implants and devices that sustain life); conformity is checked by a notified body above Class I, and other major schemes (US FDA 510(k)/PMA) are often accepted as evidence alongside the local registration. Categories a hospital or clinic buys: imaging (X-ray, CT, MRI, ultrasound, C-arm), patient monitoring, critical care (ventilators, infusion and syringe pumps, defibrillators), operating theatre (tables, lights, electrosurgical units, anaesthesia), laboratory analysers, sterilisation (autoclaves, washer-disinfectors), physiotherapy and rehabilitation, dental and ophthalmic equipment, hospital furniture and beds, and home-care devices. Offers differ on: new versus refurbished (refurbished imaging is common and must come with the maker's or a qualified refurbisher's documentation), the configuration and software options actually included, installation and site preparation (shielding for X-ray and CT, power, medical gases), user and biomedical engineer training, preventive maintenance and response times, spare-parts availability over the life of the device, and the end-of-support date.",
+      "body_ar": "تُصنّف الأجهزة الطبية حسب الخطورة: في النظام الأوروبي الفئة I (منخفضة الخطورة مثل أسرّة الفحص ومساعدات المشي)، والفئة IIa (مثل سماعات الأذن والموجات فوق الصوتية التشخيصية)، والفئة IIb (مثل أجهزة التنفس الاصطناعي ومضخات التسريب وأجهزة التخدير)، والفئة III (الأعلى خطورة مثل الغرسات والأجهزة الداعمة للحياة)؛ وتتحقق جهة مخطَرة من المطابقة فوق الفئة I، وكثيراً ما تُقبل أنظمة رئيسية أخرى (مثل موافقات إدارة الغذاء والدواء الأمريكية) دليلاً إلى جانب التسجيل المحلي. والفئات التي تشتريها المستشفيات والعيادات: التصوير (الأشعة السينية، المقطعية، الرنين المغناطيسي، الموجات فوق الصوتية، الأشعة المتحركة)، ومراقبة المرضى، والرعاية الحرجة (أجهزة التنفس، مضخات التسريب والمحاقن، مزيلات الرجفان)، وغرف العمليات (الطاولات، الإضاءة، أجهزة الجراحة الكهربائية، التخدير)، وأجهزة التحليل المخبري، والتعقيم (الأوتوكلاف، أجهزة الغسيل والتطهير)، والعلاج الطبيعي والتأهيل، ومعدات الأسنان والعيون، والأثاث والأسرّة الطبية، وأجهزة الرعاية المنزلية. وتختلف العروض في: الجديد مقابل المجدد (أجهزة التصوير المجددة شائعة ويجب أن تأتي بمستندات الصانع أو مجدد مؤهل)، والتهيئة وخيارات البرامج المشمولة فعلاً، والتركيب وتجهيز الموقع (التدريع للأشعة والمقطعية، الكهرباء، الغازات الطبية)، وتدريب المستخدمين ومهندسي الأجهزة الطبية، والصيانة الوقائية وأزمنة الاستجابة، وتوفر قطع الغيار طوال عمر الجهاز، وتاريخ انتهاء الدعم.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Medical_device"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: EU device classes I, IIa, IIb, III and conformity checked by a Notified Body before marketing -> confirmed."
+    },
+    {
+      "id": "medical_equipment:lead-times-and-quoting",
+      "topic": "Medical equipment - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المعدات الطبية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Consumable-type and small devices from distributor stock: 1-2 weeks; capital equipment 6-16 weeks; imaging systems 3-6 months including site preparation, installation and acceptance testing; registration of a device not yet registered adds months. A supplier needs the clinical application, the specification or the tender technical sheet, quantities, site readiness, the integration needs (hospital information system, PACS), the warranty and service expectations, and the facility licence holder. A complete quote states make, model, origin, configuration and options, the device registration status, installation and site works, training, warranty with preventive maintenance visits and uptime commitment, the service contract after warranty, spare-parts availability period, delivery, payment terms and validity.",
+      "body_ar": "الأجهزة الصغيرة والاستهلاكية من مخزون الموزع: 1-2 أسبوع؛ والمعدات الرأسمالية 6-16 أسبوعاً؛ وأنظمة التصوير 3-6 أشهر شاملة تجهيز الموقع والتركيب واختبارات القبول؛ وتسجيل جهاز غير مسجل يضيف أشهراً. ويحتاج المورد الاستخدام السريري، والمواصفة أو الورقة الفنية للمناقصة، والكميات، وجاهزية الموقع، ومتطلبات التكامل (نظام معلومات المستشفى، نظام أرشفة الصور)، وتوقعات الضمان والخدمة، وحامل ترخيص المنشأة. ويذكر العرض الكامل الماركة والموديل والمنشأ والتهيئة والخيارات، وحالة تسجيل الجهاز، والتركيب وأعمال الموقع، والتدريب، والضمان مع زيارات الصيانة الوقائية والتزام نسبة التشغيل، وعقد الخدمة بعد الضمان، ومدة توفر قطع الغيار، والتسليم، وشروط الدفع، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -67,6 +97,14 @@
       ],
       "why": "partly answers: Emirates Drug Establishment is the federal regulator of medical devices; MISSING the DHA facility/equipment registration step in Dubai and any FANR licence that may apply.",
       "origin": "real buyer question, moved from medical_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is a refurbished CT scanner a sensible buy for a new clinic, and what should come with it?",
+      "q_ar": "هل شراء جهاز أشعة مقطعية مجدد خيار معقول لعيادة جديدة؟ ووش لازم يجي معه؟",
+      "expected_entry_ids": [
+        "medical_equipment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -83,6 +121,27 @@
       "medical_equipment:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "medical_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "medical_equipment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Medical_device"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
