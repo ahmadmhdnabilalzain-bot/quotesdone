@@ -1,0 +1,1 @@
+Committed, not applied: applied at merge, never before (apply-at-merge rule). Until it is live, scripts/eval/seat_exam_llm_on.mjs keeps its record in its --out folder (history.json) and says so. After the apply, the MANIFEST line is added and this note is removed. Seat: it_engineer, ledger 1084.
