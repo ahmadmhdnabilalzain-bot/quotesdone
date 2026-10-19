@@ -47,11 +47,15 @@ test('the library readers read the library, never one of the nine stores', () =>
   }
 });
 
-test('both legacy readers hand the call to the library when, and only when, the flag says so', () => {
-  const g = body('fn_reason_retrieve');
-  assert.match(g, /begin\n  if public\.fn_knowledge_library_read\(\) = 'library' then[^\n]*\n    return public\.fn_reason_retrieve_library\(p_seat, p_embedding, p_k, p_trade, p_kind, p_area\);/);
-  const m = body('fn_reason_retrieve_ml');
-  assert.match(m, /begin\n  if public\.fn_knowledge_library_read\(\) = 'library' then[^\n]*\n    return public\.fn_reason_retrieve_ml_library\(p_seat, p_embedding, p_embedding_gte, p_k, p_own, p_trade, p_kind, p_area\);/);
+// The dispatch is NOT in this file (release operator, 19 Oct 2026). Its old six/eight-argument reader bodies predated
+// #1567's audience guard; applying them recreated the unguarded overloads, so the file now drops them and phase 2 adds
+// the dispatch to the guarded readers. This test holds that line until then.
+test('this file never defines a legacy reader, and drops the pre-audience overloads', () => {
+  for (const f of ['fn_reason_retrieve', 'fn_reason_retrieve_ml']) {
+    assert.ok(code.toLowerCase().indexOf(`create or replace function public.${f}(`) < 0, `${FILE} defines ${f} again`);
+  }
+  assert.match(code, /DROP FUNCTION IF EXISTS public\.fn_reason_retrieve\(text, vector, integer, text, text, text\);/);
+  assert.match(code, /DROP FUNCTION IF EXISTS public\.fn_reason_retrieve_ml\(text, vector, vector, integer, integer, text, text, text\);/);
   assert.match(body('fn_knowledge_library_read'), /key = 'knowledge_library_read'\) = 'library'/);
 });
 

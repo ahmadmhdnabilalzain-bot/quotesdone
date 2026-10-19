@@ -1474,6 +1474,11 @@ select cron.schedule('seat_duty:sales_engineer.supply_gap_recruitment','*/5 * * 
 select cron.schedule('seat_duty:sales_engineer.negotiation_round','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.negotiation_round');$CRON$);
 select cron.schedule('seat_duty:sales_engineer.win_loss_review','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.win_loss_review');$CRON$);
 select cron.schedule('seat_duty:sales_engineer.framework_proposal','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.framework_proposal');$CRON$);
+select cron.schedule('seat_duty:ceo.market_report','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.market_report');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.reveal_followup','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.reveal_followup');$CRON$);
+select cron.schedule('seat_duty:it_engineer.contact_dedup','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.contact_dedup');$CRON$);
+select cron.schedule('seat_duty:ceo.five_number_report','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.five_number_report');$CRON$);
+select cron.schedule('seat_duty:it_engineer.model_spend','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.model_spend');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
