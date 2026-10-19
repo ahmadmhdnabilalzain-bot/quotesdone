@@ -201,7 +201,14 @@ export function upsertSql(table, rows) {
   const cols = [...Object.keys(rows[0].cols), 'embedding_gte'];
   const values = rows.map((r) => `(${Object.keys(rows[0].cols).map((c) => lit(r.cols[c])).join(',')},${vecLit(r.vec)})`).join(',\n');
   const set = cols.filter((c) => c !== 'record_id').map((c) => `${c} = excluded.${c}`).join(', ');
-  return `insert into public.${table} (${cols.join(',')}) values\n${values}\non conflict (record_id) do update set ${set};\n`;
+  // AN UNCHANGED ROW IS NOT REWRITTEN (it_engineer, 19 Oct 2026). Every knowledge table carries z_ml_vectors_stale
+  // (AFTER UPDATE OF title, body), which drops the row's multilingual vector whenever those columns are SET, even to
+  // the same value. Two full reloads that day wrote 6,504 unchanged rows and left all 5,962 verified-pack rows without
+  // an ML vector, so think()'s fused search could not see a single seat or trade pack until the backfill re-embedded
+  // them. A row is updated only when something in it differs.
+  const same = cols.filter((c) => c !== 'record_id' && c !== 'imported_at');
+  const changed = `(${same.map((c) => `${table}.${c}`).join(', ')}) is distinct from (${same.map((c) => `excluded.${c}`).join(', ')})`;
+  return `insert into public.${table} (${cols.join(',')}) values\n${values}\non conflict (record_id) do update set ${set}\n  where ${changed};\n`;
 }
 
 // ── the free in-region embedder: ai_gateway {action:'embed'} -> gte-small, the path think() uses ───
