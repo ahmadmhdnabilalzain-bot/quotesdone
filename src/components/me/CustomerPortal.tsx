@@ -258,7 +258,7 @@ function CustomerPortalView() {
     try { const l = initLang(); if (l !== 'en') setLangState(l); } catch (_e) {}
     // A magic-link session in the URL is taken out of it in place and signs in (audit 21 Sep, item 29).
     // It wins over a stored session, so the stored one is not restored on top of it.
-    const urlSession = takeAuthFragment();
+    const urlSession = takeAuthFragment(undefined, (() => { try { return localStorage.getItem('qd-cust-token'); } catch (_e) { return null; } })());
     if (urlSession) onAuth(urlSession.access_token, urlSession.refresh_token);
     else try { const tk = localStorage.getItem('qd-cust-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
     if (!urlSession) try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {}); } catch (_e) {}

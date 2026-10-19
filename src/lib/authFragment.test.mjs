@@ -40,6 +40,20 @@ test('supabase-js may not read the URL itself, and both portals take the fragmen
   assert.match(client, /detectSessionInUrl:\s*false/, "supaClient must build the client with detectSessionInUrl:false — auth-js clears the hash with location.hash='' and that leaves the token in history");
   for (const f of ['components/me/CustomerPortal.tsx', 'components/portal/SupplierPortal.tsx']) {
     const src = readFileSync(join(SRC, f), 'utf8');
-    assert.match(src, /takeAuthFragment\(\)/, `${f} must take a magic-link session out of the URL`);
+    assert.match(src, /takeAuthFragment\(undefined, /, `${f} must take a magic-link session out of the URL`);
   }
+});
+
+// CWE-384 audit, 19 Oct 2026: a crafted link carrying ANOTHER account's session must not replace the signed-in one.
+const jwt = (sub) => 'h.' + Buffer.from(JSON.stringify({ sub, email: sub + '@example.invalid' })).toString('base64url') + '.s';
+test('a fragment session for a different user than the signed-in one is dropped (session fixation)', () => {
+  const w = fakeWin('/portal', '', '#access_token=' + jwt('zz-demo-attacker') + '&refresh_token=rrr&type=magiclink');
+  assert.equal(takeAuthFragment(w, jwt('zz-demo-victim')), null);
+  assert.equal(w.calls.length, 1, 'the fragment is still stripped from the address bar');
+});
+test('a fragment session for the same user, or with nobody signed in, is taken', () => {
+  const same = fakeWin('/portal', '', '#access_token=' + jwt('zz-demo-a') + '&refresh_token=r1');
+  assert.deepEqual(takeAuthFragment(same, jwt('zz-demo-a')), { access_token: jwt('zz-demo-a'), refresh_token: 'r1' });
+  const none = fakeWin('/portal', '', '#access_token=' + jwt('zz-demo-a') + '&refresh_token=r1');
+  assert.deepEqual(takeAuthFragment(none, null), { access_token: jwt('zz-demo-a'), refresh_token: 'r1' });
 });

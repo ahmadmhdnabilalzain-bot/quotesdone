@@ -571,7 +571,7 @@ export function SupplierPortal() {
     } catch (_e) {}
     try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
     // A magic-link session in the URL is taken out of it in place and signs in (audit 21 Sep, item 29).
-    const urlSession = takeAuthFragment();
+    const urlSession = takeAuthFragment(undefined, (() => { try { return localStorage.getItem('qd-sup-token'); } catch (_e) { return null; } })());
     if (urlSession) onAuth(urlSession.access_token, urlSession.refresh_token);
     else try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { warmSupplier(tk); setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
     if (!urlSession) try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} warmSupplier(ss.access_token); setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {}); } catch (_e) {}
