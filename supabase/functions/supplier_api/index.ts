@@ -28,7 +28,7 @@ import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { LIMITS } from '../_shared/doc_read/types.ts';
-import { afterResponse, readStoredDocsLater, signedUpload, stuckReads, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { afterResponse, ocrOf, readStoredDocsLater, signedUpload, stuckReads, type LaterDoc } from '../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
@@ -844,7 +844,7 @@ ${q}`,
       const prof = body.company_profile || {};
       // A path is a file the browser uploaded straight to storage (upload_url): it has not been through the type and
       // malware gate yet, so it is gated on its stored bytes before it is read (gate: true, _shared/supplier_docs_later.ts).
-      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); readQueue.push({ path: String(prof.path), name: String(prof.filename || String(prof.path).split('/').pop() || 'profile'), kind: 'profile', mime: prof.mime ? String(prof.mime) : undefined, gate: true }); }
+      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); readQueue.push({ path: String(prof.path), name: String(prof.filename || String(prof.path).split('/').pop() || 'profile'), kind: 'profile', mime: prof.mime ? String(prof.mime) : undefined, gate: true, ocr_text: ocrOf(prof.ocr_text) }); }
       // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
       else if (prof.original_b64) {
         const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_SUPPLIER_PAPERS,
@@ -856,14 +856,14 @@ ${q}`,
         if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
         // Read after the response (supplier_docs_later.ts); the picture / scan model step is profileHook below.
-        readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
+        readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime, ocr_text: ocrOf(prof.ocr_text) });
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
       const cats = Array.isArray(body.catalogs) ? body.catalogs.slice(0, 5) : []; const catPaths: string[] = [];
       // AUDIT 9.1. Catalogues. A rejected catalogue is refused outright rather than skipped,
       // because silently dropping one is how a supplier ends up believing a document is on file.
       for (const c of cats) {
-        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); readQueue.push({ path: String(c.path), name: String(c.filename || String(c.path).split('/').pop() || 'catalogue'), kind: 'catalogue', mime: c.mime ? String(c.mime) : undefined, gate: true }); }
+        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); readQueue.push({ path: String(c.path), name: String(c.filename || String(c.path).split('/').pop() || 'catalogue'), kind: 'catalogue', mime: c.mime ? String(c.mime) : undefined, gate: true, ocr_text: ocrOf(c.ocr_text) }); }
         else if (c?.original_b64) {
           const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_SUPPLIER_PAPERS,
                                              scan: { source: 'supplier_api.catalog', subject: String(sup.id), filename: c.filename, bucket: 'supplier-docs' } });
@@ -873,7 +873,7 @@ ${q}`,
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
           if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
           catPaths.push(p);
-          readQueue.push({ path: p, name: String(c.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime });
+          readQueue.push({ path: p, name: String(c.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime, ocr_text: ocrOf(c.ocr_text) });
         }
         if (Array.isArray(c?.images)) profImgs.push(...c.images);
       }

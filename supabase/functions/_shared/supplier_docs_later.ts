@@ -26,15 +26,18 @@ import { sanitizeAndScan } from './malware.ts';
 import { SAFE_SUPPLIER_PAPERS, safeFilename } from './attachment.ts';
 import { LIMITS } from './doc_read/types.ts';
 import { liveTradeDeps } from './trade_resolve.ts';
-import { proposeTradesFromDocs, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { PHOTO_TEXT_MAX, proposeTradesFromDocs, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 export const BUCKET = 'supplier-docs';
 export const FOLDER = { profile: 'profiles', catalogue: 'catalogs' } as const;
 export const REREAD_AFTER_MIN = 10;
-/** gate: the file arrived by path and has not been through sanitizeAndScan yet. */
-export type LaterDoc = DocIn & { gate?: boolean };
+/** gate: the file arrived by path and has not been through sanitizeAndScan yet.
+ *  ocr_text: a scan's words read by CODE in the supplier's browser (tesseract.js, #1483); read by supplier_doc_trades. */
+export type LaterDoc = DocIn & { gate?: boolean; ocr_text?: string };
+/** The browser's OCR text as sent, capped like photo_text; '' or absent is none. */
+export const ocrOf = (t: unknown): string | undefined => (t ? String(t).slice(0, PHOTO_TEXT_MAX) : '') || undefined;
 
 /** Keeps `job` alive after the response. Off the edge runtime (tests, local) the caller awaits what is returned. */
 export function afterResponse(job: Promise<unknown>, at: string): Promise<void> | null {

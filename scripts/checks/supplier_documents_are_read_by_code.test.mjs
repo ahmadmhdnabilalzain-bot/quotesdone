@@ -18,7 +18,9 @@ const SQL = 'scripts/sql/a_suppliers_documents_propose_trades_and_a_new_trade_is
 
 test('every supplier upload path reads the document by code into a trade proposal', () => {
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts', 'supabase/functions/supplier_catalog_ingest/index.ts']) {
-    assert.match(read(f), /proposeTradesFromDocs\(admin, /, `${f} does not read uploads into the proposal`);
+    // Since 19 Oct 2026 supplier_api and supplier_portal read after the response through _shared/supplier_docs_later.ts,
+    // whose readStoredDocsLater calls proposeTradesFromDocs for each document.
+    assert.match(read(f), /(proposeTradesFromDocs|readStoredDocsLater)\(admin, /, `${f} does not read uploads into the proposal`);
   }
 });
 

@@ -15,7 +15,7 @@ import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
 import { markReading, modelReadText } from '../_shared/supplier_doc_trades.ts';
-import { afterResponse, ownPath, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { afterResponse, ocrOf, ownPath, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { toB64 } from '../_shared/document_expiry.ts';
 import { buildInsightsSummary } from './insights_summary.ts';
@@ -481,7 +481,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           if (it.path) {
             if (!(await byPath(it, 'catalogue'))) { failedUploads.push({ kind: 'catalogs', reason: 'We could not find that catalogue in our records. Please upload it again.' }); continue; }
             catAppend.push(String(it.path)); saved.push('catalogs');
-            readQueue.push({ path: String(it.path), name: String(it.filename || 'catalogue'), kind: 'catalogue', mime: it.mime ? String(it.mime) : undefined, gate: true });
+            readQueue.push({ path: String(it.path), name: String(it.filename || 'catalogue'), kind: 'catalogue', mime: it.mime ? String(it.mime) : undefined, gate: true, ocr_text: ocrOf(it.ocr_text) });
           } else if (it.original_b64) {
             // AUDIT 9.1 (3 Aug 2026). Sanitised from the bytes before storage; see
             // supabase/functions/_shared/attachment.ts. A rejection is reported to the supplier
@@ -508,7 +508,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           if (!(await byPath(it, 'profile'))) { failedUploads.push({ kind: kindStr, reason: 'We could not find that company profile in our records. Please upload it again.' }); continue; }
           upd[kind.pathCol] = String(it.path);
           if (kind.nameCol) upd[kind.nameCol] = safeFilename(it.filename || 'profile', String(it.mime || 'application/pdf')).slice(0, 200);
-          readQueue.push({ path: String(it.path), name: String(it.filename || 'profile'), kind: 'profile', mime: it.mime ? String(it.mime) : undefined, gate: true });
+          readQueue.push({ path: String(it.path), name: String(it.filename || 'profile'), kind: 'profile', mime: it.mime ? String(it.mime) : undefined, gate: true, ocr_text: ocrOf(it.ocr_text) });
         } else if (it.original_b64) {
           // Previously any upload failure was swallowed and the kind was still reported as
           // saved, so a supplier could be told their trade licence was on file when the

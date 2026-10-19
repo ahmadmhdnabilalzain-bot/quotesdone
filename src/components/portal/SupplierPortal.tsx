@@ -128,11 +128,36 @@ const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.
 // UPLOADS UP TO 100 MB GO STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer). Vercel caps a request body at 4.5 MB, so a
 // company profile or catalogue is not sent as base64: supplier_api upload_url signs a path in the supplier's own folder,
 // the file goes to it, and process_docs / save_documents are given the path (the server gates the stored bytes).
+// A SCAN IS READ BY CODE HERE (#1483, 19 Oct 2026): a picture, or a PDF with no text layer, is OCR'd in the supplier's
+// browser with tesseract.js the way SupplierCatalogUpload does (first PDF_MAX_PAGES = 20 pages), and the words go up as
+// ocr_text beside the path. A PDF with its own text is not OCR'd. OCR failing never fails the upload.
+const scanText = async (file) => {
+  try {
+    let images = [];
+    if (file.type === 'application/pdf') {
+      const { openPdf, rasterisePdf } = await import('@/components/me/pdfRaster');
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const pdf = await openPdf(bytes);
+      let letters = 0;
+      for (let p = 1; p <= Math.min(pdf.numPages, 3); p++) letters += ((await (await pdf.getPage(p)).getTextContent()).items || []).reduce((n, it) => n + String(it.str || '').replace(/\s/g, '').length, 0);
+      if (letters >= 50) return '';
+      images = await rasterisePdf(bytes);
+    } else if (file.type.startsWith('image/')) {
+      const { toJpegPages } = await import('@/components/me/ocrClient');
+      images = await toJpegPages(file);
+    }
+    if (!images.length) return '';
+    const { ocrImages } = await import('@/components/me/ocrClient');
+    return (await ocrImages(images)).text || '';
+  } catch (_e) { return ''; }
+};
 const uploadDirect = async (kind, file, token) => {
   const u = await call('supplier_api', { action: 'upload_url', kind, filename: file.name, mime: file.type }, token);
   if (!(u && u.ok && u.path && u.token)) return { error: u };
   const { error } = await SB().storage.from('supplier-docs').uploadToSignedUrl(u.path, u.token, file, { contentType: file.type });
-  return error ? { error: { code: 'direct_upload_failed' } } : { path: u.path, filename: file.name, mime: file.type };
+  if (error) return { error: { code: 'direct_upload_failed' } };
+  const ocr_text = await scanText(file);
+  return { path: u.path, filename: file.name, mime: file.type, ...(ocr_text ? { ocr_text } : {}) };
 };
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
 // STRIPE CAME BACK AND THE PAGE SAID NOTHING (audit 2026-09-14). supplier_pay and pay_registration
@@ -1432,7 +1457,7 @@ function Documents({ token, lang, onSaved = null, onExpired = null }) {
     if (kind === 'profile' || kind === 'catalogs') {
       const d = await uploadDirect(kind === 'profile' ? 'profile' : 'catalogue', file, token);
       if (d.error) { setBusy(''); setErr(srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; }
-      item = { kind, path: d.path, filename: d.filename, mime: d.mime, expiry };
+      item = { kind, path: d.path, filename: d.filename, mime: d.mime, ocr_text: d.ocr_text, expiry };
     } else item = { kind, original_b64: await fileToB64(file), filename: file.name, mime: file.type, expiry };
     const j = await call('supplier_portal', { action: 'save_documents', items: [item] }, token);
     setBusy('');
