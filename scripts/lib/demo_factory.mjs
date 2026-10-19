@@ -1282,6 +1282,8 @@ export async function teardown(run) {
   if (booked.length) throw new Error(`teardown refused: supplier_dues ${booked.map((r) => r.id).join(', ')} of run ${tag} are in the ledger; the accountant reverses them first (fn_gl_reverse)`);
   const steps = [
     ['accountant_issued_document', `delete from public.accountant_issued_document where due_id in (select id from public.supplier_dues where ${DUES_W})`],
+    // A dues checkout (supplier_pay) points at its dues; it goes first or the dues delete fails on its FK (19 Oct 2026).
+    ['supplier_due_checkouts', `delete from public.supplier_due_checkouts where due_id in (select id from public.supplier_dues where ${DUES_W})`],
     ['supplier_dues', `delete from public.supplier_dues where ${DUES_W}`],
     ...['charge_audit', 'reveal_invoices', 'stripe_dispute', 'supplier_response_watch'].map((t) => [t,
       `delete from public.${t} where transaction_id in ${TX}`]),
