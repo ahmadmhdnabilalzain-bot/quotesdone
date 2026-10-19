@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
+import { isLiveQuote, NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
@@ -573,7 +574,7 @@ async function storeOriginal(custId: string, email: string, name: string, mime: 
 // my_inquiries and quote_compare both use. This used to count drafts too, so a draft priced below a
 // quote made its PDF say "Supplier C" on a card the customer sees as "Supplier B".
 async function letterOf(q: any): Promise<string> {
-  const { data: sibs } = await admin.from('quotes').select('id,quote_amount').eq('inquiry_id', q.inquiry_id).neq('status', 'draft').order('quote_amount', { ascending: true });
+  const { data: sibs } = await admin.from('quotes').select('id,quote_amount').eq('inquiry_id', q.inquiry_id).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true });
   const idx = (sibs || []).findIndex((s: any) => s.id === q.id); return supplierLabel(idx >= 0 ? idx : 0);
 }
 // The strings that must not appear on a customer's document before the reveal.
@@ -1595,7 +1596,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if (ids.length && txRes.error) console.error('my_inquiries: transactions read failed —', txRes.error.message);
       const txIds = txs.map((t) => t.id);
       const [qsRes, msRes, sosRes, rfsRes] = await Promise.all([
-        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,discount_label,vat_treatment,vat_amount,amount_as_stated,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
+        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,discount_label,vat_treatment,vat_amount,amount_as_stated,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,created_at,expires_at').in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }) : null,
         ids.length ? admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids) : null,
         ids.length ? admin.from('spec_alternative_offer').select('id,inquiry_id,line_no,item,attr,label_en,label_ar,requested,alternatives,state,reply_by').in('inquiry_id', ids).eq('customer_id', cust.id).eq('state', 'open').order('opened_at', { ascending: true }) : null,
         txIds.length ? admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds) : null,
@@ -1886,7 +1887,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       // A draft is not a quote the customer has; it has no letter and no document.
-      if (q.status === 'draft') return J({ error: 'Quote not found' }, 404);
+      if (!isLiveQuote(q.status)) return J({ error: 'Quote not found' }, 404);
       const { data: cached } = await admin.from('quote_pdf_cache').select('bucket,path,created_at').eq('quote_id', qid).eq('lang', lang).maybeSingle();
       const touched = q.updated_at ? new Date(q.updated_at) : (q.created_at ? new Date(q.created_at) : null);
       // A cached file is served only if it was rendered by THIS layout (isCurrentDoc: DOC_VERSION is in the
@@ -2093,7 +2094,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if (myInqIds.length) {
         const [{ count: sent }, { count: back }] = await Promise.all([
           admin.from('inquiry_matches').select('inquiry_id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds),
-          admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds).neq('status', 'draft'),
+          admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds).not('status', 'in', NOT_LIVE_QUOTE_IN),
         ]);
         rfqsSent = sent || 0;
         quotesBack = back || 0;
