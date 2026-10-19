@@ -42,6 +42,18 @@ test('an external audience never reads an internal seat-pack row; an internal on
   }
 });
 
+test('unreviewed research never reaches an external audience; internal reads it labelled pending_review', () => {
+  // release-operator defect of 19 Oct 2026: research pending review reached customers. Every research branch (1 in
+  // fn_reason_retrieve; 2 candidate branches + the final one in fn_reason_retrieve_ml) must carry the guard.
+  const RG = "(v_internal or r.status = 'approved')";
+  for (const [fn, per] of [['fn_reason_retrieve', 1], ['fn_reason_retrieve_ml', 3]]) {
+    const branches = body(fn).split(/union(?: all)?/).filter((x) => /public\.reasoning_knowledge_candidate r\b/.test(x));
+    assert.equal(branches.length, per, fn + ': research branches');
+    for (const x of branches) assert.ok(x.includes(RG), fn + ': a research branch without the unreviewed guard');
+    assert.match(body(fn), /case when r\.status = 'approved' then 'reviewed' else 'pending_review' end/, fn + ': label kept');
+  }
+});
+
 test('the own-row reservation is for an internal audience only, and at least k of the k * 2', () => {
   assert.match(body('fn_reason_retrieve_ml'), /own\s+integer := case when lower\(btrim\(coalesce\(p_audience, ''\)\)\) in \('internal', 'founder'\) then least\(greatest\(coalesce\(p_own, 3\), k\), 2 \* k\) else 0 end;/);
   assert.match(body('fn_reason_retrieve_ml'), /select \* from hits where mine order by score desc limit own/);

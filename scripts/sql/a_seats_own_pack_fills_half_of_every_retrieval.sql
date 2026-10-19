@@ -22,7 +22,11 @@
 --      source (the same rule read from the row, so rows loaded before the tag existed are covered too). Trade packs
 --      carry none of these and stay public. agent_knowledge: an external audience reads only the shared '_global' rows,
 --      never the seat's own notes (agent_key = p_seat; release review of 19 Oct). kb_chunks, ops_knowledge, company_faq
---      and research are read exactly as before.
+--      are read exactly as before. RESEARCH (release-operator defect of 19 Oct 2026, live on main: a finding still
+--      pending review reached every audience, customers included): an external audience reads only research whose
+--      status is 'approved'; an internal one still reads pending findings, labelled trust 'pending_review', so a seat
+--      can weigh them without a customer ever hearing an unreviewed claim. Guarded at candidate selection and at the
+--      final branch of both routines (each fails closed with v_internal false).
 --   3. RESERVATION, internal only: fn_reason_retrieve_ml reserves at least k own rows (half of the k * 2 returned;
 --      p_own may raise it to 2k); fn_reason_retrieve gains the same reservation, which it never had: the seat's best k
 --      own rows (its pack table, its agent_knowledge rows) come first. External: ranked by similarity, no reservation.
@@ -151,7 +155,7 @@ begin
     (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url',
             1 - (r.embedding_gte <=> p_embedding), case when r.status = 'approved' then 'reviewed' else 'pending_review' end, false
        from public.reasoning_knowledge_candidate r
-      where r.embedding_gte is not null and r.status <> 'rejected'
+      where r.embedding_gte is not null and r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by r.embedding_gte <=> p_embedding limit k)
   )
   -- THE SEAT'S OWN ROWS FILL AT LEAST HALF, FOR AN INTERNAL AUDIENCE: its best k own rows (its pack, its agent_knowledge)
@@ -228,9 +232,9 @@ begin
             where g is not null and f.embedding_gte is not null and f.status = 'approved' order by f.embedding_gte <=> g limit n)
     union (select 'reasoning_knowledge_candidate', r.id::text from public.knowledge_vector_ml v
              join public.reasoning_knowledge_candidate r on v.src = 'reasoning_knowledge_candidate' and r.id::text = v.row_id
-            where r.status <> 'rejected' order by v.embedding <=> m limit n)
+            where r.status <> 'rejected' and (v_internal or r.status = 'approved') order by v.embedding <=> m limit n)
     union (select 'reasoning_knowledge_candidate', r.id::text from public.reasoning_knowledge_candidate r
-            where g is not null and r.embedding_gte is not null and r.status <> 'rejected' order by r.embedding_gte <=> g limit n)
+            where g is not null and r.embedding_gte is not null and r.status <> 'rejected' and (v_internal or r.status = 'approved') order by r.embedding_gte <=> g limit n)
     -- sales_knowledge: the sales engineer reads all of it; customer_support reads the TRADE packs (what a trade
     -- needs), never the sales seat's own playbook
     union (select 'sales_knowledge', s.record_id from public.knowledge_vector_ml v join public.sales_knowledge s on v.src = 'sales_knowledge' and s.record_id = v.row_id
@@ -329,6 +333,7 @@ begin
     (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url', coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score,
             case when r.status = 'approved' then 'reviewed' else 'pending_review' end, false
        from (select *, row_id::bigint key from scored where src = 'reasoning_knowledge_candidate') sc join public.reasoning_knowledge_candidate r on r.id = sc.key
+      where r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by sc.score desc limit k)
     union all
     (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
