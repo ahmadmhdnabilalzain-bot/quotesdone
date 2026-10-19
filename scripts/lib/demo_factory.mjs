@@ -1219,8 +1219,17 @@ async function deleteObjects(bucket, paths) {
   return n;
 }
 
+// A step may carry its own CTE (the leads step deletes inbound_messages in the same statement, so no new
+// message can land between the two). Postgres refuses a data-modifying WITH nested inside another, so that
+// step's CTEs are lifted to the top level beside `d` (19 Oct 2026: every teardown since #1496 stopped at
+// 'leads' with 0A000 and left the run's leads, auth users and files behind).
+export const countedDelete = (sql) => {
+  const m = String(sql).match(/^\s*with\s+([\s\S]*\))\s+(delete\s[\s\S]*)$/i);
+  return m ? `with ${m[1]}, d as (${m[2]} returning 1) select count(*)::int n from d`
+           : `with d as (${sql} returning 1) select count(*)::int n from d`;
+};
 const delCount = async (label, sql) => {
-  const rows = await mgmtFixture(REF, `with d as (${sql} returning 1) select count(*)::int n from d`, label);
+  const rows = await mgmtFixture(REF, countedDelete(sql), label);
   return Number(rows?.[0]?.n ?? 0);
 };
 
