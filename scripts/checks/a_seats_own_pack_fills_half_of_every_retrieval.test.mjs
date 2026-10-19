@@ -64,3 +64,11 @@ test('the file waits for merge with a note, or is in MANIFEST, never both', () =
   const listed = readFileSync(new URL('../../scripts/sql/MANIFEST.txt', import.meta.url), 'utf8').split(/\r?\n/).some((l) => l.endsWith(FILE));
   assert.ok(pending !== listed);
 });
+
+test('an external audience reads only shared agent_knowledge, never the seat\'s own notes', () => {
+  for (const [fn, per] of [['fn_reason_retrieve', 1], ['fn_reason_retrieve_ml', 2]]) {
+    const b = body(fn);
+    assert.ok(!b.includes("a.agent_key in (p_seat, '_global')"), fn + ': the unguarded agent_knowledge predicate is back');
+    assert.equal(b.split("(a.agent_key = '_global' or (v_internal and a.agent_key = p_seat))").length - 1, per, fn);
+  }
+});

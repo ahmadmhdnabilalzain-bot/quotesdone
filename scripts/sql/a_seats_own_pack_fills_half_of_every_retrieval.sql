@@ -20,8 +20,9 @@
 --      loaded with the tag 'audience:internal'. An external audience never gets a seat-pack row tagged
 --      audience:internal or kind:company, or whose source_ids name an internal:founder_instruction/ or internal:memory/
 --      source (the same rule read from the row, so rows loaded before the tag existed are covered too). Trade packs
---      carry none of these and stay public. kb_chunks, ops_knowledge, company_faq, research and agent_knowledge are read
---      exactly as before.
+--      carry none of these and stay public. agent_knowledge: an external audience reads only the shared '_global' rows,
+--      never the seat's own notes (agent_key = p_seat; release review of 19 Oct). kb_chunks, ops_knowledge, company_faq
+--      and research are read exactly as before.
 --   3. RESERVATION, internal only: fn_reason_retrieve_ml reserves at least k own rows (half of the k * 2 returned;
 --      p_own may raise it to 2k); fn_reason_retrieve gains the same reservation, which it never had: the seat's best k
 --      own rows (its pack table, its agent_knowledge rows) come first. External: ranked by similarity, no reservation.
@@ -94,7 +95,7 @@ begin
     (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref,
             1 - (a.embedding_gte <=> p_embedding), 'reviewed', a.agent_key = p_seat
        from public.agent_knowledge a
-      where a.embedding_gte is not null and a.agent_key in (p_seat, '_global')
+      where a.embedding_gte is not null and (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat))
       order by a.embedding_gte <=> p_embedding limit k)
     union all
     (select 'company_faq', f.id::text, f.question, left(f.answer, 1200), 'FAQ ' || f.id,
@@ -218,9 +219,9 @@ begin
             where g is not null and o.embedding_gte is not null and o.runtime_eligible and o.supersession_state = 'current'
               and o.scope_type in ('company', 'external_source', 'category') and o.dept_key is null order by o.embedding_gte <=> g limit n)
     union (select 'agent_knowledge', a.id::text from public.knowledge_vector_ml v join public.agent_knowledge a on v.src = 'agent_knowledge' and a.id::text = v.row_id
-            where a.agent_key in (p_seat, '_global') order by v.embedding <=> m limit n)
+            where (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat)) order by v.embedding <=> m limit n)
     union (select 'agent_knowledge', a.id::text from public.agent_knowledge a
-            where g is not null and a.embedding_gte is not null and a.agent_key in (p_seat, '_global') order by a.embedding_gte <=> g limit n)
+            where g is not null and a.embedding_gte is not null and (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat)) order by a.embedding_gte <=> g limit n)
     union (select 'company_faq', f.id::text from public.knowledge_vector_ml v join public.company_faq f on v.src = 'company_faq' and f.id::text = v.row_id
             where f.status = 'approved' order by v.embedding <=> m limit n)
     union (select 'company_faq', f.id::text from public.company_faq f
