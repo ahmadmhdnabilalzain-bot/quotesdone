@@ -738,11 +738,14 @@ const ARABIC_HELD = { ok: false, held: true, error: 'arabic_held' } as const;
 const heldReply = () => J({ ok: false, held: true, code: 'arabic_held',
   message: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
   message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.' }, 202);
-async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
+// The edge wall is 150 s; one think() batch can run ~47 s (the gateway wall). A batch may START only before
+// started + 90 s, so the request always answers (the 202 held reply) instead of a 504.
+const ARABIC_COMPARE_BUDGET_MS = 90_000;
+async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar', started = Date.now()) {
   const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
   const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
   const portalUrl = portalLink(lang, inq.id);
-  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id } });
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id }, deadline: started + ARABIC_COMPARE_BUDGET_MS });
   if (!doc.doc) return { j: ARABIC_HELD, ref: 'QD-' + jobNoOf(inq) + '-CMP' };
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
@@ -1855,6 +1858,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if ((gens || 0) >= PDF_LIMIT_PER_HOUR) return J({ error: 'You have generated many PDFs recently. Please try again shortly.' }, 429);
       // Reuse the cached analysis when the quote set is unchanged; otherwise ask for a fresh one.
       let analysis: any = null;
+      const started = Date.now();
       try {
         const got = await fetchCompareAnalysis(iid, lang);
         // A DOCUMENT THAT COULD NOT BE BUILT IS NOT AN HTTP 200 (audit CP-10). 409: the comparison
@@ -1862,7 +1866,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         if (got.analysis) analysis = got.analysis; else return J({ ok: false, error: got.error, code: got.error, message: 'The comparison report is not available yet. Your quotes are unaffected.', message_ar: 'تقرير المقارنة غير متاح بعد. عروضك لم تتأثر.' }, 409);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       try {
-        const { j, ref } = await buildComparePdf(analysis, inq, lang);
+        const { j, ref } = await buildComparePdf(analysis, inq, lang, started);
         if ((j as any)?.held) return heldReply();
         if (j?.ok && j.url) return J({ ok: true, url: j.url, ref });
         return J({ error: 'pdf_failed', detail: j?.error || j?.detail || '' }, 502);

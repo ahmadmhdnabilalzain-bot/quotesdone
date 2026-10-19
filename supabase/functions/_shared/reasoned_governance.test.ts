@@ -100,6 +100,22 @@ Deno.test('format helpers: the question asks for one JSON object; pairs keep onl
   assertEquals(needsArabic('MDF'), true);
 });
 
+Deno.test('a passed deadline files the lines instead of reasoning them (run 0a717394 S09: 504 at the 150 s edge wall)', async () => {
+  const m = mock({ replies: { decompose: [PLAN], synthesise: [synth({ 1: 'خزائن', 2: 'دهان' })] } });
+  const r = await nativeArabic(m.deps, build, { subject: { inquiry_id: 'zz-demo' }, deadline: Date.now() - 1 });
+  assertEquals(r.held, true);
+  assertEquals(m.llm, [], 'no model call once the request budget is spent');
+  assert(m.rpcs.some(([f]) => f === 'fn_reason_hold'), 'the lines are filed for the replay');
+  const ok = mock({ replies: { decompose: [PLAN], synthesise: [synth({ 1: 'خزائن', 2: 'دهان' })] } });
+  assertEquals((await nativeArabic(ok.deps, build, { deadline: Date.now() + 60_000 })).held, false, 'within budget it still reasons');
+});
+
+Deno.test('customer_api compare_pdf passes its request deadline to the Arabic build', async () => {
+  const src = await Deno.readTextFile(new URL('../customer_api/index.ts', import.meta.url));
+  assert(/compareDocument\([\s\S]{0,400}deadline: started \+ ARABIC_COMPARE_BUDGET_MS/.test(src), 'buildComparePdf must bound the Arabic reasoning');
+  assert(/buildComparePdf\(analysis, inq, lang, started\)/.test(src), 'compare_pdf must hand buildComparePdf its start time');
+});
+
 Deno.test('arabicOf de-duplicates and trims before it reasons', async () => {
   const m = mock({ gate: HOLD });
   const r = await arabicOf(m.deps, { texts: [' Wardrobe ', 'Wardrobe', ''] });
