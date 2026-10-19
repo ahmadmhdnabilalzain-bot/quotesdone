@@ -22,6 +22,10 @@ drop policy if exists seat_duty_skip_service_role_only on public.seat_duty_skip;
 create policy seat_duty_skip_service_role_only on public.seat_duty_skip
   as permissive for all to public using (false) with check (false);
 revoke all on public.seat_duty_skip from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('seat_duty_skip', true, 'it_engineer', 'Each seat duty skipped because another transaction held its row: the streak behind seat_duty_skipped:<duty>.', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 create or replace function public.fn_seat_duty_run(p_duty text)
  returns jsonb
