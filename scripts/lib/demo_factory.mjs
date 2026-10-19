@@ -1324,7 +1324,10 @@ export async function teardown(run) {
     // refused the leads delete and stranded the run). Found from the catalogue at teardown time, so a table added
     // tomorrow is covered too; only rows of THIS run's own lead ids are removed.
     ...(await fkChildren('leads')).map(([t, c]) => [`${t} (fk ${c} -> leads)`, `delete from public.${t} where ${c} in ${LEAD}`]),
-    ['leads', `delete from public.leads where id in ${LEAD}`],
+    // A LATE inbound message (19 Oct 2026, platform-on simulation: the stale-run sweep failed 23503 on
+    // inbound_messages_lead_id_fkey) can land between the inbound_messages step above and this one. It is
+    // taken in the same statement as the lead, so no gap is left for it.
+    ['leads', `with im as (delete from public.inbound_messages where lead_id in ${LEAD}) delete from public.leads where id in ${LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${CUST}`],
@@ -1411,7 +1414,7 @@ export async function purge(opts = {}) {
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${P_LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${P_LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${P_LEAD} or supplier_id not in (select id from public.leads)`],
-    ['leads', `delete from public.leads where id in ${P_LEAD}`],
+    ['leads', `with im as (delete from public.inbound_messages where lead_id in ${P_LEAD}) delete from public.leads where id in ${P_LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id is null or customer_id not in (select id from public.customers) or owner_email like 'qd-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${P_CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${P_CUST}`],
