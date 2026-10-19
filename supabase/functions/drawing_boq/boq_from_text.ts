@@ -70,7 +70,7 @@ export function boqFromLines(lines: { page: number; text: string }[]): BoqItem[]
     //    The item number is "1.01" / "A.2.3" / "12"; the description may start with a digit ("13A socket").
     const r = clean.match(/^(?:[A-Z]?\d+(?:\.\d+)+[a-z]?\s+|\d{1,3}\s+)?(\S.{2,118}?)\s+(sq\.?\s?m|sqm|m2|m²|m3|m³|lm|rm|m|nos?\.?|nr\.?|pcs|each|ea|sets?|kg|tons?|lot|ls|item)\s+(\d+(?:[.,]\d+)?)$/i);
     const unit0 = r ? unitOf(r[2].replace(/\s/g, '')) ?? (/^item$/i.test(r[2]) ? 'lot' : null) : null;
-    if (r && unit0 && /[A-Za-z؀-ۿ]{3,}/.test(r[1])) {
+    if (r && unit0 && /[A-Za-z]{3,}/.test(r[1])) {  // English descriptions only: suppliers are always English (ruling 1008)
       const qty = Number(r[3].replace(',', '.')), desc = r[1].trim();
       const key = `${desc.toLowerCase()}|${qty}|${unit0}`;
       if (qty > 0 && !seen.has(key)) { seen.add(key); items.push({ section: 'Read from drawing text', item: desc.slice(0, 120), description: desc.slice(0, 120), qty, unit: unit0, basis: `printed on page ${page}: "${clean.slice(0, 80)}"`, confidence: 'medium' }); }
