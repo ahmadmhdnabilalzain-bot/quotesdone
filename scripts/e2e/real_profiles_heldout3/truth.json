@@ -1,0 +1,422 @@
+{
+ "written_by": "blind Claude judge, 19 Oct 2026, from reading each file before any pipeline run (no paid model). trades = core offer, each must be proposed; trades_also = offered but not core, proposing it is not wrong, missing it is not a miss. M11 and M12 have no text layer; their pages were rendered to images locally (PyMuPDF) and read visually.",
+ "docs": [
+  {
+   "id": "M01",
+   "file": "M01_royalclassic.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile_15p",
+   "registered_name": "ROYAL CLASSIC",
+   "truth": {
+    "trades": [
+     "general_contracting",
+     "steel",
+     "gypsum",
+     "aluminium",
+     "waterproofing",
+     "painting",
+     "road_works"
+    ],
+    "trades_also": [
+     "glazing",
+     "flooring",
+     "fencing_shades",
+     "facilities_management"
+    ],
+    "company": "Royal Classic General Contracting",
+    "emirate": "Abu Dhabi",
+    "products": [],
+    "certifications": [
+     "ISO 9001:2008",
+     "OHSAS 18001:2007"
+    ]
+   },
+   "evidence": {
+    "general_contracting": "p3 Services Offered 'Villa's and Building Contracting - Gen Main.'; p4 'Villa's and Building Contracting'",
+    "steel": "p3 'Steel Structure & Building Construction'; p3-4 'steel structure designs & fabrications ... roof truss ... mezzanine floor'",
+    "gypsum": "p3 'Aluminum & Gypsum False Ceiling', 'Glass & Gypsum Partition'; p5",
+    "aluminium": "p3 'Aluminum Fabrication & Wall Cladding'; p7 'fabricate & Install the aluminum doors ... louvers ... windows'",
+    "waterproofing": "p3 'All Kind of Waterproofing'; p6",
+    "painting": "p3 'Building Painting & Interlock Works'; p9 'Building Painting Works'",
+    "road_works": "p8 'Interlock (Pasco) Works ... leading interlock paver laying contractor'",
+    "glazing": "p3 'Glass & Gypsum Partition'; p5 'Glass partition jobs'",
+    "flooring": "p10 heading 'Epoxy Floor Coating'",
+    "fencing_shades": "p10 heading 'Fencing'",
+    "facilities_management": "p4 'building maintenance for residential & commercial buildings'"
+   }
+  },
+  {
+   "id": "M02",
+   "file": "M02_coolmist.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile_27p",
+   "registered_name": "Coolmist Air conditioning LLC",
+   "truth": {
+    "trades": [
+     "hvac"
+    ],
+    "trades_also": [],
+    "company": "Coolmist Air Conditioning LLC",
+    "emirate": "Dubai",
+    "products": [
+     "Toshiba VRF/DX split, cassette, ducted and floor-standing AC units"
+    ],
+    "certifications": [
+     "ISO 9001:2015"
+    ]
+   },
+   "evidence": {
+    "hvac": "p2 'leader in providing advanced HVAC solutions ... authorized distributor for Toshiba Air conditioning'; p4 OUR MAJOR SERVICES (design, installation, maintenance, equipment trading, AMC); p9 'premier HVAC trading company'"
+   }
+  },
+  {
+   "id": "M03",
+   "file": "M03_edgescm.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile_29p",
+   "registered_name": "EDGE S.C.M. BUILDING CONTRACTING L.L.C.",
+   "truth": {
+    "trades": [
+     "general_contracting"
+    ],
+    "trades_also": [
+     "interior_fitout",
+     "design_consultancy"
+    ],
+    "company": "EDGE S.C.M. Building Contracting LLC",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   },
+   "evidence": {
+    "general_contracting": "p3 'General Contracting Company with G+4 Classification'; p8 'TURN-KEY GENERAL CONTRACTING'; p22 licence activity 'Building Contracting'",
+    "interior_fitout": "p9 'Fit-out Interior Design projects for Restaurants and High end Villas - Apartments - Resorts'",
+    "design_consultancy": "p9 'Our Design experience extends mainly into Architectural and Interior Design'"
+   }
+  },
+  {
+   "id": "M04",
+   "file": "M04_albharat.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequalification_59p",
+   "registered_name": "AL BHARAT CONTRACTING (L.L.C.)",
+   "truth": {
+    "trades": [
+     "general_contracting"
+    ],
+    "trades_also": [
+     "steel",
+     "mep_general"
+    ],
+    "company": "Al Bharat Contracting LLC",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": [
+     "ISO 9001:2015"
+    ]
+   },
+   "evidence": {
+    "general_contracting": "p3 'Turnkey Jobs in steel structure buildings, warehousing, factories, Labour Camps and RCC multi stories buildings'; p4 'General Contracting, Project Management, and design / build'",
+    "steel": "p3 'civil, structural steel buildings and electromechanical works'",
+    "mep_general": "p3 'technical jobs & civil, structural steel buildings and electromechanical works'"
+   }
+  },
+  {
+   "id": "M05",
+   "file": "M05_shahpara.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequalification_14p",
+   "registered_name": "Shahpara Technical Services LLC",
+   "truth": {
+    "trades": [
+     "mep_general"
+    ],
+    "trades_also": [
+     "electrical",
+     "hvac",
+     "plumbing"
+    ],
+    "company": "Shahpara Technical Services LLC (STS MEP)",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   },
+   "evidence": {
+    "mep_general": "p1 '[Electro-Mechanical Services]'; p3 'Main field of activity: Electro-Mechanical Systems Design, Installation, Testing, Commissioning and Maintenance'",
+    "electrical": "p4-5 electrical supervisors and electricians; p6 'Switchgear Division'; p12 '800KW LV PANEL UPGRADE'",
+    "hvac": "p5 'A/C Technicians', 'Duct man'; p6 'Duct Fabrication'; p6 'Carrier HAP 4.1 for Heat Load Estimation'",
+    "plumbing": "p4 'Supervisor (Plumbing)'; p5 'Plumber', 'Pipe Fitters'"
+   }
+  },
+  {
+   "id": "M06",
+   "file": "M06_wajna.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequalification_70p",
+   "registered_name": "Wajna Contracting and General Maintenance L.L.C",
+   "truth": {
+    "trades": [
+     "mep_general",
+     "electrical"
+    ],
+    "trades_also": [
+     "hvac",
+     "fire_fighting",
+     "plumbing",
+     "general_contracting",
+     "civil_works",
+     "painting",
+     "security_systems",
+     "av_it",
+     "infrastructure_utilities",
+     "facilities_management"
+    ],
+    "company": "Wajna Contracting and General Maintenance LLC",
+    "emirate": "Abu Dhabi",
+    "products": [],
+    "certifications": [
+     "ISO 9001:2015",
+     "ISO 14001:2015",
+     "ISO 45001:2018"
+    ]
+   },
+   "evidence": {
+    "mep_general": "p6 'Engineering, Procurement, Installation, Testing of Electromechanical works ... MEP services'; p3 'primarily an MEP contracting Establishment'",
+    "electrical": "p23 5.2 ELECTRICAL list; p27 'full range of Electrical Contracting services'; p28 LV SYSTEM",
+    "hvac": "p32 'i. HVAC DIVISION ... ducting supply, installation and maintenance'",
+    "fire_fighting": "p34 'ii. FIRE FIGHTING'; p24 'Fire Fighting contract in all types of projects'",
+    "plumbing": "p36 'iii. WATER AND DRAINAGE SYSTEM'; p6 'plumbing, and drainage installation'",
+    "general_contracting": "p3 'higher-margin areas of full construction ... Villas, Warehouses'; p16 5.1 Civil Construction (Commercial/Residential Buildings, Villas)",
+    "civil_works": "p4 index '5.1 Civil Construction'; p16",
+    "painting": "p22 'interior & exterior residential and commercial painting services'",
+    "security_systems": "p30 ELV 'Surveillance & CCTV, Access Control System, Traffic Barriers'",
+    "av_it": "p30 ELV 'Structured Cabling System, AV system, SMATV / IPTV System'",
+    "infrastructure_utilities": "p26 'CABLING WORKS UPTO 11KV, 11KV SUBSTATION WORKS, PUBLIC LIGHTING'",
+    "facilities_management": "p6 'building maintenance facilities'; p24 'Electromechanical Maintenance in any type of building & villa'"
+   }
+  },
+  {
+   "id": "M07",
+   "file": "M07_atn.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequalification_40p",
+   "registered_name": "ATN Contracting LLC",
+   "truth": {
+    "trades": [
+     "road_works",
+     "infrastructure_utilities",
+     "civil_works",
+     "landscaping"
+    ],
+    "trades_also": [
+     "mep_general",
+     "demolition_works",
+     "general_contracting",
+     "interior_fitout",
+     "joinery",
+     "swimming_pools"
+    ],
+    "company": "ATN Contracting LLC",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   },
+   "evidence": {
+    "road_works": "p1 'Road Works'; p5 Main Activities '2. Road works'; p14 'Road construction. Road Maintenance'; p29 licence 'Road Contracting'",
+    "infrastructure_utilities": "p1 cover 'Infrastructure Works'; p5 '3. Sewerage and drainage works'; p14 'Utilities network works (Potable water, Sewerage, Storm water ...)'; p37 licence 'Sewage And Drainage'",
+    "civil_works": "p1 'Earth Works', 'Civil Works'; p5 '1. Earth works.'",
+    "landscaping": "p1 'Landscape Works'; p5 '4. Landscaping & hardscaping works'; p29 licence 'Landscaping Works'",
+    "mep_general": "p1 'MEP Works'; p4 'Civil and Electro-Mechanical Works'",
+    "demolition_works": "p14 'Demolishing works'",
+    "general_contracting": "p35 licence activity 'Building Contracting'",
+    "interior_fitout": "p4 sphere of activities 'Interior Decorators'",
+    "joinery": "p4 sphere of activities 'Joinery Works'",
+    "swimming_pools": "p32 licence activity 'Swimming Pools Maintenance'"
+   }
+  },
+  {
+   "id": "M08",
+   "file": "M08_telal.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequalification_76p",
+   "registered_name": "TELAL ENGINEERING & CONTRACTING LLC",
+   "truth": {
+    "trades": [
+     "general_contracting",
+     "civil_works",
+     "prefab_buildings",
+     "solar",
+     "infrastructure_utilities",
+     "landscaping",
+     "interior_fitout"
+    ],
+    "trades_also": [
+     "road_works"
+    ],
+    "company": "Telal Engineering & Contracting LLC",
+    "emirate": "Abu Dhabi",
+    "products": [],
+    "certifications": []
+   },
+   "evidence": {
+    "general_contracting": "p3 'all kind of building projects ... Data Center Construction'; p13 'TURNKEY CIVIL PROJECTS', 'CONTRACTING OF DATA CENTER WORKS'",
+    "civil_works": "p3 'General Civil works'; p13 'full civil, structural, architectural services'; p14 'EARTHWORKS FILLING & EXCAVATION'",
+    "prefab_buildings": "p3 'Prefabricated Building Construction'; p13 'off-site manufacturing techniques'",
+    "solar": "p13 'SOLAR PV ENERGY SYSTEMS ... EPC Solar'; p60-67 Solar PV project experience",
+    "infrastructure_utilities": "p13 'INFRASTRUCTURE & LANDSCAPING WORKS'; p14 'WATER & SEWAGE NETWORKS'",
+    "landscaping": "p14 'SOFTSCAPE AND HARDSCAPE', 'IRRIGATION SYSTEM'",
+    "interior_fitout": "p3 'Fit-Out works'; p13 'INTERIOR FIT-OUT WORKS'",
+    "road_works": "p14 'ROAD NETWORKS & ASPHALT WORKS', 'INTERLOCK PAVEMENT WORKS'"
+   }
+  },
+  {
+   "id": "M09",
+   "file": "M09_emeraldsteel.pdf",
+   "mime": "application/pdf",
+   "kind": "catalogue",
+   "format": "text_pdf_catalogue_37p",
+   "registered_name": "Emerald Steel Industries L.L.C",
+   "truth": {
+    "trades": [
+     "electrical_wholesale"
+    ],
+    "trades_also": [],
+    "company": "Emerald Steel Industries LLC",
+    "emirate": "Ajman",
+    "products": [
+     "GI/HDG/SS cable trays (perforated, ladder, solid bottom)",
+     "FRP cable trays",
+     "trunking (incl. flush and under-floor)",
+     "service outlet boxes",
+     "strut channel systems and accessories"
+    ],
+    "certifications": [
+     "ISO 9001"
+    ]
+   },
+   "evidence": {
+    "electrical_wholesale": "p1 'Cable Tray, FRP Cable Tray, Trunking, Strut Channel'; p2 'manufacturer and suppliers of cable management systems ... cable trays, ladders, trunking ... strut- systems'"
+   }
+  },
+  {
+   "id": "M10",
+   "file": "M10_phoenixconcrete.pdf",
+   "mime": "application/pdf",
+   "kind": "catalogue",
+   "format": "text_pdf_catalogue_117p",
+   "registered_name": "Phoenix Concrete Products (A Branch of Wafi Industrial LLC)",
+   "truth": {
+    "trades": [
+     "building_materials"
+    ],
+    "trades_also": [],
+    "company": "Phoenix Concrete Products",
+    "emirate": "Dubai",
+    "products": [
+     "normal and lightweight hollow, solid and hourdi concrete blocks",
+     "thermal insulation blocks",
+     "precast concrete paving blocks/interlocks",
+     "heel kerbs",
+     "flag tiles"
+    ],
+    "certifications": [
+     "ISO 9001:2015",
+     "ICV",
+     "Dubai Municipality product conformity"
+    ]
+   },
+   "evidence": {
+    "building_materials": "p2 'manufacturer and supplier of concrete masonry products ... Hollow, Solid, Hourdi & Thermal Insulation Blocks along with Precast concrete Paving blocks, Interlocks, Heel Kerbs & Flag Tiles'; p66 paving blocks and kerbs"
+   }
+  },
+  {
+   "id": "M11",
+   "file": "M11_alsultancement.pdf",
+   "mime": "application/pdf",
+   "kind": "catalogue",
+   "format": "image_only_scan_catalogue_90p",
+   "registered_name": "Al Sultan Industrial Cement",
+   "truth": {
+    "trades": [
+     "building_materials"
+    ],
+    "trades_also": [],
+    "company": "Al Sultan Industrial Cement",
+    "emirate": "Abu Dhabi",
+    "products": [
+     "interlocking paving tiles (many shapes)",
+     "hydraulically pressed kerbstone",
+     "concrete slabs",
+     "masonry blocks",
+     "cable cover tiles"
+    ],
+    "certifications": []
+   },
+   "evidence": {
+    "building_materials": "p3 (image) 'manufacturing premium concrete products, including: Interlocking Tiles, Hydraulically Pressed Kerbstone, Concrete Slabs, Masonry Blocks, Cable Cover Tiles'; p2 contents; p85 installation guidelines are advice to buyers, not a service"
+   }
+  },
+  {
+   "id": "M12",
+   "file": "M12_speedhousegroup.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "image_only_scan_group_profile_57p",
+   "registered_name": "Speed House Group of Companies",
+   "truth": {
+    "trades": [
+     "general_contracting",
+     "civil_works",
+     "infrastructure_utilities",
+     "prefab_buildings",
+     "interior_fitout"
+    ],
+    "trades_also": [
+     "plastics_pipes",
+     "design_consultancy",
+     "fencing_shades",
+     "joinery",
+     "gypsum",
+     "lubricants_industrial_oils"
+    ],
+    "company": "Speed House Group of Companies",
+    "emirate": "Ajman",
+    "products": [
+     "modular, CFS, flat-pack and portable buildings",
+     "container conversions",
+     "kitchen and bathroom pods",
+     "GRC and GRP elements",
+     "GRP, steel and panel water tanks",
+     "insulated sandwich panels and single-skin roof sheets",
+     "parking sheds"
+    ],
+    "certifications": [
+     "ISO 9001",
+     "ISO 14001",
+     "OHSAS 18001"
+    ]
+   },
+   "evidence": {
+    "general_contracting": "p10 (image) WHAT WE DO 'CIVIL, INFRASTRUCTURE & CONTRACTING'; p11 'GENERAL CONTRACTING'; p13 'RESIDENTIAL & COMMERCIAL BUILDINGS', 'TURNKEY CONTRACTS'",
+    "civil_works": "p14 (image) 'CIVIL WORKS ... civil, foundation and utility infrastructure works'",
+    "infrastructure_utilities": "p14 (image) 'INFRASTRUCTURE WORKS ... Sewerage & Storm Water networks'",
+    "prefab_buildings": "p10 'MODULAR BUILDINGS', 'CONTAINER CONVERSION'; p15-18 modular, CFS, flat pack, portable buildings; p19-21 container conversion",
+    "interior_fitout": "p10 'INTERIOR FIT-OUTS & FURNITURE'; p23 'INTERIOR FIT- OUT & FURNITURE'",
+    "plastics_pipes": "p35 (image) 'GRP ELEMENTS & TANKS ... water tanks'; p38 'STEEL & PANEL TANKS'",
+    "design_consultancy": "p25 (image) 'INTERIOR DESIGN ... specialized interior design services'",
+    "fencing_shades": "p37 (image) 'PARKING SHEDS'",
+    "joinery": "p23 (image) 'joineries, furniture, kitchens'; p3 timeline 'Carpentry'",
+    "gypsum": "p23 (image) 'various types of partitions and ceilings'",
+    "lubricants_industrial_oils": "p10 (image) 'LUBRICANTS TRADING'"
+   }
+  }
+ ]
+}
