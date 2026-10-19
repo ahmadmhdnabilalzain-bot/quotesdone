@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "corrugated_packaging:product-distinctions",
+      "topic": "Corrugated boxes: flutes, wall construction, board grades and strength tests",
+      "topic_ar": "الصناديق المموجة: التموجات وبنية الجدار ودرجات الكرتون واختبارات القوة",
+      "kind": "product_distinctions",
+      "body_en": "Corrugated board is liner plus fluted medium. Flutes: A (thickest, cushioning), C (the common shipping-box flute), B (better crush and print surface), E and F (thin micro-flutes for retail and printed boxes); combinations such as BC make double-wall board, and triple wall serves heavy and export loads. Liners are kraft (virgin fibre, stronger, brown), test liner (recycled), or white-top for printing; strength is specified by board grade (liner and medium weights in gsm) and by the performance tests: edge crush test (ECT), which predicts how much a stacked box will carry, and burst strength (Mullen), plus box compression test (BCT) for the finished box. Styles: regular slotted carton (RSC, the standard), die-cut boxes and trays, telescopic boxes, partitions and dividers, and display-ready packaging. Printing ranges from one-colour flexo on the box to litho-laminated high-graphic. Humidity and long stacking time reduce strength sharply, so warehouses in humid or air-conditioned/hot transitions need a safety margin, and moisture-resistant coatings exist for cold-chain cartons.",
+      "body_ar": "الكرتون المموج طبقات وجه مع وسط مموج. التموجات: A (الأسمك، للتوسيد)، وC (تموج صناديق الشحن الشائع)، وB (مقاومة سحق أفضل وسطح طباعة أفضل)، وE وF (تموجات دقيقة رقيقة للتجزئة والصناديق المطبوعة)؛ وتُكوّن تركيبات مثل BC كرتوناً مزدوج الجدار، والثلاثي للأحمال الثقيلة والتصدير. وطبقات الوجه كرافت (ألياف خام، أقوى، بني)، أو معاد تدويره، أو بوجه أبيض للطباعة؛ وتُحدد القوة بدرجة الكرتون (أوزان الوجه والوسط بالغرام للمتر المربع) وباختبارات الأداء: اختبار سحق الحافة الذي يتنبأ بما يتحمله الصندوق في الرص، وقوة الانفجار (مولن)، إضافة إلى اختبار ضغط الصندوق للصندوق النهائي. والأشكال: الصندوق المشقوق العادي (المعيار)، والصناديق والصواني المقصوصة بالقوالب، والصناديق التلسكوبية، والفواصل والحواجز، والعبوات الجاهزة للعرض. وتتراوح الطباعة من فلكسو بلون واحد على الصندوق إلى الأوفست الملصق عالي الجودة. والرطوبة وطول مدة الرص يخفضان القوة بشدة، لذلك تحتاج المستودعات في الأجواء الرطبة أو عند الانتقال بين التكييف والحرارة هامش أمان، وتوجد طلاءات مقاومة للرطوبة لكراتين التبريد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Corrugated_fiberboard"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: flutes A, B, C, E, F; single, double and triple wall; burst strength and the edge crush test -> confirmed."
+    },
+    {
+      "id": "corrugated_packaging:lead-times-and-quoting",
+      "topic": "Corrugated boxes & cartons - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الكرتون المموج والصناديق الكرتونية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Plain RSC cartons from local corrugators: 5-15 days; new die-cut or printed designs 2-4 weeks including samples and tooling. A supplier needs internal dimensions, product weight and stacking height, board grade or ECT/BCT target, style, printing (colours, coverage), quantity per order and per year, and palletising. A quote states board construction and grade, flute, test values, print, tooling (plates, dies) one-off costs, unit price basis at quantity breaks, MOQ, delivery and validity.",
+      "body_ar": "الكراتين المشقوقة العادية من مصانع الكرتون المحلية: 5-15 يوماً؛ والتصاميم الجديدة المقصوصة أو المطبوعة 2-4 أسابيع شاملة العينات والقوالب. ويحتاج المورد الأبعاد الداخلية، ووزن المنتج وارتفاع الرص، ودرجة الكرتون أو هدف اختبار السحق والضغط، والشكل، والطباعة (الألوان، التغطية)، والكمية لكل طلب وسنوياً، والتحميل على المنصات. ويذكر العرض بنية الكرتون ودرجته والتموج وقيم الاختبار والطباعة وتكاليف القوالب لمرة واحدة وأساس سعر الوحدة عند شرائح الكميات والحد الأدنى للطلب والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither gives board grade/flute/ECT for a 20 kg export carton; missing: board grade selection by load entry). corrugated_packaging:board-grade-by-load was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from corrugated_packaging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our cartons collapse when stacked five high in the warehouse. What should we change?",
+      "q_ar": "كراتيننا تنهار لما نرصها خمسة فوق بعض في المستودع، وش نغير؟",
+      "expected_entry_ids": [
+        "corrugated_packaging:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "corrugated_packaging:board-grade-by-load"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "corrugated_packaging:product-distinctions"
+      ],
+      "stored_not_served": [
+        "corrugated_packaging:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Corrugated_fiberboard"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

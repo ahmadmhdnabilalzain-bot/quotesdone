@@ -61,6 +61,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "ev_charging:product-distinctions",
+      "topic": "EV charging: AC versus DC, connectors, power and site works",
+      "topic_ar": "شحن المركبات الكهربائية: التيار المتردد مقابل المستمر والموصلات والقدرة وأعمال الموقع",
+      "kind": "product_distinctions",
+      "body_en": "AC chargers (wallboxes and posts) deliver up to about 7.4 kW single-phase or 11-22 kW three-phase; the car's on-board charger limits the actual rate, so most cars charge AC at 7-11 kW, which suits homes, offices and hotels where cars park for hours. DC fast chargers (typically 30-60 kW compact units, 120-180 kW for highway and fleet hubs, and up to about 350-400 kW) convert power in the charger and need a much larger supply, often a transformer upgrade. Connectors: Type 2 for AC, and CCS2 for DC on most new cars, with CHAdeMO on some older models. Smart features: OCPP so a charger works with any management platform, RFID or app authentication, load management to share limited building capacity between chargers, metering and billing, and solar integration. Site works decide cost and time: available electrical capacity, cable routes and trenching, protection (RCD type A plus DC leakage detection, or type B), earthing, bollards, signage and parking layout, and approval from the electricity utility. Offers differ on charger make and power, installation scope, the software platform and its fees, warranty, and maintenance.",
+      "body_ar": "تعطي شواحن التيار المتردد (الجدارية والقائمة) حتى نحو 7.4 كيلوواط أحادي الطور أو 11-22 كيلوواط ثلاثي الطور؛ والشاحن الداخلي في السيارة يحد المعدل الفعلي، فتشحن معظم السيارات بالتيار المتردد عند 7-11 كيلوواط، وهذا يناسب المنازل والمكاتب والفنادق حيث تقف السيارات ساعات. أما الشواحن السريعة بالتيار المستمر (عادة وحدات مدمجة 30-60 كيلوواط، و120-180 كيلوواط للطرق السريعة ومراكز الأساطيل، وحتى نحو 350-400 كيلوواط) فتحول الطاقة داخل الشاحن وتحتاج تغذية أكبر بكثير، وغالباً ترقية المحول. والموصلات: Type 2 للمتردد، وCCS2 للمستمر في معظم السيارات الجديدة، مع CHAdeMO في بعض الموديلات القديمة. والخصائص الذكية: بروتوكول OCPP ليعمل الشاحن مع أي منصة إدارة، والتحقق بالبطاقة أو التطبيق، وإدارة الأحمال لتقاسم سعة المبنى المحدودة بين الشواحن، والقياس والفوترة، والتكامل مع الطاقة الشمسية. وأعمال الموقع تحدد التكلفة والوقت: السعة الكهربائية المتاحة، ومسارات الكابلات والحفر، والحماية (قاطع تيار متبقٍ من النوع A مع كشف تسرب التيار المستمر، أو النوع B)، والتأريض، والحواجز، واللافتات وتخطيط المواقف، وموافقة جهة الكهرباء. وتختلف العروض في ماركة الشاحن وقدرته، ونطاق التركيب، والمنصة البرمجية ورسومها، والضمان، والصيانة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Charging_station"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: AC Level 2 about 1.4-19.2 kW, DC fast charging up to 400 kW, Type 2, CCS and CHAdeMO connectors -> confirmed."
+    },
+    {
+      "id": "ev_charging:lead-times-and-quoting",
+      "topic": "EV charging installation - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تركيب شواحن المركبات الكهربائية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A home or office AC charger is usually installed within 1-3 weeks including approval; DC sites 2-6 months with supply upgrades. An installer needs the site and parking layout, the electrical single-line diagram and spare capacity, number of chargers and users, billing needs, and preferred makes. A quote states charger make, model and power, connectors, OCPP and software, protection and cabling scope, civil works, approvals, commissioning, warranty, maintenance and validity.",
+      "body_ar": "يُركب شاحن التيار المتردد في المنزل أو المكتب عادة خلال 1-3 أسابيع شاملة الموافقة؛ ومواقع التيار المستمر 2-6 أشهر مع ترقيات التغذية. ويحتاج المركّب الموقع وتخطيط المواقف، والمخطط الكهربائي أحادي الخط والسعة الاحتياطية، وعدد الشواحن والمستخدمين، واحتياجات الفوترة، والماركات المفضلة. ويذكر العرض ماركة الشاحن وموديله وقدرته، والموصلات، والبروتوكول والبرنامج، ونطاق الحماية والكابلات، والأعمال المدنية، والموافقات، والتشغيل، والضمان، والصيانة، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -86,6 +116,14 @@
       ],
       "why": "No entry of this pack answered it (Standards entry gives DEWA approval/approved-contractor rule but nothing says what charger (AC power rating, wallbox type) suits a villa; missing residential charger guidance). ev_charging:residential-ac-wallbox-sizing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from ev_charging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is a 22 kW AC charger worth it at our office if most staff cars only take 11 kW?",
+      "q_ar": "هل يستاهل شاحن 22 كيلوواط متردد في مكتبنا إذا أغلب سيارات الموظفين تاخذ 11 بس؟",
+      "expected_entry_ids": [
+        "ev_charging:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -104,6 +142,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "ev_charging:residential-ac-wallbox-sizing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "ev_charging:product-distinctions"
+      ],
+      "stored_not_served": [
+        "ev_charging:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Charging_station"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
