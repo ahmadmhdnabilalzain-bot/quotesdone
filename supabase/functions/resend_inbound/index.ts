@@ -48,6 +48,7 @@ import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
+import { orSafeEmail } from '../_shared/or_filter_email.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -726,7 +727,7 @@ export const handler = observe('resend_inbound', async (req) => {
 
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
     let lead: any = null;
-    if (from) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
+    if (orSafeEmail(from)) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
     let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = [];
     let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0; let classifySkipped = 0;
     for (const a of atts.slice(0,6)) {
