@@ -1,7 +1,9 @@
 -- SUPPLIER INVITATIONS GO ONLY TO ROLE ADDRESSES, NEVER A PERSON'S MAILBOX (19 Oct 2026; Assigned: ceo).
 -- Founder decision on legal finding 3 (docs/legal/SUPPLIER_CAMPAIGN_LAWFUL_BASIS.md): the campaign relies on
--- UAE PDPL Art. 4, data the business has itself made publicly available, which holds for a published role
--- mailbox (info@, sales@) and not for ahmed@ or j.smith@. The rule is ONE function, fn_is_role_address(text),
+-- UAE PDPL Art. 4, data the business has itself made publicly available. Contacting ONLY role mailboxes (info@,
+-- sales@), never ahmed@ or j.smith@, is a cautious policy choice of the CEO seat (19 Oct 2026), NOT a PDPL
+-- requirement: a named mailbox the business published could arguably fall under the same ground. Measured cost:
+-- 12,577 of 17,401 invitable leads excluded (about 4,824 remain). The rule is ONE function, fn_is_role_address(text),
 -- read by the three routines that choose who is mailed:
 --   fn_supplier_invite_eligible(leads)   the row rule (canonical: MANIFEST 1757)
 --   fn_supplier_invite_eligible_ids()    the set rule the daily list and the 10:00 send read (MANIFEST 1844)

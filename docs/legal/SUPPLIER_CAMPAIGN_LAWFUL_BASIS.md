@@ -24,9 +24,11 @@ the controls below on production).
 company: its published business email and name. The purpose is a single business-to-business offer
 (a free, commission-free supplier listing), made to the address the business itself published for
 enquiries. The basis is PDPL Art. 4: the data is data the business has itself made publicly available
-(founder decision, 19 Oct 2026, legal finding 3). We do NOT rely on legitimate interests. That basis holds
-only for a role mailbox the business publishes (info@, sales@, enquiries@ ...), so **only role addresses are
-contacted, never a named person's mailbox** (ahmed@, j.smith@): the rule is `public.fn_is_role_address(text)`,
+(founder decision, 19 Oct 2026, legal finding 3). We do NOT rely on legitimate interests. As a cautious
+**policy choice made by the CEO seat on 19 Oct 2026**, **only role addresses are contacted (info@, sales@,
+enquiries@ ...), never a named person's mailbox** (ahmed@, j.smith@). This is NOT a PDPL requirement: a named
+mailbox the business itself published could arguably fall under the same Art. 4 ground. Measured cost
+(read-only, 19 Oct 2026): 12,577 of 17,401 invitable leads are excluded, about 4,824 remain. The rule is `public.fn_is_role_address(text)`,
 read by the invitation selection (`fn_supplier_invite_eligible`, `fn_supplier_invite_eligible_ids`) and by
 the reminders (`fn_supplier_invite_nudges_due`) - scripts/sql/supplier_invitations_go_only_to_role_addresses_never_a_persons_mailbox.sql.
 Processing is limited to the minimum data, with an immediate and permanent opt-out. No personal data is sold or shared; nothing beyond the published listing is collected before
