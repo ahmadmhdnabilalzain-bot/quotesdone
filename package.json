@@ -59,7 +59,7 @@
     "autoprefixer": "10.6.1",
     "playwright": "^1.64.0",
     "postcss": "8.5.29",
-    "squawk-cli": "^2.68.0",
+    "squawk-cli": "^2.66.0",
     "tailwindcss": "3.4.19",
     "tailwindcss-animate": "1.0.7",
     "typescript": "5.5.4"
