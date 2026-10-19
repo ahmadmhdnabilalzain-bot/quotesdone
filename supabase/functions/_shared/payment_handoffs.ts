@@ -51,6 +51,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'refund.remediate', from: 'ceo', to: 'accountant' },
   { type: 'refund.remediate', from: 'ceo', to: 'sales_engineer' },
   { type: 'incident.fix', from: 'ceo', to: 'accountant' },
+  // the CEO hands himself yesterday's five numbers every morning (ruling 1209; the_ceo_reads_five_numbers_every_morning.sql)
+  { type: 'report.five_numbers', from: 'ceo', to: 'ceo' },
   // marketing puts its monthly plan before the CEO on the review machine: another model family, blind first
   // (founder_instructions 866 and 873; the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql)
   { type: 'deliberation.review', from: 'marketing', to: 'ceo' },

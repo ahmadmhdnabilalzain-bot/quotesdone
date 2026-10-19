@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "software_licensing:product-distinctions",
+      "topic": "Software licensing: licence models, metrics and compliance",
+      "topic_ar": "تراخيص البرمجيات: نماذج الترخيص والمقاييس والامتثال",
+      "kind": "product_distinctions",
+      "body_en": "Software is licensed perpetually (a one-time fee for the right to use a version, usually with an optional annual maintenance or support fee for updates) or by subscription (SaaS or term licences paid monthly or annually, including updates and often hosting). The licence metric decides cost: per named user, per device, per concurrent user, per core or processor for servers and databases, per instance or tenant, or consumption-based for cloud services. Common business categories: productivity and collaboration suites, operating systems and client access licences, database and server software, ERP and CRM, design and engineering software (CAD/BIM), security (antivirus, EDR, firewall subscriptions), backup, and cloud platform credits. Purchase channels: direct from the vendor, through authorised resellers or cloud solution providers, and enterprise agreements with volume discounts and true-ups. Every licence comes with an end-user licence agreement whose terms on transfer, virtualisation, regional use and audits matter; unlicensed or mis-licensed use exposes the company in a vendor audit. A licence-compliance review (a software asset inventory against entitlements) often saves cost by removing unused seats.",
+      "body_ar": "تُرخص البرمجيات بشكل دائم (رسوم لمرة واحدة لحق استخدام إصدار، عادة مع رسوم صيانة أو دعم سنوية اختيارية للتحديثات) أو بالاشتراك (تراخيص سحابية أو محددة المدة تُدفع شهرياً أو سنوياً، تشمل التحديثات وغالباً الاستضافة). ومقياس الترخيص يحدد التكلفة: لكل مستخدم مسمى، أو لكل جهاز، أو لكل مستخدم متزامن، أو لكل نواة أو معالج للخوادم وقواعد البيانات، أو لكل نسخة أو مستأجر، أو حسب الاستهلاك للخدمات السحابية. والفئات الشائعة للأعمال: حزم الإنتاجية والتعاون، وأنظمة التشغيل وتراخيص وصول العملاء، وبرامج قواعد البيانات والخوادم، وأنظمة تخطيط الموارد وإدارة العملاء، وبرامج التصميم والهندسة، والأمن (مكافحة الفيروسات، الحماية المتقدمة للأجهزة، اشتراكات الجدران النارية)، والنسخ الاحتياطي، وأرصدة المنصات السحابية. وقنوات الشراء: مباشرة من المورد، أو عبر الموزعين المعتمدين أو مزودي الحلول السحابية، أو اتفاقيات المؤسسات بخصومات كمية وتسويات دورية. وكل ترخيص تحكمه اتفاقية ترخيص المستخدم النهائي، وتهم شروطها بشأن النقل والمحاكاة الافتراضية والاستخدام الإقليمي والتدقيق؛ والاستخدام غير المرخص أو المرخص خطأ يعرض الشركة للمخاطر عند تدقيق المورد. ومراجعة امتثال التراخيص (جرد الأصول البرمجية مقابل الاستحقاقات) كثيراً ما توفر التكلفة بإزالة المقاعد غير المستخدمة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Software_license"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: perpetual versus subscription (SaaS) licences, device-restricted licences, end-user licence agreements -> confirmed."
+    },
+    {
+      "id": "software_licensing:lead-times-and-quoting",
+      "topic": "Software licensing - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تراخيص البرمجيات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Subscriptions activate within days; enterprise agreements take weeks to negotiate. A reseller needs the products and editions, licence metric and quantities, term, current licences and renewal dates, and deployment (cloud or on-premises). A quote states product SKUs and editions, metric and quantity, term and billing, support level, price per unit, transfer and renewal terms, and validity.",
+      "body_ar": "تُفعل الاشتراكات خلال أيام؛ واتفاقيات المؤسسات تستغرق أسابيع للتفاوض. ويحتاج الموزع المنتجات وإصداراتها، ومقياس الترخيص والكميات، والمدة، والتراخيص الحالية ومواعيد تجديدها، وطريقة النشر (سحابي أو محلي). ويذكر العرض رموز المنتجات وإصداراتها والمقياس والكمية والمدة والفوترة ومستوى الدعم وسعر الوحدة وشروط النقل والتجديد والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry compares Microsoft 365 monthly vs annual commitment pricing (NCE)). software_licensing:microsoft-nce-term-and-billing-pricing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from software_licensing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is it cheaper to buy perpetual licences or a subscription for 40 users over five years?",
+      "q_ar": "أرخص نشتري تراخيص دائمة ولا اشتراك لـ 40 مستخدم على خمس سنوات؟",
+      "expected_entry_ids": [
+        "software_licensing:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "software_licensing:microsoft-nce-term-and-billing-pricing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "software_licensing:product-distinctions"
+      ],
+      "stored_not_served": [
+        "software_licensing:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Software_license"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

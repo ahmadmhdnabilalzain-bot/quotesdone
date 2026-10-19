@@ -7,7 +7,7 @@
 // must be locatable in page coordinates so drawing_redact can box them.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
-import { boqFromPages } from './boq_from_text.ts';
+import { boqFromLines, boqFromPages } from './boq_from_text.ts';
 
 const LATIN1 = (s: string) => Uint8Array.from(s, (c) => c.charCodeAt(0) & 0xff);
 function makePdf(lines: [number, number, string][]): Uint8Array {
@@ -60,4 +60,9 @@ Deno.test('no text layer gives an empty boq and says why, never a guess', async 
   const out = boqFromPages(await pdfPages(LATIN1('not a pdf')));
   assertEquals(out.boq.length, 0);
   assert(out.missing_info.some((m) => m.includes('not a PDF we could open')));
+});
+
+Deno.test('a BOQ row whose description carries any Arabic is not read (suppliers always English)', () => {
+  const items = boqFromLines([{ page: 1, text: '2.01 مقبس 13A socket nr 10' }, { page: 1, text: '2.02 13A twin socket outlet nr 4' }]);
+  assertEquals(items.map((i) => i.description), ['13A twin socket outlet']);
 });

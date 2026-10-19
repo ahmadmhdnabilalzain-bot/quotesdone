@@ -50,6 +50,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -64,7 +66,7 @@ jobs:
       # *.test.mjs and `deno test` appeared in no workflow. run.mjs fails HARD when deno is absent
       # rather than skipping - a suite that could not run must not be reported as one that passed -
       # so this step is load-bearing, not convenience.
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
       - name: Run checks
@@ -143,6 +145,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -170,6 +174,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -188,7 +194,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
       # os_api and the money paths first, because those are the ones where a compile error is a
@@ -256,7 +264,9 @@ jobs:
           --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 5s --health-retries 30
     steps:
       - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
       - name: Twenty parallel guesses against the locked verify routine

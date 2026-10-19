@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "leather_footwear:product-distinctions",
+      "topic": "Leather goods and footwear: leather grades, tanning and construction",
+      "topic_ar": "المنتجات الجلدية والأحذية: درجات الجلد والدباغة والصنع",
+      "kind": "product_distinctions",
+      "body_en": "Leather grades: full-grain (the top layer with the natural grain intact, strongest and ages well), top-grain (surface sanded or corrected and finished, more uniform), split leather (the lower layer, often embossed and coated, sometimes sold as \"genuine leather\"), suede and nubuck (napped surfaces), and bonded leather (leather fibres bound with polyurethane, lowest grade). Tanning: chrome tanning (most common, soft and water-resistant, quick) and vegetable tanning (plant tannins, firmer, develops patina, used for belts and quality goods); synthetic leathers are PU or PVC on fabric. Leather goods: bags, wallets, belts, corporate gifts, luggage and cases. Footwear is classed by use (formal, casual, sports, safety footwear to EN ISO 20345 with toe caps, slip and penetration resistance) and by construction: cemented (glued sole, light and economical), Goodyear-welted (stitched welt, durable and resoleable), Blake-stitched, and moulded or injected soles (PU, rubber, EVA). Sizes follow EU, UK or US scales. Offers differ on leather type and origin, lining, sole material and construction, hardware quality, size breakdowns, and MOQ for private label.",
+      "body_ar": "درجات الجلد: الحبيبة الكاملة (الطبقة العليا بحبيبتها الطبيعية كاملة، الأقوى ويتعتق جيداً)، والحبيبة العليا (سطح مصنفر أو مصحح ومشطب، أكثر تجانساً)، والجلد المشقوق (الطبقة السفلى، غالباً منقوش ومطلي، ويباع أحياناً باسم \"جلد طبيعي\")، والشامواه والنوبوك (أسطح وبرية)، والجلد المعاد تكوينه (ألياف جلد مربوطة بالبولي يوريثان، أدنى درجة). والدباغة: الدباغة بالكروم (الأكثر شيوعاً، ناعمة ومقاومة للماء وسريعة) والدباغة النباتية (عفص نباتي، أصلب، يكتسب لمعة مع الزمن، للأحزمة والمنتجات الجيدة)؛ والجلود الصناعية بولي يوريثان أو PVC على قماش. والمنتجات الجلدية: الحقائب، والمحافظ، والأحزمة، وهدايا الشركات، وحقائب السفر والحافظات. وتُصنف الأحذية حسب الاستخدام (رسمية، كاجوال، رياضية، أحذية سلامة وفق EN ISO 20345 بمقدمة واقية ومقاومة للانزلاق والاختراق) وحسب الصنع: بالغراء (نعل ملصق، خفيف واقتصادي)، وبطريقة جوديير (حافة مخيطة، متين وقابل لتغيير النعل)، وبخياطة بليك، ونعل مقولب أو محقون (بولي يوريثان، مطاط، EVA). والمقاسات وفق المقاييس الأوروبية أو البريطانية أو الأمريكية. وتختلف العروض في نوع الجلد ومنشئه، والبطانة، ومادة النعل وطريقة الصنع، وجودة الإكسسوارات المعدنية، وتوزيع المقاسات، والحد الأدنى للطلب للعلامة الخاصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Leather"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: full-grain, top-grain, split and bonded leather; chrome versus vegetable tanning -> confirmed."
+    },
+    {
+      "id": "leather_footwear:lead-times-and-quoting",
+      "topic": "Leather goods & footwear - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المنتجات الجلدية والأحذية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock items: days; private label and custom production 6-12 weeks including samples. A supplier needs product type, material and grade, sizes and colours, branding, quantities per size, and compliance needs (safety footwear standard). A quote states material and construction, sample cost and time, unit price at quantities, MOQ, packaging, delivery and validity.",
+      "body_ar": "الأصناف المتوفرة: أيام؛ والعلامة الخاصة والإنتاج المخصص 6-12 أسبوعاً شاملة العينات. ويحتاج المورد نوع المنتج، والمادة ودرجتها، والمقاسات والألوان، والعلامة، والكميات لكل مقاس، واحتياجات الامتثال (معيار أحذية السلامة). ويذكر العرض المادة وطريقة الصنع وتكلفة العينة ومدتها وسعر الوحدة عند الكميات والحد الأدنى للطلب والتغليف والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (the checklist only lists safety class as a field; no entry explains S1P vs S3 (EN ISO 20345)). leather_footwear:en-iso-20345-s1p-vs-s3 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from leather_footwear.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What is the difference between full-grain and \"genuine leather\" on a corporate gift wallet?",
+      "q_ar": "وش الفرق بين جلد الحبيبة الكاملة و\"جلد طبيعي\" في محفظة هدية للشركة؟",
+      "expected_entry_ids": [
+        "leather_footwear:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "leather_footwear:en-iso-20345-s1p-vs-s3"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "leather_footwear:product-distinctions"
+      ],
+      "stored_not_served": [
+        "leather_footwear:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Leather"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

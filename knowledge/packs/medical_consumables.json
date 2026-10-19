@@ -55,6 +55,36 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "medical_consumables:product-distinctions",
+      "topic": "Medical consumables: categories, grades and documentation",
+      "topic_ar": "المستهلكات الطبية: الفئات والدرجات والمستندات",
+      "kind": "product_distinctions",
+      "body_en": "Medical consumables include gloves (examination gloves, sterile or non-sterile, versus surgical gloves, sterile and precisely sized; latex for fit and feel, nitrile for chemical resistance and latex allergy, vinyl for low-risk short tasks; powder-free is now standard), syringes and needles, IV cannulas and sets, catheters and tubes, wound care (gauze, dressings, bandages, plasters), surgical drapes and gowns (by barrier level), face masks (surgical masks by fluid resistance type, respirators such as N95/FFP2), sutures, specimen containers and blood collection tubes, PPE and infection-control items, incontinence products, and disposable instruments. Many are medical devices and need registration and the maker's conformity documents; sterile items carry the sterilisation method (EO, gamma, steam), lot number and expiry. Quality points: the standard each meets (for example EN 455 or ASTM D6319 for gloves, EN 14683 for surgical masks), AQL level for defects, size range, packaging per box and case, and shelf life on delivery. Hospitals buy by tender with samples evaluated by clinical users.",
+      "body_ar": "تشمل المستهلكات الطبية القفازات (قفازات الفحص المعقمة أو غير المعقمة، مقابل القفازات الجراحية المعقمة والمحددة المقاس بدقة؛ اللاتكس للملاءمة والإحساس، والنتريل لمقاومة الكيماويات وحساسية اللاتكس، والفينيل للمهام القصيرة منخفضة المخاطر؛ والخالية من البودرة هي المعيار الآن)، والمحاقن والإبر، وقنيات وأطقم المحاليل الوريدية، والقساطر والأنابيب، والعناية بالجروح (الشاش، الضمادات، الأربطة، اللصقات)، والأغطية والأثواب الجراحية (حسب مستوى الحاجز)، والكمامات (الجراحية حسب نوع مقاومة السوائل، وأقنعة التنفس مثل N95/FFP2)، والخيوط الجراحية، وحاويات العينات وأنابيب سحب الدم، ومعدات الوقاية ومكافحة العدوى، ومنتجات سلس البول، والأدوات أحادية الاستخدام. وكثير منها أجهزة طبية تحتاج تسجيلاً ومستندات مطابقة الصانع؛ والمنتجات المعقمة تحمل طريقة التعقيم (أكسيد الإيثيلين، أشعة جاما، البخار) ورقم الدفعة وتاريخ الانتهاء. ونقاط الجودة: المعيار الذي يستوفيه كل منتج (مثل EN 455 أو ASTM D6319 للقفازات، وEN 14683 للكمامات الجراحية)، ومستوى AQL للعيوب، ومدى المقاسات، والتعبئة لكل علبة وكرتون، والصلاحية المتبقية عند التسليم. وتشتري المستشفيات عبر المناقصات مع تقييم العينات من المستخدمين السريريين.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Medical_glove"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: examination versus surgical gloves; latex, nitrile, vinyl and neoprene; powder-free gloves -> confirmed."
+    },
+    {
+      "id": "medical_consumables:lead-times-and-quoting",
+      "topic": "Medical consumables - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المستهلكات الطبية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock consumables: days; tender quantities 2-8 weeks; unregistered items need permits. A supplier needs item specs (material, size, sterility, standard), quantities and delivery schedule, registration requirements, and sample needs. A quote states brand, manufacturer, origin, registration, standard and AQL, pack sizes, shelf life, delivery, payment terms and validity.",
+      "body_ar": "المستهلكات المتوفرة: أيام؛ وكميات المناقصات 2-8 أسابيع؛ والأصناف غير المسجلة تحتاج تصاريح. ويحتاج المورد مواصفات الأصناف (المادة، المقاس، التعقيم، المعيار)، والكميات وجدول التسليم، ومتطلبات التسجيل، واحتياجات العينات. ويذكر العرض العلامة والصانع والمنشأ والتسجيل والمعيار ومستوى AQL وأحجام العبوات والصلاحية والتسليم وشروط الدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (Spec-checklist names 'shelf life on delivery' as a field but gives no required minimum; missing). medical_consumables:remaining-shelf-life-on-delivery was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from medical_consumables.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Nitrile or latex examination gloves for a dental clinic?",
+      "q_ar": "قفازات فحص نتريل ولا لاتكس لعيادة أسنان؟",
+      "expected_entry_ids": [
+        "medical_consumables:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "medical_consumables:remaining-shelf-life-on-delivery"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "medical_consumables:product-distinctions"
+      ],
+      "stored_not_served": [
+        "medical_consumables:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Medical_glove"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

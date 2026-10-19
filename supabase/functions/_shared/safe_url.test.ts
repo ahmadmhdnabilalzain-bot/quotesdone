@@ -6,7 +6,7 @@
 // filesystem, no deploy. Run it: `deno test supabase/functions/_shared/safe_url.test.ts`, or
 // `npm test`, which discovers every *.test.ts in the repository.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { unsafeUrl } from './safe_url.ts';
+import { safeFetch, unsafeUrl } from './safe_url.ts';
 
 Deno.test('refuses loopback, RFC1918, link-local and CGNAT in dotted-quad form', () => {
   for (const u of [
@@ -86,4 +86,26 @@ Deno.test('allows a real public document URL — a guard that refuses everything
   assertEquals(unsafeUrl('https://resend-attachments.s3.amazonaws.com/abc/def.pdf'), null);
   assertEquals(unsafeUrl('http://93.184.216.34/x.pdf'), null);
   assertEquals(unsafeUrl('https://[2606:4700::1]/x'), null);
+});
+
+// CWE-918 audit, 19 Oct 2026: a redirect to an internal address must be refused BEFORE it is requested.
+// The fake fetch records every url it is asked for; the metadata address must never appear in that list.
+Deno.test('a redirect to the metadata address is refused before the internal hop is requested', async () => {
+  const asked: string[] = [];
+  const fake = ((u: string) => {
+    asked.push(String(u));
+    if (String(u).startsWith('https://zz-demo.example.invalid/')) return Promise.resolve(new Response(null, { status: 302, headers: { location: 'http://169.254.169.254/latest/meta-data/' } }));
+    return Promise.resolve(new Response('internal', { status: 200 }));
+  }) as typeof fetch;
+  const r = await safeFetch('https://zz-demo.example.invalid/doc.pdf', { fetchImpl: fake });
+  assertEquals([r.ok, (r as { error?: string }).error], [false, 'url_refused_after_redirect']);
+  assertEquals(asked, ['https://zz-demo.example.invalid/doc.pdf']);
+});
+
+Deno.test('a public-to-public redirect is still followed', async () => {
+  const fake = ((u: string) => Promise.resolve(String(u).endsWith('/a')
+    ? new Response(null, { status: 301, headers: { location: '/b' } })
+    : new Response('ok', { status: 200 }))) as typeof fetch;
+  const r = await safeFetch('https://zz-demo.example.invalid/a', { fetchImpl: fake });
+  assertEquals([r.ok, r.ok && r.finalUrl], [true, 'https://zz-demo.example.invalid/b']);
 });
