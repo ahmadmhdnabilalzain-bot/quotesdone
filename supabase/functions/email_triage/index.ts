@@ -37,19 +37,24 @@ const SYS = `You are the inbox assistant for QuotesDone, a UAE B2B anonymous quo
 type Mail = { id: number; from_email: string | null; to_email: string | null; subject: string | null; body: string | null; owner_role: string | null; raw: Record<string, unknown> | null };
 
 /** customer_support answers the mail in its thread. Returns how it was answered. */
-async function answer(m: Mail, deps: ThinkDeps): Promise<string> {
+// WHO WROTE IS A FACT, NOT A GUESS (QA channels run, 19 Oct 2026). Every mail was answered with audience 'customer': a
+// ZZ DEMO supplier's emailed quotation (inbound_messages 483) was answered as a customer question and told about the
+// reveal fee. fn_mail_sender_known already names the sender's relation; a supplier is answered as a supplier, in English.
+export function audienceOf(relation: unknown): 'customer' | 'supplier' { return relation === 'supplier' ? 'supplier' : 'customer'; }
+
+async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier' = 'customer'): Promise<string> {
   const q = ('Subject: ' + (m.subject || '') + '\n\n' + String(m.body || '')).slice(0, 4000);
-  const lang = langOf(q);
+  const lang = audience === 'supplier' ? 'en' : langOf(q);   // suppliers always English (28 Sep 2026)
   // A fixture (@example.invalid, the ZZ DEMO convention) is never queued for the replay (think.ts isFixtureRequest).
   const subject = { message_id: m.id, channel: 'email', ...(/@example\.invalid$/i.test(String(m.from_email || '')) ? { fixture: true } : {}) };
   const person = await needsAPerson(deps, { seat: 'customer_support', surface: 'email_triage.needs_a_person', message: q,
-    audience: 'customer', dedupeKey: 'email_person:' + m.id, subject });
+    audience, dedupeKey: 'email_person:' + m.id, subject });
   // EVERY E-MAIL REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026): the reasoned, independently checked answer
   // when it agrees; otherwise a direct model reply from the company brief (aiReply). The quoted knowledge passage, the
   // person-handoff sentence and the "we received it" receipt are gone. No model at all: nothing is sent (it throws, and
   // the message stays unanswered for the next run).
   let text: string, how: string;
-  const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience: 'customer', lang, message: q,
+  const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
     subject, rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
   if (person.value === true) {
     const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
@@ -59,7 +64,7 @@ async function answer(m: Mail, deps: ThinkDeps): Promise<string> {
     const r = await think(deps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
       question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
         + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
-      context: { audience: 'customer', language: lang } });
+      context: { audience, language: lang } });
     const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() ? r.answer.trim() : null;
     const body = verified ?? await direct('');
     if (!body) throw new Error('no model answered the e-mail');
@@ -93,8 +98,8 @@ Deno.serve(observe('email_triage', async (req) => {
       .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).is('owner_role', null).or('ai_category.is.null,ai_category.neq.routine_queued');
     if (Number(body?.message_id) > 0) sel = sel.eq('id', Number(body.message_id));
     const { data: msgs } = await sel.order('created_at', { ascending: true }).limit(20);
-    const reply1 = async (m: Mail) => {
-      try { const how = await answer(m, deps); counts.answered++; counts['answered_' + how] = (counts['answered_' + how] || 0) + 1; }
+    const reply1 = async (m: Mail, audience: 'customer' | 'supplier' = 'customer') => {
+      try { const how = await answer(m, deps, audience); counts.answered++; counts['answered_' + how] = (counts['answered_' + how] || 0) + 1; }
       catch (e) { counts.answer_failed++; console.error('email_triage answer', m.id, String((e as Error)?.message || e)); }
     };
     for (const m of ((msgs || []) as Mail[])) {
@@ -141,7 +146,7 @@ Deno.serve(observe('email_triage', async (req) => {
       counts.triaged++;
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
-      await reply1(m);
+      await reply1(m, audienceOf(relation));
     }
     // THE REPLY LEAVES NOW, not on the outbox's 2-minute poll (the founder's "under a minute").
     if (counts.answered) {
