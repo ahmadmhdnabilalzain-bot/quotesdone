@@ -11,6 +11,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { closeJobWindows } from './close_job_windows.mjs';
 
 const root = process.argv[2];
 const SCRIPTS = ['drawing_reaches_suppliers.mjs', 'cad_identity_reaches_no_supplier.mjs', 'every_drawing_format_is_read.mjs'];
@@ -21,7 +22,7 @@ export function stepsOf(script, stdout, status) {
   const journey = 'f-drawings/' + script.replace(/\.mjs$/, '');
   const steps = [];
   for (const line of String(stdout || '').split(/\r?\n/)) {
-    const m = /^(PASS|FAIL)\s{2}(.+?)(?: - (.*))?$/.exec(line);
+    const m = /^(PASS|FAIL|SKIP)\s{2}(.+?)(?: - (.*))?$/.exec(line);
     if (m) steps.push({ journey, name: m[2].slice(0, 200), status: m[1], detail: (m[3] || '').slice(0, 600) });
   }
   if (!steps.length || (status !== 0 && !steps.some((s) => s.status === 'FAIL'))) {
@@ -37,9 +38,22 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const file = join(runs[0], 'steps.json');
   const added = [];
   for (const s of SCRIPTS) {
-    const r = spawnSync('node', [join('scripts', 'e2e', s)], { encoding: 'utf8', timeout: PER_SCRIPT_MS, env: process.env });
+    // Each child records the run tags it opens (fixtures.openRun) so a child killed at the ceiling - SIGTERM never
+    // reaches its finally - still has its fixtures torn down and its rehearsal window closed here, by exact tag.
+    // The job's own tags file (the workflow's always() step reads it too); only this child's lines are acted on here.
+    const tagsFile = process.env.QD_E2E_RUN_TAGS || join(runs[0], 'run_tags.txt');
+    if (!existsSync(tagsFile)) writeFileSync(tagsFile, '');
+    const before = readFileSync(tagsFile, 'utf8').length;
+    const r = spawnSync('node', [join('scripts', 'e2e', s)], { encoding: 'utf8', timeout: PER_SCRIPT_MS, env: { ...process.env, QD_E2E_RUN_TAGS: tagsFile } });
     process.stdout.write(r.stdout || ''); process.stderr.write(r.stderr || '');
     added.push(...stepsOf(s, r.stdout, r.status ?? -1));
+    if (r.signal || r.error) {
+      const mine = join(runs[0], `run_tags_${s.replace(/\.mjs$/, '')}.txt`);
+      writeFileSync(mine, readFileSync(tagsFile, 'utf8').slice(before));
+      const closed = await closeJobWindows(mine).catch((e) => [{ tag: '?', summary: String(e?.message || e) }]);
+      added.push({ journey: 'f-drawings/' + s.replace(/\.mjs$/, ''), name: 'the journey finished inside its ceiling', status: 'FAIL',
+        detail: `killed (${r.signal || r.error?.code}) after ${PER_SCRIPT_MS / 60000} min; windows closed for it: ${JSON.stringify(closed).slice(0, 400)}` });
+    }
   }
   const steps = JSON.parse(readFileSync(file, 'utf8'));
   writeFileSync(file, JSON.stringify([...steps, ...added], null, 1));

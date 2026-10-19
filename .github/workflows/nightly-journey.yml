@@ -44,13 +44,20 @@ jobs:
     # 21 Sep 2026: +6 minutes for journey h (the audit's presses), measured at ~6 min on its first
     # production run, and it runs before the crawl, so the crawl keeps the room it had.
     # 24 Sep 2026: +36 minutes for the three drawing journeys (3 x 12 minute ceiling), run before the report.
-    timeout-minutes: 117
+    # 18 Oct 2026 (#1427): every long step now has its OWN ceiling, so the job wall always leaves the always() window
+    # close and the verdict their time. Sum of step ceilings: install 5 + journeys 70 (deadline 41 + ~24 worst in-flight
+    # journey + 3 teardown + 2) + drawings 38 (3 x 12 + 2 for closing a killed child) + report 3 + quote review 10
+    # (measured 6.3 min on 18 Oct) = 126, + checkout/setup ~1 = 127; window close 3 + verdict ~0 = 130; wall 133.
+    # A step that hits its ceiling is cancelled, its outcome is 'failure', and the verdict below reports it red.
+    timeout-minutes: 133
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_E2E_REPORTS: e2e-out
       QD_E2E_DEADLINE_MS: '2460000'
       # rehearsal window run time = timeout-minutes 117 + 3 teardown; fn_rehearsal_window_sweep closes it after that
       QD_E2E_WINDOW_MIN: '120'
+      # every run tag a script opens (fixtures.openRun), so the always() step below closes what a killed script left open
+      QD_E2E_RUN_TAGS: e2e-run-tags.txt
     steps:
       - id: gate
         run: |
@@ -68,10 +75,13 @@ jobs:
           node-version: '24'
       - if: steps.gate.outputs.skip != '1'
         run: npm ci && npx playwright install --with-deps chromium
+        timeout-minutes: 5
       # A failed step is the finding, not a failed job: the report below always runs.
-      - if: steps.gate.outputs.skip != '1'
+      - id: journeys
+        if: steps.gate.outputs.skip != '1'
         run: node scripts/e2e/run.mjs
         continue-on-error: true
+        timeout-minutes: 70
       # THE DRAWING JOURNEYS, WALKED EVERY NIGHT AND REPORTED (24 Sep 2026, sales_engineer; drawings audit finding 3,
       # review of #967). drawing_reaches_suppliers (a PDF set: redacted, taken off, matched, printed EN/AR),
       # cad_identity_reaches_no_supplier (a CAD title block's parties never reach a supplier; only demo suppliers
@@ -79,11 +89,14 @@ jobs:
       # BEFORE the report, and their PASS / FAIL lines are written into this run's steps.json as journey
       # "f-drawings/..." - so fn_it_journey_ingest hands a failure to the sales engineer instead of it dying in a log.
       # Up to 12 minutes each (drawing_journeys_into_report.mjs PER_SCRIPT_MS); the wall above grew by 36.
-      - if: steps.gate.outputs.skip != '1'
+      - id: drawings
+        if: steps.gate.outputs.skip != '1'
         run: node scripts/e2e/drawing_journeys_into_report.mjs e2e-out
         continue-on-error: true
+        timeout-minutes: 38
       - if: steps.gate.outputs.skip != '1'
         run: node scripts/e2e/report_to_it_engineer.mjs e2e-out
+        timeout-minutes: 3
       # THE QUOTATION REVIEW, WALKED, BECAUSE NOTHING WAS WALKING IT (18 Sep 2026).
       # The founder on this flow, 15 Sep: "this is the most important part in the whole supplier
       # portal, so make sure its built perfectly". scripts/e2e/supplier_quote_review.mjs walks it end
@@ -93,8 +106,29 @@ jobs:
       # through the review conversation the supplier actually uses.
       # It runs AFTER the ingest above so a failure here cannot delay the journey heartbeat, and with
       # continue-on-error for the same reason every other step has it: a failed step is the finding.
-      - if: steps.gate.outputs.skip != '1'
+      - id: quote_review
+        if: steps.gate.outputs.skip != '1'
         run: node scripts/e2e/supplier_quote_review.mjs
         continue-on-error: true
+        timeout-minutes: 10
         env:
           QD_SHOTS: e2e-out/quote-review
+      # A WINDOW THIS JOB OPENED NEVER OUTLIVES IT (18 Oct 2026). 13-18 Oct a drawing journey killed at its ceiling left
+      # its qd_run window open past expires_at every night, and every harness run (stage2 included) refused to start.
+      # Runs even when a step failed or the job was cancelled; touches only the tags this job wrote to QD_E2E_RUN_TAGS.
+      - if: always() && steps.gate.outputs.skip != '1'
+        run: node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"
+        timeout-minutes: 3
+      # THE BADGE TELLS THE TRUTH (18 Oct 2026). continue-on-error keeps the report and the window close running after a
+      # failed journey - and also turned run 39079803518 green over three steps that exited 1. The failures are handed
+      # to their seats above; this step makes the run itself red when any journey step failed.
+      - if: always() && steps.gate.outputs.skip != '1'
+        env:
+          JOURNEYS: ${{ steps.journeys.outcome }}
+          DRAWINGS: ${{ steps.drawings.outcome }}
+          QUOTE_REVIEW: ${{ steps.quote_review.outcome }}
+        run: |
+          echo "journeys=$JOURNEYS drawings=$DRAWINGS quote_review=$QUOTE_REVIEW"
+          for o in "$JOURNEYS" "$DRAWINGS" "$QUOTE_REVIEW"; do
+            if [ "$o" != success ]; then echo "::error::a nightly journey step failed (journeys=$JOURNEYS drawings=$DRAWINGS quote_review=$QUOTE_REVIEW)"; exit 1; fi
+          done

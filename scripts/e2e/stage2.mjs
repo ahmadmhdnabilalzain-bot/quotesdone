@@ -285,8 +285,13 @@ async function preconditions({ forRun }) {
       * (select count(*) from information_schema.columns where table_schema='public' and table_name='rehearsal_window' and column_name='models_allowed')
       * (select count(*) from pg_proc where proname='fn_e2e_run_tag_open') n`))[0].n;
   c(forRun ? 'ai_cost_log.e2e_run_tag, rehearsal_window.models_allowed and the tagged gate exist (a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql applied)' : 'ai_cost_log.e2e_run_tag state read (pending until merge)', forRun ? col === 1 : true, col ? 'present' : 'not yet applied: --run refuses until it is');
-  const smoke = (await read(`select count(*)::int n from public.rehearsal_window where ended_at is null`))[0].n;
-  c('no other harness run is open (rehearsal windows)', smoke === 0, `${smoke} open`);
+  // A window past its own expires_at is a run that is over (its process died before closing it; 13-18 Oct the nightly
+  // left one every night). It is treated as closed and named, never silently. A live window still refuses the run.
+  const wins = await read(`select run_tag, opened_by, expires_at, expires_at <= now() expired from public.rehearsal_window where ended_at is null`);
+  const expired = wins.filter((w) => w.expired);
+  if (expired.length) console.log(`stage2: ${expired.length} rehearsal window(s) past expires_at treated as closed: ${expired.map((w) => `${w.run_tag} (${w.opened_by}, expired ${w.expires_at})`).join(', ')}`);
+  const smoke = wins.length - expired.length;
+  c('no other harness run is open (rehearsal windows)', smoke === 0, `${smoke} open${expired.length ? `, ${expired.length} expired ignored` : ''}`);
   return { checks, ok: checks.every((x) => x.ok), pr, gate };
 }
 
