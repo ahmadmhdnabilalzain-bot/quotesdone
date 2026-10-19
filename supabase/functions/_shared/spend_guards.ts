@@ -112,6 +112,28 @@ export function rehearsalLetsFixtureThrough(tag: string | null, open: unknown, e
   return !!tag && !error && open === true;
 }
 
+// ---- a rehearsal window's cap (19 Oct 2026) ---------------------------------------------------
+// qd_run:ceodiag1 had a USD 5 cap and spent USD 13.86: every call sent x-qd-e2e-run with no proof, the
+// gateway dropped the tag, and an untagged call is nobody's window. A request that NAMES a run but cannot
+// prove it is refused, never run untagged. Returns the refusal reason, or null when the request may go on.
+const RUN_TAG_SHAPE = /^[a-z0-9]{4,16}$/;
+export function unprovenRunTag(headerTag: string | null | undefined, provenTag: string | null): string | null {
+  const named = String(headerTag ?? '').trim();
+  if (!named || provenTag) return null;
+  return RUN_TAG_SHAPE.test(named)
+    ? 'the request names sandbox run ' + named + ' but does not prove it (no service bearer, no x-qd-e2e-secret); '
+      + 'an unproven run is refused rather than spent outside its window cap'
+    : 'the request carries a malformed x-qd-e2e-run header; refused rather than spent untagged';
+}
+
+/** fn_rehearsal_spend_reserve's answer. Only a literal allowed===true lets a call be made; anything else refuses. */
+export function reservationVerdict(data: unknown, error: unknown): { allowed: boolean; rule: string; reason: string } {
+  if (error) return { allowed: false, rule: 'rehearsal_cap_unreadable', reason: 'the reservation could not be made: ' + String((error as { message?: string })?.message ?? error) };
+  const d = (data && typeof data === 'object') ? data as Record<string, unknown> : null;
+  if (!d) return { allowed: false, rule: 'rehearsal_cap_unreadable', reason: 'the reservation returned no answer' };
+  return { allowed: d.allowed === true, rule: String(d.rule ?? 'denied'), reason: String(d.reason ?? '') };
+}
+
 // ---- quote_compare: a failure is cached too ---------------------------------------------------
 // A degraded answer used to be deliberately NOT cached "so the model result wins the moment the
 // model works again" — which also meant a failing input re-spent the whole ladder on every card
