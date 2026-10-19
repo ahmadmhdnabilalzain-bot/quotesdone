@@ -12,6 +12,10 @@
 // Needs SUPABASE_ACCESS_TOKEN. The parity job has it and runs this with MATRIX_REQUIRE_LIVE=1, so there a missing
 // token FAILS rather than passing over nothing; the tokenless checks job reports the production tests as skipped.
 //
+// The fake-router bite (fn_ai_route answering outside the class's pair) is opt-in, MATRIX_ROUTER_BITE=1, never in CI:
+// it renames fn_ai_route under an exclusive lock. Run once by hand 19 Oct 2026 (#1501): it failed with "outside its
+// pair" as it must, and fn_ai_route was unchanged afterwards.
+//
 //   node --test scripts/checks/every_model_class_is_on_the_founders_matrix.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -166,7 +170,11 @@ update public.model_policy set model_fallback = 'google/gemini-3.8-flash' where 
   assert.match(v, /summarization does not hear and routed Gemini/, v);
 });
 
-test('fn_ai_route answering outside the class\'s pair fails', { skip: !token() }, async () => {
+// OPT-IN ONLY (MATRIX_ROUTER_BITE=1, never set in CI): renaming fn_ai_route takes an ACCESS EXCLUSIVE lock on it for the
+// replay, which would stall every live model call. Run once by hand, 19 Oct 2026 (it_engineer, #1501): the fake router
+// answering deepseek/deepseek-v4.1-flash failed the route test with "outside its pair"; fn_ai_route was unchanged after.
+test('fn_ai_route answering outside the class\'s pair fails',
+  { skip: (!token() || process.env.MATRIX_ROUTER_BITE !== '1') && 'opt-in: MATRIX_ROUTER_BITE=1 (locks fn_ai_route; never in CI)' }, async () => {
   // The live router keeps to the pair even with the pair's registry rows off (it answers 'none'), so the bite swaps in,
   // inside the rolled-back replay only, a router that answers the cheapest-of-the-registry way the 18 Oct fix removed.
   const v = await run(replay() + `\n;\nalter function public.fn_ai_route(text, text, numeric, text, boolean, text[], text) rename to fn_ai_route_zz_probe_real;
