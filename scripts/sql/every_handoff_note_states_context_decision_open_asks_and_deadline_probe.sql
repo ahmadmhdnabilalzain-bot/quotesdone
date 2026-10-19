@@ -29,8 +29,12 @@ declare
   v_ids bigint[] := '{}'; v_id bigint; v_note jsonb; v_ev jsonb; v_out jsonb := '[]'::jsonb; v_fail text := '';
   v_check text := 'NOT refused'; v_gaps jsonb; r record; v_legacy bigint; v_legacy_out text;
 begin
+  -- a lesson on the case carrying all four phone forms (redaction must reach copied lessons too)
+  insert into public.seat_case_memory (seat, case_kind, source_table, source_id, situation, decision, lessons)
+  values ('sales_engineer', 'zz_demo', 'zz_demo_case', v_case, 'ZZ DEMO situation 1013 handover', 'ZZ DEMO decision',
+          array['ZZ DEMO lesson: call +971 50 123 4567, 00971 4 765 4321, 050 123 4567 or 04 765 4321']);
   for r in select * from (values
-      (1, 'customer_support', 'sales_engineer', 'spec.not_sure',    jsonb_build_object('customer_name', 'ZZ DEMO Customer 1013', 'customer_email', 'zz-demo-1013@example.invalid', 'customer_phone', '+971 50 123 4567', 'remark', 'ZZ DEMO: reach me at zz-demo-1013@example.invalid or +971 50 123 4567', 'question', 'ZZ DEMO: is 2.5 mm2 cable acceptable?')),
+      (1, 'customer_support', 'sales_engineer', 'spec.not_sure',    jsonb_build_object('customer_name', 'ZZ DEMO Customer 1013', 'customer_email', 'zz-demo-1013@example.invalid', 'customer_phone', '+971 50 123 4567', 'remark', 'ZZ DEMO: reach me at zz-demo-1013@example.invalid or +971 50 123 4567 or 00971 4 765 4321 or 050 123 4567 or 04 765 4321', 'control', 'ZZ DEMO control: id 1013, case 263443, date 2026-10-09, 09-10-2026, AED 0.50, AED 05.00, ref 0123', 'question', 'ZZ DEMO: is 2.5 mm2 cable acceptable?')),
       (2, 'sales_engineer',   'accountant',     'refund.requested', jsonb_build_object('customer_email', 'zz-demo-1013@example.invalid', 'decision', 'ZZ DEMO: the spec cannot be met, refund the reveal', 'amount_aed', 15)),
       (3, 'accountant',       'customer_support','fraud.money_held', jsonb_build_object('customer_email', 'zz-demo-1013@example.invalid', 'deadline', (now() + interval '6 hours')::text))
     ) as t(n, f, t_seat, typ, payload) order by n
@@ -60,7 +64,12 @@ begin
     if r.n = 3 and jsonb_array_length(v_note->'tried'->'actions') < 2 then v_fail := v_fail || ' a3:tried'; end if;
 
     -- e. redaction
-    if v_note::text ~ '@example.invalid' or v_note::text ~ '971' then v_fail := v_fail || format(' e%s:contact-leaked', r.n); end if;
+    if v_note::text ~ '@example.invalid' or v_note::text ~ '971|123 4567|765 4321' then v_fail := v_fail || format(' e%s:contact-leaked', r.n); end if;
+    if v_note->'tried'->'case_memory'->0->'lessons'->>0 is distinct from 'ZZ DEMO lesson: call [phone], [phone], [phone] or [phone]' then v_fail := v_fail || format(' e%s:lesson', r.n); end if;
+    if r.n = 1 and v_note->'known'->'facts'->>'control' is distinct from 'ZZ DEMO control: id 1013, case 263443, date 2026-10-09, 09-10-2026, AED 0.50, AED 05.00, ref 0123'
+      then v_fail := v_fail || ' e1:control-eaten:' || coalesce(v_note->'known'->'facts'->>'control', 'null'); end if;
+    if r.n = 1 and v_note->'known'->'facts'->>'remark' is distinct from 'ZZ DEMO: reach me at [email] or [phone] or [phone] or [phone] or [phone]'
+      then v_fail := v_fail || ' e1:remark:' || coalesce(v_note->'known'->'facts'->>'remark', 'null'); end if;
 
     -- b. the receiver's next action closes it; the answer must cite the note
     perform set_config('qd.handoff_closer', r.f, true);

@@ -72,6 +72,8 @@ test('the note is redacted and contact keys are not facts', () => {
   assert.match(body('fn_handoff_summary'), /return public\.fn_handoff_redact\(jsonb_build_object\(/);
   assert.match(body('fn_handoff_summary'), /e\.key !~\* '\(mail\|phone\|mobile\|whatsapp/);
   assert.match(body('fn_handoff_redact'), /'\[email\]'[\s\S]*'\[phone\]'/);
+  // UAE local forms (05x xxx xxxx, 04 xxx xxxx) as well as + and 00 (review of fd5ee1a)
+  assert.ok(body('fn_handoff_redact').includes(String.raw`'\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]'`), 'local UAE numbers are not redacted');
   for (const sig of ['fn_handoff_redact(jsonb)', 'trg_handoff_carries_its_note()', 'fn_seat_handoff_act(bigint)', 'fn_seat_handoff_complete(bigint, jsonb)']) {
     assert.ok(s.includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), `${sig} is not revoked`);
   }

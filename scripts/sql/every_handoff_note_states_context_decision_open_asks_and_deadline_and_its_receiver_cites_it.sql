@@ -57,7 +57,11 @@
 
 set local lock_timeout = '5s';
 
--- Redacts e-mail addresses and international phone numbers (+ or 00 then 7+ digits, spaces/dashes allowed)
+-- Redacts e-mail addresses and phone numbers: international (+ or 00 then 7+ digits, spaces/dashes allowed) and
+-- UAE local (a word starting 0[1-9] with exactly 9-10 digits, single space/dash between: 05x xxx xxxx, 04 xxx xxxx).
+-- Measured not to touch ids (no leading 0), ISO dates/times (separators are ':' or 'T', at most 2 digits per run),
+-- dd-mm-yyyy dates (8 digits), or AED amounts (a '.' ends the run) - see the probe's control string.
+-- Applied to the WHOLE note, so case-memory lessons copied under tried.case_memory are redacted too.
 -- from every string in a JSON value. Timestamps and ids have no + or 00 prefix and are left alone.
 create or replace function public.fn_handoff_redact(p jsonb)
 returns jsonb
@@ -66,9 +70,10 @@ immutable
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select regexp_replace(
+  select regexp_replace(regexp_replace(
            regexp_replace(p::text, '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}', '[email]', 'g'),
-           '([+]|\m00)[0-9][0-9 -]{5,}[0-9]', '[phone]', 'g')::jsonb;
+           '([+]|\m00)[0-9][0-9 -]{5,}[0-9]', '[phone]', 'g'),
+           '\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]', 'g')::jsonb;
 $fn$;
 
 revoke execute on function public.fn_handoff_redact(jsonb) from public, anon, authenticated;
