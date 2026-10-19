@@ -50,13 +50,11 @@ values
   ('optical_eyewear','ophthalmic_lenses','Ophthalmic lenses','العدسات الطبية للنظارات',20),
   ('optical_eyewear','contact_lenses','Contact lenses & solutions','العدسات اللاصقة ومحاليلها',30),
   ('optical_eyewear','sunglasses','Sunglasses','النظارات الشمسية',40),
-  ('optical_eyewear','safety_prescription_eyewear','Prescription safety eyewear','نظارات السلامة الطبية',50),
   ('optical_eyewear','optical_shop_equipment','Optical shop & lab equipment','معدات محلات ومختبرات البصريات',60),
   ('home_furniture','living_dining_furniture','Living & dining furniture','أثاث المعيشة والطعام',10),
   ('home_furniture','bedroom_furniture','Bedroom furniture','أثاث غرف النوم',20),
   ('home_furniture','mattresses_bedding','Mattresses & bedding','المراتب ومستلزمات السرير',30),
   ('home_furniture','majlis_seating','Majlis seating','جلسات المجلس',40),
-  ('home_furniture','kids_furniture','Children''s furniture','أثاث الأطفال',50),
   ('home_furniture','furnished_unit_packages','Furnished apartment & villa packages','باقات تأثيث الشقق والفلل',60),
   ('weighing_systems','bench_platform_scales','Bench & platform scales','موازين طاولة ومنصات',10),
   ('weighing_systems','retail_label_scales','Retail & label-printing scales','موازين البيع بالتجزئة وطباعة الملصقات',20),
@@ -72,7 +70,6 @@ values
   ('drones_uav','counter_drone_systems','Counter-drone systems','أنظمة مكافحة الطائرات بدون طيار',60),
   ('occupational_health','pre_employment_medicals','Pre-employment & periodic medicals','الفحوص الطبية قبل التوظيف والدورية',10),
   ('occupational_health','onsite_clinic_nurse','Onsite clinic & nurse staffing','عيادة ميدانية وتوفير ممرضين',20),
-  ('occupational_health','first_aid_supplies_kits','First-aid kits & refills','حقائب الإسعافات الأولية وتعبئتها',30),
   ('occupational_health','corporate_wellness_screening','Corporate wellness screening','الفحوص الصحية للشركات',40),
   ('occupational_health','event_medical_cover','Event & site medical cover','التغطية الطبية للفعاليات والمواقع',50),
   ('occupational_health','vaccination_programmes','Workplace vaccination programmes','برامج التطعيم في مكان العمل',60),
@@ -102,15 +99,22 @@ values
   ('houseware_wholesale','home_textiles','Home textiles & towels','المفروشات المنزلية والمناشف',60)
 on conflict (trade_code, code) do nothing;
 
--- PROBE: one verdict row. The ten are active with EN + AR names, a group and at least four active services;
--- the 213 that existed are untouched in count; and a sentence naming another trade's work pulls in none of the ten.
-select case
-  when (select count(*) from public.taxonomy_trade t where t.active and t.code in ('apparel_fashion_wholesale','optical_eyewear','home_furniture','weighing_systems','drones_uav','occupational_health','artwork_decor','bicycles_micromobility','baby_nursery_products','houseware_wholesale')
-          and t.group_code is not null and t.label_ar ~ '[ء-ي]'
-          and (select count(*) from public.taxonomy_trade_service s where s.trade_code = t.code and s.active) >= 4) <> 10
-    then 'PROBE FAILED: a new trade is missing, inactive, unnamed, ungrouped or has fewer than four services'
-  when (select count(*) from public.taxonomy_trade where active) < 223
-    then 'PROBE FAILED: fewer than 223 active trades'
-  when public.fn_norm_trades('HVAC chiller replacement with calibration certificate, operator training and pumps') <> array['hvac']::text[]
-    then 'PROBE FAILED: a bare word pulls a trade in: ' || array_to_string(public.fn_norm_trades('HVAC chiller replacement with calibration certificate, operator training and pumps'), ', ')
-  else 'PROBE OK' end as verdict;
+-- PROBE: raises when any condition fails, so a failed probe rolls the whole file back and the apply exits non-zero
+-- (release review of #1509); otherwise one verdict row. The ten are active with EN + AR names, a group and at least
+-- four active services; the 213 that existed are untouched in count; a sentence naming another trade's work pulls in
+-- none of the ten. Services another trade already owns (first-aid kits, safety eyewear, kids furniture) are not here.
+do $probe$ declare v text; begin
+  select case
+    when (select count(*) from public.taxonomy_trade t where t.active and t.code in ('apparel_fashion_wholesale','optical_eyewear','home_furniture','weighing_systems','drones_uav','occupational_health','artwork_decor','bicycles_micromobility','baby_nursery_products','houseware_wholesale')
+            and t.group_code is not null and t.label_ar ~ '[ء-ي]'
+            and (select count(*) from public.taxonomy_trade_service s where s.trade_code = t.code and s.active) >= 4) <> 10
+      then 'PROBE FAILED: a new trade is missing, inactive, unnamed, ungrouped or has fewer than four services'
+    when (select count(*) from public.taxonomy_trade where active) < 223
+      then 'PROBE FAILED: fewer than 223 active trades'
+    when public.fn_norm_trades('HVAC chiller replacement with calibration certificate, operator training and pumps') <> array['hvac']::text[]
+      then 'PROBE FAILED: a bare word pulls a trade in: ' || array_to_string(public.fn_norm_trades('HVAC chiller replacement with calibration certificate, operator training and pumps'), ', ')
+    else 'PROBE OK' end
+  into v;
+  if v <> 'PROBE OK' then raise exception '%', v; end if;
+end $probe$;
+select 'PROBE OK' as verdict;
