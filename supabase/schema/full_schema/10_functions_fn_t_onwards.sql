@@ -2735,6 +2735,11 @@ begin
       jsonb_build_object('phone_digits', v_digits, 'held', p_hold, 'event', p_event,
                          'waiting_for', 'a person to answer +' || v_digits || ' on WhatsApp'));
   end if;
+  -- B. A reserved fixture number (+971 50 000 00xx, the ZZ DEMO harness) never pages the founder: the QA channels run of
+  --    19 Oct 2026 sent him founder_alert 103774 (e-mail) and 103775 (WhatsApp) for +971500000081. The handoff above is kept.
+  if public.fn_is_demo_phone(p_phone) then
+    return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'founder_own_number', v_founder, 'notified', true, 'fixture', true);
+  end if;
   begin
     perform public.fn_notify_founder(p_event => p_event, p_detail => p_detail, p_level => 'high', p_kind => 'whatsapp_human_request',
                                      p_dedupe_key => 'wa_human:' || v_digits || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD'),
