@@ -221,6 +221,8 @@ test('the detector fits the 8 s statement timeout, and a detector that stops per
 // them was scripts/checks/a_phone_cannot_select_an_account.test.mjs (6 calls a run, 5 refused by design) run
 // by check sessions without a rehearsal window of its own - the suite raising a "customers turned away"
 // finding against itself. That test now opens one. This probe now measures only what its own 60 rows do:
+// 13 Oct 2026: the window names its own expires_at. The default (now() + 2 h) on a window backdated 5 minutes
+// broke CHECK rehearsal_window_at_most_two_hours (expires_at <= started_at + 2h01m), so the probe errored before measuring.
 // the detector runs once before they exist and once after, and the attempts it counts must not move inside a
 // window, and must move by exactly 60 outside one (the control), whatever real traffic is doing.
 const REFUSAL_PROBE = (withWindow, counts = '{"http":404}') => `
@@ -230,7 +232,7 @@ const REFUSAL_PROBE = (withWindow, counts = '{"http":404}') => `
       -- a real window open over the last minute would cover the control's runs too; end it inside this rollback
       ${withWindow ? '' : "update public.rehearsal_window set ended_at = now() - interval '10 minutes' where coalesce(ended_at, started_at + interval '6 hours') > now() - interval '10 minutes';"}
       v0 := public.fn_it_detect(null, false);
-      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, started_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', now() - interval '5 minutes');" : ''}
+      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, started_at, expires_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', now() - interval '5 minutes', now() + interval '15 minutes');" : ''}
       insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
       select 'fn:login_otp', 'warn', now() - interval '1 minute', now() - interval '1 minute', '${counts}'::jsonb, 'ZZ DEMO'
         from generate_series(1, 60);

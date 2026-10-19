@@ -10,7 +10,11 @@
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
 // prevented by: _shared/brief_answer.test.ts
 import { withImages } from './chat_images.ts';
+<<<<<<< HEAD
 import { briefNumbers, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, splitBrief, takeSentences } from './company_brief.ts';
+=======
+import { briefNumbers, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
+>>>>>>> 9f5f0f0 (sales_engineer: the knowledge brief and the conversation style reach every customer reply (rulings 1195-1200))
 
 export type Msg = { role: 'user' | 'assistant'; content: string };
 export interface BriefCall {

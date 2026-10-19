@@ -237,10 +237,38 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
       if (ev.length < 8 || !hay.includes(ev)) return `field ${k} has no evidence copied verbatim from the conversation`;
       // ...and the value must be what those words say, not a value merely placed next to them.
       const val = String(f?.value ?? '').trim().toLowerCase();
-      if (!val || !ev.includes(val)) return `field ${k}: the value "${val}" is not in the evidence quoted for it`;
+      if (!val || !valueInEvidence(val, ev)) return `field ${k}: the value "${val}" is not in the evidence quoted for it`;
     }
   }
   return null;
+}
+
+/**
+ * A VALUE IS WHAT ITS EVIDENCE SAYS, NUMBER FOR NUMBER (review of #1444, 18 Oct 2026). Substring containment let "3"
+ * pass for "Validity: 30 days", "2" for "25 m2" and "0.5" for "10.5 mm". The value must still sit inside its evidence,
+ * and every number in it must match a WHOLE number in the evidence: no digit, decimal point or separator-and-digit may
+ * touch it on either side ("9,000.00" is one number; "1,5" stays as written).
+ * prevented by: _shared/think_value_in_evidence.test.ts
+ */
+/** The numbers of a text, in any script (\p{Nd}: "٣٠" is one number, never "٣"): digits with an optional thousands
+ *  separator ("," or the Arabic "٬") before exactly three digits, and an optional decimal part ("." or "٫"). "9,000.00" is
+ *  one number; "450,m2,20.00" is three. A number is CODE-LIKE when one or two letters that START a token sit right before
+ *  it ("C25", "L1", the "2" of "m2" written apart): part of a name, not a quantity. A unit or currency glued to it
+ *  ("AED9,000", "450m2", "10mm", "30days") does not make it code-like. */
+const NUMBER = /\p{Nd}+(?:[,\u066C]\p{Nd}{3})*(?:[.\u066B]\p{Nd}+)?/gu;
+function numbersOf(t: string): { n: string; code: boolean }[] {
+  const out: { n: string; code: boolean }[] = [];
+  for (const m of t.matchAll(NUMBER)) {
+    const before = t.slice(Math.max(0, m.index! - 3), m.index!);
+    out.push({ n: m[0], code: /(?:^|[^\p{L}\p{Nd}])\p{L}{1,2}$/u.test(before) || (m.index! <= 2 && /^\p{L}{1,2}$/u.test(before)) });
+  }
+  return out;
+}
+export function valueInEvidence(val: string, ev: string): boolean {
+  if (!ev.includes(val)) return false;
+  const evNums = numbersOf(ev);
+  // A quantity in the value must be a whole quantity of the evidence; a code-like number ("C25") may match the same code.
+  return numbersOf(val).every((v) => evNums.some((e) => e.n === v.n && (v.code || !e.code)));
 }
 
 /** One JSON object out of a model reply, or null. Tolerates a ```json fence; nothing else. */

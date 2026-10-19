@@ -20,6 +20,7 @@ import { BRIEF_TEXT } from './brief.generated.ts';
  *  informs the answer but never licenses a money figure. */
 export const figureSource = (brief: string): string => brief.replace(BRIEF_TEXT, '');
 
+<<<<<<< HEAD
 /** ONE CACHED PREFIX FOR EVERY LANGUAGE AND CHANNEL (13 Oct 2026, coordinator's option a). The knowledge block is the
  *  brief's FIRST part and identical for every caller, so it is sent as the gateway's sys_shared with its own cache
  *  breakpoint; the rest (company block, price guide, FAQ, the caller's facts) is sys_stable. Language rules live in the
@@ -29,6 +30,8 @@ export function splitBrief(brief: string): { shared: string; stable: string } {
   return brief.startsWith(BRIEF_TEXT) ? { shared: BRIEF_TEXT, stable: brief.slice(BRIEF_TEXT.length) } : { shared: '', stable: brief };
 }
 
+=======
+>>>>>>> 9f5f0f0 (sales_engineer: the knowledge brief and the conversation style reach every customer reply (rulings 1195-1200))
 export const FAQ_CAP = 16_000;
 export const BRIEF_TTL_MS = 5 * 60_000;
 
@@ -90,10 +93,16 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 
   const [cc, pb] = await Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})]);
   const company = String((cc as { block?: string } | null)?.block || '');
   const prices = typeof pb === 'string' ? pb : '';
+<<<<<<< HEAD
   // BRIEF_TEXT FIRST, byte-identical for every caller: splitBrief() hands it to the gateway as its own cached block.
   const brief = BRIEF_TEXT + '\n\n' + composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks].filter(Boolean) });
   // BRIEF_TEXT (scripts/kb/compile_brief.mjs, sales_engineer, rulings 1195-1200): the authored company brief, the UAE
   // regulation digests and every trade's conversation playbook, ~60k tokens, byte-stable, so it sits FIRST in the cached
+=======
+  const brief = composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks, BRIEF_TEXT].filter(Boolean) });
+  // BRIEF_TEXT (scripts/kb/compile_brief.mjs, sales_engineer, rulings 1195-1200): the authored company brief, the UAE
+  // regulation digests and every trade's conversation playbook, ~60k tokens, byte-stable, so it sits last in the cached
+>>>>>>> 9f5f0f0 (sales_engineer: the knowledge brief and the conversation style reach every customer reply (rulings 1195-1200))
   // prefix for every caller (aiReply, site_assistant) instead of being passed by each one.
   cache.set(key, { at: now, brief });
   return brief;

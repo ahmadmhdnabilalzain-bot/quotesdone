@@ -6,7 +6,7 @@
 //   node scripts/eval/support_reply_suite.mjs --live    # the real support path; refuses while the model is held
 //   node scripts/eval/support_reply_suite.mjs --live --json
 //
-// THE BANK: 31 topics × EN/AR × 2 of the 3 channels (homepage widget, WhatsApp, email) = 124 scenarios,
+// THE BANK: 31 topics × EN/AR × 2 of the 3 channels (homepage widget, WhatsApp, email) + 2 widget-only topics (ruling 1249) = 128 scenarios,
 // customers and suppliers: how it works, fees, VAT, refunds, disputes, specs and categories, complaints,
 // angry users, prompt injection and manipulation, off-topic, identity, and handoff to the right seat.
 //
@@ -305,7 +305,7 @@ async function answerLive(s) {
   const r = await fetch(base + '/functions/v1/site_assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: s.message, channel: s.channel, path: s.audience === 'supplier' ? '/suppliers' : '/', lang: s.lang, conv: 'zzdemo-suite-' + s.id.replace(/[^a-z0-9]/gi, '') }) });
   const j = await r.json().catch(() => ({}));
-  return { reply: String(j.reply || ''), seat: j.routed === 'reasoned' ? (j.routed_seat ?? null) : null };
+  return { reply: String(j.reply || ''), seat: j.routed === 'reasoned' || j.routed === 'brief' ? (j.routed_seat ?? null) : null };   // 'brief': the widget's model-written reply (rulings 1195/1196); a no-model exit returns no routed
 }
 
 // --stub: the real supportReply() and think() with a STUBBED model that returns each topic's known-good answer

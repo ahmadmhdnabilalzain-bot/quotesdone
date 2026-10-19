@@ -98,7 +98,7 @@ for (const d of truth.docs) {
     jd = await r.json().catch(() => null);
   }
   let model_trades: string[] = [];
-  const services: string[] = jd?.ok ? (jd.profile?.services || []) : [];
+  const services: string[] = jd?.ok ? (jd.profile?.lines || []) : [];
   if (services.length) {
     deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy');
     deps.budget.left = 40;

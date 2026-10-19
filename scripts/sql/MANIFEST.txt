@@ -2027,3 +2027,7 @@ scripts/sql/every_conversation_reply_runs_on_sonnet_5_5_with_gemini_behind.sql
 scripts/sql/the_supplier_quotation_chat_may_reach_the_model.sql
 scripts/sql/the_supplier_invitations_follow_the_founders_weekly_cap_of_20_30_40_then_50.sql
 scripts/sql/a_model_call_whose_cost_is_unknown_is_booked_unknown_never_free.sql
+"scripts/sql/every_chat_turn_is_stored_under_its_conversation_and_read_back_whole.sql"  
+[INFO] Recording command outcome: cd
+
+[OK] Command outcome recorded

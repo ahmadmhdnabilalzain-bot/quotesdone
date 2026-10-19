@@ -2259,7 +2259,7 @@ begin
   if new.kind <> 'handoff' or coalesce(new.detail->>'subject', '') <> 'reveal_invoice' then return new; end if;
   select id, email into c from public.customers where id = (new.detail->>'customer_id')::uuid;
   if c.email is not null and c.email ~ '@' then
-    v_ar := public.fn_registered_locale('customer', c.id) = 'ar';
+    v_ar := public.fn_customer_notice_locale((new.detail->>'inquiry_id')::uuid, c.id) = 'ar';
     insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, lang)
     values ('invoice_ready', c.email, 'customer',
             (new.detail->>'inquiry_id')::uuid, (new.detail->>'quote_id')::uuid,
@@ -2516,10 +2516,10 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_writes(p_msg_type text, p_ro
 AS $function$
 declare v_locale text;
 begin
-  -- A supplier: always English (fn_registered_locale answers 'en'). A customer: the language they chose
-  -- when they created the inquiry this is about, else their registered one (founder, 28 Sep 2026).
-  v_locale := coalesce(case when p_role = 'customer' then public.fn_inquiry_locale(p_inquiry) end,
-                       public.fn_registered_locale(p_role, p_customer, p_lead, p_email), 'en');
+  -- A supplier: always English (fn_registered_locale answers 'en'). A customer: fn_customer_notice_locale
+  -- (the inquiry's language, else the registered one, else English).
+  v_locale := case when p_role = 'customer' then public.fn_customer_notice_locale(p_inquiry, p_customer)
+                   else coalesce(public.fn_registered_locale(p_role, p_customer, p_lead, p_email), 'en') end;
   return public.fn_seat_handoff('sales_engineer', 'customer_support', 'delivery.request', 'notifications',
     coalesce(p_subject_id, p_msg_type || ':' || coalesce(p_quote::text, p_inquiry::text, p_lead::text, p_customer::text, 'x')),
     coalesce(p_extra, '{}'::jsonb) || jsonb_build_object(
@@ -3853,36 +3853,28 @@ CREATE OR REPLACE FUNCTION public.fn_seat_duties_tick(p_limit integer DEFAULT 8)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare d public.seat_duty; v_res jsonb; v_out jsonb := '[]'::jsonb; v_health jsonb; p jsonb;
-        v_t0 timestamptz := clock_timestamp(); v_n int := 0;
+declare d public.seat_duty; v_out jsonb := '[]'::jsonb; v_health jsonb; p jsonb;
+        v_t0 timestamptz := clock_timestamp(); v_ms integer;
 begin
+  -- A duty never measured gets its own job before anything else: it may be the 9 s one.
+  perform public.fn_seat_duty_isolate(sd.duty) from public.seat_duty sd where sd.enabled and not sd.own_job and sd.avg_ms is null;
+  -- Up to greatest(30, least(p_limit, 60)) candidates, the most overdue first; fn_seat_duty_run locks each.
   for d in
     select sd.* from public.seat_duty sd
-     where enabled
+     where enabled and not own_job and avg_ms is not null
        -- ONE PAUSE SWITCH (29 Sep 2026): a duty public.duty_pause names is not started.
        and not exists (select 1 from public.duty_pause dp where dp.duty = sd.duty)
        -- two minutes of tolerance, the same reasoning as fn_resilience_tick_plan: a tick is never exactly on the beat
        and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
-     order by last_started_at + every nulls first, duty   -- the most overdue first
+     order by last_started_at + every nulls first, duty
      limit greatest(30, least(coalesce(p_limit, 8), 60))
-     for update skip locked
   loop
-    -- the time budget: past 4 s no further duty starts (8 s PostgREST statement_timeout), except the
-    -- first p_limit, which always run as before
-    exit when v_n >= greatest(1, coalesce(p_limit, 8)) and clock_timestamp() - v_t0 > interval '4 seconds';
-    v_n := v_n + 1;
-    update public.seat_duty set last_started_at = now() where duty = d.duty;
-    begin
-      if not public.fn_seat_duty_routine_exists(d.routine) then
-        raise exception 'routine public.%() does not exist', d.routine;
-      end if;
-      execute format('select public.%I()', d.routine) into v_res;
-      update public.seat_duty set last_ok_at = now(), last_result = v_res, last_error = null, failures = 0 where duty = d.duty;
-      v_out := v_out || jsonb_build_object('duty', d.duty, 'ok', true);
-    exception when others then
-      update public.seat_duty set last_error = left(sqlerrm, 1000), failures = failures + 1 where duty = d.duty;
-      v_out := v_out || jsonb_build_object('duty', d.duty, 'ok', false, 'error', left(sqlerrm, 300));
-    end;
+    -- NEVER START A DUTY THAT WILL NOT FIT (18 Oct 2026): nothing starts after 1.5 s, and a duty starts only if
+    -- 1.5x its measured time ends before 4 s. The tick is one statement under an 8 s timeout no handler can catch.
+    v_ms := round(extract(epoch from clock_timestamp() - v_t0) * 1000);
+    exit when v_ms > 1500;
+    continue when v_ms + d.avg_ms * 1.5 > 4000;
+    v_out := v_out || public.fn_seat_duty_run(d.duty);
   end loop;
 
   -- The check, every tick: each problem is a finding; a duty that recovered closes its own.
@@ -3901,7 +3893,8 @@ begin
    where f.issue_key like 'seat_duty:%' and f.closed_at is null
      and (not exists (select 1 from jsonb_array_elements(v_health) h where 'seat_duty:' || (h->>'duty') = f.issue_key)
           or exists (select 1 from public.duty_pause dp where 'seat_duty:' || dp.duty = f.issue_key));
-  return jsonb_build_object('ran', v_out, 'problems', jsonb_array_length(v_health));
+  return jsonb_build_object('ran', v_out, 'problems', jsonb_array_length(v_health),
+                            'ms', round(extract(epoch from clock_timestamp() - v_t0) * 1000));
 end $function$
 
 
@@ -3949,6 +3942,20 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_seat_duty_isolate(p_duty text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  update public.seat_duty set own_job = true where duty = p_duty;
+  if not found then raise exception 'no seat duty %', p_duty; end if;
+  return cron.schedule('seat_duty:' || p_duty, '*/5 * * * *',
+    format($c$set statement_timeout = '60s'; select public.fn_seat_duty_run(%L);$c$, p_duty));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_duty_reason(p_seat text, p_surface text, p_question text, p_options jsonb, p_case jsonb, p_subject jsonb, p_dedupe_key text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -3983,6 +3990,45 @@ AS $function$
   select exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = p_routine
                    and p.pronargs = p.pronargdefaults)
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_duty_run(p_duty text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.seat_duty; v_res jsonb; v_t0 timestamptz := clock_timestamp(); v_ms integer;
+begin
+  select sd.* into d from public.seat_duty sd
+   where sd.duty = p_duty and sd.enabled
+     and not exists (select 1 from public.duty_pause dp where dp.duty = sd.duty)
+     and (sd.last_started_at is null or now() - sd.last_started_at >= sd.every - interval '2 minutes')
+   for update skip locked;
+  if not found then return jsonb_build_object('duty', p_duty, 'ran', false); end if;
+  update public.seat_duty set last_started_at = now() where duty = d.duty;
+  begin
+    if not public.fn_seat_duty_routine_exists(d.routine) then
+      raise exception 'routine public.%() does not exist', d.routine;
+    end if;
+    execute format('select public.%I()', d.routine) into v_res;
+    v_ms := round(extract(epoch from clock_timestamp() - v_t0) * 1000);
+    update public.seat_duty set last_ok_at = now(), last_result = v_res, last_error = null, failures = 0,
+           avg_ms = round(coalesce(avg_ms * 0.7 + v_ms * 0.3, v_ms)) where duty = d.duty;
+    if not d.own_job and (select avg_ms from public.seat_duty where duty = d.duty) > 1000 then
+      perform public.fn_seat_duty_isolate(d.duty);   -- too slow for the shared tick: its own job from now on
+    end if;
+    return jsonb_build_object('duty', d.duty, 'ok', true, 'ms', v_ms);
+  exception when others then
+    v_ms := round(extract(epoch from clock_timestamp() - v_t0) * 1000);
+    update public.seat_duty set last_error = left(sqlerrm, 1000), failures = failures + 1,
+           avg_ms = round(coalesce(avg_ms * 0.7 + v_ms * 0.3, v_ms)) where duty = d.duty;
+    if not d.own_job and (select avg_ms from public.seat_duty where duty = d.duty) > 1000 then
+      perform public.fn_seat_duty_isolate(d.duty);
+    end if;
+    return jsonb_build_object('duty', d.duty, 'ok', false, 'ms', v_ms, 'error', left(sqlerrm, 300));
+  end;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_seat_exam_grade(p_seat text)
@@ -4060,6 +4106,8 @@ AS $function$
 declare v_id bigint; v_key text := p_type || ':' || p_subject_id; v_known boolean;
 begin
   if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
+  -- ruling 1199: a handoff raised from a demo row is not filed at all
+  if public.fn_seat_work_is_demo(p_payload::text, p_payload, p_subject_table, p_subject_id) then return null; end if;
   v_known := exists (select 1 from public.seat_handoff_kind k
                       where k.type = p_type and k.from_seat = p_from and k.to_seat = p_to);
 
@@ -4748,6 +4796,51 @@ begin
     v_closed := v_closed || o.id;
   end loop;
   return jsonb_build_object('closed', to_jsonb(v_closed), 'still_owed', to_jsonb(v_open));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_work_is_demo(p_text text, p_ref jsonb, p_subject_table text DEFAULT NULL::text, p_subject_id text DEFAULT NULL::text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_uuid constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
+  v_id text := split_part(coalesce(p_subject_id, ''), ':', 1);
+  v_ref jsonb := case when jsonb_typeof(p_ref) = 'object' then p_ref else '{}'::jsonb end;
+begin
+  if coalesce(p_text, '') ~* '(^|[^a-z])zz\s*demo' then return true; end if;
+
+  -- the subject a handoff names, folded into the reference set
+  if p_subject_table in ('leads', 'suppliers') then v_ref := v_ref || jsonb_build_object('zz_subject', jsonb_build_object('supplier_id', v_id));
+  elsif p_subject_table = 'customers' then v_ref := v_ref || jsonb_build_object('zz_subject', jsonb_build_object('customer_id', v_id));
+  elsif p_subject_table = 'inquiries' then v_ref := v_ref || jsonb_build_object('zz_subject', jsonb_build_object('inquiry_id', v_id));
+  elsif p_subject_table = 'transactions' then v_ref := v_ref || jsonb_build_object('zz_subject', jsonb_build_object('transaction_id', v_id));
+  elsif p_subject_table = 'reviews' and v_id ~ '^[0-9]{1,18}$' then
+    v_ref := v_ref || coalesce((select jsonb_build_object('zz_subject', jsonb_build_object('customer_id', r.customer_id,
+                       'supplier_id', r.supplier_id, 'transaction_id', r.transaction_id)) from public.reviews r where r.id = v_id::bigint), '{}');
+  elsif p_subject_table is not null and public.fn_deliberation_subject_is_fixture(p_subject_table, p_subject_id) then
+    return true;
+  end if;
+
+  if v_ref = '{}'::jsonb then return false; end if;
+  if coalesce((public.fn_ai_subject_is_fixture(v_ref) ->> 'fixture')::boolean, false) then return true; end if;
+
+  -- any customer / supplier / lead / inquiry / transaction / email named at any depth (a rating nests them)
+  return exists (
+    select 1
+      from (values ('customer_id'), ('supplier_id'), ('lead_id'), ('inquiry_id'), ('transaction_id'), ('email')) k(key)
+      cross join lateral jsonb_path_query(v_ref, ('lax $.**.' || k.key)::jsonpath) x(val)
+      cross join lateral (select x.val #>> '{}' as s) s
+     where case k.key
+             when 'customer_id'    then public.fn_party_is_demo('customer', s.s)
+             when 'supplier_id'    then public.fn_party_is_demo('supplier', s.s)
+             when 'lead_id'        then public.fn_party_is_demo('lead', s.s)
+             when 'email'          then public.fn_is_demo_email(s.s)
+             when 'inquiry_id'     then case when s.s ~ v_uuid then public.fn_inquiry_is_demo(s.s::uuid) else false end
+             when 'transaction_id' then case when s.s ~ v_uuid then public.fn_transaction_is_demo(s.s::uuid) else false end
+           end);
 end $function$
 
 

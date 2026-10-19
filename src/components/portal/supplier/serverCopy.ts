@@ -13,6 +13,7 @@ import { price } from './money';
 type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
+const DOCS_BEING_READ = 'we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes';
 const s = (en: string | ((p: P) => string), ar: string | ((p: P) => string)): Entry => ({
   en: typeof en === 'string' ? () => en : en,
   ar: typeof ar === 'string' ? () => ar : ar,
@@ -655,7 +656,6 @@ const COPY: Record<string, Entry> = {
   verify_failed: s('We could not check that code. Please try again.', 'تعذّر التحقق من الرمز. يُرجى المحاولة مرة أخرى.'),
   session_failed: s('Could not start your session. Please try again.', 'تعذّر بدء جلستكم. يُرجى المحاولة مرة أخرى.'),
   not_signed_in: s('Please sign in first.', 'يُرجى تسجيل الدخول أولًا.'),
-  // The rate limits say WHICH limit was hit — "try again later" alone tells a supplier nothing.
   rate_limited: s('Too many code requests. Please try again later.', 'طلبتم رموزًا كثيرة خلال وقت قصير. يُرجى المحاولة لاحقًا.'),
   sms_rate_limited: s('Too many SMS codes were requested for this number in the last hour. Please wait and request a new one.',
     'طُلب عدد كبير من رموز الرسائل النصية لهذا الرقم خلال الساعة الماضية. يُرجى الانتظار قليلًا ثم طلب رمز جديد.'),

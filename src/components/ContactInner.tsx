@@ -51,7 +51,7 @@ export function ContactInner() {
               a.textContent = ar ? 'تابع حالة الشكوى' : 'Track its status'; a.style.textDecoration = 'underline'; Mg.append(a);
             } else Mg.textContent = ar ? 'شكرًا — سنتواصل معك قريبًا.' : 'Thanks — we will be in touch shortly.';
           }
-          F.reset();
+          F.reset(); count();
         }
         else { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = ar ? 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.' : ((j && j.error) || 'Could not send. Please email management@quotesdone.com.'); } }
       } catch (_e) { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = locale === 'ar' ? 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.' : 'Could not send. Please email management@quotesdone.com.'; } }

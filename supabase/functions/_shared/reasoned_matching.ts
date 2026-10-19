@@ -16,10 +16,11 @@
 // (dedupeKey), and the caller does the safe thing: the visitor is asked to describe the job, the product list
 // is not scored, no alternative is offered to a customer, and a quote is held with every detail asked of the
 // supplier — whose own statement in the portal releases it. Nothing falls back to a keyword.
-import { think, type ThinkDeps, type ThinkResult } from './think.ts';
+import { readerOfTheirOwnText, think, type ThinkDeps, type ThinkResult } from './think.ts';
 import { COMPOSITE, lineTradeOptions, TRADES, tradeOfCategory, attrsOf } from './line_specs/model.ts';
 import { componentAttr, lineText, materialNames, READ, type Line, type Requirements, type Terms, type TermsSpec } from './line_specs/assess.ts';
 import type { SpecOffer } from './line_specs/no_exact_spec.ts';
+import { heldFromGate, type GateAnswer } from './llm_hold.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 const answered = (r: ThinkResult) => r.status === 'answered';

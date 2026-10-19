@@ -7,7 +7,7 @@
 // non-committal thing, never a keyword guess. Where the answer has an effect in the database, the held
 // question is queued under its surface and fn_reason_apply_<surface> (scripts/sql/
 // prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql) applies it when the hold lifts.
-import { think, type ThinkDeps } from './think.ts';
+import { readerOfTheirOwnText, think, type ThinkDeps } from './think.ts';
 import type { Reasoned } from './reasoned_decisions.ts';
 
 const answered = (r: { status: string }) => r.status === 'answered';

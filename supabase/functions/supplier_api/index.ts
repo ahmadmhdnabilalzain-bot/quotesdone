@@ -868,7 +868,7 @@ ${q}`,
             if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); upd.services = xServices.join(', '); }
             // The services the model read off a picture are read for trades exactly as a text profile's lines are.
             const pq = readQueue.find((x) => x.kind === 'profile' && x.mime && /^image\//i.test(x.mime));
-            if (pq) pq.photo_text = modelReadText('profile', xServices);
+            if (pq) pq.photo_text = modelReadText('profile', pf.lines);
             if (Array.isArray(pf.products) && pf.products.length && !sup.products) upd.products = pf.products.join(', ');
             if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) upd.service_emirates = pf.emirates;
             out.profile = { summary: pf.summary, sectors: pf.sectors, confidence: pf.confidence };
