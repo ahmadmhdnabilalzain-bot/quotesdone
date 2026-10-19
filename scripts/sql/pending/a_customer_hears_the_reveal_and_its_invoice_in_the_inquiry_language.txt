@@ -1,0 +1,4 @@
+Committed, not applied: no apply before merge (release operator rule). Apply at merge with
+node scripts/apply_sql.mjs scripts/sql/a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql --apply --ddl
+(it must print PROBE OK), then delete this note and append the file to the END of scripts/sql/MANIFEST.txt
+in the same commit. Seat: sales_engineer.

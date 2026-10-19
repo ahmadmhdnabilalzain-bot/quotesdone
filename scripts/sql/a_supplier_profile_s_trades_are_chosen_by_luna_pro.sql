@@ -5,9 +5,11 @@
 -- openai/gpt-6-luna-pro > anthropic/claude-sonnet-5.5 (a backup from another provider; ruling 1218 retires plain luna).
 -- The luna-pro model_registry and model_rate rows belong to matrix v3
 -- (gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql, #1433), which must be
--- applied first; this file only names the route. Applied at merge (release operator).
+-- applied first; this file only names the route. max_tokens 8000: at 3000 the answer for a multi-trade contractor
+-- (up to 3 quotes per code) was cut off and the file proposed nothing (N11, held-out set 2, 19 Oct 2026).
+-- Applied at merge (release operator).
 insert into public.model_policy (task_class, tier, model_primary, model_fallback, max_tokens, rationale, deterministic_alternative, active, cache_ttl_min)
-values ('supplier_trade_choice', 'medium', 'openai/gpt-6-luna-pro', 'anthropic/claude-sonnet-5.5', 3000,
+values ('supplier_trade_choice', 'medium', 'openai/gpt-6-luna-pro', 'anthropic/claude-sonnet-5.5', 8000,
         '19 Oct 2026, founder: Luna Pro for extraction, Gemini only for voice; matrix v3 extraction pair. A supplier profile''s or catalogue''s trades are chosen from our codes, each proven by a quoted line code checks, then checked a second time.',
         'exact code or gte-small meaning confirmed by the trade''s own words (trade_resolve.ts) - measured too imprecise on real profiles',
         true, 0)

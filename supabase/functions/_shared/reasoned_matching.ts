@@ -16,10 +16,11 @@
 // (dedupeKey), and the caller does the safe thing: the visitor is asked to describe the job, the product list
 // is not scored, no alternative is offered to a customer, and a quote is held with every detail asked of the
 // supplier — whose own statement in the portal releases it. Nothing falls back to a keyword.
-import { think, type ThinkDeps, type ThinkResult } from './think.ts';
+import { readerOfTheirOwnText, think, type ThinkDeps, type ThinkResult } from './think.ts';
 import { COMPOSITE, lineTradeOptions, TRADES, tradeOfCategory, attrsOf } from './line_specs/model.ts';
 import { componentAttr, lineText, materialNames, READ, type Line, type Requirements, type Terms, type TermsSpec } from './line_specs/assess.ts';
 import type { SpecOffer } from './line_specs/no_exact_spec.ts';
+import { heldFromGate, type GateAnswer } from './llm_hold.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 const answered = (r: ThinkResult) => r.status === 'answered';
@@ -141,30 +142,37 @@ const TERM_FIELDS: { key: string; question: string }[] = [
 export async function readQuote(deps: ThinkDeps, o: { quoteId: string; category: string | null; lines: Line[]; terms: Terms; requirements: Requirements }): Promise<QuoteReading | null> {
   const quoteTrade = tradeOfCategory(o.category);
   const composite = COMPOSITE.has(quoteTrade);
-  const base = { seat: 'sales_engineer' as const, dedupeKey: 'quote_read:' + o.quoteId, subject: { quote_id: o.quoteId } };
+  const base = { seat: 'sales_engineer' as const, dedupeKey: 'quote_read:' + o.quoteId, subject: { quote_id: o.quoteId }, ...readerOfTheirOwnText("read what the supplier's own quotation states") };
   const out: QuoteReading = { lines: {}, terms: {} };
   const put = (n: number, k: string, v: string) => { (out.lines[n] ??= {})[k] = v; };
   const lines = o.lines.filter((l) => !alreadyRead(l)).slice(0, MAX_READ_LINES);
   const ts = o.terms.terms_spec ?? {};
 
-  // 1. The quote-level terms the supplier has not already stated in the portal.
+  // 1. The quote-level terms the supplier has not already stated in the portal. It does not depend on the lines' trade or
+  //    specs (steps 2-3), so it runs BESIDE them, not before them (13 Oct 2026: the review's chain was 7 calls in a row).
   const termFields = TERM_FIELDS.filter((f) => f.key === 'delivery' ? !ts.delivery?.value
     : f.key.startsWith('installation') ? !ts.installation?.included : !ts.warranty?.period);
-  if (termFields.length) {
+  const termsStep: Promise<boolean> = (async () => {
+    if (!termFields.length) return true;
     const text = [['LEAD TIME', o.terms.lead_time], ['WARRANTY', o.terms.warranty], ['SCOPE', o.terms.scope], ['CONDITIONS', o.terms.conditions],
       ['EXCLUSIONS', o.terms.exclusions], ['NOTES', o.terms.notes]].filter(([, v]) => v && String(v).trim()).map(([k, v]) => `${k}: ${v}`)
       .concat(lines.map((l) => `LINE ${l.line_no}: ${lineText(l).slice(0, 300)}`)).join('\n').slice(0, 6000);
     const r = await ask(deps, { ...base, surface: 'line_specs.assess', question: text,
       context: { audience: 'supplier', trade: quoteTrade, conversation: [{ role: 'supplier', text }] },
       decision: { name: 'quote_terms', fields: termFields } });
-    if (!answered(r)) return null;
+    if (!answered(r)) return false;
     const f = r.decision?.fields ?? {};
     if (f.delivery?.value) out.terms.delivery = { value: f.delivery.value, source: 'reasoned' };
     // Both, or neither: not a statement either way, so it stays asked.
     const inc = !!f.installation_included?.value, exc = !!f.installation_excluded?.value;
     if (inc !== exc) out.terms.installation = { included: inc ? 'yes' : 'no', detail: f.installation_detail?.value ?? null, source: 'reasoned' };
     if (f.warranty_period?.value) out.terms.warranty = { period: f.warranty_period.value, coverage: f.warranty_coverage?.value ?? '', source: 'reasoned' };
-  }
+    return true;
+  })().catch(() => false);
+
+  // Under the model hold the readers are not forked: the terms ask is held and queued, and that ONE question for the
+  // quote is the whole answer (as before); in parallel the lines would queue a second.
+  if (heldFromGate((await deps.gate().catch(() => null)) as GateAnswer) && !(await termsStep)) return null;
 
   // 2. A composite quote (fit-out, MEP ...): the trade each line is, or none (labour, a fee, a heading).
   const tradeOf: Record<number, string | null> = {};
@@ -173,7 +181,7 @@ export async function readQuote(deps: ThinkDeps, o: { quoteId: string; category:
         ...lineTradeOptions(quoteTrade).map((t) => ({ id: t, meaning: `a ${TRADES[t].en} item: a material or product of that trade` })),
         { id: 'none', meaning: 'no trade material: labour, transport, a fee, a discount, a heading or a lump sum' },
       ] } }); })) : [];
-  if (trades.some((r) => !answered(r))) return null;
+  if (trades.some((r) => !answered(r))) { await termsStep; return null; }
   lines.forEach((l, i) => {
     if (!composite) { tradeOf[l.line_no] = TRADES[quoteTrade] ? quoteTrade : null; return; }
     const t = trades[i].decision?.choice ?? 'none';
@@ -205,7 +213,7 @@ export async function readQuote(deps: ThinkDeps, o: { quoteId: string; category:
       context: { audience: 'supplier', trade: quoteTrade, conversation: [{ role: 'supplier', text }] },
       decision: { name: 'stated_specs', fields } });
   }));
-  if (results.some((r) => !answered(r))) return null;
+  if (!(await termsStep) || results.some((r) => !answered(r))) return null;
   for (const r of results) {
     for (const [k, v] of Object.entries(r.decision?.fields ?? {})) {
       const m = k.match(/^L(\d+)__(na__|names__)?(.+)$/);   // our own key format, parsed

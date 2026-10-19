@@ -33,6 +33,7 @@ import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROW
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
+import { customerReplyGate } from '../_shared/ai_reply.ts';
 import { envCoverage as vercelEnvCoverage, snapshot as vercelSnapshot } from '../_shared/vercel_snapshot.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -1273,9 +1274,25 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).
   await step('routine_judgements', async () => drainRoutineJudgements(defaultDeps(admin, 'resilience_ping'), 5));
+  // A WHATSAPP TURN THAT CRASHED (customer_support, 19 Oct 2026): a wa_messages row still at stage 'received' after 5 minutes
+  // goes to customer_support once and into the held-question queue (so reasoning_escalate below sends the holding notice in the same tick); never replayed
+  // (scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql).
+  await step('wa_arrival_sweep', async () => ({ escalated: ((await rpc('fn_wa_arrival_sweep', { p_limit: 20 })) as unknown[] | null ?? []).length }));
   // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
   // row stays held and is still replayed above the moment the hold lifts.
+  // The CEO's answer to a customer_support handover (customer_support, #1462) passes the customer-reply gate before it
+  // is sent; a held answer leaves the item open. Routing and pick-up run on pg_cron (cs_held_question_route); only this
+  // TypeScript gate runs here (a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql).
+  await step('ceo_support_replies', async () => {
+    const due = ((await rpc('fn_ceo_support_reply_due', { p_limit: 10 })) ?? []) as { handover_id: number; answer: string; lang: 'en' | 'ar'; supplier: boolean }[];
+    const verdicts: Record<string, unknown>[] = [];
+    for (const d of due) {
+      const problems = await customerReplyGate((fn, args) => admin.rpc(fn, args), d.answer, d.lang, d.supplier);
+      verdicts.push({ id: d.handover_id, verdict: await rpc('fn_ceo_support_reply_record', { p_handover_id: d.handover_id, p_problems: problems }), problems });
+    }
+    return { verdicts };
+  });
   await step('reasoning_escalate', async () => {
     const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as unknown[] | null;
     // The notices owed — the rows just escalated AND any earlier one whose send failed — come from the queue, not
