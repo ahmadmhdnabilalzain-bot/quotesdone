@@ -48,7 +48,7 @@ The reveal fee is what a buyer pays to unlock a chosen supplier's identity and c
 
 **Do you take commission on the work I win?**
 
-No. QuotesDone takes no commission on won work. The only supplier-side charge is the non-response charge, and only if the supplier did not respond and the buyer was refunded: the exact amount refunded to the buyer (the 3% reveal fee), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date.
+No. QuotesDone takes no commission on won work. The only supplier-side charge is the non-response charge, and only if the supplier did not respond and the buyer was refunded: the exact amount refunded to the buyer (the 3% reveal fee), the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement v15 clause 33; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount).
 
 ## Supplier Journey
 
@@ -112,13 +112,13 @@ Every refund is decided by QuotesDone's CEO on the record; none is automatic. On
 
 **What is deducted from a refund?**
 
-Nothing. When a supplier does not respond, everything the buyer paid (the 3% reveal fee) is refunded. Separately, QuotesDone recovers from the unresponsive supplier the exact amount refunded, an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date.
+Nothing. When a supplier does not respond, everything the buyer paid (the 3% reveal fee) is refunded. Separately, QuotesDone recovers from the unresponsive supplier the exact amount refunded, the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement v15 clause 33; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount).
 
 ## Supplier Charges
 
 **What happens to a supplier who doesn't respond after being revealed?**
 
-If the supplier did not respond and the buyer was refunded, QuotesDone recovers from that supplier the exact amount refunded to the buyer (the 3% reveal fee), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date (Supplier Agreement clause 33). This is the only supplier-side charge.
+If the supplier did not respond and the buyer was refunded, QuotesDone recovers from that supplier the exact amount refunded to the buyer (the 3% reveal fee), the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement v15 clause 33; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount) (Supplier Agreement clause 33). This is the only supplier-side charge.
 
 ## Supplier Fees
 
@@ -132,7 +132,7 @@ Registration is free for the first 1,000 suppliers; after that it is AED 1,000 p
 
 **Are there any other fees for suppliers?**
 
-No. There is no commission on won work and registration is currently free. The only supplier-side charge is the non-response charge (the exact amount refunded to the buyer, an AED 250 administrative fee, and simple interest at 9% a year from the due date), and only if the supplier did not respond and the buyer was refunded.
+No. There is no commission on won work and registration is currently free. The only supplier-side charge is the non-response charge (the exact amount refunded to the buyer, the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date), and only if the supplier did not respond and the buyer was refunded.
 
 ## Licence Expiry
 
