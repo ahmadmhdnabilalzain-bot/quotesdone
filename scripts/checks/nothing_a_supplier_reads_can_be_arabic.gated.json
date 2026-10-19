@@ -1152,6 +1152,7 @@
   "cfec138a3d1c",
   "d4cc99588d87",
   "d8cfbafe11d7",
+  "dcdf05f51c05",
   "e5bbf3c9a9c4",
   "eb4b11eface6",
   "ef564b6e9872",
@@ -1336,8 +1337,5 @@
   "5b18a29fa4d7",
   "afa6fc3ea96a",
   "c393ed6907b8"
- ],
- "supabase/functions/supplier_portal/overview.ts": [
-  "f2fbb42fc93f"
  ]
 }
