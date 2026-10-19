@@ -245,9 +245,9 @@ Deno.test('a failed header read keeps the folder and records why', async () => {
 });
 
 Deno.test('header parsers: forefront and Authentication-Results', () => {
-  assertEquals(forefront('CIP:1.1.1.1;SCL:-1;SFV:NSPM;CAT:NONE;'), { scl: -1, sfv: 'NSPM', cat: 'NONE' });
-  assertEquals(forefront(null), { scl: null, sfv: null, cat: null });
-  assertEquals(authVerdicts('spf=none; dkim=fail; dmarc=temperror'), { spf: 'none', dkim: 'fail', dmarc: 'temperror', compauth: null });
+  assertEquals(forefront('CIP:1.1.1.1;SCL:-1;SFV:NSPM;CAT:NONE;'), { scl: -1, sfv: 'NSPM', cat: 'NONE', ptr: null, ipv: null });
+  assertEquals(forefront(null), { scl: null, sfv: null, cat: null, ptr: null, ipv: null });
+  assertEquals(authVerdicts('spf=none; dkim=fail; dmarc=temperror'), { spf: 'none', dkim: 'fail', dmarc: 'temperror', compauth: null, compauth_reason: null });
 });
 
 Deno.test('Outlook reads app-only with the M365 app send_outbox sends with: MS_* edge secrets, client_credentials, /users/<seed>', async () => {
@@ -264,4 +264,10 @@ Deno.test('Outlook reads app-only with the M365 app send_outbox sends with: MS_*
       (k) => k === gone ? '' : 'x');
     assertEquals(m.folder, null, gone + ' missing must fail closed'); assert(String(m.detail.error).includes(gone));
   }
+});
+
+Deno.test('compauth reason and Forefront PTR/IPV are kept', () => {
+  assertEquals(authVerdicts('dmarc=pass action=none;compauth=softpass reason=201').compauth_reason, '201');
+  const f = forefront('CIP:1.2.3.4;CTRY:US;SCL:1;SFV:NSPM;IPV:NLI;PTR:a.amazonses.com;CAT:NONE;');
+  assertEquals([f.scl, f.sfv, f.cat, f.ipv, f.ptr], [1, 'NSPM', 'NONE', 'NLI', 'a.amazonses.com']);
 });
