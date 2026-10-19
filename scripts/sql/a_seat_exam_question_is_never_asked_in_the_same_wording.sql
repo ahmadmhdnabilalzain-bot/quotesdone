@@ -48,3 +48,8 @@ create policy seat_exam_fix_service_role_only on public.seat_exam_fix as permiss
 drop policy if exists seat_exam_asked_service_role_only on public.seat_exam_asked;
 create policy seat_exam_asked_service_role_only on public.seat_exam_asked as permissive for all to public using (false) with check (false);
 revoke all on public.seat_exam_fix, public.seat_exam_asked from anon, authenticated;
+
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('seat_exam_asked', true, 'it_engineer', 'Every model-on seat exam question: its fresh wording, the seat''s answer and the grade (ledger 1084).', 'it_engineer'),
+  ('seat_exam_fix', true, 'it_engineer', 'Every seat exam miss and the fix that closed it by a passing re-ask (ledger 1084).', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason, added_by = excluded.added_by;
