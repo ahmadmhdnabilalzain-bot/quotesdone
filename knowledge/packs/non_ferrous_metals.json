@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "non_ferrous_metals:product-distinctions",
+      "topic": "Non-ferrous metals: alloys, tempers and product forms",
+      "topic_ar": "المعادن غير الحديدية: السبائك والمعالجات وأشكال المنتجات",
+      "kind": "product_distinctions",
+      "body_en": "Aluminium is sold by alloy series and temper: 1xxx (pure, for electrical and chemical uses), 3xxx (manganese, general sheet and roofing), 5xxx (magnesium, marine-grade 5083 and 5052, good corrosion resistance and weldable, non-heat-treatable), 6xxx (magnesium-silicon, the extrusion alloys 6061 and 6063 for profiles and structures, heat-treatable), and 7xxx (zinc, high-strength 7075); tempers such as O (annealed), H (strain-hardened, for example H32) and T (heat-treated, for example T6 solution treated and artificially aged, T5 for architectural extrusions). Forms: sheet and plate (by thickness, with tread or chequer plate), coils, extrusions and profiles, bars, rods and tubes, and foil. Copper and copper alloys: C101/C110 copper for busbars and electrical, brass (copper-zinc) for fittings and machined parts, phosphor bronze and aluminium bronze for bearings and marine parts, and copper-nickel for seawater piping. Other metals: zinc, lead, nickel alloys, titanium and tin. Prices follow LME metal prices plus premium, fabrication and size extras, so quotes are often index-linked. Mill test certificates (EN 10204 3.1) confirm chemistry and mechanical properties.",
+      "body_ar": "يُباع الألمنيوم حسب سلسلة السبيكة والمعالجة: 1xxx (نقي، للاستخدامات الكهربائية والكيميائية)، و3xxx (منغنيز، للصفائح العامة والأسقف)، و5xxx (مغنيسيوم، الدرجة البحرية 5083 و5052، مقاومة جيدة للتآكل وقابلة للحام، لا تُعالج حرارياً)، و6xxx (مغنيسيوم وسيليكون، سبائك البثق 6061 و6063 للمقاطع والهياكل، قابلة للمعالجة الحرارية)، و7xxx (زنك، عالية المتانة 7075)؛ والمعالجات مثل O (ملدنة)، وH (مقساة بالتشكيل، مثل H32)، وT (معالجة حرارياً، مثل T6 معالجة بالمحلول ومعتقة صناعياً، وT5 للمقاطع المعمارية). والأشكال: الصفائح والألواح (حسب السماكة، مع الألواح المضلعة)، واللفائف، والمقاطع المبثوقة، والقضبان والأنابيب، والرقائق. والنحاس وسبائكه: نحاس C101/C110 للقضبان الموصلة والاستخدامات الكهربائية، والنحاس الأصفر (نحاس وزنك) للوصلات والقطع المشغولة، والبرونز الفوسفوري والبرونز الألمنيومي للمحامل والقطع البحرية، والنحاس والنيكل لأنابيب مياه البحر. ومعادن أخرى: الزنك، والرصاص، وسبائك النيكل، والتيتانيوم، والقصدير. وتتبع الأسعار أسعار بورصة لندن للمعادن مع علاوة وإضافات التصنيع والمقاس، لذلك كثيراً ما تكون العروض مرتبطة بمؤشر. وشهادات اختبار المصنع (EN 10204 3.1) تؤكد التركيب الكيميائي والخواص الميكانيكية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Aluminium_alloy"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: wrought aluminium alloy series 1xxx-7xxx by main alloying element; T6 temper solution treated and aged -> confirmed."
+    },
+    {
+      "id": "non_ferrous_metals:lead-times-and-quoting",
+      "topic": "Aluminium, copper & non-ferrous metals - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الألمنيوم والنحاس والمعادن غير الحديدية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock sizes: days; mill orders and special alloys 4-12 weeks. A supplier needs the alloy and temper, form and dimensions, tolerances, quantity, certificate needs, and cutting or processing. A quote states alloy, temper, size, weight, certificate, price basis (fixed or metal index plus premium), processing, delivery and validity.",
+      "body_ar": "المقاسات المتوفرة: أيام؛ وطلبات المصانع والسبائك الخاصة 4-12 أسبوعاً. ويحتاج المورد السبيكة والمعالجة، والشكل والأبعاد، والتفاوتات، والكمية، واحتياجات الشهادة، والقص أو المعالجة. ويذكر العرض السبيكة والمعالجة والمقاس والوزن والشهادة وأساس السعر (ثابت أو مؤشر المعدن زائد العلاوة) والمعالجة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers LME-plus-premium aluminium pricing; missing). non_ferrous_metals:aluminium-lme-plus-premium-pricing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from non_ferrous_metals.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which aluminium alloy should we use for a boat deck, 6061 or 5083?",
+      "q_ar": "وش سبيكة الألمنيوم المناسبة لسطح قارب، 6061 ولا 5083؟",
+      "expected_entry_ids": [
+        "non_ferrous_metals:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "non_ferrous_metals:aluminium-lme-plus-premium-pricing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "non_ferrous_metals:product-distinctions"
+      ],
+      "stored_not_served": [
+        "non_ferrous_metals:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Aluminium_alloy"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -57,6 +57,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "instrumentation_automation:product-distinctions",
+      "topic": "Instrumentation and automation: field instruments, PLC, DCS and SCADA",
+      "topic_ar": "الأجهزة الدقيقة والأتمتة: الأجهزة الميدانية وPLC وDCS وSCADA",
+      "kind": "product_distinctions",
+      "body_en": "Field instruments measure pressure (gauges, transmitters), temperature (RTDs, thermocouples, transmitters), flow (electromagnetic for conductive liquids, ultrasonic, Coriolis for mass flow, vortex, differential pressure), level (radar, ultrasonic, guided wave, hydrostatic, floats) and analysis (pH, conductivity, dissolved oxygen, gas detectors), and final elements are control valves and actuators. Signals are 4-20 mA with HART, or fieldbus and industrial Ethernet (Profibus, Profinet, Modbus, EtherNet/IP). Control: PLCs handle machine and discrete logic with I/O modules and are programmed in the IEC 61131-3 languages (ladder, function block, structured text); a DCS controls continuous plant-wide processes; SCADA supervises distributed sites (water networks, pipelines) through RTUs and communications; HMIs present operations. Safety instrumented systems (SIS) to IEC 61511 provide safety functions rated by SIL. Hazardous areas need certified equipment (ATEX/IECEx, by zone and gas group). Selection follows the process data (range, medium, temperature, pressure), accuracy, materials, ingress protection, and the existing platform, because spares and programming follow the installed brand.",
+      "body_ar": "تقيس الأجهزة الميدانية الضغط (المقاييس، المرسلات)، والحرارة (مقاومات الحرارة، المزدوجات الحرارية، المرسلات)، والتدفق (الكهرومغناطيسي للسوائل الموصلة، فوق الصوتي، كوريوليس للتدفق الكتلي، الدوامي، فرق الضغط)، والمستوى (الرادار، فوق الصوتي، الموجة الموجهة، الهيدروستاتيكي، العوامات)، والتحليل (الأس الهيدروجيني، الموصلية، الأكسجين المذاب، كواشف الغاز)، والعناصر النهائية هي صمامات التحكم والمشغلات. والإشارات 4-20 ملي أمبير مع HART، أو الشبكات الميدانية والإيثرنت الصناعي (Profibus، Profinet، Modbus، EtherNet/IP). والتحكم: وحدات PLC تتولى منطق الآلات والعمليات المنفصلة بوحدات إدخال وإخراج وتُبرمج بلغات IEC 61131-3 (السلمي، كتل الوظائف، النص المنظم)؛ ونظام التحكم الموزع DCS يتحكم في العمليات المستمرة على مستوى المصنع؛ ونظام SCADA يشرف على المواقع الموزعة (شبكات المياه، خطوط الأنابيب) عبر وحدات طرفية واتصالات؛ وواجهات التشغيل تعرض العمليات. وأنظمة السلامة الآلية وفق IEC 61511 توفر وظائف سلامة مصنفة حسب مستوى السلامة SIL. وتحتاج المناطق الخطرة معدات معتمدة (ATEX/IECEx حسب المنطقة ومجموعة الغاز). ويتبع الاختيار بيانات العملية (المدى، الوسط، الحرارة، الضغط)، والدقة، والمواد، ودرجة الحماية، والمنصة القائمة، لأن قطع الغيار والبرمجة تتبع العلامة المركبة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Programmable_logic_controller"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: PLC inputs and outputs and the IEC 61131-3 languages; PLCs connecting to DCS and SCADA -> confirmed."
+    },
+    {
+      "id": "instrumentation_automation:lead-times-and-quoting",
+      "topic": "Instrumentation & automation (PLC) - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الأجهزة الدقيقة والأتمتة (PLC): المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock instruments: days to 2 weeks; configured or certified instruments 4-12 weeks; control panels and systems 8-20 weeks including FAT. A supplier needs the instrument datasheets or process conditions, hazardous-area classification, signal and protocol, existing control platform, and documentation needs. A quote states make and model code, ranges and materials, certifications, calibration certificates, configuration, engineering and programming scope, FAT/SAT, training, warranty and validity.",
+      "body_ar": "الأجهزة المتوفرة: أيام حتى أسبوعين؛ والأجهزة المهيأة أو المعتمدة 4-12 أسبوعاً؛ ولوحات وأنظمة التحكم 8-20 أسبوعاً شاملة اختبار القبول في المصنع. ويحتاج المورد صحائف بيانات الأجهزة أو ظروف العملية، وتصنيف المنطقة الخطرة، والإشارة والبروتوكول، ومنصة التحكم القائمة، واحتياجات المستندات. ويذكر العرض الماركة ورمز الموديل والمديات والمواد والشهادات وشهادات المعايرة والتهيئة ونطاق الهندسة والبرمجة واختبارات القبول والتدريب والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -82,6 +112,14 @@
       ],
       "why": "No entry of this pack answered it (Generic pack; nothing on flow meter selection for TSE (e.g. electromagnetic); missing). instrumentation_automation:electromagnetic-flowmeters-for-effluent was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from instrumentation_automation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which flowmeter type suits treated sewage effluent in a pipe?",
+      "q_ar": "وش نوع عداد التدفق المناسب لمياه الصرف المعالجة في أنبوب؟",
+      "expected_entry_ids": [
+        "instrumentation_automation:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "instrumentation_automation:electromagnetic-flowmeters-for-effluent"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "instrumentation_automation:product-distinctions"
+      ],
+      "stored_not_served": [
+        "instrumentation_automation:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Programmable_logic_controller"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

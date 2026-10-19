@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "management_consultancy:product-distinctions",
+      "topic": "Management consultancy: engagement types and how to scope them",
+      "topic_ar": "الاستشارات الإدارية: أنواع المهام وكيفية تحديد نطاقها",
+      "kind": "product_distinctions",
+      "body_en": "Management consulting covers strategy (market entry, growth strategy, business plans and feasibility studies, portfolio and M&A strategy), operations (process improvement, lean and supply chain, cost reduction, procurement), organisation and people (structure and governance, change management, performance management), financial advisory (valuation, transaction support, restructuring), technology and digital transformation, and risk and compliance. Engagements are proactive (finding weak spots and opportunities) or reactive (solving a problem raised by the board, lenders or regulators), and range from a diagnostic, to design, to implementation support. Scoping decides value: clear objectives and questions, deliverables (reports, models, implemented processes), timeline, the client team's involvement and data access, and how success is measured. Fees: fixed fee per phase, time-and-materials on day rates by seniority, retainer, or partly success-based. What separates firms: sector experience, the actual team (not only the partner who pitches), methodology and evidence base, implementation capability, and references.",
+      "body_ar": "تغطي الاستشارات الإدارية الاستراتيجية (دخول الأسواق، استراتيجية النمو، خطط الأعمال ودراسات الجدوى، استراتيجية المحافظ والاستحواذ)، والعمليات (تحسين العمليات، الإدارة الرشيقة وسلاسل الإمداد، خفض التكاليف، المشتريات)، والتنظيم والأفراد (الهيكل والحوكمة، إدارة التغيير، إدارة الأداء)، والاستشارات المالية (التقييم، دعم الصفقات، إعادة الهيكلة)، والتقنية والتحول الرقمي، والمخاطر والامتثال. والمهام استباقية (اكتشاف نقاط الضعف والفرص) أو تفاعلية (حل مشكلة يطرحها مجلس الإدارة أو المقرضون أو الجهات التنظيمية)، وتتراوح من التشخيص إلى التصميم إلى دعم التنفيذ. وتحديد النطاق يحدد القيمة: أهداف وأسئلة واضحة، ومخرجات (تقارير، نماذج، عمليات مطبقة)، وجدول زمني، ومشاركة فريق العميل والوصول إلى البيانات، وكيفية قياس النجاح. والأتعاب: مبلغ ثابت لكل مرحلة، أو وقت ومواد بأسعار يومية حسب الأقدمية، أو اشتراك، أو جزء مرتبط بالنجاح. وما يميز الشركات: الخبرة في القطاع، والفريق الفعلي (لا الشريك الذي يقدم العرض فقط)، والمنهجية وقاعدة الأدلة، وقدرة التنفيذ، والمراجع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Management_consulting"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: proactive and reactive consulting engagements; strategy, change management, process analysis -> confirmed."
+    },
+    {
+      "id": "management_consultancy:lead-times-and-quoting",
+      "topic": "Management & strategy consultancy - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الاستشارات الإدارية والاستراتيجية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A diagnostic: 2-6 weeks; a strategy or business plan 4-12 weeks; transformations months. A firm needs the objectives, questions, scope and boundaries, data available, decision timeline and budget band. A proposal states the approach and phases, deliverables, team with CVs, timeline, fee basis and amount per phase, client responsibilities, assumptions and validity.",
+      "body_ar": "التشخيص: 2-6 أسابيع؛ والاستراتيجية أو خطة العمل 4-12 أسبوعاً؛ والتحولات أشهراً. وتحتاج الشركة الأهداف، والأسئلة، والنطاق وحدوده، والبيانات المتاحة، وموعد القرار، ونطاق الميزانية. ويذكر العرض المنهج والمراحل والمخرجات والفريق مع السير الذاتية والجدول الزمني وأساس الأتعاب ومبلغها لكل مرحلة ومسؤوليات العميل والافتراضات والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (Spec-checklist lists 'fee basis' only; no explanation of consulting fee structures; missing). management_consultancy:fee-structures was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from management_consultancy.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "How do we scope a consultant for a feasibility study so we get a usable answer?",
+      "q_ar": "كيف نحدد نطاق عمل استشاري لدراسة جدوى عشان نطلع بجواب نقدر نستخدمه؟",
+      "expected_entry_ids": [
+        "management_consultancy:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "management_consultancy:fee-structures"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "management_consultancy:product-distinctions"
+      ],
+      "stored_not_served": [
+        "management_consultancy:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Management_consulting"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

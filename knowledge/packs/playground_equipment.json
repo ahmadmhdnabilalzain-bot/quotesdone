@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "playground_equipment:product-distinctions",
+      "topic": "Playground equipment: equipment types, safety surfacing and standards",
+      "topic_ar": "معدات الملاعب: الأنواع والأرضيات الآمنة والمعايير",
+      "kind": "product_distinctions",
+      "body_en": "Playground equipment covers multi-play structures with slides, climbers and towers, swings (with cradle seats for toddlers), see-saws and spring riders, roundabouts and spinners, climbing nets and rope play, trampolines, sand and water play, inclusive play items accessible to children with disabilities, outdoor fitness equipment, and indoor soft play. Equipment is grouped by age range (toddlers 1-5, children 5-12, teens) because heights, gaps and grips differ. Safety depends on design and installation to recognised standards (EN 1176 for equipment and EN 1177 for impact-absorbing surfacing in Europe; ASTM F1487 for equipment and ASTM F1292 for surfacing in the US), which set entrapment gaps, guardrails, use zones around each item, and the critical fall height the surfacing must cushion. Surfacing options: poured-in-place (wet-pour) rubber, rubber tiles, artificial grass over shock pads, engineered wood fibre, and sand, each tested for its maximum fall height. Materials: galvanised and powder-coated steel, stainless steel slides, HDPE panels, rotomoulded plastics, and timber; shade sails are often needed in hot climates, as metal and plastic surfaces get very hot. Annual independent inspections and maintenance keep it safe.",
+      "body_ar": "تشمل معدات الملاعب الهياكل متعددة الألعاب مع الزحاليق والمتسلقات والأبراج، والمراجيح (مع مقاعد مهد للصغار)، والميزان والألعاب النابضية، والدوارات، وشبكات التسلق والحبال، والترامبولين، وألعاب الرمل والماء، والألعاب الشاملة المتاحة للأطفال ذوي الإعاقة، ومعدات اللياقة الخارجية، والملاعب الداخلية الناعمة. وتُجمع المعدات حسب الفئة العمرية (الصغار 1-5، الأطفال 5-12، المراهقون) لأن الارتفاعات والفتحات والمقابض تختلف. وتعتمد السلامة على التصميم والتركيب وفق معايير معروفة (EN 1176 للمعدات وEN 1177 للأرضيات الماصة للصدمات في أوروبا؛ وASTM F1487 للمعدات وASTM F1292 للأرضيات في الولايات المتحدة)، التي تحدد فتحات الانحشار والحواجز ومناطق الاستخدام حول كل لعبة وارتفاع السقوط الحرج الذي يجب أن تخففه الأرضية. وخيارات الأرضيات: المطاط المصبوب في الموقع، وبلاط المطاط، والعشب الصناعي فوق وسادات الصدمات، وألياف الخشب المهندسة، والرمل، ويُختبر كل منها لأقصى ارتفاع سقوط. والمواد: الحديد المجلفن والمطلي بالبودرة، والزحاليق الستانلس، وألواح HDPE، والبلاستيك المقولب بالدوران، والخشب؛ وكثيراً ما تلزم مظلات في المناخ الحار لأن الأسطح المعدنية والبلاستيكية تسخن كثيراً. والفحوص المستقلة السنوية والصيانة تحافظ على السلامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Playground_surfacing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: poured rubber and artificial turf surfacing with fall-height protection; ASTM F1292 and related standards -> confirmed."
+    },
+    {
+      "id": "playground_equipment:lead-times-and-quoting",
+      "topic": "Playground equipment - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معدات الملاعب: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Standard items: 2-6 weeks; custom play structures 8-14 weeks plus installation. A supplier needs the site size and layout, age groups, number of children, budget band, surfacing preference, shade needs, and standards required. A quote states equipment by code with age range and fall height, compliance certificates, use-zone layout, surfacing type and thickness, installation, warranty and validity.",
+      "body_ar": "الأصناف القياسية: 2-6 أسابيع؛ والهياكل المخصصة 8-14 أسبوعاً إضافة إلى التركيب. ويحتاج المورد حجم الموقع وتخطيطه، والفئات العمرية، وعدد الأطفال، ونطاق الميزانية، وتفضيل الأرضية، واحتياجات التظليل، والمعايير المطلوبة. ويذكر العرض المعدات بالرمز مع الفئة العمرية وارتفاع السقوط وشهادات الامتثال وتخطيط مناطق الاستخدام ونوع الأرضية وسماكتها والتركيب والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry gives wet-pour thickness for a given critical fall height; it only cites EN 1177 and lists surfacing thickness as a field). playground_equipment:wet-pour-thickness-by-critical-fall-height was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from playground_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "How thick should the rubber surface be under a 2-metre climbing frame?",
+      "q_ar": "كم لازم تكون سماكة الأرضية المطاطية تحت لعبة تسلق ارتفاعها مترين؟",
+      "expected_entry_ids": [
+        "playground_equipment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "playground_equipment:wet-pour-thickness-by-critical-fall-height"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "playground_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "playground_equipment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Playground_surfacing"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

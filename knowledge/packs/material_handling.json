@@ -57,6 +57,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "material_handling:product-distinctions",
+      "topic": "Material handling: truck types, power and capacity",
+      "topic_ar": "معدات المناولة: أنواع الرافعات ومصادر الطاقة والحمولة",
+      "kind": "product_distinctions",
+      "body_en": "Material handling equipment: counterbalance forklifts (diesel or LPG for outdoor and yards, electric for indoor and food-adjacent, by capacity such as 1.5-5 tonnes and larger), reach trucks (narrow aisles, high racking up to about 10-12 m), very narrow aisle and order pickers, pallet trucks (manual hand pallet jacks, electric pallet trucks and stackers), telehandlers for construction, and attachments (side shifts, fork positioners, clamps, rotators). Capacity is rated at a stated load centre (often 500 or 600 mm) and lift height; capacity falls as the load centre moves out or the mast rises, so the data plate and capacity chart decide what the truck can safely carry. Other choices: mast type (duplex, triplex with free lift for containers), tyre type (pneumatic for rough yards, solid or cushion indoors, non-marking for clean floors), battery technology (lead-acid with spare batteries and charging rooms, or lithium-ion with opportunity charging), and safety features (blue spot lights, speed limiting, cameras). Lifting gear (chain hoists, slings, shackles) and conveyors are related. Buyers choose purchase, long-term rental with maintenance, or short-term hire; equipment needs periodic thorough examination and trained, certified operators.",
+      "body_ar": "معدات المناولة: الرافعات الشوكية ذات الثقل الموازن (ديزل أو غاز للخارج والساحات، وكهربائية للداخل، حسب الحمولة مثل 1.5-5 طن وأكبر)، ورافعات الوصول (الممرات الضيقة والرفوف العالية حتى نحو 10-12 متراً)، ورافعات الممرات الضيقة جداً وجامعات الطلبات، ورافعات المنصات (اليدوية، ورافعات ومكدسات المنصات الكهربائية)، والرافعات التلسكوبية للإنشاءات، والملحقات (الإزاحة الجانبية، ضابط الشوكات، الكلابات، الدوارات). وتُصنف الحمولة عند مركز حمل محدد (غالباً 500 أو 600 مم) وارتفاع رفع محدد؛ وتنخفض الحمولة كلما ابتعد مركز الحمل أو ارتفع الصاري، لذلك تحدد لوحة البيانات ومخطط الحمولة ما يمكن للرافعة حمله بأمان. وخيارات أخرى: نوع الصاري (ثنائي، ثلاثي مع رفع حر للحاويات)، ونوع الإطارات (هوائية للساحات الوعرة، صلبة للداخل، غير تاركة للأثر للأرضيات النظيفة)، وتقنية البطارية (رصاص حمضي مع بطاريات احتياطية وغرف شحن، أو ليثيوم أيون مع شحن متقطع)، وخصائص السلامة (الأضواء الزرقاء، تحديد السرعة، الكاميرات). ومعدات الرفع (الرافعات اليدوية بالسلاسل، الحبال، الشكلات) والسيور الناقلة مرتبطة. ويختار المشترون الشراء، أو الإيجار طويل الأجل مع الصيانة، أو التأجير القصير؛ وتحتاج المعدات فحصاً شاملاً دورياً ومشغلين مدربين معتمدين.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Forklift"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: counterbalance, reach and pallet trucks; diesel, LPG and electric power; capacity at a stated load centre -> confirmed."
+    },
+    {
+      "id": "material_handling:lead-times-and-quoting",
+      "topic": "Forklifts & material handling - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الرافعات الشوكية ومعدات المناولة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock forklifts: days to 3 weeks; specific configurations and imports 6-12 weeks; rentals within days. A supplier needs loads (weight, dimensions, load centre), lift height, aisle widths, indoor or outdoor, floor, shifts and hours, and purchase or rental. A quote states make, model, capacity at load centre and height, mast, power and battery, tyres, attachments, warranty, maintenance or rental terms, delivery and validity.",
+      "body_ar": "الرافعات المتوفرة: أيام حتى 3 أسابيع؛ والتهيئات الخاصة والمستوردة 6-12 أسبوعاً؛ والتأجير خلال أيام. ويحتاج المورد الأحمال (الوزن، الأبعاد، مركز الحمل)، وارتفاع الرفع، وعرض الممرات، والداخل أو الخارج، والأرضية، والورديات والساعات، والشراء أو الإيجار. ويذكر العرض الماركة والموديل والحمولة عند مركز الحمل والارتفاع والصاري والطاقة والبطارية والإطارات والملحقات والضمان وشروط الصيانة أو الإيجار والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -82,6 +112,14 @@
       ],
       "why": "No entry of this pack answered it (no entry explains rated capacity at load centre and derating for forklifts). material_handling:rated-capacity-load-centre-derating was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from material_handling.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our forklift is rated 3 tonnes. Can it lift a 3-tonne crate to the top rack?",
+      "q_ar": "رافعتنا الشوكية حمولتها 3 طن، تقدر ترفع صندوق 3 طن لآخر رف؟",
+      "expected_entry_ids": [
+        "material_handling:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "material_handling:rated-capacity-load-centre-derating"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "material_handling:product-distinctions"
+      ],
+      "stored_not_served": [
+        "material_handling:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Forklift"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

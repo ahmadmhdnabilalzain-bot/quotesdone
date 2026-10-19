@@ -1068,6 +1068,9 @@ ${q}`,
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
         Object.assign(upd, rec);
       }
+      // PROMOTIONAL MESSAGES ARE OPT-IN (19 Oct 2026, founder, legal finding 2; seat: ceo): the separate, unticked
+      // box. Exactly true only, never required, written on its own so a missing column cannot fail the save.
+      if (body.marketing_consent === true) await admin.from('leads').update({ marketing_consent: true, marketing_consent_at: new Date().toISOString(), marketing_consent_source: 'registration' }).eq('id', sup.id).then(() => null, () => null);
       const wasApproved = String(sup.approval_status || '') === 'approved';
       // The WhatsApp question is answered in sign-up (founder, 15 Sep 2026). Checked beside the six, not
       // added to them, and before anything is written, as it was. Read on its own so a read error cannot

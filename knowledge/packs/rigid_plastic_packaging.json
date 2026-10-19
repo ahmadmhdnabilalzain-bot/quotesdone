@@ -56,6 +56,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "rigid_plastic_packaging:product-distinctions",
+      "topic": "Rigid plastic packaging: processes, resins and closures",
+      "topic_ar": "العبوات البلاستيكية الصلبة: طرق التصنيع والراتنجات والأغطية",
+      "kind": "product_distinctions",
+      "body_en": "Rigid plastic containers are made by extrusion blow moulding (bottles, jerrycans and drums with handles from HDPE or PP, from a melted parison), injection blow moulding (small precise bottles for pharma and personal care), injection stretch blow moulding (PET bottles for water and beverages and clear cosmetic bottles, single or two-stage from preforms), injection moulding (caps, closures, pails, tubs, crates, cosmetic jars), and thermoforming (trays, cups and clamshells from sheet). Resins: HDPE (chemicals, detergents, dairy-adjacent), PP (hot-fill, caps, tubs), PET (clarity, beverages, personal care), PVC, PS and recycled resins (rPET). Closures must match the neck finish standard (for example 28 mm PCO for beverages, or 38/400 style for personal care); options include tamper-evident bands, child-resistant caps, flip-top, disc-top, pumps, triggers and induction-seal liners. Specification points: capacity and dimensions, weight (lighter is cheaper but weaker), wall thickness, colour and opacity, barrier (multilayer or coatings for oxygen-sensitive products), top-load and drop strength, chemical compatibility, decoration (screen print, labels, shrink sleeves, in-mould labels), and food-contact compliance.",
+      "body_ar": "تُصنع العبوات البلاستيكية الصلبة بالقولبة بالنفخ بالبثق (قوارير وجالونات وبراميل بمقابض من HDPE أو PP من أنبوب مصهور)، والقولبة بالنفخ بالحقن (قوارير صغيرة دقيقة للأدوية والعناية الشخصية)، والقولبة بالنفخ والشد بالحقن (قوارير PET للمياه والمشروبات وقوارير مستحضرات التجميل الشفافة، بمرحلة أو مرحلتين من القوالب الأولية)، والقولبة بالحقن (الأغطية، السطول، العلب، الصناديق، مرطبانات مستحضرات التجميل)، والتشكيل الحراري (الصواني والأكواب والعلب المفصلية من الألواح). والراتنجات: HDPE (الكيماويات، المنظفات)، وPP (التعبئة الساخنة، الأغطية، العلب)، وPET (الشفافية، المشروبات، العناية الشخصية)، وPVC، وPS، والراتنجات المعاد تدويرها (rPET). ويجب أن تطابق الأغطية معيار فوهة العنق (مثل 28 مم PCO للمشروبات، أو نمط 38/400 للعناية الشخصية)؛ والخيارات تشمل أشرطة إظهار العبث، والأغطية المقاومة لفتح الأطفال، والأغطية القلابة والقرصية، والمضخات، والبخاخات، وحشوات الختم بالحث. ونقاط المواصفة: السعة والأبعاد، والوزن (الأخف أرخص لكنه أضعف)، وسماكة الجدار، واللون والعتامة، والحاجز (متعدد الطبقات أو طلاءات للمنتجات الحساسة للأكسجين)، وقوة التحميل العلوي والسقوط، والتوافق الكيميائي، والتزيين (الطباعة بالشاشة، الملصقات، الأكمام المنكمشة، الملصقات داخل القالب)، والامتثال لملامسة الأغذية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Blow_molding"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: extrusion, injection and injection stretch blow moulding and their typical bottles -> confirmed."
+    },
+    {
+      "id": "rigid_plastic_packaging:lead-times-and-quoting",
+      "topic": "Rigid plastic containers - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "العبوات البلاستيكية الصلبة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock bottles and closures: days to 2 weeks; custom moulds 6-12 weeks plus trials; repeat production 2-4 weeks. A supplier needs the product and filling method, capacity, shape or drawing, resin and colour, closure and neck, annual and per-order quantities, decoration, and compliance needs. A quote states container weight, resin, neck finish, closure type, mould cost and ownership, unit prices at quantities, MOQ, packing, delivery and validity.",
+      "body_ar": "القوارير والأغطية المتوفرة: أيام حتى أسبوعين؛ والقوالب المخصصة 6-12 أسبوعاً إضافة إلى التجارب؛ والإنتاج المتكرر 2-4 أسابيع. ويحتاج المورد المنتج وطريقة التعبئة، والسعة، والشكل أو الرسم، والراتنج واللون، والغطاء والعنق، والكميات السنوية ولكل طلب، والتزيين، واحتياجات الامتثال. ويذكر العرض وزن العبوة والراتنج وفوهة العنق ونوع الغطاء وتكلفة القالب وملكيته وأسعار الوحدات عند الكميات والحد الأدنى للطلب والتعبئة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry states MOQ for custom-colour jerry cans (masterbatch run minimums)). rigid_plastic_packaging:custom-colour-jerry-can-moq was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from rigid_plastic_packaging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "HDPE or PET bottles for a liquid detergent, and which cap?",
+      "q_ar": "قوارير HDPE ولا PET لمنظف سائل؟ ووش الغطاء المناسب؟",
+      "expected_entry_ids": [
+        "rigid_plastic_packaging:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "rigid_plastic_packaging:custom-colour-jerry-can-moq"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "rigid_plastic_packaging:product-distinctions"
+      ],
+      "stored_not_served": [
+        "rigid_plastic_packaging:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Blow_molding"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

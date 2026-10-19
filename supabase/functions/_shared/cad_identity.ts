@@ -67,7 +67,8 @@ export function cadIdentityTerms(dxfText: string): string[] {
     const v = text.join('');
     if (v && /^(?:TEXT|MTEXT|ATTRIB|ATTDEF)$/.test(ent)) {
       if (inFrameBlock || FRAME_NAME(layer) || (ent === 'ATTRIB' && afterFrameInsert) || ((ent === 'ATTRIB' || ent === 'ATTDEF') && PARTY_TAG.test(tag))) add(v);
-      else for (const m of v.matchAll(LABEL_VALUE)) add(m[1]);
+      // an MTEXT paragraph break ends a label's value: "SITE: Plot 9\PALL SOCKETS AT 450" names the plot, not the sockets
+      else for (const m of v.replace(/\\P/g, '\n').matchAll(LABEL_VALUE)) add(m[1]);
     }
     text = []; tag = ''; layer = '';
   };

@@ -62,6 +62,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "masonry_blockwork:product-distinctions",
+      "topic": "Masonry and blockwork: block types, mortar and plaster systems",
+      "topic_ar": "أعمال البلوك: أنواع البلوك والمونة وأنظمة اللياسة",
+      "kind": "product_distinctions",
+      "body_en": "Concrete blocks come hollow (cores reduce weight and cost, used for partitions and non-load-bearing walls, can be filled and reinforced) or solid (higher strength, for load-bearing walls, below ground and fire walls), in standard thicknesses such as 100, 150, 200 and 250 mm, specified by compressive strength (for example 7 or 10 N/mm2 and higher) and density. Insulated blocks with polystyrene inserts, and lightweight autoclaved aerated concrete (AAC) or expanded-clay blocks, improve thermal performance and reduce dead load, which matters for energy codes in hot climates. Mortar is cement-sand in a stated mix ratio, or factory premixed; thin-bed adhesive is used with AAC. Blockwork needs bed-joint reinforcement, ties to columns and frames, lintels over openings, movement joints, and curing. Plastering: cement-sand render on internal and external walls (with a spatterdash or bonding coat, mesh at junctions of different materials, and corner beads), gypsum plaster internally for a smoother finish, and thin-coat or machine-applied plasters. Quality checks: plumb and line, joint thickness, plaster thickness and flatness, cracking from shrinkage or missing mesh.",
+      "body_ar": "يأتي البلوك الخرساني مفرغاً (الفراغات تقلل الوزن والتكلفة، للقواطع والجدران غير الحاملة، ويمكن ملؤه وتسليحه) أو مصمتاً (مقاومة أعلى، للجدران الحاملة وتحت الأرض وجدران الحريق)، بسماكات قياسية مثل 100 و150 و200 و250 مم، ويُحدد بمقاومة الضغط (مثل 7 أو 10 نيوتن/مم2 وأكثر) والكثافة. والبلوك المعزول بحشوات البوليسترين، والبلوك الخفيف من الخرسانة الخلوية المعالجة بالبخار أو الطين الممدد، يحسنان الأداء الحراري ويقللان الأحمال الميتة، وهذا مهم لأكواد الطاقة في المناخ الحار. والمونة إسمنت ورمل بنسبة خلط محددة، أو مخلوطة جاهزة من المصنع؛ ويُستخدم اللاصق الرقيق مع البلوك الخلوي. ويحتاج البناء تسليح مفاصل الطبقات، وربطاً بالأعمدة والإطارات، وأعتاباً فوق الفتحات، وفواصل حركة، ومعالجة بالماء. واللياسة: لياسة إسمنتية رملية للجدران الداخلية والخارجية (مع طبقة رش أو طبقة ربط، وشبك عند التقاء المواد المختلفة، وزوايا معدنية)، ولياسة الجبس داخلياً لتشطيب أنعم، واللياسات الرقيقة أو المرشوشة آلياً. وفحوص الجودة: الشاقولية والاستقامة، وسماكة المفاصل، وسماكة اللياسة واستواؤها، والتشققات الناتجة عن الانكماش أو غياب الشبك.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Concrete_masonry_unit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: hollow blocks with cores, standard thicknesses, compressive strength ranges, lightweight AAC and expanded-clay blocks -> confirmed."
+    },
+    {
+      "id": "masonry_blockwork:lead-times-and-quoting",
+      "topic": "Masonry, blockwork & plastering - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "أعمال البناء بالطابوق واللياسة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Block supply: days; labour mobilisation within 1-2 weeks; work by area. A contractor or supplier needs drawings with wall types, block specs (type, size, strength), quantities in m2 or numbers, plaster specification, and programme. A quote states block type and strength, mortar, reinforcement and lintels, plaster system and thickness, rates per m2 or per block, scaffolding, curing, exclusions and validity.",
+      "body_ar": "توريد البلوك: أيام؛ وبدء العمالة خلال 1-2 أسبوع؛ والعمل حسب المساحة. ويحتاج المقاول أو المورد المخططات مع أنواع الجدران، ومواصفات البلوك (النوع، المقاس، المقاومة)، والكميات بالمتر المربع أو العدد، ومواصفة اللياسة، والبرنامج الزمني. ويذكر العرض نوع البلوك ومقاومته والمونة والتسليح والأعتاب ونظام اللياسة وسماكتها والأسعار للمتر المربع أو للبلوكة والسقالات والمعالجة والاستثناءات والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -87,6 +117,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains thermal blocks or the Dubai wall thermal insulation (U-value) requirement; missing: thermal block / green building envelope entry). masonry_blockwork:thermal-block-wall-u-value was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from masonry_blockwork.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Hollow block or insulated block for the external walls of a villa?",
+      "q_ar": "بلوك مفرغ ولا بلوك معزول للجدران الخارجية للفيلا؟",
+      "expected_entry_ids": [
+        "masonry_blockwork:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -105,6 +143,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "masonry_blockwork:thermal-block-wall-u-value"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "masonry_blockwork:product-distinctions"
+      ],
+      "stored_not_served": [
+        "masonry_blockwork:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Concrete_masonry_unit"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

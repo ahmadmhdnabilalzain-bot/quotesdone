@@ -55,6 +55,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "tents_shades:product-distinctions",
+      "topic": "Tents and canopies: structure types and fabrics",
+      "topic_ar": "الخيام والمظلات: أنواع الهياكل والأقمشة",
+      "kind": "product_distinctions",
+      "body_en": "Tents and temporary structures range from pole tents (fabric held up by centre and perimeter poles with guy ropes, economical and decorative, needing space for pegs), frame tents (free-standing aluminium frames with no centre poles), clear-span structures (aluminium beam and portal frames spanning 10-50 m without internal posts, for exhibitions, events and temporary warehouses, with hard walls, glass walls, flooring and air-conditioning), stretch tents (elastic fabric for informal events), pagodas and gazebos, traditional majlis and Arabic tents with decorative linings, and permanent tensile canopies. Fabrics: PVC-coated polyester (flame-retardant, waterproof, the common tent and canopy membrane), PTFE-coated glass fibre for long-life architectural structures, and HDPE shade cloth for permeable shade. Structural safety depends on wind-load design and anchoring (pegs, ballast weights or bolting) matched to the ground and expected wind; temporary event structures need engineer calculations, fire-retardant certificates, emergency exits, and permits from the event authority and civil defence. Offers differ on structure type and size, wind rating, flooring, walls, lining and décor, air-conditioning, lighting and power, installation and dismantling time, and rental versus purchase.",
+      "body_ar": "تتراوح الخيام والهياكل المؤقتة بين خيام الأعمدة (قماش مرفوع بأعمدة مركزية ومحيطية مع حبال شد، اقتصادية وزخرفية، وتحتاج مساحة للأوتاد)، وخيام الإطارات (إطارات ألمنيوم قائمة بذاتها بلا أعمدة مركزية)، والهياكل ذات البحر الواسع (إطارات ألمنيوم تمتد 10-50 متراً بلا أعمدة داخلية، للمعارض والفعاليات والمستودعات المؤقتة، مع جدران صلبة أو زجاجية وأرضيات وتكييف)، والخيام المطاطية (قماش مرن للفعاليات غير الرسمية)، والخيام الصينية والمظلات الصغيرة، والمجالس والخيام العربية التقليدية ببطانات زخرفية، والمظلات الشدية الدائمة. والأقمشة: البوليستر المطلي بـ PVC (مقاوم للهب ومقاوم للماء، الغشاء الشائع للخيام والمظلات)، والألياف الزجاجية المطلية بـ PTFE للهياكل المعمارية طويلة العمر، وقماش الظل من HDPE للظل النافذ للهواء. وتعتمد السلامة الإنشائية على تصميم أحمال الرياح والتثبيت (الأوتاد، الأثقال، أو البراغي) بما يناسب الأرض والرياح المتوقعة؛ وتحتاج الهياكل المؤقتة للفعاليات حسابات مهندس، وشهادات مقاومة اللهب، ومخارج طوارئ، وتصاريح من جهة الفعاليات والدفاع المدني. وتختلف العروض في نوع الهيكل وحجمه، وتصنيف الرياح، والأرضيات، والجدران، والبطانة والديكور، والتكييف، والإضاءة والكهرباء، ومدة التركيب والفك، والإيجار مقابل الشراء.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Tensile_structure"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: PVC-coated polyester and PTFE-coated glass fibre membranes for fabric structures -> confirmed."
+    },
+    {
+      "id": "tents_shades:lead-times-and-quoting",
+      "topic": "Tents, shades & canopies - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الخيام والمظلات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Rental tents: days to 2 weeks (peak season earlier); custom purchased structures 4-10 weeks. A supplier needs the event or use, dates, location and ground type, guest numbers or area, layout, flooring, walls, décor, AC, power, and permits. A quote states structure type and size, wind rating and anchoring, fabrics and certificates, inclusions, installation and dismantling schedule, permits support, price basis (rental per day or event, or purchase) and validity.",
+      "body_ar": "الخيام المؤجرة: أيام حتى أسبوعين (أبكر في موسم الذروة)؛ والهياكل المخصصة للشراء 4-10 أسابيع. ويحتاج المورد الفعالية أو الاستخدام، والتواريخ، والموقع ونوع الأرض، وعدد الضيوف أو المساحة، والتخطيط، والأرضيات، والجدران، والديكور، والتكييف، والكهرباء، والتصاريح. ويذكر العرض نوع الهيكل وحجمه وتصنيف الرياح والتثبيت والأقمشة وشهاداتها والمشمولات وجدول التركيب والفك ودعم التصاريح وأساس السعر (إيجار باليوم أو الفعالية، أو شراء) والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains wedding tent pricing (per m2/per day, AC, flooring, setup); missing: tent rental pricing entry). tents_shades:event-tent-hire-cost-and-permit-basis was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from tents_shades.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Pole tent or clear-span structure for a 500-guest outdoor wedding?",
+      "q_ar": "خيمة بأعمدة ولا هيكل بدون أعمدة لعرس خارجي فيه 500 ضيف؟",
+      "expected_entry_ids": [
+        "tents_shades:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "tents_shades:event-tent-hire-cost-and-permit-basis"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "tents_shades:product-distinctions"
+      ],
+      "stored_not_served": [
+        "tents_shades:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Tensile_structure"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

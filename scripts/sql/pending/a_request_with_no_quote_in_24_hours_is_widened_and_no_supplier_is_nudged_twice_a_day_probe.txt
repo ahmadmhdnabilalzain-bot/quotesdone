@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after
+a_request_with_no_quote_in_24_hours_is_widened_and_no_supplier_is_nudged_twice_a_day.sql is applied (or with it in the same rolled-back query). Measured 13 Oct 2026 on production through
+scripts/qsql.mjs: with the file -> CHK<<PROBE OK widened 2/2; S1 reminded once across two requests, S2 once; customer
+told 1/1; second tick added nothing>>; alone, against the live routine -> PROBE FAILED: S1 reminded 2 times in one day.
+This note stays for the life of the file. Seat: sales_engineer.
