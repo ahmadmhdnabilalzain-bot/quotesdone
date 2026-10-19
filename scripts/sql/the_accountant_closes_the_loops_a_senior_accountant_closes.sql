@@ -23,7 +23,8 @@
 --   natural-person owner trading under a licence. Under Corporate Tax, audited financial statements are required only
 --   of a taxable person with revenue over AED 50,000,000 in the period, or a Qualifying Free Zone Person (Ministerial
 --   Decision 82 of 2023; replaced from tax periods starting 1 Jan 2025 by Ministerial Decision 84 of 2025 on the same
---   AED 50m test). QuotesDone is a mainland establishment with revenue near zero. So no auditor is appointed and no duty
+--   AED 50m test; official text, Article 2 and the 1 Jan 2025 start: https://mof.gov.ae/wp-content/uploads/2025/04/
+--   Ministerial-Decision-No.-84-of-2025-on-Audited-Financial-Statements.pdf, read 19 Oct 2026). QuotesDone is a mainland establishment with revenue near zero. So no auditor is appointed and no duty
 --   chases one; instead accountant.year_end re-tests the AED 50m condition every day and tells the CEO if it is ever
 --   approached (80%), which is the point at which the answer would change.
 --
