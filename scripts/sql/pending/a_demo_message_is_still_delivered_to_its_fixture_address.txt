@@ -1,0 +1,1 @@
+Written 19 Oct 2026 by it_engineer; proved in a rolled-back replay with the seat-clock probe and the ruling-1199 demo probe. Pending the release operator's apply (node scripts/apply_sql.mjs scripts/sql/a_demo_message_is_still_delivered_to_its_fixture_address.sql --apply --ddl); then delete this note and append the file to the END of MANIFEST.txt.
