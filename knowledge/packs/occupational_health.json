@@ -1,0 +1,96 @@
+{
+  "trade": "occupational_health",
+  "entries": [
+    {
+      "id": "occupational_health:spec-checklist",
+      "topic": "Occupational health & onsite medical services - what the buyer must state",
+      "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: ما يجب أن يحدده المشتري",
+      "kind": "spec_checklist",
+      "body_en": "For occupational health & onsite medical services (trade code occupational_health only), every quoted line must state: Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Equipment and medicines supplied; Tests and examinations included; Reporting and records confidentiality; Response times; Contract duration; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط الصحة المهنية والخدمات الطبية في الموقع (رمز النشاط occupational_health فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ عدد الموظفين أو الحضور المشمولين؛ المواقع وساعات العمل؛ الكوادر (طبيب، ممرض، مسعف) وتراخيصهم؛ المعدات والأدوية الموردة؛ الفحوص والاختبارات المشمولة؛ التقارير وسرية السجلات؛ أزمنة الاستجابة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Service type",
+        "Number of employees or attendees covered",
+        "Sites and working hours",
+        "Staffing (doctor, nurse, paramedic) and their licences",
+        "Equipment and medicines supplied",
+        "Tests and examinations included",
+        "Reporting and records confidentiality",
+        "Response times",
+        "Contract duration",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Occupational_health_nursing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: occupational health nurses run pre-employment screening, care for ill or injured workers, risk assessment, case management and health promotion."
+    },
+    {
+      "id": "occupational_health:product-distinctions",
+      "topic": "Occupational health services: service types and what each covers",
+      "topic_ar": "خدمات الصحة المهنية: أنواع الخدمة وما يغطيه كل منها",
+      "kind": "product_distinctions",
+      "body_en": "Occupational health services protect workers' health in relation to their work: pre-employment and periodic medical examinations (fitness-for-work assessments, audiometry, spirometry, vision, blood tests, drug and alcohol screening where lawful and agreed), care for workers who become ill or injured at work, health surveillance for exposure to noise, dust, chemicals or heat, risk assessments and records, case management and return-to-work planning, health promotion and wellness screening, and vaccination programmes. Onsite services provide a clinic and staff at a site or camp (occupational health nurses, doctors, paramedics), with first-aid rooms, ambulance and medical cover for events and construction sites, and first-aid kits with scheduled refills. Medical facilities and staff must be licensed by the health authority, and medical records are confidential, with employers receiving fitness outcomes rather than diagnoses. Offers differ on staffing levels and qualifications, coverage hours, equipment and medicines included, referral arrangements to hospitals, reporting, and the pricing basis (per examination, per head per month, or per staff deployed).",
+      "body_ar": "تحمي خدمات الصحة المهنية صحة العمال فيما يتعلق بعملهم: الفحوص الطبية قبل التوظيف والدورية (تقييم اللياقة للعمل، فحص السمع، قياس التنفس، النظر، تحاليل الدم، فحص المخدرات والكحول حيث يكون نظامياً ومتفقاً عليه)، ورعاية العمال الذين يمرضون أو يصابون في العمل، والمراقبة الصحية للتعرض للضوضاء أو الغبار أو الكيماويات أو الحرارة، وتقييم المخاطر والسجلات، وإدارة الحالات وتخطيط العودة للعمل، وتعزيز الصحة والفحوص الصحية، وبرامج التطعيم. وتوفر الخدمات في الموقع عيادة وكوادر في الموقع أو السكن (ممرضو صحة مهنية، أطباء، مسعفون)، مع غرف إسعافات أولية، وتغطية إسعاف وطبية للفعاليات ومواقع الإنشاء، وحقائب إسعافات أولية مع تعبئة مجدولة. ويجب أن تكون المنشآت والكوادر الطبية مرخصة من الجهة الصحية، والسجلات الطبية سرية، ويتلقى أصحاب العمل نتائج اللياقة لا التشخيصات. وتختلف العروض في مستويات الكوادر ومؤهلاتها، وساعات التغطية، والمعدات والأدوية المشمولة، وترتيبات الإحالة إلى المستشفيات، والتقارير، وأساس التسعير (لكل فحص، أو لكل فرد شهرياً، أو لكل كادر منتشر).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Occupational_health_nursing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "source_note": "Page opened 2026-10-19: occupational health nurses run pre-employment screening, care for ill or injured workers, risk assessment, case management and health promotion -> confirmed."
+    },
+    {
+      "id": "occupational_health:lead-times-and-quoting",
+      "topic": "Occupational health & onsite medical services - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "body_en": "Examination programmes start within 1-2 weeks; onsite clinics mobilise in 2-6 weeks including licensing. A provider needs headcount, sites, hours, risks and exposures, services wanted, and reporting needs. A quote states the services and tests, staffing and licences, equipment, hours, response, reporting, price basis and validity.",
+      "body_ar": "تبدأ برامج الفحوص خلال 1-2 أسبوع؛ والعيادات في الموقع خلال 2-6 أسابيع شاملة الترخيص. ويحتاج المزود عدد الموظفين، والمواقع، والساعات، والمخاطر والتعرضات، والخدمات المطلوبة، واحتياجات التقارير. ويذكر العرض الخدمات والفحوص والكوادر والتراخيص والمعدات والساعات والاستجابة والتقارير وأساس التسعير والصلاحية.",
+      "gap_kind": "commercial",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
+      "source_note": "Authored practice; not read from a page."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What should an onsite clinic contract for a 1,500-worker construction site include?",
+      "q_ar": "وش لازم يشمل عقد عيادة في موقع إنشاء فيه 1500 عامل؟",
+      "expected_entry_ids": [
+        "occupational_health:product-distinctions"
+      ],
+      "written_blind": true
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "method": "New trade added by scripts/sql/ten_uae_trades_the_taxonomy_still_missed_join_it.sql; pack authored by Claude on the subscription (ledger 1198/1209), no paid model.",
+    "pages_opened": [
+      "https://en.wikipedia.org/wiki/Occupational_health_nursing"
+    ],
+    "served": [
+      "occupational_health:spec-checklist",
+      "occupational_health:product-distinctions"
+    ],
+    "stored_not_served": [
+      "occupational_health:lead-times-and-quoting"
+    ],
+    "ledger": [
+      893,
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ]
+  }
+}

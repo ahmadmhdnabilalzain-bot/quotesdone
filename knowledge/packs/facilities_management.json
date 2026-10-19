@@ -57,6 +57,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "facilities_management:product-distinctions",
+      "topic": "Facilities management: hard FM, soft FM and contract models",
+      "topic_ar": "إدارة المرافق: الخدمات الصلبة والناعمة ونماذج العقود",
+      "kind": "product_distinctions",
+      "body_en": "Hard FM covers the building's physical systems: HVAC and chillers, electrical and lighting, plumbing and drainage, fire and life-safety systems, lifts, building management systems, and civil and fabric repairs, delivered as planned preventive maintenance (PPM) to a schedule plus reactive repairs by priority. Soft FM covers services to occupants: cleaning, security, pest control, waste, landscaping, reception and mailroom, and catering or pantry. Contract models: single-service contracts, bundled services, integrated FM (one provider for hard and soft under a single management team), total FM, and managing-agent models. Pricing is a lump sum per month for the defined scope, with reactive works and materials as cost-plus or schedule-of-rates, and sometimes a pain/gain mechanism. A good FM contract is built on an asset register, a PPM schedule to recognised task standards (such as SFG20), a CAFM system for work orders and reporting, response and rectification times by priority (for example emergency within an hour), KPIs with deductions, a materials and spares policy, compliance certificates (fire systems, lifts, water hygiene), and handover of records at exit.",
+      "body_ar": "تغطي الخدمات الصلبة أنظمة المبنى المادية: التكييف والمبردات، والكهرباء والإنارة، والسباكة والصرف، وأنظمة الحريق والسلامة، والمصاعد، وأنظمة إدارة المبنى، وإصلاحات الأعمال المدنية والهيكل، وتُقدم كصيانة وقائية مخططة وفق جدول إضافة إلى الإصلاحات الطارئة حسب الأولوية. وتغطي الخدمات الناعمة خدمات الشاغلين: النظافة، والأمن، ومكافحة الآفات، والنفايات، والتنسيق الزراعي، والاستقبال والبريد، والضيافة أو المطبخ الصغير. ونماذج العقود: عقود خدمة واحدة، وخدمات مجمعة، وإدارة مرافق متكاملة (مزود واحد للصلبة والناعمة بفريق إدارة واحد)، وإدارة مرافق شاملة، ونماذج الوكيل المدير. والتسعير مبلغ شهري مقطوع للنطاق المحدد، مع الأعمال الطارئة والمواد بالتكلفة زائد هامش أو بجدول أسعار، وأحياناً آلية تقاسم المكسب والخسارة. وعقد إدارة المرافق الجيد يُبنى على سجل أصول، وجدول صيانة وقائية وفق معايير مهام معروفة (مثل SFG20)، ونظام إلكتروني لأوامر العمل والتقارير، وأزمنة الاستجابة والإصلاح حسب الأولوية (مثل الطوارئ خلال ساعة)، ومؤشرات أداء مع خصومات، وسياسة للمواد وقطع الغيار، وشهادات الامتثال (أنظمة الحريق، المصاعد، نظافة المياه)، وتسليم السجلات عند الخروج.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Facility_management"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: hard FM (HVAC, plumbing, lighting, maintenance) versus soft FM (cleaning, catering, security, events) -> confirmed."
+    },
+    {
+      "id": "facilities_management:lead-times-and-quoting",
+      "topic": "Facilities management (hard & soft FM) - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "إدارة المرافق (الصلبة والناعمة): المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Mobilisation usually takes 2-6 weeks, plus an asset survey in the first months. An FM provider needs the building list, areas and asset registers, current contracts, service scope and standards, operating hours, and the term. A quote states scope by service, staffing, PPM schedule, response times, KPIs and deductions, CAFM, materials policy, monthly fee and rates for reactive work, mobilisation plan and validity.",
+      "body_ar": "يستغرق البدء عادة 2-6 أسابيع، إضافة إلى مسح الأصول في الأشهر الأولى. ويحتاج مزود إدارة المرافق قائمة المباني، والمساحات وسجلات الأصول، والعقود الحالية، ونطاق الخدمات ومعاييرها، وساعات التشغيل، والمدة. ويذكر العرض النطاق لكل خدمة، والكوادر، وجدول الصيانة الوقائية، وأزمنة الاستجابة، ومؤشرات الأداء والخصومات، والنظام الإلكتروني، وسياسة المواد، والرسوم الشهرية وأسعار الأعمال الطارئة، وخطة البدء، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -82,6 +112,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither defines comprehensive vs non-comprehensive FM contracts; missing: FM contract types entry). facilities_management:comprehensive-vs-labour-only-maintenance was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from facilities_management.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should an integrated FM contract measure so we can hold the provider to it?",
+      "q_ar": "وش لازم يقيس عقد إدارة المرافق المتكاملة عشان نحاسب المزود؟",
+      "expected_entry_ids": [
+        "facilities_management:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "facilities_management:comprehensive-vs-labour-only-maintenance"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "facilities_management:product-distinctions"
+      ],
+      "stored_not_served": [
+        "facilities_management:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Facility_management"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

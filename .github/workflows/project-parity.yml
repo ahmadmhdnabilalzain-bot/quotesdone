@@ -102,6 +102,14 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           MATRIX_REQUIRE_LIVE: '1'
         run: node --test scripts/checks/every_model_class_is_on_the_founders_matrix.test.mjs
+      # 5 OCT 2026 (it_engineer, follow-up 28) — the registry follows the catalogue by a daily sync. This asserts the
+      # sync is FRESH (succeeded < 36 h ago, nothing held open) and replays its rule on synthetic rows; it no longer
+      # fails on a provider price move the sync is allowed to apply by itself.
+      - name: The model catalogue sync is fresh and its rule holds
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REGISTRY_SYNC_REQUIRE_LIVE: '1'
+        run: node --test scripts/checks/the_registry_prices_are_the_catalogue_s_prices.test.mjs
       - name: One canonical file per routine, and it is what is deployed
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "digital_marketing:product-distinctions",
+      "topic": "Digital marketing: channels, what each buys and how agencies charge",
+      "topic_ar": "التسويق الرقمي: القنوات وما يشتريه كل منها وكيف تتقاضى الوكالات",
+      "kind": "product_distinctions",
+      "body_en": "Digital marketing channels: SEO (organic search ranking through technical fixes, content and links; slow to build, compounding; white-hat methods follow search engine guidelines while black-hat shortcuts risk penalties), paid search or SEM (Google Ads pay-per-click, immediate and controllable, stops when spending stops), paid social (Meta, TikTok, Snapchat, LinkedIn, X), social media management (content calendars, posting, community management), content and video production, influencer marketing, email and WhatsApp marketing, programmatic display, marketplace and app-store optimisation, and analytics and conversion-rate optimisation. Agencies charge a monthly retainer for management, a percentage of ad spend (often 10-20% with a minimum), project fees (website, campaign launch), or performance fees (per lead or sale). Ad spend should be paid to the platforms in the client's own ad accounts so the client keeps the data and history. Good proposals state goals as measurable KPIs (leads, cost per lead, return on ad spend, organic traffic, rankings for named keywords), the reporting cadence, the deliverables per month (posts, articles, creatives), and who owns content, accounts and data.",
+      "body_ar": "قنوات التسويق الرقمي: تحسين محركات البحث (الترتيب العضوي عبر الإصلاحات الفنية والمحتوى والروابط؛ بطيء البناء وتراكمي؛ والطرق البيضاء تتبع إرشادات محركات البحث بينما اختصارات القبعة السوداء تعرض للعقوبات)، والبحث المدفوع (إعلانات Google بالدفع لكل نقرة، فوري وقابل للتحكم ويتوقف بتوقف الإنفاق)، والإعلانات الاجتماعية المدفوعة (Meta، TikTok، Snapchat، LinkedIn، X)، وإدارة وسائل التواصل (جداول المحتوى، النشر، إدارة المجتمع)، وإنتاج المحتوى والفيديو، والتسويق عبر المؤثرين، والتسويق بالبريد الإلكتروني وواتساب، والإعلانات البرمجية، وتحسين الظهور في الأسواق الإلكترونية ومتاجر التطبيقات، والتحليلات وتحسين معدل التحويل. وتتقاضى الوكالات اشتراكاً شهرياً للإدارة، أو نسبة من الإنفاق الإعلاني (غالباً 10-20% مع حد أدنى)، أو رسوم مشاريع (موقع، إطلاق حملة)، أو رسوم أداء (لكل عميل محتمل أو بيع). ويجب أن يُدفع الإنفاق الإعلاني للمنصات في حسابات الإعلانات الخاصة بالعميل حتى يحتفظ بالبيانات والتاريخ. والعروض الجيدة تحدد الأهداف كمؤشرات قابلة للقياس (العملاء المحتملون، تكلفة العميل المحتمل، العائد على الإنفاق الإعلاني، الزيارات العضوية، الترتيب لكلمات مسماة)، ووتيرة التقارير، والمخرجات الشهرية (المنشورات، المقالات، التصاميم)، ومن يملك المحتوى والحسابات والبيانات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Search_engine_optimization"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: SEO (organic) versus SEM (paid); white-hat versus black-hat techniques -> confirmed."
+    },
+    {
+      "id": "digital_marketing:lead-times-and-quoting",
+      "topic": "Digital marketing, SEO & social media - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التسويق الرقمي وتحسين محركات البحث ووسائل التواصل: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Paid campaigns can launch within 1-2 weeks; SEO results usually take 3-6 months; social media set-up 1-2 weeks. An agency needs the goals, target audience and markets, budget for ad spend and fees, current assets and accounts, competitors, and languages. A proposal states channels and deliverables per month, KPIs, ad spend versus fee split, account ownership, reporting, term and notice, and validity.",
+      "body_ar": "يمكن إطلاق الحملات المدفوعة خلال 1-2 أسبوع؛ ونتائج تحسين محركات البحث تستغرق عادة 3-6 أشهر؛ وإعداد وسائل التواصل 1-2 أسبوع. وتحتاج الوكالة الأهداف، والجمهور المستهدف والأسواق، وميزانية الإنفاق الإعلاني والأتعاب، والأصول والحسابات الحالية، والمنافسين، واللغات. ويذكر العرض القنوات والمخرجات الشهرية، ومؤشرات الأداء، والفصل بين الإنفاق الإعلاني والأتعاب، وملكية الحسابات، والتقارير، والمدة والإشعار، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (the standards entry only says a trade licence is needed; nothing on the UAE Media Council advertiser/influencer licence). digital_marketing:uae-media-council-advertiser-permit was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from digital_marketing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should a new clinic start with SEO or Google Ads?",
+      "q_ar": "عيادة جديدة تبدأ بتحسين محركات البحث ولا بإعلانات جوجل؟",
+      "expected_entry_ids": [
+        "digital_marketing:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "digital_marketing:uae-media-council-advertiser-permit"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "digital_marketing:product-distinctions"
+      ],
+      "stored_not_served": [
+        "digital_marketing:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Search_engine_optimization"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
