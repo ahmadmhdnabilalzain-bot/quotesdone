@@ -12,6 +12,7 @@ import { readFirstTouch } from '@/lib/firstTouch';
 // 14 Sep 2026: the row-#5 intelligence panels are no longer top-level tabs; ./supplier/Insights loads
 // the ones whose routine has something to show, each on demand.
 import SupplierSettings from './supplier/SupplierSettings';
+import { QuoteTemplateBar } from './supplier/QuoteTemplateBar';
 import SupplierDocumentImpact from './supplier/SupplierDocumentImpact';
 import SupplierEntryHero from './supplier/SupplierEntryHero';
 import SupplierCommandPalette from './supplier/SupplierCommandPalette';
@@ -1290,6 +1291,10 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   const grp = 'font-mono text-label uppercase tracking-caps text-muted-foreground';
   return <div className="mt-5 flex flex-col gap-4 rounded-panel border border-border bg-background/40 p-4 sm:p-5">
     <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept={QUOTE_ACCEPT} onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
+    {/* T3: a saved template fills structure only (headings with empty prices, terms); never a price. */}
+    <QuoteTemplateBar token={token}
+      current={() => { const m = /(?:^|\n)Exclusions: ([\s\S]*)$/.exec(notes || ''); return { line_headings: items.map((x) => x.description || '').filter(Boolean), terms: m ? notes.slice(0, m.index).trim() : notes, warranty, validity, inclusions: scope, exclusions: m ? m[1].trim() : ((prop && prop.exclusions) || ''), payment_terms: payment }; }}
+      onApply={(tp) => { if (tp.validity) setValidity(tp.validity); if (tp.payment_terms) setPayment(tp.payment_terms); if (tp.warranty) setWarranty(tp.warranty); if (tp.inclusions) setScope(tp.inclusions); const n = [tp.terms, tp.exclusions ? 'Exclusions: ' + tp.exclusions : ''].filter(Boolean).join('\n'); if (n) setNotes(n); if (tp.line_headings.length && !items.some((x) => Number(x.unit_price) > 0)) setItems(tp.line_headings.map((d) => ({ description: d, qty: '', unit: '', unit_price: '' }))); }} />
     <div className={cn(grp, 'border-t border-border pt-4')}>{ar ? 'السعر والشروط' : 'Price and terms'}</div>
     <div className="flex gap-2.5 flex-wrap -mt-2"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input className="tabular font-mono text-[15px]" inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
     <div className="flex gap-2.5 flex-wrap">
