@@ -365,8 +365,8 @@ RULES:
     const key = await sec('cred_fn_ai');
     const emit = EMITTERS.get(req) ?? (() => {});
     const past = fitHistory(history.filter((h: any, i: number) => !(i === history.length - 1 && h.role === 'user' && h.content === message)), message);
-    // the precedent block changes with every message, so it rides after the cached history, never inside the system prompt
-    const turnText = memoryBlock ? memoryBlock.trim() + '\n\nMESSAGE:\n' + message : message;
+    // the recalled cases never enter this prompt (main: case text is dropped for an external audience); the message rides after the cached history
+    const turnText = message;
     // OUTPUT CEILING: room for a model that reasons before it writes; more with a photo. The gateway takes min(max, route
     // max_tokens): visitor_chat is capped at 900, so a visitor's photo answer gets 900 and only the portal gets 1200; a
     // cut-off answer is rewritten shorter, never shown.
