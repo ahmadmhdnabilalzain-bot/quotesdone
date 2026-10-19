@@ -16,7 +16,7 @@ const MUST = {
            ar: [/المربع المستقل المخصص للموافقة/, /الفقرة 2 من المادة 18/, /توافق صراحةً على تلك المعالجة/, /رقم 14 لسنة 2023/] },
   'supplier-agreement': { en: [/only after the Supplier has expressly accepted it/, /only with the Supplier's prior written consent/, /Article 18\(2\)\(a\) and \(c\)/, /Federal Decree-Law No\. 14 of 2023/],
                           ar: [/إلا بعد أن يقبلها صراحةً/, /بموافقة كتابية مسبقة منه/, /الفقرة 2 من المادة 18/] },
-  privacy: { en: [/does not provide a general "legitimate interests" ground/, /Article 92 of the Commercial Transactions Law/, /role address/], ar: [/المادة 92 من قانون المعاملات التجارية/, /عنوان البريد العام للشركة/] },
+  privacy: { en: [/does not provide a general "legitimate interests" ground/, /Article 92 of the Commercial Transactions Law/, /available and known to all by an act of its owner/], ar: [/المادة 92 من قانون المعاملات التجارية/, /متاحة ومعروفة للكافة بفعل صاحبها/] },
   'refund-policy': { en: [/The Reveal Fee is the total you pay/], ar: [/رسوم الكشف هي المبلغ الإجمالي الذي تدفعه/] },
   disclaimer: { en: [/bound by its revealed quotation/, /limited as set out in clause 9 of the Terms of Service/], ar: [/يلتزم المورّد بعرض السعر الذي كُشف عنه/, /البند 9 من شروط الخدمة/] },
 };
@@ -26,7 +26,7 @@ for (const [k, langs] of Object.entries(MUST)) for (const [g, res] of Object.ent
 
 test('no current document keeps a ruled-out wording', () => {
   const NEVER = { en: [/unless you opt out|unless opted out|unless the Supplier opts out/i, /legitimate (business )?interests?\)/i, /QuotesDone's CEO|the CEO's/, /\bhuman\b/i,
-    /reconsidered by a person/, /continu(ed|ing) (to )?use[^.]{0,80}(constitutes|acceptance)/i, /conclusive evidence/, /Both amounts|no VAT is charged on either/, /Quotations provided through the Platform are indicative only/],
+    /reconsidered by a person/, /continu(ed|ing) (to )?use[^.]{0,80}(constitutes|acceptance)/i, /conclusive evidence/, /Both amounts|no VAT is charged on either/, /Quotations provided through the Platform are indicative only/, /role address/i],
     ar: [/ما لم تقم بإلغاء الاشتراك|ما لم ينسحب/, /الرئيس التنفيذي/, /من قِبل شخص/, /دليلًا قاطعًا/, /أيٍّ منهما/] };
   for (const k of CURRENT) for (const g of ['en', 'ar']) for (const re of NEVER[g]) assert.doesNotMatch(text(k, g), re, `${k}/${g}: ${re}`);
 });
