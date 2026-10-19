@@ -5264,7 +5264,11 @@
   "fd3788506791",
   "fd4d1114538b",
   "fd9cfbba2824",
-  "fe4f54bad0fc"
+  "fe4f54bad0fc",
+  "10bbb69afc8c",
+  "2faf49d175ad",
+  "755be831f556",
+  "f10f79ee1c12"
  ],
  "src/components/portal/suppliers/SupplierRelationship.tsx": [
   "005339379cfe",
@@ -5876,7 +5880,9 @@
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "2eeb132406ba",
-  "bc769b49e75d"
+  "bc769b49e75d",
+  "b72aaecaef24",
+  "d469c60c6d28"
  ],
  "supabase/functions/_shared/supplier_charge_documents.ts": [
   "028bd4e1bdc6",

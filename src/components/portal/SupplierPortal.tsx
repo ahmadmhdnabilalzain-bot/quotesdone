@@ -844,7 +844,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14', 'v15'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -910,6 +910,21 @@ const AGREEMENT_CHANGES = {
       'إلى أقصى حد يجيزه قانون دولة الإمارات، لا تُسأل QuotesDone تجاهكم. وإذا رفضت محكمةٌ هذا الاستبعاد فقط، تُحدَّد مسؤوليتها بالمبلغ الأعلى من الرسوم التي دفعتموها خلال آخر 12 شهرًا أو 5,000 درهم إماراتي. ولا تُستبعد أبدًا المسؤولية عن الغش أو الخطأ الجسيم أو الفعل الضار (البند 18).',
       'تعوّضون QuotesDone عن المطالبات الناشئة عن عروض أسعاركم أو بياناتكم أو رخصكم أو سلعكم أو أعمالكم أو العاملين لديكم (البند 18(ج)).',
       'بند جديد 38: خدمات الغير، والإخطار بأي مطالبة خلال 90 يومًا (ولا يُسقط التأخيرُ المطالبة)، وتعليق المحتوى المخالف أو المضلل أو إزالته، وكامل الاتفاق. ويذكر بند القوة القاهرة أمثلتها الآن (البند 20). لا تغيير في أي رسم.',
+    ],
+  },
+  // v16, 19 Oct 2026 (ceo; legal risk review of 19 Oct 2026, findings 1, 2, 7, 8, 9 and 18).
+  16: {
+    en: [
+      'A new or increased fee applies to you only after you expressly accept it on the Platform; continued use is no longer acceptance (clause 6).',
+      'Promotional messages are sent only if you tick a separate box to agree, and your name or logo is used as a reference only with your prior written consent (clause 32).',
+      'Decisions made by automated processing are part of the service and you agree to them; an objection goes to QuotesDone Customer Support, then the QuotesDone operations team (clause 27). On day 5 of a silent reveal QuotesDone makes a final contact attempt by phone, WhatsApp or email (clauses 11 and 33).',
+      'Acceptance is by ticking the box or clicking to accept, and our records are evidence rather than conclusive evidence (clause 30). The governing law now names the Modern Technology-Based Trade Law, Federal Decree-Law No. 14 of 2023 (clause 34). No fee or charge changes.',
+    ],
+    ar: [
+      'لا تسري عليكم أي رسوم مستحدثة أو مزيدة إلا بعد قبولكم الصريح لها على المنصة؛ ولم يعد استمرار الاستخدام قبولًا (البند 6).',
+      'لا تُرسل الرسائل الترويجية إلا إذا وضعتم علامة في مربع مستقل للموافقة عليها، ولا يُستخدم اسمكم أو شعاركم مرجعًا إلا بموافقتكم الكتابية المسبقة (البند 32).',
+      'القرارات الصادرة بالمعالجة الآلية جزء من الخدمة وتوافقون عليها، ويُقدَّم الاعتراض إلى فريق دعم العملاء في QuotesDone ثم إلى فريق العمليات فيها (البند 27). وفي اليوم الخامس من عدم الاستجابة بعد الكشف تجري QuotesDone محاولة اتصال أخيرة عبر الهاتف أو واتساب أو البريد الإلكتروني (البندان 11 و33).',
+      'يكون القبول بوضع علامة في المربع أو النقر للقبول، وتُعدّ سجلاتنا دليلًا لا دليلًا قاطعًا (البند 30). ويذكر بند القانون الواجب التطبيق الآن قانون التجارة عبر وسائل التقنية الحديثة، المرسوم بقانون اتحادي رقم 14 لسنة 2023 (البند 34). لا تغيير في أي رسم.',
     ],
   },
 };
