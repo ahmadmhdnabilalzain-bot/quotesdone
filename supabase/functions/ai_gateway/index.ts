@@ -33,7 +33,7 @@
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
 import { cacheTokens, tapUsage } from './stream_usage.ts';
-import { sendWithTtlFallback, systemMessage } from './system_message.ts';
+import { sendWithTtlFallback, systemMessage, withHistoryBreakpoint } from './system_message.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -160,6 +160,7 @@ interface Body {
   sys?: string;
   sys_stable?: string;                    // the byte-stable half of the system prompt; only this is marked cacheable
   sys_shared?: string;                    // a byte-stable block shared by a family of prompts, cached first (system_message.ts)
+  cache_history?: boolean;                // mark the turn before the newest as a cache breakpoint (system_message.ts withHistoryBreakpoint)
   cache_ttl?: '1h';                       // Anthropic's 1-hour cache tier, asked for by the chat callers only
   input?: string | Msg[];
   messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
@@ -584,7 +585,9 @@ async function handle(req: Request): Promise<Response> {
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,
     // and never when the caller already supplied its own system turn inside `messages`.
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
-    const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
+    // cache_history (chat_history.ts): the earlier turns of a long conversation are the third cached block.
+    const convoOut: Msg[] = (useCache && body.cache_history === true) ? withHistoryBreakpoint(convo, cacheTtl) as Msg[] : convo;
+    const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convoOut] : convoOut;
 
     // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to
     // about 100 seconds, while _shared/llm.ts abandons a plain call after 30. On 29 Jul five
