@@ -66,3 +66,24 @@ Deno.test('the question as asked is retrieved beside the plan; a caller\'s own p
   const r2 = await think(n.d, { seat: 'it_engineer', surface: 'test', question: 'x?', context: { audience: 'internal' }, plan: { steps: [{ id: 'p', goal: 'g', query: 'y' }] } });
   assertEquals(r2.steps.filter((s) => s.kind === 'retrieve').map((s) => s.id), ['p']);
 });
+
+Deno.test('a common word the brief happens to contain is not a citation (release review of #1584)', () => {
+  const settled = 'The fee is 3% plus VAT in AED. CT§8 Refunds. CT§80 Other. (accountant:non-response-charge-accounting)';
+  for (const word of ['fee', 'VAT', 'AED', 'Refunds', 'CT§8 Refunds', 'accountant', 'CT§9', 'accountant:non-response']) {
+    const d = { answer: ANSWER, reasoning: ['s1'], cited: [word] };
+    assert(refuse(d, { missing: [], conversationText: '', requireTrail: true, sourceIds: citable(new Set(), settled, d) })?.includes(word), word + ' passed');
+  }
+});
+
+Deno.test('a deadline or timeout is never retried, on the plan or the answer (the 150 s edge wall)', async () => {
+  for (const error of ['gateway_http_502:gateway_deadline', 'timed out']) {
+    const seen: string[] = [];
+    const m = deps((phase) => { seen.push(phase); return Promise.resolve(phase === 'decompose' && seen.length === 1 ? { content: null, error } as LlmReply : phase === 'decompose' ? { content: PLAN, model: 'm' } : { content: null, error } as LlmReply); });
+    await think(m.d, { seat: 'it_engineer', surface: 'test', question: 'q?', context: { audience: 'internal' } });
+    assertEquals(seen.filter((p) => p === 'decompose').length, 1, error);
+  }
+  const seen: string[] = [];
+  const m = deps((phase) => { seen.push(phase); return Promise.resolve(phase === 'decompose' ? { content: PLAN, model: 'm' } : { content: null, error: 'gateway_http_502:gateway_deadline' } as LlmReply); });
+  await think(m.d, { seat: 'it_engineer', surface: 'test', question: 'q?', context: { audience: 'internal' } });
+  assertEquals(seen, ['decompose', 'synthesise']);
+});

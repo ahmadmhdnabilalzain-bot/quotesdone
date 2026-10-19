@@ -186,7 +186,10 @@ export const MAX_STEPS = 5;
 export const MAX_SYNTH_PASSES = 3;         // the first draft + two forced re-passes
 export const MAX_RESEARCH_PAGES = 3;
 /** A gateway answer that says the PROVIDER failed, not the request: gateway_http_5xx (502, 503, 546) or its deadline. */
-export const TRANSIENT_MODEL_ERROR = /gateway_http_5\d\d|gateway_deadline|timed? ?out/i;
+export const TRANSIENT_MODEL_ERROR = /gateway_http_5\d\d/i;
+/** A deadline or timeout is never retried: a plan that ran its 75 s and was retried would pass the 150 s edge wall before
+ *  synthesis began (release review of #1584); a timed-out plan already falls back to the one-step plan (#1564). */
+export const SLOW_MODEL_ERROR = /deadline|timed? ?out|timeout/i;
 /** A source's excerpt as the seat reads it. The routines cut a seat-pack row at 2,400 characters and every other row at
  *  1,200 (a_seats_own_entry_reaches_the_answer_whole.sql); this side cut everything to 1,200 again until 19 Oct 2026. */
 export const EXCERPT_MAX = 2400;
@@ -316,9 +319,12 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
  */
 export function citable(sourceIds: Set<string>, settled: string, d: Draft | null): Set<string> {
   const ok = new Set(sourceIds); ok.add(BRIEF_SOURCE_ID);
+  // Only the two shapes the brief carries (release review of #1584: any 3-character substring let "fee" or "VAT" pass):
+  // a clause token CT§n / SA§n / PP§n / DIS§n with an optional (x), or a seat:entry-id, and either one present in it.
   for (const c of d?.cited ?? []) {
-    const id = String(c).trim(); const base = id.replace(/\([^)]*\)$/, '');
-    if (base.length >= 3 && settled.includes(base)) ok.add(id);
+    const id = String(c).trim(); const base = id.replace(/\([a-z0-9]{1,4}\)$/i, '');
+    const shaped = /^(CT|SA|PP|DIS)§\d+$/.test(base) || (base === id && /^[a-z_]+:[a-z0-9][a-z0-9._-]*$/.test(id));
+    if (shaped && new RegExp('(^|[^A-Za-z0-9_§.:-])' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![0-9A-Za-z_-])').test(settled)) ok.add(id);
   }
   return ok;
 }
@@ -563,7 +569,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // model said. A model call writes nothing, so one more try is safe; a hold, an open circuit or a refusal is not retried.
   { const base = deps; deps = { ...base, llm: async (p, s, i, o) => {
     const r = await base.llm(p, s, i, o);
-    if (r.content || p === 'verify' || !TRANSIENT_MODEL_ERROR.test(String(r.error ?? '')) || /circuit_open|open-circuit|founder_hold/.test(String(r.error ?? ''))) return r;
+    const e = String(r.error ?? '');
+    if (r.content || p === 'verify' || !TRANSIENT_MODEL_ERROR.test(e) || SLOW_MODEL_ERROR.test(e) || /circuit_open|open-circuit|founder_hold/.test(e)) return r;
     steps.push({ id: p + '.retry', kind: p, goal: 'one retry after a provider error', status: 'done', detail: r.error });
     return await base.llm(p, s, i, o);
   } }; }
