@@ -47,7 +47,8 @@
 --                                      one ceo_task.
 --   C14  ceo.register_review    daily, acts monthly  risk_register rows open past review_due, compliance sources
 --                                      unchecked 35+ days, subscriptions past renewal or renewing within 14 days,
---                                      compliance calendar entries unverified for a year: a directive to the owner.
+--                                      compliance calendar entries unverified for a year: a directive to the owner
+--                                      (compliance sources and calendar: the CEO; IT only for a custom-fetch source).
 --
 -- NOT CHANGED: fn_ceo_directive_run, fn_ceo_month_plan (still writes and sends the report when the plan grades the
 -- month), fn_ceo_target_forecast, fn_ceo_improvement_sweep, fn_ceo_pricing_monitor, fn_ceo_experiment_review. No price
@@ -433,9 +434,11 @@ begin
     n_risk := n_risk + (v_id is not null)::int;
   end loop;
 
-  for r in select id, authority, topic, last_checked_at from public.compliance_sources
+  -- compliance is the CEO's (coordinator ruling, 19 Oct 2026); IT owns only a source whose fetch needs custom tooling
+  -- (fetch_mode other than 'direct' or 'reader'). On 19 Oct all 17 active sources are direct/reader, so all go to the CEO.
+  for r in select id, authority, topic, last_checked_at, fetch_mode from public.compliance_sources
             where active and coalesce(last_checked_at, 'epoch') < now() - interval '35 days' loop
-    v_id := public.fn_ceo_directive_issue('it_engineer', 'register_review', 'compliance_sources:' || r.id || ':' || v_m,
+    v_id := public.fn_ceo_directive_issue(case when coalesce(r.fetch_mode, 'direct') in ('direct', 'reader') then 'ceo' else 'it_engineer' end, 'register_review', 'compliance_sources:' || r.id || ':' || v_m,
       format('Re-check compliance source #%s (%s, %s): last checked %s. Fetch it, record what changed, and route any change to the seat it affects.',
              r.id, r.authority, left(r.topic, 120), coalesce(to_char(r.last_checked_at, 'DD Mon YYYY'), 'never')),
       format('compliance source #%s was checked in the last 35 days or is inactive.', r.id),
