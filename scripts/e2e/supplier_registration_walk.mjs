@@ -24,7 +24,7 @@
 //   3. terms + Save end in approved with a signed certificate (and a failed certificate heals on Save);
 //   4. every tab, the bell and the account menu settle (no endless "Loading…").
 import { launch, SITE } from './browser.mjs';
-import { openRun, closeRun, read, write, call, BASE } from './fixtures.mjs';
+import { openRun, closeRun, read, write, call, BASE, waitFor } from './fixtures.mjs';
 import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 import { writeFileSync, mkdtempSync, readFileSync } from 'node:fs';
@@ -39,7 +39,9 @@ const KEEP = argv.includes('--keep');
 const SHOTS = val('--shots', ''); let shotN = 0;
 const shot = async (p, m, name) => { if (!SHOTS) return; const f = join(SHOTS, `${m.replace('/', '_')}_${String(++shotN).padStart(2, '0')}_${name}.png`); await p.screenshot({ path: f, fullPage: true }).catch(() => {}); console.log('  shot', f); };
 const TMP = mkdtempSync(join(tmpdir(), 'qd-regwalk-'));
-const AR = (l) => l === 'ar';
+// The supplier portal and its sign-up are English whatever the invitation language (ruling 1008), so
+// every on-screen expectation is English; `lang` still sets the browser locale and the lead's locale.
+const AR = () => false;
 const results = [];
 const step = (m, name, ok, detail = '') => { results.push({ m, name, ok, detail }); console.log(`${ok ? 'PASS' : 'FAIL'} [${m}] ${name}${detail ? ' — ' + detail : ''}`); };
 
@@ -69,7 +71,7 @@ try {
       returning id, claim_token::text t`, 'invited demo lead'))[0];
     run.ids.leads.add(String(lead.id));
     const mobile = vp === 'mobile';
-    const ctxOpts = { viewport: mobile ? { width: Number(val('--mobile-width', '390')), height: 844 } : { width: 1440, height: 900 }, locale: AR(lang) ? 'ar-AE' : 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
+    const ctxOpts = { viewport: mobile ? { width: Number(val('--mobile-width', '390')), height: 844 } : { width: 1440, height: 900 }, locale: lang === 'ar' ? 'ar-AE' : 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
     const consent = () => localStorage.setItem('qd-cookie-consent', JSON.stringify({ necessary: true, analytics: false, marketing: false, ts: Date.now() }));
     const url = `${SITE}/${lang}/portal?t=${lead.t}`;
 
@@ -201,11 +203,15 @@ try {
       const aa = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_name_from_licence' and target_id::text='${lead.id}'`))[0];
       step(m, 'ruling 1176: the read licence name became the company name, the old name logged', tr.company_name === c.truth.legal_name_en && aa.n > 0, `company_name=${tr.company_name}; log rows ${aa.n}`);
     }
-    // the decision reaches the supplier: written, and fenced for an @example.invalid fixture (suppressed, never sent)
-    await new Promise((r) => setTimeout(r, 4000));
-    const nt = await read(`select type, channel, status from public.notifications where lead_id=${lead.id} order by id`);
-    const want = approveCase ? nt.some((x) => x.type === 'supplier_approved' && x.channel === 'email') : nt.length > 0;
-    step(m, `the ${approveCase ? 'approval' : 'hold'} notice is written (fixture: suppressed, never sent)`, want && nt.every((x) => x.status === 'suppressed'), JSON.stringify(nt));
+    // The decision is taken by the sales engineer and, for a demo row, never filed for delivery (ruling 1199:
+    // fn_seat_handoff files no handoff from a demo row, so no notifications row exists to suppress). Asserted:
+    // the seat recorded its notice decision for this supplier, and nothing was queued to any channel.
+    const actRead = () => read(`select kind, status, detail->>'to_email' to_email, detail->>'not_sent' not_sent from public.agent_actions
+      where kind in ('supplier_approved_notice', 'supplier_verification') and detail->>'supplier_id' = '${lead.id}' order by id`);
+    const actOk = (a) => (approveCase ? a.some((x) => x.kind === 'supplier_approved_notice' && x.status === 'auto_done') : a.length > 0);
+    const acts = (await waitFor(async () => { const r = await actRead(); return actOk(r) ? r : null; }, { timeoutMs: 60000 })) || await actRead();
+    const nt = await read(`select type, channel, status from public.notifications where lead_id=${lead.id} and status not in ('suppressed')`);
+    step(m, `the ${approveCase ? 'approval' : 'hold'} notice is decided by the seat, and nothing is sent to a fixture`, actOk(acts) && nt.length === 0, JSON.stringify({ acts, sent: nt }));
     await shot(p, m, 'after_submit');
     if (reg?.signed_terms_path) run.ids.storage.push('signed-terms/' + reg.signed_terms_path);
 

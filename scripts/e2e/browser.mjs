@@ -9,7 +9,7 @@
 import { chromium } from 'playwright';
 
 export const SITE = process.env.QD_SITE || 'https://quotesdone.com';
-export const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 375, height: 812 } };
+export const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 375, height: 812 }, tablet: { width: 768, height: 1024 } };
 
 const KEYS = {
   customer: { token: 'qd-cust-token', refresh: 'qd-cust-refresh', auth: 'qd-cust-auth', path: '/me' },
