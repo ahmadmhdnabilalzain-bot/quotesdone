@@ -795,8 +795,10 @@ begin
     if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
     v := public.fn_invite_placement_settle(v_day, p_now);
   end if;
-  -- A measured placement lets the batch go, junk included (ledger 1001); only a failure to measure holds it.
-  if v not in ('inbox', 'spam', 'elsewhere') then return 'fail:' || v; end if;
+  -- Ledger 1113 (5 Oct 2026, 'make sure no emails go to junk or spam') supersedes 1001: a spam seed holds the batch
+  -- (settle has already filed the it_engineer finding and the marketing handoff); Gmail Promotions ('elsewhere') passes.
+  if v = 'spam' then return 'fail:spam'; end if;
+  if v not in ('inbox', 'elsewhere') then return 'fail:' || v; end if;
   if public.fn_invite_placement_sender() is distinct from r.from_address then return 'fail:from_changed'; end if;
   return 'pass';
 end
@@ -2394,21 +2396,24 @@ CREATE OR REPLACE FUNCTION public.fn_it_dependency_ingest(p_r jsonb)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare e jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb;
+declare e jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb; v_hot boolean;
 begin
   if jsonb_typeof(p_r->'advisories') is distinct from 'array' then
     raise exception 'fn_it_dependency_ingest takes {advisories:[...]} from scripts/it/report_dependency_audit.mjs';
   end if;
   for e in select a from jsonb_array_elements(p_r->'advisories') a loop
+    v_hot := lower(e->>'severity') in ('high', 'critical') or coalesce((e->>'epss')::numeric, 0) >= 0.1;
     v_items := v_items || jsonb_build_object('item', (e->>'ecosystem') || ':' || (e->>'package') || ':' || coalesce(e->>'id', '?'),
-      'owner_seat', case when e->>'ecosystem' = 'app' then 'ceo' else coalesce(e->>'owner_seat', 'ceo') end,
+      'owner_seat', case when v_hot or e->>'ecosystem' = 'app' then 'ceo' else coalesce(e->>'owner_seat', 'ceo') end,
       'subject', coalesce(e->>'function', e->>'package'),
-      'title', upper(coalesce(e->>'severity', '?')) || ' advisory in ' || (e->>'package') || ': ' || left(coalesce(e->>'title', ''), 120),
-      'blast', case when lower(e->>'severity') in ('high', 'critical') then 'security' else 'internal' end,
-      'affected', case when lower(e->>'severity') in ('high', 'critical') then 1 else 0 end,
-      'evidence', e || jsonb_build_object('no_founder_email', lower(e->>'severity') not in ('high', 'critical')));
+      'title', upper(coalesce(e->>'severity', '?')) || ' advisory in ' || (e->>'package') || ': ' || left(coalesce(e->>'title', ''), 120)
+               || coalesce(' (EPSS ' || round((e->>'epss')::numeric, 3) || ')', ''),
+      'blast', case when v_hot then 'security' else 'internal' end,
+      'affected', case when v_hot then 1 else 0 end,
+      'evidence', e || jsonb_build_object('no_founder_email', true));   -- ruling 1254: never the founder, high/critical included
   end loop;
-  v_res := public.fn_it_duty_settle('dependency', v_items);
+  v_res := public.fn_it_duty_settle('dependency', v_items)
+           || jsonb_build_object('functions_not_deployed', p_r->'functions_not_deployed', 'deployed_list_read', p_r->'deployed_list_read');
   perform public.fn_it_duty_ran('dependency', v_res);
   return v_res;
 end $function$
@@ -4305,7 +4310,9 @@ CREATE OR REPLACE FUNCTION public.fn_it_duty_ran(p_duty text, p_result jsonb)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
-  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duty:' || p_duty, 'result', p_result), null)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duty:' || p_duty, 'result', p_result), null);
+  -- the perimeter check's own last success, on its schedule row (IT-C13)
+  update public.it_duty_schedule set last_ok_at = now(), last_result = p_result where duty = p_duty;
 $function$
 
 
@@ -4375,6 +4382,37 @@ begin
   end loop;
   return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0),
                             'closed', n_closed, 'configuration_already_recorded', n_held);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_advisory_triage()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb := '[]'::jsonb; r record; v_at timestamptz;
+begin
+  -- the two weekly readings that need the repository are fresh, or their absence is the finding
+  for r in select k duty from unnest(array['dependency', 'workflow_audit']) k loop
+    select max(started_at) into v_at from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:' || r.duty;
+    if coalesce(v_at, 'epoch') < now() - interval '8 days' then
+      v_items := v_items || jsonb_build_object('item', 'stale:' || r.duty, 'subject', r.duty, 'owner_seat', 'it_engineer', 'blast', 'internal',
+        'title', 'The weekly ' || r.duty || ' reading has not reported since ' || coalesce(to_char(v_at, 'DD Mon'), 'it was built')
+                 || ' (it-weekly-readings.yml)', 'evidence', jsonb_build_object('last_run_at', v_at));
+    end if;
+  end loop;
+  -- provider advisories: an open Supabase security advisor outside the accepted baseline is about what is deployed
+  for r in select cache_key, name, level, title, metadata from public.security_advisor_baseline
+            where cleared_at is null and not in_baseline and level in ('WARN', 'ERROR') and last_seen_at > now() - interval '2 days' loop
+    v_items := v_items || jsonb_build_object('item', 'supabase:' || r.cache_key, 'subject', coalesce(r.metadata->>'name', r.name),
+      'owner_seat', 'it_engineer', 'blast', case when r.level = 'ERROR' then 'security' else 'internal' end,
+      'title', 'Supabase advisor ' || r.level || ' ' || r.name || ' on ' || coalesce(r.metadata->>'schema', '?') || '.' || coalesce(r.metadata->>'name', '?'),
+      'evidence', jsonb_build_object('advisor', r.name, 'level', r.level, 'metadata', r.metadata));
+  end loop;
+  return jsonb_build_object('settled', public.fn_it_duty_settle('advisory_triage', v_items),
+    'dependency_open', (select count(*) from public.it_engineer_finding where closed_at is null and issue_key like 'duty:dependency:%'),
+    'workflow_open', (select count(*) from public.it_engineer_finding where closed_at is null and issue_key like 'duty:workflow_audit:%'));
 end $function$
 
 
@@ -5078,6 +5116,81 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_closure(p_duty text, p_days integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f public.it_engineer_finding; c public.it_finding_closure; v_owner text; v_to text; v_id bigint;
+  n_new int := 0; n_reopened int := 0; n_closed int := 0; n_overdue int := 0;
+begin
+  if coalesce(btrim(p_duty), '') = '' or coalesce(p_days, 0) < 1 then
+    raise exception 'fn_it_engineer_finding_closure(duty, days): a duty and a deadline of at least one day are required';
+  end if;
+
+  -- every open finding of the duty: an owner, a deadline, and the latest reading the hourly duty took
+  for f in select * from public.it_engineer_finding
+            where closed_at is null and issue_key like 'duty:' || p_duty || ':%'
+              and not coalesce((evidence->>'demo')::boolean, false) loop
+    v_owner := coalesce(nullif(f.evidence->>'owner_seat', ''), 'it_engineer');
+    select * into c from public.it_finding_closure where issue_key = f.issue_key;
+    if not found then
+      insert into public.it_finding_closure (issue_key, duty, owner_seat, opened_at, deadline, reading_at_open, last_reading, last_measured_at)
+      values (f.issue_key, p_duty, v_owner, f.started_at, f.started_at + make_interval(days => p_days), f.evidence, f.evidence, f.last_seen_at);
+      n_new := n_new + 1;
+    elsif c.closed_at is not null then
+      -- a regression: the finding came back, so its closure opens again with a fresh deadline
+      update public.it_finding_closure set opened_at = f.started_at, deadline = greatest(now(), f.started_at) + make_interval(days => p_days),
+             reading_at_open = f.evidence, last_reading = f.evidence, last_measured_at = f.last_seen_at, owner_seat = v_owner,
+             closed_at = null, reading_at_close = null, reopen_count = reopen_count + 1, overdue_handoff_id = null
+       where issue_key = f.issue_key;
+      n_reopened := n_reopened + 1;
+    else
+      update public.it_finding_closure set last_reading = f.evidence, last_measured_at = f.last_seen_at, owner_seat = v_owner
+       where issue_key = f.issue_key;
+    end if;
+  end loop;
+
+  -- the duty closed it (the reading is back under its line): the closure closes with what it read
+  for c in select k.* from public.it_finding_closure k join public.it_engineer_finding fi using (issue_key)
+            where k.duty = p_duty and k.closed_at is null and fi.closed_at is not null loop
+    update public.it_finding_closure k set closed_at = fi.closed_at,
+           reading_at_close = jsonb_build_object('close_note', fi.close_note, 'last_breach_reading', k.last_reading,
+                                                 'days_open', round(extract(epoch from fi.closed_at - k.opened_at) / 86400, 1),
+                                                 'met_deadline', fi.closed_at <= k.deadline)
+      from public.it_engineer_finding fi where fi.issue_key = k.issue_key and k.issue_key = c.issue_key;
+    n_closed := n_closed + 1;
+  end loop;
+
+  -- past its deadline and still open: one overdue handoff to the owner (the CEO when IT itself owns it)
+  for c in select * from public.it_finding_closure
+            where duty = p_duty and closed_at is null and deadline < now() and overdue_handoff_id is null
+            order by deadline limit 20 loop
+    select * into f from public.it_engineer_finding where issue_key = c.issue_key;
+    v_to := case when c.owner_seat = 'it_engineer' then 'ceo' else c.owner_seat end;
+    v_id := public.fn_seat_handoff('it_engineer', v_to, 'it.finding', 'it_engineer_finding',
+      c.issue_key || '@' || floor(extract(epoch from c.opened_at))::bigint || '@overdue',
+      jsonb_build_object('issue_key', c.issue_key, 'occurrence_started_at', f.started_at, 'duty', p_duty,
+        'subject', f.evidence->>'subject', 'overdue', true, 'deadline', c.deadline, 'owner_seat', c.owner_seat,
+        'title', 'Past its ' || to_char(c.deadline at time zone 'Asia/Dubai', 'DD Mon') || ' deadline: ' || f.title,
+        'where_it_is', f.where_it_is, 'reading_at_open', c.reading_at_open, 'latest_reading', c.last_reading,
+        'done_when', case p_duty when 'latency_slo' then 'p95 is back under 2500 ms over 24 h (the hourly duty closes it)'
+                                 else 'the hourly reading is back under its line (the duty closes it)' end,
+        'never', case when p_duty in ('model_spend', 'cost_watch')
+                      then 'no OpenRouter cap, no hold, no model-route change: fix the caller; the idle internal ceiling is USD 1-2 a day' end));
+    update public.it_finding_closure set overdue_handoff_id = coalesce(v_id, -1) where issue_key = c.issue_key;
+    n_overdue := n_overdue + 1;
+  end loop;
+
+  return jsonb_build_object('duty', p_duty, 'deadline_days', p_days, 'new', n_new, 'reopened', n_reopened, 'closed', n_closed,
+    'overdue_handed', n_overdue,
+    'open', (select count(*) from public.it_finding_closure where duty = p_duty and closed_at is null),
+    'open_past_deadline', (select count(*) from public.it_finding_closure where duty = p_duty and closed_at is null and deadline < now()),
+    'closed_30d', (select count(*) from public.it_finding_closure where duty = p_duty and closed_at > now() - interval '30 days'));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_upsert(p_issue_key text, p_title text, p_where text, p_blast text, p_affected integer DEFAULT 0, p_evidence jsonb DEFAULT '{}'::jsonb, p_ruled_out text[] DEFAULT '{}'::text[], p_undetermined text[] DEFAULT '{}'::text[], p_raised_by text DEFAULT 'it_engineer'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5771,6 +5884,16 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_latency_closure()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_it_engineer_finding_closure('latency_slo', 7)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_latency_slo()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5874,6 +5997,76 @@ begin
   end if;
   return jsonb_build_object('renewal_asks', v_asks - 'sample', 'expired_matchable_before', v_before,
                             'paused', v_fix, 'expired_matchable_after', v_after);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_load_test()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_run timestamptz := now(); v_budget numeric := coalesce((select value::numeric from public.it_threshold where key = 'slow_query_mean_ms'), 500);
+  v_inq uuid[]; v_quo uuid[]; j text; n int; i int; t0 timestamptz; t1 timestamptz; v_ms numeric[]; v_total numeric; v_p95 numeric;
+  v_broke boolean; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb; v_x int; v_deadline timestamptz;
+  v_inquiry public.inquiries; v_quote public.quotes; v_err text;
+begin
+  -- ZZ DEMO ONLY: no real customer's or supplier's row is ever read by the test
+  select array_agg(id order by id) into v_inq from public.inquiries where public.fn_inquiry_is_demo(id) and coalesce(cardinality(trades), 0) > 0;
+  select array_agg(id order by id) into v_quo from public.quotes where public.fn_quote_is_demo(id);
+  if v_inq is null or v_quo is null then
+    v_items := v_items || jsonb_build_object('item', 'no_demo_fixture', 'subject', 'load_test', 'owner_seat', 'it_engineer', 'config', true,
+      'title', 'The load test has no ZZ DEMO inquiry with trades or no ZZ DEMO quote to run on', 'evidence', jsonb_build_object('inquiries', cardinality(v_inq), 'quotes', cardinality(v_quo)));
+    return jsonb_build_object('ran', false, 'settled', public.fn_it_duty_settle('load_test', v_items));
+  end if;
+
+  foreach j in array array['inquiry_match', 'quote_check', 'comparison'] loop
+    v_broke := false;
+    v_deadline := clock_timestamp() + interval '5 seconds';   -- each journey gets 5 s, so the duty ends inside ~16 s
+    foreach n in array array[10, 40, 160, 640] loop
+      exit when v_broke or clock_timestamp() > v_deadline;
+      v_ms := '{}'; v_err := null;
+      t0 := clock_timestamp();
+      begin
+        for i in 1..n loop
+          t1 := clock_timestamp();
+          if j = 'inquiry_match' then
+            select * into v_inquiry from public.inquiries where id = v_inq[1 + (i % cardinality(v_inq))];
+            select count(*) into v_x from public.fn_match_capability(v_inquiry.trades, 'executes', '{}', '{}', null, null, v_inquiry.emirate, 12);
+          elsif j = 'quote_check' then
+            select * into v_quote from public.quotes where id = v_quo[1 + (i % cardinality(v_quo))];
+            perform public.fn_quote_quality_flags(v_quote), public.fn_quote_spec_mismatches(v_quote.id::text);
+          else
+            perform public.fn_quote_structured_score(v_quo[1 + (i % cardinality(v_quo))]::text);
+          end if;
+          v_ms := v_ms || round(extract(epoch from clock_timestamp() - t1) * 1000, 2);
+          exit when clock_timestamp() > v_deadline;
+        end loop;
+        -- whatever the paths wrote is rolled back with this sub-transaction; the timings live in variables
+        raise exception using errcode = 'QDLT0', message = 'load test step rolled back';
+      exception when sqlstate 'QDLT0' then null;
+        when others then v_err := sqlerrm;   -- a path that fails under load is the breakpoint, not a crashed duty
+      end;
+      v_total := round(extract(epoch from clock_timestamp() - t0) * 1000, 1);
+      select percentile_cont(0.95) within group (order by m) into v_p95 from unnest(v_ms) m;
+      v_broke := v_err is not null or coalesce(v_p95 > v_budget, true);
+      insert into public.it_load_test_run (run_at, journey, step_ops, total_ms, ops_per_sec, p95_ms, max_ms, within_budget, breakpoint, detail)
+      values (v_run, j, cardinality(v_ms), v_total, round(cardinality(v_ms) / greatest(v_total / 1000, 0.001), 1), round(v_p95, 2),
+              (select max(m) from unnest(v_ms) m), not v_broke, v_broke,
+              jsonb_build_object('budget_ms', v_budget, 'requested_ops', n, 'demo_inquiries', cardinality(v_inq), 'demo_quotes', cardinality(v_quo), 'error', v_err));
+      v_out := v_out || jsonb_build_object('journey', j, 'ops', cardinality(v_ms), 'total_ms', v_total, 'p95_ms', round(v_p95, 2), 'breakpoint', v_broke);
+      if v_broke then
+        v_items := v_items || jsonb_build_object('item', j, 'subject', j, 'owner_seat', 'it_engineer', 'blast', 'internal',
+          'title', 'Load test: the ' || j || ' database path broke its ' || v_budget || ' ms per-operation budget at ' || n
+                   || ' operations (p95 ' || round(v_p95) || ' ms) on ZZ DEMO data',
+          'evidence', jsonb_build_object('run_at', v_run, 'step_ops', n, 'p95_ms', round(v_p95, 2), 'budget_ms', v_budget));
+      end if;
+    end loop;
+  end loop;
+  return jsonb_build_object('ran', true, 'run_at', v_run, 'budget_ms', v_budget, 'steps', v_out,
+    'ceiling_ops_per_sec', (select jsonb_object_agg(journey, m) from (select journey, max(ops_per_sec) m from public.it_load_test_run
+                              where run_at = v_run and within_budget group by 1) x),
+    'settled', public.fn_it_duty_settle('load_test', v_items));
 end $function$
 
 
@@ -5996,6 +6189,38 @@ begin
   end if;
 
   return jsonb_build_object('settled', public.fn_it_duty_settle('model_spend', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_model_spend_closure()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('model_spend', public.fn_it_engineer_finding_closure('model_spend', 3),
+                            'cost_watch', public.fn_it_engineer_finding_closure('cost_watch', 7))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_perimeter_freshness()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s record; v_items jsonb := '[]'::jsonb;
+begin
+  for s in select * from public.it_duty_schedule
+            where coalesce(last_ok_at, 'epoch') < now() - (every * 2 + interval '1 hour') order by duty loop
+    v_items := v_items || jsonb_build_object('item', s.duty, 'subject', s.duty, 'owner_seat', s.owner_seat, 'blast', 'internal',
+      'title', 'Perimeter check ' || s.duty || ' has not succeeded since '
+               || coalesce(to_char(s.last_ok_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI'), 'any recorded run')
+               || ' (it runs every ' || s.every || ')',
+      'evidence', jsonb_build_object('every', s.every, 'last_ok_at', s.last_ok_at, 'note', s.note));
+  end loop;
+  return jsonb_build_object('checks', (select count(*) from public.it_duty_schedule), 'stale', jsonb_array_length(v_items),
+                            'settled', public.fn_it_duty_settle('perimeter_freshness', v_items));
 end $function$
 
 
@@ -8618,6 +8843,28 @@ begin
   v_out := jsonb_build_object('settled', public.fn_it_duty_settle('whatsapp_delivery', v_items), 'rates', v_rates);
   perform public.fn_it_duty_ran('whatsapp_delivery', v_out);
   return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_workflow_audit_ingest(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb;
+begin
+  if jsonb_typeof(p_r->'violations') is distinct from 'array' or coalesce((p_r->>'files')::int, 0) < 1 then
+    raise exception 'fn_it_workflow_audit_ingest takes {files:n, violations:[...]} from scripts/it/workflow_audit.mjs';
+  end if;
+  for e in select v from jsonb_array_elements(p_r->'violations') v loop
+    v_items := v_items || jsonb_build_object('item', (e->>'file') || ':' || (e->>'rule'), 'subject', e->>'file',
+      'owner_seat', 'it_engineer', 'blast', case when e->>'rule' in ('secret_in_log', 'write_all') then 'security' else 'internal' end,
+      'title', (e->>'file') || ': ' || (e->>'message'), 'evidence', e);
+  end loop;
+  v_res := public.fn_it_duty_settle('workflow_audit', v_items) || jsonb_build_object('files', p_r->'files');
+  perform public.fn_it_duty_ran('workflow_audit', v_res);
+  return v_res;
 end $function$
 
 
