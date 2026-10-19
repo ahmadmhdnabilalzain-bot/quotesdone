@@ -4386,7 +4386,7 @@ begin
     v_pass := false; v_found := false; v_missing := '{}';
     if e.q_vec is not null then
       select coalesce(jsonb_agg(x order by n), '[]'::jsonb) into v_top
-        from jsonb_array_elements(public.fn_reason_retrieve(e.seat, e.q_vec, 6)) with ordinality t(x, n) where n <= 5;
+        from jsonb_array_elements(public.fn_reason_retrieve(e.seat, e.q_vec, 6, p_audience => 'internal')) with ordinality t(x, n) where n <= 5;
       for v_hit in select x from jsonb_array_elements(v_top) x where x->>'id' = any(e.expected_entry_ids) loop
         if not v_found then   -- the facts reported missing are the first hit's, as in grade()
           v_missing := array(select f from unnest(e.expected_facts) f where strpos(lower(coalesce(v_hit->>'excerpt', '')), lower(f)) = 0);
