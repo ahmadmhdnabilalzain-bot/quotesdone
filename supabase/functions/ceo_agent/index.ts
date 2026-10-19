@@ -30,6 +30,8 @@ import { observe } from '../_shared/observe.ts';
 import { makeLlmRich } from '../_shared/llm.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { commandIntent } from '../_shared/reasoned_decisions.ts';
+import { decideOpenReviews } from '../_shared/review_decide.ts';
+import { liveReviewIO } from '../_shared/review_request.ts';
 import { precedentBlock, recallCases, recallTrace } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -356,6 +358,16 @@ Deno.serve(observe('ceo_agent', async (req) => {
       const { data, error } = await admin.rpc('fn_ceo_refund_review', { p_refund_id: Number(body.refund_id), p_trigger: 'ceo_agent' });
       if (error) return J({ ok: false, error: error.message }, 400);
       return J({ ok: true, seat: 'ceo', review: data });
+    }
+
+    // ── REVIEW REQUESTS (ledger 1152) ──────────────────────────────────────────────────────────────
+    // A request to review an automated decision is DECIDED here, on the owning seat's model of another
+    // family than the original decision (_shared/review_decide.ts). Driven by the resilience_ping heartbeat (step
+    // review_requests); the CEO seat runs it because routing is its, the verdict is the owning seat's.
+    if (action === 'review_requests') {
+      if (who !== 'ceo') return J({ error: 'only the ceo seat runs the review heartbeat' }, 403);
+      const id = Number(body.id) > 0 ? Number(body.id) : undefined;
+      return J({ ok: true, decided: await decideOpenReviews(liveReviewIO(admin), Math.min(5, Number(body.limit) || 3), id) });
     }
 
     // ── JUDGEMENT (plan A/B) ───────────────────────────────────────────────────────────────────

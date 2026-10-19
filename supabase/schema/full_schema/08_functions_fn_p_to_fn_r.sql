@@ -3459,7 +3459,7 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_reason_retrieve(p_seat text, p_embedding vector, p_k integer DEFAULT 6, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.fn_reason_retrieve(p_seat text, p_embedding vector, p_k integer DEFAULT 6, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text, p_audience text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -3473,6 +3473,9 @@ declare
   v_trade text[];  -- 'trade:<code>' of the resolved trade; NULL = no trade resolved
   v_kind  text;    -- the trade's resolved topic: a kind one of its entries carries; NULL = any kind
   v_area  text;    -- the seat's resolved area: an area one of its own rows carries; NULL = every area
+  -- ONLY AN AUDIENCE NAMED internal OR founder reads the company's own facts and gets the own-row reservation.
+  -- customer, supplier, visitor, a NULL or any other value: external (fails closed, as settledFacts() in think.ts).
+  v_internal constant boolean := lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder');
 begin
   -- 1. RESOLVE, exactly or not at all. The trade through the estate's exact resolver; the kind and the area only
   --    when a row of this trade / of this seat's own table is tagged with exactly that value. No word is read.
@@ -3495,88 +3498,91 @@ begin
 
   with hits as (
     (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation,
-            1 - (c.embedding_gte <=> p_embedding) sim, 'reviewed' trust
+            1 - (c.embedding_gte <=> p_embedding) sim, 'reviewed' trust, false mine
        from public.kb_chunks c where c.embedding_gte is not null
       order by c.embedding_gte <=> p_embedding limit k)
     union all
     (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path,
-            1 - (o.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (o.embedding_gte <=> p_embedding), 'reviewed', false
        from public.ops_knowledge o
       where o.embedding_gte is not null and o.runtime_eligible and o.supersession_state = 'current'
-        and o.scope_type in ('company', 'external_source', 'category')
+        and o.scope_type in ('company', 'external_source', 'category') and o.dept_key is null
       order by o.embedding_gte <=> p_embedding limit k)
     union all
     (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref,
-            1 - (a.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (a.embedding_gte <=> p_embedding), 'reviewed', a.agent_key = p_seat
        from public.agent_knowledge a
-      where a.embedding_gte is not null and a.agent_key in (p_seat, '_global')
+      where a.embedding_gte is not null and (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat))
       order by a.embedding_gte <=> p_embedding limit k)
     union all
     (select 'company_faq', f.id::text, f.question, left(f.answer, 1200), 'FAQ ' || f.id,
-            1 - (f.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (f.embedding_gte <=> p_embedding), 'reviewed', false
        from public.company_faq f where f.embedding_gte is not null and f.status = 'approved'
       order by f.embedding_gte <=> p_embedding limit k)
     union all
     (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.sales_knowledge s
       where s.embedding_gte is not null and s.runtime_index_eligible
         and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and s.pack_id like 'verified:trade:%'))
         and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
              or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.accountant_knowledge s
       where p_seat = 'accountant' and s.embedding_gte is not null and s.runtime_index_eligible
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.it_engineer_knowledge s
       where p_seat = 'it_engineer' and s.embedding_gte is not null and s.runtime_index_eligible
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'support_knowledge', s.record_id, s.title, left(s.body, 1200), coalesce(s.source_path, s.pack_id),
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.support_knowledge s
       where p_seat = 'customer_support' and s.embedding_gte is not null and coalesce(s.runtime_index_eligible, true)
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), coalesce(s.source_path, s.pack_fingerprint),
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.ceo_knowledge s
       where p_seat = 'ceo' and s.embedding_gte is not null and s.runtime_index_eligible
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.marketing_knowledge s
       where p_seat = 'marketing' and s.embedding_gte is not null and s.runtime_index_eligible
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url',
-            1 - (r.embedding_gte <=> p_embedding), case when r.status = 'approved' then 'reviewed' else 'pending_review' end
+            1 - (r.embedding_gte <=> p_embedding), case when r.status = 'approved' then 'reviewed' else 'pending_review' end, false
        from public.reasoning_knowledge_candidate r
-      where r.embedding_gte is not null and r.status <> 'rejected'
+      where r.embedding_gte is not null and r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by r.embedding_gte <=> p_embedding limit k)
   )
+  -- THE SEAT'S OWN ROWS FILL AT LEAST HALF, FOR AN INTERNAL AUDIENCE: its best k own rows (its pack, its agent_knowledge)
+  -- are reserved and come first; the rest of the k * 2 is the best of everything else. External: ranked by similarity only.
   select coalesce(jsonb_agg(jsonb_build_object('source', src, 'id', id, 'title', title, 'excerpt', excerpt,
-           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust) order by sim desc), '[]'::jsonb)
+           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust, 'own', mine) order by reserved desc, sim desc), '[]'::jsonb)
     into out
-    from (select * from hits order by sim desc limit k * 2) t;
+    from (select * from (select h.*, v_internal and h.mine and row_number() over (partition by h.mine order by h.sim desc) <= k reserved from hits h) x
+           order by reserved desc, sim desc limit k * 2) t;
   return out;
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_reason_retrieve_ml(p_seat text, p_embedding vector, p_embedding_gte vector DEFAULT NULL::vector, p_k integer DEFAULT 6, p_own integer DEFAULT 3, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.fn_reason_retrieve_ml(p_seat text, p_embedding vector, p_embedding_gte vector DEFAULT NULL::vector, p_k integer DEFAULT 6, p_own integer DEFAULT 3, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text, p_audience text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -3586,7 +3592,7 @@ CREATE OR REPLACE FUNCTION public.fn_reason_retrieve_ml(p_seat text, p_embedding
 AS $function$
 declare
   k    integer := greatest(1, least(coalesce(p_k, 6), 12));
-  own  integer := greatest(0, least(coalesce(p_own, 3), 2 * k));
+  own  integer := case when lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder') then least(greatest(coalesce(p_own, 3), k), 2 * k) else 0 end;  -- internal: own rows fill at least half of the k * 2 returned; external: no reservation
   n    constant integer := 20;
   g    vector(384) := p_embedding_gte;
   m    vector(384) := p_embedding;
@@ -3594,6 +3600,9 @@ declare
   v_trade text[];  -- 'trade:<code>' of the resolved trade; NULL = no trade resolved
   v_kind  text;    -- the trade's resolved topic: a kind one of its entries carries; NULL = any kind
   v_area  text;    -- the seat's resolved area: an area one of its own rows carries; NULL = every area
+  -- ONLY AN AUDIENCE NAMED internal OR founder reads the company's own facts and gets the own-row reservation.
+  -- customer, supplier, visitor, a NULL or any other value: external (fails closed, as settledFacts() in think.ts).
+  v_internal constant boolean := lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder');
 begin
   -- 1. RESOLVE, exactly or not at all. The trade through the estate's exact resolver; the kind and the area only
   --    when a row of this trade / of this seat's own table is tagged with exactly that value. No word is read.
@@ -3618,67 +3627,67 @@ begin
     (select 'kb_chunks' src, v.row_id from public.knowledge_vector_ml v where v.src = 'kb_chunks' order by v.embedding <=> m limit n)
     union (select 'kb_chunks', c.id::text from public.kb_chunks c where g is not null and c.embedding_gte is not null order by c.embedding_gte <=> g limit n)
     union (select 'ops_knowledge', o.record_id from public.knowledge_vector_ml v join public.ops_knowledge o on v.src = 'ops_knowledge' and o.record_id = v.row_id
-            where o.runtime_eligible and o.supersession_state = 'current' and o.scope_type in ('company', 'external_source', 'category')
+            where o.runtime_eligible and o.supersession_state = 'current' and o.scope_type in ('company', 'external_source', 'category') and o.dept_key is null
             order by v.embedding <=> m limit n)
     union (select 'ops_knowledge', o.record_id from public.ops_knowledge o
             where g is not null and o.embedding_gte is not null and o.runtime_eligible and o.supersession_state = 'current'
-              and o.scope_type in ('company', 'external_source', 'category') order by o.embedding_gte <=> g limit n)
+              and o.scope_type in ('company', 'external_source', 'category') and o.dept_key is null order by o.embedding_gte <=> g limit n)
     union (select 'agent_knowledge', a.id::text from public.knowledge_vector_ml v join public.agent_knowledge a on v.src = 'agent_knowledge' and a.id::text = v.row_id
-            where a.agent_key in (p_seat, '_global') order by v.embedding <=> m limit n)
+            where (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat)) order by v.embedding <=> m limit n)
     union (select 'agent_knowledge', a.id::text from public.agent_knowledge a
-            where g is not null and a.embedding_gte is not null and a.agent_key in (p_seat, '_global') order by a.embedding_gte <=> g limit n)
+            where g is not null and a.embedding_gte is not null and (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat)) order by a.embedding_gte <=> g limit n)
     union (select 'company_faq', f.id::text from public.knowledge_vector_ml v join public.company_faq f on v.src = 'company_faq' and f.id::text = v.row_id
             where f.status = 'approved' order by v.embedding <=> m limit n)
     union (select 'company_faq', f.id::text from public.company_faq f
             where g is not null and f.embedding_gte is not null and f.status = 'approved' order by f.embedding_gte <=> g limit n)
     union (select 'reasoning_knowledge_candidate', r.id::text from public.knowledge_vector_ml v
              join public.reasoning_knowledge_candidate r on v.src = 'reasoning_knowledge_candidate' and r.id::text = v.row_id
-            where r.status <> 'rejected' order by v.embedding <=> m limit n)
+            where r.status <> 'rejected' and (v_internal or r.status = 'approved') order by v.embedding <=> m limit n)
     union (select 'reasoning_knowledge_candidate', r.id::text from public.reasoning_knowledge_candidate r
-            where g is not null and r.embedding_gte is not null and r.status <> 'rejected' order by r.embedding_gte <=> g limit n)
+            where g is not null and r.embedding_gte is not null and r.status <> 'rejected' and (v_internal or r.status = 'approved') order by r.embedding_gte <=> g limit n)
     -- sales_knowledge: the sales engineer reads all of it; customer_support reads the TRADE packs (what a trade
     -- needs), never the sales seat's own playbook
     union (select 'sales_knowledge', s.record_id from public.knowledge_vector_ml v join public.sales_knowledge s on v.src = 'sales_knowledge' and s.record_id = v.row_id
             where s.runtime_index_eligible and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
              or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
             order by v.embedding <=> m limit n)
     union (select 'sales_knowledge', s.record_id from public.sales_knowledge s
             where g is not null and s.embedding_gte is not null and s.runtime_index_eligible
               and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
              or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
             order by s.embedding_gte <=> g limit n)
     union (select 'accountant_knowledge', s.record_id from public.knowledge_vector_ml v join public.accountant_knowledge s on v.src = 'accountant_knowledge' and s.record_id = v.row_id
             where p_seat = 'accountant' and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'accountant_knowledge', s.record_id from public.accountant_knowledge s
             where p_seat = 'accountant' and g is not null and s.embedding_gte is not null and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
     union (select 'it_engineer_knowledge', s.record_id from public.knowledge_vector_ml v join public.it_engineer_knowledge s on v.src = 'it_engineer_knowledge' and s.record_id = v.row_id
             where p_seat = 'it_engineer' and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'it_engineer_knowledge', s.record_id from public.it_engineer_knowledge s
             where p_seat = 'it_engineer' and g is not null and s.embedding_gte is not null and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
     union (select 'marketing_knowledge', s.record_id from public.knowledge_vector_ml v join public.marketing_knowledge s on v.src = 'marketing_knowledge' and s.record_id = v.row_id
             where p_seat = 'marketing' and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'marketing_knowledge', s.record_id from public.marketing_knowledge s
             where p_seat = 'marketing' and g is not null and s.embedding_gte is not null and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
     union (select 'ceo_knowledge', v.row_id from public.knowledge_vector_ml v join public.ceo_knowledge s on v.src = 'ceo_knowledge' and s.record_id = v.row_id
-            where p_seat = 'ceo' and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            where p_seat = 'ceo' and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'ceo_knowledge', s.record_id from public.ceo_knowledge s
             where p_seat = 'ceo' and g is not null and s.embedding_gte is not null
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
     union (select 'support_knowledge', v.row_id from public.knowledge_vector_ml v join public.support_knowledge s on v.src = 'support_knowledge' and s.record_id = v.row_id
-            where p_seat = 'customer_support' and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            where p_seat = 'customer_support' and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'support_knowledge', s.record_id from public.support_knowledge s
             where p_seat = 'customer_support' and g is not null and s.embedding_gte is not null
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
   ), sims as (
     -- both similarities for every candidate; a CASE evaluates only its own branch, so a text key is never cast
     select c.src, c.row_id,
@@ -3709,53 +3718,55 @@ begin
       from ranked
   ), scored as (
     select r.*,
+           case when r.r_ml is null and r.r_gte is not null then 1.0 / (60 + r.r_gte) else
            coalesce(case when gp.d_ml + gp.d_gte > 0 then gp.d_ml / (gp.d_ml + gp.d_gte) else 1 end / (60 + r.r_ml), 0)
-         + coalesce(case when gp.d_ml + gp.d_gte > 0 then gp.d_gte / (gp.d_ml + gp.d_gte) else 0 end / (60 + r.r_gte), 0) score
+         + coalesce(case when gp.d_ml + gp.d_gte > 0 then gp.d_gte / (gp.d_ml + gp.d_gte) else 0 end / (60 + r.r_gte), 0) end score
       from ranked r cross join gaps gp
   ), hits as (
     -- a bigint key is cast only inside its own source's rows (scored is materialised; the filter runs first)
-    (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation, sc.s_ml, sc.score, 'reviewed' trust, false mine
+    (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed' trust, false mine
        from (select *, row_id::bigint key from scored where src = 'kb_chunks') sc join public.kb_chunks c on c.id = sc.key
       order by sc.score desc limit k)
     union all
-    (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path, sc.s_ml, sc.score, 'reviewed', false
+    (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', false
        from scored sc join public.ops_knowledge o on sc.src = 'ops_knowledge' and o.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref, sc.s_ml, sc.score, 'reviewed', a.agent_key = p_seat
+    (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', a.agent_key = p_seat
        from (select *, row_id::bigint key from scored where src = 'agent_knowledge') sc join public.agent_knowledge a on a.id = sc.key
       order by sc.score desc limit k)
     union all
-    (select 'company_faq', f.id::text, f.question, left(f.answer, 1200), 'FAQ ' || f.id, sc.s_ml, sc.score, 'reviewed', false
+    (select 'company_faq', f.id::text, f.question, left(f.answer, 1200), 'FAQ ' || f.id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', false
        from (select *, row_id::bigint key from scored where src = 'company_faq') sc join public.company_faq f on f.id = sc.key
       order by sc.score desc limit k)
     union all
-    (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url', sc.s_ml, sc.score,
+    (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url', coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score,
             case when r.status = 'approved' then 'reviewed' else 'pending_review' end, false
        from (select *, row_id::bigint key from scored where src = 'reasoning_knowledge_candidate') sc join public.reasoning_knowledge_candidate r on r.id = sc.key
+      where r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by sc.score desc limit k)
     union all
-    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, sc.s_ml, sc.score, 'reviewed', true
+    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.sales_knowledge s on sc.src = 'sales_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, sc.s_ml, sc.score, 'reviewed', true
+    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.accountant_knowledge s on sc.src = 'accountant_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, sc.s_ml, sc.score, 'reviewed', true
+    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.it_engineer_knowledge s on sc.src = 'it_engineer_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, sc.s_ml, sc.score, 'reviewed', true
+    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.marketing_knowledge s on sc.src = 'marketing_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, sc.s_ml, sc.score, 'reviewed', true
+    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.ceo_knowledge s on sc.src = 'ceo_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'support_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, sc.s_ml, sc.score, 'reviewed', true
+    (select 'support_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.support_knowledge s on sc.src = 'support_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
   ), own_rows as (
@@ -6409,6 +6420,207 @@ AS $function$
         order by r.created_at desc)
       from review_queue r where r.kind='boost_budget' and r.status='pending'), '[]'::jsonb)
   );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_review_request_attempt_failed(p_id bigint, p_error text)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  update public.decision_review_request
+     set attempts = attempts + 1, last_attempt_at = now(), last_error = left(coalesce(p_error, 'unknown'), 500)
+   where id = p_id and status = 'open'
+  returning jsonb_build_object('id', id, 'attempts', attempts, 'last_error', last_error)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_review_request_conclude(p_id bigint, p_verdict text, p_reason text, p_reviewer_model text, p_reply text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.decision_review_request; v_dec jsonb; v_log bigint; v_reply bigint; v_wa boolean;
+begin
+  update public.decision_review_request set attempts = attempts + 1, last_attempt_at = now() where id = p_id;
+  v_dec := public.fn_review_request_decide(p_id, p_verdict, p_reason, p_reviewer_model);
+  if not coalesce((v_dec ->> 'ok')::boolean, false) or coalesce((v_dec ->> 'existing')::boolean, false) then return v_dec; end if;
+  select * into r from public.decision_review_request where id = p_id;
+
+  if r.verdict in ('overturned', 'amended') then
+    insert into public.decision_log (actor, kind, ctx, decision, reasons, route_to)
+    values (r.owner_seat, 'review_' || r.verdict,
+            jsonb_build_object('review_request_id', r.id, 'decision_type', r.decision_type,
+                               'supersedes_decision_log_id', r.original_decision_log_id,
+                               'subject_table', r.subject_table, 'subject_id', r.subject_id,
+                               'reviewer_model', r.reviewer_model, 'original_family', r.original_family),
+            r.verdict || ': ' || left(r.verdict_reason, 1000), jsonb_build_array(r.verdict_reason), r.owner_seat)
+    returning id into v_log;
+  end if;
+
+  if btrim(coalesce(p_reply, '')) <> '' then
+    v_wa := r.channel = 'whatsapp';
+    -- null for a demo requester: fn_seat_handoff files nothing from a demo row (ruling 1199)
+    v_reply := public.fn_seat_handoff('customer_support', 'customer_support', 'delivery.request',
+                 'decision_review_request', r.id::text || ':reply',
+                 jsonb_build_object('review_request_id', r.id, 'email', case when r.requester like '%@%' then r.requester end,
+                   'prepared', jsonb_build_object(
+                     'type', 'review_verdict', 'kind', 'review_verdict', 'to_role', 'customer',
+                     'channel', case when v_wa then 'whatsapp' else 'email' end,
+                     'to_email', case when r.requester like '%@%' then r.requester end,
+                     'to_phone', case when v_wa then regexp_replace(r.requester, '[^0-9+]', '', 'g') end,
+                     'subject', 'Your review request ' || r.id, 'body', left(p_reply, 3000))));
+  end if;
+  update public.decision_review_request
+     set reply_text = nullif(btrim(coalesce(p_reply, '')), ''), reply_handoff_id = v_reply, seat_decision_log_id = v_log, last_error = null
+   where id = p_id;
+  return v_dec || jsonb_build_object('seat_decision_log_id', v_log, 'reply_handoff_id', v_reply);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_review_request_decide(p_id bigint, p_verdict text, p_reason text, p_reviewer_model text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.decision_review_request; v_model text;
+begin
+  select * into r from public.decision_review_request where id = p_id for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'no review request ' || p_id); end if;
+  if r.status = 'decided' then return jsonb_build_object('ok', true, 'id', r.id, 'verdict', r.verdict, 'existing', true); end if;
+  v_model := coalesce(p_reviewer_model, public.fn_review_request_reviewer_model(p_id));
+  if v_model is null then
+    return jsonb_build_object('ok', false, 'error', r.owner_seat || ' has no model of a family other than ' || r.original_family);
+  end if;
+  -- the CHECK decision_review_is_decided_by_a_different_model_family refuses a same-family verdict here
+  update public.decision_review_request
+     set status = 'decided', verdict = p_verdict, verdict_reason = p_reason, reviewer_seat = r.owner_seat,
+         reviewer_model = v_model, decided_at = now()
+   where id = p_id
+  returning * into r;
+  if r.handoff_id is not null then
+    perform set_config('qd.handoff_closer', 'customer_support', true);
+    perform public.fn_seat_handoff_complete(r.handoff_id, jsonb_build_object(
+      'verified_by', 'customer_support', 'verified_at', now(), 'review_request_id', r.id,
+      'verdict', r.verdict || ' by ' || r.reviewer_seat || ' on ' || r.reviewer_model
+                 || ' (original family ' || r.original_family || '): ' || left(r.verdict_reason, 400)));
+    perform set_config('qd.handoff_closer', '', true);
+  end if;
+  return jsonb_build_object('ok', true, 'id', r.id, 'verdict', r.verdict, 'reviewer_seat', r.reviewer_seat,
+                            'reviewer_model', r.reviewer_model, 'reviewer_family', r.reviewer_family,
+                            'original_family', r.original_family);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_review_request_due(p_limit integer DEFAULT 5, p_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(x order by (x ->> 'id')::bigint), '[]'::jsonb) from (
+    select jsonb_build_object(
+             'id', r.id, 'owner_seat', r.owner_seat, 'decision_type', r.decision_type, 'meaning', rt.meaning,
+             'channel', r.channel, 'requester', r.requester, 'request_text', r.request_text,
+             'original_seat', r.original_seat, 'original_family', r.original_family,
+             'counterpart_model', coalesce(nullif(r.original_model, ''), 'deterministic'),
+             'reviewer_model_hint', public.fn_review_request_reviewer_model(r.id),
+             'subject_table', r.subject_table, 'subject_id', r.subject_id, 'evidence', r.evidence,
+             'original_decision', (select jsonb_build_object('actor', d.actor, 'kind', d.kind, 'decision', d.decision,
+                                                             'reasons', d.reasons, 'ctx', d.ctx, 'at', d.created_at)
+                                     from public.decision_log d where d.id = r.original_decision_log_id)) x
+      from public.decision_review_request r join public.review_route rt on rt.decision_type = r.decision_type
+     where r.status = 'open' and r.attempts < 5
+       and (p_id is null or r.id = p_id)
+       and (p_id is not null or r.last_attempt_at is null or r.last_attempt_at < now() - interval '15 minutes')
+     order by r.last_attempt_at nulls first, r.id
+     limit greatest(1, least(coalesce(p_limit, 5), 20))) s
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_review_request_open(p_decision_type text, p_channel text, p_requester text, p_request_text text, p_subject_table text DEFAULT NULL::text, p_subject_id text DEFAULT NULL::text, p_original_seat text DEFAULT NULL::text, p_original_model text DEFAULT NULL::text, p_original_decision_log_id bigint DEFAULT NULL::bigint, p_dedupe_key text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_route public.review_route; v_id bigint; v_handoff bigint; v_note jsonb;
+begin
+  select * into v_route from public.review_route where decision_type = p_decision_type;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no review_route for decision type ' || coalesce(p_decision_type, 'null'));
+  end if;
+  -- ruling 1264: no portal (or any other) option; a contest or a person request enters only from chat or e-mail
+  if coalesce(p_channel, '') not in ('whatsapp', 'site_chat', 'email') then
+    return jsonb_build_object('ok', false, 'error', 'a contest or a person request enters only from chat or e-mail, not ' || coalesce(p_channel, 'null'));
+  end if;
+  if p_dedupe_key is not null then
+    select id, handoff_id into v_id, v_handoff from public.decision_review_request where dedupe_key = p_dedupe_key;
+    if v_id is not null then
+      return jsonb_build_object('ok', true, 'id', v_id, 'owner_seat', v_route.owner_seat, 'handoff_id', v_handoff, 'existing', true);
+    end if;
+  end if;
+  insert into public.decision_review_request (decision_type, owner_seat, channel, requester, subject_table, subject_id,
+         request_text, original_seat, original_model, original_decision_log_id, dedupe_key)
+  values (v_route.decision_type, v_route.owner_seat, p_channel, p_requester, p_subject_table, p_subject_id,
+          left(p_request_text, 4000), p_original_seat, p_original_model, p_original_decision_log_id, p_dedupe_key)
+  returning id into v_id;
+  -- RULING 1264, THE ONE FOUNDER ROUTE: an explicit person request, through founder_mail_policy. Nothing else here
+  -- reaches him. WhatsApp shares fn_wa_human_request's kind and dedupe key, so the same ask pages him once.
+  if v_route.decision_type = 'person' then
+    v_note := public.fn_notify_founder(
+      p_event => 'A ' || replace(p_channel, '_', ' ') || ' contact asked to speak to a person',
+      p_detail => left(p_request_text, 1500) || E'\nFrom: ' || p_requester || ' (request ' || v_id || ')',
+      p_level => 'high',
+      p_kind => case when p_channel = 'whatsapp' then 'whatsapp_human_request' else 'person_request' end,
+      p_dedupe_key => case when p_channel = 'whatsapp'
+                           then 'wa_human:' || regexp_replace(p_requester, '[^0-9]', '', 'g') || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD')
+                           else 'person_request:' || p_channel || ':' || lower(p_requester) || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD') end,
+      p_owner_agent => 'customer_support');
+    update public.decision_review_request set status = 'with_founder', founder_notified = coalesce(v_note, '{}'::jsonb) where id = v_id;
+    return jsonb_build_object('ok', true, 'id', v_id, 'owner_seat', 'founder', 'founder_notified', v_note);
+  end if;
+  -- the owning seat's queue; null for a demo subject (fn_seat_handoff files no handoff from a demo row)
+  v_handoff := public.fn_seat_handoff('customer_support', v_route.owner_seat, 'review.requested',
+                 'decision_review_request', v_id::text,
+                 jsonb_build_object('review_request_id', v_id, 'decision_type', v_route.decision_type,
+                                    'channel', p_channel, 'requester', p_requester, 'original_model', p_original_model,
+                                    'request', left(p_request_text, 500), 'email', case when p_requester like '%@%' then p_requester end,
+                                    'subject_table', p_subject_table, 'subject_ref', p_subject_id));
+  update public.decision_review_request set handoff_id = v_handoff where id = v_id;
+  return jsonb_build_object('ok', true, 'id', v_id, 'owner_seat', v_route.owner_seat, 'handoff_id', v_handoff);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_review_request_reviewer_model(p_id bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select m.model
+    from public.decision_review_request r
+    join public.model_policy_by_identity p on p.identity_key = r.owner_seat
+    cross join lateral (values (1, p.primary_model), (2, p.fallback_model), (3, p.escalation_model)) m(rank, model)
+   where r.id = p_id and m.model is not null
+     and split_part(m.model, '/', 1) is distinct from r.original_family
+   order by m.rank
+   limit 1
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_review_request_waits(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('waiting', 'the ' || a.agent || ' verdict on review request '
+                            || coalesce(a.detail ->> 'review_request_id', '?') || ', by a different model family')
+    from public.agent_actions a where a.id = p_id
 $function$
 
 

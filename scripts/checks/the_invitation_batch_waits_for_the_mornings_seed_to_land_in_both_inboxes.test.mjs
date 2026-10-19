@@ -42,7 +42,12 @@ const PING = read('supabase/functions/resilience_ping/index.ts');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 // A routine's body, from its create statement to the closing $fn$, so prose elsewhere cannot satisfy it.
-function body(name) {
+// 19 Oct 2026 (ledger 1113 supersedes 1001): the gate is defined by its own, newer file; the owning file keeps
+// the applied 1001 text and is not edited in place.
+const GATE = 'scripts/sql/a_spam_seed_holds_the_invitation_batch.sql';
+const GATE_SQL = code(read(GATE));
+function body(name, src = SQL) {
+  const SQL = src;
   const open = SQL.indexOf(`create or replace function public.${name}(`);
   assert.ok(open >= 0, `${name} is no longer defined in ${FILE}`);
   const end = SQL.indexOf('$fn$;', SQL.indexOf('$fn$', open) + 4);
@@ -131,11 +136,11 @@ test('a junk placement never pauses: it is diagnosed, filed and handed to market
 });
 
 test('the batch fails closed: the gate, the tick and the enqueue; the sender is the effective one', () => {
-  const gate = body('fn_invite_placement_gate');
+  const gate = body('fn_invite_placement_gate', GATE_SQL);
   assert.match(gate, /if p_now < public\.fn_invite_placement_cutoff\(v_day\) then return 'wait'; end if;\s+if public\.fn_invite_placement_day_closed\(p_now\) is null then\s+perform public\.fn_invite_placement_finding\(v_day, 'no_check',/,
     'a day with no check does not fail closed, or holds in silence');
   assert.match(gate, /return 'fail:no_check';/);
-  assert.match(gate, /if v not in \('inbox', 'spam', 'elsewhere'\) then return 'fail:' \|\| v; end if;/, 'a measured placement no longer lets the batch go, or a failure to measure does');
+  assert.match(gate, /if v = 'spam' then return 'fail:spam'; end if;\s+if v not in \('inbox', 'elsewhere'\) then return 'fail:' \|\| v; end if;/, 'ledger 1113: a spam seed no longer holds the batch, or Promotions/inbox no longer pass');
   assert.match(gate, /if public\.fn_invite_placement_sender\(\) is distinct from r\.from_address then return 'fail:from_changed'; end if;/);
   assert.equal((gate.match(/return 'pass'/g) || []).length, 1, 'more than one way to pass');
   const sender = body('fn_invite_placement_sender');
@@ -230,8 +235,10 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 test('production, aborted: queue from 04:30, wait, junk sends and hands off, inbox passes, lane or From change holds, unsent and no check hold without a pause, allowlist refuses', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const replay = pending(FILE) ? read(FILE) : '';
+  // ledger 1113: the gate's own apply file, replayed while it waits for its apply at merge.
+  const gateReplay = !pending(FILE) && existsSync(join(REPO, GATE)) && pending(GATE) ? read(GATE) : '';
   let o;
-  try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
+  try { await replaySql(replay + '\n' + gateReplay + '\n' + PROBE, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
@@ -250,7 +257,7 @@ test('production, aborted: queue from 04:30, wait, junk sends and hands off, inb
   assert.equal(o.finding_open, true, 'junk placement filed no it_engineer finding');
   assert.equal(o.finding_lane, 'email_from_supplier', 'the finding does not name the sender lane');
   assert.equal(o.handoff_open, true, 'junk placement opened no marketing handoff');
-  assert.equal(o.gate_after_spam, 'pass', 'junk placement held the batch');
+  assert.equal(o.gate_after_spam, 'fail:spam', 'ledger 1113: a spam seed let the batch go');
   assert.equal(o.inbox, 'inbox');
   assert.equal(o.gate_pass, 'pass');
   assert.equal(o.finding_closed, true, 'an inbox verdict did not close the finding');

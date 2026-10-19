@@ -1,0 +1,1206 @@
+{
+  "seat": "accountant",
+  "role": "Group Financial Controller and Head of Tax & Compliance (UAE)",
+  "bar": "20 years senior human, ledger 1003 stage 1",
+  "as_of": "2026-10-19",
+  "qualifications": [
+    {
+      "id": "ACC-Q01",
+      "qualification": "UAE Corporate Tax end to end: scope, registration, returns, SBR, taxable-income bridge, losses, transfer pricing and interest limitation",
+      "checklist": [
+        "ACC-CL-001",
+        "ACC-CL-002",
+        "ACC-CL-003",
+        "ACC-CL-004",
+        "ACC-CL-005",
+        "ACC-CL-006",
+        "ACC-CL-007",
+        "ACC-CL-008",
+        "ACC-CL-009"
+      ]
+    },
+    {
+      "id": "ACC-Q02",
+      "qualification": "UAE VAT end to end: thresholds, place of supply, reverse charge, zero-rating, invoices, VAT201, bad debt relief, penalties and e-invoicing",
+      "checklist": [
+        "ACC-CL-010",
+        "ACC-CL-011",
+        "ACC-CL-012",
+        "ACC-CL-013",
+        "ACC-CL-014",
+        "ACC-CL-015",
+        "ACC-CL-016",
+        "ACC-CL-017"
+      ]
+    },
+    {
+      "id": "ACC-Q03",
+      "qualification": "Statutory compliance: record retention, ESR, audit duty and audit readiness",
+      "checklist": [
+        "ACC-CL-018"
+      ]
+    },
+    {
+      "id": "ACC-Q04",
+      "qualification": "IFRS for SMEs reporting: annual statements, cash flows, provisions, events after the period, related parties, going concern, deferred tax, leases and intangibles",
+      "checklist": [
+        "ACC-CL-019",
+        "ACC-CL-027",
+        "ACC-CL-028",
+        "ACC-CL-029",
+        "ACC-CL-030",
+        "ACC-CL-031",
+        "ACC-CL-032",
+        "ACC-CL-033",
+        "ACC-CL-034",
+        "ACC-CL-035",
+        "ACC-CL-036",
+        "ACC-CL-037"
+      ]
+    },
+    {
+      "id": "ACC-Q05",
+      "qualification": "Marketplace revenue recognition as agent, including deferred revenue, breakage and contractual charges",
+      "checklist": [
+        "ACC-CL-020",
+        "ACC-CL-021",
+        "ACC-CL-022"
+      ]
+    },
+    {
+      "id": "ACC-Q06",
+      "qualification": "Bookkeeping to a real chart of accounts with prepayments, accruals, FX and classification memory",
+      "checklist": [
+        "ACC-CL-023",
+        "ACC-CL-024",
+        "ACC-CL-025",
+        "ACC-CL-026"
+      ]
+    },
+    {
+      "id": "ACC-Q07",
+      "qualification": "Month-end close by day 5 with a locked period and measured close",
+      "checklist": [
+        "ACC-CL-038",
+        "ACC-CL-039"
+      ]
+    },
+    {
+      "id": "ACC-Q08",
+      "qualification": "Internal control design for an autonomous company: audit trail, authority, materiality, segregation of duties, payee verification",
+      "checklist": [
+        "ACC-CL-040",
+        "ACC-CL-041",
+        "ACC-CL-042",
+        "ACC-CL-043"
+      ]
+    },
+    {
+      "id": "ACC-Q09",
+      "qualification": "Stripe operations and accounting: reveal confirmation, fee arithmetic, refunds, disputes, emails, reconciliation to payouts",
+      "checklist": [
+        "ACC-CL-044",
+        "ACC-CL-045",
+        "ACC-CL-046",
+        "ACC-CL-047",
+        "ACC-CL-048",
+        "ACC-CL-049",
+        "ACC-CL-050"
+      ]
+    },
+    {
+      "id": "ACC-Q10",
+      "qualification": "Bank and expense control: Mashreq statement, expenses mailbox, held receipts, ad spend, anomalies",
+      "checklist": [
+        "ACC-CL-051",
+        "ACC-CL-052",
+        "ACC-CL-053",
+        "ACC-CL-054",
+        "ACC-CL-055"
+      ]
+    },
+    {
+      "id": "ACC-Q11",
+      "qualification": "Treasury and FP&A: cash truth, runway, 13-week forecast, budget and variance, unit economics, weekly CEO report",
+      "checklist": [
+        "ACC-CL-056",
+        "ACC-CL-057",
+        "ACC-CL-058",
+        "ACC-CL-059",
+        "ACC-CL-060",
+        "ACC-CL-061"
+      ]
+    },
+    {
+      "id": "ACC-Q12",
+      "qualification": "Collections and fraud: legal recovery of supplier charges, circumvention, duplicate accounts, payment fraud",
+      "checklist": [
+        "ACC-CL-062",
+        "ACC-CL-063",
+        "ACC-CL-064"
+      ]
+    },
+    {
+      "id": "ACC-Q13",
+      "qualification": "Financial crime compliance: sanctions screening, UBO, AML status and goAML practice",
+      "checklist": [
+        "ACC-CL-065",
+        "ACC-CL-066",
+        "ACC-CL-067"
+      ]
+    },
+    {
+      "id": "ACC-Q14",
+      "qualification": "People and founder money: gratuity, WPS, founder salary and drawings; disciplined tax reasoning",
+      "checklist": [
+        "ACC-CL-068",
+        "ACC-CL-069",
+        "ACC-CL-070"
+      ]
+    }
+  ],
+  "checklist": [
+    {
+      "id": "ACC-CL-001",
+      "area": "corporate_tax",
+      "item": "Knows the CT regime: 0% to AED 375,000 and 9% above, mainland LLC and sole establishment in scope",
+      "entry_ids": [
+        "accountant:ct-rates-and-scope",
+        "accountant:ct-bands-single-allowance-and-withholding"
+      ],
+      "exam_items": [
+        "accountant-exam-68"
+      ]
+    },
+    {
+      "id": "ACC-CL-002",
+      "area": "corporate_tax",
+      "item": "Knows who must register for CT, the AED 1,000,000 natural-person trigger, the AED 10,000 late penalty and the waiver",
+      "entry_ids": [
+        "accountant:ct-registration-duty",
+        "accountant:ct-late-registration-penalty-and-waiver"
+      ],
+      "exam_items": [
+        "accountant-exam-69",
+        "accountant-exam-70"
+      ]
+    },
+    {
+      "id": "ACC-CL-003",
+      "area": "corporate_tax",
+      "item": "Files the CT return and pays within 9 months of period end, even when nothing is payable",
+      "entry_ids": [
+        "accountant:ct-return-and-payment-deadline"
+      ],
+      "exam_items": [
+        "accountant-exam-71"
+      ]
+    },
+    {
+      "id": "ACC-CL-004",
+      "area": "corporate_tax",
+      "item": "Applies Small Business Relief correctly: AED 3 million revenue test, extended to periods ending by 31 December 2029",
+      "entry_ids": [
+        "accountant:ct-small-business-relief"
+      ],
+      "exam_items": [
+        "accountant-exam-72"
+      ]
+    },
+    {
+      "id": "ACC-CL-005",
+      "area": "corporate_tax",
+      "item": "Builds the bridge from accounting profit to taxable income, including the 50% entertainment limit and add-backs",
+      "entry_ids": [
+        "accountant:ct-taxable-income-bridge",
+        "accountant:ct-deductible-and-non-deductible-expenses"
+      ],
+      "exam_items": [
+        "accountant-exam-73",
+        "accountant-exam-74"
+      ]
+    },
+    {
+      "id": "ACC-CL-006",
+      "area": "corporate_tax",
+      "item": "Applies the arm's length standard and connected-person rules to founder transactions and TP disclosure",
+      "entry_ids": [
+        "accountant:ct-transfer-pricing-arms-length",
+        "accountant:ct-related-parties-connected-persons",
+        "accountant:ct-tp-disclosure-and-documentation",
+        "accountant:ct-related-parties-founder"
+      ],
+      "exam_items": [
+        "accountant-exam-75"
+      ]
+    },
+    {
+      "id": "ACC-CL-007",
+      "area": "corporate_tax",
+      "item": "Tracks tax losses from day one: carry-forward, 75% cap, ownership continuity",
+      "entry_ids": [
+        "accountant:ct-tax-loss-relief"
+      ],
+      "exam_items": [
+        "accountant-exam-76"
+      ]
+    },
+    {
+      "id": "ACC-CL-008",
+      "area": "corporate_tax",
+      "item": "Knows the interest limitation: 30% of EBITDA with an AED 12 million de minimis",
+      "entry_ids": [
+        "accountant:ct-general-interest-deduction-limitation"
+      ],
+      "exam_items": [
+        "accountant-exam-66"
+      ]
+    },
+    {
+      "id": "ACC-CL-009",
+      "area": "corporate_tax",
+      "item": "Holds the founder instruction 344 on CT and the tax calendar, tax period and change of year-end",
+      "entry_ids": [
+        "accountant:company-corporate-tax-instruction-344",
+        "accountant:tax-calendar",
+        "accountant:ct-tax-period-and-change",
+        "accountant:ct-tax-group-and-qfzp-not-applicable",
+        "accountant:ct-accounting-standards-md-114"
+      ],
+      "exam_items": [
+        "accountant-exam-44"
+      ]
+    },
+    {
+      "id": "ACC-CL-010",
+      "area": "vat",
+      "item": "Monitors the VAT thresholds (AED 375,000 mandatory, AED 187,500 voluntary) and registers within 30 days",
+      "entry_ids": [
+        "accountant:vat-registration-thresholds",
+        "accountant:vat-threshold-monitor-method",
+        "accountant:vat-threshold-components",
+        "accountant:reasoning-sequence-threshold-question"
+      ],
+      "exam_items": [
+        "accountant-exam-42",
+        "accountant-exam-43"
+      ]
+    },
+    {
+      "id": "ACC-CL-011",
+      "area": "vat",
+      "item": "Knows there is no VAT on the reveal fee today and what changes once registered; decides voluntary registration on evidence",
+      "entry_ids": [
+        "accountant:company-hard-rules",
+        "accountant:vat-no-vat-on-fee-and-after-registration",
+        "accountant:vat-voluntary-registration-decision",
+        "accountant:vat-marketplace-supply-base"
+      ],
+      "exam_items": [
+        "accountant-exam-02"
+      ]
+    },
+    {
+      "id": "ACC-CL-012",
+      "area": "vat",
+      "item": "Treats input VAT as cost while unregistered and applies the reverse charge on imported services after registration",
+      "entry_ids": [
+        "accountant:vat-unregistered-input-tax",
+        "accountant:vat-reverse-charge-imported-services",
+        "accountant:vat-on-stripe-fees",
+        "accountant:vat-input-tax-recovery-and-apportionment"
+      ],
+      "exam_items": [
+        "accountant-exam-77",
+        "accountant-exam-78"
+      ]
+    },
+    {
+      "id": "ACC-CL-013",
+      "area": "vat",
+      "item": "Determines place of supply of services and the zero-rating conditions for exports of services",
+      "entry_ids": [
+        "accountant:vat-place-of-supply-services",
+        "accountant:vat-zero-rated-export-of-services"
+      ],
+      "exam_items": [
+        "accountant-exam-79",
+        "accountant-exam-80"
+      ]
+    },
+    {
+      "id": "ACC-CL-014",
+      "area": "vat",
+      "item": "Issues compliant tax invoices within 14 days, prepares VAT201 and corrects errors by voluntary disclosure",
+      "entry_ids": [
+        "accountant:vat-tax-invoice-content-and-timing",
+        "accountant:vat-return-vat201-method",
+        "accountant:vat-voluntary-disclosure"
+      ],
+      "exam_items": [
+        "accountant-exam-81",
+        "accountant-exam-82"
+      ]
+    },
+    {
+      "id": "ACC-CL-015",
+      "area": "vat",
+      "item": "Knows VAT bad debt relief conditions under Article 64",
+      "entry_ids": [
+        "accountant:vat-bad-debt-relief-article-64"
+      ],
+      "exam_items": [
+        "accountant-exam-67"
+      ]
+    },
+    {
+      "id": "ACC-CL-016",
+      "area": "vat",
+      "item": "Knows the tax penalty regime from 14 April 2026 (Cabinet Decision 129 of 2025)",
+      "entry_ids": [
+        "accountant:tax-penalties-cabinet-decision-129-2025",
+        "accountant:reasoning-sequence-penalty-exposure"
+      ],
+      "exam_items": [
+        "accountant-exam-83"
+      ]
+    },
+    {
+      "id": "ACC-CL-017",
+      "area": "vat",
+      "item": "Knows the e-invoicing mandate: Peppol, ASP, phasing, scope for non-registrants and penalties",
+      "entry_ids": [
+        "accountant:einvoicing-roadmap",
+        "accountant:einvoicing-scope-non-registrants",
+        "accountant:einvoicing-five-corner-and-asp",
+        "accountant:einvoicing-penalties"
+      ],
+      "exam_items": [
+        "accountant-exam-84"
+      ]
+    },
+    {
+      "id": "ACC-CL-018",
+      "area": "compliance",
+      "item": "Keeps records for the longest applicable period and knows ESR no longer applies",
+      "entry_ids": [
+        "accountant:record-retention-periods",
+        "accountant:esr-repealed"
+      ],
+      "exam_items": [
+        "accountant-exam-85",
+        "accountant-exam-86"
+      ]
+    },
+    {
+      "id": "ACC-CL-019",
+      "area": "reporting",
+      "item": "Reports under IFRS for SMEs and knows the 2025 third edition effective 1 January 2027",
+      "entry_ids": [
+        "accountant:ifrs-for-smes-framework"
+      ],
+      "exam_items": [
+        "accountant-exam-87"
+      ]
+    },
+    {
+      "id": "ACC-CL-020",
+      "area": "revenue",
+      "item": "Applies the five-step model and books QuotesDone as agent: fee revenue, never the deal value",
+      "entry_ids": [
+        "accountant:revenue-five-step",
+        "accountant:principal-vs-agent",
+        "accountant:subscription-revenue-over-time",
+        "accountant:reasoning-sequence-revenue-question",
+        "accountant:vat-marketplace-supply-base"
+      ],
+      "exam_items": [
+        "accountant-exam-88",
+        "accountant-exam-89"
+      ]
+    },
+    {
+      "id": "ACC-CL-021",
+      "area": "revenue",
+      "item": "Accounts for deferred revenue and breakage on prepaid plans and unused credits",
+      "entry_ids": [
+        "accountant:ifrs15-breakage-unused-credits",
+        "accountant:deferred-revenue"
+      ],
+      "exam_items": [
+        "accountant-exam-90"
+      ]
+    },
+    {
+      "id": "ACC-CL-022",
+      "area": "revenue",
+      "item": "Recognises the 3% non-response charge and the anti-circumvention penalty only on evidence, with the admin fee by agreement version",
+      "entry_ids": [
+        "accountant:non-response-charge-accounting",
+        "accountant:anti-circumvention-penalty-accounting",
+        "accountant:company-hard-rules"
+      ],
+      "exam_items": [
+        "accountant-exam-12",
+        "accountant-exam-13",
+        "accountant-exam-22"
+      ]
+    },
+    {
+      "id": "ACC-CL-023",
+      "area": "bookkeeping",
+      "item": "Classifies expenses by meaning into a real chart of accounts",
+      "entry_ids": [
+        "accountant:chart-of-accounts",
+        "accountant:expense-classification-by-reasoning",
+        "accountant:reasoning-sequence-booking-a-transaction"
+      ],
+      "exam_items": [
+        "accountant-exam-53",
+        "accountant-exam-54"
+      ]
+    },
+    {
+      "id": "ACC-CL-024",
+      "area": "bookkeeping",
+      "item": "Books prepayments and accruals so each month carries its own cost",
+      "entry_ids": [
+        "accountant:prepayments-annual-subscriptions",
+        "accountant:accruals"
+      ],
+      "exam_items": [
+        "accountant-exam-91",
+        "accountant-exam-92"
+      ]
+    },
+    {
+      "id": "ACC-CL-025",
+      "area": "bookkeeping",
+      "item": "Books foreign-currency costs at the right rate using the AED peg of 3.6725",
+      "entry_ids": [
+        "accountant:ias21-fx-rates-and-the-aed-peg",
+        "accountant:foreign-currency-expenses"
+      ],
+      "exam_items": [
+        "accountant-exam-55"
+      ]
+    },
+    {
+      "id": "ACC-CL-026",
+      "area": "bookkeeping",
+      "item": "Remembers each vendor's treatment and learns from every decision",
+      "entry_ids": [
+        "accountant:classification-memory-design"
+      ],
+      "exam_items": [
+        "accountant-exam-56"
+      ]
+    },
+    {
+      "id": "ACC-CL-027",
+      "area": "reporting",
+      "item": "Capitalises only qualifying assets; expenses in-house software development under IFRS for SMEs",
+      "entry_ids": [
+        "accountant:fixed-asset-capitalisation-policy",
+        "accountant:ifrs-smes-s18-intangibles-software-costs"
+      ],
+      "exam_items": [
+        "accountant-exam-59"
+      ]
+    },
+    {
+      "id": "ACC-CL-028",
+      "area": "reporting",
+      "item": "Applies the lease policy to desks, offices and equipment",
+      "entry_ids": [
+        "accountant:ifrs16-leases-policy"
+      ],
+      "exam_items": [
+        "accountant-exam-93"
+      ]
+    },
+    {
+      "id": "ACC-CL-029",
+      "area": "reporting",
+      "item": "Prepares the statement of cash flows by the indirect method",
+      "entry_ids": [
+        "accountant:ifrs-smes-s7-statement-of-cash-flows"
+      ],
+      "exam_items": [
+        "accountant-exam-60"
+      ]
+    },
+    {
+      "id": "ACC-CL-030",
+      "area": "reporting",
+      "item": "Treats events after the reporting period correctly",
+      "entry_ids": [
+        "accountant:ifrs-smes-s32-events-after-reporting-period"
+      ],
+      "exam_items": [
+        "accountant-exam-61"
+      ]
+    },
+    {
+      "id": "ACC-CL-031",
+      "area": "reporting",
+      "item": "Discloses related party transactions with the founder",
+      "entry_ids": [
+        "accountant:ifrs-smes-s33-related-party-disclosures"
+      ],
+      "exam_items": [
+        "accountant-exam-62"
+      ]
+    },
+    {
+      "id": "ACC-CL-032",
+      "area": "reporting",
+      "item": "Assesses going concern twelve months ahead for a pre-revenue company",
+      "entry_ids": [
+        "accountant:ifrs-smes-s3-going-concern-pre-revenue"
+      ],
+      "exam_items": [
+        "accountant-exam-63"
+      ]
+    },
+    {
+      "id": "ACC-CL-033",
+      "area": "reporting",
+      "item": "Distinguishes changes in estimates from errors and policies",
+      "entry_ids": [
+        "accountant:ifrs-smes-s10-policies-estimates-errors"
+      ],
+      "exam_items": [
+        "accountant-exam-64"
+      ]
+    },
+    {
+      "id": "ACC-CL-034",
+      "area": "reporting",
+      "item": "Recognises provisions and never books a contingent asset as income",
+      "entry_ids": [
+        "accountant:ifrs-smes-s21-provisions-contingencies",
+        "accountant:refund-liability-and-provisions"
+      ],
+      "exam_items": [
+        "accountant-exam-65"
+      ]
+    },
+    {
+      "id": "ACC-CL-035",
+      "area": "reporting",
+      "item": "Accounts for current and deferred income tax once CT applies",
+      "entry_ids": [
+        "accountant:ifrs-smes-s29-income-tax-deferred-tax"
+      ],
+      "exam_items": [
+        "accountant-exam-58"
+      ]
+    },
+    {
+      "id": "ACC-CL-036",
+      "area": "reporting",
+      "item": "Builds the annual financial statements pack",
+      "entry_ids": [
+        "accountant:financial-statements-pack"
+      ],
+      "exam_items": [
+        "accountant-exam-45"
+      ]
+    },
+    {
+      "id": "ACC-CL-037",
+      "area": "reporting",
+      "item": "Knows the statutory audit duty and keeps an audit-readiness pack",
+      "entry_ids": [
+        "accountant:audit-duty-companies-law-and-ct",
+        "accountant:audit-readiness-pack"
+      ],
+      "exam_items": [
+        "accountant-exam-94"
+      ]
+    },
+    {
+      "id": "ACC-CL-038",
+      "area": "close",
+      "item": "Runs the month-end close by day 5 and locks the period",
+      "entry_ids": [
+        "accountant:period-close-checklist",
+        "accountant:period-lock"
+      ],
+      "exam_items": [
+        "accountant-exam-36",
+        "accountant-exam-37"
+      ]
+    },
+    {
+      "id": "ACC-CL-039",
+      "area": "close",
+      "item": "Keeps the books current within 24 hours and measures the close",
+      "entry_ids": [
+        "accountant:company-accountant-duty-cadence",
+        "accountant:month-end-close-kpis"
+      ],
+      "exam_items": [
+        "accountant-exam-48",
+        "accountant-exam-49"
+      ]
+    },
+    {
+      "id": "ACC-CL-040",
+      "area": "controls",
+      "item": "Every posting carries a full audit trail to its source document",
+      "entry_ids": [
+        "accountant:audit-trail-standard"
+      ],
+      "exam_items": [
+        "accountant-exam-95"
+      ]
+    },
+    {
+      "id": "ACC-CL-041",
+      "area": "controls",
+      "item": "Knows his authority, materiality and what goes to the CEO",
+      "entry_ids": [
+        "accountant:company-accountant-authority-and-escalations",
+        "accountant:materiality-and-judgement"
+      ],
+      "exam_items": [
+        "accountant-exam-46",
+        "accountant-exam-47"
+      ]
+    },
+    {
+      "id": "ACC-CL-042",
+      "area": "controls",
+      "item": "Enforces segregation of duties among the automated seats on every money-out action",
+      "entry_ids": [
+        "accountant:segregation-of-duties-ai-seats",
+        "accountant:refund-abuse-and-internal-controls"
+      ],
+      "exam_items": [
+        "accountant-exam-96"
+      ]
+    },
+    {
+      "id": "ACC-CL-043",
+      "area": "controls",
+      "item": "Never pays to a changed bank account without call-back verification",
+      "entry_ids": [
+        "accountant:vendor-bank-detail-change-control"
+      ],
+      "exam_items": [
+        "accountant-exam-97"
+      ]
+    },
+    {
+      "id": "ACC-CL-044",
+      "area": "stripe",
+      "item": "Confirms every reveal payment, files the invoice, backs it up and shows it in the portal",
+      "entry_ids": [
+        "accountant:company-reveal-payment-confirmation"
+      ],
+      "exam_items": [
+        "accountant-exam-01",
+        "accountant-exam-05",
+        "accountant-exam-06"
+      ]
+    },
+    {
+      "id": "ACC-CL-045",
+      "area": "stripe",
+      "item": "Reproduces the fee arithmetic: 3% net, no card surcharge, Stripe fee booked as a separate cost",
+      "entry_ids": [
+        "accountant:company-pricing-and-fee-arithmetic",
+        "accountant:stripe-fees-accounting"
+      ],
+      "exam_items": [
+        "accountant-exam-03",
+        "accountant-exam-04"
+      ]
+    },
+    {
+      "id": "ACC-CL-046",
+      "area": "stripe",
+      "item": "Executes refunds only on CEO approval, per refund, against the exact invoice ID",
+      "entry_ids": [
+        "accountant:company-refund-execution-rule"
+      ],
+      "exam_items": [
+        "accountant-exam-07",
+        "accountant-exam-08",
+        "accountant-exam-09"
+      ]
+    },
+    {
+      "id": "ACC-CL-047",
+      "area": "stripe",
+      "item": "Books refunds correctly and makes refund execution idempotent",
+      "entry_ids": [
+        "accountant:stripe-refunds-accounting",
+        "accountant:refund-abuse-and-internal-controls"
+      ],
+      "exam_items": [
+        "accountant-exam-10",
+        "accountant-exam-11"
+      ]
+    },
+    {
+      "id": "ACC-CL-048",
+      "area": "stripe",
+      "item": "Handles card disputes through their lifecycle and deadlines",
+      "entry_ids": [
+        "accountant:stripe-disputes-lifecycle"
+      ],
+      "exam_items": [
+        "accountant-exam-18"
+      ]
+    },
+    {
+      "id": "ACC-CL-049",
+      "area": "stripe",
+      "item": "Keeps Stripe customer emails off so only QuotesDone receipts go out",
+      "entry_ids": [
+        "accountant:company-stripe-customer-emails-off"
+      ],
+      "exam_items": [
+        "accountant-exam-19"
+      ]
+    },
+    {
+      "id": "ACC-CL-050",
+      "area": "stripe",
+      "item": "Reconciles from Stripe balance transactions to payouts to the bank, knowing settlement timing and reserves",
+      "entry_ids": [
+        "accountant:stripe-balance-transactions",
+        "accountant:stripe-payout-reconciliation",
+        "accountant:stripe-settlement-and-payout-timing-uae",
+        "accountant:stripe-reserves-and-balance-types"
+      ],
+      "exam_items": [
+        "accountant-exam-27",
+        "accountant-exam-28"
+      ]
+    },
+    {
+      "id": "ACC-CL-051",
+      "area": "bank",
+      "item": "Reads the Mashreq statement monthly, reconciles every line, treats founder money in as capital",
+      "entry_ids": [
+        "accountant:company-mashreq-statement-monthly",
+        "accountant:bank-reconciliation-full",
+        "accountant:bank-statement-integrity",
+        "accountant:capital-vs-loan-iban"
+      ],
+      "exam_items": [
+        "accountant-exam-33",
+        "accountant-exam-34",
+        "accountant-exam-35",
+        "accountant-exam-57"
+      ]
+    },
+    {
+      "id": "ACC-CL-052",
+      "area": "expenses",
+      "item": "Takes every receipt from the expenses mailbox and flags what bypassed the bank",
+      "entry_ids": [
+        "accountant:company-expenses-mailbox-intake"
+      ],
+      "exam_items": [
+        "accountant-exam-23",
+        "accountant-exam-24",
+        "accountant-exam-25"
+      ]
+    },
+    {
+      "id": "ACC-CL-053",
+      "area": "expenses",
+      "item": "Holds unreadable receipts instead of estimating",
+      "entry_ids": [
+        "accountant:held-receipts-policy"
+      ],
+      "exam_items": [
+        "accountant-exam-26"
+      ]
+    },
+    {
+      "id": "ACC-CL-054",
+      "area": "expenses",
+      "item": "Reconciles ad spend reported by marketing against invoices, including zero-spend months",
+      "entry_ids": [
+        "accountant:ad-spend-accounting"
+      ],
+      "exam_items": [
+        "accountant-exam-39"
+      ]
+    },
+    {
+      "id": "ACC-CL-055",
+      "area": "expenses",
+      "item": "Detects anomalies in vendor charges",
+      "entry_ids": [
+        "accountant:anomaly-detection-expenses",
+        "accountant:company-launch-timing-and-revenue-streams"
+      ],
+      "exam_items": [
+        "accountant-exam-52"
+      ]
+    },
+    {
+      "id": "ACC-CL-056",
+      "area": "cash",
+      "item": "Reports cash, burn and runway from one cash truth",
+      "entry_ids": [
+        "accountant:cash-position-and-runway",
+        "accountant:reasoning-sequence-cash-decision"
+      ],
+      "exam_items": [
+        "accountant-exam-38"
+      ]
+    },
+    {
+      "id": "ACC-CL-057",
+      "area": "cash",
+      "item": "Maintains a 13-week direct cash forecast",
+      "entry_ids": [
+        "accountant:thirteen-week-cash-flow-forecast"
+      ],
+      "exam_items": [
+        "accountant-exam-98"
+      ]
+    },
+    {
+      "id": "ACC-CL-058",
+      "area": "cash",
+      "item": "Builds the annual budget from drivers and reviews variance monthly",
+      "entry_ids": [
+        "accountant:budget-and-variance-review",
+        "accountant:company-renewal-fees-budget"
+      ],
+      "exam_items": [
+        "accountant-exam-40",
+        "accountant-exam-41",
+        "accountant-exam-99"
+      ]
+    },
+    {
+      "id": "ACC-CL-059",
+      "area": "management",
+      "item": "Sends the weekly finance report to the CEO",
+      "entry_ids": [
+        "accountant:weekly-report-to-ceo"
+      ],
+      "exam_items": [
+        "accountant-exam-32"
+      ]
+    },
+    {
+      "id": "ACC-CL-060",
+      "area": "management",
+      "item": "Supplies the unit-economics inputs and is measured on defined KPIs",
+      "entry_ids": [
+        "accountant:unit-economics-inputs",
+        "accountant:company-accountant-kpis"
+      ],
+      "exam_items": [
+        "accountant-exam-100",
+        "accountant-exam-101"
+      ]
+    },
+    {
+      "id": "ACC-CL-061",
+      "area": "management",
+      "item": "Knows when revenue starts and which streams exist",
+      "entry_ids": [
+        "accountant:company-launch-timing-and-revenue-streams",
+        "accountant:company-plan-scenarios",
+        "accountant:company-plan-drivers"
+      ],
+      "exam_items": [
+        "accountant-exam-50",
+        "accountant-exam-51"
+      ]
+    },
+    {
+      "id": "ACC-CL-062",
+      "area": "collections",
+      "item": "Recovers an unpaid supplier charge through the UAE payment-order procedure",
+      "entry_ids": [
+        "accountant:company-supplier-charge-legal-recovery",
+        "accountant:receivables-and-collections"
+      ],
+      "exam_items": [
+        "accountant-exam-14",
+        "accountant-exam-15",
+        "accountant-exam-16",
+        "accountant-exam-17"
+      ]
+    },
+    {
+      "id": "ACC-CL-063",
+      "area": "fraud",
+      "item": "Detects duplicate accounts and fee circumvention",
+      "entry_ids": [
+        "accountant:duplicate-account-detection",
+        "accountant:fee-circumvention-detection",
+        "accountant:fraud-concepts-triangle",
+        "accountant:fraud-case-handling"
+      ],
+      "exam_items": [
+        "accountant-exam-20",
+        "accountant-exam-21"
+      ]
+    },
+    {
+      "id": "ACC-CL-064",
+      "area": "fraud",
+      "item": "Uses Stripe Radar rules and 3D Secure against payment fraud",
+      "entry_ids": [
+        "accountant:payment-fraud-controls"
+      ],
+      "exam_items": [
+        "accountant-exam-102"
+      ]
+    },
+    {
+      "id": "ACC-CL-065",
+      "area": "sanctions",
+      "item": "Screens and re-screens against sanctions lists and dispositions matches; a match is banned and sealed",
+      "entry_ids": [
+        "accountant:tfs-sanctions-obligations",
+        "accountant:sanctions-rescreening-duty",
+        "accountant:sanctions-match-disposition",
+        "accountant:company-sanctions-match-banned-sealed"
+      ],
+      "exam_items": [
+        "accountant-exam-29",
+        "accountant-exam-30",
+        "accountant-exam-31"
+      ]
+    },
+    {
+      "id": "ACC-CL-066",
+      "area": "sanctions",
+      "item": "Applies the UAE beneficial ownership rules to counterparties and to QuotesDone itself",
+      "entry_ids": [
+        "accountant:ubo-rules-uae",
+        "accountant:ubo-rescreening-counterparties",
+        "accountant:own-ubo-and-licence-facts"
+      ],
+      "exam_items": [
+        "accountant-exam-103"
+      ]
+    },
+    {
+      "id": "ACC-CL-067",
+      "area": "aml",
+      "item": "Knows the AML law (FDL 10 of 2025), whether QuotesDone is a DNFBP, and goAML/no tipping-off",
+      "entry_ids": [
+        "accountant:aml-law-fdl-10-2025",
+        "accountant:aml-executive-regulation-cr-134-2025",
+        "accountant:aml-dnfbp-status-quotesdone",
+        "accountant:aml-goaml-str-practice"
+      ],
+      "exam_items": [
+        "accountant-exam-104",
+        "accountant-exam-105"
+      ]
+    },
+    {
+      "id": "ACC-CL-068",
+      "area": "payroll",
+      "item": "Accrues end-of-service gratuity and runs payroll through WPS once staff are hired",
+      "entry_ids": [
+        "accountant:gratuity-accrual-labour-law",
+        "accountant:wps-payroll-if-staff-hired"
+      ],
+      "exam_items": [
+        "accountant-exam-106",
+        "accountant-exam-107"
+      ]
+    },
+    {
+      "id": "ACC-CL-069",
+      "area": "founder",
+      "item": "Treats founder salary, distributions and drawings correctly, at market value",
+      "entry_ids": [
+        "accountant:owner-salary-drawings-and-market-value",
+        "accountant:ct-related-parties-founder"
+      ],
+      "exam_items": [
+        "accountant-exam-108"
+      ]
+    },
+    {
+      "id": "ACC-CL-070",
+      "area": "knowledge",
+      "item": "Answers tax questions by a fixed reasoning sequence and knows the limits of the pack",
+      "entry_ids": [
+        "accountant:reasoning-sequence-tax-question",
+        "accountant:knowledge-limits-and-sources",
+        "accountant:glossary-accounting-uae",
+        "accountant:handoffs-accountant"
+      ],
+      "exam_items": [
+        "accountant-exam-109"
+      ]
+    }
+  ],
+  "contributions": [
+    {
+      "id": "ACC-C01",
+      "what": "Confirms every paid reveal in Stripe, files the invoice in the portal and Dropbox",
+      "cadence": "daily",
+      "duties": [
+        "accountant.reveal_invoice_filing"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C02",
+      "what": "Matches every Stripe payout to the bank daily",
+      "cadence": "daily",
+      "duties": [
+        "accountant.stripe_reconcile"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C03",
+      "what": "Closes and locks the month by day 5 and sends the founder close pack",
+      "cadence": "monthly",
+      "duties": [
+        "accountant.close_by_day_five",
+        "accountant.founder_close_pack"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C04",
+      "what": "Keeps one cash truth and reports cash, reserve and runway against budget",
+      "cadence": "monthly",
+      "duties": [
+        "accountant.cash_truth",
+        "accountant.runway_report"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C05",
+      "what": "Proves every refund was the amount paid, CEO-approved and on the same charge",
+      "cadence": "daily",
+      "duties": [
+        "accountant.refund_correctness"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C06",
+      "what": "Watches for duplicate accounts, fee circumvention and risky parties before money moves",
+      "cadence": "daily",
+      "duties": [
+        "accountant.fraud_watch",
+        "accountant.risk_screen"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C07",
+      "what": "Re-screens suppliers and their beneficial owners against sanctions lists",
+      "cadence": "daily",
+      "duties": [
+        "accountant.sanctions_rescreen",
+        "accountant.ubo_rescreen",
+        "accountant.ubo_watch"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C08",
+      "what": "Reconciles ad spend reported by marketing against booked invoices, including zero months",
+      "cadence": "monthly",
+      "duties": [
+        "accountant.ad_spend_reconcile"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C09",
+      "what": "Keeps Stripe customer emails off so only QuotesDone receipts reach customers",
+      "cadence": "daily",
+      "duties": [
+        "accountant.stripe_email_setting"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C10",
+      "what": "Re-sits its qualification exam monthly and opens work on what it failed",
+      "cadence": "monthly",
+      "duties": [
+        "accountant.self_review"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "ACC-C11",
+      "what": "Books every receipt arriving in the expenses mailbox and holds what it cannot read",
+      "cadence": "daily",
+      "duties": [],
+      "status": "partial",
+      "gap": "Routines exist (scripts/sql/a_receipt_forwarded_to_the_expenses_mailbox_reaches_the_ledger.sql, a_receipt_held_for_the_accountants_reasoning_is_the_accountants.sql) but there is no accountant.* seat_duty with its own last_ok_at, so a stalled intake is not visible as a seat failure."
+    },
+    {
+      "id": "ACC-C12",
+      "what": "Tracks every supplier non-response charge to payment or court on the UAE clock",
+      "cadence": "event",
+      "duties": [],
+      "status": "partial",
+      "gap": "Routine exists (every_supplier_charge_claim_is_tracked_to_payment_or_court_on_the_uae_clock.sql, collections_belong_to_the_accountant.sql) but no accountant.* seat_duty registers it; no last_ok_at evidence."
+    },
+    {
+      "id": "ACC-C13",
+      "what": "Maintains the 13-week cash forecast and the monthly budget variance review",
+      "cadence": "weekly",
+      "duties": [
+        "accountant.runway_report"
+      ],
+      "status": "partial",
+      "gap": "runway_report compares to budget monthly; the week-by-week forecast routine (the_accountant_forecasts_ninety_days_of_cash_week_by_week.sql) has no seat_duty of its own, and no line-by-line variance explanation duty exists."
+    },
+    {
+      "id": "ACC-C14",
+      "what": "Watches revenue against the VAT thresholds (AED 187,500 voluntary, AED 375,000 mandatory) and tells the CEO in time to register within 30 days",
+      "cadence": "monthly",
+      "duties": [],
+      "status": "missing",
+      "gap": "No accountant.* seat_duty monitors the VAT threshold; the founder made it the seat's tax duty (instr 9) but nothing with a last_ok_at measures it."
+    },
+    {
+      "id": "ACC-C15",
+      "what": "Sends the CEO a weekly finance report: cash, collections, exceptions and decisions needed",
+      "cadence": "weekly",
+      "duties": [],
+      "status": "missing",
+      "gap": "No weekly finance report duty; the CEO receives the monthly founder close pack only."
+    },
+    {
+      "id": "ACC-C16",
+      "what": "Builds the year-end pack and audit-readiness file and raises auditor appointment before the first year-end",
+      "cadence": "event",
+      "duties": [],
+      "status": "partial",
+      "gap": "Year-end filing routine exists (the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql) but no seat_duty, and no auditor is appointed although company law requires one for an LLC (recorded as a gap in audit-duty-companies-law-and-ct)."
+    }
+  ]
+}

@@ -33,7 +33,8 @@
 //     widget's own path answers (gateway, price guide, corpus) or files the question as a knowledge gap.
 import { think, type ThinkDeps, type ThinkRequest, type ThinkResult } from './think.ts';
 import { FIELD_LABEL, FIELDS, figures, type QuoteForAnswer } from './chat_answers.ts';
-import type { Reasoned } from './reasoned_decisions.ts';
+import { NEEDS_PERSON_OPTIONS, type Reasoned } from './reasoned_decisions.ts';
+import { menuOptions } from './reasoned_menus.ts';
 
 export type Option = { id: string; meaning: string };
 
@@ -56,10 +57,17 @@ export type WaTrade = { code: string; label: string; label_ar?: string | null };
 export const COVERAGE_LIST = 'coverage:list';
 export const COVERAGE_OTHER = 'coverage:other';
 
+/** An intent row whose label alone misleads the reasoning. "Not a QuotesDone question" read "how long does installation
+ *  usually take?" as off-topic, and fn_wa_route then supplied its off-topic sentence as the reply's facts (19 Oct 2026,
+ *  runs 0f48ea10 and c95eb7da, EN and AR). A customer's job question is the business this company exists for. */
+export const INTENT_MEANING: Record<string, string> = {
+  off_topic: 'nothing to do with building, construction, fit-out, maintenance, a trade, a material, a product, a job, procurement or QuotesDone (the weather, sport, jokes, homework). A question about any job, trade, material, cost, timing, specification or regulation is NEVER this',
+};
+
 /** Every answer the WhatsApp database road holds, as options. intent:<key> is a wa_reply_intent row. */
 export function whatsappOptions(intents: WaIntent[], trades: WaTrade[]): Option[] {
   return [
-    ...intents.map((i) => ({ id: 'intent:' + i.intent_key, meaning: i.label })),
+    ...intents.map((i) => ({ id: 'intent:' + i.intent_key, meaning: INTENT_MEANING[i.intent_key] ?? i.label })),
     SIZE,
     { id: COVERAGE_LIST, meaning: 'they ask which trades, sectors, categories or services QuotesDone covers, in general' },
     // ponytail: one option per live trade (195 on 23 Sep 2026); a two-stage choice if the list outgrows a prompt.
@@ -80,11 +88,26 @@ function waRequest(o: WaMeaningInput, queue: boolean): ThinkRequest {
     subject: { channel: 'whatsapp', phone: o.phone, message_sid: o.messageSid ?? null },
     context: { audience: o.audience === 'supplier' ? 'supplier' : o.audience === 'founder' ? 'founder' : 'customer' },
     decision: { name: 'whatsapp_question', options: whatsappOptions(o.intents, o.trades) },
+    // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
+    // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
+    plan: { steps: [] }, effort: 'low',
     queueWhenHeld: queue,
   };
 }
 /** What the WhatsApp message asks. Not queued when held: the caller files it only if nothing else answered. */
 export const whatsappMeaning = (deps: ThinkDeps, o: WaMeaningInput) => choose(deps, waRequest(o, false));
+/** WHAT IT ASKS, WHETHER IT NEEDS A PERSON AND WHAT IT MEANS TO THE MENU, IN ONE CALL (customer_support, 19 Oct 2026).
+ *  Measured on production: the three readings as separate calls were 10-20 s each even side by side; one call carries all
+ *  three. The menu options are always offered (the problem option and the menu items included); menu_flow keeps only what
+ *  applies to the turn. Held or failed: every value is null and each caller falls back exactly as before. */
+export async function whatsappReadings<M extends string>(deps: ThinkDeps, o: WaMeaningInput & { menu: { id: M; title: string; description: string }[] }) {
+  const req = waRequest(o, false);
+  const result = await think(deps, { ...req, also: [{ key: 'needs_a_person', options: NEEDS_PERSON_OPTIONS }, { key: 'menu_meaning', options: menuOptions<M>(true, o.menu) }] });
+  const ok = result.status === 'answered';
+  return { intent: ok ? result.decision?.choice ?? null : null,
+           needsPerson: ok && result.also?.needs_a_person ? result.also.needs_a_person === 'needs_a_person' : null,
+           menu: ok ? result.also?.menu_meaning ?? null : null, result };
+}
 /** The meaning, filed in customer_support's queue for replay when nothing else answered the message — WITHOUT a
  *  second think(): the request the first ask built, filed with the reason it was not answered (the hold, or a
  *  reasoning that failed), so no model is ever called twice for one message. */
