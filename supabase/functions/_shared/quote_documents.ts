@@ -481,21 +481,42 @@ function statedOf(a: any): (q: any) => PriceRow {
   return (q: any) => { const r = by.get(String(q.label)) || {}; return { quote_amount: r.price ?? q.price, price_ex_vat: q.price_ex_vat ?? r.price, gross_amount: r.gross_amount, discount_amount: r.discount_amount, vat_treatment: r.vat_treatment, vat_amount: r.vat_amount }; };
 }
 
-// THE SIDE-BY-SIDE COMMERCIAL TABLE, ONCE. The report renders the rich cells and compare_csv
-// exports the same rows as text (compareTable), so the spreadsheet can never disagree with the page.
+// IN compare_csv EVERY LIVE QUOTE IS A COLUMN, CHEAPEST FIRST (sandbox run 5, tag 321d13ae, 19 Oct 2026).
+// The CSV's columns used to be the model's `quotes`, which quote_compare caps at three: with four
+// submitted quotes the AED 131,000 one was in no column of compare_csv. The roster (all_quotes) is every
+// live quote; the model's detail fills a column where it has one, the roster's own figures otherwise.
+// The PDF keeps its detailed table to the shortlist and lists every quote in "All quotes received".
 // deno-lint-ignore no-explicit-any
-function commercialRows(a: any, lang: Lang, names: string[] = [], arTexts: ArTexts = {}, sink?: Set<string>): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
+export function comparedQuotes(a: any): any[] {
+  const held = heldLabels(a);
+  // deno-lint-ignore no-explicit-any
+  const detail = new Map<string, any>(arrOf(a?.quotes).filter((q: any) => q && q.label).map((q: any) => [String(q.label), q]));
+  // deno-lint-ignore no-explicit-any
+  const roster = arrOf(a?.all_quotes).filter((r: any) => r && r.label);
+  // deno-lint-ignore no-explicit-any
+  const rows: any[] = roster.length
+    // deno-lint-ignore no-explicit-any
+    ? roster.map((r: any) => detail.get(String(r.label)) || { label: r.label, price: r.price, lead_time: r.lead_time, warranty: r.warranty })
+    : [...detail.values()];
+  // deno-lint-ignore no-explicit-any
+  const price = (q: any) => { const r = roster.find((x: any) => String(x.label) === String(q.label)); const p = Number(r?.price ?? q.price_ex_vat ?? q.price); return p > 0 ? p : Infinity; };
+  // deno-lint-ignore no-explicit-any
+  return rows.filter((q: any) => !held.has(String(q.label))).sort((x, y) => price(x) - price(y));
+}
+
+// THE SIDE-BY-SIDE COMMERCIAL TABLE, ONCE. The report renders the rich cells and compare_csv
+// exports the same rows as text (compareTable) with one column per live quote (`every`), so no quote the page lists is missing from the spreadsheet.
+// deno-lint-ignore no-explicit-any
+function commercialRows(a: any, lang: Lang, names: string[] = [], arTexts: ArTexts = {}, sink?: Set<string>, every = false): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
   const k = kit(lang, names, arTexts);
-  const out = commercialRowsOf(a, k);
+  const out = commercialRowsOf(a, k, every);
   if (sink) for (const t of k.untranslated) sink.add(t);
   return out;
 }
 // deno-lint-ignore no-explicit-any
-function commercialRowsOf(a: any, k: Kit): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
+function commercialRowsOf(a: any, k: Kit, every = false): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
   const { T } = k;
-  const held = heldLabels(a);
-  // deno-lint-ignore no-explicit-any
-  const qs = arrOf(a?.quotes).filter((q: any) => !held.has(String(q.label)));
+  const qs = every ? comparedQuotes(a) : arrOf(a?.quotes).filter((q: any) => !heldLabels(a).has(String(q.label)));
   if (!qs.length) return null;
   const terms = techOf(a)?.terms || null;
   const rows: Cell[][] = [];
@@ -538,7 +559,7 @@ const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: 
 // deno-lint-ignore no-explicit-any
 export function compareTable(a: any, ar: boolean, arTexts: ArTexts = {}): { head: string[]; rows: string[][]; untranslated: string[] } | null {
   const sink = new Set<string>();
-  const r = commercialRows(a, ar ? 'ar' : 'en', [], arTexts, sink);
+  const r = commercialRows(a, ar ? 'ar' : 'en', [], arTexts, sink, true);
   if (!r) return null;
   const txt = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
   return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)), untranslated: [...sink] };

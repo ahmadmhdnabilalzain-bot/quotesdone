@@ -1,0 +1,1 @@
+Committed in #1457 (customer_support), not applied: applied at merge by the release operator, then wa_inbound and resilience_ping are deployed. Verified 19 Oct 2026 in a transaction that always rolled back: verdict PROBE OK, nothing left behind. On apply, delete this note and append the file to the end of MANIFEST.txt.

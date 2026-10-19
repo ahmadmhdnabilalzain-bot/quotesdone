@@ -40,7 +40,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { observe } from '../_shared/observe.ts';
-import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
+import { recallCases } from '../_shared/case_recall.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
@@ -272,14 +272,14 @@ async function handle(ev: InboundEvent): Promise<string> {
 async function answer(ev: InboundEvent): Promise<Decision> {
   // HAVE WE ANSWERED A MESSAGE LIKE THIS BEFORE, AND HOW DID IT GO? (23 Sep 2026.) Recalled before the reply, by
   // meaning; the model is told to stay consistent with a finalised reply. Marketing's own social replies only.
-  const memory = await recallCases(admin, { seat: 'marketing', path: 'social_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
+  await recallCases(admin, { seat: 'marketing', path: 'social_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
   const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
     seat: 'marketing', surface: 'marketing_social.needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
     dedupeKey: 'social:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
   });
   const lang = langOf(ev.text);
   const text = await writeSocial(ev.text, ev.platform, ev.channel, person.value === true, { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
-    (memory.cases.length || memory.handoffs?.length) ? precedentBlock(memory) : undefined);
+    undefined);  // no past-case text in a public reply (18 Oct 2026, run d6cf4793): the recall above is kept for the judgement record
   if (!text) return { kind: 'unknown', key: 'unknown', lang, text: '' };
   return { kind: person.value === true ? 'handoff' : 'knowledge', key: 'model', lang, text };
 }

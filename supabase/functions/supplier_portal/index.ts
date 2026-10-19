@@ -326,6 +326,15 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
     if (action === 'product_match') {
       const inquiryId = String(b.inquiry_id || '');
       if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
+      // ONLY AN ENQUIRY THIS SUPPLIER WAS MATCHED TO (IDOR, it_engineer 19 Oct 2026, launch-checklist
+      // security pass). p_inquiry_id was taken straight from the body and fn_supplier_product_match
+      // reads public.inquiries (summary, raw_input, category) for ANY id, with no membership check —
+      // unlike fn_supplier_quote_recommend, which gates on inquiry_matches. A signed-in supplier could
+      // probe any inquiry's existence and category, and feed another party's raw_input (which may carry
+      // unmasked customer detail) into a platform-billed think() call. Gate it here, the same way
+      // supplier_api gates extract_quote/submit_quote through matchedInquiry().
+      const { data: mm } = await admin.from('inquiry_matches').select('id').eq('inquiry_id', inquiryId).eq('supplier_id', supId).limit(1);
+      if (!mm || !mm.length) return J({ error: 'not_your_inquiry', code: 'not_your_inquiry' }, 403);
       // WHICH OF HIS PRODUCTS THE ENQUIRY ASKS FOR IS REASONED, not counted in shared words (founder_instruction
       // 886-903; decision point 26): the routine hands back the enquiry and his products, think() reads them
       // (reasoned_matching.ts productsAsked), and the routine is asked again with the answer. Held: the list is

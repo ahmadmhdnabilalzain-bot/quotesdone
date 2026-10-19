@@ -9,11 +9,26 @@
 export type SaleArgs = {
   quoteId: string; customerId: string | null; baseFee: number; processingFee: number;
   totalCharged: number; paymentRef: string;
+  // The Stripe invoice (in_...) the reveal was billed under. REQUIRED: every caller holds it at the
+  // moment of sale. Run 5 (tag 321d13ae, 18 Oct 2026) read the sale straight after element_pay and
+  // found stripe_invoice_id NULL, because only stripe_webhook invoice.paid -> fn_transaction_attach_invoice
+  // set it, seconds later; a paid reveal had no invoice in that gap. The webhook still files the
+  // number and the PDF; this only makes the reference exist from the first write.
+  invoiceId: string;
 };
 
+export function invoiceRef(id: string | null | undefined): string | null {
+  return id && /^in_[A-Za-z0-9_]+$/.test(id) ? id : null;
+}
+
 export async function recordRevealSale(admin: any, a: SaleArgs): Promise<{ id: string; created: boolean } | { error: string }> {
-  const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', a.quoteId).maybeSingle();
-  if (existing?.id) return { id: String(existing.id), created: false };
+  const inv = invoiceRef(a.invoiceId);
+  const { data: existing } = await admin.from('transactions').select('id,stripe_invoice_id').eq('quote_id', a.quoteId).maybeSingle();
+  if (existing?.id) {
+    // Write-once, as fn_transaction_attach_invoice: an empty reference is filled, a set one never replaced.
+    if (inv && !existing.stripe_invoice_id) await admin.from('transactions').update({ stripe_invoice_id: inv }).eq('id', existing.id).is('stripe_invoice_id', null);
+    return { id: String(existing.id), created: false };
+  }
   const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount').eq('id', a.quoteId).maybeSingle();
   if (!q) return { error: 'quote not found: ' + a.quoteId };
   const { data: inq } = await admin.from('inquiries').select('customer_id').eq('id', q.inquiry_id).maybeSingle();
@@ -26,7 +41,7 @@ export async function recordRevealSale(admin: any, a: SaleArgs): Promise<{ id: s
     customer_id: inq?.customer_id || a.customerId || null, quote_amount: Number(q.quote_amount),
     reveal_fee: a.baseFee, app_fee: a.baseFee, processing_fee: a.processingFee, total_charged: a.totalCharged,
     customer_price: Number(q.quote_amount), paid_by: 'customer', payment_ref: a.paymentRef, fee_status: 'paid',
-    revealed_at: new Date().toISOString(), refund_deadline: dl,
+    revealed_at: new Date().toISOString(), refund_deadline: dl, stripe_invoice_id: inv,
   }).select('id').single();
   if (error) {
     const { data: again } = await admin.from('transactions').select('id').eq('quote_id', a.quoteId).maybeSingle();
