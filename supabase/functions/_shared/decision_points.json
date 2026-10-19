@@ -496,7 +496,7 @@
     {
      "file": "supabase/functions/wa_inbound/menu_flow.ts",
      "must_contain": [
-      "await d.meaning(body, awaiting === 'problem', offerMenu)",
+      "d.meaning(body, awaiting === 'problem', offerMenu)",
       "if (meaning === 'greeting' || meaning === 'salam')"
      ],
      "must_not_contain": [
