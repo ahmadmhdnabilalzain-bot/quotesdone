@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "lubricants_industrial_oils:product-distinctions",
+      "topic": "Lubricants: grades, approvals and matching the oil to the machine",
+      "topic_ar": "مواد التشحيم: الدرجات والاعتمادات ومطابقة الزيت للآلة",
+      "kind": "product_distinctions",
+      "body_en": "Engine oils are graded by SAE viscosity (for example 15W-40 for diesel trucks and generators, 5W-30 or 0W-20 for modern cars; the first number is cold flow, the second hot viscosity) and by performance category (API CK-4 or CI-4 for heavy-duty diesel, API SP for petrol, ACEA E and C sequences) plus engine-maker approvals; synthetic oils hold viscosity and resist oxidation better than mineral oils, allowing longer drains in hot conditions. Industrial oils are graded by ISO viscosity grade (ISO VG 32, 46, 68, 100, 150, 220, 320, 460): hydraulic oils (anti-wear HM or HV for wide temperature), gear oils (EP additives, industrial or automotive GL-4/GL-5), compressor oils (mineral or synthetic, matched to screw or reciprocating), turbine oils, slideway oils, heat-transfer oils, refrigeration oils, and metalworking fluids (neat cutting oils and soluble coolants). Greases are specified by thickener (lithium complex, calcium sulphonate, polyurea), base-oil viscosity and NLGI grade (consistency, often 2). Wrong oil voids warranties and shortens life, so the equipment manual's specification and approvals rule; oil analysis programmes track condition and set drain intervals. Food-grade H1 lubricants exist for incidental food contact.",
+      "body_ar": "تُصنف زيوت المحركات حسب لزوجة SAE (مثل 15W-40 لشاحنات الديزل والمولدات، و5W-30 أو 0W-20 للسيارات الحديثة؛ الرقم الأول للانسياب في البرودة والثاني للزوجة الساخنة) وحسب فئة الأداء (API CK-4 أو CI-4 للديزل الشاق، وAPI SP للبنزين، وتسلسلات ACEA E وC) إضافة إلى اعتمادات صانعي المحركات؛ والزيوت الصناعية تحافظ على اللزوجة وتقاوم الأكسدة أفضل من المعدنية، فتسمح بفترات تغيير أطول في الأجواء الحارة. وتُصنف الزيوت الصناعية حسب درجة لزوجة ISO (ISO VG 32، 46، 68، 100، 150، 220، 320، 460): الزيوت الهيدروليكية (مضادة للتآكل HM أو HV لمدى حرارة واسع)، وزيوت التروس (إضافات الضغط الشديد، صناعية أو للسيارات GL-4/GL-5)، وزيوت الضواغط (معدنية أو صناعية حسب النوع اللولبي أو المكبسي)، وزيوت التوربينات، وزيوت المجاري المنزلقة، وزيوت نقل الحرارة، وزيوت التبريد، وسوائل تشغيل المعادن (زيوت القطع الصافية والمبردات الذائبة). وتُحدد الشحوم بالمكثف (مركب الليثيوم، سلفونات الكالسيوم، البولي يوريا)، ولزوجة الزيت الأساسي، ودرجة NLGI (القوام، غالباً 2). والزيت الخاطئ يسقط الضمانات ويقصر العمر، لذلك تحكم مواصفة دليل المعدة واعتماداتها؛ وبرامج تحليل الزيت تتابع الحالة وتحدد فترات التغيير. وتوجد مواد تشحيم بدرجة H1 للتلامس العرضي مع الأغذية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Motor_oil"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: SAE J300 viscosity grades, API service categories, synthetic versus mineral oils -> confirmed."
+    },
+    {
+      "id": "lubricants_industrial_oils:lead-times-and-quoting",
+      "topic": "Lubricants & industrial oils - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "مواد التشحيم والزيوت الصناعية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock grades: days; bulk and specific OEM-approved products 1-4 weeks. A supplier needs the equipment and its manual specification or current product, consumption, pack size (drums, IBCs, bulk), and any oil-analysis or technical support needs. A quote states product name, grade and approvals, pack size, price basis per litre or drum, technical data sheets, delivery and validity.",
+      "body_ar": "الدرجات المتوفرة: أيام؛ والكميات الكبيرة والمنتجات المعتمدة من صانعين محددين 1-4 أسابيع. ويحتاج المورد المعدة ومواصفة دليلها أو المنتج الحالي، والاستهلاك، وحجم العبوة (براميل، حاويات وسيطة، سائب)، وأي احتياجات لتحليل الزيت أو الدعم الفني. ويذكر العرض اسم المنتج ودرجته واعتماداته وحجم العبوة وأساس السعر للتر أو البرميل والنشرات الفنية والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers diesel engine oil specs (API CK-4, ACEA E-classes); missing). lubricants_industrial_oils:heavy-duty-diesel-oil-categories was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from lubricants_industrial_oils.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can we use 15W-40 engine oil in our hydraulic system to save stock?",
+      "q_ar": "نقدر نستخدم زيت محرك 15W-40 في النظام الهيدروليكي عشان نوفر في المخزون؟",
+      "expected_entry_ids": [
+        "lubricants_industrial_oils:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "lubricants_industrial_oils:heavy-duty-diesel-oil-categories"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "lubricants_industrial_oils:product-distinctions"
+      ],
+      "stored_not_served": [
+        "lubricants_industrial_oils:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Motor_oil"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

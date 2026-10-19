@@ -51,7 +51,7 @@ const step = (m, name, ok, detail = '') => { results.push({ m, name, ok, detail 
 // licence (default corpus: the 12 Oct accuracy run) under an invited name that DIFFERS from it, and assert ruling
 // 1176 (the read licence name becomes the company name), the licence number and expiry, the profile + catalogue
 // (ruling 1177), and the outcome the corpus truth expects: approved, or held with a reason. Scans and Arabic-only
-// licences need the vision model, so this run's own rehearsal window is opened to models (cap USD 1, 1 hour).
+// licences need the vision model; openRun's window has models on for every run (ruling 1260).
 const CASES = val('--case', '').split(',').filter(Boolean);
 const CORPUS = val('--corpus', 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/documents/run-final-12-oct-model-on/corpus');
 const TRUTH = CASES.length ? JSON.parse(readFileSync(join(CORPUS, 'truth.json'), 'utf8')).docs : [];
@@ -60,8 +60,8 @@ const MATRIX = CASES.length ? CASES.map((c, i) => ({ lang: 'en', vp: VPS[i % VPS
 const esc = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const run = await openRun();
-if (CASES.length) await write(`update public.rehearsal_window set models_allowed = true, cap_usd = 1, expires_at = now() + interval '1 hour'
-  where run_tag = 'qd_run:${run.tag}' and ended_at is null`, 'case walk: models on for this run only');
+// Ruling 1260 (19 Oct 2026): every run has the AI on. openRun opens the capped model window for every leg, so the
+// case-only override (USD 1, 1 hour) is gone: it only ever LOWERED the run's ceiling below openRun's.
 const browser = await launch();
 try {
   for (const { lang, vp, c } of MATRIX) {
@@ -205,15 +205,25 @@ try {
       const aa = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_name_from_licence' and target_id::text='${lead.id}'`))[0];
       step(m, 'ruling 1176: the read licence name became the company name, the old name logged', tr.company_name === c.truth.legal_name_en && aa.n > 0, `company_name=${tr.company_name}; log rows ${aa.n}`);
     }
-    // The decision is taken by the sales engineer and, for a demo row, never filed for delivery (ruling 1199:
-    // fn_seat_handoff files no handoff from a demo row, so no notifications row exists to suppress). Asserted:
-    // the seat recorded its notice decision for this supplier, and nothing was queued to any channel.
-    const actRead = () => read(`select kind, status, detail->>'to_email' to_email, detail->>'not_sent' not_sent from public.agent_actions
-      where kind in ('supplier_approved_notice', 'supplier_verification') and detail->>'supplier_id' = '${lead.id}' order by id`);
-    const actOk = (a) => (approveCase ? a.some((x) => x.kind === 'supplier_approved_notice' && x.status === 'auto_done') : a.length > 0);
-    const acts = (await waitFor(async () => { const r = await actRead(); return actOk(r) ? r : null; }, { timeoutMs: 60000 })) || await actRead();
-    const nt = await read(`select type, channel, status from public.notifications where lead_id=${lead.id} and status not in ('suppressed')`);
-    step(m, `the ${approveCase ? 'approval' : 'hold'} notice is decided by the seat, and nothing is sent to a fixture`, actOk(acts) && nt.length === 0, JSON.stringify({ acts, sent: nt }));
+    // THE DECISION REACHES THE SUPPLIER. A demo delivery request writes its notification as status 'suppressed' with its
+    // dedupe_key (#1497, on top of ruling 1199), so the walk requires the row itself: exactly one suppressed e-mail
+    // supplier_approved notice for an approval, and suppressed notice rows plus the reason on the supplier's own screen
+    // (#1406) for a hold. Every row must be suppressed, never sent. The sales engineer's decision record
+    // (agent_actions supplier_approved_notice) is asserted as well, in addition, never instead.
+    await new Promise((r) => setTimeout(r, 4000));
+    const nt = await read(`select type, channel, status from public.notifications where lead_id=${lead.id} order by id`);
+    const allSuppressed = nt.every((x) => x.status === 'suppressed');
+    if (approveCase) {
+      const approvedMail = nt.filter((x) => x.type === 'supplier_approved' && x.channel === 'email');
+      step(m, 'exactly one approval notice is written, suppressed (fixture: never sent)', approvedMail.length === 1 && allSuppressed, JSON.stringify(nt));
+      const decided = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_approved_notice' and status in ('auto_done','skipped') and target_table='leads' and target_id='${lead.id}'`))[0].n;
+      step(m, 'the approval notice decision is on record', decided > 0, `agent_actions rows ${decided}`);
+    } else {
+      step(m, 'the hold notice is written, suppressed (fixture: never sent)', nt.length > 0 && allSuppressed, JSON.stringify(nt));
+      await p.reload({ waitUntil: 'domcontentloaded' }); await heading.waitFor({ timeout: 30000 }).catch(() => {});
+      const said = await p.getByText(/^Why: /).first().innerText({ timeout: 15000 }).catch(() => '');
+      step(m, 'the hold reason is on the supplier screen', !!said, said);
+    }
     await shot(p, m, 'after_submit');
     if (reg?.signed_terms_path) run.ids.storage.push('signed-terms/' + reg.signed_terms_path);
 

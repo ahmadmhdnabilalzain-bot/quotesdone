@@ -5,6 +5,7 @@ import { useFailover } from '@/lib/otpFailover';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
+import { forgetWidgetConv } from '@/lib/widgetConv';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -95,6 +96,7 @@ import { FileText, MessageSquareQuote, BellRing, KeyRound, Plus, X, Sparkles, Up
 // decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
 // executed — see quoteExpiry.test.mjs — rather than inline in this one.
 import { expiryOf } from './quoteExpiry';
+import { trackerOf } from './requestTracker';
 import { parseQuoteLink, resolveQuoteLink } from '@/lib/portalLink';
 // Website audit 14 Sep 2026: the intake composer, the pre-reveal Q&A, the Reveal Guarantee and the
 // in-page confirm each live in their own file under src/components/me; this file wires them in.
@@ -323,6 +325,7 @@ function CustomerPortalView() {
   const signOutBusy = useBusy();
   const doSignOut = () => signOutBusy.run('out', async () => {
     try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {}
+    forgetWidgetConv();   // a pending widget chat must never be retried into the next account on this browser
     try { await SB().auth.signOut(); } catch (_e) {}
     setToken(''); setPhase('login');
   });
@@ -489,6 +492,9 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  // Promotional messages are opt-in (19 Oct 2026, founder, legal finding 2): a SEPARATE box, never pre-ticked,
+  // never required. Guarded by scripts/checks/promotional_messages_are_opt_in.test.mjs.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
@@ -502,7 +508,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
-  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
+  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
   // DOB IS REQUIRED AGAIN (founder's account rule, 14 Sep 2026: name, date of birth with under-18
   // rejected, OTP-verified mobile/email, Terms). The 6 Sep change made it optional because a customer
   // without one was silently stuck; the fix for silence is a message, not dropping the field. kyc now
@@ -534,6 +540,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
         : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
       {st.phone_verified && st.email_verified && waSignupSettled(st.whatsapp) && <>
         <label className="flex gap-2 items-center mt-4 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
+        <label className="flex gap-2 items-start mt-3 text-[13px] text-muted-foreground"><input type="checkbox" className="mt-0.5" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} /> {t(lang, 'marketing_opt_in')}</label>
         <Button className="w-full mt-3" disabled={busy === 'terms'} onClick={acceptTerms}>{busy === 'terms' ? t(lang, 'finishing') : t(lang, 'finish_continue')}</Button>
       </>}
     </>}
@@ -1174,12 +1181,16 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const vmap = (() => { const m = {}; if (!quotes.length) return m; const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0); const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0; for (const q of quotes) { const p = Number(q.price) || 0; const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55); const ratingScore = ratingScoreOf(q.rating); const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0)); m[q.id] = ratingScore == null ? Math.round((priceScore * 0.5 + compScore * 0.2) / 0.7) : Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); } return m; })();
   // "Best value" is a comparison; with one quote there is nothing it beat (audit 21 Sep 2026, item 27).
   const bestId = quotes.length >= 2 ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
-  const stepIdx = rfqStageIdx(inq, quotes);
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
   const [repeating, setRepeating] = useState(false);
   const [repeated, setRepeated] = useState('');
-  const doRepeat = async (e) => { e.stopPropagation(); if (repeating) return; if (!(await ask(t(lang, 'rc_repeat_confirm'), { title: t(lang, 'rc_repeat'), confirm: t(lang, 'rc_repeat') }))) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
+  // REPEAT (founder_instruction 1028): one click opens the same specs as an editable copy; nothing is posted until
+  // the customer presses Post. The server checks the copy can be posted before it shows it (preview).
+  const [rDraft, setRDraft] = useState(null);
+  const openRepeat = async (e) => { e.stopPropagation(); if (repeating) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, preview: true }, token); if (j && j.ok && j.draft) { setRDraft({ summary: j.draft.summary || '', budget: j.draft.budget || '', emirate: j.draft.emirate || '', required_by: j.draft.required_by || '' }); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
+  // busy-exempt: setRepeating is the busy state; it disables the Post button and shows rc_repeating while it waits.
+  const postRepeat = async () => { if (repeating || !rDraft) return; setRepeating(true); setErr(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, edits: rDraft }, token); if (j && j.ok) { setRDraft(null); setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
   return (<Card ref={cardRef} id={'inq-' + inq.id} className={cn('scroll-mt-20 p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
@@ -1227,12 +1238,26 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     </div>}
     {/* REPEAT IN ONE CLICK (founder_instruction 1028): the same specs posted again as a new request, through the
         same posting door (customer_api repeat_inquiry -> create_inquiry). */}
-    {!editing && <div className="flex gap-2.5 flex-wrap items-center mt-1">
-      <Button variant="link" className="px-0 h-auto" disabled={repeating} onClick={doRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat')}</Button>
+    {!editing && !rDraft && <div className="flex gap-2.5 flex-wrap items-center mt-1">
+      <Button variant="link" className="px-0 h-auto" disabled={repeating} onClick={openRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat')}</Button>
       {repeated ? <span className={S.sub} role="status">{repeated}</span> : null}
     </div>}
+    {rDraft && <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+      <div className={S.sub}>{t(lang, 'rc_repeat_confirm')}</div>
+      <label className="sr-only" htmlFor={'qd-rep-' + inq.id}>{t(lang, 'rc_describe')}</label>
+      <textarea id={'qd-rep-' + inq.id} className={S.area} rows={3} value={rDraft.summary} onChange={(e) => setRDraft({ ...rDraft, summary: e.target.value })} placeholder={t(lang, 'rc_describe')} />
+      <div className={S.frow}>
+        <select className={cn(S.field, 'bg-background')} aria-label={t(lang, 'rc_emirate_opt')} value={rDraft.emirate} onChange={(e) => setRDraft({ ...rDraft, emirate: e.target.value })}><option value="">{t(lang, 'rc_emirate_opt')}</option>{EMIRATES.map((em) => <option key={em} value={em}>{emirateName(em, lang)}</option>)}</select>
+        <Input aria-label={t(lang, 'rc_budget_opt')} placeholder={t(lang, 'rc_budget_opt')} value={rDraft.budget} onChange={(e) => setRDraft({ ...rDraft, budget: e.target.value })} />
+        <Input type="date" aria-label={t(lang, 'rc_repeat_date')} title={t(lang, 'rc_repeat_date')} value={rDraft.required_by} onChange={(e) => setRDraft({ ...rDraft, required_by: e.target.value })} />
+      </div>
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5">
+        <Button disabled={repeating || !rDraft.summary.trim()} onClick={postRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat_post')}</Button>
+        <Button variant="link" className="px-0 h-auto" onClick={() => { setRDraft(null); setErr(''); }}>{t(lang, 'rc_cancel_edit')}</Button>
+      </div>
+    </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
-    <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} revealed={anyRevealed} />
+    <RequestTracker inq={inq} quotes={quotes} lang={lang} />
     {/* No supplier could quote the exact spec (founder_instruction #321): the customer picks an
         alternative or says no. OUTSIDE the collapsible details on purpose — a question the customer
         has to open the card to find is a question that goes unanswered, and the reply window runs. */}
@@ -1980,50 +2005,32 @@ function AccountSettings({ token, lang, onChanged }) {
   </div>);
 }
 
-// THE REQUEST'S OWN JOURNEY. What stood here was five words separated by chevrons with 1.5px dots —
-// technically a stepper, visually a sentence. The stage a request is at is the single thing a
-// customer opening the portal wants to know, so it gets a rail: completed segments filled, the
-// current one pulsing, the rest quiet. `matched` is substituted into the third label when the
-// server knows the number, because "Matched to 8 suppliers" is a fact and "Matched" is a mood.
-//
-// Horizontal on a desktop, and the labels drop to a single current-stage line under 640px rather
-// than wrapping into three lines of chevrons on a phone.
-const JOURNEY = ['jr_described', 'jr_structured', 'jr_matched', 'jr_quotes', 'jr_compare', 'jr_reveal'];
-function Journey({ idx, lang, matched, revealed = false }) {
-  // rfqStageIdx returns 0..4 over five RFQ stages; the journey the founder asked for has six, with
-  // "structured" split out of "sent". Map rather than invent: a stage must never be claimed.
-  //
-  // REVEAL IS ITS OWN FACT (production journey, 17 Sep 2026). rfqStageIdx reaches 4 only when a
-  // supplier is HIRED — completed, hired_supplier_id or pipeline_stage 'won' — so a request whose
-  // customer had paid to reveal a supplier still showed 'jr_reveal' greyed out, telling them they
-  // had not done the thing they had just paid for. Revealing is not winning, so rfqStageIdx is left
-  // alone (its index 4 is labelled "Awarded" and must not be claimed for a reveal); the last node is
-  // lit from the reveal itself instead.
-  const step = revealed ? JOURNEY.length - 1 : [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
-  const label = (k, i) => (i === 2 && Number(matched) > 0)
-    ? (lang === 'ar' ? ('مطابَق مع ' + countPhrase('ar', matched, 'supplier', { oblique: true })) : ('Matched to ' + countPhrase('en', matched, 'supplier')))
-    : t(lang, k);
+// THE LIVE REQUEST TRACKER (T2, sales_engineer, 5 Oct 2026). Replaced the six-node Journey rail,
+// which was aria-hidden, had no timestamps, no held-for-specs stage and no next step. The stages are
+// computed in requestTracker.ts (executed by scripts/checks/the_request_tracker_reads_the_stage_from_the_servers_fields.test.mjs)
+// from my_inquiries fields only; the card refreshes with the portal's existing 60-second poll.
+// An ordered list, the current stage marked aria-current="step"; logical start/end so RTL mirrors.
+function RequestTracker({ inq, quotes, lang }) {
+  const tr = trackerOf(inq, quotes, lang);
+  const fmt = (d) => { try { return new Date(d).toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (_e) { return ''; } };
   return (
     <div className="mt-3">
-      {/* The kit Stepper laid flat: a node per stage (done filled, current lit, next hollow) joined
-          by a rail, so a request reads as a position on a track rather than a bar of pills. */}
-      <div className="flex items-center" aria-hidden>
-        {JOURNEY.map((k, i) => (
-          <div key={k} className={cn('flex min-w-0 items-center', i < JOURNEY.length - 1 && 'flex-1')}>
-            <span className={cn('grid h-2.5 w-2.5 shrink-0 place-items-center rounded-full border transition-colors duration-500',
-              i < step ? 'border-primary bg-primary' : i === step ? 'border-primary bg-primary/25 shadow-glow-teal motion-safe:animate-pulse' : 'border-border bg-card')} />
-            {i < JOURNEY.length - 1 ? <span className={cn('h-px flex-1 transition-colors duration-500', i < step ? 'bg-primary' : 'bg-border')} /> : null}
-          </div>
+      <ol className="flex flex-col gap-1.5 sm:flex-row sm:gap-0" aria-label={lang === 'ar' ? 'مراحل تقدّم الطلب' : 'Request progress'}>
+        {tr.stages.map((st, i) => (
+          <li key={st.key} aria-current={st.current ? 'step' : undefined} className="flex min-w-0 items-start gap-2 sm:flex-1 sm:flex-col sm:gap-1">
+            <div className="flex items-center sm:w-full">
+              <span aria-hidden className={cn('h-2.5 w-2.5 shrink-0 rounded-full border transition-colors duration-500',
+                st.done ? 'border-primary bg-primary' : st.current ? (tr.held && st.key === 'specs' ? 'border-warn bg-warn/30' : 'border-primary bg-primary/25 shadow-glow-teal motion-safe:animate-pulse') : 'border-border bg-card')} />
+              {i < tr.stages.length - 1 ? <span aria-hidden className={cn('hidden h-px flex-1 sm:block', st.done ? 'bg-primary' : 'bg-border')} /> : null}
+            </div>
+            <div className="min-w-0 pe-1">
+              <div className={cn('text-[11px] leading-tight', st.done ? 'text-muted-foreground' : st.current ? 'font-semibold text-primary' : 'text-muted-foreground/60')}>{st.label}</div>
+              {st.at ? <time dateTime={st.at} className="block text-[10.5px] text-muted-foreground/80">{fmt(st.at)}</time> : null}
+            </div>
+          </li>
         ))}
-      </div>
-      <div className="mt-1.5 hidden items-center justify-between gap-2 sm:flex">
-        {JOURNEY.map((k, i) => (
-          <span key={k} className={cn('min-w-0 flex-1 truncate font-mono text-[10.5px]',
-            i < step ? 'text-muted-foreground' : i === step ? 'font-semibold text-primary' : 'text-muted-foreground/50',
-            i === 0 ? 'text-start' : i === JOURNEY.length - 1 ? 'text-end' : 'text-center')}>{label(k, i)}</span>
-        ))}
-      </div>
-      <div className="mt-1.5 text-[11.5px] font-semibold text-primary sm:hidden">{label(JOURNEY[step], step)}</div>
+      </ol>
+      <div className={cn(S.sub, 'mt-2', tr.held ? 'text-warn-fg' : '')} aria-live="polite">{tr.next}</div>
     </div>
   );
 }

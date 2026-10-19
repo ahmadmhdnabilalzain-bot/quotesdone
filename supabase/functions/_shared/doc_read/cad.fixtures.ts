@@ -13,17 +13,19 @@ export function dxfFrom(pairs: [number, string | number][]): Uint8Array {
 
 /**
  * The same pairs as a BINARY DXF, written independently of cad.ts's reader: 2-byte codes (R13+) or
- * 1-byte codes (R12). Only the codes the fixtures use: 0-9 strings, 10-59 reals, 60-79 int16, 90-99 int32.
+ * 1-byte codes (R12). Only the codes the fixtures use: 0-9 / 100 / 102 / 300-369 / 999 / 1000-1009 strings, 10-59 and 1010-1059
+ * reals, 60-79 and 1060-1070 int16, 90-99 and 1071 int32.
  */
 export function dxfBinaryFrom(pairs: [number, string | number][], wide = true): Uint8Array {
   const out: number[] = [...new TextEncoder().encode('AutoCAD Binary DXF\r\n\x1a\x00')];
   const push = (n: number, len: number, f: (d: DataView) => void) => { const b = new Uint8Array(len); f(new DataView(b.buffer)); out.push(...b); void n; };
   for (const [c, v] of pairs) {
     if (wide) push(c, 2, (d) => d.setInt16(0, c, true)); else out.push(c);
-    if (c <= 9) out.push(...new TextEncoder().encode(String(v)), 0);
-    else if (c >= 10 && c <= 59) push(c, 8, (d) => d.setFloat64(0, Number(v), true));
-    else if (c >= 60 && c <= 79) push(c, 2, (d) => d.setInt16(0, Number(v), true));
-    else if (c >= 90 && c <= 99) push(c, 4, (d) => d.setInt32(0, Number(v), true));
+    const str = c <= 9 || c === 100 || c === 102 || (c >= 300 && c <= 369) || c === 999 || (c >= 1000 && c <= 1009);
+    if (str) out.push(...new TextEncoder().encode(String(v)), 0);
+    else if ((c >= 10 && c <= 59) || (c >= 1010 && c <= 1059)) push(c, 8, (d) => d.setFloat64(0, Number(v), true));
+    else if ((c >= 60 && c <= 79) || (c >= 1060 && c <= 1070)) push(c, 2, (d) => d.setInt16(0, Number(v), true));
+    else if ((c >= 90 && c <= 99) || c === 1071) push(c, 4, (d) => d.setInt32(0, Number(v), true));
     else throw new Error(`dxfBinaryFrom: code ${c} not supported by the fixture writer`);
   }
   return new Uint8Array(out);

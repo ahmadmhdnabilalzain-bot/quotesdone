@@ -52,6 +52,36 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "tissue_disposables:product-distinctions",
+      "topic": "Tissue and disposables: grades, formats and dispensing systems",
+      "topic_ar": "المناديل والمستهلكات: الدرجات والأشكال وأنظمة التوزيع",
+      "kind": "product_distinctions",
+      "body_en": "Tissue products: facial tissues (2-3 ply, soft), toilet rolls (standard, jumbo rolls for high-traffic washrooms, coreless and centrefeed formats), kitchen rolls, hand towels (C-fold, Z-fold/interfold, multifold, and roll towels for automatic dispensers), table napkins, and wipes. Quality depends on fibre (virgin pulp is softer and stronger; recycled fibre is cheaper and greener), ply count, basis weight (g/m2, for example 14-18 g/m2 per ply for facial tissue), sheet size and count per pack, embossing, absorbency and wet strength. Away-from-home (commercial) buyers often choose a dispenser system first, because sheet formats fit specific dispensers; system dispensers reduce waste and theft. Other disposables: food-service disposables (cups, lids, plates, cutlery, containers in paper, PP, PET, aluminium or bagasse, with single-use plastic restrictions pushing paper and compostable options), aluminium foil and cling film, bin liners (by size, thickness in microns or gauge, and colour coding), gloves, aprons and hairnets. Offers are compared on cost-in-use (price per sheet or per use, not per carton), product specs, dispenser terms (free on loan with consumable contracts), delivery, and sustainability certifications.",
+      "body_ar": "منتجات المناديل: المناديل الوجهية (2-3 طبقات، ناعمة)، ولفات الحمام (العادية، والكبيرة جداً لدورات المياه كثيفة الاستخدام، وبلا قلب، وبسحب من المركز)، ولفات المطبخ، ومناشف اليد (مطوية على شكل C أو Z/متداخلة، ومتعددة الطي، ولفات للموزعات الآلية)، ومناديل الطاولة، والمناديل المبللة. وتعتمد الجودة على الألياف (اللب الخام أنعم وأقوى؛ والألياف المعاد تدويرها أرخص وأكثر صداقة للبيئة)، وعدد الطبقات، والوزن الأساسي (غرام/م2، مثل 14-18 غراماً للطبقة في المناديل الوجهية)، ومقاس الورقة وعددها في العبوة، والنقش، والامتصاص، والقوة في البلل. ويختار مشترو الاستخدام التجاري غالباً نظام الموزع أولاً، لأن أشكال الأوراق تناسب موزعات محددة؛ والموزعات النظامية تقلل الهدر والسرقة. ومستهلكات أخرى: مستهلكات خدمة الطعام (الأكواب، الأغطية، الأطباق، أدوات الطعام، العلب من الورق أو PP أو PET أو الألمنيوم أو تفل القصب، مع قيود البلاستيك أحادي الاستخدام التي تدفع نحو الورق والخيارات القابلة للتحلل)، ورقائق الألمنيوم والغشاء اللاصق، وأكياس القمامة (حسب المقاس والسماكة بالميكرون والترميز اللوني)، والقفازات، والمرايل، وأغطية الشعر. وتُقارن العروض بتكلفة الاستخدام (السعر لكل ورقة أو استخدام لا لكل كرتون)، ومواصفات المنتج، وشروط الموزعات (إعارة مجانية مع عقود المستهلكات)، والتسليم، وشهادات الاستدامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Facial_tissue"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: tissue in 2-3 plies from chemical pulp with some recycled fibre, basis weight 14-18 g/m2 -> confirmed."
+    },
+    {
+      "id": "tissue_disposables:lead-times-and-quoting",
+      "topic": "Tissue & disposables - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المناديل والمستهلكات أحادية الاستخدام: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock items: 1-5 days; private label 4-10 weeks. A supplier needs product types and formats, dispensers in use, monthly consumption, quality grade (virgin or recycled), branding, and delivery points. A quote states product codes, ply, sheet size and count, basis weight, pack and carton, cost per sheet or use, dispenser terms, delivery and validity.",
+      "body_ar": "الأصناف المتوفرة: 1-5 أيام؛ والعلامة الخاصة 4-10 أسابيع. ويحتاج المورد أنواع المنتجات وأشكالها، والموزعات المستخدمة، والاستهلاك الشهري، ودرجة الجودة (خام أو معاد تدويره)، والعلامة، ونقاط التسليم. ويذكر العرض رموز المنتجات وعدد الطبقات ومقاس الورقة وعددها والوزن الأساسي والعبوة والكرتون والتكلفة لكل ورقة أو استخدام وشروط الموزعات والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (Standards entry only says single-use plastics are restricted and explicitly does not list banned items; missing: Dubai single-use / polystyrene ban status entry). tissue_disposables:dubai-single-use-ban-polystyrene was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from tissue_disposables.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "How should we compare two hand-towel offers for our office washrooms?",
+      "q_ar": "كيف نقارن بين عرضين لمناشف اليد لدورات المياه في المكتب؟",
+      "expected_entry_ids": [
+        "tissue_disposables:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "tissue_disposables:dubai-single-use-ban-polystyrene"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "tissue_disposables:product-distinctions"
+      ],
+      "stored_not_served": [
+        "tissue_disposables:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Facial_tissue"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

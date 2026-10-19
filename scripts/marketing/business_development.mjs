@@ -22,6 +22,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sanitizeBlogHtml } from '../lib/sanitize_blog_html.mjs';   // published HTML is allow-listed (Aikido, 19 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -62,11 +63,11 @@ async function main() {
     for (const r of rows) {
       if (!blog[r.slug]) added++;
       blog[r.slug] = {
-        slug: r.slug, title: r.title_en, excerpt: r.excerpt_en, meta_desc: r.meta_desc_en, body_html: r.body_html_en,
+        slug: r.slug, title: r.title_en, excerpt: r.excerpt_en, meta_desc: r.meta_desc_en, body_html: sanitizeBlogHtml(r.body_html_en),
         author: 'QuotesDone', category: r.category_en, published_at: r.released_at,
         // newest first on /blog: the index sorts ascending, the 32 June guides use 10..320
         sort: -Number(String(r.released_at).slice(0, 10).replace(/-/g, '')),
-        ar: { title: r.title_ar, excerpt: r.excerpt_ar, meta_desc: r.meta_desc_ar, category: r.category_ar, body_html: r.body_html_ar },
+        ar: { title: r.title_ar, excerpt: r.excerpt_ar, meta_desc: r.meta_desc_ar, category: r.category_ar, body_html: sanitizeBlogHtml(r.body_html_ar) },
       };
     }
     writeFileSync(file, JSON.stringify(blog, null, 2) + '\n');   // the file's own format: a bake adds lines, never reflows
