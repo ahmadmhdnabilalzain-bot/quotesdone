@@ -43,7 +43,7 @@ Deno.test('the plan, every answer pass and the review all carry the settled fact
   const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'test', question: 'Which bank do we use?', stakes: 'high' });
   assertEquals(r.status, 'answered');
   assertEquals(m.calls.map((c) => c.phase), ['decompose', 'synthesise', 'verify']);
-  for (const c of m.calls) assertEquals(c.o.sysStable, settledFacts('internal'), c.phase);
+  for (const c of m.calls) assertEquals(c.o.sysStable, settledFacts('internal', 'ceo'), c.phase);
   assertEquals(m.calls[0].o.timeoutMs, DECOMPOSE_TIMEOUT_MS);
   assertEquals(m.calls[1].o.max, SYNTH_MAX);
 });
@@ -55,4 +55,39 @@ Deno.test('a missing or unknown audience gets the public brief, never the intern
   const m = mock();
   await think(m.deps, { seat: 'ceo', surface: 'test', question: 'Which bank do we use?', context: {} } as unknown as Parameters<typeof think>[1]);
   for (const c of m.calls) assertEquals(c.o.sysStable, settledFacts('customer'), c.phase);
+});
+
+Deno.test('an internal call carries its own seat card; an outside audience never gets any card', async () => {
+  // The after-exam miss: it_engineer said the Resend cap was "not established"; its pack holds 50000.
+  const it = settledFacts('internal', 'it_engineer');
+  assert(it.startsWith(settledFacts('internal')) && it.includes('cap_resend_emails_month 50000'));
+  assert(!settledFacts('internal', 'accountant').includes('cap_resend_emails_month'), 'a seat gets its own card, not another seat\'s');
+  for (const a of ['customer', 'supplier', 'visitor', undefined, 'partner']) {
+    assertEquals(settledFacts(a, 'it_engineer'), settledFacts('customer'), String(a));
+    assert(!settledFacts(a, 'it_engineer').includes('operating facts from its own verified pack'), String(a));
+  }
+  for (const s of ['nobody', '__proto__', 'constructor', null]) assertEquals(settledFacts('internal', s), settledFacts('internal'), String(s));
+  const m = mock();
+  await think(m.deps, { context: { audience: 'internal' }, seat: 'it_engineer', surface: 'test', question: 'Resend monthly cap?', stakes: 'high' });
+  for (const c of m.calls) assertEquals(c.o.sysStable, it, c.phase);
+  const x = mock();
+  await think(x.deps, { context: { audience: 'customer' }, seat: 'it_engineer', surface: 'test', question: 'Resend monthly cap?', stakes: 'high' });
+  for (const c of x.calls) assertEquals(c.o.sysStable, settledFacts('customer'), c.phase);
+});
+
+Deno.test('retrieval is told the audience: the company\'s own pack rows are for an internal call only', async () => {
+  const sent: Record<string, unknown>[] = [];
+  const run = async (context: Record<string, unknown>) => {
+    const m = mock();
+    m.deps.llm = (phase) => Promise.resolve({ model: 'm', content: phase === 'synthesise' ? J({ answer: 'x', reasoning: [], cited: [], confidence: 0.9 })
+      : phase === 'verify' ? J({ verdict: 'agree', problems: [] })
+      : J({ steps: [{ id: 's1', goal: 'x', query: 'Resend monthly cap', needs_knowledge: true }], facts: [], high_stakes: false }) } as LlmReply);
+    m.deps.rpc = (fn, args) => { if (String(fn).startsWith('fn_reason_retrieve')) sent.push(args as Record<string, unknown>); return Promise.resolve({ data: fn.startsWith('fn_case_recall') ? { cases: [] } : [], error: null }); };
+    sent.length = 0;
+    await think(m.deps, { context, seat: 'it_engineer', surface: 'test', question: 'Resend monthly cap?' } as unknown as Parameters<typeof think>[1]);
+    assert(sent.length > 0, 'retrieval ran');
+    return sent.map((a) => a.p_audience);
+  };
+  for (const a of ['customer', 'supplier', 'visitor', 'internal', 'founder']) assertEquals(await run({ audience: a }), [a]);
+  assertEquals(await run({}), [null], 'a missing audience is sent as none, which the routine treats as external');
 });
