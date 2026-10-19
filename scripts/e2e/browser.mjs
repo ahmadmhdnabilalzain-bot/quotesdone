@@ -107,6 +107,15 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
     viewport: vp, locale: lang === 'ar' ? 'ar-AE' : 'en-GB',
     ...(vp.width < 768 ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
   });
+  // AI ON IN THE BROWSER TOO (ruling 1260). A fixture's model call is let through only for a proven run tag
+  // in an open window (think.ts fixtureInOpenWindow); the API harness sends it, the browser did not, so every
+  // portal action a walk drove ran with the models held. The tag and its credential ride ONLY on calls to the
+  // Supabase edge functions, never to the site, Stripe or anything else.
+  if (process.env.QD_E2E_RUN_TAG) {
+    const { internalCred } = await import('../lib/demo_factory.mjs');
+    const extra = { 'x-qd-e2e-run': process.env.QD_E2E_RUN_TAG, 'x-qd-e2e-secret': await internalCred() };
+    await ctx.route(/\/functions\/v1\//, (route) => route.request().method() === 'OPTIONS' ? route.continue() : route.continue({ headers: { ...route.request().headers(), ...extra } }));
+  }
   const s = await harnessSession(who);
   await ctx.addInitScript(([k, s, lang]) => {
     try {

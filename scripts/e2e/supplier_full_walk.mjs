@@ -90,7 +90,7 @@ async function openForm(page, detail) {
 async function fillTyped(detail, { amount, lines, vague = false }) {
   await detail.getByPlaceholder('Total amount (AED)').fill(String(amount));
   await detail.getByPlaceholder('Lead time').first().fill('3 weeks');
-  await detail.locator('select').first().selectOption('exclusive');
+  await detail.locator('label', { hasText: 'The total above' }).locator('select').selectOption('exclusive');
   await detail.getByPlaceholder(/Quote validity/).fill('30 days');
   await detail.getByPlaceholder(/Payment terms/).fill('50% advance, 50% on completion');
   await detail.getByPlaceholder(/Warranty/).fill(vague ? '' : '2 years materials and workmanship');
@@ -113,6 +113,7 @@ async function releaseHold(page, inquiryId) {
   const li = page.locator(`#qd-qt-${inquiryId}`);
   await li.waitFor({ timeout: 30000 });
   const fills = li.getByRole('button', { name: 'Fill in the missing details' });
+  await fills.first().waitFor({ timeout: 30000 }).catch(() => {});   // the hold panel loads after the list
   const n = await fills.count();
   for (let k = 0; k < n; k++) {
     await li.getByRole('button', { name: 'Fill in the missing details' }).first().click();
@@ -148,7 +149,7 @@ async function drive(browser, run, s, vp) {
   const { ctx, page, consoleErrors, calls } = await signedInPage(browser, supplier, { lang: 'en', viewport: vp });
   const shot = (n) => fullPageShot(page, join(SHOTS, `${vp}_${n}.png`)).catch(() => {});
   const scen = async (name, fn) => {
-    try { await fn(); } catch (e) { step(name, vp, false, String(e.message).split('\n')[0]); await shot(`zz_fail_${name.replace(/[^a-z0-9]+/gi, '_')}`); }
+    try { await Promise.race([fn(), new Promise((_, rej) => setTimeout(() => rej(new Error('scenario took over 8 minutes')), 480000))]); } catch (e) { step(name, vp, false, String(e.message).split('\n')[0]); await shot(`zz_fail_${name.replace(/[^a-z0-9]+/gi, '_')}`); }
   };
   try {
     await openPortal(page, portalUrl('supplier', 'en'), calls);
@@ -169,9 +170,9 @@ async function drive(browser, run, s, vp) {
       const f = join(SHOTS, `${vp}_quotation.pdf`);
       writeFileSync(f, quotationPdf([{ title: 'Option 1', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] }]));
       await d.locator('label', { hasText: 'Attach file' }).last().locator('input[type=file]').setInputFiles(f);
-      await waitFor(async () => Number(await d.getByPlaceholder('Total amount (AED)').inputValue()) > 0, { timeoutMs: 120000 });
+      await waitFor(async () => Number(await d.getByPlaceholder('Total amount (AED)').inputValue()) > 0, { timeoutMs: 300000, everyMs: 3000 });
       const read1 = await d.getByPlaceholder('Total amount (AED)').inputValue();
-      await d.locator('select').first().selectOption('exclusive');
+      await d.locator('label', { hasText: 'The total above' }).locator('select').selectOption('exclusive');
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const qs = await settle(page, supplier.leadId, jobs.pdf.id, 1);
       qs.forEach((r) => run.ids.quotes.add(r.id));
@@ -186,9 +187,9 @@ async function drive(browser, run, s, vp) {
         { title: 'Option 1 - Jotun Fenomastic', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] },
         { title: 'Option 2 - National Paints', lines: [['National Paints matt emulsion 2 coats internal walls', 450, 16], ['National Paints matt emulsion 2 coats ceilings', 120, 15]] }]));
       await d.locator('label', { hasText: 'Attach file' }).last().locator('input[type=file]').setInputFiles(f);
-      await waitFor(async () => Number(await d.getByPlaceholder('Total amount (AED)').inputValue()) > 0, { timeoutMs: 120000 });
+      await waitFor(async () => Number(await d.getByPlaceholder('Total amount (AED)').inputValue()) > 0, { timeoutMs: 300000, everyMs: 3000 });
       const said = await d.innerText();
-      await d.locator('select').first().selectOption('exclusive');
+      await d.locator('label', { hasText: 'The total above' }).locator('select').selectOption('exclusive');
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const qs = await settle(page, supplier.leadId, jobs.options.id, 2);
       qs.forEach((r) => run.ids.quotes.add(r.id));
