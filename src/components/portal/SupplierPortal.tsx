@@ -1207,7 +1207,7 @@ function Dashboard({ token, lang, onExpired }) {
           the OUTGOING one and the focus is not addressed to it, so it may act on it but may not
           consume it. One condition, both directions, and nothing about the deferred render changes. */}
       {shownTab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
-        renderQuoteForm={(inq, done) => <QuoteForm inquiry={inq} token={token} lang={lang} onDone={done} />} />}
+        renderQuoteForm={(inq, done, o) => <QuoteForm key={o?.newOption ? 'new' : 'edit'} inquiry={inq} token={token} lang={lang} onDone={done} newOption={!!o?.newOption} />} />}
       {shownTab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
       {/* Messages holds the revealed jobs (Projects) above the conversations, behind the reveal gate. */}
       {shownTab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
