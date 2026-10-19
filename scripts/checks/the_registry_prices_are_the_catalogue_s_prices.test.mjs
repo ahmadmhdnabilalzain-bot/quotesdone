@@ -229,6 +229,19 @@ const { homedir } = await import('node:os');
 const hasToken = () => Boolean(process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token')));
 const pending = () => existsSync(join(REPO, PENDING_NOTE));
 
+// 19 Oct 2026: model_catalogue never ran on production. In itLaterDutiesTick it sat behind the model-calling steps,
+// and once those steps had real model work, the detached run ended before reaching it. The cheap, scheduled readings
+// must come before the first step that can call a model.
+test('the scheduled readings run before any model-calling step in the itlater chain', () => {
+  const src = readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8');
+  const body = src.slice(src.indexOf('async function itLaterDutiesTick('), src.indexOf('async function launchPathTick('));
+  const at = (name) => { const i = body.indexOf(`await step('${name}'`); assert.ok(i > 0, `step ${name} is not in itLaterDutiesTick`); return i; };
+  const firstModel = Math.min(...['deliberations', 'reasoning_held', 'routine_judgements'].map(at));
+  for (const s of ['provider_status', 'postmaster', 'model_catalogue', 'supplier_docs']) {
+    assert.ok(at(s) < firstModel, `${s} runs after a model-calling step, so a slow model step can starve it`);
+  }
+});
+
 test('a management token is present where the sync must be verified',
   { skip: process.env.REGISTRY_SYNC_REQUIRE_LIVE !== '1' && 'no REGISTRY_SYNC_REQUIRE_LIVE: the parity job verifies it' }, () => {
   assert.ok(hasToken(), 'SUPABASE_ACCESS_TOKEN is missing: the model catalogue sync was NOT verified');

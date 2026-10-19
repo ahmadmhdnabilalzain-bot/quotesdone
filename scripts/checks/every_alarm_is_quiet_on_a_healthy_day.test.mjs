@@ -46,7 +46,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { replay } from '../lib/alarm_replay.mjs';
+import { replay, replaySql as replaySqlFor } from '../lib/alarm_replay.mjs';
 import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 import { lit } from '../lib/db.mjs';
 
@@ -136,9 +136,14 @@ export const REGISTER = {
   // 24 Sep 2026 (it_engineer, #901). Raises seat_duty:<duty> when a registered duty is overdue, failing or has no
   // live owner (fn_seat_duty_health). Duties are present state; a healthy day has every duty on its clock. The
   // duties it runs are run inside the rolled-back replay.
+  // 19 Oct 2026: the replay used to RUN the duties through public.fn_seat_duty_run. That took a FOR UPDATE row lock on
+  // the live public.seat_duty row and held it for the replay's whole transaction, and the live tick
+  // ("for update skip locked") then skipped the most overdue duties for as long as CI replays ran: five sales_engineer
+  // duties went 80 minutes without a run. The alarm under test is fn_seat_duty_health, so the duty runs are stubbed.
   fn_seat_duties_tick: {
     replay: 'pg_temp.qd_replay_fn_seat_duties_tick(1)',
     asOf: { seat_duty: 'created_at' },   // a duty registered after the instant did not exist then
+    stub: { 'public.fn_seat_duty_run': `'{}'::jsonb`, 'public.fn_seat_duty_isolate': 'null' },
   },
   // 24 Sep 2026 (it_engineer, #903). Raises held_notice:undelivered when a WhatsApp holding notice owed to a customer
   // failed 8 times. It reads held questions that existed (were escalated) at the instant; a healthy day has none
@@ -358,6 +363,14 @@ export function unanswered(bodies, register = REGISTER, baseline = BASELINE) {
   }
   return bad;
 }
+
+test('the seat-duty tick replay never runs a live duty (no live row lock)', () => {
+  const def = `create or replace function public.fn_seat_duties_tick(p_limit integer default 8) returns jsonb language plpgsql as $f$
+    begin perform public.fn_seat_duty_isolate(sd.duty) from public.seat_duty sd; v := v || public.fn_seat_duty_run(d.duty); end $f$;`;
+  const sql = replaySqlFor('fn_seat_duties_tick', def, REGISTER.fn_seat_duties_tick, '2026-09-14T01:00:00Z');
+  assert.doesNotMatch(sql, /public\.fn_seat_duty_run\s*\(/, 'the replay would lock and run live seat_duty rows');
+  assert.doesNotMatch(sql, /public\.fn_seat_duty_isolate\s*\(/, 'the replay would isolate a live duty');
+});
 
 test('every routine that can raise an IT finding is replayed on a healthy day, or says why not', () => {
   const bad = unanswered(canonicalBodies());
