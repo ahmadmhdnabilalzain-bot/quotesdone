@@ -23,7 +23,7 @@
     {
      "file": "supabase/functions/wa_inbound/index.ts",
      "must_contain": [
-      "needsAPerson(defaultDeps(admin, 'wa_inbound')",
+      "needsAPerson(classifyDeps()",
       "p_needs_person: needsPerson"
      ]
     }
@@ -186,7 +186,7 @@
     {
      "file": "supabase/functions/wa_inbound/index.ts",
      "must_contain": [
-      "whatsappMeaning(defaultDeps(admin, 'wa_inbound')",
+      "whatsappMeaning(classifyDeps()",
       "p_intent: intent"
      ]
     },
@@ -525,7 +525,7 @@
     {
      "file": "supabase/functions/wa_inbound/index.ts",
      "must_contain": [
-      "menuMeaning(defaultDeps(admin, 'wa_inbound')"
+      "menuMeaning(classifyDeps()"
      ]
     }
    ]
