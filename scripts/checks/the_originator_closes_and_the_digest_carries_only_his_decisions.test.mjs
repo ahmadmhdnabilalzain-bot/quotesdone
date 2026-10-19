@@ -48,6 +48,6 @@ test('the IT digest carries only founder decisions and never claims a fix is und
   assert.doesNotMatch(text, /engineers are making/i, `${file}: the digest claims engineers are making a change`);
   assert.doesNotMatch(text, /open more than a day/i, `${file}: the digest still reports faults to the founder`);
   // An item reaches v_items only after the founder-decision class matched (to_founder = true).
-  assert.match(text, /if found and not v_his then[\s\S]*?if not found then[\s\S]*?'digest', 'internal'[\s\S]*?continue;\s*end if;\s*v_items := v_items/,
+  assert.match(text, /if found and \(?not v_his[^\n]*then[\s\S]*?if not found then[\s\S]*?'digest', 'internal'[\s\S]*?continue;\s*end if;\s*v_items := v_items/,
     `${file}: an item without a founder-decision class must be kept internal before anything is added to the email`);
 });

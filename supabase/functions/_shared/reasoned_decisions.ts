@@ -13,6 +13,11 @@ import { think, type ThinkDeps, type ThinkResult, type Turn } from './think.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 
+export const NEEDS_PERSON_OPTIONS = [
+  { id: 'needs_a_person', meaning: 'they ask to speak to a human, OR they complain, dispute, demand a refund, accuse us or a supplier of wrongdoing, or threaten legal action — however it is worded, in any language' },
+  { id: 'no_person', meaning: 'anything else, including a question that merely mentions law, legality, refunds or complaints as a topic' },
+];
+
 /** WhatsApp and social: does this message need a person? (surfaces wa_inbound.needs_a_person, marketing_social.needs_a_person) */
 export async function needsAPerson(deps: ThinkDeps, o: {
   seat: 'customer_support' | 'marketing'; surface: string; message: string; conversation?: Turn[];
@@ -21,12 +26,12 @@ export async function needsAPerson(deps: ThinkDeps, o: {
   const result = await think(deps, {
     seat: o.seat, surface: o.surface, question: o.message, dedupeKey: o.dedupeKey, subject: o.subject,
     context: { audience: o.audience ?? 'customer', conversation: o.conversation },
+    // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
+    // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
+    plan: { steps: [] }, effort: 'low',
     decision: {
       name: 'needs_a_person',
-      options: [
-        { id: 'needs_a_person', meaning: 'they ask to speak to a human, OR they complain, dispute, demand a refund, accuse us or a supplier of wrongdoing, or threaten legal action — however it is worded, in any language' },
-        { id: 'no_person', meaning: 'anything else, including a question that merely mentions law, legality, refunds or complaints as a topic' },
-      ],
+      options: NEEDS_PERSON_OPTIONS,
     },
   });
   return { value: result.status === 'answered' ? result.decision?.choice === 'needs_a_person' : null, result };
