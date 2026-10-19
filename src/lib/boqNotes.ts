@@ -62,6 +62,9 @@ const RULES: Rule[] = [
   R(/^The binary DXF has more than (.+?) group-code pairs; reading stopped there, so totals are partial\.$/, (m) => `يتضمن ملف DXF الثنائي أكثر من ${m[1]} زوج من رموز المجموعات؛ وتوقفت القراءة عند هذا الحد، لذا المجاميع جزئية.`),
   R(/^(.+?) line\(s\) of the drawing's take-off were withheld because they still named a party after redaction; please add them by hand if they are needed\.$/, (m) => `حُجب ${m[1]} من بنود حصر الكميات في المخطط لأنها بقيت تذكر اسم جهة بعد إخفاء البيانات؛ يُرجى إضافتها يدويًا إن لزم.`),
   // _shared/drawing_format.ts (founder ruling 1000, 28 Sep 2026: drawings are PDF or CAD only)
+  // _shared/doc_read/pdf.ts, a words-only read that stopped at its CPU budget (13 Oct 2026)
+  R(/^This PDF has no text layer \(a scan, or CAD exported as lines\); its words need OCR\.$/, () => 'لا يحتوي ملف PDF هذا على طبقة نص (مستند ممسوح ضوئيًا، أو رسم CAD مُصدَّر كخطوط)؛ وتحتاج كلماته إلى التعرّف الضوئي على النصوص.'),
+  R(/^Read (\d+) of (\d+) pages within the reading budget\.$/, (m) => `قُرئت ${m[1]} صفحة من أصل ${m[2]} ضمن حدّ القراءة.`),
   R(/^Please upload your drawing as PDF or CAD \(DWG\/DXF\)\.$/, () => 'يُرجى رفع المخطط بصيغة PDF أو CAD ‏(DWG/DXF).'),
   R(/^A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed\.$/, () => 'لا تحتوي الصورة أو المستند الممسوح ضوئيًا على طبقة نص؛ فتُقرأ كلماته بتقنية التعرّف الضوئي على النصوص في متصفحك، أو بنموذج رؤية حين يُسمح بذلك.'),
   R(/^The PDF could not be opened \(encrypted, damaged or not a PDF\)\.$/, () => 'تعذّر فتح ملف PDF (فهو مشفّر أو تالف أو ليس ملف PDF).'),

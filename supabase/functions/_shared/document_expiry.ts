@@ -320,7 +320,7 @@ export function licenceNameFromModel(doc: { legal_name?: unknown; confidence?: u
   const v = String(doc.legal_name ?? '').trim().slice(0, 200);
   return /\p{L}{2}/u.test(v) ? v : null;
 }
-function toB64(u8: Uint8Array): string {
+export function toB64(u8: Uint8Array): string {
   let bin = ''; for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode(...u8.subarray(i, i + 0x8000));
   return btoa(bin);
 }

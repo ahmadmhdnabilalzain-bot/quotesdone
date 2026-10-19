@@ -493,15 +493,19 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <Button variant="link" className="h-auto px-0" onClick={onCancel}>{t(lang, 'nr_cancel')}</Button>
       </div>
       {meta.readiness != null && <ReadinessBar pct={meta.readiness} lang={lang} reduce={reduce} />}
-      {concierge && concierge.first_inquiry ? <ConciergeSteps guide={concierge} lang={lang} title={t(lang, 'cg_title')} className="mx-4 mt-2" /> : null}
-      {guideText ? (
-        <details className="mx-4 mt-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[12.5px]" data-testid="spec-guide">
-          <summary className="cursor-pointer font-semibold text-foreground">{t(lang, 'nr_spec_guide')}</summary>
-          <div className="mt-1.5 whitespace-pre-line text-muted-foreground">{guideText}</div>
-        </details>
-      ) : null}
-
-      <div className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3" aria-live="polite">
+      {/* THE TYPING BOX WAS CLIPPED (founder, 18 Oct 2026). This panel has a fixed height and overflow-hidden;
+          the first-inquiry steps and the spec guide sat OUTSIDE the scrolling transcript as shrink-0 blocks, so
+          with them shown the fixed parts outgrew the panel and the composer at the bottom was cut off (measured on
+          production: 7 of 76 px of the box left at 1280x720). They now scroll with the transcript, and the
+          transcript is min-h-0, so the header and the composer are the only parts that never shrink. */}
+      <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-4 py-3" aria-live="polite">
+        {concierge && concierge.first_inquiry ? <ConciergeSteps guide={concierge} lang={lang} title={t(lang, 'cg_title')} /> : null}
+        {guideText ? (
+          <details className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-[12.5px]" data-testid="spec-guide">
+            <summary className="cursor-pointer font-semibold text-foreground">{t(lang, 'nr_spec_guide')}</summary>
+            <div className="mt-1.5 whitespace-pre-line text-muted-foreground">{guideText}</div>
+          </details>
+        ) : null}
         {messages.map((m, i) => (
           <M.div key={i} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.22 }}>
             {m.chip !== undefined
@@ -618,7 +622,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
             <span className="min-w-0 truncate font-mono text-label text-muted-foreground">{t(lang, 'nr_drop')}</span>
           </button>
         )}
-        <div className="flex items-end gap-2">
+        {/* THE BOX GETS ITS OWN LINE BELOW lg. Four tool buttons and Send share this row; at 375px they left the
+            textarea 77px wide (66px in Arabic at 768px, where the BOQ label shows). Below lg the textarea is first
+            and full width, the tools and Send wrap to the line under it. Its scroll margin keeps it above the
+            phone's fixed tab bar when focus or the page scrolls it into view. */}
+        <div className="flex flex-wrap items-end gap-2 lg:flex-nowrap">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
           <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
@@ -645,9 +653,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
             </button>
           )}
           <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
-          <textarea id="qd-intake-input" ref={inputRef} className="min-h-[48px] min-w-0 flex-1 resize-none rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
+          <textarea id="qd-intake-input" ref={inputRef} className="order-first min-h-[48px] scroll-mb-[calc(var(--qd-tabbar-h,0px)+16px)] min-w-0 basis-full resize-none lg:order-none lg:basis-0 lg:flex-1 rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
             placeholder={rec ? t(lang, 'nr_listening') : t(lang, 'nr_ph')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
-          <Button size="lg" className="px-4" disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
+          <Button size="lg" className="ms-auto px-4 lg:ms-0" disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
         </div>
       </div>
     </section>

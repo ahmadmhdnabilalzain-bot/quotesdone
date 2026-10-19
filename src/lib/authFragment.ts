@@ -14,7 +14,6 @@
 // left alone. An auth ERROR fragment is stripped too; it carries nothing to sign in with.
 // Tested in authFragment.test.mjs; the nightly journey (scripts/e2e/journey_audit_buttons.mjs) opens
 // a real magic link and presses Back.
-export type UrlSession = { access_token: string; refresh_token: string };
 type Win = {
   location: { pathname: string; search: string; hash: string };
   history: { state: unknown; replaceState: (s: unknown, t: string, u: string) => void };
@@ -22,14 +21,20 @@ type Win = {
 
 const AUTH_KEYS = /(?:^#|&)(?:access_token|refresh_token|error|error_code|error_description)=/;
 
-export function takeAuthFragment(win: Win | undefined = (globalThis as unknown as { window?: Win }).window): UrlSession | null {
+// SESSION FIXATION (CWE-384 audit, 19 Oct 2026; seat: it_engineer). A fragment is attacker-craftable: a link to
+// /portal#access_token=<attacker's>&refresh_token=<attacker's> signed the visitor into the ATTACKER's account, where
+// they would upload a licence or a bank letter. No product flow delivers a session in the URL any more: sign-in is
+// OTP codes only (login_otp verifies the token_hash server-side and returns the session in its JSON body), there is
+// no signUp/OAuth/password-reset return. So a URL session is NEVER adopted: the fragment is stripped from the
+// address bar (it must not sit in history) and dropped. Always returns null; kept as a function so both portals
+// keep stripping it first. Admin-generated magic links (scripts/e2e founder_demo_tour, journey_audit) no longer
+// sign in by design.
+export function takeAuthFragment(win: Win | undefined = (globalThis as unknown as { window?: Win }).window): null {
   if (!win) return null;
   const hash = String(win.location.hash || '');
   if (!AUTH_KEYS.test(hash)) return null;
-  const p = new URLSearchParams(hash.slice(1));
   try { win.history.replaceState(win.history.state, '', win.location.pathname + win.location.search); }
   catch (e) { console.error('takeAuthFragment: the session could not be removed from the address bar', e); }
-  const access_token = p.get('access_token') || '';
-  const refresh_token = p.get('refresh_token') || '';
-  return access_token && refresh_token ? { access_token, refresh_token } : null;
+  console.error('takeAuthFragment: a session in the URL was dropped; sign-in is by code only');
+  return null;
 }

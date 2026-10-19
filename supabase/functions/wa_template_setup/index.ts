@@ -40,7 +40,9 @@ type Catalogue =
       url: string; sample2_en?: string; sample2_ar?: string }
   // AUTHENTICATION: Meta owns the body text of an authentication template and renders it in the
   // recipient's own language, so there is nothing to author or translate except the button label.
-  | { category: 'AUTHENTICATION'; copy_code_en: string; copy_code_ar: string; expiry_minutes: number };
+  | { category: 'AUTHENTICATION'; copy_code_en: string; copy_code_ar: string; expiry_minutes: number }
+  // MARKETING (19 Oct 2026): written to suppliers, who are only ever written to in English, so it has no Arabic.
+  | { category: 'MARKETING'; en: string; sample1_en: string; sample2_en: string; url: string };
 const CATALOGUE: Record<string, Catalogue> = {
   // 18 SEP 2026 — THE SIGN-IN CODE. Founder authorised this submission. AUTHENTICATION category:
   // Meta refuses to carry a one-time code under UTILITY, and refuses an authentication body written
@@ -116,6 +118,20 @@ const CATALOGUE: Record<string, Catalogue> = {
     sample2_ar: 'في دبي يحتاج المسبح الخاص إلى تصريح من بلدية دبي وسياج لا يقل ارتفاعه عن 1.2 متر',
     url: 'https://quotesdone.com',
   },
+  // 19 OCT 2026 (marketing, ruling 1184) — the WhatsApp supplier invitation. MARKETING category: it is a
+  // business-initiated invitation to a company that has not opted in, which Meta allows only as MARKETING.
+  // The body names the opt-out (STOP), which wa_inbound honours through fn_wa_supplier_invite_opt_out.
+  // {{1}} is the trade label, {{2}} the lead's own claim link (send_whatsapp varsFor). Suppliers are written
+  // to in English only, so the template has no Arabic and an Arabic create is refused.
+  // Rows are queued only by fn_wa_supplier_invite_queue, which writes nothing while wa_supplier_invite_golive
+  // is not 'true'.
+  supplier_invite: {
+    category: 'MARKETING',
+    en: 'Hello from QuotesDone, the UAE procurement marketplace. Businesses are requesting quotes for {{1}} and we would like to send them to your company. Registration is free; claim your supplier profile here: {{2}} Reply STOP to receive no further messages.',
+    sample1_en: 'office furniture',
+    sample2_en: 'https://quotesdone.com/en/portal?t=00000000-0000-0000-0000-000000000000',
+    url: 'https://quotesdone.com/en/portal',
+  },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {
     en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 5 working days. Open your portal here: {{2}} Thank you.',
@@ -177,12 +193,15 @@ Deno.serve(observe('wa_template_setup', async (req) => {
       // localises it, and substitutes the single code variable itself. Sending `variables` or a
       // twilio/text body with it is refused. Everything else is the two-variable UTILITY notice this
       // function was written for.
+      if (cat.category === 'MARKETING' && isAr) return J({ step: 'create', ok: false, error: 'english_only: suppliers are written to in English only' }, 400);
       const payload = cat.category === 'AUTHENTICATION'
         ? { types: { 'whatsapp/authentication': {
               add_security_recommendation: true,
               code_expiration_minutes: cat.expiry_minutes,
               actions: [{ type: 'COPY_CODE', copy_code_text: isAr ? cat.copy_code_ar : cat.copy_code_en }],
             } } }
+        : cat.category === 'MARKETING'
+        ? { variables: { '1': cat.sample1_en, '2': cat.sample2_en }, types: { 'twilio/text': { body: cat.en } } }
         : { variables: { '1': isAr ? cat.sample1_ar : cat.sample1_en,
                          // {{2}} is a link for the customer/supplier notices, a detail for the founder alert
                          '2': (isAr ? cat.sample2_ar : cat.sample2_en) || cat.url },

@@ -24,7 +24,8 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const SALES = 'scripts/sql/the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql';
 const MKT = 'scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql';
-const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql', SALES, MKT];
+const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql', SALES, MKT,
+  'scripts/sql/a_fenced_seat_duty_keeps_its_fixture_switch.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 test('matching reads the measured score and the invitation queue reads the recruit targets', () => {
@@ -51,6 +52,9 @@ async function probe(block) {
 test('production, aborted: onboarding, performance, supply gaps, the funnel and reputation all act', { skip: SKIP }, async () => {
   const o = await probe(String.raw`
 do $$ declare o jsonb := '{}'; v jsonb; lid bigint; inq uuid; h bigint; n bigint; c uuid; tr text; em text; begin
+  -- FIXTURE RUN (13 Oct 2026, a_fenced_seat_duty_keeps_its_fixture_switch.sql): since #1348 (ruling 1199) the duties
+  -- read no demo row in a real run; qd.duty_fixtures makes them read ONLY the demo rows this block builds.
+  perform set_config('qd.duty_fixtures', 'on', true);
   -- ONBOARDING: a ZZ DEMO approved supplier is matched to an open request 4 days ago and has not quoted.
   -- The probe builds that supplier itself, inside this rolled-back transaction. It used to pick one from production,
   -- and production stopped holding one: on 23 Sep 09:00 UTC the daily recheck (fn_sales_engineer_supplier_documents_tick)

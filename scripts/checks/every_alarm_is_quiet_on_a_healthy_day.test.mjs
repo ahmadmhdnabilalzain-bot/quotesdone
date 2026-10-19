@@ -262,6 +262,8 @@ export const REGISTER = {
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
   fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_settle reached on a seed message the inbox reader (resilience_ping inboxPlacement) looked at; the folder is the reader\'s reading, and no seed is sent on a healthy day before the morning batch' },
+  fn_lesson_reapproval_lapse_escalates: { relay: 'records that the CEO escalation of a lapsed lesson re-approval could not be opened (#1443); fires only when fn_seat_handoff itself errors on that lapse, and a healthy day has none' },
+  fn_rehearsal_window_sweep: { relay: 'logs a window it closed as an already-resolved info row (status resolved, severity info); the decision is the window\'s own expires_at (#1401), and no alarm is raised' },
   fn_it_duty_settle: { relay: 'writes the failing items a duty reading hands it; the rule is the duty\'s' },
   fn_accountant_duty_settle: { relay: 'the accountant\'s twin of fn_it_duty_settle' },
   fn_accountant_record_supplier_payment: { relay: 'records the refusal of a bank payment above what is still owed on a supplier due; fires only when a caller attempts that overpayment, and a healthy day has none' },

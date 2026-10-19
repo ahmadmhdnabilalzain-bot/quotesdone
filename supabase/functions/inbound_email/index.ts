@@ -7,6 +7,7 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
+import { orSafeDomain } from '../_shared/or_filter_email.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-webhook-secret' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -93,7 +94,7 @@ Deno.serve(observe('inbound_email', async (req) => {
     if (exact && exact.length === 1) lead = exact[0];
     else if (exact && exact.length > 1) candidates = exact.map((r: { id: number }) => r.id);
 
-    if (!lead && candidates.length === 0 && dom && !isFree) {
+    if (!lead && candidates.length === 0 && orSafeDomain(dom) && !isFree) {
       const { data: dl } = await admin.from('leads').select('*').or(`email_domain.ilike.${dom},domain.ilike.${dom}`).order('reviews', { ascending: false, nullsFirst: false }).limit(1);
       if (dl && dl.length) lead = dl[0];
     }
