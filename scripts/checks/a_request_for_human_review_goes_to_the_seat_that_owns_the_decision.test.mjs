@@ -57,13 +57,27 @@ test('static: every decision type routes to its owning seat and no route names t
     assert.match(src, new RegExp(`revoke all on public\\.${t} from anon, authenticated`), `${t} not revoked`);
   }
   for (const sig of ['fn_review_request_waits(bigint)', 'fn_review_request_reviewer_model(bigint)',
-    'fn_review_request_open(text, text, text, text, text, text, text, text, bigint, text)', 'fn_review_request_decide(bigint, text, text, text)']) {
+    'fn_review_request_open(text, text, text, text, text, text, text, text, bigint, text)', 'fn_review_request_decide(bigint, text, text, text)',
+    'fn_review_request_due(integer, bigint)', 'fn_review_request_attempt_failed(bigint, text)', 'fn_review_request_conclude(bigint, text, text, text, text)']) {
     assert.ok(src.includes(`revoke execute on function public.${sig} from public, anon, authenticated`), `${sig} is not revoked`);
   }
-  assert.equal((src.match(/set search_path to 'public', 'pg_temp'/g) || []).length, 4, 'a routine without a pinned search_path');
+  assert.equal((src.match(/set search_path to 'public', 'pg_temp'/g) || []).length, 7, 'a routine without a pinned search_path');
   const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
   assert.ok(pending(FILE) !== manifest.includes(FILE), 'exactly one of a pending note and a MANIFEST line');
   assert.ok(pending(PROBE) && !manifest.includes(PROBE), 'the probe is never applied and keeps its note');
+});
+
+test('static: an open review is decided by the heartbeat, on another family, and the seats act on it', () => {
+  const ping = read('supabase/functions/resilience_ping/index.ts');
+  assert.ok(ping.includes("await step('review_requests', async () => {") && ping.includes("action: 'review_requests', limit: 1 })"), 'the heartbeat no longer drives the review');
+  const ceo = read('supabase/functions/ceo_agent/index.ts');
+  assert.ok(ceo.includes("if (action === 'review_requests') {") && ceo.includes('await decideOpenReviews(liveReviewIO(admin), '), 'ceo_agent no longer decides open reviews');
+  const live = read('supabase/functions/_shared/review_request.ts');
+  assert.ok(live.includes('counterpartModel: r.counterpart_model'), 'the reviewer is no longer routed against the original model (another family)');
+  assert.ok(live.includes("admin.rpc('fn_review_request_conclude', {"), 'the verdict no longer goes through fn_review_request_conclude');
+  const sql = code(read(FILE));
+  assert.ok(sql.includes("insert into public.decision_log (actor, kind, ctx, decision, reasons, route_to)") && sql.includes("values (r.owner_seat, 'review_' || r.verdict,"), 'the owning seat no longer acts on an overturn');
+  assert.ok(sql.includes("public.fn_seat_handoff('customer_support', 'customer_support', 'delivery.request',"), 'customer_support no longer replies to the requester');
 });
 
 test('static: WhatsApp and e-mail person requests enter the review path', () => {

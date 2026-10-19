@@ -29,6 +29,13 @@
 --      first model whose family differs from the original decision's. Deterministic.
 --   5. fn_review_request_decide: records the verdict with the reviewing model, closes the handoff as its
 --      originator (customer_support, which takes every request in), and refuses a same-family verdict.
+--   6. THE REVIEW IS DECIDED, NOT LEFT WAITING (agents act). fn_review_request_due hands the open requests to
+--      the CEO seat's heartbeat (resilience_ping step review_requests -> ceo_agent action review_requests,
+--      _shared/review_decide.ts), which asks the reviewing model through ai_gateway with counterpart_model =
+--      the original decision's model, so fn_ai_route_review picks another family. fn_review_request_conclude
+--      records the verdict with the model that ACTUALLY answered (the CHECK refuses a same family), the owning
+--      seat records the reversed decision in decision_log on an overturn/amendment, and customer_support replies
+--      to the requester through its own delivery.request (none is filed for a demo requester, ruling 1199).
 --
 -- WHAT THIS DOES NOT DO: it does not call fn_notify_founder, write founder_alerts, or queue a notification to
 -- the founder anywhere, and it does not change what "Talk to a person" on WhatsApp does today. The entry points
@@ -88,6 +95,13 @@ create table if not exists public.decision_review_request (
   verdict           text check (verdict in ('upheld', 'overturned', 'amended')),
   verdict_reason    text,
   handoff_id        bigint,
+  evidence          jsonb not null default '{}'::jsonb,
+  attempts          integer not null default 0,
+  last_attempt_at   timestamptz,
+  last_error        text,
+  reply_text        text,
+  reply_handoff_id  bigint,
+  seat_decision_log_id bigint,
   dedupe_key        text unique,
   created_at        timestamptz not null default now(),
   decided_at        timestamptz,
@@ -203,6 +217,87 @@ begin
                             'original_family', r.original_family);
 end $fn$;
 
+-- The open requests a heartbeat decides now: oldest first, at most five attempts, fifteen minutes apart. Each carries
+-- what the reviewer needs: the route's meaning, the requester's words, the original decision (decision_log when
+-- linked) and the model it is reviewed AGAINST (counterpart), plus the owning seat's other-family model as a hint.
+create or replace function public.fn_review_request_due(p_limit integer default 5, p_id bigint default null)
+returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce(jsonb_agg(x order by (x ->> 'id')::bigint), '[]'::jsonb) from (
+    select jsonb_build_object(
+             'id', r.id, 'owner_seat', r.owner_seat, 'decision_type', r.decision_type, 'meaning', rt.meaning,
+             'channel', r.channel, 'requester', r.requester, 'request_text', r.request_text,
+             'original_seat', r.original_seat, 'original_family', r.original_family,
+             'counterpart_model', coalesce(nullif(r.original_model, ''), 'deterministic'),
+             'reviewer_model_hint', public.fn_review_request_reviewer_model(r.id),
+             'subject_table', r.subject_table, 'subject_id', r.subject_id, 'evidence', r.evidence,
+             'original_decision', (select jsonb_build_object('actor', d.actor, 'kind', d.kind, 'decision', d.decision,
+                                                             'reasons', d.reasons, 'ctx', d.ctx, 'at', d.created_at)
+                                     from public.decision_log d where d.id = r.original_decision_log_id)) x
+      from public.decision_review_request r join public.review_route rt on rt.decision_type = r.decision_type
+     where r.status = 'open' and r.attempts < 5
+       and (p_id is null or r.id = p_id)
+       and (p_id is not null or r.last_attempt_at is null or r.last_attempt_at < now() - interval '15 minutes')
+     order by r.last_attempt_at nulls first, r.id
+     limit greatest(1, least(coalesce(p_limit, 5), 20))) s
+$fn$;
+
+create or replace function public.fn_review_request_attempt_failed(p_id bigint, p_error text)
+returns jsonb language sql security definer set search_path to 'public', 'pg_temp' as $fn$
+  update public.decision_review_request
+     set attempts = attempts + 1, last_attempt_at = now(), last_error = left(coalesce(p_error, 'unknown'), 500)
+   where id = p_id and status = 'open'
+  returning jsonb_build_object('id', id, 'attempts', attempts, 'last_error', last_error)
+$fn$;
+
+-- The verdict the reviewing model reached, recorded with the model that actually answered. Then the seats act:
+-- an overturn or amendment is the owning seat's new decision (decision_log, superseding the original), and
+-- customer_support answers the requester on the channel they used, through its own delivery.request.
+create or replace function public.fn_review_request_conclude(
+  p_id bigint, p_verdict text, p_reason text, p_reviewer_model text, p_reply text default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare r public.decision_review_request; v_dec jsonb; v_log bigint; v_reply bigint; v_wa boolean;
+begin
+  update public.decision_review_request set attempts = attempts + 1, last_attempt_at = now() where id = p_id;
+  v_dec := public.fn_review_request_decide(p_id, p_verdict, p_reason, p_reviewer_model);
+  if not coalesce((v_dec ->> 'ok')::boolean, false) or coalesce((v_dec ->> 'existing')::boolean, false) then return v_dec; end if;
+  select * into r from public.decision_review_request where id = p_id;
+
+  if r.verdict in ('overturned', 'amended') then
+    insert into public.decision_log (actor, kind, ctx, decision, reasons, route_to)
+    values (r.owner_seat, 'review_' || r.verdict,
+            jsonb_build_object('review_request_id', r.id, 'decision_type', r.decision_type,
+                               'supersedes_decision_log_id', r.original_decision_log_id,
+                               'subject_table', r.subject_table, 'subject_id', r.subject_id,
+                               'reviewer_model', r.reviewer_model, 'original_family', r.original_family),
+            r.verdict || ': ' || left(r.verdict_reason, 1000), jsonb_build_array(r.verdict_reason), r.owner_seat)
+    returning id into v_log;
+  end if;
+
+  if btrim(coalesce(p_reply, '')) <> '' then
+    v_wa := r.channel = 'whatsapp';
+    -- null for a demo requester: fn_seat_handoff files nothing from a demo row (ruling 1199)
+    v_reply := public.fn_seat_handoff('customer_support', 'customer_support', 'delivery.request',
+                 'decision_review_request', r.id::text || ':reply',
+                 jsonb_build_object('review_request_id', r.id, 'email', case when r.requester like '%@%' then r.requester end,
+                   'prepared', jsonb_build_object(
+                     'type', 'review_verdict', 'kind', 'review_verdict', 'to_role', 'customer',
+                     'channel', case when v_wa then 'whatsapp' else 'email' end,
+                     'to_email', case when r.requester like '%@%' then r.requester end,
+                     'to_phone', case when v_wa then regexp_replace(r.requester, '[^0-9+]', '', 'g') end,
+                     'subject', 'Your review request ' || r.id, 'body', left(p_reply, 3000))));
+  end if;
+  update public.decision_review_request
+     set reply_text = nullif(btrim(coalesce(p_reply, '')), ''), reply_handoff_id = v_reply, seat_decision_log_id = v_log, last_error = null
+   where id = p_id;
+  return v_dec || jsonb_build_object('seat_decision_log_id', v_log, 'reply_handoff_id', v_reply);
+end $fn$;
+
+revoke execute on function public.fn_review_request_due(integer, bigint) from public, anon, authenticated;
+revoke execute on function public.fn_review_request_attempt_failed(bigint, text) from public, anon, authenticated;
+revoke execute on function public.fn_review_request_conclude(bigint, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_review_request_due(integer, bigint) to service_role;
+grant execute on function public.fn_review_request_attempt_failed(bigint, text) to service_role;
+grant execute on function public.fn_review_request_conclude(bigint, text, text, text, text) to service_role;
 revoke execute on function public.fn_review_request_waits(bigint) from public, anon, authenticated;
 revoke execute on function public.fn_review_request_reviewer_model(bigint) from public, anon, authenticated;
 revoke execute on function public.fn_review_request_open(text, text, text, text, text, text, text, text, bigint, text) from public, anon, authenticated;

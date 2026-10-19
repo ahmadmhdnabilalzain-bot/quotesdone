@@ -8,6 +8,7 @@
 // ordinary message. Under the hold the answer is null and nothing is filed on a guess: the message is already in
 // customer_support's queue as a person request. The founder is never a route (review_route FK + CHECK).
 import { think, type ThinkDeps } from './think.ts';
+import { type DueReview, REVIEW_TASK_CLASS, type ReviewIO } from './review_decide.ts';
 
 type Rpc = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
 type Admin = Rpc & { from: (t: string) => any };
@@ -29,6 +30,32 @@ export async function reviewOfDecision(deps: ThinkDeps, o: {
     },
   });
   return result.status === 'answered' ? result.decision?.choice ?? null : null;
+}
+
+/** The live IO for review_decide.ts: the SQL door and ai_gateway with counterpart_model (another family answers). */
+export function liveReviewIO(admin: Admin, fn = 'ceo_agent'): ReviewIO {
+  return {
+    due: async (limit, id) => {
+      const { data, error } = await admin.rpc('fn_review_request_due', { p_limit: limit, p_id: id ?? null });
+      if (error) throw new Error('fn_review_request_due: ' + (error as { message?: string }).message);
+      return (data ?? []) as DueReview[];
+    },
+    ask: async (r, system, input) => {
+      const { makeLlmRich } = await import('./llm.ts');
+      const call = makeLlmRich(r.reviewer_model_hint ? [r.reviewer_model_hint] : [], {
+        fn, taskClass: REVIEW_TASK_CLASS, agent: r.owner_seat, max: 700, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: 0 });
+      const res = await call(system, input, 700, '', { counterpartModel: r.counterpart_model,
+        subject: r.requester.includes('@') ? { email: r.requester } : { phone: r.requester } });
+      return { content: res.content ?? null, model: res.model ?? null, error: res.error ?? null };
+    },
+    conclude: async (id, v, model) => {
+      const { data, error } = await admin.rpc('fn_review_request_conclude', {
+        p_id: id, p_verdict: v.verdict, p_reason: v.reasons, p_reviewer_model: model, p_reply: v.reply });
+      if (error) throw new Error('fn_review_request_conclude: ' + (error as { message?: string }).message);
+      return data as Record<string, unknown>;
+    },
+    failed: async (id, err) => (await admin.rpc('fn_review_request_attempt_failed', { p_id: id, p_error: err })).data,
+  };
 }
 
 /** Reason the decision type and, when there is one, file the request with its owning seat. Never throws. */
