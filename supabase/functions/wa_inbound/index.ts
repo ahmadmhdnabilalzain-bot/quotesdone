@@ -30,7 +30,9 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
-import { defaultDeps } from '../_shared/think.ts';
+import { defaultDeps, type Phase } from '../_shared/think.ts';
+/** The wall clock one classification call may take before it counts as unreasoned (see classifyDeps). */
+const CLASSIFY_MS = 20_000;
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { queueWhatsAppMeaning, whatsappMeaning, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
@@ -648,6 +650,12 @@ async function handleInbound(req: Request): Promise<Response> {
     // guessed, and only if nothing else answers the message is it filed for replay (menu_flow.ts unanswered).
     // The reason it was not answered (the hold, a failed reasoning, or a throw) rides with it, so the queue files
     // the question WITHOUT reasoning again: one think() per message, never a second model call.
+    // A CLASSIFICATION HAS 20 S (CLASSIFY_MS), NOT THE REPLY'S 45 (customer_support, 19 Oct 2026). Measured on production
+    // (run 53bbd42e): a Luna Pro classification is 9-16 s, and one call in ten ran 41-47 s, which left the reply no time
+    // and sent the held notice. A classification that runs out is unreasoned (null), exactly like the hold: nothing is
+    // guessed, the reply is still written from the facts, and needs-a-person goes to the CEO seat for visibility.
+    const classifyDeps = () => { const d = defaultDeps(admin, 'wa_inbound');
+      return { ...d, llm: (p: Phase, s: string, i: string, o: Parameters<typeof d.llm>[3]) => d.llm(p, s, i, { ...o, timeoutMs: Math.min(o.timeoutMs ?? CLASSIFY_MS, CLASSIFY_MS) }) }; };
     let meaningP: Promise<string | null> | null = null; let meaningWhy = 'not_asked';
     const meaningIn = async (): Promise<WaMeaningInput> => {
       const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
@@ -657,7 +665,7 @@ async function handleInbound(req: Request): Promise<Response> {
     const menuDeps: MenuDeps = {
       intent: (_text: string) => (meaningP ??= (async () => {
         if (!Body.trim()) return null;
-        const r = await whatsappMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn());
+        const r = await whatsappMeaning(classifyDeps(), await meaningIn());
         meaningWhy = r.result.reason ?? r.result.status;
         return r.value;
       })().catch((e) => { meaningWhy = 'threw: ' + String((e as Error)?.message || e).slice(0, 200); return null; })),
@@ -666,7 +674,7 @@ async function handleInbound(req: Request): Promise<Response> {
         catch (e) { await itFinding('wa_inbound:meaning_not_queued', 'A held WhatsApp question could not be filed for replay', { error: String((e as Error)?.message || e) }); }
       },
       meaning: async (text: string, awaitingProblem: boolean, offerMenu: boolean) =>
-        (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined,
+        (await menuMeaning(classifyDeps(), { text, awaitingProblem, messageSid: MessageSid || undefined,
           // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
           // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
           menu: offerMenu ? menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown').map((i) => {
@@ -799,7 +807,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // awaited where it was before. A menu tap, a button and a document never reach them, so nothing starts for those.
     const typedQuestion = !!Body.trim() && media.length === 0 && !ListId && !ButtonPayload;
     let needsP: Promise<boolean | null> | null = null;
-    const needsPersonP = () => (needsP ??= needsAPerson(defaultDeps(admin, 'wa_inbound'), {
+    const needsPersonP = () => (needsP ??= needsAPerson(classifyDeps(), {
       seat: 'customer_support', surface: 'wa_inbound.needs_a_person', message: Body.slice(0, 4000),
       audience: audience === 'supplier' ? 'supplier' : 'customer',
       dedupeKey: 'wa:' + (MessageSid || From + ':' + Body.slice(0, 40)), subject: { phone: From, message_sid: MessageSid || null },
