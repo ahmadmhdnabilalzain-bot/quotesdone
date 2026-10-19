@@ -1,0 +1,602 @@
+{
+ "seat": "ceo",
+ "judged_by": "ceo session reader (Claude), no paid judge",
+ "source": "C:\\Users\\Opera\\AppData\\Local\\Temp\\claude\\ceo1003\\after_llm_ceo.json",
+ "items": [
+  {
+   "id": "ceo-exam-01",
+   "verdict": "fail",
+   "note": "Denies the area dimension (\"location barely splits the network\"); no cell-by-cell defensibility"
+  },
+  {
+   "id": "ceo-exam-02",
+   "verdict": "fail",
+   "note": "Says escrow is a CEO-seat call; key: adding escrow is a founder decision (licence/cost); no \"lightly managed\" framing"
+  },
+  {
+   "id": "ceo-exam-03",
+   "verdict": "fail",
+   "note": "Computes 4x but never states the benchmark that a burn multiple above 3 is bad"
+  },
+  {
+   "id": "ceo-exam-04",
+   "verdict": "pass",
+   "note": "20% on 2.5M post-money; founder diluted to 80%"
+  },
+  {
+   "id": "ceo-exam-05",
+   "verdict": "fail",
+   "note": "Gives deferred-revenue accounting; no MRR bridge (new/expansion/contraction/churn), no cohort retention"
+  },
+  {
+   "id": "ceo-exam-06",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-07",
+   "verdict": "fail",
+   "note": "No actual-vs-plan and no runway in the pack; headline-with-definitions missing"
+  },
+  {
+   "id": "ceo-exam-08",
+   "verdict": "fail",
+   "note": "Right \"no\" but never names Companies Law 32/2021 named-manager / written-authority rule"
+  },
+  {
+   "id": "ceo-exam-09",
+   "verdict": "fail",
+   "note": "Picks trust/data moat; omits counter-positioning and calls switching costs a later power"
+  },
+  {
+   "id": "ceo-exam-10",
+   "verdict": "pass",
+   "note": "Comparable trustworthy quotes without chasing; the job drives what we sell"
+  },
+  {
+   "id": "ceo-exam-11",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-12",
+   "verdict": "pass",
+   "note": "GMV is not revenue; revenue = 3% reveal fee"
+  },
+  {
+   "id": "ceo-exam-13",
+   "verdict": "pass",
+   "note": "CAC = acquisition spend / new paying customers, fully loaded"
+  },
+  {
+   "id": "ceo-exam-14",
+   "verdict": "pass",
+   "note": "Contribution = fee minus Stripe, refunds, direct variable costs; positive per reveal"
+  },
+  {
+   "id": "ceo-exam-15",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-16",
+   "verdict": "pass",
+   "note": "High fee drives leakage/walk-away and erodes trust"
+  },
+  {
+   "id": "ceo-exam-17",
+   "verdict": "pass",
+   "note": "Van Westendorp four price points"
+  },
+  {
+   "id": "ceo-exam-18",
+   "verdict": "pass",
+   "note": "Second-degree price discrimination, volume tiers"
+  },
+  {
+   "id": "ceo-exam-19",
+   "verdict": "fail",
+   "note": "Says the 3% is a CEO-seat policy; key: 3% is a founder hard rule and any fee test needs the founder"
+  },
+  {
+   "id": "ceo-exam-20",
+   "verdict": "pass",
+   "note": "Coverage/match and time-to-quote, per trade and area"
+  },
+  {
+   "id": "ceo-exam-21",
+   "verdict": "fail",
+   "note": "No \"harder side reaches boiling point first\"; answers that demand tips first"
+  },
+  {
+   "id": "ceo-exam-22",
+   "verdict": "fail",
+   "note": "Generic decision loop; not the five focusing steps (identify, exploit, subordinate, elevate, repeat)"
+  },
+  {
+   "id": "ceo-exam-23",
+   "verdict": "pass",
+   "note": "Smallest unit is one trade cell; prove then replicate (atomic network in meaning)"
+  },
+  {
+   "id": "ceo-exam-24",
+   "verdict": "fail",
+   "note": "Paid-reveal funnel only; no organic pull / usage growing without pushing"
+  },
+  {
+   "id": "ceo-exam-25",
+   "verdict": "pass",
+   "note": "Yes after launch: concentration tracked, base diversified"
+  },
+  {
+   "id": "ceo-exam-26",
+   "verdict": "pass",
+   "note": "Pre-mortem by seat with owners and mitigations"
+  },
+  {
+   "id": "ceo-exam-27",
+   "verdict": "pass",
+   "note": "Ranks Supabase, Vercel, Twilio, Resend, Stripe with owner and fallback action"
+  },
+  {
+   "id": "ceo-exam-28",
+   "verdict": "pass",
+   "note": "Description, likelihood, consequence, owner, controls, review date"
+  },
+  {
+   "id": "ceo-exam-29",
+   "verdict": "pass",
+   "note": "Runway = reconciled cash / monthly net burn"
+  },
+  {
+   "id": "ceo-exam-30",
+   "verdict": "fail",
+   "note": "Hedges \"the document decides\"; never states a SAFE is not debt and converts to equity"
+  },
+  {
+   "id": "ceo-exam-31",
+   "verdict": "pass",
+   "note": "1x preference: money back first, rest per terms"
+  },
+  {
+   "id": "ceo-exam-32",
+   "verdict": "pass",
+   "note": "Mashreq, AED 199 + 9.95 VAT"
+  },
+  {
+   "id": "ceo-exam-33",
+   "verdict": "fail",
+   "note": "Long multi-section email; no one-page bad-news-first rule, no scenario named in headline"
+  },
+  {
+   "id": "ceo-exam-34",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-35",
+   "verdict": "fail",
+   "note": "Brier/error vs baseline; no absolute percentage error, no bias tracking over months"
+  },
+  {
+   "id": "ceo-exam-36",
+   "verdict": "fail",
+   "note": "Names an assumption by judgement; no one-driver-at-a-time +/-20% sensitivity method"
+  },
+  {
+   "id": "ceo-exam-37",
+   "verdict": "fail",
+   "note": "Asserts the AED 1M target still stands; misses 50k/245k/857k scenarios (contradicts withdrawn target)"
+  },
+  {
+   "id": "ceo-exam-38",
+   "verdict": "fail",
+   "note": "Collapses to paid reveals x value x 3%; no requests x quoted share x conversion chain, no owner seat per driver"
+  },
+  {
+   "id": "ceo-exam-39",
+   "verdict": "pass",
+   "note": "Lands on 1 primary + 2-4 supporting (3-5 measurable)"
+  },
+  {
+   "id": "ceo-exam-40",
+   "verdict": "pass",
+   "note": "Fill rate defined and split by trade"
+  },
+  {
+   "id": "ceo-exam-41",
+   "verdict": "pass",
+   "note": "AED 375,000 mandatory, 187,500 voluntary"
+  },
+  {
+   "id": "ceo-exam-42",
+   "verdict": "fail",
+   "note": "Leads with Cabinet Decision 58/2020 and hedges; does not commit to 109/2023"
+  },
+  {
+   "id": "ceo-exam-43",
+   "verdict": "fail",
+   "note": "Date right; renewal owner (accountant, founder signing) missing"
+  },
+  {
+   "id": "ceo-exam-44",
+   "verdict": "pass",
+   "note": "Pilot 1 Jul 2026; AED 50M+ from 1 Jan 2027"
+  },
+  {
+   "id": "ceo-exam-45",
+   "verdict": "pass",
+   "note": "PDPL 45/2021; DIFC/ADGM separate"
+  },
+  {
+   "id": "ceo-exam-46",
+   "verdict": "pass",
+   "note": "Federal Law 3/2022; QuotesDone not an agent"
+  },
+  {
+   "id": "ceo-exam-47",
+   "verdict": "pass",
+   "note": "Twelve principles incl. human oversight and accountability"
+  },
+  {
+   "id": "ceo-exam-48",
+   "verdict": "pass",
+   "note": "Reversible: decide fast; heavy process only for irreversible"
+  },
+  {
+   "id": "ceo-exam-49",
+   "verdict": "pass",
+   "note": "States 5% until 50% of capital (correctly notes it bites on LLC form)"
+  },
+  {
+   "id": "ceo-exam-50",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-51",
+   "verdict": "pass",
+   "note": "CEO seat approves refunds, not founder"
+  },
+  {
+   "id": "ceo-exam-52",
+   "verdict": "fail",
+   "note": "No per-seat inputs-before-outputs, verdict, binding constraint, or other-family challenge"
+  },
+  {
+   "id": "ceo-exam-53",
+   "verdict": "fail",
+   "note": "Misreads the question as the customer comparison report; no on-track line + proving number"
+  },
+  {
+   "id": "ceo-exam-54",
+   "verdict": "fail",
+   "note": "One owner yes, but no controllable input metric with current value, target and due date"
+  },
+  {
+   "id": "ceo-exam-55",
+   "verdict": "fail",
+   "note": "Says there is no scorecard; misses balanced scorecard from system data"
+  },
+  {
+   "id": "ceo-exam-56",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-57",
+   "verdict": "pass",
+   "note": "3% of chosen quote ex-VAT, uncapped"
+  },
+  {
+   "id": "ceo-exam-58",
+   "verdict": "fail",
+   "note": "No-change correct, but omits that the seat proposes with evidence for the founder"
+  },
+  {
+   "id": "ceo-exam-59",
+   "verdict": "fail",
+   "note": "Divides by budget, not by the absolute value of the comparison"
+  },
+  {
+   "id": "ceo-exam-60",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-61",
+   "verdict": "fail",
+   "note": "Says \"High at minimum, Critical if...\"; no weekly review with named mitigation and date"
+  },
+  {
+   "id": "ceo-exam-62",
+   "verdict": "fail",
+   "note": "Claims no interval and proposes monthly; key is weekly for critical/high, monthly for medium"
+  },
+  {
+   "id": "ceo-exam-63",
+   "verdict": "pass",
+   "note": "Names revealed-quote value as the honest denominator vs deal value"
+  },
+  {
+   "id": "ceo-exam-64",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-65",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-66",
+   "verdict": "pass",
+   "note": "High rake invites disintermediation; low 3% defensible"
+  },
+  {
+   "id": "ceo-exam-67",
+   "verdict": "fail",
+   "note": "Only contractual penalties; misses fee charged at reveal before parties talk and convenience as repeat-deal defence"
+  },
+  {
+   "id": "ceo-exam-68",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-69",
+   "verdict": "pass",
+   "note": "Harder side first: verified suppliers per trade"
+  },
+  {
+   "id": "ceo-exam-70",
+   "verdict": "fail",
+   "note": "No <3 verified threshold, no ranking by requested value/held inquiries, no marketing target"
+  },
+  {
+   "id": "ceo-exam-71",
+   "verdict": "fail",
+   "note": "Refuses to state ~1,000 verified and >=10 per live trade gate"
+  },
+  {
+   "id": "ceo-exam-72",
+   "verdict": "pass",
+   "note": "No; founder no-discount ruling; bring a pricing memo with evidence"
+  },
+  {
+   "id": "ceo-exam-73",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-74",
+   "verdict": "pass",
+   "note": "Charge the side with clearest value at reveal; supply free while liquidity is built"
+  },
+  {
+   "id": "ceo-exam-75",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-76",
+   "verdict": "pass",
+   "note": "No card surcharge; 3% ex-VAT uncapped"
+  },
+  {
+   "id": "ceo-exam-77",
+   "verdict": "pass",
+   "note": "AED 245k base, 50k/857k; 1M withdrawn"
+  },
+  {
+   "id": "ceo-exam-78",
+   "verdict": "pass",
+   "note": "(Scenario - collected)/remaining weeks, each scenario"
+  },
+  {
+   "id": "ceo-exam-79",
+   "verdict": "pass",
+   "note": "Controllable input metrics; revenue follows"
+  },
+  {
+   "id": "ceo-exam-80",
+   "verdict": "pass",
+   "note": "One registry definition with numerator/denominator/window, query and owner"
+  },
+  {
+   "id": "ceo-exam-81",
+   "verdict": "pass",
+   "note": "Normal range; small numbers swing"
+  },
+  {
+   "id": "ceo-exam-82",
+   "verdict": "pass",
+   "note": "Driver numbers with baseline; liquidity objective"
+  },
+  {
+   "id": "ceo-exam-83",
+   "verdict": "fail",
+   "note": "Supply gate stated but \"buyers come back\" (repeat use) missing"
+  },
+  {
+   "id": "ceo-exam-84",
+   "verdict": "pass",
+   "note": "eSupply; DEWA own systems"
+  },
+  {
+   "id": "ceo-exam-85",
+   "verdict": "pass",
+   "note": "Repeat private-sector fit-out buyers in fee categories"
+  },
+  {
+   "id": "ceo-exam-86",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-87",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-88",
+   "verdict": "pass",
+   "note": "Stop the harm first; CEO business command, IT technical, founder notified"
+  },
+  {
+   "id": "ceo-exam-89",
+   "verdict": "pass",
+   "note": "Licence verified before quoting; sales_engineer owns"
+  },
+  {
+   "id": "ceo-exam-90",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-91",
+   "verdict": "pass",
+   "note": "Nine months; 0%/9% at AED 375k"
+  },
+  {
+   "id": "ceo-exam-92",
+   "verdict": "pass",
+   "note": "One calendar with owner, lead time, evidence, reviewed monthly"
+  },
+  {
+   "id": "ceo-exam-93",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-94",
+   "verdict": "pass",
+   "note": "Not established; do not state a deadline"
+  },
+  {
+   "id": "ceo-exam-95",
+   "verdict": "pass",
+   "note": "2-50 partners; single owner allowed"
+  },
+  {
+   "id": "ceo-exam-96",
+   "verdict": "fail",
+   "note": "Five years correct; yearly-elected auditor point missing"
+  },
+  {
+   "id": "ceo-exam-97",
+   "verdict": "pass",
+   "note": "States half-capital and three-quarter triggers (correctly scoped to LLC form)"
+  },
+  {
+   "id": "ceo-exam-98",
+   "verdict": "fail",
+   "note": "Starts with what sales means; licence-activity check is one item among four, no licence-amendment-first framing"
+  },
+  {
+   "id": "ceo-exam-99",
+   "verdict": "pass",
+   "note": "Decree-Law 14/2023 replacing 2006 law"
+  },
+  {
+   "id": "ceo-exam-100",
+   "verdict": "fail",
+   "note": "No Govern/Map/Measure/Manage structure"
+  },
+  {
+   "id": "ceo-exam-101",
+   "verdict": "fail",
+   "note": "Jumps to \"yes, can list\"; does not start from emirate/zone, then authority and its law"
+  },
+  {
+   "id": "ceo-exam-102",
+   "verdict": "pass",
+   "note": "Six months max, once; 14 days notice"
+  },
+  {
+   "id": "ceo-exam-103",
+   "verdict": "fail",
+   "note": "Says hire approval is the CEO seat’s; key: hiring is the founder’s decision (contradicts its own answer 102)"
+  },
+  {
+   "id": "ceo-exam-104",
+   "verdict": "pass",
+   "note": "Founder-reserved; seat keeps numbers ready"
+  },
+  {
+   "id": "ceo-exam-105",
+   "verdict": "pass",
+   "note": "MoA and licence record are legal truth; reconcile sheet"
+  },
+  {
+   "id": "ceo-exam-106",
+   "verdict": "pass",
+   "note": "Seat drafts, founder sends; metrics restated with definitions"
+  },
+  {
+   "id": "ceo-exam-107",
+   "verdict": "fail",
+   "note": "Says the CEO can press go; campaign go-live is founder-reserved"
+  },
+  {
+   "id": "ceo-exam-108",
+   "verdict": "fail",
+   "note": "Rejects board-like/Companies Law rationale; no weekly review + monthly governance block structure"
+  },
+  {
+   "id": "ceo-exam-109",
+   "verdict": "pass",
+   "note": "Pull the record first, never decide on complaint text"
+  },
+  {
+   "id": "ceo-exam-110",
+   "verdict": "pass",
+   "note": "Expected result, indicator, check date; later verdict"
+  },
+  {
+   "id": "ceo-exam-111",
+   "verdict": "pass",
+   "note": "Nothing one-way; reading is not acting"
+  },
+  {
+   "id": "ceo-exam-112",
+   "verdict": "pass",
+   "note": "Different model family with challenge questions"
+  },
+  {
+   "id": "ceo-exam-113",
+   "verdict": "fail",
+   "note": "Ranks by revenue per AED but refuses the binding-constraint principle; omits paid media/subscriptions as founder-reserved"
+  },
+  {
+   "id": "ceo-exam-114",
+   "verdict": "fail",
+   "note": "held: model_failed (decompose) - seat could not answer"
+  },
+  {
+   "id": "ceo-exam-115",
+   "verdict": "pass",
+   "note": "Hold, never guess; deterministic work continues"
+  },
+  {
+   "id": "ceo-exam-116",
+   "verdict": "pass",
+   "note": "Four-week trend rule; nearest curve weekly"
+  },
+  {
+   "id": "ceo-exam-117",
+   "verdict": "pass",
+   "note": "After books close; actual vs plan by driver"
+  },
+  {
+   "id": "ceo-exam-118",
+   "verdict": "pass",
+   "note": "Keep/kill/iterate, primary metric and guardrails, filed as case"
+  },
+  {
+   "id": "ceo-exam-119",
+   "verdict": "pass",
+   "note": "Never state unmeasured; status column is not delivery"
+  }
+ ]
+}

@@ -1,0 +1,397 @@
+{
+ "seat": "marketing",
+ "judged_by": "ceo session reader (Claude), no paid judge",
+ "source": "C:/Users/Opera/AppData/Local/Temp/claude/ceo1003/after_llm_marketing.json",
+ "items": [
+  {
+   "id": "marketing-exam-01",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-02",
+   "verdict": "fail",
+   "note": "wrong: calls x-default optional"
+  },
+  {
+   "id": "marketing-exam-03",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-04",
+   "verdict": "fail",
+   "note": "hedges; never states paid followed link is spam / rel=sponsored"
+  },
+  {
+   "id": "marketing-exam-05",
+   "verdict": "fail",
+   "note": "VideoObject only as optional; no own indexable page"
+  },
+  {
+   "id": "marketing-exam-06",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-07",
+   "verdict": "fail",
+   "note": "no upper-bound / holdout lift test"
+  },
+  {
+   "id": "marketing-exam-08",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-09",
+   "verdict": "fail",
+   "note": "wrong: no follow-up timing; misses within one hour"
+  },
+  {
+   "id": "marketing-exam-10",
+   "verdict": "fail",
+   "note": "no excess share of voice vs market share"
+  },
+  {
+   "id": "marketing-exam-11",
+   "verdict": "fail",
+   "note": "misses DET promotion permit check"
+  },
+  {
+   "id": "marketing-exam-12",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-13",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-14",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-15",
+   "verdict": "fail",
+   "note": "no 40-70 word direct answer"
+  },
+  {
+   "id": "marketing-exam-16",
+   "verdict": "fail",
+   "note": "misses only mandatory element is H1"
+  },
+  {
+   "id": "marketing-exam-17",
+   "verdict": "fail",
+   "note": "no monthly panel / three runs per prompt"
+  },
+  {
+   "id": "marketing-exam-18",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-19",
+   "verdict": "fail",
+   "note": "misses redirect chains and robots"
+  },
+  {
+   "id": "marketing-exam-20",
+   "verdict": "fail",
+   "note": "wrong: says one shared list"
+  },
+  {
+   "id": "marketing-exam-21",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-22",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-23",
+   "verdict": "fail",
+   "note": "misses 1 February 2026 regime start"
+  },
+  {
+   "id": "marketing-exam-24",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-25",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-26",
+   "verdict": "fail",
+   "note": "misses Do Not Call Register"
+  },
+  {
+   "id": "marketing-exam-27",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-28",
+   "verdict": "fail",
+   "note": "wrong: denies 2-200 staff priority"
+  },
+  {
+   "id": "marketing-exam-29",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-30",
+   "verdict": "fail",
+   "note": "does not refuse cash per sign-up"
+  },
+  {
+   "id": "marketing-exam-31",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-32",
+   "verdict": "fail",
+   "note": "no April Dunford method"
+  },
+  {
+   "id": "marketing-exam-33",
+   "verdict": "fail",
+   "note": "misses write Arabic natively, not translated"
+  },
+  {
+   "id": "marketing-exam-34",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-35",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-36",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-37",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-38",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-39",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-40",
+   "verdict": "fail",
+   "note": "20-30 s instead of 30-60 s"
+  },
+  {
+   "id": "marketing-exam-41",
+   "verdict": "fail",
+   "note": "misses platforms distribute on watch-through"
+  },
+  {
+   "id": "marketing-exam-42",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-43",
+   "verdict": "fail",
+   "note": "wrong: no target, queues to Monday; misses one working day"
+  },
+  {
+   "id": "marketing-exam-44",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-45",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-46",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-47",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-48",
+   "verdict": "fail",
+   "note": "misses launches alone rarely earn coverage; offer data"
+  },
+  {
+   "id": "marketing-exam-49",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-50",
+   "verdict": "fail",
+   "note": "misses 50 optimisation events/week"
+  },
+  {
+   "id": "marketing-exam-51",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-52",
+   "verdict": "fail",
+   "note": "no one-third CTR drop rule; no 3-5 creatives"
+  },
+  {
+   "id": "marketing-exam-53",
+   "verdict": "fail",
+   "note": "no 90-day window / three questions"
+  },
+  {
+   "id": "marketing-exam-54",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-55",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-56",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-57",
+   "verdict": "fail",
+   "note": "wrong: CEO decides on day 5 vs automatic refund; no supplier non-response charge"
+  },
+  {
+   "id": "marketing-exam-58",
+   "verdict": "fail",
+   "note": "no stop rule; KPI framing partial"
+  },
+  {
+   "id": "marketing-exam-59",
+   "verdict": "fail",
+   "note": "no cost-per-reveal vs fee rule; no budget gate"
+  },
+  {
+   "id": "marketing-exam-60",
+   "verdict": "fail",
+   "note": "no legalName as licensed; sameAs deferred"
+  },
+  {
+   "id": "marketing-exam-61",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-62",
+   "verdict": "fail",
+   "note": "model_failed (held)"
+  },
+  {
+   "id": "marketing-exam-63",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-64",
+   "verdict": "fail",
+   "note": "no single KPI and pre-set stop rule"
+  },
+  {
+   "id": "marketing-exam-65",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-66",
+   "verdict": "fail",
+   "note": "no 48 h decision window; no political/religious sensitivity check"
+  },
+  {
+   "id": "marketing-exam-67",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-68",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-69",
+   "verdict": "fail",
+   "note": "misses watermark downranking / reshare+watch-through ranking"
+  },
+  {
+   "id": "marketing-exam-70",
+   "verdict": "fail",
+   "note": "no 1-2 h reply, no routing to customer_support/sales_engineer"
+  },
+  {
+   "id": "marketing-exam-71",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-72",
+   "verdict": "fail",
+   "note": "no Decree-Law 55 of 2023; hedges on national symbols"
+  },
+  {
+   "id": "marketing-exam-73",
+   "verdict": "fail",
+   "note": "misses scaled-content spam caveat and synthetic-media disclosure"
+  },
+  {
+   "id": "marketing-exam-74",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "marketing-exam-75",
+   "verdict": "fail",
+   "note": "no pause of scheduled/paid posts; notifies founder (founder only for new bugs)"
+  },
+  {
+   "id": "marketing-exam-76",
+   "verdict": "fail",
+   "note": "misses outbox delivery as the only invite proof"
+  },
+  {
+   "id": "marketing-exam-77",
+   "verdict": "fail",
+   "note": "wrong: one shared page for both sides"
+  },
+  {
+   "id": "marketing-exam-78",
+   "verdict": "fail",
+   "note": "misses 72-hour free window and cost-per-verified-supplier"
+  }
+ ]
+}
