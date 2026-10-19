@@ -25,3 +25,10 @@ Deno.test('response_format only where the model lists it', () => {
   assertEquals(shapeRequest({ model: 'qwen/x', maxTokens: 1, responseFormat: RF, supported: new Set(['temperature']) }).response_format, undefined);
   assertEquals(shapeRequest({ model: 'qwen/x', maxTokens: 1, responseFormat: RF, supported: null }).response_format, undefined);
 });
+
+Deno.test('a non-Claude reasoning model gets thinking headroom, so its answer is not cut off (exam run cdd95305)', () => {
+  const p = shapeRequest({ model: 'openai/gpt-6-luna-pro', maxTokens: 900, supported: new Set(['reasoning', 'max_tokens']) });
+  assertEquals(p.max_tokens, 900 + THINKING_HEADROOM);
+  assertEquals(p.reasoning, undefined);
+  assertEquals(shapeRequest({ model: 'x/plain', maxTokens: 900, supported: new Set(['max_tokens']) }).max_tokens, 900);
+});

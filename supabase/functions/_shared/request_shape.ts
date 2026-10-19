@@ -42,6 +42,12 @@ export function shapeRequest(s: ShapeIn): Record<string, unknown> {
     const effort = (EFFORTS as readonly string[]).includes(String(s.effort)) ? String(s.effort) : 'medium';
     out.reasoning = { effort };
     out.max_tokens = s.maxTokens + THINKING_HEADROOM;
+  } else if (s.supported?.has('reasoning')) {
+    // ANY REASONING MODEL, NOT ONLY CLAUDE (it_engineer, 19 Oct 2026). Matrix v3 (18 Oct) moved the internal classes to
+    // GPT-6 Luna Pro, which reasons before it answers and spends that inside max_tokens. Measured in the model-on exam
+    // (runs b2f80d4d, cdd95305): 6 of 60 seat answers held because the JSON answer was cut off mid-sentence at the
+    // 900-token budget, and planner calls ran to the 45 s wall. The answer budget is the caller's; thinking gets its own.
+    out.max_tokens = s.maxTokens + THINKING_HEADROOM;
   }
   if (s.responseFormat != null && s.supported?.has('response_format')) out.response_format = s.responseFormat;
   return out;
