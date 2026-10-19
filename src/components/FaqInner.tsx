@@ -12,8 +12,10 @@ import { FaqSearch } from '@/components/FaqSearch';
 // of total blocking time on Lighthouse 12 mobile. The answers are native <details>; only the filter
 // needs the browser, and it now lives alone in FaqSearch.
 const L = {
-  en: { kicker: 'FAQ · 150 answers', rail: 'Topics' },
-  ar: { kicker: 'الأسئلة الشائعة · 150 إجابة', rail: 'المواضيع' },
+  en: { kicker: 'FAQ · 150 answers', rail: 'Topics',
+    independent: 'QuotesDone is independent and is not affiliated with or endorsed by any authority named here.' },
+  ar: { kicker: 'الأسئلة الشائعة · 150 إجابة', rail: 'المواضيع',
+    independent: 'QuotesDone جهة مستقلة، وليست تابعة لأي جهة رسمية مذكورة هنا ولا معتمدة منها.' },
 };
 export function FaqInner({ locale }: { locale: string }) {
   const t = locale === 'ar' ? L.ar : L.en;
@@ -30,6 +32,8 @@ export function FaqInner({ locale }: { locale: string }) {
         <aside className="min-w-0"><ContentsRail title={t.rail} list={list} /></aside>
         <div className="mk mk-faq min-w-0 [&_.content]:!pt-0 [&_.fwrap]:!max-w-[860px] [&_.fwrap]:!px-0 [&_.sec:first-child]:!mt-0 [&_.sec_h2]:scroll-mt-28" dangerouslySetInnerHTML={{ __html: rest }} />
       </div>
+      {/* Legal review 19 Oct, finding 13: the answers name DEWA, SIRA, Civil Defence, Dubai Municipality. */}
+      <p className="container-x pb-beat-s text-sm text-muted-foreground">{t.independent}</p>
       <FaqSearch />
     </main>
   );
