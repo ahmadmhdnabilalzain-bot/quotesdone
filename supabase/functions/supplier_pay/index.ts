@@ -30,6 +30,7 @@ import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 // refuses an impossible token locally, and answers 503 auth_unavailable when the auth server is the thing
 // that failed, which observe() pages and a client retries.
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
+import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -62,6 +63,11 @@ Deno.serve(siteCors(observe('supplier_pay', async (req) => {
     const who = await signedInUser(admin, req.headers.get('Authorization'));
     if (!who.ok) return J(who.status === 401 ? { error: 'Not signed in', code: 'not_signed_in' } : refusalBody(who), who.status);
     const email = who.email;
+    // DEMO ACCOUNTS PAY ONLY IN STRIPE TEST MODE, as stripe_checkout already does (QA 19 Oct 2026: this
+    // function served the LIVE key to @example.invalid suppliers, so a ZZ DEMO due opened a live
+    // checkout and could never be paid with a test card). Derived from the signed-in email, never the
+    // request; no fall-through to the live key when the test key is absent.
+    const stripeKeys = stripeKeyNames(isDemoEmail(email));
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026; security review the
     // same day found this function authenticated a supplier by leads.claimed_by and asked
     // nothing about the ban). Above everything this function does, so it covers what is written
@@ -92,7 +98,7 @@ Deno.serve(siteCors(observe('supplier_pay', async (req) => {
       if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true, code: 'reg_not_due' });
       const { data: pausedReg } = await admin.rpc('fn_refunds_paused');
       if (pausedReg === true) return J({ error: 'charges_paused', code: 'payment_unavailable' }, 503);
-      const skReg = await secret('stripe_secret_key');
+      const skReg = await secret(stripeKeys.secret);
       if (!skReg) return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503);
       const baseReg = siteReturnBase(req, body.return_url);
       const f = new URLSearchParams();
@@ -181,7 +187,7 @@ Deno.serve(siteCors(observe('supplier_pay', async (req) => {
     // THE CEO'S CIRCUIT BREAKER (14 Sep 2026): no supplier charge moves while a mismatch is open.
     const { data: paused } = await admin.rpc('fn_refunds_paused');
     if (paused === true) { await logRun('ok', { supplier_id: lead.id, amount, held: true }, 'checkout held: refunds and supplier charges are paused while the CEO resolves a mismatch'); return J({ error: 'charges_paused', code: 'payment_unavailable' }, 503); }
-    const sk = await secret('stripe_secret_key');
+    const sk = await secret(stripeKeys.secret);
     if (!sk) { await logRun('error', { supplier_id: lead.id, amount }, 'SUPPLIER PAYMENT BLOCKED - stripe_secret_key missing from app_secrets, so no supplier can settle. Balances will keep accruing interest and ageing toward the 90-day ban for a configuration reason, not because the supplier refused to pay.'); return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503); }
 
     const ids = selected.map((d) => Number(d.id));
