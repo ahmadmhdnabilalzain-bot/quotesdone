@@ -1047,7 +1047,7 @@
       ],
       "q_reworded": "Google is showing our company name inconsistently. What markup do we add to the homepage to fix who we are?",
       "answer_must": [
-        "Use Organization schema in JSON-LD with the legal name exactly as licensed and the brand name",
+        "Use Organization schema in JSON-LD with legalName exactly as on the DET licence (quotesdone technologies / كوتس دن للتكنولوجيا) and the brand name QuotesDone",
         "List all official profiles in sameAs",
         "Validate it with Google Rich Results Test / schema validator"
       ]
