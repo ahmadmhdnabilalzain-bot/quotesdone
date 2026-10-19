@@ -58,3 +58,21 @@ test('every definer pins search_path and new ones are revoked', () => {
     assert.ok(s.includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), `${sig} is not revoked`);
   }
 });
+
+// Release-operator review of #1516 (19 Oct 2026): an UPDATE of an older row never fails on the note, and no
+// e-mail address or phone number reaches a note.
+test('an UPDATE falls back to a legacy note instead of raising; INSERT stays strict', () => {
+  const b = body('trg_handoff_carries_its_note');
+  assert.match(b, /if tg_op = 'INSERT' then\s+v_note := public\.fn_handoff_summary/);
+  assert.match(b, /exception when others then[\s\S]*'legacy', true/);
+  for (const f of FOUR) assert.ok(b.includes(`'${f}'`), `the legacy note lacks ${f}`);
+});
+
+test('the note is redacted and contact keys are not facts', () => {
+  assert.match(body('fn_handoff_summary'), /return public\.fn_handoff_redact\(jsonb_build_object\(/);
+  assert.match(body('fn_handoff_summary'), /e\.key !~\* '\(mail\|phone\|mobile\|whatsapp/);
+  assert.match(body('fn_handoff_redact'), /'\[email\]'[\s\S]*'\[phone\]'/);
+  for (const sig of ['fn_handoff_redact(jsonb)', 'trg_handoff_carries_its_note()', 'fn_seat_handoff_act(bigint)', 'fn_seat_handoff_complete(bigint, jsonb)']) {
+    assert.ok(s.includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), `${sig} is not revoked`);
+  }
+});

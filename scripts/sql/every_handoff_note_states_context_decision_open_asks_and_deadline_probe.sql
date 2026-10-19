@@ -18,16 +18,19 @@
 --   b. each receiver's next action (fn_seat_handoff_complete, every way a handoff closes) cites the note
 --   c. fn_handoff_citation_gaps counts all three cited, none uncited
 --   d. a handoff row whose note lacks the four fields is refused by the CHECK even with triggers off
+--   e. no e-mail address or phone number reaches any note (the case's facts carry both)
+--   f. an UPDATE of an older handoff row never fails: a real legacy row (no four-field note) and a ZZ DEMO row
+--      the builder cannot read both update, and gain the four fields (rolled back with everything else)
 do $probe$
 declare
   v_case text := 'ZZ-DEMO-1013-HANDOVER';
   v_notif bigint := coalesce((select max(id) from public.notifications), 0);
   v_t0 timestamptz := now();  -- decided_at is now(), the transaction's start
   v_ids bigint[] := '{}'; v_id bigint; v_note jsonb; v_ev jsonb; v_out jsonb := '[]'::jsonb; v_fail text := '';
-  v_check text := 'NOT refused'; v_gaps jsonb; r record;
+  v_check text := 'NOT refused'; v_gaps jsonb; r record; v_legacy bigint; v_legacy_out text;
 begin
   for r in select * from (values
-      (1, 'customer_support', 'sales_engineer', 'spec.not_sure',    jsonb_build_object('customer_name', 'ZZ DEMO Customer 1013', 'customer_email', 'zz-demo-1013@example.invalid', 'question', 'ZZ DEMO: is 2.5 mm2 cable acceptable?')),
+      (1, 'customer_support', 'sales_engineer', 'spec.not_sure',    jsonb_build_object('customer_name', 'ZZ DEMO Customer 1013', 'customer_email', 'zz-demo-1013@example.invalid', 'customer_phone', '+971 50 123 4567', 'remark', 'ZZ DEMO: reach me at zz-demo-1013@example.invalid or +971 50 123 4567', 'question', 'ZZ DEMO: is 2.5 mm2 cable acceptable?')),
       (2, 'sales_engineer',   'accountant',     'refund.requested', jsonb_build_object('customer_email', 'zz-demo-1013@example.invalid', 'decision', 'ZZ DEMO: the spec cannot be met, refund the reveal', 'amount_aed', 15)),
       (3, 'accountant',       'customer_support','fraud.money_held', jsonb_build_object('customer_email', 'zz-demo-1013@example.invalid', 'deadline', (now() + interval '6 hours')::text))
     ) as t(n, f, t_seat, typ, payload) order by n
@@ -55,6 +58,9 @@ begin
     if r.n = 3 and v_note->>'deadline_source' <> 'set by accountant' then v_fail := v_fail || ' a3:deadline'; end if;
     -- the case's history grows as it crosses seats: the third note sees the first two handoffs
     if r.n = 3 and jsonb_array_length(v_note->'tried'->'actions') < 2 then v_fail := v_fail || ' a3:tried'; end if;
+
+    -- e. redaction
+    if v_note::text ~ '@example.invalid' or v_note::text ~ '971' then v_fail := v_fail || format(' e%s:contact-leaked', r.n); end if;
 
     -- b. the receiver's next action closes it; the answer must cite the note
     perform set_config('qd.handoff_closer', r.f, true);
@@ -85,11 +91,30 @@ begin
   set local session_replication_role = origin;
   if v_check like 'NOT%' then v_fail := v_fail || ' d'; end if;
 
+  -- f. legacy UPDATE never fails
+  select id into v_legacy from public.agent_actions
+   where kind = 'handoff' and not coalesce(detail->'summary', '{}'::jsonb) ? 'deadline' order by id desc limit 1;
+  begin
+    update public.agent_actions set risk = risk where id = v_legacy;
+    if not (select detail->'summary' ?& array['context','decision','open_asks','deadline'] from public.agent_actions where id = v_legacy)
+      then v_fail := v_fail || ' f1:no-fields'; end if;
+    v_legacy_out := 'real legacy row ' || v_legacy || ' updated';
+  exception when others then v_fail := v_fail || ' f1:raised'; v_legacy_out := 'real legacy row ' || v_legacy || ' RAISED: ' || left(sqlerrm, 80);
+  end;
+  insert into public.agent_actions (agent, kind, status, risk, title) values ('accountant', 'zz_demo_legacy', 'pending', 'low', 'ZZ DEMO row with no case')
+  returning id into v_id;
+  begin
+    update public.agent_actions set kind = 'handoff' where id = v_id;
+    if not (select (detail->'summary'->>'legacy')::boolean from public.agent_actions where id = v_id) then v_fail := v_fail || ' f2:not-legacy'; end if;
+    v_legacy_out := v_legacy_out || '; unreadable ZZ DEMO row updated with a legacy note';
+  exception when others then v_fail := v_fail || ' f2:raised'; v_legacy_out := v_legacy_out || '; unreadable row RAISED: ' || left(sqlerrm, 80);
+  end;
+
   if exists (select 1 from public.notifications where id > v_notif) then v_fail := v_fail || ' NOTIFICATION-QUEUED'; end if;
   if array_length(v_ids, 1) is distinct from 3 then v_fail := v_fail || ' count'; end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object(
     'verdict', case when v_fail = '' then 'PROBE OK' else 'PROBE FAILED:' || v_fail end,
     'handoffs', v_out, 'citation_gaps_for_probe', jsonb_build_object('cited', v_gaps->'cited', 'closed_with_note', v_gaps->'closed_with_note'),
-    'bare_note', v_check)::text;
+    'bare_note', v_check, 'legacy_updates', v_legacy_out)::text;
 end $probe$;

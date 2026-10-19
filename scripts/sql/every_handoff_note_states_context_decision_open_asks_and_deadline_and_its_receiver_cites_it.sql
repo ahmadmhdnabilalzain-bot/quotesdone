@@ -57,6 +57,22 @@
 
 set local lock_timeout = '5s';
 
+-- Redacts e-mail addresses and international phone numbers (+ or 00 then 7+ digits, spaces/dashes allowed)
+-- from every string in a JSON value. Timestamps and ids have no + or 00 prefix and are left alone.
+create or replace function public.fn_handoff_redact(p jsonb)
+returns jsonb
+language sql
+immutable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select regexp_replace(
+           regexp_replace(p::text, '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}', '[email]', 'g'),
+           '([+]|\m00)[0-9][0-9 -]{5,}[0-9]', '[phone]', 'g')::jsonb;
+$fn$;
+
+revoke execute on function public.fn_handoff_redact(jsonb) from public, anon, authenticated;
+
 create or replace function public.fn_handoff_summary(
   p_detail jsonb, p_agent text, p_target_table text, p_target_id text,
   p_title text default null, p_recommendation text default null, p_self_id bigint default null)
@@ -99,6 +115,8 @@ begin
     from jsonb_each(d) e
    where e.key not in ('type','from','from_name','to','subject_table','subject_id','summary','error',
                        'awaiting','replied_at','subject')
+     -- 1013 review: no contact detail is a fact; a key naming one is dropped (its value is redacted below too)
+     and e.key !~* '(mail|phone|mobile|whatsapp|msisdn|tel|contact|address|wa_?id|number$)'
      and jsonb_typeof(e.value) in ('string','number','boolean');
 
   -- What was already done on this case: earlier actions (any seat, any kind), newest first.
@@ -191,7 +209,9 @@ begin
     raise exception 'handoff % on %#% cannot state its context, decision, open asks and deadline - refused', v_type, v_table, v_id;
   end if;
 
-  return jsonb_build_object(
+  -- 1013 review: the note is read by other seats and by a model; no e-mail address or phone number lands
+  -- in it, whichever field carried it (a fact, the question, the decision, the title).
+  return public.fn_handoff_redact(jsonb_build_object(
     'context', v_context,
     'decision', v_decision,
     'open_asks', v_asks,
@@ -202,11 +222,49 @@ begin
     'tried', jsonb_build_object('actions', v_tried, 'case_memory', v_cases),
     'needed', v_needed,
     'evidence', coalesce(v_links, '[]'::jsonb),
-    'built_by', 'fn_handoff_summary');
+    'built_by', 'fn_handoff_summary'));
 end $fn$;
 
 -- CREATE OR REPLACE keeps the ACL #1072 revoked; repeated so the file stands alone.
 revoke execute on function public.fn_handoff_summary(jsonb, text, text, text, text, text, bigint) from public, anon, authenticated;
+
+-- 1013 review: INSERT builds the note and refuses one that cannot be stated. An UPDATE of an older row
+-- (17,287 exist; most have no four-field note) must NEVER fail because of the note: the builder is tried,
+-- and if it refuses, the row gets a plain note from its own columns, marked legacy, so both CHECKs hold.
+create or replace function public.trg_handoff_carries_its_note()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_note jsonb;
+begin
+  if tg_op = 'INSERT' then
+    v_note := public.fn_handoff_summary(new.detail, new.agent, new.target_table, new.target_id,
+                                        new.title, new.recommendation, new.id);
+  else
+    begin
+      v_note := public.fn_handoff_summary(new.detail, new.agent, new.target_table, new.target_id,
+                                          new.title, new.recommendation, new.id);
+    exception when others then
+      v_note := coalesce(new.detail->'summary', '{}'::jsonb) || public.fn_handoff_redact(jsonb_build_object(
+        'context', coalesce(new.title, 'handoff ' || new.id) || ' (note rebuilt from the row; the case could not be read)',
+        'decision', coalesce(new.detail->>'from', 'the sender') || ' handed this to ' || new.agent,
+        'open_asks', jsonb_build_array(coalesce(nullif(btrim(new.recommendation), ''), new.title, 'handoff ' || new.id)),
+        'deadline', coalesce(new.created_at, now()) + interval '24 hours',
+        'deadline_source', 'legacy row: created_at + 24 hours',
+        'legacy', true,
+        'known', coalesce(new.detail->'summary'->'known', '{}'::jsonb),
+        'tried', coalesce(new.detail->'summary'->'tried', '{}'::jsonb),
+        'needed', coalesce(new.detail->'summary'->'needed', '{}'::jsonb),
+        'evidence', coalesce(new.detail->'summary'->'evidence', '[]'::jsonb)));
+    end;
+  end if;
+  new.detail := coalesce(new.detail, '{}'::jsonb) || jsonb_build_object('summary', v_note);
+  return new;
+end $fn$;
+
+revoke execute on function public.trg_handoff_carries_its_note() from public, anon, authenticated;
 
 drop trigger if exists a01_handoff_carries_its_note on public.agent_actions;
 create trigger a01_handoff_carries_its_note
@@ -280,6 +338,10 @@ begin
   return v;
 end $function$;
 
+-- CREATE OR REPLACE of an existing routine keeps its ACL (production 19 Oct: postgres + service_role only);
+-- the revoke is repeated so the file stands alone and a future DROP/CREATE cannot reopen it.
+revoke execute on function public.fn_seat_handoff_act(bigint) from public, anon, authenticated;
+
 create or replace function public.fn_seat_handoff_complete(p_id bigint, p_evidence jsonb)
  returns jsonb
  language plpgsql
@@ -308,6 +370,8 @@ begin
   end if;
   return jsonb_build_object('ok', true, 'handoff_id', p_id, 'type', a.detail->>'type');
 end $function$;
+
+revoke execute on function public.fn_seat_handoff_complete(bigint, jsonb) from public, anon, authenticated;
 
 -- THE MEASUREMENT: handoffs closed since p_since whose note has the four fields and whose answer cites no note.
 create or replace function public.fn_handoff_citation_gaps(p_since timestamptz default now() - interval '1 day')
