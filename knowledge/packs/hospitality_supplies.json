@@ -57,6 +57,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "hospitality_supplies:product-distinctions",
+      "topic": "Hospitality supplies: guest amenities, linen and operating supplies",
+      "topic_ar": "مستلزمات الضيافة: مستلزمات الضيوف والمفروشات ومستلزمات التشغيل",
+      "kind": "product_distinctions",
+      "body_en": "Hospitality supplies cover guest-room amenities (soap, shampoo, conditioner, body lotion, dental, shaving and vanity kits, shower caps, slippers, often branded for the hotel, in small bottles or refillable wall-mounted dispensers as single-use plastics are reduced), linen and terry (bed sheets, duvet covers, pillowcases by thread count and blend such as 200-300 TC cotton or poly-cotton, towels by weight in gsm, bathrobes), room accessories (kettles, hairdryers, safes, minibars, hangers, bins, tissue boxes, signage), F&B operating equipment (tableware, glassware, cutlery, buffet and banquet items), housekeeping trolleys and cleaning supplies, uniforms, and laundry bags and stationery. Hotels buy these as operating supplies and equipment (OS&E) for openings and as recurring replenishment. Specifications decide life and guest perception: fabric composition and weight, colour fastness and shrinkage after commercial laundering, dispenser tamper-proofing, and brand consistency. Offers differ on customisation and MOQs, sample approval, stock holding for repeat orders, delivery schedule, and compliance documentation for cosmetics amenities.",
+      "body_ar": "تشمل مستلزمات الضيافة مستلزمات غرف الضيوف (الصابون، الشامبو، البلسم، لوشن الجسم، أطقم الأسنان والحلاقة والزينة، أغطية الاستحمام، الشباشب، وغالباً بعلامة الفندق، في عبوات صغيرة أو موزعات جدارية قابلة لإعادة التعبئة مع تقليل البلاستيك أحادي الاستخدام)، والمفروشات والمناشف (الشراشف، أغطية اللحاف، أكياس الوسائد حسب عدد الخيوط والخليط مثل قطن 200-300 خيط أو قطن مع بوليستر، والمناشف حسب الوزن بالغرام للمتر المربع، وأرواب الحمام)، وإكسسوارات الغرف (الغلايات، مجففات الشعر، الخزائن، الثلاجات الصغيرة، الشماعات، سلال القمامة، علب المناديل، اللافتات)، ومعدات تشغيل الأغذية والمشروبات (أدوات المائدة، الزجاجيات، أدوات الطعام، مستلزمات البوفيه والولائم)، وعربات خدمة الغرف ومستلزمات النظافة، والزي الرسمي، وأكياس الغسيل والقرطاسية. وتشتري الفنادق هذه المستلزمات كمستلزمات ومعدات تشغيل للافتتاح وكإعادة تزويد متكررة. والمواصفات تحدد العمر وانطباع الضيف: تركيب القماش ووزنه، وثبات اللون والانكماش بعد الغسيل التجاري، ومقاومة الموزعات للعبث، واتساق العلامة. وتختلف العروض في التخصيص والحد الأدنى للطلب، واعتماد العينات، والاحتفاظ بالمخزون للطلبات المتكررة، وجدول التسليم، ومستندات الامتثال لمستحضرات الضيوف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Hotel_amenity"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: hotel toiletries (soap, shampoo, mouthwash, shower caps) and towels -> confirmed."
+    },
+    {
+      "id": "hospitality_supplies:lead-times-and-quoting",
+      "topic": "Hospitality supplies - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "مستلزمات الضيافة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock items: days; branded amenities and custom linen 4-10 weeks including samples; pre-opening OS&E packages follow the opening programme. A supplier needs room counts and categories, item list with specs or samples, branding, quantities and par levels, and delivery schedule. A quote states per item the spec (composition, gsm, thread count, size), branding, MOQ, sample lead time, delivery and validity.",
+      "body_ar": "الأصناف المتوفرة: أيام؛ ومستلزمات الضيوف بالعلامة والمفروشات المخصصة 4-10 أسابيع شاملة العينات؛ وباقات ما قبل الافتتاح تتبع برنامج الافتتاح. ويحتاج المورد أعداد الغرف وفئاتها، وقائمة الأصناف بالمواصفات أو العينات، والعلامة، والكميات ومستويات المخزون، وجدول التسليم. ويذكر العرض لكل صنف المواصفة (التركيب، الغرام للمتر المربع، عدد الخيوط، المقاس)، والعلامة، والحد الأدنى للطلب، ومدة العينة، والتسليم، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -82,6 +112,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers linen par levels; missing). hospitality_supplies:linen-par-levels was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from hospitality_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What towel weight should a four-star hotel specify so towels last under daily laundering?",
+      "q_ar": "كم وزن المنشفة المناسب لفندق أربع نجوم عشان تتحمل الغسيل اليومي؟",
+      "expected_entry_ids": [
+        "hospitality_supplies:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "hospitality_supplies:linen-par-levels"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "hospitality_supplies:product-distinctions"
+      ],
+      "stored_not_served": [
+        "hospitality_supplies:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Hotel_amenity"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
