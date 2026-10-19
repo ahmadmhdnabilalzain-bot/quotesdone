@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-19T12:47:52.459Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-19T14:48:34.750Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7768,7 +7768,7 @@ CREATE TABLE IF NOT EXISTS public.rehearsal_window (
   started_at timestamp with time zone DEFAULT now() NOT NULL,
   ended_at timestamp with time zone,
   note text,
-  models_allowed boolean DEFAULT false NOT NULL,
+  models_allowed boolean DEFAULT true NOT NULL,
   cap_usd numeric DEFAULT 4 NOT NULL,
   expires_at timestamp with time zone DEFAULT (now() + '02:00:00'::interval) NOT NULL
 );
