@@ -47,6 +47,22 @@ test('waterproofing issue says leak or preventive; joinery finish names a finish
   assert.match(whole, /leak: No leak/, 'a question text gets the whole sheet, and the sheet carries the leak fact');
 });
 
+// Run 321d13ae (18 Oct 2026): system_type got the element and fixture_count the lines, C4/C3 held.
+test('hvac system_type names a system; plumbing fixture_count counts rooms; open keys come from missing_keys', () => {
+  for (const lang of ['en', 'ar']) {
+    const st = factSheet('hvac', { lang }).answerFor({ missing_keys: ['system_type'] });
+    assert.match(st, lang === 'en' ? /^system_type: Central chilled-water/ : /^system_type: نظام مركزي/);
+    const fx = factSheet('plumbing', { lang }).answerFor({ missing_keys: ['fixture_count'] });
+    assert.match(fx, lang === 'en' ? /^fixture_count: 4 bathrooms and 1 kitchen/ : /^fixture_count: 4 حمامات/);
+  }
+});
+
+test('landscaping area_sqm is the garden area, not the built-up area, in both languages', () => {
+  assert.match(factSheet('landscaping', {}).answerFor({ missing_keys: ['area_sqm'] }), /^area_sqm: Garden \(outdoor\) area of about 300 m2/);
+  assert.match(factSheet('landscaping', { lang: 'ar' }).answerFor({ missing_keys: ['area_sqm'] }), /^area_sqm: مساحة الحديقة/);
+  assert.match(factSheet('flooring', {}).answerFor({ missing_keys: ['area_sqm'] }), /built-up/, 'other trades keep the built-up area');
+});
+
 test('a question text, never a key, gets the whole sheet, not filler', () => {
   const a = factSheet('aluminium', { emirate: 'Ajman' }).answerFor({ missing: ['Any preference for the glass? Tap one.'] });
   assert.match(a, /location: Villa in Ajman/);

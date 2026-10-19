@@ -167,6 +167,43 @@ test('production: every duty\'s loop closes on ZZ DEMO fixtures, rolled back', {
   for (const k of DUTIES) assert.ok(r[k], `duty ${k} did not report`);
 });
 
+// THE TICK'S OWN OPEN STEP (19 Oct 2026, #1478). The fixtures above may open a finding with fn_it_loop_open
+// when the tick's budget is spent, so this test proves the tick itself opens one: a ZZ DEMO accountant finding
+// is aged to the front of the queue (oldest open), ONE fn_it_loop_tick runs at the start of its own statement,
+// and nothing else may have opened the handoff. Rolled back by the raise.
+const TICK_PROBE = `do $zz$
+declare v jsonb; h public.agent_actions; k text := 'acct:bank:missing:po_zz_tick_probe';
+begin
+  perform set_config('app.qd_stub_founder_notify', 'on', true);
+  insert into public.bank_statement_intake (source_ref, account, statement_month, state, lines)
+    values ('zz_tick_probe_stmt', 'zz_demo', date_trunc('month', current_date), 'parsed', 1);
+  perform public.fn_accountant_bank_statement_ingest('zz_demo', 'zz_tick_probe_stmt', null,
+    jsonb_build_array(jsonb_build_object('value_date', current_date, 'description', 'ZZ DEMO ACCOUNT MAINTENANCE CHARGE', 'amount_aed', -200)));
+  perform public.fn_accountant_payouts_record(false, jsonb_build_array(jsonb_build_object('id', 'po_zz_tick_probe', 'amount', 25000,
+    'currency', 'aed', 'status', 'paid', 'arrival_date', extract(epoch from (current_date - 10)::timestamp at time zone 'Asia/Dubai')::bigint,
+    'created', extract(epoch from now())::bigint, 'automatic', true, 'txn_count', 1, 'txn_net', 25000)));
+  perform public.fn_accountant_bank_reconcile();
+  if not exists (select 1 from public.it_engineer_finding where issue_key = k and closed_at is null) then
+    raise exception 'TICKFAIL: the ZZ DEMO payout raised no finding'; end if;
+  if exists (select 1 from public.agent_actions where kind = 'handoff' and detail->>'issue_key' = k) then
+    raise exception 'TICKFAIL: a handoff existed before the tick'; end if;
+  update public.it_engineer_finding
+     set started_at = (select min(q.started_at) from public.fn_it_open_findings() q) - interval '1 minute'
+   where issue_key = k and closed_at is null;
+  v := public.fn_it_loop_tick();
+  select a.* into h from public.agent_actions a
+   where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'issue_key' = k order by a.id desc limit 1;
+  raise exception 'CHK<<%>>', jsonb_build_object('opened_by_tick', h.id is not null, 'agent', h.agent,
+    'tick_opened', v->'opened', 'errors', v->'errors');
+end $zz$;`;
+test('production: one fn_it_loop_tick opens the handoff for the oldest open finding, rolled back', { skip: SKIP }, async () => {
+  let r;
+  try { await replaySql(TICK_PROBE); } catch (e) { r = chk(e); }
+  assert.ok(r, 'the tick probe committed instead of rolling back');
+  assert.equal(r.opened_by_tick, true, 'the tick did not open the oldest finding\'s handoff: ' + JSON.stringify(r));
+  assert.equal(r.agent, 'accountant', 'handed to ' + r.agent + ', not accountant');
+});
+
 // THE FILE REPLAY, kept with its subject and NOT softened: it is the guard that caught the
 // v_accountant_recovery_ledger column drop in #737. It is opt-in because it cannot complete over the
 // management API (above), and it runs with retry OFF so a gateway timeout can never launch a second
