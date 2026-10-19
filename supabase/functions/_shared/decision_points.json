@@ -461,7 +461,7 @@
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
       "surface: 'site_assistant.person'",
-      "return (await needsAPerson(defaultDeps(admin, 'site_assistant'), {"
+      "const person = (await needsAPerson(defaultDeps(admin, 'site_assistant'), {"
      ],
      "must_not_contain": [
       "(speak|talk|chat)\\s+(to|with)",
@@ -760,7 +760,8 @@
      "file": "supabase/functions/inquiry_intake/index.ts",
      "must_not_contain": [
       "admin.rpc('fn_kb_route_decide'"
-     ]
+     ],
+     "must_contain": []
     },
     {
      "file": "supabase/functions/_shared/reasoned_matching.ts",
@@ -1248,7 +1249,8 @@
      "file": "supabase/functions/supplier_api/index.ts",
      "must_not_contain": [
       "reasonQuoteAspects("
-     ]
+     ],
+     "must_contain": []
     }
    ]
   },
@@ -2393,7 +2395,8 @@
       "export const onTopic",
       "export function shared(",
       "const AR_EN"
-     ]
+     ],
+     "must_contain": []
     }
    ]
   },
@@ -2984,6 +2987,48 @@
      ],
      "must_not_contain": [
       "like '%'||lower(p_id)||'%'"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "shared.review_of_decision",
+   "order": 119,
+   "status": "migrated",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "supabase/functions/_shared/review_request.ts",
+   "decides": "which automated decision a person contests (ledger 1152), or whether they explicitly ask for a person (ruling 1264): the choice picks the route in public.review_route; wa_inbound, email_triage and site_assistant ask it when a message needs a person",
+   "held": "Under the hold the answer is null and no review request is filed on a guess; the message already stands as a person request in customer_support's queue and is replayed when the hold lifts.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/review_request.ts",
+     "must_contain": [
+      "const result = await think(deps, {",
+      "admin.rpc('fn_review_request_open', {",
+      "admin.from('review_route').select('decision_type,meaning')"
+     ],
+     "must_not_contain": [
+      "REVIEW_RE",
+      ".test(o.message)"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/index.ts",
+     "must_contain": [
+      "await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp'"
+     ]
+    },
+    {
+     "file": "supabase/functions/email_triage/index.ts",
+     "must_contain": [
+      "await fileReviewRequest(admin, deps, { channel: 'email'"
+     ]
+    },
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "await fileReviewRequest(admin, defaultDeps(admin, 'site_assistant'), { channel: 'site_chat'"
      ]
     }
    ]
