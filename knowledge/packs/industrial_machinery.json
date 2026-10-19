@@ -55,9 +55,11 @@
       "sources": [
         "https://en.wikipedia.org/wiki/Machinery_Directive"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
-      "source_note": "Pages opened 2026-10-19: the EU Machinery Directive and CE marking provisions; the page does not name EN ISO 12100 -> partly confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+      "source_note": "Pages opened 2026-10-19: the EU Machinery Directive and CE marking provisions; the page does not name EN ISO 12100 -> partly confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     },
     {
       "id": "industrial_machinery:lead-times",
@@ -67,10 +69,12 @@
       "body_en": "Standard machines held by UAE dealers: ex-stock to 2 weeks. New Chinese or Indian machines built to order: 6-12 weeks production plus 3-5 weeks sea freight to Jebel Ali. European and Japanese machines: 3-9 months. Complete lines: 6-12 months including factory acceptance testing (FAT), shipping, installation and site acceptance (SAT). Used machines: 2-8 weeks including inspection, dismantling and shipping. Foundations, power upgrades (DEWA/ADDC load approval) and civil defence approvals for boilers and pressure vessels add time on site.",
       "body_ar": "الآلات القياسية لدى الوكلاء في الإمارات: متوفرة حتى أسبوعين. الآلات الجديدة الصينية أو الهندية المصنّعة بالطلب: 6-12 أسبوعاً للإنتاج و3-5 أسابيع شحن بحري إلى جبل علي. الآلات الأوروبية واليابانية: 3-9 أشهر. الخطوط الكاملة: 6-12 شهراً شاملة اختبار القبول في المصنع والشحن والتركيب واختبار القبول في الموقع. الآلات المستعملة: 2-8 أسابيع شاملة الفحص والفك والشحن. وتضيف القواعد الخرسانية ورفع القدرة الكهربائية (موافقة الأحمال من هيئة الكهرباء) وموافقات الدفاع المدني للغلايات وأوعية الضغط وقتاً في الموقع.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     },
     {
       "id": "industrial_machinery:quotation-requirements",
@@ -80,10 +84,12 @@
       "body_en": "A supplier needs from the buyer: the product and the required output, raw material, a sample or drawing, space and layout limits, available power and utilities (air, water, gas), the level of automation, any preferred brands for controls and drives, and site conditions. A complete quote states: make, model, country of origin and year (for used machines, hours and a condition report), the technical schedule (capacities, motors in kW, control system), standard accessories and the optional extras priced separately, Incoterm (EXW, FOB, CIF Jebel Ali or DDP site), installation and commissioning, operator training, FAT and SAT, a recommended 2-year spares list, warranty (start trigger and duration), the local service presence, payment milestones (typically advance, against shipping documents, after commissioning), and validity. Red flags: no named make or model, freight and installation left out, a voltage or frequency not matching UAE supply, or no spares and service commitment.",
       "body_ar": "يحتاج المورد من المشتري: المنتج والإنتاجية المطلوبة، والمادة الخام، وعينة أو رسماً، وحدود المساحة والتخطيط، والكهرباء والمرافق المتاحة (هواء، ماء، غاز)، ومستوى الأتمتة، والعلامات المفضلة للتحكم والمحركات، وظروف الموقع. ويذكر العرض الكامل: الماركة والموديل وبلد المنشأ والسنة (وللمستعمل ساعات التشغيل وتقرير الحالة)، والجدول الفني (الطاقات، المحركات بالكيلوواط، نظام التحكم)، والملحقات القياسية والإضافات الاختيارية مسعّرة منفصلة، وشرط التسليم (من المصنع، أو FOB، أو CIF جبل علي، أو حتى الموقع)، والتركيب والتشغيل، وتدريب المشغلين، واختبارات القبول في المصنع والموقع، وقائمة قطع غيار موصى بها لسنتين، والضمان (بدايته ومدته)، ووجود الخدمة المحلية، ودفعات السداد (عادة مقدم، ثم مقابل مستندات الشحن، ثم بعد التشغيل)، والصلاحية. علامات التحذير: عدم ذكر الماركة أو الموديل، أو إغفال الشحن والتركيب، أو جهد أو تردد لا يطابق كهرباء الإمارات، أو غياب التزام بقطع الغيار والخدمة.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     }
   ],
   "eval": [
@@ -100,14 +106,6 @@
       "expected_entry_ids": [
         "industrial_machinery:uae-standards-and-approvals"
       ]
-    },
-    {
-      "q_en": "Is a used European injection moulding machine a better buy than a new Chinese one?",
-      "q_ar": "هل الأفضل أشتري ماكينة حقن أوروبية مستعملة ولا صينية جديدة؟",
-      "expected_entry_ids": [
-        "industrial_machinery:product-distinctions"
-      ],
-      "written_blind": true
     }
   ],
   "verified": {
@@ -144,6 +142,12 @@
         903,
         1198,
         1209
+      ],
+      "served": [],
+      "stored_not_served": [
+        "industrial_machinery:product-distinctions",
+        "industrial_machinery:lead-times",
+        "industrial_machinery:quotation-requirements"
       ]
     }
   }

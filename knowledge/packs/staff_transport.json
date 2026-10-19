@@ -49,9 +49,11 @@
       "sources": [
         "https://www.rta.ae/wps/portal/rta/ae/home"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
-      "source_note": "Pages opened 2026-10-19: RTA lists services for passenger-transport vehicles under franchise and short-term bus rental -> confirmed (operator licensing detail not on the page). Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+      "source_note": "Pages opened 2026-10-19: RTA lists services for passenger-transport vehicles under franchise and short-term bus rental -> confirmed (operator licensing detail not on the page). Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     },
     {
       "id": "staff_transport:lead-times",
@@ -61,10 +63,12 @@
       "body_en": "Ad-hoc bus hire with a driver: same day to 48 hours, except during peak events such as Expo-type exhibitions, Dubai Airshow, GITEX, F1 Abu Dhabi and New Year, when 1-2 weeks notice is needed. A monthly dedicated contract for standard vans and buses starts within 3-10 days. A new fleet bought for a long contract (3-5 years) takes 2-6 months for vehicle delivery, branding and registration. Large camp-to-site rosters need 1-2 weeks of route planning.",
       "body_ar": "تأجير حافلة مع سائق لمرة واحدة: في نفس اليوم حتى 48 ساعة، إلا في ذروة الفعاليات مثل المعارض الكبرى ومعرض دبي للطيران وجيتكس وسباق الفورمولا 1 في أبوظبي ورأس السنة، فيلزم إشعار قبل 1-2 أسبوع. العقد الشهري المخصص للفانات والحافلات القياسية: يبدأ خلال 3-10 أيام. أسطول جديد يُشترى لعقد طويل (3-5 سنوات): 2-6 أشهر لتسليم المركبات والتغليف والتسجيل. وجداول نقل كبيرة من السكن إلى المواقع تحتاج 1-2 أسبوع لتخطيط المسارات.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     },
     {
       "id": "staff_transport:quotation-requirements",
@@ -74,10 +78,12 @@
       "body_en": "A transport operator needs: the number of passengers per shift, the pick-up and drop-off points (camps, sites, offices), the shift times and days per month, whether it is one-way or return, the vehicle type and AC requirement, the contract length, whether fuel, Salik tolls and parking are included, the standby or overtime rules, and any branding. A complete quote states: vehicle model and year, seats, the monthly rate per vehicle (or per trip or day) with the hours and km included, the excess hour and km rate, what is included (driver, fuel, Salik, maintenance, insurance, replacement vehicle on breakdown), the operator's licence and the vehicle registration for passenger transport, the driver licence class, VAT, the notice period, and validity. Red flags: private-registered vehicles used for paid transport, no replacement-vehicle clause, Salik and fuel excluded without saying so, or no named model year.",
       "body_ar": "يحتاج مشغّل النقل: عدد الركاب لكل وردية، ونقاط الصعود والنزول (السكن، المواقع، المكاتب)، وأوقات الورديات والأيام شهرياً، واتجاه واحد أم ذهاب وعودة، ونوع المركبة واشتراط التكييف، ومدة العقد، وهل الوقود ورسوم سالك والمواقف مشمولة، وقواعد الانتظار والوقت الإضافي، وأي تغليف بالعلامة التجارية. ويذكر العرض الكامل: موديل المركبة وسنتها، وعدد المقاعد، والسعر الشهري لكل مركبة (أو للرحلة أو لليوم) مع الساعات والكيلومترات المشمولة، وسعر الساعة والكيلومتر الزائد، والمشمولات (السائق، الوقود، سالك، الصيانة، التأمين، مركبة بديلة عند العطل)، وترخيص المشغّل وتسجيل المركبة لنقل الركاب، وفئة رخصة السائق، وضريبة القيمة المضافة، ومدة الإشعار، والصلاحية. علامات التحذير: استخدام مركبات مسجلة خاصة للنقل بأجر، أو غياب بند المركبة البديلة، أو استثناء سالك والوقود دون ذكر ذلك، أو عدم تحديد سنة الموديل.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     }
   ],
   "eval": [
@@ -94,14 +100,6 @@
       "expected_entry_ids": [
         "staff_transport:uae-standards-and-approvals"
       ]
-    },
-    {
-      "q_en": "We need to move 120 workers from Sonapur to a site in Jebel Ali every day. Coasters or big buses?",
-      "q_ar": "نبي ننقل 120 عامل كل يوم من صونابور لموقع في جبل علي، كوستر ولا باصات كبيرة؟",
-      "expected_entry_ids": [
-        "staff_transport:product-distinctions"
-      ],
-      "written_blind": true
     }
   ],
   "verified": {
@@ -138,6 +136,12 @@
         903,
         1198,
         1209
+      ],
+      "served": [],
+      "stored_not_served": [
+        "staff_transport:product-distinctions",
+        "staff_transport:lead-times",
+        "staff_transport:quotation-requirements"
       ]
     }
   }

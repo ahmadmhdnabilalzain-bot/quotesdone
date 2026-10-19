@@ -52,7 +52,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "source_note": "Pages opened 2026-10-19: the AWS electrode numbering (E prefix, tensile strength, position, coating/current digits) and E6010 as an all-position electrode -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+      "source_note": "Pages opened 2026-10-19: the AWS electrode numbering (E prefix, tensile strength, position, coating/current digits) and E6010 as an all-position electrode -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed). The entry makes no UAE-specific claim."
     },
     {
       "id": "welding_equipment:lead-times",
@@ -62,10 +63,12 @@
       "body_en": "Common electrodes (E6013, E7018), MIG wire, CO2 regulators and standard inverter machines are ex-stock in Sharjah, Dubai (Al Quoz, Deira, Jebel Ali) and Mussafah, delivered in 1-3 days. Branded industrial machines (multi-process, pulse MIG, orbital TIG) take 1-6 weeks. Engine-driven welders are ex-stock to 4 weeks, and rental is available. Certified consumables for projects (low-temperature, duplex, nickel alloys) with project-specific batch certificates take 2-8 weeks. Large automation (SAW tractors, welding robots, column-and-boom) takes 8-16 weeks.",
       "body_ar": "الأقطاب الشائعة (E6013، E7018) وسلك MIG ومنظمات CO2 وآلات الإنفرتر القياسية متوفرة في الشارقة ودبي (القوز، ديرة، جبل علي) ومصفح وتسلم خلال 1-3 أيام. الآلات الصناعية ذات العلامات (متعددة العمليات، MIG نبضي، TIG مداري): 1-6 أسابيع. آلات اللحام بمحرك ديزل: متوفرة حتى 4 أسابيع، والتأجير متاح. المستهلكات المعتمدة للمشاريع (للحرارة المنخفضة، الدوبلكس، سبائك النيكل) مع شهادات دفعة خاصة بالمشروع: 2-8 أسابيع. الأتمتة الكبيرة (عربات SAW، روبوتات اللحام، أذرع العمود والذراع): 8-16 أسبوعاً.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     },
     {
       "id": "welding_equipment:quotation-requirements",
@@ -75,10 +78,12 @@
       "body_en": "A supplier needs: the process and the base material (carbon steel, stainless, duplex, aluminium), the thickness and position, the application (structural, pipe, tank, repair), the code the work falls under (AWS D1.1, ASME IX, API 1104), the required classification (AWS A5.x / ISO number) and diameter, the quantity in kg or packets, whether a batch certificate (3.1) is needed, the power supply (230 V or 400 V three-phase) or an engine-driven unit, the duty cycle, and the accessories. A complete quote states: brand and exact model or classification, diameter and pack size, the certificate type, machine rating (amps at duty cycle, input voltage), what is in the kit (torch, cable lengths, feeder, regulator), warranty (often 2-3 years on branded inverters), local service and spares, delivery and validity. Red flags: an electrode quoted without its AWS/ISO class, no batch certificate on project consumables, an unbranded inverter with an overstated duty cycle, or E7018 offered without vacuum packing or oven instructions.",
       "body_ar": "يحتاج المورد: العملية والمعدن الأساسي (حديد كربوني، ستانلس، دوبلكس، ألمنيوم)، والسمك والوضعية، والتطبيق (إنشائي، أنابيب، خزانات، إصلاح)، والكود الذي يخضع له العمل (AWS D1.1، ASME IX، API 1104)، والتصنيف المطلوب (رقم AWS A5.x / ISO) والقطر، والكمية بالكيلوغرام أو بالعلب، وهل تلزم شهادة دفعة (3.1)، والتغذية الكهربائية (230 أو 400 فولت ثلاثي) أو وحدة بمحرك، ودورة التشغيل، والملحقات. ويذكر العرض الكامل: العلامة والموديل أو التصنيف الدقيق، والقطر وحجم العبوة، ونوع الشهادة، وتصنيف الآلة (الأمبير عند دورة التشغيل، وجهد الدخل)، ومحتويات الطقم (المشعل، أطوال الكابلات، المغذي، المنظم)، والضمان (غالباً 2-3 سنوات للإنفرتر ذي العلامة)، والخدمة وقطع الغيار المحلية، والتسليم، والصلاحية. علامات التحذير: قطب مسعّر دون تصنيف AWS/ISO، أو غياب شهادة الدفعة لمستهلكات المشروع، أو إنفرتر بلا علامة بدورة تشغيل مبالغ فيها، أو E7018 دون تغليف مفرغ أو تعليمات التجفيف.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     }
   ],
   "eval": [
@@ -139,6 +144,13 @@
         903,
         1198,
         1209
+      ],
+      "served": [
+        "welding_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "welding_equipment:lead-times",
+        "welding_equipment:quotation-requirements"
       ]
     }
   }

@@ -55,7 +55,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "source_note": "Pages opened 2026-10-19: CNC milling on three to six axes and turning on two-axis lathes with multi-axis variants -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+      "source_note": "Pages opened 2026-10-19: CNC milling on three to six axes and turning on two-axis lathes with multi-axis variants -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed). The entry makes no UAE-specific claim."
     },
     {
       "id": "cnc_machining:lead-times",
@@ -65,10 +66,12 @@
       "body_en": "Prototype or one-off parts from stock bar: 3-10 working days. Batches of 50-500 parts: 2-5 weeks depending on setups and outside finishing (anodising, plating and heat treatment add 3-7 days each). Exotic material (duplex, super duplex, titanium, Inconel) not on UAE stock adds 3-8 weeks for mill-certified bar from Europe or Asia. Parts needing third-party inspection, PMI or API monogram add 1-2 weeks. Workshops in Sharjah, Ajman, Jebel Ali and Mussafah are often loaded by oil-and-gas shutdown work, and lead times stretch around shutdown season and Ramadan.",
       "body_ar": "القطع النموذجية أو المفردة من قضبان متوفرة: 3-10 أيام عمل. الدفعات من 50 إلى 500 قطعة: 2-5 أسابيع حسب عدد التجهيزات والتشطيب الخارجي (الأنودة والطلاء والمعالجة الحرارية تضيف 3-7 أيام لكل منها). المواد الخاصة (دوبلكس، سوبر دوبلكس، تيتانيوم، إنكونيل) غير المتوفرة في الإمارات تضيف 3-8 أسابيع لقضبان بشهادة مصنع من أوروبا أو آسيا. القطع التي تتطلب فحص طرف ثالث أو PMI أو ختم API تضيف 1-2 أسبوع. ورش الشارقة وعجمان وجبل علي ومصفح غالباً مشغولة بأعمال توقفات النفط والغاز، فتطول المدد في موسم التوقفات وفي رمضان.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     },
     {
       "id": "cnc_machining:quotation-requirements",
@@ -78,10 +81,12 @@
       "body_en": "To quote, a machinist needs: a dimensioned drawing (PDF plus STEP/IGES for 3D shapes) with revision, material grade and condition (for example 4140 QT 28-32 HRC), quantity and any repeat schedule, tolerances and GD&T, surface finish (Ra), coating or plating, heat treatment, thread standards, and inspection needs (CMM report, material test certificate EN 10204 3.1, PMI, third-party inspection). A complete quotation states, per part: material and its source, price basis per piece at each quantity break, a one-time setup or fixture charge shown separately, outside processes, packing, delivery (ex-works or DDP site), lead time from PO and drawing approval, validity, and the documents supplied. Red flags: no material certificate offered, the tolerance class quietly relaxed, coating priced but not specified, or a \"similar material\" substitute.",
       "body_ar": "لتسعير القطعة يحتاج المشغّل إلى: رسم بأبعاد (PDF مع STEP/IGES للأشكال ثلاثية الأبعاد) مع رقم المراجعة، ودرجة المادة وحالتها (مثل 4140 مقسّى ومطاوع 28-32 HRC)، والكمية وأي جدول تكرار، والتفاوتات والتفاوتات الهندسية، وخشونة السطح (Ra)، والطلاء، والمعالجة الحرارية، ومعايير الأسنان، ومتطلبات الفحص (تقرير CMM، وشهادة اختبار المادة EN 10204 3.1، وPMI، وفحص طرف ثالث). ويذكر العرض الكامل لكل قطعة: المادة ومصدرها، وأساس السعر للقطعة عند كل شريحة كمية، ورسوم التجهيز أو القالب منفصلة، والعمليات الخارجية، والتغليف، والتسليم (من المصنع أو حتى الموقع)، ومدة التنفيذ من أمر الشراء واعتماد الرسم، والصلاحية، والمستندات المرفقة. علامات التحذير: عدم تقديم شهادة المادة، أو تخفيف فئة التفاوت ضمناً، أو تسعير طلاء دون تحديده، أو بديل \"مادة مشابهة\".",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     }
   ],
   "eval": [
@@ -141,6 +146,13 @@
         903,
         1198,
         1209
+      ],
+      "served": [
+        "cnc_machining:product-distinctions"
+      ],
+      "stored_not_served": [
+        "cnc_machining:lead-times",
+        "cnc_machining:quotation-requirements"
       ]
     }
   }

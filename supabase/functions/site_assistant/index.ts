@@ -23,6 +23,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
+import { givenTradeKnowledge, givenBlock } from '../_shared/given_trade_knowledge.ts';
+import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
@@ -326,9 +328,12 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // did not hold: the portal read one back as "the quote record refers to 40 aluminium windows". Past cases stay for
     // internal seats (think() drops case text for an external audience). The recall still runs, so this judgement is opened
     // with what was recalled and its outcome is learned from; its text is never put in this prompt.
-    const [brief, memory] = await Promise.all([
+    // The verified trade knowledge is GIVEN with the brief (given_trade_knowledge.ts, ruling 1195): fetched in parallel, '' on failure.
+    const tradeDeps = defaultDeps(admin, 'site_assistant');
+    const [brief, memory, given] = await Promise.all([
       companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang),
       recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => null),
+      givenTradeKnowledge({ embed: (t, sp) => tradeDeps.embed(t, sp), rpc, gteReads }, message),
     ]);
     lap('brief');
     void memory; // read in parallel with the brief (the fast-answer check pins it); its text never enters this prompt
@@ -339,7 +344,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       : `AUDIENCE: not known yet${path ? ' (on ' + path + ')' : ''}. Read from their words whether they buy (a customer) or sell (a supplier); if the answer genuinely differs and you cannot tell, answer both sides briefly.`;
     const liveBlock = live ? `\n\nTHIS PERSON IS SIGNED IN. Their OWN live account data, scoped in SQL to them alone:\n${JSON.stringify(live)}\nAnswer about their account from it directly; never tell them to log in. Before a reveal, price_band is a rounded band and a count on purpose: never present it as exact and never name or describe a supplier. Their portal is in ${uiLang === 'ar' ? 'ARABIC; name its buttons in Arabic as printed ("طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب")' : 'ENGLISH; name its buttons as printed ("New request", "My requests", "Documents", "Messages", "Account")'}.` : '';
     const sys = `You are QuotesDone's ${seatForSurface === 'sales_engineer' ? 'sales engineer' : 'customer support'} on ${live ? 'the signed-in portal' : 'the quotesdone.com website chat'}. Answer the way a senior UAE construction and procurement expert answers a client: one direct, exact answer to what they asked, reasoned with your own expertise. Trade, material, specification and market questions (for example the difference between MDF and plywood) get a clear expert answer from your own knowledge.
-${audienceBlock}${liveBlock}${timelineBlock}
+${audienceBlock}${liveBlock}${timelineBlock}${givenBlock(given)}
 RULES:
 - Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a price, fee or rate the brief does not give — explain without a number instead. For what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range, say it is a guide and not a quotation, and offer to collect real quotes.
 - Never say you will check, confirm or get back to them, and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now.

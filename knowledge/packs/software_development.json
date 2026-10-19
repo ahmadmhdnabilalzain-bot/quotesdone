@@ -51,9 +51,11 @@
       "sources": [
         "https://en.wikipedia.org/wiki/ISO/IEC_25010"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
-      "source_note": "Pages opened 2026-10-19: the page (redirected to ISO/IEC 9126) names the quality characteristics functionality, reliability, usability, efficiency, maintainability, portability; ISO/IEC 25010 is its successor -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+      "source_note": "Pages opened 2026-10-19: the page (redirected to ISO/IEC 9126) names the quality characteristics functionality, reliability, usability, efficiency, maintainability, portability; ISO/IEC 25010 is its successor -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     },
     {
       "id": "software_development:lead-times",
@@ -63,10 +65,12 @@
       "body_en": "A brochure website takes 2-6 weeks. A store on Shopify or WooCommerce takes 4-10 weeks; a custom one 3-6 months. An MVP mobile app takes 8-16 weeks, and a full app with a back office 4-9 months. ERP implementation runs 3-12 months by modules and users. App store review adds 1-7 days, and a payment gateway merchant account with KYC takes 2-6 weeks. Arabic content and translation, UAE PASS onboarding and government security reviews are the usual delays. The buyer's own approvals and content are the commonest cause of slippage.",
       "body_ar": "الموقع التعريفي: 2-6 أسابيع. المتجر على Shopify أو WooCommerce: 4-10 أسابيع، والمخصص 3-6 أشهر. النسخة الأولية من تطبيق الجوال: 8-16 أسبوعاً، والتطبيق الكامل مع لوحة إدارة 4-9 أشهر. تطبيق نظام ERP: 3-12 شهراً حسب الوحدات والمستخدمين. ومراجعة متجر التطبيقات تضيف 1-7 أيام، وحساب التاجر لدى بوابة الدفع مع إجراءات اعرف عميلك 2-6 أسابيع. والمحتوى العربي والترجمة والربط مع UAE PASS ومراجعات الأمن الحكومية هي أسباب التأخير المعتادة. وأكثر أسباب التأخر شيوعاً هي اعتمادات المشتري نفسه ومحتواه.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     },
     {
       "id": "software_development:quotation-requirements",
@@ -76,10 +80,12 @@
       "body_en": "To quote, a developer needs: the goal and users, a feature list or user stories (or a brief that leads to a paid discovery phase), the platforms (web, iOS, Android), the languages (Arabic/English, RTL), integrations (payment, ERP, UAE PASS, SMS/WhatsApp), designs if they exist, content responsibility, hosting preference and data-residency needs, security requirements, launch date, and the budget band. A complete proposal states: scope in and out, deliverables per milestone, the tech stack, team and rate card, the estimate in hours or a fixed price per milestone, the payment schedule, a change-request process, acceptance criteria, warranty for defects (for example 30-90 days), post-launch support with an SLA, ownership of the source code and IP, third-party licence and hosting costs listed separately, and validity. Red flags: one lump sum with no breakdown, no IP transfer, hosting or licences hidden, no testing or QA line, or no defect warranty.",
       "body_ar": "يحتاج المطوّر لتقديم السعر: الهدف والمستخدمين، وقائمة الخصائص أو قصص المستخدم (أو موجز يقود لمرحلة استكشاف مدفوعة)، والمنصات (ويب، iOS، Android)، واللغات (عربي/إنجليزي، من اليمين لليسار)، والتكاملات (الدفع، ERP، UAE PASS، الرسائل/واتساب)، والتصاميم إن وجدت، ومسؤولية المحتوى، وتفضيل الاستضافة ومتطلبات بقاء البيانات داخل الدولة، ومتطلبات الأمن، وتاريخ الإطلاق، ونطاق الميزانية. ويذكر العرض الكامل: النطاق المشمول وغير المشمول، والمخرجات لكل مرحلة، والتقنيات المستخدمة، والفريق وجدول الأسعار، والتقدير بالساعات أو السعر الثابت لكل مرحلة، وجدول الدفعات، وآلية طلبات التغيير، ومعايير القبول، وضمان العيوب (مثلاً 30-90 يوماً)، والدعم بعد الإطلاق مع اتفاقية مستوى الخدمة، وملكية الشيفرة المصدرية والملكية الفكرية، وتكاليف التراخيص والاستضافة منفصلة، والصلاحية. علامات التحذير: مبلغ إجمالي واحد بلا تفصيل، أو عدم نقل الملكية الفكرية، أو إخفاء الاستضافة أو التراخيص، أو غياب بند الاختبار وضمان الجودة، أو عدم وجود ضمان للعيوب.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-10-19",
       "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     }
   ],
   "eval": [
@@ -96,14 +102,6 @@
       "expected_entry_ids": [
         "software_development:uae-standards-and-approvals"
       ]
-    },
-    {
-      "q_en": "Should our delivery app be built natively or with Flutter, and who owns the code afterwards?",
-      "q_ar": "تطبيق التوصيل حقنا نسويه native ولا Flutter؟ وبعدين الكود ملك مين؟",
-      "expected_entry_ids": [
-        "software_development:product-distinctions"
-      ],
-      "written_blind": true
     }
   ],
   "verified": {
@@ -140,6 +138,12 @@
         903,
         1198,
         1209
+      ],
+      "served": [],
+      "stored_not_served": [
+        "software_development:product-distinctions",
+        "software_development:lead-times",
+        "software_development:quotation-requirements"
       ]
     }
   }
