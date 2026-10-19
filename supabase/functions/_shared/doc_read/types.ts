@@ -74,7 +74,9 @@ export const refuse = (error: string, detail: string): Refusal => ({ ok: false, 
  * roughly 100 dense pages, the depth cap stops a zip in a zip in an email from nesting further.
  */
 export const LIMITS = {
-  maxBytes: 20 * 1024 * 1024,
+  // The same 25 MB the upload accepts (attachment.sanitizeUpload's default): until 13 Oct 2026 this was 20 MB, so a
+  // 21-25 MB company profile was stored and then never read (2 of 29 real UAE profiles, ACCURACY_real_profiles.md).
+  maxBytes: 25 * 1024 * 1024,
   maxTextChars: 400_000,
   maxZipEntries: 512,
   maxZipTotalBytes: 64 * 1024 * 1024,
