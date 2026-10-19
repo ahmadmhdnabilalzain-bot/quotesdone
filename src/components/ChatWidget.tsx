@@ -124,8 +124,8 @@ export function ChatWidget() {
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
         // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
         // was unreachable code. useLocale() already knows; the value simply never left the browser.
-        body: JSON.stringify({ message: m, history: next.slice(-40),   // only a first-turn fallback: site_assistant stores every turn and reads the whole conversation back by conv
-        path: pathname, lang: locale, conv: conv.current, ...(images.length ? { images } : {}) })
+        // history is only a first-turn fallback: site_assistant stores every turn and reads the whole conversation back by conv
+        body: JSON.stringify({ message: m, lang: locale, history: next.slice(-40), path: pathname, conv: conv.current, ...(images.length ? { images } : {}) })
       });
       if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
         const rd = r.body.getReader(); const dec = new TextDecoder();
