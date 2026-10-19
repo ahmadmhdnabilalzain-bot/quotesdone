@@ -418,5 +418,86 @@
     "lubricants_industrial_oils": "p10 (image) 'LUBRICANTS TRADING'"
    }
   }
- ]
+ ],
+ "audit": {
+  "done_by": "independent Claude adjudicator (sales_engineer subagent, no paid model), 19 Oct 2026, ruling on the extra trades of the first three runs; recorded by sales_engineer after the release operator's decision on #1483",
+  "method": "each proposed code outside the blind truth was ruled LINE_OF_BUSINESS, PASSING or NOT_OFFERED against the trade definition, reading the file",
+  "note": "The blind trades and trades_also above are UNCHANGED. verified_in_file is an allowance the scorer's audited score reads; the strict score stays the blind truth.",
+  "premise_m07": "The request to the adjudicator stated that a trade-licence activity the company presents as its own is a line of business. M07 electrical, gypsum, hvac and plumbing rest on that premise; without it they would be PASSING at most.",
+  "caveat_m12": "M12 building_materials and hvac are lines of the group's member companies; they count only because the document is the group's own brochure (rule 4).",
+  "verified_in_file": {
+   "M06": [
+    "lighting_fixtures",
+    "engineering_consultancy"
+   ],
+   "M07": [
+    "electrical",
+    "gypsum",
+    "heavy_equipment",
+    "hvac",
+    "plumbing"
+   ],
+   "M12": [
+    "building_materials",
+    "hvac"
+   ]
+  },
+  "rulings": {
+   "M06:lighting_fixtures": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "Section 5.6 LIGHTING DIVISION (layout text l.827-841)",
+    "why": "A division of its own that designs, supplies and installs floodlights, streetlights, downlights, track lights and LED decorative luminaires. That is indoor, outdoor and decorative lighting."
+   },
+   "M07:electrical": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "Trade licence register activities (l.677)",
+    "why": "'Electrical Fitting Contracting' is a licensed activity in the company's own trade licence, included in its profile. The profile also lists MEP Works and electrical cable networks."
+   },
+   "M07:gypsum": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "Trade licence activities (l.564, l.679)",
+    "why": "'False Ceiling & Light Partitions Installation' is a licensed activity in its own trade licence, included in its profile. False ceilings and partitions are in the definition."
+   },
+   "M07:heavy_equipment": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "Cover; Main Activities '1. Earth works.' (p5); 'fleet of heavy' equipment (p12)",
+    "why": "Earth works is its first main activity, carried out with its own heavy fleet. Excavation and earthmoving are in the definition."
+   },
+   "M07:hvac": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "Trade licence activities (l.565, l.674)",
+    "why": "It is a licensed activity in its own trade licence, included in its profile. Installing and maintaining AC and ventilation is the definition."
+   },
+   "M07:plumbing": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "Trade licence activities (l.567, l.676)",
+    "why": "'Plumbing & Sanitary Installation' is a licensed activity in its own trade licence, included in its profile. The profile also has sewerage, drainage and potable-water network work."
+   },
+   "M12:building_materials": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "OCR l.46-47 (SPEED HOUSE TRADING CO. LLC: 'General Trading & building Materia[ls]')",
+    "why": "This is a group profile, and the group presents its trading arm as a building-materials trader. Caveat: if the profile is judged as a single legal entity rather than the group, this is a sister company and would be NOT_OFFERED."
+   },
+   "M12:hvac": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "OCR l.61-63 (SPEED HOUSE CONTRACTING CO. LLC: 'HVAC, Civil Works')",
+    "why": "The group's contracting company presents HVAC as one of its two stated lines. The same group-versus-sister-company caveat as the building_materials item applies."
+   },
+   "M09:cables_wires": {
+    "verdict": "NOT_OFFERED",
+    "relied_on": "Company Profile (layout l.22-27)",
+    "why": "It makes cable management systems: trays, ladders, trunking, floor boxes and strut. These are containment, which sits under electrical ('Cable trays & containment'). It does not make power or control cables, wire rope or cable accessories."
+   },
+   "M06:engineering_consultancy": {
+    "verdict": "LINE_OF_BUSINESS",
+    "relied_on": "Section 5.5 Design Department (layout l.440-443)",
+    "why": "A department of its own presents civil, structural and electromechanical design. Structural and MEP design are in the definition."
+   },
+   "M10:thermal_insulation": {
+    "verdict": "NOT_OFFERED",
+    "relied_on": "Page 01 (layout l.39-48)",
+    "why": "'Thermal Insulation Blocks' are concrete masonry blocks it makes, so they belong under building_materials (blocks and bricks). It offers no roof, wall, facade, acoustic or pipe insulation work."
+   }
+  }
+ }
 }
