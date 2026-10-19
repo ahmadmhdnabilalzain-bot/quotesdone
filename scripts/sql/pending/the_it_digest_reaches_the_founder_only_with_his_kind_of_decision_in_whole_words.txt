@@ -1,1 +1,0 @@
-Applied at merge by the release operator (apply at merge, never before). Defines fn_trim_at_word and the IT digest's plain founder email. When applied: delete this note, append the .sql to the END of MANIFEST.txt, regenerate the schema mirror.

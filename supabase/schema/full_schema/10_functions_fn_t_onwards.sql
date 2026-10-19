@@ -785,6 +785,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_target_words(p_key text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select words from public.target_label where target_key = p_key), replace(p_key, '_', ' '))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_task_approve(p_dry_run boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1567,6 +1577,20 @@ begin
   end if;
   return NEW;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trim_at_word(p_text text, p_max integer)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_text is null or p_max is null or length(p_text) <= p_max then p_text
+    else coalesce(nullif(regexp_replace(regexp_replace(left(p_text, p_max + 1), '\s+\S*$', ''), '[\s.,;:(\-]+$', ''), ''),
+                  left(p_text, p_max)) || '…'
+  end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_twilio_error_in_plain_words(p_code text)
