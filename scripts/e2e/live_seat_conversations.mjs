@@ -22,6 +22,7 @@
 // Every scenario below its target is a gap for the weekly audit (scripts/e2e/knowledge_gap_audit.mjs).
 //
 //   node scripts/e2e/live_seat_conversations.mjs run [--only a,b] [--cap-usd 6] [--out <dir>]
+//   SITE_ASSISTANT_URL=http://localhost:8000 ... run   proves a branch before deploy: the function served locally (deno run) against production.
 //   node scripts/e2e/live_seat_conversations.mjs score --results <run.json> --judged <judged.json>
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -175,7 +176,9 @@ const S = [
 
 const IDK = /\b(i don'?t know|i do not know|(i'?m|i am) (not sure|unsure)|i'?ll (check|find out|get back)|i will (check|find out|get back)|can'?t help|cannot help|unable to help)\b|لا أعرف|ما أعرف|لست متأكد|مو متأكد|غير متأكد|سأتحقق|راح أتأكد|لا أستطيع المساعدة/i;
 const YESNO_ONLY = /^\s*(yes|no|yeah|nope|sure|ok(ay)?|نعم|لا|أكيد|تمام|ايوه)[\s.!،,]*([^\s]+\s*){0,3}$/i;
-const CONFIRM_ASK = /confirm|summary|summar|correct\?|is that right|shall i (send|submit|post)|ready to send|ملخص|أكد|تأكيد|صحيح؟|هل هذا صحيح|نرسل|أرسل الطلب/i;
+// A READ-BACK ASKED TO BE CONFIRMED, not any sentence with 'confirm' in it (run a8ad5ed7: 'to confirm at the site visit' and
+// 'للتأكيد' ended 11 conversations early as if the customer had confirmed a summary that was never given).
+const CONFIRM_ASK = /(here is|here's|summary|summar|request as i have it|ملخص)[\s\S]*(correct|right|confirm)[^.?!؟]*[?؟]|(صحيح|تؤكد|أكد)[^.?!؟]*[؟?]/i;
 const arabicShare = (t) => { const a = (t.match(/[؀-ۿ]/g) || []).length, l = (t.match(/[A-Za-z]/g) || []).length; return a / Math.max(1, a + l); };
 
 export function customerTurn(s, agentText, given) {
@@ -228,7 +231,7 @@ async function runSuite() {
       for (let t = 0; t < MAX_AGENT_TURNS; t++) {
         const message = turns.at(-1).text;
         const body = { message, lang: s.lang, path, conv, history: [...history, { role: 'user', content: message }], ...(t === 0 && s.image ? { images: [image] } : {}) };
-        const r = await fetch(`${BASE}/functions/v1/site_assistant?forceFunctionRegion=ap-southeast-1`, { method: 'POST', signal: AbortSignal.timeout(120000),
+        const r = await fetch(process.env.SITE_ASSISTANT_URL || `${BASE}/functions/v1/site_assistant?forceFunctionRegion=ap-southeast-1`, { method: 'POST', signal: AbortSignal.timeout(120000),
           headers: { apikey: ANON, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', 'x-qd-e2e-run': run.tag, 'x-qd-e2e-secret': secret,
             // one documentation address (RFC 5737) per conversation, so 30 conversations do not share one visitor bucket
             'x-forwarded-for': `198.51.100.${1 + (n % 254)}` }, body: JSON.stringify(body) })

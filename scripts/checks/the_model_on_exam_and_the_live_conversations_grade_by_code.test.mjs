@@ -28,7 +28,8 @@ test('the scripted customer answers only what was asked, once', () => {
   assert.equal(customerTurn(w, 'Thanks for the photo, it helps.', given), null);
   assert.match(customerTurn(w, 'How wide is the wall?', given), /2\.4 m wide/);
   assert.equal(customerTurn(w, 'And how wide again?', given), null);
-  assert.match(customerTurn(w, 'Here is the summary, please confirm.', given), /correct/);
+  assert.match(customerTurn(w, 'Here is the summary: a 2.4 m wardrobe. Is that correct?', given), /correct/);
+  assert.equal(customerTurn(w, 'The depth is to confirm at the site visit. Anything else on the wall?', given), null);
 });
 
 test('the code gates catch a hedge, a yes/no-only reply and the wrong language', () => {
