@@ -121,3 +121,25 @@ Deno.test('the knowledge block rides as the shared cached block on the 1-hour ti
   assert(!String(s.calls[0].o.sysStable).includes(BRIEF_TEXT));
   assert(s.calls[0].system.includes('Arabic') && !String(s.calls[0].o.sysStable).includes('Gulf Arabic'));
 });
+
+// prevented by: this test. Run c89dc272 (WhatsApp, 18 Oct 2026): conversation_reply came back ok and the customer got
+// the held notice, because an answer wrapped in a fence with surrounding newlines, or after a lead-in sentence, did
+// not JSON.parse and read as "no model answered". Each shape below must yield the answer on the FIRST call.
+Deno.test('an ok answer in a fence, with newlines or a lead-in sentence, is used, not discarded', async () => {
+  const body = 'Installation of aluminium windows on a villa usually takes a few days, depending on the area.';
+  for (const content of [
+    '\n```json\n' + A(body) + '\n```\n',
+    'Here is my reply:\n' + A(body),
+    '  ' + A(body) + '\n',
+  ]) {
+    const s = stub([content]);
+    const r = await aiReply(s.deps, req);
+    assertEquals(r.reply, body, 'discarded: ' + JSON.stringify(content));
+    assertEquals(s.calls.length, 1, 'no second model was asked for an answer we already had');
+  }
+});
+Deno.test('an answer cut at the output cap is still refused, never sent half-written', async () => {
+  const s = stub(['{"answer":"Installation usually takes a few days, depending on', null, null, null]);
+  assertEquals((await aiReply(s.deps, req)).reply, '');
+  assertEquals(s.calls[0].o.max, 900);
+});

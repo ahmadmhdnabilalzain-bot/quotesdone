@@ -17,8 +17,12 @@ const read = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta
 const SQL = 'scripts/sql/a_suppliers_documents_propose_trades_and_a_new_trade_is_reviewed_not_dropped.sql';
 
 test('every supplier upload path reads the document by code into a trade proposal', () => {
+  // Since #1487 a stored upload is read after the response through readStoredDocsLater, which itself must call
+  // proposeTradesFromDocs per document; either route counts, and the helper is held to the same rule.
+  assert.match(read('supabase/functions/_shared/supplier_docs_later.ts'), /proposeTradesFromDocs\(admin, /,
+    'readStoredDocsLater no longer reads uploads into the proposal');
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts', 'supabase/functions/supplier_catalog_ingest/index.ts']) {
-    assert.match(read(f), /proposeTradesFromDocs\(admin, /, `${f} does not read uploads into the proposal`);
+    assert.match(read(f), /proposeTradesFromDocs\(admin, |readStoredDocsLater\(admin, /, `${f} does not read uploads into the proposal`);
   }
 });
 

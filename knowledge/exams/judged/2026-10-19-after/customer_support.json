@@ -1,0 +1,487 @@
+{
+ "seat": "customer_support",
+ "judged_by": "ceo session reader (Claude), no paid judge",
+ "source": "C:\\Users\\Opera\\AppData\\Local\\Temp\\claude\\ceo1003\\after_llm_customer_support.json",
+ "items": [
+  {
+   "id": "customer_support-exam-01",
+   "verdict": "pass",
+   "note": "Only support sends WhatsApp; sales hands it over"
+  },
+  {
+   "id": "customer_support-exam-02",
+   "verdict": "pass",
+   "note": "Support does not own reveals; routes to sales_engineer"
+  },
+  {
+   "id": "customer_support-exam-03",
+   "verdict": "fail",
+   "note": "No \"better than an Amazon chat bot\" bar"
+  },
+  {
+   "id": "customer_support-exam-04",
+   "verdict": "fail",
+   "note": "Says no approved greeting; misses professional welcome + four-option menu"
+  },
+  {
+   "id": "customer_support-exam-05",
+   "verdict": "pass",
+   "note": "Reads intent by reasoning, not keyword"
+  },
+  {
+   "id": "customer_support-exam-06",
+   "verdict": "fail",
+   "note": "Discloses internal supplier counts (19,901 / 1 approved) - forbidden and dangerous"
+  },
+  {
+   "id": "customer_support-exam-07",
+   "verdict": "pass",
+   "note": "Raw error must not reach the customer; IT fixes"
+  },
+  {
+   "id": "customer_support-exam-08",
+   "verdict": "fail",
+   "note": "Cannot give the 22 Sep 2026 tightening or its reason"
+  },
+  {
+   "id": "customer_support-exam-09",
+   "verdict": "pass",
+   "note": "No supervisor handoff; support keeps the case"
+  },
+  {
+   "id": "customer_support-exam-10",
+   "verdict": "fail",
+   "note": "No founder-emailed exception; hedges about a draft template"
+  },
+  {
+   "id": "customer_support-exam-11",
+   "verdict": "pass",
+   "note": "Negative mention is not a request; answers the price"
+  },
+  {
+   "id": "customer_support-exam-12",
+   "verdict": "fail",
+   "note": "Delivery outcome yes; proof of the supplier response not returned"
+  },
+  {
+   "id": "customer_support-exam-13",
+   "verdict": "pass",
+   "note": "Invited is not delivery; check the delivery record"
+  },
+  {
+   "id": "customer_support-exam-14",
+   "verdict": "fail",
+   "note": "Says support closes the handoff; only the originating seat closes"
+  },
+  {
+   "id": "customer_support-exam-15",
+   "verdict": "pass",
+   "note": "Checks earlier reports first"
+  },
+  {
+   "id": "customer_support-exam-16",
+   "verdict": "fail",
+   "note": "Never states email is the identity, phone may confirm only"
+  },
+  {
+   "id": "customer_support-exam-17",
+   "verdict": "pass",
+   "note": "IT engineer owns the fix"
+  },
+  {
+   "id": "customer_support-exam-18",
+   "verdict": "pass",
+   "note": "No: conversations retained, no 12-month clearing"
+  },
+  {
+   "id": "customer_support-exam-19",
+   "verdict": "fail",
+   "note": "Misses Resend ~1-month retention and the PDF save by support"
+  },
+  {
+   "id": "customer_support-exam-20",
+   "verdict": "fail",
+   "note": "Cannot name Dropbox"
+  },
+  {
+   "id": "customer_support-exam-21",
+   "verdict": "fail",
+   "note": "Lists sign-up purge/erasure; misses \"only provably test data\""
+  },
+  {
+   "id": "customer_support-exam-22",
+   "verdict": "fail",
+   "note": "Denies the 18:00 Dubai PDF list exists"
+  },
+  {
+   "id": "customer_support-exam-23",
+   "verdict": "fail",
+   "note": "Misses \"only after the founder says go\""
+  },
+  {
+   "id": "customer_support-exam-24",
+   "verdict": "fail",
+   "note": "Says no settled target; key 1,000 suppliers"
+  },
+  {
+   "id": "customer_support-exam-25",
+   "verdict": "fail",
+   "note": "No daily test bounce, no 30-minute-silence finding"
+  },
+  {
+   "id": "customer_support-exam-26",
+   "verdict": "pass",
+   "note": "Hard bounce suppressed permanently, never retried"
+  },
+  {
+   "id": "customer_support-exam-27",
+   "verdict": "pass",
+   "note": "Delivery success rate per channel"
+  },
+  {
+   "id": "customer_support-exam-28",
+   "verdict": "fail",
+   "note": "Says no message; misses activation message once per step"
+  },
+  {
+   "id": "customer_support-exam-29",
+   "verdict": "fail",
+   "note": "Says 45 days; key 60-90 days"
+  },
+  {
+   "id": "customer_support-exam-30",
+   "verdict": "pass",
+   "note": "Dormant until January 2027"
+  },
+  {
+   "id": "customer_support-exam-31",
+   "verdict": "fail",
+   "note": "Says no deadline; key 5 working days"
+  },
+  {
+   "id": "customer_support-exam-32",
+   "verdict": "fail",
+   "note": "Says QuotesDone does not rule; key: CEO decides within 3 working days"
+  },
+  {
+   "id": "customer_support-exam-33",
+   "verdict": "pass",
+   "note": "Never promises a refund"
+  },
+  {
+   "id": "customer_support-exam-34",
+   "verdict": "fail",
+   "note": "No knowledge-request filing"
+  },
+  {
+   "id": "customer_support-exam-35",
+   "verdict": "fail",
+   "note": "Cannot give 12 unanswered"
+  },
+  {
+   "id": "customer_support-exam-36",
+   "verdict": "fail",
+   "note": "Misses that WhatsApp replies were written with no reply time"
+  },
+  {
+   "id": "customer_support-exam-37",
+   "verdict": "fail",
+   "note": "Answers the spec itself; key: spec questions go to the sales engineer"
+  },
+  {
+   "id": "customer_support-exam-38",
+   "verdict": "fail",
+   "note": "Does not give case closure as support’s own decision"
+  },
+  {
+   "id": "customer_support-exam-39",
+   "verdict": "pass",
+   "note": "Not acceptable; answer in the same reply"
+  },
+  {
+   "id": "customer_support-exam-40",
+   "verdict": "fail",
+   "note": "No under-a-minute target"
+  },
+  {
+   "id": "customer_support-exam-41",
+   "verdict": "fail",
+   "note": "Generic test pack; no automated scenario suite score"
+  },
+  {
+   "id": "customer_support-exam-42",
+   "verdict": "fail",
+   "note": "Registrations yes; reply rate missing"
+  },
+  {
+   "id": "customer_support-exam-43",
+   "verdict": "pass",
+   "note": "Reply in account (registered) language, not latest message"
+  },
+  {
+   "id": "customer_support-exam-44",
+   "verdict": "fail",
+   "note": "Allows translating from English; key: Arabic written natively"
+  },
+  {
+   "id": "customer_support-exam-45",
+   "verdict": "fail",
+   "note": "Replies in English \"Hello\"; misses the full Arabic return greeting"
+  },
+  {
+   "id": "customer_support-exam-46",
+   "verdict": "fail",
+   "note": "Licence number yes; \"never describes itself as AI\" missing"
+  },
+  {
+   "id": "customer_support-exam-47",
+   "verdict": "fail",
+   "note": "Denies the requirement; key: marketing seat"
+  },
+  {
+   "id": "customer_support-exam-48",
+   "verdict": "pass",
+   "note": "Day-3 chase with customer copied; day-5 refund rule"
+  },
+  {
+   "id": "customer_support-exam-49",
+   "verdict": "pass",
+   "note": "3% reveal fee"
+  },
+  {
+   "id": "customer_support-exam-50",
+   "verdict": "pass",
+   "note": "No VAT on the fee"
+  },
+  {
+   "id": "customer_support-exam-51",
+   "verdict": "pass",
+   "note": "Never disclose identity before reveal"
+  },
+  {
+   "id": "customer_support-exam-52",
+   "verdict": "pass",
+   "note": "24-hour window; approved templates outside it"
+  },
+  {
+   "id": "customer_support-exam-53",
+   "verdict": "pass",
+   "note": "PDPL 45/2021"
+  },
+  {
+   "id": "customer_support-exam-54",
+   "verdict": "pass",
+   "note": "Do not pay; verify via known contact"
+  },
+  {
+   "id": "customer_support-exam-55",
+   "verdict": "pass",
+   "note": "Monday to Friday"
+  },
+  {
+   "id": "customer_support-exam-56",
+   "verdict": "pass",
+   "note": "Divide by 1.05 = AED 10,000"
+  },
+  {
+   "id": "customer_support-exam-57",
+   "verdict": "fail",
+   "note": "Generic history review; no retrieval of most similar resolved cases"
+  },
+  {
+   "id": "customer_support-exam-58",
+   "verdict": "pass",
+   "note": "Silence is not satisfaction"
+  },
+  {
+   "id": "customer_support-exam-59",
+   "verdict": "fail",
+   "note": "held: model_failed (no reply) - seat could not answer"
+  },
+  {
+   "id": "customer_support-exam-60",
+   "verdict": "fail",
+   "note": "No published route, stated hours, measured commitment, complaint path; no not-opened rule"
+  },
+  {
+   "id": "customer_support-exam-61",
+   "verdict": "pass",
+   "note": "Backstage/supporting processes behind each step (line of visibility in meaning)"
+  },
+  {
+   "id": "customer_support-exam-62",
+   "verdict": "pass",
+   "note": "System turning feedback into action and closing the loop"
+  },
+  {
+   "id": "customer_support-exam-63",
+   "verdict": "fail",
+   "note": "Says no rule; key: after the outcome"
+  },
+  {
+   "id": "customer_support-exam-64",
+   "verdict": "pass",
+   "note": "More activity, more complaints; normalise per activity"
+  },
+  {
+   "id": "customer_support-exam-65",
+   "verdict": "pass",
+   "note": "Reflect back first"
+  },
+  {
+   "id": "customer_support-exam-66",
+   "verdict": "fail",
+   "note": "Lists commitments but not the principle \"only standards we measure\""
+  },
+  {
+   "id": "customer_support-exam-67",
+   "verdict": "pass",
+   "note": "Set of promises with guidance"
+  },
+  {
+   "id": "customer_support-exam-68",
+   "verdict": "pass",
+   "note": "Access, portability, correction, erasure, restriction, objection; identity verified"
+  },
+  {
+   "id": "customer_support-exam-69",
+   "verdict": "fail",
+   "note": "Escalates but no Data Office / affected-person notification duty; \"hours matter\" missing"
+  },
+  {
+   "id": "customer_support-exam-70",
+   "verdict": "fail",
+   "note": "Wrong framing: suggests a company may be a consumer and refuses to decide; misses consumer vs commercial split"
+  },
+  {
+   "id": "customer_support-exam-71",
+   "verdict": "fail",
+   "note": "Lists technical regulators; misses MoE 800 1222 and consumerrights.ae"
+  },
+  {
+   "id": "customer_support-exam-72",
+   "verdict": "fail",
+   "note": "Supplier responsible yes; QuotesDone own-service responsibility (matching, comparison, reveal, fee) missing"
+  },
+  {
+   "id": "customer_support-exam-73",
+   "verdict": "fail",
+   "note": "No 250 -> 2,000 -> 10,000 tiers, rolling 24h per portfolio, quality pause"
+  },
+  {
+   "id": "customer_support-exam-74",
+   "verdict": "fail",
+   "note": "Marketing + consent yes; misses Cabinet Resolution 56/2024 and the service-vs-marketing definition"
+  },
+  {
+   "id": "customer_support-exam-75",
+   "verdict": "fail",
+   "note": "Gives 2/10 working days; key: 1 business day email ack with reference number"
+  },
+  {
+   "id": "customer_support-exam-76",
+   "verdict": "pass",
+   "note": "Impact not tone; double charge first"
+  },
+  {
+   "id": "customer_support-exam-77",
+   "verdict": "fail",
+   "note": "No prevention statement, no proportional recovery ladder"
+  },
+  {
+   "id": "customer_support-exam-78",
+   "verdict": "fail",
+   "note": "held: model_failed (no reply) - seat could not answer"
+  },
+  {
+   "id": "customer_support-exam-79",
+   "verdict": "pass",
+   "note": "Rubric: accuracy, completeness, policy, tone; quality measured"
+  },
+  {
+   "id": "customer_support-exam-80",
+   "verdict": "fail",
+   "note": "No retrieved-source logging rule, no OWASP misinformation framing"
+  },
+  {
+   "id": "customer_support-exam-81",
+   "verdict": "fail",
+   "note": "English only (no Arabic), no next-update time in holding reply"
+  },
+  {
+   "id": "customer_support-exam-82",
+   "verdict": "fail",
+   "note": "Two-hour reduction under 33/2021 yes; no support coverage planning, asks back instead"
+  },
+  {
+   "id": "customer_support-exam-83",
+   "verdict": "fail",
+   "note": "held: model_failed (asked back) - seat could not answer"
+  },
+  {
+   "id": "customer_support-exam-84",
+   "verdict": "fail",
+   "note": "Says 7-14 working days; key 5-10 business days; reversal case missing"
+  },
+  {
+   "id": "customer_support-exam-85",
+   "verdict": "fail",
+   "note": "No issuing-authority register lookup (DET/TAMM/SEDD/NER)"
+  },
+  {
+   "id": "customer_support-exam-86",
+   "verdict": "fail",
+   "note": "Scope first yes; no single VAT basis, no eight-point comparison"
+  },
+  {
+   "id": "customer_support-exam-87",
+   "verdict": "fail",
+   "note": "Dismisses gmail as fine; no register/TRN mismatch red flag"
+  },
+  {
+   "id": "customer_support-exam-88",
+   "verdict": "fail",
+   "note": "No frustration-vs-abuse definition or reply-once rule; defers to CEO"
+  },
+  {
+   "id": "customer_support-exam-89",
+   "verdict": "fail",
+   "note": "Treats as third-party platform; no published rating rules or consistent removal"
+  },
+  {
+   "id": "customer_support-exam-90",
+   "verdict": "pass",
+   "note": "Same record; auto-reply not answered"
+  },
+  {
+   "id": "customer_support-exam-91",
+   "verdict": "fail",
+   "note": "No simple-English/no-idioms rule or Hindi/Urdu/Arabic"
+  },
+  {
+   "id": "customer_support-exam-92",
+   "verdict": "fail",
+   "note": "\"Not necessarily\"; does not state 46/2021 gives e-signatures legal effect"
+  },
+  {
+   "id": "customer_support-exam-93",
+   "verdict": "fail",
+   "note": "No bank-dispute-open stop check"
+  },
+  {
+   "id": "customer_support-exam-94",
+   "verdict": "fail",
+   "note": "DMARC alignment yes; no 0.3% spam rate or one-click unsubscribe within 2 days"
+  },
+  {
+   "id": "customer_support-exam-95",
+   "verdict": "fail",
+   "note": "No List-Unsubscribe-Post failure diagnosis"
+  },
+  {
+   "id": "customer_support-exam-96",
+   "verdict": "fail",
+   "note": "Hedges \"potentially\"; no 7-day repeat-contact test or abandonment"
+  }
+ ]
+}

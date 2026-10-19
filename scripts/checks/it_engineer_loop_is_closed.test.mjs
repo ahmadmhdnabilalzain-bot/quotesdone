@@ -221,6 +221,8 @@ test('the detector fits the 8 s statement timeout, and a detector that stops per
 // them was scripts/checks/a_phone_cannot_select_an_account.test.mjs (6 calls a run, 5 refused by design) run
 // by check sessions without a rehearsal window of its own - the suite raising a "customers turned away"
 // finding against itself. That test now opens one. This probe now measures only what its own 60 rows do:
+// 13 Oct 2026: the window names its own expires_at. The default (now() + 2 h) on a window backdated 5 minutes
+// broke CHECK rehearsal_window_at_most_two_hours (expires_at <= started_at + 2h01m), so the probe errored before measuring.
 // the detector runs once before they exist and once after, and the attempts it counts must not move inside a
 // window, and must move by exactly 60 outside one (the control), whatever real traffic is doing.
 const REFUSAL_PROBE = (withWindow, counts = '{"http":404}') => `
@@ -230,7 +232,7 @@ const REFUSAL_PROBE = (withWindow, counts = '{"http":404}') => `
       -- a real window open over the last minute would cover the control's runs too; end it inside this rollback
       ${withWindow ? '' : "update public.rehearsal_window set ended_at = now() - interval '10 minutes' where coalesce(ended_at, started_at + interval '6 hours') > now() - interval '10 minutes';"}
       v0 := public.fn_it_detect(null, false);
-      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, started_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', now() - interval '5 minutes');" : ''}
+      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, started_at, expires_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', true, now() - interval '5 minutes', now() + interval '15 minutes');" : ''}
       insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
       select 'fn:login_otp', 'warn', now() - interval '1 minute', now() - interval '1 minute', '${counts}'::jsonb, 'ZZ DEMO'
         from generate_series(1, 60);
@@ -325,4 +327,45 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
   // Deliberately NO assertion that either count is above zero. Both are a snapshot of production's
   // backlog: a floor on them would turn a drained queue -- the thing this build is for -- into a red
   // check. The refusal path is proved by the three lookups above, which do not depend on the backlog.
+});
+
+// THE ALERT TICK FITS PostgREST'S 8 S STATEMENT TIMEOUT (it_engineer, 18 Oct 2026). Handoff 165782 sat past its
+// window unescalated because fn_it_engineer_alert_tick never finished: its open step called fn_it_loop_open for
+// every unopened finding (409 x ~104 ms = 42.6 s, measured 18 Oct), before reverify, so PostgREST cancelled the
+// tick at 8 s, rolled everything back, and the backlog only grew. The fix bounds the open step and runs reverify
+// first (scripts/sql/the_it_alert_tick_opens_its_backlog_within_budget_and_escalates_first.sql). This times the
+// WHOLE tick, as resilience_ping calls it, on production's real backlog, under the same 8 s cancel, inside a
+// transaction that rolls back. A pending file that redefines the tick is replayed first in the same request, so a
+// PR is measured against the routine it will apply. 6000 ms, as for fn_it_detect above: 2 s of headroom.
+const PENDING_TICK = manifestWithPending().filter((f) => !applied.has(f))
+  .map((f) => readFileSync(join(REPO, f), 'utf8')).filter((t) => /function public\.fn_it_(loop_tick|engineer_alert_tick)\(/i.test(t));
+test('the alert tick fits the 8 s statement timeout and escalates before it opens', { skip: SKIP }, async () => {
+  const block = `do $p$
+    declare t0 timestamptz; v jsonb;
+    begin
+      set local statement_timeout = '8s';
+      -- worst case: the hourly silence watch is due on this tick
+      update public.it_engineer_scanner set last_beat_at = now() - interval '2 hours' where scanner = 'it_ceo_silence_watch';
+      t0 := clock_timestamp();
+      v := public.fn_it_engineer_alert_tick();
+      raise exception 'CHK<<%>>', json_build_object('tick_ms', round(extract(epoch from clock_timestamp() - t0) * 1000),
+        'reverify_ran', v->'loop' ? 'reverify', 'opened', v->'loop'->'opened', 'left', v->'loop'->'left_for_next_tick',
+        'silence_ran', jsonb_typeof(v->'loop'->'ceo_silence') = 'object',
+        'floor_4_5', pg_get_functiondef('public.fn_it_loop_tick()'::regprocedure) like '%v_floor_until timestamptz := statement_timestamp() + interval ''4.5 seconds''%');
+    end $p$;`;
+  let r;
+  try {
+    if (PENDING_TICK.length) await replaySql([...PENDING_TICK, block].join('\n;\n'), { label: 'pending alert tick' });
+    else await sql(block);
+  } catch (e) {
+    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    if (!m) throw e; // a statement_timeout cancel lands here: the tick did not fit
+    r = JSON.parse(m[1].replace(/\\"/g, '"'));
+  }
+  assert.ok(r, 'the probe committed instead of rolling back');
+  assert.ok(r.tick_ms < 6000, `fn_it_engineer_alert_tick took ${r.tick_ms} ms; PostgREST cancels it at 8000`);
+  assert.equal(r.reverify_ran, true, 'the tick returned without running reverify, so nothing it owes escalated');
+  assert.ok(r.opened <= 50, `the open step opened ${r.opened} findings in one tick; it is capped at 50`);
+  assert.equal(r.silence_ran, true, 'the silence watch was due and did not run: the worst case was not measured');
+  assert.equal(r.floor_4_5, true, 'the forced open floor is no longer 4.5 s after the statement began');
 });

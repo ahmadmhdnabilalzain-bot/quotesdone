@@ -785,6 +785,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_target_words(p_key text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select words from public.target_label where target_key = p_key), replace(p_key, '_', ' '))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_task_approve(p_dry_run boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1335,6 +1345,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_text_states_a_price(p text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p, '') ~* '(^|[^a-z])(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)\s*[0-9٠-٩۰-۹]|[$€£]\s*[0-9٠-٩۰-۹]|درهم\s*[0-9٠-٩۰-۹]|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(/-|[$€£]|درهم)|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(aed|dhs?|dirhams?|usd|euros?|eur|gbp|sar)(?![a-z])|[0-9٠-٩۰-۹][0-9٠-٩۰-۹,.]*\s*(/|per)\s*(m2|m²|sqm|sq\.?\s*m|lm|m|no|nos|unit|pc|pcs|kg|ton)(?![a-z])';
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_trade_code(p_name text)
  RETURNS text
  LANGUAGE sql
@@ -1557,6 +1577,20 @@ begin
   end if;
   return NEW;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trim_at_word(p_text text, p_max integer)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_text is null or p_max is null or length(p_text) <= p_max then p_text
+    else coalesce(nullif(regexp_replace(regexp_replace(left(p_text, p_max + 1), '\s+\S*$', ''), '[\s.,;:(\-]+$', ''), ''),
+                  left(p_text, p_max)) || '…'
+  end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_twilio_error_in_plain_words(p_code text)
@@ -1839,6 +1873,7 @@ begin
     v_keep := public.fn_signup_email_kept_elsewhere(c.email, 'customer');
     if not v_keep then
       -- by e-mail only (the mobile was never verified), and only when no other account of this e-mail stays
+      v_cnt := v_cnt || public.fn_signup_purge_mail(v_id, c.email);   -- its archived PDFs and copies first (13 Oct)
       delete from public.notifications n where lower(n.to_email) = c.email;
       get diagnostics v_n = row_count; v_cnt := v_cnt || jsonb_build_object('outbox', v_n);
       delete from public.email_verifications e where lower(e.email) = c.email;
@@ -1897,8 +1932,9 @@ begin
       -- an invited lead's mail is the campaign's (its invitation and follow-ups): never deleted; a self-registered
       -- company's mail to this address is the sign-up's own
       if not c.invited then
+        v_cnt := v_cnt || public.fn_signup_purge_mail(v_id, v_email);
         delete from public.notifications n where lower(n.to_email) = v_email;
-        get diagnostics v_n = row_count; v_cnt := jsonb_build_object('outbox', v_n);
+        get diagnostics v_n = row_count; v_cnt := v_cnt || jsonb_build_object('outbox', v_n);
       else v_cnt := jsonb_build_object('outbox', 0, 'outbox_kept', 'campaign mail of an invited lead'); end if;
     else
       v_cnt := jsonb_build_object('outbox', 0, 'login', 'kept: another account of this e-mail is complete or held');
@@ -2196,6 +2232,78 @@ begin
   );
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_arrival_sweep(p_limit integer DEFAULT 20, p_from text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb;
+begin
+  with stuck as (
+    select id from public.wa_messages
+     where meta->>'stage' = 'received'
+       and created_at <= now() - interval '5 minutes'
+       and (p_from is null or wa_from = p_from)
+     order by created_at
+     limit greatest(1, least(coalesce(p_limit, 20), 100))
+     for update skip locked
+  ), marked as (
+    update public.wa_messages w
+       set meta = w.meta || jsonb_build_object('stage', 'escalated', 'escalated_at', now())
+      from stuck where w.id = stuck.id
+    returning w.id, w.wa_from, w.profile_name, w.inbound, w.created_at, w.lang, w.meta->>'message_sid' as message_sid
+  ), held as (
+    insert into public.reasoning_held_question (seat, surface, question, request, subject, reason, status, escalated_at, dedupe_key)
+    select 'customer_support', 'wa_inbound.turn_crashed',
+           coalesce(nullif(btrim(m.inbound), ''), '(a WhatsApp message with no text)'),
+           jsonb_build_object('wa_message_id', m.id),
+           jsonb_build_object('phone', regexp_replace(m.wa_from, '^whatsapp:', '', 'i'), 'lang', m.lang, 'wa_message_id', m.id),
+           'the WhatsApp turn stopped before replying (no row completed in 5 minutes)', 'failed', now(), 'wa_arrival:' || m.id
+      from marked m
+    on conflict (dedupe_key) do nothing
+    returning id, (request->>'wa_message_id')::bigint as wa_id
+  ), filed as (
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    select 'customer_support', 'held_question', 'pending', 'low',
+           'A WhatsApp message got no answer: its turn stopped before replying (5 minutes)',
+           jsonb_build_object('wa_message_id', m.id, 'held_id', h.id, 'from', m.wa_from, 'profile_name', m.profile_name,
+                              'message', left(coalesce(m.inbound, ''), 1000), 'received_at', m.created_at, 'message_sid', m.message_sid,
+                              'told', 'the holding notice (a person has it) goes to them on WhatsApp from the held-question queue',
+                              'waiting_for', 'customer_support to answer this person on WhatsApp'),
+           'wa_messages', m.id::text
+      from marked m join held h on h.wa_id = m.id
+    returning id
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('wa_message_id', h.wa_id, 'held_id', h.id)), '[]'::jsonb)
+    into v from held h where (select count(*) from filed) >= 0;
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_arrival_turn_finished(p_wa_message_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n_held int; n_act int;
+begin
+  update public.reasoning_held_question
+     set status = 'applied', applied_at = now(),
+         notice_delivered_at = coalesce(notice_delivered_at, now()),
+         notice_detail = coalesce(notice_detail, jsonb_build_object('suppressed', 'the turn replied after the sweep took it'))
+   where dedupe_key = 'wa_arrival:' || p_wa_message_id and status <> 'applied';
+  get diagnostics n_held = row_count;
+  update public.agent_actions
+     set status = 'auto_done', decided_at = now(), decided_by = 'wa_inbound'
+   where agent = 'customer_support' and kind = 'held_question' and target_table = 'wa_messages'
+     and target_id = p_wa_message_id::text and status = 'pending';
+  get diagnostics n_act = row_count;
+  return jsonb_build_object('held_closed', n_held, 'actions_closed', n_act);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_wa_attach_document(p_phone text, p_storage_path text, p_caption text DEFAULT NULL::text, p_media_kind text DEFAULT NULL::text, p_turn_id bigint DEFAULT NULL::bigint)
@@ -2734,6 +2842,11 @@ begin
       v_digits || ':' || to_char(now() at time zone 'UTC', 'YYYYMMDDHH24MISS'),
       jsonb_build_object('phone_digits', v_digits, 'held', p_hold, 'event', p_event,
                          'waiting_for', 'a person to answer +' || v_digits || ' on WhatsApp'));
+  end if;
+  -- B. A reserved fixture number (+971 50 000 00xx, the ZZ DEMO harness) never pages the founder: the QA channels run of
+  --    19 Oct 2026 sent him founder_alert 103774 (e-mail) and 103775 (WhatsApp) for +971500000081. The handoff above is kept.
+  if public.fn_is_demo_phone(p_phone) then
+    return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'founder_own_number', v_founder, 'notified', false, 'fixture', true);
   end if;
   begin
     perform public.fn_notify_founder(p_event => p_event, p_detail => p_detail, p_level => 'high', p_kind => 'whatsapp_human_request',
@@ -3331,6 +3444,72 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_supplier_invite_opt_out(p_from text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_phone text := '+' || regexp_replace(coalesce(p_from, ''), '\D', '', 'g'); v_leads int; v_cancelled int;
+begin
+  if length(v_phone) < 9 then return jsonb_build_object('ok', false, 'reason', 'no number'); end if;
+  update public.leads set whatsapp_opt = 'none' where phone_e164 = v_phone or whatsapp_phone = v_phone;
+  get diagnostics v_leads = row_count;
+  update public.notifications set status = 'cancelled', last_error = 'the recipient replied STOP; WhatsApp opt-out honoured'
+   where type = any (array['supplier_invite_wa']) and to_phone = v_phone and status in ('queued', 'sending');  -- MARKETING_TYPES (_shared/marketing_send_gate.ts)
+  get diagnostics v_cancelled = row_count;
+  return jsonb_build_object('ok', true, 'leads_opted_out', v_leads, 'invitations_cancelled', v_cancelled);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_supplier_invite_queue(p_limit integer DEFAULT 20, p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_live boolean := coalesce((select value from public.app_secrets where key = 'wa_supplier_invite_golive'), '') = 'true';
+  v_local timestamp := p_at at time zone 'Asia/Dubai';
+  v_today int; v_room int; v_eligible int; v_queued int := 0;
+begin
+  select count(*) into v_today from public.notifications
+   where type = 'supplier_invite_wa' and channel = 'whatsapp' and (created_at at time zone 'Asia/Dubai')::date = (now() at time zone 'Asia/Dubai')::date;  -- the cap counts real rows, whatever p_at says
+  v_room := greatest(0, least(coalesce(p_limit, 20), 20) - v_today);
+
+  create temp table if not exists _wa_inv(lead_id bigint, phone text, trade text, token text) on commit drop;
+  truncate _wa_inv;
+  insert into _wa_inv
+  select l.id, l.phone_e164, coalesce(l.invite_trades[1], l.sector), l.claim_token::text
+    from public.leads l
+   where l.claim_token is not null and l.phone_e164 ~ '^\+9715[0-9]{8}$'
+     and not coalesce(l.is_demo, false) and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
+     and not coalesce(l.claimed, false) and l.approval_status is null
+     and coalesce(l.whatsapp_opt, '') <> 'none'
+     and coalesce(l.invite_status, '') <> 'bounced'
+     and (l.email is null or not exists (select 1 from public.email_suppressions s where lower(s.email) = lower(l.email)))
+     and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.lead_id = l.id)
+     and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.to_phone = l.phone_e164)
+   order by l.id;
+  select count(*) into v_eligible from _wa_inv;
+
+  if v_live and v_room > 0 and extract(isodow from v_local) between 1 and 5 and extract(hour from v_local) between 10 and 16 then
+    with pick as (select distinct on (phone) * from _wa_inv order by phone, lead_id limit v_room)
+    insert into public.notifications (type, channel, sender, to_phone, lead_id, subject, body, status, lang, dedupe_key)
+    select 'supplier_invite_wa', 'whatsapp', 'customer_support', p.phone, p.lead_id,
+           coalesce(t.label, replace(p.trade, '_', ' ')),
+           'Invitation to receive customer requests on QuotesDone for ' || coalesce(t.label, replace(p.trade, '_', ' ')) || ': https://quotesdone.com/en/portal?t=' || p.token,
+           'queued', 'en', 'supplier_invite_wa:' || p.lead_id
+      from pick p left join lateral (select x->>'label' label from jsonb_array_elements(
+             public.fn_every_category_has_ten_suppliers(false)->'short') x where x->>'trade' = p.trade limit 1) t on true;
+    get diagnostics v_queued = row_count;
+  end if;
+
+  return jsonb_build_object('live', v_live, 'eligible', v_eligible, 'sent_today', v_today, 'room_today', v_room,
+                            'queued', v_queued, 'dubai_time', v_local);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_template_registry_follows_messaging_template()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -3340,7 +3519,7 @@ AS $function$
 declare v_status text;
 begin
   if new.channel is distinct from 'whatsapp' or new.last_checked_at is null then return new; end if;
-  v_status := case when new.status in ('approved', 'rejected') then new.status
+  v_status := case when new.status in ('approved', 'rejected', 'missing') then new.status
                    when new.status in ('received', 'pending', 'submitted', 'in_review', 'unsubmitted') then 'pending' end;
   if v_status is null then return new; end if;
   update public.wa_template_registry r
@@ -7610,6 +7789,7 @@ CREATE OR REPLACE FUNCTION public.rl_check(p_key text, p_limit integer, p_second
 AS $function$
 declare n int;
 begin
+  perform pg_advisory_xact_lock(hashtextextended('rl_check:' || p_key, 0));
   delete from rl_hits where at < now() - (p_seconds || ' seconds')::interval and k = p_key;
   select count(*) into n from rl_hits where k = p_key and at > now() - (p_seconds || ' seconds')::interval;
   if n >= p_limit then return false; end if;
@@ -9619,6 +9799,23 @@ AS $function$
 begin
   if NEW.original_file_path is not null and (TG_OP='INSERT' or NEW.original_file_path is distinct from OLD.original_file_path) then
      perform public.fn_register_document('quote-files', NEW.original_file_path, 'quote', 'quotes', NEW.id::text, NEW.original_file_name);
+  end if;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_reveal_opens_response_watch()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if NEW.fee_status = 'paid' and NEW.revealed_at is not null and NEW.supplier_id is not null
+     and (TG_OP = 'INSERT' or OLD.revealed_at is null or OLD.fee_status is distinct from 'paid') then
+    insert into public.supplier_response_watch (transaction_id, lead_id)
+    values (NEW.id, NEW.supplier_id)
+    on conflict (transaction_id) do nothing;
   end if;
   return NEW;
 end $function$

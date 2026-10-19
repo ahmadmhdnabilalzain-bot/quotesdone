@@ -16,6 +16,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
+import { pdfjsText } from '../_shared/doc_read/pdf.ts';
 import { textOfRead } from '../_shared/read_every_attachment.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -187,11 +188,11 @@ Deno.serve(observe('doc_extract', async (req) => {
       mime=ct||'image/jpeg';
     } else if(isPdf){
       try{
-        const { extractText, getDocumentProxy } = await import('https://esm.sh/unpdf@0.11.0');
+        // The one bounded pdf.js read (doc_read/pdf.ts, pinned npm:unpdf@0.11.0); a failed parse is thrown, never read as a scan.
         const ab=await fr.arrayBuffer();
-        const pdf=await getDocumentProxy(new Uint8Array(ab));
-        const { text } = await extractText(pdf,{mergePages:true});
-        const clean=(text||'').trim();
+        const pr=await pdfjsText(new Uint8Array(ab));
+        if(pr.status==='failed') throw new Error('pdf_unreadable: '+pr.detail);
+        const clean=pr.text.trim();
         if(clean.length>80){ extracted=await llmJSON(apiKey,`Extract the fields from this document text:\n\n${clean.slice(0,12000)}`); }
         else {
           // OCR FALLBACK. A scanned PDF has no text layer, but this function already has a

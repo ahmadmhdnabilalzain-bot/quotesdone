@@ -25,10 +25,10 @@ export function signupAction(audience: Audience, lang: Lang): { url: string; lab
 /** The system-prompt rules for a visitor. They replace the expert-follow-up rule that signed-in callers get. */
 export function visitorRules(audience: Audience, lang: Lang): string {
   const { url } = signupAction(audience, lang);
-  return `THIS VISITOR IS NOT SIGNED UP. Your only job here is general questions and guiding them to sign up:
-- Answer only general questions: what QuotesDone is, what it does, how it works, the fees, and why it can be trusted (anonymity, verified suppliers, refunds as the COMPANY BRIEF states them).
-- Never collect or discuss the details of a job: no materials, dimensions, quantities, specifications, finishes, drawings, designs (a wardrobe, a kitchen, a ceiling) and no prices for a specific job. Never ask them a question about their job.
-- As soon as they show they have an actual job, need or inquiry, tell them in a sentence or two to sign up free at ${url} and send it there, where our sales engineer takes it from there with them. Do not ask anything about the job first.
+  return `THIS IS THE PUBLIC WEBSITE CHAT AND THIS VISITOR IS NOT SIGNED UP (founder rulings 1249 and 18 Oct 2026). Your only job here is general questions and guiding them to sign up:
+- Answer only general questions: what QuotesDone is, what it does, how it works, how to register, the fees, and why it can be trusted (anonymity, verified suppliers, refunds as the COMPANY BRIEF states them).
+- Never collect or discuss the details of a job: no materials, dimensions, sizes, quantities, specifications, finishes, location, budget, drawings, designs (a wardrobe, a kitchen, a ceiling) and no prices for a specific job. Never ask them a question about their job.
+- As soon as they show they have an actual job, need or inquiry, or ask for suppliers or quotes, tell them in a sentence or two to sign up free at ${url} and send it there; we then match it to verified suppliers and our sales engineer takes it from there with them. Do not ask anything about the job first.
 - The sign-up link is ${url}. Put it on its own line.`;
 }
 

@@ -10,7 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey } from './slots.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor } from './slots.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -407,6 +407,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     let slotDetails: Record<string, string> | null = null;
     let slotMissingKeys: string[] = [];
     let slotExhausted: string[] = [];
+    let slotAsk: { key: string; text: string } | null = null;
     const slotLang = ar ? 'ar' : 'en';
     // Turn 1 has no stored trade, so the checklist is empty until the model names one: load the model's
     // trade's checklist here, or what the first message states is read against nothing and lost.
@@ -419,6 +420,8 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
       const settled = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns));
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
+      // The state's first askable question and its key: when that is the question asked, the key goes with it.
+      slotAsk = slotAskOf(settled);
     }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
@@ -759,7 +762,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     if (!readinessFields) readinessFields = { filled: status === 'ready' ? reqCount : Math.max(0, reqCount - (requiredGate ? requiredGate.missing_keys.length : (Array.isArray(out.missing) ? out.missing.length : reqCount))), required: reqCount };
     // The drawing's confirm question is the one question allowed beside a ready request (above).
     if (status === 'ready') { if (!nextQuestion || nextQuestion.key !== 'boq_check') nextQuestion = null; readinessFields = { filled: readinessFields.required, required: readinessFields.required }; }
-    else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) nextQuestion = { key: requiredGate ? requiredGate.missing_keys[0] || null : null, text: String(out.questions[0]), options: null };
+    else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) nextQuestion = { key: requiredGate ? requiredGate.missing_keys[0] || null
+      // Before a ready the gate is null; the slot state's key is named only when its question is the one asked
+      // (a question the model wrote in its own words has no key we can vouch for). Run 321d13ae: key was always null.
+      : slotKeyFor(slotAsk, String(out.questions[0])), text: String(out.questions[0]), options: null };
     // The readiness bar counts the sales engineer's questions from the first turn, so it never reads
     // 100% while something is still going to be asked, and remaining_questions lists every open
     // question in the customer's language, so the composer can show exactly what is left.
@@ -774,7 +780,8 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // rewrite it after the assistant turn was pushed). Save the CORRECTED reply, so a false "ready" is
     // neither kept in the history nor fed back to the model next turn (review of #1277).
     for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; break; }
-    stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: status === 'ready' ? [] : (requiredGate ? requiredGate.missing_keys : slotMissingKeys) });
+    const missingKeys: string[] = status === 'ready' ? [] : (requiredGate ? requiredGate.missing_keys : slotMissingKeys);
+    stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: missingKeys });
     const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
     if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0 }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the customer was told their request was accepted but the brief was never persisted, so the RFQ cannot be dispatched and this looks like the customer simply never finished intake.'); }
 
@@ -783,6 +790,13 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     if (!saveErr) { await logRun(llmCallOk && llmParseOk ? 'ok' : 'error', { intake_saved: 1, status_computed: status, readiness: Number(out.readiness) || 0, trades: trades.length, questions: Array.isArray(out.questions) ? out.questions.length : 0, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, llm_parse_ok: llmParseOk ? 1 : 0, category_specs_loaded: validSlugs.length, specialist: specialist ? specialist.slug : null }, (llmCallOk && llmParseOk) ? ('Intake turn completed normally: status=' + status + ', category=' + String(category) + ', trades=' + trades.length + ', agent=' + String(specialist ? specialist.slug : 'generic') + '. ' + (status === 'ready' ? 'Brief is supplier-ready and can be dispatched.' : 'RFQ is NOT yet dispatchable — it stays parked until the customer replies.')) : ('Intake turn completed but only via the keyword fallback (LLM unavailable/unparseable): status=' + status + ', category=' + String(category) + ' — this brief was not written by the model, so a request that is actually complete may be wrongly held at needs_info and never reach a supplier.'));
     }
 
-    return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], next_question: nextQuestion, readiness: { filled: readinessFields.filled, required: readinessFields.required, score: Number(out.readiness) || 0 }, readiness_score: Number(out.readiness) || 0, missing: out.missing || [], brief, remaining_questions: remainingQuestions, agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
+    return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], next_question: nextQuestion, readiness: { filled: readinessFields.filled, required: readinessFields.required, score: Number(out.readiness) || 0 }, readiness_score: Number(out.readiness) || 0, missing: out.missing || [], brief, remaining_questions: remainingQuestions,
+      // THE OPEN KEYS AND THE HOLD'S REASON GO BACK (stage2 run 321d13ae, 18 Oct 2026). Before a ready the
+      // gate is null and next_question.key null, so the keys the row stamped never reached the caller: the
+      // harness answered hvac "system_type" and plumbing "fixture_count" with its whole sheet three times,
+      // slots.ts held the intake for unanswered specs, and the run printed "held (held)" with no reason.
+      missing_keys: missingKeys,
+      ...heldReasonFor(status, email, slotExhausted),
+      agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 })));

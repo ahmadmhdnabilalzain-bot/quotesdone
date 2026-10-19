@@ -7,7 +7,8 @@
 // our_own_test_traffic_never_reaches_a_paid_model); the graded general and inquiry answers are real model replies.
 // Code half: supabase/functions/site_assistant/visitor_scope.test.ts.
 const BASE = process.env.SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co';
-const ANON = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
+const ANON = process.env.SUPABASE_ANON_KEY;
+if (!ANON) { console.error('widget_visitor_scope: set SUPABASE_ANON_KEY (the project anon key) in the environment'); process.exit(2); }
 const AR = /[؀-ۿ]/;
 const conv = (tag) => 'eval-' + tag + '-' + Math.random().toString(36).slice(2, 10);
 
