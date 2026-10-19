@@ -2031,3 +2031,6 @@ scripts/sql/a_model_call_whose_cost_is_unknown_is_booked_unknown_never_free.sql
 [INFO] Recording command outcome: cd
 
 [OK] Command outcome recorded
+[INFO] Recording command outcome: cd
+
+[OK] Command outcome recorded

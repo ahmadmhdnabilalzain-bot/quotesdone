@@ -1,78 +1,147 @@
 {
-  "trade": "cnc_machining",
-  "entries": [
-    {
-      "id": "cnc_machining:spec-checklist",
-      "topic": "CNC machining - what the buyer must state",
-      "kind": "spec_checklist",
-      "body_en": "Each quoted product line for cnc machining must state: part drawing and revision; material and grade; quantity; tolerances per ISO 2768 or drawing; surface roughness; finishing or coating; inspection report; material certificate; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة التشغيل الآلي بالتحكم الرقمي: رسم القطعة ومراجعته؛ المادة ودرجتها؛ الكمية؛ التفاوتات وفق ISO 2768 أو الرسم؛ خشونة السطح؛ التشطيب أو الطلاء؛ تقرير الفحص؛ شهادة المادة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
-      "required_specs": [
-        "part drawing and revision",
-        "material and grade",
-        "quantity",
-        "tolerances per ISO 2768 or drawing",
-        "surface roughness",
-        "finishing or coating",
-        "inspection report",
-        "material certificate",
-        "UAE approvals and certificates",
-        "delivery and installation scope",
-        "lead time",
-        "warranty",
-        "exclusions"
-      ],
-      "sources": [
-        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
-        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
-      ],
-      "confidence": "medium",
-      "as_of": "2026-09-28"
-    },
-    {
-      "id": "cnc_machining:uae-standards-and-approvals",
-      "topic": "CNC machining - UAE standards and approvals",
-      "kind": "standard",
-      "body_en": "MoIAT (Ministry of Industry and Advanced Technology) issues UAE certificates of conformity: a product subject to a UAE technical regulation is certified under ECAS on the basis of a test report from an accredited laboratory and a valid trade licence, and a product outside technical regulations can obtain a voluntary conformity certificate (EQM) the same way. UAE.S and GSO standard specifications are obtained through MoIAT. The cited sources do not set a UAE-specific grade, class or test method for cnc machining; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
-      "body_ar": "تصدر وزارة الصناعة والتكنولوجيا المتقدمة شهادات المطابقة الإماراتية: يُعتمد المنتج الخاضع للوائح فنية إماراتية ضمن نظام الإمارات لتقييم المطابقة (ECAS) بناءً على تقرير اختبار من مختبر معتمد ورخصة تجارية سارية، ويمكن للمنتج غير الخاضع للوائح فنية الحصول على شهادة مطابقة طوعية (EQM) بالطريقة نفسها. وتُطلب المواصفات القياسية الإماراتية والخليجية من الوزارة. لا تحدد المصادر المذكورة درجة أو فئة أو طريقة اختبار إماراتية خاصة بفئة التشغيل الآلي بالتحكم الرقمي؛ يجب على المشتري ذكر الدرجة والمعيار وطريقة الاختبار صراحة، والبند الذي يخلو منها يُعلَّق.",
-      "source_note": "The cited sources do not set a UAE-specific grade, class or test method for cnc machining; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
-      "sources": [
-        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
-        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
-      ],
-      "confidence": "high",
-      "as_of": "2026-09-28"
-    }
-  ],
-  "eval": [
-    {
-      "q_en": "I need quotes for cnc machining. What do I have to specify so suppliers quote the same thing?",
-      "q_ar": "أحتاج عروض أسعار في فئة التشغيل الآلي بالتحكم الرقمي. ما الذي يجب أن أحدده حتى يسعّر الموردون الشيء نفسه؟",
-      "expected_entry_ids": [
-        "cnc_machining:spec-checklist"
-      ]
-    },
-    {
-      "q_en": "Which UAE approvals or certificates apply to cnc machining?",
-      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي تنطبق على فئة التشغيل الآلي بالتحكم الرقمي؟",
-      "expected_entry_ids": [
-        "cnc_machining:uae-standards-and-approvals"
-      ]
-    }
-  ],
-  "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 1,
-    "corrected": [],
-    "removed": [],
-    "still_unverified": [
-      "cnc_machining:spec-checklist"
-    ],
-    "added": [
-      "cnc_machining:spec-checklist",
-      "cnc_machining:uae-standards-and-approvals"
-    ],
-    "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+ "trade": "cnc_machining",
+ "entries": [
+  {
+   "id": "cnc_machining:spec-checklist",
+   "topic": "CNC machining - what the buyer must state",
+   "kind": "spec_checklist",
+   "body_en": "Each quoted product line for cnc machining must state: part drawing and revision; material and grade; quantity; tolerances per ISO 2768 or drawing; surface roughness; finishing or coating; inspection report; material certificate; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
+   "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة التشغيل الآلي بالتحكم الرقمي: رسم القطعة ومراجعته؛ المادة ودرجتها؛ الكمية؛ التفاوتات وفق ISO 2768 أو الرسم؛ خشونة السطح؛ التشطيب أو الطلاء؛ تقرير الفحص؛ شهادة المادة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+   "required_specs": [
+    "part drawing and revision",
+    "material and grade",
+    "quantity",
+    "tolerances per ISO 2768 or drawing",
+    "surface roughness",
+    "finishing or coating",
+    "inspection report",
+    "material certificate",
+    "UAE approvals and certificates",
+    "delivery and installation scope",
+    "lead time",
+    "warranty",
+    "exclusions"
+   ],
+   "sources": [
+    "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+    "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "cnc_machining:uae-standards-and-approvals",
+   "topic": "CNC machining - UAE standards and approvals",
+   "kind": "standard",
+   "body_en": "MoIAT (Ministry of Industry and Advanced Technology) issues UAE certificates of conformity: a product subject to a UAE technical regulation is certified under ECAS on the basis of a test report from an accredited laboratory and a valid trade licence, and a product outside technical regulations can obtain a voluntary conformity certificate (EQM) the same way. UAE.S and GSO standard specifications are obtained through MoIAT. The cited sources do not set a UAE-specific grade, class or test method for cnc machining; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+   "body_ar": "تصدر وزارة الصناعة والتكنولوجيا المتقدمة شهادات المطابقة الإماراتية: يُعتمد المنتج الخاضع للوائح فنية إماراتية ضمن نظام الإمارات لتقييم المطابقة (ECAS) بناءً على تقرير اختبار من مختبر معتمد ورخصة تجارية سارية، ويمكن للمنتج غير الخاضع للوائح فنية الحصول على شهادة مطابقة طوعية (EQM) بالطريقة نفسها. وتُطلب المواصفات القياسية الإماراتية والخليجية من الوزارة. لا تحدد المصادر المذكورة درجة أو فئة أو طريقة اختبار إماراتية خاصة بفئة التشغيل الآلي بالتحكم الرقمي؛ يجب على المشتري ذكر الدرجة والمعيار وطريقة الاختبار صراحة، والبند الذي يخلو منها يُعلَّق.",
+   "source_note": "The cited sources do not set a UAE-specific grade, class or test method for cnc machining; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+   "sources": [
+    "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+    "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "cnc_machining:product-distinctions",
+   "topic": "CNC machining: process and part distinctions",
+   "topic_ar": "التشغيل الآلي CNC: الفروق بين العمليات والقطع",
+   "kind": "product_distinctions",
+   "body_en": "CNC work divides by process: turning (lathes, 2-axis, with live-tooling turn-mill centres for flats and cross holes), milling (3-axis for prismatic parts, 4-axis with a rotary table, 5-axis simultaneous for impellers, moulds and complex aerospace/oil-tool parts), wire EDM and sinker EDM for hardened steel and sharp internal corners, CNC grinding for tight roundness and finish, and CNC cutting (laser, plasma, waterjet) plus press-brake bending for sheet work. Material drives cost and lead: aluminium 6061/6082/7075, mild steel S275/S355, alloy 4140/4340 (often quenched and tempered), stainless 304/316/17-4PH, duplex and super duplex for oil and gas, brass, bronze, titanium Gr5, and engineering plastics (POM/Delrin, PTFE, PEEK, nylon). Tolerance class matters: general tolerances to ISO 2768-m are cheap, while ±0.01 mm, geometric tolerances (GD&T) and Ra 0.8 finish need grinding or a finer machine and inspection by CMM. Finishes include anodising (type II/III hard), zinc or nickel plating, black oxide, passivation, powder coat. Oilfield parts often call for API thread gauging and NACE MR0175 material.",
+   "body_ar": "تنقسم أعمال CNC حسب العملية: الخراطة (مخارط بمحورين، ومراكز خراطة وتفريز بأدوات حية للأسطح والثقوب الجانبية)، والتفريز (3 محاور للقطع المنشورية، و4 محاور مع طاولة دوارة، و5 محاور متزامنة للدفاعات والقوالب وقطع الطيران وأدوات النفط المعقدة)، والتشغيل بالتفريغ الكهربائي بالسلك أو بالغطس للفولاذ المقسّى والزوايا الداخلية الحادة، والتجليخ CNC للاستدارة الدقيقة والتشطيب، والقطع CNC (ليزر، بلازما، ماء) مع الثني بالمكبس لأعمال الصاج. المادة تحدد التكلفة والمدة: ألمنيوم 6061/6082/7075، فولاذ طري S275/S355، فولاذ سبائكي 4140/4340 (غالباً مقسّى ومطاوع)، ستانلس 304/316/17-4PH، دوبلكس وسوبر دوبلكس للنفط والغاز، نحاس أصفر، برونز، تيتانيوم Gr5، ولدائن هندسية (POM/ديلرين، PTFE، PEEK، نايلون). فئة التفاوت مهمة: التفاوتات العامة وفق ISO 2768-m رخيصة، أما ±0.01 مم والتفاوتات الهندسية وخشونة Ra 0.8 فتحتاج تجليخاً أو آلة أدق وفحصاً بجهاز CMM. التشطيبات تشمل الأنودة (النوع II/III الصلب)، وطلاء الزنك أو النيكل، والأكسيد الأسود، والتخميل، والطلاء البودرة. وقطع حقول النفط تتطلب غالباً معايرة أسنان API ومواد وفق NACE MR0175.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Numerical_control"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: CNC milling on three to six axes and turning on two-axis lathes with multi-axis variants -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "cnc_machining:lead-times",
+   "topic": "CNC machining & fabrication services - typical lead times in the UAE",
+   "topic_ar": "خدمات التشغيل الآلي CNC والتصنيع: المدد المعتادة للتوريد والتنفيذ في الإمارات",
+   "kind": "lead_time",
+   "body_en": "Prototype or one-off parts from stock bar: 3-10 working days. Batches of 50-500 parts: 2-5 weeks depending on setups and outside finishing (anodising, plating and heat treatment add 3-7 days each). Exotic material (duplex, super duplex, titanium, Inconel) not on UAE stock adds 3-8 weeks for mill-certified bar from Europe or Asia. Parts needing third-party inspection, PMI or API monogram add 1-2 weeks. Workshops in Sharjah, Ajman, Jebel Ali and Mussafah are often loaded by oil-and-gas shutdown work, and lead times stretch around shutdown season and Ramadan.",
+   "body_ar": "القطع النموذجية أو المفردة من قضبان متوفرة: 3-10 أيام عمل. الدفعات من 50 إلى 500 قطعة: 2-5 أسابيع حسب عدد التجهيزات والتشطيب الخارجي (الأنودة والطلاء والمعالجة الحرارية تضيف 3-7 أيام لكل منها). المواد الخاصة (دوبلكس، سوبر دوبلكس، تيتانيوم، إنكونيل) غير المتوفرة في الإمارات تضيف 3-8 أسابيع لقضبان بشهادة مصنع من أوروبا أو آسيا. القطع التي تتطلب فحص طرف ثالث أو PMI أو ختم API تضيف 1-2 أسبوع. ورش الشارقة وعجمان وجبل علي ومصفح غالباً مشغولة بأعمال توقفات النفط والغاز، فتطول المدد في موسم التوقفات وفي رمضان.",
+   "sources": [],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
+   "gap_kind": "commercial"
+  },
+  {
+   "id": "cnc_machining:quotation-requirements",
+   "topic": "CNC machining & fabrication services - what a supplier needs to quote and what a quote must state",
+   "topic_ar": "خدمات التشغيل الآلي CNC والتصنيع: ما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+   "kind": "quote_requirements",
+   "body_en": "To quote, a machinist needs: a dimensioned drawing (PDF plus STEP/IGES for 3D shapes) with revision, material grade and condition (for example 4140 QT 28-32 HRC), quantity and any repeat schedule, tolerances and GD&T, surface finish (Ra), coating or plating, heat treatment, thread standards, and inspection needs (CMM report, material test certificate EN 10204 3.1, PMI, third-party inspection). A complete quotation states, per part: material and its source, price basis per piece at each quantity break, a one-time setup or fixture charge shown separately, outside processes, packing, delivery (ex-works or DDP site), lead time from PO and drawing approval, validity, and the documents supplied. Red flags: no material certificate offered, the tolerance class quietly relaxed, coating priced but not specified, or a \"similar material\" substitute.",
+   "body_ar": "لتسعير القطعة يحتاج المشغّل إلى: رسم بأبعاد (PDF مع STEP/IGES للأشكال ثلاثية الأبعاد) مع رقم المراجعة، ودرجة المادة وحالتها (مثل 4140 مقسّى ومطاوع 28-32 HRC)، والكمية وأي جدول تكرار، والتفاوتات والتفاوتات الهندسية، وخشونة السطح (Ra)، والطلاء، والمعالجة الحرارية، ومعايير الأسنان، ومتطلبات الفحص (تقرير CMM، وشهادة اختبار المادة EN 10204 3.1، وPMI، وفحص طرف ثالث). ويذكر العرض الكامل لكل قطعة: المادة ومصدرها، وأساس السعر للقطعة عند كل شريحة كمية، ورسوم التجهيز أو القالب منفصلة، والعمليات الخارجية، والتغليف، والتسليم (من المصنع أو حتى الموقع)، ومدة التنفيذ من أمر الشراء واعتماد الرسم، والصلاحية، والمستندات المرفقة. علامات التحذير: عدم تقديم شهادة المادة، أو تخفيف فئة التفاوت ضمناً، أو تسعير طلاء دون تحديده، أو بديل \"مادة مشابهة\".",
+   "sources": [],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
+   "gap_kind": "commercial"
   }
+ ],
+ "eval": [
+  {
+   "q_en": "I need quotes for cnc machining. What do I have to specify so suppliers quote the same thing?",
+   "q_ar": "أحتاج عروض أسعار في فئة التشغيل الآلي بالتحكم الرقمي. ما الذي يجب أن أحدده حتى يسعّر الموردون الشيء نفسه؟",
+   "expected_entry_ids": [
+    "cnc_machining:spec-checklist"
+   ]
+  },
+  {
+   "q_en": "Which UAE approvals or certificates apply to cnc machining?",
+   "q_ar": "ما الموافقات أو الشهادات الإماراتية التي تنطبق على فئة التشغيل الآلي بالتحكم الرقمي؟",
+   "expected_entry_ids": [
+    "cnc_machining:uae-standards-and-approvals"
+   ]
+  },
+  {
+   "q_en": "Should my shaft be turned on a normal lathe or does it need grinding to hit the tolerance?",
+   "q_ar": "هل يكفي خراطة العمود على مخرطة عادية أم يحتاج تجليخ عشان يوصل للتفاوت المطلوب؟",
+   "expected_entry_ids": [
+    "cnc_machining:product-distinctions"
+   ],
+   "written_blind": true
+  }
+ ],
+ "verified": {
+  "fetched_urls": 2,
+  "claims_checked": 1,
+  "corrected": [],
+  "removed": [],
+  "still_unverified": [
+   "cnc_machining:spec-checklist"
+  ],
+  "added": [
+   "cnc_machining:spec-checklist",
+   "cnc_machining:uae-standards-and-approvals"
+  ],
+  "as_of": "2026-09-28",
+  "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+  "authored_19_oct": {
+   "by": "sales_engineer",
+   "on": "2026-10-19",
+   "added": [
+    "cnc_machining:product-distinctions",
+    "cnc_machining:lead-times",
+    "cnc_machining:quotation-requirements"
+   ],
+   "pages_opened": [
+    "https://en.wikipedia.org/wiki/Numerical_control"
+   ],
+   "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+   "ledger": [
+    893,
+    899,
+    900,
+    903,
+    1198,
+    1209
+   ]
+  }
+ }
 }
