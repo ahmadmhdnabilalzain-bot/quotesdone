@@ -60,6 +60,7 @@ test('static: every decision type routes to its owning seat and no route names t
   assert.ok(src.includes("check ((founder_notified is null and status <> 'with_founder')\n           or (decision_type = 'person' and channel in ('whatsapp', 'site_chat', 'email') and status = 'with_founder'))"),
     'the CHECK that keeps every other row away from the founder is gone');
   assert.match(src, /values \('person_request', true,/, 'the person_request kind is not on founder_mail_policy');
+  assert.ok(src.includes("channel           text not null check (channel in ('whatsapp', 'site_chat', 'email')),"), 'a channel other than chat or e-mail can file a contest (ruling 1264)');
   for (const t of ['review_route', 'decision_review_request']) {
     assert.match(src, new RegExp(`alter table public\\.${t} enable row level security`), `${t} without RLS`);
     assert.match(src, new RegExp(`create policy ${t}_service_role_only on public\\.${t}`), `${t} without a policy`);
@@ -128,5 +129,6 @@ test('production, aborted: one ZZ DEMO request per type lands with its seat, ano
     assert.ok(p.founder_alerts >= 1 && p.founder_notifications >= 1, ch + ': no founder alert or notification was queued');
   }
   assert.equal(o.person_from_portal.ok, false, 'a person request from the portal reached the founder');
+  assert.equal(o.contest_from_portal.ok, false, 'a contest from the portal was filed (ruling 1264: chat or e-mail only)');
   assert.equal(o.founder_stamp_on_a_review_refused, 1, 'a decision review could be stamped as delivered to the founder');
 });

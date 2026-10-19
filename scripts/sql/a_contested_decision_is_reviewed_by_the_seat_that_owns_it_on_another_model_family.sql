@@ -88,7 +88,8 @@ create table if not exists public.decision_review_request (
   id                bigint generated always as identity primary key,
   decision_type     text not null,
   owner_seat        text not null,
-  channel           text not null check (channel in ('whatsapp', 'site_chat', 'email', 'portal', 'internal')),
+  -- ruling 1264: a contest enters only when the person raises it themselves in chat or e-mail; no portal option exists
+  channel           text not null check (channel in ('whatsapp', 'site_chat', 'email')),
   requester         text not null check (btrim(requester) <> ''),
   subject_table     text,
   subject_id        text,
@@ -186,8 +187,9 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'error', 'no review_route for decision type ' || coalesce(p_decision_type, 'null'));
   end if;
-  if v_route.decision_type = 'person' and coalesce(p_channel, '') not in ('whatsapp', 'site_chat', 'email') then
-    return jsonb_build_object('ok', false, 'error', 'a person is reached only from chat or e-mail, not ' || coalesce(p_channel, 'null'));
+  -- ruling 1264: no portal (or any other) option; a contest or a person request enters only from chat or e-mail
+  if coalesce(p_channel, '') not in ('whatsapp', 'site_chat', 'email') then
+    return jsonb_build_object('ok', false, 'error', 'a contest or a person request enters only from chat or e-mail, not ' || coalesce(p_channel, 'null'));
   end if;
   if p_dedupe_key is not null then
     select id, handoff_id into v_id, v_handoff from public.decision_review_request where dedupe_key = p_dedupe_key;

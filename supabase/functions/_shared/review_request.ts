@@ -61,7 +61,7 @@ export function liveReviewIO(admin: Admin, fn = 'ceo_agent'): ReviewIO {
 
 /** Reason the decision type and, when there is one, file the request with its owning seat. Never throws. */
 export async function fileReviewRequest(admin: Admin, deps: ThinkDeps, o: {
-  channel: 'whatsapp' | 'site_chat' | 'email' | 'portal'; requester: string; message: string; surface: string; dedupeKey: string;
+  channel: 'whatsapp' | 'site_chat' | 'email'; requester: string; message: string; surface: string; dedupeKey: string;
   audience?: 'customer' | 'supplier'; subjectTable?: string; subjectId?: string;
 }): Promise<{ filed: boolean; decision_type: string | null; owner_seat?: string; id?: number }> {
   try {

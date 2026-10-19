@@ -13,13 +13,13 @@ declare
   t record; v_open jsonb; v_dec jsonb; v_out jsonb := '[]'::jsonb; i int := 0;
   v_orig text; v_same_refused int := 0; v_unknown jsonb; v_id bigint;
   v_founder_alerts int; v_founder_notes int; v_handoffs int; v_rows int;
-  v_person jsonb := '{}'::jsonb; v_ch text; v_fa0 int; v_fn0 int; v_portal jsonb; v_stamp_refused int := 0;
+  v_person jsonb := '{}'::jsonb; v_ch text; v_fa0 int; v_fn0 int; v_portal jsonb; v_portal_contest jsonb; v_stamp_refused int := 0;
 begin
   for t in select decision_type, owner_seat from public.review_route where decision_type <> 'person' order by decision_type loop
     i := i + 1;
     -- the original automated decision: alternate families, and one made by code with no model at all
     v_orig := case i % 3 when 0 then 'openai/gpt-6-luna-pro' when 1 then 'anthropic/claude-sonnet-5.5' else null end;
-    v_open := public.fn_review_request_open(t.decision_type, (array['whatsapp','email','portal'])[1 + i % 3],
+    v_open := public.fn_review_request_open(t.decision_type, (array['whatsapp','email','site_chat'])[1 + i % 3],
                 'zz.demo.review.' || t.decision_type || '@example.invalid',
                 'ZZ DEMO please review the automated ' || t.decision_type || ' decision again',
                 null, null, t.owner_seat, v_orig, null, 'zz_demo_probe_1152:' || t.decision_type);
@@ -32,7 +32,7 @@ begin
   end loop;
 
   -- a same-family verdict must be refused by the table itself, whoever calls
-  v_open := public.fn_review_request_open('quotes', 'portal', 'zz.demo.same@example.invalid',
+  v_open := public.fn_review_request_open('quotes', 'email', 'zz.demo.same@example.invalid',
               'ZZ DEMO same family attempt', null, null, 'sales_engineer', 'openai/gpt-6-luna-pro', null, 'zz_demo_probe_1152:same');
   v_id := (v_open ->> 'id')::bigint;
   begin
@@ -61,6 +61,7 @@ begin
       'founder_notifications', (select count(*) from public.notifications where created_at = now() and to_role = 'founder') - v_fn0));
   end loop;
   v_portal := public.fn_review_request_open('person', 'portal', 'zz.demo.person.portal@example.invalid', 'ZZ DEMO a person please');
+  v_portal_contest := public.fn_review_request_open('refunds', 'portal', 'zz.demo.contest.portal@example.invalid', 'ZZ DEMO contest from the portal');
   -- a founder delivery stamped on a decision review is refused by the table
   begin
     update public.decision_review_request set founder_notified = '{}'::jsonb, status = 'with_founder'
@@ -75,5 +76,5 @@ begin
     'undecided', (select count(*) from jsonb_array_elements(v_out) e where e ->> 'decided' is distinct from 'true'),
     'same_family_refused', v_same_refused, 'unknown_type', v_unknown,
     'founder_alerts', v_founder_alerts, 'founder_notifications', v_founder_notes, 'demo_handoffs', v_handoffs,
-    'person', v_person, 'person_from_portal', v_portal, 'founder_stamp_on_a_review_refused', v_stamp_refused)::text;
+    'person', v_person, 'person_from_portal', v_portal, 'contest_from_portal', v_portal_contest, 'founder_stamp_on_a_review_refused', v_stamp_refused)::text;
 end $probe$;
