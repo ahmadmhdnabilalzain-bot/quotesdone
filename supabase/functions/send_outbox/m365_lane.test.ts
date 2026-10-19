@@ -6,7 +6,7 @@
 import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import {
   M365_HARD_CEILING, M365_ID_PREFIX, M365_OFF, M365_REFUSED_ISSUE, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries,
-  m365CopyLint, m365InvitationText, m365Mime, m365Text, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365,
+  companyName, m365CopyLint, m365InvitationText, m365Mime, m365Subject, m365Text, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365,
   M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo,
 } from './m365_lane.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
@@ -109,7 +109,7 @@ Deno.test('the plain invitation: one link, English, no AI, ends with one questio
   const body = m365InvitationText(LINK);
   const lint = m365CopyLint({ subject: 'Your company page on QuotesDone', body });
   for (const l of lint) assert(l.ok, `${l.rule}: ${l.detail}`);
-  assert(body.includes('free permanently for the first 1,000 supplier registrations') && body.includes('Any number of suppliers') && body.includes('top three quotes'));
+  assert(body.includes('registration costs nothing for the first 1,000 supplier registrations') && body.includes('no commission') && body.includes('Any number of suppliers') && body.includes('top three quotes'));
   assertEquals(m365Body('supplier_invite', 'Dear ZZ DEMO Supplier,\n\nRegister: ' + LINK + '\n\nThanks.'), body, 'an invitation with one portal link gets the plain variant');
   assert(m365Body('supplier_invite_nudge', 'Reminder ' + LINK).endsWith('?'), 'a nudge keeps its own body and gets the question');
 });
@@ -120,7 +120,7 @@ Deno.test('copy rules bite: two links, HTML, a dated offer, a capped quote count
   assert(bad(m365InvitationText(LINK).replace('Hello,', '<b>Hello</b>,')).some((r) => r.includes('HTML')));
   assert(bad(m365InvitationText(LINK).replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026')).some((r) => r.includes('date')));
   assert(bad(m365InvitationText(LINK).replace('Any number of suppliers', 'Up to ' + 'three suppliers')).some((r) => r.includes('any number may quote')));
-  assert(bad(m365InvitationText(LINK).replace('marketplace', 'AI marketplace')).length);
+  assert(bad(m365InvitationText(LINK).replace('founder of QuotesDone', 'founder of QuotesDone AI')).length);
   assert(bad(m365InvitationText(LINK).replace('Hello', 'مرحبا')).length);
 });
 
@@ -138,7 +138,8 @@ Deno.test('MIME: List-Unsubscribe is a real header, plain text only, body carrie
   assert(head.includes('Content-Type: text/plain; charset=utf-8') && !/text\/html/.test(raw));
   assert(head.includes('Message-ID: <qd-notif-42.') && head.includes('Reply-To: suppliers@mail.quotesdone.com'));
   const text = unb64(bodyB64.replace(/\r\n/g, ''));
-  assert(text.includes(LINK) && text.includes('Unsubscribe: ' + unsub));
+  assert(text.includes(LINK) && text.includes('Reply "stop"'));
+  assertEquals((text.match(/https?:\/\//g) || []).length, 1, 'ledger 1113: the portal link is the only URL in the body; unsubscribe is in the header');
   // a header injection through the subject is flattened
   const inj = unb64(m365Mime({ from: 'a@b.co', to: 'c@d.co', reply: 'e@f.co', subject: 'x\r\nBcc: evil@x.co', text: 't', unsub: '', unsubMailto: '', messageId: mid, now }));
   assertFalse(/\r\nBcc:/.test(inj));
@@ -174,7 +175,7 @@ Deno.test('a placement seed keeps its trailing inbox-test ID; a real invitation 
   // the marker is the only exemption: a date elsewhere in a seed still fails, and so do the content rules
   const dated = seed.replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026');
   assert(m365CopyLint({ subject: 'x', body: dated, seed: true }).some((l) => !l.ok && l.rule.includes('date')));
-  assert(m365CopyLint({ subject: 'x', body: seed.replace('marketplace', 'AI marketplace'), seed: true }).some((l) => !l.ok));
+  assert(m365CopyLint({ subject: 'x', body: seed.replace('founder of QuotesDone', 'founder of QuotesDone AI'), seed: true }).some((l) => !l.ok));
   // a line that is not exactly the marker shape is not carried
   assertFalse(m365Body('supplier_invite_seed', row.replace(ID, 'id: 2026 bad'), M365_SEED_KIND).includes('id:'));
 });
@@ -197,4 +198,21 @@ Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, rea
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assert(/m365Mime\(\{[^}]*reply: m365ReplyTo\(\{ proofAt: m365ProofAt, now, fallback: reply \}\)/.test(src), 'the lane MIME no longer asks m365ReplyTo');
   assert(src.includes(".eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1')"), 'the proof read no longer selects the reader rows');
+});
+
+// ledger 1113 (19 Oct 2026): a personal note to the company and its trade; no promotional word in the subject or opening.
+Deno.test('the invitation names the company and its trade, and the subject carries no promotional word', () => {
+  assertEquals(companyName('TAAZ BUILDING EQUIPMENTS TRADING &#038; RENTAL LLC'), 'Taaz Building Equipments Trading & Rental LLC');
+  assertEquals(companyName('Trident Fire | Trident Guard Fire Fighting LLC'), 'Trident Fire');
+  assertEquals(companyName('ZZ DEMO Supplier'), '');
+  const who = { company: 'Sigma Ceramics Building Materials Trading LLC', trade: 'building_materials' };
+  const subject = m365Subject(who);
+  assertEquals(subject, 'Building materials quote requests for Sigma Ceramics Building Materials Trading LLC');
+  assertEquals(m365Subject({}), 'Quote requests in the UAE');
+  const body = m365InvitationText(LINK, who);
+  assert(body.startsWith('Hi Sigma Ceramics Building Materials Trading LLC team,') && body.includes('lining up building materials suppliers'));
+  const opening = subject + ' ' + body.split('\n\n').slice(0, 2).join(' ');
+  assertFalse(/\b(free|commission|invitation|invite|exclusive|AI)\b/i.test(opening), opening);
+  for (const l of m365CopyLint({ subject, body })) assert(l.ok, `${l.rule}: ${l.detail}`);
+  assertEquals(m365Body('supplier_invite', 'Dear X,\n\n' + LINK, undefined, who), body);
 });

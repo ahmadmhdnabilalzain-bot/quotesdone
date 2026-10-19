@@ -21,13 +21,13 @@
 // only custom headers whose names begin "x-"/"X-"; Graph refuses List-Unsubscribe there. sendMail ALSO accepts the
 // whole message as base64 MIME (Content-Type: text/plain), and a MIME message carries any RFC 5322 header. So this
 // lane sends MIME: List-Unsubscribe and List-Unsubscribe-Post are real headers, and the body still ends with a
-// plain unsubscribe line (plainTextPart) for any client that ignores them.
+// "reply stop" line (m365Text) for any client that ignores them.
 // sendMail answers 202 with no body, so the provider id we keep is our own Message-ID, written into the MIME:
 // notifications.provider_message_id = 'm365:<...>' (the prefix also lets the hard ceiling count this lane's sends).
 // Pure apart from the injected fetch and finding writer, so m365_lane.test.ts replays every branch offline.
 import { isLaneType, LANE_CAPPED_TYPES } from './invite_lane.ts';
 import { invitationCopyLint, withReplyQuestion, type CopyRule } from './invitation_copy.ts';
-import { plainTextPart } from './supplier_mail.ts';
+import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 
 export const M365_SECRET_NAMES = ['MS_TENANT_ID', 'MS_CLIENT_ID', 'MS_CLIENT_SECRET'] as const;
 export const M365_REFUSED_ISSUE = 'invite_m365_lane_refused';
@@ -116,13 +116,46 @@ export function holdForM365(o: { m365: M365; type: unknown; cappedSentToday: num
 // recommends; free for the first 1,000 suppliers, with no date attached to it.
 export const PORTAL_LINK = /https?:\/\/[^\s<>"]+\/portal\?t=[0-9a-f-]{36}/gi;
 
-export function m365InvitationText(link: string): string {
+// 19 Oct 2026 (marketing + it_engineer, ledger 1113: no campaign email in spam). MEASURED (GlockApps
+// 2026-10-19-02:51:47:497t, this lane): 33% inbox, Outlook/Yahoo/AOL 100% spam (EOP SCL 5), Gmail 19 of 20 in
+// Promotions, SPF/DKIM/DMARC passing, no blocklist. So the content changed: a short note from a named person,
+// addressed to the company and its trade, no promotional word in the subject or the opening, one link, and the
+// opt-out in the List-Unsubscribe headers plus one "reply stop" line (no second URL in the body; see m365Text).
+export type Who = { company?: string; trade?: string };
+const ENTITY: Record<string, string> = { amp: '&', '#038': '&', '#38': '&', quot: '"', '#039': "'", '#39': "'", apos: "'" };
+/** A company name as a person writes it: entities decoded, a "| tagline" or " - branch" cut, SHOUTING lowered. */
+export function companyName(raw: unknown): string {
+  let s = String(raw || '').replace(/&(#0?\d+|[a-z]+);/gi, (m, k) => ENTITY[String(k).toLowerCase()] ?? m);
+  s = s.split(/\s[|–—-]\s/)[0].replace(/\s+/g, ' ').trim();
+  if (/[؀-ۿ]/.test(s) || /^zz\s*demo/i.test(s) || s.length < 2) return '';
+  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) {
+    s = s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Llc|Fze|Fzco|Fzc|Fz)\b/g, (w) => w.toUpperCase());
+  }
+  return s;
+}
+/** "fire_fighting" -> "fire fighting"; '' when there is none. */
+export function tradeLabel(slug: unknown): string { return String(slug || '').replace(/[_-]+/g, ' ').trim().toLowerCase(); }
+const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** The subject names the company (and the trade when known). Never "invitation", "free", "commission" or "exclusive". */
+export function m365Subject(who: Who = {}): string {
+  const c = companyName(who.company); const t = tradeLabel(who.trade);
+  const what = t ? `${cap1(t)} quote requests` : 'Quote requests';
+  return c ? `${what} for ${c}` : `${what} in the UAE`;
+}
+export function m365InvitationText(link: string, who: Who = {}): string {
+  const c = companyName(who.company); const t = tradeLabel(who.trade);
   return [
-    'Hello,',
-    'QuotesDone is a UAE marketplace where companies post requests for quotation and suppliers in the matching trade price them. Any number of suppliers can quote on a request, and the buyer receives a comparison report that recommends the top three quotes by value.',
-    'Registration is free permanently for the first 1,000 supplier registrations, and there is no commission. Your company page is ready to claim here:\n' + link,
+    c ? `Hi ${c} team,` : 'Hello,',
+    `I'm Ahmad, founder of QuotesDone in Dubai. Companies post requests for quotation with us and we pass each one only to suppliers in the matching trade${t ? `, so I am lining up ${t} suppliers before buyers start posting` : ''}.`,
+    'Any number of suppliers can quote on a request, and the buyer receives a comparison report that recommends the top three quotes by value. There is no commission on work you win, and registration costs nothing for the first 1,000 supplier registrations.',
+    'Your company page is ready to claim here:\n' + link,
     'Which trades does your company cover?',
   ].join('\n\n');
+}
+/** The company on a stored body's "Dear X," / "Hi X team," opening, for a row with no lead behind it (a seed). */
+export function companyFromBody(body: string): string {
+  const m = /^(?:dear|hi|hello)\s+(.+?)(?:\s+team)?,\s*$/i.exec(String(body || '').split(/\r?\n/)[0] || '');
+  return m ? m[1] : '';
 }
 
 // A placement-test seed (GlockApps) is matched by an inbox-test ID on the LAST line of the body, e.g.
@@ -138,11 +171,12 @@ export function seedMarker(body: string): string {
 
 /** The body this lane sends: the plain variant for an invitation with exactly one portal link; else the row's own body.
  *  A seed row (kind M365_SEED_KIND) keeps its trailing inbox-test ID line at the end of whatever is built. */
-export function m365Body(type: unknown, rowBody: string, kind?: unknown): string {
+export function m365Body(type: unknown, rowBody: string, kind?: unknown, who: Who = {}): string {
   const links = String(rowBody || '').match(PORTAL_LINK) || [];
   const marker = kind === M365_SEED_KIND ? seedMarker(rowBody) : '';
   const own = marker ? String(rowBody).trimEnd().slice(0, -marker.length).trimEnd() : (rowBody || '');
-  const built = type !== 'supplier_invite_nudge' && links.length === 1 ? m365InvitationText(links[0]) : withReplyQuestion(own);
+  const built = type !== 'supplier_invite_nudge' && links.length === 1
+    ? m365InvitationText(links[0], { company: who.company ?? companyFromBody(own), trade: who.trade }) : withReplyQuestion(own);
   return marker ? built + '\n\n' + marker : built;
 }
 
@@ -210,7 +244,13 @@ export function m365Mime(o: { from: string; to: string; reply: string; subject: 
   return b64(lines.join('\r\n'));
 }
 
-export function m365Text(body: string, unsub: string): string { return plainTextPart({ body, unsub, ar: false, internal: false }); }
+/** The sent text: body, a short signature and ONE opt-out line. No unsubscribe URL in the body (ledger 1113): a
+ *  second link, on another host than the From, is what content filters score; the one-click link is in the
+ *  List-Unsubscribe header, and the line below still gives a reader who never sees that header a way out. */
+export function m365Text(body: string, _unsub?: string): string {
+  return [String(body || '').trim(), '--', 'Ahmad Alzain\nFounder, QuotesDone\nAl Furjan, Dubai, UAE · TDRA NOL-26-100000665',
+    `Not relevant to you? Reply "stop" or email ${UNSUBSCRIBE_MAILBOX} and I will not write again.`].join('\n\n');
+}
 
 export type SendResult = { ok: true; providerId: string } | { ok: false; refused: true; status: string } | { ok: false; refused: false; status: string };
 
