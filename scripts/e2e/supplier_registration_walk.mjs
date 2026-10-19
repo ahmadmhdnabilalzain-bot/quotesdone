@@ -51,7 +51,7 @@ const step = (m, name, ok, detail = '') => { results.push({ m, name, ok, detail 
 // licence (default corpus: the 12 Oct accuracy run) under an invited name that DIFFERS from it, and assert ruling
 // 1176 (the read licence name becomes the company name), the licence number and expiry, the profile + catalogue
 // (ruling 1177), and the outcome the corpus truth expects: approved, or held with a reason. Scans and Arabic-only
-// licences need the vision model, so this run's own rehearsal window is opened to models (cap USD 1, 1 hour).
+// licences need the vision model; openRun's window has models on for every run (ruling 1260).
 const CASES = val('--case', '').split(',').filter(Boolean);
 const CORPUS = val('--corpus', 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/documents/run-final-12-oct-model-on/corpus');
 const TRUTH = CASES.length ? JSON.parse(readFileSync(join(CORPUS, 'truth.json'), 'utf8')).docs : [];
@@ -60,8 +60,8 @@ const MATRIX = CASES.length ? CASES.map((c, i) => ({ lang: 'en', vp: VPS[i % VPS
 const esc = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const run = await openRun();
-if (CASES.length) await write(`update public.rehearsal_window set models_allowed = true, cap_usd = 1, expires_at = now() + interval '1 hour'
-  where run_tag = 'qd_run:${run.tag}' and ended_at is null`, 'case walk: models on for this run only');
+// Ruling 1260 (19 Oct 2026): every run has the AI on. openRun opens the capped model window for every leg, so the
+// case-only override (USD 1, 1 hour) is gone: it only ever LOWERED the run's ceiling below openRun's.
 const browser = await launch();
 try {
   for (const { lang, vp, c } of MATRIX) {
@@ -205,11 +205,23 @@ try {
       const aa = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_name_from_licence' and target_id::text='${lead.id}'`))[0];
       step(m, 'ruling 1176: the read licence name became the company name, the old name logged', tr.company_name === c.truth.legal_name_en && aa.n > 0, `company_name=${tr.company_name}; log rows ${aa.n}`);
     }
-    // the decision reaches the supplier: written, and fenced for an @example.invalid fixture (suppressed, never sent)
+    // THE DECISION REACHES THE SUPPLIER. Ruling 1199: a delivery request raised from a ZZ DEMO row is not filed at all
+    // (fn_seat_handoff -> fn_seat_work_is_demo), so a fixture leaves NO notifications row - asserting "written, suppressed"
+    // failed every leg from 19 Oct 2026 00:25Z. What a demo row can still prove: the approval notice was DECIDED (the
+    // sales engineer's supplier_approved_notice record), and a hold is SAID on the supplier's own screen (#1406). Any
+    // notifications row that does exist must still be suppressed, never sent.
     await new Promise((r) => setTimeout(r, 4000));
     const nt = await read(`select type, channel, status from public.notifications where lead_id=${lead.id} order by id`);
-    const want = approveCase ? nt.some((x) => x.type === 'supplier_approved' && x.channel === 'email') : nt.length > 0;
-    step(m, `the ${approveCase ? 'approval' : 'hold'} notice is written (fixture: suppressed, never sent)`, want && nt.every((x) => x.status === 'suppressed'), JSON.stringify(nt));
+    let want, said;
+    if (approveCase) {
+      said = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_approved_notice' and status in ('auto_done','skipped') and target_table='leads' and target_id='${lead.id}'`))[0].n;
+      want = said > 0;
+    } else {
+      await p.reload({ waitUntil: 'domcontentloaded' }); await heading.waitFor({ timeout: 30000 }).catch(() => {});
+      said = await p.getByText(/^Why: /).first().innerText({ timeout: 15000 }).catch(() => '');
+      want = !!said;
+    }
+    step(m, `the ${approveCase ? 'approval notice is decided' : 'hold reason is on the supplier screen'}; any notice row is suppressed, never sent`, want && nt.every((x) => x.status === 'suppressed'), JSON.stringify({ said, nt }));
     await shot(p, m, 'after_submit');
     if (reg?.signed_terms_path) run.ids.storage.push('signed-terms/' + reg.signed_terms_path);
 
