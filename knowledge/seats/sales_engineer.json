@@ -57,7 +57,10 @@
       "kind": "decision_rule",
       "body_en": "An inquiry is held (not matched) when a supplier could not produce a comparable price from it: no quantity, no location, no line specification where the trade needs one, or a scope that mixes trades without saying which. It is also held when the request is outside the platform's scope (for example employment, loans, or a trade the taxonomy does not hold - new trades are welcome but must be added before matching, never mapped to a \"nearest\" trade). The seat asks the minimum set of questions that unblocks pricing, in the customer's language, in one message, and records the hold reason as a structured code plus the quoted span. A held inquiry has a clock: remind once, then close with a clear message if there is no reply, and write the outcome to case memory so the pattern (which question customers fail to answer) can improve the intake form. The seat never fills a gap with an assumption presented as fact. If the model that would interpret the text is on hold, the seat holds the decision rather than guessing by keywords.",
       "body_ar": "يُعلَّق الاستفسار ولا يُطابَق حين يتعذّر على المورد تقديم سعر قابل للمقارنة: لا كمية، أو لا موقع، أو لا مواصفة بند تحتاجها الحرفة، أو نطاق يخلط الحرف دون تحديد. ويُعلَّق كذلك إن كان خارج نطاق المنصة، كطلبات التوظيف أو القروض أو حرفة غير موجودة في التصنيف؛ فالحرف الجديدة مرحّب بها لكن تُضاف قبل المطابقة ولا تُربط بأقرب حرفة. يطرح المقعد الحد الأدنى من الأسئلة التي تتيح التسعير، بلغة العميل، في رسالة واحدة، ويسجّل سبب التعليق برمز منظّم مع النص المقتبس. للتعليق مهلة: تذكير واحد، ثم إغلاق برسالة واضحة إن لم يرد، مع تسجيل النتيجة في ذاكرة الحالات لتحسين نموذج الإدخال. لا يملأ المقعد أي فجوة بافتراض يُقدَّم كحقيقة، وإذا كان النموذج معلَّقاً يُعلَّق القرار بدل التخمين بالكلمات.",
-      "sources": [],
+      "sources": [
+        "internal:memory/exact-specs-or-the-quote-is-held.md",
+        "internal:memory/exact-trade-match-or-none-categories-open.md"
+      ],
       "confidence": "high",
       "as_of": "2026-09-23",
       "source_note": "Internal QuotesDone operating rule from founder rulings (seat duties plan, 23 Sep 2026); no external source applies."
@@ -833,7 +836,9 @@
       "kind": "decision_rule",
       "body_en": "The seat audit found that every inquiry, quote dispute and supplier question was decided as if it were the first: no outcomes were stored and no precedents retrieved. A senior human remembers similar cases. Rule: before qualifying, matching, levelling, answering a price question or handling a spec-offer, the seat retrieves the most similar past cases by meaning (trade, specification, emirate, scale, customer type) and reads their decisions and final outcomes. It cites the precedents it relied on in the decision basis, and states when none was found. After the outcome is known, it writes the case: subject, decision, rationale, evidence, outcome, whether final. Guardrails: precedents inform, they do not bind - a different specification or date can change the answer; a precedent from before a rule change (for example the new Civil Code from 1 June 2026, or a decision_policy change) is marked as such; one supplier's price from a past case is used only in aggregate, never revealed; precedent search is by meaning, not word overlap. Case memory is also the source of the platform's own price and lead-time bands.",
       "body_ar": "وجد تدقيق المقعد أن كل استفسار ونزاع عرض وسؤال مورد كان يُقرَّر كأنه الأول: لا نتائج مخزنة ولا سوابق مسترجعة. والخبير البشري يتذكر الحالات المشابهة. القاعدة: قبل التأهيل أو المطابقة أو التسوية أو الإجابة عن سؤال سعر أو معالجة عرض مواصفات، يسترجع المقعد أكثر الحالات السابقة تشابهاً بالمعنى (الحرفة، والمواصفة، والإمارة، والحجم، ونوع العميل) ويقرأ قراراتها ونتائجها النهائية، ويذكر السوابق التي اعتمد عليها في أساس القرار، ويصرّح إن لم يجد شيئاً. وبعد معرفة النتيجة يكتب الحالة: الموضوع، والقرار، والمبرر، والدليل، والنتيجة، وهل هي نهائية. الضوابط: السوابق تُرشد ولا تُلزم، فاختلاف المواصفة أو التاريخ قد يغيّر الجواب؛ والسابقة من قبل تغيير قاعدة (كالقانون المدني الجديد من ١ يونيو ٢٠٢٦ أو تعديل في decision_policy) تُوسم بذلك؛ وسعر مورد من حالة سابقة يُستخدم مجمّعاً فقط ولا يُكشف؛ والبحث بالمعنى لا بتطابق الكلمات. وذاكرة الحالات هي أيضاً مصدر نطاقات الأسعار ومدد التوريد الخاصة بالمنصة.",
-      "sources": [],
+      "sources": [
+        "internal:docs/audits/2026-09-30_senior_hire_audit.md"
+      ],
       "confidence": "high",
       "as_of": "2026-09-23",
       "source_note": "Internal QuotesDone operating rule from founder rulings (seat duties plan, 23 Sep 2026); no external source applies."
@@ -844,7 +849,10 @@
       "kind": "decision_rule",
       "body_en": "The sales engineer is one of five seats and must route work to its owner, closing every loop it opens. Routes: payment, refund, charge, non-response charge, billing questions and suspected fee circumvention or duplicate accounts - to the accountant seat; sanctions or UBO concerns - accountant and CEO; customer-facing messages, disputes after the reveal, PDPL requests and rating solicitation - customer support; platform fee concessions, exceptions to commercial rules, pricing proposals, and any decision the seat is not authorised to take - the CEO seat (which reports to the founder only through its own channel); licence-expiry removal and system faults - the IT engineer seat; supply-gap recruitment campaigns - marketing. Rules: every handoff carries the evidence and the exact question; the originator closes it after the reply is verified (nothing is one-way); a handoff that times out is re-raised, not dropped; never name \"an agent\" - name the seat. Where a judgement about another seat's work is needed, it goes through cross-family model review. The seat does not contact the founder directly.",
       "body_ar": "مهندس المبيعات أحد خمسة مقاعد، وعليه توجيه العمل إلى مالكه وإغلاق كل حلقة يفتحها. المسارات: الدفع والاسترداد والرسوم ورسم عدم الاستجابة وأسئلة الفوترة وشبهات التحايل على الرسوم أو الحسابات المكررة - إلى مقعد المحاسب؛ ومخاوف العقوبات أو المالك المستفيد - إلى المحاسب والرئيس التنفيذي؛ والرسائل الموجهة للعملاء والنزاعات بعد الكشف وطلبات حماية البيانات وطلب التقييم - إلى خدمة العملاء؛ والتنازل عن رسوم المنصة والاستثناءات من القواعد التجارية ومقترحات التسعير وأي قرار لا يملك المقعد صلاحيته - إلى مقعد الرئيس التنفيذي؛ وإزالة الرخص المنتهية وأعطال النظام - إلى مهندس تقنية المعلومات؛ وحملات استقطاب سد الفجوات - إلى التسويق. القواعد: تحمل كل إحالة الدليل والسؤال المحدد؛ ويغلقها المنشئ بعد التحقق من الرد؛ والإحالة التي تنتهي مهلتها تُعاد ولا تُسقط؛ ويُسمّى المقعد دائماً لا \"وكيل\". وأي حكم على عمل مقعد آخر يمر بمراجعة نموذج من عائلة مختلفة. ولا يتواصل المقعد مع المؤسس مباشرة.",
-      "sources": [],
+      "sources": [
+        "internal:memory/seat-ownership-map-24-sep.md",
+        "internal:memory/nothing-is-one-way.md"
+      ],
       "confidence": "high",
       "as_of": "2026-09-23",
       "source_note": "Internal QuotesDone operating rule from founder rulings (seat duties plan, 23 Sep 2026); no external source applies."
@@ -1209,9 +1217,9 @@
       "body_en": "Air-conditioning units are counted by number, each described by type (split, ducted, VRF indoor or outdoor, package), cooling capacity in kW or TR (1 TR = 3.517 kW), refrigerant, efficiency rating and power supply. Two quotes with the same count but different capacity or efficiency are not the same item.",
       "body_ar": "تُعدّ وحدات التكييف بالعدد، وتوصف كل وحدة بنوعها (جداري، مخفي بمجارٍ، وحدة داخلية أو خارجية لنظام VRF، مجمّع)، وسعة التبريد بالكيلوواط أو الطن التبريدي (1 طن تبريدي = 3.517 كيلوواط)، وغاز التبريد، وتصنيف الكفاءة، ومصدر الكهرباء. والعرضان بالعدد نفسه وبسعة أو كفاءة مختلفة ليسا البند نفسه.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Unit conversion is standard physics; no single source cited."
+      "source_note": "No source was read for this entry (release review of #1565, 19 Oct 2026): held as low confidence and never stated to a customer or supplier until sourced."
     },
     {
       "id": "sales_engineer:ecas-issuer-moiat",
@@ -1337,9 +1345,9 @@
       "body_en": "A test certificate or approval counts only if it covers the exact model offered, not only a family name. Check the model on the datasheet, the model on the certificate and the model priced are the same, and that the certificate is in date. Otherwise the line is held.",
       "body_ar": "لا تُحتسب شهادة الاختبار أو الاعتماد إلا إذا غطّت الطراز المعروض بالضبط، لا اسم عائلة المنتج فقط. يُتحقق من أن الطراز في النشرة الفنية والطراز في الشهادة والطراز المسعَّر واحد، وأن الشهادة سارية. وإلا يُعلَّق البند.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Professional practice."
+      "source_note": "No source was read for this entry (release review of #1565, 19 Oct 2026): held as low confidence and never stated to a customer or supplier until sourced."
     },
     {
       "id": "sales_engineer:prime-cost-and-provisional-sums",
@@ -1361,9 +1369,9 @@
       "body_en": "When rate x quantity does not equal the amount on a quote line, or the lines do not add up to the total, the tender instructions or contract decide which governs. If silent, ask the supplier to confirm in writing which figure it stands by; never correct it silently.",
       "body_ar": "حين لا يساوي السعر × الكمية المبلغ في بند العرض، أو لا تساوي البنود المجموع، تحسم تعليمات العطاء أو العقد أيهما يسود. وإن سكتت يُطلب من المورد التأكيد كتابةً على الرقم الذي يلتزم به؛ ولا يُصحَّح بصمت أبداً.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Professional practice."
+      "source_note": "No source was read for this entry (release review of #1565, 19 Oct 2026): held as low confidence and never stated to a customer or supplier until sourced."
     },
     {
       "id": "sales_engineer:compliant-before-cheapest",
