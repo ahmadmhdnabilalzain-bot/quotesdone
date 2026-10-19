@@ -54,16 +54,21 @@ export const HELD_FOR_SPECS: Record<Lang, string> = {
 // THE HELD REPLY NAMES WHAT IS STILL OPEN (customer_support, 19 Oct 2026). settleModelTurn clears `missing` on a hold,
 // and HELD_FOR_SPECS said only "a few specifications are still open": a real customer was never told WHICH. The reply
 // is now written by the model (ruling 1196) with the exhausted questions, in the inquiry language, as its facts.
-// HELD_FOR_SPECS stays only as the handover when no model answers in time (ai_reply.ts: the caller's held notice).
-/** The plain questions still open on a held intake, in the customer's language, in checklist order. */
+// HELD_FOR_SPECS stays only as the handover when aiReply returns no acceptable reply in time: the deadline passed, the
+// models errored, or every draft was refused by the reply guards.
+// The request chat is a portal surface, so the reply is the sales engineer's (the_portals_are_the_sales_engineer).
+/** The plain questions still open on a held intake, in the customer's language, in checklist order. A field with no
+ *  question text is skipped: a raw key ('area') never reaches the model. */
 export function heldQuestions(checklist: SpecField[], exhausted: string[], lang: Lang): string[] {
-  return orderFields(checklist).filter((o) => exhausted.includes(String(o.f.key))).map((o) => questionText(o.f, lang));
+  return orderFields(checklist).filter((o) => exhausted.includes(String(o.f.key)))
+    .map((o) => String((lang === 'ar' ? o.f.question_plain_ar || o.f.question_plain_en : o.f.question_plain_en) || o.f.question || '').trim())
+    .filter(Boolean);
 }
 /** The held reply, written by the model, naming every still-open question. */
 export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhausted: string[], lang: Lang, message: string, conversation: { role: string; text: string }[], deadline?: number): Promise<string> {
   const open = heldQuestions(checklist, exhausted, lang);
   const r = await aiReply(deps, {
-    seat: 'customer_support', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
+    seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
     conversation: conversation.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
     facts: 'This request is HELD: it goes to no supplier yet. These questions were asked three times and are still unanswered:\n- ' + open.join('\n- ') +
       '\nOur sales engineer will help the customer settle them here in this chat; nothing needs to be typed again.',

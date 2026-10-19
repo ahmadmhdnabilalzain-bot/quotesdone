@@ -274,7 +274,12 @@ Deno.test('a held intake: the model is given the still-open question in Arabic a
   assert(reply.includes('كم قطعة'), 'the customer sees the model reply naming the open question');
   assertNotEquals(reply, HELD_FOR_SPECS.ar);
 });
-Deno.test('a held intake with no model answer falls back to the handover notice, never an empty chat bubble', async () => {
+Deno.test('a held field with no question text never sends its raw key to the model', () => {
+  const fields: SpecField[] = [{ key: 'area', required: true } as SpecField, ALUMINIUM[2]];
+  assertEquals(heldQuestions(fields, ['area', 'system_finish'], 'en'), ['System & finish preference?']);
+  assertEquals(heldQuestions(fields, ['area'], 'ar'), []);
+});
+Deno.test('a held intake with no acceptable model reply in time falls back to the handover notice, never an empty chat bubble', async () => {
   const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
     llm: () => Promise.resolve({ content: null, error: 'down' }) } as any;
   assertEquals(await heldReply(deps, ALUMINIUM, ['scope'], 'en', 'x', []), HELD_FOR_SPECS.en);
