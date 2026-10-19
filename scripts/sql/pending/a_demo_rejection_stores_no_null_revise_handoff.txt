@@ -1,0 +1,3 @@
+Committed with its PR, not applied: apply at merge (never before). Release operator runs
+`node scripts/apply_sql.mjs scripts/sql/a_demo_rejection_stores_no_null_revise_handoff.sql --apply --ddl`, runs its _probe.sql after it
+in the same query and reads CHK<<PROBE OK>>, then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt.

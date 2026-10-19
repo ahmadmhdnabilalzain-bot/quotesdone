@@ -1,0 +1,1 @@
+Not yet applied: routine change (fn_it_journey_ingest, fn_it_smoke_ingest, new fn_it_journey_scope_carried). Applied at merge by the release operator, outside 10:00-17:00 Dubai. Proven before merge in a rolled-back transaction on 19 Oct 2026 01:5x Dubai: verdict PROBE OK. On apply: delete this note and append the file to the end of MANIFEST.txt.
