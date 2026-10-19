@@ -82,6 +82,11 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
   // Run 321d13ae cust23: landscaping area_sqm got "450 m2 built-up, 6 rooms", which is the house, not
   // the garden, and the intake was held after three asks. Landscaping's area is the outdoor area.
   if (trade === 'landscaping') v.area = lang === 'ar' ? 'مساحة الحديقة الخارجية حوالي 300 متر مربع' : 'Garden (outdoor) area of about 300 m2';
+  // Run 0a717394 (19 Oct 2026): waterproofing has TWO keys, `area` (a select: WHICH part - Roof, Bathroom,
+  // Balcony...) and `area_sqm` (how big). Both read the built-up size, which answers area_sqm and never
+  // says where, so `area` stayed open three turns and C9 was held 'specs_unanswered: area'. It names a part.
+  const slotOf = (k) => (trade === 'waterproofing' && k === 'area' ? 'wp_part' : SLOT_OF[k]);
+  if (trade === 'waterproofing') v.wp_part = lang === 'ar' ? 'السطح (Roof)' : 'Roof';
   const whole = () => Object.entries(v).map(([k, x]) => `${k}: ${x}`).join('. ') + '.';
   return {
     trade, lang, notSure, values: v,
@@ -96,7 +101,7 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
       const keys = [...new Set([k0, ...(r?.required_gate?.missing_keys || []), ...(r?.missing_keys || []),
         ...(Array.isArray(r?.missing) ? r.missing : []).filter((m) => /^[a-z0-9_.-]+$/i.test(String(m)))]
         .filter(Boolean).map(String))];
-      const parts = keys.filter((k) => v[SLOT_OF[k]]).map((k) => `${k}: ${v[SLOT_OF[k]]}`);
+      const parts = keys.filter((k) => v[slotOf(k)]).map((k) => `${k}: ${v[slotOf(k)]}`);
       return parts.length ? parts.join('. ') + '.' : whole();
     },
   };

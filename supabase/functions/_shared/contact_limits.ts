@@ -10,7 +10,7 @@ export function contactMessageError(message: string): { error: string; error_ar:
   if (n < 4) return { error: 'Please write a short message.', error_ar: 'يُرجى كتابة رسالة قصيرة.' };
   if (n > CONTACT_MESSAGE_MAX) return {
     error: `Your message is too long (${n} characters). Please keep it under ${CONTACT_MESSAGE_MAX} characters.`,
-    error_ar: `رسالتك طويلة جدًا (${n} حرفًا). يُرجى ألا تتجاوز ${CONTACT_MESSAGE_MAX} حرف.`,
+    error_ar: `رسالتكم طويلة جدًا (${n} حرفًا). يُرجى ألا تتجاوز ${CONTACT_MESSAGE_MAX} حرف.`,
   };
   return null;
 }
