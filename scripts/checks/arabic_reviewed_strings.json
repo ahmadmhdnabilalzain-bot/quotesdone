@@ -723,6 +723,13 @@
   "d84aaba829c6",
   "f6fe48838815"
  ],
+ "scripts/sql/customer_support_acts_on_a_complaint_before_its_deadline.sql": [
+  "21bf22d9fb43",
+  "2a26f033805e",
+  "438552204aa8",
+  "511e912b1936",
+  "7dcd7ec7bc41"
+ ],
  "scripts/sql/customer_support_asks_whether_the_customer_hired_and_nudges_a_quiet_one_by_their_trades.sql": [
   "0f4005cfb029",
   "0f73aac5d3bd",
@@ -743,6 +750,12 @@
   "cfd5112b4b9d",
   "ecd50e16b6b7",
   "ef4bc2969d40"
+ ],
+ "scripts/sql/customer_support_drives_every_unanswered_message_to_a_reply_or_a_case.sql": [
+  "6de42329426c",
+  "91c9a9424878",
+  "96bad3c13490",
+  "fddd63953767"
  ],
  "scripts/sql/customer_support_guides_a_first_request_step_by_step_and_asks_a_held_one_for_its_specs.sql": [
   "05b86d760168",
@@ -775,6 +788,14 @@
   "d9c823b5151f",
   "f4054a06e456",
   "ff4b6d7b4671"
+ ],
+ "scripts/sql/customer_support_tells_affected_customers_during_an_incident.sql": [
+  "127ad0f5549e",
+  "4f4316223d73",
+  "8089bad6b642",
+  "8171cc5a692f",
+  "b94cdb4a8cae",
+  "ff0d382f2b27"
  ],
  "scripts/sql/demo_data_is_purged_by_its_marker_and_no_seat_duty_reads_it.sql": [
   "1ddbe22a20cf",
@@ -6049,9 +6070,21 @@
   "84a6acf814f6"
  ],
  "supabase/functions/_shared/support_reply_guard.ts": [
+  "0120928e90da",
+  "19ec6fc142e3",
+  "1e6f868612d3",
+  "257170f24a6b",
   "29e16cbb341d",
+  "402880b5bac6",
+  "43ed9305f18f",
+  "4dbb82dfe80d",
+  "576d6d000dbd",
   "622dc4a7b5b1",
-  "713903274b9b"
+  "713903274b9b",
+  "823f816ac3e8",
+  "b348c619f966",
+  "d6cdcf2bd9b8",
+  "e1b77c471881"
  ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"

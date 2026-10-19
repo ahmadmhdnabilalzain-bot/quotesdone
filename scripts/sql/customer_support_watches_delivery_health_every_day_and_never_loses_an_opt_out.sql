@@ -35,7 +35,7 @@
 --      * the day's health, by class, each its own finding owned by customer_support (opened over threshold, closed when
 --        back): delivery_health:send_failures (failed or bounced share of the last 24 h's sends over 5%, 20 sends or
 --        more), delivery_health:whatsapp_failures (the same for the WhatsApp channel), delivery_health:template_watch
---        (any wa_templates_watch run in 24 h not 'ok', or none at all), delivery_health:unsubscribe_refusals (refusals
+--        (any wa_templates_watch run in 24 h not 'ok'; a watcher that does not run at all is the heartbeat's alarm, not this one, measured loud on healthy 14 and 19 Sep), delivery_health:unsubscribe_refusals (refusals
 --        from real addresses in 24 h). Suppressions added in 24 h are reported in the result.
 --
 -- Prevented by: scripts/checks/customer_support_senior_contributions_are_working_duties.test.mjs (a refusal alone
@@ -161,11 +161,11 @@ begin
       v_on := case v_cls
                 when 'send_failures' then v_sends >= 20 and v_bad::numeric / v_sends > 0.05
                 when 'whatsapp_failures' then v_wa >= 20 and v_wa_bad::numeric / v_wa > 0.05
-                when 'template_watch' then v_tpl_bad > 0 or v_tpl_ok = 0
+                when 'template_watch' then v_tpl_bad > 0
                 else v_ref > 0 end;
       if v_on then
         perform public.fn_it_engineer_finding_upsert('delivery_health:' || v_cls,
-          'Delivery health: ' || replace(v_cls, '_', ' ') || ' in the last 24 h ' || v_out::text,
+          'Delivery health: ' || replace(v_cls, '_', ' ') || ' over threshold in the last 24 h (' || v_bad || ' of ' || v_sends || ' sends failed, ' || v_wa_bad || ' of ' || v_wa || ' WhatsApp, ' || v_tpl_bad || ' template-watch runs not ok, ' || v_ref || ' unsubscribe refusals)',
           'customer_support daily delivery health (fn_customer_support_delivery_health_tick)', 'customer_facing',
           greatest(v_bad, v_wa_bad, v_tpl_bad, v_ref, 1), v_out || jsonb_build_object('owner_seat', 'customer_support', 'duty', 'delivery_health'),
           '{}'::text[], array['the provider error behind the failures'], 'customer_support');
@@ -185,3 +185,8 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/customer_support_watches_delivery_health_every_day_and_never_loses_an_opt_out.sql')
 on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
   what = excluded.what, owner_file = excluded.owner_file;
+
+-- the new table is in the daily table export (backups), like every other seat record
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('unsubscribe_refusal', true, 'customer_support', 'Refused unsubscribe attempts and how ownership was proven before any opt-out (CS-C09).', 'customer_support')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;

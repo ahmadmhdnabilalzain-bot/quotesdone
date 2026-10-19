@@ -25,6 +25,13 @@
 -- Prevented by: scripts/checks/customer_support_senior_contributions_are_working_duties.test.mjs.
 -- Apply at merge:  node scripts/apply_sql.mjs scripts/sql/customer_support_scores_its_replies_every_week_and_counts_what_went_unscored.sql --apply --ddl
 
+-- Coverage is judged only from the day every road scores (this file's apply, with the site_assistant deploy): before it,
+-- the widget's main road was unscored by construction, which is the cause this file fixes, not a fresh alarm.
+insert into public.decision_policy (key, value, description) values
+  ('support_reply_scoring_complete_since', to_jsonb(now()::text),
+   'fn_customer_support_reply_quality_week: the scored-share finding judges only replies sent after this instant, when every reply road (supportReply and site_assistant) logs its score.')
+on conflict (key) do nothing;
+
 create table if not exists public.customer_support_reply_quality_week (
   week_ending  date primary key,
   metrics      jsonb not null,
@@ -74,7 +81,8 @@ begin
 
   if v_n_scored > 0 and (v_scored->>'readability_avg')::numeric < 90 then v_below := array_append(v_below, 'readability_avg'); end if;
   if v_n_scored > 0 and (v_scored->>'tone_avg')::numeric < 90 then v_below := array_append(v_below, 'tone_avg'); end if;
-  if v_n_sent > 0 and coalesce(v_cov, 0) < 0.9 then v_below := array_append(v_below, 'scored_share'); end if;
+  if v_n_sent >= 20 and v_from >= coalesce((select (value #>> '{}')::timestamptz from public.decision_policy where key = 'support_reply_scoring_complete_since'), 'infinity')
+     and coalesce(v_cov, 0) < 0.9 then v_below := array_append(v_below, 'scored_share'); end if;
 
   if not v_fx then
     foreach k in array array['readability_avg', 'tone_avg', 'scored_share'] loop
@@ -107,3 +115,8 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/customer_support_scores_its_replies_every_week_and_counts_what_went_unscored.sql')
 on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
   what = excluded.what, owner_file = excluded.owner_file;
+
+-- the new table is in the daily table export (backups), like every other seat record
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('customer_support_reply_quality_week', true, 'customer_support', 'The weekly reply readability, tone and scored-share review of customer_support (CS-C06).', 'customer_support')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;

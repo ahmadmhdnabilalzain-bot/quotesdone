@@ -111,6 +111,29 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_support_reply_watch_tick()',
     asOf: { inbound_messages: 'created_at', wa_messages: 'created_at', assistant_logs: 'created_at' },
   },
+  // 19 Oct 2026 (customer_support, #1549, CS-C08). Raises delivery_outcome_unreturned: a delivery.request done or
+  // failed more than 2 h before the instant with no delivery.result returned and no open watch window. It runs
+  // fn_customer_support_delivery_watch first (its returns are written inside the rolled-back replay). A request's
+  // status and result_handoff_id are PRESENT state (same ceiling as fn_support_reply_watch_tick): one returned
+  // after the instant reads as returned then, so it can under-fire, never over-fire.
+  fn_customer_support_delivery_outcome_tick: {
+    replay: 'pg_temp.qd_replay_fn_customer_support_delivery_outcome_tick()',
+    asOf: { agent_actions: 'created_at', notifications: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C06). Raises support_reply_quality:<readability_avg|tone_avg|scored_share>
+  // over the 7 days to the instant. scored_share judges only replies sent after support_reply_scoring_complete_since
+  // (the day every road scores), so an instant before it cannot fire on the gap that file fixed.
+  fn_customer_support_reply_quality_week: {
+    replay: 'pg_temp.qd_replay_fn_customer_support_reply_quality_week()',
+    asOf: { support_reply_readability: 'created_at', assistant_logs: 'created_at', wa_messages: 'created_at', inbound_messages: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C09). Raises delivery_health:<send_failures|whatsapp_failures|
+  // template_watch|unsubscribe_refusals> over the 24 h to the instant: failures over 5% of 20+ sends, a template
+  // watcher run not ok (or none), a refused unsubscribe from a real address.
+  fn_customer_support_delivery_health_tick: {
+    replay: 'pg_temp.qd_replay_fn_customer_support_delivery_health_tick()',
+    asOf: { notifications: 'created_at', agent_runs: 'started_at', email_suppressions: 'created_at', inbound_messages: 'created_at' },
+  },
   // 23 Sep 2026 (sales_engineer, #869). Raises two findings: a reminder whose handler failed three times,
   // and a reminder whose delivery never became final in 3 days. Both read handoffs and leads that existed
   // at the instant; p_include_fixtures false, so a healthy day with no failing or stuck reminder is quiet.

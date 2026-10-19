@@ -221,3 +221,8 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/customer_support_registers_every_personal_data_request_and_keeps_its_clock.sql')
 on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
   what = excluded.what, owner_file = excluded.owner_file;
+
+-- the new table is in the daily table export (backups), like every other seat record
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('customer_support_data_request', true, 'customer_support', 'The register of personal-data requests under the UAE PDPL and their due dates (CS-C11).', 'customer_support')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;

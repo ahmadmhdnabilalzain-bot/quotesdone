@@ -144,3 +144,8 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/customer_support_drives_every_unanswered_message_to_a_reply_or_a_case.sql')
 on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
   what = excluded.what, owner_file = excluded.owner_file;
+
+-- the new table is in the daily table export (backups), like every other seat record
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('customer_support_inbound_drive', true, 'customer_support', 'Each inbound email or WhatsApp message customer_support drove to a case and acknowledgement (CS-C01).', 'customer_support')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;

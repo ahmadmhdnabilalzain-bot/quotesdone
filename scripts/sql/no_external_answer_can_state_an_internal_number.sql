@@ -141,3 +141,8 @@ create or replace view public.v_support_corpus AS  WITH base AS (
     lang
    FROM base b;
 revoke all on public.v_support_corpus from public, anon, authenticated;
+
+-- the new table is in the daily table export (backups), like every other seat record
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('knowledge_internal_figure_record', true, 'customer_support', 'The knowledge rows that carry live business figures and are withheld from every answer.', 'customer_support')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;
