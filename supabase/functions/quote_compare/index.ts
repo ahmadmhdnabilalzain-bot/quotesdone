@@ -5,6 +5,7 @@ import { siteCors } from '../_shared/site_origins.ts';
 // flags, spec hierarchy, and what a complete quote must itemise — so the agent sanity-checks
 // prices against the market and ranks technical quality authoritatively for any trade.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { isLiveQuote } from '../_shared/quote_live.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { deterministicCompare, rosterOf } from './deterministic.ts';
 import { observe } from '../_shared/observe.ts';
@@ -99,7 +100,7 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     const MAX_ITEMS_TOTAL = 1200;
     const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,vat_treatment,vat_amount,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,extracted_by_model,expires_at,quality,submittable').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
     if (qsErr) { await logRun('error', { compared: 0, quotes_query_ok: 0, quotes_seen: 0 }, 'quote_compare could not read the quotes for inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(qsErr.message).slice(0, 120) + '). The customer will be told they need at least two quotes even though suppliers may well have quoted — a query failure presented as an absence of quotes.'); }
-    const live = (qsAll || []).filter((q: any) => q.status !== 'draft');
+    const live = (qsAll || []).filter((q: any) => isLiveQuote(q.status));
     // THE QUALITY CHECK (founder ledger 1018, 29 Sep 2026; scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_
     // before_the_customer_sees_it.sql). A quote it holds is a draft, so it is not in `live`: it is COUNTED as on hold. A
     // quote released after its wait carries the check's flags (codes and numbers, no sentences), shown beside it in the

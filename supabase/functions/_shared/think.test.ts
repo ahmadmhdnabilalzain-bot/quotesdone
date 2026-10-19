@@ -438,3 +438,22 @@ Deno.test('customer A never sees customer B\'s quote case in the chat context; a
   const internal = await run('internal');
   assert(internal.leaked, 'an internal seat lost its case memory');
 });
+
+Deno.test('a choice among options is not refused for a question added beside it; an answer still is', () => {
+  const opts = { missing: [], sourceIds: new Set<string>(), conversationText: 'x' };
+  const decision = { name: 'n', options: [{ id: 'a', meaning: 'a' }, { id: 'b', meaning: 'b' }] };
+  const draft = { answer: 'They ask a general question, so b.', asked_back: 'Which emirate?', decision: { choice: 'b' } };
+  assertEquals(refuse(draft as never, { ...opts, decision }), null);
+  assert(refuse({ answer: 'Some answer with enough words to pass the other checks here today.', asked_back: 'Which emirate?', reasoning: ['s1: x'] } as never, opts)?.includes('asked back'));
+});
+
+Deno.test('one WhatsApp call reads intent, person and menu; an unknown id comes back null, never guessed', async () => {
+  const { whatsappReadings } = await import('./reasoned_channels.ts');
+  const { deps, calls } = mock({ gate: { allowed: true }, replies: { synthesise: [J({ answer: 'They ask a trade question.', decision: { choice: 'trade:glazing' }, needs_a_person: 'no_person', menu_meaning: 'not-an-id' })] } });
+  const r = await whatsappReadings(deps, { message: 'do you do glass balustrades?', intents: [{ intent_key: 'off_topic', label: 'Not a QuotesDone question' }], trades: [{ code: 'glazing', label: 'Glazing' }], phone: 'whatsapp:+971500000001', menu: [{ id: 'qd_new', title: 'New request', description: 'start one' }] });
+  assertEquals([r.intent, r.needsPerson, r.menu], ['trade:glazing', false, null]);
+  assertEquals(calls.length, 1);                               // no planner, one call for all three
+  assertEquals(calls[0].o.effort, 'low');
+  assert(calls[0].system.includes('"needs_a_person"') && calls[0].system.includes('"menu_meaning"'));
+  assert(calls[0].system.includes('is NEVER this'));           // off_topic carries its precise meaning, not the bare label
+});

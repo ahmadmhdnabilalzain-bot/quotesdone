@@ -106,6 +106,10 @@ export interface ThinkRequest {
   // One more choice made IN the answering call, so it costs no chain of its own (the widget: which published trade, if
   // any, they ask the price of). Comes back as result.extra (null if not one of the ids).
   ask?: { key: string; options: { id: string; meaning: string }[] };
+  // MORE CHOICES IN THE SAME CALL AS A DECISION (customer_support, 19 Oct 2026): WhatsApp reads what a message asks,
+  // whether it needs a person and what it means to the menu in ONE model call instead of three. Each comes back in
+  // result.also[key], null when the model did not name one of that key's ids. The main decision is validated as always.
+  also?: { key: string; options: { id: string; meaning: string }[] }[];
   // Output ceilings for a caller whose reply is short (the widget: ~70 words). With a verify ceiling the reviewer is
   // also told to return the strict JSON verdict only. A truncated output is a failed pass, never a fragment sent.
   maxTokens?: { synthesise?: number; verify?: number };
@@ -120,6 +124,8 @@ export interface ThinkRequest {
   // ones are kept. The guard is unchanged in kind: the value must sit inside evidence copied verbatim from the person's
   // own words; the minimum quote is READER_MIN_EVIDENCE characters instead of 8.
   reader?: boolean;
+  // The reasoning effort asked of the model for the answer or decision (a choice among a few options needs little).
+  effort?: 'low' | 'medium' | 'high';
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -140,6 +146,7 @@ export interface ThinkResult {
   reason?: string;
   route?: string | null;
   extra?: string | null;
+  also?: Record<string, string | null>;
 }
 
 export interface LlmReply { content: string | null; model?: string | null; error?: string | null; used_llm?: boolean }
@@ -150,7 +157,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[] }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high' }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -266,7 +273,10 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
   else if (evasive && substanceWords(answer) < 25) {
     return 'the draft defers or declines without content — the answer standard (903) forbids "I will check / get back to you / cannot answer"; give everything that can already be said';
   }
-  if (d.asked_back && String(d.asked_back).trim()) {
+  // A CHOICE AMONG OPTIONS ASKS NOBODY ANYTHING (customer_support, 19 Oct 2026): its caller reads decision.choice and
+  // nothing else, so a question the model added beside a valid choice is never sent. Refusing it cost a whole second
+  // pass (measured: wa_inbound.needs_a_person 27 s instead of 12 s; intent_table held twice over it on 18-19 Oct).
+  if (d.asked_back && String(d.asked_back).trim() && !o.decision?.options?.length) {
     if (!o.missing.some((f) => f.changes_answer)) return 'a question was asked back, but no missing fact changes the answer; answer instead of asking';
     if (substanceWords(answer) < 12) return 'a question was asked back with nothing said alongside it; give what can already be said for each possibility, then ask';
   }
@@ -635,12 +645,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const sourceIds = new Set(sources.map((s) => s.id));
   const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true)
     + (req.ask && !deciding ? `
-Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '');
+Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '')
+    + (req.also ?? []).map((a) => `
+Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('');
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0 });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (req.reader && draft && typeof draft === 'object') {
       draft.asked_back = null;
@@ -675,7 +687,7 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0 });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
       const fixed = parseJson<Draft>(r.content);
       if (req.reader && fixed && typeof fixed === 'object') { fixed.asked_back = null; keepProvenFields(fixed, req.decision, textOf(ctx) + '\n' + req.question); }
       if (fixed && !refuse(fixed, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true, ...(req.reader ? { minEvidence: READER_MIN_EVIDENCE } : {}) })) { draft = fixed; model = r.model ?? model; }
@@ -707,6 +719,7 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
     missing_context: missing, sources: sources.filter((s) => (draft!.cited ?? []).includes(s.id)),
     confidence, asked_back: draft.asked_back ? String(draft.asked_back) : null, verified, model,
     route: req.route?.some((o) => o.id === String(draft!.route ?? '')) ? String(draft!.route) : null,
+    also: req.also ? Object.fromEntries(req.also.map((a) => { const v = String((draft as unknown as Record<string, unknown>)[a.key] ?? ''); return [a.key, a.options.some((o) => o.id === v) ? v : null]; })) : undefined,
     extra: req.ask?.options.some((o) => o.id === String((draft as unknown as Record<string, unknown>)[req.ask!.key] ?? '')) ? String((draft as unknown as Record<string, unknown>)[req.ask.key]) : null,
   };
 }
@@ -725,7 +738,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
       // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
       const content = o.history?.length ? [...o.history, last] : o.images?.length ? [last] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}) });
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {

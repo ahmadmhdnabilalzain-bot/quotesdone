@@ -117,6 +117,7 @@ export interface LlmCallOpts {
   cacheTtl?: '1h';
   // the conversation's earlier turns ride as a cached block (chat_history.ts; ai_gateway withHistoryBreakpoint)
   cacheHistory?: boolean;
+  effort?: 'low' | 'medium' | 'high';   // the reasoning effort asked of the model (request_shape.ts); absent = its default
 }
 const EMPTY = (e: string | null, status = 0, used = true): LlmResult =>
   ({ content: null, message: null, tool_calls: [], finish_reason: null, truncated: false, used_llm: used, http_status: status, error: e });
@@ -228,7 +229,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           dept: def.dept ?? null,
           agent: def.agent ?? null,
           sys, sys_stable: sysStable, input, max,
-          ...(opts.sysShared ? { sys_shared: opts.sysShared } : {}), ...(opts.cacheTtl ? { cache_ttl: opts.cacheTtl } : {}), ...(opts.cacheHistory ? { cache_history: true } : {}),
+          ...(opts.sysShared ? { sys_shared: opts.sysShared } : {}), ...(opts.cacheTtl ? { cache_ttl: opts.cacheTtl } : {}), ...(opts.cacheHistory ? { cache_history: true } : {}), ...(opts.effort ? { effort: opts.effort } : {}),
           // THE GATEWAY ASKED FOR THIS AND NOBODY THROUGH THIS MODULE EVER SENT IT (11 Aug 2026).
           //
           // ai_gateway computes its wall as `declared > 5000 ? max(declared - 3000, 8000) : 55000`

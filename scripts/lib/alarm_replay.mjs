@@ -13,6 +13,44 @@ import assert from 'node:assert/strict';
 
 import { lit } from './db.mjs';
 
+export const DEFAULT_STUBS = {
+  'public.fn_seat_duty_run': `'{}'::jsonb`, 'public.fn_seat_duty_isolate': 'null',
+  'public.fn_seat_handoff': 'null::bigint', 'public.fn_seat_handoff_act': `'{}'::jsonb`,
+  'public.fn_seat_handoff_complete': 'null', 'public.fn_customer_support_takes_delivery': 'null',
+  'public.enqueue_supplier_invites': 'null', 'public.fn_ceo_improvement_open': 'null',
+  'public.fn_ceo_improvement_close': 'null', 'public.fn_seat_deliberation_close': 'null',
+};
+
+/** Replace every call `fn(...)` in sql by `value`, matching the call's parentheses even when they nest. */
+export function stubCalls(sql, fn, value) {
+  const re = new RegExp(`\\b${fn.replace(/\./g, '\\.')}\\s*\\(`, 'gi');
+  // in-string positions: a name quoted inside a message text is not a call
+  // (a `--` comment is skipped, so an apostrophe in prose never flips the string state)
+  const inStr = new Uint8Array(sql.length + 1); let qs = false;
+  for (let k = 0; k < sql.length; k++) {
+    if (!qs && sql[k] === '-' && sql[k + 1] === '-') { while (k < sql.length && sql[k] !== '\n') inStr[k++] = 1; continue; }
+    if (sql[k] === "'") qs = !qs; inStr[k] = qs ? 1 : 0;
+  }
+  let out = ''; let from = 0; let m;
+  while ((m = re.exec(sql))) {
+    if (inStr[m.index]) continue;
+    let i = m.index + m[0].length; let depth = 1; let q = false;
+    for (; i < sql.length && depth; i++) {
+      const ch = sql[i];
+      if (ch === "'") q = !q;
+      else if (!q && ch === '(') depth++;
+      else if (!q && ch === ')') depth--;
+    }
+    if (depth) break;   // unbalanced: leave the rest untouched
+    out += sql.slice(from, m.index) + value; from = i; re.lastIndex = i;
+  }
+  return out + sql.slice(from);
+}
+
+/** Drop FOR UPDATE / FOR SHARE row-lock clauses (with OF, SKIP LOCKED, NOWAIT). */
+export const stripRowLocks = (sql) =>
+  sql.replace(/\bfor\s+(?:no\s+key\s+)?(?:update|share|key\s+share)(?:\s+of\s+[\w.]+(?:\s*,\s*[\w.]+)*)?(?:\s+(?:skip\s+locked|nowait))?/gi, '');
+
 export function replaySql(name, def, entry, at, stage = '', prelude = '') {
   let body = def
     .replace(new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\s*\\(`, 'i'), `create function pg_temp.qd_replay_${name}(`)
@@ -20,8 +58,15 @@ export function replaySql(name, def, entry, at, stage = '', prelude = '') {
     .replace(/\bpublic\.fn_it_engineer_finding_upsert\s*\(/gi, 'pg_temp.qd_quiet_capture(');
   // entry.stub: calls the replayed body must NOT make on the live database, replaced by a constant. A call that takes a
   // row lock on a live table holds it for the whole replay transaction, and a live caller that skips locked rows then
-  // silently skips that work (19 Oct 2026: fn_seat_duty_run under the fn_seat_duties_tick replay).
-  for (const [fn, value] of Object.entries(entry.stub ?? {})) body = body.replace(new RegExp(`\\b${fn.replace('.', '\\.')}\\s*\\([^()]*\\)`, 'gi'), value);
+  // silently skips that work (19 Oct 2026: fn_seat_duty_run under the fn_seat_duties_tick replay). DEFAULT_STUBS are
+  // the pure follow-on actions (start, act on, complete a handoff; run a duty), never an alarm's own decision.
+  for (const [fn, value] of Object.entries({ ...DEFAULT_STUBS, ...(entry.stub ?? {}) })) body = stubCalls(body, fn, value);
+  // A row lock in the replayed body itself is dropped: that body reads its as-of views, and a FOR UPDATE there would
+  // hold a live row until the rollback.
+  body = stripRowLocks(body);
+  // entry.shadow: live tables the replayed body itself writes; it writes a temp copy instead, so it holds no live row.
+  for (const t of entry.shadow ?? []) body = body.replace(new RegExp(`\\bpublic\\.${t}\\b`, 'g'), `pg_temp.qd_shadow_${t}`);
+  const shadows = (entry.shadow ?? []).map((t) => `create temp table qd_shadow_${t} as select * from public.${t};`).join('\n');
   for (const t of Object.keys(entry.asOf ?? {})) body = body.replace(new RegExp(`\\bpublic\\.${t}\\b`, 'g'), `pg_temp.qd_asof_${t}`);
   const views = Object.entries(entry.asOf ?? {})
     .map(([t, c]) => `create temp view qd_asof_${t} as select * from public.${t} where ${c} < ${lit(at)}::timestamptz;`).join('\n');
@@ -36,6 +81,7 @@ create function pg_temp.qd_quiet_capture(p_issue_key text, p_title text, p_where
   p_evidence jsonb default '{}', p_ruled_out text[] default '{}', p_undetermined text[] default '{}', p_raised_by text default 'it_engineer')
 returns jsonb language plpgsql as $c$ begin insert into qd_quiet_fired values (p_issue_key, p_title); return '{}'::jsonb; end $c$;
 ${views}
+${shadows}
 ${body};
 do $q$
 declare v jsonb;
