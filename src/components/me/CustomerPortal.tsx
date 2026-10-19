@@ -1180,6 +1180,9 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const stepIdx = rfqStageIdx(inq, quotes);
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
+  const [repeating, setRepeating] = useState(false);
+  const [repeated, setRepeated] = useState('');
+  const doRepeat = async (e) => { e.stopPropagation(); if (repeating) return; if (!(await ask(t(lang, 'rc_repeat_confirm'), { title: t(lang, 'rc_repeat'), confirm: t(lang, 'rc_repeat') }))) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
   return (<Card ref={cardRef} id={'inq-' + inq.id} className={cn('scroll-mt-20 p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
@@ -1224,6 +1227,12 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     {!concluded && !anyRevealed && !editing && <div className="flex gap-2.5 flex-wrap items-center mt-2">
       {inq.editable && <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setESummary(inq.summary || ''); setEBudget(inq.budget || ''); setEEmirate(inq.emirate || ''); setEditing(true); }}>{t(lang, 'rc_edit')}</Button>}
       <Button variant="link" className="px-0 h-auto text-danger" disabled={canceling} onClick={doCancel}>{canceling ? t(lang, 'rc_cancelling') : t(lang, 'rc_cancel')}</Button>
+    </div>}
+    {/* REPEAT IN ONE CLICK (founder_instruction 1028): the same specs posted again as a new request, through the
+        same posting door (customer_api repeat_inquiry -> create_inquiry). */}
+    {!editing && <div className="flex gap-2.5 flex-wrap items-center mt-1">
+      <Button variant="link" className="px-0 h-auto" disabled={repeating} onClick={doRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat')}</Button>
+      {repeated ? <span className={S.sub} role="status">{repeated}</span> : null}
     </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
     <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} revealed={anyRevealed} />
