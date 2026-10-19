@@ -29,14 +29,28 @@ const admin = createClient(`https://${REF}.supabase.co`, service, { auth: { pers
 const items = JSON.parse(await Deno.readTextFile(inFile)) as { id: string; seat: string; wording: string }[];
 const out: Record<string, unknown>[] = [];
 for (const it of items) {
+  // A held answer keeps the model's own last words, so the cause of a hold is read, not guessed.
+  const llmTrail: { phase: string; content: string; error: string | null }[] = [];
+  const retrieved: Record<string, unknown>[] = [];   // what retrieval handed the seat, per planned step
   const r = await E2E_RUN.run({ tag, secret }, async () => {
+    const live = defaultDeps(admin as never, 'knowledge_exam');   // the exam's own gateway credential: app_secrets.cred_fn_knowledge_exam
+    const deps = { ...live, llm: async (...a: Parameters<typeof live.llm>) => {
+      const x = await live.llm(...a);
+      llmTrail.push({ phase: String(a[0]), content: String(x.content ?? '').slice(0, 1500), error: x.error ?? null });
+      return x;
+    }, rpc: async (f: string, args: Record<string, unknown>) => {
+      const x = await live.rpc(f, args);
+      if (/^fn_reason_retrieve/.test(f)) retrieved.push({ fn: f, trade: args.p_trade ?? null, kind: args.p_kind ?? null, area: args.p_area ?? null,
+        top: (Array.isArray(x.data) ? x.data : []).slice(0, 6).map((r: { source: string; id: string; similarity: number }) => `${r.source}:${r.id}@${Number(r.similarity).toFixed(3)}`), error: x.error?.message ?? null });
+      return x;
+    } };
     try {
-      return await think(defaultDeps(admin as never, 'knowledge_exam'),   /* the exam's own gateway credential: app_secrets.cred_fn_knowledge_exam */
+      return await think(deps as never,
         { seat: it.seat as never, surface: 'think.answer', question: it.wording, subject: { fixture: true } as never });
     } catch (e) { return { status: 'error', answer: '', reason: (e as Error).message } as never; }
   });
   out.push({ id: it.id, seat: it.seat, wording: it.wording, status: r.status, answer: r.answer ?? '', model: r.model ?? null,
-             reason: r.reason ?? null, verified: r.verified?.status ?? null, sources: (r.sources ?? []).map((s: { id: string }) => s.id).slice(0, 8) });
+             reason: r.reason ?? null, ...(r.status === 'answered' ? {} : { llm_trail: llmTrail }), retrieved, verified: r.verified?.status ?? null, sources: (r.sources ?? []).map((s: { id: string }) => s.id).slice(0, 8) });
   console.log(`${it.id} ${r.status} ${(r.answer ?? '').slice(0, 90).replace(/\n/g, ' ')}`);
 }
 await Deno.writeTextFile(outFile, JSON.stringify(out, null, 1));
