@@ -101,6 +101,8 @@ export function majority(rs: Extract<ChoiceResult, { ok: true }>[]): Extract<Cho
   const keep = new Set([...count].filter(([, n]) => n >= 2).map(([c]) => c));
   if (!keep.size) return null;
   const merged = mergeChoices(full.map((r) => ({ trades: r.trades.filter((t) => keep.has(t.code)), rejected: [] })));
+  // two votes for a code whose every quote code refused prove nothing: held, never ok and empty (review of #1483)
+  if (!merged.trades.length) return null;
   const once = [...new Set(full.flatMap((r) => r.trades.map((t) => t.code)))].filter((c) => !keep.has(c));
   return { ok: true, trades: merged.trades, rejected: [...full.flatMap((r) => r.rejected), ...once.map((c) => ({ code: c, why: 'named by one reading only' }))] };
 }

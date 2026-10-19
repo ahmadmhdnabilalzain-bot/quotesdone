@@ -164,3 +164,7 @@ Deno.test('majority of readings: a third reading settles a code one of two misse
   assertEquals(majority([r(['doors']), r(['joinery']), r(['fire_fighting'])]), null);
   assertEquals(majority([r([]), r([]), r([])]), null);
 });
+Deno.test('two readings name the same code but code refused both quotes: held (null), never ok and empty', () => {
+  const r = (code: string) => ({ ok: true as const, trades: [{ code, quote: code + ' line', reason: 'r' }], rejected: [{ code: 'doors', why: 'the quote is not in the document: "x"' }] });
+  assertEquals(majority([r('joinery'), r('fire_fighting')]), null);
+});
