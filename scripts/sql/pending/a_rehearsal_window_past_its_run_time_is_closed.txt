@@ -1,0 +1,5 @@
+Committed, not applied: apply at merge (rule: never apply before merge). Seat: it_engineer. Until it is live, open
+rehearsal windows are closed only by their own process (run.mjs, demo_factory.withRun) on exit or signal. Moves when the
+release operator runs `node scripts/apply_sql.mjs scripts/sql/a_rehearsal_window_past_its_run_time_is_closed.sql --apply --ddl`,
+the probe check (scripts/checks/a_rehearsal_window_past_its_run_time_is_closed.test.mjs) passes, then deletes this note and
+appends the file to the END of scripts/sql/MANIFEST.txt in the same commit.

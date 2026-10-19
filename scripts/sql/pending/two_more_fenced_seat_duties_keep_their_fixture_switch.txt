@@ -1,0 +1,1 @@
+Committed, not applied. Gives fn_sales_engineer_comparison_kpi and fn_support_case_idle_close the qd.duty_fixtures switch (fixture run reads only demo rows, real run only real). Moves when the release operator applies it at merge, outside 04:30-13:00 UTC; then delete this note and append the file to the end of MANIFEST.txt.

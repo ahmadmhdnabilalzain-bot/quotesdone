@@ -48,12 +48,16 @@ export { demoMobile };
  */
 export async function openRun(opts = {}) {
   if (process.env.QD_FIXTURES !== '1') process.env.QD_FIXTURES = '1';   // this module IS the fixture door
-  const { capUsd = 15, minutes = 120, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
+  const { capUsd = 15, minutes: _minutes, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
   const run = newRun({ quiet: true, ...rest });
   run.ids = { inquiries: new Set(), quotes: new Set(), leads: new Set(), customers: new Set(), storage: [] };
+  // The window's run time is its expires_at: fn_rehearsal_window_sweep closes it after that if this process died.
+  // QD_E2E_WINDOW_MIN = the workflow's job wall + teardown (smoke 33, nightly 120); an explicit opts.minutes wins;
+  // unset or bad = the 2 h maximum.
+  const min = Math.min(120, Math.max(1, Number(opts.minutes ?? process.env.QD_E2E_WINDOW_MIN) || 120));
   await write(`insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, cap_usd, expires_at)
                values (${q('qd_run:' + run.tag)}, 'scripts/e2e/run.mjs', 'e2e harness run', true, ${Number(capUsd)},
-                       now() + make_interval(mins => ${Math.min(120, Number(minutes) | 0)}))`, 'rehearsal window');
+                       now() + make_interval(mins => ${min}))`, 'rehearsal window');
   process.env.QD_E2E_RUN_TAG = run.tag;
   return run;
 }

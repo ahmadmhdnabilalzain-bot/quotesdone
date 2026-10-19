@@ -8,7 +8,7 @@ import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
-import { sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { channelOfRow, failoverStep, nextChannel, RESEND_GAP_S, sidOfRow, sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
@@ -394,6 +394,15 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       const since = new Date(Date.now() - 3600e3).toISOString();
       const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', e164).gte('created_at', since);
       if ((count || 0) >= 6) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
+      // WHATSAPP ONLY TO A CONFIRMED NUMBER (review of #1432), SMS when a WhatsApp code is asked for again
+      // (_shared/whatsapp_choice.ts nextChannel). Resends are spaced by the locked rl_check before Twilio is asked.
+      // No 'asked' channel here: an anonymous caller cannot steer a paid channel.
+      const gap = await rl('otp_gap:' + e164, 1, RESEND_GAP_S);
+      if (gap === 'down') return J(LIMITER_DOWN, 503);
+      if (gap === 'limited') return J({ error: 'A code is on its way. Please wait a few seconds before asking for another.', code: 'resend_too_soon', retry_after: RESEND_GAP_S }, 429);
+      const { data: lastRow } = await admin.from('phone_verifications').select('code').eq('phone', e164)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const pick = nextChannel({ e164, lastChannel: channelOfRow(lastRow?.code), waConfirmed: acctEmail ? await confirmedWhatsApp(kind, acctEmail, e164) : false });
       try {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
         const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail || '' }, body.lang);
@@ -405,14 +414,13 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // channel itself (a missing sender or an unapproved Authentication template — the three codes
         // in _shared/whatsapp_choice.ts), which means no code was delivered on the first attempt. Any
         // other Verify refusal is a send failure and is reported as one, never retried on the second
-        // channel. An account that has not confirmed a WhatsApp number goes straight to SMS as before.
+        // channel. Which channel goes first is pick (nextChannel above).
         const smsOnly = async (): Promise<VerifySent> => {
           const x = await send('sms');
           return x.r.ok && x.jd?.status !== 'canceled'
             ? { ...x, refused: null, ok: true, channel: 'sms' } : { ...x, refused: null, ok: false, channel: null };
         };
-        const wantsWa = acctEmail ? await confirmedWhatsApp(kind, acctEmail, e164) : false;
-        const res = await voiceAfterSms(wantsWa ? await sendWhatsAppFirst(send) : await smsOnly(), send);
+        const res = await voiceAfterSms(pick === 'whatsapp' ? await sendWhatsAppFirst(send) : await smsOnly(), send);
         // A WHATSAPP REFUSAL IS ONE FINDING, NOT A LOG LINE PER CODE (customer_support, 6 Oct 2026). Verify
         // refused its WhatsApp channel (sender or Authentication template), so this code went by SMS or voice.
         // The upsert is keyed by the refusal code, so a thousand sign-ins raise one open finding.
@@ -429,7 +437,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // The delivered channel is recorded in phone_verifications.code (the column only ever held the
         // marker 'twilio'; no reader compares it), the same convention kyc's whatsapp_send_code uses,
         // so the day WhatsApp starts carrying sign-in codes is visible in the table with no code change.
-        await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: 'twilio:' + res.channel, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: 'twilio:' + res.channel + (/^VE\w+$/.test(String(res.jd?.sid || '')) ? ':' + res.jd.sid : ''), user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
         // THE ANSWER DOES NOT NAME THE CHANNEL (security review, 18 Sep 2026). This endpoint takes no
         // session, and 'whatsapp' vs 'sms' would tell any anonymous caller holding a number that
         // resolves to one account whether THAT account has confirmed a WhatsApp number — private state
@@ -442,6 +450,38 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       } catch (e) { console.error('login_otp: SMS send threw —', String((e as Error)?.message || e)); return J({ error: 'Could not send the SMS code.', code: 'sms_send_failed' }, 502); }
     }
 
+    // FAILOVER (it_engineer, 18 Oct 2026; review of #1432). The sign-in screen calls this at fixed times after
+    // every phone code request, whichever channel carried it. When the last code to the number went by WhatsApp,
+    // this reads Twilio's delivery status for it and sends the SAME code by SMS when Twilio reports it undelivered
+    // or failed, or it is still not delivered FAILOVER_AFTER_S after the send (_shared/whatsapp_choice.ts
+    // failoverStep) - once per verification, under a locked rl_check key. The answer is ALWAYS {ok:true}: this
+    // endpoint takes no session, and naming the channel or the delivery state would tell an anonymous caller
+    // whether an account confirmed WhatsApp on that number.
+    if (action === 'failover') {
+      const e164 = toE164(idRaw);
+      if (!e164 || isDemoPhone(e164)) return J({ ok: true });     // a fixture number never reaches Twilio
+      const ipGate = await rl('login_otp_failover_ip:' + ip, 60, 3600);
+      if (ipGate !== 'ok') return J({ ok: true });
+      const { data: row } = await admin.from('phone_verifications').select('code,created_at,email').eq('phone', e164)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const sid = sidOfRow(row?.code);
+      if (!row || channelOfRow(row.code) !== 'whatsapp' || !sid) return J({ ok: true });
+      const tw = await twilioAuth(); if (!tw) return J({ ok: true });
+      try {
+        const ar = await timedFetch(`https://verify.twilio.com/v2/Attempts?VerificationSid=${sid}&Channel=whatsapp&PageSize=5`, { headers: { Authorization: tw.hdr } });
+        const aj = await ar.json().catch(() => ({}));
+        const status = (aj?.attempts || [])[0]?.channel_data?.message_status ?? null;
+        if (failoverStep(status, Date.now() - Date.parse(row.created_at)) !== 'sms') return J({ ok: true });
+        if ((await rl('otp_failover:' + sid, 1, 600)) !== 'ok') return J({ ok: true });
+        const locale = await registeredLocale(admin, { role: kind, email: row.email || '' }, body.lang);
+        const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: 'sms', Locale: locale }) });
+        const jd = await r.json().catch(() => ({}));
+        if (!r.ok || jd?.status === 'canceled') { await log('error', { failover: 1, http: r.status, wa_status: status }, 'login_otp could not send the failover SMS for a WhatsApp sign-in code: ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ ok: true }); }
+        await admin.from('phone_verifications').insert({ email: row.email || '', phone: e164, code: 'twilio:sms:' + sid, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        await log('ok', { failover: 1, wa_status: status }, '');
+      } catch (e) { console.error('login_otp: failover threw -', String((e as Error)?.message || e)); }
+      return J({ ok: true });
+    }
     if (action === 'verify') {
       const code = String(body.code || '').replace(/\D/g, '');
       if (!code) return J({ error: 'Enter the code you received.', code: 'enter_code' }, 400);

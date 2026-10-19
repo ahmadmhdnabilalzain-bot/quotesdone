@@ -6731,10 +6731,6 @@ begin
   end if;
   for x in select e from jsonb_array_elements(p_report->'steps') e where e->>'status' = 'FAIL' loop
     v_letter := left(coalesce(x->>'journey', ''), 1);
-    -- a/b/c/f drive the portals, the intake, the quotes and the comparison — the sales engineer's
-    -- (function_owner: customer_portal, supplier_portal, inquiry_intake, quote_compare). d/e are the
-    -- payment and the invoice — the accountant's (stripe_checkout, reveal_invoice). Fixtures, safety
-    -- and cleanup are the harness itself, which the ceo owns.
     v_owner := case when v_letter in ('a', 'b', 'c', 'f') then 'sales_engineer'
                     when v_letter in ('d', 'e') then 'accountant' else 'ceo' end;
     v_items := v_items || jsonb_build_object(
@@ -6746,11 +6742,9 @@ begin
       'evidence', jsonb_build_object('tag', p_report->>'tag', 'detail', left(x->>'detail', 600)));
   end loop;
   if v_complete then
-    -- Looked at everything: raise what fails and close what no longer does.
-    v_res := public.fn_it_duty_settle('journey', v_items);
+    -- Raise what fails, close what no longer does, and carry the journeys this run did not finish.
+    v_res := public.fn_it_duty_settle('journey', v_items || public.fn_it_journey_scope_carried('journey', p_report));
   else
-    -- Looked at part of it: raise what fails, close NOTHING. A step this run never reached says
-    -- nothing about whether the defect it would have found is still there.
     for x in select e from jsonb_array_elements(v_items) e loop
       perform public.fn_it_engineer_finding_upsert(
         'duty:journey:' || (x->>'item'), x->>'title', 'IT engineer duty: journey',
@@ -6762,20 +6756,37 @@ begin
     end loop;
     v_res := jsonb_build_object('duty', 'journey', 'failing', jsonb_array_length(v_items),
                                 'closed', 0, 'complete', false,
-                                'note', 'the run stopped before it saw every journey, so nothing was closed on its silence');
+                                'note', 'the run stopped before it attempted every journey it asked for, so nothing was closed on its silence');
   end if;
-  -- THE HEARTBEAT, WRITTEN ON EVERY PATH. duty:journey_heartbeat:no_run reads this row; a run that
-  -- was cut short has still reported, and must not be counted as a missing run.
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('it_engineer',
           case when jsonb_array_length(v_items) = 0 and v_complete then 'ok' else 'warn' end, now(), now(),
           jsonb_build_object('job', 'journey', 'tag', p_report->>'tag', 'failed', jsonb_array_length(v_items),
                              'steps', jsonb_array_length(p_report->'steps'), 'leftovers', p_report->'leftovers',
-                             'complete', v_complete),
+                             'complete', v_complete, 'journeys', p_report->'journeys'),
           case when v_complete then null
-               else 'the journey run stopped at its deadline before seeing every journey; failures were raised, nothing was closed' end);
+               else 'the journey run stopped before attempting every journey it asked for; failures were raised, nothing was closed' end);
   return v_res;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_journey_scope_carried(p_duty text, p_report jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'item', substring(f.issue_key from length('duty:' || p_duty || ':') + 1),
+           'title', f.title, 'carried', true)), '[]'::jsonb)
+    from public.it_engineer_finding f
+   where jsonb_typeof(p_report->'journeys') = 'array'
+     and f.closed_at is null
+     and f.issue_key like 'duty:' || p_duty || ':%'
+     and substring(f.issue_key from '^duty:' || p_duty || ':([a-h])[ -]') is not null
+     and not exists (select 1 from jsonb_array_elements_text(p_report->'journeys') j
+                      where j = substring(f.issue_key from '^duty:' || p_duty || ':([a-h])[ -]'))
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_key_age_refresh()
@@ -8238,7 +8249,6 @@ CREATE OR REPLACE FUNCTION public.fn_it_smoke_ingest(p_report jsonb)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_owner text; v_owners jsonb; x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb;
-  -- Absent means complete, exactly as fn_it_journey_ingest reads it.
   v_complete boolean := coalesce((p_report->>'complete')::boolean, true);
 begin
   if jsonb_typeof(p_report->'steps') is distinct from 'array' or coalesce(btrim(p_report->>'sha'), '') = '' then
@@ -8264,9 +8274,8 @@ begin
                                      'tag', p_report->>'tag', 'detail', left(x->>'detail', 600)));
   end loop;
   if v_complete then
-    v_res := public.fn_it_duty_settle('smoke', v_items);
+    v_res := public.fn_it_duty_settle('smoke', v_items || public.fn_it_journey_scope_carried('smoke', p_report));
   else
-    -- Looked at part of it: raise what fails, close NOTHING (the rule fn_it_journey_ingest already keeps).
     for x in select e from jsonb_array_elements(v_items) e loop
       perform public.fn_it_engineer_finding_upsert(
         'duty:smoke:' || (x->>'item'), x->>'title', 'IT engineer duty: smoke',
@@ -8277,7 +8286,7 @@ begin
         '{}'::text[], '{}'::text[], 'it_engineer.smoke');
     end loop;
     v_res := jsonb_build_object('duty', 'smoke', 'failing', jsonb_array_length(v_items), 'closed', 0, 'complete', false,
-                                'note', 'the run stopped before it saw every journey, so nothing was closed on its silence');
+                                'note', 'the run stopped before it attempted every journey it asked for, so nothing was closed on its silence');
   end if;
   perform public.fn_it_duty_ran('smoke', v_res || jsonb_build_object('sha', p_report->>'sha'));
   return v_res;

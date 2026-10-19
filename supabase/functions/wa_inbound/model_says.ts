@@ -24,6 +24,15 @@ export interface SayRequest {
 }
 // A WhatsApp reply is written within this, or the person gets the held notice and the turn is queued (run 5: 73.7 s).
 export const WA_REPLY_BUDGET_MS = 45_000;
+/** Time kept back from the budget for the send itself and the row write after the model answers. */
+export const WA_SEND_MARGIN_MS = 3_000;
+/** THE CLOCK STARTS AT ARRIVAL, NOT AT THE MODEL CALL (QA channels run, 19 Oct 2026). Measured on production: two
+ *  plain questions spent ~45 s in serial routing/intent calls before modelSays began, then answered at 54-55 s with no
+ *  held notice, because the 45 s deadline was counted from t0 inside modelSays. The budget handed to modelSays is what is
+ *  left of 45 s since the message arrived; at 0 no call starts, the text is '' and the caller sends the held notice. */
+export function budgetLeft(arrivedAtMs: number, nowMs: number = Date.now()): number {
+  return Math.max(0, WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - (nowMs - arrivedAtMs));
+}
 export interface Said { text: string; model: string | null; attempts: string[]; ms: number; escalate: boolean }
 
 export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 words; put each phone number, email or link on its own line, exactly as given in the facts.';

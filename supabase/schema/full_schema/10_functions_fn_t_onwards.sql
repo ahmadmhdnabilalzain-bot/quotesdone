@@ -2198,6 +2198,78 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_arrival_sweep(p_limit integer DEFAULT 20, p_from text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb;
+begin
+  with stuck as (
+    select id from public.wa_messages
+     where meta->>'stage' = 'received'
+       and created_at <= now() - interval '5 minutes'
+       and (p_from is null or wa_from = p_from)
+     order by created_at
+     limit greatest(1, least(coalesce(p_limit, 20), 100))
+     for update skip locked
+  ), marked as (
+    update public.wa_messages w
+       set meta = w.meta || jsonb_build_object('stage', 'escalated', 'escalated_at', now())
+      from stuck where w.id = stuck.id
+    returning w.id, w.wa_from, w.profile_name, w.inbound, w.created_at, w.lang, w.meta->>'message_sid' as message_sid
+  ), held as (
+    insert into public.reasoning_held_question (seat, surface, question, request, subject, reason, status, escalated_at, dedupe_key)
+    select 'customer_support', 'wa_inbound.turn_crashed',
+           coalesce(nullif(btrim(m.inbound), ''), '(a WhatsApp message with no text)'),
+           jsonb_build_object('wa_message_id', m.id),
+           jsonb_build_object('phone', regexp_replace(m.wa_from, '^whatsapp:', '', 'i'), 'lang', m.lang, 'wa_message_id', m.id),
+           'the WhatsApp turn stopped before replying (no row completed in 5 minutes)', 'failed', now(), 'wa_arrival:' || m.id
+      from marked m
+    on conflict (dedupe_key) do nothing
+    returning id, (request->>'wa_message_id')::bigint as wa_id
+  ), filed as (
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    select 'customer_support', 'held_question', 'pending', 'low',
+           'A WhatsApp message got no answer: its turn stopped before replying (5 minutes)',
+           jsonb_build_object('wa_message_id', m.id, 'held_id', h.id, 'from', m.wa_from, 'profile_name', m.profile_name,
+                              'message', left(coalesce(m.inbound, ''), 1000), 'received_at', m.created_at, 'message_sid', m.message_sid,
+                              'told', 'the holding notice (a person has it) goes to them on WhatsApp from the held-question queue',
+                              'waiting_for', 'customer_support to answer this person on WhatsApp'),
+           'wa_messages', m.id::text
+      from marked m join held h on h.wa_id = m.id
+    returning id
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('wa_message_id', h.wa_id, 'held_id', h.id)), '[]'::jsonb)
+    into v from held h where (select count(*) from filed) >= 0;
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_arrival_turn_finished(p_wa_message_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n_held int; n_act int;
+begin
+  update public.reasoning_held_question
+     set status = 'applied', applied_at = now(),
+         notice_delivered_at = coalesce(notice_delivered_at, now()),
+         notice_detail = coalesce(notice_detail, jsonb_build_object('suppressed', 'the turn replied after the sweep took it'))
+   where dedupe_key = 'wa_arrival:' || p_wa_message_id and status <> 'applied';
+  get diagnostics n_held = row_count;
+  update public.agent_actions
+     set status = 'auto_done', decided_at = now(), decided_by = 'wa_inbound'
+   where agent = 'customer_support' and kind = 'held_question' and target_table = 'wa_messages'
+     and target_id = p_wa_message_id::text and status = 'pending';
+  get diagnostics n_act = row_count;
+  return jsonb_build_object('held_closed', n_held, 'actions_closed', n_act);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_attach_document(p_phone text, p_storage_path text, p_caption text DEFAULT NULL::text, p_media_kind text DEFAULT NULL::text, p_turn_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9619,6 +9691,23 @@ AS $function$
 begin
   if NEW.original_file_path is not null and (TG_OP='INSERT' or NEW.original_file_path is distinct from OLD.original_file_path) then
      perform public.fn_register_document('quote-files', NEW.original_file_path, 'quote', 'quotes', NEW.id::text, NEW.original_file_name);
+  end if;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_reveal_opens_response_watch()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if NEW.fee_status = 'paid' and NEW.revealed_at is not null and NEW.supplier_id is not null
+     and (TG_OP = 'INSERT' or OLD.revealed_at is null or OLD.fee_status is distinct from 'paid') then
+    insert into public.supplier_response_watch (transaction_id, lead_id)
+    values (NEW.id, NEW.supplier_id)
+    on conflict (transaction_id) do nothing;
   end if;
   return NEW;
 end $function$

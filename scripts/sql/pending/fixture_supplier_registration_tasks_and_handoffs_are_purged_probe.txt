@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it runs the purge's deletes and always raises CHK<<...>>, so nothing is deleted. Run it immediately before fixture_supplier_registration_tasks_and_handoffs_are_purged.sql to see the counts; it must print PROBE OK. This note therefore stays for the life of the file. Seat: customer_support.

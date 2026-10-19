@@ -1,0 +1,1 @@
+Committed, not applied (it_engineer integration-3, 19 Oct 2026). It came in with a MANIFEST line, but production does not have its objects yet (measured 19 Oct 2026). The release operator applies it at merge, before the edge functions that depend on it are deployed. Then this note is deleted and the file is appended to the END of MANIFEST.txt in the same commit.

@@ -18,7 +18,12 @@ const [dir, outPath] = Deno.args;
 if (!dir || !outPath) { console.error('usage: <corpus dir> <out.json>'); Deno.exit(2); }
 const truth = JSON.parse(await Deno.readTextFile(`${dir}/truth.json`));
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-const deps = await liveTradeDeps(admin, 'document_intake_accuracy');
+// With a rehearsal tag (the harness's model window) a profile's or catalogue's trades are chosen by the model, tagged and
+// capped; without one the chooser is left out and the read is code alone (stated in code.json: model_choice).
+const TAG = Deno.env.get('QD_RUN_TAG');
+const deps = await liveTradeDeps(admin, 'document_intake_accuracy', TAG ? { subject: JSON.parse(Deno.env.get('QD_SUBJECT') || 'null'),
+  headers: { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'x-qd-e2e-run': TAG, 'x-qd-e2e-secret': Deno.env.get('QD_E2E_SECRET') || '' } } : {});
+if (!TAG) deps.chooseTrades = undefined;
 const budget0 = deps.budget.left;
 
 // deno-lint-ignore no-explicit-any
@@ -39,7 +44,7 @@ for (const d of truth.docs) {
   out.push({ id: d.id, text_chars: text?.length ?? 0, code,
     trades: { status: ev.status, reason: ev.reason ?? null, codes: [...new Set((ev.trades || []).map((t) => t.code))].sort(),
               hits: (ev.trades || []).map((t) => ({ code: t.code, via: t.via, phrases: t.phrases, snippet: t.snippet, similarity: t.similarity ?? null })),
-              exact: ev.exact ?? null, meaning: ev.meaning ?? null } });
+              exact: ev.exact ?? null, meaning: ev.meaning ?? null, choice: ev.choice ?? null, rejected: ev.rejected ?? null } });
 }
-await Deno.writeTextFile(outPath, JSON.stringify({ read_at: new Date().toISOString(), field_reader: typeof anyDX.readLicenceFields === 'function', docs: out }, null, 1));
+await Deno.writeTextFile(outPath, JSON.stringify({ read_at: new Date().toISOString(), model_choice: !!TAG, field_reader: typeof anyDX.readLicenceFields === 'function', docs: out }, null, 1));
 console.log(`read ${out.length} documents -> ${outPath}`);
