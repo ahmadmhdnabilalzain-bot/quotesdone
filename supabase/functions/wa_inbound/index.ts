@@ -43,6 +43,7 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
+import { isStop } from '../_shared/marketing_send_gate.ts';
 import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
@@ -529,7 +530,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // The supplier invitation template tells the recipient to reply STOP. Every lead on this number is set to
     // whatsapp_opt='none' and any invitation still queued to it is cancelled; nothing is replied (UAE PDPL / TDRA:
     // an objection ends the messaging, it does not start a conversation).
-    if (/^\s*(stop|unsubscribe|إيقاف|الغاء|إلغاء)\s*$/i.test(Body)) {
+    if (isStop(Body)) {
       const { data: opt, error: optErr } = await admin.rpc('fn_wa_supplier_invite_opt_out', { p_from: From });
       // Only a number that is a lead's ends here; anyone else (the founder's command channel, a customer) goes on to
       // the normal turn, so a STOP that is not an opt-out is never swallowed.

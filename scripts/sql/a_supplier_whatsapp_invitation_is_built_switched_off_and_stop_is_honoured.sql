@@ -74,7 +74,7 @@ begin
   update public.leads set whatsapp_opt = 'none' where phone_e164 = v_phone or whatsapp_phone = v_phone;
   get diagnostics v_leads = row_count;
   update public.notifications set status = 'cancelled', last_error = 'the recipient replied STOP; WhatsApp opt-out honoured'
-   where type = 'supplier_invite_wa' and to_phone = v_phone and status in ('queued', 'sending');
+   where type = any (array['supplier_invite_wa']) and to_phone = v_phone and status in ('queued', 'sending');  -- MARKETING_TYPES (_shared/marketing_send_gate.ts)
   get diagnostics v_cancelled = row_count;
   return jsonb_build_object('ok', true, 'leads_opted_out', v_leads, 'invitations_cancelled', v_cancelled);
 end $fn$;
