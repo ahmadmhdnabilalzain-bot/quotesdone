@@ -46,6 +46,7 @@ begin
   get diagnostics n = row_count;
   return jsonb_build_object('closed', n);
 end $function$;
+revoke execute on function public.fn_support_case_idle_close() from public, anon, authenticated;
 
 create or replace function public.fn_customer_support_escalates_decision_objections()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
