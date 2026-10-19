@@ -51,7 +51,7 @@ Deno.test('the founder\'s pool question: steps, sources, and a question back ALO
   const r = await think(m.deps, { seat: 'customer_support', surface: 'think.answer', question: 'I want to build a pool at my villa — what depth, what is legal?', context: { audience: 'customer' } });
   assertEquals(r.status, 'answered');
   assert(r.steps.some((s) => s.kind === 'decompose' && s.status === 'done'));
-  assertEquals(r.steps.filter((s) => s.kind === 'retrieve').length, 2);
+  assertEquals(r.steps.filter((s) => s.kind === 'retrieve').length, 3);   // two planned steps and the question as asked
   assertEquals(r.sources.map((s) => s.id), ['kb_chunks:7']);
   assertEquals(r.missing_context.map((f) => f.name), ['emirate', 'community']);
   assertMatch(String(r.asked_back), /emirate/);
