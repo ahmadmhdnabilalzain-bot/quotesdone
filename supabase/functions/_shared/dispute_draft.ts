@@ -7,6 +7,7 @@
 // Evidence: fn_accountant_dispute_evidence; the invoice PDF goes up as evidence[receipt] and the
 // customer's signed-terms certificate as evidence[customer_signature].
 import { disputeEvidenceForm } from './dispute_evidence.ts';
+import { timedFetch } from './timed_fetch.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -19,7 +20,7 @@ async function upload(admin: Admin, key: string, f: StoredFile): Promise<string 
   const fd = new FormData();
   fd.set('purpose', 'dispute_evidence');
   fd.set('file', blob, String(f.name || 'evidence.pdf'));
-  const fr = await fetch('https://files.stripe.com/v1/files', { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd });
+  const fr = await timedFetch('https://files.stripe.com/v1/files', { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd }, 30_000);
   const fj = await fr.json().catch(() => ({}));
   return fr.ok && fj?.id ? String(fj.id) : undefined;
 }
