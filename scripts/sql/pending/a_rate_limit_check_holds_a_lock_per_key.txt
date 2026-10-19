@@ -1,0 +1,4 @@
+Committed with PR #1432 (it_engineer), not yet applied: apply at merge, never before (the drift check reads production).
+At merge: node scripts/apply_sql.mjs scripts/sql/a_rate_limit_check_holds_a_lock_per_key.sql --apply --ddl  (verdict row must be PROBE OK),
+then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit, and deploy kyc and login_otp.
+Until it is applied, rl_check still counts and inserts without a lock, so two simultaneous resends can both pass the 30 s gap.

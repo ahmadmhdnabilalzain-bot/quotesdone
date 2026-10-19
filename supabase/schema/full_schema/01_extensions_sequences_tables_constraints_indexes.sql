@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-18T23:10:30.917Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-19T01:52:51.889Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -6144,7 +6144,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   reply_to text,
   severity text,
   failover_of bigint,
-  in_reply_to text
+  in_reply_to text,
+  dedupe_key text
 );
 
 CREATE TABLE IF NOT EXISTS public.openrouter_day (
@@ -12321,6 +12322,7 @@ CREATE INDEX ix_decision_trace_dept ON public.decision_trace USING btree (depart
 CREATE INDEX ix_decision_trace_role ON public.decision_trace USING btree (role_id, created_at DESC);
 CREATE INDEX ix_decision_trace_status ON public.decision_trace USING btree (outcome_status, created_at DESC);
 CREATE INDEX ix_doc_backups_backed_up_at ON public.doc_backups USING btree (backed_up_at) WHERE (backed_up_at IS NOT NULL);
+CREATE INDEX ix_doc_backups_export_day ON public.doc_backups USING btree ("left"(dedupe_key, 18));
 CREATE INDEX ix_doc_backups_live_status ON public.doc_backups USING btree (status, id) WHERE (status = ANY (ARRAY['processing'::text, 'waiting_source'::text, 'prune_pending'::text, 'pruning'::text]));
 CREATE INDEX ix_doc_backups_status ON public.doc_backups USING btree (status) WHERE (status = ANY (ARRAY['pending'::text, 'error'::text]));
 CREATE INDEX ix_event_assessment_event ON public.event_assessment USING btree (event_id);
@@ -12443,6 +12445,7 @@ CREATE INDEX messaging_template_key_idx ON public.messaging_template USING btree
 CREATE INDEX metric_snapshot_key_time_idx ON public.metric_snapshot USING btree (metric_key, taken_at DESC);
 CREATE INDEX money_move_hold_held ON public.money_move_hold USING btree (opened_at) WHERE (status = 'held'::text);
 CREATE UNIQUE INDEX money_move_hold_one_open_per_move ON public.money_move_hold USING btree (move, ref) WHERE (status <> 'released'::text);
+CREATE UNIQUE INDEX notifications_dedupe_key_uidx ON public.notifications USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
 CREATE UNIQUE INDEX notifications_one_sms_twin ON public.notifications USING btree (failover_of) WHERE (failover_of IS NOT NULL);
 CREATE INDEX notifications_provider_message_id_idx ON public.notifications USING btree (provider_message_id) WHERE (provider_message_id IS NOT NULL);
 CREATE UNIQUE INDEX notifications_rating_request_uidx ON public.notifications USING btree (quote_id) WHERE ((type = 'rating_request'::text) AND (COALESCE(channel, 'email'::text) = 'email'::text));

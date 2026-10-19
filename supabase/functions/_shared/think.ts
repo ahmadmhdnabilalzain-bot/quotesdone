@@ -101,6 +101,17 @@ export interface ThinkRequest {
   // Output ceilings for a caller whose reply is short (the widget: ~70 words). With a verify ceiling the reviewer is
   // also told to return the strict JSON verdict only. A truncated output is a failed pass, never a fragment sent.
   maxTokens?: { synthesise?: number; verify?: number };
+  // A READER OF THE PERSON'S OWN TEXT (18 Oct 2026, measured: 10 runs of one ZZ DEMO photographed quotation through the
+  // deployed readers). Two rules built for answers dropped WHOLE readings that were right:
+  //   - a question asked back ("what sheen?", "confirm the payment terms") refused the draft; the rewrite asked again and
+  //     the reading was held (validity, delivery and warranty asked again though the photo stated them);
+  //   - ONE field whose evidence was short ("2 coats", 7 characters; "Jotun", 5) or whose value was a paraphrase ("VAT
+  //     excluded" for "Prices exclude VAT") refused every other, correct field with it.
+  // A reader answers what the text states; what it does not state is asked by the caller's own flow. So for a reader the
+  // question is discarded, and the evidence guard runs PER FIELD: a field that fails is dropped (and asked), the proven
+  // ones are kept. The guard is unchanged in kind: the value must sit inside evidence copied verbatim from the person's
+  // own words; the minimum quote is READER_MIN_EVIDENCE characters instead of 8.
+  reader?: boolean;
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -131,7 +142,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[] }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -202,7 +213,28 @@ export interface Draft {
   decision?: { choice?: string | null; fields?: Record<string, { value?: string; evidence?: string }> } | null;
 }
 /** Why a draft is refused, or null when it may go out. Pure: think.test.ts pins every rule. */
-export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fact[]; sourceIds: Set<string>; decision?: DecisionSpec; conversationText: string; requireTrail?: boolean }): string | null {
+/** The evidence test of refuse(), for one field: null when the field is proven by the person's own words. */
+function fieldProblem(k: string, f: { value?: unknown; evidence?: unknown } | undefined, hay: string, minEvidence: number): string | null {
+  const ev = String(f?.evidence ?? '').trim().toLowerCase();
+  // Format guard: the evidence must be the asker's own words, copied - a value with no quote is invented.
+  if (ev.length < minEvidence || !hay.includes(ev)) return `field ${k} has no evidence copied verbatim from the conversation`;
+  // ...and the value must be what those words say, not a value merely placed next to them.
+  const val = String(f?.value ?? '').trim().toLowerCase();
+  if (!val || !valueInEvidence(val, ev)) return `field ${k}: the value "${val}" is not in the evidence quoted for it`;
+  return null;
+}
+export const READER_MIN_EVIDENCE = 4;
+/** A reader keeps the fields its evidence proves and drops the rest (returned), instead of losing all of them. */
+export function keepProvenFields(d: Draft, decision: DecisionSpec | undefined, conversationText: string): string[] {
+  const fields = (d as { decision?: { fields?: Record<string, { value?: unknown; evidence?: unknown }> } }).decision?.fields;
+  if (!decision?.fields?.length || !fields) return [];
+  const hay = conversationText.toLowerCase(); const dropped: string[] = [];
+  for (const k of Object.keys(fields)) {
+    if (!decision.fields.some((x) => x.key === k) || fieldProblem(k, fields[k], hay, READER_MIN_EVIDENCE)) { dropped.push(k); delete fields[k]; }
+  }
+  return dropped;
+}
+export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fact[]; sourceIds: Set<string>; decision?: DecisionSpec; conversationText: string; requireTrail?: boolean; minEvidence?: number }): string | null {
   if (!d || typeof d !== 'object') return 'the reply is not one JSON object';
   const answer = String(d.answer ?? '').trim();
   if (!answer) return 'the answer is empty';
@@ -232,15 +264,38 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
     const hay = o.conversationText.toLowerCase();
     for (const [k, f] of Object.entries(d.decision?.fields ?? {})) {
       if (!o.decision.fields.some((x) => x.key === k)) return `field ${k} was not asked for`;
-      const ev = String(f?.evidence ?? '').trim().toLowerCase();
-      // Format guard: the evidence must be the asker's own words, copied — a value with no quote is invented.
-      if (ev.length < 8 || !hay.includes(ev)) return `field ${k} has no evidence copied verbatim from the conversation`;
-      // ...and the value must be what those words say, not a value merely placed next to them.
-      const val = String(f?.value ?? '').trim().toLowerCase();
-      if (!val || !ev.includes(val)) return `field ${k}: the value "${val}" is not in the evidence quoted for it`;
+      const bad = fieldProblem(k, f, hay, o.minEvidence ?? 8); if (bad) return bad;
     }
   }
   return null;
+}
+
+/**
+ * A VALUE IS WHAT ITS EVIDENCE SAYS, NUMBER FOR NUMBER (review of #1444, 18 Oct 2026). Substring containment let "3"
+ * pass for "Validity: 30 days", "2" for "25 m2" and "0.5" for "10.5 mm". The value must still sit inside its evidence,
+ * and every number in it must match a WHOLE number in the evidence: no digit, decimal point or separator-and-digit may
+ * touch it on either side ("9,000.00" is one number; "1,5" stays as written).
+ * prevented by: _shared/think_value_in_evidence.test.ts
+ */
+/** The numbers of a text, in any script (\p{Nd}: "٣٠" is one number, never "٣"): digits with an optional thousands
+ *  separator ("," or the Arabic "٬") before exactly three digits, and an optional decimal part ("." or "٫"). "9,000.00" is
+ *  one number; "450,m2,20.00" is three. A number is CODE-LIKE when one or two letters that START a token sit right before
+ *  it ("C25", "L1", the "2" of "m2" written apart): part of a name, not a quantity. A unit or currency glued to it
+ *  ("AED9,000", "450m2", "10mm", "30days") does not make it code-like. */
+const NUMBER = /\p{Nd}+(?:[,\u066C]\p{Nd}{3})*(?:[.\u066B]\p{Nd}+)?/gu;
+function numbersOf(t: string): { n: string; code: boolean }[] {
+  const out: { n: string; code: boolean }[] = [];
+  for (const m of t.matchAll(NUMBER)) {
+    const before = t.slice(Math.max(0, m.index! - 3), m.index!);
+    out.push({ n: m[0], code: /(?:^|[^\p{L}\p{Nd}])\p{L}{1,2}$/u.test(before) || (m.index! <= 2 && /^\p{L}{1,2}$/u.test(before)) });
+  }
+  return out;
+}
+export function valueInEvidence(val: string, ev: string): boolean {
+  if (!ev.includes(val)) return false;
+  const evNums = numbersOf(ev);
+  // A quantity in the value must be a whole quantity of the evidence; a code-like number ("C25") may match the same code.
+  return numbersOf(val).every((v) => evNums.some((e) => e.n === v.n && (v.code || !e.code)));
 }
 
 /** One JSON object out of a model reply, or null. Tolerates a ```json fence; nothing else. */
@@ -337,8 +392,8 @@ Return {"findings":[]} if the pages do not answer it.`;
  * prevented by: _shared/think_reader.test.ts
  */
 export const SYNTH_FOR_READERS = 3000;
-export function readerOfTheirOwnText(goal: string): Pick<ThinkRequest, 'plan' | 'maxTokens'> {
-  return { plan: { steps: [{ id: 'read', goal, query: goal, needs_knowledge: false }] }, maxTokens: { synthesise: SYNTH_FOR_READERS } };
+export function readerOfTheirOwnText(goal: string): Pick<ThinkRequest, 'plan' | 'maxTokens' | 'reader'> {
+  return { plan: { steps: [{ id: 'read', goal, query: goal, needs_knowledge: false }] }, maxTokens: { synthesise: SYNTH_FOR_READERS }, reader: true };
 }
 
 export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
@@ -542,8 +597,13 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
       JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? 900 });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
+    if (req.reader && draft && typeof draft === 'object') {
+      draft.asked_back = null;
+      const dropped = keepProvenFields(draft, req.decision, textOf(ctx) + '\n' + req.question);
+      if (dropped.length) steps.push({ id: 'synthesise.' + pass + '.fields', kind: 'synthesise', goal: 'keep only the fields the person\'s own words prove', status: 'done', detail: { dropped } });
+    }
     if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = 'no reply'; break; }
-    refusal = refuse(draft, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true });
+    refusal = refuse(draft, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true, ...(req.reader ? { minEvidence: READER_MIN_EVIDENCE } : {}) });
     steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: refusal ? 'refused' : 'done', detail: refusal ?? undefined });
     if (!refusal) break;
   }
@@ -572,7 +632,8 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
         JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? 900 });
       const fixed = parseJson<Draft>(r.content);
-      if (fixed && !refuse(fixed, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true })) { draft = fixed; model = r.model ?? model; }
+      if (req.reader && fixed && typeof fixed === 'object') { fixed.asked_back = null; keepProvenFields(fixed, req.decision, textOf(ctx) + '\n' + req.question); }
+      if (fixed && !refuse(fixed, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true, ...(req.reader ? { minEvidence: READER_MIN_EVIDENCE } : {}) })) { draft = fixed; model = r.model ?? model; }
       verified = { status: 'disagreed', by: v.model ?? null, notes: (vj.problems ?? []).join(' | ').slice(0, 1000) };
       confidence = Math.min(confidence, 0.5);
     }
@@ -615,9 +676,11 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
       const { makeLlmRich } = await import('./llm.ts');
       const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2, ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
       // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
-      const content = o.images?.length ? [{ role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] }] : input;
+      const last = o.images?.length ? { role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] } : { role: 'user', content: input };
+      // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
+      const content = o.history?.length ? [...o.history, last] : o.images?.length ? [last] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}) });
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {

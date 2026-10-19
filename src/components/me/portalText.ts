@@ -13,6 +13,8 @@ export const T = {
     create_my_account:'Create my account', send_code:'Send me a code', sending:'Sending…', code_placeholder:'6-digit code',
     verify_continue:'Verify & continue', verify_signin:'Verify & sign in', verifying:'Verifying…', use_diff:'Use a different email/number',
     junk_note:'The code can take a minute — please check your spam/junk folder too.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
+    send_wa:'Send the code on WhatsApp', wa_failed_note:'WhatsApp did not deliver the code, so we sent it to this number by SMS.',
+    wa_note:'We sent the code to this number on WhatsApp. Not there after a minute? Send it by SMS instead.', send_by_sms:'Send it by SMS instead', err_resend_soon:'A code is on its way. Please wait a few seconds before asking for another.',
     call_note:'That number is a landline, so we are calling you now and reading the 6-digit code out. Answer and type it in below.', use_diff_number:'Use a different number',
     signup_email_only:"Please sign up with an email address — you'll add and verify your mobile in the next step.",
     conflict_supplier:'This email is registered as a supplier. Please use the Supplier portal to sign in.',
@@ -108,6 +110,8 @@ export const T = {
     signin_sub:'سجّل الدخول بالبريد الإلكتروني أو رقم الجوال المسجّل.', email_or_mobile:'البريد الإلكتروني أو الجوال', email_address:'البريد الإلكتروني',
     create_my_account:'إنشاء حسابي', send_code:'أرسل رمز التحقق', sending:'جارٍ الإرسال…', code_placeholder:'رمز من 6 أرقام',
     verify_continue:'تحقّق وتابع', verify_signin:'تحقّق وسجّل الدخول', verifying:'جارٍ التحقق…', use_diff:'استخدم بريدًا أو رقمًا آخر',
+    send_wa:'أرسلوا الرمز عبر واتساب', wa_failed_note:'تعذّر وصول الرمز عبر واتساب، فأرسلناه إلى هذا الرقم برسالة نصية.',
+    wa_note:'أرسلنا الرمز إلى هذا الرقم عبر واتساب. إن لم يصلكم خلال دقيقة، يمكنكم طلبه برسالة نصية.', send_by_sms:'اطلبوا الرمز برسالة نصية', err_resend_soon:'الرمز في طريقه إليكم. يُرجى الانتظار بضع ثوانٍ قبل طلب رمز آخر.',
     call_note:'هذا رقم أرضي، لذا سنتصل بك الآن لنُملي عليك الرمز المكوّن من 6 أرقام. ردّ على المكالمة ثم أدخل الرمز أدناه.', use_diff_number:'استخدام رقم آخر',
     junk_note:'قد يستغرق وصول الرمز دقيقة؛ تحقّق أيضًا من مجلد البريد غير المرغوب فيه.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'الرمز غير صحيح.',
     signup_email_only:'يُرجى التسجيل ببريدك الإلكتروني، ثم تضيف رقم جوالك وتؤكّده في الخطوة التالية.',
@@ -276,6 +280,8 @@ Object.assign(T.en, {
   rd_boxes: '{c} marked', rd_prev: 'Previous page', rd_next: 'Next page', rd_canvas: 'Drawing page {n}. Drag to mark an area to hide.',
   rc_request: 'Request', rc_quote_one: 'quote', rc_quote_many: 'quotes', rc_lines: 'line items', rc_editable: 'editable {m}m', rc_open: 'Open request', rc_hide: 'Hide details',
   rc_edit: 'Edit request', rc_cancel: 'Cancel request', rc_cancelling: 'Cancelling…', rc_cancel_confirm: 'Cancel this request? Suppliers will stop quoting.', rc_cancel_fail: 'Could not cancel. Please try again.',
+  rc_repeat: 'Request again', rc_repeating: 'Posting…', rc_repeat_confirm: 'Post this request again with the same specs? A needed-by date that has passed moves forward by the same lead time. Re-attach a drawing if you want suppliers to see it again.',
+  rc_repeat_done: 'Posted again as a new request.', rc_repeat_fail: 'Could not post it again. Please try again.',
   rc_describe: 'Describe your request', rc_emirate_opt: 'Emirate (optional)', rc_budget_opt: 'Budget (optional)', rc_save: 'Save changes', rc_saving: 'Saving…', rc_cancel_edit: 'Cancel edit',
   rc_save_fail: 'Could not save changes.', rc_quotes_received: 'Quotes received ({n})',
   rc_on_hold: '{n} more quote(s) are on hold: the supplier has not stated every detail your request needs and we are asking them for it. They appear here once they are complete.',
@@ -429,6 +435,8 @@ Object.assign(T.ar, {
   rd_boxes: 'المناطق المحددة: {n}', rd_prev: 'الصفحة السابقة', rd_next: 'الصفحة التالية', rd_canvas: 'صفحة المخطط {n}. اسحب لتحديد منطقة لإخفائها.',
   rc_request: 'طلب', rc_quote_one: 'عرض سعر', rc_quote_many: 'عروض أسعار', rc_lines: 'بند', rc_editable: 'قابل للتعديل {m} د', rc_open: 'عرض التفاصيل', rc_hide: 'إخفاء التفاصيل',
   rc_edit: 'تعديل الطلب', rc_cancel: 'إلغاء الطلب', rc_cancelling: 'جارٍ الإلغاء…', rc_cancel_confirm: 'هل تريد إلغاء هذا الطلب؟ سيتوقف الموردون عن التسعير.', rc_cancel_fail: 'تعذّر الإلغاء. يُرجى المحاولة مرة أخرى.',
+  rc_repeat: 'اطلب مرة أخرى', rc_repeating: 'جارٍ النشر…', rc_repeat_confirm: 'هل تريد نشر هذا الطلب مرة أخرى بالمواصفات نفسها؟ إن كان موعد التسليم قد مضى، فسيُقدَّم بالمدة نفسها التي حددتها أول مرة. أرفق المخطط من جديد إن أردت أن يطّلع عليه الموردون.',
+  rc_repeat_done: 'نُشر طلبك من جديد كطلب جديد.', rc_repeat_fail: 'تعذّر نشر الطلب من جديد. يُرجى المحاولة مرة أخرى.',
   rc_describe: 'صِف طلبك', rc_emirate_opt: 'الإمارة (اختياري)', rc_budget_opt: 'الميزانية (اختياري)', rc_save: 'حفظ التغييرات', rc_saving: 'جارٍ الحفظ…', rc_cancel_edit: 'إلغاء التعديل',
   rc_save_fail: 'تعذّر حفظ التغييرات.', rc_quotes_received: 'عروض الأسعار المستلمة ({n})',
   rc_on_hold: 'هناك {n} عرض/عروض معلّقة: لم يذكر المورّد كل التفاصيل التي يحتاجها طلبك ونحن نطلبها منه. ستظهر هنا فور اكتمالها.',
@@ -542,6 +550,7 @@ const CODE_KEY = {
   // call() answers with these three instead of throwing (CP-08, 22 Sep 2026): a request that timed
   // out, never left the browser, or came back as something other than JSON is a sentence the
   // customer can act on, not a blank screen or a raw parser error.
+  resend_too_soon: 'err_resend_soon',
   qd_timeout: 'err_timeout', qd_network: 'err_network', qd_bad_response: 'err_generic',
 };
 const MSG_KEY = [
