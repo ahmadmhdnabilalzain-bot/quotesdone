@@ -1,1 +1,0 @@
-Applied at merge (founder rule: apply at merge, never before). Defines fn_sales_engineer_reveal_followup_tick and registers the duty sales_engineer.reveal_followup. Dry run passed 5 Oct 2026; the probe passed on production inside a rolled-back transaction (PROBE OK open=1 revealed=0 second_run_sent=0). Seat: sales_engineer.

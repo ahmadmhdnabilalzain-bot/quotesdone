@@ -1,4 +1,0 @@
-Adds inquiries.repeat_of and the unique partial index inquiry_intake_one_open_repeat (PR: sales_engineer repeat requests, ledger 1028). Additive column + partial index, no routine.
-Apply at merge (outside 04:30-13:00 UTC per the release operator), BEFORE or together with the customer_api deploy:
-until it is applied, only a repeat post fails at insert; ordinary posts never send the key. Then delete this note
-and append the file to the END of scripts/sql/MANIFEST.txt.

@@ -1,6 +1,0 @@
-Privacy 1.7, Refund 1.9 and Disclaimer 1.4 (ceo, 19 Oct 2026). Registry bodies generated from legal.json by the
-body rule of the_signed_legal_registry_follows_the_14_september_texts.sql. Nobody signs these, so no re-acceptance.
-Apply AT MERGE, BEFORE the terms file (it archives Terms v10 and Supplier v15 first) (the_refund_ladder_texts_agree reads production and is red until applied):
-  node scripts/apply_sql.mjs scripts/sql/privacy_1_7_refund_1_9_and_disclaimer_1_4_name_the_lawful_grounds_and_one_liability_limit.sql --apply --ddl --seat ceo
-The verdict row must read PROBE OK. When applied: delete this note and append the .sql file to the END of
-scripts/sql/MANIFEST.txt in the same commit.

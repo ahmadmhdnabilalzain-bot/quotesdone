@@ -1,7 +1,0 @@
-Committed, not applied. Applied at merge by the release operator (apply-window: off-hours: the trigger and the
-CHECK take a brief lock on public.agent_actions, lock_timeout 5 s; a lock wait is retried). When applied, delete
-this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit, then read
-scripts/sql/every_handoff_note_states_context_decision_open_asks_and_deadline_probe.sql on its own (it must say
-PROBE OK) and select public.fn_handoff_citation_gaps(<apply time>) a day later: uncited_ids must be [].
-Proved 19 Oct 2026 in one rolled-back transaction on production with the probe after it: PROBE OK.
-Seat: ceo. Founder ledger row 1013.

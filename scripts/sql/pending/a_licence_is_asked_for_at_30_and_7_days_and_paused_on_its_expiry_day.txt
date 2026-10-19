@@ -1,5 +1,0 @@
-Committed, not applied: apply at merge (rule: never apply before merge). Until it is live the sweep still asks at
-30/14/7 days plus an 'expired' ask and the pause comes the day after expiry. Moves when the release operator runs
-`node scripts/apply_sql.mjs scripts/sql/a_licence_is_asked_for_at_30_and_7_days_and_paused_on_its_expiry_day.sql --apply --ddl`, reads PROBE OK, runs
-scripts/sql/a_licence_is_asked_for_at_30_and_7_days_and_paused_on_its_expiry_day_probe.sql (CHK<<PROBE OK ...>>), then deletes this note and appends the file to the END of
-scripts/sql/MANIFEST.txt in the same commit. Seat: sales_engineer. Ruling 1209.

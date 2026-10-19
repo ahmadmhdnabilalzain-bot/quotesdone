@@ -1,2 +1,0 @@
-Committed, not applied. Apply at merge: node scripts/qsql.mjs scripts/sql/a_pest_control_company_is_invited_as_pest_control_never_as_cleaning.sql
-Data and alias change only, no routine. Its own verdict block raises if any pest-control lead still lacks pest_control or cleaning still holds a pest alias. Seat: marketing.
