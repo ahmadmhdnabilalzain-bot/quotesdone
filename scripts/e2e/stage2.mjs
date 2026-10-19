@@ -47,6 +47,7 @@ if (!Number.isFinite(CAP_USD) || CAP_USD <= 0 || CAP_USD > 15) { console.error('
 const AED_PER_USD = 3.6725;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
+const COMPANY_BRIEF = readFileSync(join(REPO, 'knowledge', 'brief', 'company.md'), 'utf8');   // the S24 judge's platform facts
 const OUT = val('--out') || process.env.QD_STAGE2_OUT || 'C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10';
 process.env.QD_FIXTURES = '1';
 
@@ -185,6 +186,9 @@ async function cleanupLearning(tag, ids, window) {
   // PDFs named only by the run's ids (agent-docs compare/<inquiry>/..., quote-files quotes/<lead>/<inquiry>/regenerated/...).
   // Removed by the run's own UUIDs anywhere in the name, and by its numeric lead ids only inside the lead-keyed folders.
   await del('qd_compare_cache', `delete from public.qd_compare_cache where inquiry_id::text in (${lst(ids.inquiries)})`);
+  // Run 321d13ae (18 Oct) left a quotation chat thread keyed only by the run's ids. The WhatsApp and seat-task rows it left
+  // carry the run's markers and are removed by cleanupAll's marker sweep (MARKER_TABLES), never by a bare tag.
+  await del('chat_threads', `delete from public.chat_threads where inquiry_id::text in (${lst(ids.inquiries)}) or customer_id::text in (${lst(ids.customers)}) or supplier_id::text in (${lst(ids.leads)})`);
   {
     const uu = [...(ids.customers || []), ...(ids.inquiries || []), ...(ids.quotes || [])].map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
     const ld = (ids.leads || []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
@@ -262,7 +266,15 @@ async function preconditions({ forRun }) {
   c('unsubscribe signing key present', sk.some((r) => r.key === 'unsubscribe_signing_key'), 'app_secrets');
   const pr = await prices();
   const matrix = ['inquiry_qualification_conversation', 'rfq_routing', 'document_extraction', 'json_extraction', 'visitor_chat', 'support_ai'].map((t) => pr.pol[t]);
-  c('matrix v2: Luna main, Gemini backup on the working classes', matrix.every((p) => p?.model_primary === 'openai/gpt-6-luna' && p?.model_fallback === 'google/gemini-3.8-flash'), matrix.map((p) => p ? `${p.task_class}:${p.model_primary}/${p.model_fallback}` : 'missing').join(' '));
+  // WHICH model serves a class is the founder's matrix, and it moves (v2 Luna, #1380 Sonnet 5.5 on conversations, #1433
+  // v3 Luna Pro). Pinning names here broke this precondition at every ruling, so it now asserts what routing NEEDS and
+  // reads the names from live model_policy: every working class has an active primary AND a fallback, the two are from
+  // different providers (one provider's outage never takes both), and both are priced in model_registry (an unpriced
+  // model books AED 0, as Sonnet did before #1395). The model each call actually used is asserted per scenario against
+  // that same policy ("model routes follow" lines).
+  const fam = (m) => String(m || '').split('/')[0];
+  const routable = (p) => p && p.model_primary && p.model_fallback && fam(p.model_primary) !== fam(p.model_fallback) && pr.p[p.model_primary] && pr.p[p.model_fallback];
+  c('matrix: every working class has a priced primary and a priced fallback from another provider (names read from live model_policy)', matrix.every(routable), matrix.map((p) => p ? `${p.task_class}:${p.model_primary}/${p.model_fallback}${routable(p) ? '' : ' NOT ROUTABLE'}` : 'missing').join(' '));
   c('matrix v2: Opus on the comparison report', pr.pol.quote_comparison?.model_primary === 'anthropic/claude-opus-5.5', JSON.stringify(pr.pol.quote_comparison));
   const missing = SCENARIOS.flatMap((s) => s.calls.map((x) => x[0])).filter((t) => !pr.pol[t]);
   c('every task class the scenarios use has an active policy', !missing.length, missing.join(', ') || 'all present');
@@ -503,7 +515,7 @@ async function realRun(pre) {
     S09: async () => {
       const inq = need(Object.values(fx.inq).find((x) => x.trade === 'aluminium'), 'no aluminium request: the S04 interview did not reach ready, so there is nothing to quote on');
       const dir = `customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium`;
-      const live = Number((await read(`select count(*) n from public.quotes where inquiry_id=${q(inq.id)} and status='submitted'`))[0]?.n || 0);
+      const live = Number((await read(`select count(*) n from public.quotes where inquiry_id=${q(inq.id)} and status <> 'draft'`))[0]?.n || 0);
       for (const lang of ['en', 'ar']) {
         const w0 = await costWatermark();
         const r = await call('customer_api', inq.cu.jwt, { action: 'compare_pdf', inquiry_id: inq.id, lang }, 240000);
@@ -544,9 +556,15 @@ async function realRun(pre) {
       A('a declined TEST card is refused and reveals nothing', bad.json?.ok === false && bad.json?.status === 'failed' && tx0 === 0, JSON.stringify(bad.json).slice(0, 200));
       const good = await call('stripe_checkout', cu.jwt, { action: 'element_pay', quote_id: top.id, confirmation_token: qGood.t, expected_total_fils: qGood.r.json?.total_fils });
       A('the paid TEST card is charged exactly the total it was quoted', good.json?.status === 'succeeded' && good.json?.total_fils === qGood.r.json?.total_fils, JSON.stringify(good.json).slice(0, 200));
-      const tx = (await read(`select * from public.transactions where quote_id=${q(top.id)}`))[0];
-      if (tx) run.ids.transactions.add(String(tx.id));
-      A('a paid TEST card reveals: transaction paid, invoice recorded', tx?.fee_status === 'paid' && tx.stripe_invoice_id, `fee_status=${tx?.fee_status} invoice=${tx?.stripe_invoice_number} total=${tx?.total_charged} processing=${tx?.processing_fee}`);
+      const tx0paid = (await read(`select * from public.transactions where quote_id=${q(top.id)}`))[0];
+      if (tx0paid) run.ids.transactions.add(String(tx0paid.id));
+      // The sale carries its invoice reference from the first write (reveal_sale.ts invoiceId). Run 5
+      // printed stripe_invoice_number here, which only the webhook fills, and read a NULL id because
+      // the id was then webhook-only too: the invoice existed (RCZLAGA7-0002), the read was too early.
+      A('a paid TEST card reveals: transaction paid, invoice recorded', tx0paid?.fee_status === 'paid' && /^in_/.test(tx0paid.stripe_invoice_id || ''), `fee_status=${tx0paid?.fee_status} invoice=${tx0paid?.stripe_invoice_id} total=${tx0paid?.total_charged} processing=${tx0paid?.processing_fee}`);
+      // The filed invoice (number + PDF in finance-docs) arrives on stripe_webhook invoice.paid.
+      const tx = (await waitFor(async () => (await read(`select * from public.transactions where quote_id=${q(top.id)} and doc_path is not null`))[0], { timeoutMs: 90000, everyMs: 3000 })) || tx0paid;
+      A('the invoice is filed: number and PDF stored', !!tx?.doc_path && !!tx?.stripe_invoice_number, `number=${tx?.stripe_invoice_number} doc=${tx?.doc_path}`);
       A('no card surcharge recorded', !Number(tx?.processing_fee), `processing_fee=${tx?.processing_fee}`);
       const dir = `customers/${cu.cfg.label}_${cu.cfg.locale}_${safe(cu.cfg.emirate)}/inquiry_aluminium`;
       save(`${dir}/reveal_transaction.json`, tx || good.json);
@@ -555,14 +573,41 @@ async function realRun(pre) {
       const toCust = n.filter((x) => x.to_email === cu.email), toSup = n.filter((x) => x.to_email !== cu.email);
       A('both parties notified', toCust.length > 0 && toSup.length > 0, `customer ${toCust.length}, supplier ${toSup.length}`);
       fx.revealed = { tx, top, inq };
+      // THE CUSTOMER IN AR. The aluminium request belongs to C1 (en), so an Arabic request is quoted and
+      // revealed too: its exact-trade supplier quotes in full and the Arabic customer pays with the TEST visa.
+      // Run 5 had no Arabic reveal at all; production had never sent an Arabic reveal_receipt (review of #1456).
+      const arInq = Object.values(fx.inq).find((x) => x.cu.cfg.locale === 'ar' && x.lang === 'ar' && x.trade !== 'aluminium'
+        && fx.suppliers.some((s) => s.trade === x.trade));
+      const arSup = arInq && fx.suppliers.find((s) => s.trade === arInq.trade);
+      let arReceipts = [];
+      if (arInq) {
+        run.ids.inquiries.add(String(arInq.id));
+        const sq = await call('supplier_api', arSup.jwt, quotePayload(arInq.id, 42000, 'ZZ DEMO quote for the Arabic customer'));
+        const arQ = (await read(`select id, status from public.quotes where inquiry_id=${q(arInq.id)} and supplier_id=${Number(arSup.leadId)} order by created_at desc limit 1`))[0];
+        if (arQ) run.ids.quotes.add(String(arQ.id));
+        if (arQ?.status === 'submitted') {
+          const t = await ct('pm_card_visa');
+          const pq = await call('stripe_checkout', arInq.cu.jwt, { action: 'element_quote', quote_id: arQ.id, confirmation_token: t });
+          const pay = await call('stripe_checkout', arInq.cu.jwt, { action: 'element_pay', quote_id: arQ.id, confirmation_token: t, expected_total_fils: pq.json?.total_fils });
+          const arTx = (await read(`select id from public.transactions where quote_id=${q(arQ.id)}`))[0];
+          if (arTx) run.ids.transactions.add(String(arTx.id));
+          A('the Arabic customer reveals with the TEST card', pay.json?.status === 'succeeded' && !!arTx, JSON.stringify(pay.json).slice(0, 200));
+          arReceipts = await read(`select id, channel, lang, subject, body from public.notifications where type='reveal_receipt' and quote_id=${q(arQ.id)}`);
+        } else A('the Arabic customer reveals with the TEST card', false, `quote HTTP ${sq.status} status=${arQ?.status} on ${arInq.trade}`);
+      }
+      A('the Arabic customer\'s reveal receipt is in Arabic', arReceipts.length > 0 && arReceipts.every((x) => x.lang === 'ar' && /[؀-ۿ]{3,}/.test(`${x.subject} ${x.body}`)),
+        arInq ? `${arReceipts.length} reveal_receipt(s), langs ${[...new Set(arReceipts.map((x) => x.lang))].join(',') || 'none'}` : 'no Arabic request with an exact-trade supplier reached S10');
+      fx.revealedAr = arReceipts;
     },
     S11: async () => {
       const { tx, inq } = need(fx.revealed?.tx && fx.revealed, 'no paid reveal (S10), so there is no transaction to refund');
       const w0 = await costWatermark();
-      const r = await call('customer_api', inq.cu.jwt, { action: 'request_refund', transaction_id: tx.id, reason_code: 'supplier_unresponsive', reason_note: 'ZZ DEMO refund path' });
+      // customer_api request_refund is keyed on quote_id (index.ts: body.quote_id -> the sale). Run 5 sent
+      // transaction_id, so the handler looked up quote '' and answered 404 'Transaction not found'.
+      const r = await call('customer_api', inq.cu.jwt, { action: 'request_refund', quote_id: tx.quote_id, reason_code: 'supplier_unresponsive', reason_note: 'ZZ DEMO refund path' });
       const rf = (await read(`select r.id, r.status, c.state, c.decision, c.decision_rationale from public.refunds r left join public.refund_case c on c.refund_id=r.id where r.transaction_id=${q(tx.id)}`))[0];
       if (rf) run.ids.refunds.add(String(rf.id));
-      A('the refund request opens a case for the accountant', r.status === 200 && rf, JSON.stringify(rf));
+      A('the refund request opens a case for the accountant', r.status === 200 && rf, `HTTP ${r.status} ${JSON.stringify(r.json).slice(0, 200)} case=${JSON.stringify(rf ?? null)}`);
       const ceo = (await costSince(w0)).filter((x) => x.task_class === 'ceo_approval_decision');
       A('the CEO decision is taken on the Opus route, with reasons', ceo.every((x) => x.model_used === 'anthropic/claude-opus-5.5') && (rf?.decision_rationale || ceo.length >= 0), `rows=${ceo.length} decision=${rf?.decision}`, ceo.map((x) => x.model_used).join(','));
       save(`customers/${inq.cu.cfg.label}_${inq.cu.cfg.locale}_${safe(inq.cu.cfg.emirate)}/inquiry_aluminium/refund.json`, rf || r.json);
@@ -570,7 +615,7 @@ async function realRun(pre) {
     S12: async () => {
       const { tx } = fx.revealed || {};
       const w = (await read(`select * from public.supplier_response_watch where transaction_id=${q(tx?.id)}`))[0];
-      A('a non-response watch is open on the revealed supplier', w && !w.first_response_at, JSON.stringify(w));
+      A('a non-response watch is open on the revealed supplier', w && Number(w.lead_id) === Number(tx.supplier_id) && !w.first_response_at, JSON.stringify(w ?? null));
     },
     S13: async () => {
       const chats = [];
@@ -619,10 +664,21 @@ async function realRun(pre) {
           where to_email like ${q('qd-' + tag + '-%')} or inquiry_id::text in (${[...run.ids.inquiries].map(q).join(',') || 'null'}) order by id`);
       for (const x of n) save(`notifications/${x.id}_${x.channel}_${safe(x.type)}.json`, x);
       A('every notice the run caused was captured, none sent', n.length > 0 && n.every((x) => !['sent', 'queued', 'pending'].includes(x.status)), `${n.length} notices, statuses ${[...new Set(n.map((x) => x.status))].join(',')}`);
-      const arCust = new Set(fx.customers.filter((c) => c.cfg.locale === 'ar').map((c) => c.email));
+      // Each customer is answered in THEIR language. Run 5 asserted "an Arabic customer receives Arabic"
+      // and counted 0: by S15 the only customer events (new quotes, reveal, invoice) belong to the
+      // aluminium request, whose owner is C1 (en); no Arabic customer had been sent anything yet. That
+      // hid a product gap: production had never sent an Arabic reveal_receipt (5 of 5 are en), and
+      // invoice_ready followed the registered locale, not the inquiry's (fixed by
+      // a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql; the only Arabic notice
+      // run 5 produced, 101749, is a pdpl_verification). So the language rule is asserted here on every
+      // customer notice that exists, S10 reveals for an Arabic customer, and S24 requires an Arabic
+      // reveal_receipt to an Arabic customer.
+      const localeOf = new Map(fx.customers.map((c) => [String(c.email).toLowerCase(), c.cfg.locale]));
       const supMails = new Set(fx.suppliers.map((s) => s.email));
-      const ar = n.filter((x) => arCust.has(x.to_email)), sup = n.filter((x) => supMails.has(x.to_email));
-      A('an Arabic customer receives Arabic', ar.length > 0 && ar.every((x) => /[\u0600-\u06FF]/.test(x.body || x.html || '')), `${ar.length} notices`);
+      const cust = n.filter((x) => localeOf.has(String(x.to_email).toLowerCase())), sup = n.filter((x) => supMails.has(x.to_email));
+      const wrong = cust.filter((x) => { const t = `${x.subject || ''} ${x.body || x.html || ''}`;
+        return localeOf.get(String(x.to_email).toLowerCase()) === 'ar' ? !/[\u0600-\u06FF]{3,}/.test(t) : /[\u0600-\u06FF]{8,}/.test(t); });
+      A('every customer receives their registered language', cust.length > 0 && wrong.length === 0, `${cust.length} customer notices (${cust.filter((x) => localeOf.get(String(x.to_email).toLowerCase()) === 'ar').length} to Arabic customers); wrong language: ${wrong.map((x) => `${x.id}:${x.type}`).join(',') || 'none'}`);
       A('suppliers receive English only', sup.length > 0 && sup.every((x) => !/[\u0600-\u06FF]/.test(x.subject || '') && !/[\u0600-\u06FF]{8,}/.test(x.body || '')), `${sup.length} notices`);
     },
     S16: async () => {
@@ -940,7 +996,11 @@ async function realRun(pre) {
       const ar = fx.customers.find((c) => c.cfg.locale === 'ar');
       const su = fx.suppliers[0];
       const who = (c, k, l) => ({ kind: k, email: c.email, label: l });
-      const ids = { tag, customer: who(en, 'customer', en.cfg.label), customerAr: who(ar, 'customer', ar.cfg.label), supplier: who(su, 'supplier', 'AL'),
+      // THE AR JOURNEY WALKS THE CUSTOMER WHOSE REQUEST HAS QUOTES (run 5, 321d13ae): only the aluminium request
+      // is quoted (S07), so the first AR customer (C2, electrical, 0 quotes) could never show one. The journey's
+      // language is its own argument; the portals walk (`walk`) still covers the AR customer.
+      const qc = alu?.cu || ar;
+      const ids = { tag, customer: who(en, 'customer', en.cfg.label), customerAr: who(qc, 'customer', qc.cfg.label), supplier: who(su, 'supplier', 'AL'),
         walk: [who(en, 'customer', en.cfg.label), who(ar, 'customer', ar.cfg.label), who(su, 'supplier', 'AL')] };
       const idsPath = save('browser/ids.json', ids);
       const bout = join(OUT, 'browser');
@@ -960,6 +1020,13 @@ async function realRun(pre) {
     },
     // ---- S24: answers judged by another family; nothing reached a real person -----------------------
     S24: async () => {
+      // The Arabic half of S15, at the end of the run when Arabic customers have been sent something.
+      const arMails = fx.customers.filter((c) => c.cfg.locale === 'ar').map((c) => String(c.email).toLowerCase());
+      const arN = arMails.length ? await read(`select id, type, lang, subject, body, html from public.notifications where lower(to_email) in (${arMails.map(q).join(',')})`) : [];
+      const arReveal = arN.filter((x) => x.type === 'reveal_receipt');
+      A('an Arabic customer receives Arabic, including an Arabic reveal_receipt', arReveal.length > 0 && arN.length > 0
+        && arN.every((x) => /[؀-ۿ]{3,}/.test(`${x.subject || ''} ${x.body || x.html || ''}`)),
+        `${arN.length} notices to Arabic customers, ${arReveal.length} reveal_receipt (${[...new Set(arN.map((x) => x.type))].join(',') || 'none'})`);
       const fam = (m) => String(m || '').split('/')[0];
       const samples = (fx.chats || []).map((c) => ({ what: `${c.who} chat (${c.lang})`, q: c.msg, a: String(c.reply?.reply || c.reply?.answer || c.reply?.text || ''), producer: (c.route || '').split(' ').map((x) => x.split(':')[1]).filter(Boolean)[0] || 'openai/gpt-6-luna', lang: c.lang }));
       const alu = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
@@ -967,7 +1034,7 @@ async function realRun(pre) {
         const { pdfFactsFromBytes } = await import('./pdf_facts.mjs');
         const p = join(OUT, `customers/${alu.cu.cfg.label}_${alu.cu.cfg.locale}_${safe(alu.cu.cfg.emirate)}/inquiry_aluminium/comparison_en.pdf`);
         const txt = existsSync(p) ? String((await pdfFactsFromBytes(readFileSync(p)).catch(() => ({})))?.text || '') : '';
-        const quotes = await read(`select q.quote_amount::float a, l.company_name s, q.price_ex_vat::float ex_vat, q.validity, q.warranty, q.lead_time, q.payment_terms, q.exclusions, q.terms_spec, (select jsonb_agg(to_jsonb(li) - 'quote_id') from public.quote_items li where li.quote_id::text = q.id::text) lines from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status in ('submitted','accepted') order by 1`);
+        const quotes = await read(`select q.quote_amount::float a, l.company_name s, q.price_ex_vat::float ex_vat, q.validity, q.warranty, q.lead_time, q.payment_terms, q.exclusions, q.terms_spec, (select jsonb_agg(to_jsonb(li) - 'quote_id') from public.quote_items li where li.quote_id::text = q.id::text) lines from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status <> 'draft' order by 1`);
         samples.push({ what: 'comparison report (EN)', q: `Compare these quotes for aluminium works, cheapest first. These are the stored quotes the report was built from (supplier names may appear masked in the report); anything in the report that these rows support is NOT invented: ${JSON.stringify(quotes)}`, a: txt.slice(0, 6000), producer: 'anthropic/claude-opus-5.5', lang: 'en' });
       }
       const judged = [];
@@ -975,7 +1042,11 @@ async function realRun(pre) {
         const task_class = fam(s.producer) === 'anthropic' ? 'internal_judgement' : 'ceo__internal_judgement';
         const w0 = await costWatermark();
         const r = await call('ai_gateway', null, { __secret: (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value, fn: 'stage2_quality_judge', task_class, subject: { email: fx.customers[0].email }, max_tokens: 400,
-          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of the chosen supplier’s final quoted price after any discount, excluding VAT (ruling 1208; e.g. 3% of AED 1,700 = AED 51), no cap, to reveal that supplier; no card fee and no VAT is added on top of that 3% (QuotesDone is not VAT-registered); a supplier’s own discount and VAT are shown exactly as the supplier quoted them (ruling 1207); a customer finds quotes under My requests (طلباتي) then the request; a supplier revises a quote from the job in the supplier portal (Inquiries received, the job, then send the revised quotation: "Send your quotation to the sales engineer", "Or type it into the quote form", "Attach a revised file", "Submit to Job <n>"), and a new submission replaces the earlier one until the customer chooses; when signed in, the assistant may name the user’s own requests and quotes, which are facts of the account, not inventions). Judge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
+          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of the chosen supplier’s final quoted price after any discount, excluding VAT (ruling 1208; e.g. 3% of AED 1,700 = AED 51), no cap, to reveal that supplier; no card fee and no VAT is added on top of that 3% (QuotesDone is not VAT-registered); a supplier’s own discount and VAT are shown exactly as the supplier quoted them (ruling 1207); a customer finds quotes under My requests (طلباتي) then the request; a supplier revises a quote from the job in the supplier portal (Inquiries received, the job, then send the revised quotation: "Send your quotation to the sales engineer", "Or type it into the quote form", "Attach a revised file", "Submit to Job <n>"), and a new submission replaces the earlier one until the customer chooses; when signed in, the assistant may name the user’s own requests and quotes, which are facts of the account, not inventions; the customer portal has the sections My requests, Messages, Projects and Documents). '
+                     // THE JUDGE READS THE SAME BRIEF THE AGENTS ANSWER FROM (19 Oct 2026, run 5). With only the summary above, true rules
+                     // were scored as invented: SA§11's "begin responding within 5 working days of the Reveal", the top-3 comparison report,
+                     // "quotes realistically arrive in 3-5 working days". A fact the brief states is not an invention.
+                     + 'The COMPANY BRIEF below is the authoritative list of platform facts; anything it states is NOT invented.\n\n' + COMPANY_BRIEF + '\n\nJudge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
                      { role: 'user', content: `QUESTION / INPUT:\n${s.q}\n\nANSWER:\n${s.a || '(empty)'}` }] }, 120000);
         const used = (await costSince(w0)).map((x) => x.model_used).filter(Boolean);
         let v = null; try { v = JSON.parse(String(r.json?.content || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch { v = null; }
@@ -1057,8 +1128,21 @@ async function cleanupAll(tag, manifest) {
   const swept = {};
   // The last marker is ai_gateway's blocked-call line in agent_runs / os_audit_log, which names the tag only
   // inside fn_ai_subject_is_fixture's phrase; the exact phrase with the tag cannot match another run's row.
-  const mk = (x) => [`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`, `an identity of harness run ${tag} (opened in rehearsal_window)`]
-    .map((m) => `${x}::text like ${q('%' + m.replace(/[\\%_]/g, '\\$&') + '%')}`).join(' or ');
+  // The last marker is the run's demo NAME shape, 'ZZ DEMO <words> <tag>' (supplier 'ZZ DEMO AL aluminium <tag>', customer
+  // 'ZZ DEMO C1 <tag>'), required whole: run 321d13ae's seat task named only those, so a bare 'ZZ DEMO <tag>' missed it.
+  const mk = (x) => [...[`qd-${tag}-`, `ZZ DEMO ${tag}`, `zzdemo${tag}`, `zzdemo-${tag}`, `an identity of harness run ${tag} (opened in rehearsal_window)`]
+    .map((m) => `${x}::text like ${q('%' + m.replace(/[\\%_]/g, '\\$&') + '%')}`), `${x}::text ~ ${q('ZZ DEMO [A-Za-z0-9 ]{1,60} ' + tag + '([^0-9a-f]|$)')}`].join(' or ');
+  // Tables the features merged since run 4 write for a demo run (review of #1464): removed by the markers only, in this
+  // order: decision_trace before the seat task it explains, undo_log after it (deleting a task writes one more undo row).
+  const MARKER_TABLES = ['decision_trace', 'org_tasks', 'undo_log', 'wa_answer_log', 'wa_turn', 'wa_messages', 'reasoning_held_question'];
+  for (const t of MARKER_TABLES) {
+    try {
+      const r = await write(t === 'decision_trace'
+        ? `with d as (delete from public.decision_trace x where ${mk('x')} or (x.entity_type = 'org_task' and x.entity_id::text in (select id::text from public.org_tasks o where ${mk('o')})) returning 1) select count(*)::int n from d`
+        : `with d as (delete from public.${t} x where ${mk('x')} returning 1) select count(*)::int n from d`, `stage2 markers ${t}`);
+      swept[t] = r?.[0]?.n ?? 0;
+    } catch (e) { swept[t] = /42P01|does not exist/.test(String(e.message)) ? 'table absent' : 'ERROR ' + String(e.message).slice(0, 100); }
+  }
   // SUPPORT CASES FIRST (tag b12d9559 left 30 rows, 7 Oct 2026): support_case carries no run marker of its own,
   // only customer_profile_id, so the profile (which carries the run's email) was refused by the FK. Delete the
   // run's cases, and their children, through the run's profiles before the sweep reaches the profiles.
