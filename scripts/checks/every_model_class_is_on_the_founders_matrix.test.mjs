@@ -110,3 +110,67 @@ update public.model_registry set active = true, approved = true where model_id =
 ` + probe());
   assert.match(v, /5.6 model or plain luna is still active/, v);
 });
+
+// 19 Oct 2026 (it_engineer, #1501; rulings 1241, 1218): each table the router reads is seeded with a bad row, and the
+// matrix probe must name it. model_policy itself refuses plain luna at write time (its registry trigger), so plain luna
+// is seeded where it can still be written: the seat catch-all and a fallback chain.
+const BITES = [
+  ['Gemini as the primary of a class that does not hear', `update public.model_policy set model_primary = 'google/gemini-3.8-flash' where task_class = 'summarization';`, /outside a recording name Gemini/],
+  ['Gemini behind a seat catch-all', `update public.model_policy_by_identity set fallback_model = 'google/gemini-3.8-flash' where identity_key = 'accountant';`, /outside a recording name Gemini/],
+  ['Gemini on a chain that does not hear', `update public.model_fallback_chain set model = 'google/gemini-3.8-flash' where purpose = 'whatsapp_conversation' and rung = 2;`, /outside a recording name Gemini/],
+  ['plain luna behind a seat catch-all', `update public.model_policy_by_identity set fallback_model = 'openai/gpt-6-luna' where identity_key = 'accountant';`, /5.6 model or plain luna/],
+  ['plain luna on a chain', `update public.model_fallback_chain set model = 'openai/gpt-6-luna' where purpose = 'whatsapp_conversation' and rung = 2;`, /5.6 model or plain luna/],
+];
+for (const [name, seed, want] of BITES) {
+  test(`${name} fails the probe`, { skip: !token() }, async () => {
+    const v = await run(replay() + `\n;\nselect set_config('app.change_reason', 'probe:matrix bite', true);\n${seed}\n` + probe());
+    assert.match(v, want, v);
+  });
+}
+
+// fn_ai_route answers every active class with that class's own pair and nothing else, with the breakers shut and
+// open, and never names Gemini for a class that does not hear. Raises CHK<<ROUTE OK>> or CHK<<ROUTE FAILED: ...>>.
+const ROUTE = `do $route$ declare r record; j jsonb; bad text[] := '{}'; trip int; begin
+  for trip in 0..1 loop
+    if trip = 1 then
+      perform set_config('app.change_reason', 'probe:fn_ai_route pair', true);
+      update public.llm_route_health set open_until = now() + interval '5 minutes', opened_reason = 'zz probe', opened_class = 'empty_completion'
+       where model_id in ('openai/gpt-6-luna-pro', 'anthropic/claude-sonnet-5.5', 'anthropic/claude-opus-5.5');
+    end if;
+    for r in select task_class, model_primary p, model_fallback f from public.model_policy
+              where active and model_primary <> 'none' and model_primary not like '%:online' and model_primary not like 'perplexity/%' loop
+      j := public.fn_ai_route(r.task_class, null, null, null, false, null, null);
+      if coalesce(j->>'model', 'none') not in (r.p, coalesce(r.f, r.p), 'none')
+         or coalesce(j->>'fallback', 'none') not in (r.p, coalesce(r.f, r.p), 'none') then
+        bad := bad || (r.task_class || ' routed ' || coalesce(j->>'model', '-') || '>' || coalesce(j->>'fallback', '-')
+                       || ' outside its pair ' || r.p || '>' || coalesce(r.f, '-'));
+      end if;
+      if r.task_class not in ('speech_transcription', 'marketing_watch')
+         and (coalesce(j->>'model', '') || coalesce(j->>'fallback', '')) like '%gemini%' then
+        bad := bad || (r.task_class || ' does not hear and routed Gemini');
+      end if;
+    end loop;
+  end loop;
+  if cardinality(bad) > 0 then raise exception 'CHK<<ROUTE FAILED: %>>', array_to_string(bad, '; '); end if;
+  raise exception 'CHK<<ROUTE OK>>';
+end $route$;`;
+
+test('fn_ai_route returns only the class\'s own pair, breakers shut or open', { skip: !token() }, async () => {
+  const v = await run(replay() + '\n;\n' + ROUTE);
+  assert.match(v, /^ROUTE OK/, v);
+});
+
+test('fn_ai_route putting Gemini on a class that does not hear fails', { skip: !token() }, async () => {
+  const v = await run(replay() + `\n;\nselect set_config('app.change_reason', 'probe:route bite', true);
+update public.model_policy set model_fallback = 'google/gemini-3.8-flash' where task_class = 'summarization';\n` + ROUTE);
+  assert.match(v, /summarization does not hear and routed Gemini/, v);
+});
+
+test('fn_ai_route answering outside the class\'s pair fails', { skip: !token() }, async () => {
+  // The live router keeps to the pair even with the pair's registry rows off (it answers 'none'), so the bite swaps in,
+  // inside the rolled-back replay only, a router that answers the cheapest-of-the-registry way the 18 Oct fix removed.
+  const v = await run(replay() + `\n;\nalter function public.fn_ai_route(text, text, numeric, text, boolean, text[], text) rename to fn_ai_route_zz_probe_real;
+create function public.fn_ai_route(text, text, numeric, text, boolean, text[], text) returns jsonb language sql
+  as $f$ select jsonb_build_object('model', 'deepseek/deepseek-v4.1-flash', 'fallback', null) $f$;\n` + ROUTE);
+  assert.match(v, /outside its pair/, v);
+});
