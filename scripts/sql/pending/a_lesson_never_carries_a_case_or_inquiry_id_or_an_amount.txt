@@ -1,1 +1,0 @@
-Follow-up of #1441 (release operator, 18 Oct 2026): fn_lesson_scrub strips case/inquiry ids, amounts, e-mails and phones from every distilled lesson, and the rows already written are scrubbed once. Applied at merge by the release operator; then this note is deleted and the file appended to MANIFEST.txt.

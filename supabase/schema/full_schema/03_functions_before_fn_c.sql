@@ -1520,10 +1520,11 @@ begin
     n := n + 1;
   end loop;
 
-  -- Every unresolved difference is a finding, whether or not it was audited on this run.
+  -- Every unresolved LIVE-mode difference is a finding, whether or not it was audited on this run.
+  -- 19 Oct 2026: a Stripe test-mode charge moved no money; its audit stays recorded in charge_audit, not raised.
   for r in select a.*, coalesce(cu.is_demo, false) demo from public.charge_audit a
              join public.transactions t on t.id = a.transaction_id left join public.customers cu on cu.id = t.customer_id
-            where abs(a.diff_aed) >= 0.01 and a.resolved_at is null loop
+            where abs(a.diff_aed) >= 0.01 and a.resolved_at is null and a.livemode loop
     v_items := v_items || jsonb_build_object('item', 'charge:' || r.transaction_id,
       'owner_seat', 'accountant', 'subject', 'stripe_checkout',
       'title', case when r.diff_aed > 0
@@ -2339,6 +2340,8 @@ begin
                                                            'amount', amount, 'currency', currency) order by id), '[]'::jsonb)
       into v_n, v_list from public.expense_entries
      where coalesce(btrim(doc_path), '') = '' and doc_kind is distinct from 'founder_statement'
+       -- 19 Oct 2026: the daily OpenRouter accrual is measured from usage; no receipt ever exists for it.
+       and coalesce(source, '') <> 'accountant:openrouter_daily'
        and ((coalesce(vendor, '') || ' ' || coalesce(note, '')) ~* 'zz[ _-]?demo') = v_demo;
     if v_n > 0 then
       v_items := v_items || jsonb_build_object('item', case when v_demo then 'no_document:zz_demo' else 'no_document' end,
@@ -4186,6 +4189,117 @@ AS $function$
     'renewals', coalesce((select jsonb_agg(jsonb_build_object('item', item, 'kind', kind, 'expires_on', expires_on) order by item)
                             from public.it_expiry where kind in ('licence', 'domain')), '[]'::jsonb));
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_receipt_bank_match()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_days int; v_pct numeric; v_floor numeric; v_usd numeric;
+  e int; n_matched int := 0;
+begin
+  select num_value::int into v_days  from public.gl_settings where key = 'receipt_match_days';
+  select num_value      into v_pct   from public.gl_settings where key = 'receipt_match_tolerance_pct';
+  select num_value      into v_floor from public.gl_settings where key = 'receipt_match_tolerance_aed';
+  select num_value      into v_usd   from public.gl_settings where key = 'usd_to_aed';
+  if v_days is null or v_pct is null or v_floor is null or v_usd is null then
+    raise exception 'fn_accountant_receipt_bank_match: a receipt_match_* window or usd_to_aed is missing from gl_settings';
+  end if;
+
+  -- Every (unmatched receipt, unmatched debit) pair that fits on account, amount and date, with whether
+  -- the debit's text carries the receipt vendor's first 3+ character word (after any ZZ DEMO prefix).
+  drop table if exists pg_temp.rbm_cand;
+  create temp table rbm_cand on commit drop as
+  select x.id as eid, bl.id as lid, r.aed as receipt_aed, -bl.amount_aed as bank_aed,
+         bl.value_date - x.charged_on as gap,
+         (r.tok is not null and position(r.tok in lower(coalesce(bl.description, '') || ' ' || coalesce(bl.reference, ''))) > 0) as hit
+    from public.expense_entries x
+    cross join lateral (select round(x.amount * case when upper(x.currency) = 'USD' then v_usd else 1 end, 2) as aed,
+                               lower(substring(regexp_replace(coalesce(x.vendor, ''), '^\s*ZZ DEMO\s*', '', 'i')
+                                               from '[A-Za-z0-9]{3,}')) as tok) r
+    join public.bank_statement_line bl
+      on bl.amount_aed < 0
+     and (bl.account = 'zz_demo') = (x.vendor ilike 'ZZ DEMO%')
+     and abs(-bl.amount_aed - r.aed) <= greatest(v_floor, r.aed * v_pct / 100)
+     and bl.value_date between x.charged_on - 1 and x.charged_on + v_days
+   where x.amount > 0 and upper(x.currency) in ('AED', 'USD')
+     and not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = x.id)
+     and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = bl.id);
+
+  -- A receipt whose fitting debits carry no vendor word is never booked: it is listed ambiguous.
+  -- Only vendor-word pairs can be booked, and only when the pairing is forced, never by order:
+  -- a receipt with exactly one such debit takes it unless another receipt has that same debit as
+  -- ITS only one too (contested). Each booking removes both sides and the rest is re-read, so a
+  -- later receipt whose only debit an earlier receipt could also use gets it, and the earlier one
+  -- is left with its own. Whatever is still open is ambiguous for the accountant.
+  drop table if exists pg_temp.rbm_open;
+  create temp table rbm_open on commit drop as select * from rbm_cand where hit;
+  loop
+    with only_one as (
+      select eid, min(lid) as lid from rbm_open group by eid having count(*) = 1
+    ), forced as (
+      select o.eid, o.lid from only_one o
+       where (select count(*) from only_one o2 where o2.lid = o.lid) = 1
+    ), booked as (
+      insert into public.expense_bank_match (expense_entry_id, bank_line_id, receipt_aed, bank_aed, day_gap, vendor_in_text)
+      select c.eid, c.lid, c.receipt_aed, c.bank_aed, c.gap, true
+        from forced f join rbm_open c on c.eid = f.eid and c.lid = f.lid
+      returning expense_entry_id, bank_line_id
+    ), gone as (
+      delete from rbm_open c using booked b where c.eid = b.expense_entry_id or c.lid = b.bank_line_id
+      returning 1
+    )
+    select count(*) into e from booked;
+    exit when e = 0;
+    n_matched := n_matched + e;
+  end loop;
+
+  return jsonb_build_object(
+    'matched_now', n_matched,
+    'matched', (select count(*) from public.expense_bank_match),
+    -- Receipts with a fitting debit that were NOT booked, for the accountant to decide: never posted.
+    'ambiguous', (select coalesce(jsonb_agg(jsonb_build_object('expense_entry', a.eid,
+                     'reason', case when not bool_or_hit then 'no_vendor_word'
+                                    when open_n > 1 then 'several_debits' else 'contested' end,
+                     'lines', a.lines) order by a.eid), '[]'::jsonb)
+                    from (select c.eid, bool_or(c.hit) as bool_or_hit,
+                                 (select count(*) from rbm_open o where o.eid = c.eid) as open_n,
+                                 jsonb_agg(c.lid order by c.lid) as lines
+                            from rbm_cand c
+                           where not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = c.eid)
+                             and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = c.lid)
+                           group by c.eid) a),
+    'receipts_not_matchable', (select count(*) from public.expense_entries x
+                                where not (x.amount > 0 and upper(coalesce(x.currency, '')) in ('AED', 'USD'))),
+    -- Receipts inside a statement's coverage (and past the window) with no debit: paid elsewhere, or missing.
+    'receipts_unmatched', (select coalesce(jsonb_agg(jsonb_build_object('expense_entry', x.id, 'vendor', x.vendor,
+                              'amount', x.amount, 'currency', x.currency, 'charged_on', x.charged_on) order by x.charged_on), '[]'::jsonb)
+                             from public.expense_entries x
+                            where x.amount > 0 and upper(x.currency) in ('AED', 'USD')
+                              and not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = x.id)
+                              and not exists (select 1 from rbm_cand c where c.eid = x.id
+                                                and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = c.lid))
+                              and exists (select 1 from public.bank_statement_line bl
+                                           where (bl.account = 'zz_demo') = (x.vendor ilike 'ZZ DEMO%')
+                                             and bl.value_date <= x.charged_on - 1)
+                              and exists (select 1 from public.bank_statement_line bl
+                                           where (bl.account = 'zz_demo') = (x.vendor ilike 'ZZ DEMO%')
+                                             and bl.value_date >= x.charged_on + v_days)),
+    -- Debits the bank did not book itself, with no receipt: a payment the mailbox never received a document for.
+    'bank_debits_unmatched', (select coalesce(jsonb_agg(jsonb_build_object('line', bl.id, 'account', bl.account,
+                              'value_date', bl.value_date, 'amount_aed', bl.amount_aed,
+                              'description', public.fn_mask_bank_text(bl.description)) order by bl.value_date), '[]'::jsonb)
+                             from public.bank_statement_line bl
+                            where bl.amount_aed < 0
+                              and bl.kind is distinct from 'bank_charge'
+                              and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = bl.id)),
+    'basis', 'Receipts (expense_entries, from the expenses mailbox) against Mashreq debits: amount within '
+             || v_pct || '% (floor AED ' || v_floor || '), USD at ' || v_usd || ', value date ' || '-1..+' || v_days
+             || ' days, vendor word in the line preferred. Bank charges book themselves and are not expected to carry a receipt. Nothing was posted to the ledger.');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_receipt_cadence_gaps(p_as_of date DEFAULT NULL::date)
@@ -11142,6 +11256,8 @@ begin
   select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]'::jsonb) into v_not_done, v_ids
     from (select d.id, row_number() over (order by d.id) rn from public.doc_backups d
            where d.status <> 'done' and d.entity <> 'zz_demo'
+             -- 19 Oct 2026: retention moves only a verified copy into these; a stuck prune is a backup_prune finding.
+             and d.status not in ('prune_pending', 'pruning', 'pruned')
              and not (d.status = 'abandoned' and coalesce(d.error, '') like 'abandoned:%')
              and coalesce(d.requeued_at, d.created_at) < now() - interval '48 hours') x;
   select count(*) into v_abandoned from public.doc_backups where status = 'abandoned' and coalesce(error, '') like 'abandoned:%';
@@ -11940,6 +12056,10 @@ begin
         || coalesce(v_cov->>'sources_without_a_row','unknown') || ' source(s) with no row, '
         || (v_cov->>'refiles_open_past_48h') || ' refile(s) not verified. Rows: ' || (v_cov->>'not_done_ids') || '.',
         'doc_backups', v_cov);
+      -- 19 Oct 2026: one condition is one report. While an earlier escalation is still accepted the CEO holds it;
+      -- a new day's key is raised only after that one is completed (12 sat accepted, one per day, before this).
+      if not exists (select 1 from public.support_ceo_report
+                      where idempotency_key like 'dropbox_backup_escalation:%' and status = 'accepted') then
       perform public.fn_support_report_to_ceo(
         'dropbox_backup_escalation:' || v_date, 'serious',
         'Dropbox backup coverage has been failing for over 48 hours (' || (v_cov->>'failing') || ')',
@@ -11948,6 +12068,7 @@ begin
                     from agent_actions where kind = 'handoff' and detail->>'type' in ('backup.refile','backup.remediate') and status <> 'done'), '[]'::jsonb),
         'Decide whether the missing documents need the founder''s Dropbox checked by hand or the filing corrected. The IT engineer has raised it and handed each missing file to the sales engineer to refile; this is past 48 hours, which is why it reaches you.',
         p_review_in => interval '1 day', p_source_agent => 'it_engineer');
+      end if;
     end if;
   end if;
 
