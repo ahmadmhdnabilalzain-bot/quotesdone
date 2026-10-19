@@ -198,3 +198,19 @@ Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, rea
   assert(/m365Mime\(\{[^}]*reply: m365ReplyTo\(\{ proofAt: m365ProofAt, now, fallback: reply \}\)/.test(src), 'the lane MIME no longer asks m365ReplyTo');
   assert(src.includes(".eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1')"), 'the proof read no longer selects the reader rows');
 });
+
+Deno.test('the refusal finding closes on a 2xx sendMail, never on a token alone (review of #1473)', async () => {
+  const closed: [string, string][] = []; const closeFinding = async (k: string, n: string) => { closed.push([k, n]); };
+  const g = findings();
+  // token succeeds, send refused: the finding stays open
+  const tok = await resolveM365({ needed: true, mailbox: 'supplier@quotesdone.com', env: env(ENV), fetchFn: fake({ status: 200, body: { access_token: 't' } }).fetchFn, fileFinding: g.fileFinding });
+  assert(tok.active); assertEquals(closed.length, 0, 'a token alone never closes it');
+  const refused = await graphSend(fake({ status: 403, body: { error: { code: 'ErrorAccessDenied', message: 'no' } } }).fetchFn, tok, 'x', '<id@q>', closeFinding);
+  assertFalse(refused.ok); assertEquals(closed.length, 0, 'a refused send leaves the finding open');
+  // the first successful send closes it
+  const sent = await graphSend(fake({ status: 202 }).fetchFn, tok, 'x', '<id@q>', closeFinding);
+  assert(sent.ok); assertEquals(closed.length, 1); assertEquals(closed[0][0], M365_REFUSED_ISSUE);
+  // a close that throws never turns a sent message into a failure
+  const still = await graphSend(fake({ status: 202 }).fetchFn, tok, 'x', '<id@q>', async () => { throw new Error('rpc down'); });
+  assert(still.ok);
+});

@@ -8,6 +8,7 @@
 // reads as "all clear".
 import { HANDLED_STRIPE_EVENTS } from './stripe_events.ts';
 import { isDemoEmail } from './demo_identity.ts';
+import tls from 'node:tls';
 
 type Sec = (key: string) => Promise<string>;
 type Got = { status: number; ok: boolean; json: unknown; text: string; error?: string };
@@ -82,15 +83,39 @@ async function expiries(_sec: Sec) {
     const ev = (J(r)?.events ?? []).find((e: any) => e.eventAction === 'expiration');
     out[`domain:${dom}`] = ev ? { basis: 'measured', expires_on: String(ev.eventDate).slice(0, 10) }
                               : unavailable(`RDAP answered ${r.status || r.error} without an expiration event`);
-    const c = await get(`https://crt.sh/?q=${dom}&output=json&exclude=expired`);
-    const now = Date.now();
-    // deno-lint-ignore no-explicit-any
-    const valid = Array.isArray(J(c)) ? (J(c) as any[]).filter((x) => Date.parse(x.not_before) <= now) : [];
-    const latest = valid.map((x) => String(x.not_after)).sort().pop();
-    out[`tls:${dom}`] = latest ? { basis: 'measured', expires_on: latest.slice(0, 10) }
-                               : unavailable(`crt.sh answered ${c.status || c.error} with no valid certificate`);
+    const served = await servedCertNotAfter(dom);
+    const c = served ? null : await get(`https://crt.sh/?q=${dom}&output=json&exclude=expired`);
+    out[`tls:${dom}`] = tlsExpiry(served, c ? J(c) : null, Date.now())
+      ?? unavailable(`no TLS handshake reading, and crt.sh answered ${c?.status || c?.error} with no valid certificate`);
   }));
   return out;
+}
+
+// THE CERTIFICATE IN SERVICE IS THE ONE THE HANDSHAKE PRESENTS (it_engineer, 19 Oct 2026). Until then this read
+// crt.sh only, which lags: on 19 Oct duty:expiry:tls said quotesdone.ae/.com expire 8-9 Nov while the served
+// Let's Encrypt certs (renewed by Vercel 9-11 Oct) run to 7-9 Jan 2027. crt.sh is now only the fallback, and from
+// it the newest not_after among certificates already valid. Returns an ISO not_after or null when unreadable.
+export async function servedCertNotAfter(host: string, timeoutMs = 10000): Promise<string | null> {
+  return await new Promise((resolve) => {
+    let done = false;
+    const finish = (v: string | null) => { if (!done) { done = true; clearTimeout(t); try { s.destroy(); } catch { /* closed */ } resolve(v); } };
+    const t = setTimeout(() => finish(null), timeoutMs);
+    const s = tls.connect({ host, port: 443, servername: host }, () => {
+      const to = s.getPeerCertificate()?.valid_to; const ms = to ? Date.parse(to) : NaN;
+      finish(Number.isFinite(ms) ? new Date(ms).toISOString() : null);
+    });
+    s.on('error', () => finish(null));
+  });
+}
+
+/** The expiry reading: the served certificate when read, else the newest not_after of crt.sh rows valid at now. */
+export function tlsExpiry(servedNotAfter: string | null, crtRows: unknown, now: number) {
+  if (servedNotAfter) return { basis: 'measured', source: 'tls_handshake', expires_on: servedNotAfter.slice(0, 10) };
+  // deno-lint-ignore no-explicit-any
+  const rows = Array.isArray(crtRows) ? (crtRows as any[]) : [];
+  const ms = rows.filter((x) => Date.parse(x?.not_before) <= now && Date.parse(x?.not_after) > now)
+    .map((x) => Date.parse(x.not_after)).filter(Number.isFinite);
+  return ms.length ? { basis: 'measured', source: 'crt.sh', expires_on: new Date(Math.max(...ms)).toISOString().slice(0, 10) } : null;
 }
 
 // THE PROVIDER CREDENTIAL PROBES MOVED (it_engineer, 24 Sep 2026, founder instruction 979). They were read here
