@@ -827,8 +827,12 @@ export const handler = observe('resend_inbound', async (req) => {
     // it. It was needs_review=false, which email_triage's selection excludes, so a customer's question was stored
     // and never read. raw keeps what the reply and noAutoReply need (_shared/customer_mail.ts).
     const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
+    // WHO SENT IT IS PROVEN, NOT READ OFF THE FROM HEADER (customer_support, 19 Oct 2026, review of #1498): email_triage
+    // gives a reply the sender's own account only when the receiving server authenticated the From domain (aligned
+    // DMARC, DKIM or SPF pass, fromDomainAuthenticated). The webhook is metadata-only, so the headers are read when absent.
+    const authHdrs = hdrs?.['authentication-results'] ? hdrs : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
     const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'), in_reply_to: hv('in-reply-to'), references: hv('references'),
-      content_type: hv('content-type'), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
+      content_type: hv('content-type'), sender_authenticated: fromDomainAuthenticated(authHdrs?.['authentication-results'], from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
     if (inbRow?.id && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {

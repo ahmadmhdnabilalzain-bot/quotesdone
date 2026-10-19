@@ -22,7 +22,7 @@ import { observe } from '../_shared/observe.ts';
 import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
-import { accountFacts } from './account_facts.ts';
+import { mailFacts } from './account_facts.ts';
 import { composeMailReply, noAutoReply } from '../_shared/customer_mail.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
@@ -147,7 +147,7 @@ Deno.serve(observe('email_triage', async (req) => {
       counts.triaged++;
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
-      await reply1(m, audienceOf(relation), await accountFacts(admin, String(m.from_email || ''), relation));
+      await reply1(m, audienceOf(relation), await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw));
     }
     // THE REPLY LEAVES NOW, not on the outbox's 2-minute poll (the founder's "under a minute").
     if (counts.answered) {

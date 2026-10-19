@@ -52,3 +52,17 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
   } catch (_e) { /* an unread account leaves the reply ungrounded, never the mail unanswered */ }
   return '';
 }
+
+// SPOOF-PROOF (review of #1498): a From header is free text. The account is read only when resend_inbound recorded
+// that the receiving server authenticated the From domain (raw.sender_authenticated, an aligned DMARC/DKIM/SPF pass).
+// Missing or false: no account data, and the reply invites them to sign in to see their requests.
+export const SIGN_IN_FACT = 'THE SENDER\'S E-MAIL COULD NOT BE VERIFIED AS COMING FROM THEIR ADDRESS, so no account details may be given. '
+  + 'If they ask about their requests, quotes or account, say that for their security they can see the status by signing in to their account on quotesdone.ae.';
+export function senderVerified(raw: unknown): boolean {
+  return !!raw && typeof raw === 'object' && (raw as { sender_authenticated?: unknown }).sender_authenticated === true;
+}
+/** The facts for this mail: the account when the sender is verified, the sign-in line when a known sender is not. */
+export async function mailFacts(admin: Db, email: string, relation: unknown, raw: unknown): Promise<string> {
+  if (relation !== 'customer' && relation !== 'supplier') return '';
+  return senderVerified(raw) ? await accountFacts(admin, email, relation) : SIGN_IN_FACT;
+}
