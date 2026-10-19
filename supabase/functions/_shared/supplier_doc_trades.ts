@@ -68,7 +68,9 @@ export type DocEvidence = {
   exact?: ExactState; meaning?: MeaningState;
   /** profile / catalogue: 'on' = the model chose the trades and each was proven by its quote; 'unavailable' = it could not
    *  be asked, so NOTHING was proposed (reason says why); rejected = codes the model named that code refused */
-  choice?: 'on' | 'unavailable'; rejected?: { code: string; why: string }[];
+  choice?: 'on' | 'unavailable' | 'held'; rejected?: { code: string; why: string }[];
+  /** choice 'held': the readings, which did not agree on any trade; the sales engineer decides (agent_actions doc_trades_held) */
+  held_readings?: { code: string; quote: string }[][];
   /** trades read off a PICTURE (image, or a PDF with no text layer): their quotes are lines the vision model transcribed,
    *  which code cannot check against the file, so they are never proposed - held here for the sales engineer to confirm */
   vision_held?: TradeHit[];
@@ -181,6 +183,9 @@ ${whole}`;
       const ch = await deps.chooseTrades(forModel, doc.kind, (doc.names ?? []).find((n) => !!n) ?? null);
       if (!ch.ok) {
         console.error(JSON.stringify({ at: 'supplier_doc_trades.choice', path: doc.path, error: ch.error }));
+        // HELD, NOT UNAVAILABLE (review of #1483): the model answered, but its readings did not agree on any trade. That is a
+        // decision for the sales engineer (doc_trades_held), not a model outage to retry.
+        if (ch.held) return { ...base, status: 'read', format, source, reason: ch.error, trades: [], choice: 'held', held_readings: ch.held.readings, ...(c ? { supply_only: c.supply_only } : {}) };
         return { ...base, status: 'read', format, source, reason: `the trades could not be chosen: ${ch.error}`, trades: [], choice: 'unavailable', ...(c ? { supply_only: c.supply_only } : {}) };
       }
       const hits = ch.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.reason], snippet: t.quote }));
@@ -220,6 +225,22 @@ export function mergeEvidence(prev: DocEvidence[], fresh: DocEvidence[]): DocEvi
 }
 
 /** One pending sales_engineer item per supplier document whose trades were read off a picture (never filed twice). */
+/** A document whose readings agreed on no trade: one pending agent_actions item (kind doc_trades_held) per supplier and
+ *  document, for the sales engineer, with the readings. Exported for the test. */
+export async function docTradesHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
+  const target = `${supplierId}:${d.path}`;
+  try {
+    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'doc_trades_held').eq('status', 'pending').eq('target_id', target).limit(1);
+    if (open?.length) return;
+    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'doc_trades_held', status: 'pending', risk: 'low',
+      title: ('Read the trades of a document the model could not agree on: ' + d.name).slice(0, 200),
+      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, readings: d.held_readings ?? [], reason: d.reason ?? null,
+                waiting_for: 'sales_engineer to read the document and confirm its trades with the supplier' },
+      target_table: 'supplier_capabilities', target_id: target });
+    if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
+}
+
 async function visionHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
   const target = `${supplierId}:${d.path}`;
   try {
@@ -288,6 +309,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], fresh);
     const proposed = proposedFrom(merged);
     for (const d of fresh) if (d.vision_held?.length) await visionHeld(admin, supplierId, d);
+    for (const d of fresh) if (d.choice === 'held') await docTradesHeld(admin, supplierId, d);
     const { error } = await admin.from('supplier_capabilities').upsert({
       supplier_id: supplierId, proposed_trades: proposed,
       source_docs: { ...prevSrc, reader: READER, docs: merged }, extracted_at: new Date().toISOString(),

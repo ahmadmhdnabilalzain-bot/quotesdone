@@ -24,7 +24,7 @@ export type TradeDef = { code: string; label: string; services: string[] };
 export type TradeChoice = { code: string; quote: string; reason: string; quotes?: string[] };
 export type ChoiceResult =
   | { ok: true; trades: TradeChoice[]; rejected: { code: string; why: string }[] }
-  | { ok: false; error: string };
+  | { ok: false; error: string; held?: { readings: { code: string; quote: string }[][] } };
 /** The text in, the proven choices out. Injected for tests; liveTradeChooser is the edge function's. */
 /** `company`: the name the supplier registered - whose work counts (a group's own brochure vs one company's profile). */
 export type TradeChooser = (text: string, kind: 'profile' | 'catalogue', company?: string | null) => Promise<ChoiceResult>;
@@ -91,15 +91,15 @@ export function needsThird(a: Extract<ChoiceResult, { ok: true }>, b: Extract<Ch
   const x = namedBy(a), y = namedBy(b);
   return !a.trades.length || !b.trades.length || x.size !== y.size || [...x].some((c) => !y.has(c));
 }
-/** The codes at least two non-empty readings named, each proven by a quote one of them gave; one non-empty reading stands
- *  alone; none -> null (the document is held). */
+/** The codes at least two readings named, each proven by a quote one of them gave. One reading alone never passes a code:
+ *  fewer than two non-empty readings, or no code with two votes, is null - the document is held (review of #1483). */
 export function majority(rs: Extract<ChoiceResult, { ok: true }>[]): Extract<ChoiceResult, { ok: true }> | null {
   const full = rs.filter((r) => r.trades.length);
-  if (!full.length) return null;
-  if (full.length === 1) return full[0];
+  if (full.length < 2) return null;
   const count = new Map<string, number>();
   for (const r of full) for (const c of namedBy(r)) count.set(c, (count.get(c) ?? 0) + 1);
   const keep = new Set([...count].filter(([, n]) => n >= 2).map(([c]) => c));
+  if (!keep.size) return null;
   const merged = mergeChoices(full.map((r) => ({ trades: r.trades.filter((t) => keep.has(t.code)), rejected: [] })));
   const once = [...new Set(full.flatMap((r) => r.trades.map((t) => t.code)))].filter((c) => !keep.has(c));
   return { ok: true, trades: merged.trades, rejected: [...full.flatMap((r) => r.rejected), ...once.map((c) => ({ code: c, why: 'named by one reading only' }))] };
@@ -221,7 +221,8 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
         if (rc.ok) readings = [...readings, rc];
       }
       const chosen = majority(readings);
-      if (!chosen) return { ok: false, error: 'no reading of the document named any trade: held for the sales engineer' };
+      if (!chosen) return { ok: false, error: 'the readings did not agree on any trade: held for the sales engineer',
+        held: { readings: readings.map((r) => r.trades.map((t) => ({ code: t.code, quote: t.quote }))) } };
       if (!chosen.ok || !chosen.trades.length) return chosen;
       const kept = await twice(async () => { const g = await gateway(verifyRequest(chosen.trades, d, opts.subject, text, company)); return g.ok ? checkVerify(g.content, chosen) : g; });
       return kept;

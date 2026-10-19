@@ -151,14 +151,16 @@ Deno.test('a word hyphenated across a line break is read whole (N07 OCR: "Compa-
   const r = checkChoice(JSON.stringify({ trades: [{ code: 'fire_fighting', quotes: ['is a leading UAE-based General Contracting Company. We install Sprinkler Systems.'], reason: 'r' }] }), text, DEFS);
   assert(r.ok && r.trades.length === 1, JSON.stringify(r));
 });
-Deno.test('majority of readings: a third reading settles a code one of two missed; three empty readings hold the document', () => {
+Deno.test('majority of readings: a third reading settles a code one of two missed; one vote never passes; no agreement holds the document', () => {
   const r = (codes: string[]) => ({ ok: true as const, trades: codes.map((c) => ({ code: c, quote: c + ' line', reason: 'r' })), rejected: [] });
   assert(needsThird(r(['joinery', 'doors']), r(['joinery'])));
   assert(needsThird(r([]), r(['joinery'])));
   assert(!needsThird(r(['doors', 'joinery']), r(['joinery', 'doors'])));
   // M08: two readings of three name prefab -> kept; a code named once -> dropped
   assertEquals(majority([r(['joinery', 'doors']), r(['joinery']), r(['joinery', 'doors', 'fire_fighting'])])!.trades.map((t) => t.code), ['doors', 'joinery']);
-  // M12: two empty readings and one full one -> the full one stands
-  assertEquals(majority([r([]), r([]), r(['doors'])])!.trades.map((t) => t.code), ['doors']);
+  // one reading alone never passes a code (review of #1483): two empty readings and one full one -> held
+  assertEquals(majority([r([]), r([]), r(['doors'])]), null);
+  // no code with two votes -> held, never ok and empty
+  assertEquals(majority([r(['doors']), r(['joinery']), r(['fire_fighting'])]), null);
   assertEquals(majority([r([]), r([]), r([])]), null);
 });

@@ -2,7 +2,7 @@
 // by an exact code or by meaning, never by the document's alias words (ruling 890, ledger 1054).
 // deno test --no-lock --node-modules-dir=auto supabase/functions/_shared/supplier_doc_trades.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { docTradesHeld, mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import type { MeaningService } from './service_meaning.ts';
 import { makeDrawingPdf } from './pdf_measure.fixtures.ts';
 
@@ -314,4 +314,24 @@ Deno.test('a busy worker that spends the budget opening the file still reads pag
   const r = await pdfjsText(pagesPdf(6), 250, PDFJS_BUDGET_MS, clock);
   assertEquals(r.status, 'text');
   assert(r.text.includes('Page 1 fire pumps'), r.text);
+});
+
+// Review of #1483: readings that agree on no trade HOLD the document - a distinct outcome from a model outage - and one
+// pending agent_actions item (kind doc_trades_held) goes to the sales engineer with the readings.
+Deno.test('a document whose readings agree on nothing is held, not unavailable, and files one doc_trades_held handoff', async () => {
+  const readings = [[{ code: 'doors', quote: 'Doors' }], [{ code: 'joinery', quote: 'Kitchens' }]];
+  const deps = { chooseTrades: async () => ({ ok: false as const, error: 'the readings did not agree on any trade: held for the sales engineer', held: { readings } }) } as unknown as TradeResolveDeps;
+  const ev = await readDocForTrades({ path: 'profiles/7/p.pdf', name: 'p.pdf', kind: 'profile', photo_text: undefined, ocr_text: 'ZZ DEMO Doors and Kitchens LLC. '.repeat(10) }, deps);
+  assertEquals([ev.choice, ev.trades.length], ['held', 0]);
+  assertEquals(ev.held_readings, readings);
+  const rows: Record<string, unknown>[] = [];
+  const admin = { from: () => ({
+    select: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ limit: async () => ({ data: rows.filter((r) => r.status === 'pending') }) }) }) }) }),
+    insert: async (r: Record<string, unknown>) => { rows.push(r); return { error: null }; } }) };
+  await docTradesHeld(admin, 7, ev);
+  await docTradesHeld(admin, 7, ev);   // a second call files nothing more
+  assertEquals(rows.length, 1);
+  assertEquals([rows[0].agent, rows[0].kind, rows[0].status, rows[0].target_id], ['sales_engineer', 'doc_trades_held', 'pending', '7:profiles/7/p.pdf']);
+  const det = rows[0].detail as Record<string, unknown>;
+  assertEquals([det.supplier_id, det.path, det.readings], [7, 'profiles/7/p.pdf', readings]);
 });
