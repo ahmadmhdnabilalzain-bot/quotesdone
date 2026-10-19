@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "protective_packaging:product-distinctions",
+      "topic": "Protective packaging: cushioning and void-fill options",
+      "topic_ar": "التغليف الواقي: خيارات التوسيد وتعبئة الفراغات",
+      "kind": "product_distinctions",
+      "body_en": "Protective packaging cushions products and fills empty space in shipping boxes. Options: bubble wrap (small 6 mm bubbles for surface protection, about 10 mm common, larger bubbles for cushioning; rolls and bubble bags), foam (PE foam sheets and rolls, EPE profiles and edge protectors, cross-linked foam, PU foam, and custom-cut foam inserts for instruments), moulded pulp (trays and end caps, recyclable), EPS moulded blocks and loose-fill peanuts, air pillows and air-column bags made on demand by machines, paper void-fill and crumpled kraft, honeycomb and paper bubble wraps as plastic-free alternatives, corner and edge protectors (cardboard or plastic), stretch film and shrink film, and anti-static bags for electronics. Choice depends on product weight and fragility, drop height in transit, the number of handling stages, and sustainability goals: low-weight fragile items need softer, thicker cushioning, while heavy items need firm foam or moulded parts so the cushion is not crushed. Packing speed matters for e-commerce: on-demand air or paper systems reduce storage space. Offers differ on material and density, roll or sheet sizes, custom inserts and tooling, machine rental for on-demand systems, and recycled content.",
+      "body_ar": "يحمي التغليف الواقي المنتجات ويملأ الفراغات في صناديق الشحن. والخيارات: الغلاف الفقاعي (فقاعات صغيرة 6 مم لحماية السطح، و10 مم شائعة، وفقاعات أكبر للتوسيد؛ لفات وأكياس فقاعية)، والإسفنج (ألواح ولفات إسفنج البولي إيثيلين، ومقاطع وحواف EPE، والإسفنج المتشابك، والإسفنج البولي يوريثاني، وحشوات إسفنج مقصوصة حسب الطلب للأجهزة)، واللب المقولب (صواني وأغطية طرفية، قابلة للتدوير)، وكتل البوليسترين الممدد المقولبة والحبيبات السائبة، والوسائد الهوائية وأكياس الأعمدة الهوائية التي تصنعها الآلات عند الطلب، وتعبئة الفراغات بالورق والكرافت المجعد، والورق الخلوي والغلاف الفقاعي الورقي كبدائل خالية من البلاستيك، وحاميات الزوايا والحواف (كرتون أو بلاستيك)، والغشاء المطاطي والغشاء المنكمش، والأكياس المضادة للكهرباء الساكنة للإلكترونيات. ويعتمد الاختيار على وزن المنتج وهشاشته، وارتفاع السقوط أثناء النقل، وعدد مراحل المناولة، وأهداف الاستدامة: الأصناف الهشة خفيفة الوزن تحتاج توسيداً أنعم وأسمك، والثقيلة تحتاج إسفنجاً صلباً أو قطعاً مقولبة حتى لا ينسحق التوسيد. وسرعة التغليف مهمة للتجارة الإلكترونية: أنظمة الهواء أو الورق عند الطلب تقلل مساحة التخزين. وتختلف العروض في المادة والكثافة، ومقاسات اللفات أو الألواح، والحشوات المخصصة والقوالب، وإيجار الآلات لأنظمة الطلب، ونسبة المحتوى المعاد تدويره.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Bubble_wrap"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: bubble sizes from 6 mm with 10 mm common; paper bubble and honeycomb paper alternatives -> confirmed."
+    },
+    {
+      "id": "protective_packaging:lead-times-and-quoting",
+      "topic": "Protective packaging - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التغليف الواقي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock rolls and bags: days; custom foam inserts 1-3 weeks; on-demand machines installed within days. A supplier needs the products (size, weight, fragility), shipping method, volumes per month, packing station set-up, and sustainability preferences. A quote states material, density and sizes, custom insert design and tooling, machine terms, unit or roll prices, delivery and validity.",
+      "body_ar": "اللفات والأكياس المتوفرة: أيام؛ وحشوات الإسفنج المخصصة 1-3 أسابيع؛ وآلات الطلب تُركب خلال أيام. ويحتاج المورد المنتجات (المقاس، الوزن، الهشاشة)، وطريقة الشحن، والأحجام الشهرية، وإعداد محطة التغليف، وتفضيلات الاستدامة. ويذكر العرض المادة والكثافة والمقاسات وتصميم الحشوة المخصصة وقوالبها وشروط الآلات وأسعار الوحدات أو اللفات والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry explains ESD/anti-static bags, pink poly vs metallised shielding; spec-checklist only lists \"anti-static\" as a property). protective_packaging:esd-bags-pink-vs-shielding was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from protective_packaging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should we use instead of bubble wrap to ship glass bottles without plastic?",
+      "q_ar": "وش نستخدم بدل الغلاف الفقاعي عشان نشحن قوارير زجاج بدون بلاستيك؟",
+      "expected_entry_ids": [
+        "protective_packaging:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "protective_packaging:esd-bags-pink-vs-shielding"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "protective_packaging:product-distinctions"
+      ],
+      "stored_not_served": [
+        "protective_packaging:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Bubble_wrap"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
