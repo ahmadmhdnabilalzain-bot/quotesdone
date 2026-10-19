@@ -217,7 +217,10 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
   else if (evasive && substanceWords(answer) < 25) {
     return 'the draft defers or declines without content — the answer standard (903) forbids "I will check / get back to you / cannot answer"; give everything that can already be said';
   }
-  if (d.asked_back && String(d.asked_back).trim()) {
+  // A CHOICE AMONG OPTIONS ASKS NOBODY ANYTHING (customer_support, 19 Oct 2026): its caller reads decision.choice and
+  // nothing else, so a question the model added beside a valid choice is never sent. Refusing it cost a whole second
+  // pass (measured: wa_inbound.needs_a_person 27 s instead of 12 s; intent_table held twice over it on 18-19 Oct).
+  if (d.asked_back && String(d.asked_back).trim() && !o.decision?.options?.length) {
     if (!o.missing.some((f) => f.changes_answer)) return 'a question was asked back, but no missing fact changes the answer; answer instead of asking';
     if (substanceWords(answer) < 12) return 'a question was asked back with nothing said alongside it; give what can already be said for each possibility, then ask';
   }
