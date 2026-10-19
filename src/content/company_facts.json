@@ -348,7 +348,10 @@
       "supplier-agreement-v14",
       "terms-v9",
       "supplier-agreement-v15",
-      "terms-v10"
+      "terms-v10",
+      "privacy-v1.6",
+      "refund-policy-v1.8",
+      "disclaimer-v1.3"
     ],
     "db": [
       {

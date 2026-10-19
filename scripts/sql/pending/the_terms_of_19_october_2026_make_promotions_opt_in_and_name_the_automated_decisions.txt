@@ -6,5 +6,5 @@ then deploy supplier_api (it carries the v16 text and hash) and run `node script
 Re-acceptance works as for v10/v15: existing customers accept v11 inline before their next request (customer_api,
 needsReacceptance); existing suppliers see ReacceptTerms with the v16 summary on next sign-in. Terms cl.13 and
 Supplier cl.23 give 30 days' notice: anyone who does not accept may close the account without charge in that window,
-and a consumer is bound only once they accept. Apply after #1515 (the consent column the text describes) is merged.
+and a consumer is bound only once they accept. Apply after #1515 and after the privacy_1_7 file (it archives v10 and v15) (the consent column the text describes) is merged.
 When applied: delete this note and append the .sql file to the END of scripts/sql/MANIFEST.txt in the same commit.
