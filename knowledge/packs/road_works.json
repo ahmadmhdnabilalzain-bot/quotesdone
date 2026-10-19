@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "road_works:product-distinctions",
+      "topic": "Road works: pavement layers, asphalt mixes and interlock paving",
+      "topic_ar": "أعمال الطرق: طبقات الرصف وخلطات الأسفلت والبلاط المتداخل",
+      "kind": "product_distinctions",
+      "body_en": "A flexible road pavement is built in layers: compacted subgrade, sub-base and aggregate road base, then hot mix asphalt as a base or binder course and a wearing course on top, with prime and tack coats between layers. Mix design (Marshall or Superpave methods) sets the aggregate grading, bitumen grade and content, and air voids; hot climates and heavy trucks call for harder or polymer-modified binders and rut-resistant mixes, while stone mastic asphalt and porous asphalt serve special needs. Rigid pavements use concrete slabs with joints. Interlocking concrete pavers (by thickness, often 60 mm for pedestrian and 80 mm for vehicle areas, and shape and colour) are laid on a compacted bedding sand layer over a base, with edge restraints and joint sand, and suit car parks, driveways, plazas and walkways; kerbstones, channels and tactile paving complete the works. Related works: road markings (thermoplastic, cold plastic), signs, barriers, road studs, street lighting and drainage. Quality control: layer thickness and density tests (cores, nuclear gauge), compaction, levels and surface regularity, and material test certificates.",
+      "body_ar": "يُبنى رصف الطرق المرن على طبقات: تربة أساس مدموكة، وطبقة ما تحت الأساس وطبقة أساس من الركام، ثم الخرسانة الإسفلتية الساخنة كطبقة أساس أو رابطة وطبقة سطحية في الأعلى، مع طبقات تأسيس ولصق بين الطبقات. ويحدد تصميم الخلطة (طريقة مارشال أو سوبربيف) تدرج الركام ودرجة البيتومين ونسبته ونسبة الفراغات الهوائية؛ والمناخ الحار والشاحنات الثقيلة يتطلبان روابط أصلب أو معدلة بالبوليمر وخلطات مقاومة للتخدد، بينما يخدم الإسفلت الماستيكي الحجري والإسفلت المسامي احتياجات خاصة. والرصف الصلب يستخدم بلاطات خرسانية بفواصل. ويُركب البلاط الخرساني المتداخل (حسب السماكة، غالباً 60 مم للمشاة و80 مم لمناطق المركبات، والشكل واللون) على طبقة رمل فرش مدموكة فوق الأساس، مع حواف تثبيت ورمل للفواصل، ويناسب مواقف السيارات والممرات والساحات والأرصفة؛ وتكمل الأعمال أحجار الأرصفة والقنوات والبلاط اللمسي. والأعمال المرتبطة: علامات الطرق (الحرارية، البلاستيك البارد)، واللافتات، والحواجز، وعيون القطط، وإنارة الشوارع، والتصريف. وضبط الجودة: سماكة الطبقات واختبارات الكثافة (العينات اللبية، الجهاز النووي)، والدمك، والمناسيب واستواء السطح، وشهادات اختبار المواد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Asphalt_concrete"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: hot mix asphalt with wearing surface and base layers; Marshall method -> confirmed (Superpave not on the page)."
+    },
+    {
+      "id": "road_works:lead-times-and-quoting",
+      "topic": "Roads, asphalt & interlock paving - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الطرق والأسفلت والبلاط المتداخل: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Small paving jobs: 1-2 weeks to start; road projects follow approvals and phasing. A contractor needs drawings, areas and pavement design, traffic loading, existing ground and levels, utility locations, and approvals. A quote states layer thicknesses and materials, mix designs, paver type and thickness, kerbs, markings, testing, rates per m2 or tonne, programme, exclusions and validity.",
+      "body_ar": "أعمال الرصف الصغيرة: 1-2 أسبوع للبدء؛ ومشاريع الطرق تتبع الموافقات والمراحل. ويحتاج المقاول المخططات، والمساحات وتصميم الرصف، وأحمال المرور، والأرض والمناسيب القائمة، ومواقع المرافق، والموافقات. ويذكر العرض سماكات الطبقات والمواد وتصاميم الخلطات ونوع البلاط وسماكته والأرصفة والعلامات والاختبارات والأسعار للمتر المربع أو الطن والبرنامج والاستثناءات والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (Standards entry explicitly says layer thicknesses must come from the specification and the checklist gives none; missing: interlock paver thickness by traffic class entry). road_works:concrete-block-paver-thickness-by-traffic was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from road_works.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Interlock pavers or asphalt for a warehouse yard with trucks turning?",
+      "q_ar": "بلاط متداخل ولا أسفلت لساحة مستودع تلف فيها الشاحنات؟",
+      "expected_entry_ids": [
+        "road_works:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "road_works:concrete-block-paver-thickness-by-traffic"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "road_works:product-distinctions"
+      ],
+      "stored_not_served": [
+        "road_works:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Asphalt_concrete"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

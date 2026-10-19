@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "salon_equipment:product-distinctions",
+      "topic": "Salon equipment: furniture, devices and consumables",
+      "topic_ar": "معدات الصالونات: الأثاث والأجهزة والمستهلكات",
+      "kind": "product_distinctions",
+      "body_en": "Salon and barbershop furniture: hydraulic styling and barber chairs (pump base, recline, headrest, upholstery rated for frequent cleaning), shampoo backwash units with tilting basins, styling stations and mirrors, reception desks, waiting seating, trolleys, manicure and pedicure stations (with spa chairs, plumbing and whirlpool options), and treatment beds for facials and massage (fixed, hydraulic or electric multi-section). Equipment: hair dryers and hood dryers, climazones and accelerators, steamers, professional clippers and trimmers, flat irons, sterilisers and UV cabinets, wax heaters, and aesthetic devices (facial machines, LED therapy, microdermabrasion, and laser or IPL devices, which are regulated medical-aesthetic devices requiring registration and trained, licensed operators). Consumables: professional hair colour and care, nail products, disposables (towels, capes, gloves). Choices: fit-out packages for new salons, durability and service of hydraulics, upholstery quality, electrical safety and certification, and the plumbing and power the layout needs.",
+      "body_ar": "أثاث الصالونات والحلاقة: كراسي التصفيف والحلاقة الهيدروليكية (قاعدة بمضخة، إمالة، مسند رأس، تنجيد يتحمل التنظيف المتكرر)، ووحدات غسيل الشعر بأحواض مائلة، ومحطات التصفيف والمرايا، ومكاتب الاستقبال، ومقاعد الانتظار، والعربات، ومحطات المناكير والباديكير (مع كراسي السبا والسباكة وخيارات الدوامة)، وأسرّة العلاج للوجه والتدليك (ثابتة، هيدروليكية، أو كهربائية متعددة الأقسام). والمعدات: مجففات الشعر والمجففات ذات الغطاء، وأجهزة تسريع المعالجة، وأجهزة البخار، والمقصات الكهربائية الاحترافية، ومكاوي الشعر، وأجهزة التعقيم وخزائن الأشعة فوق البنفسجية، وسخانات الشمع، والأجهزة التجميلية (أجهزة الوجه، العلاج بضوء LED، التقشير الدقيق، وأجهزة الليزر أو الضوء النبضي المكثف، وهي أجهزة تجميلية طبية منظمة تتطلب تسجيلاً ومشغلين مدربين ومرخصين). والمستهلكات: صبغات الشعر والعناية الاحترافية، ومنتجات الأظافر، والمستهلكات أحادية الاستخدام (المناشف، الأرواب، القفازات). والخيارات: باقات تجهيز الصالونات الجديدة، ومتانة الأنظمة الهيدروليكية وصيانتها، وجودة التنجيد، والسلامة الكهربائية والشهادات، والسباكة والكهرباء التي يحتاجها التخطيط.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Barber_chair"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: hydraulic barber chairs with a side lever controlling the chair's functions -> confirmed."
+    },
+    {
+      "id": "salon_equipment:lead-times-and-quoting",
+      "topic": "Beauty & salon equipment - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معدات الصالونات والتجميل: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock furniture and tools: days; imported packages 4-10 weeks; regulated aesthetic devices depend on registration. A supplier needs the salon type and size, number of stations, layout, style and colours, equipment list, and budget band. A quote states item models and origins, upholstery and finishes, electrical specs and certification, registration for regulated devices, delivery, installation, warranty and validity.",
+      "body_ar": "الأثاث والأدوات المتوفرة: أيام؛ والباقات المستوردة 4-10 أسابيع؛ والأجهزة التجميلية المنظمة تعتمد على التسجيل. ويحتاج المورد نوع الصالون وحجمه، وعدد المحطات، والتخطيط، والأسلوب والألوان، وقائمة المعدات، ونطاق الميزانية. ويذكر العرض موديلات الأصناف ومنشأها والتنجيد والتشطيبات والمواصفات الكهربائية والشهادات وتسجيل الأجهزة المنظمة والتسليم والتركيب والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry says whether IPL use needs a DHA/medical licence; uae-standards only says salons are licensed and inspected by Dubai Municipality). salon_equipment:laser-ipl-regulated-as-healthcare was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from salon_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What do we need to check before buying an IPL hair-removal machine for our salon?",
+      "q_ar": "وش لازم نتأكد منه قبل ما نشتري جهاز إزالة شعر بالضوء النبضي للصالون؟",
+      "expected_entry_ids": [
+        "salon_equipment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "salon_equipment:laser-ipl-regulated-as-healthcare"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "salon_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "salon_equipment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Barber_chair"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
