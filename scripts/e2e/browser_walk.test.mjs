@@ -30,7 +30,8 @@ test('a signed-in customer portal is judged in the registered language, and the 
 
 test('the Arabic journey identity is an Arabic-registered customer (run 2, 19 Oct: C1 en walked /ar/me in English)', () => {
   const S2 = readFileSync(new URL('./stage2.mjs', import.meta.url), 'utf8');
-  assert.match(S2, /const qc = alu\?\.cu\?\.cfg\.locale === 'ar' \? alu\.cu : ar;/);
+  assert.match(S2, /const qc = alu\?\.cu\?\.cfg\.locale === 'ar' \? alu\.cu : \(fx\.arQuoted \|\| ar\);/);
+  assert.match(S2, /fx\.arQuoted = arInq\?\.cu;/, 'the Arabic customer with its own quoted request (S10) is handed to S26');
   assert.match(S2, /customerAr: who\(qc, 'customer', qc\.cfg\.label\)/);
 });
 
