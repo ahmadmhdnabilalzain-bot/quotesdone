@@ -2,7 +2,7 @@
 // Measured before: no call carried them, and seats answered settled facts wrongly or "not on record". No network.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import type { GateAnswer } from './llm_hold.ts';
-import { DECOMPOSE_TIMEOUT_MS, settledFacts, SETTLED_HEADER, SYNTH_MAX, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
+import { audienceOf, DECOMPOSE_TIMEOUT_MS, settledFacts, SETTLED_HEADER, SYNTH_MAX, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
 
 const J = (x: unknown) => JSON.stringify(x);
 function mock() {
@@ -89,5 +89,39 @@ Deno.test('retrieval is told the audience: the company\'s own pack rows are for 
     return sent.map((a) => a.p_audience);
   };
   for (const a of ['customer', 'supplier', 'visitor', 'internal', 'founder']) assertEquals(await run({ audience: a }), [a, a]);   // the planned step and the question as asked
-  assertEquals(await run({}), [null, null], 'a missing audience is sent as none, which the routine treats as external');
+  assertEquals(await run({}), ['visitor', 'visitor'], 'a missing audience is sent as a visitor: one fallback, external');
+  assertEquals(await run({ audience: 'partner' }), ['visitor', 'visitor'], 'an unknown audience is a visitor too');
+});
+
+// prevented by: this test. Before #1591's follow-up a missing audience read the brief and retrieval as external but the
+// case-memory text, the model class and the prompt label as internal. Every reader must reach the same verdict.
+Deno.test('one fallback: brief, retrieval, case text and model class agree on every audience, named or not', async () => {
+  const SECRET = 'ZZ DEMO other customer inquiry 4711 for 40 aluminium windows';
+  for (const a of [undefined, null, '', 'partner', 'Internal', 'customer', 'supplier', 'visitor', 'internal', 'founder']) {
+    const seen = { facts: [] as string[], retrieve: [] as unknown[], classes: [] as string[], caseText: false };
+    const deps: ThinkDeps = {
+      gate: () => Promise.resolve({ allowed: true } as unknown as GateAnswer),
+      llm: (phase, _s, input, o) => {
+        const oo = o as Record<string, unknown>;
+        seen.facts.push(String(oo.sysStable)); if (phase === 'synthesise') { seen.classes.push(String(oo.taskClass)); if (String(input).includes(SECRET)) seen.caseText = true; }
+        return Promise.resolve({ model: 'm', content: phase === 'synthesise' ? J({ answer: 'x', reasoning: [], cited: [], confidence: 0.9 })
+          : phase === 'verify' ? J({ verdict: 'agree', problems: [] })
+          : J({ steps: [{ id: 's1', goal: 'x', query: 'q', needs_knowledge: true }], facts: [], high_stakes: true }) } as LlmReply);
+      },
+      embed: () => Promise.resolve([0.1, 0.2, 0.3]),
+      rpc: (fn, args) => {
+        if (String(fn).startsWith('fn_reason_retrieve')) seen.retrieve.push((args as Record<string, unknown>).p_audience);
+        return Promise.resolve({ data: String(fn).startsWith('fn_case_recall') ? { cases: [{ case_id: 1, seat: 'ceo', case_kind: 'quote', situation: SECRET, finalised: true, similarity: 0.95 }] } : [], error: null });
+      },
+    };
+    await think(deps, { seat: 'ceo', surface: 'test', question: 'What happened on that job?', context: a === undefined ? {} : { audience: a } } as unknown as Parameters<typeof think>[1]);
+    const internal = a === 'internal' || a === 'founder';
+    const tag = String(a);
+    assertEquals(audienceOf(a) === 'internal' || audienceOf(a) === 'founder', internal, tag);
+    for (const f of seen.facts) assertEquals(f, internal ? settledFacts(a as string, 'ceo') : settledFacts('visitor'), tag + ' brief');
+    assert(seen.retrieve.length > 0, tag + ' retrieval ran');
+    for (const p of seen.retrieve) assertEquals(p === 'internal' || p === 'founder', internal, tag + ' p_audience ' + String(p));
+    assertEquals(seen.caseText, internal, tag + ' case text');
+    for (const c of seen.classes) assertEquals(c === 'internal_judgement', internal, tag + ' model class ' + c);
+  }
 });

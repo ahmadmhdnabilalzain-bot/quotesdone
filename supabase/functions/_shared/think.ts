@@ -424,6 +424,16 @@ export const SETTLED_HEADER = '# SETTLED COMPANY FACTS AND FOUNDER RULINGS (they
 // audience (a held row stored before the type required one, a caller that cast its way past the type) gets the
 // public brief. ThinkContext.audience and ThinkRequest.context are required, so deno check names every call site.
 export const INTERNAL_AUDIENCES: ReadonlySet<string> = new Set(['internal', 'founder']);
+/**
+ * ONE FALLBACK (review of #1591, 19 Oct 2026): an audience that is not NAMED is a visitor, everywhere. think() used to
+ * default a missing audience to 'internal' for the case-memory text, the model class and the prompt label while it
+ * sent none (external) to retrieval and gave it the public brief, so one request was half internal and half external.
+ * Every reader below takes the audience from here: the brief, retrieval's p_audience, case text, the model class.
+ * An internal seat keeps its own rows by naming 'internal' (the type requires it). prevented by: think_settled_facts.test.ts
+ */
+export function audienceOf(a: string | null | undefined): ThinkContext['audience'] {
+  return a && (INTERNAL_AUDIENCES.has(a) || EXTERNAL_AUDIENCES.has(a)) ? a as ThinkContext['audience'] : 'visitor';
+}
 // The seat's OPERATING FACTS card (knowledge/brief/seats/<seat>.md, compiled by code from its own verified pack by
 // scripts/kb/compile_brief.mjs) rides only with the internal brief: it names thresholds, owners and internal routines a
 // customer, supplier or visitor is never told. One card per seat, byte-stable, so each seat's prefix caches.
@@ -518,7 +528,7 @@ const textOf = (c?: ThinkContext) => (c?.conversation ?? []).map((t) => t.text).
 export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkResult> {
   const steps: Step[] = [];
   const ctx = req.context ?? {};
-  const audience = ctx.audience ?? 'internal';
+  const audience = audienceOf(ctx.audience);
   const deciding = !!req.decision;
   let judgementId: number | null = null;
   // The judgement row (opened by the recall in step b) is closed with what was decided, or with 'held'.
@@ -583,7 +593,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const facts0 = settledFacts(ctx.audience, req.seat);
+  const facts0 = settledFacts(audience, req.seat);
   const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
     : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
       JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
@@ -667,8 +677,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     // only when known, so a call without them is the call it always was.
     // p_audience (a_seats_own_pack_fills_half_of_every_retrieval.sql): the routine returns the company's own facts
     // (rows tagged audience:internal) and reserves the seat's own rows ONLY for an audience named internal or founder.
-    // The raw ctx.audience is sent, not the defaulted one: a missing audience is external there, as in settledFacts().
-    const area = { ...(trade ? { p_trade: trade } : {}), ...(kind ? { p_kind: kind } : {}), ...(ctx.area ? { p_area: ctx.area } : {}), p_audience: ctx.audience ?? null };
+    // The resolved audience is sent (audienceOf): a missing or unknown one is 'visitor' here exactly as everywhere else.
+    const area = { ...(trade ? { p_trade: trade } : {}), ...(kind ? { p_kind: kind } : {}), ...(ctx.area ? { p_area: ctx.area } : {}), p_audience: audience };
     const { data, error } = await deps.rpc(rt.retrieve, rt === ROUTINES.ml
       ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6, ...area }
       : { p_seat: req.seat, p_embedding: vec(v), p_k: 6, ...area });
