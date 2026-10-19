@@ -361,7 +361,7 @@ Deno.serve(observe('ceo_agent', async (req) => {
     }
 
     // ── REVIEW REQUESTS (ledger 1152) ──────────────────────────────────────────────────────────────
-    // A request for human review of an automated decision is DECIDED here, on the owning seat's model of another
+    // A request to review an automated decision is DECIDED here, on the owning seat's model of another
     // family than the original decision (_shared/review_decide.ts). Driven by the resilience_ping heartbeat (step
     // review_requests); the CEO seat runs it because routing is its, the verdict is the owning seat's.
     if (action === 'review_requests') {

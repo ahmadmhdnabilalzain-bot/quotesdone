@@ -1,7 +1,7 @@
--- A REQUEST FOR HUMAN REVIEW OF AN AUTOMATED DECISION GOES TO THE SEAT THAT OWNS THE DECISION,
+-- A CONTESTED AUTOMATED DECISION GOES TO THE SEAT THAT OWNS THE DECISION,
 -- AND A DIFFERENT MODEL FAMILY DECIDES IT (founder ledger 1152, 19 Oct 2026). Seat: ceo.
 --
--- The spec, in its words: "a request for human review of an automated decision goes to the owning seat
+-- The spec (ledger 1152, as worded under ruling 1264): "a request to review an automated decision goes to the owning seat
 -- (sales_engineer: matching, specs, quotes, reports; accountant: fees, refunds, charges; customer_support:
 -- messaging, account; it_engineer: security, access), reviewed by a different seat or model family than the
 -- one that made the original decision. Disputes and approvals go to the CEO. Nothing goes to the founder."
@@ -37,12 +37,20 @@
 --      seat records the reversed decision in decision_log on an overturn/amendment, and customer_support replies
 --      to the requester through its own delivery.request (none is filed for a demo requester, ruling 1199).
 --
--- WHAT THIS DOES NOT DO: it does not call fn_notify_founder, write founder_alerts, or queue a notification to
--- the founder anywhere, and it does not change what "Talk to a person" on WhatsApp does today. The entry points
--- (wa_inbound, email_triage) reach this door through supabase/functions/_shared/review_request.ts.
+--   7. RULING 1264 (19 Oct 2026): there is no "human review" option anywhere; the app is fully automated and the
+--      different-model-family review above IS the review. The ONE exception is an EXPLICIT request for a person,
+--      made in chat (WhatsApp, site chat) or e-mail: route 'person' files it (owner_seat customer_support keeps
+--      the record) and it reaches the founder through founder_mail_policy, fn_notify_founder with p_kind
+--      whatsapp_human_request (WhatsApp, the same dedupe key as fn_wa_human_request, so he is told once) or
+--      person_request (site chat, e-mail). The CHECK decision_review_founder_only_for_an_explicit_person_request
+--      refuses a founder delivery on any other row, and that branch is the only call to fn_notify_founder here.
 --
--- Prevented by: scripts/checks/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision.test.mjs
--- Proved by:    scripts/sql/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision_probe.sql
+-- WHAT THIS DOES NOT DO: no review of a decision ever reaches the founder (no founder_alerts, no founder
+-- notification); it does not change what "Talk to a person" on the WhatsApp menu does today. The entry points
+-- (wa_inbound, email_triage, site_assistant) reach this door through supabase/functions/_shared/review_request.ts.
+--
+-- Prevented by: scripts/checks/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.test.mjs
+-- Proved by:    scripts/sql/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family_probe.sql
 
 create table if not exists public.review_route (
   decision_type text primary key check (decision_type ~ '^[a-z_]+$'),
@@ -57,7 +65,7 @@ create policy review_route_service_role_only on public.review_route
   as permissive for all to public using (false) with check (false);
 revoke all on public.review_route from anon, authenticated;
 comment on table public.review_route is
-  'Ledger 1152: which seat reviews a request for human review of each kind of automated decision. Disputes and approvals go to the ceo; no route names the founder (FK to org_role + CHECK).';
+  'Ledger 1152: which seat reviews a request to review each kind of automated decision. Disputes and approvals go to the ceo; no route names the founder (FK to org_role + CHECK).';
 
 insert into public.review_route (decision_type, owner_seat, meaning) values
   ('matching', 'sales_engineer',   'which suppliers were matched to an inquiry, or why a supplier was not matched'),
@@ -72,14 +80,15 @@ insert into public.review_route (decision_type, owner_seat, meaning) values
   ('security', 'it_engineer',      'a security block, a flag or a screening result'),
   ('access',   'it_engineer',      'access to a portal, a document or a feature that was refused or removed'),
   ('dispute',  'ceo',              'a dispute between a customer and a supplier, or with the platform'),
-  ('approval', 'ceo',              'an approval or a rejection that was decided automatically')
+  ('approval', 'ceo',              'an approval or a rejection that was decided automatically'),
+  ('person',   'customer_support', 'not a decision: they explicitly ask to speak to a person (ruling 1264, delivered to the founder through founder_mail_policy)')
 on conflict (decision_type) do update set owner_seat = excluded.owner_seat, meaning = excluded.meaning;
 
 create table if not exists public.decision_review_request (
   id                bigint generated always as identity primary key,
   decision_type     text not null,
   owner_seat        text not null,
-  channel           text not null check (channel in ('whatsapp', 'email', 'portal', 'internal')),
+  channel           text not null check (channel in ('whatsapp', 'site_chat', 'email', 'portal', 'internal')),
   requester         text not null check (btrim(requester) <> ''),
   subject_table     text,
   subject_id        text,
@@ -88,7 +97,8 @@ create table if not exists public.decision_review_request (
   original_model    text,
   original_decision_log_id bigint,
   original_family   text generated always as (coalesce(nullif(split_part(original_model, '/', 1), ''), 'deterministic')) stored,
-  status            text not null default 'open' check (status in ('open', 'decided')),
+  status            text not null default 'open' check (status in ('open', 'decided', 'with_founder')),
+  founder_notified  jsonb,
   reviewer_seat     text references public.org_role (role_id),
   reviewer_model    text,
   reviewer_family   text generated always as (nullif(split_part(reviewer_model, '/', 1), '')) stored,
@@ -110,8 +120,14 @@ create table if not exists public.decision_review_request (
   constraint decision_review_is_decided_by_a_different_model_family
     check (reviewer_model is null
            or split_part(reviewer_model, '/', 1) is distinct from coalesce(nullif(split_part(original_model, '/', 1), ''), 'deterministic')),
+  -- ruling 1264: the founder is reached ONLY by an explicit person request made in chat or e-mail
+  constraint decision_review_founder_only_for_an_explicit_person_request
+    check ((founder_notified is null and status <> 'with_founder')
+           or (decision_type = 'person' and channel in ('whatsapp', 'site_chat', 'email') and status = 'with_founder')),
+  constraint decision_review_a_person_request_is_never_decided_by_a_model
+    check (decision_type <> 'person' or (status <> 'decided' and reviewer_model is null)),
   constraint decision_review_decided_has_its_verdict
-    check (status = 'open' or (verdict is not null and reviewer_model is not null and reviewer_seat is not null
+    check (status <> 'decided' or (verdict is not null and reviewer_model is not null and reviewer_seat is not null
                                and btrim(coalesce(verdict_reason, '')) <> '' and decided_at is not null))
 );
 create index if not exists decision_review_request_open_idx on public.decision_review_request (owner_seat) where status = 'open';
@@ -121,17 +137,23 @@ create policy decision_review_request_service_role_only on public.decision_revie
   as permissive for all to public using (false) with check (false);
 revoke all on public.decision_review_request from anon, authenticated;
 comment on table public.decision_review_request is
-  'Ledger 1152: a request for human review of an automated decision, routed by review_route to its owning seat and decided by a different model family (CHECK).';
+  'Ledger 1152: a request to review an automated decision, routed by review_route to its owning seat and decided by a different model family (CHECK).';
 
 -- the conversation each owning seat receives; customer_support takes every request in and closes it after the verdict
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
 select 'review.requested', 'customer_support', s.seat,
-       'A customer or supplier asked for a human review of an automated decision this seat owns (review_route); decide it with a different model family than the original decision.',
+       'A customer or supplier asked us to review an automated decision this seat owns (review_route); decide it with a different model family than the original decision.',
        'fn_review_request_waits', interval '48 hours', true,
-       'scripts/sql/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision.sql'
-  from (select distinct owner_seat as seat from public.review_route) s
+       'scripts/sql/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.sql'
+  from (select distinct owner_seat as seat from public.review_route where decision_type <> 'person') s
 on conflict (type, from_seat, to_seat) do update set handler = excluded.handler, meaning = excluded.meaning,
   reply_within = excluded.reply_within, originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+
+insert into public.founder_mail_policy (kind, allowed_to_email, reason, owner_role)
+values ('person_request', true,
+        'Ruling 1264: an explicit request for a person made in site chat or e-mail is the one thing that reaches the founder (WhatsApp uses whatsapp_human_request).',
+        'customer_support')
+on conflict (kind) do update set allowed_to_email = excluded.allowed_to_email, reason = excluded.reason, owner_role = excluded.owner_role;
 
 create or replace function public.fn_review_request_waits(p_id bigint)
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -158,11 +180,14 @@ create or replace function public.fn_review_request_open(
   p_original_seat text default null, p_original_model text default null,
   p_original_decision_log_id bigint default null, p_dedupe_key text default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_route public.review_route; v_id bigint; v_handoff bigint;
+declare v_route public.review_route; v_id bigint; v_handoff bigint; v_note jsonb;
 begin
   select * into v_route from public.review_route where decision_type = p_decision_type;
   if not found then
     return jsonb_build_object('ok', false, 'error', 'no review_route for decision type ' || coalesce(p_decision_type, 'null'));
+  end if;
+  if v_route.decision_type = 'person' and coalesce(p_channel, '') not in ('whatsapp', 'site_chat', 'email') then
+    return jsonb_build_object('ok', false, 'error', 'a person is reached only from chat or e-mail, not ' || coalesce(p_channel, 'null'));
   end if;
   if p_dedupe_key is not null then
     select id, handoff_id into v_id, v_handoff from public.decision_review_request where dedupe_key = p_dedupe_key;
@@ -175,6 +200,21 @@ begin
   values (v_route.decision_type, v_route.owner_seat, p_channel, p_requester, p_subject_table, p_subject_id,
           left(p_request_text, 4000), p_original_seat, p_original_model, p_original_decision_log_id, p_dedupe_key)
   returning id into v_id;
+  -- RULING 1264, THE ONE FOUNDER ROUTE: an explicit person request, through founder_mail_policy. Nothing else here
+  -- reaches him. WhatsApp shares fn_wa_human_request's kind and dedupe key, so the same ask pages him once.
+  if v_route.decision_type = 'person' then
+    v_note := public.fn_notify_founder(
+      p_event => 'A ' || replace(p_channel, '_', ' ') || ' contact asked to speak to a person',
+      p_detail => left(p_request_text, 1500) || E'\nFrom: ' || p_requester || ' (request ' || v_id || ')',
+      p_level => 'high',
+      p_kind => case when p_channel = 'whatsapp' then 'whatsapp_human_request' else 'person_request' end,
+      p_dedupe_key => case when p_channel = 'whatsapp'
+                           then 'wa_human:' || regexp_replace(p_requester, '[^0-9]', '', 'g') || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD')
+                           else 'person_request:' || p_channel || ':' || lower(p_requester) || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD') end,
+      p_owner_agent => 'customer_support');
+    update public.decision_review_request set status = 'with_founder', founder_notified = coalesce(v_note, '{}'::jsonb) where id = v_id;
+    return jsonb_build_object('ok', true, 'id', v_id, 'owner_seat', 'founder', 'founder_notified', v_note);
+  end if;
   -- the owning seat's queue; null for a demo subject (fn_seat_handoff files no handoff from a demo row)
   v_handoff := public.fn_seat_handoff('customer_support', v_route.owner_seat, 'review.requested',
                  'decision_review_request', v_id::text,

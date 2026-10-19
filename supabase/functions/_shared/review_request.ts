@@ -1,4 +1,4 @@
-// review_request — a request for human review of an automated decision enters the ONE door, fn_review_request_open
+// review_request — a request to review an automated decision enters the ONE door, fn_review_request_open
 // (founder ledger 1152, 19 Oct 2026). Seat: ceo; the intake is customer_support's.
 //
 // Which decision the person asks us to review is REASONED, never word-matched: think() chooses among the decision
@@ -6,7 +6,8 @@
 // 'none'. The ROUTE itself is a table lookup in SQL — routine work is code. Called only when the channel's own
 // reasoning already said the message needs a person (wa_inbound, email_triage), so it adds no model call to an
 // ordinary message. Under the hold the answer is null and nothing is filed on a guess: the message is already in
-// customer_support's queue as a person request. The founder is never a route (review_route FK + CHECK).
+// customer_support's queue. Ruling 1264: the 'person' route (an EXPLICIT ask for a person, chat or e-mail) is the one
+// thing that reaches the founder, through founder_mail_policy in SQL; no review of a decision ever does.
 import { think, type ThinkDeps } from './think.ts';
 import { type DueReview, REVIEW_TASK_CLASS, type ReviewIO } from './review_decide.ts';
 
@@ -25,7 +26,7 @@ export async function reviewOfDecision(deps: ThinkDeps, o: {
       name: 'decision_under_review',
       options: [
         ...o.routes.map((r) => ({ id: r.decision_type, meaning: `they ask for a person to review or reverse an automated decision about ${r.meaning}` })),
-        { id: 'none', meaning: 'they do not ask for a decision the platform made to be reviewed (a question, a new request, or a person for any other reason)' },
+        { id: 'none', meaning: 'neither: they do not contest a decision the platform made and do not explicitly ask to speak to a person (a question, a complaint, a new request)' },
       ],
     },
   });
@@ -60,7 +61,7 @@ export function liveReviewIO(admin: Admin, fn = 'ceo_agent'): ReviewIO {
 
 /** Reason the decision type and, when there is one, file the request with its owning seat. Never throws. */
 export async function fileReviewRequest(admin: Admin, deps: ThinkDeps, o: {
-  channel: 'whatsapp' | 'email' | 'portal'; requester: string; message: string; surface: string; dedupeKey: string;
+  channel: 'whatsapp' | 'site_chat' | 'email' | 'portal'; requester: string; message: string; surface: string; dedupeKey: string;
   audience?: 'customer' | 'supplier'; subjectTable?: string; subjectId?: string;
 }): Promise<{ filed: boolean; decision_type: string | null; owner_seat?: string; id?: number }> {
   try {

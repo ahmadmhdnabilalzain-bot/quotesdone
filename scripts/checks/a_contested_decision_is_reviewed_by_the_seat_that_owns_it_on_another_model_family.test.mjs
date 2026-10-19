@@ -1,18 +1,18 @@
-// A REQUEST FOR HUMAN REVIEW GOES TO THE SEAT THAT OWNS THE DECISION (ledger 1152, 19 Oct 2026, seat ceo).
+// A CONTESTED AUTOMATED DECISION GOES TO THE SEAT THAT OWNS THE DECISION (ledger 1152, 19 Oct 2026, seat ceo).
 //
 // WHAT FAILS IF THE CAUSE RETURNS
 //   * static: review_route misses a decision type the founder named (matching, specs, quotes, reports -> sales_engineer;
 //     fees, refunds, charges -> accountant; messaging, account -> customer_support; security, access -> it_engineer;
 //     dispute, approval -> ceo), routes one to another seat, or any route names the founder;
 //   * static: the different-model-family CHECK, the (decision_type, owner_seat) foreign key, a revoke, RLS or a policy
-//     is gone, the file reaches the founder (fn_notify_founder / founder_alerts / to_role founder), or it carries
+//     is gone, the founder is reached outside the one explicit-person branch (ruling 1264), or it carries
 //     both or neither of a pending note and a MANIFEST line;
 //   * static: wa_inbound or email_triage stops filing a person request through fileReviewRequest;
 //   * production, ONE aborted transaction (the file replayed while pending, ZZ DEMO / @example.invalid requesters):
 //     a request per decision type lands with another seat than its route, is decided by the original decision's
 //     model family, a same-family verdict is accepted, or any row reaches founder_alerts or a founder notification.
 //
-//   node --test scripts/checks/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision.test.mjs
+//   node --test scripts/checks/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -23,7 +23,7 @@ import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
-const FILE = 'scripts/sql/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision.sql';
+const FILE = 'scripts/sql/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.sql';
 const PROBE = FILE.replace(/\.sql$/, '_probe.sql');
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
@@ -35,6 +35,7 @@ const ROUTES = {
   messaging: 'customer_support', account: 'customer_support',
   security: 'it_engineer', access: 'it_engineer',
   dispute: 'ceo', approval: 'ceo',
+  person: 'customer_support',   // ruling 1264: not a decision; the record is support's, the delivery is the founder's
 };
 
 function routesIn(src) {
@@ -50,7 +51,15 @@ test('static: every decision type routes to its owning seat and no route names t
   assert.match(src, /owner_seat\s+text not null references public\.org_role \(role_id\)\s+check \(owner_seat <> 'founder'\)/, 'a route can name something that is not a live seat, or the founder');
   assert.match(src, /foreign key \(decision_type, owner_seat\) references public\.review_route \(decision_type, owner_seat\)/, 'a request can land with a seat its route does not name');
   assert.match(src, /constraint decision_review_is_decided_by_a_different_model_family\s+check \(reviewer_model is null\s+or split_part\(reviewer_model, '\/', 1\) is distinct from coalesce\(nullif\(split_part\(original_model, '\/', 1\), ''\), 'deterministic'\)\)/, 'the different-family CHECK is gone');
-  assert.doesNotMatch(src, /fn_notify_founder|founder_alerts|to_role\s*=?\s*'founder'/, 'the review path reaches the founder');
+  // Ruling 1264: exactly ONE call to fn_notify_founder, inside the 'person' branch, through founder_mail_policy kinds.
+  assert.equal((src.match(/fn_notify_founder/g) || []).length, 1, 'the founder is reached from more than the one person branch');
+  const branch = src.slice(src.indexOf("if v_route.decision_type = 'person' then"), src.indexOf('-- the owning seat'));
+  assert.ok(branch.includes('public.fn_notify_founder('), 'the founder call is outside the explicit-person branch');
+  assert.ok(branch.includes("then 'whatsapp_human_request' else 'person_request' end"), 'the person request no longer names its founder_mail_policy kind');
+  assert.doesNotMatch(src, /founder_alerts|to_role\s*=?\s*'founder'/, 'the file writes to the founder outside founder_mail_policy');
+  assert.ok(src.includes("check ((founder_notified is null and status <> 'with_founder')\n           or (decision_type = 'person' and channel in ('whatsapp', 'site_chat', 'email') and status = 'with_founder'))"),
+    'the CHECK that keeps every other row away from the founder is gone');
+  assert.match(src, /values \('person_request', true,/, 'the person_request kind is not on founder_mail_policy');
   for (const t of ['review_route', 'decision_review_request']) {
     assert.match(src, new RegExp(`alter table public\\.${t} enable row level security`), `${t} without RLS`);
     assert.match(src, new RegExp(`create policy ${t}_service_role_only on public\\.${t}`), `${t} without a policy`);
@@ -80,17 +89,18 @@ test('static: an open review is decided by the heartbeat, on another family, and
   assert.ok(sql.includes("public.fn_seat_handoff('customer_support', 'customer_support', 'delivery.request',"), 'customer_support no longer replies to the requester');
 });
 
-test('static: WhatsApp and e-mail person requests enter the review path', () => {
+test('static: WhatsApp, site chat and e-mail person requests enter the path', () => {
   assert.match(read('supabase/functions/wa_inbound/index.ts'), /if \(needsPerson === true\) \{\s+await fileReviewRequest\(admin, defaultDeps\(admin, 'wa_inbound'\), \{ channel: 'whatsapp'/);
   assert.match(read('supabase/functions/email_triage/index.ts'), /how = 'person';\s+(\/\/.*\s+)?await fileReviewRequest\(admin, deps, \{ channel: 'email'/);
   const shared = read('supabase/functions/_shared/review_request.ts');
   assert.ok(shared.includes("admin.rpc('fn_review_request_open', {"), 'the shared entry no longer files through the one door');
+  assert.ok(read('supabase/functions/site_assistant/index.ts').includes("await fileReviewRequest(admin, defaultDeps(admin, 'site_assistant'), { channel: 'site_chat'"), 'site chat no longer enters the path');
   assert.ok(shared.includes("admin.from('review_route').select('decision_type,meaning')"), 'the options are no longer the routing table');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
-test('production, aborted: one ZZ DEMO request per type lands with its seat, another family decides, 0 reach the founder', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+test('production, aborted: one ZZ DEMO request per type lands with its seat, another family decides, 0 reach the founder; an explicit person request does, through founder_mail_policy', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const replay = pending(FILE) ? read(FILE) : '';
   let o;
   try { await replaySql(replay + '\n' + read(PROBE), { retry: false }); }
@@ -100,8 +110,8 @@ test('production, aborted: one ZZ DEMO request per type lands with its seat, ano
     o = JSON.parse(m[1]);
   }
   assert.ok(o, 'the probe committed instead of rolling back');
-  assert.equal(o.types, Object.keys(ROUTES).length, 'not one request per decision type');
-  assert.equal(o.rows, Object.keys(ROUTES).length + 1, 'the requests were not all filed');
+  assert.equal(o.types, Object.keys(ROUTES).length - 1, 'not one request per decision type');
+  assert.equal(o.rows, Object.keys(ROUTES).length, 'the requests were not all filed');
   assert.equal(o.misrouted, 0, 'a request landed with another seat than its route: ' + o.requests.join('; '));
   assert.equal(o.undecided, 0, 'a request could not be decided');
   assert.equal(o.same_family_decisions, 0, 'a review was decided by the original decision\'s model family');
@@ -110,4 +120,13 @@ test('production, aborted: one ZZ DEMO request per type lands with its seat, ano
   assert.equal(o.founder_alerts, 0, 'the review path wrote a founder alert');
   assert.equal(o.founder_notifications, 0, 'the review path queued a notification to the founder');
   assert.equal(o.demo_handoffs, 0, 'a ZZ DEMO request filed a seat handoff (ruling 1199)');
+  // Ruling 1264: the explicit person request reaches the founder through founder_mail_policy on chat and e-mail
+  for (const [ch, kind] of [['whatsapp', 'whatsapp_human_request'], ['site_chat', 'person_request'], ['email', 'person_request']]) {
+    const p = o.person[ch];
+    assert.equal(p.status, 'with_founder', ch + ': the person request did not reach the founder');
+    assert.equal(p.kind, kind, ch + ': not delivered under its founder_mail_policy kind');
+    assert.ok(p.founder_alerts >= 1 && p.founder_notifications >= 1, ch + ': no founder alert or notification was queued');
+  }
+  assert.equal(o.person_from_portal.ok, false, 'a person request from the portal reached the founder');
+  assert.equal(o.founder_stamp_on_a_review_refused, 1, 'a decision review could be stamped as delivered to the founder');
 });

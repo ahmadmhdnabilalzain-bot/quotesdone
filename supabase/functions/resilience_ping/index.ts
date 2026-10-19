@@ -1261,7 +1261,7 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // one records "held, not run" once and costs nothing. Then the agreement monitor: a reviewer approving
   // >= 90% of >= 10 proposals, or a review with no independent model, is a finding for the CEO.
   await step('deliberations', async () => advanceOpenDeliberations(admin, 3));
-  // Ledger 1152: open requests for human review are decided by the owning seat on another model family. The
+  // Ledger 1152: open requests to review an automated decision are decided by the owning seat on another model family. The
   // model call runs in the CEO seat's own function (this heartbeat never imports the model client).
   await step('review_requests', async () => {
     const r = await fetch(FN + '/ceo_agent', { method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },

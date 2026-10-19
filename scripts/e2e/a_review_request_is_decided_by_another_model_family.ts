@@ -1,5 +1,5 @@
-// a_review_request_is_decided_by_another_model_family — ledger 1152, seat ceo. The sandbox proof that a request for
-// human review is DECIDED, with a real model call, by a model family other than the original decision's.
+// a_review_request_is_decided_by_another_model_family — ledger 1152, seat ceo. The sandbox proof that a request to review
+// an automated decision is DECIDED, with a real model call, by a model family other than the original decision's.
 //
 // It runs the SAME decision path the ceo_agent heartbeat runs (_shared/review_decide.ts decideOpenReviews and its
 // prompt and parser) against the production ai_gateway, inside a tagged rehearsal window (models_allowed, cap USD 15,
@@ -13,7 +13,7 @@ import { mgmtFixture, mgmtRead } from '../lib/qd_guard.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
 import { decideOpenReviews, REVIEW_TASK_CLASS, type DueReview, type Verdict } from '../../supabase/functions/_shared/review_decide.ts';
 
-const FILE = 'scripts/sql/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision.sql';
+const FILE = 'scripts/sql/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.sql';
 const run = newRun({});
 const TAG = run.tag;
 const REQUESTER = `qd-${TAG}-review@example.invalid`;

@@ -1,4 +1,4 @@
-// review_decide — the open requests for human review are DECIDED, never left waiting (ledger 1152, 19 Oct 2026).
+// review_decide — the open requests to review an automated decision are DECIDED, never left waiting (ledger 1152, 19 Oct 2026).
 // Seat: ceo (the heartbeat that drives it); the reviewer is the seat that owns the decision.
 //
 // For each request fn_review_request_due hands over: the owning seat's reviewing model is asked, through ai_gateway,
