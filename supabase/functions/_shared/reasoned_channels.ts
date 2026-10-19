@@ -82,7 +82,7 @@ function waRequest(o: WaMeaningInput, queue: boolean): ThinkRequest {
     decision: { name: 'whatsapp_question', options: whatsappOptions(o.intents, o.trades) },
     // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
     // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
-    plan: { steps: [] },
+    plan: { steps: [] }, effort: 'low',
     queueWhenHeld: queue,
   };
 }
