@@ -17,16 +17,32 @@ export interface GivenRow { source?: string; id?: string; title?: string; excerp
 
 /** Rows below this similarity are not about the question; the multilingual space's corroboration floor (think.ts). */
 export const GIVEN_FLOOR = 0.80;
+/** The answer never waits on this: past it the reply goes on without the block (homepage speed rule). */
+export const GIVEN_TIMEOUT_MS = 1500;
+// CUSTOMER-SAFE SCOPE (release review of #1520): the customer_support read scope, which reaches sales_knowledge only for
+// rows tagged to a trade (the verified trade packs), and of those only source sales_knowledge is kept: no support, seat
+// or library row. A row carrying a money figure or anything that identifies a party (a phone, an email, a link, a
+// company suffix) is dropped whole, never trimmed, so a price or a supplier can never reach a customer through it.
+const MONEY = /(?:AED|USD|EUR|GBP|Dhs?\.?|dirhams?|درهم|\$|€|£)\s?[\d٠-٩]|[\d٠-٩][\d٠-٩,.]*\s?(?:(?:AED|USD|EUR|GBP|Dhs?|dirhams?|fils)\b|درهم|دراهم|فلس)/i;
+const PARTY = /\+?\d[\d\s-]{7,}\d|[\w.+-]+@[\w-]+\.[\w.]+|https?:\/\/|www\.|\b(?:LLC|L\.L\.C|FZE|FZCO|FZ-LLC)\b|ذ\.م\.م/i;
+export const customerSafe = (r: GivenRow): boolean => r.source === 'sales_knowledge' && !MONEY.test(String(r.excerpt) + ' ' + String(r.title ?? '')) && !PARTY.test(String(r.excerpt) + ' ' + String(r.title ?? ''));
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([p, new Promise<T>((res) => { t = setTimeout(() => res(fallback), ms); })]).finally(() => clearTimeout(t));
+}
 const vec = (v: number[]) => '[' + v.join(',') + ']';
 
-export async function givenTradeKnowledge(deps: GivenDeps, question: string, k = 6): Promise<GivenRow[]> {
+export function givenTradeKnowledge(deps: GivenDeps, question: string, k = 6, ms = GIVEN_TIMEOUT_MS): Promise<GivenRow[]> {
+  return withTimeout(fetchGiven(deps, question, k), ms, []);
+}
+async function fetchGiven(deps: GivenDeps, question: string, k: number): Promise<GivenRow[]> {
   try {
     const v = await deps.embed(question, 'ml');
     if (!v) return [];
     const vg = deps.gteReads(question) ? await deps.embed(question, 'gte') : null;
-    const { data, error } = await deps.rpc('fn_reason_retrieve_ml', { p_seat: 'sales_engineer', p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: k });
+    const { data, error } = await deps.rpc('fn_reason_retrieve_ml', { p_seat: 'customer_support', p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: k });
     if (error || !Array.isArray(data)) return [];
-    return (data as GivenRow[]).filter((r) => Number(r.similarity) >= GIVEN_FLOOR && r.excerpt);
+    return (data as GivenRow[]).filter((r) => Number(r.similarity) >= GIVEN_FLOOR && r.excerpt && customerSafe(r));
   } catch { return []; }
 }
 
