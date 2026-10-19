@@ -166,5 +166,8 @@ Deno.test('majority of readings: a third reading settles a code one of two misse
 });
 Deno.test('two readings name the same code but code refused both quotes: held (null), never ok and empty', () => {
   const r = (code: string) => ({ ok: true as const, trades: [{ code, quote: code + ' line', reason: 'r' }], rejected: [{ code: 'doors', why: 'the quote is not in the document: "x"' }] });
+  // both readings NAME doors (its quote refused in each - namedBy counts that), so doors has 2 votes and is in keep;
+  // joinery and fire_fighting have 1 vote each. mergeChoices finds no proven doors quote, so merged.trades is empty.
+  // Mutation-checked 19 Oct 2026: without the 'merged.trades.length' guard this test fails.
   assertEquals(majority([r('joinery'), r('fire_fighting')]), null);
 });
