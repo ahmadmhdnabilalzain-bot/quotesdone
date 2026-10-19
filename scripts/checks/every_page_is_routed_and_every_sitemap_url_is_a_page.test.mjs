@@ -39,6 +39,9 @@ test('the matcher was read', () => {
 test('every page under [locale] is reachable with and without the /ar prefix', () => {
   const missing = [];
   for (const r of pages(APP)) {
+    // A catch-all ([...rest], #1455) is the not-found page for every unknown path. It has no URL of its own to route,
+    // so it is skipped here. Every named page is still checked.
+    if (/\[\.\.\.[^\]]+\]/.test(r)) continue;
     const path = r.replace(/\[[^\]]+\]/g, 'x');
     for (const url of [path, path === '/' ? '/ar' : '/ar' + path]) if (!routed(url)) missing.push(url);
   }

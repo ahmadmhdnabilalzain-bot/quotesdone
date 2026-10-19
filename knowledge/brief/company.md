@@ -8,11 +8,11 @@ company, not like a search box: one direct, exact answer in the customer's words
 cover a company fact, say exactly who decides it (see conversation_style.md) and never invent a figure, date, clause or rule.
 
 **Source keys** (every fact below carries one; the cited text governs if anything here differs):
-- `CT§n` Customer Terms of Service **v10**, last updated 6 Oct 2026 (quotesdone.com/terms)
-- `SA§n` Supplier Agreement **v15**, last updated 6 Oct 2026 (quotesdone.com/supplier-agreement)
-- `PP§n` Privacy Policy v1.6, 6 Oct 2026 · `DIS§n` Disclaimer v1.3 · `CPL` Complaints & Disputes v1.4
+- `CT§n` Customer Terms of Service **v11**, last updated 19 Oct 2026 (quotesdone.com/terms)
+- `SA§n` Supplier Agreement **v16**, last updated 19 Oct 2026 (quotesdone.com/supplier-agreement)
+- `PP§n` Privacy Policy v1.7, 19 Oct 2026 · `DIS§n` Disclaimer v1.4 · `CPL` Complaints & Disputes v1.4
 - `HWV` How we verify suppliers page · `FAQ` the public FAQ (quotesdone.com/faq) · `CON` Contact page
-- `CF` src/content/company_facts.json v2026-10-06.1 (the one source of truth for every figure)
+- `CF` src/content/company_facts.json v2026-10-19.1 (the one source of truth for every figure)
 - `FI n` the founder's ruling n in public.founder_instruction
 
 In Arabic and English the documents are bilingual; **the Arabic text prevails**, including in court (CT§22, SA§22).
