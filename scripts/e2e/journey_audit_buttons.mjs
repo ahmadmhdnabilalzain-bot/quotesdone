@@ -251,7 +251,8 @@ async function signInAudit(ctx, cust, sup) {
     await p2.goBack({ timeout: 10000 }).catch(() => {});
     const back = p2.url();
     const leaked = /access_token=|refresh_token=/.test(hereNow + back);
-    rep.step(C, 'magic link: signs in, and no session is left in the address bar or one Back press away', signedIn && !leaked ? 'PASS' : 'FAIL',
+    // CWE-384 (19 Oct 2026): a URL session is never adopted, so the link must NOT sign in (no login fixation).
+    rep.step(C, 'magic link: does NOT sign in (URL sessions are refused), and no session is left in the address bar or one Back press away', !signedIn && !leaked ? 'PASS' : 'FAIL',
       `signed in=${signedIn}; address bar ${/access_token=/.test(hereNow) ? 'HOLDS THE TOKEN' : 'clean'}; Back ${/access_token=/.test(back) ? 'SHOWS THE TOKEN URL' : 'clean'}`, { shot: await shot(p2, dir, 'h_magic_link') });
     await p2.close().catch(() => {});
     // The customer's tab must stay the customer's (item 30: "redirected the customer's /me tab to /portal").

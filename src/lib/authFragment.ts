@@ -14,7 +14,6 @@
 // left alone. An auth ERROR fragment is stripped too; it carries nothing to sign in with.
 // Tested in authFragment.test.mjs; the nightly journey (scripts/e2e/journey_audit_buttons.mjs) opens
 // a real magic link and presses Back.
-export type UrlSession = { access_token: string; refresh_token: string };
 type Win = {
   location: { pathname: string; search: string; hash: string };
   history: { state: unknown; replaceState: (s: unknown, t: string, u: string) => void };
@@ -23,26 +22,19 @@ type Win = {
 const AUTH_KEYS = /(?:^#|&)(?:access_token|refresh_token|error|error_code|error_description)=/;
 
 // SESSION FIXATION (CWE-384 audit, 19 Oct 2026; seat: it_engineer). A fragment is attacker-craftable: a link to
-// /portal#access_token=<attacker's>&refresh_token=<attacker's> used to REPLACE whoever was signed in, so the victim
-// went on working (uploading a licence, a bank letter) inside the attacker's account. A fragment session for a
-// DIFFERENT user than the one already signed in on this browser is now dropped; the stored session stays. To
-// switch accounts, sign out first. Residual: a browser with no session still adopts a crafted link (implicit flow);
-// the upgrade is the PKCE flow, whose code is useless without the verifier held in the browser that asked for it.
-const subOf = (jwt: string | null | undefined): string => {
-  try { const b = String(jwt || '').split('.')[1] || ''; return String(JSON.parse(atob(b.replace(/-/g, '+').replace(/_/g, '/'))).sub || ''); } catch { return ''; }
-};
-
-export function takeAuthFragment(win: Win | undefined = (globalThis as unknown as { window?: Win }).window, currentToken?: string | null): UrlSession | null {
+// /portal#access_token=<attacker's>&refresh_token=<attacker's> signed the visitor into the ATTACKER's account, where
+// they would upload a licence or a bank letter. No product flow delivers a session in the URL any more: sign-in is
+// OTP codes only (login_otp verifies the token_hash server-side and returns the session in its JSON body), there is
+// no signUp/OAuth/password-reset return. So a URL session is NEVER adopted: the fragment is stripped from the
+// address bar (it must not sit in history) and dropped. Always returns null; kept as a function so both portals
+// keep stripping it first. Admin-generated magic links (scripts/e2e founder_demo_tour, journey_audit) no longer
+// sign in by design.
+export function takeAuthFragment(win: Win | undefined = (globalThis as unknown as { window?: Win }).window): null {
   if (!win) return null;
   const hash = String(win.location.hash || '');
   if (!AUTH_KEYS.test(hash)) return null;
-  const p = new URLSearchParams(hash.slice(1));
   try { win.history.replaceState(win.history.state, '', win.location.pathname + win.location.search); }
   catch (e) { console.error('takeAuthFragment: the session could not be removed from the address bar', e); }
-  const access_token = p.get('access_token') || '';
-  const refresh_token = p.get('refresh_token') || '';
-  if (!access_token || !refresh_token) return null;
-  const held = subOf(currentToken);
-  if (held && subOf(access_token) !== held) { console.error('takeAuthFragment: a link for another account was ignored; this browser stays signed in as before'); return null; }
-  return { access_token, refresh_token };
+  console.error('takeAuthFragment: a session in the URL was dropped; sign-in is by code only');
+  return null;
 }
