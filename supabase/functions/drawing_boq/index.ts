@@ -116,8 +116,8 @@ Deno.serve(observe('drawing_boq', async (req) => {
       const code: Record<string, number> = {};
       for (const t of legend) { const n = Number(body.code_counts?.[t.type]); if (Number.isInteger(n) && n >= 0) code[t.type] = n; }
       const addresses = Number.isInteger(Number(body.addresses)) ? Number(body.addresses) : null;
-      const flag = String((await sec(VISION_COUNT_FLAG)) || 'on').toLowerCase();
-      if (['off', 'false', '0'].includes(flag) || !legend.length) return J({ ok: true, ...reconcile(code, null, addresses), why: 'off' });
+      const flag = String((await sec(VISION_COUNT_FLAG)) || 'off').toLowerCase();
+      if (!['on', 'true', '1'].includes(flag) || !legend.length) return J({ ok: true, ...reconcile(code, null, addresses), why: 'off' });
       const jobId = String(body.redaction_job_id || '');
       const { data: run } = /^[0-9a-f-]{36}$/i.test(jobId) ? await admin.from('drawing_redaction_runs').select('id,status,pages_in,pages_out,output_paths').eq('id', jobId).maybeSingle() : { data: null };
       const page = redactedPageFor(run as RedactionRun | null);

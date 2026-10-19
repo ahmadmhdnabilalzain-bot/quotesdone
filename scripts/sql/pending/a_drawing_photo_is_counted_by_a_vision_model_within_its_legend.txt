@@ -1,0 +1,4 @@
+Committed, not applied: no apply before merge (release operator rule). Apply at merge with
+node scripts/apply_sql.mjs scripts/sql/a_drawing_photo_is_counted_by_a_vision_model_within_its_legend.sql --apply
+then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
+Ships OFF (route exception disabled, drawing_vision_count_enabled = off); switched on only after the drawing bench passes with real models. Seat: sales_engineer.
