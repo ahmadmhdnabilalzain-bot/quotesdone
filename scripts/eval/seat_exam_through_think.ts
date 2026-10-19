@@ -11,6 +11,7 @@
 //                       here grades the answer with a model: a reader (the CEO session) judges each answer against the
 //                       item's `answer_must` and records the verdict in docs/audits (no paid judge). `facts_in_answer`
 //                       is printed only as a hint for the reader.
+//   --trace             (with --answer) also write, per item, the ids of the sources think() returned and its steps.
 //   --reworded          ask each item's q_reworded instead of q_en: the exam is passed on meaning, not on the wording
 //                       its knowledge entry happens to use.
 //
@@ -27,6 +28,10 @@ const seat = arg('--seat') ?? 'sales_engineer';
 const limit = Number(arg('--limit') ?? 1e9);
 const ANSWER = Deno.args.includes('--answer');
 const REWORDED = Deno.args.includes('--reworded');
+const TRACE = Deno.args.includes('--trace');
+// --ids a,b,c or --ids @file (one id per line): only these items (a re-run of the ones that failed).
+const idArg = arg('--ids');
+const IDS = idArg ? (idArg.startsWith('@') ? await Deno.readTextFile(idArg.slice(1)) : idArg).split(/[\s,]+/).filter(Boolean) : null;
 const home = Deno.env.get('USERPROFILE') ?? Deno.env.get('HOME') ?? '';
 const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`)).trim();
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
@@ -53,7 +58,7 @@ class Stop extends Error {}
 const out: Record<string, unknown>[] = [];
 let pass = 0, held = 0;
 // --concurrency N: items run N at a time (a full think() answer takes 30-90 s).
-const items = exam.items.slice(0, limit);
+const items = exam.items.filter((x) => !IDS || IDS.includes(x.id)).slice(0, limit);
 let next = 0;
 async function worker() { while (next < items.length) await one(items[next++]); }
 async function one(it: Item) {
@@ -71,15 +76,16 @@ async function one(it: Item) {
       return r;
     },
   };
-  let status = 'stopped', answer = '', model: string | null = null;
+  let status = 'stopped', answer = '', model: string | null = null, trace: unknown = null;
   try {
     const r = await inRun(() => think(deps, { seat: seat as never, surface: 'think.answer', question, context: { audience: 'internal' }, subject: { fixture: true } as never }));
     status = r.status === 'held' ? 'held: ' + ((r as { reason?: string }).reason ?? '') : r.status; answer = r.answer; model = r.model ?? null;
+    if (TRACE) trace = { sources: r.sources.map((s) => s.id), steps: r.steps.map((s) => ({ id: s.id, status: s.status, detail: s.detail })) };
   } catch (e) { if (!(e instanceof Stop)) status = 'error: ' + (e as Error).message; }
   const retrieved = calls.some((c) => c.top.some((r) => it.expected_entry_ids.includes(r.id) && it.expected_facts.every((f) => has(r.excerpt, f))));
   if (ANSWER) {
     if (status !== 'answered') held++;
-    out.push({ id: it.id, checklist: it.checklist, question, answer_must: it.answer_must ?? [], status, model, retrieved, errors, facts_in_answer: it.expected_facts.filter((f) => has(answer, f)).length + '/' + it.expected_facts.length, answer });
+    out.push({ id: it.id, checklist: it.checklist, question, answer_must: it.answer_must ?? [], status, model, retrieved, errors, facts_in_answer: it.expected_facts.filter((f) => has(answer, f)).length + '/' + it.expected_facts.length, answer, ...(TRACE ? { trace } : {}) });
     console.log(`${it.id} ${status} model=${model ?? '-'} retrieved=${retrieved}${errors.length ? ' errors=' + errors.join('; ') : ''}`);
     return;
   }
