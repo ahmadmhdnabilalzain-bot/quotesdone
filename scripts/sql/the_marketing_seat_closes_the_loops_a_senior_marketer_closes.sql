@@ -648,3 +648,10 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'C15: paid spend reported -- none while paid is off (spend without a budget is a finding); when a budget is approved, pacing and every spend day with the accountant.',
    'scripts/sql/the_marketing_seat_closes_the_loops_a_senior_marketer_closes.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
+
+-- Per-signature revokes on the routines this file replaces (release operator, #1551). CREATE OR REPLACE keeps the ACL;
+-- these make the closed state explicit whatever the ACL was.
+revoke execute on function public.fn_marketing_recruitment_funnel() from public, anon, authenticated;
+grant execute on function public.fn_marketing_recruitment_funnel() to service_role;
+revoke execute on function public.fn_marketing_reputation() from public, anon, authenticated;
+grant execute on function public.fn_marketing_reputation() to service_role;

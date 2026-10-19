@@ -295,3 +295,12 @@ begin
   on conflict (kind, period) do update set body = excluded.body, updated_at = now();
   return v_body - 'changes';
 end $function$;
+
+-- Per-signature revokes on the routines this file replaces (release operator, #1551). CREATE OR REPLACE keeps the ACL;
+-- these make the closed state explicit whatever the ACL was.
+revoke execute on function public.fn_competitor_scan_ingest(bigint, integer, text, text) from public, anon, authenticated;
+grant execute on function public.fn_competitor_scan_ingest(bigint, integer, text, text) to service_role;
+revoke execute on function public.fn_marketing_competitor_scan() from public, anon, authenticated;
+grant execute on function public.fn_marketing_competitor_scan() to service_role;
+revoke execute on function public.fn_marketing_competitor_refresh_duty() from public, anon, authenticated;
+grant execute on function public.fn_marketing_competitor_refresh_duty() to service_role;

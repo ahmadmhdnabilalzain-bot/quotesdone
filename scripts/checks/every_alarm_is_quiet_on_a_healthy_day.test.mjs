@@ -222,6 +222,32 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
     asOf: { reviews: 'created_at' },
   },
+  // 19 Oct 2026 (marketing, ledger 1003 C11, #1551). social_inbox:overdue / :signature_rejected / :send_failed: owed
+  // social messages unanswered 2 working hours, signed webhooks rejected, failed replies. Messages and runs that existed
+  // at the instant; a healthy day has none.
+  fn_marketing_social_inbox: {
+    replay: 'pg_temp.qd_replay_fn_marketing_social_inbox()',
+    asOf: { social_message: 'created_at', agent_runs: 'started_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C12, #1551). trends:feed_silent when a trend feed is unread for 2 days. Trends
+  // seen by the instant; the 48h decisions it writes are rolled back. Feed read times are present state (header ceiling).
+  fn_marketing_trend_decision: {
+    replay: 'pg_temp.qd_replay_fn_marketing_trend_decision()',
+    asOf: { marketing_trend: 'seen_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C14, #1551). facts:surface_stale:<surface> when a fetched public page does not
+  // state a public fact. It checks only responses to its own earlier requests; inside the replay its requests are
+  // rolled back, so a healthy day raises nothing.
+  fn_marketing_fact_register: {
+    replay: 'pg_temp.qd_replay_fn_marketing_fact_register()',
+    asOf: { marketing_duty_record: 'written_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C15, #1551). paid:spend_without_budget / paid:spend_not_reported. Spend days
+  // pulled by the instant; a healthy day has no spend while paid is off and every spend day with the accountant.
+  fn_marketing_paid_spend_report: {
+    replay: 'pg_temp.qd_replay_fn_marketing_paid_spend_report()',
+    asOf: { marketing_ad_spend_day: 'pulled_at' },
+  },
   // 29 Sep 2026 (accountant, founder ledger 1018: fraud and risk screening). Raises money_hold_unreviewed:<id> when a
   // reveal or refund the accountant's money screen held has waited 48 hours for review. Holds that existed at the
   // instant; a healthy day has none waiting that long. The party flags it writes and the holds it re-screens are
