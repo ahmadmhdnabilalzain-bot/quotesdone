@@ -44,14 +44,19 @@ export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, b
     const out: string[] = [];
     let n = 0;
     for (let i = 1; i <= Math.min(pdf.numPages, maxPages) && n < LIMITS.maxTextChars; i++) {
-      if (now() - t0 > budgetMs) break;   // a partial read, said so in `pages` / `of`
+      // a partial read, said so in `pages` / `of`. The first page is always read: on a busy worker, opening a 19 MB profile
+      // alone spent the budget, 0 pages were read and the text PDF was reported as a scan with no text layer (N01, 19 Oct 2026).
+      if (pages > 0 && now() - t0 > budgetMs) break;
       const tc = await (await pdf.getPage(i)).getTextContent();
       // deno-lint-ignore no-explicit-any
       const page = tc.items.map((it: any) => (typeof it.str === 'string' ? it.str + (it.hasEOL ? '\n' : '') : '')).join('');
       out.push(page); n += page.length; pages = i;
     }
     const text = arabicLigatureFix(out.join('\n')).slice(0, LIMITS.maxTextChars);
-    return { status: /\p{L}{2}/u.test(text) ? 'text' : 'no_text', text, pages, of: pdf.numPages };
+    if (/\p{L}{2}/u.test(text)) return { status: 'text', text, pages, of: pdf.numPages };
+    // no words on the pages read, but pages left unread: not proven a scan - held unreadable (the caller retries), never 'no_text'
+    if (pages < Math.min(pdf.numPages, maxPages)) return { status: 'failed', text: '', pages, detail: `no text on the first ${pages} of ${pdf.numPages} pages before the reading budget was spent` };
+    return { status: 'no_text', text, pages, of: pdf.numPages };
   } catch (e) {
     const detail = String((e as Error)?.message || e).slice(0, 200);
     console.error(JSON.stringify({ at: 'doc_read.pdfjsText', status: 'failed', bytes: bytes.length, pages, ms: Math.round(now() - t0), detail }));

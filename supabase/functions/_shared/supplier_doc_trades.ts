@@ -46,7 +46,11 @@ export type DocKind = 'licence' | 'profile' | 'catalogue';
 // `photo_text` is the text the supplier's own browser recognised in a photo or a scanned page
 // (tesseract.js, the same self-hosted OCR the customer side uses). It is untrusted words like any other
 // upload, read through the same path, and the evidence says it came from a photo.
-export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string;
+// `ocr_text` (19 Oct 2026) is a scan's or photo's words read by CODE (tesseract.js OCR, in the supplier's browser as the
+// catalogue upload already does, or scripts/e2e/scan_ocr.mjs in the harness). Unlike photo_text, which the vision model
+// transcribed, these are code's reading of the file, so a quote checked against them is checked against the file: its
+// trades are proposed like a text layer's (N07, N09, H01 were held, every core trade "missed").
+export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string; ocr_text?: string;
   /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
   names?: (string | null)[] };
 export type DocEvidence = {
@@ -54,7 +58,7 @@ export type DocEvidence = {
   /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing */
   status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable' | 'reading';
   reason?: string; format?: string; trades: TradeHit[]; read_at: string;
-  source?: 'document_text' | 'photo_text'; supply_only?: boolean;
+  source?: 'document_text' | 'photo_text' | 'ocr_text'; supply_only?: boolean;
   /** how each path fared on this document (reader @3 on) */
   exact?: ExactState; meaning?: MeaningState;
   /** profile / catalogue: 'on' = the model chose the trades and each was proven by its quote; 'unavailable' = it could not
@@ -143,7 +147,8 @@ export function offerText(text: string): string | null {
 export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Promise<DocEvidence> {
   const base = { path: doc.path, name: doc.name, kind: doc.kind, read_at: new Date().toISOString() };
   const photo = String(doc.photo_text ?? '').slice(0, PHOTO_TEXT_MAX);
-  const found = async (text: string, source: 'document_text' | 'photo_text', format?: string): Promise<DocEvidence> => {
+  const ocr = String(doc.ocr_text ?? '').slice(0, PHOTO_TEXT_MAX);
+  const found = async (text: string, source: 'document_text' | 'photo_text' | 'ocr_text', format?: string): Promise<DocEvidence> => {
     // A LICENCE NAMES ITS TRADES IN ITS ACTIVITIES, NOWHERE ELSE (7 Oct 2026, accuracy suite ledger 1162). The whole
     // licence was read, so the company's NAME line proposed trades: "Company Name: ZZ DEMO Horizon Floor LLC" ->
     // floor cleaners and mezzanine floors, on 4 of 22 text licences of scripts/e2e/document_intake_corpus.mjs. Only
@@ -185,7 +190,8 @@ ${whole}`;
   };
   const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true }) : null);
   const text = r && r.ok ? allText(r) : '';
-  // The file's own text layer wins; the photo text is read only when the file has none of its own.
+  // The file's own text layer wins; then code's OCR of the scan; the vision model's transcription only when neither exists.
+  if (!text.trim() && ocr.trim().length >= 200) return await found(ocr, 'ocr_text', r && r.ok ? r.kind : undefined);
   if (!text.trim() && photo.trim()) return await found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
   if (!r) return { ...base, status: 'unreadable', reason: 'the file could not be fetched from storage', trades: [] };
   if (!r.ok) return { ...base, status: 'unreadable', reason: `${r.error}: ${r.detail}`.slice(0, 200), trades: [] };

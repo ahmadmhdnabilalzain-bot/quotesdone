@@ -2,7 +2,7 @@
 // Regression fixtures from the 29 real UAE profiles measured on 13 Oct 2026 (ACCURACY_real_profiles.md), names
 // replaced by ZZ DEMO. deno test --no-lock --node-modules-dir=none supabase/functions/_shared/supplier_trade_choice.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { checkChoice, checkVerify, choiceRequest, choiceSystem, isHeading, quoteContext, quoteKey, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
+import { agreed, checkChoice, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
 import { readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 
 const DEFS: TradeDef[] = [
@@ -128,4 +128,38 @@ Deno.test('the second look is told the list heading a quoted item sits under, fo
   const text = 'ZZ DEMO MEP LLC\nPLUMBING WORKS\nWater heaters   Booster pumps\nDrainage lines\nGrease traps\nAbout our quality';
   assert(quoteContext(text, 'Grease traps').startsWith('[under the heading: PLUMBING WORKS]'));
   assert(isHeading('ELECTRICAL       WORKS') && isHeading('Civil :') && !isHeading('Water heaters   Booster pumps') && !isHeading('ISO 9001'));
+});
+
+Deno.test('a long document is chosen in chunks on line breaks, and the chunks merge into one list (N05 546, H02 deadline)', () => {
+  const text = Array.from({ length: 50 }, (_, i) => 'line ' + i + ' ' + 'x'.repeat(500)).join('\n');
+  const parts = textChunks(text, 6000);
+  assert(parts.length > 1 && parts.every((p) => p.length <= 6000));
+  assertEquals(parts.join('\n'), text);
+  const m = mergeChoices([
+    { trades: [{ code: 'joinery', quote: 'a', quotes: ['a'], reason: 'r' }], rejected: [{ code: 'doors', why: 'x' }] },
+    { trades: [{ code: 'joinery', quote: 'b', quotes: ['b'], reason: 'r' }, { code: 'doors', quote: 'c', reason: 'r' }], rejected: [] },
+  ]);
+  assertEquals(m.trades.map((t) => [t.code, t.quotes]), [['doors', ['c']], ['joinery', ['a', 'b']]]);
+  assertEquals(m.rejected, []);
+});
+Deno.test('a line that only introduces a list is not a quote (N04: "Our main activities are on :")', () => {
+  const r = checkChoice(JSON.stringify({ trades: [{ code: 'doors', quotes: ['We take up Service, Installation & Maintenance of:'], reason: 'r' }] }), DOC, DEFS);
+  assert(r.ok && !r.trades.length);
+});
+Deno.test('a word hyphenated across a line break is read whole (N07 OCR: "Compa-\nny")', () => {
+  const text = 'ZZ DEMO REGC is a leading UAE-based General Contracting Compa-\nny. We install Sprinkler Systems.';
+  const r = checkChoice(JSON.stringify({ trades: [{ code: 'fire_fighting', quotes: ['is a leading UAE-based General Contracting Company. We install Sprinkler Systems.'], reason: 'r' }] }), text, DEFS);
+  assert(r.ok && r.trades.length === 1, JSON.stringify(r));
+});
+Deno.test('two readings: a code goes forward only when both named it; an empty reading leaves the other standing', () => {
+  const r = (codes: string[]) => ({ ok: true as const, trades: codes.map((c) => ({ code: c, quote: c + ' line', reason: 'r' })), rejected: [] });
+  const both = agreed(r(['joinery', 'doors']), r(['joinery', 'fire_fighting']));
+  assertEquals(both.trades.map((t) => t.code), ['joinery']);
+  assertEquals(both.rejected.map((x) => x.code).sort(), ['doors', 'fire_fighting']);
+  assertEquals(agreed(r([]), r(['doors'])).trades.map((t) => t.code), ['doors']);
+});
+Deno.test('agreement counts a code a reading named even when its quote failed; the other reading proves it (N12)', () => {
+  const a = { ok: true as const, trades: [{ code: 'joinery', quote: 'j', reason: 'r' }], rejected: [{ code: 'doors', why: 'the quote is not in the document: "x"' }] };
+  const b = { ok: true as const, trades: [{ code: 'joinery', quote: 'j2', reason: 'r' }, { code: 'doors', quote: 'Doors', reason: 'r' }], rejected: [] };
+  assertEquals(agreed(a, b).trades.map((t) => t.code), ['doors', 'joinery']);
 });
