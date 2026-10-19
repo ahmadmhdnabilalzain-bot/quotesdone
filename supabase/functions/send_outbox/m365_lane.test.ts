@@ -216,3 +216,20 @@ Deno.test('the invitation names the company and its trade, and the subject carri
   for (const l of m365CopyLint({ subject, body })) assert(l.ok, `${l.rule}: ${l.detail}`);
   assertEquals(m365Body('supplier_invite', 'Dear X,\n\n' + LINK, undefined, who), body);
 });
+
+// Release review of #1524: the body lost its unsubscribe URL, so prove the two opt-outs that remain.
+Deno.test('opt-out: one-click List-Unsubscribe with -Post in the MIME, and a "stop" reply is an unsubscribe request', async () => {
+  const { isUnsubscribeRequest } = await import('../_shared/unsubscribe_mailbox.ts');
+  const unsub = 'https://quotesdone.com/u/unsubscribe?e=zz&t=1';
+  const head = unb64(m365Mime({ from: 'Ahmad Alzain at QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '',
+    subject: 's', text: m365Text(m365InvitationText(LINK)), unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
+  assert(head.includes(`List-Unsubscribe: <${unsub}>, <mailto:unsubscribe@mail.quotesdone.com?subject=unsubscribe>`));
+  assert(head.includes('List-Unsubscribe-Post: List-Unsubscribe=One-Click'));
+  // a reply to the M365 mailbox reaches resend_inbound through _shared/m365_reply_inbox.ts; its first line decides
+  for (const text of ['stop', 'Stop.', 'STOP\n\nOn Mon, Ahmad wrote:\n> Hi team']) {
+    assert(isUnsubscribeRequest({ to: 'supplier@quotesdone.com', subject: 'Re: Quote requests for X', text }), text);
+  }
+  assertFalse(isUnsubscribeRequest({ to: 'supplier@quotesdone.com', subject: 'Re: x', text: 'We cover tiling. Please stop by.' }));
+  const sent = m365Text(m365InvitationText(LINK));
+  assert(sent.includes('Reply "stop"') && sent.includes('QuotesDone Technologies'), 'the legal identity line is in the signature');
+});

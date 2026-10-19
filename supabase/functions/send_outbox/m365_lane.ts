@@ -248,7 +248,9 @@ export function m365Mime(o: { from: string; to: string; reply: string; subject: 
  *  second link, on another host than the From, is what content filters score; the one-click link is in the
  *  List-Unsubscribe header, and the line below still gives a reader who never sees that header a way out. */
 export function m365Text(body: string, _unsub?: string): string {
-  return [String(body || '').trim(), '--', 'Ahmad Alzain\nFounder, QuotesDone\nAl Furjan, Dubai, UAE · TDRA NOL-26-100000665',
+  return [String(body || '').trim(), '--', 'Ahmad Alzain\nFounder, QuotesDone',
+    // the sender's legal identity (release review of #1524); no trade licence number: founder ruling, ledger 993
+    'QuotesDone Technologies · Al Furjan, Dubai, UAE · TDRA NOL-26-100000665',
     `Not relevant to you? Reply "stop" or email ${UNSUBSCRIBE_MAILBOX} and I will not write again.`].join('\n\n');
 }
 
