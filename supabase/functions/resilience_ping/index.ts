@@ -1304,6 +1304,18 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // A SUPPLIER DOCUMENT WHOSE READ NEVER FINISHED (review of #1404): a profile or catalogue is marked 'reading' before
   // its parse; one still 'reading' after 30 minutes was killed mid-parse. It is set unreadable with the reason and handed
   // to the sales_engineer seat (fn_supplier_doc_reading_escalate) - never left silent - and the gate never approves past it.
+  // BEFORE THAT, ONE RE-READ (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts): a profile or catalogue read
+  // after its upload answered and still 'reading' 10 minutes on is read once more by supplier_api (it runs after that
+  // answer), marked retry; only a second stall reaches the escalation below.
+  await step('supplier_doc_reread', async () => {
+    const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SERVICE_KEY },
+      body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'docs_reread' }),
+    }, 30_000);
+    const j = await r.json().catch(() => ({}));
+    if (!(r.ok && j?.ok)) throw new Error('supplier_api docs_reread: ' + String(j?.error ?? r.status));
+    return { rereading: j.rereading };
+  });
   await step('supplier_doc_reading_stuck', async () => {
     const rows = (await rpc('fn_supplier_doc_reading_escalate', { p_minutes: 30, p_limit: 50 })) as unknown[] | null;
     return { handed_to_sales_engineer: (rows ?? []).length };

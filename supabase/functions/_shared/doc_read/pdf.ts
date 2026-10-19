@@ -35,12 +35,16 @@ export const arabicLigatureFix = (t: string) => t.replace(AR_LIGATURE_START, '$1
 // 'reading' before the parse (supplier_doc_trades.markReading): a kill leaves it held, never silently missing.
 export const PDFJS_MAX_PAGES = 250, PDFJS_BUDGET_MS = 700;
 export type PdfjsRead = { status: 'text' | 'no_text' | 'failed'; text: string; pages: number; of?: number; detail?: string };
-export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, budgetMs = PDFJS_BUDGET_MS, now: () => number = () => performance.now()): Promise<PdfjsRead> {
+// ABOVE LIMITS.maxBytes THE BUFFER IS HANDED OVER, NOT COPIED (19 Oct 2026, sales_engineer): copying an 85 MB brochure
+// took the read to 265 MB, past the edge's 256 MB; handing it over keeps it at 171 MB (measurements in types.ts LIMITS).
+// pdf.js detaches what it is handed, so a caller passing a file that large must not use those bytes again.
+export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, budgetMs = PDFJS_BUDGET_MS, now: () => number = () => performance.now(),
+  maxBytes: number = LIMITS.maxBytes): Promise<PdfjsRead> {
   const t0 = now();
   let pages = 0;
   try {
-    if (bytes.length > LIMITS.maxBytes) throw new Error(`${bytes.length} bytes is over the ${LIMITS.maxBytes} read limit`);
-    const pdf = await getDocumentProxy(bytes.slice());   // pdf.js takes ownership of the buffer it is given
+    if (bytes.length > maxBytes) throw new Error(`${bytes.length} bytes is over the ${maxBytes} read limit`);
+    const pdf = await getDocumentProxy(bytes.length > LIMITS.maxBytes ? bytes : bytes.slice());   // pdf.js takes ownership of the buffer it is given
     const out: string[] = [];
     let n = 0;
     for (let i = 1; i <= Math.min(pdf.numPages, maxPages) && n < LIMITS.maxTextChars; i++) {
@@ -61,7 +65,7 @@ export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, b
 
 export async function readPdf(bytes: Uint8Array, ctx: ReadContext): Promise<ReadResult> {
   if (ctx.textOnly) {
-    const r = await pdfjsText(bytes);
+    const r = await pdfjsText(bytes, PDFJS_MAX_PAGES, PDFJS_BUDGET_MS, undefined, ctx.maxBytes);
     if (r.status === 'failed') return refuse('pdf_unreadable', `The PDF could not be read: ${r.detail}`);
     if (r.status === 'no_text') return ok(empty('pdf', ['This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.'], 'ocr'));
     const notes = r.of && r.pages < r.of ? [`Read ${r.pages} of ${r.of} pages within the reading budget.`] : [];

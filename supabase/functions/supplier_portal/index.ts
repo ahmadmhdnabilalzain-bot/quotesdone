@@ -14,7 +14,10 @@ import { readSupplierProfile } from '../_shared/reasoned_suppliers.ts';
 import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
-import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { markReading, modelReadText } from '../_shared/supplier_doc_trades.ts';
+import { afterResponse, ownPath, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { storedAt } from '../_shared/stored_at.ts';
+import { toB64 } from '../_shared/document_expiry.ts';
 import { buildInsightsSummary } from './insights_summary.ts';
 import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/sanctioned.ts';
@@ -91,7 +94,7 @@ async function listDocuments(supId: number) {
   // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
   const cols = new Set<string>(['catalog_doc_paths']);
   for (const k of Object.values(DOC_KINDS)) { cols.add(k.pathCol); if (k.nameCol) cols.add(k.nameCol); if (k.expCol) cols.add(k.expCol); }
-  const [{ data: l }, { data: homeRows }, { data: vers }, expiries] = await Promise.all([
+  const [{ data: l }, { data: homeRows }, { data: vers }, expiries, { data: cap }] = await Promise.all([
     admin.from('leads').select([...cols].join(',')).eq('id', supId).maybeSingle(),
     admin.rpc('fn_supplier_document_home', { p_lead_id: supId }),
     // Previous versions (replaced or removed files) per kind, from doc_versions — the supplier
@@ -99,7 +102,11 @@ async function listDocuments(supId: number) {
     admin.from('doc_versions').select('entity_id,version,snapshot,created_at')
       .eq('entity_type', 'supplier_document').like('entity_id', `${supId}:%`).order('version', { ascending: false }).limit(200),
     admin.rpc('fn_supplier_expiries', { p_supplier_id: supId }),
+    // Which profile / catalogue is still being read after its upload answered (supplier_docs_later.ts): the tab says
+    // so and asks again until the read has finished (19 Oct 2026, sales_engineer).
+    admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supId).maybeSingle(),
   ]);
+  const reading = (((cap?.source_docs as { docs?: { path: string; status: string }[] } | null)?.docs) || []).filter((d) => d.status === 'reading').map((d) => d.path);
   const row = (l || {}) as Record<string, unknown>;
   const home = new Map<string, { path: string | null; name: string | null; source: string | null }>();
   for (const h of ((homeRows || []) as { key: string; path: string | null; name: string | null; source: string | null }[])) home.set(h.key, h);
@@ -149,7 +156,7 @@ async function listDocuments(supId: number) {
     d.versions = mine.length;
     d.last_version = mine[0] ? { event: mine[0].snapshot?.event, name: mine[0].snapshot?.name, at: mine[0].created_at } : null;
   }
-  return { ok:true, documents: docs, expiries: expiries.data || [],
+  return { ok:true, documents: docs, expiries: expiries.data || [], reading,
     summary: { total: docs.length, on_file: complete, missing: docs.length - complete,
       required_missing: required.filter((d) => d.status === 'missing').length,
       attention: docs.filter((d) => d.status === 'expired' || d.status === 'expiring').length } };
@@ -462,11 +469,20 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
       let catAppend: string[] = [];
       // Licence, profile and catalogues are also read by code into a trade proposal (15 Sep 2026,
       // _shared/supplier_doc_trades.ts) — the same reading supplier_api.process_docs does.
-      const readQueue: DocIn[] = [];
+      const readQueue: LaterDoc[] = [];
+      // A FILE UPLOADED STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer; supplier_api upload_url): a profile or catalogue
+      // arrives as a path. It is recorded only when it is this supplier's own and storage holds it, and it is gated on its
+      // stored bytes before it is read (gate: true, _shared/supplier_docs_later.ts).
+      const byPath = async (it: { path?: unknown }, kind: 'profile' | 'catalogue') =>
+        !!it.path && ownPath(it.path, kind, sup.id) && await storedAt(admin, 'supplier-docs', String(it.path)).catch(() => false);
       for (const it of items) {
         const kindStr = String(it.kind || '');
         if (kindStr === 'catalogs') {
-          if (it.original_b64) {
+          if (it.path) {
+            if (!(await byPath(it, 'catalogue'))) { failedUploads.push({ kind: 'catalogs', reason: 'We could not find that catalogue in our records. Please upload it again.' }); continue; }
+            catAppend.push(String(it.path)); saved.push('catalogs');
+            readQueue.push({ path: String(it.path), name: String(it.filename || 'catalogue'), kind: 'catalogue', mime: it.mime ? String(it.mime) : undefined, gate: true });
+          } else if (it.original_b64) {
             // AUDIT 9.1 (3 Aug 2026). Sanitised from the bytes before storage; see
             // supabase/functions/_shared/attachment.ts. A rejection is reported to the supplier
             // in `failed` rather than swallowed, so they are never told a document is on file
@@ -488,7 +504,12 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
         const kind = DOC_KINDS[kindStr]; if (!kind) continue;
         // The sanitised bytes, kept for the expiry read below; null when nothing was uploaded.
         let stored: { bytes: Uint8Array; mime: string } | null = null;
-        if (it.original_b64) {
+        if (kindStr === 'profile' && it.path) {
+          if (!(await byPath(it, 'profile'))) { failedUploads.push({ kind: kindStr, reason: 'We could not find that company profile in our records. Please upload it again.' }); continue; }
+          upd[kind.pathCol] = String(it.path);
+          if (kind.nameCol) upd[kind.nameCol] = safeFilename(it.filename || 'profile', String(it.mime || 'application/pdf')).slice(0, 200);
+          readQueue.push({ path: String(it.path), name: String(it.filename || 'profile'), kind: 'profile', mime: it.mime ? String(it.mime) : undefined, gate: true });
+        } else if (it.original_b64) {
           // Previously any upload failure was swallowed and the kind was still reported as
           // saved, so a supplier could be told their trade licence was on file when the
           // storage write had failed. Failures are now returned to the caller.
@@ -541,16 +562,6 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
           if (codeFields.authority) upd.license_authority = codeFields.authority;
           if (codeFields.emirate) upd.emirate = codeFields.emirate;
-        }
-        // A PHOTO-ONLY COMPANY PROFILE IS READ TOO (ruling 1177), as supplier_api.process_docs reads it: the picture goes
-        // to license_extract's profile mode and the services it reads are read for trades through photo_text.
-        if (kindStr === 'profile' && stored && /^image\//i.test(stored.mime) && aiOn && INBOUND_SECRET) {
-          try {
-            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', images: [{ b64: String(it.original_b64), mime: stored.mime }] }) });
-            const jd = await r.json().catch(() => null);
-            const q = readQueue.find((x) => x.kind === 'profile');
-            if (q && jd?.ok) q.photo_text = modelReadText('profile', jd.profile?.lines);
-          } catch (_e) { /* the document stays needs_ocr: never a false "no trades" */ }
         }
         if (kindStr === 'license' && docRead) {
           upd.license_expiry = docRead.expiry; licExpiryFromDoc = true; upd.doc_extracted_at = new Date().toISOString();
@@ -647,10 +658,25 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
         const { error: vErr } = await admin.from('doc_versions').insert(versionRow(Number(sup.id), snap, Number(v || 1)));
         if (!vErr) versioned.push(kindStr); else console.error('save_documents: version row failed —', vErr.message);
       }
-      const documents_read = readQueue.length ? await proposeTradesFromDocs(admin, Number(sup.id), readQueue.slice(0, 7)) : undefined;
+      // READ AFTER THE ANSWER (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts): each document is marked 'reading'
+      // now, so the list below already says so, and is read after the response. A PHOTO-ONLY COMPANY PROFILE IS READ TOO
+      // (ruling 1177), as supplier_api.process_docs reads it: the picture goes to license_extract's profile mode and the
+      // services it reads are read for trades through photo_text.
+      const later = readQueue.slice(0, 7);
+      if (later.length) {
+        const markErr = await markReading(admin, Number(sup.id), later);
+        if (markErr) console.error(JSON.stringify({ at: 'supplier_portal.save_documents.markReading', supplier: sup.id, error: markErr }));
+        const profile = async (d: LaterDoc) => {
+          if (!(d.bytes && /^image\//i.test(d.mime || '') && aiOn && INBOUND_SECRET)) return;
+          const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', images: [{ b64: toB64(d.bytes), mime: d.mime }] }) });
+          const jd = await r.json().catch(() => null);
+          if (jd?.ok) d.photo_text = modelReadText('profile', jd.profile?.lines);   // else the document stays needs_ocr: never a false "no trades"
+        };
+        const w = afterResponse(readStoredDocsLater(admin, Number(sup.id), later, { profile }), 'supplier_portal.save_documents.later'); if (w) await w;
+      }
       // The fresh list rides on the answer (finding 16): what the row holds NOW, not what the tab guessed.
       const fresh = await listDocuments(Number(sup.id));
-      return J({ ok:true, saved, failed: failedUploads, ...(licenceNotice ? { licence_set_aside: true, licence_notice: COMPANY_ALREADY_REGISTERED } : {}), read, versioned, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary, ...(documents_read ? { documents_read } : {}) });
+      return J({ ok:true, saved, failed: failedUploads, ...(licenceNotice ? { licence_set_aside: true, licence_notice: COMPANY_ALREADY_REGISTERED } : {}), read, versioned, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary, ...(later.length ? { documents_reading: later.map((d) => d.path) } : {}) });
     }
 
     // REMOVE HIDES, NEVER DESTROYS (instruction 524). The column is cleared and what it held goes to

@@ -14,6 +14,8 @@ type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
 const DOCS_BEING_READ = 'we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes';
+const READING_NOW = 'We are reading your company profile or catalogue now. This page updates by itself when the read finishes; you can keep working meanwhile.';
+const DIRECT_UPLOAD_FAILED = 'The file could not be uploaded. Files up to 100 MB are accepted (PDF, Word, PowerPoint, JPEG or PNG). Please try again.';
 const s = (en: string | ((p: P) => string), ar: string | ((p: P) => string)): Entry => ({
   en: typeof en === 'string' ? () => en : en,
   ar: typeof ar === 'string' ? () => ar : ar,
@@ -578,6 +580,10 @@ const COPY: Record<string, Entry> = {
   // 13 Oct 2026 (review of #1404): a profile or catalogue whose read has not finished holds approval until it has.
   // English only: suppliers are always written to in English (ruling 1008), so both slots carry the same sentence.
   documents_being_read: s(DOCS_BEING_READ, DOCS_BEING_READ),
+  // 19 Oct 2026 (sales_engineer): a profile or catalogue is read after its upload answers; the Documents tab says so
+  // until the read finishes, and a file uploaded straight to storage that did not arrive says that. English only.
+  documents_reading_now: s(READING_NOW, READING_NOW),
+  direct_upload_failed: s(DIRECT_UPLOAD_FAILED, DIRECT_UPLOAD_FAILED),
   licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
     'اسم الشركة في الرخصة التجارية لا يطابق اسم شركتكم المسجّل. يُرجى رفع الرخصة التجارية الخاصة بشركتكم، أو التواصل معنا إن كان اسمكم المسجّل يحتاج إلى تعديل'),
 
