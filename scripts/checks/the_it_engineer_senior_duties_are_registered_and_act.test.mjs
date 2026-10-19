@@ -49,6 +49,12 @@ test('IT-C02/C06: the closure gives a deadline, closes, reopens and hands an ove
   assert.doesNotMatch(body, /fn_notify_founder|recipient_role|update public\.model_/i);
 });
 
+test('ruling 1254: no dependency advisory is emailed to the founder; high and critical go to the CEO seat', () => {
+  const { body } = newest('fn_it_dependency_ingest');
+  assert.match(body, /'no_founder_email', true\)/);
+  assert.match(body, /when v_hot or e->>'ecosystem' = 'app' then 'ceo'/);
+});
+
 test('IT-C13: every perimeter run stamps its schedule row', () => {
   assert.match(newest('fn_it_duty_ran').body, /update public\.it_duty_schedule set last_ok_at = now\(\)/);
 });
@@ -61,6 +67,10 @@ test('IT-C15: the workflow audit catches each rule on a planted workflow and pas
     "    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}", '    steps:',
     '      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1', '      - uses: ./local-action'].join('\n'));
   assert.deepEqual(good, []);
+  // the slowest CI jobs run on ubicloud-standard-8 since #1293; a bare Ubicloud label without vars.RUNNER is still caught
+  assert.deepEqual(auditWorkflow('sizes.yml', ['permissions:', '  contents: read', 'jobs:', '  a:', "    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-8' }}",
+    '  b:', '    runs-on: ubicloud-standard-2'].join('\n')).map((v) => [v.rule, v.lines]), [['runner', [7]]]);
+
   assert.ok(auditDir().files > 0, 'the repository has workflows to audit');
   assert.match(readFileSync('.github/workflows/it-weekly-readings.yml', 'utf8'), /node scripts\/it\/workflow_audit\.mjs/);
 });

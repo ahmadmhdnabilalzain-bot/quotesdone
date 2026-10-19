@@ -1,7 +1,8 @@
 // IT-C15 (it_engineer, ledger 1003 stage 2): the weekly audit of .github/workflows, handed to
 // public.fn_it_workflow_audit_ingest, which opens a finding per file per rule and closes it when the file is fixed.
 // Run by .github/workflows/it-weekly-readings.yml. Rules (memory: CI runs on Ubicloud; SHA pins; least privilege):
-//   runner          every runs-on is ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+//   runner          every runs-on is ${{ vars.RUNNER || 'ubicloud-standard-N' }} (2 by default; checks.yml and
+//                   project-parity.yml run their slowest job on 8 since #1293, the founder's 'merging is too slow')
 //   unpinned_action every `uses:` of a remote action names a 40-hex commit SHA
 //   permissions     the workflow declares a top-level permissions block
 //   write_all       no permissions: write-all
@@ -13,7 +14,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const RUNNER = "${{ vars.RUNNER || 'ubicloud-standard-2' }}";
+const RUNNER = /^\$\{\{ vars\.RUNNER \|\| 'ubicloud-standard-\d+' \}\}$/;
 
 export function auditWorkflow(file, text) {
   const out = [];
@@ -23,9 +24,9 @@ export function auditWorkflow(file, text) {
 
   const badRunner = lines.flatMap((l, i) => {
     const m = l.match(/^\s*runs-on:\s*(.+?)\s*$/);
-    return m && m[1].replace(/^["']|["']$/g, '') !== RUNNER ? [i + 1] : [];
+    return m && !RUNNER.test(m[1].replace(/^["']|["']$/g, '')) ? [i + 1] : [];
   });
-  if (badRunner.length) add('runner', `runs-on is not ${RUNNER}`, badRunner);
+  if (badRunner.length) add('runner', "runs-on is not ${{ vars.RUNNER || 'ubicloud-standard-N' }}", badRunner);
 
   const unpinned = lines.flatMap((l, i) => {
     const m = l.match(/^\s*(?:-\s*)?uses:\s*["']?([^\s"'#]+)/);
@@ -48,7 +49,7 @@ export function auditDir(dir = '.github/workflows') {
   return { files: files.length, violations: files.flatMap((f) => auditWorkflow(f, readFileSync(join(dir, f), 'utf8'))) };
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const report = auditDir();
   if (process.argv.includes('--dry')) { console.log(JSON.stringify(report, null, 1)); process.exit(0); }
   const { sql, lit } = await import('../lib/db.mjs');

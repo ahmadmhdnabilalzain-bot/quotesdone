@@ -15,6 +15,13 @@ begin
   w1 := public.fn_it_workflow_audit_ingest('{"files": 1, "violations": [{"file": "probe.yml", "rule": "unpinned_action", "message": "uses: actions/checkout@v7 is not pinned to a commit SHA"}]}'::jsonb);
   w2 := public.fn_it_workflow_audit_ingest('{"files": 1, "violations": []}'::jsonb);
   r := r || jsonb_build_object('C15_open_then_close', jsonb_build_array(w1, w2), 'C15', public.fn_it_engineer_advisory_triage());
+  -- ruling 1254: a HIGH advisory on an edge function is owned by the CEO seat and marked never to email the founder
+  perform public.fn_it_dependency_ingest('{"advisories": [{"ecosystem": "edge", "package": "probe-pkg@1.0.0", "id": "PROBE-1", "severity": "high", "title": "probe", "function": "customer_api", "owner_seat": "sales_engineer"}]}'::jsonb);
+  r := r || jsonb_build_object('ruling_1254', (select jsonb_build_object('owner_seat', evidence->>'owner_seat', 'no_founder_email', evidence->'no_founder_email')
+                                               from public.it_engineer_finding where issue_key = 'duty:dependency:edge:probe-pkg@1.0.0:PROBE-1'));
+  if r->'ruling_1254'->>'owner_seat' is distinct from 'ceo' or r->'ruling_1254'->>'no_founder_email' is distinct from 'true' then
+    v_fail := v_fail || 'a high advisory is not with the CEO or may email the founder; ';
+  end if;
   r := r || jsonb_build_object('C16', public.fn_it_engineer_load_test());
   r := r || jsonb_build_object('C16_rows', (select count(*) from public.it_load_test_run where run_at = now()));
   r := r || jsonb_build_object(

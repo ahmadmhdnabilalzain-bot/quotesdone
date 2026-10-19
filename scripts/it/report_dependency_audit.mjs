@@ -1,7 +1,7 @@
 // Weekly dependency advisories for the IT engineer (public.fn_it_dependency_ingest): `npm audit` for
 // the Next.js app, and OSV for every npm: and jsr: import the edge functions pin. No code is changed;
-// a finding goes to the seat that owns the importing function, and only high/critical reach the
-// founder. Run by .github/workflows/it-weekly-readings.yml.
+// a finding goes to the seat that owns the importing function, a high/critical one to the CEO seat, and
+// none reaches the founder (ruling 1254). Run by .github/workflows/it-weekly-readings.yml.
 //
 //   node scripts/it/report_dependency_audit.mjs
 import { execSync } from 'node:child_process';

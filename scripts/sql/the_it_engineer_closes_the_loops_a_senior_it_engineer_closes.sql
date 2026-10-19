@@ -36,7 +36,8 @@
 --           open Supabase security advisor at WARN/ERROR outside the baseline is a finding until it clears.
 --           report_dependency_audit.mjs now audits only the edge functions actually DEPLOYED and attaches EPSS;
 --           fn_it_dependency_ingest makes an advisory with EPSS >= 0.1 a security finding whatever its label
---           (the founder email stays high/critical only).
+--           Ruling 1254 (nothing technical goes to the founder): every advisory is marked no_founder_email, and a
+--           high/critical/EPSS one is owned by the CEO seat, so fn_ceo_it_escalation_decide keeps it in the company.
 --   IT-C16  it_engineer.load_test  every 30 days  fn_it_engineer_load_test(): the inquiry (fn_match_capability),
 --           quote (fn_quote_quality_flags + fn_quote_spec_mismatches) and comparison (fn_quote_structured_score)
 --           database paths run at 10/40/160/640 operations over ZZ DEMO rows ONLY, each step inside a
@@ -214,7 +215,8 @@ end $fn$;
 revoke execute on function public.fn_it_workflow_audit_ingest(jsonb) from public, anon, authenticated;
 grant execute on function public.fn_it_workflow_audit_ingest(jsonb) to service_role;
 
--- The dependency ingest, unchanged except triage: an advisory whose CVE has EPSS >= 0.1 (likely exploited within 30
+-- The dependency ingest. Ruling 1254: no advisory is emailed to the founder; high/critical/EPSS ones go to the CEO seat.
+-- Triage: an advisory whose CVE has EPSS >= 0.1 (likely exploited within 30
 -- days) is a security finding whatever its label, and the report's deployed-only basis is kept on the run.
 create or replace function public.fn_it_dependency_ingest(p_r jsonb)
  returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $function$
@@ -226,13 +228,13 @@ begin
   for e in select a from jsonb_array_elements(p_r->'advisories') a loop
     v_hot := lower(e->>'severity') in ('high', 'critical') or coalesce((e->>'epss')::numeric, 0) >= 0.1;
     v_items := v_items || jsonb_build_object('item', (e->>'ecosystem') || ':' || (e->>'package') || ':' || coalesce(e->>'id', '?'),
-      'owner_seat', case when e->>'ecosystem' = 'app' then 'ceo' else coalesce(e->>'owner_seat', 'ceo') end,
+      'owner_seat', case when v_hot or e->>'ecosystem' = 'app' then 'ceo' else coalesce(e->>'owner_seat', 'ceo') end,
       'subject', coalesce(e->>'function', e->>'package'),
       'title', upper(coalesce(e->>'severity', '?')) || ' advisory in ' || (e->>'package') || ': ' || left(coalesce(e->>'title', ''), 120)
                || coalesce(' (EPSS ' || round((e->>'epss')::numeric, 3) || ')', ''),
       'blast', case when v_hot then 'security' else 'internal' end,
       'affected', case when v_hot then 1 else 0 end,
-      'evidence', e || jsonb_build_object('no_founder_email', lower(e->>'severity') not in ('high', 'critical')));
+      'evidence', e || jsonb_build_object('no_founder_email', true));   -- ruling 1254: never the founder, high/critical included
   end loop;
   v_res := public.fn_it_duty_settle('dependency', v_items)
            || jsonb_build_object('functions_not_deployed', p_r->'functions_not_deployed', 'deployed_list_read', p_r->'deployed_list_read');
