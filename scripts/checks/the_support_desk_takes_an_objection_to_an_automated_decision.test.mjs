@@ -25,15 +25,13 @@ test('support first, then the ceo seat; never the founder for a plain objection'
   assert.doesNotMatch(esc, /fn_notify_founder/);
 });
 
-test('ledger 1264: only an explicit request for a person review reaches the founder, by its own registered kind', () => {
+test('ruling 1264: the person-review category feeds #1519\'s one door; this change never pages the founder itself', () => {
   assert.match(triage, /\|automated_decision_person_review_request\|/);
-  const calls = sql.match(/fn_notify_founder\(/g) || [];
-  assert.equal(calls.length, 1, 'exactly one founder notification path');
-  assert.match(sql, /p_kind => 'automated_decision_person_review_request'/);
-  assert.match(sql, /new\.ai_category is distinct from 'automated_decision_person_review_request' then return null/);
-  assert.match(sql, /\('automated_decision_person_review_request', true,/);
+  assert.match(triage, /import \{ fileReviewRequest \} from '\.\.\/_shared\/review_request\.ts'/);
+  assert.match(triage, /if \(category === 'automated_decision_person_review_request'\) \{\s+await fileReviewRequest\(admin, deps, \{ channel: 'email'/);
+  assert.match(triage, /surface: 'email_triage\.review_of_decision', dedupeKey: String\(m\.id\),\s+subjectTable: 'inbound_messages'/);
+  assert.doesNotMatch(sql, /fn_notify_founder|founder_mail_policy|create trigger/i);
   assert.match(sql, /\('email_category', 'automated_decision_person_review_request', 'automated_decision_objection'\)/);
-  assert.ok(sql.includes('revoke execute on function public.fn_support_person_review_request_to_founder() from public, anon, authenticated'));
   // the acknowledgement is the objection one: it promises Customer Support, never a review by a person
   assert.match(triage, /for either of those two categories the reply is exactly/);
 });

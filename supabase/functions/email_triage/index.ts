@@ -143,6 +143,13 @@ Deno.serve(observe('email_triage', async (req) => {
       // 705): stop the batch rather than read the rest of the inbox into the same failing write.
       if (markErr) { if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts, note: 'email_triage stopped: could not record the triage of inbound message ' + m.id + ' (' + String(markErr.message).slice(0, 160) + '); continuing would re-read and re-pay for it on every run.' }).eq('id', run.id); return J({ ok: false, error: 'mark_failed', counts }, 500); }
       counts.triaged++;
+      // An explicit request that a person review an automated decision (ruling 1264) goes through #1519's one door,
+      // fileReviewRequest; same dedupe key as the answer path, so the request is filed once.
+      if (category === 'automated_decision_person_review_request') {
+        await fileReviewRequest(admin, deps, { channel: 'email', requester: String(m.from_email || 'unknown sender'),
+          message: String(m.body || '').slice(0, 4000), surface: 'email_triage.review_of_decision', dedupeKey: String(m.id),
+          subjectTable: 'inbound_messages', subjectId: String(m.id) });
+      }
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
       await reply1(m);
