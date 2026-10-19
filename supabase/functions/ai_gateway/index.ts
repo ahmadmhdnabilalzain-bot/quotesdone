@@ -904,7 +904,11 @@ async function handle(req: Request): Promise<Response> {
             await recordAttempt(m, true, Date.now() - attemptStartedAt, '', finishReason, j?.usage);
             break attempts;
           }
-          lastErr = JSON.stringify(j?.error || j).slice(0, 200);
+          // An empty completion says WHY first (ceo, 19 Oct 2026): the first 200 characters of the envelope were all
+          // id/object/model, so 365 empty Luna Pro replies in one day never showed their finish_reason or token count.
+          lastErr = j?.error ? JSON.stringify(j.error).slice(0, 200)
+            : ('empty completion: finish_reason=' + String(j?.choices?.[0]?.finish_reason ?? j?.choices?.[0]?.native_finish_reason ?? 'none')
+               + ' completion_tokens=' + String(j?.usage?.completion_tokens ?? '?') + ' max_tokens=' + String(payload.max_tokens)).slice(0, 200);
           // An empty completion IS a failure even though the HTTP call succeeded. This is exactly
           // the 220-of-228 case: a valid chat.completion body carrying no content, which every
           // monitor read as a healthy response.

@@ -20,6 +20,9 @@ export const THINKING_HEADROOM = 4000;
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
 export type Effort = typeof EFFORTS[number];
 
+// Reasoning models outside Claude, used only when OpenRouter's catalogue could not be read for this attempt.
+export const REASONING_ID = /^openai\/(gpt-6|o\d)/;
+
 export function isClaude(model: string): boolean {
   return /^anthropic\/claude-/.test(model);
 }
@@ -42,7 +45,8 @@ export function shapeRequest(s: ShapeIn): Record<string, unknown> {
     const effort = (EFFORTS as readonly string[]).includes(String(s.effort)) ? String(s.effort) : 'medium';
     out.reasoning = { effort };
     out.max_tokens = s.maxTokens + THINKING_HEADROOM;
-  } else if (s.supported?.has('reasoning')) {
+  } else if (s.supported ? s.supported.has('reasoning') : REASONING_ID.test(s.model)) {
+    // an unknown catalogue (null) falls back to the model id (ceo, #1585: Luna Pro reviews came back empty at 600)
     // ANY REASONING MODEL, NOT ONLY CLAUDE (it_engineer, 19 Oct 2026). Matrix v3 (18 Oct) moved the internal classes to
     // GPT-6 Luna Pro, which reasons before it answers and spends that inside max_tokens. Measured in the model-on exam
     // (runs b2f80d4d, cdd95305): 6 of 60 seat answers held because the JSON answer was cut off mid-sentence at the
