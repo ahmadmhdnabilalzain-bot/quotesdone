@@ -47,7 +47,6 @@ if (!Number.isFinite(CAP_USD) || CAP_USD <= 0 || CAP_USD > 15) { console.error('
 const AED_PER_USD = 3.6725;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
-const COMPANY_BRIEF = readFileSync(join(REPO, 'knowledge', 'brief', 'company.md'), 'utf8');   // the S24 judge's platform facts
 const OUT = val('--out') || process.env.QD_STAGE2_OUT || 'C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10';
 process.env.QD_FIXTURES = '1';
 
