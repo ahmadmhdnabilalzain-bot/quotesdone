@@ -113,6 +113,8 @@ export interface ThinkRequest {
   // ones are kept. The guard is unchanged in kind: the value must sit inside evidence copied verbatim from the person's
   // own words; the minimum quote is READER_MIN_EVIDENCE characters instead of 8.
   reader?: boolean;
+  // The reasoning effort asked of the model for the answer or decision (a choice among a few options needs little).
+  effort?: 'low' | 'medium' | 'high';
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -143,7 +145,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[] }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high' }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -628,7 +630,7 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0 });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (req.reader && draft && typeof draft === 'object') {
       draft.asked_back = null;
@@ -663,7 +665,7 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0 });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
       const fixed = parseJson<Draft>(r.content);
       if (req.reader && fixed && typeof fixed === 'object') { fixed.asked_back = null; keepProvenFields(fixed, req.decision, textOf(ctx) + '\n' + req.question); }
       if (fixed && !refuse(fixed, { allowDecline: req.allowDecline === true, missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true, ...(req.reader ? { minEvidence: READER_MIN_EVIDENCE } : {}) })) { draft = fixed; model = r.model ?? model; }
@@ -713,7 +715,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
       // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
       const content = o.history?.length ? [...o.history, last] : o.images?.length ? [last] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}) });
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {
