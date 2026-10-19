@@ -1,0 +1,430 @@
+{
+ "written_by": "it_engineer, by hand, 18 Oct 2026, BLIND: written from reading each file before any pipeline run on this set (no model). Same rules as real_profiles/truth.json: trades = core offer, each must be proposed; trades_also = offered in passing, proposing it is not wrong, missing it is not a miss.",
+ "docs": [
+  {
+   "id": "H01",
+   "file": "H01_albasira.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "image_pdf_profile_28p",
+   "registered_name": "Al Basira Glass & Aluminum Cont LLC",
+   "truth": {
+    "trades": [
+     "aluminium",
+     "glazing",
+     "doors"
+    ],
+    "trades_also": [
+     "hvac"
+    ],
+    "company": "Al Basira Glass & Aluminum Cont LLC",
+    "emirate": "Sharjah",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H02",
+   "file": "H02_rmw.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal",
+   "registered_name": "Rigid Metal & Wood Industries LLC",
+   "truth": {
+    "trades": [
+     "aluminium",
+     "steel",
+     "fencing_shades",
+     "joinery"
+    ],
+    "trades_also": [
+     "glazing",
+     "doors",
+     "prefab_buildings",
+     "interior_fitout",
+     "general_contracting",
+     "civil_works",
+     "tents_shades",
+     "cnc_machining",
+     "road_works"
+    ],
+    "company": "Rigid Metal & Wood Industries LLC",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H03",
+   "file": "H03_rashidalmajid.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal",
+   "registered_name": "Rashid Al Majid Air-Conditioning",
+   "truth": {
+    "trades": [
+     "hvac"
+    ],
+    "trades_also": [
+     "home_appliances",
+     "facilities_management",
+     "real_estate_services",
+     "refrigeration_cold_rooms",
+     "mep_general"
+    ],
+    "company": "Rashid Al Majid Air-Conditioning",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H04",
+   "file": "H04_voltronix.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile_325p",
+   "registered_name": "Voltronix Contracting LLC",
+   "truth": {
+    "trades": [
+     "civil_works",
+     "interior_fitout",
+     "hvac",
+     "electrical",
+     "plumbing"
+    ],
+    "trades_also": [
+     "mep_general",
+     "general_contracting",
+     "swimming_pools"
+    ],
+    "company": "Voltronix Contracting LLC",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H05",
+   "file": "H05_mepwer.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal",
+   "registered_name": "MEPWER Electromechanical Contracting",
+   "truth": {
+    "trades": [
+     "hvac",
+     "electrical",
+     "plumbing",
+     "mep_general",
+     "facilities_management"
+    ],
+    "trades_also": [
+     "cleaning",
+     "landscaping",
+     "waste_management",
+     "engineering_consultancy"
+    ],
+    "company": "MEPWER Electromechanical Contracting",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H06",
+   "file": "H06_egls.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal_22mb",
+   "registered_name": "Eden Gardens Landscaping & Pools",
+   "truth": {
+    "trades": [
+     "landscaping",
+     "swimming_pools"
+    ],
+    "trades_also": [
+     "civil_works",
+     "lighting_fixtures"
+    ],
+    "company": "Eden Gardens Landscaping & Pools",
+    "emirate": "Abu Dhabi",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H07",
+   "file": "H07_aht.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile",
+   "registered_name": "Ali Harqoos Technical Services LLC",
+   "truth": {
+    "trades": [
+     "waterproofing",
+     "flooring"
+    ],
+    "trades_also": [
+     "thermal_insulation",
+     "painting",
+     "corrosion_insulation",
+     "swimming_pools",
+     "chemicals"
+    ],
+    "company": "Ali Harqoos Technical Services LLC",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H08",
+   "file": "H08_s3t.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile",
+   "registered_name": "S3T Koncepts",
+   "truth": {
+    "trades": [
+     "interior_fitout",
+     "design_consultancy",
+     "joinery"
+    ],
+    "trades_also": [
+     "exhibition_stands",
+     "office_furniture",
+     "hotel_furniture",
+     "home_automation"
+    ],
+    "company": "S3T Koncepts",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H09",
+   "file": "H09_winterplus.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile",
+   "registered_name": "Winter Plus",
+   "truth": {
+    "trades": [
+     "interior_fitout",
+     "design_consultancy",
+     "joinery"
+    ],
+    "trades_also": [
+     "mep_general",
+     "hvac",
+     "gypsum",
+     "flooring"
+    ],
+    "company": "Winter Plus",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H10",
+   "file": "H10_xj.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile",
+   "registered_name": "XJ Elevator & Escalator",
+   "truth": {
+    "trades": [
+     "elevators"
+    ],
+    "trades_also": [
+     "inspection_ndt"
+    ],
+    "company": "XJ Elevator & Escalator",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H11",
+   "file": "H11_soaring.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile",
+   "registered_name": "Soaring Elevators",
+   "truth": {
+    "trades": [
+     "elevators"
+    ],
+    "trades_also": [],
+    "company": "Soaring Elevators",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H12",
+   "file": "H12_roofingsme.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal",
+   "registered_name": "Roofings Middle East FZC",
+   "truth": {
+    "trades": [
+     "steel"
+    ],
+    "trades_also": [
+     "building_materials",
+     "thermal_insulation",
+     "aluminium",
+     "prefab_buildings"
+    ],
+    "company": "Roofings Middle East FZC",
+    "emirate": "Sharjah",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H13",
+   "file": "H13_jas.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile",
+   "registered_name": "Jas Advertising Company LLC",
+   "truth": {
+    "trades": [
+     "signage",
+     "exhibition_stands",
+     "commercial_printing"
+    ],
+    "trades_also": [
+     "promotional_gifts",
+     "aluminium",
+     "marketing_advertising",
+     "retail_shelving"
+    ],
+    "company": "Jas Advertising Company LLC",
+    "emirate": "Sharjah",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H14",
+   "file": "H14_shinesquare.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile",
+   "registered_name": "Shine Square Building Contracting LLC",
+   "truth": {
+    "trades": [
+     "general_contracting"
+    ],
+    "trades_also": [
+     "design_consultancy",
+     "interior_fitout",
+     "demolition_works",
+     "civil_works"
+    ],
+    "company": "Shine Square Building Contracting LLC",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "H15",
+   "file": "H15_alikhaa.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_profile",
+   "registered_name": "Al Ikhaa Contracting LLC",
+   "truth": {
+    "trades": [
+     "general_contracting",
+     "interior_fitout",
+     "facilities_management",
+     "doors"
+    ],
+    "trades_also": [
+     "hvac",
+     "electrical",
+     "plumbing",
+     "fire_fighting",
+     "mep_general",
+     "steel",
+     "gypsum",
+     "joinery",
+     "aluminium",
+     "glazing",
+     "flooring",
+     "waterproofing",
+     "design_consultancy",
+     "civil_works",
+     "marble_stone"
+    ],
+    "company": "Al Ikhaa Contracting LLC",
+    "emirate": "Dubai",
+    "products": [],
+    "certifications": []
+   }
+  }
+ ],
+ "audit": {
+  "done_by": "it_engineer, 18 Oct 2026, AFTER the single run; the blind trades above are left unchanged and scored first",
+  "method": "each proposed code outside the blind truth was checked against the line it quotes in the file",
+  "verified_in_file": {
+   "H02": [
+    "commercial_kitchen",
+    "exhibition_stands",
+    "flooring",
+    "gypsum",
+    "mep_general"
+   ],
+   "H04": [
+    "flooring",
+    "gypsum",
+    "painting",
+    "thermal_insulation"
+   ],
+   "H05": [
+    "flooring",
+    "gypsum",
+    "masonry_blockwork",
+    "painting",
+    "swimming_pools",
+    "interior_fitout"
+   ],
+   "H09": [
+    "electrical",
+    "plumbing"
+   ],
+   "H15": [
+    "fencing_shades",
+    "road_works"
+   ]
+  },
+  "why_blind_truth_missed_them": "the blind truth was written from the opening pages; these are listed later in each file (activity lists, licence activities, service tables)",
+  "overturned_by_reviewer": {
+   "H06": [
+    "design_consultancy"
+   ],
+   "H01": [
+    "joinery"
+   ]
+  },
+  "h01_before_guard": "6 wrong (cleaning, electrical, flooring, gypsum, painting, plumbing), chosen from the vision model summary; their words are on two ISO certificate scope pages, not in the company's own description. Fixed by the guard: trades are chosen only from printed lines, never from a certificate.",
+  "reviewer_ruled_wrong": {
+   "H05": [
+    "home_automation",
+    "security_systems"
+   ]
+  },
+  "reviewer_ruled_wrong_why": "Automation & Controls and Access Control sit under H05 ELECTRICAL WORKS: a sub-part of electrical, not trades of their own"
+ }
+}

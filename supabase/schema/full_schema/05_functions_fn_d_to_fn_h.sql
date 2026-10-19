@@ -4533,6 +4533,36 @@ CREATE OR REPLACE FUNCTION public.fn_founder_hold_change_allowed()
 AS $function$ select coalesce(current_setting('app.change_reason', true), '') ~ '^(founder:[0-9]+|probe:[a-z0-9_]+)' $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_founder_hold_is_lifted_only_by_its_flag()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if tg_op = 'DELETE' then
+    raise exception 'founder_hold %: a hold is lifted only by its flag (%), never by deleting it', old.hold_key, old.flag_key;
+  end if;
+  if new.flag_key is distinct from old.flag_key or new.flag_released_value is distinct from old.flag_released_value then
+    raise exception 'founder_hold %: its flag (% = %) cannot be changed; the hold lifts only when that flag flips', old.hold_key, old.flag_key, old.flag_released_value;
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_founder_hold_line()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select string_agg(x.what_is_held || ' ' || x.until_when || ', so ' || x.words
+                    || ' are paused. They are not counted as misses and nobody is chased for them.', E'\n')
+    from (select h.hold_key, h.what_is_held, h.until_when,
+                 regexp_replace(string_agg(distinct public.fn_target_words(h.target_key), ', '), ', ([^,]*)$', ' and \1') words
+            from public.fn_held_targets() h group by h.hold_key, h.what_is_held, h.until_when) x
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_founder_instruction_needs_evidence()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -5662,6 +5692,18 @@ begin
        'blocked_msgs_30d', blocked_30d, 'uptime_ok', up_ok, 'uptime_checks', up_tot),
     'computed_at', now());
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_held_targets()
+ RETURNS TABLE(target_key text, hold_key text, what_is_held text, until_when text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select k, h.hold_key, h.what_is_held, h.until_when
+    from public.founder_hold h cross join lateral unnest(h.target_keys) k
+   where (select s.value from public.app_secrets s where s.key = h.flag_key) is distinct from h.flag_released_value
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_high_stakes_campaign_review(p_campaign_id bigint, p_owed boolean DEFAULT false)

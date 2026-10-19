@@ -4,6 +4,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+import { contactMessageError } from '../_shared/contact_limits.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -26,8 +27,9 @@ Deno.serve(observe('contact_submit', async (req) => {
     const name = String(b.name||'').trim().slice(0,120);
     const email = String(b.email||'').trim().slice(0,160);
     const phone = String(b.phone||'').trim().slice(0,40);
-    const message = String(b.message||'').trim().slice(0,4000);
-    if (message.length < 4) return J({ error: 'Please write a short message.' }, 400);
+    const message = String(b.message||'').trim();
+    const bad = contactMessageError(message); // too short or over the cap: rejected, never silently truncated
+    if (bad) return J(bad, 400);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return J({ error: 'Please enter a valid email so we can reply.' }, 400);
     const ip = String(req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
     if (!(await rl('contact_submit_ip:' + ip, IP_LIMIT)) || !(await rl('contact_submit_email:' + email.toLowerCase(), EMAIL_LIMIT))) {

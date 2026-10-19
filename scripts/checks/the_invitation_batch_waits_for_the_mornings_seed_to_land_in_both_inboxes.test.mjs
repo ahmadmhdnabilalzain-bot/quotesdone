@@ -35,12 +35,19 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql';
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const SQL = code(read(FILE));
+// 18 Oct 2026: the Outlook seed moved to management@quotesdone.com, read app-only by the M365 app send_outbox sends with.
+const MOVED = code(read('scripts/sql/the_outlook_seed_is_read_by_the_microsoft_365_app_that_already_sends.sql'));
 const TS = read('supabase/functions/_shared/inbox_placement.ts');
 const PING = read('supabase/functions/resilience_ping/index.ts');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 // A routine's body, from its create statement to the closing $fn$, so prose elsewhere cannot satisfy it.
-function body(name) {
+// 19 Oct 2026 (ledger 1113 supersedes 1001): the gate is defined by its own, newer file; the owning file keeps
+// the applied 1001 text and is not edited in place.
+const GATE = 'scripts/sql/a_spam_seed_holds_the_invitation_batch.sql';
+const GATE_SQL = code(read(GATE));
+function body(name, src = SQL) {
+  const SQL = src;
   const open = SQL.indexOf(`create or replace function public.${name}(`);
   assert.ok(open >= 0, `${name} is no longer defined in ${FILE}`);
   const end = SQL.indexOf('$fn$;', SQL.indexOf('$fn$', open) + 4);
@@ -79,13 +86,18 @@ test('the seed is supplier_invite_seed to exactly the two allowlisted inboxes, i
   const due = body('fn_invite_placement_due');
   const inserts = [...due.matchAll(/insert into public\.notifications[\s\S]*?values \('([a-z_]+)'/g)].map((m) => m[1]);
   assert.deepEqual(inserts, ['supplier_invite_seed', 'supplier_invite_seed'], 'the seed is not a supplier_invite_seed (it would spend the cap)');
-  assert.match(due, /'ahmadmhdnabilalzain@gmail\.com', 'management@doratajewelries\.com'/);
+  assert.match(due, /'ahmadmhdnabilalzain@gmail\.com', 'management@doratajewelries\.com'/, 'the original file changed; the move is in MOVED');
+  assert.match(MOVED, /CREATE OR REPLACE FUNCTION public\.fn_invite_placement_due[\s\S]*'ahmadmhdnabilalzain@gmail\.com', 'management@quotesdone\.com', p_now/, 'the seed is not queued to management@quotesdone.com');
   assert.match(SQL, /gmail_to\s+text not null check \(gmail_to = 'ahmadmhdnabilalzain@gmail\.com'\)/, 'the Gmail seed is not fixed by the schema');
-  assert.match(SQL, /outlook_to\s+text not null check \(outlook_to = 'management@doratajewelries\.com'\)/, 'the Outlook seed is not fixed by the schema');
+  assert.match(MOVED, /add constraint invite_placement_check_outlook_to_check\s+check \(outlook_to = 'management@quotesdone\.com'\)/, 'the Outlook seed is not fixed by the schema');
   const gm = TS.match(/export const SEED_GMAIL = '([^']+)'/)?.[1];
   const ol = TS.match(/export const SEED_OUTLOOK = '([^']+)'/)?.[1];
   assert.equal(gm, 'ahmadmhdnabilalzain@gmail.com');
-  assert.equal(ol, 'management@doratajewelries.com');
+  assert.equal(ol, 'management@quotesdone.com');
+  // management@quotesdone.com is admin_emails: without this row the founder-mail trigger swallows the seed (0 rows).
+  assert.match(MOVED, /insert into public\.founder_mail_policy[\s\S]*?values \('supplier_invite_seed', true,/, 'the founder-mail policy would swallow the Outlook seed');
+  assert.match(TS, /M365_SECRET_NAMES = \["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET"\]/, 'the Outlook reader no longer uses the M365 app that sends');
+  assert.doesNotMatch(TS, /sec\('ms_graph_|graph\.microsoft\.com\/v1\.0\/me\b/, 'a delegated Graph read came back');
   assert.match(TS, /export const PLACEMENT_SEEDS: readonly string\[\] = \[SEED_GMAIL, SEED_OUTLOOK\];/);
   assert.doesNotMatch(TS, /endsWith\(|SEED_DOMAINS/, 'the reader matches a domain instead of an exact address');
   const founder = read('scripts/invitation_inbox_check.mjs').match(/export const FOUNDER_INBOXES = \[([^\]]+)\]/)?.[1] || '';
@@ -124,11 +136,11 @@ test('a junk placement never pauses: it is diagnosed, filed and handed to market
 });
 
 test('the batch fails closed: the gate, the tick and the enqueue; the sender is the effective one', () => {
-  const gate = body('fn_invite_placement_gate');
+  const gate = body('fn_invite_placement_gate', GATE_SQL);
   assert.match(gate, /if p_now < public\.fn_invite_placement_cutoff\(v_day\) then return 'wait'; end if;\s+if public\.fn_invite_placement_day_closed\(p_now\) is null then\s+perform public\.fn_invite_placement_finding\(v_day, 'no_check',/,
     'a day with no check does not fail closed, or holds in silence');
   assert.match(gate, /return 'fail:no_check';/);
-  assert.match(gate, /if v not in \('inbox', 'spam', 'elsewhere'\) then return 'fail:' \|\| v; end if;/, 'a measured placement no longer lets the batch go, or a failure to measure does');
+  assert.match(gate, /if v = 'spam' then return 'fail:spam'; end if;\s+if v not in \('inbox', 'elsewhere'\) then return 'fail:' \|\| v; end if;/, 'ledger 1113: a spam seed no longer holds the batch, or Promotions/inbox no longer pass');
   assert.match(gate, /if public\.fn_invite_placement_sender\(\) is distinct from r\.from_address then return 'fail:from_changed'; end if;/);
   assert.equal((gate.match(/return 'pass'/g) || []).length, 1, 'more than one way to pass');
   const sender = body('fn_invite_placement_sender');
@@ -223,8 +235,10 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 test('production, aborted: queue from 04:30, wait, junk sends and hands off, inbox passes, lane or From change holds, unsent and no check hold without a pause, allowlist refuses', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const replay = pending(FILE) ? read(FILE) : '';
+  // ledger 1113: the gate's own apply file, replayed while it waits for its apply at merge.
+  const gateReplay = !pending(FILE) && existsSync(join(REPO, GATE)) && pending(GATE) ? read(GATE) : '';
   let o;
-  try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
+  try { await replaySql(replay + '\n' + gateReplay + '\n' + PROBE, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
@@ -235,7 +249,7 @@ test('production, aborted: queue from 04:30, wait, junk sends and hands off, inb
   assert.equal(o.early, 'idle', 'the seed was queued before 04:30 UTC');
   assert.equal(o.queued, 'queued');
   assert.equal(o.queued_leaks, false, 'the due answer carries the token or notification ids');
-  assert.deepEqual(o.seeds, ['ahmadmhdnabilalzain@gmail.com', 'management@doratajewelries.com']);
+  assert.deepEqual(o.seeds, ['ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com']);
   assert.deepEqual(o.types, ['supplier_invite_seed']);
   assert.equal(o.gate_wait, 'wait');
   assert.equal(o.spam, 'spam');
@@ -243,7 +257,7 @@ test('production, aborted: queue from 04:30, wait, junk sends and hands off, inb
   assert.equal(o.finding_open, true, 'junk placement filed no it_engineer finding');
   assert.equal(o.finding_lane, 'email_from_supplier', 'the finding does not name the sender lane');
   assert.equal(o.handoff_open, true, 'junk placement opened no marketing handoff');
-  assert.equal(o.gate_after_spam, 'pass', 'junk placement held the batch');
+  assert.equal(o.gate_after_spam, 'fail:spam', 'ledger 1113: a spam seed let the batch go');
   assert.equal(o.inbox, 'inbox');
   assert.equal(o.gate_pass, 'pass');
   assert.equal(o.finding_closed, true, 'an inbox verdict did not close the finding');
@@ -329,7 +343,7 @@ begin
 
   begin
     insert into invite_placement_check(dubai_day, token, from_address, subject, gmail_to, outlook_to)
-    values (d[5], 'QD0000000000', 'x', 'x', 'someone.else@gmail.com', 'management@doratajewelries.com');
+    values (d[5], 'QD0000000000', 'x', 'x', 'someone.else@gmail.com', 'management@quotesdone.com');
     o := o || jsonb_build_object('refused', false);
   exception when check_violation then o := o || jsonb_build_object('refused', true);
   end;

@@ -42,12 +42,13 @@ import { statementRowText, takeInStatement } from '../_shared/bank_statement_int
 import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
-import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
+import { fromDomainAuthenticated, microsoftDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
 import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
+import { orSafeEmail } from '../_shared/or_filter_email.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -341,7 +342,11 @@ export const handler = observe('resend_inbound', async (req) => {
         // The webhook is metadata-only; the headers come from GET /emails/inbound/{id} (measured 22 Sep 2026).
         const hdrs = d.headers?.['authentication-results'] ? d.headers
           : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
-        if (!fromDomainAuthenticated(hdrs?.['authentication-results'], from)) {
+        // a reply handed in from the Microsoft 365 mailbox carries EOP's verdict, not SES's (suppression_policy.ts)
+        const m365Reply = String(providerEmailId || '').startsWith('m365:');
+        const authenticated = m365Reply ? microsoftDomainAuthenticated(hdrs?.['authentication-results'], from)
+          : fromDomainAuthenticated(hdrs?.['authentication-results'], from);
+        if (!authenticated) {
           why = 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
         } else {
           const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
@@ -726,7 +731,7 @@ export const handler = observe('resend_inbound', async (req) => {
 
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
     let lead: any = null;
-    if (from) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
+    if (orSafeEmail(from)) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
     let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = [];
     let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0; let classifySkipped = 0;
     for (const a of atts.slice(0,6)) {
@@ -827,8 +832,12 @@ export const handler = observe('resend_inbound', async (req) => {
     // it. It was needs_review=false, which email_triage's selection excludes, so a customer's question was stored
     // and never read. raw keeps what the reply and noAutoReply need (_shared/customer_mail.ts).
     const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
+    // WHO SENT IT IS PROVEN, NOT READ OFF THE FROM HEADER (customer_support, 19 Oct 2026, review of #1498): email_triage
+    // gives a reply the sender's own account only when the receiving server authenticated the From domain (aligned
+    // DMARC, DKIM or SPF pass, fromDomainAuthenticated). The webhook is metadata-only, so the headers are read when absent.
+    const authHdrs = hdrs?.['authentication-results'] ? hdrs : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
     const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'), in_reply_to: hv('in-reply-to'), references: hv('references'),
-      content_type: hv('content-type'), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
+      content_type: hv('content-type'), sender_authenticated: fromDomainAuthenticated(authHdrs?.['authentication-results'], from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
     if (inbRow?.id && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {
