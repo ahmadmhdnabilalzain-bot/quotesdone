@@ -354,7 +354,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     const [brief, memory, given] = await Promise.all([
       companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang),
       recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => null),
-      givenTradeKnowledge({ embed: (t, sp) => tradeDeps.embed(t, sp), rpc, gteReads }, message),
+      givenTradeKnowledge({ embed: (t, sp) => tradeDeps.embed(t, sp), rpc, gteReads, audience: audience === 'unknown' ? 'visitor' : audience }, message),
     ]);
     lap('brief');
     void memory; // read in parallel with the brief (the fast-answer check pins it); its text never enters this prompt
