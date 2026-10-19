@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "aircraft_parts_mro:product-distinctions",
+      "topic": "Aircraft parts and MRO: part condition codes, paperwork and maintenance levels",
+      "topic_ar": "قطع الطائرات والصيانة: رموز حالة القطع والمستندات ومستويات الصيانة",
+      "kind": "product_distinctions",
+      "body_en": "In aviation, MRO covers line maintenance (daily and transit checks), base maintenance (heavier A and C checks), component maintenance (repair and overhaul of units such as starters, pumps, actuators, avionics), engine shop visits, modifications, and parts provisioning, all to keep the aircraft airworthy. Parts are bought by part number and condition code: NE (new), NS (new surplus), OH (overhauled), SV (serviceable, inspected or repaired), AR (as removed, unserviceable until tested) and RP (repairable). Each serviceable part must come with release documentation from an approved organisation (an EASA Form 1, an FAA 8130-3 or the equivalent authority release), and buyers ask for back-to-birth traceability for life-limited parts, a non-incident statement, and the shelf life of rubber and chemical items. Rotables are often exchanged rather than bought outright (exchange fee plus a core return). Consumables and expendables (hardware, seals, filters, sealants and lubricants with batch certificates) are a separate supply. Offers differ in condition, certificate type, the repair station's approvals, tag date, warranty, and lead time against an AOG (aircraft on ground) need.",
+      "body_ar": "في الطيران تشمل الصيانة والإصلاح والعمرة الصيانة الخطية (الفحوص اليومية والعابرة)، والصيانة القاعدية (فحوص A وC الأثقل)، وصيانة المكونات (إصلاح وعمرة الوحدات مثل بادئات التشغيل والمضخات والمشغلات وإلكترونيات الطيران)، وزيارات ورش المحركات، والتعديلات، وتوفير القطع، وكل ذلك لإبقاء الطائرة صالحة للطيران. وتُشترى القطع برقم القطعة ورمز الحالة: NE (جديدة)، NS (جديدة فائضة)، OH (معمرة)، SV (صالحة للخدمة، مفحوصة أو مصلحة)، AR (كما نُزعت، غير صالحة حتى تُختبر)، RP (قابلة للإصلاح). ويجب أن تأتي كل قطعة صالحة بمستند إفراج من منظمة معتمدة (نموذج EASA Form 1 أو FAA 8130-3 أو إفراج الجهة المختصة المكافئ)، ويطلب المشترون تتبعاً كاملاً منذ التصنيع للقطع محدودة العمر، وإقراراً بعدم التعرض لحادث، ومدة صلاحية المواد المطاطية والكيميائية. وكثيراً ما تُستبدل القطع الدوارة بدلاً من شرائها (رسوم استبدال مع إرجاع القطعة القديمة). والمستهلكات (المسامير، موانع التسرب، الفلاتر، المواد المانعة للتسرب والزيوت مع شهادات الدفعات) توريد منفصل. وتختلف العروض في الحالة، ونوع الشهادة، واعتمادات محطة الإصلاح، وتاريخ البطاقة، والضمان، ومدة التوريد مقابل حالة الطائرة المتوقفة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Maintenance,_repair,_and_operations"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: aviation MRO covers checks, overhaul, modifications and parts provisioning for continuing airworthiness -> confirmed."
+    },
+    {
+      "id": "aircraft_parts_mro:lead-times-and-quoting",
+      "topic": "Aircraft parts & MRO - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "قطع الطائرات والصيانة والإصلاح والعمرة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stocked parts can ship the same day for an AOG; exchanges within days; repairs and overhauls 2-8 weeks per component; engine shop visits months. A supplier needs the part number (and alternates), aircraft type, quantity, required condition, certificate type, urgency, and delivery point. A quote states part number, description, condition code, certificate, tag date and shop, traceability, price basis (outright or exchange with core terms), warranty, lead time, Incoterm and validity.",
+      "body_ar": "يمكن شحن القطع المتوفرة في نفس اليوم للطائرة المتوقفة؛ والاستبدال خلال أيام؛ والإصلاح والعمرة 2-8 أسابيع لكل مكون؛ وزيارات ورش المحركات أشهراً. ويحتاج المورد رقم القطعة (والبدائل)، ونوع الطائرة، والكمية، والحالة المطلوبة، ونوع الشهادة، ودرجة الاستعجال، ونقطة التسليم. ويذكر العرض رقم القطعة والوصف ورمز الحالة والشهادة وتاريخ البطاقة والورشة والتتبع وأساس السعر (شراء أو استبدال مع شروط إرجاع القطعة) والضمان ومدة التوريد وشرط التسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (Entries name GCAA CAR-145 and list 'release certificate required' as a field but never name the certificate (GCAA/EASA Form 1 authorised release certificate); missing). aircraft_parts_mro:authorised-release-certificate-form-1 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from aircraft_parts_mro.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What paperwork must come with a serviceable aircraft starter we buy from a broker?",
+      "q_ar": "وش المستندات اللي لازم تجي مع بادئ تشغيل طائرة صالح نشتريه من وسيط؟",
+      "expected_entry_ids": [
+        "aircraft_parts_mro:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "aircraft_parts_mro:authorised-release-certificate-form-1"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "aircraft_parts_mro:product-distinctions"
+      ],
+      "stored_not_served": [
+        "aircraft_parts_mro:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Maintenance,_repair,_and_operations"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

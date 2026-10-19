@@ -10,6 +10,7 @@
 // (docs/contracts/technical_comparison.md) will produce: stated value per attribute, per line, per
 // supplier, flagged against the request, plus the lead-time / installation / warranty checks.
 import { supplierLabel, type InquiryDocRow, type Item, type TechnicalComparison } from './quote_documents.ts';
+import { isLiveQuote } from './quote_live.ts';
 import type { Labelled } from '../quote_compare/deterministic.ts';
 
 export type FixtureQuote = {
@@ -23,7 +24,7 @@ export type FixtureQuote = {
 type Inquiry = { id: string; category: string; summary: string; emirate: string };
 
 const sup = (n: number, name: string) => ({ company_name: `ZZ DEMO ${name} LLC`, email: `sales${n}@zzdemo-${n}.example.invalid`, phone: `+971 50 000 00${String(n).padStart(2, '0')}`, website: `www.zzdemo-${n}.example.invalid` });
-const live = (qs: FixtureQuote[]) => qs.filter((q) => q.status !== 'draft').sort((a, b) => (a.quote_amount ?? Number.POSITIVE_INFINITY) - (b.quote_amount ?? Number.POSITIVE_INFINITY));
+const live = (qs: FixtureQuote[]) => qs.filter((q) => isLiveQuote(q.status)).sort((a, b) => (a.quote_amount ?? Number.POSITIVE_INFINITY) - (b.quote_amount ?? Number.POSITIVE_INFINITY));
 const labelOf = (qs: FixtureQuote[]) => live(qs).map((q, i) => ({
   quote_id: q.id, label: 'Supplier ' + supplierLabel(i), price: q.quote_amount, lead_time: q.lead_time, validity: q.validity,
   warranty: q.warranty, payment_terms: q.payment_terms, exclusions: q.exclusions, itemised: q.items.length > 0, expired: false,

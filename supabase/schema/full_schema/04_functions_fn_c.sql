@@ -4134,21 +4134,22 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_pricing_monitor()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_week date := public.fn_ceo_review_week(); v_ev jsonb; v_quoted int; v_held bigint;
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- fixture run: ONLY demo rows
 begin
   with q as (
     select i.id, (select count(*) from public.quotes x where x.inquiry_id = i.id) as quotes
-      from public.inquiries i where i.created_at > now() - interval '90 days' and not public.fn_inquiry_is_demo(i.id)
+      from public.inquiries i where i.created_at > now() - interval '90 days' and public.fn_inquiry_is_demo(i.id) = v_fx
   )
   select jsonb_build_object(
     'pricing_config', (select to_jsonb(p) - 'id' - 'updated_at' from public.pricing_config p order by id limit 1),
     'requests_90d', (select count(*) from q),
     'quoted_requests_90d', (select count(*) from q where quotes > 0),
-    'reveals_90d', (select count(*) from public.transactions t where t.revealed_at > now() - interval '90 days' and not public.fn_transaction_is_demo(t.id)),
-    'refunds_90d', (select count(*) from public.transactions t where t.refund_requested_at > now() - interval '90 days' and not public.fn_transaction_is_demo(t.id)),
-    'avg_quote_aed', (select round(avg(quote_amount), 2) from public.quotes x where x.created_at > now() - interval '90 days' and x.quote_amount > 0 and not public.fn_quote_is_demo(x.id)),
-    'avg_reveal_fee_aed', (select round(avg(t.reveal_fee), 2) from public.transactions t where t.revealed_at > now() - interval '90 days' and not public.fn_transaction_is_demo(t.id)),
-    'nonresponse_refunds', (select coalesce(sum(rv_nonresponse_refunds), 0) from public.leads where not is_demo),
-    'supplier_fee_paying', (select count(*) from public.leads where registration_paid_at is not null and not is_demo),
+    'reveals_90d', (select count(*) from public.transactions t where t.revealed_at > now() - interval '90 days' and public.fn_transaction_is_demo(t.id) = v_fx),
+    'refunds_90d', (select count(*) from public.transactions t where t.refund_requested_at > now() - interval '90 days' and public.fn_transaction_is_demo(t.id) = v_fx),
+    'avg_quote_aed', (select round(avg(quote_amount), 2) from public.quotes x where x.created_at > now() - interval '90 days' and x.quote_amount > 0 and public.fn_quote_is_demo(x.id) = v_fx),
+    'avg_reveal_fee_aed', (select round(avg(t.reveal_fee), 2) from public.transactions t where t.revealed_at > now() - interval '90 days' and public.fn_transaction_is_demo(t.id) = v_fx),
+    'nonresponse_refunds', (select coalesce(sum(rv_nonresponse_refunds), 0) from public.leads where is_demo = v_fx),
+    'supplier_fee_paying', (select count(*) from public.leads where registration_paid_at is not null and is_demo = v_fx),
     'competitors_on_file', (select count(*) from public.competitor),
     'unit_economics_last_month', public.fn_accountant_unit_economics((date_trunc('month', now() at time zone 'Asia/Dubai') - interval '1 month')::date))
   into v_ev;

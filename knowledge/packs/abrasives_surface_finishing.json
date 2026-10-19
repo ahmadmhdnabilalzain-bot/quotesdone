@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "abrasives_surface_finishing:product-distinctions",
+      "topic": "Abrasives: grain, bond, product form and grit",
+      "topic_ar": "المواد الكاشطة: الحبيبات والرابط وشكل المنتج ودرجة الخشونة",
+      "kind": "product_distinctions",
+      "body_en": "An abrasive is chosen by grain, product form and grit. Grains: aluminium oxide (general steel work, the most common), zirconia alumina (heavy stock removal on steel and stainless, long life), ceramic alumina (self-sharpening, fastest cut, cooler on stainless and hard alloys), silicon carbide (stone, glass, cast iron, non-ferrous, paint sanding), and the superabrasives diamond (stone, concrete, glass, carbide) and CBN (hardened steel grinding). Forms: bonded (grinding wheels, cut-off discs, depressed-centre discs, mounted points), coated (sanding belts, discs, sheets, flap discs, fibre discs), non-woven (surface conditioning and blending pads and wheels), wire brushes, and loose grit for blasting (garnet, steel grit and shot, aluminium oxide, glass bead). Grit runs from coarse (F/P 24-60) for removal to fine (P 240 and above) for finishing. Safety ratings matter: maximum operating speed (rpm or m/s) must equal or exceed the tool, and cut-off discs are certified to EN 12413 or an equivalent with an expiry date on the metal centre. Inox-rated discs are iron- and sulphur-free for stainless.",
+      "body_ar": "تُختار المادة الكاشطة حسب الحبيبة وشكل المنتج ودرجة الخشونة. الحبيبات: أكسيد الألمنيوم (أعمال الحديد العامة، وهو الأكثر شيوعاً)، والألومينا الزركونية (إزالة كثيفة على الحديد والستانلس مع عمر طويل)، والألومينا السيراميكية (ذاتية الشحذ، أسرع قطعاً، وأبرد على الستانلس والسبائك الصلبة)، وكربيد السيليكون (الحجر، الزجاج، الحديد الزهر، المعادن غير الحديدية، صنفرة الطلاء)، والكاشطات الفائقة الماس (الحجر، الخرسانة، الزجاج، الكربيد) ونيتريد البورون المكعب (تجليخ الحديد المقسّى). الأشكال: مربوطة (أحجار التجليخ، أقراص القطع، الأقراص المقعرة، الرؤوس المثبتة)، ومغطاة (سيور الصنفرة، الأقراص، الأوراق، أقراص الرفارف، الأقراص الليفية)، وغير منسوجة (وسادات وعجلات تهيئة الأسطح والدمج)، وفرش سلكية، وحبيبات سائبة للسفع (الجارنت، حبيبات وكرات الحديد، أكسيد الألمنيوم، الخرز الزجاجي). وتتدرج الخشونة من الخشن (F/P 24-60) للإزالة إلى الناعم (P 240 فما فوق) للتشطيب. وتصنيفات السلامة مهمة: يجب أن تساوي السرعة القصوى للتشغيل (دورة في الدقيقة أو متر في الثانية) سرعة الأداة أو تزيد عليها، وأقراص القطع معتمدة وفق EN 12413 أو ما يعادلها مع تاريخ انتهاء على الحلقة المعدنية. والأقراص المصنفة للستانلس خالية من الحديد والكبريت.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Abrasive"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: abrasive grains aluminium oxide, silicon carbide, zirconia alumina, ceramic, diamond and CBN; FEPA grit sizes F/P -> confirmed."
+    },
+    {
+      "id": "abrasives_surface_finishing:lead-times-and-quoting",
+      "topic": "Abrasives & surface finishing - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المواد الكاشطة وتشطيب الأسطح: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock discs, belts and blasting grit: 1-5 days; special wheels to size or OEM grinding wheels: 3-10 weeks. A supplier needs the material worked, the operation (cutting, grinding, blending, polishing, blasting), the tool and its speed, size and bore, grit, and monthly quantity. A quote states brand and product code, grain, size, grit, maximum speed and certification, pack quantity, delivery and validity.",
+      "body_ar": "الأقراص والسيور وحبيبات السفع المتوفرة: 1-5 أيام؛ والأحجار الخاصة بالمقاس أو أحجار تجليخ الشركات المصنعة: 3-10 أسابيع. ويحتاج المورد المادة المشغولة، والعملية (قطع، تجليخ، دمج، تلميع، سفع)، والأداة وسرعتها، والمقاس والثقب، والخشونة، والكمية الشهرية. ويذكر العرض العلامة ورمز المنتج والحبيبة والمقاس والخشونة والسرعة القصوى والاعتماد وعدد القطع في العبوة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (no entry gives disc thickness guidance for stainless (thin 1.0-1.6 mm inox discs); the checklist only lists dimensions as a field). abrasives_surface_finishing:inox-cutting-disc-thickness was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from abrasives_surface_finishing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which flap discs should we use on stainless steel handrails so they do not rust later?",
+      "q_ar": "وش أقراص الرفارف المناسبة لدرابزين الستانلس عشان ما يصدي بعدين؟",
+      "expected_entry_ids": [
+        "abrasives_surface_finishing:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "abrasives_surface_finishing:inox-cutting-disc-thickness"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "abrasives_surface_finishing:product-distinctions"
+      ],
+      "stored_not_served": [
+        "abrasives_surface_finishing:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Abrasive"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

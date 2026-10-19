@@ -57,6 +57,36 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "facade_access_maintenance:product-distinctions",
+      "topic": "Facade access: BMUs, gondolas, rope access and MEWPs",
+      "topic_ar": "الوصول للواجهات: وحدات صيانة المباني والجندولات والحبال والمنصات المتحركة",
+      "kind": "product_distinctions",
+      "body_en": "Facade cleaning, inspection and repair reach the building face by a building maintenance unit (BMU, a permanent roof-mounted machine with a jib and a suspended cradle, for towers), temporary suspended platforms or gondolas hung from parapet clamps or counterweighted outriggers, rope access (technicians on twin ropes, fast and flexible for inspection, sealant repair and cleaning where cradles cannot reach), mobile elevating work platforms (boom and scissor lifts for low and mid-rise), mast climbers for longer works, and water-fed poles for low-level glass. Permanent systems also include davit arms, anchor points and horizontal lifelines, monorails and roof trolleys. BMUs and anchors need periodic thorough examination and load testing by a competent inspector, and certificates must be current before anyone works from them. Facade services delivered this way: glass and cladding cleaning (frequency set by dust and the client's standard), sealant replacement, glass replacement, ACP panel repair, coating, signage installation and facade inspection reports. Offers differ on the access method, crew certification (IRATA or SPRAT for rope access), insurance, method statement and rescue plan, and the number of drops or cleaning cycles per year.",
+      "body_ar": "تصل أعمال تنظيف الواجهات وفحصها وإصلاحها إلى وجه المبنى عبر وحدة صيانة المبنى (آلة دائمة على السطح بذراع وسلة معلقة، للأبراج)، أو منصات معلقة مؤقتة أو جندولات تُعلق بمشابك على الحاجز أو أذرع بثقل موازن، أو الوصول بالحبال (فنيون على حبلين، سريع ومرن للفحص وإصلاح المواد المانعة للتسرب والتنظيف حيث لا تصل السلال)، أو منصات العمل المتحركة المرتفعة (الرافعات ذات الذراع والمقصية للمباني المنخفضة والمتوسطة)، أو المنصات المتسلقة على الصواري للأعمال الأطول، أو العصي المزودة بالماء للزجاج المنخفض. وتشمل الأنظمة الدائمة أيضاً أذرع الدافيت ونقاط التثبيت وخطوط الحياة الأفقية والسكك الأحادية وعربات السطح. وتحتاج وحدات صيانة المبنى ونقاط التثبيت فحصاً شاملاً دورياً واختبار أحمال من مفتش مختص، ويجب أن تكون الشهادات سارية قبل أن يعمل عليها أحد. والخدمات المقدمة بهذه الطرق: تنظيف الزجاج والكسوة (يحدد الغبار ومعيار العميل التكرار)، واستبدال المواد المانعة للتسرب، واستبدال الزجاج، وإصلاح ألواح الألمنيوم المركب، والطلاء، وتركيب اللافتات، وتقارير فحص الواجهة. وتختلف العروض في طريقة الوصول، وشهادات الطاقم (IRATA أو SPRAT للحبال)، والتأمين، وبيان الطريقة وخطة الإنقاذ، وعدد الإنزالات أو دورات التنظيف سنوياً.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Building_maintenance_unit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: a building maintenance unit is a roof-mounted suspended access machine for cleaning, maintenance and inspection -> confirmed."
+    },
+    {
+      "id": "facade_access_maintenance:lead-times-and-quoting",
+      "topic": "Façade access, BMU & rope access - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الوصول للواجهات ووحدات صيانة المباني والوصول بالحبال: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Cleaning cycles and rope-access jobs: usually 1-3 weeks to mobilise; BMU supply and installation 4-9 months. A contractor needs the building height and facade area, facade type, existing access equipment and its certificates, scope and frequency, working-hour limits, and roof access. A quote states the access method, crew and certifications, cycles and duration, inspections of equipment, method statement and rescue plan, insurance, price per cycle or per drop, and validity.",
+      "body_ar": "دورات التنظيف وأعمال الحبال: عادة 1-3 أسابيع للبدء؛ وتوريد وتركيب وحدة صيانة المبنى 4-9 أشهر. ويحتاج المقاول ارتفاع المبنى ومساحة الواجهة، ونوع الواجهة، ومعدات الوصول الموجودة وشهاداتها، والنطاق والتكرار، وقيود ساعات العمل، والوصول إلى السطح. ويذكر العرض طريقة الوصول، والطاقم وشهاداته، والدورات والمدة، وفحوص المعدات، وبيان الطريقة وخطة الإنقاذ، والتأمين، والسعر لكل دورة أو إنزال، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -82,6 +112,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry names the temporary suspended platform standard (EN 1808) or the third-party inspection certificate required before use). facade_access_maintenance:en-1808-cradle-inspection was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from facade_access_maintenance.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our tower BMU certificate expired. Can the cleaners still use it this month?",
+      "q_ar": "شهادة وحدة صيانة الواجهة في برجنا انتهت، هل يقدر عمال التنظيف يستخدمونها هالشهر؟",
+      "expected_entry_ids": [
+        "facade_access_maintenance:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "facade_access_maintenance:en-1808-cradle-inspection"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "facade_access_maintenance:product-distinctions"
+      ],
+      "stored_not_served": [
+        "facade_access_maintenance:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Building_maintenance_unit"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

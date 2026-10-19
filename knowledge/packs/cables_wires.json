@@ -60,6 +60,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "cables_wires:product-distinctions",
+      "topic": "Cables and wires: conductor, insulation, armour, voltage and fire performance",
+      "topic_ar": "الكابلات والأسلاك: الموصل والعزل والتسليح والجهد والأداء عند الحريق",
+      "kind": "product_distinctions",
+      "body_en": "Power cables are specified by conductor (copper, or aluminium for large feeders where weight and cost matter; class 2 stranded or class 5 flexible), cross-section in mm2, number of cores, insulation (PVC for general building wiring; XLPE for higher current rating and temperature), sheath (PVC, or low-smoke zero-halogen LSZH for public buildings, tunnels and hospitals, where smoke and acid gas in a fire endanger people), armour (steel wire for multi-core, aluminium wire for single-core AC cables, or unarmoured), and voltage rating (450/750 V building wires, 0.6/1 kV low-voltage power cable, and medium voltage 6.35/11 kV up to 33 kV). Fire-resistant cables (circuit integrity, tested to keep working in a fire for a stated time) feed fire alarms, emergency lighting, smoke extract and fire pumps. Other families: control and instrumentation cables (screened, twisted pairs), data and fibre optic, flexible cords, welding cable, solar DC cable, and overhead conductors. Standards commonly named: BS 6724 or BS 5467 (armoured), IEC 60502, BS 6387 / BS 8491 / EN 50200 (fire resistance), IEC 60754 and 61034 (smoke and halogen). Cable sizing follows current rating, installation method, grouping, ambient temperature and voltage drop.",
+      "body_ar": "تُحدد كابلات الطاقة بالموصل (نحاس، أو ألمنيوم للمغذيات الكبيرة حيث يهم الوزن والتكلفة؛ مجدول من الفئة 2 أو مرن من الفئة 5)، والمقطع بالمليمتر المربع، وعدد الأقطاب، والعزل (PVC لتمديدات المباني العامة؛ XLPE لتيار ودرجة حرارة أعلى)، والغلاف (PVC، أو منخفض الدخان خالٍ من الهالوجين للمباني العامة والأنفاق والمستشفيات حيث يعرّض الدخان والغازات الحمضية الناس للخطر عند الحريق)، والتسليح (أسلاك حديد للكابلات متعددة الأقطاب، وأسلاك ألمنيوم للكابلات أحادية القطب للتيار المتردد، أو بلا تسليح)، وجهد التصنيف (أسلاك المباني 450/750 فولت، وكابلات الجهد المنخفض 0.6/1 كيلوفولت، والجهد المتوسط 6.35/11 كيلوفولت حتى 33 كيلوفولت). والكابلات المقاومة للحريق (سلامة الدائرة، مختبرة لتستمر بالعمل في الحريق مدة محددة) تغذي إنذار الحريق وإنارة الطوارئ وشفط الدخان ومضخات الحريق. وعائلات أخرى: كابلات التحكم والأجهزة (مدرعة، أزواج مجدولة)، والبيانات والألياف الضوئية، والأسلاك المرنة، وكابلات اللحام، وكابلات التيار المستمر للطاقة الشمسية، والموصلات الهوائية. والمواصفات الشائعة: BS 6724 أو BS 5467 (المسلحة)، وIEC 60502، وBS 6387 / BS 8491 / EN 50200 (مقاومة الحريق)، وIEC 60754 و61034 (الدخان والهالوجين). ويتبع تحديد مقطع الكابل التيار المقنن وطريقة التمديد والتجميع والحرارة المحيطة وهبوط الجهد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Power_cable"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: copper and aluminium conductors, XLPE and PVC insulation, steel or aluminium wire armour, voltage levels, low-smoke zero-halogen and fire-resistant sheaths -> confirmed."
+    },
+    {
+      "id": "cables_wires:lead-times-and-quoting",
+      "topic": "Cables & wires - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الكابلات والأسلاك: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Common building wires and LV cables: ex-stock in days; large LV, MV and fire-resistant cables made to order 3-10 weeks. A supplier needs the cable schedule (type, cores, size, voltage, armour, sheath, standard), lengths and drum lengths, approved brands or makes list, and delivery. A quote states make, standard, construction, drum lengths, test certificates and approvals, price basis per metre (often with a copper or aluminium base price and adjustment), delivery and validity.",
+      "body_ar": "أسلاك المباني الشائعة وكابلات الجهد المنخفض: متوفرة خلال أيام؛ والكابلات الكبيرة ومتوسطة الجهد والمقاومة للحريق مصنعة بالطلب 3-10 أسابيع. ويحتاج المورد جدول الكابلات (النوع، الأقطاب، المقطع، الجهد، التسليح، الغلاف، المواصفة)، والأطوال وأطوال البكرات، وقائمة الصانعين المعتمدين، والتسليم. ويذكر العرض الصانع والمواصفة والبنية وأطوال البكرات وشهادات الاختبار والموافقات وأساس السعر للمتر (غالباً مع سعر أساس للنحاس أو الألمنيوم وتعديل) والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -85,6 +115,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers copper/LME-linked cable pricing; missing a price-drivers entry). cables_wires:copper-linked-cable-pricing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from cables_wires.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which cable should feed a fire pump: normal armoured or fire-resistant?",
+      "q_ar": "وش الكابل اللي يغذي مضخة الحريق: مسلح عادي ولا مقاوم للحريق؟",
+      "expected_entry_ids": [
+        "cables_wires:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -104,6 +142,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "cables_wires:copper-linked-cable-pricing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "cables_wires:product-distinctions"
+      ],
+      "stored_not_served": [
+        "cables_wires:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Power_cable"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

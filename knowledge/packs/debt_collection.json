@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "debt_collection:product-distinctions",
+      "topic": "Debt collection: service models and fee structures",
+      "topic_ar": "تحصيل الديون: نماذج الخدمة وهياكل الأتعاب",
+      "kind": "product_distinctions",
+      "body_en": "Collection services are first-party (under the creditor's own name, often outsourced soft collection early in the cycle) or third-party (an agency collects in its own name after the debt is overdue), and some debts are sold outright to debt buyers at a fraction of face value. The agency's work: tracing and locating debtors, demand letters and calls, negotiated payment plans and settlements, field visits, and, where amicable recovery fails, legal action through lawyers (payment orders, civil cases, enforcement) and international collection through partner agencies. Fees are usually contingency (a percentage of the amount actually collected, often varying with the age and size of the debt) plus fixed fees for legal stages, court costs and tracing; some offer fixed-fee letter services. Related services: credit reports and company verification before giving credit, credit insurance referrals, and receivables management. What separates agencies: their licence to collect, conduct rules (no harassment, data protection), recovery rate on similar portfolios, reporting and client-account handling of collected money, and whether legal costs are passed through.",
+      "body_ar": "تكون خدمات التحصيل إما من الطرف الأول (باسم الدائن نفسه، وكثيراً ما تُسند في المرحلة المبكرة من التحصيل الودي) أو من طرف ثالث (وكالة تحصل باسمها بعد تأخر الدين)، وتُباع بعض الديون بالكامل لمشتري ديون بجزء من قيمتها الاسمية. وعمل الوكالة: تتبع المدينين وتحديد أماكنهم، ورسائل المطالبة والاتصالات، وخطط السداد والتسويات المتفاوض عليها، والزيارات الميدانية، وعند فشل التحصيل الودي الإجراءات القانونية عبر المحامين (أوامر الأداء، الدعاوى المدنية، التنفيذ) والتحصيل الدولي عبر وكالات شريكة. والأتعاب عادة نسبة من المبلغ المحصل فعلاً (تختلف غالباً حسب عمر الدين وحجمه) إضافة إلى رسوم ثابتة للمراحل القانونية ورسوم المحاكم والتتبع؛ ويعرض البعض خدمة رسائل برسوم ثابتة. والخدمات المرتبطة: تقارير الائتمان والتحقق من الشركات قبل منح الائتمان، والإحالة لتأمين الائتمان، وإدارة الذمم المدينة. وما يميز الوكالات: ترخيصها للتحصيل، وقواعد السلوك (بلا مضايقة، وحماية البيانات)، ومعدل الاسترداد في محافظ مماثلة، والتقارير والتعامل مع الأموال المحصلة في حساب العملاء، وهل تُمرر التكاليف القانونية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Debt_collection_agency"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: contingency fees; first-party versus third-party agencies; debt buyers purchasing at a fraction of face value -> confirmed."
+    },
+    {
+      "id": "debt_collection:lead-times-and-quoting",
+      "topic": "Debt collection & credit reports - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تحصيل الديون وتقارير الائتمان: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Amicable collection starts within days of instruction; legal stages take months. An agency needs the debtor details, amounts, invoices and contracts, ageing, previous contact, and whether legal action is authorised. A quote states the fee percentage by debt age and size, fixed fees, legal cost handling, remittance timing, reporting and validity.",
+      "body_ar": "يبدأ التحصيل الودي خلال أيام من التكليف؛ والمراحل القانونية تستغرق أشهراً. وتحتاج الوكالة بيانات المدين، والمبالغ، والفواتير والعقود، وأعمار الديون، والتواصل السابق، وهل الإجراء القانوني مفوض. ويذكر العرض نسبة الأتعاب حسب عمر الدين وحجمه، والرسوم الثابتة، والتعامل مع التكاليف القانونية، وتوقيت تحويل المبالغ، والتقارير، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither describes contingency/commission vs fixed fee charging; missing: collection fee models entry). debt_collection:collection-fee-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from debt_collection.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should we sell our old unpaid invoices to a debt buyer or give them to an agency on commission?",
+      "q_ar": "نبيع فواتيرنا القديمة غير المدفوعة لمشتري ديون ولا نعطيها لوكالة بالعمولة؟",
+      "expected_entry_ids": [
+        "debt_collection:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "debt_collection:collection-fee-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "debt_collection:product-distinctions"
+      ],
+      "stored_not_served": [
+        "debt_collection:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Debt_collection_agency"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

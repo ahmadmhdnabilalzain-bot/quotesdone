@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "device_repair:product-distinctions",
+      "topic": "Device repair: repair types, parts grades and data",
+      "topic_ar": "إصلاح الأجهزة: أنواع الإصلاح ودرجات القطع والبيانات",
+      "kind": "product_distinctions",
+      "body_en": "Common repairs: phone and tablet screens, batteries, charging ports, cameras, back glass, water damage; laptop screens, keyboards, batteries, hinges, SSD and RAM upgrades, fan and thermal service; board-level (micro-soldering) repairs of power and charging circuits; data recovery from failed drives; and OS reinstallation and virus removal. Parts come as genuine (from the maker or its authorised channel), refurbished genuine (pulled from other devices), or third-party aftermarket of varying quality (for screens, LCD versus OLED and brightness and touch quality differ). Some makers pair parts to the device's serial, so a replaced screen, battery or camera may show a warning or lose features unless calibrated through the maker's tools; authorised service keeps the warranty, while independent repair is often faster and cheaper. Business clients add AMC contracts for fleets, on-site support, loan devices, and certified data wiping before disposal. What separates offers: the part grade stated in writing, the repair warranty, diagnostic fees, turnaround, and how the shop handles customer data and passcodes.",
+      "body_ar": "الإصلاحات الشائعة: شاشات الهواتف والأجهزة اللوحية، والبطاريات، ومنافذ الشحن، والكاميرات، والزجاج الخلفي، وأضرار المياه؛ وشاشات الحواسيب المحمولة، ولوحات المفاتيح، والبطاريات، والمفصلات، وترقيات أقراص SSD والذاكرة، وصيانة المراوح والتبريد؛ والإصلاحات على مستوى اللوحة (اللحام الدقيق) لدوائر الطاقة والشحن؛ واستعادة البيانات من الأقراص المعطلة؛ وإعادة تثبيت النظام وإزالة الفيروسات. والقطع إما أصلية (من الصانع أو قناته المعتمدة)، أو أصلية مجددة (منزوعة من أجهزة أخرى)، أو تجارية بجودة متفاوتة (وفي الشاشات يختلف LCD عن OLED في السطوع وجودة اللمس). وبعض الصانعين يربطون القطع بالرقم التسلسلي للجهاز، فقد تُظهر الشاشة أو البطارية أو الكاميرا المستبدلة تحذيراً أو تفقد بعض الخصائص ما لم تُعاير بأدوات الصانع؛ والخدمة المعتمدة تحفظ الضمان، بينما الإصلاح المستقل غالباً أسرع وأرخص. ويضيف عملاء الشركات عقود الصيانة السنوية للأساطيل، والدعم في الموقع، والأجهزة البديلة، والمسح المعتمد للبيانات قبل التخلص. وما يميز العروض: درجة القطعة مكتوبة، وضمان الإصلاح، ورسوم الفحص، ومدة الإنجاز، وطريقة تعامل المحل مع بيانات العميل ورموز المرور.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Right_to_repair"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: independent repair of phones and computers; parts pairing; original versus third-party parts -> confirmed."
+    },
+    {
+      "id": "device_repair:lead-times-and-quoting",
+      "topic": "Computer & phone repair - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "إصلاح الكمبيوتر والهواتف: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Common repairs: same day to 3 days; parts on order 1-2 weeks; board-level and data recovery 3-10 days. A shop needs the device model, the fault, warranty status, data-backup needs, and quantity for business fleets. A quote states the repair, part grade and source, diagnostic fee, price basis, turnaround, repair warranty, data handling, and validity.",
+      "body_ar": "الإصلاحات الشائعة: في نفس اليوم حتى 3 أيام؛ والقطع المطلوبة 1-2 أسبوع؛ وإصلاحات اللوحة واستعادة البيانات 3-10 أيام. ويحتاج المحل موديل الجهاز، والعطل، وحالة الضمان، واحتياجات النسخ الاحتياطي للبيانات، والكمية لأساطيل الشركات. ويذكر العرض الإصلاح، ودرجة القطعة ومصدرها، ورسوم الفحص، وأساس السعر، ومدة الإنجاز، وضمان الإصلاح، والتعامل مع البيانات، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither addresses manufacturer warranty effect of non-genuine parts; missing: OEM vs aftermarket parts and warranty entry). device_repair:oem-vs-aftermarket-parts-warranty was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from device_repair.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Will my phone show a warning if a repair shop replaces the screen with a non-original part?",
+      "q_ar": "هل جوالي بيطلع تحذير إذا محل الصيانة غير الشاشة بقطعة غير أصلية؟",
+      "expected_entry_ids": [
+        "device_repair:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "device_repair:oem-vs-aftermarket-parts-warranty"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "device_repair:product-distinctions"
+      ],
+      "stored_not_served": [
+        "device_repair:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Right_to_repair"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
