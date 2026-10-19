@@ -166,8 +166,6 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'marketing.lead_sourcing', from: 'marketing', to: 'ceo' },
   { type: 'adspend.recorded', from: 'marketing', to: 'accountant' },
   { type: 'adspend.booked', from: 'accountant', to: 'marketing' },
-  // legal finding 14: a VAT threshold crossing (scripts/sql/the_accountant_tells_the_ceo_before_the_vat_threshold.sql)
-  { type: 'accountant.vat_threshold', from: 'accountant', to: 'ceo' },
   // legal finding 1: an unresolved objection to an automated decision
   // (scripts/sql/the_support_desk_takes_an_objection_to_an_automated_decision.sql)
   { type: 'support.decision_objection', from: 'customer_support', to: 'ceo' },
