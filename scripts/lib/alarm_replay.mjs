@@ -18,6 +18,10 @@ export function replaySql(name, def, entry, at, stage = '', prelude = '') {
     .replace(new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\s*\\(`, 'i'), `create function pg_temp.qd_replay_${name}(`)
     .replace(/\bnow\(\)|\bclock_timestamp\(\)|\bcurrent_timestamp\b|\btransaction_timestamp\(\)|\bstatement_timestamp\(\)/gi, 'pg_temp.qd_asof()')
     .replace(/\bpublic\.fn_it_engineer_finding_upsert\s*\(/gi, 'pg_temp.qd_quiet_capture(');
+  // entry.stub: calls the replayed body must NOT make on the live database, replaced by a constant. A call that takes a
+  // row lock on a live table holds it for the whole replay transaction, and a live caller that skips locked rows then
+  // silently skips that work (19 Oct 2026: fn_seat_duty_run under the fn_seat_duties_tick replay).
+  for (const [fn, value] of Object.entries(entry.stub ?? {})) body = body.replace(new RegExp(`\\b${fn.replace('.', '\\.')}\\s*\\([^()]*\\)`, 'gi'), value);
   for (const t of Object.keys(entry.asOf ?? {})) body = body.replace(new RegExp(`\\bpublic\\.${t}\\b`, 'g'), `pg_temp.qd_asof_${t}`);
   const views = Object.entries(entry.asOf ?? {})
     .map(([t, c]) => `create temp view qd_asof_${t} as select * from public.${t} where ${c} < ${lit(at)}::timestamptz;`).join('\n');
