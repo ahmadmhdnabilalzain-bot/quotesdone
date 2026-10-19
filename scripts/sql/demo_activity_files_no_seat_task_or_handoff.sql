@@ -75,56 +75,6 @@ drop trigger if exists a000_org_task_demo_files_nothing on public.org_tasks;
 create trigger a000_org_task_demo_files_nothing before insert on public.org_tasks
   for each row execute function public.fn_org_task_demo_files_nothing();
 
--- fn_seat_handoff: the live body unchanged except the one ruling-1199 line after the subject check.
-create or replace function public.fn_seat_handoff(p_from text, p_to text, p_type text, p_subject_table text, p_subject_id text, p_payload jsonb default '{}'::jsonb)
-returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $function$
-declare v_id bigint; v_key text := p_type || ':' || p_subject_id; v_known boolean;
-begin
-  if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
-  -- ruling 1199: a handoff raised from a demo row is not filed at all
-  if public.fn_seat_work_is_demo(p_payload::text, p_payload, p_subject_table, p_subject_id) then return null; end if;
-  v_known := exists (select 1 from public.seat_handoff_kind k
-                      where k.type = p_type and k.from_seat = p_from and k.to_seat = p_to);
-
-  select id into v_id from public.agent_actions
-   where kind = 'handoff' and agent = p_to and target_id = v_key and status <> 'failed'
-   order by id limit 1;
-  if v_id is not null then return v_id; end if;
-
-  insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
-  values (p_to, 'handoff', case when v_known then 'pending' else 'failed' end, 'low',
-          left(p_type || ' from ' || p_from || ' about ' || p_subject_table || ' ' || p_subject_id, 200),
-          coalesce(p_payload, '{}'::jsonb) || jsonb_build_object(
-            'type', p_type, 'from', p_from, 'from_name', p_from, 'to', p_to,
-            'subject_table', p_subject_table, 'subject_id', p_subject_id)
-          || case when v_known then '{}'::jsonb
-                  else jsonb_build_object('error', 'unregistered handoff kind: no row in public.seat_handoff_kind') end,
-          p_subject_table, v_key)
-  returning id into v_id;
-
-  if not v_known then
-    perform public.fn_seat_handoff_event(v_id, 'failed');
-    perform public.fn_it_engineer_finding_upsert(
-      'monitor:unregistered_handoff_kind:' || p_type || ':' || p_from || ':' || p_to,
-      'Unregistered handoff kind: ' || p_from || ' tried to start "' || p_type || '" with ' || p_to,
-      'public.fn_seat_handoff (caller: ' || p_from || ')', 'agent_facing', 1,
-      jsonb_build_object('type', p_type, 'from', p_from, 'to', p_to, 'handoff_id', v_id, 'owner_seat', 'ceo',
-                         'fix', 'insert the conversation into public.seat_handoff_kind with its handler, in the file of the build that starts it'),
-      '{}'::text[], array['which build starts this conversation and which handler answers it'], 'fn_seat_handoff');
-    return v_id;
-  end if;
-  perform public.fn_seat_handoff_event(v_id, 'sent');
-
-  -- THE RECEIVING SEAT ACTS NOW. A failure is recorded on the row and in the stream and never
-  -- rolls back the money event that raised it: a refund that settled stays settled.
-  begin
-    perform public.fn_seat_handoff_act(v_id);
-  exception when others then
-    update public.agent_actions
-       set status = 'failed', decided_at = now(),
-           detail = detail || jsonb_build_object('error', left(sqlerrm, 500))
-     where id = v_id;
-    perform public.fn_seat_handoff_event(v_id, 'failed');
-  end;
-  return v_id;
-end $function$;
+-- fn_seat_handoff: its ruling-1199 line (return null when fn_seat_work_is_demo) lives in the routine's one owner,
+-- scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql (handoff_kinds_are_data.test.mjs). This file applied
+-- that same body to production on 19 Oct; the owner file now carries it, so production needs no re-apply.

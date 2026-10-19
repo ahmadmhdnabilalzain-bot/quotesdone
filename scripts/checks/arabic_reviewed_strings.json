@@ -462,6 +462,9 @@
   "d0466f61047f",
   "fae3d0feb457"
  ],
+ "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
+  "1143523d828f"
+ ],
  "scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql": [
   "2fcc300bc0ca",
   "4c605fe5b5ab",

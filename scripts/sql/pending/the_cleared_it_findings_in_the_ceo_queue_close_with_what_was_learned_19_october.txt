@@ -1,1 +1,0 @@
-Data only. Applies AFTER #1415 (it owns books_stale, backup_prune_blocked, marketing_media_below_recommended; the file refuses otherwise). At merge, outside 10:00-17:00 Dubai. Proved 19 Oct 2026 in a rolled-back transaction with those three classes present: 25 of 25 CLOSED. On apply: delete this note and append the file to the end of MANIFEST.txt.
