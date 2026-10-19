@@ -333,6 +333,11 @@ export async function makeCustomer(run, opts = {}) {
  * exercised; only the delivery hop is skipped.
  */
 export async function verifyEmailByOtp(email, userKind = 'customer', code = '424242') {
+  // A SEEDED CODE IS A SESSION FOR WHOEVER OWNS THE ADDRESS (19 Oct 2026). Only a reserved RFC 2606
+  // address can be seeded; a real account's address is refused before anything is written.
+  if (!/^[^@\s]+@example\.invalid$/i.test(String(email))) {
+    throw new Error(`REFUSED: a sign-in code is only ever seeded for a demo @example.invalid address, not ${email}`);
+  }
   const key = (await mgmtRead(REF, "select value from public.app_secrets where key='otp_hmac_key'"))[0]?.value;
   if (!key) throw new Error('otp_hmac_key missing from staging app_secrets');
   const hash = createHmac('sha256', key).update(code).digest('hex');
