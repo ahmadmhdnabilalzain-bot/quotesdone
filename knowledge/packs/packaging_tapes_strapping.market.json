@@ -9,19 +9,28 @@
       "topic": "Packaging tapes & strapping: brands and makers in this category",
       "topic_ar": "أشرطة التغليف والتربيط: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): 3M (United States) makes adhesive tapes including Scotch tape. tesa (Germany) makes adhesive tapes and other adhesive products. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): 3M (الولايات المتحدة) تصنع الأشرطة اللاصقة ومنها شريط Scotch. tesa (ألمانيا) تصنع الأشرطة اللاصقة ومنتجات لاصقة أخرى. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): 3M (United States) makes adhesive tapes including Scotch tape. tesa (Germany) makes adhesive tapes and other adhesive products. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): 3M (الولايات المتحدة) تصنع الأشرطة اللاصقة ومنها شريط Scotch. tesa (ألمانيا) تصنع الأشرطة اللاصقة ومنتجات لاصقة أخرى. ولم يُتحقق من الموزع المحلي لكل علامة.",
       "sources": [
         "https://en.wikipedia.org/wiki/3M",
         "https://en.wikipedia.org/wiki/Tesa_SE"
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
       "source_note": "3M: https://en.wikipedia.org/wiki/3M | tesa: https://en.wikipedia.org/wiki/Tesa_SE"
     }
   ],
-  "eval": [],
+  "eval": [
+    {
+      "q_en": "Which makes of packaging tapes & strapping are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في أشرطة التغليف والتربيط؟",
+      "expected_entry_ids": [
+        "packaging_tapes_strapping:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
   "verified": {
     "by": "sales_engineer",
     "on": "2026-10-19",

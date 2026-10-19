@@ -9,8 +9,8 @@
       "topic": "Industrial filters: brands and makers in this category",
       "topic_ar": "الفلاتر الصناعية: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Camfil (Sweden) makes air filters and clean-air products. Donaldson (United States) makes air and liquid filtration for engines, industry and aerospace. MANN+HUMMEL (Germany) makes liquid and air filter systems, intake systems and cabin air filters. Parker Hannifin (United States) makes filtration products among its motion-control lines. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Camfil (السويد) تصنع فلاتر الهواء ومنتجات الهواء النظيف. Donaldson (الولايات المتحدة) تصنع فلاتر الهواء والسوائل للمحركات والصناعة والطيران. MANN+HUMMEL (ألمانيا) تصنع أنظمة فلاتر السوائل والهواء وأنظمة السحب وفلاتر هواء المقصورة. Parker Hannifin (الولايات المتحدة) تصنع منتجات الترشيح ضمن خطوط التحكم بالحركة. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Camfil (Sweden) makes air filters and clean-air products. Donaldson (United States) makes air and liquid filtration for engines, industry and aerospace. MANN+HUMMEL (Germany) makes liquid and air filter systems, intake systems and cabin air filters. Parker Hannifin (United States) makes filtration products among its motion-control lines. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Camfil (السويد) تصنع فلاتر الهواء ومنتجات الهواء النظيف. Donaldson (الولايات المتحدة) تصنع فلاتر الهواء والسوائل للمحركات والصناعة والطيران. MANN+HUMMEL (ألمانيا) تصنع أنظمة فلاتر السوائل والهواء وأنظمة السحب وفلاتر هواء المقصورة. Parker Hannifin (الولايات المتحدة) تصنع منتجات الترشيح ضمن خطوط التحكم بالحركة. ولم يُتحقق من الموزع المحلي لكل علامة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Camfil",
         "https://en.wikipedia.org/wiki/Donaldson_Company",
@@ -19,7 +19,7 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
       "source_note": "Camfil: https://en.wikipedia.org/wiki/Camfil | Donaldson: https://en.wikipedia.org/wiki/Donaldson_Company | MANN+HUMMEL: https://en.wikipedia.org/wiki/Mann%2BHummel | Parker: https://en.wikipedia.org/wiki/Parker_Hannifin"
     },
     {
@@ -35,11 +35,20 @@
       "confidence": "low",
       "verified": false,
       "as_of": "2026-10-19",
-      "method": "One opened page each; kept low and unserved until a second source confirms (coordinator route, 19 Oct 2026).",
+      "method": "One opened page each (Wikipedia or the brand's own news page); kept low and unserved until a second source confirms (coordinator route, 19 Oct 2026).",
       "source_note": "MP Filtri: https://mpfiltri.com/news/news-institutional/2022/10/10th-mp-filtri-branch-opens-in-the-united-arab-emirates.html"
     }
   ],
-  "eval": [],
+  "eval": [
+    {
+      "q_en": "Which makes of industrial filters are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في الفلاتر الصناعية؟",
+      "expected_entry_ids": [
+        "industrial_filters:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
   "verified": {
     "by": "sales_engineer",
     "on": "2026-10-19",

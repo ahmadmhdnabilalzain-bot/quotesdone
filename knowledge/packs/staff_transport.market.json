@@ -9,8 +9,8 @@
       "topic": "Staff transport & bus rental: brands and makers in this category",
       "topic_ar": "نقل الموظفين وتأجير الحافلات: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Ashok Leyland (India) builds trucks, buses and engines. The Toyota Coaster (Japan) is a single-deck minibus for about 8-30 passengers. King Long (China) makes minibuses, coaches and light vans and sells in Middle Eastern markets. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Ashok Leyland (الهند) تصنع الشاحنات والحافلات والمحركات. Toyota Coaster (اليابان) حافلة صغيرة بطابق واحد تتسع لنحو 8-30 راكباً. King Long (الصين) تصنع الحافلات الصغيرة والكبيرة والفانات الخفيفة وتبيع في أسواق الشرق الأوسط. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Ashok Leyland (India) builds trucks, buses and engines. The Toyota Coaster (Japan) is a single-deck minibus for about 8-30 passengers. King Long (China) makes minibuses, coaches and light vans and sells in Middle Eastern markets. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Ashok Leyland (الهند) تصنع الشاحنات والحافلات والمحركات. Toyota Coaster (اليابان) حافلة صغيرة بطابق واحد تتسع لنحو 8-30 راكباً. King Long (الصين) تصنع الحافلات الصغيرة والكبيرة والفانات الخفيفة وتبيع في أسواق الشرق الأوسط. ولم يُتحقق من الموزع المحلي لكل علامة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Ashok_Leyland",
         "https://en.wikipedia.org/wiki/Toyota_Coaster",
@@ -18,7 +18,7 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
       "source_note": "Ashok Leyland: https://en.wikipedia.org/wiki/Ashok_Leyland | Toyota Coaster: https://en.wikipedia.org/wiki/Toyota_Coaster | King Long: https://en.wikipedia.org/wiki/King_Long"
     },
     {
@@ -34,11 +34,20 @@
       "confidence": "low",
       "verified": false,
       "as_of": "2026-10-19",
-      "method": "One opened page each; kept low and unserved until a second source confirms (coordinator route, 19 Oct 2026).",
+      "method": "One opened page each (Wikipedia or the brand's own news page); kept low and unserved until a second source confirms (coordinator route, 19 Oct 2026).",
       "source_note": "Ashok Leyland: https://en.wikipedia.org/wiki/Ashok_Leyland"
     }
   ],
-  "eval": [],
+  "eval": [
+    {
+      "q_en": "Which makes of staff transport & bus rental are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في نقل الموظفين وتأجير الحافلات؟",
+      "expected_entry_ids": [
+        "staff_transport:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
   "verified": {
     "by": "sales_engineer",
     "on": "2026-10-19",
