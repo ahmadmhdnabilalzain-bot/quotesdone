@@ -2,7 +2,7 @@
 // offline, sharp standing in for the canvas. Shared by drawing_image_ocr.test.ts and drawing_bench.test.ts.
 import { createWorker } from 'npm:tesseract.js@7.0.0';
 import type { OcrLine } from './drawing_from_ocr.ts';
-import { OCR_PASSES, binarize, mergeLines, scaleFor, tiles } from '../../../src/components/me/ocrPlan.ts';
+import { OCR_PASSES, binarize, mergeLines, scaleFor, skewDegrees, tiles } from '../../../src/components/me/ocrPlan.ts';
 
 // sharp is PINNED to the version deno.lock already holds (via next): an unpinned specifier resolved
 // to npm's newest, and on 28 Sep 2026 sharp 0.35.5 was tagged latest before its darwin-x64 binary
@@ -16,8 +16,12 @@ let sharp: any;
 export const loadSharp = async () => { if (!sharp) sharp = (await import('npm:sharp@0.34.5')).default; return sharp; };
 
 /** The OCR plan, exactly as the browser runs it, with sharp standing in for the canvas. */
-export async function ocrPlan(bytes: Uint8Array, LANG: string) {
+export async function ocrPlan(input: Uint8Array, LANG: string) {
   await loadSharp();
+  // Straighten first, as ocrClient does: the sheet is read and counted level.
+  const raw0 = await sharp(input).flatten({ background: '#ffffff' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const skew = skewDegrees(new Uint8Array(raw0.data), 3, raw0.info.width, raw0.info.height);
+  const bytes: Uint8Array = skew ? new Uint8Array(await sharp(input).flatten({ background: '#ffffff' }).rotate(skew, { background: '#ffffff' }).png().toBuffer()) : input;
   const meta = await sharp(bytes).metadata();
   const worker = await createWorker('eng', 1, { langPath: LANG, gzip: true, cacheMethod: 'none' });
   const all: (OcrLine & { pass: number })[] = [];
@@ -39,6 +43,6 @@ export async function ocrPlan(bytes: Uint8Array, LANG: string) {
       }
     }
   } finally { await worker.terminate(); }
-  return { lines: mergeLines(all), width: meta.width!, height: meta.height! };
+  return { lines: mergeLines(all), width: meta.width!, height: meta.height!, bytes, skew };
 }
 

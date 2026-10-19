@@ -168,7 +168,7 @@ export function countSymbols(img: Img, rows: LegendRow[]): SymbolCounts {
           let both = 0; for (const o of t.on) both += ink[(y + Math.floor(o / t.w)) * W + x + (o % t.w)];
           const ma = a / t.n, varA = a - t.n * ma * ma;
           const full = (both - t.n * ma * mt) / Math.sqrt(Math.max(1e-9, varA * varT));
-          if (full < 0.3) continue;
+          if (full < 0.3 || both < k * 0.5) continue;  // a ring is mostly THERE: measured, cable crossings passed the correlation with a third of a ring
           const ai = sumIn(I, W, x + ix0, y + iy0, iw, ih);
           let bi = 0; for (const o of inOn) bi += ink[(y + Math.floor(o / t.w)) * W + x + (o % t.w)];
           const mai = ai / inN, varAi = ai - inN * mai * mai;
@@ -201,9 +201,13 @@ export function countSymbols(img: Img, rows: LegendRow[]): SymbolCounts {
 export function legendRows(lines: { text: string; bbox: Rect }[], sheetW: number, typeOf: (t: string) => { type: string } | null): LegendRow[] {
   const best = new Map<string, LegendRow>();
   for (const l of printedLines(lines.filter((x) => x.bbox.x >= sheetW * 0.75))) {
-    const d = typeOf(l.text); if (!d || /isolator|cable/.test(d.type)) continue;
-    // "¢/w" is how OCR prints c/w; a line naming a combined device it did not resolve to is dropped.
-    if (/c\s*\/?\s*w\b/i.test(l.text.replace(/[¢©]/g, 'c')) && !/_sounder$/.test(d.type)) continue;
+    let d = typeOf(l.text); if (!d || /isolator|cable/.test(d.type)) continue;
+    // "¢/w" is how OCR prints c/w. A detector "c/w" whose last word OCR lost ("SMOKE DETICTOR c 'wr SOBER", measured
+    // on the phone photo) is the detector-with-sounder entry; any other unresolved combined device is dropped.
+    if (/\bc\s*['‘’/]?\s*(?:w|=)/i.test(l.text.replace(/[¢©]/g, 'c')) && !/_sounder$/.test(d.type)) {
+      const s = /^(smoke|heat)_detector$/.test(d.type) ? typeOf(`${d.type.replace('_', ' ')} c/w sounder`) : null;
+      if (!s) continue; d = s;
+    }
     const cur = best.get(d.type);
     if (!cur || l.text.length > (cur.text || '').length) best.set(d.type, { type: d.type, bbox: l.bbox, text: l.text });
   }

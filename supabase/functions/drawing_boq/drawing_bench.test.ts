@@ -116,8 +116,8 @@ async function imageCase(name: string, bytes: Uint8Array) {
   const k = KEY.image_real;
   const { loadSharp, ocrPlan } = await import('./ocr_plan_offline.ts');
   const sharp = await loadSharp();
-  const { lines, width } = await ocrPlan(bytes, LANG);
-  const { data, info } = await sharp(bytes).flatten({ background: '#ffffff' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { lines, width, bytes: level } = await ocrPlan(bytes, LANG);
+  const { data, info } = await sharp(level).flatten({ background: '#ffffff' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const sym = countSymbols({ w: info.width, h: info.height, px: new Uint8Array(data), channels: 3 }, legendRows(lines, width, deviceTypeOf));
   const out = boqFromExtracted(empty('image'), '', '', drawingInput(lines, width, { counts: sym.counts }, ''));
   const s = supplierBoq(out);
