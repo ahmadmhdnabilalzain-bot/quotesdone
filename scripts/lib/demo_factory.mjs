@@ -218,6 +218,26 @@ export async function closeRehearsalWindow(tag) {
   return mgmtFixture(REF, `update public.rehearsal_window set ended_at = now(), models_allowed = false where run_tag = 'qd_run:${tag}' and ended_at is null`, 'rehearsal window');
 }
 
+/**
+ * Close a window when the process is ended before its `finally` can run: SIGTERM (a cancelled CI job),
+ * SIGINT, or an uncaught exception / unhandled rejection. 13 Oct 2026: nine smoke and withRun windows
+ * stayed open for hours and blocked stage2. Same pattern as a_phone_cannot_select_an_account.test.mjs
+ * (#1362, #1377). Returns a disarm function; call it once the normal `finally` has closed the window.
+ * A kill -9 is caught by nothing here: fn_rehearsal_window_sweep is the net for that.
+ */
+export function closeOnExit(close) {
+  const h = (code, err) => () => {
+    if (err !== undefined) console.error(err);
+    Promise.resolve().then(close).catch(() => {}).finally(() => process.exit(code));
+  };
+  const handlers = {
+    SIGTERM: h(143), SIGINT: h(130),
+    uncaughtException: (e) => h(1, e)(), unhandledRejection: (e) => h(1, e)(),
+  };
+  for (const [ev, fn] of Object.entries(handlers)) process.once(ev, fn);
+  return () => { for (const [ev, fn] of Object.entries(handlers)) process.removeListener(ev, fn); };
+}
+
 export async function withRun(fn, opts = {}) {
   // AI ON, CAPPED (founder ruling 18 Oct 2026): the window lets this run's tagged model calls through up to capUsd.
   const { capUsd = 15, minutes = 120, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
@@ -233,9 +253,11 @@ export async function withRun(fn, opts = {}) {
     process.env.QD_E2E_RUN_TAG = run.tag;
   }
   catch (e) { run.log(`(rehearsal window not declared: ${String(e.message || e).slice(0, 120)})`); }
+  const disarm = closeOnExit(() => closeRehearsalWindow(run.tag));
   try {
     return await fn(run);
   } finally {
+    disarm();
     if (run.keep) run.log(`run ${run.tag} KEPT (teardown skipped) - tear down later with --purge`);
     else {
       const t = await teardown(run);
