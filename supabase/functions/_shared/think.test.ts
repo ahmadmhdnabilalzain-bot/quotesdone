@@ -1,7 +1,7 @@
 // think() with a mocked model, embedder and database. No network, no env, no paid call.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { GateAnswer } from './llm_hold.ts';
-import { authoritative, isFixtureRequest, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
+import { authoritative, isFixtureRequest, planTimedOut, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
 
 type Call = { phase: Phase; system: string; input: string; o: Record<string, unknown> };
 function mock(o: {
@@ -437,6 +437,17 @@ Deno.test('customer A never sees customer B\'s quote case in the chat context; a
   }
   const internal = await run('internal');
   assert(internal.leaked, 'an internal seat lost its case memory');
+});
+
+Deno.test('a planner that runs out of time still answers from a one-step plan; a hold still holds', async () => {
+  const good = J({ answer: 'The CEO seat approves refunds; the founder is not asked.', reasoning: ['s1: the refund rule'], cited: ['kb_chunks:7'], confidence: 0.8 });
+  const m = mock({ gate: { allowed: true }, retrieve: KB, replies: {
+    decompose: [{ content: null, error: 'gateway_http_502:gateway_deadline' }], synthesise: [good], verify: [J({ agree: true, problems: [] })] } });
+  const r = await think(m.deps, { seat: 'ceo', surface: 'think.answer', question: 'who approves a refund?', context: { audience: 'internal' } });
+  assertEquals(r.status, 'answered');
+  assert(r.steps.some((s) => s.kind === 'decompose' && s.status === 'failed' && /one-step plan used/.test(String(s.detail))), JSON.stringify(r.steps));
+  assert(planTimedOut('gateway_http_503') && planTimedOut('The signal has been aborted'));
+  assert(!planTimedOut('circuit_open') && !planTimedOut('founder_hold') && !planTimedOut('no mock reply') && !planTimedOut(null));
 });
 
 Deno.test('a choice among options is not refused for a question added beside it; an answer still is', () => {
