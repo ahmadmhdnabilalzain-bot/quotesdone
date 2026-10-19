@@ -991,12 +991,11 @@
         "marketing:company-pricing-message"
       ],
       "expected_facts": [
-        "within 5 working days",
-        "refunded automatically"
+        "within 5 working days"
       ],
       "q_reworded": "A buyer asks what happens if the supplier he unlocked never calls back.",
       "answer_must": [
-        "If the supplier does not respond within 5 working days the buyer is refunded automatically",
+        "If the supplier does not respond within 5 working days the buyer's reveal fee is refunded in full, on the CEO seat's approval",
         "The supplier owes the non-response charge"
       ]
     },
