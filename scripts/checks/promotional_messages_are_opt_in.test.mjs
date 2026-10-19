@@ -17,7 +17,7 @@ for (const f of ['src/components/me/CustomerPortal.tsx', 'src/components/portal/
   test(`${f}: the promotional box starts unticked and is not required`, () => {
     const s = read(f);
     assert.match(s, /const \[marketingOptIn, setMarketingOptIn\] = useState\(false\)/, 'the box must start unticked');
-    const box = s.split('\n').find((l) => l.includes("t(lang, 'marketing_opt_in')"));
+    const box = s.split('\n').find((l) => /t\((lang|'en'), 'marketing_opt_in'\)/.test(l));
     assert.ok(box, 'the separate promotional checkbox is missing');
     assert.match(box, /checked=\{marketingOptIn\}/);
     assert.doesNotMatch(box, /required|defaultChecked|Need /, 'the promotional box must never be required or pre-ticked');
@@ -27,12 +27,15 @@ for (const f of ['src/components/me/CustomerPortal.tsx', 'src/components/portal/
   });
 }
 
-test('the strings exist in English and Arabic', () => {
-  for (const f of ['src/components/me/portalText.ts', 'src/components/portal/SupplierPortal.tsx']) {
-    const s = read(f);
-    assert.ok(s.includes("marketing_opt_in:'Send me offers and news from QuotesDone by email, SMS or WhatsApp (optional). You can withdraw this at any time.'"), f + ' EN');
-    assert.ok(s.includes("marketing_opt_in:'أرغب في تلقّي العروض والأخبار من QuotesDone"), f + ' AR');
-  }
+const EN = "marketing_opt_in:'Send me offers and news from QuotesDone by email, SMS or WhatsApp (optional). You can withdraw this at any time.'";
+test('customer strings exist in English and Arabic; the supplier box is English only (suppliers always English)', () => {
+  const c = read('src/components/me/portalText.ts');
+  assert.ok(c.includes(EN), 'customer EN');
+  assert.ok(c.includes("marketing_opt_in:'أرغب في تلقّي العروض والأخبار من QuotesDone"), 'customer AR');
+  const s = read('src/components/portal/SupplierPortal.tsx');
+  assert.ok(s.includes(EN), 'supplier EN');
+  assert.ok(!s.includes("marketing_opt_in:'أرغب"), 'no Arabic supplier string');
+  assert.ok(s.includes("t('en', 'marketing_opt_in')"), 'supplier box reads English, no lang switch');
 });
 
 test('the sign-up writes record consent only when it is exactly true', () => {
