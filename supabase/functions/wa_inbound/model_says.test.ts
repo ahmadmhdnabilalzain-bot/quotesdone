@@ -95,3 +95,17 @@ Deno.test('the default WhatsApp budget caps a reply call at 25 s', async () => {
   assert(r.text.length > 0);
   assert(Number(s.calls[0].o.timeoutMs) <= 25_000, 'a reply call keeps no more than 25 s');
 });
+
+Deno.test('the 45 s clock runs from arrival: time spent before the model call is taken off the budget', async () => {
+  const { budgetLeft, WA_REPLY_BUDGET_MS, WA_SEND_MARGIN_MS } = await import('./model_says.ts');
+  assertEquals(budgetLeft(1_000, 1_000), WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS);
+  assertEquals(budgetLeft(0, 30_000), WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - 30_000);
+  assertEquals(budgetLeft(0, 50_000), 0);   // measured case: ~45 s of routing before the reply began
+});
+
+Deno.test('no budget left: no model call starts and the text is empty, so the caller sends the held notice', async () => {
+  const { deps, calls } = stub(['{"reply":"late answer"}']);
+  const said = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'hi', situation: 'x', budgetMs: 0 });
+  assertEquals(calls.length, 0);
+  assertEquals(said.text, '');
+});
