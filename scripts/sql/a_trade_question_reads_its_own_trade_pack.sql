@@ -1,5 +1,6 @@
 -- A TRADE QUESTION READS ITS OWN TRADE PACK. Seat: ceo (company knowledge), routines owned by it_engineer. 19 Oct 2026.
--- Builds on a_seats_own_pack_fills_half_of_every_retrieval.sql (#1567, applied): same signatures, same audience rule.
+-- Builds on a_seats_own_entry_reaches_the_answer_whole.sql (#1584: the canonical routines, 2,400-character seat-pack
+-- excerpts, #1567's audience rule): same signatures, everything of it kept.
 --
 -- MEASURED: the live knowledge-pack eval (main 884817e) put 36 trade market packs and real_estate_services below the
 -- EN recall floor of 0.35 for sales_engineer and customer_support (71 of their 74 pack-seat pairs). Read-only checks:
@@ -107,7 +108,7 @@ begin
        from public.company_faq f where f.embedding_gte is not null and f.status = 'approved'
       order by f.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.sales_knowledge s
       where s.embedding_gte is not null and s.runtime_index_eligible
@@ -117,35 +118,35 @@ begin
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by (v_trade is not null and s.tags && v_trade) desc, s.embedding_gte <=> p_embedding limit case when v_trade is null then k else 128 end)
     union all
-    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.accountant_knowledge s
       where p_seat = 'accountant' and s.embedding_gte is not null and s.runtime_index_eligible
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.it_engineer_knowledge s
       where p_seat = 'it_engineer' and s.embedding_gte is not null and s.runtime_index_eligible
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'support_knowledge', s.record_id, s.title, left(s.body, 1200), coalesce(s.source_path, s.pack_id),
+    (select 'support_knowledge', s.record_id, s.title, left(s.body, 2400), coalesce(s.source_path, s.pack_id),
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.support_knowledge s
       where p_seat = 'customer_support' and s.embedding_gte is not null and coalesce(s.runtime_index_eligible, true)
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), coalesce(s.source_path, s.pack_fingerprint),
+    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 2400), coalesce(s.source_path, s.pack_fingerprint),
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.ceo_knowledge s
       where p_seat = 'ceo' and s.embedding_gte is not null and s.runtime_index_eligible
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.marketing_knowledge s
       where p_seat = 'marketing' and s.embedding_gte is not null and s.runtime_index_eligible
@@ -359,27 +360,27 @@ begin
       where r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by sc.score desc limit k)
     union all
-    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.sales_knowledge s on sc.src = 'sales_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit case when v_trade is null then k else 128 end)
     union all
-    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.accountant_knowledge s on sc.src = 'accountant_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.it_engineer_knowledge s on sc.src = 'it_engineer_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.marketing_knowledge s on sc.src = 'marketing_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 2400), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.ceo_knowledge s on sc.src = 'ceo_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'support_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'support_knowledge', s.record_id, s.title, left(s.body, 2400), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.support_knowledge s on sc.src = 'support_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
   ), trade_rows as (
@@ -446,10 +447,13 @@ drop trigger if exists z_ml_vectors_stale on public.kb_chunks;
 create trigger z_ml_vectors_stale after update of title, content on public.kb_chunks for each row
   when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
 create trigger z_ml_vectors_stale_del after delete on public.kb_chunks for each row execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
-drop trigger if exists z_ml_vectors_stale on public.kb_chunks_old;
-create trigger z_ml_vectors_stale after update of title, content on public.kb_chunks_old for each row
-  when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
-create trigger z_ml_vectors_stale_del after delete on public.kb_chunks_old for each row execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
+-- kb_chunks_old: only where the table still exists (it is a leftover of the kb_chunks rebuild)
+do $kbo$ begin if to_regclass('public.kb_chunks_old') is not null then
+  drop trigger if exists z_ml_vectors_stale on public.kb_chunks_old;
+  create trigger z_ml_vectors_stale after update of title, content on public.kb_chunks_old for each row
+    when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
+  create trigger z_ml_vectors_stale_del after delete on public.kb_chunks_old for each row execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
+end if; end $kbo$;
 drop trigger if exists z_ml_vectors_stale on public.marketing_knowledge;
 create trigger z_ml_vectors_stale after update of title, content on public.marketing_knowledge for each row
   when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('marketing_knowledge', 'record_id');

@@ -59,6 +59,17 @@ test('an ml vector is cleared only when the embedded text changed, or the row is
   assert.ok(!/after delete or update of/i.test(src), 'the unconditional form is back');
 });
 
+test('#1584 is kept: every seat-pack excerpt is 2,400 characters in both routines', () => {
+  for (const fn of ['fn_reason_retrieve', 'fn_reason_retrieve_ml']) {
+    const b = body(fn);
+    for (const [t, col] of [['sales_knowledge', 'content'], ['accountant_knowledge', 'content'], ['it_engineer_knowledge', 'content'],
+      ['marketing_knowledge', 'content'], ['ceo_knowledge', 'body'], ['support_knowledge', 'body']]) {
+      assert.ok(b.includes(`(select '${t}', s.record_id, s.title, left(s.${col}, 2400)`), `${fn}: ${t} excerpt is not 2,400`);
+    }
+    assert.ok(!/left\(s\.(content|body), 1200\)/.test(b), fn + ': a seat-pack excerpt fell back to 1,200');
+  }
+});
+
 test('the planner can name the market file\'s kinds', () => {
   const think = read('supabase/functions/_shared/think.ts');
   const kinds = think.slice(think.indexOf('export const ENTRY_KINDS'), think.indexOf('] as const;', think.indexOf('export const ENTRY_KINDS')));
