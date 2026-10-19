@@ -45,6 +45,9 @@ jobs:
         run: node scripts/it/report_dependency_audit.mjs
       - if: steps.gate.outputs.skip != '1'
         run: node scripts/it/report_platform_readings.mjs
+      # IT-C15: runner, SHA pins, permissions and secrets-in-logs of every workflow, settled as findings.
+      - if: steps.gate.outputs.skip != '1'
+        run: node scripts/it/workflow_audit.mjs
       # Duty 23: the safe patch, after the audit has reported. A patch it cannot make is recorded, not failed.
       # The commit is authored as the repository owner's account, NOT a separate "it-engineer" identity
       # (21 Sep 2026): Vercel builds a branch only when the commit author is on the Vercel team, so PR

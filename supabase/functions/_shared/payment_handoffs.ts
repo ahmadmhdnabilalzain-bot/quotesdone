@@ -166,6 +166,9 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'marketing.lead_sourcing', from: 'marketing', to: 'ceo' },
   { type: 'adspend.recorded', from: 'marketing', to: 'accountant' },
   { type: 'adspend.booked', from: 'accountant', to: 'marketing' },
+  // legal finding 1: an unresolved objection to an automated decision
+  // (scripts/sql/the_support_desk_takes_an_objection_to_an_automated_decision.sql)
+  { type: 'support.decision_objection', from: 'customer_support', to: 'ceo' },
   { type: 'delivery.request', from: 'marketing', to: 'customer_support' },
   { type: 'delivery.result', from: 'customer_support', to: 'marketing' },
   { type: 'it.finding', from: 'it_engineer', to: 'marketing' },

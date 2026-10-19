@@ -1219,8 +1219,17 @@ async function deleteObjects(bucket, paths) {
   return n;
 }
 
+// A step may carry its own CTE (the leads step deletes inbound_messages in the same statement, so no new
+// message can land between the two). Postgres refuses a data-modifying WITH nested inside another, so that
+// step's CTEs are lifted to the top level beside `d` (19 Oct 2026: every teardown since #1496 stopped at
+// 'leads' with 0A000 and left the run's leads, auth users and files behind).
+export const countedDelete = (sql) => {
+  const m = String(sql).match(/^\s*with\s+([\s\S]*\))\s+(delete\s[\s\S]*)$/i);
+  return m ? `with ${m[1]}, d as (${m[2]} returning 1) select count(*)::int n from d`
+           : `with d as (${sql} returning 1) select count(*)::int n from d`;
+};
 const delCount = async (label, sql) => {
-  const rows = await mgmtFixture(REF, `with d as (${sql} returning 1) select count(*)::int n from d`, label);
+  const rows = await mgmtFixture(REF, countedDelete(sql), label);
   return Number(rows?.[0]?.n ?? 0);
 };
 
@@ -1273,6 +1282,8 @@ export async function teardown(run) {
   if (booked.length) throw new Error(`teardown refused: supplier_dues ${booked.map((r) => r.id).join(', ')} of run ${tag} are in the ledger; the accountant reverses them first (fn_gl_reverse)`);
   const steps = [
     ['accountant_issued_document', `delete from public.accountant_issued_document where due_id in (select id from public.supplier_dues where ${DUES_W})`],
+    // A dues checkout (supplier_pay) points at its dues; it goes first or the dues delete fails on its FK (19 Oct 2026).
+    ['supplier_due_checkouts', `delete from public.supplier_due_checkouts where due_id in (select id from public.supplier_dues where ${DUES_W})`],
     ['supplier_dues', `delete from public.supplier_dues where ${DUES_W}`],
     ...['charge_audit', 'reveal_invoices', 'stripe_dispute', 'supplier_response_watch'].map((t) => [t,
       `delete from public.${t} where transaction_id in ${TX}`]),

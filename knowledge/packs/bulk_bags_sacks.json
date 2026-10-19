@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "bulk_bags_sacks:product-distinctions",
+      "topic": "Bulk bags and woven sacks: construction, safety ratings and antistatic types",
+      "topic_ar": "الأكياس الكبيرة والمنسوجة: البنية وتصنيفات السلامة والأنواع المضادة للكهرباء الساكنة",
+      "kind": "product_distinctions",
+      "body_en": "FIBCs (jumbo or bulk bags) are woven polypropylene bags holding 500-2,000 kg. They are specified by safe working load (SWL) with a safety factor, 5:1 for single trip and 6:1 for multi-trip, tested by top lift; by shape (U-panel, circular, four-panel, baffle bags that stay square); by top (open, duffle or skirt, filling spout) and bottom (flat or discharge spout); by fabric weight in gsm, coated (moisture- and dust-tight) or uncoated (breathable); by liner (PE, form-fit, aluminium for moisture-sensitive goods); and by loops (corner, cross-corner, sleeve, single or two-loop). For flammable dust or atmospheres the electrostatic type matters: Type A (no protection, not for flammable use), Type B (low breakdown voltage fabric), Type C (conductive threads that must be earthed) and Type D (static-dissipative without earthing). Food- and pharma-contact bags are made in hygienic conditions with certification. Woven sacks (10-50 kg) are PP woven bags, laminated or BOPP-printed, with a liner where needed, sold by size, gsm, mesh and print.",
+      "body_ar": "الأكياس الكبيرة (الجامبو) أكياس منسوجة من البولي بروبيلين تحمل 500-2000 كغ. وتُحدد بحمل التشغيل الآمن مع معامل أمان، 5:1 للاستخدام لمرة واحدة و6:1 للاستخدام المتعدد، ويُختبر بالرفع من الأعلى؛ وبالشكل (لوح على شكل U، دائري، أربعة ألواح، أكياس بحواجز داخلية تبقى مربعة)؛ وبالفتحة العلوية (مفتوحة، تنورة، فوهة تعبئة) والسفلية (مسطحة أو فوهة تفريغ)؛ وبوزن القماش بالغرام للمتر المربع، مطلي (محكم ضد الرطوبة والغبار) أو غير مطلي (يتنفس)؛ وبالبطانة (بولي إيثيلين، مطابقة للشكل، ألمنيوم للبضائع الحساسة للرطوبة)؛ وبالعروات (زاوية، عبر الزاوية، أكمام، عروة واحدة أو اثنتان). وللغبار أو الأجواء القابلة للاشتعال يهم النوع الكهروستاتيكي: النوع A (بلا حماية، لا يصلح للاستخدام القابل للاشتعال)، والنوع B (قماش منخفض جهد الانهيار)، والنوع C (خيوط موصلة يجب تأريضها)، والنوع D (مبدد للكهرباء الساكنة دون تأريض). والأكياس الملامسة للأغذية والأدوية تُصنع في ظروف صحية مع شهادات. والأكياس المنسوجة (10-50 كغ) أكياس بولي بروبيلين منسوجة، مصفحة أو مطبوعة BOPP، مع بطانة عند الحاجة، وتُباع حسب المقاس ووزن القماش والكثافة والطباعة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Flexible_intermediate_bulk_container"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: FIBC safe working load in the top-lift test; coated or uncoated fabric; laminated layers for moisture and dust -> confirmed (safety factors and antistatic types not on the page)."
+    },
+    {
+      "id": "bulk_bags_sacks:lead-times-and-quoting",
+      "topic": "Woven sacks & bulk bags (FIBC) - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الأكياس المنسوجة والأكياس الكبيرة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock sizes: days; made-to-order FIBCs and printed sacks 2-6 weeks; imported containers 6-10 weeks. A supplier needs the product and bulk density, fill weight, dimensions, filling and discharge method, SWL and safety factor, antistatic type, liner, coating, printing, quantity and food or pharma grade needs. A quote states every construction detail, the test certificate, packing per bale or pallet, MOQ, delivery and validity.",
+      "body_ar": "المقاسات المتوفرة: أيام؛ والأكياس الكبيرة المصنعة بالطلب والأكياس المطبوعة 2-6 أسابيع؛ والحاويات المستوردة 6-10 أسابيع. ويحتاج المورد المنتج وكثافته الظاهرية، ووزن التعبئة، والأبعاد، وطريقة التعبئة والتفريغ، وحمل التشغيل الآمن ومعامل الأمان، والنوع المضاد للكهرباء الساكنة، والبطانة، والطلاء، والطباعة، والكمية، ومتطلبات درجة الأغذية أو الأدوية. ويذكر العرض كل تفاصيل البنية، وشهادة الاختبار، والتعبئة لكل بالة أو منصة، والحد الأدنى للطلب، والتسليم، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither covers FIBC electrostatic Types A/B/C/D; missing: FIBC type selection for flammable/ATEX contents). bulk_bags_sacks:fibc-electrostatic-types was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from bulk_bags_sacks.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "We fill fine powder that can ignite. Which type of jumbo bag is safe?",
+      "q_ar": "نعبي مسحوق ناعم قابل للاشتعال، وش نوع الكيس الجامبو الآمن؟",
+      "expected_entry_ids": [
+        "bulk_bags_sacks:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "bulk_bags_sacks:fibc-electrostatic-types"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "bulk_bags_sacks:product-distinctions"
+      ],
+      "stored_not_served": [
+        "bulk_bags_sacks:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Flexible_intermediate_bulk_container"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

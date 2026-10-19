@@ -1,0 +1,58 @@
+{
+  "trade": "optical_eyewear",
+  "layer": "uae-market",
+  "label_en": "Optical & eyewear",
+  "label_ar": "البصريات والنظارات",
+  "entries": [
+    {
+      "id": "optical_eyewear:uae-market-brands",
+      "topic": "Optical & eyewear: brands and makers in this category",
+      "topic_ar": "البصريات والنظارات: العلامات التجارية والصانعون في هذه الفئة",
+      "kind": "uae_market_brands",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): EssilorLuxottica (France and Italy) makes ophthalmic lenses, prescription glasses and sunglasses and owns brands such as Ray-Ban and Oakley. Bausch + Lomb (Canada) makes contact lenses, lens care solutions and intraocular lenses. Acuvue is a disposable contact lens brand of Johnson & Johnson Vision. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): EssilorLuxottica (فرنسا وإيطاليا) تصنع العدسات الطبية والنظارات الطبية والشمسية وتملك علامات مثل Ray-Ban وOakley. Bausch + Lomb (كندا) تصنع العدسات اللاصقة ومحاليل العناية بها والعدسات داخل العين. Acuvue علامة عدسات لاصقة للاستعمال المؤقت من Johnson & Johnson Vision. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/EssilorLuxottica",
+        "https://en.wikipedia.org/wiki/Bausch_%2B_Lomb",
+        "https://en.wikipedia.org/wiki/Acuvue"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
+      "source_note": "EssilorLuxottica: https://en.wikipedia.org/wiki/EssilorLuxottica | Bausch + Lomb: https://en.wikipedia.org/wiki/Bausch_%2B_Lomb | Acuvue: https://en.wikipedia.org/wiki/Acuvue"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which makes of optical & eyewear are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في البصريات والنظارات؟",
+      "expected_entry_ids": [
+        "optical_eyewear:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "ledger": [
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ],
+    "brands_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "optical_eyewear:uae-market-brands"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/EssilorLuxottica",
+        "https://en.wikipedia.org/wiki/Bausch_%2B_Lomb",
+        "https://en.wikipedia.org/wiki/Acuvue"
+      ]
+    }
+  }
+}

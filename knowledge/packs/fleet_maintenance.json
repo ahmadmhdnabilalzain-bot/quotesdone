@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "fleet_maintenance:product-distinctions",
+      "topic": "Fleet maintenance: service models and what a workshop contract covers",
+      "topic_ar": "صيانة الأساطيل: نماذج الخدمة وما يغطيه عقد الورشة",
+      "kind": "product_distinctions",
+      "body_en": "Fleet maintenance keeps cars, vans, trucks, buses and equipment roadworthy at the lowest downtime. Work types: scheduled servicing at the maker's intervals (oil, filters, fluids, inspections), preventive maintenance by kilometres or engine hours, repairs (mechanical, electrical, AC, which in hot climates is a large share of work), tyres and alignment, batteries, body and paint, and pre-inspection preparation for the annual vehicle test. Service models: dealer workshops (genuine parts, warranty kept, higher labour rates), independent multi-brand workshops (lower cost, aftermarket or genuine parts as agreed), mobile and on-site service vans for fleets that cannot leave the yard, and full fleet-management contracts covering maintenance, tyres, replacement vehicles and reporting. Fleet software and telematics schedule servicing and read fault codes, cutting breakdowns. A good contract fixes labour rates or menu prices per service, the parts policy (genuine, OES or aftermarket) and mark-up, turnaround times, replacement vehicles, approval limits for unplanned repairs, warranties on parts and labour, and reporting by vehicle.",
+      "body_ar": "تحافظ صيانة الأساطيل على صلاحية السيارات والفانات والشاحنات والحافلات والمعدات للسير بأقل توقف. وأنواع العمل: الخدمة المجدولة حسب فترات الصانع (الزيت، الفلاتر، السوائل، الفحوص)، والصيانة الوقائية حسب الكيلومترات أو ساعات المحرك، والإصلاحات (الميكانيكية، الكهربائية، التكييف الذي يشكل في المناخ الحار جزءاً كبيراً من العمل)، والإطارات والمحاذاة، والبطاريات، والسمكرة والدهان، والتجهيز للفحص السنوي للمركبات. ونماذج الخدمة: ورش الوكلاء (قطع أصلية، والحفاظ على الضمان، وأجور عمل أعلى)، والورش المستقلة متعددة الماركات (تكلفة أقل، قطع تجارية أو أصلية حسب الاتفاق)، وفانات الخدمة المتنقلة في الموقع للأساطيل التي لا تستطيع مغادرة الساحة، وعقود إدارة الأساطيل الكاملة التي تشمل الصيانة والإطارات والمركبات البديلة والتقارير. وتجدول برامج الأساطيل والتتبع الخدمة وتقرأ رموز الأعطال فتقلل الأعطال المفاجئة. والعقد الجيد يثبت أجور العمل أو أسعار قائمة الخدمات، وسياسة القطع (أصلية، مورد أصلي، تجارية) والهامش عليها، وأزمنة الإنجاز، والمركبات البديلة، وحدود الموافقة على الإصلاحات غير المخطط لها، وضمانات القطع والعمل، والتقارير لكل مركبة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fleet_management"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: fleet management software scheduling maintenance and servicing; telematics reading diagnostic data -> confirmed."
+    },
+    {
+      "id": "fleet_maintenance:lead-times-and-quoting",
+      "topic": "Fleet maintenance & vehicle workshops - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "صيانة الأساطيل وورش المركبات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Contracts usually start within 1-3 weeks; routine services are same-day, larger repairs days to weeks depending on parts. A workshop needs the fleet list (makes, models, years, km), usage pattern, locations, service history, parts policy and reporting needs. A quote states labour rates or menu prices, parts policy and mark-up, turnaround, replacement vehicles, approval process, warranty, reporting and validity.",
+      "body_ar": "تبدأ العقود عادة خلال 1-3 أسابيع؛ والخدمات الروتينية في نفس اليوم، والإصلاحات الأكبر من أيام إلى أسابيع حسب القطع. وتحتاج الورشة قائمة الأسطول (الماركات، الموديلات، السنوات، الكيلومترات)، ونمط الاستخدام، والمواقع، وسجل الخدمة، وسياسة القطع، واحتياجات التقارير. ويذكر العرض أجور العمل أو أسعار قائمة الخدمات وسياسة القطع والهامش وزمن الإنجاز والمركبات البديلة وآلية الموافقة والضمان والتقارير والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (no entry gives service intervals for fleet cars). fleet_maintenance:service-intervals-and-severe-duty was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from fleet_maintenance.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Dealer or independent workshop for servicing our 40 delivery vans out of warranty?",
+      "q_ar": "ورشة الوكالة ولا ورشة مستقلة لصيانة 40 فان توصيل خارج الضمان؟",
+      "expected_entry_ids": [
+        "fleet_maintenance:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "fleet_maintenance:service-intervals-and-severe-duty"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "fleet_maintenance:product-distinctions"
+      ],
+      "stored_not_served": [
+        "fleet_maintenance:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Fleet_management"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

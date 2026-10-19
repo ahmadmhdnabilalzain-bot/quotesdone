@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "electronics_wholesale:product-distinctions",
+      "topic": "Consumer electronics wholesale: stock types and what decides a sound deal",
+      "topic_ar": "تجارة الإلكترونيات بالجملة: أنواع البضاعة وما يحدد الصفقة السليمة",
+      "kind": "product_distinctions",
+      "body_en": "Wholesale electronics cover TVs and displays, laptops and tablets, audio (headphones, speakers, soundbars), cameras and drones, gaming consoles and accessories, smart-home devices, wearables, computer peripherals and storage, and small accessories (chargers, cables, power banks). Stock types: authorised distribution (from the brand or its appointed distributor, with the brand's regional warranty and service), parallel or grey imports (genuine goods brought outside the authorised channel, often cheaper, usually carrying only an importer warranty because the maker may refuse claims), refurbished or open-box (graded A/B/C), and clearance or end-of-line. Specification details that matter in wholesale: the model's regional version (keyboard layout, power plug, TV tuner and broadcast standard, region lock, language support), warranty terms and who honours them, accessories in the box, firmware, and compliance markings for the destination market. Re-export trade adds documentation (commercial invoice, packing list, certificate of origin) and the buyer's market rules. Counterfeit accessories and batteries are a risk; batteries and power banks also have shipping restrictions.",
+      "body_ar": "تشمل الإلكترونيات بالجملة أجهزة التلفاز والشاشات، والحواسيب المحمولة والأجهزة اللوحية، والصوتيات (السماعات، مكبرات الصوت، مكبرات الصوت الشريطية)، والكاميرات والطائرات المسيّرة، وأجهزة الألعاب وملحقاتها، وأجهزة المنزل الذكي، والأجهزة القابلة للارتداء، وملحقات الحاسوب ووسائط التخزين، والملحقات الصغيرة (الشواحن، الكابلات، بنوك الطاقة). وأنواع البضاعة: توزيع معتمد (من العلامة أو موزعها المعين مع الضمان الإقليمي والخدمة)، أو استيراد موازٍ (بضائع أصلية جُلبت خارج القناة المعتمدة، غالباً أرخص، وعادة بضمان المستورد فقط لأن الصانع قد يرفض المطالبات)، أو مجددة أو مفتوحة العلبة (مصنفة A/B/C)، أو تصفية ونهاية خط. وتفاصيل المواصفة المهمة في الجملة: النسخة الإقليمية للموديل (تخطيط لوحة المفاتيح، قابس الكهرباء، موالف التلفاز ومعيار البث، قفل المنطقة، دعم اللغة)، وشروط الضمان ومن يلتزم بها، ومحتويات العلبة، والبرنامج الثابت، وعلامات المطابقة للسوق المقصودة. وتضيف تجارة إعادة التصدير مستندات (الفاتورة التجارية، قائمة التعبئة، شهادة المنشأ) وقواعد سوق المشتري. والملحقات والبطاريات المقلدة خطر؛ والبطاريات وبنوك الطاقة لها قيود شحن أيضاً.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Grey_market"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: grey-market electronics carry a local or importer warranty and makers may refuse claims -> confirmed."
+    },
+    {
+      "id": "electronics_wholesale:lead-times-and-quoting",
+      "topic": "Consumer electronics wholesale - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تجارة الإلكترونيات الاستهلاكية بالجملة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Distributor stock: 1-5 days; allocations of new models weeks; container orders 2-6 weeks. A supplier needs models and regional versions, quantities, stock type accepted, warranty needs, destination market, and Incoterm. A quote states per line brand, model, version, stock type, warranty provider and period, origin, availability, carton pack, Incoterm, payment terms and validity.",
+      "body_ar": "مخزون الموزع: 1-5 أيام؛ وحصص الموديلات الجديدة أسابيع؛ وطلبات الحاويات 2-6 أسابيع. ويحتاج المورد الموديلات ونسخها الإقليمية، والكميات، ونوع البضاعة المقبول، ومتطلبات الضمان، والسوق المقصودة، وشرط التسليم. ويذكر العرض لكل بند العلامة والموديل والنسخة ونوع البضاعة ومقدم الضمان ومدته والمنشأ والتوفر وعدد القطع في الكرتون وشرط التسليم وشروط الدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (no entry covers TDRA type approval for Bluetooth/radio equipment; standards entry is generic MoIAT). electronics_wholesale:tdra-type-approval-radio-equipment was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from electronics_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Grey-import laptops are cheaper. What is the catch for a reseller?",
+      "q_ar": "اللابتوبات المستوردة من السوق الموازي أرخص، وش المشكلة للموزع؟",
+      "expected_entry_ids": [
+        "electronics_wholesale:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "electronics_wholesale:tdra-type-approval-radio-equipment"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "electronics_wholesale:product-distinctions"
+      ],
+      "stored_not_served": [
+        "electronics_wholesale:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Grey_market"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
