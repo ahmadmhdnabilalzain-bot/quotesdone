@@ -1,7 +1,7 @@
 -- PROBE for the_sales_engineer_closes_the_loops_a_senior_sales_engineer_closes.sql (sales_engineer, ledger 1003 stage 2).
 -- Never applied: it always raises CHK<<...>>, so every row it and the six duties write is rolled back. Run after the
 -- file is applied, or concatenated after it in one transaction: node scripts/qsql.mjs <file + this probe>.
--- It seeds ONE ZZ DEMO request (customer and three suppliers all @example.invalid, is_demo) with two complete quotes and
+-- It seeds ONE ZZ DEMO request (customer and three suppliers all @example.invalid, is_demo) with two complete quotes (both get the same best-and-final invitation) and
 -- one missing its warranty, plus two more requests in the same trade, runs every duty, reads what each one wrote, and
 -- asserts that nothing reached the founder and no message went to an address that is not a fixture.
 do $probe$
@@ -53,7 +53,7 @@ begin
   if (r->>'deliveries_to_a_real_address')::int <> 0 or (r->>'demo_handoffs_filed')::int <> 0 then v_fail := v_fail || 'wrote to a real address; '; end if;
   if coalesce((r->'demo_report'->>'quotes')::int, 0) <> 3 or not coalesce((r->'demo_report'->>'recommended_is_lowest_complete')::boolean, false)
      or not coalesce((r->'demo_report'->>'delivered')::boolean, false) then v_fail := v_fail || 'the levelled report is wrong; '; end if;
-  if coalesce((r->'rounds'->>'clarify')::int, 0) <> 1 or coalesce((r->'rounds'->>'best_and_final')::int, 0) <> 1 then v_fail := v_fail || 'the rounds are wrong; '; end if;
+  if coalesce((r->'rounds'->>'clarify')::int, 0) <> 1 or coalesce((r->'rounds'->>'best_and_final')::int, 0) <> 2 then v_fail := v_fail || 'the rounds are wrong; '; end if;
   if (r->>'framework_drafted')::int <> 1 then v_fail := v_fail || 'no framework drafted; '; end if;
   if (r->>'onboarding_week_rows')::int = 0 then v_fail := v_fail || 'no onboarding week; '; end if;
   raise exception 'CHK<<%>>', case when v_fail = '' then 'PROBE OK ' else 'PROBE FAILED: ' || v_fail end || r::text;

@@ -31,7 +31,7 @@
 --          routine turns them into supply_recruitment_brief rows marketing reads; briefs unread 3+ days are counted.
 --   SE-C12 sales_engineer.negotiation_round  hourly  once a request is levelled: round 1 CLARIFY -- each incomplete
 --          quote's supplier is asked for exactly the missing terms; round 2 BEST AND FINAL -- with 2+ complete quotes,
---          each complete quote that is not the lowest is invited once to revise. Never a competitor's name or price.
+--          every complete quote gets the same single best-and-final invitation. The emails carry no rank and no comparison.
 --   SE-C13 sales_engineer.win_loss_review  daily, acts monthly  last month's revealed / hired / not hired / no decision /
 --          unrevealed-with-quotes and LEAKAGE (a request marked hired or completed with no reveal) into
 --          sales_engineer_win_loss_month; leakage or a loss share over 50% opens a sales_engineer improvement.
@@ -256,19 +256,19 @@ begin
       if not (l->>'complete')::boolean then
         continue when exists (select 1 from public.sales_engineer_negotiation_round where quote_id = v_sup.id and round = 'clarify');
         v_h := public.fn_sales_engineer_writes('negotiation_clarify', 'supplier', v_sup.email, v_sup.supplier_id, null, r.inquiry_id, v_sup.id,
-          'Please complete your quotation so it can be compared',
-          format(E'Dear %s,\n\nYour quotation is being levelled against the others on the same terms. It does not yet state: %s. Please add these in your supplier portal so the customer can compare it on equal terms; a quotation missing them is compared as incomplete.',
+          'Please complete your quotation',
+          format(E'Dear %s,\n\nYour quotation does not yet state: %s. Please add these in your supplier portal so the customer has your complete terms.',
                  coalesce(nullif(btrim(case when v_sup.company_name ~ '[؀-ۿ]' then '' else v_sup.company_name end), ''), 'supplier'),
                  (select string_agg(replace(x, '_', ' '), ', ') from jsonb_array_elements_text(l->'missing') x)),
           null, null, '{}', 'negotiation_clarify:' || v_sup.id, now() + interval '2 days', jsonb_build_object('round', 'clarify'));
         insert into public.sales_engineer_negotiation_round (inquiry_id, quote_id, round, asked_for, handoff_id)
         values (r.inquiry_id, v_sup.id, 'clarify', l->'missing', v_h);
         n_clarify := n_clarify + 1;
-      elsif r.complete_n >= 2 and v_sup.id is distinct from r.recommended_quote_id then
+      elsif r.complete_n >= 2 then   -- every complete quote alike: the invitation never depends on a quote's position
         continue when exists (select 1 from public.sales_engineer_negotiation_round where quote_id = v_sup.id and round = 'best_and_final');
         v_h := public.fn_sales_engineer_writes('negotiation_best_and_final', 'supplier', v_sup.email, v_sup.supplier_id, null, r.inquiry_id, v_sup.id,
           'Invitation to submit your best and final offer',
-          format(E'Dear %s,\n\nThe quotations for this request have been levelled on the same terms, and yours is complete but is not the lowest complete offer. You are invited, once, to submit your best and final offer in your supplier portal within 48 hours: price, lead time or payment terms. If you keep your quotation as it is, nothing more is needed.',
+          format(E'Dear %s,\n\nYour quotation for this request is complete. You are invited, once, to submit your best and final offer in your supplier portal within 48 hours: price, lead time or payment terms. If you keep your quotation as it is, nothing more is needed.',
                  coalesce(nullif(btrim(case when v_sup.company_name ~ '[؀-ۿ]' then '' else v_sup.company_name end), ''), 'supplier')),
           null, null, '{}', 'negotiation_bafo:' || v_sup.id, now() + interval '2 days', jsonb_build_object('round', 'best_and_final'));
         insert into public.sales_engineer_negotiation_round (inquiry_id, quote_id, round, asked_for, handoff_id)
@@ -394,7 +394,7 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'SE-C07: up to 10 supply gaps a day are built ahead of launch into recruitment briefs marketing reads; briefs close at target.',
    'scripts/sql/the_sales_engineer_closes_the_loops_a_senior_sales_engineer_closes.sql'),
   ('sales_engineer.negotiation_round', 'sales_engineer', interval '1 hour', 'fn_sales_engineer_negotiation_round',
-   'SE-C12: once levelled, incomplete quotes are asked for exactly their missing terms, then complete quotes that are not the lowest get one best-and-final invitation.',
+   'SE-C12: once levelled, incomplete quotes are asked for exactly their missing terms, then every complete quote gets the same single best-and-final invitation (no rank or comparison in either email).',
    'scripts/sql/the_sales_engineer_closes_the_loops_a_senior_sales_engineer_closes.sql'),
   ('sales_engineer.win_loss_review', 'sales_engineer', interval '1 day', 'fn_sales_engineer_win_loss_review',
    'SE-C13: last month''s win/loss and suspected off-platform leakage, once a month; leakage or a majority with no decision opens an improvement.',

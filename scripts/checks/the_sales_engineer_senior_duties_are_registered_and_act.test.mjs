@@ -48,3 +48,18 @@ for (const fn of ['fn_sales_engineer_comparison_report', 'fn_sales_engineer_nego
     assert.match(body, /fn_inquiry_is_demo\([^)]*\)\s*=\s*\(coalesce\(current_setting\('qd\.duty_fixtures', true\)/, `${file}: ${fn} no longer separates fixtures from real requests`);
   });
 }
+
+// Review of #1546: a negotiation email never tells a supplier where he stands. Every complete quote gets the same
+// best-and-final invitation, and neither email carries a rank or a comparison word. This reads the subject and body
+// of both messages (from the call to the line that closes the body) and fails on any such word.
+test('the negotiation emails carry no rank and no comparison', () => {
+  const { file, body } = newest('fn_sales_engineer_negotiation_round');
+  const mails = [...body.matchAll(/fn_sales_engineer_writes\('negotiation_(?:clarify|best_and_final)'[\s\S]*?null, null, '\{\}'/g)].map((m) => m[0]);
+  assert.equal(mails.length, 2, `${file}: expected the clarify and the best-and-final email`);
+  const banned = /\b(lowest|highest|cheapest|cheaper|dearest|rank\w*|position|level+ed|level+ing|compar\w*|competit\w*|others?|other suppliers|beat|undercut|best price|most expensive|least)\b/i;
+  for (const m of mails) {
+    const text = [...m.matchAll(/'((?:[^']|'')*)'/g)].map((x) => x[1]).filter((s) => / /.test(s)).join(' | ');
+    assert.doesNotMatch(text, banned, `${file}: a negotiation email names a rank or a comparison: ${text.match(banned)?.[0]}`);
+  }
+  assert.doesNotMatch(body, /recommended_quote_id/, `${file}: the best-and-final invitation must not depend on which quote is recommended`);
+});
