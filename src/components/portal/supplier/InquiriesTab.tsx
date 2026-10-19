@@ -48,7 +48,7 @@ const COPY = {
     scope: 'النطاق', documents: 'المستندات', download: 'تنزيل', noDocs: 'لم تُرفق مستندات بهذا الطلب.',
     boqFile: (n: number) => `جدول الكميات (${arCount(n, AR_NOUN.line)}، CSV)`, page: (n: number) => `صفحة المخطط ${n} (بعد إخفاء الهوية)`,
     inqPdf: 'مستند الاستفسار (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfHeld: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
-    quote: 'إرسال عرض السعر إلى مهندس المبيعات', form: 'أو أدخلوه في نموذج العرض', closeForm: 'إغلاق النموذج', addOption: 'Add another option', sentOk: 'قُدّم عرض سعركم.', sentHeld: 'حُفظ عرض سعركم معلّقًا، وتوضّح البطاقة أدناه ما يلزم لاستكماله.',
+    quote: 'إرسال عرض السعر إلى مهندس المبيعات', form: 'أو أدخلوه في نموذج العرض', closeForm: 'إغلاق النموذج', sentOk: 'قُدّم عرض سعركم.', sentHeld: 'حُفظ عرض سعركم معلّقًا، وتوضّح البطاقة أدناه ما يلزم لاستكماله.',
     concluded: 'انتهى — اختار العميل.', won: 'فزتم بهذا الطلب.', quoted: 'عرضكم', loading: 'جارٍ تحميل الطلبات…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', retry: 'إعادة المحاولة',
     boqHeld: 'حُجب جدول الكميات لتعذّر التأكد من خلوّه من بيانات العميل. يُرجى التسعير استنادًا إلى المخططات والنطاق.',
     budget: 'الميزانية', open: 'فتح', close: 'إغلاق',
@@ -159,7 +159,7 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button onClick={() => onQuote(d.id)}>{t.quote}</Button>
           {renderQuoteForm ? <Button variant="ghost" aria-expanded={form === 'edit'} onClick={() => setForm(form === 'edit' ? false : 'edit')}>{form === 'edit' ? t.closeForm : t.form}</Button> : null}
-          {renderQuoteForm && q ? <Button variant="ghost" lang="en" aria-expanded={form === 'new'} onClick={() => setForm(form === 'new' ? false : 'new')}>{form === 'new' ? t.closeForm : t.addOption}</Button> : null}
+          {renderQuoteForm && q ? <Button variant="ghost" lang="en" aria-expanded={form === 'new'} onClick={() => setForm(form === 'new' ? false : 'new')}>{form === 'new' ? t.closeForm : COPY.en.addOption}</Button> : null}
         </div>
       ) : null}
       {sent ? <p role="status" className="mt-3 text-[13px] text-foreground">{sent === 'held' ? t.sentHeld : t.sentOk}</p> : null}

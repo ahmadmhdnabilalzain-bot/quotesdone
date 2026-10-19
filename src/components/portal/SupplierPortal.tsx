@@ -1271,10 +1271,14 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     setChecking(false);
     if (j && j.ok) setChk(j.options ? { ...j.options[0], options: j.options } : j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
+  // One submission at a time: `busy` disables the button only after the next render, so a fast double click
+  // could send two (each a new option under new_option). The ref closes that window (#1563 review).
+  const inFlight = useRef(false);
   const submit = async () => {
+    if (inFlight.current) return;
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
-    setBusy(true); setMsg('');
-    const j = await call('supplier_api', buildPayload(), token);
+    inFlight.current = true; setBusy(true); setMsg('');
+    const j = await call('supplier_api', buildPayload(), token).finally(() => { inFlight.current = false; });
     setBusy(false);
     // Accepted, held by the sales engineer (the card then shows exactly what is missing and the two
     // ways out) or split into options: the card is the next thing the supplier needs to see.
