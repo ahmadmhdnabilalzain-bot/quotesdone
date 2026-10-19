@@ -8,7 +8,7 @@
 //   node scripts/kb/load_verified_packs.mjs                  # DRY RUN: validate knowledge/, print the plan
 //   node scripts/kb/load_verified_packs.mjs --apply          # embed (free gte-small) + upsert + retire, then
 //                                                           # enqueue the multilingual (ml) vectors and wait
-//   --wait-minutes=N   how long --apply polls for the ml vectors before reporting what is left (default 20)
+//   --wait-minutes=N   how long --apply polls for the ml vectors (default 20); exit 3 if the dispatch failed or rows are still owed
 //
 // WHERE EACH PACK GOES (scripts/sql/every_verified_pack_has_a_home_and_every_seat_reads_its_own.sql):
 // a trade pack -> sales_knowledge tagged 'trade:<code>', read by sales_engineer and customer_support; a seat
@@ -133,8 +133,10 @@ console.log('LOADED');
 // Enqueue the ml vectors. The rows are already due in fn_ml_embed_claim; what was missing was a run and a count.
 await sql(`insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('it_engineer', 'ok', now(), now(), ${lit({ job: 'verified_pack_load', rows: rows.length, packs: packs.length })}, null)`);
+let dispatched = false;
 try {
   execFileSync('gh', ['workflow', 'run', 'ml-embed-backfill.yml', '-f', 'minutes=40'], { stdio: 'inherit' });
+  dispatched = true;
   console.log('dispatched ml-embed-backfill.yml');
 } catch (e) {
   console.error(`COULD NOT DISPATCH ml-embed-backfill.yml (${e.message}); its 02:50 UTC schedule and the resilience_ping trickle remain`);
@@ -150,3 +152,5 @@ printMl(st);
 console.log(owed(st) ? `NOT YET EMBEDDED: ${owed(st)} row(s) still lack a fresh ml vector after ${WAIT_MINUTES} min. `
   + 'The queue keeps serving them; duty:pack_ml_vectors raises any still owed an hour after this load.'
   : 'ML EMBEDDED: every loaded row has a fresh ml vector');
+// Never a silent success (19 Oct 2026): a failed dispatch or a row still owed is exit 3, so the release step goes red.
+if (!dispatched || owed(st)) process.exit(3);
