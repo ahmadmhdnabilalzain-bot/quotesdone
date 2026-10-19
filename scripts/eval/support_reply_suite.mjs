@@ -3,7 +3,7 @@
 // say its ready"). Seat: customer_support.
 //
 //   node scripts/eval/support_reply_suite.mjs           # DRY: self-tests every grader, prints "model held"
-//   node scripts/eval/support_reply_suite.mjs --live    # the real support path; refuses while the model is held
+//   node scripts/eval/support_reply_suite.mjs --live    # the real support path (also the default, ruling 1260; --dry-run for none); refuses while the model is held
 //   node scripts/eval/support_reply_suite.mjs --live --json
 //
 // THE BANK: 31 topics × EN/AR × 2 of the 3 channels (homepage widget, WhatsApp, email) = 124 scenarios,
@@ -350,7 +350,8 @@ async function main() {
     console.log(`${summary} · STUBBED model through supportReply: ${rows.length - bad.length}/${rows.length} composed, routed and graded clean (wiring proof, not a score)`);
     process.exit(bad.length ? 1 : 0);
   }
-  if (!args.has('--live')) { console.log(summary + ' · model held — no score (dry run)'); return; }
+  // Ruling 1260 (19 Oct 2026): the live run is the DEFAULT; a run without a model must be asked for by name.
+  if (args.has('--dry-run')) { console.log(summary + ' · dry run asked for — no score'); return; }
   if (await modelHeld()) { console.log(summary + ' · model held — live run refused, no score'); return; }
   const rows = [];
   for (const s of scen) {

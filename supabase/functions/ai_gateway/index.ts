@@ -537,18 +537,12 @@ async function handle(req: Request): Promise<Response> {
         const v = fixtureVerdict(fx, fxErr);
         if (v.stub) ownWork = v.why;
       }
+      // RULING 1260 (19 Oct 2026): "all tests need to be done with AI. from now on open router stays on".
+      // Our own test traffic is no longer refused. It is TAGGED and COSTED: the reason rides on the real
+      // ai_cost_log row written after the provider call, and trg_ai_cost_log_e2e_run_tag stamps the run tag
+      // (fn_e2e_run_tag_current). A tagged run's USD cap is still enforced by fn_kernel_paid_provider_gate.
       if (ownWork) {
-        await llmLog({
-          p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
-          p_task_class: route.task_class ?? null, p_model: 'none',
-          p_because: route.why + ' | FIXTURE: ' + ownWork + ' — answered with the no-cost stub, no provider call was made',
-          p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
-          p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
-        });
-        // held: the run row reads 'held', not 'error' - refusing our own test traffic is the design (observe.statusOf).
-        return annotate(J({ ok: false, used_llm: false, outcome: 'fixture_no_spend',
-          error: 'our own test traffic is never sent to a paid model', why: ownWork,
-          task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'fixture_no_spend' });
+        route.why = route.why + ' | TEST RUN (ruling 1260): ' + ownWork + ' | run tag ' + (runTag ?? 'none');
       }
     }
 

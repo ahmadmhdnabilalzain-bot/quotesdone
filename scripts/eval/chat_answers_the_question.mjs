@@ -58,6 +58,13 @@ if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || proce
       const reply = String(r.json?.reply || '');
       const producers = (await read(`select distinct model_used from public.ai_cost_log where id > ${since} and fn='site_assistant' and model_used like '%/%'`)).map((x) => x.model_used);
       const fam = (m) => String(m || '').split('/')[0];
+      // FOUNDER RULE (19 Oct 2026, with ruling 1260): grading a test makes no paid call. Without --paid-judge the
+      // answer is recorded ungraded (pass=null) for the Claude agent running the test to grade.
+      if (!process.argv.includes('--paid-judge')) {
+        out.push({ ...q, reply, routed: r.json?.routed ?? null, producers, judge: 'for the grading agent', score: null, issues: null, pass: null });
+        console.log(`UNGRADED ${q.who}/${q.lang} (producer ${producers.join(',') || 'none'}): ${reply.slice(0, 140).replace(/\n/g, ' ')}`);
+        continue;
+      }
       const j = await call('ai_gateway', null, { __secret: secret, fn: 'chat_answers_the_question_judge',
         task_class: producers.some((m) => fam(m) === 'anthropic') ? 'internal_judgement' : 'ceo__internal_judgement', max_tokens: 400,
         messages: [{ role: 'system', content: `You are a strict quality reviewer. Facts: ${TRUTH} Judge the ANSWER to the QUESTION: does it answer what was asked, consistent with the facts, in the language asked (${q.lang}), professional, nothing invented. Reply ONLY JSON {"score":1-5,"issues":["..."]}.` },
@@ -72,5 +79,6 @@ if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || proce
     await write(`update public.rehearsal_window set models_allowed = false where run_tag = 'qd_run:${run.tag}'`, 'chat eval window: models off').catch(() => {});
     await closeRun(run).catch((e) => console.error('teardown: ' + e.message)); }
   if (process.env.OUT) (await import('node:fs')).writeFileSync(process.env.OUT, JSON.stringify(out, null, 1));
-  process.exit(out.length === QUESTIONS.length && out.every((x) => x.pass) ? 0 : 1);
+  // Ungraded (pass null) is not a failure and not a pass: exit 0 only means every answer was collected and nothing graded failed.
+  process.exit(out.length === QUESTIONS.length && out.every((x) => x.pass !== false && x.reply) ? 0 : 1);
 }

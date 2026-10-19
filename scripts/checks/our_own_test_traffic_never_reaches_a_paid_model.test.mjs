@@ -19,15 +19,17 @@ import { replaySql } from '../lib/safe_replay.mjs';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 
-test('the gateway answers a fixture before it reads the provider key', () => {
+// RULING 1260 (19 Oct 2026): "all tests need to be done with AI. from now on open router stays on". The fixture
+// check now TAGS a test run instead of refusing it; the reason rides on the real ai_cost_log row.
+test('ruling 1260: a test run is tagged and costed, never refused fixture_no_spend', () => {
   const gw = read('supabase/functions/ai_gateway/index.ts');
   const fx = gw.indexOf("admin.rpc('fn_ai_subject_is_fixture'");
   const key = gw.indexOf("sec('openrouter_api_key')");
-  const dry = gw.indexOf('if (dry) {');
-  assert.ok(fx > 0, 'ai_gateway no longer asks fn_ai_subject_is_fixture');
-  assert.ok(dry > 0 && dry < fx && fx < key, 'the fixture stub must sit after the dry run and before the provider key is read');
+  assert.ok(fx > 0 && fx < key, 'ai_gateway must still recognise a fixture before the call, to tag it');
   assert.match(gw, /ownWorkByName\(fnName\)/, 'probes, rehearsals, smokes and evals must be recognised by name');
-  assert.match(gw, /outcome: 'fixture_no_spend'/);
+  assert.match(gw, /route\.why = route\.why \+ ' \| TEST RUN \(ruling 1260\): '/, 'the test-run reason must ride on the costed row');
+  assert.doesNotMatch(gw, /outcome: 'fixture_no_spend'/, 'ai_gateway must not refuse a test run (ruling 1260)');
+  assert.doesNotMatch(read('supabase/functions/_shared/think.ts'), /hold\('fixture_no_spend'/, 'think() must not refuse a test run (ruling 1260)');
 });
 
 test('the fixture marker is one only the harness can set, never a name, domain or number a user types', () => {
