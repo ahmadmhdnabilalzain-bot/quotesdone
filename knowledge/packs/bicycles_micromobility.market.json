@@ -1,0 +1,49 @@
+{
+  "trade": "bicycles_micromobility",
+  "layer": "uae-market",
+  "label_en": "Bicycles & e-scooters",
+  "label_ar": "الدراجات الهوائية والسكوترات الكهربائية",
+  "entries": [
+    {
+      "id": "bicycles_micromobility:uae-market-brands",
+      "topic": "Bicycles & e-scooters: brands and makers in this category",
+      "topic_ar": "الدراجات الهوائية والسكوترات الكهربائية: العلامات التجارية والصانعون في هذه الفئة",
+      "kind": "uae_market_brands",
+      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Giant (Taiwan) makes bicycles. Trek (United States) makes bicycles and accessories. Segway (now based in China) makes electric scooters, e-bikes and powersports vehicles. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Giant (تايوان) تصنع الدراجات الهوائية. Trek (الولايات المتحدة) تصنع الدراجات وملحقاتها. Segway (مقرها الآن في الصين) تصنع السكوترات الكهربائية والدراجات الكهربائية ومركبات الرياضة الآلية. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Giant_Manufacturing",
+        "https://en.wikipedia.org/wiki/Trek_Bicycle_Corporation",
+        "https://en.wikipedia.org/wiki/Ninebot"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "source_note": "Giant: https://en.wikipedia.org/wiki/Giant_Manufacturing | Trek: https://en.wikipedia.org/wiki/Trek_Bicycle_Corporation | Segway: https://en.wikipedia.org/wiki/Ninebot"
+    }
+  ],
+  "eval": [],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "ledger": [
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ],
+    "brands_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "bicycles_micromobility:uae-market-brands"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Giant_Manufacturing",
+        "https://en.wikipedia.org/wiki/Trek_Bicycle_Corporation",
+        "https://en.wikipedia.org/wiki/Ninebot"
+      ]
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "trade": "weighing_systems",
+  "layer": "uae-market",
+  "label_en": "Weighing scales & weighbridges",
+  "label_ar": "موازين وجسور وزن",
+  "entries": [
+    {
+      "id": "weighing_systems:uae-market-brands",
+      "topic": "Weighing scales & weighbridges: brands and makers in this category",
+      "topic_ar": "موازين وجسور وزن: العلامات التجارية والصانعون في هذه الفئة",
+      "kind": "uae_market_brands",
+      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Mettler Toledo (Switzerland) makes laboratory balances and industrial and retail scales. Avery Weigh-Tronix (United Kingdom) makes industrial scales and weighing equipment. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Mettler Toledo (سويسرا) تصنع الموازين المخبرية والموازين الصناعية وموازين التجزئة. Avery Weigh-Tronix (المملكة المتحدة) تصنع الموازين الصناعية ومعدات الوزن. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Mettler_Toledo",
+        "https://en.wikipedia.org/wiki/Avery_Weigh-Tronix"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "source_note": "Mettler Toledo: https://en.wikipedia.org/wiki/Mettler_Toledo | Avery Weigh-Tronix: https://en.wikipedia.org/wiki/Avery_Weigh-Tronix"
+    }
+  ],
+  "eval": [],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "ledger": [
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ],
+    "brands_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "weighing_systems:uae-market-brands"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Mettler_Toledo",
+        "https://en.wikipedia.org/wiki/Avery_Weigh-Tronix"
+      ]
+    }
+  }
+}
