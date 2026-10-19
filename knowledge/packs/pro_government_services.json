@@ -38,6 +38,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "pro_government_services:product-distinctions",
+      "topic": "PRO services: the transaction families and which channel handles each",
+      "topic_ar": "خدمات المندوب: عائلات المعاملات والجهة التي تتولى كلاً منها",
+      "kind": "product_distinctions",
+      "body_en": "A PRO (public relations officer) service handles a company's government transactions. In the UAE these fall into residency and visa work (entry permits, residence visas and their renewal or cancellation, and Emirates ID, all grouped on the UAE government portal under visa types, applications and Emirates ID), labour and employment work (work permits, labour contracts and their amendment or cancellation, and domestic worker permits, handled for the Ministry of Human Resources and Emiratisation through Tasheel centres, which were launched in 2006 by what was then the Ministry of Labour and also offer Emirates ID, medical fitness and tenancy-contract services), and Dubai residency transactions through Amer centres, launched in 2017 by Dubai's General Directorate of Residency and Foreigners Affairs for visa and residency transactions and some other services. Beyond these, PRO firms typically also manage trade licence renewals and amendments, document attestation and translation, and expiry tracking for visas, labour cards, passports and Emirates IDs. Buyers choose between per-transaction pricing, a monthly retainer covering a set number of employees or transactions, or an outsourced PRO who visits on schedule; government fees are normally passed through at cost and shown separately from the service fee.",
+      "body_ar": "تتولى خدمة المندوب (مسؤول العلاقات العامة) معاملات الشركة الحكومية. وفي الإمارات تنقسم إلى أعمال الإقامة والتأشيرات (تصاريح الدخول، وتأشيرات الإقامة وتجديدها أو إلغاؤها، والهوية الإماراتية، وكلها مجمعة في بوابة حكومة الإمارات تحت أنواع التأشيرات والطلبات والهوية)، وأعمال العمل والتوظيف (تصاريح العمل، وعقود العمل وتعديلها أو إلغاؤها، وتصاريح العمالة المساعدة، وتُنجز لوزارة الموارد البشرية والتوطين عبر مراكز تسهيل التي أطلقتها عام 2006 وزارة العمل آنذاك، وتقدم أيضاً خدمات الهوية والفحص الطبي وعقود الإيجار)، ومعاملات الإقامة في دبي عبر مراكز آمر التي أطلقتها عام 2017 الإدارة العامة للإقامة وشؤون الأجانب في دبي لمعاملات التأشيرات والإقامة وبعض الخدمات الأخرى. وإلى جانب ذلك تتولى شركات المندوبين عادة تجديد الرخص التجارية وتعديلها، وتصديق المستندات وترجمتها، ومتابعة انتهاء التأشيرات وبطاقات العمل وجوازات السفر والهويات. ويختار المشترون بين التسعير لكل معاملة، أو اشتراك شهري يغطي عدداً محدداً من الموظفين أو المعاملات، أو مندوب خارجي يزور وفق جدول؛ وتُحمّل الرسوم الحكومية عادة بتكلفتها وتظهر منفصلة عن رسوم الخدمة.",
+      "sources": [
+        "https://u.ae/en/information-and-services/visa-and-emirates-id",
+        "https://gulfnews.com/amp/story/uae%2Fone-stop-centres-for-government-transactions-a-boon-say-residents-1.63098857"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). Every UAE-specific statement in it was read that day on a page in sources (source_note names what each confirmed); statements not on those pages were left out.",
+      "source_note": "Page opened 2026-10-19: the UAE government portal groups visa services into visa information, applying for and tracking visas, visa types (residency visas, work permits, entry permits) and Emirates ID -> confirmed | Amer centres were launched in 2017 by Dubai GDRFA for visa and residency transactions plus Emirates ID and other services; Tasheel centres were launched in 2006 by the then Ministry of Labour (now MOHRE) for labour contracts and domestic worker permits, plus Emirates ID, medical fitness and tenancy contracts -> confirmed."
+    },
+    {
+      "id": "pro_government_services:lead-times-and-quoting",
+      "topic": "PRO, visa & government transaction services - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "خدمات المعاملات الحكومية والتأشيرات (PRO): المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A single visa or permit transaction usually takes days to a few weeks depending on medical, Emirates ID and approval steps; a retainer starts immediately. A provider needs the transaction list, employee numbers, licence details, emirate and free zone or mainland status, and deadlines. A quote states the service fee per transaction or per month, which government fees are passed through, inclusions (typing, attestation, delivery), turnaround, and validity.",
+      "body_ar": "تستغرق معاملة التأشيرة أو التصريح الواحدة عادة أياماً إلى بضعة أسابيع حسب خطوات الفحص الطبي والهوية والموافقات؛ والاشتراك الشهري يبدأ فوراً. ويحتاج المزود قائمة المعاملات، وعدد الموظفين، وتفاصيل الرخصة، والإمارة وكون الشركة في منطقة حرة أو البر الرئيسي، والمواعيد. ويذكر العرض رسوم الخدمة لكل معاملة أو شهرياً، والرسوم الحكومية التي تُحمّل بتكلفتها، والمشمولات (الطباعة، التصديق، التوصيل)، ومدة الإنجاز، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -63,6 +94,14 @@
       ],
       "why": "The checklist requires the PRO quote to state government fees included or excluded, separate from the service fee, which answers that it varies and must be stated.",
       "origin": "real buyer question, moved from pro_government_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What is the difference between Tasheel and Amer for our staff visas?",
+      "q_ar": "وش الفرق بين تسهيل وآمر لتأشيرات موظفينا؟",
+      "expected_entry_ids": [
+        "pro_government_services:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -79,6 +118,28 @@
       "pro_government_services:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "pro_government_services:product-distinctions"
+      ],
+      "stored_not_served": [
+        "pro_government_services:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://u.ae/en/information-and-services/visa-and-emirates-id",
+        "https://gulfnews.com/amp/story/uae%2Fone-stop-centres-for-government-transactions-a-boon-say-residents-1.63098857"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
