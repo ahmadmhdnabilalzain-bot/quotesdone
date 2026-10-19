@@ -511,6 +511,11 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
           const rec = await customerTermsRecord(sec, ip);
           if (rec && rec.tos_version === custV) await admin.from('customers').update({ tos_sha256: rec.tos_sha256 }).eq('email', email).then(() => null, () => null);
         }
+        // PROMOTIONAL MESSAGES ARE OPT-IN (19 Oct 2026, founder, legal finding 2; seat: ceo). The separate, unticked
+        // box beside the terms. Recorded only when it is exactly true; never required. Written on its own so a
+        // database without the column cannot fail the acceptance. The outbox gate is
+        // scripts/sql/promotional_messages_are_opt_in_and_the_outbox_checks_the_consent.sql.
+        if (b.marketing_consent === true) await admin.from('customers').update({ marketing_consent: true, marketing_consent_at: nowIso, marketing_consent_source: 'signup' }).eq('email', email).then(() => null, () => null);
       }
       // A CUSTOMER'S CERTIFICATE IS ISSUED AFTER THE ANSWER (it_engineer, 29 Sep 2026, finding
       // duty:latency_slo:kyc:error_budget). Every one of the 12 over-budget kyc runs in 30 days was an

@@ -490,6 +490,9 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  // Promotional messages are opt-in (19 Oct 2026, founder, legal finding 2): a SEPARATE box, never pre-ticked,
+  // never required. Guarded by scripts/checks/promotional_messages_are_opt_in.test.mjs.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
@@ -501,7 +504,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
-  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
+  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
   // DOB IS REQUIRED AGAIN (founder's account rule, 14 Sep 2026: name, date of birth with under-18
   // rejected, OTP-verified mobile/email, Terms). The 6 Sep change made it optional because a customer
   // without one was silently stuck; the fix for silence is a message, not dropping the field. kyc now
@@ -533,6 +536,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
         : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
       {st.phone_verified && st.email_verified && waSignupSettled(st.whatsapp) && <>
         <label className="flex gap-2 items-center mt-4 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
+        <label className="flex gap-2 items-start mt-3 text-[13px] text-muted-foreground"><input type="checkbox" className="mt-0.5" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} /> {t(lang, 'marketing_opt_in')}</label>
         <Button className="w-full mt-3" disabled={busy === 'terms'} onClick={acceptTerms}>{busy === 'terms' ? t(lang, 'finishing') : t(lang, 'finish_continue')}</Button>
       </>}
     </>}
