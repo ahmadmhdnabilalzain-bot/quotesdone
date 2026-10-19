@@ -9,7 +9,7 @@
 // Fails on the old code: there, a needs_info turn persisted `prevBrief.details || {}` and the model's
 // own status, missing and sentence, so every assertion on details, missing and the reply breaks.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS } from './slots.ts';
+import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS, slotAskOf, slotKeyFor, heldReasonFor } from './slots.ts';
 import type { SpecField } from './interview.ts';
 
 // production category_specs.fields for `aluminium`, required flags and keys as read on 7 Oct 2026
@@ -231,4 +231,27 @@ Deno.test('a key the customer answers is kept whatever the count', () => {
   assertEquals(s.details.issue, 'No leak, preventive');
   assertEquals(s.exhausted, []);
   assertEquals(out.status, 'ready');
+});
+
+// Stage-2 run 321d13ae (18 Oct 2026): a spec hold returned no reason and next_question.key was null
+// before every ready. The reason is for our harness only; the key goes with the state's own question only.
+Deno.test('held_reason is given to an @example.invalid subject only, never to a real customer', () => {
+  assertEquals(heldReasonFor('held', 'qd-321d13ae-cust17@example.invalid', ['system_type']), { held_reason: 'specs_unanswered: system_type' });
+  assertEquals(heldReasonFor('held', 'QD-X@EXAMPLE.INVALID', []), { held_reason: 'specs_unanswered: unknown' });
+  for (const email of ['customer@gmail.com', 'a@example.invalid.ae', 'example.invalid@gmail.com', '']) {
+    assertEquals(heldReasonFor('held', email, ['system_type']), {}, email);
+  }
+  assertEquals(heldReasonFor('needs_info', 'x@example.invalid', ['system_type']), {});
+});
+
+Deno.test('next_question.key is set only on an exact match with the slot state\'s first open question', () => {
+  const sl = { details: {}, missingKeys: ['system_type', 'scope'], missing: ['What type of system?', 'Supply or install?'], complete: false, exhausted: [], held: false };
+  const ask = slotAskOf(sl);
+  assertEquals(ask, { key: 'system_type', text: 'What type of system?' });
+  assertEquals(slotKeyFor(ask, 'What type of system?'), 'system_type');
+  for (const q of ['What type of system? ', 'what type of system?', 'Which AC system do you want?', 'Supply or install?']) assertEquals(slotKeyFor(ask, q), null, q);
+  assertEquals(slotKeyFor(null, 'What type of system?'), null);
+  // An exhausted key is never the asked key: the next askable one is.
+  assertEquals(slotAskOf({ ...sl, exhausted: ['system_type'], missing: ['Supply or install?'] }), { key: 'scope', text: 'Supply or install?' });
+  assertEquals(slotAskOf({ ...sl, exhausted: ['system_type', 'scope'], missing: [] }), null);
 });
