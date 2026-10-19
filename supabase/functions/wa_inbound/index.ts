@@ -43,6 +43,7 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
+import { isStop } from '../_shared/marketing_send_gate.ts';
 import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
@@ -525,6 +526,22 @@ async function handleInbound(req: Request): Promise<Response> {
       if (arrErr) await logRun('error', { arrival_saved: 0 }, 'wa_inbound could not store an authenticated message on arrival: ' + arrErr.message + '. The turn continues and writes its row at the end, as before.');
       else { arrivalId = (arr as { id: number }).id; MessageSidSeen = MessageSid; }
     }
+    // ---- "STOP" IS AN OPT-OUT, HONOURED AT ONCE (marketing, 19 Oct 2026, ruling 1184) ----
+    // The supplier invitation template tells the recipient to reply STOP. Every lead on this number is set to
+    // whatsapp_opt='none' and any invitation still queued to it is cancelled; nothing is replied (UAE PDPL / TDRA:
+    // an objection ends the messaging, it does not start a conversation).
+    if (isStop(Body)) {
+      const { data: opt, error: optErr } = await admin.rpc('fn_wa_supplier_invite_opt_out', { p_from: From });
+      // Only a number that is a lead's ends here; anyone else (the founder's command channel, a customer) goes on to
+      // the normal turn, so a STOP that is not an opt-out is never swallowed.
+      const hit = !optErr && (Number(opt?.leads_opted_out) > 0 || Number(opt?.invitations_cancelled) > 0);
+      if (optErr) await logRun('error', { opt_out: 0 }, 'STOP received but the opt-out failed: ' + optErr.message + '; the message continues as a normal turn.');
+      if (hit) {
+        await logRun('ok', { opt_out: 1 }, 'STOP honoured: ' + JSON.stringify(opt));
+        return TW(200);
+      }
+    }
+
 
     // ---- THE WORDS OF EVERY CONVERSATION REPLY (rulings 1195/1196/1197, 12 Oct 2026) ----------------------------
     // Code decides what happened; the model writes what is said, in this turn (model_says.ts). '' = no model
