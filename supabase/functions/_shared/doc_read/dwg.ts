@@ -158,13 +158,13 @@ export function dwgToDxf(db: DwgDb): { dxf: string; skipped: Map<string, number>
   // multiset, equal exactly ONE named block's is that block's variant; it is written as readDxf expects, with the
   // AcDbBlockRepBTag link. ponytail: a variant whose stretch changed its entity list stays anonymous (noted, uncounted).
   const sig = (b: { entities?: { type: string }[] }) => (b.entities ?? []).map((e) => e.type).sort().join(',');
-  const named = blocks.filter((b) => !b.name.startsWith('*'));
+  const named = blocks.filter((b) => !(b.name ?? '').startsWith('*'));
   const hid = (i: number) => (0x10000 + i).toString(16).toUpperCase();
   const src = new Map<string, number>();
-  blocks.forEach((b, i) => { if (!/^\*U/i.test(b.name) || !(b.entities ?? []).length) return; const m = named.filter((o) => sig(o) === sig(b)); if (m.length === 1) src.set(b.name, blocks.indexOf(m[0])); });
+  blocks.forEach((b) => { if (!/^\*U/i.test(b.name ?? '') || !(b.entities ?? []).length) return; const m = named.filter((o) => sig(o) === sig(b)); if (m.length === 1) src.set(b.name ?? '', blocks.indexOf(m[0])); });
   if (src.size) {
     g(0, 'SECTION'); g(2, 'TABLES'); g(0, 'TABLE'); g(2, 'BLOCK_RECORD');
-    blocks.forEach((b, i) => { g(0, 'BLOCK_RECORD'); g(5, hid(i)); g(2, b.name); const k = src.get(b.name); if (k !== undefined) { g(1001, 'AcDbBlockRepBTag'); g(1070, 1); g(1005, hid(k)); } });
+    blocks.forEach((b, i) => { g(0, 'BLOCK_RECORD'); g(5, hid(i)); g(2, b.name ?? ''); const k = src.get(b.name ?? ''); if (k !== undefined) { g(1001, 'AcDbBlockRepBTag'); g(1070, 1); g(1005, hid(k)); } });
     g(0, 'ENDTAB'); g(0, 'ENDSEC');
   }
   if (blocks.length) {
