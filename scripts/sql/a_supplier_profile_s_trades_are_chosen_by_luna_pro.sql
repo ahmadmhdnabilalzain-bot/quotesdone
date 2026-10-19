@@ -35,3 +35,12 @@ select case when (public.fn_ai_route(p_task_class => 'supplier_trade_choice', p_
               and (public.fn_ai_route(p_task_class => 'supplier_trade_choice', p_fn => 'supplier_doc_trades') ->> 'fallback') = 'anthropic/claude-sonnet-5.5'
               and exists (select 1 from public.model_rate where model = 'openai/gpt-6-luna-pro')
             then 'PROBE OK' else 'PROBE FAILED: supplier_trade_choice does not route to luna-pro > sonnet, or matrix v3 (luna-pro price) is not applied' end as verdict;
+
+-- A failed route raises, so the whole file rolls back rather than printing FAILED over a committed change (review of #1483).
+do $verify$
+begin
+  if (public.fn_ai_route(p_task_class => 'supplier_trade_choice', p_fn => 'supplier_doc_trades') ->> 'model') is distinct from 'openai/gpt-6-luna-pro'
+     or (public.fn_ai_route(p_task_class => 'supplier_trade_choice', p_fn => 'supplier_doc_trades') ->> 'fallback') is distinct from 'anthropic/claude-sonnet-5.5' then
+    raise exception 'PROBE FAILED: supplier_trade_choice does not route to luna-pro > sonnet';
+  end if;
+end $verify$;
