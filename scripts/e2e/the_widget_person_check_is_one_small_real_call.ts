@@ -10,8 +10,9 @@
 import { newRun, keys, internalCred, BASE, REF, closeRehearsalWindow } from '../lib/demo_factory.mjs';
 import { mgmtFixture, mgmtRead } from '../lib/qd_guard.mjs';
 import { needsAPerson } from '../../supabase/functions/_shared/reasoned_decisions.ts';
+import { deliverReasoned, type DeliveryIO } from '../../supabase/functions/_shared/reasoned_delivery.ts';
 import type { GateAnswer } from '../../supabase/functions/_shared/llm_hold.ts';
-import { SYNTH_MAX, type Phase, type ThinkDeps } from '../../supabase/functions/_shared/think.ts';
+import { SYNTH_MAX, type HeldRow, type Phase, type ThinkDeps, type ThinkResult } from '../../supabase/functions/_shared/think.ts';
 
 const CAP_USD = 2;
 const TAG = newRun({}).tag;
@@ -58,6 +59,7 @@ const CASES = [
 ];
 const fails: string[] = [];
 const rows: unknown[] = [];
+const results: Record<string, ThinkResult> = {};
 
 await mgmtFixture(REF, `insert into public.rehearsal_window (run_tag, opened_by, models_allowed, cap_usd, expires_at)
   values ('qd_run:${TAG}', 'the_widget_person_check_is_one_small_real_call', true, ${CAP_USD}, now() + interval '30 minutes')`, 'rehearsal window');
@@ -73,6 +75,7 @@ try {
     check(s?.max === SYNTH_MAX, `cap ${s?.max}`);
     check(s?.taskClass === 'customer_communication', `task class ${s?.taskClass}`);
     check((s?.chars ?? 1e9) < 8000, `prompt ${s?.chars} chars`);   // ~4 chars a token: well under 2k (was 14.6-15.7k)
+    results[c.id] = r.result;
     rows.push({ id: c.id, value: r.value, model: s?.model, chars: s?.chars });
   }
   // THE FAILURE PATH: held by the gate, no model reached, no guess; the question is filed for the replay.
@@ -81,6 +84,22 @@ try {
   if (r.value !== null || r.result.status !== 'held') fails.push(`held: value ${r.value}, status ${r.result.status}`);
   if (h.rpcs.filter((f) => f === 'fn_reason_hold').length !== 1) fails.push('held: not filed in fn_reason_hold');
   if (h.calls.length) fails.push('held: a model was called');
+  // THE REPLAY FILES THE CEO REPORT: the held row, replayed with the real model's results, reports to the CEO exactly
+  // when a person was asked for (reasoned_delivery.ts, site_assistant.person). A recording io: nothing is sent.
+  const ceo: string[] = []; const other: string[] = [];
+  const io = new Proxy({}, { get: (_t, k) => (key: string) => {
+    if (k === 'reportToCeo') ceo.push(key); else other.push(String(k));
+    return Promise.resolve({ ok: true });
+  } }) as DeliveryIO;
+  const held = (id: number, q: string): HeldRow => ({ id, seat: 'customer_support', surface: 'site_assistant.person', subject: { path: '/pricing' },
+    request: { seat: 'customer_support', surface: 'site_assistant.person', question: q } as HeldRow['request'] });
+  for (const [id, cid] of [[901, 'en_person'], [902, 'ar_person'], [903, 'en_plain']] as const) {
+    const d = await deliverReasoned(held(id, CASES.find((c) => c.id === cid)!.message), results[cid], io);
+    if (d.delivered !== (cid !== 'en_plain')) fails.push(`replay ${cid}: delivered ${d.delivered}`);
+  }
+  if (JSON.stringify(ceo) !== '["widget:person:held:901","widget:person:held:902"]') fails.push(`replay: CEO reports ${JSON.stringify(ceo)}`);
+  if (other.length) fails.push(`replay: other effects ${other}`);
+  rows.push({ replay_ceo_reports: ceo });
 } finally {
   await closeRehearsalWindow(TAG);
 }
