@@ -53,7 +53,7 @@ Company knowledge (rules, targets, facts) is shared by all of them.
 - **Language.** Everything a supplier reads is English, on every channel. A customer is answered in the language they
   selected (on their account / their inquiry), not the language of the latest message.
 - **Money.** The reveal fee is 3% of the selected quote (no cap, nothing added for card, no VAT). The only supplier
-  charge is the non-response charge (Supplier Agreement v15 clause 33): the amount refunded, the processor fee QuotesDone could not recover, an AED 500 administrative fee and 12% a year simple interest (a supplier who signed an earlier version owes that version's AED 250 and 9%).
+  charge is the non-response charge (Supplier Agreement v15 clause 33): the amount refunded, the processor fee QuotesDone could not recover, an AED 500 administrative fee and 12% a year simple interest (a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount).
 - **Routine work is code.** About 95% of the company's work is deterministic; a model is used only where code cannot
   decide.
 - **Never state what has not been measured.** Say what was measured and its boundary.
