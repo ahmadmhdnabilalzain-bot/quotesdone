@@ -153,7 +153,7 @@ grant execute on function public.fn_reason_apply_ceo__lesson_reapproval(bigint, 
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
 select 'ceo.lesson_reapproval_overdue', 'it_engineer', 'ceo',
        'A lesson version waiting for CEO re-approval lapsed (its held question expired or failed): the lesson stays withheld until the CEO approves or rejects it. The handler asks again and closes when the CEO has decided.',
-       'fn_lesson_reapproval_overdue_act', interval '72 hours', false,
+       'fn_lesson_reapproval_overdue_act', interval '72 hours', true,   -- the originator re-verifies the decided lesson and closes (it_engineer_loop_is_closed.test.mjs)
        'scripts/sql/a_lesson_never_carries_a_case_or_inquiry_id_or_an_amount.sql'
  where not exists (select 1 from public.seat_handoff_kind
                     where type = 'ceo.lesson_reapproval_overdue' and from_seat = 'it_engineer' and to_seat = 'ceo');

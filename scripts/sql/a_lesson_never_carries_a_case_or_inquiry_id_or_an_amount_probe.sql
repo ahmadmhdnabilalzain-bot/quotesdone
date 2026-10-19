@@ -160,6 +160,8 @@ begin
       v_fail := v_fail || ' past the cap the handoff does not stay pending and say so;'; end if;
     perform public.fn_reason_apply_ceo__lesson_reapproval(v_held_c, jsonb_build_object('decision', jsonb_build_object('choice', 'reject')));
     v := public.fn_seat_handoff_act(v_hand_c);
+    perform public.fn_originators_reverify_handoffs();   -- originator_closes: it_engineer reads the decided reply and closes
+    perform public.fn_originators_reverify_handoffs();   -- originator_closes: it_engineer reads the decided reply and closes
     if not exists (select 1 from public.agent_actions where id = v_hand_c and status = 'done') then
       v_fail := v_fail || ' the escalation did not close once the CEO decided: ' || coalesce(v::text, 'null') || ';'; end if;
 
