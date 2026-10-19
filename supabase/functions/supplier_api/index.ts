@@ -1686,6 +1686,22 @@ ${q}`,
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
       return J(out);
     }
+    // WITHDRAW BEFORE THE REVEAL (QA walk, 19 Oct 2026: the portal showed a "Withdrawn" status but gave the
+    // supplier no way to reach it, and this function had no action for it). Only this supplier's own option,
+    // only on an enquiry we sent them, only while it is a draft or with the customer and nobody has revealed
+    // it. A revealed quote is the customer's paid decision and is never withdrawn from here.
+    if (action === 'withdraw_quote') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const { data: qt } = await admin.from('quotes').select('id,inquiry_id,status').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
+      if (!qt || !(await matchedInquiry(Number(sup.id), qt.inquiry_id))) return J({ error: 'not_found', code: 'not_found' }, 404);
+      const { count: revealed } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('quote_id', qt.id);
+      if (revealed) return J({ error: 'This quotation was already revealed to the customer, so it can no longer be withdrawn.', code: 'already_revealed' }, 409);
+      if (!['draft', 'submitted'].includes(String(qt.status))) return J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+      const { data: done, error: wErr } = await admin.from('quotes').update({ status: 'withdrawn' }).eq('id', qt.id).in('status', ['draft', 'submitted']).select('id');
+      if (wErr) return J({ error: 'could_not_withdraw', code: 'could_not_withdraw' }, 500);
+      return done?.length ? J({ ok: true, status: 'withdrawn' }) : J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+    }
     if (action === 'submit_quote') {
       const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
