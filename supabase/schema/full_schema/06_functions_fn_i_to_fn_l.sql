@@ -5569,7 +5569,7 @@ begin
     insert into public.seat_knowledge_recall_answer (day, question_id, seat, lang, recall)
     select v_day, q.id, q.seat, q.lang,
            (select count(distinct regexp_replace(x->>'id', '@ar$', ''))
-              from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, case when q.lang = 'ar' then null else q.embedding end, 6)) with ordinality t(x, n)
+              from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, case when q.lang = 'ar' then null else q.embedding end, 6, p_audience => 'internal')) with ordinality t(x, n)
              where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))::numeric
            / (select count(distinct e) from unnest(q.expected) e)
     on conflict do nothing;
