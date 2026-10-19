@@ -83,6 +83,7 @@ const EN = {
   err_email_suppressed: 'We cannot email this address — it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact support and we will restore it.',
   err_enter_code: 'Enter the 6-digit code.',
   err_too_many_attempts: 'Too many attempts. Please request a new code.',
+  err_resend_too_soon: 'A code is on its way. Please wait a few seconds before asking for another.',
   err_code_expired: 'That code has expired. Please request a new one.',
   err_code_burned: 'Too many incorrect attempts. Please request a new code.',
   err_sms_unavailable: 'SMS is not configured. Please contact us.',
@@ -149,6 +150,7 @@ const AR: Record<WaKey, string> = {
   err_email_suppressed: 'لا يمكننا الإرسال إلى هذا البريد الإلكتروني لأنه مُدرَج في قائمة عدم الإرسال بعد ارتداد رسائل سابقة أو إلغاء الاشتراك. يُرجى التواصل مع فريق الدعم لإعادة تفعيله.',
   err_enter_code: 'يُرجى إدخال الرمز المكوّن من ستة أرقام.',
   err_too_many_attempts: 'تجاوزتم عدد المحاولات المسموح به. يُرجى طلب رمز جديد.',
+  err_resend_too_soon: 'الرمز في طريقه إليكم. يُرجى الانتظار بضع ثوانٍ قبل طلب رمز آخر.',
   err_code_expired: 'انتهت صلاحية هذا الرمز. يُرجى طلب رمز جديد.',
   err_code_burned: 'تكرّر إدخال رمز غير صحيح فلم يعد صالحًا. يُرجى طلب رمز جديد.',
   err_sms_unavailable: 'خدمة الرسائل النصية غير مهيّأة حاليًا. يُرجى التواصل معنا.',
@@ -169,7 +171,7 @@ export const waText = (lang: WaLang, k: WaKey): string => (WA_TEXT[lang] || EN)[
 // Review 22 Sep 2026: PR #858 stabilised eleven more kyc codes (enter_name … unexpected_error) and
 // did not extend this list, so every one of them fell through to err_generic. They are here now, and
 // the last test in WhatsAppChoice.test.mjs re-reads kyc so the next addition cannot slip the same way.
-export const WA_ERROR_CODES = ['mobile_not_verified', 'bad_opt', 'bad_phone', 'rate_limited', 'wrong_code', 'whatsapp_unavailable', 'save_failed', 'send_failed', 'fixture_number', 'email_not_sent', 'enter_name', 'bad_mobile', 'email_suppressed', 'enter_code', 'too_many_attempts', 'code_expired', 'code_burned', 'sms_unavailable', 'sms_rate_limited', 'sms_send_failed', 'unexpected_error'] as const;
+export const WA_ERROR_CODES = ['mobile_not_verified', 'bad_opt', 'bad_phone', 'rate_limited', 'wrong_code', 'whatsapp_unavailable', 'save_failed', 'send_failed', 'fixture_number', 'email_not_sent', 'enter_name', 'bad_mobile', 'email_suppressed', 'enter_code', 'too_many_attempts', 'code_expired', 'code_burned', 'sms_unavailable', 'sms_rate_limited', 'sms_send_failed', 'unexpected_error', 'resend_too_soon'] as const;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function waErrorKey(j: any): WaKey {

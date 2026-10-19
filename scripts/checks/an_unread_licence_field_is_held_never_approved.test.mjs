@@ -63,7 +63,8 @@ test('process_docs reads every labelled field by code, asks the model (with one 
   assert.match(api, /if \(codeFields\.licence_no\) upd\.trade_license_no = codeFields\.licence_no;/);
   assert.match(api, /if \(d\.license_number && !codeFields\.licence_no\) upd\.trade_license_no = d\.license_number;/, 'the model overwrites the number code read');
   assert.match(api, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/, 'a failed model read is not retried');
-  assert.match(api, /if \(\/\^image\\\/\/i\.test\(s\.mime\)\) profImgs\.push\(/, 'a photo-only profile is not sent to the model');
+  // Since 19 Oct 2026 the profile is read after the response (supplier_docs_later.ts); the picture joins the model's images there.
+  assert.match(api, /if \(pq\?\.bytes && pq\.mime && \/\^image\\\/\/i\.test\(pq\.mime\)\) imgs\.unshift\(\{ b64: toB64\(pq\.bytes\)/, 'a photo-only profile is not sent to the model');
 });
 
 // Browser walk f4294be8 (12 Oct 2026, it_engineer): a clean text licence uploaded on the supplier portal's own

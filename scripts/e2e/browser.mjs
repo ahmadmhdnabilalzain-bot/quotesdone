@@ -101,10 +101,11 @@ async function harnessSession(who) {
  */
 export async function signedInPage(browser, who, { lang = 'en', viewport = 'desktop' } = {}) {
   const k = KEYS[who.kind];
-  const vp = VIEWPORTS[viewport];
+  // A named viewport, or an explicit { width, height } (inquiry_box_visible.mjs walks five sizes).
+  const vp = typeof viewport === 'object' ? viewport : VIEWPORTS[viewport];
   const ctx = await browser.newContext({
     viewport: vp, locale: lang === 'ar' ? 'ar-AE' : 'en-GB',
-    ...(viewport === 'mobile' ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
+    ...(vp.width < 768 ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
   });
   const s = await harnessSession(who);
   await ctx.addInitScript(([k, s, lang]) => {
@@ -253,3 +254,44 @@ export async function shot(page, dir, name, { fullPage = false } = {}) {
   await page.screenshot({ path: file, fullPage: false }).catch(() => {});
   return file;
 }
+
+/** The customer's inquiry box, measured as a person sees it (scripts/e2e/inquiry_box_visible.mjs). Runs in the page. Returns the facts and the reasons the box is not usable (empty = usable). */
+export function measureInquiryBox() {
+  const el = document.getElementById('qd-intake-input');
+  if (!el) return { problems: ['#qd-intake-input is not in the page'] };
+  const r = el.getBoundingClientRect();
+  const cs = getComputedStyle(el);
+  const line = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.4;
+  const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  // The part of the box an ancestor's overflow lets through, intersected with the window.
+  let vis = { top: Math.max(r.top, 0), left: Math.max(r.left, 0), bottom: Math.min(r.bottom, innerHeight), right: Math.min(r.right, innerWidth) };
+  const chain = [];
+  for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+    const s = getComputedStyle(a); const ar = a.getBoundingClientRect();
+    chain.push({ tag: a.tagName.toLowerCase(), id: a.id || undefined, cls: String(a.className).slice(0, 90), display: s.display, position: s.position,
+      overflow: `${s.overflowX}/${s.overflowY}`, height: Math.round(ar.height), minH: s.minHeight, maxH: s.maxHeight, top: Math.round(ar.top), bottom: Math.round(ar.bottom) });
+    if (s.overflowX !== 'visible' || s.overflowY !== 'visible') {
+      vis = { top: Math.max(vis.top, ar.top), left: Math.max(vis.left, ar.left), bottom: Math.min(vis.bottom, ar.bottom), right: Math.min(vis.right, ar.right) };
+    }
+  }
+  const visH = Math.max(0, vis.bottom - vis.top), visW = Math.max(0, vis.right - vis.left);
+  const problems = [];
+  if (r.height < 2 * line + pad - 1) problems.push(`box is ${Math.round(r.height)}px tall, under two lines (${Math.round(2 * line + pad)}px)`);
+  if (visH < r.height - 1 || visW < r.width - 1) problems.push(`only ${Math.round(visW)}x${Math.round(visH)} of the ${Math.round(r.width)}x${Math.round(r.height)} box can be seen (clipped by an overflow ancestor or the window)`);
+  if (r.width < 120) problems.push(`box is only ${Math.round(r.width)}px wide`);
+  const covered = [];
+  if (visH > 4 && visW > 4) {
+    // Corner probes sit inside the rounded corner (a point in the cut-away corner hits the parent, not the box).
+    const k = Math.max(4, parseFloat(cs.borderTopLeftRadius) || 0);
+    const pts = [[(vis.left + vis.right) / 2, (vis.top + vis.bottom) / 2], [vis.left + k, vis.top + k], [vis.right - k, vis.top + k], [vis.left + k, vis.bottom - k], [vis.right - k, vis.bottom - k]];
+    for (const [x, y] of pts) {
+      const hit = document.elementFromPoint(x, y);
+      if (hit !== el && !el.contains(hit)) covered.push(`${Math.round(x)},${Math.round(y)} -> ${hit ? hit.tagName.toLowerCase() + (hit.id ? '#' + hit.id : '') + '.' + String(hit.className).slice(0, 60) : 'nothing'}`);
+    }
+  }
+  if (covered.length) problems.push('something lies on top of the box: ' + covered.join('; '));
+  return { rect: { top: Math.round(r.top), left: Math.round(r.left), width: Math.round(r.width), height: Math.round(r.height) }, visible: { w: Math.round(visW), h: Math.round(visH) },
+    textarea: { display: cs.display, visibility: cs.visibility, opacity: cs.opacity, height: cs.height, minH: cs.minHeight, lineHeight: cs.lineHeight, zIndex: cs.zIndex },
+    window: { w: innerWidth, h: innerHeight, scrollY }, chain, problems };
+}
+

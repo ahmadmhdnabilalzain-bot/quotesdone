@@ -437,7 +437,7 @@
     {
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
-      "Read from their words whether they buy (a customer) or sell (a supplier)"
+      "Do not decide whether they buy or sell; if the answer genuinely differs, answer both sides briefly."
      ],
      "must_not_contain": [
       "SUP_RE",
@@ -2709,7 +2709,7 @@
      "file": "supabase/functions/_shared/trade_resolve.ts",
      "must_contain": [
       "admin.rpc('fn_norm_trades_many'",
-      "proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, codeWords })",
+      "proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, tradeAliases: deps.tradeAliases, codeWords })",
       "await deps.normTrades(raw)"
      ],
      "must_not_contain": [

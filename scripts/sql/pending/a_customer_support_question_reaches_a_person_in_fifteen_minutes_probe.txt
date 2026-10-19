@@ -1,1 +1,0 @@
-A PROBE (pure, aborted transaction, ends in raise exception CHK<<...>>): run in the same query after a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql. Never applied on its own. Last run 19 Oct 2026: PROBE OK.

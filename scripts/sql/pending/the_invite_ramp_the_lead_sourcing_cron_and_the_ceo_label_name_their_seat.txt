@@ -1,0 +1,1 @@
+Not applied. Registers invite_ramp (run label) and lead_sourcing_batch (cron job) under marketing and the ceo run label under ceo in public.writer_seat. Applied after 13:00 UTC by the release operator; on apply delete this note and append the file to the END of MANIFEST.txt.

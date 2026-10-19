@@ -46,6 +46,8 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_E2E_REPORTS: e2e-out
+      # rehearsal window run time = timeout-minutes 30 + 3 teardown; fn_rehearsal_window_sweep closes it after that
+      QD_E2E_WINDOW_MIN: '33'
       SHA: ${{ github.event.workflow_run.head_sha || inputs.sha }}
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}

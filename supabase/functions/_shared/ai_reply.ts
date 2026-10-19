@@ -16,6 +16,7 @@
 // prevented by: _shared/ai_reply.test.ts
 import { briefNumbers, companyBrief, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
+import { fitHistory } from './chat_history.ts';
 import { EVASION, substanceWords, type Seat, type ThinkDeps, type Turn } from './think.ts';
 
 /** The model class every conversation reply is routed by (founder ruling 1219: Sonnet 5.5, Gemini behind it). */
@@ -129,10 +130,13 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
   const known = briefNumbers(allowed);
   const check = (t: string) => replyProblems(t, known, { allowed, forbidden: r.forbidden });
-  const sys = '\n\n' + aiSystem(r, replyLang);   // after the brief, which rides as the cached sys_stable block
-  const convo = (r.conversation ?? []).slice(-8).map((t) => `${t.role}: ${t.text}`).join('\n');
-  const input = (convo ? 'CONVERSATION SO FAR:\n' + convo + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000);
-  const opts = { taskClass: REPLY_CLASS, sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  // THE WHOLE CONVERSATION (chat_history.ts, 18 Oct 2026): it was cut to the last 8 turns here. Every turn now rides as a
+  // real message before this one, cached by the gateway; the facts, which can change per turn, follow the history so the
+  // cached prefix (brief, rules, earlier turns) stays byte-identical from one turn to the next.
+  const sys = '\n\n' + aiSystem({ ...r, facts: undefined }, replyLang);   // after the brief, which rides as the cached sys_stable block
+  const history = fitHistory((r.conversation ?? []).map((t) => ({ role: t.role === 'seat' ? 'assistant' as const : 'user' as const, content: t.text })), r.message);
+  const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000);
+  const opts = { taskClass: REPLY_CLASS, ...(history.length ? { history } : {}), sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
   const left = () => (r.deadline ?? Infinity) - Date.now();
