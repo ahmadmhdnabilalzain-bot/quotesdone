@@ -31,7 +31,7 @@
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Img = { w: number; h: number; px: Uint8Array | Uint8ClampedArray; channels: 3 | 4 };
 export type LegendRow = { type: string; bbox: Rect; text?: string };
-export type Match = { type: string; box: Rect; score: number };
+export type Match = { type: string; box: Rect; score: number; scale?: number };
 export type SymbolCounts = { counts: Record<string, number>; matches: Match[]; templates: Record<string, Rect>; excluded: Rect[]; ms: number };
 
 export const INK_SAT = 70;
@@ -40,7 +40,7 @@ export const MIN_SCORE = 0.5;
 export const IOU_NMS = 0.2;
 export const SCALES = [0.7, 0.8, 0.9, 1, 1.1];
 
-const sat = (r: number, g: number, b: number) => Math.max(r, g, b) - Math.min(r, g, b) > INK_SAT;
+const sat = (r: number, g: number, b: number, t = INK_SAT) => Math.max(r, g, b) - Math.min(r, g, b) > t;
 
 type Tpl = { type: string; w: number; h: number; on: number[]; n: number; rgb: [number, number, number] };
 
@@ -51,18 +51,35 @@ export function templateFor(img: Img, row: LegendRow): { rect: Rect; tpl: Tpl } 
   const x0 = Math.max(0, Math.floor(row.bbox.x - 5 * lh)), x1 = Math.min(W - 1, Math.floor(row.bbox.x + 1.5 * lh));
   const cy = row.bbox.y + row.bbox.h / 2;
   const y0 = Math.max(0, Math.floor(cy - 1.6 * lh)), y1 = Math.min(H - 1, Math.ceil(cy + 1.6 * lh));
-  let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1; let sr = 0, sg = 0, sb = 0, k = 0;
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const p = (y * W + x) * C; const r = px[p], g = px[p + 1], b = px[p + 2];
-    if (!sat(r, g, b)) continue;
-    if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
-    sr += r; sg += g; sb += b; k++;
+  // The band reaches 1.6 line heights up and down, so it can hold the bottom of the symbol ABOVE (measured: the
+  // beacon's template took the lower arc of the heat-detector-with-sounder ring and became 27 x 33 px). Only the ink
+  // components centred on THIS row are the symbol; specks of fewer than 3 px are scanner / JPEG noise.
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1, lab = new Int32Array(bw * bh).fill(-1);
+  const isInk = (x: number, y: number) => { const p = (y * W + x) * C; return sat(px[p], px[p + 1], px[p + 2], INK_SAT * 0.6); };
+  const keep: number[] = [];
+  for (let s = 0; s < bw * bh; s++) {
+    if (lab[s] !== -1 || !isInk(x0 + (s % bw), y0 + Math.floor(s / bw))) continue;
+    const comp: number[] = [s]; lab[s] = s;
+    for (let q = 0; q < comp.length; q++) {
+      const cx = comp[q] % bw, cyy = Math.floor(comp[q] / bw);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = cx + dx, ny = cyy + dy; if (nx < 0 || ny < 0 || nx >= bw || ny >= bh) continue;
+        const t = ny * bw + nx; if (lab[t] === -1 && isInk(x0 + nx, y0 + ny)) { lab[t] = s; comp.push(t); }
+      }
+    }
+    const my = comp.reduce((a, t) => a + Math.floor(t / bw), 0) / comp.length + y0;
+    if (comp.length >= 3 && Math.abs(my - cy) <= lh) keep.push(...comp);
   }
-  if (maxX < 0 || maxX - minX < 4 || maxY - minY < 4) return null;
+  let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1; let sr = 0, sg = 0, sb = 0, k = 0;
+  for (const t of keep) {
+    const x = x0 + (t % bw), y = y0 + Math.floor(t / bw), p = (y * W + x) * C;
+    if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+    if (sat(px[p], px[p + 1], px[p + 2])) { sr += px[p]; sg += px[p + 1]; sb += px[p + 2]; k++; }  // colour from the strong ink only
+  }
+  if (maxX < 0 || !k || maxX - minX < 4 || maxY - minY < 4) return null;
   const rgb: [number, number, number] = [sr / k, sg / k, sb / k];
   const w = maxX - minX + 1, h = maxY - minY + 1;
-  const on: number[] = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const p = ((minY + y) * W + minX + x) * C; if (sat(px[p], px[p + 1], px[p + 2])) on.push(y * w + x); }
+  const on = keep.map((t) => (y0 + Math.floor(t / bw) - minY) * w + (x0 + (t % bw) - minX));
   return { rect: { x: minX, y: minY, w, h }, tpl: { type: row.type, w, h, on, n: w * h, rgb } };
 }
 
@@ -75,7 +92,10 @@ function colourMask(img: Img, rgb: [number, number, number]): Uint8Array {
     const d = (r - rgb[0]) ** 2 + (g - rgb[1]) ** 2 + (b - rgb[2]) ** 2;
     if (d < t2) out[i] = 1;
   }
-  return out;
+  // Specks with fewer than two inked neighbours are JPEG / scanner noise, not a line of a symbol.
+  const W = img.w, clean = new Uint8Array(out.length);
+  for (let i = W + 1; i < out.length - W - 1; i++) if (out[i] && out[i - 1] + out[i + 1] + out[i - W] + out[i + W] + out[i - W - 1] + out[i - W + 1] + out[i + W - 1] + out[i + W + 1] >= 2) clean[i] = 1;
+  return clean;
 }
 
 function integral(ink: Uint8Array, w: number, h: number): Uint32Array {
@@ -95,6 +115,19 @@ function scaled(t: Tpl, s: number): Tpl {
   return { ...t, w, h, on, n: w * h };
 }
 
+/** A directional symbol (a beacon, an arrow) is drawn turned to face its wall: measured, three of the four beacons
+ *  on the real sample point up or down while the legend's points right. The 90 / 180 / 270 degree turns of a template,
+ *  skipped for a symbol that looks the same turned (a ring), so a ring is not matched four times over. */
+function turns(t: Tpl): Tpl[] {
+  const set = (w: number, on: number[]) => new Set(on.map((i) => `${i % w},${Math.floor(i / w)}`));
+  const rot = (s: Tpl): Tpl => ({ ...s, w: s.h, h: s.w, on: s.on.map((i) => { const x = i % s.w, y = Math.floor(i / s.w); return x * s.h + (s.h - 1 - y); }) });
+  const r1 = rot(t), r2 = rot(r1), r3 = rot(r2);
+  const a = set(t.w, t.on), same = (u: Tpl) => { if (u.w !== t.w) return false; const b = set(u.w, u.on); let n = 0; for (const k of b) if (a.has(k)) n++; return n / Math.max(a.size, b.size) > 0.6; };
+  // A wide box turned upright (a panel) is a new shape that two parallel cables also make; only near-square symbols turn.
+  if (t.w > t.h * 1.3 || t.h > t.w * 1.3) return [];
+  return [r1, r2, r3].filter((u) => !same(u));
+}
+
 const iou = (a: Rect, b: Rect) => {
   const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)), iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
   const i = ix * iy; return i / (a.w * a.h + b.w * b.h - i);
@@ -106,7 +139,7 @@ export function countSymbols(img: Img, rows: LegendRow[]): SymbolCounts {
   const W = img.w, H = img.h;
   const templates: Record<string, Rect> = {};
   const base: Tpl[] = [];
-  for (const r of rows) { const t = templateFor(img, r); if (t) { templates[r.type] = t.rect; base.push(t.tpl); } }
+  for (const r of rows) { const t = templateFor(img, r); if (t) { templates[r.type] = t.rect; base.push(t.tpl); base.push(...turns(t.tpl)); } }
   const excluded: Rect[] = [];
   const lefts = Object.values(templates).map((r) => r.x);
   if (lefts.length && Math.min(...lefts) > W * 0.75) { const x = Math.min(...lefts) - 6; excluded.push({ x, y: 0, w: W - x, h: H }); }
@@ -121,6 +154,12 @@ export function countSymbols(img: Img, rows: LegendRow[]): SymbolCounts {
       const t = scaled(b, s);
       const k = t.on.length; if (k < 6) continue;
       const mt = k / t.n, varT = k - t.n * mt * mt;
+      // The symbol's INSIDE (centre half of its box) is what tells a call point's dot from a detector's "So" or "H"
+      // when the rings are the same size; measured, whole-box correlation let the ring decide and a 16 px call-point
+      // template took 23 detectors. The score is the mean of the whole-box and the inside correlation.
+      const ix0 = Math.floor(t.w / 4), iy0 = Math.floor(t.h / 4), iw = Math.max(2, t.w - 2 * ix0), ih = Math.max(2, t.h - 2 * iy0), inN = iw * ih;
+      const inOn = t.on.filter((o) => { const ox = o % t.w, oy = Math.floor(o / t.w); return ox >= ix0 && ox < ix0 + iw && oy >= iy0 && oy < iy0 + ih; });
+      const mti = inOn.length / inN, varTi = inOn.length - inN * mti * mti;
       for (let y = 0; y + t.h <= H; y++) {
         for (let x = 0; x + t.w <= W; x++) {
           const a = sumIn(I, W, x, y, t.w, t.h);
@@ -128,15 +167,26 @@ export function countSymbols(img: Img, rows: LegendRow[]): SymbolCounts {
           if (excluded.some((r) => inside({ x: x + t.w / 2, y: y + t.h / 2 }, r))) continue;
           let both = 0; for (const o of t.on) both += ink[(y + Math.floor(o / t.w)) * W + x + (o % t.w)];
           const ma = a / t.n, varA = a - t.n * ma * ma;
-          const score = (both - t.n * ma * mt) / Math.sqrt(Math.max(1e-9, varA * varT));
-          if (score >= MIN_SCORE) cands.push({ type: t.type, box: { x, y, w: t.w, h: t.h }, score });
+          const full = (both - t.n * ma * mt) / Math.sqrt(Math.max(1e-9, varA * varT));
+          if (full < 0.3) continue;
+          const ai = sumIn(I, W, x + ix0, y + iy0, iw, ih);
+          let bi = 0; for (const o of inOn) bi += ink[(y + Math.floor(o / t.w)) * W + x + (o % t.w)];
+          const mai = ai / inN, varAi = ai - inN * mai * mai;
+          const inner = varTi > 1e-9 && varAi > 1e-9 ? (bi - inN * mai * mti) / Math.sqrt(varAi * varTi) : (ai === 0) === (inOn.length === 0) ? 1 : 0;
+          const score = (full + inner) / 2;
+          if (score >= 0.4 && inner >= 0.2) cands.push({ type: t.type, box: { x, y, w: t.w, h: t.h }, score, scale: s });
         }
       }
     }
   }
+  // ONE PLAN SCALE. Every symbol on a sheet is drawn at the same ratio to its legend sample, so the ratio is found
+  // once (the scale whose non-overlapping matches score highest in total) and a match more than one step from it is
+  // dropped: measured, a 16 px detector matched a 20 px detector-with-sounder template at 0.8x.
+  const nms = (cs: Match[]) => { const out: Match[] = []; for (const c of cs) if (!out.some((m) => iou(m.box, c.box) > IOU_NMS)) out.push(c); return out; };
   cands.sort((a, b) => b.score - a.score);
-  const matches: Match[] = [];
-  for (const c of cands) if (!matches.some((m) => iou(m.box, c.box) > IOU_NMS)) matches.push(c);
+  let plan = 1, best = -1;
+  for (const s of SCALES) { const tot = nms(cands.filter((c) => c.scale === s)).reduce((q, c) => q + c.score, 0); if (tot > best) { best = tot; plan = s; } }
+  const matches = nms(cands.filter((c) => Math.abs((c.scale ?? 1) - plan) <= 0 + 1e-9));
   const counts: Record<string, number> = {};
   for (const r of rows) counts[r.type] = 0;
   for (const m of matches) counts[m.type] = (counts[m.type] || 0) + 1;

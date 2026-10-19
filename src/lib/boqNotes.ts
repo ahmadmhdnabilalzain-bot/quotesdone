@@ -79,6 +79,8 @@ const RULES: Rule[] = [
   R(/^(.+?) quantities found; the first (.+?) are kept\.$/, (m) => `عُثر على ${m[1]} كمية؛ واحتُفظ بأول ${m[2]} منها.`),
   R(/^(.+?) anonymous block inserts \(dimensions, hatches, dynamic blocks\) were not counted\.$/, (m) => `لم تُحتسب الكتل غير المسمّاة (الأبعاد والتظليل والكتل الديناميكية)، وعددها ${m[1]}.`),
   // doc_read/cad.ts, 24 Sep 2026: the legend's own sample symbols are not work anyone prices.
+  R(/^(.+?) dynamic block variant\(s\) \(\*U\) were counted as the block they are drawn from\.$/, (m) => `احتُسبت الكتل الديناميكية المعدّلة ضمن الكتلة الأصلية التي رُسمت منها، وعددها ${m[1]}.`),
+  R(/^(.+?) block insert\(s\) nested inside other blocks were counted once per placement of their parent\.$/, (m) => `احتُسبت الكتل الموضوعة داخل كتل أخرى مرة لكل موضع للكتلة الأم، وعددها ${m[1]}.`),
   R(/^(.+?) block insert\(s\) drawn as legend samples beside their descriptions were not counted\.$/, (m) => `لم تُحتسب رموز مفتاح الرسم المرسومة بجانب أوصافها، وعددها ${m[1]}.`),
   R(/^The drawing has more than (.+?) entities; reading stopped there, so totals are partial\.$/, (m) => `يتضمن المخطط أكثر من ${m[1]} عنصر؛ وتوقفت القراءة عند هذا الحد، لذا المجاميع جزئية.`),
   R(/^Lengths are per layer as drawn; block contents are not exploded and viewport scales are not applied\.$/, () => 'الأطوال محسوبة لكل طبقة كما رُسمت؛ ولم تُفكَّك محتويات الكتل ولم تُطبَّق مقاييس نوافذ العرض.'),
