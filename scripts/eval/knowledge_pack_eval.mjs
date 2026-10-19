@@ -16,7 +16,7 @@
 //          every pack row) equals its top 6 over (live rows + each question's own top 6 pack rows). The
 //          ranking is the database's, not this file's.
 //
-//   node scripts/eval/knowledge_pack_eval.mjs [--mode live|staged] [--out results.json]
+//   node scripts/eval/knowledge_pack_eval.mjs [--mode live|staged] [--out results.json] [--with-trade]
 //
 // Exit 1 when any (pack, seat) is below FLOOR. The floor is set from the first measured baseline and is
 // never lowered to turn a run green (founder: never soften a check).
@@ -71,7 +71,7 @@ console.log(`mode: ${mode}  path: ${PATH}  (${packs.length} packs, ${rows.length
 
 // The questions: every pack's eval, both languages, for every seat that reads the pack.
 const qs = packs.flatMap((p) => (p.pack.eval ?? []).flatMap((q) => ['en', 'ar'].flatMap((lang) =>
-  seatsOf(p).map((seat) => ({ pack: p.key, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: q.expected_entry_ids, any: q.expected_mode === 'any' })))));
+  seatsOf(p).map((seat) => ({ pack: p.key, trade: p.kind === 'trade' ? p.code : null, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: q.expected_entry_ids, any: q.expected_mode === 'any' })))));
 const embedder = await makeEmbedder(sql, PROJECT_REF);
 const qv = await embedder.many([...new Set(qs.map((q) => q.text))]);
 const vOf = new Map([...new Set(qs.map((q) => q.text))].map((t, i) => [t, qv[i]]));
@@ -108,9 +108,13 @@ if (ML) {
     rs.forEach((r) => { r.mvec = cache[sha(key(r))]; });
   };
 }
+// --with-trade (19 Oct 2026, a_trade_question_reads_its_own_trade_pack.sql): a trade pack's question is asked with its
+// trade named, as think() asks once its planner has resolved the trade. Without the flag: the trade-blind call, as before.
+const WITH_TRADE = process.argv.includes('--with-trade');
+const tradeArg = (q) => (WITH_TRADE && q.trade ? `, p_trade => ${lit(q.trade)}` : '');
 const routineCall = (q) => ML
-  ? `public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${PATH === 'ml' && gteReads(q.text) ? vecLit(q.vec) : 'null'}, ${K_RETRIEVE})`
-  : `public.fn_reason_retrieve('${q.seat}', ${vecLit(q.vec)}, ${K_RETRIEVE})`;
+  ? `public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${PATH === 'ml' && gteReads(q.text) ? vecLit(q.vec) : 'null'}, ${K_RETRIEVE}${tradeArg(q)})`
+  : `public.fn_reason_retrieve('${q.seat}', ${vecLit(q.vec)}, ${K_RETRIEVE}${tradeArg(q)})`;
 
 // The expected entries among the first TOP rows the routine returns, counted in SQL: a staged probe reports
 // through an error message the management API cuts at ~2,000 characters, so one integer per question comes back.
