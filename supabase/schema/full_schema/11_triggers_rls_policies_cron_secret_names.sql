@@ -1414,6 +1414,33 @@ select cron.schedule('cs_held_question_route','*/5 * * * *',$CRON$select public.
 select cron.schedule('seat_duty:ceo.queue_work','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.queue_work');$CRON$);
 select cron.schedule('rehearsal_window_sweep','*/10 * * * *',$CRON$select public.fn_rehearsal_window_sweep();$CRON$);
 select cron.schedule('seat_duty:accountant.receipt_bank_match','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.receipt_bank_match');$CRON$);
+select cron.schedule('seat_duty:customer_support.decision_objection_escalate','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.decision_objection_escalate');$CRON$);
+select cron.schedule('seat_duty:accountant.receipt_intake','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.receipt_intake');$CRON$);
+select cron.schedule('seat_duty:accountant.charge_recovery','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.charge_recovery');$CRON$);
+select cron.schedule('seat_duty:accountant.cash_forecast_weekly','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.cash_forecast_weekly');$CRON$);
+select cron.schedule('seat_duty:accountant.budget_variance','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.budget_variance');$CRON$);
+select cron.schedule('seat_duty:accountant.vat_threshold','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.vat_threshold');$CRON$);
+select cron.schedule('seat_duty:accountant.finance_week','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.finance_week');$CRON$);
+select cron.schedule('seat_duty:accountant.year_end','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.year_end');$CRON$);
+select cron.schedule('seat_duty:ceo.directive_review','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.directive_review');$CRON$);
+select cron.schedule('seat_duty:ceo.month_close','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.month_close');$CRON$);
+select cron.schedule('seat_duty:ceo.forecast_counter_action','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.forecast_counter_action');$CRON$);
+select cron.schedule('seat_duty:ceo.improvement_burn_down','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.improvement_burn_down');$CRON$);
+select cron.schedule('seat_duty:ceo.pricing_evidence','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.pricing_evidence');$CRON$);
+select cron.schedule('seat_duty:ceo.experiment_month','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.experiment_month');$CRON$);
+select cron.schedule('seat_duty:ceo.refund_decision_metric','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.refund_decision_metric');$CRON$);
+select cron.schedule('seat_duty:ceo.register_review','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.register_review');$CRON$);
+select cron.schedule('seat_duty:it_engineer.latency_closure','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.latency_closure');$CRON$);
+select cron.schedule('seat_duty:it_engineer.model_spend_closure','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.model_spend_closure');$CRON$);
+select cron.schedule('seat_duty:it_engineer.perimeter_freshness','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.perimeter_freshness');$CRON$);
+select cron.schedule('seat_duty:it_engineer.advisory_triage','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.advisory_triage');$CRON$);
+select cron.schedule('seat_duty:it_engineer.load_test','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.load_test');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.comparison_report','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.comparison_report');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.onboarding_conversion','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.onboarding_conversion');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.supply_gap_recruitment','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.supply_gap_recruitment');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.negotiation_round','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.negotiation_round');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.win_loss_review','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.win_loss_review');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.framework_proposal','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.framework_proposal');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
