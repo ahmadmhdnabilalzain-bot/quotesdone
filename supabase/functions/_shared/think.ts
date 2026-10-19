@@ -49,7 +49,14 @@ import { recallCases } from './case_recall.ts';
 import { e2eRunTag } from './e2e_run.ts';
 import { rehearsalLetsFixtureThrough } from './spend_guards.ts';
 import { gteReads } from './ml_embed_recipe.ts';
-import { SEAT_FACTS_EXTERNAL, SEAT_FACTS_INTERNAL } from './brief.generated.ts';
+import {
+  SEAT_CARD_ACCOUNTANT, SEAT_CARD_CEO, SEAT_CARD_CUSTOMER_SUPPORT, SEAT_CARD_IT_ENGINEER, SEAT_CARD_MARKETING, SEAT_CARD_SALES_ENGINEER,
+  SEAT_FACTS_EXTERNAL, SEAT_FACTS_INTERNAL,
+} from './brief.generated.ts';
+const SEAT_CARDS: ReadonlyMap<string, string> = new Map([
+  ['ceo', SEAT_CARD_CEO], ['customer_support', SEAT_CARD_CUSTOMER_SUPPORT], ['sales_engineer', SEAT_CARD_SALES_ENGINEER],
+  ['accountant', SEAT_CARD_ACCOUNTANT], ['it_engineer', SEAT_CARD_IT_ENGINEER], ['marketing', SEAT_CARD_MARKETING],
+]);
 
 export const SEATS = ['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] as const;
 export type Seat = typeof SEATS[number];
@@ -364,8 +371,13 @@ export const SETTLED_HEADER = '# SETTLED COMPANY FACTS AND FOUNDER RULINGS (they
 // audience (a held row stored before the type required one, a caller that cast its way past the type) gets the
 // public brief. ThinkContext.audience and ThinkRequest.context are required, so deno check names every call site.
 export const INTERNAL_AUDIENCES: ReadonlySet<string> = new Set(['internal', 'founder']);
-export function settledFacts(audience: string | null | undefined): string {
-  return SETTLED_HEADER + '\n\n' + (audience && INTERNAL_AUDIENCES.has(audience) ? SEAT_FACTS_INTERNAL : SEAT_FACTS_EXTERNAL);
+// The seat's OPERATING FACTS card (knowledge/brief/seats/<seat>.md, compiled by code from its own verified pack by
+// scripts/kb/compile_brief.mjs) rides only with the internal brief: it names thresholds, owners and internal routines a
+// customer, supplier or visitor is never told. One card per seat, byte-stable, so each seat's prefix caches.
+export function settledFacts(audience: string | null | undefined, seat?: string | null): string {
+  if (!(audience && INTERNAL_AUDIENCES.has(audience))) return SETTLED_HEADER + '\n\n' + SEAT_FACTS_EXTERNAL;
+  const card = (seat && SEAT_CARDS.get(seat)) || '';
+  return SETTLED_HEADER + '\n\n' + SEAT_FACTS_INTERNAL + (card ? '\n\n' + card : '');
 }
 
 export function synthesisPrompt(seat: Seat, audience: string, language: string, decision?: DecisionSpec, route?: { id: string; meaning: string }[], allowDecline = false): string {
@@ -508,7 +520,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const facts0 = settledFacts(ctx.audience);
+  const facts0 = settledFacts(ctx.audience, req.seat);
   const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
     : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
       JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
