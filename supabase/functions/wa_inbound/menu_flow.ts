@@ -220,8 +220,8 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   //     reasoned at all. Held, it is not guessed: the message goes on, and is answered on replay if unanswered.
   // The menu meaning starts beside the size question, not after it (19 Oct 2026: two serial reasonings, ~30 s).
   const offerMenu = lastWasMenu && inp.audience !== 'founder';
-  const meaningP = !choice && body ? d.meaning(body, awaiting === 'problem', offerMenu) : Promise.resolve(null);
-  meaningP.catch(() => null);   // awaited below; an early return must not leave it unhandled
+  // A failed menu reading is unreasoned (null), as under the hold: never a thrown turn (review of #1499).
+  const meaningP = !choice && body ? d.meaning(body, awaiting === 'problem', offerMenu).catch(() => null) : Promise.resolve(null);
   if (!choice && (await d.intent(body)) === 'size') {
     await talk(d, inp, lang, 'capability_answer', 'They asked about our size or volumes. Never give any count or figure about suppliers, customers, requests, quotes or revenue. Say instead, professionally: ' + capabilityAnswer(lang), null, { audience: inp.audience, size_question: true });
     return { handled: true, route: 'capability_answer' };
