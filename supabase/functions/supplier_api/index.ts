@@ -1832,7 +1832,7 @@ ${q}`,
       const { data: mine } = await admin.from('quotes').select('id,option_no,status').eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
       const maxOpt = Math.max(0, ...(mine || []).map((r: any) => Number(r.option_no) || 1));
       if (body.new_option === true) {
-        const { count: revealedQuotes } = await admin.from('transactions').select('id', { count: 'exact', head: true }).in('quote_id', (mine || []).map((r: any) => r.id).concat(['00000000-0000-0000-0000-000000000000']));
+        const { count: revealedQuotes } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('fee_status', 'paid').in('quote_id', (mine || []).map((r: any) => r.id).concat(['00000000-0000-0000-0000-000000000000']));   // only a PAID reveal counts: a failed or unpaid checkout never blocks an option
         const refusal = newOptionRefusal(body.new_option, revealedQuotes || 0);
         if (refusal) return J(refusal.body, refusal.status);
       }
