@@ -171,6 +171,8 @@ create or replace function public.fn_it_duty_ran(p_duty text, p_result jsonb)
   -- the perimeter check's own last success, on its schedule row (IT-C13)
   update public.it_duty_schedule set last_ok_at = now(), last_result = p_result where duty = p_duty;
 $function$;
+revoke execute on function public.fn_it_duty_ran(text, jsonb) from public, anon, authenticated;
+grant execute on function public.fn_it_duty_ran(text, jsonb) to service_role;
 
 update public.it_duty_schedule s set last_ok_at = r.at
   from (select substring(counts->>'job' from 6) duty, max(started_at) at from public.agent_runs
@@ -241,6 +243,8 @@ begin
   perform public.fn_it_duty_ran('dependency', v_res);
   return v_res;
 end $function$;
+revoke execute on function public.fn_it_dependency_ingest(jsonb) from public, anon, authenticated;
+grant execute on function public.fn_it_dependency_ingest(jsonb) to service_role;
 
 create or replace function public.fn_it_engineer_advisory_triage()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$

@@ -28,9 +28,12 @@ begin
         'closure_rows', (select jsonb_object_agg(duty, n) from (select duty, count(*) n from public.it_finding_closure group by 1) x),
         -- only this transaction's own rows (created_at = now()): the company keeps sending while the probe runs
         'notifications_added', (select coalesce(jsonb_object_agg(coalesce(to_role, '?') || '/' || coalesce(kind, type, '?'), n), '{}'::jsonb) from (select to_role, kind, type, count(*) n from public.notifications where created_at = now() group by 1, 2, 3) x),
+        'notifications_added_total', (select count(*) from public.notifications where created_at = now()),
         'founder_notifications_added', (select count(*) from public.notifications where created_at = now() and to_role = 'founder'),
         'handoffs_added', (select jsonb_object_agg(agent, n) from (select agent, count(*) n from public.agent_actions where id > h0 and kind = 'handoff' group by 1) x),
         'handoffs_to_founder_added', (select count(*) from public.agent_actions where id > h0 and kind = 'handoff' and (agent = 'founder' or detail->>'recipient_role' = 'founder')));
+  -- the PR claims NO notification at all, not only none to the founder
+  if (select count(*) from public.notifications where created_at = now()) <> 0 then v_fail := v_fail || 'a notification was written; '; end if;
   if (r->>'founder_notifications_added')::int <> 0 or (r->>'handoffs_to_founder_added')::int <> 0 then v_fail := v_fail || 'reached the founder; '; end if;
   if coalesce((r->'C02'->>'open')::int, 0) = 0 then v_fail := v_fail || 'no latency finding under closure; '; end if;
   if coalesce((r->'C06'->'model_spend'->>'open')::int, 0) = 0 then v_fail := v_fail || 'no spend finding under closure; '; end if;
