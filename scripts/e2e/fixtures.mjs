@@ -38,7 +38,8 @@ export { REF, BASE };
 // now does the same: a token owned by a fixture and within REFRESH_MARGIN_S of expiry is re-issued
 // through the fixture's newSession() before the call, and fixture.jwt / fixture.session move with it.
 // Guard: scripts/e2e/fixtures_session.test.mjs.
-export const REFRESH_MARGIN_S = 120;
+// QD_E2E_REFRESH_MARGIN_S=3600 makes every fixture call use a re-issued token: how a short run proves the path.
+export const REFRESH_MARGIN_S = Number(process.env.QD_E2E_REFRESH_MARGIN_S || 120);
 const owners = new Map();   // access_token -> fixture
 export function trackSession(fx) { if (fx?.jwt && fx.newSession) owners.set(fx.jwt, fx); return fx; }
 export const tokenIsStale = (session, nowS = Date.now() / 1000) =>
