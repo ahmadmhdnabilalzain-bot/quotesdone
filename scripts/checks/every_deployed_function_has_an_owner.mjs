@@ -37,8 +37,9 @@ const REF = 'htdblwldjkcgjvmqkbeh';
 // backs off on 429/5xx; the functions list goes through withRetry), and anything still not an array
 // stops the check with exit 2 and a message naming what was not measured. Never a pass.
 export function mustBeList(what, value) {
-  if (Array.isArray(value)) return value;
-  throw new Error(`${what} did not return a list, so nothing was measured: ${JSON.stringify(value).slice(0, 300)}`);
+  // An EMPTY list is not measured either: a wrong ref, a token that lists nothing or a blank page would pass vacuously.
+  if (Array.isArray(value) && value.length > 0) return value;
+  throw new Error(`${what} did not return a non-empty list, so nothing was measured: ${JSON.stringify(value).slice(0, 300)}`);
 }
 
 async function listFunctions() {
