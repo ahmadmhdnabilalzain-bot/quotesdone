@@ -84,6 +84,9 @@ async function main() {
   // --with-sql <file> (staged only, ceo 19 Oct 2026): run a not-yet-applied routine file inside the SAME aborted
   // transaction, so a pending retrieval change is graded before merge and nothing commits. Repeatable, in order.
   const withSql = process.argv.flatMap((a, i) => (a === '--with-sql' ? [readFileSync(process.argv[i + 1], 'utf8')] : [])).join('\n');
+  // --audience <a> (ceo 19 Oct 2026, #1567): pass p_audience to the routine. The daily and monthly SQL exams pass
+  // 'internal'; 'customer' shows what an outside audience is given. Omitted: the call is made without it.
+  const aud = at('--audience') ? `, p_audience => '${at('--audience').replace(/[^a-z_]/g, '')}'` : '';
   if (withSql && mode !== 'staged') { console.error('--with-sql needs --mode staged (live never runs DDL)'); process.exit(1); }
   const packs = readPacks(join(REPO, 'knowledge'));
   const exams = readExams().filter((x) => !at('--seat') || x.seat === at('--seat'));
@@ -120,7 +123,7 @@ async function main() {
     }
     return;
   }
-  const topExpr = (seat, vec) => `(select coalesce(jsonb_agg(left(x->>'id', 64) order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${seat}', ${vecLit(vec)}, ${K_RETRIEVE})) with ordinality t(x, n) where n <= ${TOP})`;
+  const topExpr = (seat, vec) => `(select coalesce(jsonb_agg(left(x->>'id', 64) order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${seat}', ${vecLit(vec)}, ${K_RETRIEVE}${aud})) with ordinality t(x, n) where n <= ${TOP})`;
   console.log(`mode: ${mode}`);
   const report = { mode, at: new Date().toISOString(), top: TOP, seats: [] };
 
@@ -132,7 +135,7 @@ async function main() {
       for (let c = 0; c < x.items.length; c += 10) {
         const part = x.items.slice(c, c + 10);
         // The routine is STABLE and this is one SELECT; the API read_only role cannot EXECUTE it (42501, 23 Sep 2026).
-        const [r] = await sql(`select jsonb_build_array(${part.map((it) => `(select coalesce(jsonb_agg(jsonb_build_object('id', x->>'id', 'excerpt', x->>'excerpt') order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${x.seat}', ${vecLit(it.vec)}, ${K_RETRIEVE})) with ordinality t(x, n) where n <= ${TOP})`).join(',')}) got`);
+        const [r] = await sql(`select jsonb_build_array(${part.map((it) => `(select coalesce(jsonb_agg(jsonb_build_object('id', x->>'id', 'excerpt', x->>'excerpt') order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${x.seat}', ${vecLit(it.vec)}, ${K_RETRIEVE}${aud})) with ordinality t(x, n) where n <= ${TOP})`).join(',')}) got`);
         part.forEach((it, j) => { it.top = r.got[j]; });
       }
     } else {

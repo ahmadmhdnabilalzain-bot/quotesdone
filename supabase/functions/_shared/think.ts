@@ -597,7 +597,10 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     // The right area first (knowledge_lookup_goes_to_the_trade_first.sql): the routine resolves the trade and the
     // area exactly and ranks only that trade's entries / that area's rows plus the seat's general ones. Each is sent
     // only when known, so a call without them is the call it always was.
-    const area = { ...(trade ? { p_trade: trade } : {}), ...(kind ? { p_kind: kind } : {}), ...(ctx.area ? { p_area: ctx.area } : {}) };
+    // p_audience (a_seats_own_pack_fills_half_of_every_retrieval.sql): the routine returns the company's own facts
+    // (rows tagged audience:internal) and reserves the seat's own rows ONLY for an audience named internal or founder.
+    // The raw ctx.audience is sent, not the defaulted one: a missing audience is external there, as in settledFacts().
+    const area = { ...(trade ? { p_trade: trade } : {}), ...(kind ? { p_kind: kind } : {}), ...(ctx.area ? { p_area: ctx.area } : {}), p_audience: ctx.audience ?? null };
     const { data, error } = await deps.rpc(rt.retrieve, rt === ROUTINES.ml
       ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6, ...area }
       : { p_seat: req.seat, p_embedding: vec(v), p_k: 6, ...area });

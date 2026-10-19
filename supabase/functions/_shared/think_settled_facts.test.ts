@@ -74,3 +74,20 @@ Deno.test('an internal call carries its own seat card; an outside audience never
   await think(x.deps, { context: { audience: 'customer' }, seat: 'it_engineer', surface: 'test', question: 'Resend monthly cap?', stakes: 'high' });
   for (const c of x.calls) assertEquals(c.o.sysStable, settledFacts('customer'), c.phase);
 });
+
+Deno.test('retrieval is told the audience: the company\'s own pack rows are for an internal call only', async () => {
+  const sent: Record<string, unknown>[] = [];
+  const run = async (context: Record<string, unknown>) => {
+    const m = mock();
+    m.deps.llm = (phase) => Promise.resolve({ model: 'm', content: phase === 'synthesise' ? J({ answer: 'x', reasoning: [], cited: [], confidence: 0.9 })
+      : phase === 'verify' ? J({ verdict: 'agree', problems: [] })
+      : J({ steps: [{ id: 's1', goal: 'x', query: 'Resend monthly cap', needs_knowledge: true }], facts: [], high_stakes: false }) } as LlmReply);
+    m.deps.rpc = (fn, args) => { if (String(fn).startsWith('fn_reason_retrieve')) sent.push(args as Record<string, unknown>); return Promise.resolve({ data: fn.startsWith('fn_case_recall') ? { cases: [] } : [], error: null }); };
+    sent.length = 0;
+    await think(m.deps, { context, seat: 'it_engineer', surface: 'test', question: 'Resend monthly cap?' } as unknown as Parameters<typeof think>[1]);
+    assert(sent.length > 0, 'retrieval ran');
+    return sent.map((a) => a.p_audience);
+  };
+  for (const a of ['customer', 'supplier', 'visitor', 'internal', 'founder']) assertEquals(await run({ audience: a }), [a]);
+  assertEquals(await run({}), [null], 'a missing audience is sent as none, which the routine treats as external');
+});

@@ -24,6 +24,12 @@ export const SEAT_TABLE = {
 // Which seats reason from a trade pack (sales_knowledge rows tagged trade:<code>).
 export const TRADE_SEATS = ['sales_engineer', 'customer_support'];
 export const TABLES = [...new Set(Object.values(SEAT_TABLE))];
+// THE COMPANY'S OWN FACTS ARE INTERNAL (ceo, 19 Oct 2026, #1567). An entry of a SEAT pack whose kind is 'company', or
+// that cites an internal:founder_instruction/... or internal:memory/... source, states QuotesDone's own thresholds, owners
+// and routines. Its rows carry the tag 'audience:internal', and fn_reason_retrieve / fn_reason_retrieve_ml never return
+// them to a customer, supplier or visitor (or a call that names no audience). A trade pack is public. The seat cards
+// (scripts/kb/compile_brief.mjs) are compiled from exactly these entries.
+export const isOwnEntry = (e) => e.kind === 'company' || (e.sources ?? []).some((x) => /^internal:(founder_instruction|memory)\//.test(x));
 
 // THE STATING RULE (founder, 7 Oct 2026): an entry with low confidence, or carrying any fact that was not read on a
 // page actually opened, is stored verified=false and is never stated to a customer or a supplier. It is kept in its
@@ -156,7 +162,8 @@ export function rowsOf(p) {
     // area: the seat's own subject area (founder instructions 889/893/894, 28 Sep 2026), so a lookup can narrow to
     // the right area before ranking by meaning. Optional: a pack without it loads exactly as before.
     const tags = [...(p.kind === 'trade' ? ['trade:' + p.code] : []), 'verified_pack', 'lang:' + lang, 'kind:' + e.kind,
-      ...(e.area ? ['area:' + e.area] : []), 'confidence:' + e.confidence, 'verified:' + isVerified(e)];
+      ...(e.area ? ['area:' + e.area] : []), 'confidence:' + e.confidence, 'verified:' + isVerified(e),
+      ...(p.kind !== 'trade' && isOwnEntry(e) ? ['audience:internal'] : [])];
     const eligible = isVerified(e);
     const sd = { entry_id: e.id, lang, verified: eligible, kind: e.kind, area: e.area ?? null, confidence: e.confidence, as_of: e.as_of, gap_kind: e.gap_kind ?? null,
       required_specs: e.required_specs ?? null, source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };

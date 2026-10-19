@@ -9,6 +9,8 @@
 //   node scripts/kb/compile_brief.mjs --check   # exit 1 if the generated file is stale (CI)
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { isOwnEntry } from './verified_packs.mjs';
+export { isOwnEntry };
 import { join } from 'node:path';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -73,10 +75,8 @@ export function seatFacts(internal) {
 //   prevented by: scripts/checks/every_seat_card_comes_from_its_pack.test.mjs
 export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
 export const CARD_BUDGET = 16000;
-const OWN_SOURCE = /^internal:(founder_instruction|memory)\//;
 const CARRIES = /\d|\b(daily|weekly|monthly|hourly|quarterly|yearly|annual(ly)?|every|never|always|only|owns?|owner|approves?|approval|must|ceo|founder|accountant|it_engineer|customer_support|sales_engineer|marketing)\b/i;
 const PROVENANCE = /\s*\([^()]*\b(instr|instruction|instructions|ledger|PR|duty)\b[^()]*\)/gi;
-export const isOwnEntry = (e) => e.kind === 'company' || (e.sources ?? []).some((x) => OWN_SOURCE.test(x));
 export const cardSentences = (body) => String(body ?? '').replace(/\r\n/g, '\n').replace(PROVENANCE, '')
   .split(/\n+|(?<=[.;])\s+(?=[A-Z(])/).map((t) => t.replace(/\s+/g, ' ').trim()).filter((t) => t.length >= 25 && CARRIES.test(t));
 
