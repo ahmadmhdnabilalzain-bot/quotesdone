@@ -40,6 +40,7 @@ const DUTIES = [
   ['CS-C14', 'customer_support_reports_the_voice_of_the_customer_to_the_ceo_every_month', 'customer_support.voice_of_customer', 'fn_customer_support_voice_of_customer_month', ['customer_support_voc_month']],
 ];
 const LEAK = 'scripts/sql/no_external_answer_can_state_an_internal_number.sql';
+const CONTEXT = 'scripts/sql/internal_seats_read_the_live_business_figures_in_the_company_block.sql';
 const manifest = () => read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
 
 for (const [id, name, duty, fn, tables] of DUTIES) {
@@ -71,7 +72,14 @@ test('static: the leak fix withholds live-figure rows, filters the corpus, and t
   assert.match(src, /WHERE \(\(COALESCE\(k\.supersession_state, 'current'::text\) = 'current'::text\) AND k\.runtime_eligible\)/, 'the support corpus still reads withdrawn ops rows');
   const guard = read('supabase/functions/_shared/support_reply_guard.ts');
   assert.ok(guard.includes("if (hasInternalNumber(s)) v.push('internal_number');"), 'replyViolations no longer refuses an internal count');
+  assert.ok(src.includes('revoke all on public.v_support_corpus from public, anon, authenticated;'), 'the view is not revoked from public');
   assert.ok(pending(LEAK) !== manifest().includes(LEAK), 'exactly one of a pending note and a MANIFEST line');
+  const cc = code(read(CONTEXT));
+  assert.ok(cc.includes('jsonb_each_text(public.fn_business_entity_summary())'), 'internal seats lost the live figures');
+  assert.ok(pending(CONTEXT) !== manifest().includes(CONTEXT), 'exactly one of a pending note and a MANIFEST line');
+  const dh = code(read('scripts/sql/customer_support_watches_delivery_health_every_day_and_never_loses_an_opt_out.sql'));
+  assert.doesNotMatch(dh, /recovered_refused_link/, 'a refused attempt is turned into an opt-out without proof of ownership');
+  assert.ok(dh.includes("'confirmed_by_reply'") && dh.includes('fn_unsubscribe_signed_link(r.email)') && dh.includes('a00_unsubscribe_refusal_throttle'), 'the ownership proof or the throttle is gone');
 });
 
 test('static: every road that sends a widget or portal reply scores it, and a refused opt-out is kept', () => {
@@ -82,7 +90,7 @@ test('static: every road that sends a widget or portal reply scores it, and a re
 const token = () => process.env.SUPABASE_ACCESS_TOKEN || (existsSync(join(homedir(), '.supabase', 'access-token')) ? 'file' : '');
 
 test('production, aborted: every duty acts on its fixture, and nothing reaches the founder or the CEO', { skip: !token() && 'no Supabase access token' }, async () => {
-  const replay = [LEAK, ...DUTIES.map((d) => `scripts/sql/${d[1]}.sql`)]
+  const replay = [LEAK, CONTEXT, ...DUTIES.map((d) => `scripts/sql/${d[1]}.sql`)]
     .filter((f) => !manifest().includes(f)).map(read).join('\n;\n');
   let o = null;
   try { await replaySql(replay + '\n' + PROBE, { retry: false, label: 'customer_support senior duties' }); }
@@ -102,7 +110,13 @@ test('production, aborted: every duty acts on its fixture, and nothing reaches t
   assert.ok(o.c03_chase >= 1, 'C03: the overdue request was not chased');
   assert.equal(o.c06, true, 'C06: the weekly review does not count sent against scored');
   assert.equal(o.c08, true, 'C08: the delivery outcome tick failed');
-  assert.ok(o.c09 >= 1 && o.c09_suppressed === 'recovered_refused_link', 'C09: a refused opt-out from a mailed address was lost');
+  assert.equal(o.c09_throttled_to, 3, 'C09: refusals for one address are not throttled');
+  assert.equal(o.c09_after_refusal, 0, 'C09: a refused attempt alone unsubscribed the address');
+  assert.equal(o.c09_confirm, 1, 'C09: the mailed address was not sent a signed confirmation');
+  assert.equal(o.c09_link_signed, true, 'C09: the confirmation link is not signed the way the endpoint verifies');
+  assert.ok(o.c09 >= 1 && o.c09_suppressed === 'confirmed_by_reply', 'C09: a reply from the address did not confirm the opt-out');
+  assert.equal(o.cc_internal, true, 'internal seats do not get the live figures in the company block');
+  assert.equal(o.cc_public, false, 'the public company block carries the live figures');
   assert.equal(o.c10_status, 'in_review', 'C10: the complaint was not moved to in_review before its deadline');
   assert.ok(o.c10_update >= 1, 'C10: the customer update was not written');
   assert.ok(o.c11 >= 1 && o.c11_kind === 'erasure' && o.c11_pdpl, 'C11: the data request was not registered with its identity check: ' + JSON.stringify(o.c11));
@@ -153,9 +167,15 @@ begin
   insert into notifications (type, to_email, to_role, subject, body, status, sent_at, channel)
     values ('zz_probe', 'zz.cs09@example.invalid', 'supplier', 'ZZ DEMO', 'ZZ DEMO', 'sent', now() - interval '2 days', 'email');
   update notifications set status = 'sent', sent_at = now() - interval '2 days' where to_email = 'zz.cs09@example.invalid';
-  insert into unsubscribe_refusal (email, method, token_present) values ('zz.cs09@example.invalid', 'POST', true);
-  v := fn_customer_support_delivery_health_tick(); o := o || jsonb_build_object('c09', v->'opt_outs_recovered',
-                               'c09_suppressed', (select source from email_suppressions where email = 'zz.cs09@example.invalid'));
+  insert into unsubscribe_refusal (email, method, token_present) select 'zz.cs09@example.invalid', 'POST', true from generate_series(1, 5);
+  o := o || jsonb_build_object('c09_throttled_to', (select count(*) from unsubscribe_refusal where email = 'zz.cs09@example.invalid'));
+  v := fn_customer_support_delivery_health_tick();
+  o := o || jsonb_build_object('c09_after_refusal', (select count(*) from email_suppressions where email = 'zz.cs09@example.invalid'),
+           'c09_confirm', (select count(*) from customer_support_duty_message where stage = 'optout.confirm' and to_email = 'zz.cs09@example.invalid'),
+           'c09_link_signed', public.fn_unsubscribe_signed_link('zz.cs09@example.invalid') ~ '[?&]e=zz.cs09%40example.invalid&t=[0-9a-f]{20}$');
+  insert into inbound_messages (from_email, to_email, subject, body, created_at) values ('zz.cs09@example.invalid', 'support@quotesdone.com', 'ZZ DEMO stop', 'ZZ DEMO stop', now() + interval '1 second');
+  v := fn_customer_support_delivery_health_tick();
+  o := o || jsonb_build_object('c09', v->'opt_outs_confirmed', 'c09_suppressed', (select source from email_suppressions where email = 'zz.cs09@example.invalid'));
 
   -- C10
   insert into complaint_tickets (ticket_no, email, name, message, status, created_at, acknowledge_due, respond_due, acknowledged_at, handled_by)
@@ -209,6 +229,9 @@ begin
   update ops_knowledge set content = content || ' ' where record_id = 'qd-company:business-entities';
   o := o || jsonb_build_object('leak_withdrawn', (select supersession_state = 'withdrawn' and not runtime_eligible from ops_knowledge where record_id = 'qd-company:business-entities'),
                                'leak_corpus', (select count(*) from v_support_corpus where src = 'ops' and src_id = 'qd-company:business-entities'));
+
+  o := o || jsonb_build_object('cc_internal', (fn_company_context(16000, 'internal')->>'block') like '%suppliers_total:%',
+                               'cc_public', (fn_company_context(16000, 'public')->>'block') like '%suppliers_total:%');
 
   -- nothing reached the founder or the CEO
   select coalesce(array_agg(lower(btrim(e))), '{}') into v_founder from app_secrets s, unnest(string_to_array(s.value, ',')) e

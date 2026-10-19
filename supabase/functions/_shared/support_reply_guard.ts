@@ -13,10 +13,8 @@
 //   ai_word   "AI" / "artificial intelligence" / its Arabic becomes "smart" (profile-copy rule);
 //   internal  an error, stack trace, routine, vendor or credential name → the reply is REFUSED (text '');
 //   prompt    wording from our own system prompts → the reply is REFUSED (text '').
-//   internal_number  a count of our suppliers, customers, companies, leads, registrations, listings or entries
-//            (19 Oct 2026: the exam answer told a supplier the registered supplier count, read from a live-figures
-//            knowledge row) → the sentence is dropped. The published programme figures (the first 1,000 suppliers
-//            free, a fee from the 1,001st registration) are the only counts a reply may carry.
+//   internal_number  a stated count of OUR suppliers, customers or leads (19 Oct 2026: the exam answer told a supplier
+//            the registered supplier count) → the sentence is dropped. Narrowed on review: see hasInternalNumber.
 // 12 Oct 2026 (founder rulings 1195/1196, review of #1330): code no longer substitutes a canned reply. A refused reply
 // goes BACK TO THE MODEL for a rewrite — callers check replyViolations() first and ask aiReply (_shared/ai_reply.ts),
 // which rewrites with the problems named. guardSupportReply is the last line only: a refusal it still sees sends nothing.
@@ -38,17 +36,36 @@ const INTERNAL = /circuit_open|openrouter|supabase|service_role|app_secrets|\bfn
 const PROMPT = /SHARED FACTS|CUSTOMER-SIDE FACTS|SUPPLIER-SIDE FACTS|AUDIENCE RULES|FORMAT RULES|GENERAL RULES|COMPANY BLOCK|FAQ CONTEXT|PRICE GUIDANCE:|system prompt|my instructions (?:are|say)|I (?:was|am) instructed to/i;
 
 
-// A number of 100 or more next to a word for the people or records we hold, in either order, English or Arabic.
-// Western and Arabic-Indic digits, with or without thousands separators, "+" or "more than" around it.
-const COUNT_NOUN = String.raw`(?:suppliers?|vendors?|customers?|clients?|buyers?|companies|businesses|leads|registrations?|registered|members|listings|entries|users|contacts|موردين|مورّدين|مورد|عملاء|عميل|شركة|شركات|مسجل|مسجّل|مستخدم)`;
-const BIG_NUM = String.raw`(?:[0-9٠-٩]{1,3}(?:[,٬.][0-9٠-٩]{3})+|[0-9٠-٩]{3,})\+?`;
-const INTERNAL_NUMBER = new RegExp(String.raw`${BIG_NUM}[^.!?؟\n]{0,40}?${COUNT_NOUN}|${COUNT_NOUN}[^.!?؟\n]{0,30}?${BIG_NUM}`, 'iu');
-// The published programme figures and nothing else (supplier agreement v12, portal copy).
-const PUBLISHED_COUNT = /(?:first|أول|أوّل)\s*(?:1[,٬]?000|١[٬,]?٠٠٠)|(?:1[,٬]?001|١[٬,]?٠٠١)(?:st)?|1[,٬]?000 suppliers? free/giu;
-// A money amount is a price, not a count ("AED 1,000 a year" after "registration").
-const MONEY = /(?:AED|USD|Dhs?|درهم)\s*[0-9٠-٩][0-9٠-٩,٬.]*|[0-9٠-٩][0-9٠-٩,٬.]*\s*(?:AED|USD|Dhs?|درهم)/giu;
+// INTERNAL NUMBER (19 Oct 2026, narrowed on review of #1549). A sentence is refused only when ALL three hold:
+//   1. a COUNT: 100 or more as digits ("19,901", "19901", "20,000+"), a short form ("15k", "1.9 thousand", "2 million"),
+//      or words ("nineteen thousand", "twenty thousand", "thousands of", Arabic "15 ألف", "آلاف");
+//   2. within 40 characters of a word for the people we hold: suppliers, vendors, customers, clients, buyers, leads,
+//      registrations, members (Arabic مورد/موردين/عملاء/شركات);
+//   3. an OURS cue in the same sentence: we have / we currently / our network, platform, directory, database / there
+//      are / registered / signed up / on our or the platform (Arabic لدينا، منصتنا، شبكتنا، مسجل).
+// Never a count: a reference ("QD-10234"), a year (1900-2099), a phone number, a price (AED 1,000), "up to N" (a
+// capacity, not a size), and the published programme figures (the first 1,000 free; the fee from the 1,001st).
+const PEOPLE = String.raw`(?:suppliers?|vendors?|customers?|clients?|buyers?|leads|registrations?|members|موردين|مورّدين|موردًا|مورد|عملاء|عميل|شركات)`;
+const WORD_NUM = String.raw`(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?[- ](?:hundred|thousand|million)|(?:a|one) (?:hundred|thousand)|(?:hundreds|thousands|tens of thousands) of)`;
+const AR_NUM = String.raw`(?:[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:ألف|آلاف|مليون)|آلاف|مئات)`;
+const DIGIT_NUM = String.raw`(?:[0-9٠-٩]{1,3}(?:[,٬][0-9٠-٩]{3})+|[0-9٠-٩]{3,}|[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:k|K|thousand|million)\b)\+?`;
+const COUNT = String.raw`(?:${DIGIT_NUM}|${WORD_NUM}|${AR_NUM})`;
+const COUNT_NEAR_PEOPLE = new RegExp(String.raw`${COUNT}[^.!?؟\n]{0,40}?${PEOPLE}|${PEOPLE}[^.!?؟\n]{0,40}?${COUNT}`, 'iu');
+const OURS = /\b(?:we have|we've|we currently|we now have|our (?:network|platform|directory|database|base|community|list|system)|there are|registered|signed up|on (?:our|the) (?:platform|network|directory))\b|لدينا|منصتنا|شبكتنا|مسجل|مسجّل|مسجلين/iu;
+const NOT_A_COUNT = [
+  /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/g,                                          // references: QD-10234, QD-S-KYUUSA
+  /\+?\d[\d\s().-]{7,}\d/g,                                                   // phone numbers
+  /\b(?:19|20)\d{2}\b(?![,٬]\d)/g,                                            // years
+  /(?:AED|USD|Dhs?|درهم)\s*[0-9٠-٩][0-9٠-٩,٬.]*|[0-9٠-٩][0-9٠-٩,٬.]*\s*(?:AED|USD|Dhs?|درهم)/giu, // prices
+  /\bup to\s+\S+|حتى\s+\S+/giu,                                               // a capacity, not our size
+  /(?:first|أول|أوّل)\s*(?:1[,٬]?000|١[٬,]?٠٠٠)|(?:1[,٬]?001|١[٬,]?٠٠١)(?:st)?/giu, // the published programme figures
+];
 function hasInternalNumber(s: string): boolean {
-  return INTERNAL_NUMBER.test(String(s || '').replace(PUBLISHED_COUNT, ' ').replace(MONEY, ' '));
+  return String(s || '').split(/(?<=[.!?؟])\s+|\n+/).some((sentence) => {
+    let t = sentence;
+    for (const re of NOT_A_COUNT) t = t.replace(re, ' ');
+    return OURS.test(t) && COUNT_NEAR_PEOPLE.test(t);
+  });
 }
 
 

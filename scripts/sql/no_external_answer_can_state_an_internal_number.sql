@@ -140,4 +140,4 @@ create or replace view public.v_support_corpus AS  WITH base AS (
     as_of,
     lang
    FROM base b;
-revoke all on public.v_support_corpus from anon, authenticated;
+revoke all on public.v_support_corpus from public, anon, authenticated;
