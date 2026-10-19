@@ -185,7 +185,7 @@
       ],
       "legacy": {
         "value": 250,
-        "applies_to": "a supplier whose accepted Supplier Agreement is v12 or earlier, or who accepted v13 only after the reveal: pricing_config.supplier_nonresponse_admin_fee_aed stays 250 and is what such a supplier is charged; clause 33 as that supplier signed it."
+        "applies_to": "a supplier whose accepted Supplier Agreement is v12 or earlier, or who accepted v13 only after the reveal: fn_accountant_nonresponse_charge charges such a supplier the literal AED 250 of the version it signed (clause 33 as signed). pricing_config.supplier_nonresponse_admin_fee_aed states the CURRENT fee, AED 500 (19 Oct 2026, accountant)."
       }
     },
     "late_interest_pct_pa": {
@@ -221,7 +221,7 @@
       "founder": "Founder 6 and 14 Sep 2026: '9% yearly interest as per UAE law' (instructions 2, 90, 179); founder 24 Sep 2026 (instruction 990): collect the maximum UAE law safely allows, interest included. The 9% was his reading of the law, which on the primary text is the NO-agreement ceiling only.",
       "legacy": {
         "value": 9,
-        "applies_to": "a supplier whose accepted Supplier Agreement is v13 or earlier, or who accepted v14 only after the reveal: pricing_config.supplier_nonresponse_interest_apr stays 0.09 and decision_policy.supplier_charge_max_lawful_apr stays 0.09 for them; clauses 31 and 33 as that supplier signed them."
+        "applies_to": "a supplier whose accepted Supplier Agreement is v13 or earlier, or who accepted v14 only after the reveal: fn_accountant_nonresponse_charge charges them 9% by literal (v9 to v13 agreed it; with no agreed rate it is the statutory ceiling, decision_policy.supplier_charge_max_lawful_apr 0.09). pricing_config.supplier_nonresponse_interest_apr states the CURRENT rate, 0.12 (19 Oct 2026, accountant); clauses 31 and 33 as that supplier signed them."
       }
     },
     "business_platform_protection_aed": {

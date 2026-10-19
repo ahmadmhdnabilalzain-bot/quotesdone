@@ -23,6 +23,7 @@
 // of those needs a capability the estate does not currently have (see `capability` below, which
 // reports the honest per-format status the build prompt demands rather than a list of intentions).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
@@ -255,7 +256,7 @@ async function answerFromOwnQuotes(customerId: string, message: string, lang: 'e
     if (!ids.length) return null;
     const [{ data: qs }, { data: tx }] = await Promise.all([
       admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,status,exclusions,scope,conditions,warranty,lead_time,payment_terms,validity,notes,committed_items,created_at')
-        .in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }).limit(60),
+        .in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }).limit(60),
       admin.from('transactions').select('inquiry_id,supplier_id').eq('customer_id', customerId).not('revealed_at', 'is', null),
     ]);
     if (!qs || !qs.length) return null;

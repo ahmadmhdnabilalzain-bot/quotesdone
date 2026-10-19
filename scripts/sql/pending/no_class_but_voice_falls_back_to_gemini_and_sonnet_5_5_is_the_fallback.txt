@@ -1,4 +1,0 @@
-Committed with its PR, not applied: apply at merge (never before). Release operator runs
-`node scripts/apply_sql.mjs scripts/sql/no_class_but_voice_falls_back_to_gemini_and_sonnet_5_5_is_the_fallback.sql --apply`,
-reads the verdict row PROBE OK, then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt.
-Production already conforms (measured 19 Oct 2026 00:56 UTC); the file is a no-op guard there.

@@ -56,6 +56,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "cold_chain_logistics:product-distinctions",
+      "topic": "Cold chain: temperature bands, equipment and the proof a shipper must get",
+      "topic_ar": "سلسلة التبريد: نطاقات الحرارة والمعدات والإثبات الذي يجب أن يحصل عليه الشاحن",
+      "kind": "product_distinctions",
+      "body_en": "Non-food cold chain serves pharmaceuticals, vaccines, biologics, diagnostics, cosmetics, chemicals and flowers. The bands are refrigerated 2-8 °C (most vaccines and biologics), controlled ambient 15-25 °C (most medicines in hot climates, which cannot be moved as ordinary cargo), frozen -20 °C, and ultra-cold -70 °C or below (some vaccines and cell therapies, often on dry ice or in specialist freezers). Equipment: temperature-mapped cold rooms and freezers, refrigerated trucks and vans with independent recorders, active containers (powered, with their own cooling) and passive packaging (insulated shippers with phase-change materials or gel packs validated for a stated duration), and reefer containers. What makes a cold chain trustworthy: temperature mapping and qualification of rooms and vehicles, continuous monitoring with calibrated data loggers and alarms, backup power, documented procedures for loading, excursions and deviations, staff training, and a handover record at each step. For medicines, the provider works under good distribution practice and must hold the licences required to store them.",
+      "body_ar": "تخدم سلسلة التبريد غير الغذائية الأدوية واللقاحات والمنتجات الحيوية ومواد التشخيص ومستحضرات التجميل والكيماويات والزهور. والنطاقات: مبرد 2-8 درجات (معظم اللقاحات والمنتجات الحيوية)، ومحيط مضبوط 15-25 درجة (معظم الأدوية في المناخ الحار، ولا يجوز نقلها كبضاعة عادية)، ومجمد -20 درجة، وفائق البرودة -70 درجة أو أقل (بعض اللقاحات والعلاجات الخلوية، غالباً على الثلج الجاف أو في مجمدات متخصصة). والمعدات: غرف تبريد ومجمدات بخرائط حرارية، وشاحنات وفانات مبردة بمسجلات مستقلة، وحاويات نشطة (تعمل بالطاقة ولها تبريدها الخاص) وتغليف سلبي (صناديق معزولة بمواد متغيرة الطور أو عبوات جل مُصادق عليها لمدة محددة)، وحاويات مبردة. وما يجعل سلسلة التبريد موثوقة: الخرائط الحرارية وتأهيل الغرف والمركبات، والمراقبة المستمرة بمسجلات بيانات معايرة وإنذارات، والطاقة الاحتياطية، وإجراءات موثقة للتحميل والانحرافات الحرارية، وتدريب الموظفين، وسجل تسليم في كل خطوة. وللأدوية يعمل المزود وفق ممارسات التوزيع الجيدة ويجب أن يحمل التراخيص المطلوبة لتخزينها.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cold_chain"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: the 2-8 °C chain and the frozen chain at -20 °C -> confirmed."
+    },
+    {
+      "id": "cold_chain_logistics:lead-times-and-quoting",
+      "topic": "Cold-chain storage & transport (non-food) - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التخزين والنقل المبرد (غير الغذائي): المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Storage can usually start within days; dedicated routes and validated packaging 1-4 weeks; new qualified rooms months. A provider needs the products and temperature band, volumes (pallets, cartons), storage duration, routes and frequency, packaging, monitoring and reporting needs, and licences required. A quote states the temperature capability and qualification, storage rate basis (per pallet per day or week), handling, transport rates, monitoring and data access, excursion handling, insurance, and validity.",
+      "body_ar": "يمكن عادة بدء التخزين خلال أيام؛ والمسارات المخصصة والتغليف المُصادق عليه 1-4 أسابيع؛ والغرف المؤهلة الجديدة أشهراً. ويحتاج المزود المنتجات ونطاق الحرارة، والأحجام (المنصات، الكراتين)، ومدة التخزين، والمسارات والتكرار، والتغليف، ومتطلبات المراقبة والتقارير، والتراخيص المطلوبة. ويذكر العرض القدرة الحرارية وتأهيلها، وأساس سعر التخزين (لكل منصة يومياً أو أسبوعياً)، والمناولة، وأسعار النقل، والمراقبة والوصول إلى البيانات، والتعامل مع الانحرافات، والتأمين، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (Spec-checklist lists 'pricing basis' as a field only; no per-pallet storage pricing content; missing). cold_chain_logistics:frozen-pallet-storage-pricing was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from cold_chain_logistics.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can a normal truck carry our medicines labelled \"store below 25 °C\" in summer?",
+      "q_ar": "هل تقدر شاحنة عادية تنقل أدويتنا المكتوب عليها تحفظ تحت 25 درجة في الصيف؟",
+      "expected_entry_ids": [
+        "cold_chain_logistics:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "cold_chain_logistics:frozen-pallet-storage-pricing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "cold_chain_logistics:product-distinctions"
+      ],
+      "stored_not_served": [
+        "cold_chain_logistics:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Cold_chain"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

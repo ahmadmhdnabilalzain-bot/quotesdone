@@ -41,7 +41,19 @@ export function renderModule(b) {
     `export const BRIEF_FILES: string[] = ${JSON.stringify(b.files)};\n` +
     `export const BRIEF_APPROX_TOKENS = ${b.approxTokens};\n` +
     `export const CONVERSATION_STYLE: string = ${JSON.stringify(readFileSync(join(DIR, 'conversation_style.md'), 'utf8').replace(/\r\n/g, '\n').trim())};\n` +
-    `export const BRIEF_TEXT: string = ${JSON.stringify(b.text)};\n`;
+    `export const BRIEF_TEXT: string = ${JSON.stringify(b.text)};\n` +
+    `export const SEAT_FACTS_EXTERNAL: string = ${JSON.stringify(seatFacts(false))};\n` +
+    `export const SEAT_FACTS_INTERNAL: string = ${JSON.stringify(seatFacts(true))};\n`;
+}
+
+// THE SETTLED FACTS EVERY SEAT REASONS FROM (ceo, ledger 1003 stage 2, 19 Oct 2026). think(), the engine every seat
+// uses, never carried the company brief: measured on the real-model seat exam, seats said the founder approves refunds,
+// did not know the bank or the licence expiry, and used AED 187,500 for VAT. company.md (what the customer brief says)
+// rides in every think() call; seats.md (internal facts and rulings) only when the audience is internal. Neither changes
+// BRIEF_TEXT, so the customer chat's cached prefix is unchanged.
+export function seatFacts(internal) {
+  const md = (f) => readFileSync(join(DIR, f), 'utf8').replace(/\r\n/g, '\n').trim();
+  return [md('company.md'), ...(internal ? [md('seats.md')] : [])].join('\n\n');
 }
 
 if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/kb/compile_brief.mjs')) {
