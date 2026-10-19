@@ -2590,7 +2590,7 @@ begin
   end if;
   select * into v_ceo from public.marketing_plan_review_turn where month = p_month and seat = 'ceo' order by id desc limit 1;
   select * into v_mkt from public.marketing_plan_review_turn where month = p_month and seat = 'marketing' order by id desc limit 1;
-  v_author := coalesce((select model_id from public.model_registry where model_id = v_mkt.model), 'openai/gpt-5.6-sol');
+  v_author := coalesce((select model_id from public.model_registry where model_id = v_mkt.model), (select model_primary from public.model_policy where task_class = 'marketing_plan' and active));  -- 18 Oct 2026 (ledger 1240): the plan's own class, never a retired model
   pk := public.fn_marketing_plan_review_packet(p_month);
 
   if p.deliberation_id is not null then
@@ -6871,6 +6871,20 @@ begin
     'event and let the bus route it, or lower this to status=''proposed'' so the receiving OS can '
     'decline it.', new.decided_by, v_author_os, new.dept_key, v_target_os
     using errcode = 'check_violation';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_demo_files_nothing()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if public.fn_seat_work_is_demo(coalesce(new.title, '') || ' ' || coalesce(new.detail, ''), new.result) then
+    return null;   -- ruling 1199: a demo row files no seat task
+  end if;
+  return new;
 end $function$
 
 

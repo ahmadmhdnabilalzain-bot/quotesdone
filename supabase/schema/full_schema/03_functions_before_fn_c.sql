@@ -7734,16 +7734,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -7769,6 +7759,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -10063,7 +10063,8 @@ begin
   -- cheap model is a green check that means nothing.
   if v_generic and p_agent_key is not null and v_idp.identity_key is null then
     v_rt := public.fn_routing_tier_model(p_agent_key);
-    if v_rt is not null and (v_rt->>'model') is not null then
+    -- 18 Oct 2026 (ledger 1240/1241): the routing tier may only pick inside the class's own pair.
+    if v_rt is not null and (v_rt->>'model') is not null and (v_rt->>'model') in (v_pol.model_primary, v_pol.model_fallback) then
       v_pol.model_primary := v_rt->>'model';
       v_pol.tier          := v_rt->>'registry_tier';
       v_src := v_src || ' | routing_tier "' || (v_rt->>'routing_tier') || '" for "' || p_agent_key
@@ -10110,8 +10111,10 @@ begin
     -- 1056: 'xlarge' is only the founder's named hard routes (the CEO's judgement, the comparison report, on
     -- Opus); a confidence prior never moves them. 'large' keeps the 11 Aug doctrine.
     if v_conf >= 0.95 and v_tier = 'large' then
-      select model_id into v_model from model_registry
-       where active and approved and tier = 'medium' order by in_per_mtok_usd, model_id limit 1;  -- model_id: 1056 tie-break
+      -- 18 Oct 2026 (ledger 1240/1241): the cheapest MEDIUM row of the whole registry was Gemini, which may only hear.
+      -- A downgrade now stays inside the class's own pair; with no medium model there, the class keeps its primary.
+      v_model := coalesce((select model_id from model_registry
+       where active and approved and tier = 'medium' and model_id in (v_pol.model_primary, v_pol.model_fallback) order by in_per_mtok_usd, model_id limit 1), v_model);
       v_why := v_why || ' | confidence ' || v_conf
                || case when v_prior is null then ''
                        else ' (' || p_agent_key || ' own median over ' || (v_prior->>'n')
@@ -10153,8 +10156,8 @@ begin
   select * into v_reg from model_registry where model_id = v_model and active;
   if not found then
     select * into v_reg from model_registry
-     where active and approved and tier = (case v_tier when 'xlarge' then 'xlarge' else v_tier end)
-     order by in_per_mtok_usd, model_id limit 1;  -- model_id: 1056 tie-break
+     where active and approved and model_id in (v_pol.model_primary, v_pol.model_fallback)   -- 18 Oct 2026: the class's own pair, never the cheapest of the registry
+     order by (model_id = v_pol.model_fallback) desc, in_per_mtok_usd, model_id limit 1;
     v_why := v_why || ' | WARNING: policy model "' || v_model || '" is not in model_registry; substituted ' || coalesce(v_reg.model_id,'(none)');
     v_model := v_reg.model_id;
   end if;
@@ -10172,6 +10175,7 @@ begin
     select * into v_sub from model_registry
      where active and approved and model_id not like '%:online'      -- 1056: never a web-grounded variant
        and (not v_vis or supports_vision) and (not v_aud or supports_audio) and (not v_tls or supports_tools)
+       and (model_id in (v_pol.model_primary, v_pol.model_fallback) or (v_aud and supports_audio))   -- 18 Oct 2026 (ledger 1241): own pair; only a recording reaches the model that hears
      order by (fn_ai_route_tier_rank(tier) < v_want),                 -- at-or-above the tier first
               abs(fn_ai_route_tier_rank(tier) - v_want),              -- then closest to it
               in_per_mtok_usd, model_id                                -- then cheapest (model_id: 1056 tie-break)
@@ -10198,6 +10202,7 @@ begin
     select * into v_fb from model_registry
      where active and approved and model_id <> v_model and model_id not like '%:online'   -- 1056
        and (not v_vis or supports_vision) and (not v_aud or supports_audio) and (not v_tls or supports_tools)
+       and (model_id in (v_pol.model_primary, v_pol.model_fallback) or (v_aud and supports_audio))   -- 18 Oct 2026 (ledger 1241)
      order by (fn_ai_route_tier_rank(tier) < v_want), abs(fn_ai_route_tier_rank(tier) - v_want), in_per_mtok_usd, model_id
      limit 1;
   end if;
@@ -10293,9 +10298,12 @@ begin
       union all select p.model_id, 10 + p.rank from public.review_pool p where p.active
       -- 1068 (30 Sep 2026): the last-resort families are the matrix's live ones. 5 Oct 2026 (matrix v2): the two retired
       -- models leave the list; Gemini first, then luna, Opus last.
-      union all select 'google/gemini-3.8-flash', 2000000
-      union all select 'openai/gpt-6-luna', 2000001
-      union all select 'anthropic/claude-opus-5.5', 2000002)
+      -- 18 Oct 2026 (ledger 1240/1241, matrix v3): Gemini only hears, so it is a last resort only for a review that
+      -- must hear; GPT-6 Luna Pro replaces luna (ruling 1218), Sonnet 5.5 and Opus are the Anthropic families.
+      union all select 'anthropic/claude-sonnet-5.5', 2000000
+      union all select 'openai/gpt-6-luna-pro', 2000001
+      union all select 'anthropic/claude-opus-5.5', 2000002
+      union all select 'google/gemini-3.8-flash', 2000003 where v_aud)
     select d.model_id, d.ord, lower(btrim(r.provider)) provider, coalesce(r.active and r.approved, false) reg_ok,
            (not v_vis or coalesce(r.supports_vision, false)) and (not v_aud or coalesce(r.supports_audio, false))
              and (not v_tls or coalesce(r.supports_tools, false)) caps_ok,
@@ -11337,7 +11345,7 @@ begin
      set status = coalesce(b.status_before_prune, 'pending'), status_before_prune = null,
          claimed_at = null, claimed_by = null, error = null
     from cl
-   where b.dedupe_key like 'EXPORT:' || to_char(cl.day, 'YYYY-MM-DD') || '/%'
+   where left(b.dedupe_key, 18) = 'EXPORT:' || to_char(cl.day, 'YYYY-MM-DD') || '/'
      and b.status in ('prune_pending', 'pruning');
   get diagnostics v_reverted = row_count;
   return v_reverted;
@@ -11477,13 +11485,15 @@ CREATE OR REPLACE FUNCTION public.fn_backup_prune_plan(p_today date DEFAULT NULL
 AS $function$
   select p.day, p.origin, p.kind, p.day_status, p.decision, p.reason, s.n, s.b,
          (select count(*) from public.doc_backups b
-           where b.dedupe_key like 'EXPORT:' || to_char(p.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned'
+           where left(b.dedupe_key, 18) = 'EXPORT:' || to_char(p.day, 'YYYY-MM-DD') || '/' and b.status <> 'pruned'
              and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path))
     from public.fn_backup_prune_decide(public.fn_backup_prune_days(),
                                        coalesce(p_today, (now() at time zone 'Asia/Dubai')::date)) p
     cross join lateral (select count(*) as n, coalesce(sum((o.metadata->>'size')::bigint), 0)::bigint as b
                           from storage.objects o
-                         where o.bucket_id = 'backups' and o.name like to_char(p.day, 'YYYY-MM-DD') || '/%'
+                         where o.bucket_id = 'backups'
+                           and o.name collate "C" >= to_char(p.day, 'YYYY-MM-DD') || '/' and o.name collate "C" < to_char(p.day, 'YYYY-MM-DD') || '0'
+                           and o.name like to_char(p.day, 'YYYY-MM-DD') || '/%'
                            and public.fn_backup_prune_path_allowed(o.bucket_id, o.name)) s;
 $function$
 
@@ -11556,7 +11566,9 @@ begin
   if not found then return jsonb_build_object('log_id', null, 'cancelled', v_cancelled); end if;
   select coalesce(array_agg(o.name order by o.name), '{}') into v_names
     from (select o2.name from storage.objects o2
-           where o2.bucket_id = 'backups' and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
+           where o2.bucket_id = 'backups'
+             and o2.name collate "C" >= to_char(v_log.day, 'YYYY-MM-DD') || '/' and o2.name collate "C" < to_char(v_log.day, 'YYYY-MM-DD') || '0'
+             and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
              and public.fn_backup_prune_path_allowed(o2.bucket_id, o2.name)
              -- 15 Sep 2026 (the guard): only a file whose Dropbox copy was uploaded AND verified. A file
              -- without one stays, and fn_backup_prune_storage_done counts it as left, so the day is never
@@ -11614,7 +11626,7 @@ begin
       from public.backup_prune_log l
      where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
        and l.storage_deleted_at is not null
-       and b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%'
+       and left(b.dedupe_key, 18) = 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/'
        and b.status = 'done' and b.verified_at is not null
        and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path);
     update public.doc_backups b set status = 'pruned', error = null
@@ -11622,7 +11634,7 @@ begin
     update public.backup_prune_log l set dropbox_done_at = now()
      where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
        and not exists (select 1 from public.doc_backups b
-                        where b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned');
+                        where left(b.dedupe_key, 18) = 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/' and b.status <> 'pruned');
   end if;
 
   -- A prune failure is an it_engineer finding; the same settle closes it once the deletion completes.
