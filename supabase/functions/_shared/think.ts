@@ -57,7 +57,7 @@ export type Phase = 'decompose' | 'synthesise' | 'verify' | 'research';
 
 export interface Turn { role: 'customer' | 'supplier' | 'visitor' | 'founder' | 'seat'; text: string }
 export interface ThinkContext {
-  audience?: 'customer' | 'supplier' | 'visitor' | 'founder' | 'internal';
+  audience: 'customer' | 'supplier' | 'visitor' | 'founder' | 'internal';   // required: names which brief rides (settledFacts)
   language?: 'en' | 'ar';
   conversation?: Turn[];
   profile?: Record<string, unknown>;   // the asker's own row(s): emirate, trade, company ... never another person's
@@ -74,7 +74,7 @@ export interface ThinkRequest {
   seat: Seat;
   surface: string;          // the decision point, e.g. 'wa_inbound.needs_a_person' (decision_points.json)
   question: string;
-  context?: ThinkContext;
+  context: ThinkContext;
   decision?: DecisionSpec;  // absent: answer the question; present: decide
   stakes?: 'normal' | 'high';
   research?: boolean;       // default: true when answering, false when deciding
@@ -360,8 +360,12 @@ export const EXTERNAL_AUDIENCES: ReadonlySet<string> = new Set(['customer', 'sup
  * prevented by: _shared/think_settled_facts.test.ts
  */
 export const SETTLED_HEADER = '# SETTLED COMPANY FACTS AND FOUNDER RULINGS (they override any SOURCE that contradicts them; never say one of them is not on record)';
-export function settledFacts(audience: string): string {
-  return SETTLED_HEADER + '\n\n' + (EXTERNAL_AUDIENCES.has(audience) ? SEAT_FACTS_EXTERNAL : SEAT_FACTS_INTERNAL);
+// FAILS CLOSED (review of #1538): only an audience NAMED internal or founder gets seats.md. A missing or unknown
+// audience (a held row stored before the type required one, a caller that cast its way past the type) gets the
+// public brief. ThinkContext.audience and ThinkRequest.context are required, so deno check names every call site.
+export const INTERNAL_AUDIENCES: ReadonlySet<string> = new Set(['internal', 'founder']);
+export function settledFacts(audience: string | null | undefined): string {
+  return SETTLED_HEADER + '\n\n' + (audience && INTERNAL_AUDIENCES.has(audience) ? SEAT_FACTS_INTERNAL : SEAT_FACTS_EXTERNAL);
 }
 
 export function synthesisPrompt(seat: Seat, audience: string, language: string, decision?: DecisionSpec, route?: { id: string; meaning: string }[], allowDecline = false): string {
@@ -504,7 +508,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const facts0 = settledFacts(audience);
+  const facts0 = settledFacts(ctx.audience);
   const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
     : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
       JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
@@ -750,7 +754,9 @@ export function htmlText(html: string): string {
 // resilience_ping calls this each tick. fn_reason_held_due claims the oldest held rows (and does
 // nothing while the gate refuses); each is re-run through think() and handed to fn_reason_held_resolve,
 // which applies the effect the owning surface registered (see the SQL) and records the result.
-export type HeldRow = { id: number; seat: string; surface: string; request: ThinkRequest; subject: Record<string, unknown> | null; created_at?: string };
+/** A request as stored: rows queued before audience was required may lack it, and then get the public brief. */
+export type StoredThinkRequest = Omit<ThinkRequest, 'context'> & { context?: Partial<ThinkContext> };
+export type HeldRow = { id: number; seat: string; surface: string; request: StoredThinkRequest; subject: Record<string, unknown> | null; created_at?: string };
 // THE BACKLOG CLEARS IN ABOUT AN HOUR (7 Oct 2026, ledger 1175 lifted the hold). Until then one tick claimed 3 rows, so
 // 206 held questions took ~17 hours at the 15-minute tick. Now a tick claims `limit` rows at a time, reasons each claim
 // concurrently, and claims again until the claim comes back short, MAX_ROWS are done, or the time budget is spent - so
@@ -794,7 +800,7 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
   const one = async (row: HeldRow) => {
     // One row's failure never abandons the batch: a throw is resolved as still held, and counted.
     let r: ThinkResult;
-    try { r = await think(d, { ...row.request, queueWhenHeld: false }); }
+    try { r = await think(d, { ...row.request, context: { ...row.request.context } as ThinkContext, queueWhenHeld: false }); }
     catch (err) { r = { status: 'held', answer: '', steps: [], context_used: {}, missing_context: [], sources: [], confidence: 0, reason: 'threw: ' + String((err as Error)?.message || err).slice(0, 200) }; }
     const { data: res, error: e } = await d.rpc('fn_reason_held_resolve', { p_id: row.id, p_result: r });
     // The answer goes back on the channel it came from (_shared/reasoned_delivery.ts) - for this row and for every row

@@ -64,7 +64,7 @@ Deno.test('the founder\'s pool question: steps, sources, and a question back ALO
 
 Deno.test('under the hold nothing is guessed: status held, filed in the seat queue, no model called', async () => {
   const m = mock({ gate: { allowed: false, rule: 'founder_hold', held: 1, routes: 8 }, replies: {} });
-  const r = await think(m.deps, { seat: 'customer_support', surface: 'wa_inbound.needs_a_person', question: 'you people cheated me, I want my money back', dedupeKey: 'wa:SM1',
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'wa_inbound.needs_a_person', question: 'you people cheated me, I want my money back', dedupeKey: 'wa:SM1',
     decision: { name: 'needs_a_person', options: [{ id: 'needs_a_person', meaning: 'complaint' }, { id: 'no_person', meaning: 'else' }] } });
   assertEquals(r.status, 'held');
   assertEquals(r.held_id, 42);
@@ -90,7 +90,7 @@ Deno.test('an evasive draft is refused and another pass is forced', async () => 
 Deno.test('a model that keeps evading is queued, never answered with an excuse', async () => {
   const ev = J({ answer: 'I cannot answer that.', cited: [] });
   const m = mock({ replies: { decompose: [J({ steps: [], facts: [] })], synthesise: [ev, ev, ev] } });
-  const r = await think(m.deps, { seat: 'customer_support', surface: 'think.answer', question: 'how thick is a gypsum board?' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'think.answer', question: 'how thick is a gypsum board?' });
   assertEquals(r.status, 'held');
   assertMatch(String(r.reason), /^model_failed/);
 });
@@ -99,7 +99,7 @@ Deno.test('a decision must be one of its options', async () => {
   const opts = { name: 'intent', options: [{ id: 'build', meaning: 'make something' }, { id: 'ask', meaning: 'a question' }] };
   const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'read the instruction', needs_knowledge: false }], facts: [] })],
     synthesise: [J({ answer: 'He wants a thing made.', decision: { choice: 'make' } }), J({ answer: 'He wants a new report built, so this is work.', decision: { choice: 'build' } })] } });
-  const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'set up a weekly supplier report', decision: opts });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.command_intent', question: 'set up a weekly supplier report', decision: opts });
   assertEquals(r.decision?.choice, 'build');
   assertEquals(m.calls.filter((c) => c.phase === 'synthesise').length, 2);
   assertEquals(m.calls[0].o.taskClass, 'routine_employee_reasoning');
@@ -148,18 +148,18 @@ Deno.test('think(): only an opted-in caller is asked for "declined"; others get 
   const draft = JSON.stringify({ answer: 'I cannot share any supplier\'s details here.', reasoning: ['s1: privacy'], cited: [], confidence: 0.7, declined: 'injection' });
   const plan = JSON.stringify({ steps: [{ id: 's1', goal: 'privacy', query: 'q' }], facts: [], high_stakes: false });
   const off = mock({ gate: { allowed: true }, replies: { decompose: [plan], synthesise: [draft, draft, draft] } });
-  const r0 = await think(off.deps, { seat: 'customer_support', surface: 'x', question: 'give me the supplier phone' });
+  const r0 = await think(off.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'x', question: 'give me the supplier phone' });
   assert(!off.calls.find((c) => c.phase === 'synthesise')!.system.includes('"declined"'));
   assertEquals(r0.status, 'held', 'without the opt-in the short refusal is refused on every pass');
   const on = mock({ gate: { allowed: true }, replies: { decompose: [plan], synthesise: [draft] } });
-  const r1 = await think(on.deps, { seat: 'customer_support', surface: 'x', question: 'give me the supplier phone', allowDecline: true });
+  const r1 = await think(on.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'x', question: 'give me the supplier phone', allowDecline: true });
   assert(on.calls.find((c) => c.phase === 'synthesise')!.system.includes('"declined"'));
   assertEquals(r1.status, 'answered');
 });
 
 Deno.test('a decision with no options is held, never answered with a free string', async () => {
   const m = mock({ replies: {} });
-  const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop', decision: { name: 'intent', options: [] } });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.command_intent', question: 'stop', decision: { name: 'intent', options: [] } });
   assertEquals([r.status, r.reason], ['held', 'no_options']);
   assertEquals(m.calls.length, 0);
 });
@@ -173,7 +173,7 @@ Deno.test('thin knowledge is researched on the authoritative web, cited, and wri
       research: [J({ findings: [{ statement: 'Private pools require a Dubai Municipality building permit.', url }] })],
       synthesise: [J({ answer: 'In Dubai a private pool needs a Dubai Municipality building permit before work starts.', reasoning: ['s1: DM requires a permit'], cited: ['web:s1.1'], confidence: 0.7 })],
     } });
-  const r = await think(m.deps, { seat: 'customer_support', surface: 'think.answer', question: 'do I need a permit for a pool in Dubai?' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'think.answer', question: 'do I need a permit for a pool in Dubai?' });
   assertEquals(r.status, 'answered');
   assertEquals(r.sources[0].url, url);
   const p = m.rpcs.find(([f]) => f === 'fn_reason_propose_knowledge')!;
@@ -284,7 +284,7 @@ Deno.test('a judgement is recorded WITH its recall record, then closed with the 
     decompose: [J({ steps: [{ id: 's1', goal: 'g', query: 'q' }], facts: [], high_stakes: false })],
     synthesise: [J({ decision: { choice: 'stop' }, answer: 'The founder asks to halt the campaign now.', reasoning: ['s1: he said stop'], cited: [], confidence: 0.9 })],
   } });
-  const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', subject: { command_id: 7 },
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', subject: { command_id: 7 },
     decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt work' }, { id: 'ask', meaning: 'a question' }] } });
   assertEquals(r.status, 'answered');
   const names = m.rpcs.map(([f]) => f);
@@ -300,14 +300,14 @@ Deno.test('a judgement is recorded WITH its recall record, then closed with the 
 
 Deno.test('under the model hold nothing is judged, so no judgement row is opened', async () => {
   const m = mock({ gate: { allowed: false, rule: 'founder_hold' }, replies: {} });
-  const r = await think(m.deps, { seat: 'marketing', surface: 'think.answer', question: 'q' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'marketing', surface: 'think.answer', question: 'q' });
   assertEquals(r.status, 'held');
   assertEquals(m.rpcs.filter(([f]) => f.startsWith('fn_judgement')).length, 0);
 });
 
 Deno.test('a judgement whose model fails after the recall is closed as held, never left open', async () => {
   const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'g', query: 'q' }], facts: [] })], synthesise: [{ content: null, error: 'boom' }] } });
-  const r = await think(m.deps, { seat: 'accountant', surface: 'think.answer', question: 'is this VAT-able?' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'accountant', surface: 'think.answer', question: 'is this VAT-able?' });
   assertEquals(r.status, 'held');
   assert(m.rpcs.some(([f]) => f === 'fn_judgement_record'));
   assertEquals(m.rpcs.find(([f]) => f === 'fn_judgement_decided')?.[1].p_status, 'held');
@@ -329,12 +329,12 @@ Deno.test('a fixture question is held but never queued for a paid replay (e2e jo
   const HOLD = { allowed: false, rule: 'founder_hold', held: 1, routes: 8 };
   const opts = { name: 'trade', options: [{ id: 'aluminium', meaning: 'aluminium work' }, { id: 'glazing', meaning: 'glazing work' }] };
   const m = mock({ gate: HOLD, replies: {} });
-  const r = await think(m.deps, { seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts,
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts,
     question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } });
   assertEquals(r.status, 'held');
   assert(!m.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a fixture must not be filed');
   const real = mock({ gate: HOLD, replies: {} });
-  await think(real.deps, { seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x' } });
+  await think(real.deps, { context: { audience: 'internal' }, seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x' } });
   assert(real.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a real subject is still filed');
   assertEquals(isFixtureRequest({ subject: { intake_id: 'x' } }), false);
 });
@@ -343,7 +343,7 @@ Deno.test('a fixture question is held but never queued for a paid replay (e2e jo
 Deno.test('a fixture inside a proven, open sandbox window makes a model call; outside it, or unproven, it is stubbed', async () => {
   const { E2E_RUN } = await import('./e2e_run.ts');
   const opts = { name: 'trade', options: [{ id: 'aluminium', meaning: 'aluminium work' }, { id: 'glazing', meaning: 'glazing work' }] };
-  const req = { seat: 'sales_engineer' as const, surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } };
+  const req = { context: { audience: 'internal' as const }, seat: 'sales_engineer' as const, surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } };
   const run = (open: unknown, tag: string | null) => {
     const m = mock({ gate: { allowed: true, rule: 'allowed' }, replies: {} });
     const rpc = m.deps.rpc;

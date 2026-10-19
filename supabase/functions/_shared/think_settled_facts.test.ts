@@ -40,10 +40,19 @@ Deno.test('an outside audience gets the company brief, never the internal one', 
 
 Deno.test('the plan, every answer pass and the review all carry the settled facts', async () => {
   const m = mock();
-  const r = await think(m.deps, { seat: 'ceo', surface: 'test', question: 'Which bank do we use?', stakes: 'high' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'test', question: 'Which bank do we use?', stakes: 'high' });
   assertEquals(r.status, 'answered');
   assertEquals(m.calls.map((c) => c.phase), ['decompose', 'synthesise', 'verify']);
   for (const c of m.calls) assertEquals(c.o.sysStable, settledFacts('internal'), c.phase);
   assertEquals(m.calls[0].o.timeoutMs, DECOMPOSE_TIMEOUT_MS);
   assertEquals(m.calls[1].o.max, SYNTH_MAX);
+});
+
+Deno.test('a missing or unknown audience gets the public brief, never the internal one (fails closed)', async () => {
+  for (const a of [undefined, null, '', 'partner']) assertEquals(settledFacts(a), settledFacts('customer'), String(a));
+  assertEquals(settledFacts('founder'), settledFacts('internal'));
+  // A request that slips past the type (a held row stored before audience was required) is still sent the public brief.
+  const m = mock();
+  await think(m.deps, { seat: 'ceo', surface: 'test', question: 'Which bank do we use?', context: {} } as unknown as Parameters<typeof think>[1]);
+  for (const c of m.calls) assertEquals(c.o.sysStable, settledFacts('customer'), c.phase);
 });
