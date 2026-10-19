@@ -247,10 +247,11 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
 export function parseJson<T = Record<string, unknown>>(text: string | null | undefined): T | null {
   if (!text) return null;
   const m = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  try {
-    const o = JSON.parse(m ? m[1] : text.trim());
-    return o && typeof o === 'object' && !Array.isArray(o) ? o as T : null;
-  } catch (_e) { return null; }
+  const one = (t: string) => { try { const o = JSON.parse(t); return o && typeof o === 'object' && !Array.isArray(o) ? o as T : null; } catch (_e) { return null; } };
+  // A REASONING MODEL WRITES A SENTENCE AROUND ITS JSON (exam run b2f80d4d, 19 Oct 2026: GPT-6 Luna Pro since matrix v3;
+  // 5 of 30 seat answers held as 'the reply is not one JSON object'). The outermost object is the reply.
+  const t = m ? m[1] : text.trim(), a = t.indexOf('{'), b = t.lastIndexOf('}');
+  return one(t) ?? (a >= 0 && b > a ? one(t.slice(a, b + 1)) : null);
 }
 
 // ── the prompts ──────────────────────────────────────────────────────────────────────────────────
@@ -434,7 +435,9 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // production (ai_cost_log 17:30Z, 17:38Z): an Arabic portal question with the customer's profile made the planner
   // write 900 tokens, the gateway's cap; the JSON was truncated and the whole reply fell to "could not read your
   // account". The plan only narrows retrieval, so a model that wrote one still answers, from one step on the question.
-  if ((!plan || !Array.isArray(plan.steps)) && String(d0.content ?? '').trim()) {
+  // ...AND A PLANNER THAT TIMED OUT (exam run b2f80d4d: 3 of 30 decompose calls hit the 45 s wall on GPT-6 Luna Pro and
+  // the seat answered nothing). Only a hold or an open circuit stops the answer; a slow plan never does.
+  if ((!plan || !Array.isArray(plan.steps)) && (String(d0.content ?? '').trim() || (d0.error && !/circuit_open|open-circuit|founder_hold/.test(String(d0.error))))) {
     plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [], high_stakes: true };   // an unplanned answer is always cross-checked
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: 'unparseable plan; one-step plan used' });
   }
