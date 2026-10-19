@@ -524,7 +524,7 @@ async function handle(req: Request): Promise<Response> {
       // (spend_guards.rehearsalLetsFixtureThrough). The paid gate below still enforces the window's cap.
       let inWindow = false;
       const runTag = e2eRunTag();
-      if (!ownWork && subject && runTag) {
+      if (runTag) {   // ruling 1260: a named probe/smoke/eval inside its own open window is let through too
         let open: unknown = null; let openErr: unknown = null;
         try { const res = await admin.rpc('fn_e2e_run_tag_open', { p_tag: runTag }); open = res.data; openErr = res.error; }
         catch (e) { openErr = e; }
@@ -538,12 +538,24 @@ async function handle(req: Request): Promise<Response> {
         if (v.stub) ownWork = v.why;
       }
       // RULING 1260 (19 Oct 2026): "all tests need to be done with AI. from now on open router stays on".
-      // Our own test traffic is no longer refused. It is TAGGED and COSTED: the reason rides on the real
-      // ai_cost_log row written after the provider call, and trg_ai_cost_log_e2e_run_tag stamps the run tag
-      // (fn_e2e_run_tag_current). A tagged run's USD cap is still enforced by fn_kernel_paid_provider_gate.
-      if (ownWork) {
-        route.why = route.why + ' | TEST RUN (ruling 1260): ' + ownWork + ' | run tag ' + (runTag ?? 'none');
+      // A test run always opens a tagged rehearsal window (models_allowed defaults true), so INSIDE that window our
+      // own traffic reaches the model, is TAGGED here and COSTED on the real ai_cost_log row (trg_ai_cost_log_e2e_run_tag
+      // stamps the run tag; fn_kernel_paid_provider_gate still enforces the window's cap). Untagged, or outside its
+      // window, it is still refused with the no-cost stub.
+      if (ownWork && !inWindow) {
+        await llmLog({
+          p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+          p_task_class: route.task_class ?? null, p_model: 'none',
+          p_because: route.why + ' | FIXTURE: ' + ownWork + ' — untagged or outside its rehearsal window, answered with the no-cost stub, no provider call was made',
+          p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
+          p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+        });
+        // held: the run row reads 'held', not 'error' - refusing untagged test traffic is the design (observe.statusOf).
+        return annotate(J({ ok: false, used_llm: false, outcome: 'fixture_no_spend',
+          error: 'test traffic reaches a model only inside its tagged rehearsal window', why: ownWork,
+          task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'fixture_no_spend' });
       }
+      if (inWindow) route.why = route.why + ' | TEST RUN (ruling 1260): run tag ' + runTag + (ownWork ? ' | ' + ownWork : '');
     }
 
     // ---- 7. THE CALL --------------------------------------------------------------------

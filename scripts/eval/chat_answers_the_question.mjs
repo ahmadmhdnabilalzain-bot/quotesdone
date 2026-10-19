@@ -1,6 +1,6 @@
 // chat_answers_the_question — the five chat questions sandbox run 2 (tag 1c94fa6a) judged 2/5, "Does not answer
-// the question", re-asked against the DEPLOYED site_assistant and judged by a model of ANOTHER family. Seat:
-// customer_support. Exit 1 when any answer scores below 4/5 or the judge shares the producer's family.
+// the question", re-asked against the DEPLOYED site_assistant; since 19 Oct 2026 the answers are graded by the
+// Claude agent running the test, never by a paid model. Seat: customer_support. Exit 1 when an answer is missing.
 //
 // Prevented by: this file. Run 2's deflections had two causes, measured in ai_cost_log: an estate-wide provider
 // outage (16:39-16:54Z, every fn failed) and, with the model up, an Arabic portal question whose plan hit the
@@ -44,7 +44,6 @@ if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || proce
       customer_ar: (await makeDemoCustomer(run, { locale: 'ar' })).jwt,
       supplier_en: (await makeDemoSupplier(run, {})).jwt,
     };
-    const secret = (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value;
     for (const q of QUESTIONS) {
       const since = (await read(`select coalesce(max(id),0)::bigint id from public.ai_cost_log`))[0].id;
       // SITE_ASSISTANT_URL proves a branch before merge: the function served locally (deno run) against production data.
@@ -57,23 +56,11 @@ if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || proce
         : await call('site_assistant', tok, body);
       const reply = String(r.json?.reply || '');
       const producers = (await read(`select distinct model_used from public.ai_cost_log where id > ${since} and fn='site_assistant' and model_used like '%/%'`)).map((x) => x.model_used);
-      const fam = (m) => String(m || '').split('/')[0];
-      // FOUNDER RULE (19 Oct 2026, with ruling 1260): grading a test makes no paid call. Without --paid-judge the
-      // answer is recorded ungraded (pass=null) for the Claude agent running the test to grade.
-      if (!process.argv.includes('--paid-judge')) {
-        out.push({ ...q, reply, routed: r.json?.routed ?? null, producers, judge: 'for the grading agent', score: null, issues: null, pass: null });
-        console.log(`UNGRADED ${q.who}/${q.lang} (producer ${producers.join(',') || 'none'}): ${reply.slice(0, 140).replace(/\n/g, ' ')}`);
-        continue;
-      }
-      const j = await call('ai_gateway', null, { __secret: secret, fn: 'chat_answers_the_question_judge',
-        task_class: producers.some((m) => fam(m) === 'anthropic') ? 'internal_judgement' : 'ceo__internal_judgement', max_tokens: 400,
-        messages: [{ role: 'system', content: `You are a strict quality reviewer. Facts: ${TRUTH} Judge the ANSWER to the QUESTION: does it answer what was asked, consistent with the facts, in the language asked (${q.lang}), professional, nothing invented. Reply ONLY JSON {"score":1-5,"issues":["..."]}.` },
-                   { role: 'user', content: `QUESTION:\n${q.msg}\n\nANSWER:\n${reply || '(empty)'}` }] }, 120000);
-      let v = null; try { v = JSON.parse(String(j.json?.content || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch { v = null; }
-      const judge = String(j.json?.model || '');
-      const pass = !!reply && (v?.score ?? 0) >= 4 && !!judge && producers.every((m) => fam(m) !== fam(judge));
-      out.push({ ...q, reply, routed: r.json?.routed ?? null, producers, judge, score: v?.score ?? null, issues: v?.issues ?? null, pass });
-      console.log(`${pass ? 'PASS' : 'FAIL'} ${q.who}/${q.lang} ${v?.score ?? '?'}/5 by ${judge || 'NO JUDGE'} (producer ${producers.join(',') || 'none'}): ${reply.slice(0, 140).replace(/\n/g, ' ')}`);
+      // FOUNDER RULE (19 Oct 2026, with ruling 1260): grading a test makes no paid call, and there is no paid judge.
+      // Each answer is recorded ungraded (pass=null) with the facts it is graded against; the Claude agent running
+      // the test grades it (score >= 4/5, answers what was asked, in the language asked, nothing invented).
+      out.push({ ...q, facts: TRUTH, reply, routed: r.json?.routed ?? null, producers, judge: 'the Claude agent running this test', score: null, issues: null, pass: null });
+      console.log(`UNGRADED ${q.who}/${q.lang} (producer ${producers.join(',') || 'none'}): ${reply.slice(0, 140).replace(/\n/g, ' ')}`);
     }
   } finally {
     await write(`update public.rehearsal_window set models_allowed = false where run_tag = 'qd_run:${run.tag}'`, 'chat eval window: models off').catch(() => {});

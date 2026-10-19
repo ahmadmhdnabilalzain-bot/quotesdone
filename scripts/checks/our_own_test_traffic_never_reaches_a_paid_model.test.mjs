@@ -20,16 +20,19 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 
 // RULING 1260 (19 Oct 2026): "all tests need to be done with AI. from now on open router stays on". The fixture
-// check now TAGS a test run instead of refusing it; the reason rides on the real ai_cost_log row.
-test('ruling 1260: a test run is tagged and costed, never refused fixture_no_spend', () => {
+// check lets a test run through INSIDE its tagged, open window and tags the costed row; untagged or outside its
+// window it is still refused before the provider key is read.
+test('ruling 1260: inside its window a test run is tagged and costed; outside it, it is refused', () => {
   const gw = read('supabase/functions/ai_gateway/index.ts');
   const fx = gw.indexOf("admin.rpc('fn_ai_subject_is_fixture'");
   const key = gw.indexOf("sec('openrouter_api_key')");
-  assert.ok(fx > 0 && fx < key, 'ai_gateway must still recognise a fixture before the call, to tag it');
+  const dry = gw.indexOf('if (dry) {');
+  assert.ok(dry > 0 && dry < fx && fx < key, 'the fixture check must sit after the dry run and before the provider key is read');
   assert.match(gw, /ownWorkByName\(fnName\)/, 'probes, rehearsals, smokes and evals must be recognised by name');
-  assert.match(gw, /route\.why = route\.why \+ ' \| TEST RUN \(ruling 1260\): '/, 'the test-run reason must ride on the costed row');
-  assert.doesNotMatch(gw, /outcome: 'fixture_no_spend'/, 'ai_gateway must not refuse a test run (ruling 1260)');
-  assert.doesNotMatch(read('supabase/functions/_shared/think.ts'), /hold\('fixture_no_spend'/, 'think() must not refuse a test run (ruling 1260)');
+  assert.match(gw, /if \(ownWork && !inWindow\) \{/, 'untagged or out-of-window test traffic must still be refused');
+  assert.match(gw, /outcome: 'fixture_no_spend'/);
+  assert.match(gw, /if \(inWindow\) route\.why = route\.why \+ ' \| TEST RUN \(ruling 1260\): run tag '/, 'an in-window test call must carry its tag on the costed row');
+  assert.match(gw, /if \(runTag\) \{/, 'a named probe/smoke/eval inside its window must be let through too');
 });
 
 test('the fixture marker is one only the harness can set, never a name, domain or number a user types', () => {
