@@ -1,3 +1,0 @@
-Committed, not applied: no apply before merge (release operator rule). Apply at merge with
-node scripts/apply_sql.mjs scripts/sql/a_paid_reveal_opens_the_supplier_response_watch.sql --apply --ddl,
-then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.

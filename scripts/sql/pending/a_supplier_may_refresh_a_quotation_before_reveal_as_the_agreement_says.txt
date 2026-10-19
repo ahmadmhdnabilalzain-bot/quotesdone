@@ -1,7 +1,0 @@
-Committed, not applied: apply at merge (rule: never apply before merge). Dry-run on production 19 Oct 2026 inside a
-rolled-back transaction: 4 company_faq rows corrected with embedding_gte cleared by the trigger, 0 agent_knowledge rows
-still saying "it is final". The release operator runs
-`node scripts/apply_sql.mjs scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql --apply`,
-reads PROBE OK, then re-embeds the 4 FAQ rows on the free gte-small path:
-`node scripts/kb/embed_sales_knowledge.mjs --table=company_faq`
-then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt in the same commit.
