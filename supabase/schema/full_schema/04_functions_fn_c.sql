@@ -1830,7 +1830,7 @@ begin
       v_h := public.fn_seat_handoff('ceo', p_originator, 'ceo.revise', 'ceo_decision_round', p_item_key || ':g' || v_gen || ':r' || v_round,
         jsonb_build_object('path', p_path, 'item_key', p_item_key, 'generation', v_gen, 'round', v_round, 'rounds_left', 4 - v_rej - 1,
                            'reasons', left(p_reasons, 3000), 'version', v_version));
-      v_ids := array[v_h];
+      v_ids := array_remove(array[v_h], null);   -- a demo row files no handoff (ruling 1199): store none, not a null
     end if;
   end if;
   insert into public.ceo_decision_round (path, item_key, originator_seat, decision, reasons, version, source_table, source_id, revise_handoff_ids)
@@ -3375,7 +3375,8 @@ begin
                      from public.seat_duty d where d.owner_seat = r.role_id),
         'open_findings', (select count(*) from public.it_engineer_finding f where f.closed_at is null
                             and coalesce(f.evidence->>'owner_seat', f.raised_by) = r.role_id),
-        'reasoning_waiting', (select count(*) from public.reasoning_held_question h where h.seat = r.role_id and h.status = 'held'),
+        'reasoning_waiting', (select count(*) from public.reasoning_held_question h where h.seat = r.role_id
+                                and (h.status = 'held' or (h.status = 'failed' and h.dedupe_key like 'wa_arrival:%'))),
         'handoffs_pending', (select count(*) from public.agent_actions a where a.agent = r.role_id and a.kind = 'handoff' and a.status = 'pending'),
         -- the seat reports against its own year-one targets and its month directive
         'targets', (select coalesce(jsonb_agg(x), '[]'::jsonb) from jsonb_array_elements(public.fn_ceo_year_plan_status(now())->'metrics') x
@@ -4177,6 +4178,102 @@ begin
   end if;
   return jsonb_build_object('week', v_week, 'quoted_requests_90d', v_quoted, 'reasoning_filed', v_held is not null);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_queue_dedupe_stem(p_key text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- Only the known period of each known prefix is stripped; the item part is always kept; any other key -> null
+  -- (never dismissed).
+  select case when p_key ~ '^krefresh:[0-9]{4}-[0-9]{2}-[0-9]{2}:.+$' then regexp_replace(p_key, '^krefresh:[0-9]{4}-[0-9]{2}-[0-9]{2}:', 'krefresh:')
+              when p_key ~ '^ceo_exp_approve:[0-9]+:[0-9]+$' then regexp_replace(p_key, ':[0-9]+$', '')
+              when p_key ~ '^(ceo_mreview|ceo_forecast):[0-9]{4}-[0-9]{2}-[0-9]{2}$' then split_part(p_key, ':', 1) end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_queue_work()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n_done int; n_dismissed int; n_overdue int; n_task_closed int; v_task bigint; v_title text; v_list text;
+begin
+  if not pg_try_advisory_xact_lock(hashtext('fn_ceo_queue_work')) then
+    return jsonb_build_object('skipped', 'another run is going');
+  end if;
+
+  with q as (
+    select a.id, h.id hid, h.status hs, h.surface, h.dedupe_key dkey, public.fn_ceo_queue_dedupe_stem(h.dedupe_key) stem
+      from public.agent_actions a
+      join public.reasoning_held_question h on h.id::text = a.target_id
+     where a.agent = 'ceo' and a.status = 'pending'
+       and a.kind in ('held_question', 'held_question_expired')
+  ), done as (
+    update public.agent_actions a
+       set status = 'done', decided_at = now(), decided_by = 'ceo',
+           evidence = coalesce(a.evidence, '{}'::jsonb) || jsonb_build_object('verdict', 'its question was ' || q.hs, 'closed_by', 'fn_ceo_queue_work')
+      from q where a.id = q.id and q.hs = 'applied'
+    returning a.id
+  ), dis as (
+    update public.agent_actions a
+       set status = 'dismissed', decided_at = now(), decided_by = 'ceo',
+           evidence = coalesce(a.evidence, '{}'::jsonb) || jsonb_build_object(
+             'verdict', 'superseded: held question ' || s.sid || ' on ' || q.surface || ' was applied after this one (' || q.hs || ')',
+             'superseded_by', s.sid, 'closed_by', 'fn_ceo_queue_work')
+      from q
+      cross join lateral (select max(n.id) sid from public.reasoning_held_question n
+                           where n.surface = q.surface and n.id > q.hid and n.status = 'applied'
+                             and n.dedupe_key <> q.dkey and public.fn_ceo_queue_dedupe_stem(n.dedupe_key) = q.stem) s
+     where a.id = q.id and q.hs <> 'applied' and q.stem is not null and s.sid is not null
+    returning a.id
+  )
+  select (select count(*) from done), (select count(*) from dis) into n_done, n_dismissed;
+
+  update public.agent_actions a
+     set escalated = true,
+         escalation_reason = left('Overdue: pending with the CEO since ' || to_char(a.created_at at time zone 'Asia/Dubai', 'DD Mon')
+           || case when a.detail ? 'awaiting_learning' then '; the finding cleared but its incident has no cause/fix/regression check'
+                   when a.detail ? 'escalated_report_id' then '; the finding is still open after the CEO accepted report '
+                        || (a.detail->>'escalated_report_id')
+                   when a.detail ? 'awaiting' then '; awaiting ' || (a.detail->>'awaiting')
+                   else '' end, 500)
+   where a.agent = 'ceo' and a.status = 'pending' and not coalesce(a.escalated, false)
+     and a.kind in ('handoff', 'held_question', 'held_question_expired')  -- named kinds only: #1462 owns its handover kind
+     and a.created_at < now() - interval '7 days';
+  get diagnostics n_overdue = row_count;
+
+  -- The flag alone is read by nothing that acts: put the overdue list on the CEO's own task list, once a day.
+  v_title := 'CEO queue overdue ' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+  -- This worker closes its own tasks (fn_ceo_daily_run closes only what it opened): an earlier day's list is carried
+  -- into today's; any list none of whose items is still pending is done.
+  update public.ceo_task t
+     set state = 'done', closed_at = now(),
+         evidence = case when t.title <> v_title then 'superseded by ' || v_title || ' (fn_ceo_queue_work)'
+                         else 'none of its items is still pending (fn_ceo_queue_work)' end
+   where t.title like 'CEO queue overdue %' and t.state = 'open'
+     and (t.title <> v_title
+          or not exists (select 1 from regexp_matches(t.detail, '(?:^|\n)#([0-9]+) ', 'g') m
+                          join public.agent_actions a on a.id = m[1]::bigint where a.status = 'pending'));
+  get diagnostics n_task_closed = row_count;
+  select string_agg('#' || a.id || ' ' || a.kind || ': ' || a.escalation_reason, E'\n' order by a.id) into v_list
+    from (select * from public.agent_actions
+           where agent = 'ceo' and status = 'pending' and escalated and kind in ('handoff', 'held_question', 'held_question_expired')
+           order by id limit 60) a;
+  if v_list is not null and not exists (select 1 from public.ceo_task where title = v_title) then
+    v_task := public.fn_ceo_task_open(v_title,
+      'Pending CEO queue items older than 7 days (first 60). Each is an open IT finding, a cleared finding whose '
+      || 'incident lacks cause/fix/regression check, or an answer still awaited. Decide the remedy or record why it waits.'
+      || E'\n' || v_list);
+  end if;
+
+  return jsonb_build_object('done', n_done, 'dismissed', n_dismissed, 'flagged_overdue', n_overdue, 'ceo_task', v_task,
+                            'ceo_tasks_closed', n_task_closed);
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_reads_lead_sourcing_report(p_id bigint)
@@ -5809,6 +5906,123 @@ begin
     'behind_path', greatest(0, floor(v_expected)::int - v_verified), 'shortfall', v_short,
     'days_left', m.due - v_day, 'pace_per_day', round(v_short::numeric / v_days, 1),
     'behind', v_verified < floor(v_expected), 'trades_at_ten_by_emirate', v_emirates);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_support_handover_duty()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a record; h public.reasoning_held_question; v_rid bigint; v_lang text; v_aud text;
+        n jsonb := '{}'::jsonb; v_out text;
+begin
+  for a in select * from public.agent_actions
+            where agent = 'ceo' and kind = 'support_question_handover' and status = 'pending'
+            order by created_at
+            for update skip locked
+  loop
+    select * into h from public.reasoning_held_question where id = (a.detail ->> 'held_id')::bigint;
+    v_out := null;
+    if h.id is null or h.status = 'applied' then
+      v_out := 'done';                                    -- answered by a person, its own surface or the reply gate
+    elsif nullif(a.detail ->> 'reasoning_id', '') is null then
+      v_lang := public.fn_cs_held_question_contact(h.id) ->> 'lang';
+      v_aud := case when (public.fn_cs_held_question_contact(h.id) ->> 'supplier')::boolean then 'supplier' else 'customer' end;
+      v_rid := public.fn_seat_duty_reason('ceo', 'ceo.support_handover',
+        'A ' || v_aud || ' asked customer_support a question the model could not answer, and is waiting. Write the '
+          || 'reply they will receive, in ' || case when v_lang = 'ar' then 'Arabic' else 'English' end
+          || ', from what the company knows; say plainly what is not known. Choose reply_and_refer when the sales '
+          || 'engineer must also act on it. The question: ' || left(h.question, 2000),
+        ('[{"id":"reply","meaning":"the reply answers the question"},'
+        || '{"id":"reply_and_refer","meaning":"reply, and the sales engineer must also act on it"}]')::jsonb,
+        jsonb_build_object('held_id', h.id, 'surface', h.surface, 'question', left(h.question, 2000), 'language', v_lang),
+        jsonb_build_object('handover_id', a.id, 'held_id', h.id), 'ceo_support_handover:' || h.id);
+      -- the answer goes to a person outside the company: think() reads it as that audience, so no other party's case
+      -- text reaches the prompt (#1441's rule keys on context.audience)
+      update public.reasoning_held_question
+         set request = jsonb_set(request, '{context,audience}', to_jsonb(v_aud))
+       where id = v_rid;
+      update public.agent_actions set detail = detail || jsonb_build_object('reasoning_id', v_rid, 'picked_up_at', now())
+       where id = a.id;
+      v_out := 'picked_up';
+    end if;
+    if v_out = 'done' then
+      update public.agent_actions set status = 'done', decided_at = now(), decided_by = 'ceo:fn_ceo_support_handover_duty'
+       where agent = 'ceo' and kind = 'support_question_handover' and status = 'pending' and target_id = a.target_id;
+    end if;
+    if v_out is not null then n := n || jsonb_build_object(v_out, coalesce((n ->> v_out)::int, 0) + 1); end if;
+  end loop;
+  return n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_support_reply_due(p_limit integer DEFAULT 10)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return coalesce((select jsonb_agg(jsonb_build_object('handover_id', a.id, 'held_id', h.id, 'answer', q.result ->> 'answer',
+                                                        'lang', k ->> 'lang', 'supplier', (k ->> 'supplier')::boolean))
+    from public.agent_actions a
+    join public.reasoning_held_question h on h.id = (a.detail ->> 'held_id')::bigint
+    join public.reasoning_held_question q on q.id = nullif(a.detail ->> 'reasoning_id', '')::bigint
+    cross join lateral (select public.fn_cs_held_question_contact(h.id) k) kk
+   where a.agent = 'ceo' and a.kind = 'support_question_handover' and a.status = 'pending'
+     and h.status <> 'applied' and q.status in ('reasoned', 'applied') and coalesce(q.result ->> 'answer', '') <> ''
+     and coalesce(a.detail ->> 'gate_held_md5', '') <> md5(q.result ->> 'answer')
+   limit greatest(1, least(coalesce(p_limit, 10), 50))), '[]'::jsonb);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_support_reply_record(p_handover_id bigint, p_problems jsonb)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; q public.reasoning_held_question; v_lang text;
+begin
+  select * into a from public.agent_actions
+   where id = p_handover_id and agent = 'ceo' and kind = 'support_question_handover' and status = 'pending'
+   for update skip locked;
+  if a.id is null then return 'not pending or claimed elsewhere'; end if;
+  select * into q from public.reasoning_held_question where id = nullif(a.detail ->> 'reasoning_id', '')::bigint;
+  if q.id is null or coalesce(q.result ->> 'answer', '') = '' then return 'no answer yet'; end if;
+  -- a passed reply still needs a confirmed contact to go to; without one it is held like a failed one
+  if not exists (select 1 from jsonb_each_text(public.fn_cs_held_question_contact((a.detail ->> 'held_id')::bigint)) e
+                  where e.key in ('email', 'phone') and e.value is not null)
+     and coalesce(jsonb_array_length(case when jsonb_typeof(p_problems) = 'array' then p_problems end), 0) = 0 then
+    p_problems := '["no confirmed contact: reply on the surface they asked from, or confirm the contact"]'::jsonb;
+  end if;
+
+  if jsonb_typeof(p_problems) = 'array' and jsonb_array_length(p_problems) > 0 then
+    update public.agent_actions
+       set detail = detail || jsonb_build_object('gate_held', p_problems, 'gate_held_at', now(),
+                                                 'gate_held_md5', md5(q.result ->> 'answer'))
+     where id = a.id;
+    return 'held';
+  end if;
+
+  v_lang := public.fn_cs_held_question_contact((a.detail ->> 'held_id')::bigint) ->> 'lang';
+  perform public.fn_cs_held_question_message((a.detail ->> 'held_id')::bigint, 'support_question_reply',
+    case when v_lang = 'ar' then 'الرد على سؤالكم' else 'The answer to your question' end, q.result ->> 'answer');
+  update public.reasoning_held_question
+     set status = 'applied', applied_at = now(),
+         result = coalesce(result, '{}'::jsonb) || jsonb_build_object('cs_route', 'done', 'answered_by', 'ceo', 'answer_from', q.id)
+   where id = (a.detail ->> 'held_id')::bigint;
+  update public.reasoning_held_question set status = 'applied', applied_at = now() where id = q.id;
+  if q.result -> 'decision' ->> 'choice' = 'reply_and_refer' then
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('sales_engineer', 'support_referral', 'pending', 'medium', 'The CEO answered a support question and refers it to you',
+            jsonb_build_object('held_id', a.detail ->> 'held_id', 'ceo_reasoning', q.id), 'reasoning_held_question', a.detail ->> 'held_id');
+  end if;
+  update public.agent_actions set status = 'done', decided_at = now(), decided_by = 'ceo:fn_ceo_support_reply_record'
+   where agent = 'ceo' and kind = 'support_question_handover' and status = 'pending' and target_id = a.target_id;
+  return 'sent';
 end $function$
 
 
@@ -9088,6 +9302,171 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_cs_held_question_contact(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.reasoning_held_question; c jsonb; v_email text; v_phone text; v_supplier boolean; v_lang text;
+begin
+  select * into h from public.reasoning_held_question where id = p_id;
+  if h.id is null then return null; end if;
+  c := coalesce(h.request -> 'context', '{}'::jsonb) || coalesce(h.subject, '{}'::jsonb);
+  v_supplier := coalesce(c ->> 'audience', '') = 'supplier' or c ? 'lead_id' or c ? 'supplier_id';
+  -- ONLY A CONFIRMED CONTACT (review of #1462): an email only when the account verified it, WhatsApp only to the
+  -- OTP-confirmed number (whatsapp_verified_at). A contact typed into a chat or carried on the request is never used.
+  v_email := coalesce(
+    (select email from public.customers where id::text = c ->> 'customer_id' and email_verified is true),
+    (select email from public.leads where id::text = coalesce(c ->> 'lead_id', c ->> 'supplier_id') and owner_email_verified is true));
+  v_phone := coalesce(
+    (select phone from public.customers where id::text = c ->> 'customer_id' and whatsapp_verified_at is not null),
+    (select phone from public.leads where id::text = coalesce(c ->> 'lead_id', c ->> 'supplier_id') and whatsapp_verified_at is not null));
+  v_lang := case when v_supplier then 'en'                                         -- ruling 1008: suppliers English
+                 when c ->> 'language' in ('ar', 'en') then c ->> 'language'
+                 when h.question ~ '[؀-ۿ]' then 'ar' else 'en' end;
+  return jsonb_build_object('email', v_email, 'phone', v_phone, 'lang', v_lang, 'supplier', v_supplier);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_cs_held_question_message(p_id bigint, p_kind text, p_subject text, p_body text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare k jsonb := public.fn_cs_held_question_contact(p_id); v bigint;
+begin
+  if k is null or (k ->> 'email' is null and k ->> 'phone' is null) then return null; end if;
+  insert into public.notifications (type, kind, channel, to_email, to_phone, subject, body, lang, sender, requested_by, dedupe_key)
+  values (p_kind, p_kind, case when k ->> 'email' is not null then 'email' else 'whatsapp' end,
+          k ->> 'email', case when k ->> 'email' is null then k ->> 'phone' end, p_subject, p_body, k ->> 'lang',
+          'customer_support', 'customer_support',   -- requested_by must be an active seat
+          p_kind || ':' || p_id)
+  on conflict (dedupe_key) where dedupe_key is not null do nothing
+  returning id into v;
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_cs_held_question_route()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+  v_out text;
+  v_lang text;
+  n jsonb := '{}'::jsonb;
+  v_fx constant text := 'ZZ DEMO|@example\.invalid|qd_run';
+begin
+  if not pg_try_advisory_xact_lock(hashtext('fn_cs_held_question_route')) then
+    return jsonb_build_object('skipped', 'another run is going');
+  end if;
+
+  for r in
+    select h.*,
+           coalesce(h.request -> 'context' ->> 'audience', '') audience,
+           (k ->> 'email' is not null or k ->> 'phone' is not null) reachable,
+           (coalesce(h.request -> 'context', '{}'::jsonb) || coalesce(h.subject, '{}'::jsonb))
+             ?| array['customer_id', 'lead_id', 'supplier_id'] known,
+           (h.question ~* v_fx or h.request::text ~* v_fx or h.subject::text ~* v_fx) fixture
+      from public.reasoning_held_question h
+      cross join lateral (select public.fn_cs_held_question_contact(h.id) k) kk
+     where h.seat = 'customer_support'
+       and (h.status not in ('applied', 'closed', 'answered')
+            or exists (select 1 from public.agent_actions a where a.target_table = 'reasoning_held_question'
+                        and a.target_id = h.id::text and a.kind like 'held_question%' and a.status = 'pending'))
+       and coalesce(h.result ->> 'cs_route', '') not in ('done', 'dismissed', 'overdue_alerted')
+  loop
+    v_out := case
+      when r.status in ('applied', 'answered') then 'done'
+      when r.fixture then 'dismissed'
+      when (r.audience = 'internal' or r.surface like 'customer_support.%') and r.created_at < now() - interval '7 days'
+        then 'dismissed'
+      when r.audience = 'internal' or r.surface like 'customer_support.%' then null   -- a fresh duty: its seat works it
+      when not r.reachable and not r.known then 'dismissed'               -- a truly anonymous visitor
+      -- a KNOWN customer or supplier with no confirmed contact stays open with customer_support (reply on the surface
+      -- they asked from, or confirm the contact); 4 hours from the question it becomes the CEO's overdue item
+      when not r.reachable and r.created_at < now() - interval '4 hours' then 'overdue_alerted'
+      when not r.reachable and coalesce(r.result ->> 'cs_route', '') = 'no_confirmed_contact' then null
+      when not r.reachable then 'no_confirmed_contact'
+      when coalesce(r.result ->> 'cs_route', '') = 'handed_to_ceo'
+           and (r.result ->> 'cs_route_at')::timestamptz < now() - interval '4 hours' then 'overdue_alerted'
+      when coalesce(r.result ->> 'cs_route', '') = 'handed_to_ceo' then null
+      when r.created_at < now() - interval '15 minutes' then 'handed_to_ceo'
+      else null end;
+    continue when v_out is null;
+
+    if v_out = 'handed_to_ceo' then
+      -- the person is told, once, that a person has their question (and the WhatsApp holding notice is not sent twice)
+      v_lang := public.fn_cs_held_question_contact(r.id) ->> 'lang';
+      perform public.fn_cs_held_question_message(r.id, 'support_question_ack',
+        case when v_lang = 'ar' then 'سؤالكم لدى فريقنا' else 'Your question is with our team' end,
+        case when v_lang = 'ar'
+             then 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة قريبًا.'
+             else 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply shortly.' end);
+      update public.reasoning_held_question set notice_delivered_at = coalesce(notice_delivered_at, now()) where id = r.id;
+    end if;
+
+    if v_out in ('handed_to_ceo', 'overdue_alerted') then
+      -- no personal data in the item: the id and the surface; the CEO duty reads the held question for the rest
+      insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, escalated, escalation_reason)
+      values ('ceo', 'support_question_handover', 'pending', case when v_out = 'overdue_alerted' then 'high' else 'medium' end,
+              case when v_out = 'overdue_alerted' then 'OVERDUE: a customer_support question has waited 4 hours for a person'
+                   else 'A customer_support question needs a person' end,
+              jsonb_build_object('held_id', r.id, 'surface', r.surface, 'asked_at', r.created_at, 'model_reason', r.reason,
+                                 'needed', 'reply to the person who asked, then mark the held question answered'),
+              'reasoning_held_question', r.id::text, true, 'from customer_support: ' || v_out)
+      -- one pending item per question (agent_actions_dedupe): the overdue alert RAISES the open item, a retry is a no-op
+      on conflict (agent, kind, target_id) where status = 'pending'
+      do update set risk = excluded.risk, title = excluded.title, escalation_reason = excluded.escalation_reason;
+    end if;
+
+    if v_out = 'no_confirmed_contact' then
+      -- customer_support keeps it: an open item of its own (one per question), even when no held_question action exists
+      insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, escalation_reason)
+      values ('customer_support', 'support_no_confirmed_contact', 'pending', 'medium',
+              'A known person is waiting and has no confirmed contact',
+              jsonb_build_object('held_id', r.id, 'surface', r.surface, 'asked_at', r.created_at,
+                                 'needed', 'reply on the surface they asked from, or have them confirm their email or WhatsApp number'),
+              'reasoning_held_question', r.id::text, 'no confirmed contact')
+      on conflict (agent, kind, target_id) where status = 'pending' do nothing;
+    end if;
+
+    update public.reasoning_held_question h
+       set result = coalesce(h.result, '{}'::jsonb)
+                    || jsonb_build_object('cs_route', v_out, 'cs_route_at', now())
+                    || case when r.fixture then jsonb_build_object('demo_purge', 'founder ruling 1199: the #1348 purge list')
+                            else '{}'::jsonb end
+     where h.id = r.id;
+
+    update public.agent_actions a
+       set status = case when v_out = 'done' then 'done' when v_out = 'dismissed' then 'dismissed' else a.status end,
+           decided_at = case when v_out in ('done', 'dismissed') then now() else a.decided_at end,
+           decided_by = case when v_out in ('done', 'dismissed') then 'customer_support:fn_cs_held_question_route' else a.decided_by end,
+           escalated = a.escalated or v_out in ('handed_to_ceo', 'overdue_alerted'),
+           escalation_reason = case
+             when v_out = 'done' then 'answered by its own surface'
+             when r.fixture then 'test fixture: listed for the ruling 1199 purge, not deleted'
+             when v_out = 'dismissed' and not r.reachable and r.audience <> 'internal' and r.surface not like 'customer_support.%'
+               then 'no contact on the request: there is no route to the person who asked'
+             when v_out = 'dismissed' then 'internal seat duty older than 7 days: its next run re-files it'
+             when v_out = 'handed_to_ceo' then 'acknowledged to the person and handed to the ceo seat at ' || now()
+             when v_out = 'no_confirmed_contact'
+               then 'no confirmed contact: reply on the surface they asked from, or confirm the contact'
+             else 'overdue: unanswered 4 hours after it was handed to the ceo seat' end
+     where a.target_table = 'reasoning_held_question' and a.target_id = r.id::text
+       and a.kind like 'held_question%' and a.status = 'pending';
+
+    n := n || jsonb_build_object(v_out, coalesce((n ->> v_out)::int, 0) + 1);
+  end loop;
+  return n;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_concierge(p_customer uuid, p_category text DEFAULT NULL::text, p_lang text DEFAULT NULL::text, p_inquiry uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10028,6 +10407,18 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_notice_locale(p_inquiry uuid, p_customer uuid)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(public.fn_inquiry_locale(p_inquiry),
+                  public.fn_registered_locale('customer', p_customer, null, null),
+                  'en')
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_orders(p_customer uuid)
  RETURNS jsonb
  LANGUAGE sql
@@ -10888,6 +11279,7 @@ begin
        and (a.detail->>'result_handoff_id') is null
        and (p_request_id is null or a.id = p_request_id)
      order by a.id
+     limit case when p_request_id is null then 50 else 1 end
   loop
     v_nid := coalesce((q.detail->>'retry_notification_id')::bigint, (q.evidence->>'notification_id')::bigint);
     n := null;

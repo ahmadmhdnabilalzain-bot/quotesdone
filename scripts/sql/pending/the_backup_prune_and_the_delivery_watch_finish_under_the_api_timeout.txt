@@ -1,5 +1,0 @@
-Committed, not applied (19 Oct 2026, it_engineer). Adds ix_doc_backups_export_day and re-creates fn_backup_prune_plan,
-fn_backup_prune_cancel, fn_backup_prune_tick, fn_backup_prune_storage_next and fn_customer_support_delivery_watch so
-each finishes under the 8 s PostgREST timeout. Proved in a rolled-back transaction on production 19 Oct 02:04 Dubai:
-PROBE OK, plan 2189 ms (was 6,362). Apply at merge, outside 10:00-17:00 Dubai: delete this note and append the file
-to the END of MANIFEST.txt in the same commit.

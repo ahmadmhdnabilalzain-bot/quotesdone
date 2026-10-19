@@ -1,5 +1,0 @@
-Committed, applied at merge (it_engineer, 18 Oct 2026; rulings 1240, 1241, 1218). Matrix v3: Gemini only on the two
-classes that hear a recording; every other class on openai/gpt-6-luna-pro; gpt-5.6-sol, gpt-5.6-luna and plain
-gpt-6-luna leave the registry; fn_ai_route never substitutes outside a class's own pair. Proved before merge by
-scripts/checks/every_model_class_is_on_the_founders_matrix.test.mjs, which replays this file and the matrix probe in one
-aborted transaction. At apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt.
