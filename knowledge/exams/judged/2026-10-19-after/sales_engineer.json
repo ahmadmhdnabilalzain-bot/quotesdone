@@ -1,0 +1,617 @@
+{
+ "seat": "sales_engineer",
+ "judged_by": "ceo session reader (Claude), no paid judge",
+ "source": "C:/Users/Opera/AppData/Local/Temp/claude/ceo1003/after_llm_sales_engineer.json",
+ "items": [
+  {
+   "id": "sales_engineer-exam-01",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-02",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-03",
+   "verdict": "fail",
+   "note": "wrong: says JPG photos are accepted; drawings are PDF or CAD (DWG/DXF) only"
+  },
+  {
+   "id": "sales_engineer-exam-04",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-05",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-06",
+   "verdict": "fail",
+   "note": "missing: never says the contract's order of precedence decides"
+  },
+  {
+   "id": "sales_engineer-exam-07",
+   "verdict": "fail",
+   "note": "missing: never names CSI MasterFormat or UK NBS"
+  },
+  {
+   "id": "sales_engineer-exam-08",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-09",
+   "verdict": "fail",
+   "note": "wrong date: says NRM2 2nd ed. effective 1 January 2013; settled is 1 December 2021"
+  },
+  {
+   "id": "sales_engineer-exam-10",
+   "verdict": "fail",
+   "note": "wrong process: offcut allowance as a separate BOQ line; waste belongs in the rate, quantity stays net"
+  },
+  {
+   "id": "sales_engineer-exam-11",
+   "verdict": "fail",
+   "note": "hedged: names CESMM without edition and will not commit; expected CESMM4"
+  },
+  {
+   "id": "sales_engineer-exam-12",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-13",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-14",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-15",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-16",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-17",
+   "verdict": "fail",
+   "note": "wrong: calls 10% generally acceptable; contractor changed the quantity, waste goes in the rate"
+  },
+  {
+   "id": "sales_engineer-exam-18",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-19",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-20",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-21",
+   "verdict": "fail",
+   "note": "missing: MoIAT absorbed ESMA in 2020"
+  },
+  {
+   "id": "sales_engineer-exam-22",
+   "verdict": "fail",
+   "note": "missing: 2018 edition of the UAE Fire and Life Safety Code"
+  },
+  {
+   "id": "sales_engineer-exam-23",
+   "verdict": "fail",
+   "note": "wrong authority: routes to JAFZA BMC; Trakhees issues building permits in PCFC zones"
+  },
+  {
+   "id": "sales_engineer-exam-24",
+   "verdict": "fail",
+   "note": "missing: through a DEWA-enrolled solar contractor"
+  },
+  {
+   "id": "sales_engineer-exam-25",
+   "verdict": "fail",
+   "note": "wrong: says any ISO 17025 lab; expected Dubai Central Laboratory of Dubai Municipality"
+  },
+  {
+   "id": "sales_engineer-exam-26",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-27",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-28",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-29",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-30",
+   "verdict": "fail",
+   "note": "missing: never states EQM is voluntary and ECAS is the mandatory scheme"
+  },
+  {
+   "id": "sales_engineer-exam-31",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-32",
+   "verdict": "fail",
+   "note": "wrong: says supplier/consultant decide; expected the trade's own spec checklist (trade_spec_checklist)"
+  },
+  {
+   "id": "sales_engineer-exam-33",
+   "verdict": "fail",
+   "note": "refuses: no count; expected all 213 trades"
+  },
+  {
+   "id": "sales_engineer-exam-34",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-35",
+   "verdict": "fail",
+   "note": "missing: licences, service levels and duration"
+  },
+  {
+   "id": "sales_engineer-exam-36",
+   "verdict": "fail",
+   "note": "missing: country of origin"
+  },
+  {
+   "id": "sales_engineer-exam-37",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-38",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-39",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-40",
+   "verdict": "fail",
+   "note": "missing: prime cost (PC) sum and the contractor's profit and attendance"
+  },
+  {
+   "id": "sales_engineer-exam-41",
+   "verdict": "fail",
+   "note": "wrong: lets supplier propose lower quantities; supplier fills rates not quantities and raises a written query"
+  },
+  {
+   "id": "sales_engineer-exam-42",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-43",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-44",
+   "verdict": "fail",
+   "note": "refuses: no ~60% materials share"
+  },
+  {
+   "id": "sales_engineer-exam-45",
+   "verdict": "fail",
+   "note": "missing: plugging missing items when levelling"
+  },
+  {
+   "id": "sales_engineer-exam-46",
+   "verdict": "fail",
+   "note": "wrong: prices shown as quoted incl. VAT; comparison must be VAT-exclusive with VAT separate"
+  },
+  {
+   "id": "sales_engineer-exam-47",
+   "verdict": "fail",
+   "note": "wrong: says no fixed label set and invents four; expected compliant / deviation / not stated"
+  },
+  {
+   "id": "sales_engineer-exam-48",
+   "verdict": "fail",
+   "note": "wrong: says yes it can top the ranking; a non-compliant quote never ranks above a compliant one"
+  },
+  {
+   "id": "sales_engineer-exam-49",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-50",
+   "verdict": "fail",
+   "note": "missing: weighted scoring (score x weight, summed)"
+  },
+  {
+   "id": "sales_engineer-exam-51",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-52",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-53",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-54",
+   "verdict": "fail",
+   "note": "missing: polite apology to the supplier"
+  },
+  {
+   "id": "sales_engineer-exam-55",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-56",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-57",
+   "verdict": "fail",
+   "note": "wrong/dangerous: says nothing bars telling A that B was 8% lower; never disclose another supplier's price"
+  },
+  {
+   "id": "sales_engineer-exam-58",
+   "verdict": "fail",
+   "note": "wrong: says do not seek discounts; expected level quotes and clarify scope before bargaining"
+  },
+  {
+   "id": "sales_engineer-exam-59",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-60",
+   "verdict": "fail",
+   "note": "missing: retention as a non-price lever"
+  },
+  {
+   "id": "sales_engineer-exam-61",
+   "verdict": "fail",
+   "note": "hedged: 5-10%, no release in parts at completion and after the defects notification period"
+  },
+  {
+   "id": "sales_engineer-exam-64",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-65",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-66",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-67",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-68",
+   "verdict": "fail",
+   "note": "missing: 'exact specs or the quote is held'"
+  },
+  {
+   "id": "sales_engineer-exam-69",
+   "verdict": "fail",
+   "note": "wrong/hedged: will not confirm decennial liability retained in the new Civil Code (Arts 821-824)"
+  },
+  {
+   "id": "sales_engineer-exam-70",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-71",
+   "verdict": "fail",
+   "note": "missing: prefer platform-quoted prices; tell the customer if far below"
+  },
+  {
+   "id": "sales_engineer-exam-72",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-73",
+   "verdict": "fail",
+   "note": "wrong figure: no 12-18 weeks structural steel lead time (gives 8-16)"
+  },
+  {
+   "id": "sales_engineer-exam-74",
+   "verdict": "fail",
+   "note": "missing: Peppol, accredited service providers, FTA reporting"
+  },
+  {
+   "id": "sales_engineer-exam-75",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-76",
+   "verdict": "fail",
+   "note": "wrong: allows phone clarification; clarifications are written, specific, time-bound, recorded with quote ref and line"
+  },
+  {
+   "id": "sales_engineer-exam-77",
+   "verdict": "fail",
+   "note": "missing: supplier told exact fixes in English; 24-hour hold"
+  },
+  {
+   "id": "sales_engineer-exam-78",
+   "verdict": "fail",
+   "note": "wrong metric: working days not hours; no share of reports with 3+ complete quotes"
+  },
+  {
+   "id": "sales_engineer-exam-79",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-80",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-81",
+   "verdict": "fail",
+   "note": "missing: name mismatch across licence/profile/bank/invoice; red flags justify questions not proof"
+  },
+  {
+   "id": "sales_engineer-exam-82",
+   "verdict": "fail",
+   "note": "wrong body: names Cabinet/SNSC; expected EOCN"
+  },
+  {
+   "id": "sales_engineer-exam-83",
+   "verdict": "fail",
+   "note": "missing: consent or another lawful basis"
+  },
+  {
+   "id": "sales_engineer-exam-84",
+   "verdict": "fail",
+   "note": "wrong: reminder at 7 days only; settled is 30, 14 and 7 days, ask closes only on a new document"
+  },
+  {
+   "id": "sales_engineer-exam-85",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-86",
+   "verdict": "fail",
+   "note": "missing: validity and escalation must be stated because costs rise"
+  },
+  {
+   "id": "sales_engineer-exam-87",
+   "verdict": "fail",
+   "note": "refuses: no 45-60 days government payment benchmark"
+  },
+  {
+   "id": "sales_engineer-exam-88",
+   "verdict": "fail",
+   "note": "missing: pay-when-paid vs pay-if-paid; no UAE statute bans them"
+  },
+  {
+   "id": "sales_engineer-exam-89",
+   "verdict": "fail",
+   "note": "wrong: 'not automatically'; interest due under Federal Decree-Law 50 of 2022 from maturity"
+  },
+  {
+   "id": "sales_engineer-exam-90",
+   "verdict": "fail",
+   "note": "missing: Federal Decree-Law No. 14 of 2020"
+  },
+  {
+   "id": "sales_engineer-exam-91",
+   "verdict": "fail",
+   "note": "refuses: five-year commercial limitation not stated"
+  },
+  {
+   "id": "sales_engineer-exam-92",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-93",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-94",
+   "verdict": "fail",
+   "note": "missing: exception of non-performance"
+  },
+  {
+   "id": "sales_engineer-exam-95",
+   "verdict": "fail",
+   "note": "missing: ICC, 11 rules"
+  },
+  {
+   "id": "sales_engineer-exam-96",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-97",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-98",
+   "verdict": "fail",
+   "note": "missing: chase at day 3; supplier owes refund + processor fee + AED 500 + 12% simple interest"
+  },
+  {
+   "id": "sales_engineer-exam-99",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-100",
+   "verdict": "fail",
+   "note": "missing: full stage conversion (registered, verified, activated, first quote)"
+  },
+  {
+   "id": "sales_engineer-exam-101",
+   "verdict": "fail",
+   "note": "missing: a supplier who never quotes adds nothing; get him a first inquiry"
+  },
+  {
+   "id": "sales_engineer-exam-102",
+   "verdict": "fail",
+   "note": "wrong: no OTIF (on time AND in full / total)"
+  },
+  {
+   "id": "sales_engineer-exam-103",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-104",
+   "verdict": "fail",
+   "note": "missing: self-reinforcing score; cold-start allowance"
+  },
+  {
+   "id": "sales_engineer-exam-105",
+   "verdict": "fail",
+   "note": "wrong: says no comparison given; expected monthly English e-mail scorecard vs his trade naming no competitor"
+  },
+  {
+   "id": "sales_engineer-exam-106",
+   "verdict": "fail",
+   "note": "refuses: fill rate not given"
+  },
+  {
+   "id": "sales_engineer-exam-107",
+   "verdict": "fail",
+   "note": "missing: trade-and-emirate gap; SE briefs marketing which runs recruitment"
+  },
+  {
+   "id": "sales_engineer-exam-108",
+   "verdict": "fail",
+   "note": "missing: Kraljic matrix and its four groups"
+  },
+  {
+   "id": "sales_engineer-exam-109",
+   "verdict": "fail",
+   "note": "wrong term: circumvention; expected leakage and its effect on growth/monetisation"
+  },
+  {
+   "id": "sales_engineer-exam-110",
+   "verdict": "fail",
+   "note": "wrong: no 48h flag and widening to uninvited exact-trade suppliers"
+  },
+  {
+   "id": "sales_engineer-exam-111",
+   "verdict": "fail",
+   "note": "wrong: answers non-response rules; busy suppliers are not matched and busy is not non-response"
+  },
+  {
+   "id": "sales_engineer-exam-112",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-113",
+   "verdict": "fail",
+   "note": "wrong: no 3-day nudge, 5-day action, 10-day reasoned message"
+  },
+  {
+   "id": "sales_engineer-exam-114",
+   "verdict": "fail",
+   "note": "wrong: says no routine check; expected day 3 and day 14 checks feeding the supplier score"
+  },
+  {
+   "id": "sales_engineer-exam-115",
+   "verdict": "fail",
+   "note": "wrong: no single 60-day own-trades nudge"
+  },
+  {
+   "id": "sales_engineer-exam-116",
+   "verdict": "fail",
+   "note": "wrong: says nobody rules; expected SE reasons a finding, CEO seat decides"
+  },
+  {
+   "id": "sales_engineer-exam-117",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-118",
+   "verdict": "pass",
+   "note": "conveys every answer_must point; nothing materially wrong"
+  },
+  {
+   "id": "sales_engineer-exam-119",
+   "verdict": "fail",
+   "note": "wrong: denies the control exists; expected daily knowledge-gap sweep, weekly review, monthly self-review"
+  },
+  {
+   "id": "sales_engineer-exam-120",
+   "verdict": "fail",
+   "note": "wrong: routes to customer_support/CEO; expected accountant seat via a handoff"
+  },
+  {
+   "id": "sales_engineer-exam-121",
+   "verdict": "fail",
+   "note": "missing: per-supplier non-response separating declined-with-reason from silence; easy decline, one reminder"
+  },
+  {
+   "id": "sales_engineer-exam-122",
+   "verdict": "fail",
+   "note": "refuses: RFQ, BOQ, LPO not explained"
+  },
+  {
+   "id": "sales_engineer-exam-123",
+   "verdict": "fail",
+   "note": "wrong term: 'first eligible quote time'; expected time to match"
+  },
+  {
+   "id": "sales_engineer-exam-124",
+   "verdict": "fail",
+   "note": "missing: Federal Decree-Law No. 46 of 2021 and TDRA"
+  }
+ ]
+}
