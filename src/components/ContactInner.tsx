@@ -17,7 +17,17 @@ export function ContactInner() {
     const Mg = document.getElementById('cmsg') as HTMLElement | null;
     if (!F) return;
     // Mirrors CONTACT_MESSAGE_MAX in supabase/functions/_shared/contact_limits.ts (the server enforces it).
-    const Ta = F.querySelector<HTMLTextAreaElement>('textarea[name="message"]'); if (Ta) Ta.maxLength = 4000;
+    // A visible counter, so the cap is never a silent cut: the visitor sees it before reaching it.
+    const MAX = 4000;
+    const Ta = F.querySelector<HTMLTextAreaElement>('textarea[name="message"]');
+    let Ct: HTMLElement | null = null;
+    const count = () => { if (Ta && Ct) { const n = [...Ta.value].length; Ct.textContent = n + ' / ' + MAX; Ct.style.color = n >= MAX ? '#ff9a9a' : 'var(--mut,#9DB2B2)'; } };
+    if (Ta) {
+      Ta.maxLength = MAX;
+      Ct = Object.assign(document.createElement('div'), { id: 'cmsg-count' });
+      Ct.setAttribute('aria-live', 'polite'); Ct.style.fontSize = '12px'; Ct.style.textAlign = 'end'; Ct.style.marginTop = '4px';
+      Ta.setAttribute('aria-describedby', 'cmsg-count'); Ta.after(Ct); count(); Ta.addEventListener('input', count);
+    }
     // The form's markup comes from marketing.json, so the busy state is applied imperatively here.
     // It follows the same rules as ui/busy.tsx: the submit is locked from the first millisecond
     // (this form had NO guard at all — a second press filed a second ticket), the ring appears
@@ -53,14 +63,14 @@ export function ContactInner() {
               a.textContent = ar ? 'تابع حالة الشكوى' : 'Track its status'; a.style.textDecoration = 'underline'; Mg.append(a);
             } else Mg.textContent = ar ? 'شكرًا — سنتواصل معك قريبًا.' : 'Thanks — we will be in touch shortly.';
           }
-          F.reset();
+          F.reset(); count();
         }
         else { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = ar ? ((j && j.error_ar) || 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.') : ((j && j.error) || 'Could not send. Please email management@quotesdone.com.'); } }
       } catch (_e) { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = locale === 'ar' ? 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.' : 'Could not send. Please email management@quotesdone.com.'; } }
       finally { setBusy(false); }
     };
     F.addEventListener('submit', onsub);
-    return () => { clearTimeout(showTimer); F.removeEventListener('submit', onsub); };
+    return () => { clearTimeout(showTimer); F.removeEventListener('submit', onsub); Ta?.removeEventListener('input', count); Ct?.remove(); };
   }, [locale]);
   const hero = splitHero(html);
   return (

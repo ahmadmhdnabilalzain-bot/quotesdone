@@ -320,8 +320,8 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
               <ProductFrame title="match / flooring · Dubai" sampleLabel={t.sample} status="3 of 12">
                 <MatchShowcase labels={{ match: 'Match' }} matches={[
                   { name: 'Sample Flooring Co.', score: 94, facts: 'Licence verified · 11 years · Al Quoz', revealed: true },
-                  { name: 'Gulf Surface Works', score: 88, facts: 'Licence verified · 7 years · Jebel Ali' },
-                  { name: 'Marina Tiling Co.', score: 81, facts: 'Licence verified · 4 years · Sharjah' },
+                  { name: 'Sample Supplier B', score: 88, facts: 'Licence verified · 7 years · Jebel Ali' },
+                  { name: 'Sample Supplier C', score: 81, facts: 'Licence verified · 4 years · Sharjah' },
                 ]} />
               </ProductFrame>
             </div>
