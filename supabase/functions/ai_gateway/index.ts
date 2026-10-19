@@ -34,6 +34,7 @@
 // verified for zero spend.
 import { cacheTokens, tapUsage } from './stream_usage.ts';
 import { sendWithTtlFallback, systemMessage, withHistoryBreakpoint } from './system_message.ts';
+import { withDataDeny } from './provider_privacy.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -829,6 +830,8 @@ async function handle(req: Request): Promise<Response> {
           if (body.plugins && body.plugins.length) payload.plugins = body.plugins;
           if (body.tools && body.tools.length) payload.tools = body.tools;
           if (body.tool_choice != null) payload.tool_choice = body.tool_choice;
+          // Refuse providers that collect or train on data (provider_privacy.ts).
+          withDataDeny(payload, m);
 
           // THE 1-HOUR TIER IS ASKED FOR, NEVER REQUIRED (13 Oct 2026): if the route refuses the ttl field, the same
           // request goes once more on the default 5-minute tier, breakpoints kept (system_message.ts).
@@ -901,7 +904,11 @@ async function handle(req: Request): Promise<Response> {
             await recordAttempt(m, true, Date.now() - attemptStartedAt, '', finishReason, j?.usage);
             break attempts;
           }
-          lastErr = JSON.stringify(j?.error || j).slice(0, 200);
+          // An empty completion says WHY first (ceo, 19 Oct 2026): the first 200 characters of the envelope were all
+          // id/object/model, so 365 empty Luna Pro replies in one day never showed their finish_reason or token count.
+          lastErr = j?.error ? JSON.stringify(j.error).slice(0, 200)
+            : ('empty completion: finish_reason=' + String(j?.choices?.[0]?.finish_reason ?? j?.choices?.[0]?.native_finish_reason ?? 'none')
+               + ' completion_tokens=' + String(j?.usage?.completion_tokens ?? '?') + ' max_tokens=' + String(payload.max_tokens)).slice(0, 200);
           // An empty completion IS a failure even though the HTTP call succeeded. This is exactly
           // the 220-of-228 case: a valid chat.completion body carrying no content, which every
           // monitor read as a healthy response.

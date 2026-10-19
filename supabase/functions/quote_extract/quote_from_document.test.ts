@@ -109,3 +109,85 @@ Deno.test('a discount written after the only total, prices excluding VAT: the fe
   const p = quoteFromExtracted(r);
   assertEquals([p.gross_amount, p.discount_amount, p.price_ex_vat, p.vat_treatment], [2000, 300, 1700, 'exclusive']);
 });
+
+// QA walk, 19 Oct 2026: the supplier's quotation PDF (the walk's own sample, built here the same way) was priced
+// at AED 1, because "Total Option 1: AED 11730" gave the option's number as the total; and a two-option PDF came
+// back as one quotation. Both are the text path (a PDF's text layer has no table).
+import { demoPdfPages } from '../../../scripts/lib/demo_pdf.mjs';
+const qaPdf = (options: { title: string; lines: [string, number, number][] }[]) => demoPdfPages([[
+  ['ZZ DEMO Painting LLC - Quotation', 16], ['Prices in AED, excluding VAT. Validity: 30 days. Lead time: 3 weeks.', 10],
+  ...options.flatMap((o) => [[o.title, 13], ...o.lines.map((l) => [`${l[0]}   ${l[1]} m2 x ${l[2]} = ${l[1] * l[2]}`, 10]),
+    [`Total ${o.title}: AED ${o.lines.reduce((s, l) => s + l[1] * l[2], 0)}`, 11]]),
+]]) as unknown as Uint8Array;
+
+Deno.test('the walk\'s one-option quotation PDF is priced at its total, never at the option number', async () => {
+  const r = await readDocument(qaPdf([{ title: 'Option 1', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] }]), 'quotation.pdf', 'application/pdf');
+  assert(r.ok);
+  const p = quoteFromExtracted(r);
+  assertEquals(p.amount, 11730);
+});
+
+Deno.test('the walk\'s two-option quotation PDF comes back as two options with their own totals', async () => {
+  const r = await readDocument(qaPdf([
+    { title: 'Option 1 - Jotun Fenomastic', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] },
+    { title: 'Option 2 - National Paints', lines: [['National Paints matt emulsion 2 coats internal walls', 450, 16], ['National Paints matt emulsion 2 coats ceilings', 120, 15]] }]), 'quotation.pdf', 'application/pdf');
+  assert(r.ok);
+  const p = quoteFromExtracted(r);
+  assertEquals(p.options, [{ option_no: 1, amount: 11730 }, { option_no: 2, amount: 9000 }]);
+});
+
+Deno.test('a label number is never the figure: option, item, no., #, and a percentage', async () => {
+  const { figureAfter } = await import('./quote_from_document.ts');
+  assertEquals(figureAfter(' Option 1: AED 11,730'), 11730);
+  assertEquals(figureAfter(' for item 3 - AED 950'), 950);
+  assertEquals(figureAfter(' (No. 2) 4,200.50'), 4200.5);
+  assertEquals(figureAfter(' incl. 5% VAT: 1,050'), 1050);
+  assertEquals(figureAfter(': AED 12,450.00'), 12450);
+});
+
+// #1562 review: a year, a reference or a quantity with its unit is never the price; the figure with the currency is.
+Deno.test('a year, a reference and a quantity with its unit are never the total', async () => {
+  const { figureAfter } = await import('./quote_from_document.ts');
+  assertEquals(figureAfter(' (2026): AED 5,000'), 5000);
+  assertEquals(figureAfter(' QD-10234: AED 500'), 500);
+  assertEquals(figureAfter(' 450 m2: AED 9,450'), 9450);
+  assertEquals(figureAfter(': 9,450 AED'), 9450);
+});
+
+const textQuote = async (lines: string[]) => {
+  const r = await readDocument(new TextEncoder().encode(lines.join('\n')), 'quote.txt', 'text/plain'); assert(r.ok);
+  return quoteFromExtracted(r);
+};
+Deno.test('held, never guessed: a total with no currency', async () => {
+  const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Total: 2400']);   // no currency, and the lines do not add up to it
+  assertEquals(p.amount, null); assertEquals(p.review_reason, 'total_without_currency');
+});
+Deno.test('held, never guessed: two totals that disagree with nothing to choose between them', async () => {
+  const p = await textQuote(['Gypsum partition 20 m2 @ AED 100 = AED 2000', 'Total: AED 2000', 'Total: AED 2400']);
+  assertEquals(p.amount, null); assertEquals(p.review_reason, 'conflicting_totals');
+});
+Deno.test('a grand total among other totals decides, and is taken', async () => {
+  const p = await textQuote(['Gypsum partition 20 m2 @ AED 100 = AED 2000', 'Total: AED 2000', 'Grand total: AED 2000']);
+  assertEquals(p.amount, 2000); assertEquals(p.review_reason ?? null, null);
+});
+Deno.test('held, never guessed: an option total that is not the sum of its lines', async () => {
+  const r = await readDocument(qaPdf([
+    { title: 'Option 1 - Jotun Fenomastic', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21]] },
+    { title: 'Option 2 - National Paints', lines: [['National Paints matt emulsion 2 coats internal walls', 450, 16]] }]).map((x) => x) as unknown as Uint8Array, 'quotation.pdf', 'application/pdf');
+  assert(r.ok);
+  // tamper the stated option-2 total so it disagrees with its line (7200)
+  const tampered = { ...r } as typeof r;
+  const p0 = quoteFromExtracted(r); assertEquals(p0.options.length, 2);
+  const text = (r as unknown as { text?: string }).text;
+  if (typeof text === 'string') (tampered as unknown as { text: string }).text = text.replace('AED 7200', 'AED 7900');
+  const p = quoteFromExtracted(tampered);
+  assertEquals(p.review_reason, 'option_total_mismatch'); assertEquals(p.amount, null); assertEquals(p.options, []);
+});
+Deno.test('a total with no currency is taken when its priced lines add up to it', async () => {
+  const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Paint 100 m2 @ 12 = 1200', 'Total: 3200']);
+  assertEquals(p.amount, 3200); assertEquals(p.review_reason ?? null, null);
+});
+Deno.test('lines that corroborate one currency-less total never hide a conflicting second total', async () => {
+  const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Paint 100 m2 @ 12 = 1200', 'Total: 3200', 'Total: 2400']);
+  assertEquals(p.amount, null); assertEquals(p.review_reason, 'conflicting_totals');
+});

@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "courier_express:product-distinctions",
+      "topic": "Courier services: service levels, chargeable weight and what affects delivery",
+      "topic_ar": "خدمات البريد السريع: مستويات الخدمة والوزن المحتسب وما يؤثر على التسليم",
+      "kind": "product_distinctions",
+      "body_en": "Courier services range from same-day and on-demand (a rider or van collects and delivers within hours), next-day domestic, scheduled B2B routes, e-commerce last-mile with cash-on-delivery and returns handling, to international express (door-to-door air with customs clearance, typically 1-5 days) and economy international. Chargeable weight is the greater of actual weight and dimensional (volumetric) weight, calculated as length x width x height in cm divided by the carrier's divisor (often 5,000 or 6,000), so light bulky parcels cost more than their weight suggests. International shipments need a commercial invoice with HS codes and values; duties and taxes are paid by the sender (DDP) or the receiver (DAP/DDU), and restricted items (batteries, liquids, perfumes, medicines) need declarations or are refused. What separates offers: coverage and cut-off times, delivery attempts, proof of delivery, tracking and integration with e-commerce platforms, COD remittance terms, liability per kg versus declared-value insurance, and fuel and remote-area surcharges.",
+      "body_ar": "تتراوح خدمات البريد السريع بين التوصيل في نفس اليوم وعند الطلب (مندوب أو فان يستلم ويسلّم خلال ساعات)، والتوصيل المحلي في اليوم التالي، والمسارات المجدولة بين الشركات، والميل الأخير للتجارة الإلكترونية مع الدفع عند الاستلام ومعالجة المرتجعات، والشحن الدولي السريع (من الباب إلى الباب جواً مع التخليص الجمركي، عادة 1-5 أيام)، والشحن الدولي الاقتصادي. والوزن المحتسب هو الأكبر بين الوزن الفعلي والوزن الحجمي، ويُحسب بضرب الطول في العرض في الارتفاع بالسنتيمتر وقسمته على معامل الناقل (غالباً 5000 أو 6000)، لذلك تكلف الطرود الخفيفة كبيرة الحجم أكثر مما يوحي وزنها. وتحتاج الشحنات الدولية فاتورة تجارية برموز النظام المنسق والقيم؛ ويدفع الرسوم والضرائب المرسل أو المستلم حسب شرط التسليم، والمواد المقيدة (البطاريات، السوائل، العطور، الأدوية) تحتاج إقرارات أو تُرفض. وما يميز العروض: التغطية ومواعيد الإقفال، ومحاولات التسليم، وإثبات التسليم، والتتبع والتكامل مع منصات التجارة الإلكترونية، وشروط تحويل مبالغ الدفع عند الاستلام، والمسؤولية لكل كيلوغرام مقابل التأمين بالقيمة المعلنة، ورسوم الوقود والمناطق النائية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Dimensional_weight"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: dimensional weight = length x width x height / divisor such as 5,000 or 6,000 cm3/kg -> confirmed."
+    },
+    {
+      "id": "courier_express:lead-times-and-quoting",
+      "topic": "Courier & express delivery - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "البريد السريع والتوصيل: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Accounts usually open within days; integrations with a store 1-2 weeks. A courier needs the shipment profile (volumes per day, weights and sizes, domestic and international split, destinations), COD needs, pickup locations and times, and integration needs. A quote states service levels and transit times, the rate card by weight band and zone, dimensional divisor, surcharges, COD fees and remittance cycle, liability and insurance, and validity.",
+      "body_ar": "تُفتح الحسابات عادة خلال أيام؛ والتكامل مع المتجر 1-2 أسبوع. ويحتاج الناقل ملف الشحنات (الأحجام يومياً، الأوزان والمقاسات، نسبة المحلي إلى الدولي، الوجهات)، واحتياجات الدفع عند الاستلام، ومواقع الاستلام وأوقاته، واحتياجات التكامل. ويذكر العرض مستويات الخدمة وأزمنة العبور، وجدول الأسعار حسب شرائح الوزن والمناطق، ومعامل الوزن الحجمي، والرسوم الإضافية، ورسوم الدفع عند الاستلام ودورة التحويل، والمسؤولية والتأمين، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (No entry gives the volumetric weight formula (L x W x H / 5000); missing). courier_express:volumetric-chargeable-weight was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from courier_express.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Why was I charged 10 kg for a 3 kg box of pillows?",
+      "q_ar": "ليش انحسب علي 10 كيلو لصندوق مخدات وزنه 3 كيلو؟",
+      "expected_entry_ids": [
+        "courier_express:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "courier_express:volumetric-chargeable-weight"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "courier_express:product-distinctions"
+      ],
+      "stored_not_served": [
+        "courier_express:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Dimensional_weight"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

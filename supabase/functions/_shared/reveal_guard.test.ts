@@ -101,3 +101,10 @@ Deno.test('every refusal carries a machine code and both languages', () => {
     assert(r.message.length > 10 && /[؀-ۿ]/.test(r.message_ar), c + ' answers in English and Arabic');
   }
 });
+
+Deno.test('canReveal refuses a quote its supplier withdrew before the reveal: nobody pays for a price that was taken back', async () => {
+  const rows = { quotes: { ...COMPLETE, status: 'withdrawn' }, inquiries: { id: 'i1', customer_id: 'c1', status: 'sent', category: 'joinery', spec: null }, quote_items: [ITEM], transactions: null, sanctions_ban: [] };
+  const r = await canReveal(fakeAdmin(rows), { quoteId: 'q1', customerId: 'c1' });
+  assert(!r.ok, 'a withdrawn quote is not revealable');
+  assertEquals(r.ok ? '' : r.code, 'quote_not_found');
+});

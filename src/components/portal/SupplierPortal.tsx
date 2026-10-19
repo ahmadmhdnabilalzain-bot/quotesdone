@@ -1207,7 +1207,7 @@ function Dashboard({ token, lang, onExpired }) {
           the OUTGOING one and the focus is not addressed to it, so it may act on it but may not
           consume it. One condition, both directions, and nothing about the deferred render changes. */}
       {shownTab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
-        renderQuoteForm={(inq, done) => <QuoteForm inquiry={inq} token={token} lang={lang} onDone={done} />} />}
+        renderQuoteForm={(inq, done, o) => <QuoteForm key={o?.newOption ? 'new' : 'edit'} inquiry={inq} token={token} lang={lang} onDone={done} newOption={!!o?.newOption} />} />}
       {shownTab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
       {/* Messages holds the revealed jobs (Projects) above the conversations, behind the reveal gate. */}
       {shownTab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
@@ -1271,10 +1271,14 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     setChecking(false);
     if (j && j.ok) setChk(j.options ? { ...j.options[0], options: j.options } : j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
+  // One submission at a time: `busy` disables the button only after the next render, so a fast double click
+  // could send two (each a new option under new_option). The ref closes that window (#1563 review).
+  const inFlight = useRef(false);
   const submit = async () => {
+    if (inFlight.current) return;
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
-    setBusy(true); setMsg('');
-    const j = await call('supplier_api', buildPayload(), token);
+    inFlight.current = true; setBusy(true); setMsg('');
+    const j = await call('supplier_api', buildPayload(), token).finally(() => { inFlight.current = false; });
     setBusy(false);
     // Accepted, held by the sales engineer (the card then shows exactly what is missing and the two
     // ways out) or split into options: the card is the next thing the supplier needs to see.

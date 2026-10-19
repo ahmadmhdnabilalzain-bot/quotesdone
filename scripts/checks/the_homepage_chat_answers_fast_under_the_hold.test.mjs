@@ -24,7 +24,9 @@ test('nothing slow runs before the answer, and the refusal still comes first', (
   assert.match(s, /await Promise\.all\(reads\)/, 'the independent reads are awaited one by one');
   assert.ok(!/await secNum\(/.test(s), 'a limit is read with its own round trip again');
   // the brief and the recall are read together, not one after the other
-  assert.match(s, /const \[brief, memory\] = await Promise\.all\(\[/, 'the brief and the recall are read in series');
+  // 19 Oct 2026: the given trade knowledge joins the same parallel read, bounded by its own timeout (given_trade_knowledge.ts).
+  assert.match(s, /const \[brief, memory(, given)?\] = await Promise\.all\(\[/, 'the brief and the recall are read in series');
+  if (/givenTradeKnowledge\(/.test(s)) assert.match(readFileSync(new URL('../../supabase/functions/_shared/given_trade_knowledge.ts', import.meta.url), 'utf8'), /withTimeout\(fetchGiven\(/, 'the given trade knowledge read lost its timeout');
   const refuse = s.indexOf('return J({ reply: RL_REPLY, rate_limited: true });');
   assert.ok(refuse > 0 && refuse < s.indexOf('await answerFromBrief({'), 'the rate-limit refusal moved after the answer');
 });
