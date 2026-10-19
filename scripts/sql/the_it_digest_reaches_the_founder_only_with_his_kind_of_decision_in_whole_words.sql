@@ -152,7 +152,7 @@ begin
     select coalesce(max(id), 0) into v_before from public.notifications;
     perform set_config('app.qd_delivery_tracked', 'on', true);
     v_res := public.fn_notify_founder(p_event => v_event, p_detail => v_detail, p_level => 'normal',
-                                      p_kind => 'it_daily_digest', p_dedupe_key => v_key, p_owner_agent => 'customer_support');
+                                      p_kind => 'it_daily_digest', p_dedupe_key => v_key, p_owner_agent => 'it_engineer');   -- 19 Oct 2026: the IT engineer owns its digest
     select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
      where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
     perform set_config('app.qd_delivery_tracked', 'off', true);
