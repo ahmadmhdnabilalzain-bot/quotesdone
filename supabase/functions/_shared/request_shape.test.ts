@@ -33,3 +33,10 @@ Deno.test('an explicit effort reaches a non-Claude reasoning model only where it
   assertEquals(shapeRequest({ model: luna, maxTokens: 900, supported: new Set(['reasoning']) }).reasoning, undefined);
   assertEquals(shapeRequest({ model: luna, maxTokens: 900, effort: 'bogus', supported: new Set(['reasoning']) }).reasoning, undefined);
 });
+
+Deno.test('a non-Claude reasoning model gets thinking headroom, so its answer is not cut off (exam run cdd95305)', () => {
+  const p = shapeRequest({ model: 'openai/gpt-6-luna-pro', maxTokens: 900, supported: new Set(['reasoning', 'max_tokens']) });
+  assertEquals(p.max_tokens, 900 + THINKING_HEADROOM);
+  assertEquals(p.reasoning, undefined);
+  assertEquals(shapeRequest({ model: 'x/plain', maxTokens: 900, supported: new Set(['max_tokens']) }).max_tokens, 900);
+});
