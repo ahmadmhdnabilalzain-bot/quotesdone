@@ -36,7 +36,7 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 // approval rather than fail to build — precisely the class of mistake this file's header records
 // thirteen rejections learning. Each kind now states its own required fields.
 type Catalogue =
-  | { category?: 'UTILITY'; en: string; ar: string; sample1_en: string; sample1_ar: string;
+  | { category?: 'UTILITY' | 'MARKETING'; en: string; ar: string; sample1_en: string; sample1_ar: string;
       url: string; sample2_en?: string; sample2_ar?: string }
   // AUTHENTICATION: Meta owns the body text of an authentication template and renders it in the
   // recipient's own language, so there is nothing to author or translate except the button label.
@@ -115,6 +115,22 @@ const CATALOGUE: Record<string, Catalogue> = {
     sample2_en: 'in Dubai a private pool needs a Dubai Municipality permit and a fence of at least 1.2 m',
     sample2_ar: 'في دبي يحتاج المسبح الخاص إلى تصريح من بلدية دبي وسياج لا يقل ارتفاعه عن 1.2 متر',
     url: 'https://quotesdone.com',
+  },
+  // 19 OCT 2026 (marketing, ruling 1184) — the WhatsApp supplier invitation. MARKETING category: it is a
+  // business-initiated invitation to a company that has not opted in, which Meta allows only as MARKETING.
+  // The body names the opt-out (STOP), which wa_inbound honours through fn_wa_supplier_invite_opt_out.
+  // {{1}} is the trade label, {{2}} the lead's own claim link (send_whatsapp varsFor). Suppliers are written
+  // to in English only; the Arabic body exists because the catalogue shape requires it and is never queued.
+  // Rows are queued only by fn_wa_supplier_invite_queue, which writes nothing while wa_supplier_invite_golive
+  // is not 'true'.
+  supplier_invite: {
+    category: 'MARKETING',
+    en: 'Hello from QuotesDone, the UAE procurement marketplace. Businesses are requesting quotes for {{1}} and we would like to send them to your company. Registration is free; claim your supplier profile here: {{2}} Reply STOP to receive no further messages.',
+    ar: 'مرحبًا من QuotesDone، منصة المشتريات في الإمارات. تصلنا طلبات عروض أسعار في مجال {{1}} ونود إرسالها إلى شركتكم. التسجيل مجاني، ويمكنكم تفعيل ملفكم عبر الرابط: {{2}} أرسلوا STOP لإيقاف الرسائل.',
+    sample1_en: 'office furniture', sample1_ar: 'الأثاث المكتبي',
+    sample2_en: 'https://quotesdone.com/en/portal?t=00000000-0000-0000-0000-000000000000',
+    sample2_ar: 'https://quotesdone.com/ar/portal?t=00000000-0000-0000-0000-000000000000',
+    url: 'https://quotesdone.com/en/portal',
   },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {

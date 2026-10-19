@@ -157,6 +157,8 @@ function tmplKey(type:string):string|null{
   // 23 Sep 2026: a reasoned answer to the customer's own question, due after their 24-hour window closed
   // (_shared/reasoned_delivery.ts). Held queued until the support_reply template is approved.
   if(t==='support_reply') return 'support_reply';
+  // 19 Oct 2026 (marketing, ruling 1184): the WhatsApp supplier invitation, queued only by fn_wa_supplier_invite_queue.
+  if(t==='supplier_invite_wa') return 'supplier_invite';
   return null;
 }
 // 18 SEP 2026: the founder authorised the submission and supplier_account_notice now HAS a template
@@ -175,6 +177,8 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
     return {'1': waVar(shortSummary(head||n.subject||'') , 120), '2': waVar(rest || 'see the founder console at quotesdone.com/os', 500)};
   }
   // support_reply: {{1}} their question (the subject), {{2}} the answer (the body), each one line.
+  // supplier_invite: {{1}} the trade label (the subject), {{2}} the lead's own claim link, carried in the body.
+  if (key==='supplier_invite') return {'1': waVar(String(n.subject||'your trade'), 80), '2': (String(n.body||'').match(/https:\/\/quotesdone\.com\/(en|ar)\/portal\?t=[0-9a-f-]{36}/)||[PORTAL_URL])[0]};
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
   return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
 }
@@ -375,6 +379,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     let smsFailover = 0;
     // The notice goes by SMS instead. Founder rows keep their own email fallback (fn_wa_founder_alert_fallback).
     const toSms = async (n: WaRow, reason: string) => {
+      // Ruling 1185: bulk SMS is too expensive; a supplier invitation never fails over to SMS.
+      if (String(n.type || '') === 'supplier_invite_wa') { lastErr = 'no SMS failover for a supplier invitation (ruling 1185)'; return false; }
       const r = await queueSmsTwin((fn, args) => admin.rpc(fn, args), n.id, smsTextFor(n, linkFor(tmplKey(String(n.type || '')))), reason);
       if (r.ok) { smsFailover++; return true; }
       lastErr = 'SMS failover not queued for notification ' + n.id + ': ' + r.outcome; return false;
