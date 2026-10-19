@@ -1,0 +1,211 @@
+-- A REQUEST FOR HUMAN REVIEW OF AN AUTOMATED DECISION GOES TO THE SEAT THAT OWNS THE DECISION,
+-- AND A DIFFERENT MODEL FAMILY DECIDES IT (founder ledger 1152, 19 Oct 2026). Seat: ceo.
+--
+-- The spec, in its words: "a request for human review of an automated decision goes to the owning seat
+-- (sales_engineer: matching, specs, quotes, reports; accountant: fees, refunds, charges; customer_support:
+-- messaging, account; it_engineer: security, access), reviewed by a different seat or model family than the
+-- one that made the original decision. Disputes and approvals go to the CEO. Nothing goes to the founder."
+--
+-- MEASURED BEFORE THIS FILE (production, 19 Oct 2026):
+--   * no table or routine recorded a request to review an automated decision. The nearest owners were
+--     public.seat_handoff_kind / fn_seat_handoff (the seat conversation registry, 100+ kinds) and
+--     model_policy_by_identity (each seat's primary / fallback / escalation model). Both are REUSED here.
+--   * an automated decision's model is a 'provider/model' id (openai/gpt-6-luna-pro, anthropic/claude-sonnet-5.5);
+--     its FAMILY is the provider prefix. A decision made by code with no model is family 'deterministic'.
+--
+-- WHAT THIS CHANGES
+--   1. public.review_route: the routing TABLE. One row per decision type -> its owning seat. Routing is a
+--      primary-key lookup, never a reading of words (routine work is code, not LLM). owner_seat is a foreign
+--      key to org_role, so a route can only name a live seat; the founder is not a seat and a CHECK refuses
+--      the word as well, so "nothing goes to the founder" is a property of the schema, not of a comment.
+--   2. public.decision_review_request: one row per request. (decision_type, owner_seat) is a foreign key to
+--      review_route, so a row cannot land with any seat but the route's. original_family / reviewer_family
+--      are generated from the model ids, and a CHECK refuses a verdict whose reviewer family equals the
+--      original decision's family. The constraint, not the caller, guarantees a different family decides.
+--   3. fn_review_request_open: the one door. It looks the route up, files the row, and hands it to the owning
+--      seat through fn_seat_handoff (kind review.requested, registered below for every owning seat). A demo
+--      subject is filed in this table but raises no handoff (fn_seat_handoff, ruling 1199).
+--   4. fn_review_request_reviewer_model: the owning seat's own model ladder (model_policy_by_identity),
+--      first model whose family differs from the original decision's. Deterministic.
+--   5. fn_review_request_decide: records the verdict with the reviewing model, closes the handoff as its
+--      originator (customer_support, which takes every request in), and refuses a same-family verdict.
+--
+-- WHAT THIS DOES NOT DO: it does not call fn_notify_founder, write founder_alerts, or queue a notification to
+-- the founder anywhere, and it does not change what "Talk to a person" on WhatsApp does today. The entry points
+-- (wa_inbound, email_triage) reach this door through supabase/functions/_shared/review_request.ts.
+--
+-- Prevented by: scripts/checks/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision.test.mjs
+-- Proved by:    scripts/sql/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision_probe.sql
+
+create table if not exists public.review_route (
+  decision_type text primary key check (decision_type ~ '^[a-z_]+$'),
+  owner_seat    text not null references public.org_role (role_id)
+                check (owner_seat <> 'founder'),
+  meaning       text not null check (btrim(meaning) <> ''),
+  unique (decision_type, owner_seat)
+);
+alter table public.review_route enable row level security;
+drop policy if exists review_route_service_role_only on public.review_route;
+create policy review_route_service_role_only on public.review_route
+  as permissive for all to public using (false) with check (false);
+revoke all on public.review_route from anon, authenticated;
+comment on table public.review_route is
+  'Ledger 1152: which seat reviews a request for human review of each kind of automated decision. Disputes and approvals go to the ceo; no route names the founder (FK to org_role + CHECK).';
+
+insert into public.review_route (decision_type, owner_seat, meaning) values
+  ('matching', 'sales_engineer',   'which suppliers were matched to an inquiry, or why a supplier was not matched'),
+  ('specs',    'sales_engineer',   'a specification that was required, held, or judged equivalent or not'),
+  ('quotes',   'sales_engineer',   'how a quote was read, compared, ranked or held'),
+  ('reports',  'sales_engineer',   'a report or document the platform produced about an inquiry or a supplier'),
+  ('fees',     'accountant',       'a reveal fee, subscription fee or penalty that was set or charged'),
+  ('refunds',  'accountant',       'a refund that was granted, declined or delayed'),
+  ('charges',  'accountant',       'a card or invoice charge, or a payment that was held'),
+  ('messaging','customer_support', 'a message the platform sent, held or did not send'),
+  ('account',  'customer_support', 'an account or sign-up that was approved, held, archived or refused'),
+  ('security', 'it_engineer',      'a security block, a flag or a screening result'),
+  ('access',   'it_engineer',      'access to a portal, a document or a feature that was refused or removed'),
+  ('dispute',  'ceo',              'a dispute between a customer and a supplier, or with the platform'),
+  ('approval', 'ceo',              'an approval or a rejection that was decided automatically')
+on conflict (decision_type) do update set owner_seat = excluded.owner_seat, meaning = excluded.meaning;
+
+create table if not exists public.decision_review_request (
+  id                bigint generated always as identity primary key,
+  decision_type     text not null,
+  owner_seat        text not null,
+  channel           text not null check (channel in ('whatsapp', 'email', 'portal', 'internal')),
+  requester         text not null check (btrim(requester) <> ''),
+  subject_table     text,
+  subject_id        text,
+  request_text      text not null check (btrim(request_text) <> ''),
+  original_seat     text references public.org_role (role_id),
+  original_model    text,
+  original_decision_log_id bigint,
+  original_family   text generated always as (coalesce(nullif(split_part(original_model, '/', 1), ''), 'deterministic')) stored,
+  status            text not null default 'open' check (status in ('open', 'decided')),
+  reviewer_seat     text references public.org_role (role_id),
+  reviewer_model    text,
+  reviewer_family   text generated always as (nullif(split_part(reviewer_model, '/', 1), '')) stored,
+  verdict           text check (verdict in ('upheld', 'overturned', 'amended')),
+  verdict_reason    text,
+  handoff_id        bigint,
+  dedupe_key        text unique,
+  created_at        timestamptz not null default now(),
+  decided_at        timestamptz,
+  foreign key (decision_type, owner_seat) references public.review_route (decision_type, owner_seat),
+  -- the ruling itself: the review is decided by a different model family than the decision under review
+  constraint decision_review_is_decided_by_a_different_model_family
+    check (reviewer_model is null
+           or split_part(reviewer_model, '/', 1) is distinct from coalesce(nullif(split_part(original_model, '/', 1), ''), 'deterministic')),
+  constraint decision_review_decided_has_its_verdict
+    check (status = 'open' or (verdict is not null and reviewer_model is not null and reviewer_seat is not null
+                               and btrim(coalesce(verdict_reason, '')) <> '' and decided_at is not null))
+);
+create index if not exists decision_review_request_open_idx on public.decision_review_request (owner_seat) where status = 'open';
+alter table public.decision_review_request enable row level security;
+drop policy if exists decision_review_request_service_role_only on public.decision_review_request;
+create policy decision_review_request_service_role_only on public.decision_review_request
+  as permissive for all to public using (false) with check (false);
+revoke all on public.decision_review_request from anon, authenticated;
+comment on table public.decision_review_request is
+  'Ledger 1152: a request for human review of an automated decision, routed by review_route to its owning seat and decided by a different model family (CHECK).';
+
+-- the conversation each owning seat receives; customer_support takes every request in and closes it after the verdict
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
+select 'review.requested', 'customer_support', s.seat,
+       'A customer or supplier asked for a human review of an automated decision this seat owns (review_route); decide it with a different model family than the original decision.',
+       'fn_review_request_waits', interval '48 hours', true,
+       'scripts/sql/a_request_for_human_review_goes_to_the_seat_that_owns_the_decision.sql'
+  from (select distinct owner_seat as seat from public.review_route) s
+on conflict (type, from_seat, to_seat) do update set handler = excluded.handler, meaning = excluded.meaning,
+  reply_within = excluded.reply_within, originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+
+create or replace function public.fn_review_request_waits(p_id bigint)
+returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select jsonb_build_object('waiting', 'the ' || a.agent || ' verdict on review request '
+                            || coalesce(a.detail ->> 'review_request_id', '?') || ', by a different model family')
+    from public.agent_actions a where a.id = p_id
+$fn$;
+
+create or replace function public.fn_review_request_reviewer_model(p_id bigint)
+returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select m.model
+    from public.decision_review_request r
+    join public.model_policy_by_identity p on p.identity_key = r.owner_seat
+    cross join lateral (values (1, p.primary_model), (2, p.fallback_model), (3, p.escalation_model)) m(rank, model)
+   where r.id = p_id and m.model is not null
+     and split_part(m.model, '/', 1) is distinct from r.original_family
+   order by m.rank
+   limit 1
+$fn$;
+
+create or replace function public.fn_review_request_open(
+  p_decision_type text, p_channel text, p_requester text, p_request_text text,
+  p_subject_table text default null, p_subject_id text default null,
+  p_original_seat text default null, p_original_model text default null,
+  p_original_decision_log_id bigint default null, p_dedupe_key text default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_route public.review_route; v_id bigint; v_handoff bigint;
+begin
+  select * into v_route from public.review_route where decision_type = p_decision_type;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no review_route for decision type ' || coalesce(p_decision_type, 'null'));
+  end if;
+  if p_dedupe_key is not null then
+    select id, handoff_id into v_id, v_handoff from public.decision_review_request where dedupe_key = p_dedupe_key;
+    if v_id is not null then
+      return jsonb_build_object('ok', true, 'id', v_id, 'owner_seat', v_route.owner_seat, 'handoff_id', v_handoff, 'existing', true);
+    end if;
+  end if;
+  insert into public.decision_review_request (decision_type, owner_seat, channel, requester, subject_table, subject_id,
+         request_text, original_seat, original_model, original_decision_log_id, dedupe_key)
+  values (v_route.decision_type, v_route.owner_seat, p_channel, p_requester, p_subject_table, p_subject_id,
+          left(p_request_text, 4000), p_original_seat, p_original_model, p_original_decision_log_id, p_dedupe_key)
+  returning id into v_id;
+  -- the owning seat's queue; null for a demo subject (fn_seat_handoff files no handoff from a demo row)
+  v_handoff := public.fn_seat_handoff('customer_support', v_route.owner_seat, 'review.requested',
+                 'decision_review_request', v_id::text,
+                 jsonb_build_object('review_request_id', v_id, 'decision_type', v_route.decision_type,
+                                    'channel', p_channel, 'requester', p_requester, 'original_model', p_original_model,
+                                    'request', left(p_request_text, 500), 'email', case when p_requester like '%@%' then p_requester end,
+                                    'subject_table', p_subject_table, 'subject_ref', p_subject_id));
+  update public.decision_review_request set handoff_id = v_handoff where id = v_id;
+  return jsonb_build_object('ok', true, 'id', v_id, 'owner_seat', v_route.owner_seat, 'handoff_id', v_handoff);
+end $fn$;
+
+create or replace function public.fn_review_request_decide(
+  p_id bigint, p_verdict text, p_reason text, p_reviewer_model text default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare r public.decision_review_request; v_model text;
+begin
+  select * into r from public.decision_review_request where id = p_id for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'no review request ' || p_id); end if;
+  if r.status = 'decided' then return jsonb_build_object('ok', true, 'id', r.id, 'verdict', r.verdict, 'existing', true); end if;
+  v_model := coalesce(p_reviewer_model, public.fn_review_request_reviewer_model(p_id));
+  if v_model is null then
+    return jsonb_build_object('ok', false, 'error', r.owner_seat || ' has no model of a family other than ' || r.original_family);
+  end if;
+  -- the CHECK decision_review_is_decided_by_a_different_model_family refuses a same-family verdict here
+  update public.decision_review_request
+     set status = 'decided', verdict = p_verdict, verdict_reason = p_reason, reviewer_seat = r.owner_seat,
+         reviewer_model = v_model, decided_at = now()
+   where id = p_id
+  returning * into r;
+  if r.handoff_id is not null then
+    perform set_config('qd.handoff_closer', 'customer_support', true);
+    perform public.fn_seat_handoff_complete(r.handoff_id, jsonb_build_object(
+      'verified_by', 'customer_support', 'verified_at', now(), 'review_request_id', r.id,
+      'verdict', r.verdict || ' by ' || r.reviewer_seat || ' on ' || r.reviewer_model
+                 || ' (original family ' || r.original_family || '): ' || left(r.verdict_reason, 400)));
+    perform set_config('qd.handoff_closer', '', true);
+  end if;
+  return jsonb_build_object('ok', true, 'id', r.id, 'verdict', r.verdict, 'reviewer_seat', r.reviewer_seat,
+                            'reviewer_model', r.reviewer_model, 'reviewer_family', r.reviewer_family,
+                            'original_family', r.original_family);
+end $fn$;
+
+revoke execute on function public.fn_review_request_waits(bigint) from public, anon, authenticated;
+revoke execute on function public.fn_review_request_reviewer_model(bigint) from public, anon, authenticated;
+revoke execute on function public.fn_review_request_open(text, text, text, text, text, text, text, text, bigint, text) from public, anon, authenticated;
+revoke execute on function public.fn_review_request_decide(bigint, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_review_request_open(text, text, text, text, text, text, text, text, bigint, text) to service_role;
+grant execute on function public.fn_review_request_decide(bigint, text, text, text) to service_role;
