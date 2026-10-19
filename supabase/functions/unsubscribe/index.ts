@@ -45,6 +45,15 @@ Deno.serve(observe('unsubscribe', async (req) => {
       (!!legacyKey && t === (await tok(e, legacyKey)))
     );
     if (!tokenOk) {
+      // A REFUSED OPT-OUT IS RECORDED, NEVER LOST (19 Oct 2026, customer_support, CS-C09). The 30 Sep audit counted 125
+      // refusals in 146 calls and nothing kept the address of any of them, so a real person's opt-out on a rewritten
+      // link could not even be looked for. Every refusal that names an address is kept; the daily delivery-health
+      // duty (fn_customer_support_delivery_health_tick) suppresses the ones we actually mailed. A failed write never
+      // changes the page.
+      if (e) {
+        await admin.from('unsubscribe_refusal').insert({ email: e.slice(0, 320), method: req.method, token_present: !!t,
+          user_agent: (req.headers.get('user-agent') || '').slice(0, 300) }).then(() => {}, () => {});
+      }
       return new Response(page('Invalid link', 'This unsubscribe link is invalid or has expired. If you keep receiving emails, write to unsubscribe@mail.quotesdone.com from that address and it is removed automatically.'), { status: 400, headers: H });
     }
     const { data: cur } = await admin.from('email_suppressions').select('email,reason,source').eq('email', e).maybeSingle();
