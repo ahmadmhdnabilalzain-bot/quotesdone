@@ -122,7 +122,7 @@ test('production, one aborted transaction: each seat gets its own pack row back 
   for (const r of rows) for (const seat of SEATS) calls.push({ seat, r, sql: ask(seat, r) });
   const block = `do $qdchk$ declare o jsonb; b text := ''; begin
 ${calls.map((c) => `b := b || ${c.sql};`).join('\n')}
-o := jsonb_build_object('bits', b, 'anon', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute')) from pg_proc p where p.oid = coalesce(to_regprocedure('public.fn_reason_retrieve(text,vector,integer,text,text,text)'), to_regprocedure('public.fn_reason_retrieve(text,vector,integer)'))),
+o := jsonb_build_object('bits', b, 'anon', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute')) from pg_proc p where p.oid = coalesce(to_regprocedure('public.fn_reason_retrieve(text,vector,integer,text,text,text,text)'), to_regprocedure('public.fn_reason_retrieve(text,vector,integer,text,text,text)'), to_regprocedure('public.fn_reason_retrieve(text,vector,integer)'))),
   'rls', (select relrowsecurity from pg_class where oid = 'public.marketing_knowledge'::regclass));
 raise exception 'CHK<<%>>', o::text; end $qdchk$;`;
   let out;
