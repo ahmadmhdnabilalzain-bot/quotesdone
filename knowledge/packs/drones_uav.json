@@ -28,7 +28,7 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: GCAA: recreational drones registered before flight, up to 5 kg only in approved zones, within line of sight below 400 ft, away from airports; commercial operators need an Unmanned Aircraft Operator Authorisation (UOA, about 3 weeks) and separate operational permission, with security clearance for camera flights."
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: GCAA: recreational drones registered before flight, up to 5 kg only in approved zones, within line of sight below 400 ft, away from airports; commercial operators need an Unmanned Aircraft Operator Authorisation (UOA, about 3 weeks) and separate operational permission, with security clearance for camera flights. Re-read 19 Oct on the same GCAA page, verbatim: \"UAS/drones shall fly only during day time and in good weather conditions\"; \"All UAS/drones weighing above 5kgs and/or equipped with gas engine shall only operate within the GCAA approved flying clubs\" -> confirmed."
     },
     {
       "id": "drones_uav:product-distinctions",
@@ -43,7 +43,7 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Page opened 2026-10-19: GCAA: recreational drones registered before flight, up to 5 kg only in approved zones, within line of sight below 400 ft, away from airports; commercial operators need an Unmanned Aircraft Operator Authorisation (UOA, about 3 weeks) and separate operational permission, with security clearance for camera flights -> confirmed."
+      "source_note": "Page opened 2026-10-19: GCAA: recreational drones registered before flight, up to 5 kg only in approved zones, within line of sight below 400 ft, away from airports; commercial operators need an Unmanned Aircraft Operator Authorisation (UOA, about 3 weeks) and separate operational permission, with security clearance for camera flights -> confirmed. Re-read 19 Oct on the same GCAA page, verbatim: \"UAS/drones shall fly only during day time and in good weather conditions\"; \"All UAS/drones weighing above 5kgs and/or equipped with gas engine shall only operate within the GCAA approved flying clubs\" -> confirmed."
     },
     {
       "id": "drones_uav:lead-times-and-quoting",
