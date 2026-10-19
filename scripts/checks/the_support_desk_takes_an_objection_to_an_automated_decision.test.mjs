@@ -11,7 +11,9 @@ const triage = readFileSync(new URL('../../supabase/functions/email_triage/index
 
 test('the classifier output decides, not word matching', () => {
   assert.match(triage, /\|automated_decision_objection\|/);
-  assert.match(triage, /within 10 working days/);
+  assert.match(triage, /QuotesDone Customer Support has received your objection and will reply within 10 working days\. If it is not resolved, the QuotesDone operations team takes it up\./);
+  assert.match(triage, /خلال 10 أيام عمل/);
+  assert.doesNotMatch(triage, /member of management/);
   assert.match(sql, /\('email_category', 'automated_decision_objection', 'automated_decision_objection'\)/);
   assert.doesNotMatch(sql, /\b(ilike|similar to)\b|~\*/i);
 });
