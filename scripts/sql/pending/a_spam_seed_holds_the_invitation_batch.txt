@@ -1,1 +1,0 @@
-apply at merge: scripts/sql/a_spam_seed_holds_the_invitation_batch.sql (ledger 1113 gate)
