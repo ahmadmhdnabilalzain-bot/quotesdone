@@ -44,7 +44,10 @@ export async function requestDelivery(admin: Client, rowOrRows: DeliveryRow | De
     return { data: [], error: { message } };
   }
   const out = (data ?? []) as Delivery[];
-  const notQueued = out.filter((d) => d.error || d.notification_id == null);
+  // A row with no handoff and no error is a demo row the door deliberately did not file (ruling 1199:
+  // fn_seat_handoff files nothing raised from a demo row). That is the fence working, not a failed send;
+  // treating it as one made every submit_quote from a ZZ DEMO supplier answer 500 (QA walk, 19 Oct 2026).
+  const notQueued = out.filter((d) => d.error || (d.handoff_id != null && d.notification_id == null));
   if (notQueued.length) {
     const message = notQueued.length + ' of ' + out.length + ' delivery request(s) not queued: '
       + notQueued.map((d) => '#' + d.handoff_id + ' ' + (d.error || 'nothing queued')).join('; ');
