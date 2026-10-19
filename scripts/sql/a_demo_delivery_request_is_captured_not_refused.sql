@@ -36,10 +36,10 @@ begin
     if v_id is null then
       -- demo work (ruling 1199): no handoff; the row is written and the demo capture suppresses it
       insert into public.notifications (type, channel, to_email, to_phone, to_role, lead_id, inquiry_id, quote_id,
-                                        subject, body, html, kind, lang, attachments, cc_emails, reply_to, requested_by, status, last_error)
+                                        subject, body, html, kind, lang, attachments, cc_emails, reply_to, requested_by, status, last_error, dedupe_key)
       select n.type, coalesce(n.channel, 'email'), n.to_email, n.to_phone, n.to_role, n.lead_id, n.inquiry_id, n.quote_id,
              n.subject, n.body, n.html, n.kind, n.lang, n.attachments, coalesce(n.cc_emails, '{}'), n.reply_to, v_seat,
-             'suppressed', 'demo work (ruling 1199): written for the record, never sent'
+             'suppressed', 'demo work (ruling 1199): written for the record, never sent', nullif(btrim(r->>'dedupe_key'), '')
         from jsonb_populate_record(null::public.notifications, r) n
       returning id into v_nid;
       v_out := v_out || jsonb_build_array(jsonb_build_object('handoff_id', null, 'seat', v_seat, 'status', 'demo_captured',
