@@ -1,5 +1,5 @@
 # accountant: operating facts from its own verified pack (internal; settled, they override any SOURCE)
-- Under the signed 14 September 2026 supplier terms, a supplier who stays silent for 5 working days after a reveal triggers an automatic full refund to the customer, and the supplier then owes QuotesDone the exact amount refunded (fee plus processing), plus an AED 500 admin fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier), plus 9% per annum simple interest from the refund date until paid. [accountant:non-response-charge-accounting]
+- Under the signed 14 September 2026 supplier terms, a supplier who stays silent for 5 working days after a reveal triggers an automatic full refund to the customer, and the supplier then owes QuotesDone the exact amount refunded (fee plus processing), plus an AED 500 admin fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier), plus 12% per annum simple interest (9% for a supplier on Supplier Agreement v13 or earlier) from the refund date until paid. [accountant:non-response-charge-accounting]
 - The older wording of a flat 3% charge is superseded and must not be used. [accountant:non-response-charge-accounting]
 - From the accountant's side this is contractual revenue with a high dispute risk, so evidence matters more than speed. [accountant:non-response-charge-accounting]
 - Record it in its own revenue account (4200) so its size and collection rate are visible separately from ordinary fees. [accountant:non-response-charge-accounting]
@@ -35,7 +35,6 @@
 - (2) Net fee rate: net fee retained per reveal divided by the selected quotation base; target exactly 3.00% (any shortfall is a gross-up or card-rate defect). [accountant:company-accountant-kpis]
 - (3) Refund rate: refunded reveals as a share of paid reveals; plan ceiling 5%; every refund linked to a CEO approval record and a Stripe pre-check. [accountant:company-accountant-kpis]
 - (4) Reconciliation: Stripe balance, payouts and the Mashreq statement fully matched at each period close; target zero unexplained items older than the period. [accountant:company-accountant-kpis]
-- (6) Tax compliance: zero missed deadlines; [accountant:company-accountant-kpis]
 - Founder ruling of 14 September 2026: QuotesDone is not VAT-registered, so the reveal fee carries no VAT. [accountant:vat-no-vat-on-fee-and-after-registration]
 - The Stripe invoice shows no tax rate and no TRN; the fee is 3% of the ex-VAT quotation base and nothing else; nothing added for paying by card. [accountant:vat-no-vat-on-fee-and-after-registration]
 - What triggers change: taxable supplies plus concerned imports crossing AED 375,000 over 12 months, or expected to within 30 days, makes registration mandatory; the plan's base-to-stretch paths place this crossing within the planning window, so the seat monitors it monthly. [accountant:vat-no-vat-on-fee-and-after-registration]

@@ -139,9 +139,10 @@ async function main() {
       const rows = rowsOf(x.pack).filter((r) => r.table === SEAT_TABLE[x.seat]);
       const rv = await embedder.many(rows.map((r) => r.text));
       rows.forEach((r, i) => { r.vec = rv[i]; });
-      // 5 questions a chunk, ids cut to 64 characters (a pack id is shorter; an ops_knowledge path is not): the answer comes back through an error message the management API cuts at ~2,000 characters.
-      for (let c = 0; c < x.items.length; c += 5) {
-        const part = x.items.slice(c, c + 8);
+      // 4 questions a chunk: the answer comes back through an error message the management API cuts at ~2,000 characters (8
+      // overflowed once the entry ids grew longer, 19 Oct 2026); ids are cut to 64 characters (an ops_knowledge path is longer).
+      for (let c = 0; c < x.items.length; c += 4) {
+        const part = x.items.slice(c, c + 4);
         const stage = new Map();
         for (const it of part) rows.map((r) => [r, cosine(it.vec, r.vec)]).sort((a, b) => b[1] - a[1]).slice(0, K_RETRIEVE).forEach(([r]) => stage.set(r.record_id, r));
         const block = `do $qdexam$ declare o jsonb := '[]'::jsonb; begin\n${part.map((it) => `o := o || jsonb_build_array(${topExpr(x.seat, it.vec)});`).join('\n')}\nraise exception 'CHK<<%>>', o::text; end $qdexam$;`;
