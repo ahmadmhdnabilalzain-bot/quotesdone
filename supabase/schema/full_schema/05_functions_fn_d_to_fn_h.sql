@@ -1972,35 +1972,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text, p_type text)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_e text; v_pat record; v_dom text;
-begin
-  v_e := lower(btrim(coalesce(p_email, '')));
-  if v_e = '' then return jsonb_build_object('ok', false, 'reason', 'no address'); end if;
-  if v_e !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$' then
-    return jsonb_build_object('ok', false, 'reason', 'not a valid address shape');
-  end if;
-  if exists (select 1 from public.email_suppressions s where lower(s.email) = v_e
-               and (lower(btrim(coalesce(s.reason, ''))) <> 'unsubscribe' or public.fn_email_type_is_marketing(p_type))) then
-    return jsonb_build_object('ok', false, 'reason', 'suppressed');
-  end if;
-  v_dom := split_part(v_e, '@', 2);
-  if exists (select 1 from public.email_domain_mx m
-              where m.domain = v_dom and m.has_mx = false and m.kind in ('nxdomain', 'no_records')) then
-    return jsonb_build_object('ok', false, 'reason', 'domain does not accept mail');
-  end if;
-  for v_pat in select pattern, reason from public.email_block_pattern where active loop
-    if v_e ~ v_pat.pattern then return jsonb_build_object('ok', false, 'reason', v_pat.reason); end if;
-  end loop;
-  return jsonb_build_object('ok', true, 'reason', 'sendable');
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2033,6 +2004,35 @@ begin
   return jsonb_build_object('ok', true, 'reason', 'sendable');
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text, p_type text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_e text; v_pat record; v_dom text;
+begin
+  v_e := lower(btrim(coalesce(p_email, '')));
+  if v_e = '' then return jsonb_build_object('ok', false, 'reason', 'no address'); end if;
+  if v_e !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$' then
+    return jsonb_build_object('ok', false, 'reason', 'not a valid address shape');
+  end if;
+  if exists (select 1 from public.email_suppressions s where lower(s.email) = v_e
+               and (lower(btrim(coalesce(s.reason, ''))) <> 'unsubscribe' or public.fn_email_type_is_marketing(p_type))) then
+    return jsonb_build_object('ok', false, 'reason', 'suppressed');
+  end if;
+  v_dom := split_part(v_e, '@', 2);
+  if exists (select 1 from public.email_domain_mx m
+              where m.domain = v_dom and m.has_mx = false and m.kind in ('nxdomain', 'no_records')) then
+    return jsonb_build_object('ok', false, 'reason', 'domain does not accept mail');
+  end if;
+  for v_pat in select pattern, reason from public.email_block_pattern where active loop
+    if v_e ~ v_pat.pattern then return jsonb_build_object('ok', false, 'reason', v_pat.reason); end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'reason', 'sendable');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_email_type_is_marketing(p_type text)
@@ -5432,6 +5432,23 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_handoff_citation_gaps(p_since timestamp with time zone DEFAULT (now() - '1 day'::interval))
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'since', p_since,
+    'closed_with_note', count(*),
+    'cited', count(*) filter (where (a.evidence->'cites_note'->>'handoff_id') = a.id::text),
+    'uncited_ids', coalesce(jsonb_agg(a.id order by a.id) filter (where (a.evidence->'cites_note'->>'handoff_id') is distinct from a.id::text), '[]'::jsonb))
+    from public.agent_actions a
+   where a.kind = 'handoff' and a.status = 'done' and a.decided_at >= p_since
+     and a.detail->'summary' ?& array['context','decision','open_asks','deadline'];
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_handoff_contract_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -5519,6 +5536,34 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_handoff_note_citation(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('handoff_id', a.id, 'read_by', a.agent, 'read_at', now(),
+                            'deadline', a.detail->'summary'->'deadline',
+                            'open_asks', a.detail->'summary'->'open_asks',
+                            'on_time', now() <= (a.detail->'summary'->>'deadline')::timestamptz)
+    from public.agent_actions a
+   where a.id = p_id and a.kind = 'handoff';
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_handoff_redact(p jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select regexp_replace(regexp_replace(
+           regexp_replace(p::text, '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}', '[email]', 'g'),
+           '([+]|\m00)[0-9][0-9 -]{5,}[0-9]', '[phone]', 'g'),
+           '\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]', 'g')::jsonb;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_handoff_summary(p_detail jsonb, p_agent text, p_target_table text, p_target_id text, p_title text DEFAULT NULL::text, p_recommendation text DEFAULT NULL::text, p_self_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5537,6 +5582,13 @@ declare
   v_cases  jsonb;
   v_needed jsonb;
   v_links  jsonb;
+  v_context  text;
+  v_decision text;
+  v_asks     jsonb;
+  v_deadline timestamptz;
+  v_dsource  text;
+  v_row      jsonb;
+  v_col      text;
 begin
   if v_id is null then
     raise exception 'a handoff must name its case (subject_id or target_id) - refused, no note can be built';
@@ -5551,6 +5603,8 @@ begin
     from jsonb_each(d) e
    where e.key not in ('type','from','from_name','to','subject_table','subject_id','summary','error',
                        'awaiting','replied_at','subject')
+     -- 1013 review: no contact detail is a fact; a key naming one is dropped (its value is redacted below too)
+     and e.key !~* '(mail|phone|mobile|whatsapp|msisdn|tel|contact|address|wa_?id|number$)'
      and jsonb_typeof(e.value) in ('string','number','boolean');
 
   -- What was already done on this case: earlier actions (any seat, any kind), newest first.
@@ -5591,13 +5645,72 @@ begin
     union all select 'public.seat_case_memory?id=eq.' || (c->>'case_id') from jsonb_array_elements(v_cases) c
   ) z;
 
-  return jsonb_build_object(
+  -- 1013: CONTEXT. One sentence a colleague reads first.
+  v_context := format('%s handed %s on %s#%s to %s.%s Earlier on this case: %s action(s), %s remembered decision(s).',
+    coalesce(v_from, 'a seat'), v_type, v_table, v_id, p_agent,
+    case when v_facts = '{}'::jsonb then '' else ' Facts: ' || left(v_facts::text, 400) || '.' end,
+    jsonb_array_length(v_tried), jsonb_array_length(v_cases));
+
+  -- 1013: DECISION. What the sender decided.
+  v_decision := coalesce(
+    nullif(btrim(d->>'decision'), ''),
+    (select left(m.decision, 300) from public.seat_case_memory m
+      where m.source_table = v_table and m.source_id = v_id and m.seat = v_from
+        and nullif(btrim(m.decision), '') is not null order by m.id desc limit 1),
+    case when v_from is not null
+         then v_from || ' decided this needs ' || p_agent || ': ' || (v_needed->>'ask') end);
+
+  -- 1013: OPEN ASKS. What the receiver must do, as a list.
+  select coalesce(jsonb_agg(distinct q), '[]'::jsonb) into v_asks
+    from (select v_needed->>'ask' as q
+          union all select jsonb_array_elements_text(case when jsonb_typeof(d->'asks') = 'array' then d->'asks' else '[]'::jsonb end)
+          union all select d->>'question') s
+   where nullif(btrim(q), '') is not null;
+
+  -- 1013: DEADLINE. The sender's own date, the conversation's window, the case's due date, else 24 h.
+  begin
+    v_deadline := nullif(coalesce(d->>'deadline', d->>'due_at'), '')::timestamptz;
+    if v_deadline is not null then v_dsource := 'set by ' || coalesce(v_from, 'the sender'); end if;
+  exception when others then v_deadline := null;
+  end;
+  if v_deadline is null and k.reply_within is not null then
+    v_deadline := now() + k.reply_within; v_dsource := 'reply window of ' || v_type || ' (' || k.reply_within::text || ')';
+  end if;
+  if v_deadline is null and v_table ~ '^[a-z_][a-z0-9_]*$'
+     and exists (select 1 from information_schema.columns c where c.table_schema = 'public' and c.table_name = v_table and c.column_name = 'id') then
+    begin
+      execute format('select to_jsonb(t) from public.%I t where t.id::text = $1 limit 1', v_table) into v_row using v_id;
+      foreach v_col in array array['due_at','deadline','due_date','response_due_at','expires_at'] loop
+        if v_row ? v_col and nullif(v_row->>v_col, '') is not null then
+          v_deadline := (v_row->>v_col)::timestamptz; v_dsource := 'case due date ' || v_table || '.' || v_col; exit;
+        end if;
+      end loop;
+    exception when others then v_deadline := null;
+    end;
+  end if;
+  if v_deadline is null then
+    v_deadline := now() + interval '24 hours'; v_dsource := 'default handoff window (24 hours)';
+  end if;
+
+  if nullif(btrim(v_context), '') is null or nullif(btrim(v_decision), '') is null
+     or jsonb_array_length(v_asks) = 0 or v_deadline is null then
+    raise exception 'handoff % on %#% cannot state its context, decision, open asks and deadline - refused', v_type, v_table, v_id;
+  end if;
+
+  -- 1013 review: the note is read by other seats and by a model; no e-mail address or phone number lands
+  -- in it, whichever field carried it (a fact, the question, the decision, the title).
+  return public.fn_handoff_redact(jsonb_build_object(
+    'context', v_context,
+    'decision', v_decision,
+    'open_asks', v_asks,
+    'deadline', v_deadline,
+    'deadline_source', v_dsource,
     'known', jsonb_build_object('case', v_table || '#' || v_id, 'conversation', v_type,
                                 'from', v_from, 'to', p_agent, 'means', k.meaning, 'facts', v_facts),
     'tried', jsonb_build_object('actions', v_tried, 'case_memory', v_cases),
     'needed', v_needed,
     'evidence', coalesce(v_links, '[]'::jsonb),
-    'built_by', 'fn_handoff_summary');
+    'built_by', 'fn_handoff_summary'));
 end $function$
 
 

@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "laboratory_equipment:product-distinctions",
+      "topic": "Laboratory equipment: equipment classes, containment and qualification",
+      "topic_ar": "المعدات المخبرية: فئات المعدات والاحتواء والتأهيل",
+      "kind": "product_distinctions",
+      "body_en": "Laboratory equipment spans general instruments (analytical and precision balances, pH and conductivity meters, centrifuges, water baths, ovens and incubators, autoclaves, refrigerators and ultra-low freezers, shakers and stirrers, pipettes), analytical instruments (UV-Vis and FTIR spectrophotometers, HPLC and GC, AAS and ICP, titrators, moisture analysers, particle and viscosity testers), life-science equipment (PCR, microscopes, cell culture), water purification systems by water grade, and laboratory furniture. Containment is a key distinction: ducted fume hoods exhaust chemical vapours outside and suit most chemistry; ductless (filtered) hoods return air to the room and suit only defined, low-volume chemicals with matched filters; biosafety cabinets (Class I, II, III) protect against biological agents and are a different product from fume hoods. Chemicals and consumables (reagents by grade such as AR, HPLC, ACS; standards and certified reference materials; glassware and plasticware) need SDS, correct storage and segregation. Regulated labs require installation, operational and performance qualification (IQ/OQ/PQ) and calibration with traceable certificates; service contracts and local engineers matter as much as the instrument.",
+      "body_ar": "تشمل المعدات المخبرية الأجهزة العامة (الموازين التحليلية والدقيقة، أجهزة قياس الأس الهيدروجيني والموصلية، أجهزة الطرد المركزي، الحمامات المائية، الأفران والحاضنات، أجهزة التعقيم، الثلاجات والمجمدات فائقة البرودة، الهزازات والخلاطات، الماصات)، والأجهزة التحليلية (مطياف الأشعة فوق البنفسجية والمرئية وتحت الحمراء، الكروماتوغرافيا السائلة والغازية، الامتصاص الذري والبلازما، أجهزة المعايرة، محللات الرطوبة، أجهزة الجسيمات واللزوجة)، ومعدات علوم الحياة (PCR، المجاهر، زراعة الخلايا)، وأنظمة تنقية المياه حسب درجة الماء، والأثاث المخبري. والاحتواء فارق أساسي: خزائن الأبخرة الموصولة بمجارٍ تطرد الأبخرة الكيميائية إلى الخارج وتناسب معظم أعمال الكيمياء؛ والخزائن غير الموصولة (بالفلاتر) تعيد الهواء إلى الغرفة وتناسب فقط مواد كيميائية محددة بكميات قليلة مع فلاتر مطابقة؛ وخزائن السلامة الحيوية (الفئة I، II، III) تحمي من العوامل البيولوجية وهي منتج مختلف عن خزائن الأبخرة. والكيماويات والمستهلكات (الكواشف حسب الدرجة مثل AR وHPLC وACS؛ المعايير والمواد المرجعية المعتمدة؛ الزجاجيات والبلاستيكيات) تحتاج صحيفة بيانات السلامة والتخزين والفصل الصحيح. والمختبرات المنظمة تتطلب تأهيل التركيب والتشغيل والأداء والمعايرة بشهادات قابلة للتتبع؛ وعقود الخدمة والمهندسون المحليون مهمون بقدر الجهاز.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fume_hood"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: ducted versus ductless fume hoods; biosafety cabinets as a distinct class -> confirmed."
+    },
+    {
+      "id": "laboratory_equipment:lead-times-and-quoting",
+      "topic": "Laboratory equipment & chemicals - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المعدات والكيماويات المخبرية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock consumables and small instruments: days; analytical instruments 4-12 weeks plus installation; lab furniture and fume hoods 6-12 weeks. A supplier needs the application and methods, sample types and throughput, specifications or tender sheets, utilities and space, qualification needs, and service expectations. A quote states make, model and configuration, accessories and software, installation and IQ/OQ, training, warranty and service contract, consumable costs, delivery and validity.",
+      "body_ar": "المستهلكات والأجهزة الصغيرة المتوفرة: أيام؛ والأجهزة التحليلية 4-12 أسبوعاً إضافة إلى التركيب؛ والأثاث المخبري وخزائن الأبخرة 6-12 أسبوعاً. ويحتاج المورد التطبيق والطرق، وأنواع العينات وكميتها، والمواصفات أو أوراق المناقصة، والمرافق والمساحة، واحتياجات التأهيل، وتوقعات الخدمة. ويذكر العرض الماركة والموديل والتهيئة والملحقات والبرامج والتركيب والتأهيل والتدريب والضمان وعقد الخدمة وتكاليف المستهلكات والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry covers analyser pricing models (outright purchase vs reagent rental / cost-per-test)). laboratory_equipment:analyser-acquisition-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from laboratory_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can a ductless fume hood replace a ducted one for our chemistry lab?",
+      "q_ar": "هل خزانة أبخرة بدون مجرى تقدر تحل محل الخزانة الموصولة بمجرى في مختبر الكيمياء عندنا؟",
+      "expected_entry_ids": [
+        "laboratory_equipment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "laboratory_equipment:analyser-acquisition-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "laboratory_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "laboratory_equipment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Fume_hood"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

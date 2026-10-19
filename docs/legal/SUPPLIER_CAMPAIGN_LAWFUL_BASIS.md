@@ -22,20 +22,23 @@ the controls below on production).
 **UAE PDPL (Federal Decree-Law No. 45 of 2021).** The data processed is business contact data of a
 company: its published business email and name. The purpose is a single business-to-business offer
 (a free, commission-free supplier listing), made to the address the business itself published for
-enquiries. We rely on processing that is necessary for the legitimate business purpose of offering a
-commercial service to another business, limited to the minimum data, with an immediate and permanent
+enquiries. PDPL Art. 4 forbids processing without consent except in listed cases, and has no general
+"legitimate interests" ground (read on uaelegislation.gov.ae, legislation 1972, 19 Oct 2026). We rely on its case of
+data "which has become available and known to all by an act of the Data Subject": the business published this
+address itself. Founder ruling, ledger 1265 (19 Oct 2026): invitations go to every eligible lead, including a
+personal business address the business published (for example a named mailbox on the company domain); there is
+no role-address-only filter (#1510 was closed). Processing is limited to the minimum data, with an immediate and permanent
 opt-out. No personal data is sold or shared; nothing beyond the published listing is collected before
 the business chooses to register. A PDPL access or erasure request is recorded in `pdpl_requests` and
 answered through `fn_pdpl_open` -> emailed code -> `fn_pdpl_verify` (or self-service `pdpl_request_me` for a signed-in, email-verified account); erasure has a 7-day cooling-off (`fn_pdpl_cancel`) and suppresses marketing only. Until 6 Oct 2026
 this line named functions that had been dropped on 7 Sep; see
 scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql.
 
-**Cabinet Resolutions No. 56 and No. 57 of 2024 (telemarketing and its penalties).** The published
-summaries we read (Mondaq, June 2024) describe their scope as marketing phone calls, SMS and marketing
-messages through social applications, directed at consumers, effective 27 Aug 2024. Email is not named
-in that summary; one secondary source says email is covered. The official text
-(uaelegislation.gov.ae, legislation 2519) returned HTTP 403 when read on 23 Sep 2026, so we have NOT
-read the articles themselves. We therefore apply their requirements to this campaign anyway:
+**Cabinet Resolutions No. 56 and No. 57 of 2024 (telemarketing and its penalties).** Read on uaelegislation.gov.ae
+(legislations 2519 and 2523) on 19 Oct 2026: Resolution 56 regulates marketing by phone. It requires the
+company's prior approval by the competent authority (Art. 4(1)), no calls to numbers on the do-not-call register
+(Art. 4(5)) and no call-backs after a refusal (Art. 5). It does not set a prior-consent rule, and email is not
+within what was read. We still apply these controls to this email campaign:
 
 | Requirement (as summarised) | How the campaign meets it |
 |---|---|

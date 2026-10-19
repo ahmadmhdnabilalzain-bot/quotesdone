@@ -54,6 +54,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "textiles_fabrics:product-distinctions",
+      "topic": "Textiles: fibres, constructions and fabric specifications",
+      "topic_ar": "المنسوجات: الألياف والتراكيب ومواصفات الأقمشة",
+      "kind": "product_distinctions",
+      "body_en": "Fabrics are defined by fibre and construction. Fibres: natural (cotton, linen, wool, silk) and synthetic or man-made (polyester, nylon, viscose and modal, acrylic, elastane), often blended (poly-cotton, cotton-elastane) for strength, drape, cost or stretch. Construction: woven fabrics (plain weave such as poplin, twill such as denim and gabardine, satin; stable and crisp, used for shirts, uniforms, abayas and curtains) versus knitted fabrics (single jersey, interlock, pique, rib; stretchy, for T-shirts, polos and sportswear), and non-wovens. Specifications buyers state: composition percentages, weight in g/m2, width (often 150 cm usable), yarn count and thread density for wovens, finish (mercerised, brushed, water-repellent, flame-retardant, anti-microbial), dyeing method (piece-dyed, yarn-dyed, printed) and colour fastness to washing, light and rubbing, shrinkage, and pilling. Popular regional fabrics include crepe, georgette and chiffon in black and light shades for abayas, Japanese and Korean polyester suitings for kanduras, and upholstery and curtain fabrics. Fabric is sold by the metre, yard or roll, with lab dips and strike-offs approved before bulk.",
+      "body_ar": "تُعرف الأقمشة بالألياف والتركيب. والألياف: طبيعية (القطن، الكتان، الصوف، الحرير) واصطناعية أو مصنعة (البوليستر، النايلون، الفسكوز والمودال، الأكريليك، الإيلاستين)، وغالباً مخلوطة (بوليستر وقطن، قطن وإيلاستين) للقوة أو الانسدال أو التكلفة أو المطاطية. والتركيب: الأقمشة المنسوجة (النسيج السادة مثل البوبلين، والمبرد مثل الدنيم والجبردين، والساتان؛ ثابتة ومتماسكة، للقمصان والزي الرسمي والعبايات والستائر) مقابل الأقمشة المحبوكة (الجيرسي، الإنترلوك، البيكيه، الريب؛ مطاطة، للتيشيرتات والقمصان بياقة والملابس الرياضية)، والأقمشة غير المنسوجة. والمواصفات التي يذكرها المشترون: نسب التركيب، والوزن بالغرام للمتر المربع، والعرض (غالباً 150 سم قابلة للاستخدام)، ونمرة الخيط وكثافة الخيوط للمنسوجات، والتشطيب (مرسرز، مخمل، طارد للماء، مقاوم للهب، مضاد للميكروبات)، وطريقة الصباغة (صباغة القماش، صباغة الخيوط، الطباعة)، وثبات اللون للغسيل والضوء والاحتكاك، والانكماش، والتوبير. ومن الأقمشة الشائعة إقليمياً الكريب والجورجيت والشيفون بالأسود والألوان الفاتحة للعبايات، وأقمشة البوليستر اليابانية والكورية للكنادير، وأقمشة التنجيد والستائر. ويُباع القماش بالمتر أو الياردة أو اللفة، مع اعتماد عينات الصبغ والطباعة قبل الإنتاج.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Textile"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: natural versus synthetic fibres; woven versus knitted construction -> confirmed."
+    },
+    {
+      "id": "textiles_fabrics:lead-times-and-quoting",
+      "topic": "Textiles & fabrics - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المنسوجات والأقمشة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock fabrics: days; mill orders and custom colours 4-10 weeks. A supplier needs the end use, composition, weight, width, colour references, finish, quantity, and test needs. A quote states fabric code, composition, weight and width, colour and lab-dip process, finishes, test reports, price per metre or yard, MOQ, delivery and validity.",
+      "body_ar": "الأقمشة المتوفرة: أيام؛ وطلبات المصانع والألوان المخصصة 4-10 أسابيع. ويحتاج المورد الاستخدام النهائي، والتركيب، والوزن، والعرض، ومراجع الألوان، والتشطيب، والكمية، واحتياجات الاختبار. ويذكر العرض رمز القماش والتركيب والوزن والعرض واللون وعملية اعتماد الصبغ والتشطيبات وتقارير الاختبار والسعر للمتر أو الياردة والحد الأدنى للطلب والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (No entry gives fabric metres per kandura; missing). textiles_fabrics:kandura-fabric-consumption was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from textiles_fabrics.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What fabric spec should we give for staff polo shirts that last through daily washing?",
+      "q_ar": "وش مواصفة القماش اللي نعطيها لقمصان بولو للموظفين تتحمل الغسيل اليومي؟",
+      "expected_entry_ids": [
+        "textiles_fabrics:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "textiles_fabrics:kandura-fabric-consumption"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "textiles_fabrics:product-distinctions"
+      ],
+      "stored_not_served": [
+        "textiles_fabrics:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Textile"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

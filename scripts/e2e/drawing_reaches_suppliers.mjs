@@ -111,7 +111,8 @@ async function rasterise(pdf) {
   const images = await pg.evaluate(async () => {
     const pdfjs = await import('/pdfjs/pdf.min.mjs');
     pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs';
-    const pdf = await pdfjs.getDocument('/doc.pdf').promise; const out = [];
+    // pdfjs-dist 6 refuses a bare string ("getDocument - expected either data, range, or url"): 18 Oct, run 39079803518.
+    const pdf = await pdfjs.getDocument({ url: '/doc.pdf' }).promise; const out = [];
     for (let p = 1; p <= Math.min(pdf.numPages, 20); p++) {
       const page = await pdf.getPage(p); const v1 = page.getViewport({ scale: 1 });
       const vp = page.getViewport({ scale: Math.min(1.8, 2600 / Math.max(v1.width, v1.height)) });

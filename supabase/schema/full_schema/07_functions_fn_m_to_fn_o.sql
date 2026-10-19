@@ -5036,6 +5036,14 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_notification_is_promotional(p_type text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select coalesce(p_type, '') like 'promo\_%' $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_notification_severity(p_severity text, p_type text)
  RETURNS text
  LANGUAGE sql
@@ -5219,6 +5227,22 @@ begin
   if v is not null then
     raise exception 'SANCTIONED_PARTY_BLOCKED: nothing is sent to lead #%, which carries a confirmed sanctions ban (notification type %).', v, coalesce(new.type, '(none)')
       using errcode = '42501';
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_notifications_promotional_consent_gate()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.status in ('queued', 'pending') and public.fn_notification_is_promotional(new.type)
+     and not public.fn_promotional_consent(new.to_email, new.to_phone) then
+    new.status := 'suppressed';
+    new.last_error := 'no promotional consent: the recipient has not opted in to offers and news (or withdrew)';
   end if;
   return new;
 end $function$
