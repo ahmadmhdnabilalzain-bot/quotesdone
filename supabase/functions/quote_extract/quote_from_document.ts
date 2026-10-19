@@ -133,10 +133,14 @@ const TEXT_LINE = new RegExp(String.raw`^\s*(?:(\d{1,3})[.)]?\s+)?(.+?)\s{1,}${N
 const TOTAL_ROW = /^\s*(?:sub\s*-?\s*total|total|grand\s*total|net\s*total|vat|tax|discount|الإجمالي|المجموع|ضريبة|خصم)\b/i;
 export function linesFromText(text: string, clean: (s: string) => string = (s) => s): QuoteLine[] {
   const out: QuoteLine[] = [];
+  // An option heading in the text ("Option 2 - National Paints") numbers the priced lines under it, as the table
+  // reader does; without it a two-option PDF came back as one quotation (QA walk, 19 Oct 2026).
+  let cur: number | null = null, seq = 0;
   for (const raw of String(text || '').split('\n')) {
     const line = raw.replace(/\s+/g, ' ').trim();
     if (!line || TOTAL_ROW.test(line)) continue;
     const m = line.match(TEXT_LINE);
+    if (!m && OPTION_HEAD.test(line)) { cur = optionNumber(line, seq + 1); seq = Math.max(seq, cur); out.push({ description: line.slice(0, 300), qty: '', amount: null, option: cur }); continue; }
     if (!m) continue;
     const desc = clean(m[2].replace(/[\s,;:–-]+$/, ''));
     if (!/\p{L}{3,}/u.test(desc)) continue;
@@ -145,24 +149,45 @@ export function linesFromText(text: string, clean: (s: string) => string = (s) =
     // two figures: rate then amount; one figure: the amount (a rate alone would need a quantity to multiply)
     const amount = b != null ? b : (a != null && qty != null ? Math.round(a * qty * 100) / 100 : a);
     if (qty == null || amount == null) continue;
-    out.push({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount });
+    out.push({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount, ...(cur != null ? { option: cur } : {}) });
   }
   return out;
 }
-/** Subtotal, VAT amount and total written in prose, even side by side on one line. */
-function totalsFromText(text: string): { subtotal: number | null; vat: number | null; total: number | null } {
+// THE FIGURE AFTER A TOTAL LABEL IS THE FIRST NUMBER THAT IS NOT ITSELF A LABEL (QA walk, 19 Oct 2026): the line
+// "Total Option 1: AED 11730" was read as AED 1 (the option's number), and the supplier's quotation came back priced
+// at one dirham. A number right after option / item / line / no. / # is a label; a percentage is a rate.
+const LABEL_BEFORE = /(?:option|opt\.?|alternative|alt\.?|item|line|no\.?|#|البديل|الخيار|خيار|بديل|رقم)\s*$/i;
+const OPTION_IN_LINE = /(?:option|alternative|alt\.?|choice|offer)\s*(?:no\.?|#)?\s*(?:\d{1,2}|[a-e]\b|one|two|three|four|five)|(?:البديل|الخيار|خيار|بديل)\s*(?:رقم\s*)?(?:[0-9٠-٩]{1,2}|الأول|الاول|الثاني|الثالث|الرابع)/i;
+export function figureAfter(rest: string): number | null {
+  const s = String(rest || '');
+  for (const m of s.matchAll(new RegExp(NUM, 'g'))) {
+    const at = m.index ?? 0;
+    if (LABEL_BEFORE.test(s.slice(0, at))) continue;
+    if (/^\s*%/.test(s.slice(at + m[0].length))) continue;
+    return num(m[0]);
+  }
+  return null;
+}
+/** Subtotal, VAT amount and total written in prose, even side by side on one line; a per-option total by its option. */
+export function totalsFromText(text: string): { subtotal: number | null; vat: number | null; total: number | null; options: Record<string, number> } {
   const t = String(text || '');
   const pick = (re: RegExp) => { const m = t.match(re); return m ? num(m[1]) : null; };
   const subtotal = pick(new RegExp(String.raw`(?:sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat|المجموع الفرعي|الإجمالي قبل الضريبة|الإجمالي غير شامل)\s*:?\s*${CUR}\s*${NUM}`, 'i'));
   const vat = pick(new RegExp(String.raw`\b(?:vat|tax|ضريبة(?:\s*القيمة\s*المضافة)?)\s*(?:@|at|بنسبة)?\s*(?:\d+(?:\.\d+)?\s*%)?\s*:?\s*${CUR}\s*${NUM}`, 'i'));
   let total: number | null = null;
-  for (const m of t.matchAll(/(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl[^\n:]*|\btotal\b|الإجمالي|المجموع)[^\d\n]{0,40}([\d][\d,]*(?:\.\d+)?)/gi)) {
-    if (VAT.test(m[0]) && !/incl/i.test(m[0])) continue;
-    if (SUBTOTAL.test(m[0])) continue;
-    const v = num(m[2]);
-    if (v != null && (total == null || /grand|net|incl/i.test(m[1]))) total = v;
+  const options: Record<string, number> = {};
+  for (const m of t.matchAll(/(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl[^\n:]*|\btotal\b|الإجمالي|المجموع)([^\n]*)/gi)) {
+    const head = m[1] + m[2].slice(0, 40);
+    if (VAT.test(head) && !/incl/i.test(head)) continue;
+    if (SUBTOTAL.test(head)) continue;
+    const v = figureAfter(m[2]);
+    if (v == null) continue;
+    // "Total Option 2 - National Paints: AED 8,940" is that option's total, never the quotation's.
+    const opt = m[2].match(OPTION_IN_LINE);
+    if (opt) { options[String(optionNumber(opt[0].trim(), Object.keys(options).length + 1))] = v; continue; }
+    if (total == null || /grand|net|incl/i.test(m[1])) total = v;
   }
-  return { subtotal, vat, total };
+  return { subtotal, vat, total, options };
 }
 
 // A note row ("Exclusions: electrical fittings, painting of walls, scaffolding above 4m") is one
@@ -221,7 +246,7 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   const textTotal = tt.total;
   // No table at all (a PDF's text layer, a plain email): the priced lines are read from the text.
   let b = best as Table | null;
-  if (!b) { const tl = linesFromText(text, clean); if (tl.length) b = { lines: tl, totals: {}, subtotal: null, vat: null }; }
+  if (!b) { const tl = linesFromText(text, clean); if (tl.length) b = { lines: tl, totals: { ...tt.options }, subtotal: null, vat: null }; }
   const plain = b ? b.lines.filter((l) => l.amount != null || l.qty) : [];
   const sum = plain.reduce((s, l) => s + (l.amount || 0), 0);
   const gross = b?.totals.all ?? textTotal ?? (sum > 0 ? Math.round(sum * 100) / 100 : null);

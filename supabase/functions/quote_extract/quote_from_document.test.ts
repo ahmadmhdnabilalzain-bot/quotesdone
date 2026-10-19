@@ -109,3 +109,38 @@ Deno.test('a discount written after the only total, prices excluding VAT: the fe
   const p = quoteFromExtracted(r);
   assertEquals([p.gross_amount, p.discount_amount, p.price_ex_vat, p.vat_treatment], [2000, 300, 1700, 'exclusive']);
 });
+
+// QA walk, 19 Oct 2026: the supplier's quotation PDF (the walk's own sample, built here the same way) was priced
+// at AED 1, because "Total Option 1: AED 11730" gave the option's number as the total; and a two-option PDF came
+// back as one quotation. Both are the text path (a PDF's text layer has no table).
+import { demoPdfPages } from '../../../scripts/lib/demo_pdf.mjs';
+const qaPdf = (options: { title: string; lines: [string, number, number][] }[]) => demoPdfPages([[
+  ['ZZ DEMO Painting LLC - Quotation', 16], ['Prices in AED, excluding VAT. Validity: 30 days. Lead time: 3 weeks.', 10],
+  ...options.flatMap((o) => [[o.title, 13], ...o.lines.map((l) => [`${l[0]}   ${l[1]} m2 x ${l[2]} = ${l[1] * l[2]}`, 10]),
+    [`Total ${o.title}: AED ${o.lines.reduce((s, l) => s + l[1] * l[2], 0)}`, 11]]),
+]]) as unknown as Uint8Array;
+
+Deno.test('the walk\'s one-option quotation PDF is priced at its total, never at the option number', async () => {
+  const r = await readDocument(qaPdf([{ title: 'Option 1', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] }]), 'quotation.pdf', 'application/pdf');
+  assert(r.ok);
+  const p = quoteFromExtracted(r);
+  assertEquals(p.amount, 11730);
+});
+
+Deno.test('the walk\'s two-option quotation PDF comes back as two options with their own totals', async () => {
+  const r = await readDocument(qaPdf([
+    { title: 'Option 1 - Jotun Fenomastic', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] },
+    { title: 'Option 2 - National Paints', lines: [['National Paints matt emulsion 2 coats internal walls', 450, 16], ['National Paints matt emulsion 2 coats ceilings', 120, 15]] }]), 'quotation.pdf', 'application/pdf');
+  assert(r.ok);
+  const p = quoteFromExtracted(r);
+  assertEquals(p.options, [{ option_no: 1, amount: 11730 }, { option_no: 2, amount: 9000 }]);
+});
+
+Deno.test('a label number is never the figure: option, item, no., #, and a percentage', async () => {
+  const { figureAfter } = await import('./quote_from_document.ts');
+  assertEquals(figureAfter(' Option 1: AED 11,730'), 11730);
+  assertEquals(figureAfter(' for item 3 - AED 950'), 950);
+  assertEquals(figureAfter(' (No. 2) 4,200.50'), 4200.5);
+  assertEquals(figureAfter(' incl. 5% VAT: 1,050'), 1050);
+  assertEquals(figureAfter(': AED 12,450.00'), 12450);
+});
