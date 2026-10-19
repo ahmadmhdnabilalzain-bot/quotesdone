@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "bitumen_petroleum_products:product-distinctions",
+      "topic": "Bitumen: grades, emulsions, cutbacks and modified binders",
+      "topic_ar": "البيتومين: الدرجات والمستحلبات والسوائل المخففة والروابط المعدلة",
+      "kind": "product_distinctions",
+      "body_en": "Paving bitumen is graded by penetration (for example 40/50, 60/70, 80/100: lower numbers are harder, used in hot climates and heavy traffic), by viscosity (AC grades), or by performance grade (PG, such as PG 76-10, named for the high and low pavement temperatures it is designed for and often requiring polymer modification). Polymer-modified bitumen (SBS or other elastomers or plastomers, including crumb rubber from recycled tyres) resists rutting and cracking on highways and airports. Bitumen emulsions are bitumen droplets in water with an emulsifier, anionic or cationic, and rapid, medium or slow setting, used cold for tack coats, prime coats, surface dressing and slurry seals. Cutbacks (bitumen thinned with solvent) are older prime and tack products. Oxidised or blown bitumen (for example 85/25, 115/15) serves roofing, waterproofing and pipe coating. Related refined products include fuel oils, base oils, paraffin wax, and petroleum coke. Bitumen ships in bulk tankers (heated), drums or jumbo bags and bitublocks for export; buyers check the test certificate against the grade specification (penetration, softening point, ductility, flash point).",
+      "body_ar": "يُصنّف بيتومين الرصف بالاختراق (مثل 40/50 و60/70 و80/100: الأرقام الأقل أصلب وتُستخدم في المناخ الحار والمرور الكثيف)، أو باللزوجة (درجات AC)، أو بدرجة الأداء (PG مثل PG 76-10، وتُسمى بدرجتي حرارة الرصف العليا والدنيا اللتين صُممت لهما وتحتاج غالباً تعديلاً بالبوليمر). والبيتومين المعدل بالبوليمر (SBS أو مطاطيات أو لدائن أخرى، ومنها فتات المطاط من الإطارات المعاد تدويرها) يقاوم التخدد والتشقق في الطرق السريعة والمطارات. ومستحلبات البيتومين قطرات بيتومين في الماء مع مستحلب، أنيونية أو كاتيونية، سريعة أو متوسطة أو بطيئة التصلب، تُستخدم باردة لطبقات اللصق والتأسيس والمعالجة السطحية والملاط. والبيتومين المخفف بالمذيبات منتجات أقدم للتأسيس واللصق. والبيتومين المؤكسد أو المنفوخ (مثل 85/25 و115/15) للأسطح والعزل المائي وتغليف الأنابيب. ومن المنتجات المكررة المرتبطة زيوت الوقود والزيوت الأساسية وشمع البارافين وفحم الكوك البترولي. ويُشحن البيتومين في صهاريج سائبة مسخنة، أو براميل، أو أكياس كبيرة وكتل للتصدير؛ ويتحقق المشترون من شهادة الاختبار مقابل مواصفة الدرجة (الاختراق، نقطة التليين، المطيلية، نقطة الوميض).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Bitumen"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: bitumen emulsions anionic and cationic, rapid, medium and slow setting; polymer modification -> confirmed (penetration grades not in the part read)."
+    },
+    {
+      "id": "bitumen_petroleum_products:lead-times-and-quoting",
+      "topic": "Bitumen & refined petroleum products - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "البيتومين والمنتجات البترولية المكررة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Bulk paving grades from local refineries or terminals: days to 2 weeks; drums and export lots 2-6 weeks; modified binders made to order 1-4 weeks. A supplier needs the grade and specification, quantity, packing (bulk, drum, bag), delivery point or Incoterm, and the test certificate needed. A quote states grade, source refinery, packing, quantity tolerance, test certificate and inspection, price basis (per tonne, fixed or index-linked), Incoterm, payment terms and validity.",
+      "body_ar": "درجات الرصف السائبة من المصافي أو المحطات المحلية: أيام حتى أسبوعين؛ والبراميل وشحنات التصدير 2-6 أسابيع؛ والروابط المعدلة المصنعة بالطلب 1-4 أسابيع. ويحتاج المورد الدرجة والمواصفة، والكمية، والتعبئة (سائب، براميل، أكياس)، ونقطة التسليم أو شرط التسليم، وشهادة الاختبار المطلوبة. ويذكر العرض الدرجة والمصفاة المصدر والتعبئة وتفاوت الكمية وشهادة الاختبار والفحص وأساس السعر (للطن، ثابت أو مرتبط بمؤشر) وشرط التسليم وشروط الدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (no entry compares penetration grade 60/70 with performance grade PG 76-10). bitumen_petroleum_products:penetration-vs-performance-grading was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from bitumen_petroleum_products.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which bitumen grade should a road contractor use for a heavy truck route in a very hot climate?",
+      "q_ar": "وش درجة البيتومين اللي يستخدمها مقاول الطرق لطريق شاحنات ثقيلة في جو حار جداً؟",
+      "expected_entry_ids": [
+        "bitumen_petroleum_products:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "bitumen_petroleum_products:penetration-vs-performance-grading"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "bitumen_petroleum_products:product-distinctions"
+      ],
+      "stored_not_served": [
+        "bitumen_petroleum_products:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Bitumen"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

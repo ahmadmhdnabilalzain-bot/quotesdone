@@ -9,7 +9,7 @@
 import { chromium } from 'playwright';
 
 export const SITE = process.env.QD_SITE || 'https://quotesdone.com';
-export const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 375, height: 812 } };
+export const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 375, height: 812 }, tablet: { width: 768, height: 1024 } };
 
 const KEYS = {
   customer: { token: 'qd-cust-token', refresh: 'qd-cust-refresh', auth: 'qd-cust-auth', path: '/me' },
@@ -95,6 +95,14 @@ async function harnessSession(who) {
   throw new HarnessSignedOut(`could not mint a session for ${who.email} (${who.kind}) in 3 tries — ${String(last?.message).slice(0, 200)}`);
 }
 
+/** Only a call to THIS project's edge functions may carry the run tag and its credential. */
+export function carriesRunTag(url, base) {
+  try {
+    const u = new URL(String(url)), b = new URL(String(base));
+    return u.protocol === 'https:' && u.hostname === b.hostname && u.pathname.startsWith('/functions/v1/');
+  } catch { return false; }
+}
+
 /**
  * A browser context signed in as `who` (a fixture from fixtures.mjs), in `lang` at `viewport`.
  * Returns { ctx, page, consoleErrors, calls } where calls records every edge-function round trip.
@@ -107,6 +115,17 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
     viewport: vp, locale: lang === 'ar' ? 'ar-AE' : 'en-GB',
     ...(vp.width < 768 ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
   });
+  // AI ON IN THE BROWSER TOO (ruling 1260). A fixture's model call is let through only for a proven run tag
+  // in an open window (think.ts fixtureInOpenWindow); the API harness sends it, the browser did not, so every
+  // portal action a walk drove ran with the models held. The tag and its credential ride ONLY on calls to the
+  // Supabase edge functions, never to the site, Stripe or anything else.
+  if (process.env.QD_E2E_RUN_TAG) {
+    const { internalCred, BASE } = await import('../lib/demo_factory.mjs');
+    const extra = { 'x-qd-e2e-run': process.env.QD_E2E_RUN_TAG, 'x-qd-e2e-secret': await internalCred() };
+    // The predicate parses the URL: exact project host and path prefix, so no other host, page path or query
+    // string that merely contains "/functions/v1/" can receive the credential (#1558 review).
+    await ctx.route((u) => carriesRunTag(u, BASE), (route) => route.request().method() === 'OPTIONS' ? route.continue() : route.continue({ headers: { ...route.request().headers(), ...extra } }));
+  }
   const s = await harnessSession(who);
   await ctx.addInitScript(([k, s, lang]) => {
     try {

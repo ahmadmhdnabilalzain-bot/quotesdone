@@ -90,6 +90,10 @@ export function fromDomainAuthenticated(authResults: unknown, fromEmail: string)
   // A second authserv-id clause is a second verdict hidden in the value: ambiguous. (Counted as a CLAUSE, not
   // as text -- SES's own "helo=a14-56.smtp-out.amazonses.com" is part of a genuine header.)
   if (clauses.some((c) => /^amazonses\.com\b/.test(c))) return false;
+  return clausesAuthenticate(clauses, dom);
+}
+
+function clausesAuthenticate(clauses: string[], dom: string): boolean {
   let method = '', result = '';
   for (const c of clauses) {
     const mr = c.match(/^(spf|dkim|dmarc)=([a-z]+)\b/);
@@ -101,6 +105,26 @@ export function fromDomainAuthenticated(authResults: unknown, fromEmail: string)
     if (d && aligned(d[1], dom)) return true;
   }
   return false;
+}
+
+// A REPLY TO THE MICROSOFT 365 MAILBOX (19 Oct 2026, marketing + it_engineer, release review of #1524). With the
+// invitation's body link gone, "reply stop" is a stated opt-out, and such a reply reaches resend_inbound through
+// _shared/m365_reply_inbox.ts, never through SES: its headers are Graph's internetMessageHeaders, where Exchange
+// Online Protection's own Authentication-Results is the FIRST instance (headersOf keeps the first; a header the
+// sender wrote sits below the ones the receiving server prepends). EOP writes no authserv-id:
+//   "spf=pass (sender IP is ...) smtp.mailfrom=example.com; dkim=pass (signature was verified) header.d=example.com;
+//    dmarc=pass action=none header.from=example.com;compauth=pass reason=100"
+// fromDomainAuthenticated refused it ("not SES's"), so every M365 "stop" went to review and nothing was suppressed.
+// Only the caller decides that a delivery came over that lane (its email_id carries the m365: prefix, set by our own
+// signed handover); this reads the one EOP verdict with the same clause rules, and fails closed on anything else.
+export function microsoftDomainAuthenticated(authResults: unknown, fromEmail: string): boolean {
+  if (typeof authResults !== 'string') return false;
+  const ar = authResults.trim().toLowerCase();
+  const dom = String(fromEmail || '').trim().toLowerCase().split('@')[1] || '';
+  if (!dom || !ar || ar.startsWith('[') || /[\r\n]/.test(ar) || ar.startsWith('amazonses.com')) return false;
+  const clauses = ar.replace(/\([^()]*\)/g, ' ').split(';').map((c) => c.trim()).filter(Boolean)
+    .map((c) => c.replace(/(?:^|\s)smtp\.mailfrom=([a-z0-9.-]+)/, ' envelope-from=x@$1').trim());
+  return clausesAuthenticate(clauses, dom);
 }
 
 /** Addresses no email may ever suppress: our own domains and the people who run the company. */

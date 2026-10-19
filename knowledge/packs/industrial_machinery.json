@@ -44,6 +44,52 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "industrial_machinery:product-distinctions",
+      "topic": "Industrial machinery: new, used, refurbished and the safety regime",
+      "topic_ar": "الآلات الصناعية: الجديدة والمستعملة والمجددة ونظام السلامة",
+      "kind": "product_distinctions",
+      "body_en": "Industrial machinery bought in the UAE ranges across production lines (plastics extrusion and injection moulding, metal-working, woodworking, printing and converting, textile and garment, concrete block and precast, paper and tissue converting), process equipment (mixers, reactors, tanks, conveyors, crushers), and utilities (chillers, boilers, compressors). The main distinctions: new machines from European, Japanese or Korean makers (highest accuracy, CE-marked to the EU Machinery Directive, longest lead), new Chinese or Indian machines (lower capital cost, wide range, variable after-sales), used or refurbished machines (fast, cheap, with condition and spares risk), and turnkey lines versus single machines. Specify capacity (output per hour, shot weight, clamp tonnage, bed size), power supply (UAE 400 V/3-phase/50 Hz, 230 V single phase), control system (Siemens, Allen-Bradley, Mitsubishi, Fanuc), automation level, tropicalisation for 50 °C ambient, and the safety features (guards, interlocks, emergency stops). CE marking shows conformity with EU safety rules; a buyer who wants it must ask for the Declaration of Conformity.",
+      "body_ar": "تشمل الآلات الصناعية المشتراة في الإمارات خطوط الإنتاج (بثق وحقن البلاستيك، تشغيل المعادن، النجارة، الطباعة والتحويل، النسيج والملابس، الطابوق والخرسانة مسبقة الصب، تحويل الورق والمناديل)، ومعدات العمليات (خلاطات، مفاعلات، خزانات، سيور ناقلة، كسارات)، والمرافق (مبردات، غلايات، ضواغط). والفروق الأساسية: آلات جديدة من صانعين أوروبيين أو يابانيين أو كوريين (أعلى دقة، بعلامة CE وفق توجيه الآلات الأوروبي، وأطول مدة توريد)، وآلات جديدة صينية أو هندية (تكلفة رأسمالية أقل، تشكيلة واسعة، خدمة ما بعد البيع متفاوتة)، وآلات مستعملة أو مجددة (سريعة ورخيصة مع مخاطر الحالة وقطع الغيار)، وخطوط تسليم مفتاح مقابل آلات منفردة. حدّد الطاقة (الإنتاج بالساعة، وزن الحقنة، قوة الإغلاق، مقاس الطاولة)، والتغذية الكهربائية (في الإمارات 400 فولت ثلاثي الطور 50 هرتز، و230 فولت أحادي)، ونظام التحكم (Siemens، Allen-Bradley، Mitsubishi، Fanuc)، ومستوى الأتمتة، والتهيئة للحرارة المحيطة 50 درجة، وخصائص السلامة (الحواجز، الأقفال البينية، أزرار الطوارئ). وتدل علامة CE على المطابقة لقواعد السلامة الأوروبية، ومن يريدها يطلب إعلان المطابقة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Machinery_Directive"
+      ],
+      "confidence": "low",
+      "as_of": "2026-10-19",
+      "source_note": "Pages opened 2026-10-19: the EU Machinery Directive and CE marking provisions; the page does not name EN ISO 12100 -> partly confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "industrial_machinery:lead-times",
+      "topic": "Industrial machinery & plant equipment - typical lead times in the UAE",
+      "topic_ar": "الآلات الصناعية ومعدات المصانع: المدد المعتادة للتوريد والتنفيذ في الإمارات",
+      "kind": "lead_time",
+      "body_en": "Standard machines held by UAE dealers: ex-stock to 2 weeks. New Chinese or Indian machines built to order: 6-12 weeks production plus 3-5 weeks sea freight to Jebel Ali. European and Japanese machines: 3-9 months. Complete lines: 6-12 months including factory acceptance testing (FAT), shipping, installation and site acceptance (SAT). Used machines: 2-8 weeks including inspection, dismantling and shipping. Foundations, power upgrades (DEWA/ADDC load approval) and civil defence approvals for boilers and pressure vessels add time on site.",
+      "body_ar": "الآلات القياسية لدى الوكلاء في الإمارات: متوفرة حتى أسبوعين. الآلات الجديدة الصينية أو الهندية المصنّعة بالطلب: 6-12 أسبوعاً للإنتاج و3-5 أسابيع شحن بحري إلى جبل علي. الآلات الأوروبية واليابانية: 3-9 أشهر. الخطوط الكاملة: 6-12 شهراً شاملة اختبار القبول في المصنع والشحن والتركيب واختبار القبول في الموقع. الآلات المستعملة: 2-8 أسابيع شاملة الفحص والفك والشحن. وتضيف القواعد الخرسانية ورفع القدرة الكهربائية (موافقة الأحمال من هيئة الكهرباء) وموافقات الدفاع المدني للغلايات وأوعية الضغط وقتاً في الموقع.",
+      "sources": [],
+      "confidence": "low",
+      "as_of": "2026-10-19",
+      "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "industrial_machinery:quotation-requirements",
+      "topic": "Industrial machinery & plant equipment - what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الآلات الصناعية ومعدات المصانع: ما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "body_en": "A supplier needs from the buyer: the product and the required output, raw material, a sample or drawing, space and layout limits, available power and utilities (air, water, gas), the level of automation, any preferred brands for controls and drives, and site conditions. A complete quote states: make, model, country of origin and year (for used machines, hours and a condition report), the technical schedule (capacities, motors in kW, control system), standard accessories and the optional extras priced separately, Incoterm (EXW, FOB, CIF Jebel Ali or DDP site), installation and commissioning, operator training, FAT and SAT, a recommended 2-year spares list, warranty (start trigger and duration), the local service presence, payment milestones (typically advance, against shipping documents, after commissioning), and validity. Red flags: no named make or model, freight and installation left out, a voltage or frequency not matching UAE supply, or no spares and service commitment.",
+      "body_ar": "يحتاج المورد من المشتري: المنتج والإنتاجية المطلوبة، والمادة الخام، وعينة أو رسماً، وحدود المساحة والتخطيط، والكهرباء والمرافق المتاحة (هواء، ماء، غاز)، ومستوى الأتمتة، والعلامات المفضلة للتحكم والمحركات، وظروف الموقع. ويذكر العرض الكامل: الماركة والموديل وبلد المنشأ والسنة (وللمستعمل ساعات التشغيل وتقرير الحالة)، والجدول الفني (الطاقات، المحركات بالكيلوواط، نظام التحكم)، والملحقات القياسية والإضافات الاختيارية مسعّرة منفصلة، وشرط التسليم (من المصنع، أو FOB، أو CIF جبل علي، أو حتى الموقع)، والتركيب والتشغيل، وتدريب المشغلين، واختبارات القبول في المصنع والموقع، وقائمة قطع غيار موصى بها لسنتين، والضمان (بدايته ومدته)، ووجود الخدمة المحلية، ودفعات السداد (عادة مقدم، ثم مقابل مستندات الشحن، ثم بعد التشغيل)، والصلاحية. علامات التحذير: عدم ذكر الماركة أو الموديل، أو إغفال الشحن والتركيب، أو جهد أو تردد لا يطابق كهرباء الإمارات، أو غياب التزام بقطع الغيار والخدمة.",
+      "sources": [],
+      "confidence": "low",
+      "as_of": "2026-10-19",
+      "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     }
   ],
   "eval": [
@@ -76,6 +122,33 @@
       "industrial_machinery:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "industrial_machinery:product-distinctions",
+        "industrial_machinery:lead-times",
+        "industrial_machinery:quotation-requirements"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Machinery_Directive"
+      ],
+      "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ],
+      "served": [],
+      "stored_not_served": [
+        "industrial_machinery:product-distinctions",
+        "industrial_machinery:lead-times",
+        "industrial_machinery:quotation-requirements"
+      ]
+    }
   }
 }

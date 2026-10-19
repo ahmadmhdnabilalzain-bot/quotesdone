@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "electrical_wholesale:product-distinctions",
+      "topic": "Electrical supplies: protection devices, distribution and wiring accessories",
+      "topic_ar": "المستلزمات الكهربائية: أجهزة الحماية والتوزيع وملحقات التمديدات",
+      "kind": "product_distinctions",
+      "body_en": "Electrical wholesale stocks protection devices (MCBs up to about 125 A for final circuits, by curve B, C or D and breaking capacity in kA; MCCBs up to about 1,600 A for distribution, with thermal-magnetic or electronic trip units; air circuit breakers for main incomers; RCDs/RCCBs, which detect earth-leakage imbalance at 30 mA for personal protection or 100-300 mA for fire protection but give no overcurrent protection, and RCBOs combining both), distribution boards and panels, contactors, overload relays and motor starters, changeover switches and isolators, surge protection devices, energy meters, wiring accessories (switches, sockets, plates by series and finish), containment (PVC and GI conduit, cable trays, trunking, ladders), cable glands and lugs, earthing materials, lighting and lamps, and tools and testers. The breaking capacity must be at least the prospective short-circuit current at the point of installation, and devices must be selected so they discriminate (the nearest device trips first). Projects buy against an approved-makes list and need datasheets, test certificates and conformity; counterfeit breakers are a known risk, so traceable distributor supply matters.",
+      "body_ar": "تخزن تجارة الجملة الكهربائية أجهزة الحماية (القواطع المصغرة حتى نحو 125 أمبير للدوائر النهائية حسب المنحنى B أو C أو D وقدرة القطع بالكيلوأمبير؛ والقواطع المقولبة حتى نحو 1600 أمبير للتوزيع بوحدات فصل حرارية مغناطيسية أو إلكترونية؛ وقواطع الهواء للمداخل الرئيسية؛ وقواطع التيار المتبقي التي تكشف عدم التوازن عند 30 ملي أمبير لحماية الأشخاص أو 100-300 ملي أمبير للحماية من الحريق لكنها لا تحمي من زيادة التيار، والقواطع المركبة التي تجمع الحمايتين)، ولوحات التوزيع، والكونتاكتورات، ومرحلات الحمل الزائد وبادئات المحركات، ومفاتيح التحويل والعزل، وأجهزة الحماية من التيارات العابرة، وعدادات الطاقة، وملحقات التمديدات (المفاتيح، المقابس، الأغطية حسب السلسلة والتشطيب)، والحوامل (المواسير البلاستيكية والمجلفنة، صواني الكابلات، المجاري، السلالم)، وجلب الكابلات والأطراف، ومواد التأريض، والإنارة والمصابيح، والأدوات وأجهزة الفحص. ويجب أن تساوي قدرة القطع تيار القصر المتوقع عند نقطة التركيب على الأقل، وأن تُختار الأجهزة بحيث تتمايز (يفصل الجهاز الأقرب أولاً). وتشتري المشاريع وفق قائمة الصانعين المعتمدين وتحتاج النشرات الفنية وشهادات الاختبار والمطابقة؛ والقواطع المقلدة خطر معروف، لذلك يهم التوريد من موزع يمكن تتبعه.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Circuit_breaker"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: MCB up to 125 A, MCCB up to 1,600 A, air circuit breakers, RCD detecting imbalance without overcurrent protection, breaking capacity -> confirmed."
+    },
+    {
+      "id": "electrical_wholesale:lead-times-and-quoting",
+      "topic": "Electrical supplies (wholesale) - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المستلزمات الكهربائية بالجملة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock items: same day to 3 days; panels built to order 2-6 weeks; large MCCBs and ACBs 2-8 weeks. A supplier needs the BOQ or list with ratings (poles, current, curve, kA, sensitivity), approved makes, quantities and delivery. A quote states make and part number per line, ratings, origin, availability, datasheets and certificates, delivery and validity.",
+      "body_ar": "الأصناف المتوفرة: في نفس اليوم حتى 3 أيام؛ واللوحات المصنعة بالطلب 2-6 أسابيع؛ والقواطع المقولبة الكبيرة وقواطع الهواء 2-8 أسابيع. ويحتاج المورد جدول الكميات أو القائمة مع التصنيفات (الأقطاب، التيار، المنحنى، الكيلوأمبير، الحساسية)، والصانعين المعتمدين، والكميات، والتسليم. ويذكر العرض الماركة ورقم القطعة لكل بند والتصنيفات والمنشأ والتوفر والنشرات والشهادات والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains MCB B/C/D trip curves; missing: MCB curve selection for motor loads). electrical_wholesale:mcb-trip-curves-motor-loads was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from electrical_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Does an RCCB protect a circuit from overload, or do I still need an MCB?",
+      "q_ar": "هل قاطع التيار المتبقي يحمي الدائرة من الحمل الزائد، ولا لازم قاطع مصغر بعد؟",
+      "expected_entry_ids": [
+        "electrical_wholesale:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "electrical_wholesale:mcb-trip-curves-motor-loads"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "electrical_wholesale:product-distinctions"
+      ],
+      "stored_not_served": [
+        "electrical_wholesale:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Circuit_breaker"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

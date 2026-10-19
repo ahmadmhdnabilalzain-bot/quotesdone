@@ -1,3 +1,0 @@
-Committed, applied at merge (apply at merge, never before). Data only: adds the 90-day stage to the trade
-licence and TDRA NOL rows of public.it_expiry and writes four compliance rows to public.company_calendar.
-When applied, delete this note and append the file to the end of scripts/sql/MANIFEST.txt. Seat: accountant.

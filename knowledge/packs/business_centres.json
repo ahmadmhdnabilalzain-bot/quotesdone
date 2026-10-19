@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "business_centres:product-distinctions",
+      "topic": "Workspace options: hot desk, dedicated desk, private office and virtual office",
+      "topic_ar": "خيارات مساحة العمل: المكتب المرن والمكتب المخصص والمكتب الخاص والمكتب الافتراضي",
+      "kind": "product_distinctions",
+      "body_en": "Flexible workspace comes as a hot desk (any free desk in a shared area, cheapest, no storage), a dedicated desk (your own desk in the shared area), a private serviced office (lockable room for a team, furnished, with reception, internet, cleaning and utilities in one monthly fee), a managed office (a whole floor fitted out to the client's design and run by the operator), meeting rooms and event space by the hour or day, and a virtual office (a business address, mail handling and call answering without a desk, sometimes with meeting-room credits). Business centres may also provide the registered address or tenancy contract used for a trade licence, secretarial and PRO support, and printing. What separates offers: the term and notice period (monthly rolling versus 6-12 month commitments), what is included versus charged (meeting-room hours, printing, parking, after-hours air-conditioning, phone lines), the internet speed and IT security, the number of seats the space truly fits, access hours, and whether the address and contract are accepted for licensing and visas.",
+      "body_ar": "تأتي مساحات العمل المرنة كمكتب مرن (أي مكتب شاغر في منطقة مشتركة، الأرخص، بلا تخزين)، أو مكتب مخصص (مكتبك الخاص في المنطقة المشتركة)، أو مكتب خاص مخدوم (غرفة تقفل لفريق، مفروشة، مع استقبال وإنترنت ونظافة ومرافق برسوم شهرية واحدة)، أو مكتب مُدار (طابق كامل مجهز بتصميم العميل ويديره المشغل)، أو قاعات اجتماعات ومساحات فعاليات بالساعة أو اليوم، أو مكتب افتراضي (عنوان تجاري واستلام البريد والرد على المكالمات دون مكتب، أحياناً مع رصيد لقاعات الاجتماعات). وقد توفر مراكز الأعمال أيضاً العنوان المسجل أو عقد الإيجار المستخدم للرخصة التجارية، ودعم السكرتارية والمعاملات الحكومية، والطباعة. وما يميز العروض: المدة وفترة الإشعار (شهري متجدد مقابل التزام 6-12 شهراً)، والمشمول مقابل المدفوع (ساعات قاعات الاجتماعات، الطباعة، المواقف، التكييف بعد الدوام، خطوط الهاتف)، وسرعة الإنترنت وأمن تقنية المعلومات، وعدد المقاعد الذي تستوعبه المساحة فعلاً، وساعات الدخول، وقبول العنوان والعقد للترخيص والتأشيرات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Coworking"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: coworking memberships with desks and private offices for companies and individuals -> confirmed."
+    },
+    {
+      "id": "business_centres:lead-times-and-quoting",
+      "topic": "Business centres, coworking & virtual offices - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "مراكز الأعمال ومساحات العمل المشتركة والمكاتب الافتراضية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Desks and serviced offices are usually available within days; managed offices 2-4 months for fit-out. An operator needs the team size and growth, the term, the location, the use of the address for licensing, and the services wanted. A quote states the space and seats, the monthly fee and what it includes, extras, deposit, term and notice, licence and visa support, and validity.",
+      "body_ar": "المكاتب والمكاتب المخدومة متاحة عادة خلال أيام؛ والمكاتب المُدارة 2-4 أشهر للتجهيز. ويحتاج المشغل حجم الفريق ونموه، والمدة، والموقع، واستخدام العنوان للترخيص، والخدمات المطلوبة. ويذكر العرض المساحة والمقاعد، والرسوم الشهرية ومشمولاتها، والإضافات، والتأمين، والمدة والإشعار، ودعم الرخصة والتأشيرات، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (the standards entry states the sources set no business-centre rule; nothing on Ejari eligibility of flexi-desks or visa quotas). business_centres:flexi-desk-tenancy-and-visa-quota was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from business_centres.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is a virtual office enough for a new trading company, or do we need a real desk?",
+      "q_ar": "هل المكتب الافتراضي يكفي لشركة تجارية جديدة، ولا نحتاج مكتب فعلي؟",
+      "expected_entry_ids": [
+        "business_centres:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "business_centres:flexi-desk-tenancy-and-visa-quota"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "business_centres:product-distinctions"
+      ],
+      "stored_not_served": [
+        "business_centres:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Coworking"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

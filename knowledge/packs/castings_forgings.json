@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "castings_forgings:product-distinctions",
+      "topic": "Castings versus forgings, and the main process routes",
+      "topic_ar": "المسبوكات مقابل المطروقات والطرق الرئيسية للتصنيع",
+      "kind": "product_distinctions",
+      "body_en": "Casting pours molten metal into a mould and suits complex shapes, internal passages and large parts: sand casting (grey and ductile iron, steel, bronze; low tooling cost, rougher finish), investment or lost-wax casting (precise, fine detail in steel and stainless), die casting (high-volume aluminium and zinc), centrifugal casting (pipes, rings, bushings) and shell moulding. Forging shapes metal by compression, giving continuous grain flow and better strength, toughness and fatigue resistance, with forgings around 20% better strength-to-weight than cast or machined parts: open-die forging (simple shapes, shafts, large rings, small quantities) and closed-die or impression-die forging (near-net shapes in volume, with flash trimmed), plus seamless rolled rings. Pressure-retaining and critical parts (valve bodies, flanges, fittings, lifting gear, oilfield components) are bought to material standards (for example ASTM A105, A182, A216, A350, A536) with heat treatment, mechanical tests, NDT (UT, MT, RT) and mill certificates to EN 10204 3.1 or 3.2. Choice depends on geometry, load, quantity, tooling cost and lead time.",
+      "body_ar": "يصب السباكة المعدن المصهور في قالب وتناسب الأشكال المعقدة والممرات الداخلية والقطع الكبيرة: السباكة الرملية (الحديد الرمادي والمرن، والفولاذ، والبرونز؛ تكلفة قوالب منخفضة وسطح أخشن)، والسباكة الدقيقة بالشمع المفقود (دقيقة وتفاصيل ناعمة للفولاذ والستانلس)، والسباكة بالقوالب المعدنية (كميات كبيرة من الألمنيوم والزنك)، والسباكة بالطرد المركزي (الأنابيب، الحلقات، الجلب)، والقوالب القشرية. أما الطرق فيشكل المعدن بالضغط، فيعطي اتجاه حبيبات متصلاً وقوة ومتانة ومقاومة للكلل أفضل، والمطروقات أفضل بنحو 20% في نسبة القوة إلى الوزن من القطع المسبوكة أو المشغولة: الطرق المفتوح (أشكال بسيطة، أعمدة، حلقات كبيرة، كميات قليلة) والطرق المغلق أو بالقوالب (أشكال قريبة من النهائية بكميات كبيرة مع قص الزوائد)، إضافة إلى الحلقات الملفوفة غير الملحومة. والقطع الحاملة للضغط والحرجة (أجسام الصمامات، الفلنجات، الوصلات، معدات الرفع، مكونات حقول النفط) تُشترى وفق مواصفات المواد (مثل ASTM A105 وA182 وA216 وA350 وA536) مع المعالجة الحرارية والاختبارات الميكانيكية والفحص غير الإتلافي وشهادات المصنع وفق EN 10204 3.1 أو 3.2. ويعتمد الاختيار على الشكل والحمل والكمية وتكلفة القوالب ومدة التوريد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Forging"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: forgings about 20% higher strength-to-weight than cast or machined parts; open-die versus closed-die (impression-die) forging with flash -> confirmed."
+    },
+    {
+      "id": "castings_forgings:lead-times-and-quoting",
+      "topic": "Castings & forgings - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المسبوكات والمطروقات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Pattern or die making: 2-8 weeks; first articles then production 4-12 weeks; imported large castings and forgings 8-20 weeks. A foundry or forge needs the drawing, material grade, quantity and annual volume, heat treatment, machining extent, tests and NDT, certification level, and inspection. A quote states the process, tooling cost and ownership, unit price basis at quantity, material and tests, machining, certificates, lead time for samples and production, and validity.",
+      "body_ar": "صنع النموذج أو القالب: 2-8 أسابيع؛ والعينات الأولى ثم الإنتاج 4-12 أسبوعاً؛ والمسبوكات والمطروقات الكبيرة المستوردة 8-20 أسبوعاً. ويحتاج المسبك أو المطرقة الرسم، ودرجة المادة، والكمية والحجم السنوي، والمعالجة الحرارية، ومدى التشغيل، والاختبارات والفحص غير الإتلافي، ومستوى الشهادة، والفحص. ويذكر العرض العملية، وتكلفة القوالب وملكيتها، وأساس سعر الوحدة عند الكمية، والمادة والاختبارات، والتشغيل، والشهادات، ومدة العينات والإنتاج، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (no entry covers EN 124 load classes (D400 for carriageways); checklist and standards are generic). castings_forgings:en-124-load-classes was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from castings_forgings.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "For a lifting hook, should we use a forged or a cast part?",
+      "q_ar": "لخطاف رفع، نستخدم قطعة مطروقة ولا مسبوكة؟",
+      "expected_entry_ids": [
+        "castings_forgings:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "castings_forgings:en-124-load-classes"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "castings_forgings:product-distinctions"
+      ],
+      "stored_not_served": [
+        "castings_forgings:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Forging"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
