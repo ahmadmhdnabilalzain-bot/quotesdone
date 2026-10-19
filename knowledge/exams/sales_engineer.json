@@ -48,7 +48,7 @@
         "sales_engineer:reading-drawings"
       ],
       "expected_facts": [
-        "PDF or CAD (DWG/DXF) only"
+        "DWG/DXF"
       ]
     },
     {
