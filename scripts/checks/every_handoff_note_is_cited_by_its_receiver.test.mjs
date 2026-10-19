@@ -18,9 +18,12 @@ import { fileURLToPath } from 'node:url';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const s = readFileSync(join(REPO, 'scripts/sql/every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql'), 'utf8');
+// fn_seat_handoff_act has one owner (handoff_kinds_are_data.test.mjs), so its citing body is read from there.
+const owner = readFileSync(join(REPO, 'scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql'), 'utf8');
 const body = (fn) => {
-  const m = s.match(new RegExp(`create or replace function public\\.${fn}\\([\\s\\S]*?\\$(fn|function)\\$;`, 'i'));
-  assert.ok(m, `${fn} is not defined in the file`);
+  const re = new RegExp(`create or replace function public\\.${fn}\\([\\s\\S]*?\\$(fn|function)\\$;`, 'i');
+  const m = s.match(re) ?? owner.match(re);
+  assert.ok(m, `${fn} is not defined in the file or its owner`);
   return m[0];
 };
 const FOUR = ['context', 'decision', 'open_asks', 'deadline'];
@@ -75,6 +78,6 @@ test('the note is redacted and contact keys are not facts', () => {
   // UAE local forms (05x xxx xxxx, 04 xxx xxxx) as well as + and 00 (review of fd5ee1a)
   assert.ok(body('fn_handoff_redact').includes(String.raw`'\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]'`), 'local UAE numbers are not redacted');
   for (const sig of ['fn_handoff_redact(jsonb)', 'trg_handoff_carries_its_note()', 'fn_seat_handoff_act(bigint)', 'fn_seat_handoff_complete(bigint, jsonb)']) {
-    assert.ok(s.includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), `${sig} is not revoked`);
+    assert.ok((s + owner).includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), `${sig} is not revoked`);
   }
 });
