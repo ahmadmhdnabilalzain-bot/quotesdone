@@ -47,7 +47,6 @@ if (!Number.isFinite(CAP_USD) || CAP_USD <= 0 || CAP_USD > 15) { console.error('
 const AED_PER_USD = 3.6725;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
-const COMPANY_BRIEF = readFileSync(join(REPO, 'knowledge', 'brief', 'company.md'), 'utf8');   // the S24 judge's platform facts
 const OUT = val('--out') || process.env.QD_STAGE2_OUT || 'C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10';
 process.env.QD_FIXTURES = '1';
 
@@ -91,7 +90,7 @@ export const SCENARIOS = [
   { key: 'S26', title: 'Real-browser walk (#1270, Playwright on the live site) for this run\'s identities while the window is open: portal tabs EN + AR, uploads, request creation, quote viewing, Stripe TEST reveal, the your-data page, supplier registration with licence upload', calls: [['visitor_chat', 4, 3000, 500], ['inquiry_qualification_conversation', 8, 3000, 500]] },
   { key: 'S17', title: 'Marketing seat: blog draft -> CEO review -> founder FYI, social plan. Saved to the Desktop, NEVER published or posted', calls: [['marketing_article_draft', 1, 6000, 3000], ['ceo_article_review', 1, 6000, 1000], ['marketing_plan', 1, 4000, 2000]] },
   { key: 'S23', title: 'Dropbox: every document of the run filed in its owner\'s ONE folder (supplier licence/profile, customer details, signed terms, inquiry files), each backup record verified by size and content hash, the listing matches the records', calls: [] },
-  { key: 'S24', title: 'AI answers judged by a model of ANOTHER family (chat, intake, comparison), and 0 messages from the run reached a real person on any channel', calls: [['ceo__internal_judgement', 6, 4000, 400], ['internal_judgement', 2, 8000, 400]] },
+  { key: 'S24', title: 'AI answers saved for the Claude agent to grade (chat, intake, comparison; no paid judge), and 0 messages from the run reached a real person on any channel', calls: [] },
 ];
 
 const log = (...a) => console.log(...a);
@@ -1032,7 +1031,6 @@ async function realRun(pre) {
       A('an Arabic customer receives Arabic, including an Arabic reveal_receipt', arReveal.length > 0 && arN.length > 0
         && arN.every((x) => /[؀-ۿ]{3,}/.test(`${x.subject || ''} ${x.body || x.html || ''}`)),
         `${arN.length} notices to Arabic customers, ${arReveal.length} reveal_receipt (${[...new Set(arN.map((x) => x.type))].join(',') || 'none'})`);
-      const fam = (m) => String(m || '').split('/')[0];
       const samples = (fx.chats || []).map((c) => ({ what: `${c.who} chat (${c.lang})`, q: c.msg, a: String(c.reply?.reply || c.reply?.answer || c.reply?.text || ''), producer: (c.route || '').split(' ').map((x) => x.split(':')[1]).filter(Boolean)[0] || 'openai/gpt-6-luna', lang: c.lang }));
       const alu = Object.values(fx.inq).find((x) => x.trade === 'aluminium');
       if (alu) {
@@ -1042,23 +1040,11 @@ async function realRun(pre) {
         const quotes = await read(`select q.quote_amount::float a, l.company_name s, q.price_ex_vat::float ex_vat, q.validity, q.warranty, q.lead_time, q.payment_terms, q.exclusions, q.terms_spec, (select jsonb_agg(to_jsonb(li) - 'quote_id') from public.quote_items li where li.quote_id::text = q.id::text) lines from public.quotes q join public.leads l on l.id=q.supplier_id where q.inquiry_id=${q(alu.id)} and q.status <> 'draft' order by 1`);
         samples.push({ what: 'comparison report (EN)', q: `Compare these quotes for aluminium works, cheapest first. These are the stored quotes the report was built from (supplier names may appear masked in the report); anything in the report that these rows support is NOT invented: ${JSON.stringify(quotes)}`, a: txt.slice(0, 6000), producer: 'anthropic/claude-opus-5.5', lang: 'en' });
       }
-      const judged = [];
-      for (const s of samples) {
-        const task_class = fam(s.producer) === 'anthropic' ? 'internal_judgement' : 'ceo__internal_judgement';
-        const w0 = await costWatermark();
-        const r = await call('ai_gateway', null, { __secret: (await read(`select value from public.app_secrets where key='cred_fn_ai'`))[0]?.value, fn: 'stage2_quality_judge', task_class, subject: { email: fx.customers[0].email }, max_tokens: 400,
-          messages: [{ role: 'system', content: 'You are a strict quality reviewer for QuotesDone, a UAE procurement marketplace (customers post requests, verified suppliers quote, the customer pays 3% of the chosen supplier’s final quoted price after any discount, excluding VAT (ruling 1208; e.g. 3% of AED 1,700 = AED 51), no cap, to reveal that supplier; no card fee and no VAT is added on top of that 3% (QuotesDone is not VAT-registered); a supplier’s own discount and VAT are shown exactly as the supplier quoted them (ruling 1207); a customer finds quotes under My requests (طلباتي) then the request; a supplier revises a quote from the job in the supplier portal (Inquiries received, the job, then send the revised quotation: "Send your quotation to the sales engineer", "Or type it into the quote form", "Attach a revised file", "Submit to Job <n>"), and a new submission replaces the earlier one until the customer chooses; when signed in, the assistant may name the user’s own requests and quotes, which are facts of the account, not inventions; the customer portal has the sections My requests, Messages, Projects and Documents). '
-                     // THE JUDGE READS THE SAME BRIEF THE AGENTS ANSWER FROM (19 Oct 2026, run 5). With only the summary above, true rules
-                     // were scored as invented: SA§11's "begin responding within 5 working days of the Reveal", the top-3 comparison report,
-                     // "quotes realistically arrive in 3-5 working days". A fact the brief states is not an invention.
-                     + 'The COMPANY BRIEF below is the authoritative list of platform facts; anything it states is NOT invented.\n\n' + COMPANY_BRIEF + '\n\nJudge the ANSWER to the QUESTION: factually consistent with that, answers what was asked, in the language asked (' + s.lang + '), professional, no invented facts, no promises the platform cannot keep. Reply ONLY JSON {"score":1-5,"issues":["..."]}.' },
-                     { role: 'user', content: `QUESTION / INPUT:\n${s.q}\n\nANSWER:\n${s.a || '(empty)'}` }] }, 120000);
-        const used = (await costSince(w0)).map((x) => x.model_used).filter(Boolean);
-        let v = null; try { v = JSON.parse(String(r.json?.content || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch { v = null; }
-        judged.push({ ...s, judge_task: task_class, judge_model: used.join(','), verdict: v, raw: r.json?.content || r.text });
-        A(`${s.what}: judged ${v?.score ?? '?'}/5 by ${used.join(',') || 'NO MODEL'} (producer ${s.producer})`, !!s.a && v && v.score >= 4 && used.length > 0 && used.every((m) => fam(m) !== fam(s.producer)), JSON.stringify(v?.issues || r.json || r.text).slice(0, 300), used.join(','));
-      }
-      save('chats/quality_judgement.json', judged);
+      // FOUNDER COST RULE (19 Oct 2026, run 6): every grade, judgement and inspection is done by the Claude agent running
+      // the test, never by a paid model through OpenRouter. The run saves each answer with its question and producer;
+      // the agent grades chats/for_claude_grading.json after the run and records the verdict in the report.
+      for (const s of samples) A(`${s.what}: answer saved for the Claude agent's grade (producer ${s.producer})`, !!s.a, s.a ? s.a.slice(0, 200) : 'EMPTY ANSWER', s.producer);
+      save('chats/for_claude_grading.json', samples);
       // 0 messages to real people: every notification the run caused, on any channel, went to a demo address or was captured.
       const ids = [...run.ids.inquiries, ...run.ids.quotes].map(q).join(',') || 'null';
       const leads = [...run.ids.leads].map(Number).join(',') || 'null';
