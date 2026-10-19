@@ -16,6 +16,8 @@ export function ContactInner() {
     const F = document.getElementById('cform') as HTMLFormElement | null;
     const Mg = document.getElementById('cmsg') as HTMLElement | null;
     if (!F) return;
+    // Mirrors CONTACT_MESSAGE_MAX in supabase/functions/_shared/contact_limits.ts (the server enforces it).
+    const Ta = F.querySelector<HTMLTextAreaElement>('textarea[name="message"]'); if (Ta) Ta.maxLength = 4000;
     // The form's markup comes from marketing.json, so the busy state is applied imperatively here.
     // It follows the same rules as ui/busy.tsx: the submit is locked from the first millisecond
     // (this form had NO guard at all — a second press filed a second ticket), the ring appears
@@ -53,7 +55,7 @@ export function ContactInner() {
           }
           F.reset();
         }
-        else { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = ar ? 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.' : ((j && j.error) || 'Could not send. Please email management@quotesdone.com.'); } }
+        else { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = ar ? ((j && j.error_ar) || 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.') : ((j && j.error) || 'Could not send. Please email management@quotesdone.com.'); } }
       } catch (_e) { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = locale === 'ar' ? 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.' : 'Could not send. Please email management@quotesdone.com.'; } }
       finally { setBusy(false); }
     };
