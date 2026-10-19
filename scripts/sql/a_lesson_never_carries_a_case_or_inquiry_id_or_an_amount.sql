@@ -211,7 +211,8 @@ grant execute on function public.fn_lesson_reapproval_overdue_act(bigint) to ser
 -- (its handler re-asks, under the cap) instead of a second being opened, so lapses never multiply. A NEW handoff is
 -- opened only when none is open, keyed by the version and a generation number (never deduplicated into a closed one).
 -- NOTHING here may abort the statement that fired it: fn_reason_held_expire and the replay update every surface's rows
--- in one statement, so an error is caught, logged as an it_engineer finding, and the update goes on.
+-- in one statement, so an error is caught, logged as an it_engineer finding, and the update goes on. If even the finding
+-- cannot be written, that error propagates: a notice would print nowhere (a_probe_that_cannot_report_is_not_a_probe).
 create or replace function public.fn_lesson_reapproval_lapse_escalates()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_k bigint; v_open bigint; v_gen int;
@@ -244,8 +245,6 @@ begin
         jsonb_build_object('held_id', new.id, 'status', new.status, 'knowledge_id', new.subject->>'knowledge_id',
                            'error', left(sqlerrm, 500), 'owner_seat', 'it_engineer'),
         '{}'::text[], array['why the handoff could not be opened or acted on'], 'fn_lesson_reapproval_lapse_escalates');
-    exception when others then
-      raise warning 'lesson re-approval escalation for held % failed and could not be logged: %', new.id, sqlerrm;
     end;
   end;
   return null;
