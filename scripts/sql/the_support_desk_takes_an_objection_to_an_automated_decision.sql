@@ -92,6 +92,42 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/the_support_desk_takes_an_objection_to_an_automated_decision.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
+-- ── Founder ruling, ledger 1264: ONLY an explicit request that a person review an automated decision reaches the
+-- founder. email_triage files it as its own category (automated_decision_person_review_request); the case is
+-- handled as an objection like any other, and this one request also goes to the founder through fn_notify_founder.
+insert into public.support_signal_category (source, value, category) values
+  ('email_category', 'automated_decision_person_review_request', 'automated_decision_objection')
+on conflict (source, value) do update set category = excluded.category;
+
+insert into public.founder_mail_policy (kind, allowed_to_email, reason, owner_role)
+values ('automated_decision_person_review_request', true,
+        'a customer or supplier explicitly asks that a person review an automated decision (PDPL Art. 18; ledger 1264); only this request reaches the founder',
+        'customer_support')
+on conflict (kind) do update set allowed_to_email = excluded.allowed_to_email, reason = excluded.reason,
+  owner_role = excluded.owner_role, updated_at = now();
+
+create or replace function public.fn_support_person_review_request_to_founder()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+begin
+  if new.triaged_at is null or old.triaged_at is not null
+     or new.ai_category is distinct from 'automated_decision_person_review_request' then return null; end if;
+  perform public.fn_notify_founder(
+    p_event => 'Request for a person to review an automated decision',
+    p_detail => 'From: ' || coalesce(new.from_email, '(unknown)') || E'\nSummary: ' || coalesce(new.ai_summary, '')
+             || E'\ninbound_messages id ' || new.id::text || '. The sender was told Customer Support replies within 10 working days.',
+    p_level => 'high', p_kind => 'automated_decision_person_review_request',
+    p_dedupe_key => 'automated_decision_person_review_request:' || new.id::text, p_owner_agent => 'customer_support');
+  return null;
+exception when others then
+  raise warning 'fn_support_person_review_request_to_founder: inbound_messages % not sent: %', new.id, sqlerrm;
+  return null;
+end $fn$;
+revoke execute on function public.fn_support_person_review_request_to_founder() from public, anon, authenticated;
+
+drop trigger if exists z52_support_person_review_request_to_founder on public.inbound_messages;
+create trigger z52_support_person_review_request_to_founder after update of triaged_at on public.inbound_messages
+  for each row execute function public.fn_support_person_review_request_to_founder();
+
 -- PROBE: reads only; no row is written.
 select case
   when not exists (select 1 from public.support_signal_category where source = 'email_category' and value = 'automated_decision_objection'
@@ -101,4 +137,8 @@ select case
   when not exists (select 1 from public.seat_handoff_kind where type = 'support.decision_objection' and from_seat = 'customer_support'
                     and to_seat = 'ceo' and not originator_closes) then 'PROBE FAILED: handoff kind not registered'
   when not public.fn_seat_duty_routine_exists('fn_customer_support_escalates_decision_objections') then 'PROBE FAILED: duty routine missing'
+  when not exists (select 1 from public.founder_mail_policy where kind = 'automated_decision_person_review_request' and allowed_to_email)
+    then 'PROBE FAILED: the request kind is not allowed in founder_mail_policy'
+  when not exists (select 1 from pg_trigger where tgname = 'z52_support_person_review_request_to_founder' and not tgisinternal)
+    then 'PROBE FAILED: no trigger sends the request to the founder'
   else 'PROBE OK' end as verdict;

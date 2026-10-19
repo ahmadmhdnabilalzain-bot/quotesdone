@@ -18,10 +18,24 @@ test('the classifier output decides, not word matching', () => {
   assert.doesNotMatch(sql, /\b(ilike|similar to)\b|~\*/i);
 });
 
-test('support first, then the ceo seat; never the founder', () => {
+test('support first, then the ceo seat; never the founder for a plain objection', () => {
   assert.match(sql, /\('automated_decision_objection', 'customer_support', true,/);
   assert.match(sql, /fn_seat_handoff\('customer_support', 'ceo', 'support\.decision_objection'/);
-  assert.doesNotMatch(sql, /fn_notify_founder|founder_mail_policy/);
+  const esc = sql.slice(sql.indexOf('function public.fn_customer_support_escalates_decision_objections'), sql.indexOf('function public.fn_ceo_takes_decision_objection'));
+  assert.doesNotMatch(esc, /fn_notify_founder/);
+});
+
+test('ledger 1264: only an explicit request for a person review reaches the founder, by its own registered kind', () => {
+  assert.match(triage, /\|automated_decision_person_review_request\|/);
+  const calls = sql.match(/fn_notify_founder\(/g) || [];
+  assert.equal(calls.length, 1, 'exactly one founder notification path');
+  assert.match(sql, /p_kind => 'automated_decision_person_review_request'/);
+  assert.match(sql, /new\.ai_category is distinct from 'automated_decision_person_review_request' then return null/);
+  assert.match(sql, /\('automated_decision_person_review_request', true,/);
+  assert.match(sql, /\('email_category', 'automated_decision_person_review_request', 'automated_decision_objection'\)/);
+  assert.ok(sql.includes('revoke execute on function public.fn_support_person_review_request_to_founder() from public, anon, authenticated'));
+  // the acknowledgement is the objection one: it promises Customer Support, never a review by a person
+  assert.match(triage, /for either of those two categories the reply is exactly/);
 });
 
 test('no seat closes it by silence', () => {
