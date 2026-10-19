@@ -1272,7 +1272,9 @@ async function handleInbound(req: Request): Promise<Response> {
     try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
-    if (enabled && !sent) {
+    // A captured fixture send (isDemoPhone: never handed to Twilio) is not a failed delivery: the QA channels run of 19 Oct
+    // 2026 filed support_ceo_report 13811/13812/13887/13890 'A WhatsApp reply could not be delivered' for ZZ DEMO numbers.
+    if (enabled && !sent && !isDemoPhone(From)) {
       // A FAILED SEND IS THE CEO'S, not the founder's. It was a founder_alerts row and an email
       // to him; under constitution 1.2 neither agent sends him unsolicited operational alerts.
       try {
