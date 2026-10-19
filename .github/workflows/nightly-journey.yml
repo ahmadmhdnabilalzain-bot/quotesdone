@@ -60,6 +60,8 @@ jobs:
           fi
       - if: steps.gate.outputs.skip != '1'
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - if: steps.gate.outputs.skip != '1'
         uses: actions/setup-node@v7
         with:
